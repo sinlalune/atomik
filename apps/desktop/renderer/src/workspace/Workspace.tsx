@@ -12,6 +12,7 @@ import { VaultView } from '../vault/VaultView'
 import {
   activateTab,
   addTab,
+  clampTreeWidth,
   closeTab,
   makeTab,
   setFocus,
@@ -56,6 +57,13 @@ function TabContent({
     dispatch((state) =>
       updateTabParams(state, tab.id, { tree: treeCollapsed ? 'on' : 'off' })
     )
+  const treeWidthParam = tab.params?.['treeW']
+  const treeWidth =
+    treeWidthParam === undefined
+      ? undefined
+      : clampTreeWidth(Number(treeWidthParam))
+  const onTreeResize = (px: number): void =>
+    dispatch((state) => updateTabParams(state, tab.id, { treeW: String(px) }))
   const mode = tab.params?.['mode'] === 'edit' ? ('edit' as const) : ('read' as const)
   const onModeChange = (next: 'read' | 'edit'): void =>
     dispatch((state) => updateTabParams(state, tab.id, { mode: next }))
@@ -70,6 +78,8 @@ function TabContent({
         }
         treeCollapsed={treeCollapsed}
         onTreeToggle={onTreeToggle}
+        treeWidth={treeWidth}
+        onTreeResize={onTreeResize}
       />
     )
   }
@@ -82,6 +92,8 @@ function TabContent({
         }
         treeCollapsed={treeCollapsed}
         onTreeToggle={onTreeToggle}
+        treeWidth={treeWidth}
+        onTreeResize={onTreeResize}
         mode={mode}
         onModeChange={onModeChange}
       />
@@ -105,6 +117,8 @@ function TabContent({
         }
         treeCollapsed={treeCollapsed}
         onTreeToggle={onTreeToggle}
+        treeWidth={treeWidth}
+        onTreeResize={onTreeResize}
         mode={mode}
         onModeChange={onModeChange}
       />

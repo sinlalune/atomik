@@ -69,6 +69,14 @@ function mapNode(node: PaneNode, fn: (node: PaneNode) => PaneNode): PaneNode {
 const clampFraction = (fraction: number): number =>
   Math.min(0.9, Math.max(0.1, fraction))
 
+/** Tree panel width bounds (px). Wide enough to read, never most of the
+ *  window; NaN (absent/garbled param) falls back to the default. */
+export const TREE_WIDTH_DEFAULT = 240
+export function clampTreeWidth(px: number): number {
+  if (!Number.isFinite(px)) return TREE_WIDTH_DEFAULT
+  return Math.round(Math.min(520, Math.max(160, px)))
+}
+
 /** Splits a leaf: it keeps its tabs as the first child; the second child is
  *  a fresh empty leaf, which takes focus. */
 export function splitPane(

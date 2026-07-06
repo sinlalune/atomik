@@ -6,6 +6,7 @@ import type {
 } from '../../../shared/ipc-contract'
 import { EditorPane } from '../editor/EditorPane'
 import { SidebarToggleIcon } from '../icons'
+import { TreeResizeHandle } from '../TreeResizeHandle'
 import { noteDisplayName } from './scope'
 import { useVaultNote } from './useVaultNote'
 
@@ -19,6 +20,9 @@ export type VaultViewProps = {
   /** Tree panel visibility, persisted per tab by the workspace. */
   treeCollapsed?: boolean
   onTreeToggle?: () => void
+  /** Tree panel width (px), persisted per tab; undefined = CSS default. */
+  treeWidth?: number
+  onTreeResize?: (px: number) => void
   /** Read (rendered) or edit (CodeMirror), persisted per tab. */
   mode?: NoteViewMode
   onModeChange?: (mode: NoteViewMode) => void
@@ -69,6 +73,8 @@ export function VaultView({
   onNoteOpened,
   treeCollapsed,
   onTreeToggle,
+  treeWidth,
+  onTreeResize,
   mode = 'read',
   onModeChange
 }: VaultViewProps): React.JSX.Element {
@@ -190,9 +196,17 @@ export function VaultView({
   }
 
   return (
-    <div className={`vault${treeCollapsed ? ' no-tree' : ''}`}>
+    <div
+      className={`vault${treeCollapsed ? ' no-tree' : ''}`}
+      style={
+        !treeCollapsed && treeWidth !== undefined
+          ? { gridTemplateColumns: `${treeWidth}px 1fr` }
+          : undefined
+      }
+    >
       {!treeCollapsed && (
       <nav className="vault-tree" aria-label="Vault tree">
+        {onTreeResize && <TreeResizeHandle onResize={onTreeResize} />}
         <div className="tree-bar">
           <div className="vault-head" title={info.root}>
             {info.name}

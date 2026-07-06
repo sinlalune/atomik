@@ -3,6 +3,7 @@ import type { PaneNode, WorkspaceState } from '../shared/ipc-contract'
 import {
   activateTab,
   addTab,
+  clampTreeWidth,
   closeTab,
   createDefaultState,
   firstLeafId,
@@ -10,6 +11,7 @@ import {
   setFocus,
   setFraction,
   splitPane,
+  TREE_WIDTH_DEFAULT,
   updateTabParams
 } from '../renderer/src/workspace/model'
 
@@ -34,6 +36,19 @@ describe('createDefaultState', () => {
     expect(leaves(deep.root)[0]!.tabs[0]!.params).toEqual({
       docPath: 'bedrock/00_00-orientation.md'
     })
+  })
+})
+
+describe('clampTreeWidth', () => {
+  it('clamps to the readable band and rounds', () => {
+    expect(clampTreeWidth(80)).toBe(160)
+    expect(clampTreeWidth(301.6)).toBe(302)
+    expect(clampTreeWidth(9000)).toBe(520)
+  })
+
+  it('falls back to the default on non-finite input (garbled param)', () => {
+    expect(clampTreeWidth(Number('not-a-width'))).toBe(TREE_WIDTH_DEFAULT)
+    expect(clampTreeWidth(Infinity)).toBe(TREE_WIDTH_DEFAULT)
   })
 })
 

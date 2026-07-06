@@ -2,6 +2,7 @@ import MarkdownIt from 'markdown-it'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { DevDocFile, DevDocsGroup } from '../../../shared/ipc-contract'
 import { SidebarToggleIcon } from '../icons'
+import { TreeResizeHandle } from '../TreeResizeHandle'
 import { resolveRelativePath, stripFrontmatter } from './markdown'
 
 const DEFAULT_DOC = 'index.md'
@@ -14,6 +15,9 @@ export type DevDocsProps = {
   /** Tree panel visibility, persisted per tab by the workspace. */
   treeCollapsed?: boolean
   onTreeToggle?: () => void
+  /** Tree panel width (px), persisted per tab; undefined = CSS default. */
+  treeWidth?: number
+  onTreeResize?: (px: number) => void
 }
 
 const svgDataUri = (content: string): string =>
@@ -62,7 +66,9 @@ export function DevDocs({
   docPath,
   onDocOpened,
   treeCollapsed,
-  onTreeToggle
+  onTreeToggle,
+  treeWidth,
+  onTreeResize
 }: DevDocsProps): React.JSX.Element {
   const [groups, setGroups] = useState<DevDocsGroup[]>([])
   const [doc, setDoc] = useState<DevDocFile | null>(null)
@@ -138,9 +144,17 @@ export function DevDocs({
     doc !== null && (doc.kind !== 'markdown' ? true : html !== null)
 
   return (
-    <div className={`devdocs${treeCollapsed ? ' no-tree' : ''}`}>
+    <div
+      className={`devdocs${treeCollapsed ? ' no-tree' : ''}`}
+      style={
+        !treeCollapsed && treeWidth !== undefined
+          ? { gridTemplateColumns: `${treeWidth}px 1fr` }
+          : undefined
+      }
+    >
       {!treeCollapsed && (
         <nav className="devdocs-tree" aria-label="Documentation tree">
+          {onTreeResize && <TreeResizeHandle onResize={onTreeResize} />}
           <div className="tree-bar">
             <span className="tree-bar-label">documentation</span>
             {onTreeToggle && (

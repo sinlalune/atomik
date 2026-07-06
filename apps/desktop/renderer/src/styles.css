@@ -318,6 +318,28 @@ body {
   position: relative;
 }
 
+/* tree panel resize ------------------------------------------------------- */
+
+.devdocs-tree,
+.vault-tree {
+  position: relative;
+}
+
+.tree-resize {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  width: 5px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 3;
+}
+
+.tree-resize:hover,
+.tree-resize:active {
+  background: var(--accent);
+}
+
 /* Collapsed state: the same quiet icon, floating — no pill background;
    hover matches the expanded toggle (owner feedback on MVP-001). */
 .tree-show {
