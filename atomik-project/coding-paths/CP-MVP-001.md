@@ -7,7 +7,7 @@ timestamp: 2026-07-05T00:00:00Z
 atomik:
   id: CP-MVP-001
   status: active
-  current_step: S02
+  current_step: S03
   base_commit: 4675233
 ---
 
@@ -77,7 +77,7 @@ Completeness rule (35): every bedrock page 00–35 appears below at least once �
 # Execution
 
 - [x] S01 Reconcile the pre-seeded dual-plane layout against ADR-009 (the bundle ships repo-ready); `git init` and first commit if not already done; record `base_commit` in the frontmatter and ledger.
-- [ ] S02 Electron + Vite + React + TypeScript with secure main/preload/renderer split; narrow typed contextBridge API only.
+- [x] S02 Electron + Vite + React + TypeScript with secure main/preload/renderer split; narrow typed contextBridge API only.
 - [ ] S03 Dev Docs tab rendering this documentation bundle from files.
 - [ ] S04 Tabs and split panes; workspace state in `.atomik/`, disposable.
 - [ ] S05 Vault open/read/write for Markdown with atomic, Git-friendly writes; restart survives; no rewrite-on-open.
@@ -95,10 +95,14 @@ Child paths (spawned from here, not widened into here): CP-MVP-002 capture sourc
 
 ```text
 base commit : 4675233 (4675233be87ce6d43f06ed1a7ae7de77a28042f1, branch master — v0.6 seed)
-changed     : none — S01 work unit committed (this ledger + atomik-project/log.md)
-tests       : none exist yet (toolchain arrives with S02)
-next action : S02 — Electron + Vite + React + TypeScript scaffold, secure main/preload/renderer split
-blockers    : none
+changed     : none — S02 work unit committed (apps/desktop shell + tests, root workspace
+              manifest, module note docs/modules/atomik-desktop.md, ledger, both logs)
+tests       : 9 passing / 3 vitest suites (security contract, preload surface, app-info);
+              typecheck clean (node+web); build clean; smoke launch ATOMIK_SMOKE_OK on WSLg
+next action : S03 — Dev Docs tab rendering this documentation bundle from files
+              (conditional trigger: read 16_16-dev-docs-tab.md before starting)
+blockers    : none (dev-env note: Electron needs libnss3/libnspr4/libasound2t64;
+              extracted root-lessly for the smoke run — apt install recommended for daily dev)
 ```
 
 # Blockers

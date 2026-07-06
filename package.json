@@ -1,0 +1,19 @@
+{
+  "name": "atomik",
+  "private": true,
+  "description": "Atomik — local-first AI learning workbench. Dual-plane repository (ADR-009): code plane + atomik-project/ knowledge/execution plane. Agents start at AGENTS.md.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm --workspace atomik-desktop run dev",
+    "build": "npm --workspace atomik-desktop run build",
+    "test": "npm --workspace atomik-desktop run test",
+    "typecheck": "npm --workspace atomik-desktop run typecheck",
+    "smoke": "npm --workspace atomik-desktop run smoke"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
