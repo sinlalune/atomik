@@ -97,6 +97,17 @@ scripts/styles/images from these origins". Ours is `'self'` plus data URIs
 for images — so even a successful HTML injection cannot pull a script from
 the network. Belt and suspenders.
 
+**The window chrome (added on MVP-001 feedback).** The window is created
+with `frame: false` — no native title bar; the app draws its own top row
+(the tabstrip). Two mechanisms replace what the OS frame used to do:
+CSS **drag regions** (`-webkit-app-region: drag` on the strip, `no-drag`
+on every button) let you move the window, and the `window-control` IPC
+channel carries exactly four validated verbs (minimize / toggle-maximize /
+close / get-state) from the custom buttons to the real `BrowserWindow`.
+Note the pattern: even "obviously harmless" window buttons go through a
+named, allowlist-validated channel — the trust boundary has no casual
+exceptions.
+
 ## 4. IPC — how the page asks for things
 
 IPC (inter-process communication) is how the dining room orders from the
@@ -298,6 +309,8 @@ trust boundary line where trust changes; everything crossing is checked
 least privilege        each part gets only the power it needs
 path traversal ../ escape attack on file paths built from input
 CSP            browser allowlist for where a page may load content from
+drag region    CSS-declared area of a chromeless window that moves it
+chromeless     frame:false window; the app draws title bar + controls
 HMR            hot module replacement — live UI updates in dev
 bundle         the single optimized JS file a build produces
 monorepo       several packages, one repository, one toolchain

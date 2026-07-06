@@ -19,14 +19,22 @@ timestamp: 2026-07-06T00:00:00Z
   `electron-preload/`, `renderer/` — directory names per 14).
 - The security posture of that window: `SECURE_WEB_PREFERENCES`
   (`electron-main/security.ts`) pins 13's required settings; the renderer's
-  CSP lives in `renderer/index.html`.
+  CSP lives in `renderer/index.html`. The window is chromeless
+  (`frame: false`, MVP-001 owner feedback): the tabstrip is the top row
+  and the drag surface (`-webkit-app-region`), and min/max/close run
+  through the allowlist-validated `window-control` channel, rendered in
+  the top-right pane's strip (`topRightLeafId` picks the seat). Known
+  limit: OS-shortcut maximize isn't observed live; the icon refreshes on
+  the next control click.
 - The renderer-facing API surface: `shared/ipc-contract.ts` is the single
   source of truth (`ATOMIK_API_KEY`, `ATOMIK_CHANNELS`, `AtomikApi`,
-  `DOCUMENTED_PRELOAD_SURFACE`). Twelve channels exist today: docs tree +
-  doc read, workspace state read/write (fixed path, validated payload),
-  the vault family — `open-vault` (native dialog in main; user-mediated
-  capability), `get-vault`, `list-vault-files`, `read-note`, `write-note`,
-  `create-note` — and the project pair `list-projects` / `create-project`.
+  `DOCUMENTED_PRELOAD_SURFACE`). Thirteen channels exist today:
+  `window-control` (frame verbs for the chromeless window, allowlist-
+  validated), docs tree + doc read, workspace state read/write (fixed
+  path, validated payload), the vault family — `open-vault` (native
+  dialog in main; user-mediated capability), `get-vault`,
+  `list-vault-files`, `read-note`, `write-note`, `create-note` — and the
+  project pair `list-projects` / `create-project`.
   The S02 shell-identity channel (`get-app-info`) and its ShellHome card
   were removed on MVP-001 owner feedback ("shell relict"): saved 'home'
   tabs migrate to vault tabs at load (`migrateRetiredViews`).

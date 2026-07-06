@@ -5,6 +5,7 @@ import {
   type AiOperation,
   type AiTraceDecision,
   type AtomikApi,
+  type WindowControlAction,
   type WorkspaceState
 } from '../shared/ipc-contract'
 
@@ -16,6 +17,8 @@ import {
  * 13_13-electron-security.md §IPC first (CP-MVP-001 conditional trigger).
  */
 const api: AtomikApi = {
+  windowControl: (action: WindowControlAction) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.windowControl, action),
   listDevDocs: () => ipcRenderer.invoke(ATOMIK_CHANNELS.listDevDocs),
   readDevDoc: (relPath: string) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.readDevDoc, relPath),

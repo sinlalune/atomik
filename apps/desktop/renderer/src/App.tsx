@@ -1,18 +1,14 @@
 import { Workspace } from './workspace/Workspace'
 
 /**
- * The shell frame: brand header + the pane workspace (03). Tabs and panes
- * replaced the interim two-view switch at S04.
+ * The shell frame is the workspace itself (owner feedback on MVP-001:
+ * minimalist chrome — no brand row, no native title bar; the tabstrip is
+ * the window's top row and hosts the window controls).
  */
 export function App(): React.JSX.Element {
   return (
     <div className="app">
-      <header className="app-header">
-        <span className="brand">atomik</span>
-      </header>
-      <div className="app-body">
-        <Workspace />
-      </div>
+      <Workspace />
     </div>
   )
 }

@@ -57,6 +57,7 @@ describe('preload surface (13 §IPC rule)', () => {
 
   it('routes every method through its named channel', async () => {
     const api = exposedApi() as {
+      windowControl: (action: string) => Promise<unknown>
       listDevDocs: () => Promise<unknown>
       readDevDoc: (relPath: string) => Promise<unknown>
       readWorkspaceState: () => Promise<unknown>
@@ -79,6 +80,12 @@ describe('preload surface (13 §IPC rule)', () => {
       getAiTraceSummary: (bundleId: string) => Promise<unknown>
     }
     invoke.mockResolvedValue({})
+
+    await api.windowControl('get-state')
+    expect(invoke).toHaveBeenLastCalledWith(
+      ATOMIK_CHANNELS.windowControl,
+      'get-state'
+    )
 
     await api.listDevDocs()
     expect(invoke).toHaveBeenLastCalledWith(ATOMIK_CHANNELS.listDevDocs)

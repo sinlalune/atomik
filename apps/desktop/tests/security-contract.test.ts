@@ -30,6 +30,10 @@ describe('secure webPreferences (13 §Required settings)', () => {
       preload: '/fixture/preload.js'
     })
   })
+
+  it('the trusted window is chromeless (custom frame, drag regions in CSS)', () => {
+    expect(buildMainWindowOptions('/fixture/preload.js').frame).toBe(false)
+  })
 })
 
 describe('contract file linkage', () => {

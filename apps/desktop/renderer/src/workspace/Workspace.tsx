@@ -8,6 +8,7 @@ import { DevDocs } from '../dev-docs/DevDocs'
 import { ProjectView } from '../project/ProjectView'
 import { noteDisplayName } from '../vault/scope'
 import { VaultView } from '../vault/VaultView'
+import { WindowControls } from '../WindowControls'
 import {
   activateTab,
   addTab,
@@ -17,6 +18,7 @@ import {
   setFocus,
   setFraction,
   splitPane,
+  topRightLeafId,
   updateTabParams
 } from './model'
 import { useWorkspace } from './store'
@@ -127,10 +129,13 @@ function TabContent({
 function LeafPane({
   node,
   focused,
+  controlsPaneId,
   dispatch
 }: {
   node: Extract<PaneNode, { kind: 'leaf' }>
   focused: boolean
+  /** Leaf whose tabstrip hosts the window controls (top-right corner). */
+  controlsPaneId: string
   dispatch: Dispatch
 }): React.JSX.Element {
   const active = node.tabs.find((tab) => tab.id === node.activeTabId)
@@ -210,6 +215,7 @@ function LeafPane({
             ⬓
           </button>
         </span>
+        {node.id === controlsPaneId && <WindowControls />}
       </header>
       <div className="pane-content">
         {active ? (
@@ -227,10 +233,12 @@ function LeafPane({
 function SplitPaneView({
   node,
   focusedPaneId,
+  controlsPaneId,
   dispatch
 }: {
   node: Extract<PaneNode, { kind: 'split' }>
   focusedPaneId: string
+  controlsPaneId: string
   dispatch: Dispatch
 }): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -266,6 +274,7 @@ function SplitPaneView({
         <PaneNodeView
           node={node.first}
           focusedPaneId={focusedPaneId}
+          controlsPaneId={controlsPaneId}
           dispatch={dispatch}
         />
       </div>
@@ -279,6 +288,7 @@ function SplitPaneView({
         <PaneNodeView
           node={node.second}
           focusedPaneId={focusedPaneId}
+          controlsPaneId={controlsPaneId}
           dispatch={dispatch}
         />
       </div>
@@ -289,16 +299,28 @@ function SplitPaneView({
 function PaneNodeView({
   node,
   focusedPaneId,
+  controlsPaneId,
   dispatch
 }: {
   node: PaneNode
   focusedPaneId: string
+  controlsPaneId: string
   dispatch: Dispatch
 }): React.JSX.Element {
   return node.kind === 'leaf' ? (
-    <LeafPane node={node} focused={node.id === focusedPaneId} dispatch={dispatch} />
+    <LeafPane
+      node={node}
+      focused={node.id === focusedPaneId}
+      controlsPaneId={controlsPaneId}
+      dispatch={dispatch}
+    />
   ) : (
-    <SplitPaneView node={node} focusedPaneId={focusedPaneId} dispatch={dispatch} />
+    <SplitPaneView
+      node={node}
+      focusedPaneId={focusedPaneId}
+      controlsPaneId={controlsPaneId}
+      dispatch={dispatch}
+    />
   )
 }
 
@@ -318,6 +340,7 @@ export function Workspace(): React.JSX.Element {
       <PaneNodeView
         node={state.root}
         focusedPaneId={state.focusedPaneId}
+        controlsPaneId={topRightLeafId(state.root)}
         dispatch={dispatch}
       />
     </div>

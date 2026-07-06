@@ -139,7 +139,31 @@ function registerVaultHandlers(stateDir: string): void {
 /** S09 ledger; constructed at startup with the resolved state dir. */
 let traces: ActionTraceLedger
 
+/** Frame verbs for the chromeless window (13 §IPC: allowlist-validated;
+ *  scoped to the calling window — only the trusted UI has this preload). */
+const WINDOW_CONTROL_ACTIONS = new Set([
+  'minimize',
+  'toggle-maximize',
+  'close',
+  'get-state'
+])
+
 function registerIpcHandlers(docsRoot: string, stateDir: string): void {
+  ipcMain.handle(ATOMIK_CHANNELS.windowControl, (event, action: unknown) => {
+    if (typeof action !== 'string' || !WINDOW_CONTROL_ACTIONS.has(action)) {
+      throw new Error('window-control: rejected action')
+    }
+    const window = BrowserWindow.fromWebContents(event.sender)
+    if (!window) return { maximized: false }
+    if (action === 'minimize') window.minimize()
+    else if (action === 'toggle-maximize') {
+      if (window.isMaximized()) window.unmaximize()
+      else window.maximize()
+    } else if (action === 'close') window.close()
+    return {
+      maximized: window.isDestroyed() ? false : window.isMaximized()
+    }
+  })
   ipcMain.handle(ATOMIK_CHANNELS.listDevDocs, () => listDevDocs(docsRoot))
   ipcMain.handle(ATOMIK_CHANNELS.readDevDoc, (_event, relPath: unknown) =>
     readDevDoc(docsRoot, relPath)

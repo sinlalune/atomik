@@ -21,6 +21,11 @@ export const SECURE_WEB_PREFERENCES = {
  * Options for the trusted Atomik UI window. The preload path is the only
  * per-call input; everything security-relevant comes from
  * SECURE_WEB_PREFERENCES.
+ *
+ * frame:false — the window is chromeless (owner feedback on MVP-001:
+ * tabs ARE the top row; no native title bar, no brand row). The renderer
+ * supplies drag regions via CSS and frame verbs through the validated
+ * `window-control` channel; nothing about the trust boundary changes.
  */
 export function buildMainWindowOptions(
   preloadPath: string
@@ -29,6 +34,7 @@ export function buildMainWindowOptions(
     width: 1200,
     height: 800,
     show: false,
+    frame: false,
     autoHideMenuBar: true,
     webPreferences: {
       ...SECURE_WEB_PREFERENCES,

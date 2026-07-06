@@ -12,6 +12,7 @@ import {
   setFocus,
   setFraction,
   splitPane,
+  topRightLeafId,
   TREE_WIDTH_DEFAULT,
   updateTabParams
 } from '../renderer/src/workspace/model'
@@ -37,6 +38,27 @@ describe('createDefaultState', () => {
     expect(leaves(deep.root)[0]!.tabs[0]!.params).toEqual({
       docPath: 'bedrock/00_00-orientation.md'
     })
+  })
+})
+
+describe('topRightLeafId (window-controls seat)', () => {
+  it('is the root leaf when there is no split', () => {
+    const state = createDefaultState('')
+    expect(topRightLeafId(state.root)).toBe(firstLeafId(state.root))
+  })
+
+  it('follows the second child of horizontal splits and the first of vertical', () => {
+    const state = createDefaultState('')
+    const rootLeaf = firstLeafId(state.root)
+    const horizontal = splitPane(state, rootLeaf, 'horizontal')
+    // horizontal: [ original | new empty ] -> the new right pane
+    expect(topRightLeafId(horizontal.root)).toBe(horizontal.focusedPaneId)
+
+    // stack the right pane: [ original | (right-top / right-bottom) ]
+    const stacked = splitPane(horizontal, horizontal.focusedPaneId, 'vertical')
+    const rightSplit = (stacked.root as Extract<PaneNode, { kind: 'split' }>)
+      .second as Extract<PaneNode, { kind: 'split' }>
+    expect(topRightLeafId(stacked.root)).toBe(firstLeafId(rightSplit.first))
   })
 })
 

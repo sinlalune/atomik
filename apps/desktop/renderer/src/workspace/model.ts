@@ -80,6 +80,16 @@ export function firstLeafId(node: PaneNode): string {
   return node.kind === 'leaf' ? node.id : firstLeafId(node.first)
 }
 
+/** The leaf whose tabstrip occupies the window's top-right corner — the
+ *  seat of the window controls in the chromeless frame. Horizontal splits
+ *  put it in the second child, vertical splits in the first. */
+export function topRightLeafId(node: PaneNode): string {
+  if (node.kind === 'leaf') return node.id
+  return topRightLeafId(
+    node.direction === 'horizontal' ? node.second : node.first
+  )
+}
+
 function mapNode(node: PaneNode, fn: (node: PaneNode) => PaneNode): PaneNode {
   const mapped = fn(node)
   if (mapped !== node) return mapped
