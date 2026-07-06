@@ -363,14 +363,22 @@ body {
   flex: 1;
   min-width: 0;
   font: inherit;
+  font-size: 0.82rem;
   color: inherit;
   background: var(--code-bg);
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 0.2rem 0.5rem;
+  padding: 0.3rem 0.55rem;
+}
+
+.vault-new input:focus {
+  outline: 1px solid var(--accent);
+  border-color: var(--accent);
 }
 
 .vault-new button {
+  flex: none;
+  width: auto;
   font: inherit;
   color: inherit;
   background: var(--code-bg);
@@ -393,7 +401,9 @@ body {
   user-select: none;
 }
 
-.vault-tree button {
+/* tree items only — form buttons (.vault-new, .project-shortcuts) must
+   not inherit the full-width block layout */
+.vault-tree li > button {
   font: inherit;
   color: inherit;
   background: none;
@@ -409,11 +419,11 @@ body {
   text-overflow: ellipsis;
 }
 
-.vault-tree button:hover {
+.vault-tree li > button:hover {
   background: var(--code-bg);
 }
 
-.vault-tree button.active {
+.vault-tree li > button.active {
   background: var(--code-bg);
   color: var(--accent);
   font-weight: 600;
@@ -456,6 +466,8 @@ body {
 }
 
 .project-shortcuts button {
+  flex: none;
+  width: auto;
   font: inherit;
   color: var(--muted);
   background: var(--code-bg);

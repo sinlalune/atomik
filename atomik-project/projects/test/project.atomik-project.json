@@ -1,0 +1,12 @@
+{
+  "id": "project_test",
+  "type": "atomik-project",
+  "title": "Test",
+  "createdAt": "2026-07-06T09:40:27.582Z",
+  "resources": [],
+  "pinned": [],
+  "okf": {
+    "compatible": true,
+    "profile": "atomik-okf-v0.1"
+  }
+}
