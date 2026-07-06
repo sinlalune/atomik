@@ -121,6 +121,15 @@ describe('readNote', () => {
     // listed (it looks like a note) but unreadable: it resolves outside
     expect(() => readNote(vault, 'leak.md')).toThrow()
   })
+
+  it('a missing note reads as a human message, never a raw ENOENT', () => {
+    // vault-switch reality: a tab restored against a different vault asks
+    // for a path that only existed in the previous one
+    expect(() => readNote(vault, 'brainstorm/gone.md')).toThrow(
+      /note not found in this vault — brainstorm\/gone\.md/
+    )
+    expect(() => readNote(vault, 'brainstorm/gone.md')).not.toThrow(/ENOENT/)
+  })
 })
 
 describe('writeNote (edit semantics, byte-exact, atomic)', () => {

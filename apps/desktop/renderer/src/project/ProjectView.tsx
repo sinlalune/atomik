@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type {
   ProjectInfo,
   VaultFolder,
@@ -141,10 +141,18 @@ export function ProjectView({
 
   // Vault switch: drop previous-vault state and re-list; a projectPath
   // that does not exist in the new vault falls back to the picker below.
+  // The restore guard is POISONED with the stale target so the old
+  // vault's note is never re-requested against the new root.
+  const staleTargetRef = useRef<string | null>(null)
+  useEffect(() => {
+    staleTargetRef.current =
+      notePath ?? (projectPath ? `${projectPath}/index.md` : null)
+  }, [notePath, projectPath])
   useEffect(() => {
     return window.atomik.onVaultChanged((info) => {
       setVault(info)
       reset()
+      lastRequested.current = staleTargetRef.current
       setEditorDirty(false)
       setSearchQuery('')
       setProjects([])
@@ -152,7 +160,7 @@ export function ProjectView({
       setTree(null)
       if (info) void refresh()
     })
-  }, [refresh, reset, setSearchQuery])
+  }, [lastRequested, refresh, reset, setSearchQuery])
 
   /** The tab's bundle, only while it exists in the OPEN vault. */
   const projectExists =
@@ -343,7 +351,7 @@ export function ProjectView({
         {error && !note ? (
           <p className="error note-scroll">{error}</p>
         ) : !note ? (
-          <p className="pane-placeholder">loading…</p>
+          <p className="pane-placeholder">select a note to read or edit</p>
         ) : mode !== 'read' ? (
           <EditorPane
             key={note.relPath}

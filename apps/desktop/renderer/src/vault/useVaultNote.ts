@@ -43,7 +43,14 @@ export function useVaultNote(onNoteOpened?: (relPath: string) => void): {
           setError(null)
           onNoteOpened?.(file.relPath)
         },
-        (reason: unknown) => setError(String(reason))
+        (reason: unknown) =>
+          // strip Electron's IPC wrapper; the main-side message suffices
+          setError(
+            String(reason).replace(
+              /^Error: Error invoking remote method '[^']+': Error: /,
+              ''
+            )
+          )
       )
     },
     [onNoteOpened]

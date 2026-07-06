@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { VaultFolder, VaultInfo } from '../../../shared/ipc-contract'
 import { EditorPane } from '../editor/EditorPane'
 import { ModeSwitch } from '../editor/ModeSwitch'
@@ -111,18 +111,25 @@ export function VaultView({
   }, [refreshTree, setError])
 
   // Vault switch (this view or any other): drop everything held from the
-  // previous vault. Stale tab params stay harmless — a dead notePath
-  // shows the picker prompt instead of the note.
+  // previous vault, and POISON the restore guard with the stale tab
+  // param — the note the tab remembers belongs to the old vault and
+  // must not be re-requested against the new one (a same-named path
+  // would be a coincidence, not the same note).
+  const notePathRef = useRef(notePath)
+  useEffect(() => {
+    notePathRef.current = notePath
+  }, [notePath])
   useEffect(() => {
     return window.atomik.onVaultChanged((vault) => {
       setInfo(vault)
       reset()
+      lastRequested.current = notePathRef.current ?? null
       setEditorDirty(false)
       setSearchQuery('')
       setTree(null)
       if (vault) void refreshTree()
     })
-  }, [refreshTree, reset, setSearchQuery])
+  }, [lastRequested, refreshTree, reset, setSearchQuery])
 
   useEffect(() => {
     if (info === 'loading' || info === null) return

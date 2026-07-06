@@ -115,6 +115,12 @@ export function listVaultFiles(vaultRoot: string): VaultFolder {
 export function readNote(vaultRoot: string, relPath: unknown): VaultNoteFile {
   const abs = resolveNotePath(vaultRoot, relPath)
   if (!abs) throw new Error('vault: rejected path')
+  // Before realpath containment (which throws raw ENOENT mid-walk): a
+  // missing note is an ordinary situation — e.g. a tab restored against
+  // a different vault — and deserves a human message.
+  if (!existsSync(abs)) {
+    throw new Error(`vault: note not found in this vault — ${relPath as string}`)
+  }
   assertInsideVault(vaultRoot, abs)
   const stat = statSync(abs)
   if (stat.size > MAX_NOTE_BYTES) throw new Error('vault: note too large')
