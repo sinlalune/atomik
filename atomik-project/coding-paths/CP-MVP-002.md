@@ -7,8 +7,8 @@ timestamp: 2026-07-06T00:00:00Z
 atomik:
   id: CP-MVP-002
   status: active
-  current_step: S01
-  base_commit: null        # set at S01
+  current_step: S02
+  base_commit: 09e2e38
 ---
 
 # Goal
@@ -115,7 +115,7 @@ once. 13 appears twice by design (Required + re-read triggers).
 
 # Execution
 
-- [ ] S01 Reconcile ledger vs repository reality; record `base_commit`.
+- [x] S01 Reconcile ledger vs repository reality; record `base_commit`.
 - [ ] S02 Capture session server in main: local HTTP endpoint bound to the
       LAN interface, one-time expiring session tokens, size + MIME
       allowlists, temporary inbox under the state dir (NOT the vault);
@@ -144,11 +144,15 @@ Child path spawned from here, not widened into here: CP-MVP-003 PDF (M4).
 # Current checkpoint
 
 ```text
-base commit : (unset — record at S01)
-changed     : none
-tests       : 98 passing / 16 suites inherited from CP-MVP-001
-next action : S01 — reconcile, record base commit
-blockers    : none
+base commit : 09e2e38 (branch master — CP-MVP-001 close + CP-MVP-002 open)
+changed     : none — S01 work unit committed (this ledger + log.md)
+tests       : 98 passing / 16 suites inherited from CP-MVP-001; typecheck+build clean
+next action : S02 — capture session server in main (local endpoint, one-time
+              expiring tokens, size/MIME limits, temporary inbox under the state
+              dir; typed session channels — re-read 13 §IPC first)
+blockers    : none (note: owner dogfooding files remain untracked by choice —
+              atomik-project/projects/test/*, atomik-project/test/ — keep/clean
+              decision stays with the owner)
 ```
 
 # Blockers
