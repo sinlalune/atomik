@@ -7,6 +7,7 @@
 - Learning layer added on owner feedback: `learning/` (beginner-first notes anchored to real files) with `01-electron-shell-from-zero.md` covering S02–S03; new doc type registered in 17, template added to 24, linked from the module note, surfaced as a Dev Docs group. Module notes state contracts; learning notes teach the stack so the owner can take over.
 - S04: `modules/atomik-desktop.md` gains the workspace layout contracts (pane tree schema, validation caps, atomic persistence, `.atomik/` decision); `learning/02-react-state-panes-and-disposable-persistence.md` teaches stores, immutability, recursion, atomic writes, and debounce from zero.
 - S05: `modules/atomik-desktop.md` gains the vault contracts (channel family, denylist + symlink policy, byte fidelity, edit vs exclusive create, no-rewrite-on-open proof); `learning/03-vault-io-and-file-trust.md` teaches consent dialogs, wx/TOCTOU, and the file-trust promises from zero.
+- S06: `modules/atomik-desktop.md` gains the project-bundle contracts (manifest detection, idempotent ensure, adoption guarantees, the no-`root`-field deviation from 04's example); `learning/04-project-bundles-and-conventions.md` teaches convention-over-configuration, idempotence, and slugs from zero.
 
 ## 2026-07-05
 

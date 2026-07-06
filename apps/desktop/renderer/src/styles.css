@@ -449,6 +449,63 @@ body {
   border-color: var(--accent);
 }
 
+.project-shortcuts {
+  display: flex;
+  gap: 4px;
+  margin: 0 0.4rem 0.5rem;
+}
+
+.project-shortcuts button {
+  font: inherit;
+  color: var(--muted);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.15rem 0.6rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.project-shortcuts button:hover {
+  color: var(--accent);
+}
+
+.project-list {
+  list-style: none;
+  margin: 1rem 0;
+  padding: 0;
+  text-align: left;
+}
+
+.project-list button {
+  font: inherit;
+  color: inherit;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+  margin-bottom: 0.4rem;
+}
+
+.project-list button:hover {
+  border-color: var(--accent);
+}
+
+.project-path {
+  display: block;
+  font-size: 0.72rem;
+  opacity: 0.55;
+  font-family: ui-monospace, 'Cascadia Mono', Menlo, monospace;
+}
+
+.project-create {
+  max-width: 22rem;
+  margin: 0 auto;
+}
+
 /* markdown typography ------------------------------------------------------ */
 
 .markdown-body {

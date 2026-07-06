@@ -68,6 +68,8 @@ describe('preload surface (13 §IPC rule)', () => {
       readNote: (relPath: string) => Promise<unknown>
       writeNote: (relPath: string, content: string) => Promise<unknown>
       createNote: (relPath: string, content?: string) => Promise<unknown>
+      listProjects: () => Promise<unknown>
+      createProject: (relPath: string, title: string) => Promise<unknown>
     }
     invoke.mockResolvedValue({})
 
@@ -120,6 +122,16 @@ describe('preload surface (13 §IPC rule)', () => {
       ATOMIK_CHANNELS.createNote,
       'ideas/new.md',
       '# New\n'
+    )
+
+    await api.listProjects()
+    expect(invoke).toHaveBeenLastCalledWith(ATOMIK_CHANNELS.listProjects)
+
+    await api.createProject('projects/demo', 'Demo')
+    expect(invoke).toHaveBeenLastCalledWith(
+      ATOMIK_CHANNELS.createProject,
+      'projects/demo',
+      'Demo'
     )
   })
 })

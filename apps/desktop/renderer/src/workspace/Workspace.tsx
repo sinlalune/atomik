@@ -5,6 +5,7 @@ import type {
   WorkspaceTab
 } from '../../../shared/ipc-contract'
 import { DevDocs } from '../dev-docs/DevDocs'
+import { ProjectView } from '../project/ProjectView'
 import { ShellHome } from '../ShellHome'
 import { VaultView } from '../vault/VaultView'
 import {
@@ -24,10 +25,14 @@ type Dispatch = (operation: (state: WorkspaceState) => WorkspaceState) => void
 const TAB_LABELS: Record<string, string> = {
   home: 'Shell',
   'dev-docs': 'Dev Docs',
-  vault: 'Vault'
+  vault: 'Vault',
+  project: 'Project'
 }
 
 function tabLabel(tab: WorkspaceTab): string {
+  if (tab.view === 'project' && tab.params?.['projectTitle']) {
+    return tab.params['projectTitle']
+  }
   const pathParam =
     tab.view === 'dev-docs'
       ? tab.params?.['docPath']
@@ -60,6 +65,25 @@ function TabContent({
     return (
       <VaultView
         notePath={tab.params?.['notePath']}
+        onNoteOpened={(relPath) =>
+          dispatch((state) => updateTabParams(state, tab.id, { notePath: relPath }))
+        }
+      />
+    )
+  }
+  if (tab.view === 'project') {
+    return (
+      <ProjectView
+        projectPath={tab.params?.['projectPath']}
+        notePath={tab.params?.['notePath']}
+        onProjectOpened={(project) =>
+          dispatch((state) =>
+            updateTabParams(state, tab.id, {
+              projectPath: project.relPath,
+              projectTitle: project.title
+            })
+          )
+        }
         onNoteOpened={(relPath) =>
           dispatch((state) => updateTabParams(state, tab.id, { notePath: relPath }))
         }
@@ -109,6 +133,15 @@ function LeafPane({
           </span>
         ))}
         <span className="tabstrip-actions">
+          <button
+            type="button"
+            title="New Project tab"
+            onClick={() =>
+              dispatch((state) => addTab(state, node.id, makeTab('project')))
+            }
+          >
+            +project
+          </button>
           <button
             type="button"
             title="New Vault tab"

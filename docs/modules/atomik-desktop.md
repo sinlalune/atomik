@@ -22,11 +22,12 @@ timestamp: 2026-07-06T00:00:00Z
   CSP lives in `renderer/index.html`.
 - The renderer-facing API surface: `shared/ipc-contract.ts` is the single
   source of truth (`ATOMIK_API_KEY`, `ATOMIK_CHANNELS`, `AtomikApi`,
-  `DOCUMENTED_PRELOAD_SURFACE`). Eleven channels exist today: shell
+  `DOCUMENTED_PRELOAD_SURFACE`). Thirteen channels exist today: shell
   identity, docs tree + doc read, workspace state read/write (fixed path,
-  validated payload), and the vault family — `open-vault` (native dialog in
+  validated payload), the vault family — `open-vault` (native dialog in
   main; user-mediated capability), `get-vault`, `list-vault-files`,
-  `read-note`, `write-note`, `create-note`.
+  `read-note`, `write-note`, `create-note` — and the project pair
+  `list-projects` / `create-project`.
 - Vault IO (04/27, S05): `electron-main/vault.ts` (incubating vault-core,
   14) — tree listing (dot-dirs, `.git`, `.atomik`, `node_modules` skipped;
   symlinks not followed), validated vault-relative `.md` paths, byte-exact
@@ -34,6 +35,15 @@ timestamp: 2026-07-06T00:00:00Z
   writes on open. Last vault remembered in `.atomik/local-settings.json`,
   written by main only (no channel). `ATOMIK_VAULT_DIR` overrides for
   tests/smoke/dev.
+- Project bundles (04, S06): `electron-main/project.ts` (incubating
+  project-core, 14) — manifest-detected bundles
+  (`project.atomik-project.json`; scan skips denied dirs and does not
+  descend into projects), `createProject` as idempotent ENSURE (creates
+  only missing manifest/index.md/log.md, `wx`; adoption never touches
+  existing files; manifest identity wins on re-create). Deviation from
+  04's example recorded: no `root` field in the manifest (derivable,
+  staleness-prone). ProjectView scopes the existing vault tree via the
+  pure `findSubtree` helper — reads stay on vault channels.
 - The workspace layout (03): recursive pane tree (leaf tabs / splits with
   draggable fraction), pure operations in `renderer/src/workspace/model.ts`
   (incubating workspace-core, 14), thin zustand store with debounced
@@ -191,7 +201,9 @@ resolution), `workspace-model.test.ts` (splits, collapse rules, focus
 repair, fraction clamping), `workspace-state.test.ts` (atomic roundtrip, no
 temp residue, forgiving reads, payload validation caps), `vault.test.ts`
 (path matrix incl. denylist, tree pruning + symlink policy, byte-exact
-write, wx create, settings memory). The smoke run proves boot + Dev Docs
+write, wx create, settings memory), `project.test.ts` (folder-path matrix,
+slugs, manifest scan incl. no-descend + malformed fallback, idempotent
+ensure, byte-identical adoption), `vault-scope.test.ts` (findSubtree). The smoke run proves boot + Dev Docs
 rendering and reports pane/vault counts; pre-seeded `ATOMIK_STATE_DIR` /
 `ATOMIK_VAULT_DIR` fixtures prove layout restore and, with
 `ATOMIK_SMOKE_VAULT_WRITE=1`, the full renderer→disk write chain (verified
@@ -212,11 +224,13 @@ ATOMIK_SMOKE=1 ATOMIK_SMOKE_DOC=bedrock/22_22-agent-handoff.md \
 
 ## Future extension points
 
-- S06 project bundles: `index.md` / `log.md` conventions and the
-  `.atomik-project.json` manifest (04) as a layer over vault-core — no new
-  write primitives expected.
 - S07 editor (CodeMirror): `mtimeMs` from `readNote` becomes conflict
   detection; explicit save / safe autosave policy; read 11 first (trigger).
+- Vault switching UI (owner-deferred "when necessary"): the channel
+  supports it; the view lacks the affordance, and mounted vault/project
+  views would need invalidation on switch.
+- Manifest `resources`/`pinned` stay empty until real membership needs
+  arrive (S08+ patch destinations; 04).
 - Dev Docs later modes (16): agent/architecture/context/execution views,
   search, packaged-build docs path (docs/ currently resolves relative to
   the repo checkout — packaging must bundle or relocate it).

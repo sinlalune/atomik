@@ -1,11 +1,6 @@
-import MarkdownIt from 'markdown-it'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type {
-  VaultFolder,
-  VaultInfo,
-  VaultNoteFile
-} from '../../../shared/ipc-contract'
-import { resolveRelativePath, stripFrontmatter } from '../dev-docs/markdown'
+import { useCallback, useEffect, useState } from 'react'
+import type { VaultFolder, VaultInfo } from '../../../shared/ipc-contract'
+import { useVaultNote } from './useVaultNote'
 
 export type VaultViewProps = {
   /** Note to show; identical values are ignored (no self-retry on failure). */
@@ -57,12 +52,9 @@ function FolderView({
 export function VaultView({ notePath, onNoteOpened }: VaultViewProps): React.JSX.Element {
   const [info, setInfo] = useState<VaultInfo | null | 'loading'>('loading')
   const [tree, setTree] = useState<VaultFolder | null>(null)
-  const [note, setNote] = useState<VaultNoteFile | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const [draftName, setDraftName] = useState('')
-  const lastRequested = useRef<string | null>(null)
-
-  const md = useMemo(() => new MarkdownIt({ html: false, linkify: false }), [])
+  const { note, html, error, setError, openNote, lastRequested, onContentClick } =
+    useVaultNote(onNoteOpened)
 
   const refreshTree = useCallback(async () => {
     try {
@@ -70,22 +62,7 @@ export function VaultView({ notePath, onNoteOpened }: VaultViewProps): React.JSX
     } catch (reason) {
       setError(String(reason))
     }
-  }, [])
-
-  const openNote = useCallback(
-    (relPath: string) => {
-      lastRequested.current = relPath
-      window.atomik.readNote(relPath).then(
-        (file) => {
-          setNote(file)
-          setError(null)
-          onNoteOpened?.(file.relPath)
-        },
-        (reason: unknown) => setError(String(reason))
-      )
-    },
-    [onNoteOpened]
-  )
+  }, [setError])
 
   useEffect(() => {
     window.atomik.getVault().then(
@@ -98,13 +75,13 @@ export function VaultView({ notePath, onNoteOpened }: VaultViewProps): React.JSX
         setError(String(reason))
       }
     )
-  }, [refreshTree])
+  }, [refreshTree, setError])
 
   useEffect(() => {
     if (info === 'loading' || info === null) return
     if (!notePath || lastRequested.current === notePath) return
     openNote(notePath)
-  }, [notePath, info, openNote])
+  }, [notePath, info, openNote, lastRequested])
 
   const onOpenVault = useCallback(async () => {
     const vault = await window.atomik.openVault()
@@ -126,28 +103,7 @@ export function VaultView({ notePath, onNoteOpened }: VaultViewProps): React.JSX
     } catch (reason) {
       setError(String(reason))
     }
-  }, [draftName, openNote, refreshTree])
-
-  const html = useMemo(
-    () => (note ? md.render(stripFrontmatter(note.content)) : ''),
-    [note, md]
-  )
-
-  const onContentClick = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>) => {
-      const anchor = (event.target as HTMLElement).closest('a')
-      if (!anchor) return
-      const href = anchor.getAttribute('href') ?? ''
-      if (href.startsWith('#')) return
-      event.preventDefault()
-      if (/^(https?:|mailto:)/.test(href)) return
-      if (!note) return
-      const pathPart = decodeURIComponent(href.split('#')[0] ?? '')
-      const rel = resolveRelativePath(note.relPath, pathPart)
-      if (rel && rel.endsWith('.md')) openNote(rel)
-    },
-    [note, openNote]
-  )
+  }, [draftName, openNote, refreshTree, setError])
 
   if (info === 'loading') return <p className="pane-placeholder">loading vault…</p>
 

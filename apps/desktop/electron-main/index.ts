@@ -5,6 +5,7 @@ import { basename, join } from 'node:path'
 import { buildAppInfo } from './app-info'
 import { listDevDocs, readDevDoc, resolveDocsRoot } from './dev-docs'
 import { buildMainWindowOptions } from './security'
+import { createProject, listProjects } from './project'
 import {
   createNote,
   listVaultFiles,
@@ -78,6 +79,14 @@ function registerVaultHandlers(stateDir: string): void {
     ATOMIK_CHANNELS.createNote,
     (_event, relPath: unknown, content: unknown) =>
       createNote(requireVault(), relPath, content)
+  )
+  ipcMain.handle(ATOMIK_CHANNELS.listProjects, () =>
+    listProjects(requireVault())
+  )
+  ipcMain.handle(
+    ATOMIK_CHANNELS.createProject,
+    (_event, relPath: unknown, title: unknown) =>
+      createProject(requireVault(), relPath, title)
   )
 }
 
@@ -179,6 +188,19 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
         })()`
       )) as string
       vaultReport = ` vaultWrite=${outcome}`
+    }
+    // Optional project proof: create + list through the renderer world.
+    if (process.env['ATOMIK_SMOKE_PROJECT'] === '1' && vaultRoot) {
+      const outcome = (await window.webContents.executeJavaScript(
+        `(async () => {
+          try {
+            const project = await window.atomik.createProject('projects/smoke-demo', 'Smoke Demo')
+            const list = await window.atomik.listProjects()
+            return 'ok:' + project.id + ':' + list.length
+          } catch (e) { return 'fail:' + String(e) }
+        })()`
+      )) as string
+      vaultReport += ` project=${outcome}`
     }
     const vaultCount = vaultRoot
       ? ` vault=${listVaultFiles(vaultRoot).notes.length}rootNotes`

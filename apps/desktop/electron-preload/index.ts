@@ -30,7 +30,10 @@ const api: AtomikApi = {
   writeNote: (relPath: string, content: string) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.writeNote, relPath, content),
   createNote: (relPath: string, content?: string) =>
-    ipcRenderer.invoke(ATOMIK_CHANNELS.createNote, relPath, content)
+    ipcRenderer.invoke(ATOMIK_CHANNELS.createNote, relPath, content),
+  listProjects: () => ipcRenderer.invoke(ATOMIK_CHANNELS.listProjects),
+  createProject: (relPath: string, title: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.createProject, relPath, title)
 }
 
 contextBridge.exposeInMainWorld(ATOMIK_API_KEY, api)

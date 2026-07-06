@@ -72,7 +72,7 @@ export function resolveNotePath(
 }
 
 /** After symlink resolution, `abs` must still live inside the real root. */
-function assertInsideVault(vaultRoot: string, abs: string): void {
+export function assertInsideVault(vaultRoot: string, abs: string): void {
   const real = realpathSync(abs)
   const realRoot = realpathSync(vaultRoot)
   const rel = relative(realRoot, real)

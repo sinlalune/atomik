@@ -22,7 +22,9 @@ export const ATOMIK_CHANNELS = {
   listVaultFiles: 'atomik:list-vault-files',
   readNote: 'atomik:read-note',
   writeNote: 'atomik:write-note',
-  createNote: 'atomik:create-note'
+  createNote: 'atomik:create-note',
+  listProjects: 'atomik:list-projects',
+  createProject: 'atomik:create-project'
 } as const
 
 /** Read-only identity of the running shell. No vault paths, no secrets. */
@@ -126,6 +128,19 @@ export type VaultNoteFile = {
   mtimeMs: number
 }
 
+/**
+ * Project bundle (04): a vault folder holding index.md, log.md, and the
+ * `project.atomik-project.json` manifest. Detection is manifest-based;
+ * createProject also ADOPTS an existing folder by creating only the
+ * missing pieces (existing files are never touched).
+ */
+export type ProjectInfo = {
+  /** Vault-relative folder path of the bundle. */
+  relPath: string
+  id: string
+  title: string
+}
+
 /** The complete API the renderer may call. */
 export type AtomikApi = {
   getAppInfo: () => Promise<AppInfo>
@@ -149,6 +164,10 @@ export type AtomikApi = {
   writeNote: (relPath: string, content: string) => Promise<void>
   /** Creates a NEW note (parents made, exclusive — never clobbers). */
   createNote: (relPath: string, content?: string) => Promise<void>
+  /** Project bundles found in the open vault (manifest-detected). */
+  listProjects: () => Promise<ProjectInfo[]>
+  /** Creates or adopts a bundle: writes only the missing pieces. */
+  createProject: (relPath: string, title: string) => Promise<ProjectInfo>
 }
 
 /**
@@ -166,5 +185,7 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'listVaultFiles',
   'readNote',
   'writeNote',
-  'createNote'
+  'createNote',
+  'listProjects',
+  'createProject'
 ] as const satisfies readonly (keyof AtomikApi)[]

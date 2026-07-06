@@ -31,3 +31,6 @@ when the shape changes, not on every diff.
 - [03 — Vault IO: writing knowledge without betraying it](./03-vault-io-and-file-trust.md) —
   native dialogs as consent, edit vs exclusive create (wx/TOCTOU), byte
   fidelity, no-rewrite-on-open. Covers CP-MVP-001 S05.
+- [04 — Project bundles: conventions, manifests, and safe adoption](./04-project-bundles-and-conventions.md) —
+  convention over configuration, idempotent ensure, slugs/NFKD, scoping
+  views without new channels. Covers CP-MVP-001 S06.

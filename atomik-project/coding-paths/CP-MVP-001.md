@@ -7,7 +7,7 @@ timestamp: 2026-07-05T00:00:00Z
 atomik:
   id: CP-MVP-001
   status: active
-  current_step: S06
+  current_step: S07
   base_commit: 4675233
 ---
 
@@ -81,7 +81,7 @@ Completeness rule (35): every bedrock page 00–35 appears below at least once �
 - [x] S03 Dev Docs tab rendering this documentation bundle from files.
 - [x] S04 Tabs and split panes; workspace state in `.atomik/`, disposable.
 - [x] S05 Vault open/read/write for Markdown with atomic, Git-friendly writes; restart survives; no rewrite-on-open.
-- [ ] S06 Project bundle open/create with `index.md`, `log.md`, and manifest conventions.
+- [x] S06 Project bundle open/create with `index.md`, `log.md`, and manifest conventions.
 - [ ] S07 CodeMirror editor + Markdown preview; explicit save or safe autosave.
 - [ ] S08 Selection → AI operation **mock** → structured response bundle → patch preview → accept/edit/reject into file. One accepted operation = one clear diff.
 - [ ] S09 Minimal ActionTrace from the S08 mock: one appended JSON line (location, model/tool id, est/actual tokens when available, latency, external cost, status, outcome, contentRecorded=false) + compact badge.
@@ -95,18 +95,19 @@ Child paths (spawned from here, not widened into here): CP-MVP-002 capture sourc
 
 ```text
 base commit : 4675233 (4675233be87ce6d43f06ed1a7ae7de77a28042f1, branch master — v0.6 seed)
-changed     : none — S05 work unit committed (vault channel family + VaultView,
-              learning note 03, module note, ledger, both logs)
-tests       : 60 passing / 9 vitest suites (adds vault: path matrix + denylist,
-              tree pruning + symlink policy, byte-exact atomic writes, wx create,
-              settings memory; preload surface now 11 methods); typecheck + build
-              clean; e2e proofs on a Git-tracked scratch vault: layout+note restore
-              (screenshot), renderer→disk write chain byte-exact (cmp), one edit =
-              one-file Git diff, create never clobbers, and a write-free open+render
-              leaves git status EMPTY (no-rewrite-on-open)
-next action : S06 — project bundle open/create with index.md, log.md, and manifest
-              conventions (04 §project bundle / manifest; layer over vault-core,
-              no new write primitives expected; re-read 13 §IPC if channels grow)
+changed     : none — S06 work unit committed (project-core + ProjectView, shared
+              useVaultNote/findSubtree extraction, learning note 04, module note,
+              ledger, both logs)
+tests       : 71 passing / 11 vitest suites (adds project: folder-path matrix,
+              slugs/NFKD, manifest scan incl. no-descend + malformed fallback,
+              idempotent ensure with byte-identical adoption; vault-scope; preload
+              surface now 13 methods); typecheck + build clean; e2e on a
+              Git-tracked scratch vault: createProject through the running app
+              (three conventional files, git sees only the untracked folder) and
+              a project tab restored from workspace state (screenshot reviewed)
+next action : S07 — CodeMirror editor + Markdown preview; explicit save or safe
+              autosave (conditional trigger: read 11_11-markdown-page-model.md
+              FIRST; mtimeMs conflict checks; 27 write discipline via writeNote)
 blockers    : none
 ```
 
