@@ -44,7 +44,7 @@ body {
 }
 
 .app-header button,
-.devdocs-tree button {
+.devdocs-tree li > button {
   font: inherit;
   color: inherit;
   background: none;
@@ -55,7 +55,7 @@ body {
 }
 
 .app-header button:hover,
-.devdocs-tree button:hover {
+.devdocs-tree li > button:hover {
   background: var(--code-bg);
 }
 
@@ -360,7 +360,8 @@ body {
   padding: 0;
 }
 
-.devdocs-tree button {
+/* tree entries only — the .tree-toggle button must keep its own size */
+.devdocs-tree li > button {
   display: block;
   width: 100%;
   text-align: left;
@@ -370,7 +371,7 @@ body {
   text-overflow: ellipsis;
 }
 
-.devdocs-tree button.active {
+.devdocs-tree li > button.active {
   background: var(--code-bg);
   color: var(--accent);
   font-weight: 600;

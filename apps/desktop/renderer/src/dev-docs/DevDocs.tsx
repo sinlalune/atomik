@@ -1,6 +1,7 @@
 import MarkdownIt from 'markdown-it'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { DevDocFile, DevDocsGroup } from '../../../shared/ipc-contract'
+import { SidebarToggleIcon } from '../icons'
 import { resolveRelativePath, stripFrontmatter } from './markdown'
 
 const DEFAULT_DOC = 'index.md'
@@ -141,10 +142,10 @@ export function DevDocs({
               <button
                 type="button"
                 className="tree-toggle"
-                title="Collapse tree panel"
+                title="Hide tree panel"
                 onClick={onTreeToggle}
               >
-                ⟨
+                <SidebarToggleIcon />
               </button>
             )}
           </div>
@@ -177,10 +178,10 @@ export function DevDocs({
           <button
             type="button"
             className="tree-toggle tree-show"
-            title="Expand tree panel"
+            title="Show tree panel"
             onClick={onTreeToggle}
           >
-            ⟩
+            <SidebarToggleIcon />
           </button>
         )}
         {error ? (
