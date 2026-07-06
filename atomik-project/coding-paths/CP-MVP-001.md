@@ -7,7 +7,7 @@ timestamp: 2026-07-05T00:00:00Z
 atomik:
   id: CP-MVP-001
   status: active
-  current_step: S04
+  current_step: S05
   base_commit: 4675233
 ---
 
@@ -79,7 +79,7 @@ Completeness rule (35): every bedrock page 00–35 appears below at least once �
 - [x] S01 Reconcile the pre-seeded dual-plane layout against ADR-009 (the bundle ships repo-ready); `git init` and first commit if not already done; record `base_commit` in the frontmatter and ledger.
 - [x] S02 Electron + Vite + React + TypeScript with secure main/preload/renderer split; narrow typed contextBridge API only.
 - [x] S03 Dev Docs tab rendering this documentation bundle from files.
-- [ ] S04 Tabs and split panes; workspace state in `.atomik/`, disposable.
+- [x] S04 Tabs and split panes; workspace state in `.atomik/`, disposable.
 - [ ] S05 Vault open/read/write for Markdown with atomic, Git-friendly writes; restart survives; no rewrite-on-open.
 - [ ] S06 Project bundle open/create with `index.md`, `log.md`, and manifest conventions.
 - [ ] S07 CodeMirror editor + Markdown preview; explicit save or safe autosave.
@@ -95,16 +95,19 @@ Child paths (spawned from here, not widened into here): CP-MVP-002 capture sourc
 
 ```text
 base commit : 4675233 (4675233be87ce6d43f06ed1a7ae7de77a28042f1, branch master — v0.6 seed)
-changed     : none — S03 work unit committed (Dev Docs slice in apps/desktop,
-              module note, ledger, both logs)
-tests       : 28 passing / 6 vitest suites (adds dev-docs path validation incl.
-              symlink escape, docs listing/exclusions, markdown helpers; preload
-              surface now covers 3 methods); typecheck + build clean; smoke verifies
-              Dev Docs renders index.md and a bedrock page with its inline D08
-              diagram (screenshots reviewed; 8 groups / 70 files enumerated)
-next action : S04 — tabs and split panes; workspace state in .atomik/, disposable
-              (conditional trigger: read 03_03-workspace-tabs.md first;
-              also settle the S01 .gitignore/.atomik note here)
+changed     : none — S04 work unit committed (workspace panes/tabs + persistence,
+              learning note 02, module note, ledger, both logs)
+tests       : 46 passing / 8 vitest suites (adds workspace-model: splits/collapse/
+              focus/clamping; workspace-state: atomic roundtrip, forgiving reads,
+              payload validation caps; preload surface now 5 methods); typecheck +
+              build clean; smoke: default layout panes=1, pre-seeded ATOMIK_STATE_DIR
+              fixture restores a 38/62 split with per-tab doc paths, panes=2
+              (screenshot reviewed)
+next action : S05 — vault open/read/write for Markdown with atomic Git-friendly
+              writes; restart survives; no rewrite-on-open (27 discipline; re-read
+              13 §IPC before the new channel family; workspace-state write pattern
+              is the template). S01 .gitignore note resolved at S04: .atomik/ stays
+              fully ignored, local-workspace.json is machine-local per 03/27.
 blockers    : none
 ```
 

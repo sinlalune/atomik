@@ -118,13 +118,161 @@ body {
   opacity: 0.55;
 }
 
+/* workspace: panes and tabs ------------------------------------------------ */
+
+.workspace {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+}
+
+.workspace-loading {
+  margin: auto;
+  opacity: 0.6;
+}
+
+.pane-split {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+}
+
+.pane-split.vertical {
+  flex-direction: column;
+}
+
+.pane-split-first {
+  flex: none;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+.pane-split-second {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+.pane-divider {
+  flex: none;
+  background: var(--border);
+}
+
+.pane-split.horizontal > .pane-divider {
+  width: 4px;
+  cursor: col-resize;
+}
+
+.pane-split.vertical > .pane-divider {
+  height: 4px;
+  cursor: row-resize;
+}
+
+.pane-divider:hover {
+  background: var(--accent);
+}
+
+.pane {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pane.focused > .tabstrip {
+  border-bottom-color: var(--accent);
+}
+
+.tabstrip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0.25rem 0.4rem;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  font-size: 0.8rem;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.tab.active {
+  background: var(--code-bg);
+  font-weight: 600;
+}
+
+.tab .tab-title {
+  padding: 0.2rem 0.15rem 0.2rem 0.6rem;
+}
+
+.tab .tab-close {
+  padding: 0.2rem 0.45rem 0.2rem 0.25rem;
+  opacity: 0.5;
+}
+
+.tab .tab-close:hover {
+  opacity: 1;
+}
+
+.tabstrip button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.tabstrip-actions {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 2px;
+}
+
+.tabstrip-actions button {
+  padding: 0.2rem 0.45rem;
+  opacity: 0.65;
+}
+
+.tabstrip-actions button:hover {
+  opacity: 1;
+  background: var(--code-bg);
+}
+
+.pane-content {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+.pane-placeholder {
+  margin: auto;
+  opacity: 0.5;
+  font-size: 0.85rem;
+}
+
 /* dev docs --------------------------------------------------------------- */
 
 .devdocs {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: minmax(160px, 240px) 1fr;
 }
 
 .devdocs-tree {

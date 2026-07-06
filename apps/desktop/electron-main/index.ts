@@ -4,9 +4,14 @@ import { join } from 'node:path'
 import { buildAppInfo } from './app-info'
 import { listDevDocs, readDevDoc, resolveDocsRoot } from './dev-docs'
 import { buildMainWindowOptions } from './security'
+import {
+  readWorkspaceState,
+  resolveStateDir,
+  writeWorkspaceState
+} from './workspace-state'
 import { ATOMIK_CHANNELS } from '../shared/ipc-contract'
 
-function registerIpcHandlers(docsRoot: string): void {
+function registerIpcHandlers(docsRoot: string, stateDir: string): void {
   ipcMain.handle(ATOMIK_CHANNELS.getAppInfo, () =>
     buildAppInfo({
       name: app.getName(),
@@ -18,6 +23,13 @@ function registerIpcHandlers(docsRoot: string): void {
   ipcMain.handle(ATOMIK_CHANNELS.listDevDocs, () => listDevDocs(docsRoot))
   ipcMain.handle(ATOMIK_CHANNELS.readDevDoc, (_event, relPath: unknown) =>
     readDevDoc(docsRoot, relPath)
+  )
+  ipcMain.handle(ATOMIK_CHANNELS.readWorkspaceState, () =>
+    readWorkspaceState(stateDir)
+  )
+  ipcMain.handle(
+    ATOMIK_CHANNELS.writeWorkspaceState,
+    (_event, state: unknown) => writeWorkspaceState(stateDir, state)
   )
 }
 
@@ -80,8 +92,11 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
   if (rendered) {
     const groups = listDevDocs(docsRoot)
     const docCount = groups.reduce((n, g) => n + g.entries.length, 0)
+    const paneCount = (await window.webContents.executeJavaScript(
+      'document.querySelectorAll(".pane").length'
+    )) as number
     console.log(
-      `ATOMIK_SMOKE_OK ${app.getName()} ${app.getVersion()} devdocs=${groups.length}groups/${docCount}files`
+      `ATOMIK_SMOKE_OK ${app.getName()} ${app.getVersion()} devdocs=${groups.length}groups/${docCount}files panes=${paneCount}`
     )
     app.quit()
   } else {
@@ -92,7 +107,8 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
 
 app.whenReady().then(() => {
   const docsRoot = resolveDocsRoot(app.getAppPath())
-  registerIpcHandlers(docsRoot)
+  const stateDir = resolveStateDir(app.getAppPath(), process.env)
+  registerIpcHandlers(docsRoot, stateDir)
 
   const smoke = process.env['ATOMIK_SMOKE'] === '1'
   const smokeDoc = process.env['ATOMIK_SMOKE_DOC']

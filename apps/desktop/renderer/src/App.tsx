@@ -1,42 +1,17 @@
-import { useState } from 'react'
-import { DevDocs } from './dev-docs/DevDocs'
-import { ShellHome } from './ShellHome'
-
-type View = 'home' | 'dev-docs'
+import { Workspace } from './workspace/Workspace'
 
 /**
- * Interim navigation: a plain two-view switch. The real tabs/panes system
- * (03) arrives at S04 and absorbs this. `#dev-docs` selects the docs view at
- * startup (used by the smoke check).
+ * The shell frame: brand header + the pane workspace (03). Tabs and panes
+ * replaced the interim two-view switch at S04.
  */
 export function App(): React.JSX.Element {
-  const [view, setView] = useState<View>(
-    window.location.hash.startsWith('#dev-docs') ? 'dev-docs' : 'home'
-  )
-
   return (
     <div className="app">
       <header className="app-header">
         <span className="brand">atomik</span>
-        <nav aria-label="Views">
-          <button
-            type="button"
-            className={view === 'home' ? 'active' : ''}
-            onClick={() => setView('home')}
-          >
-            Shell
-          </button>
-          <button
-            type="button"
-            className={view === 'dev-docs' ? 'active' : ''}
-            onClick={() => setView('dev-docs')}
-          >
-            Dev Docs
-          </button>
-        </nav>
       </header>
       <div className="app-body">
-        {view === 'home' ? <ShellHome /> : <DevDocs />}
+        <Workspace />
       </div>
     </div>
   )

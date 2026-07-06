@@ -14,7 +14,9 @@ export const ATOMIK_API_KEY = 'atomik' as const
 export const ATOMIK_CHANNELS = {
   getAppInfo: 'atomik:get-app-info',
   listDevDocs: 'atomik:list-dev-docs',
-  readDevDoc: 'atomik:read-dev-doc'
+  readDevDoc: 'atomik:read-dev-doc',
+  readWorkspaceState: 'atomik:read-workspace-state',
+  writeWorkspaceState: 'atomik:write-workspace-state'
 } as const
 
 /** Read-only identity of the running shell. No vault paths, no secrets. */
@@ -51,6 +53,44 @@ export type DevDocFile = {
   content: string
 }
 
+/**
+ * Workspace layout — recoverable UI state, never knowledge (03). Persisted
+ * to `.atomik/local-workspace.json`; deleting it loses only the layout.
+ */
+export type PaneDirection = 'horizontal' | 'vertical'
+
+export type WorkspaceTab = {
+  id: string
+  /** Open set of view kinds (03): 'home' and 'dev-docs' exist today. */
+  view: string
+  /** View parameters, e.g. { docPath: 'bedrock/00_....md' } for dev-docs. */
+  params?: Record<string, string>
+}
+
+export type PaneNode =
+  | {
+      kind: 'leaf'
+      id: string
+      tabs: WorkspaceTab[]
+      activeTabId: string | null
+    }
+  | {
+      kind: 'split'
+      id: string
+      /** 'horizontal' = children side by side; 'vertical' = stacked. */
+      direction: PaneDirection
+      /** Share of the first child, clamped to 0.1–0.9. */
+      fraction: number
+      first: PaneNode
+      second: PaneNode
+    }
+
+export type WorkspaceState = {
+  version: 1
+  root: PaneNode
+  focusedPaneId: string
+}
+
 /** The complete API the renderer may call. */
 export type AtomikApi = {
   getAppInfo: () => Promise<AppInfo>
@@ -58,6 +98,10 @@ export type AtomikApi = {
   listDevDocs: () => Promise<DevDocsGroup[]>
   /** Reads one doc file; the main process validates the path against docs/. */
   readDevDoc: (relPath: string) => Promise<DevDocFile>
+  /** Restores the saved workspace layout; null when absent or invalid. */
+  readWorkspaceState: () => Promise<WorkspaceState | null>
+  /** Persists the layout; the main process validates shape and size. */
+  writeWorkspaceState: (state: WorkspaceState) => Promise<void>
 }
 
 /**
@@ -67,5 +111,7 @@ export type AtomikApi = {
 export const DOCUMENTED_PRELOAD_SURFACE = [
   'getAppInfo',
   'listDevDocs',
-  'readDevDoc'
+  'readDevDoc',
+  'readWorkspaceState',
+  'writeWorkspaceState'
 ] as const satisfies readonly (keyof AtomikApi)[]

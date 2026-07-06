@@ -60,6 +60,8 @@ describe('preload surface (13 §IPC rule)', () => {
       getAppInfo: () => Promise<unknown>
       listDevDocs: () => Promise<unknown>
       readDevDoc: (relPath: string) => Promise<unknown>
+      readWorkspaceState: () => Promise<unknown>
+      writeWorkspaceState: (state: unknown) => Promise<unknown>
     }
     invoke.mockResolvedValue({})
 
@@ -73,6 +75,16 @@ describe('preload surface (13 §IPC rule)', () => {
     expect(invoke).toHaveBeenLastCalledWith(
       ATOMIK_CHANNELS.readDevDoc,
       'bedrock/00_00-orientation.md'
+    )
+
+    await api.readWorkspaceState()
+    expect(invoke).toHaveBeenLastCalledWith(ATOMIK_CHANNELS.readWorkspaceState)
+
+    const payload = { version: 1 }
+    await api.writeWorkspaceState(payload)
+    expect(invoke).toHaveBeenLastCalledWith(
+      ATOMIK_CHANNELS.writeWorkspaceState,
+      payload
     )
   })
 })

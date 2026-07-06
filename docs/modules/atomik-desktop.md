@@ -22,9 +22,17 @@ timestamp: 2026-07-06T00:00:00Z
   CSP lives in `renderer/index.html`.
 - The renderer-facing API surface: `shared/ipc-contract.ts` is the single
   source of truth (`ATOMIK_API_KEY`, `ATOMIK_CHANNELS`, `AtomikApi`,
-  `DOCUMENTED_PRELOAD_SURFACE`). Three channels exist today, all read-only:
+  `DOCUMENTED_PRELOAD_SURFACE`). Five channels exist today:
   `atomik:get-app-info` (shell identity), `atomik:list-dev-docs` (docs
-  tree), `atomik:read-dev-doc` (one validated docs file).
+  tree), `atomik:read-dev-doc` (one validated docs file),
+  `atomik:read-workspace-state` / `atomik:write-workspace-state` (the one
+  write channel — fixed path, validated payload).
+- The workspace layout (03): recursive pane tree (leaf tabs / splits with
+  draggable fraction), pure operations in `renderer/src/workspace/model.ts`
+  (incubating workspace-core, 14), thin zustand store with debounced
+  persistence, disposable state in `.atomik/local-workspace.json`
+  (`electron-main/workspace-state.ts`; `ATOMIK_STATE_DIR` overrides the
+  location for tests/smoke).
 - The Dev Docs tab (16 MVP slice): grouped docs tree + rendered Markdown
   with the bedrock diagrams inlined as SVG data URIs, reading the real
   files under `docs/`. `electron-main/dev-docs.ts` holds the pure logic —
@@ -81,6 +89,14 @@ renderer DevDocs.tsx
      allowlist, traversal + symlink-escape guards) -> file from docs/
   -> renderer: markdown-it (html:false) -> relative SVG imgs inlined
      into the HTML string -> React renders the final string once
+
+workspace layout (03: recoverable UI state, never knowledge)
+  click/drag -> dispatch(pure operation from model.ts) -> new state
+  -> React re-renders (identity change) -> debounced 500 ms
+  -> writeWorkspaceState -> main validates shape + caps (depth<=16,
+     <=64 tabs/leaf, 256 KB) -> atomic write (temp + rename, 27)
+  restore: load() -> readWorkspaceState (null on missing/corrupt ->
+  default layout; a broken layout file never crashes the app)
 ```
 
 ## Alternatives considered
@@ -96,6 +112,15 @@ renderer DevDocs.tsx
 - **Project-references tsconfig**: rejected for now (`composite` + `noEmit`
   friction); two flat configs (`tsconfig.node.json`, `tsconfig.web.json`)
   and a two-step `typecheck` script.
+- **zustand vs Jotai/Redux/Context** (12 lists zustand or Jotai): zustand —
+  one store, selector subscriptions, no providers, ~1 kB; layout logic
+  stays in pure `model.ts` functions so the store is replaceable.
+- **Split creates an empty pane** (placeholder with +docs/+shell) rather
+  than auto-cloning a tab: simpler invariants, explicit user intent.
+- **`.atomik/` stays fully Git-ignored** (resolves the S01 observation):
+  we persist `local-workspace.json` (machine-local per 03/27); a shared
+  committed `workspace.json` only becomes relevant with collaboration and
+  is deferred until then.
 
 ## Common mistakes
 
@@ -120,6 +145,14 @@ renderer DevDocs.tsx
 - Capitalizing the app name in UI surfaces: the product displays itself in
   lowercase — "atomik" (owner decision, 2026-07-06). Documentation prose
   keeps "Atomik".
+- Storing knowledge in workspace state: tab `params` carry view arguments
+  (a doc path), never content. Deleting `.atomik/` must never lose value.
+- Letting the renderer name a persistence path: the workspace file path is
+  fixed in main; renderer sends payloads only.
+- An effect that reacts to a prop must not re-fire on its own failure
+  (DevDocs `lastRequested` guard — a bad `docPath` would retry forever).
+- Deferred pane operations from 03, recorded not forgotten: move tab
+  between panes, pin tab, focus mode, resize keyboard access.
 
 ## Tests
 
@@ -130,8 +163,11 @@ documented surface, no raw `ipcRenderer`, named-channel routing),
 absolute / NUL / extension / non-string rejections), `dev-docs-list.test.ts`
 (grouping, generated-artifact exclusion, symlink-escape refusal on a fixture
 bundle), `markdown-helpers.test.ts` (frontmatter strip, relative-link
-resolution). The smoke run proves boot + Dev Docs rendering (optionally
-screenshot-captured); bridge correctness is covered by the unit suites.
+resolution), `workspace-model.test.ts` (splits, collapse rules, focus
+repair, fraction clamping), `workspace-state.test.ts` (atomic roundtrip, no
+temp residue, forgiving reads, payload validation caps). The smoke run
+proves boot + Dev Docs rendering and reports the pane count; a pre-seeded
+`ATOMIK_STATE_DIR` fixture proves layout restore end to end.
 
 ## Example usage
 
@@ -147,10 +183,9 @@ ATOMIK_SMOKE=1 ATOMIK_SMOKE_DOC=bedrock/22_22-agent-handoff.md \
 
 ## Future extension points
 
-- S04 tabs/panes (03): absorbs the interim two-view header nav; workspace
-  state under `.atomik/` (disposable). S05 vault IO in main with atomic
-  Git-friendly writes — a separate channel family with its own validation,
-  not an extension of the read-only dev-docs one.
+- S05 vault IO in main with atomic Git-friendly writes — a separate channel
+  family with its own validation (the workspace-state write pattern is the
+  template), plus "no rewrite on open" (27).
 - Dev Docs later modes (16): agent/architecture/context/execution views,
   search, packaged-build docs path (docs/ currently resolves relative to
   the repo checkout — packaging must bundle or relocate it).
@@ -179,6 +214,7 @@ electron ^43.0.0 · electron-vite ^5.0.0 (pairs with vite ^7) · vite ^7.3.6
 @vitejs/plugin-react ^5 (peers vite ^4.2–^8; v6 needs rolldown vite 8)
 vitest ^3.2.7 (v4 needs vite 8) · react/react-dom ^19.2.x
 typescript ^6.0.3 · @types/node ^24 · markdown-it ^14.3.0 (added S03)
+zustand ^5.0.14 (added S04)
 ```
 
 Dev-environment note (WSL2 Ubuntu noble): Electron needs `libnss3`,

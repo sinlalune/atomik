@@ -2,7 +2,8 @@ import { contextBridge, ipcRenderer } from 'electron'
 import {
   ATOMIK_API_KEY,
   ATOMIK_CHANNELS,
-  type AtomikApi
+  type AtomikApi,
+  type WorkspaceState
 } from '../shared/ipc-contract'
 
 /**
@@ -16,7 +17,11 @@ const api: AtomikApi = {
   getAppInfo: () => ipcRenderer.invoke(ATOMIK_CHANNELS.getAppInfo),
   listDevDocs: () => ipcRenderer.invoke(ATOMIK_CHANNELS.listDevDocs),
   readDevDoc: (relPath: string) =>
-    ipcRenderer.invoke(ATOMIK_CHANNELS.readDevDoc, relPath)
+    ipcRenderer.invoke(ATOMIK_CHANNELS.readDevDoc, relPath),
+  readWorkspaceState: () =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.readWorkspaceState),
+  writeWorkspaceState: (state: WorkspaceState) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.writeWorkspaceState, state)
 }
 
 contextBridge.exposeInMainWorld(ATOMIK_API_KEY, api)

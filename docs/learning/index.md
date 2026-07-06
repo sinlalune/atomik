@@ -25,3 +25,6 @@ when the shape changes, not on every diff.
 - [01 — The Electron shell, from zero](./01-electron-shell-from-zero.md) —
   processes, security switches, IPC, the Dev Docs slice, the toolchain, and
   how agents work here. Covers CP-MVP-001 S02–S03.
+- [02 — React state, the pane tree, and disposable persistence](./02-react-state-panes-and-disposable-persistence.md) —
+  stores, pure functions and immutability, recursive layouts, atomic writes,
+  debounce. Covers CP-MVP-001 S04.

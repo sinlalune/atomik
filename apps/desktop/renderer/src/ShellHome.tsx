@@ -42,8 +42,8 @@ export function ShellHome(): React.JSX.Element {
         <p>loading…</p>
       )}
       <p className="next">
-        Next on the path: tabs &amp; panes (S04) · vault (S05) · AI patch loop
-        (S08)
+        Next on the path: vault (S05) · project bundles (S06) · editor (S07) ·
+        AI patch loop (S08)
       </p>
     </main>
   )

@@ -1,18 +1,15 @@
 import MarkdownIt from 'markdown-it'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { DevDocFile, DevDocsGroup } from '../../../shared/ipc-contract'
 import { resolveRelativePath, stripFrontmatter } from './markdown'
 
 const DEFAULT_DOC = 'index.md'
 
-/** `#dev-docs:<relPath>` deep-links a doc at startup (dev and smoke use). */
-function initialDoc(): string {
-  const hash = window.location.hash
-  if (hash.startsWith('#dev-docs:')) {
-    const relPath = decodeURIComponent(hash.slice('#dev-docs:'.length))
-    if (relPath.length > 0) return relPath
-  }
-  return DEFAULT_DOC
+export type DevDocsProps = {
+  /** Doc to show; changes are applied, identical values are ignored. */
+  docPath?: string
+  /** Reports every successfully opened doc (the tab persists it). */
+  onDocOpened?: (relPath: string) => void
 }
 
 const svgDataUri = (content: string): string =>
@@ -52,30 +49,43 @@ async function inlineSvgImages(
  * reading the real files under docs/ through the typed bridge. Advanced
  * modes (agent/architecture/context/execution views) are later milestones.
  */
-export function DevDocs(): React.JSX.Element {
+export function DevDocs({ docPath, onDocOpened }: DevDocsProps): React.JSX.Element {
   const [groups, setGroups] = useState<DevDocsGroup[]>([])
   const [doc, setDoc] = useState<DevDocFile | null>(null)
   const [html, setHtml] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Guards the docPath effect against re-requesting a path that already
+  // failed or is in flight (a failing prop would otherwise retry forever).
+  const lastRequested = useRef<string | null>(null)
 
   const md = useMemo(() => new MarkdownIt({ html: false, linkify: false }), [])
 
-  const openDoc = useCallback((relPath: string) => {
-    window.atomik.readDevDoc(relPath).then(
-      (file) => {
-        setDoc(file)
-        setError(null)
-      },
-      (reason: unknown) => setError(String(reason))
-    )
-  }, [])
+  const openDoc = useCallback(
+    (relPath: string) => {
+      lastRequested.current = relPath
+      window.atomik.readDevDoc(relPath).then(
+        (file) => {
+          setDoc(file)
+          setError(null)
+          onDocOpened?.(file.relPath)
+        },
+        (reason: unknown) => setError(String(reason))
+      )
+    },
+    [onDocOpened]
+  )
 
   useEffect(() => {
     window.atomik
       .listDevDocs()
       .then(setGroups, (reason: unknown) => setError(String(reason)))
-    openDoc(initialDoc())
-  }, [openDoc])
+  }, [])
+
+  useEffect(() => {
+    const target = docPath ?? DEFAULT_DOC
+    if (lastRequested.current === target) return
+    openDoc(target)
+  }, [docPath, openDoc])
 
   // Markdown -> HTML -> inlined assets, all before handing the string to
   // React. `html !== null` is the rendered signal for the smoke check.
