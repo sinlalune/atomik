@@ -163,6 +163,32 @@ const WINDOW_CONTROL_ACTIONS = new Set([
   'get-state'
 ])
 
+/**
+ * WSLg cannot maximize borderless windows correctly — the window keeps a
+ * transparent gap, sits offset, and clicks land offset by the gap
+ * (microsoft/wslg#1015, unfixed since 2023; reproduces with plain
+ * Chrome). Fullscreen avoids that code path entirely and renders like a
+ * proper maximized window there (owner-validated via F11). So under
+ * WSLg, "maximize" MEANS fullscreen.
+ */
+const FULLSCREEN_IS_MAXIMIZE =
+  process.platform === 'linux' && Boolean(process.env['WSL_DISTRO_NAME'])
+
+/** The one boolean the renderer needs: "is the window filling the
+ *  screen" — by either mechanism. */
+function isWindowMaximized(window: BrowserWindow): boolean {
+  return window.isMaximized() || window.isFullScreen()
+}
+
+function toggleMaximize(window: BrowserWindow): void {
+  if (FULLSCREEN_IS_MAXIMIZE) {
+    window.setFullScreen(!window.isFullScreen())
+    return
+  }
+  if (window.isMaximized()) window.unmaximize()
+  else window.maximize()
+}
+
 function registerIpcHandlers(docsRoot: string, stateDir: string): void {
   ipcMain.handle(ATOMIK_CHANNELS.windowControl, (event, action: unknown) => {
     if (typeof action !== 'string' || !WINDOW_CONTROL_ACTIONS.has(action)) {
@@ -171,12 +197,10 @@ function registerIpcHandlers(docsRoot: string, stateDir: string): void {
     const window = BrowserWindow.fromWebContents(event.sender)
     if (!window) return { maximized: false }
     if (action === 'minimize') window.minimize()
-    else if (action === 'toggle-maximize') {
-      if (window.isMaximized()) window.unmaximize()
-      else window.maximize()
-    } else if (action === 'close') window.close()
+    else if (action === 'toggle-maximize') toggleMaximize(window)
+    else if (action === 'close') window.close()
     return {
-      maximized: window.isDestroyed() ? false : window.isMaximized()
+      maximized: window.isDestroyed() ? false : isWindowMaximized(window)
     }
   })
   ipcMain.handle(ATOMIK_CHANNELS.listDevDocs, () => listDevDocs(docsRoot))
@@ -209,14 +233,26 @@ function createMainWindow(hash?: string): BrowserWindow {
 
   // Maximize state is PUSHED so the custom controls track OS-initiated
   // changes too, and CSS can drop the drag regions while maximized.
+  // Fullscreen counts as maximized (WSLg mapping + the F11 path).
   const sendWindowState = (): void => {
     if (window.isDestroyed()) return
     window.webContents.send(ATOMIK_CHANNELS.windowStateChanged, {
-      maximized: window.isMaximized()
+      maximized: isWindowMaximized(window)
     })
   }
   window.on('maximize', sendWindowState)
   window.on('unmaximize', sendWindowState)
+  window.on('enter-full-screen', sendWindowState)
+  window.on('leave-full-screen', sendWindowState)
+
+  // Under WSLg even OS-INITIATED maximize (snap, Win+Up) must convert:
+  // the WM's own maximized state is the broken path (wslg#1015).
+  if (FULLSCREEN_IS_MAXIMIZE) {
+    window.on('maximize', () => {
+      window.unmaximize()
+      window.setFullScreen(true)
+    })
+  }
 
   window.once('ready-to-show', () => window.show())
 

@@ -419,11 +419,15 @@ Dev-environment note (WSL2 Ubuntu noble): Electron needs `libnss3`,
 `libnspr4`, `libasound2t64` system packages. Without root they can be
 `apt-get download`-ed and `dpkg -x`-extracted, then passed via
 `LD_LIBRARY_PATH`; for daily dev install them properly with apt.
-WSLg window-geometry escalation ladder for the maximized gap/offset:
-(1) `hasShadow:false` — applied; insufficient alone per owner report.
-(2) native Wayland instead of XWayland — PROMOTED TO CODE: main sets
-`ozone-platform-hint=auto` on Linux before ready ('auto' falls back to
-X11 when no compositor; probe + smoke validated locally).
-(3) if the owner still sees the gap: map the maximize verb to
-fullscreen on WSLg (their F11 observation) — owner-confirmed decision,
-not taken unilaterally.
+WSLg maximized gap/offset — RESOLVED as an upstream bug we route
+around: WSLg cannot maximize borderless windows (microsoft/wslg#1015,
+open since 2023, reproduces with plain Chrome; clicks offset by the
+gap). Ladder walked: (1) `hasShadow:false` (kept — wslg#1050, shadow
+border in screenshots); (2) `ozone-platform-hint=auto` (kept — native
+Wayland under WSLg); (3) THE FIX: under WSLg (`WSL_DISTRO_NAME` set),
+maximize MEANS fullscreen — the window-control verb toggles fullscreen,
+and even OS-initiated maximize (snap/Win+Up) converts via the maximize
+event; `isWindowMaximized` reports either mechanism so icon and
+`data-maximized` CSS behave identically. Owner-validated behavior (the
+F11 observation). Probe-verified: maximize request → fullscreen at full
+screen bounds, restore returns to prior bounds.
