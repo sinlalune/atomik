@@ -623,13 +623,57 @@ body {
 
 /* AI panel ----------------------------------------------------------------- */
 
+.editor-body {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+}
+
+.editor-body.dock-bottom {
+  flex-direction: column;
+}
+
+.editor-body.dock-right {
+  flex-direction: row;
+}
+
+.ai-divider {
+  flex: none;
+  background: var(--border);
+}
+
+.dock-bottom > .ai-divider {
+  height: 4px;
+  cursor: row-resize;
+}
+
+.dock-right > .ai-divider {
+  width: 4px;
+  cursor: col-resize;
+}
+
+.ai-divider:hover {
+  background: var(--accent);
+}
+
 .ai-panel {
   flex: none;
-  height: 44%;
-  min-height: 10rem;
+  min-height: 8rem;
   display: flex;
   flex-direction: column;
-  border-top: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.dock-right > .ai-panel {
+  min-height: 0;
+  min-width: 18rem;
+}
+
+.ai-panel-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .ai-panel-bar {

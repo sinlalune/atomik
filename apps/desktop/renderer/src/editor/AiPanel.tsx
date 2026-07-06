@@ -9,6 +9,7 @@ import type {
   TraceSummary,
   VaultNoteFile
 } from '../../../shared/ipc-contract'
+import { DockBottomIcon, DockRightIcon } from '../icons'
 import { defaultNewNotePath, ensureMdExtension } from './ai-helpers'
 
 export type BufferChange =
@@ -30,6 +31,10 @@ export type AiPanelProps = {
   /** Fired after a new-note patch is created on disk (refresh + open). */
   onNoteCreated?: (relPath: string) => void
   onClose: () => void
+  /** Where the panel is docked; the host owns layout and resize. */
+  dock: 'bottom' | 'right'
+  onToggleDock: () => void
+  style?: React.CSSProperties
 }
 
 type Phase = 'compose' | 'running' | 'review'
@@ -55,7 +60,10 @@ export function AiPanel({
   requestSave,
   openAnchor,
   onNoteCreated,
-  onClose
+  onClose,
+  dock,
+  onToggleDock,
+  style
 }: AiPanelProps): React.JSX.Element {
   const [instruction, setInstruction] = useState('')
   const [preset, setPreset] = useState<string | undefined>(undefined)
@@ -239,12 +247,27 @@ export function AiPanel({
   const selectionEmpty = getSelection().text.length === 0
 
   return (
-    <section className="ai-panel" aria-label="AI operation panel">
+    <section className="ai-panel" aria-label="AI operation panel" style={style}>
       <header className="ai-panel-bar">
         <span className="ai-panel-title">AI · mock provider</span>
-        <button type="button" className="tab-close" aria-label="Close AI panel" onClick={onClose}>
-          ×
-        </button>
+        <span className="ai-panel-controls">
+          <button
+            type="button"
+            className="tab-close"
+            title={dock === 'bottom' ? 'Dock right' : 'Dock bottom'}
+            onClick={onToggleDock}
+          >
+            {dock === 'bottom' ? <DockRightIcon /> : <DockBottomIcon />}
+          </button>
+          <button
+            type="button"
+            className="tab-close"
+            aria-label="Close AI panel"
+            onClick={onClose}
+          >
+            ×
+          </button>
+        </span>
       </header>
       <div className="ai-panel-body">
         {phase !== 'review' && (

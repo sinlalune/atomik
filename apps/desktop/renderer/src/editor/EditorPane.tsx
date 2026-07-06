@@ -42,6 +42,9 @@ export function EditorPane({
   const [conflict, setConflict] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showAi, setShowAi] = useState(false)
+  const [aiDock, setAiDock] = useState<'bottom' | 'right'>('bottom')
+  const [aiSize, setAiSize] = useState(0.44)
+  const bodyRef = useRef<HTMLDivElement>(null)
 
   const markDirty = useCallback(
     (next: boolean) => {
@@ -173,6 +176,33 @@ export function EditorPane({
     []
   )
 
+  /** Drag the divider between editor and AI panel (both docks). */
+  const onAiDividerPointerDown = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      event.preventDefault()
+      const body = bodyRef.current
+      if (!body) return
+      const divider = event.currentTarget
+      divider.setPointerCapture(event.pointerId)
+      const dock = aiDock
+      const onMove = (move: PointerEvent): void => {
+        const rect = body.getBoundingClientRect()
+        const fraction =
+          dock === 'bottom'
+            ? (rect.bottom - move.clientY) / rect.height
+            : (rect.right - move.clientX) / rect.width
+        setAiSize(Math.min(0.75, Math.max(0.15, fraction)))
+      }
+      const onUp = (): void => {
+        divider.removeEventListener('pointermove', onMove)
+        divider.removeEventListener('pointerup', onUp)
+      }
+      divider.addEventListener('pointermove', onMove)
+      divider.addEventListener('pointerup', onUp)
+    },
+    [aiDock]
+  )
+
   /** Selects and scrolls to a source anchor (S10: a mapped citation
    *  opens its local source anchor). */
   const revealRange = useCallback((range: { from: number; to: number }) => {
@@ -249,19 +279,34 @@ export function EditorPane({
           </button>
         </div>
       )}
-      <div ref={hostRef} className="editor-host" />
-      {showAi && (
-        <AiPanel
-          note={note}
-          getSelection={getSelection}
-          getDoc={getDoc}
-          applyChange={applyChange}
-          requestSave={() => saveRef.current()}
-          openAnchor={revealRange}
-          onNoteCreated={onNoteCreated}
-          onClose={() => setShowAi(false)}
-        />
-      )}
+      <div ref={bodyRef} className={`editor-body dock-${aiDock}`}>
+        <div ref={hostRef} className="editor-host" />
+        {showAi && (
+          <>
+            <div
+              className="ai-divider"
+              role="separator"
+              aria-orientation={aiDock === 'bottom' ? 'horizontal' : 'vertical'}
+              onPointerDown={onAiDividerPointerDown}
+            />
+            <AiPanel
+              note={note}
+              getSelection={getSelection}
+              getDoc={getDoc}
+              applyChange={applyChange}
+              requestSave={() => saveRef.current()}
+              openAnchor={revealRange}
+              onNoteCreated={onNoteCreated}
+              onClose={() => setShowAi(false)}
+              dock={aiDock}
+              onToggleDock={() =>
+                setAiDock((current) => (current === 'bottom' ? 'right' : 'bottom'))
+              }
+              style={{ flexBasis: `${aiSize * 100}%` }}
+            />
+          </>
+        )}
+      </div>
     </div>
   )
 }
