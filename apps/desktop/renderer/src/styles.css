@@ -774,6 +774,12 @@ body[data-maximized] .tabstrip {
   padding-left: 0;
 }
 
+/* quote lines keep their inset despite the zeroed line padding above
+   (higher specificity on purpose — matches read's 1rem) */
+.editor-host.live .cm-line.lp-quote {
+  padding-left: 1rem;
+}
+
 .editor-host .lp-h1 {
   font-size: 1.55em;
   font-weight: 650;
@@ -823,9 +829,11 @@ body[data-maximized] .tabstrip {
   text-underline-offset: 2px;
 }
 
+/* same inset as .markdown-body blockquote (padding 0.1rem 1rem) so the
+   quote text sits at the same distance from the border in both modes */
 .editor-host .lp-quote {
   border-left: 3px solid var(--accent);
-  padding-left: 0.6rem;
+  padding-left: 1rem;
   color: var(--muted);
 }
 
