@@ -265,6 +265,67 @@ body {
   font-size: 0.85rem;
 }
 
+/* tree panel collapse ------------------------------------------------------ */
+
+.tree-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin: 0 0.2rem 0.3rem 0;
+}
+
+.tree-bar .vault-head {
+  flex: 1;
+  min-width: 0;
+  margin: 0 0 0 0.5rem;
+}
+
+.tree-bar-label {
+  flex: 1;
+  margin-left: 0.5rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+.tree-toggle {
+  flex: none;
+  font: inherit;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-radius: 4px;
+  padding: 0 0.35rem;
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.tree-toggle:hover {
+  background: var(--code-bg);
+  color: var(--accent);
+}
+
+.devdocs.no-tree,
+.vault.no-tree {
+  grid-template-columns: 1fr;
+}
+
+.devdocs-content,
+.vault-content {
+  position: relative;
+}
+
+.tree-show {
+  position: absolute;
+  top: 0.55rem;
+  left: 0.55rem;
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+}
+
 /* dev docs --------------------------------------------------------------- */
 
 .devdocs {
@@ -277,17 +338,20 @@ body {
 
 .devdocs-tree {
   overflow-y: auto;
+  overflow-x: hidden;
   border-right: 1px solid var(--border);
   padding: 0.75rem 0.5rem 2rem;
   font-size: 0.82rem;
 }
 
-.devdocs-tree h2 {
+.devdocs-tree summary {
   margin: 0.9rem 0.5rem 0.25rem;
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--muted);
+  cursor: pointer;
+  user-select: none;
 }
 
 .devdocs-tree ul {
@@ -337,6 +401,7 @@ body {
 
 .vault-tree {
   overflow-y: auto;
+  overflow-x: hidden;
   border-right: 1px solid var(--border);
   padding: 0.75rem 0.5rem 2rem;
   font-size: 0.82rem;

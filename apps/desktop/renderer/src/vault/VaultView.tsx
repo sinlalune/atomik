@@ -7,6 +7,9 @@ export type VaultViewProps = {
   notePath?: string
   /** Reports every successfully opened note (the tab persists it). */
   onNoteOpened?: (relPath: string) => void
+  /** Tree panel visibility, persisted per tab by the workspace. */
+  treeCollapsed?: boolean
+  onTreeToggle?: () => void
 }
 
 function FolderView({
@@ -49,7 +52,12 @@ function FolderView({
  * read view, note creation. Editing arrives with CodeMirror at S07 — this
  * view proves the read/write plumbing without pretending to be the editor.
  */
-export function VaultView({ notePath, onNoteOpened }: VaultViewProps): React.JSX.Element {
+export function VaultView({
+  notePath,
+  onNoteOpened,
+  treeCollapsed,
+  onTreeToggle
+}: VaultViewProps): React.JSX.Element {
   const [info, setInfo] = useState<VaultInfo | null | 'loading'>('loading')
   const [tree, setTree] = useState<VaultFolder | null>(null)
   const [draftName, setDraftName] = useState('')
@@ -123,10 +131,23 @@ export function VaultView({ notePath, onNoteOpened }: VaultViewProps): React.JSX
   }
 
   return (
-    <div className="vault">
+    <div className={`vault${treeCollapsed ? ' no-tree' : ''}`}>
+      {!treeCollapsed && (
       <nav className="vault-tree" aria-label="Vault tree">
-        <div className="vault-head" title={info.root}>
-          {info.name}
+        <div className="tree-bar">
+          <div className="vault-head" title={info.root}>
+            {info.name}
+          </div>
+          {onTreeToggle && (
+            <button
+              type="button"
+              className="tree-toggle"
+              title="Collapse tree panel"
+              onClick={onTreeToggle}
+            >
+              ⟨
+            </button>
+          )}
         </div>
         <div className="vault-new">
           <input
@@ -149,11 +170,22 @@ export function VaultView({ notePath, onNoteOpened }: VaultViewProps): React.JSX
           />
         )}
       </nav>
+      )}
       <div
         className="vault-content"
         onClick={onContentClick}
         {...(note ? { 'data-vault-rendered': '1' } : {})}
       >
+        {treeCollapsed && onTreeToggle && (
+          <button
+            type="button"
+            className="tree-toggle tree-show"
+            title="Expand tree panel"
+            onClick={onTreeToggle}
+          >
+            ⟩
+          </button>
+        )}
         {error ? (
           <p className="error">{error}</p>
         ) : note ? (

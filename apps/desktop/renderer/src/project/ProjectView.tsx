@@ -14,6 +14,9 @@ export type ProjectViewProps = {
   notePath?: string
   onProjectOpened?: (project: ProjectInfo) => void
   onNoteOpened?: (relPath: string) => void
+  /** Tree panel visibility, persisted per tab by the workspace. */
+  treeCollapsed?: boolean
+  onTreeToggle?: () => void
 }
 
 function slugifyLite(title: string): string {
@@ -36,7 +39,9 @@ export function ProjectView({
   projectPath,
   notePath,
   onProjectOpened,
-  onNoteOpened
+  onNoteOpened,
+  treeCollapsed,
+  onTreeToggle
 }: ProjectViewProps): React.JSX.Element {
   const [vault, setVault] = useState<VaultInfo | null | 'loading'>('loading')
   const [projects, setProjects] = useState<ProjectInfo[]>([])
@@ -166,10 +171,23 @@ export function ProjectView({
     projectPath
 
   return (
-    <div className="vault project">
+    <div className={`vault project${treeCollapsed ? ' no-tree' : ''}`}>
+      {!treeCollapsed && (
       <nav className="vault-tree" aria-label="Project tree">
-        <div className="vault-head" title={projectPath}>
-          {projectTitle}
+        <div className="tree-bar">
+          <div className="vault-head" title={projectPath}>
+            {projectTitle}
+          </div>
+          {onTreeToggle && (
+            <button
+              type="button"
+              className="tree-toggle"
+              title="Collapse tree panel"
+              onClick={onTreeToggle}
+            >
+              ⟨
+            </button>
+          )}
         </div>
         <div className="project-shortcuts">
           <button type="button" onClick={() => openNote(`${projectPath}/index.md`)}>
@@ -200,11 +218,22 @@ export function ProjectView({
           />
         )}
       </nav>
+      )}
       <div
         className="vault-content"
         onClick={onContentClick}
         {...(note ? { 'data-project-rendered': '1' } : {})}
       >
+        {treeCollapsed && onTreeToggle && (
+          <button
+            type="button"
+            className="tree-toggle tree-show"
+            title="Expand tree panel"
+            onClick={onTreeToggle}
+          >
+            ⟩
+          </button>
+        )}
         {error ? (
           <p className="error">{error}</p>
         ) : note ? (

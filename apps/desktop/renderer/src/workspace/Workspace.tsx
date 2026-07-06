@@ -50,6 +50,12 @@ function TabContent({
   tab: WorkspaceTab
   dispatch: Dispatch
 }): React.JSX.Element {
+  const treeCollapsed = tab.params?.['tree'] === 'off'
+  const onTreeToggle = (): void =>
+    dispatch((state) =>
+      updateTabParams(state, tab.id, { tree: treeCollapsed ? 'on' : 'off' })
+    )
+
   if (tab.view === 'home') return <ShellHome />
   if (tab.view === 'dev-docs') {
     return (
@@ -58,6 +64,8 @@ function TabContent({
         onDocOpened={(relPath) =>
           dispatch((state) => updateTabParams(state, tab.id, { docPath: relPath }))
         }
+        treeCollapsed={treeCollapsed}
+        onTreeToggle={onTreeToggle}
       />
     )
   }
@@ -68,6 +76,8 @@ function TabContent({
         onNoteOpened={(relPath) =>
           dispatch((state) => updateTabParams(state, tab.id, { notePath: relPath }))
         }
+        treeCollapsed={treeCollapsed}
+        onTreeToggle={onTreeToggle}
       />
     )
   }
@@ -87,6 +97,8 @@ function TabContent({
         onNoteOpened={(relPath) =>
           dispatch((state) => updateTabParams(state, tab.id, { notePath: relPath }))
         }
+        treeCollapsed={treeCollapsed}
+        onTreeToggle={onTreeToggle}
       />
     )
   }

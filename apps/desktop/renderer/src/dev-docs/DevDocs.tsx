@@ -10,6 +10,9 @@ export type DevDocsProps = {
   docPath?: string
   /** Reports every successfully opened doc (the tab persists it). */
   onDocOpened?: (relPath: string) => void
+  /** Tree panel visibility, persisted per tab by the workspace. */
+  treeCollapsed?: boolean
+  onTreeToggle?: () => void
 }
 
 const svgDataUri = (content: string): string =>
@@ -49,7 +52,12 @@ async function inlineSvgImages(
  * reading the real files under docs/ through the typed bridge. Advanced
  * modes (agent/architecture/context/execution views) are later milestones.
  */
-export function DevDocs({ docPath, onDocOpened }: DevDocsProps): React.JSX.Element {
+export function DevDocs({
+  docPath,
+  onDocOpened,
+  treeCollapsed,
+  onTreeToggle
+}: DevDocsProps): React.JSX.Element {
   const [groups, setGroups] = useState<DevDocsGroup[]>([])
   const [doc, setDoc] = useState<DevDocFile | null>(null)
   const [html, setHtml] = useState<string | null>(null)
@@ -124,32 +132,57 @@ export function DevDocs({ docPath, onDocOpened }: DevDocsProps): React.JSX.Eleme
     doc !== null && (doc.kind !== 'markdown' ? true : html !== null)
 
   return (
-    <div className="devdocs">
-      <nav className="devdocs-tree" aria-label="Documentation tree">
-        {groups.map((group) => (
-          <section key={group.id}>
-            <h2>{group.label}</h2>
-            <ul>
-              {group.entries.map((entry) => (
-                <li key={entry.relPath}>
-                  <button
-                    type="button"
-                    className={doc?.relPath === entry.relPath ? 'active' : ''}
-                    onClick={() => openDoc(entry.relPath)}
-                  >
-                    {entry.label}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
-      </nav>
+    <div className={`devdocs${treeCollapsed ? ' no-tree' : ''}`}>
+      {!treeCollapsed && (
+        <nav className="devdocs-tree" aria-label="Documentation tree">
+          <div className="tree-bar">
+            <span className="tree-bar-label">documentation</span>
+            {onTreeToggle && (
+              <button
+                type="button"
+                className="tree-toggle"
+                title="Collapse tree panel"
+                onClick={onTreeToggle}
+              >
+                ⟨
+              </button>
+            )}
+          </div>
+          {groups.map((group) => (
+            <details key={group.id} open>
+              <summary>{group.label}</summary>
+              <ul>
+                {group.entries.map((entry) => (
+                  <li key={entry.relPath}>
+                    <button
+                      type="button"
+                      className={doc?.relPath === entry.relPath ? 'active' : ''}
+                      onClick={() => openDoc(entry.relPath)}
+                    >
+                      {entry.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ))}
+        </nav>
+      )}
       <div
         className="devdocs-content"
         onClick={onContentClick}
         {...(rendered ? { 'data-devdocs-rendered': '1' } : {})}
       >
+        {treeCollapsed && onTreeToggle && (
+          <button
+            type="button"
+            className="tree-toggle tree-show"
+            title="Expand tree panel"
+            onClick={onTreeToggle}
+          >
+            ⟩
+          </button>
+        )}
         {error ? (
           <p className="error">{error}</p>
         ) : !doc ? (
