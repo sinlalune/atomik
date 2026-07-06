@@ -761,6 +761,19 @@ body[data-maximized] .tabstrip {
   line-height: 1.6;
 }
 
+/* Seamless means the READING geometry: identical padding and column
+   width as .note-scroll/.markdown-body, so read <-> live never shifts
+   the text (owner follow-up: live sat glued to the left edge). Source
+   mode keeps its IDE layout. */
+.editor-host.live .cm-content {
+  max-width: 46rem;
+  padding: 1.5rem 2.5rem 4rem;
+}
+
+.editor-host.live .cm-line {
+  padding-left: 0;
+}
+
 .editor-host .lp-h1 {
   font-size: 1.55em;
   font-weight: 650;
