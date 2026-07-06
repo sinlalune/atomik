@@ -21,7 +21,16 @@ const api: AtomikApi = {
   readWorkspaceState: () =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.readWorkspaceState),
   writeWorkspaceState: (state: WorkspaceState) =>
-    ipcRenderer.invoke(ATOMIK_CHANNELS.writeWorkspaceState, state)
+    ipcRenderer.invoke(ATOMIK_CHANNELS.writeWorkspaceState, state),
+  openVault: () => ipcRenderer.invoke(ATOMIK_CHANNELS.openVault),
+  getVault: () => ipcRenderer.invoke(ATOMIK_CHANNELS.getVault),
+  listVaultFiles: () => ipcRenderer.invoke(ATOMIK_CHANNELS.listVaultFiles),
+  readNote: (relPath: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.readNote, relPath),
+  writeNote: (relPath: string, content: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.writeNote, relPath, content),
+  createNote: (relPath: string, content?: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.createNote, relPath, content)
 }
 
 contextBridge.exposeInMainWorld(ATOMIK_API_KEY, api)

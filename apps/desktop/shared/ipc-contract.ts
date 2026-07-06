@@ -16,7 +16,13 @@ export const ATOMIK_CHANNELS = {
   listDevDocs: 'atomik:list-dev-docs',
   readDevDoc: 'atomik:read-dev-doc',
   readWorkspaceState: 'atomik:read-workspace-state',
-  writeWorkspaceState: 'atomik:write-workspace-state'
+  writeWorkspaceState: 'atomik:write-workspace-state',
+  openVault: 'atomik:open-vault',
+  getVault: 'atomik:get-vault',
+  listVaultFiles: 'atomik:list-vault-files',
+  readNote: 'atomik:read-note',
+  writeNote: 'atomik:write-note',
+  createNote: 'atomik:create-note'
 } as const
 
 /** Read-only identity of the running shell. No vault paths, no secrets. */
@@ -91,6 +97,35 @@ export type WorkspaceState = {
   focusedPaneId: string
 }
 
+/**
+ * The vault (04): the durable local root holding the user's Markdown
+ * knowledge. All paths are vault-relative and validated in main; the
+ * renderer never names an absolute path.
+ */
+export type VaultInfo = {
+  /** Absolute root, for display only. */
+  root: string
+  /** Folder basename, for labels. */
+  name: string
+}
+
+export type VaultNoteRef = { name: string; relPath: string }
+
+export type VaultFolder = {
+  name: string
+  /** ''-rooted, '/'-separated path of this folder inside the vault. */
+  relPath: string
+  folders: VaultFolder[]
+  notes: VaultNoteRef[]
+}
+
+export type VaultNoteFile = {
+  relPath: string
+  content: string
+  /** Modification time at read, for future conflict checks (S07). */
+  mtimeMs: number
+}
+
 /** The complete API the renderer may call. */
 export type AtomikApi = {
   getAppInfo: () => Promise<AppInfo>
@@ -102,6 +137,18 @@ export type AtomikApi = {
   readWorkspaceState: () => Promise<WorkspaceState | null>
   /** Persists the layout; the main process validates shape and size. */
   writeWorkspaceState: (state: WorkspaceState) => Promise<void>
+  /** Native folder picker in main; null when cancelled. Remembered. */
+  openVault: () => Promise<VaultInfo | null>
+  /** Currently open vault (restored across restarts); null when none. */
+  getVault: () => Promise<VaultInfo | null>
+  /** Markdown tree of the open vault (dot-dirs and node_modules skipped). */
+  listVaultFiles: () => Promise<VaultFolder>
+  /** Reads one note; validated vault-relative .md path. */
+  readNote: (relPath: string) => Promise<VaultNoteFile>
+  /** Overwrites an EXISTING note atomically, byte-exact (27). */
+  writeNote: (relPath: string, content: string) => Promise<void>
+  /** Creates a NEW note (parents made, exclusive — never clobbers). */
+  createNote: (relPath: string, content?: string) => Promise<void>
 }
 
 /**
@@ -113,5 +160,11 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'listDevDocs',
   'readDevDoc',
   'readWorkspaceState',
-  'writeWorkspaceState'
+  'writeWorkspaceState',
+  'openVault',
+  'getVault',
+  'listVaultFiles',
+  'readNote',
+  'writeNote',
+  'createNote'
 ] as const satisfies readonly (keyof AtomikApi)[]

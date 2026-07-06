@@ -28,3 +28,6 @@ when the shape changes, not on every diff.
 - [02 — React state, the pane tree, and disposable persistence](./02-react-state-panes-and-disposable-persistence.md) —
   stores, pure functions and immutability, recursive layouts, atomic writes,
   debounce. Covers CP-MVP-001 S04.
+- [03 — Vault IO: writing knowledge without betraying it](./03-vault-io-and-file-trust.md) —
+  native dialogs as consent, edit vs exclusive create (wx/TOCTOU), byte
+  fidelity, no-rewrite-on-open. Covers CP-MVP-001 S05.

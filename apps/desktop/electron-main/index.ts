@@ -1,15 +1,85 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain } from 'electron'
+import { statSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import { buildAppInfo } from './app-info'
 import { listDevDocs, readDevDoc, resolveDocsRoot } from './dev-docs'
 import { buildMainWindowOptions } from './security'
+import {
+  createNote,
+  listVaultFiles,
+  persistLastVaultRoot,
+  readLastVaultRoot,
+  readNote,
+  writeNote
+} from './vault'
 import {
   readWorkspaceState,
   resolveStateDir,
   writeWorkspaceState
 } from './workspace-state'
-import { ATOMIK_CHANNELS } from '../shared/ipc-contract'
+import { ATOMIK_CHANNELS, type VaultInfo } from '../shared/ipc-contract'
+
+/** Current vault root — main-process state; the renderer only ever sees
+ *  VaultInfo and vault-relative paths. */
+let vaultRoot: string | null = null
+
+function vaultInfo(): VaultInfo | null {
+  return vaultRoot ? { root: vaultRoot, name: basename(vaultRoot) } : null
+}
+
+function requireVault(): string {
+  if (!vaultRoot) throw new Error('vault: no vault open')
+  return vaultRoot
+}
+
+/** Startup restore: ATOMIK_VAULT_DIR (tests/smoke/dev) wins over the
+ *  remembered last vault; both must exist and be directories. */
+function restoreVault(stateDir: string): void {
+  const fromEnv = process.env['ATOMIK_VAULT_DIR']
+  if (fromEnv) {
+    try {
+      if (statSync(fromEnv).isDirectory()) {
+        vaultRoot = fromEnv
+        return
+      }
+    } catch {
+      /* fall through to settings */
+    }
+  }
+  vaultRoot = readLastVaultRoot(stateDir)
+}
+
+function registerVaultHandlers(stateDir: string): void {
+  ipcMain.handle(ATOMIK_CHANNELS.openVault, async () => {
+    const result = await dialog.showOpenDialog({
+      title: 'Open vault folder',
+      properties: ['openDirectory', 'createDirectory']
+    })
+    const chosen = result.filePaths[0]
+    if (result.canceled || !chosen) return null
+    vaultRoot = chosen
+    persistLastVaultRoot(stateDir, chosen)
+    return vaultInfo()
+  })
+  ipcMain.handle(ATOMIK_CHANNELS.getVault, () => vaultInfo())
+  ipcMain.handle(ATOMIK_CHANNELS.listVaultFiles, () =>
+    listVaultFiles(requireVault())
+  )
+  ipcMain.handle(ATOMIK_CHANNELS.readNote, (_event, relPath: unknown) =>
+    readNote(requireVault(), relPath)
+  )
+  ipcMain.handle(
+    ATOMIK_CHANNELS.writeNote,
+    (_event, relPath: unknown, content: unknown) =>
+      writeNote(requireVault(), relPath, content)
+  )
+  ipcMain.handle(
+    ATOMIK_CHANNELS.createNote,
+    (_event, relPath: unknown, content: unknown) =>
+      createNote(requireVault(), relPath, content)
+  )
+}
 
 function registerIpcHandlers(docsRoot: string, stateDir: string): void {
   ipcMain.handle(ATOMIK_CHANNELS.getAppInfo, () =>
@@ -95,8 +165,26 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
     const paneCount = (await window.webContents.executeJavaScript(
       'document.querySelectorAll(".pane").length'
     )) as number
+    // Optional vault write proof: drives create+write through the real
+    // renderer world -> preload -> main -> disk chain (S05 e2e check).
+    let vaultReport = ''
+    if (process.env['ATOMIK_SMOKE_VAULT_WRITE'] === '1' && vaultRoot) {
+      const outcome = (await window.webContents.executeJavaScript(
+        `(async () => {
+          try {
+            await window.atomik.createNote('smoke/created-by-smoke.md')
+            await window.atomik.writeNote('welcome.md', '# Welcome\\n\\nedited by smoke, no trailing newline')
+            return 'ok'
+          } catch (e) { return 'fail:' + String(e) }
+        })()`
+      )) as string
+      vaultReport = ` vaultWrite=${outcome}`
+    }
+    const vaultCount = vaultRoot
+      ? ` vault=${listVaultFiles(vaultRoot).notes.length}rootNotes`
+      : ''
     console.log(
-      `ATOMIK_SMOKE_OK ${app.getName()} ${app.getVersion()} devdocs=${groups.length}groups/${docCount}files panes=${paneCount}`
+      `ATOMIK_SMOKE_OK ${app.getName()} ${app.getVersion()} devdocs=${groups.length}groups/${docCount}files panes=${paneCount}${vaultCount}${vaultReport}`
     )
     app.quit()
   } else {
@@ -108,7 +196,9 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
 app.whenReady().then(() => {
   const docsRoot = resolveDocsRoot(app.getAppPath())
   const stateDir = resolveStateDir(app.getAppPath(), process.env)
+  restoreVault(stateDir)
   registerIpcHandlers(docsRoot, stateDir)
+  registerVaultHandlers(stateDir)
 
   const smoke = process.env['ATOMIK_SMOKE'] === '1'
   const smokeDoc = process.env['ATOMIK_SMOKE_DOC']

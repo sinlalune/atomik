@@ -6,6 +6,7 @@ import type {
 } from '../../../shared/ipc-contract'
 import { DevDocs } from '../dev-docs/DevDocs'
 import { ShellHome } from '../ShellHome'
+import { VaultView } from '../vault/VaultView'
 import {
   activateTab,
   addTab,
@@ -22,14 +23,18 @@ type Dispatch = (operation: (state: WorkspaceState) => WorkspaceState) => void
 
 const TAB_LABELS: Record<string, string> = {
   home: 'Shell',
-  'dev-docs': 'Dev Docs'
+  'dev-docs': 'Dev Docs',
+  vault: 'Vault'
 }
 
 function tabLabel(tab: WorkspaceTab): string {
-  if (tab.view === 'dev-docs' && tab.params?.['docPath']) {
-    const path = tab.params['docPath']
-    return path.slice(path.lastIndexOf('/') + 1)
-  }
+  const pathParam =
+    tab.view === 'dev-docs'
+      ? tab.params?.['docPath']
+      : tab.view === 'vault'
+        ? tab.params?.['notePath']
+        : undefined
+  if (pathParam) return pathParam.slice(pathParam.lastIndexOf('/') + 1)
   return TAB_LABELS[tab.view] ?? tab.view
 }
 
@@ -47,6 +52,16 @@ function TabContent({
         docPath={tab.params?.['docPath']}
         onDocOpened={(relPath) =>
           dispatch((state) => updateTabParams(state, tab.id, { docPath: relPath }))
+        }
+      />
+    )
+  }
+  if (tab.view === 'vault') {
+    return (
+      <VaultView
+        notePath={tab.params?.['notePath']}
+        onNoteOpened={(relPath) =>
+          dispatch((state) => updateTabParams(state, tab.id, { notePath: relPath }))
         }
       />
     )
@@ -94,6 +109,15 @@ function LeafPane({
           </span>
         ))}
         <span className="tabstrip-actions">
+          <button
+            type="button"
+            title="New Vault tab"
+            onClick={() =>
+              dispatch((state) => addTab(state, node.id, makeTab('vault')))
+            }
+          >
+            +vault
+          </button>
           <button
             type="button"
             title="New Dev Docs tab"

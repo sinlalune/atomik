@@ -62,6 +62,12 @@ describe('preload surface (13 §IPC rule)', () => {
       readDevDoc: (relPath: string) => Promise<unknown>
       readWorkspaceState: () => Promise<unknown>
       writeWorkspaceState: (state: unknown) => Promise<unknown>
+      openVault: () => Promise<unknown>
+      getVault: () => Promise<unknown>
+      listVaultFiles: () => Promise<unknown>
+      readNote: (relPath: string) => Promise<unknown>
+      writeNote: (relPath: string, content: string) => Promise<unknown>
+      createNote: (relPath: string, content?: string) => Promise<unknown>
     }
     invoke.mockResolvedValue({})
 
@@ -85,6 +91,35 @@ describe('preload surface (13 §IPC rule)', () => {
     expect(invoke).toHaveBeenLastCalledWith(
       ATOMIK_CHANNELS.writeWorkspaceState,
       payload
+    )
+
+    await api.openVault()
+    expect(invoke).toHaveBeenLastCalledWith(ATOMIK_CHANNELS.openVault)
+
+    await api.getVault()
+    expect(invoke).toHaveBeenLastCalledWith(ATOMIK_CHANNELS.getVault)
+
+    await api.listVaultFiles()
+    expect(invoke).toHaveBeenLastCalledWith(ATOMIK_CHANNELS.listVaultFiles)
+
+    await api.readNote('ideas/first.md')
+    expect(invoke).toHaveBeenLastCalledWith(
+      ATOMIK_CHANNELS.readNote,
+      'ideas/first.md'
+    )
+
+    await api.writeNote('ideas/first.md', '# Edited\n')
+    expect(invoke).toHaveBeenLastCalledWith(
+      ATOMIK_CHANNELS.writeNote,
+      'ideas/first.md',
+      '# Edited\n'
+    )
+
+    await api.createNote('ideas/new.md', '# New\n')
+    expect(invoke).toHaveBeenLastCalledWith(
+      ATOMIK_CHANNELS.createNote,
+      'ideas/new.md',
+      '# New\n'
     )
   })
 })

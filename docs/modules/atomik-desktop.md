@@ -22,11 +22,18 @@ timestamp: 2026-07-06T00:00:00Z
   CSP lives in `renderer/index.html`.
 - The renderer-facing API surface: `shared/ipc-contract.ts` is the single
   source of truth (`ATOMIK_API_KEY`, `ATOMIK_CHANNELS`, `AtomikApi`,
-  `DOCUMENTED_PRELOAD_SURFACE`). Five channels exist today:
-  `atomik:get-app-info` (shell identity), `atomik:list-dev-docs` (docs
-  tree), `atomik:read-dev-doc` (one validated docs file),
-  `atomik:read-workspace-state` / `atomik:write-workspace-state` (the one
-  write channel — fixed path, validated payload).
+  `DOCUMENTED_PRELOAD_SURFACE`). Eleven channels exist today: shell
+  identity, docs tree + doc read, workspace state read/write (fixed path,
+  validated payload), and the vault family — `open-vault` (native dialog in
+  main; user-mediated capability), `get-vault`, `list-vault-files`,
+  `read-note`, `write-note`, `create-note`.
+- Vault IO (04/27, S05): `electron-main/vault.ts` (incubating vault-core,
+  14) — tree listing (dot-dirs, `.git`, `.atomik`, `node_modules` skipped;
+  symlinks not followed), validated vault-relative `.md` paths, byte-exact
+  atomic writes, edit vs exclusive-create (`wx`) semantics, no code path
+  writes on open. Last vault remembered in `.atomik/local-settings.json`,
+  written by main only (no channel). `ATOMIK_VAULT_DIR` overrides for
+  tests/smoke/dev.
 - The workspace layout (03): recursive pane tree (leaf tabs / splits with
   draggable fraction), pure operations in `renderer/src/workspace/model.ts`
   (incubating workspace-core, 14), thin zustand store with debounced
@@ -97,6 +104,14 @@ workspace layout (03: recoverable UI state, never knowledge)
      <=64 tabs/leaf, 256 KB) -> atomic write (temp + rename, 27)
   restore: load() -> readWorkspaceState (null on missing/corrupt ->
   default layout; a broken layout file never crashes the app)
+
+vault (04: files are the durable source of record)
+  open: dialog in main -> vaultRoot held in main -> VaultInfo to renderer
+  read: VaultView -> readNote(relPath) -> resolveNotePath (relative-only,
+        .md-only, denylist, realpath containment) -> content + mtimeMs
+  write: writeNote (target must exist) / createNote (wx, never clobbers)
+        -> byte-exact atomic temp+rename; one edit = one clean Git diff
+  open/list/read never write (proven: git status stays empty)
 ```
 
 ## Alternatives considered
@@ -153,6 +168,15 @@ workspace layout (03: recoverable UI state, never knowledge)
   (DevDocs `lastRequested` guard — a bad `docPath` would retry forever).
 - Deferred pane operations from 03, recorded not forgotten: move tab
   between panes, pin tab, focus mode, resize keyboard access.
+- "Improving" vault bytes: any normalization (trailing newline, frontmatter
+  order, timestamps-on-read) breaks the one-edit-one-diff contract (27).
+  `writeNote` writes exactly what it is given, full stop.
+- Creating through `writeNote` or overwriting through `createNote`: the
+  verbs are deliberately split; `wx` makes create exclusive at the OS
+  level (no TOCTOU window).
+- Silently generating a vault `.gitignore`: 27 sketches a default template,
+  but touching a user's vault uninvited violates no-silent-mutation —
+  deferred to an explicit, consented flow.
 
 ## Tests
 
@@ -165,9 +189,14 @@ absolute / NUL / extension / non-string rejections), `dev-docs-list.test.ts`
 bundle), `markdown-helpers.test.ts` (frontmatter strip, relative-link
 resolution), `workspace-model.test.ts` (splits, collapse rules, focus
 repair, fraction clamping), `workspace-state.test.ts` (atomic roundtrip, no
-temp residue, forgiving reads, payload validation caps). The smoke run
-proves boot + Dev Docs rendering and reports the pane count; a pre-seeded
-`ATOMIK_STATE_DIR` fixture proves layout restore end to end.
+temp residue, forgiving reads, payload validation caps), `vault.test.ts`
+(path matrix incl. denylist, tree pruning + symlink policy, byte-exact
+write, wx create, settings memory). The smoke run proves boot + Dev Docs
+rendering and reports pane/vault counts; pre-seeded `ATOMIK_STATE_DIR` /
+`ATOMIK_VAULT_DIR` fixtures prove layout restore and, with
+`ATOMIK_SMOKE_VAULT_WRITE=1`, the full renderer→disk write chain (verified
+byte-exact via cmp + a one-file Git diff); a write-free run proves
+no-rewrite-on-open (git status stays empty).
 
 ## Example usage
 
@@ -183,9 +212,11 @@ ATOMIK_SMOKE=1 ATOMIK_SMOKE_DOC=bedrock/22_22-agent-handoff.md \
 
 ## Future extension points
 
-- S05 vault IO in main with atomic Git-friendly writes — a separate channel
-  family with its own validation (the workspace-state write pattern is the
-  template), plus "no rewrite on open" (27).
+- S06 project bundles: `index.md` / `log.md` conventions and the
+  `.atomik-project.json` manifest (04) as a layer over vault-core — no new
+  write primitives expected.
+- S07 editor (CodeMirror): `mtimeMs` from `readNote` becomes conflict
+  detection; explicit save / safe autosave policy; read 11 first (trigger).
 - Dev Docs later modes (16): agent/architecture/context/execution views,
   search, packaged-build docs path (docs/ currently resolves relative to
   the repo checkout — packaging must bundle or relocate it).

@@ -325,6 +325,130 @@ body {
   font-size: 0.8rem;
 }
 
+/* vault -------------------------------------------------------------------- */
+
+.vault {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(160px, 240px) 1fr;
+}
+
+.vault-tree {
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  padding: 0.75rem 0.5rem 2rem;
+  font-size: 0.82rem;
+}
+
+.vault-head {
+  margin: 0 0.5rem 0.4rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vault-new {
+  display: flex;
+  gap: 4px;
+  margin: 0 0.4rem 0.6rem;
+}
+
+.vault-new input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  color: inherit;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.2rem 0.5rem;
+}
+
+.vault-new button {
+  font: inherit;
+  color: inherit;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+}
+
+.vault-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 0.5rem;
+}
+
+.vault-tree summary {
+  cursor: pointer;
+  padding: 0.15rem 0.3rem;
+  color: var(--muted);
+  user-select: none;
+}
+
+.vault-tree button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.22rem 0.5rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vault-tree button:hover {
+  background: var(--code-bg);
+}
+
+.vault-tree button.active {
+  background: var(--code-bg);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.vault-content {
+  overflow-y: auto;
+  padding: 1.5rem 2.5rem 4rem;
+}
+
+.vault-empty {
+  margin: auto;
+  max-width: 26rem;
+  text-align: center;
+}
+
+.vault-empty p {
+  opacity: 0.7;
+  font-size: 0.9rem;
+}
+
+.vault-open-button {
+  font: inherit;
+  color: inherit;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 1.1rem;
+  cursor: pointer;
+}
+
+.vault-open-button:hover {
+  border-color: var(--accent);
+}
+
 /* markdown typography ------------------------------------------------------ */
 
 .markdown-body {
