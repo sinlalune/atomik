@@ -4,7 +4,11 @@ import { EditorView, keymap } from '@codemirror/view'
 import { basicSetup } from 'codemirror'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { VaultNoteFile } from '../../../shared/ipc-contract'
+import type { SaveMode } from '../workspace/model'
 import { AiPanel, type BufferChange } from './AiPanel'
+
+/** Auto mode saves this long after the last keystroke. */
+const AUTOSAVE_DELAY_MS = 800
 
 export type EditorPaneProps = {
   note: VaultNoteFile
@@ -12,26 +16,37 @@ export type EditorPaneProps = {
   onSaved: (content: string, mtimeMs: number) => void
   /** Lets the host guard note navigation against unsaved changes. */
   onDirtyChange?: (dirty: boolean) => void
-  /** Back to the rendered view (confirmed here when dirty). */
+  /** Back to the rendered view (auto mode saves first; manual confirms). */
   onSwitchToRead?: () => void
   /** AI-created notes bubble up so the host refreshes/opens them. */
   onNoteCreated?: (relPath: string) => void
+  /** 'auto' (default): debounced saves + flush on leave; 'manual': S07. */
+  saveMode?: SaveMode
+  onSaveModeToggle?: () => void
 }
 
 /**
  * CodeMirror 6 editor over one vault note (S07). Edits the RAW Markdown,
  * frontmatter included — no template, no normalization (11/27); the bytes
- * saved are exactly the bytes in the buffer. Saving is explicit (button or
- * Ctrl/Cmd-S) and optimistic: the mtime from the last read/save travels
- * with the write, and a mismatch surfaces as a conflict banner instead of
- * silently overwriting what changed on disk.
+ * saved are exactly the bytes in the buffer. Saves are optimistic: the
+ * mtime from the last read/save travels with the write, and a mismatch
+ * surfaces as a conflict banner instead of silently overwriting what
+ * changed on disk.
+ *
+ * Save policy (owner feedback on MVP-001): AUTO by default — a debounced
+ * save after typing pauses plus a flush when the editor unmounts; the
+ * explicit button/Mod-s remain. MANUAL restores the strict S07 behavior.
+ * Auto-save never forces: a conflict pauses it until the banner resolves,
+ * so concurrency safety is identical in both modes.
  */
 export function EditorPane({
   note,
   onSaved,
   onDirtyChange,
   onSwitchToRead,
-  onNoteCreated
+  onNoteCreated,
+  saveMode = 'auto',
+  onSaveModeToggle
 }: EditorPaneProps): React.JSX.Element {
   const hostRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
@@ -46,8 +61,17 @@ export function EditorPane({
   const [aiSize, setAiSize] = useState(0.44)
   const bodyRef = useRef<HTMLDivElement>(null)
 
+  const dirtyRef = useRef(false)
+  const conflictRef = useRef(false)
+  const saveModeRef = useRef(saveMode)
+  useEffect(() => {
+    saveModeRef.current = saveMode
+  }, [saveMode])
+  const autoTimerRef = useRef<number | undefined>(undefined)
+
   const markDirty = useCallback(
     (next: boolean) => {
+      dirtyRef.current = next
       setDirty(next)
       onDirtyChange?.(next)
     },
@@ -58,10 +82,16 @@ export function EditorPane({
     markDirtyRef.current = markDirty
   }, [markDirty])
 
+  const applyConflict = useCallback((next: boolean) => {
+    conflictRef.current = next
+    setConflict(next)
+  }, [])
+
   const save = useCallback(
-    async (force = false) => {
+    async (force = false): Promise<boolean> => {
       const view = viewRef.current
-      if (!view) return
+      if (!view) return false
+      window.clearTimeout(autoTimerRef.current)
       const content = view.state.doc.toString()
       setSaving(true)
       setError(null)
@@ -73,17 +103,20 @@ export function EditorPane({
         )
         mtimeRef.current = result.mtimeMs
         savedDocRef.current = content
-        setConflict(false)
-        markDirty(false)
+        applyConflict(false)
+        // The buffer may have moved on during the await; stay dirty then.
+        markDirty(view.state.doc.toString() !== content)
         onSaved(content, result.mtimeMs)
+        return true
       } catch (reason) {
-        if (String(reason).includes('conflict')) setConflict(true)
+        if (String(reason).includes('conflict')) applyConflict(true)
         else setError(String(reason))
+        return false
       } finally {
         setSaving(false)
       }
     },
-    [markDirty, note.relPath, onSaved]
+    [applyConflict, markDirty, note.relPath, onSaved]
   )
   const saveRef = useRef(save)
   useEffect(() => {
@@ -100,13 +133,13 @@ export function EditorPane({
       })
       mtimeRef.current = fresh.mtimeMs
       savedDocRef.current = fresh.content
-      setConflict(false)
+      applyConflict(false)
       markDirty(false)
       onSaved(fresh.content, fresh.mtimeMs)
     } catch (reason) {
       setError(String(reason))
     }
-  }, [markDirty, note.relPath, onSaved])
+  }, [applyConflict, markDirty, note.relPath, onSaved])
 
   // One EditorView per mounted pane; the host keys this component by note
   // path, so a different note is a fresh mount. The view lives in a ref —
@@ -135,9 +168,16 @@ export function EditorPane({
         ]),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
-            markDirtyRef.current(
-              update.state.doc.toString() !== savedDocRef.current
-            )
+            const changed = update.state.doc.toString() !== savedDocRef.current
+            markDirtyRef.current(changed)
+            // Auto mode: save shortly after typing pauses. Never while a
+            // conflict banner is up — resolution stays a human decision.
+            window.clearTimeout(autoTimerRef.current)
+            if (changed && saveModeRef.current === 'auto' && !conflictRef.current) {
+              autoTimerRef.current = window.setTimeout(() => {
+                void saveRef.current()
+              }, AUTOSAVE_DELAY_MS)
+            }
           }
         })
       ]
@@ -152,13 +192,42 @@ export function EditorPane({
     // (refs carry the latest save/dirty closures)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Auto mode flushes a dirty buffer when the editor leaves the screen
+  // (note switch, tab close). Runs before the mount effect's cleanup —
+  // effects clean up in reverse declaration order — so the view is alive.
+  // Optimistic like every save: a conflicting flush is dropped, never
+  // forced over someone else's bytes.
+  useEffect(() => {
+    return () => {
+      window.clearTimeout(autoTimerRef.current)
+      const view = viewRef.current
+      if (
+        view &&
+        saveModeRef.current === 'auto' &&
+        dirtyRef.current &&
+        !conflictRef.current
+      ) {
+        void window.atomik
+          .writeNote(note.relPath, view.state.doc.toString(), mtimeRef.current)
+          .catch(() => undefined)
+      }
+    }
+  }, [note.relPath])
+
   const onReadClick = useCallback(() => {
     if (!onSwitchToRead) return
+    if (dirty && saveMode === 'auto' && !conflict) {
+      // Seamless: leaving the editor saves; stay put if the save fails.
+      void (async () => {
+        if (await saveRef.current()) onSwitchToRead()
+      })()
+      return
+    }
     if (dirty && !window.confirm('Unsaved changes will be lost. Continue?')) {
       return
     }
     onSwitchToRead()
-  }, [dirty, onSwitchToRead])
+  }, [conflict, dirty, onSwitchToRead, saveMode])
 
   const getSelection = useCallback(() => {
     const view = viewRef.current
@@ -253,13 +322,27 @@ export function EditorPane({
           >
             AI
           </button>
+          {onSaveModeToggle && (
+            <button
+              type="button"
+              className="save-mode"
+              title={
+                saveMode === 'auto'
+                  ? 'Auto-save is on — switch to manual save'
+                  : 'Manual save — switch to auto-save'
+              }
+              onClick={onSaveModeToggle}
+            >
+              {saveMode === 'auto' ? 'auto' : 'manual'}
+            </button>
+          )}
           <button
             type="button"
             disabled={saving || !dirty}
             onClick={() => void save()}
-            title="Save (Ctrl+S)"
+            title="Save now (Ctrl+S)"
           >
-            {saving ? 'saving…' : 'Save'}
+            {saving ? 'saving…' : saveMode === 'auto' && !dirty ? 'Saved' : 'Save'}
           </button>
           {onSwitchToRead && (
             <button type="button" onClick={onReadClick}>
@@ -294,7 +377,9 @@ export function EditorPane({
               getSelection={getSelection}
               getDoc={getDoc}
               applyChange={applyChange}
-              requestSave={() => saveRef.current()}
+              requestSave={async () => {
+                await saveRef.current()
+              }}
               openAnchor={revealRange}
               onNoteCreated={onNoteCreated}
               onClose={() => setShowAi(false)}

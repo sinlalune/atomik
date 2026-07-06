@@ -77,20 +77,37 @@ keystrokes -> EditorState -> doc.toString() -> writeNote(...)
 One save = one clean Git diff. The editor adds nothing and removes
 nothing you didn't type (11, 27).
 
-## 4. Explicit save, dirty state, and the three data-loss nets
+## 4. Save policy, dirty state, and the three data-loss nets
 
-Saving is explicit — the Save button or `Ctrl+S` (11/18 allow "explicit
-save or safe autosave"; explicit is the thin honest start; autosave can
-come later as a policy). Three nets stop silent loss:
+Saving started explicit-only at S07 (the thin honest start). On MVP-001
+owner feedback, **auto-save became the default policy**, layered ON TOP of
+the same machinery — the button and `Ctrl+S` still work, and a `manual`
+toggle in the note bar restores the strict behavior (the preference is an
+app-wide workspace setting, i.e. disposable UI state).
+
+Auto mode has three moments: a **debounced save** ~800 ms after you stop
+typing, a **flush on leave** when the editor unmounts (switching notes or
+closing the tab), and **save-then-switch** when you click Read. Because it
+reuses the ordinary save path, it inherits every guarantee below — and it
+deliberately NEVER forces: when a conflict banner is up, auto-save pauses
+until a human picks reload or overwrite. Concept: an automation must not
+escalate its own privileges over the manual path it automates.
+
+Three nets stop silent loss:
 
 ```text
 dirty flag      buffer text !== last saved text -> the ● marker and an
                 enabled Save button
-navigation guard clicking another note (tree, shortcuts) with a dirty
-                buffer asks for confirmation before discarding
+navigation guard (manual mode) clicking another note with a dirty buffer
+                asks before discarding; auto mode navigates freely because
+                the unmount flush carries the buffer to disk instead
 conflict check  saving cannot silently overwrite a file that changed on
                 disk since you read it (next section)
 ```
+
+Honest residual window in auto mode: a hard app kill inside the debounce
+(≤ 800 ms of typing) or a flush that hits a conflict is lost — the same
+class of loss manual mode accepts when you confirm a discard.
 
 ## 5. Optimistic concurrency — the mtime handshake
 

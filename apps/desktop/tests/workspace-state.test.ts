@@ -91,6 +91,30 @@ describe('read is forgiving (disposable state)', () => {
   })
 })
 
+describe('app-wide settings (optional string map)', () => {
+  it('round-trips settings and stays valid without them', () => {
+    const withSettings = { ...validState(), settings: { saveMode: 'manual' } }
+    writeWorkspaceState(dir, withSettings)
+    expect(readWorkspaceState(dir)).toEqual(withSettings)
+    expect(isValidWorkspaceState(validState())).toBe(true)
+  })
+
+  it('rejects non-record settings and non-string values', () => {
+    expect(
+      isValidWorkspaceState({ ...validState(), settings: 'auto' })
+    ).toBe(false)
+    expect(
+      isValidWorkspaceState({ ...validState(), settings: { saveMode: 7 } })
+    ).toBe(false)
+    expect(
+      isValidWorkspaceState({
+        ...validState(),
+        settings: { saveMode: 'x'.repeat(5000) }
+      })
+    ).toBe(false)
+  })
+})
+
 describe('write validation (renderer payloads are untrusted)', () => {
   it('rejects wrong version, bad fraction, and dangling activeTabId', () => {
     const state = validState()

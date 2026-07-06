@@ -72,6 +72,16 @@ export function isValidWorkspaceState(value: unknown): value is WorkspaceState {
   if (!isRecord(value)) return false
   if (value['version'] !== 1) return false
   if (typeof value['focusedPaneId'] !== 'string') return false
+  const settings = value['settings']
+  if (settings !== undefined) {
+    if (!isRecord(settings)) return false
+    for (const [key, settingValue] of Object.entries(settings)) {
+      if (key.length === 0 || key.length > 64) return false
+      if (typeof settingValue !== 'string' || settingValue.length > MAX_PARAM_VALUE) {
+        return false
+      }
+    }
+  }
   return isValidPane(value['root'], 0)
 }
 

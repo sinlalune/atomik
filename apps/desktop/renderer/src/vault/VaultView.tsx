@@ -7,6 +7,7 @@ import type {
 import { EditorPane } from '../editor/EditorPane'
 import { SidebarToggleIcon } from '../icons'
 import { TreeResizeHandle } from '../TreeResizeHandle'
+import type { SaveMode } from '../workspace/model'
 import { noteDisplayName } from './scope'
 import { useVaultNote } from './useVaultNote'
 
@@ -26,6 +27,9 @@ export type VaultViewProps = {
   /** Read (rendered) or edit (CodeMirror), persisted per tab. */
   mode?: NoteViewMode
   onModeChange?: (mode: NoteViewMode) => void
+  /** App-wide save policy; auto skips discard prompts (flush-on-leave). */
+  saveMode?: SaveMode
+  onSaveModeToggle?: () => void
 }
 
 function FolderView({
@@ -76,7 +80,9 @@ export function VaultView({
   treeWidth,
   onTreeResize,
   mode = 'read',
-  onModeChange
+  onModeChange,
+  saveMode = 'auto',
+  onSaveModeToggle
 }: VaultViewProps): React.JSX.Element {
   const [info, setInfo] = useState<VaultInfo | null | 'loading'>('loading')
   const [tree, setTree] = useState<VaultFolder | null>(null)
@@ -99,11 +105,13 @@ export function VaultView({
     setEditorDirty(dirty)
   }, [])
 
-  /** Note navigation in edit mode must not silently discard a buffer. */
+  /** Note navigation in edit mode must not silently discard a buffer.
+   *  Auto-save mode navigates freely: the unmounting editor flushes. */
   const guardedOpen = useCallback(
     (relPath: string) => {
       if (
         editorDirty &&
+        saveMode === 'manual' &&
         !window.confirm('Unsaved changes will be lost. Continue?')
       ) {
         return
@@ -111,7 +119,7 @@ export function VaultView({
       setEditorDirty(false)
       openNote(relPath)
     },
-    [editorDirty, openNote]
+    [editorDirty, openNote, saveMode]
   )
 
   const refreshTree = useCallback(async () => {
@@ -324,6 +332,8 @@ export function VaultView({
               void refreshTree()
               guardedOpen(relPath)
             }}
+            saveMode={saveMode}
+            onSaveModeToggle={onSaveModeToggle}
           />
         ) : (
           <>

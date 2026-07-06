@@ -10,6 +10,7 @@ import { TreeResizeHandle } from '../TreeResizeHandle'
 import { findSubtree, noteDisplayName } from '../vault/scope'
 import { useVaultNote } from '../vault/useVaultNote'
 import type { NoteViewMode } from '../vault/VaultView'
+import type { SaveMode } from '../workspace/model'
 
 export type ProjectViewProps = {
   /** Vault-relative folder of the opened bundle. */
@@ -27,6 +28,9 @@ export type ProjectViewProps = {
   /** Read (rendered) or edit (CodeMirror), persisted per tab. */
   mode?: NoteViewMode
   onModeChange?: (mode: NoteViewMode) => void
+  /** App-wide save policy; auto skips discard prompts (flush-on-leave). */
+  saveMode?: SaveMode
+  onSaveModeToggle?: () => void
 }
 
 function slugifyLite(title: string): string {
@@ -55,7 +59,9 @@ export function ProjectView({
   treeWidth,
   onTreeResize,
   mode = 'read',
-  onModeChange
+  onModeChange,
+  saveMode = 'auto',
+  onSaveModeToggle
 }: ProjectViewProps): React.JSX.Element {
   const [vault, setVault] = useState<VaultInfo | null | 'loading'>('loading')
   const [projects, setProjects] = useState<ProjectInfo[]>([])
@@ -78,11 +84,13 @@ export function ProjectView({
     setEditorDirty(dirty)
   }, [])
 
-  /** Note navigation in edit mode must not silently discard a buffer. */
+  /** Note navigation in edit mode must not silently discard a buffer.
+   *  Auto-save mode navigates freely: the unmounting editor flushes. */
   const guardedOpen = useCallback(
     (relPath: string) => {
       if (
         editorDirty &&
+        saveMode === 'manual' &&
         !window.confirm('Unsaved changes will be lost. Continue?')
       ) {
         return
@@ -90,7 +98,7 @@ export function ProjectView({
       setEditorDirty(false)
       openNote(relPath)
     },
-    [editorDirty, openNote]
+    [editorDirty, openNote, saveMode]
   )
 
   const refresh = useCallback(async () => {
@@ -301,6 +309,8 @@ export function ProjectView({
               void refresh()
               guardedOpen(relPath)
             }}
+            saveMode={saveMode}
+            onSaveModeToggle={onSaveModeToggle}
           />
         ) : (
           <>

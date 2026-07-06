@@ -9,8 +9,10 @@ import {
   firstLeafId,
   makeTab,
   migrateRetiredViews,
+  saveModeOf,
   setFocus,
   setFraction,
+  setSaveMode,
   splitPane,
   topRightLeafId,
   TREE_WIDTH_DEFAULT,
@@ -38,6 +40,26 @@ describe('createDefaultState', () => {
     expect(leaves(deep.root)[0]!.tabs[0]!.params).toEqual({
       docPath: 'bedrock/00_00-orientation.md'
     })
+  })
+})
+
+describe('save mode (workspace settings)', () => {
+  it('defaults to auto — absent state, absent settings, unknown values', () => {
+    expect(saveModeOf(null)).toBe('auto')
+    expect(saveModeOf(createDefaultState(''))).toBe('auto')
+    const garbled = {
+      ...createDefaultState(''),
+      settings: { saveMode: 'yolo' }
+    }
+    expect(saveModeOf(garbled)).toBe('auto')
+  })
+
+  it('setSaveMode round-trips and no-ops on the current value', () => {
+    const state = createDefaultState('')
+    const manual = setSaveMode(state, 'manual')
+    expect(saveModeOf(manual)).toBe('manual')
+    expect(setSaveMode(manual, 'manual')).toBe(manual)
+    expect(saveModeOf(setSaveMode(manual, 'auto'))).toBe('auto')
   })
 })
 

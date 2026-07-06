@@ -86,12 +86,17 @@ timestamp: 2026-07-06T00:00:00Z
   reverts) or createNote for new notes (tree refreshes, note opens);
   buffer-drift guard before apply. The AI channel has no filesystem
   path — "AI wrote my file" is structurally impossible.
-- The editor (S07): `renderer/src/editor/EditorPane.tsx` — CodeMirror 6
-  over the RAW note (frontmatter included, no template, no normalization;
-  11/27), explicit save (button + Mod-s), dirty tracking with a
-  navigation guard, and optimistic conflict detection: saves carry the
-  mtime from the last read; `writeNote` refuses stale writes with a
+- The editor (S07 + MVP-001 feedback): `renderer/src/editor/EditorPane.tsx`
+  — CodeMirror 6 over the RAW note (frontmatter included, no template, no
+  normalization; 11/27) with optimistic conflict detection: saves carry
+  the mtime from the last read; `writeNote` refuses stale writes with a
   'conflict' error and returns the new mtime, chaining save after save.
+  Save policy is AUTO by default (owner feedback): debounced 800 ms after
+  typing pauses, flush when the editor unmounts (note switch/tab close),
+  save-then-switch on Read — no discard prompts; the button + Mod-s stay.
+  'manual' (note-bar toggle, app-wide `saveMode` workspace setting)
+  restores strict S07 behavior with its confirm guards. Auto-save NEVER
+  forces: a conflict pauses it until the banner is resolved by a human.
   Read/edit mode persists per tab (`mode` param). One EditorView per
   mounted pane, keyed by note path; view lives in a ref (mount-only).
 - Project bundles (04, S06): `electron-main/project.ts` (incubating
@@ -317,8 +322,9 @@ ATOMIK_SMOKE=1 ATOMIK_SMOKE_DOC=bedrock/22_22-agent-handoff.md \
   reading 28 first (path trigger);
   a dedicated ai-panel tab kind when context grows beyond selection-first
   (26 trigger).
-- Safe autosave as an optional policy on top of explicit save (11/18);
-  debounce + the existing mtime handshake make it low-risk later.
+- Autosave SHIPPED as the default policy (MVP-001 feedback) on top of the
+  unchanged mtime handshake; remaining seam: observing OS-level window
+  close mid-debounce (quit flush) if it ever bites in practice.
 - Vault switching UI (owner-deferred "when necessary"): the channel
   supports it; the view lacks the affordance, and mounted vault/project
   views would need invalidation on switch.

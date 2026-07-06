@@ -239,6 +239,25 @@ export function setFocus(state: WorkspaceState, paneId: string): WorkspaceState 
   return { ...state, focusedPaneId: paneId }
 }
 
+/**
+ * App-wide save policy (owner feedback on MVP-001: auto-save by default,
+ * manual as the opt-out). Lives in workspace settings — a UI preference,
+ * never knowledge; absent or unknown values read as 'auto'.
+ */
+export type SaveMode = 'auto' | 'manual'
+
+export function saveModeOf(state: WorkspaceState | null): SaveMode {
+  return state?.settings?.['saveMode'] === 'manual' ? 'manual' : 'auto'
+}
+
+export function setSaveMode(
+  state: WorkspaceState,
+  mode: SaveMode
+): WorkspaceState {
+  if (saveModeOf(state) === mode) return state
+  return { ...state, settings: { ...state.settings, saveMode: mode } }
+}
+
 /** Merges params into the tab, wherever it lives (tab ids are unique). */
 export function updateTabParams(
   state: WorkspaceState,

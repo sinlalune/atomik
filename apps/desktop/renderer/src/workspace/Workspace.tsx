@@ -15,8 +15,10 @@ import {
   clampTreeWidth,
   closeTab,
   makeTab,
+  saveModeOf,
   setFocus,
   setFraction,
+  setSaveMode,
   splitPane,
   topRightLeafId,
   updateTabParams
@@ -64,6 +66,12 @@ function TabContent({
       : clampTreeWidth(Number(treeWidthParam))
   const onTreeResize = (px: number): void =>
     dispatch((state) => updateTabParams(state, tab.id, { treeW: String(px) }))
+  // App-wide save policy (workspace settings; 'auto' when unset).
+  const saveMode = useWorkspace((store) => saveModeOf(store.state))
+  const onSaveModeToggle = (): void =>
+    dispatch((state) =>
+      setSaveMode(state, saveModeOf(state) === 'auto' ? 'manual' : 'auto')
+    )
   const mode = tab.params?.['mode'] === 'edit' ? ('edit' as const) : ('read' as const)
   const onModeChange = (next: 'read' | 'edit'): void =>
     dispatch((state) => updateTabParams(state, tab.id, { mode: next }))
@@ -95,6 +103,8 @@ function TabContent({
         onTreeResize={onTreeResize}
         mode={mode}
         onModeChange={onModeChange}
+        saveMode={saveMode}
+        onSaveModeToggle={onSaveModeToggle}
       />
     )
   }
@@ -120,6 +130,8 @@ function TabContent({
         onTreeResize={onTreeResize}
         mode={mode}
         onModeChange={onModeChange}
+        saveMode={saveMode}
+        onSaveModeToggle={onSaveModeToggle}
       />
     )
   }

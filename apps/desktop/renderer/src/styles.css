@@ -696,6 +696,17 @@ body {
   color: var(--accent);
 }
 
+/* save-policy toggle: quiet, informative */
+.note-bar-actions .save-mode {
+  border-color: transparent;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.note-bar-actions .save-mode:hover {
+  border-color: var(--border);
+}
+
 /* AI panel ----------------------------------------------------------------- */
 
 .editor-body {

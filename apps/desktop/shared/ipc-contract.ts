@@ -104,6 +104,9 @@ export type WorkspaceState = {
   version: 1
   root: PaneNode
   focusedPaneId: string
+  /** App-wide UI preferences (string map, validated like tab params).
+   *  Known key: saveMode = 'auto' (default) | 'manual'. */
+  settings?: Record<string, string>
 }
 
 /**
