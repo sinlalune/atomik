@@ -207,6 +207,34 @@ describe('live preview decorations (MVP-001: seamless editing)', () => {
     ])
   })
 
+  it('leaves bare [text] literal — only [text](url) is a link (read parity)', () => {
+    const doc = '## [mock] QUOI\n\n**[mock free]** QUOI\n\nelsewhere\n'
+    const decos = decorate(doc, doc.indexOf('elsewhere'))
+    // no link styling anywhere, and no bracket hidden anywhere
+    expect(
+      decos.some((deco) => deco.kind === 'mark' && deco.cls === 'lp-link')
+    ).toBe(false)
+    for (const bracket of ['[mock]', '[mock free]']) {
+      const from = doc.indexOf(bracket)
+      expect(
+        decos.some((deco) => deco.kind === 'hide' && deco.from === from)
+      ).toBe(false)
+    }
+    // the surrounding constructs still render: h2 line + strong marks fold
+    expect(
+      decos.some((deco) => deco.kind === 'line' && deco.cls === 'lp-h2')
+    ).toBe(true)
+    expect(
+      decos.some((deco) => deco.kind === 'mark' && deco.cls === 'lp-strong')
+    ).toBe(true)
+    const strongOpen = doc.indexOf('**')
+    expect(decos).toContainEqual({
+      from: strongOpen,
+      to: strongOpen + 2,
+      kind: 'hide'
+    })
+  })
+
   it('linkHrefAt finds the URL from anywhere inside the link, else null', () => {
     const doc = 'see [docs](notes/target.md) here\n'
     const state = decorateState(doc)

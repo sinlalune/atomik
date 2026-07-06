@@ -874,22 +874,21 @@ body[data-maximized] .tabstrip {
   font-size: 0.82em;
 }
 
-/* the default highlighter underlines heading tokens; seamless mode
-   drops that (the size/weight already says "heading") */
-.editor-host.live .lp-h1 span,
-.editor-host.live .lp-h2 span,
-.editor-host.live .lp-h3 span,
-.editor-host.live .lp-h4 span,
-.editor-host.live .lp-h5 span,
-.editor-host.live .lp-h6 span,
-.editor-host.live .lp-frontmatter span {
+/* The default syntax highlighter underlines heading and link TOKENS —
+   including bare [text] the parser tags as a link but read renders
+   literally. Seamless mode neutralizes every default underline and the
+   lp-* classes re-assert the ones the READ view actually shows. */
+.editor-host.live .cm-content :where(span) {
   text-decoration: none;
 }
 
-.editor-host.live .lp-h1 .lp-link,
-.editor-host.live .lp-h2 .lp-link,
-.editor-host.live .lp-h3 .lp-link {
+.editor-host.live .cm-content .lp-link {
   text-decoration: underline;
+}
+
+.editor-host.live .cm-content .lp-strike,
+.editor-host.live .cm-content .lp-done {
+  text-decoration: line-through;
 }
 
 /* AI panel ----------------------------------------------------------------- */

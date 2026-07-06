@@ -121,8 +121,7 @@ const INLINE_STYLES: Record<string, string> = {
   Emphasis: 'lp-em',
   StrongEmphasis: 'lp-strong',
   InlineCode: 'lp-code',
-  Strikethrough: 'lp-strike',
-  Link: 'lp-link'
+  Strikethrough: 'lp-strike'
 }
 
 /** Marks are revealed on every line the selection touches. */
@@ -196,6 +195,16 @@ export function computeLivePreviewDecorations(
         return
       }
       switch (node.name) {
+        case 'Link':
+          // Only a REAL link ([text](url)) gets link treatment. The
+          // parser also emits Link nodes for bare [text] (unresolved
+          // reference shorthand), which the read view renders literally
+          // — live must match it (owner report: bracket text turned
+          // into green links in live only).
+          if (node.node.getChild('URL') && node.from < node.to) {
+            decorations.push(markDeco('lp-link').range(node.from, node.to))
+          }
+          return
         case 'HeaderMark':
           // ATX '#'s (space eaten) and Setext underlines both vanish.
           if (!isActiveAt(node.from)) hideMark(node.from, node.to, true)
@@ -218,9 +227,14 @@ export function computeLivePreviewDecorations(
         case 'CodeInfo':
           decorations.push(markDeco('lp-dim').range(node.from, node.to))
           return
-        case 'LinkMark':
+        case 'LinkMark': {
+          // Brackets fold only inside a real link; bare [text] (and
+          // image syntax, unrendered for now) stays literal like read.
+          const parent = node.node.parent
+          if (parent?.name !== 'Link' || !parent.getChild('URL')) return
           if (!isActiveAt(node.from)) hideMark(node.from, node.to)
           return
+        }
         case 'URL': {
           // In [text](url): hide '(url)' away from the cursor. The parens
           // are plain text between LinkMarks in some grammar versions, so
