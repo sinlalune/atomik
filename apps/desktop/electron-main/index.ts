@@ -3,6 +3,7 @@ import { statSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { runAiOperation } from './ai-mock'
+import { ActionTraceLedger } from './action-trace'
 import { buildAppInfo } from './app-info'
 import { listDevDocs, readDevDoc, resolveDocsRoot } from './dev-docs'
 import { buildMainWindowOptions } from './security'
@@ -20,7 +21,11 @@ import {
   resolveStateDir,
   writeWorkspaceState
 } from './workspace-state'
-import { ATOMIK_CHANNELS, type VaultInfo } from '../shared/ipc-contract'
+import {
+  ATOMIK_CHANNELS,
+  type AiOperation,
+  type VaultInfo
+} from '../shared/ipc-contract'
 
 /** Current vault root — main-process state; the renderer only ever sees
  *  VaultInfo and vault-relative paths. */
@@ -96,10 +101,39 @@ function registerVaultHandlers(stateDir: string): void {
     (_event, relPath: unknown, title: unknown) =>
       createProject(requireVault(), relPath, title)
   )
-  ipcMain.handle(ATOMIK_CHANNELS.runAiOperation, (_event, operation: unknown) =>
-    runAiOperation(operation)
+  ipcMain.handle(ATOMIK_CHANNELS.runAiOperation, (_event, operation: unknown) => {
+    const started = Date.now()
+    try {
+      const bundle = runAiOperation(operation)
+      const traceId = traces.draftFor(
+        operation as AiOperation,
+        bundle,
+        Date.now() - started
+      )
+      return { ...bundle, actionTraceIds: [traceId] }
+    } catch (error) {
+      const operationId =
+        typeof operation === 'object' &&
+        operation !== null &&
+        typeof (operation as Record<string, unknown>)['id'] === 'string'
+          ? ((operation as Record<string, unknown>)['id'] as string)
+          : 'unknown'
+      traces.recordFailure(operationId, Date.now() - started)
+      throw error
+    }
+  })
+  ipcMain.handle(
+    ATOMIK_CHANNELS.resolveAiTrace,
+    (_event, bundleId: unknown, decision: unknown) =>
+      traces.resolve(bundleId, decision)
+  )
+  ipcMain.handle(ATOMIK_CHANNELS.getAiTraceSummary, (_event, bundleId: unknown) =>
+    traces.summary(bundleId)
   )
 }
+
+/** S09 ledger; constructed at startup with the resolved state dir. */
+let traces: ActionTraceLedger
 
 function registerIpcHandlers(docsRoot: string, stateDir: string): void {
   ipcMain.handle(ATOMIK_CHANNELS.getAppInfo, () =>
@@ -221,8 +255,10 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
               preset: 'explain',
               target: { relPath: 'welcome.md', destination: { kind: 'append' } }
             })
+            const summary = await window.atomik.getAiTraceSummary(bundle.id)
+            await window.atomik.resolveAiTrace(bundle.id, 'accepted')
             const shape = [bundle.blocks.length, bundle.patchProposals.length, bundle.claims.length, bundle.actionTraceIds.length].join('/')
-            return 'ok:' + shape + ':' + bundle.patchProposals[0].files[0].kind
+            return 'ok:' + shape + ':' + bundle.patchProposals[0].files[0].kind + ':trace=' + (summary ? summary.location + '/' + summary.wallMs + 'ms' : 'none')
           } catch (e) { return 'fail:' + String(e) }
         })()`
       )) as string
@@ -249,6 +285,8 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
 app.whenReady().then(() => {
   const docsRoot = resolveDocsRoot(app.getAppPath())
   const stateDir = resolveStateDir(app.getAppPath(), process.env)
+  traces = new ActionTraceLedger(stateDir)
+  app.on('before-quit', () => traces.flush())
   restoreVault(stateDir)
   registerIpcHandlers(docsRoot, stateDir)
   registerVaultHandlers(stateDir)

@@ -40,3 +40,6 @@ when the shape changes, not on every diff.
 - [06 — The AI patch loop: contracts first, intelligence later](./06-ai-patch-loop-and-mock-first.md) —
   operation/bundle/patch contracts, mock-first, the provider seat, and why
   the AI channel cannot write. Covers CP-MVP-001 S08.
+- [07 — Action traces: measuring without spying](./07-action-traces-and-cost-observability.md) —
+  the one-line ledger, append-only JSONL, estimated vs actual, content-free
+  telemetry. Covers CP-MVP-001 S09.

@@ -75,6 +75,8 @@ describe('preload surface (13 §IPC rule)', () => {
       listProjects: () => Promise<unknown>
       createProject: (relPath: string, title: string) => Promise<unknown>
       runAiOperation: (operation: unknown) => Promise<unknown>
+      resolveAiTrace: (bundleId: string, decision: string) => Promise<unknown>
+      getAiTraceSummary: (bundleId: string) => Promise<unknown>
     }
     invoke.mockResolvedValue({})
 
@@ -153,6 +155,19 @@ describe('preload surface (13 §IPC rule)', () => {
     expect(invoke).toHaveBeenLastCalledWith(
       ATOMIK_CHANNELS.runAiOperation,
       operation
+    )
+
+    await api.resolveAiTrace('bundle-1', 'accepted')
+    expect(invoke).toHaveBeenLastCalledWith(
+      ATOMIK_CHANNELS.resolveAiTrace,
+      'bundle-1',
+      'accepted'
+    )
+
+    await api.getAiTraceSummary('bundle-1')
+    expect(invoke).toHaveBeenLastCalledWith(
+      ATOMIK_CHANNELS.getAiTraceSummary,
+      'bundle-1'
     )
   })
 })

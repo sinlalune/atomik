@@ -7,7 +7,7 @@ timestamp: 2026-07-05T00:00:00Z
 atomik:
   id: CP-MVP-001
   status: active
-  current_step: S09
+  current_step: S10
   base_commit: 4675233
 ---
 
@@ -84,7 +84,7 @@ Completeness rule (35): every bedrock page 00–35 appears below at least once �
 - [x] S06 Project bundle open/create with `index.md`, `log.md`, and manifest conventions.
 - [x] S07 CodeMirror editor + Markdown preview; explicit save or safe autosave.
 - [x] S08 Selection → AI operation **mock** → structured response bundle → patch preview → accept/edit/reject into file. One accepted operation = one clear diff.
-- [ ] S09 Minimal ActionTrace from the S08 mock: one appended JSON line (location, model/tool id, est/actual tokens when available, latency, external cost, status, outcome, contentRecorded=false) + compact badge.
+- [x] S09 Minimal ActionTrace from the S08 mock: one appended JSON line (location, model/tool id, est/actual tokens when available, latency, external cost, status, outcome, contentRecorded=false) + compact badge.
 - [ ] S10 Mechanical truth labels on S08 output per the labeling rule; a mapped citation opens its local source anchor; one challenged claim produces a repair patch preview.
 - [ ] S11 Run all M0–M2 acceptance tests from the roadmap; filename/heading/full-text search works without embeddings; cache deletion destroys nothing.
 - [ ] S12 Experiential gate: two weeks of daily use; friction recorded as project files; resulting priorities patched into `atomik-project/brainstorm/` or the roadmap; path review and close.
@@ -95,22 +95,23 @@ Child paths (spawned from here, not widened into here): CP-MVP-002 capture sourc
 
 ```text
 base commit : 4675233 (4675233be87ce6d43f06ed1a7ae7de77a28042f1, branch master — v0.6 seed)
-changed     : none — S08 work unit committed (ai-mock provider seat + AiPanel,
-              pipeline contracts in ipc-contract, learning note 06, module note,
-              ledger, both logs)
-tests       : 79 passing / 12 vitest suites (adds ai-mock: operation validation
-              matrix, 06 bundle shape with truth arrays present-but-empty,
-              destination→file-change mapping, content determinism; preload
-              surface now 14 methods); typecheck + build clean; smoke drives the
-              AI channel e2e through the renderer world (ai=ok:2/1/0/0:append).
-              Honest gap: AiPanel interaction flow validated by owner dogfooding
-              + learning-note-06 exercises, not automated E2E
-next action : S09 — minimal ActionTrace from the S08 mock: ONE JSON line appended
-              to .atomik/usage/private/actions.jsonl (location, model/tool id,
-              est/actual tokens when available, latency, external cost, status,
-              outcome, contentRecorded=false) + compact badge. Trigger if any
-              field beyond the minimum tempts: 33 + operation_trace_contract.
-              Thinness rule bites here: one line + one badge, nothing more.
+changed     : none — S09 work unit committed (ActionTraceLedger + badge + decision
+              reporting, learning note 07, module note, ledger, both logs)
+tests       : 87 passing / 14 vitest suites (adds action-trace: one complete line
+              per decision, append-only accumulation, failure/flush, summary
+              lifecycle, content-leak grep; ai-helpers; preload surface now 16).
+              Typecheck + build clean; smoke e2e: run→summary→resolve through the
+              renderer world (ai=ok:...:trace=deterministic/1ms) and the ledger
+              line inspected — exactly the S09 minimum in 06's shape, decision
+              'accepted', contentRecorded=false. No field beyond the minimum:
+              the 33/operation_trace_contract trigger never fired.
+next action : S10 — mechanical truth labels on S08 output per the labeling rule
+              (source-backed ONLY via deterministic derivation — anchor match /
+              quote hash; all else model-only; interpretive from explicit block
+              metadata); a mapped citation opens its local source anchor; one
+              challenged claim produces a repair patch preview. Trigger: read
+              28_28-truth-evidence-model.md ONLY if tempted beyond the four MVP
+              labels (05/06 truth sections are in-context grounding).
 blockers    : none
 ```
 

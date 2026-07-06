@@ -785,6 +785,18 @@ body {
   color: var(--accent);
 }
 
+.ai-trace-badge {
+  align-self: flex-start;
+  font-family: ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  font-size: 0.7rem;
+  color: var(--muted);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
+  cursor: help;
+}
+
 .ai-block {
   border: 1px solid var(--border);
   border-radius: 8px;

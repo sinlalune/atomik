@@ -35,6 +35,17 @@ timestamp: 2026-07-06T00:00:00Z
   writes on open. Last vault remembered in `.atomik/local-settings.json`,
   written by main only (no channel). `ATOMIK_VAULT_DIR` overrides for
   tests/smoke/dev.
+- The ActionTrace ledger (S09, 33-minimal): `electron-main/action-trace.ts`
+  (the execution-core seat, 14) — ONE JSON line per operation appended to
+  `.atomik/usage/private/actions.jsonl` at DECISION time (drafts in
+  memory; failures append immediately; quit flushes undecided). Exactly
+  the S09 minimum in 06's ActionTrace shape: ids, deterministic location +
+  provider/model identity, estimated tokens (named estimated, chars/4),
+  wallMs, EUR 0 estimated external, status + decision, contentRecorded
+  false — a test greps the ledger for prompt/selection text and fails if
+  content ever leaks. Badge in the AI panel via `get-ai-trace-summary`;
+  decision reported via `resolve-ai-trace` (fire-and-forget: telemetry
+  never blocks UX).
 - The AI patch loop (06, S08): `electron-main/ai-mock.ts` (the ai-core
   seat, 14) behind `atomik:run-ai-operation` — PURE COMPUTE, validated
   input (instruction/selection caps, range sanity), content-deterministic
@@ -240,7 +251,10 @@ settings memory), `project.test.ts` (folder-path matrix, slugs, manifest
 scan incl. no-descend + malformed fallback, idempotent ensure,
 byte-identical adoption), `vault-scope.test.ts` (findSubtree),
 `ai-mock.test.ts` (operation validation matrix, 06 bundle shape with
-truth arrays, destination→file-change mapping, content determinism). The
+truth arrays, destination→file-change mapping, content determinism),
+`action-trace.test.ts` (one complete line per decision, append-only
+accumulation, failure/flush paths, summary lifecycle, and the
+content-leak grep), `ai-helpers.test.ts` (default note paths). The
 CodeMirror typing/save flow and the AiPanel interaction flow are
 validated by owner dogfooding and the learning-note exercises; the
 channels and logic beneath them are unit-covered, and the smoke drives
@@ -265,9 +279,6 @@ ATOMIK_SMOKE=1 ATOMIK_SMOKE_DOC=bedrock/22_22-agent-handoff.md \
 
 ## Future extension points
 
-- S09 ActionTrace: one JSON line per operation appended to
-  `.atomik/usage/private/actions.jsonl` + a compact badge; emitted where
-  execution happens (main, beside the mock); `actionTraceIds` is its seat.
 - S10 mechanical truth labels: the empty `claims`/`evidence` arrays; the
   anchor/quote-hash check lives beside the provider seat, never in model
   self-report.

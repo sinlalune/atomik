@@ -3,6 +3,7 @@ import {
   ATOMIK_API_KEY,
   ATOMIK_CHANNELS,
   type AiOperation,
+  type AiTraceDecision,
   type AtomikApi,
   type WorkspaceState
 } from '../shared/ipc-contract'
@@ -41,7 +42,11 @@ const api: AtomikApi = {
   createProject: (relPath: string, title: string) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.createProject, relPath, title),
   runAiOperation: (operation: AiOperation) =>
-    ipcRenderer.invoke(ATOMIK_CHANNELS.runAiOperation, operation)
+    ipcRenderer.invoke(ATOMIK_CHANNELS.runAiOperation, operation),
+  resolveAiTrace: (bundleId: string, decision: AiTraceDecision) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.resolveAiTrace, bundleId, decision),
+  getAiTraceSummary: (bundleId: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.getAiTraceSummary, bundleId)
 }
 
 contextBridge.exposeInMainWorld(ATOMIK_API_KEY, api)

@@ -5,6 +5,7 @@ import type {
   AiResponseBundle,
   AiSelection,
   ProposedFileChange,
+  TraceSummary,
   VaultNoteFile
 } from '../../../shared/ipc-contract'
 import { defaultNewNotePath, ensureMdExtension } from './ai-helpers'
@@ -62,6 +63,8 @@ export function AiPanel({
   const [phase, setPhase] = useState<Phase>('compose')
   const [bundle, setBundle] = useState<AiResponseBundle | null>(null)
   const [editedText, setEditedText] = useState('')
+  const [proposedText, setProposedText] = useState('')
+  const [trace, setTrace] = useState<TraceSummary | null>(null)
   const [ranSelection, setRanSelection] = useState<AiSelection | null>(null)
   const [docAtRun, setDocAtRun] = useState('')
   const [applied, setApplied] = useState<string | null>(null)
@@ -128,8 +131,15 @@ export function AiPanel({
       setBundle(result)
       setRanSelection(selection)
       setDocAtRun(doc)
-      setEditedText(result.patchProposals[0]?.files[0]?.newText ?? '')
+      const proposal = result.patchProposals[0]?.files[0]?.newText ?? ''
+      setEditedText(proposal)
+      setProposedText(proposal)
       setPhase('review')
+      // badge data; telemetry must never break the loop
+      window.atomik.getAiTraceSummary(result.id).then(
+        (summary) => setTrace(summary),
+        () => setTrace(null)
+      )
     } catch (reason) {
       setError(String(reason))
       setPhase('compose')
@@ -139,13 +149,24 @@ export function AiPanel({
   const proposalFile: ProposedFileChange | undefined =
     bundle?.patchProposals[0]?.files[0]
 
+  const reportDecision = useCallback(
+    (decision: 'accepted' | 'edited' | 'rejected') => {
+      if (!bundle) return
+      // fire-and-forget: the ledger line must never block or break the UX
+      window.atomik.resolveAiTrace(bundle.id, decision).catch(() => undefined)
+    },
+    [bundle]
+  )
+
   const accept = useCallback(async () => {
     if (!bundle || !proposalFile || !ranSelection) return
     setError(null)
+    const decision = editedText === proposedText ? 'accepted' : 'edited'
     try {
       if (proposalFile.kind === 'create') {
         await window.atomik.createNote(proposalFile.relPath, editedText)
         setApplied(`created ${proposalFile.relPath}`)
+        reportDecision(decision)
         onNoteCreated?.(proposalFile.relPath)
       } else {
         if (
@@ -170,18 +191,21 @@ export function AiPanel({
         // reverts; a stale file surfaces the editor's conflict banner.
         await requestSave()
         setApplied('applied and saved — Ctrl+Z then save to revert')
+        reportDecision(decision)
       }
     } catch (reason) {
       setError(String(reason))
     }
-  }, [applyChange, bundle, docAtRun, editedText, getDoc, proposalFile, ranSelection, requestSave, onNoteCreated])
+  }, [applyChange, bundle, docAtRun, editedText, getDoc, proposalFile, proposedText, ranSelection, requestSave, onNoteCreated, reportDecision])
 
   const reject = useCallback(() => {
+    if (!applied) reportDecision('rejected')
     setBundle(null)
     setRanSelection(null)
     setApplied(null)
+    setTrace(null)
     setPhase('compose')
-  }, [])
+  }, [applied, reportDecision])
 
   const selectionEmpty = getSelection().text.length === 0
 
@@ -266,6 +290,16 @@ export function AiPanel({
         )}
         {phase === 'review' && bundle && proposalFile && (
           <div className="ai-review">
+            {trace && (
+              <span
+                className="ai-trace-badge"
+                title={`trace ${trace.traceId} — one line in .atomik/usage/private/actions.jsonl on decision; contentRecorded=false`}
+              >
+                {trace.location} · {trace.estimatedExternalCost.currency === 'EUR' ? '€' : ''}
+                {trace.estimatedExternalCost.amount} external · {trace.wallMs} ms ·
+                ~{trace.estimatedInputTokens}→{trace.estimatedOutputTokens} tok (est)
+              </span>
+            )}
             {bundle.blocks.map((block) => (
               <article
                 key={block.id}

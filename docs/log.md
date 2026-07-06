@@ -10,6 +10,7 @@
 - S06: `modules/atomik-desktop.md` gains the project-bundle contracts (manifest detection, idempotent ensure, adoption guarantees, the no-`root`-field deviation from 04's example); `learning/04-project-bundles-and-conventions.md` teaches convention-over-configuration, idempotence, and slugs from zero.
 - S07: `modules/atomik-desktop.md` gains the editor contracts (raw-buffer fidelity, mtime handshake, EditorView-in-a-ref discipline); `learning/05-editor-codemirror-and-optimistic-saves.md` teaches CodeMirror 6, imperative libs inside React, and optimistic locking from zero.
 - S08: `modules/atomik-desktop.md` gains the AI-loop contracts (pure-compute channel, provider seat, buffer-apply semantics, open block kinds); `learning/06-ai-patch-loop-and-mock-first.md` teaches contract-first pipelines and why the AI channel cannot write.
+- S09: `modules/atomik-desktop.md` gains the trace-ledger contracts (decision-time append, S09 minimum in 06's shape, content-leak test); `learning/07-action-traces-and-cost-observability.md` teaches append-only ledgers, estimated-vs-actual, and content-free telemetry from zero.
 
 ## 2026-07-05
 

@@ -25,7 +25,9 @@ export const ATOMIK_CHANNELS = {
   createNote: 'atomik:create-note',
   listProjects: 'atomik:list-projects',
   createProject: 'atomik:create-project',
-  runAiOperation: 'atomik:run-ai-operation'
+  runAiOperation: 'atomik:run-ai-operation',
+  resolveAiTrace: 'atomik:resolve-ai-trace',
+  getAiTraceSummary: 'atomik:get-ai-trace-summary'
 } as const
 
 /** Read-only identity of the running shell. No vault paths, no secrets. */
@@ -211,6 +213,25 @@ export type AiResponseBundle = {
   actionTraceIds: string[]
 }
 
+/**
+ * Minimal ActionTrace (S09): ONE JSON line per resolved operation,
+ * appended to `.atomik/usage/private/actions.jsonl` (append-only,
+ * git-ignored, content-minimized — 27/33). The renderer only reports the
+ * decision and reads a summary for the badge; the ledger lives in main.
+ */
+export type AiTraceDecision = 'accepted' | 'edited' | 'rejected'
+
+export type TraceSummary = {
+  traceId: string
+  location: 'deterministic' | 'local-model' | 'cloud-model' | 'web'
+  provider: string
+  model: string
+  wallMs: number
+  estimatedInputTokens: number
+  estimatedOutputTokens: number
+  estimatedExternalCost: { currency: string; amount: number }
+}
+
 /** The complete API the renderer may call. */
 export type AtomikApi = {
   getAppInfo: () => Promise<AppInfo>
@@ -249,6 +270,10 @@ export type AtomikApi = {
   createProject: (relPath: string, title: string) => Promise<ProjectInfo>
   /** Mocked AI operation (S08): pure compute, never writes. */
   runAiOperation: (operation: AiOperation) => Promise<AiResponseBundle>
+  /** Reports the user's decision; main appends the one trace line. */
+  resolveAiTrace: (bundleId: string, decision: AiTraceDecision) => Promise<void>
+  /** Badge data for a pending operation; null when unknown. */
+  getAiTraceSummary: (bundleId: string) => Promise<TraceSummary | null>
 }
 
 /**
@@ -269,5 +294,7 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'createNote',
   'listProjects',
   'createProject',
-  'runAiOperation'
+  'runAiOperation',
+  'resolveAiTrace',
+  'getAiTraceSummary'
 ] as const satisfies readonly (keyof AtomikApi)[]
