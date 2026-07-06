@@ -6,6 +6,8 @@ import type {
 } from '../../../shared/ipc-contract'
 import { EditorPane } from '../editor/EditorPane'
 import { SidebarToggleIcon } from '../icons'
+import { SearchResultsList } from '../search/SearchResultsList'
+import { useTreeSearch } from '../search/useTreeSearch'
 import { TreeResizeHandle } from '../TreeResizeHandle'
 import { findSubtree, noteDisplayName } from '../vault/scope'
 import { useVaultNote } from '../vault/useVaultNote'
@@ -68,6 +70,16 @@ export function ProjectView({
   const [tree, setTree] = useState<VaultFolder | null>(null)
   const [draftTitle, setDraftTitle] = useState('')
   const [draftNoteName, setDraftNoteName] = useState('')
+  // Project-scoped search perimeter (owner feedback on MVP-001).
+  const searchProject = useCallback(
+    (query: string) =>
+      projectPath
+        ? window.atomik.searchVault(query, projectPath)
+        : Promise.resolve([]),
+    [projectPath]
+  )
+  const { query: searchQuery, setQuery: setSearchQuery, results: searchResults } =
+    useTreeSearch(searchProject)
   const [editorDirty, setEditorDirty] = useState(false)
   const {
     note,
@@ -268,12 +280,30 @@ export function ProjectView({
             +
           </button>
         </div>
-        {scoped && (
-          <ProjectTree
-            folder={scoped}
+        <div className="vault-search">
+          <input
+            placeholder="search project…"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') setSearchQuery('')
+            }}
+          />
+        </div>
+        {searchResults !== null ? (
+          <SearchResultsList
+            results={searchResults}
             activePath={note?.relPath ?? null}
             onOpen={guardedOpen}
           />
+        ) : (
+          scoped && (
+            <ProjectTree
+              folder={scoped}
+              activePath={note?.relPath ?? null}
+              onOpen={guardedOpen}
+            />
+          )
         )}
       </nav>
       )}

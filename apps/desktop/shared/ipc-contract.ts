@@ -21,6 +21,7 @@ export const ATOMIK_CHANNELS = {
   getVault: 'atomik:get-vault',
   listVaultFiles: 'atomik:list-vault-files',
   searchVault: 'atomik:search-vault',
+  searchDevDocs: 'atomik:search-dev-docs',
   readNote: 'atomik:read-note',
   writeNote: 'atomik:write-note',
   createNote: 'atomik:create-note',
@@ -307,8 +308,14 @@ export type AtomikApi = {
   getVault: () => Promise<VaultInfo | null>
   /** Markdown tree of the open vault (dot-dirs and node_modules skipped). */
   listVaultFiles: () => Promise<VaultFolder>
-  /** Lexical search over the vault (filename/heading/full-text, no index). */
-  searchVault: (query: string) => Promise<SearchResult[]>
+  /**
+   * Lexical search (filename/heading/full-text, no index). `scope` narrows
+   * the perimeter to one root-relative folder (a project bundle);
+   * validated in main.
+   */
+  searchVault: (query: string, scope?: string) => Promise<SearchResult[]>
+  /** The same lexical scan over the docs bundle (dev docs perimeter). */
+  searchDevDocs: (query: string) => Promise<SearchResult[]>
   /** Reads one note; validated vault-relative .md path. */
   readNote: (relPath: string) => Promise<VaultNoteFile>
   /**
@@ -350,6 +357,7 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'getVault',
   'listVaultFiles',
   'searchVault',
+  'searchDevDocs',
   'readNote',
   'writeNote',
   'createNote',

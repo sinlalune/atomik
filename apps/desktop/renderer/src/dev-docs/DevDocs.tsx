@@ -2,6 +2,8 @@ import MarkdownIt from 'markdown-it'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { DevDocFile, DevDocsGroup } from '../../../shared/ipc-contract'
 import { SidebarToggleIcon } from '../icons'
+import { SearchResultsList } from '../search/SearchResultsList'
+import { useTreeSearch } from '../search/useTreeSearch'
 import { TreeResizeHandle } from '../TreeResizeHandle'
 import { resolveRelativePath, stripFrontmatter } from './markdown'
 
@@ -74,6 +76,13 @@ export function DevDocs({
   const [doc, setDoc] = useState<DevDocFile | null>(null)
   const [html, setHtml] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Docs-scoped search perimeter (owner feedback on MVP-001).
+  const searchDocs = useCallback(
+    (query: string) => window.atomik.searchDevDocs(query),
+    []
+  )
+  const { query: searchQuery, setQuery: setSearchQuery, results: searchResults } =
+    useTreeSearch(searchDocs)
   // Guards the docPath effect against re-requesting a path that already
   // failed or is in flight (a failing prop would otherwise retry forever).
   const lastRequested = useRef<string | null>(null)
@@ -168,24 +177,42 @@ export function DevDocs({
               </button>
             )}
           </div>
-          {groups.map((group) => (
-            <details key={group.id} open>
-              <summary>{group.label}</summary>
-              <ul>
-                {group.entries.map((entry) => (
-                  <li key={entry.relPath}>
-                    <button
-                      type="button"
-                      className={doc?.relPath === entry.relPath ? 'active' : ''}
-                      onClick={() => openDoc(entry.relPath)}
-                    >
-                      {docLabel(entry.label)}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </details>
-          ))}
+          <div className="vault-search">
+            <input
+              placeholder="search docs…"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') setSearchQuery('')
+              }}
+            />
+          </div>
+          {searchResults !== null ? (
+            <SearchResultsList
+              results={searchResults}
+              activePath={doc?.relPath ?? null}
+              onOpen={openDoc}
+            />
+          ) : (
+            groups.map((group) => (
+              <details key={group.id} open>
+                <summary>{group.label}</summary>
+                <ul>
+                  {group.entries.map((entry) => (
+                    <li key={entry.relPath}>
+                      <button
+                        type="button"
+                        className={doc?.relPath === entry.relPath ? 'active' : ''}
+                        onClick={() => openDoc(entry.relPath)}
+                      >
+                        {docLabel(entry.label)}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ))
+          )}
         </nav>
       )}
       <div

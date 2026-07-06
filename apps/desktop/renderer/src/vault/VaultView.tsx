@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
-import type {
-  SearchResult,
-  VaultFolder,
-  VaultInfo
-} from '../../../shared/ipc-contract'
+import type { VaultFolder, VaultInfo } from '../../../shared/ipc-contract'
 import { EditorPane } from '../editor/EditorPane'
 import { SidebarToggleIcon } from '../icons'
+import { SearchResultsList } from '../search/SearchResultsList'
+import { useTreeSearch } from '../search/useTreeSearch'
 import { TreeResizeHandle } from '../TreeResizeHandle'
 import type { SaveMode } from '../workspace/model'
 import { noteDisplayName } from './scope'
@@ -87,8 +85,12 @@ export function VaultView({
   const [info, setInfo] = useState<VaultInfo | null | 'loading'>('loading')
   const [tree, setTree] = useState<VaultFolder | null>(null)
   const [draftName, setDraftName] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<SearchResult[] | null>(null)
+  const searchVault = useCallback(
+    (query: string) => window.atomik.searchVault(query),
+    []
+  )
+  const { query: searchQuery, setQuery: setSearchQuery, results: searchResults } =
+    useTreeSearch(searchVault)
   const [editorDirty, setEditorDirty] = useState(false)
   const {
     note,
@@ -148,21 +150,6 @@ export function VaultView({
     if (!notePath || lastRequested.current === notePath) return
     openNote(notePath)
   }, [notePath, info, openNote, lastRequested])
-
-  // Debounced lexical search; empty query returns to the tree.
-  useEffect(() => {
-    const trimmed = searchQuery.trim()
-    if (trimmed.length === 0) {
-      setSearchResults(null)
-      return
-    }
-    const timer = window.setTimeout(() => {
-      window.atomik
-        .searchVault(trimmed)
-        .then(setSearchResults, () => setSearchResults([]))
-    }, 250)
-    return () => window.clearTimeout(timer)
-  }, [searchQuery])
 
   const onOpenVault = useCallback(async () => {
     const vault = await window.atomik.openVault()
@@ -254,41 +241,11 @@ export function VaultView({
           />
         </div>
         {searchResults !== null ? (
-          <div className="search-results">
-            {searchResults.length === 0 && (
-              <p className="search-empty">no matches</p>
-            )}
-            {searchResults.map((result) => (
-              <div key={result.relPath} className="search-result">
-                <button
-                  type="button"
-                  className={result.relPath === note?.relPath ? 'active' : ''}
-                  title={result.relPath}
-                  onClick={() => guardedOpen(result.relPath)}
-                >
-                  {noteDisplayName(result.name)}
-                </button>
-                <ul>
-                  {result.matches.map((match, index) => (
-                    <li key={index}>
-                      <span className={`match-kind kind-${match.kind}`}>
-                        {match.kind === 'filename'
-                          ? 'file'
-                          : match.kind === 'heading'
-                            ? 'h'
-                            : '¶'}
-                      </span>
-                      <span className="match-excerpt" title={match.excerpt}>
-                        {match.kind === 'filename'
-                          ? noteDisplayName(match.excerpt)
-                          : match.excerpt}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
+          <SearchResultsList
+            results={searchResults}
+            activePath={note?.relPath ?? null}
+            onOpen={guardedOpen}
+          />
         ) : (
           tree && (
             <FolderView

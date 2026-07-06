@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { searchVault } from '../electron-main/search'
+import { resolveSearchScope, searchVault } from '../electron-main/search'
 
 let vault: string
 
@@ -70,5 +70,37 @@ describe('searchVault (lexical, no embeddings — M1/S11)', () => {
     expect(() => searchVault(vault, '')).toThrow()
     expect(() => searchVault(vault, '   ')).toThrow()
     expect(() => searchVault(vault, 'x'.repeat(300))).toThrow()
+  })
+})
+
+describe('scoped search (project / docs perimeters)', () => {
+  it('confines the scan to the scope folder, relPaths stay root-relative', () => {
+    // 'mars' lives in ideas/jardin.md; a scope elsewhere must not see it.
+    expect(searchVault(vault, 'mars', 'ideas')[0]!.relPath).toBe(
+      'ideas/jardin.md'
+    )
+    expect(searchVault(vault, 'attention', 'ideas')).toEqual([])
+  })
+
+  it('reads a missing scope folder as an empty perimeter', () => {
+    expect(searchVault(vault, 'mars', 'ghost/folder')).toEqual([])
+  })
+
+  it('rejects traversal, absolute, hidden, and denied scopes', () => {
+    for (const bad of [
+      '..',
+      'ideas/../..',
+      '/etc',
+      'a\\b',
+      'a\0b',
+      '.git',
+      'sub/.hidden',
+      'node_modules/pkg',
+      '',
+      'x/'.repeat(300)
+    ]) {
+      expect(() => resolveSearchScope(bad)).toThrow()
+    }
+    expect(resolveSearchScope('projects/demo')).toBe('projects/demo')
   })
 })

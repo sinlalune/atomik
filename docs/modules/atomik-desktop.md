@@ -28,12 +28,13 @@ timestamp: 2026-07-06T00:00:00Z
   the next control click.
 - The renderer-facing API surface: `shared/ipc-contract.ts` is the single
   source of truth (`ATOMIK_API_KEY`, `ATOMIK_CHANNELS`, `AtomikApi`,
-  `DOCUMENTED_PRELOAD_SURFACE`). Thirteen channels exist today:
+  `DOCUMENTED_PRELOAD_SURFACE`). Fourteen channels exist today:
   `window-control` (frame verbs for the chromeless window, allowlist-
-  validated), docs tree + doc read, workspace state read/write (fixed
-  path, validated payload), the vault family — `open-vault` (native
-  dialog in main; user-mediated capability), `get-vault`,
-  `list-vault-files`, `read-note`, `write-note`, `create-note` — and the
+  validated), docs tree + doc read + `search-dev-docs`, workspace state
+  read/write (fixed path, validated payload), the vault family —
+  `open-vault` (native dialog in main; user-mediated capability),
+  `get-vault`, `list-vault-files`, `search-vault` (optional validated
+  scope folder), `read-note`, `write-note`, `create-note` — and the
   project pair `list-projects` / `create-project`.
   The S02 shell-identity channel (`get-app-info`) and its ShellHome card
   were removed on MVP-001 owner feedback ("shell relict"): saved 'home'
@@ -45,13 +46,18 @@ timestamp: 2026-07-06T00:00:00Z
   writes on open. Last vault remembered in `.atomik/local-settings.json`,
   written by main only (no channel). `ATOMIK_VAULT_DIR` overrides for
   tests/smoke/dev.
-- Lexical search (M1/S11): `electron-main/search.ts` — case-insensitive
-  scan over filenames/headings/body lines (kinds + 1-based line numbers +
-  capped excerpts), same denylist as the tree, hard caps (query 200,
-  6 matches/file, 100 files, 10 MB/file). No embeddings, no index by
-  design (01/18); ripgrep/FTS5 replace the scan at M8 behind the same
-  `search-vault` channel. UI: debounced search box in the VaultView tree
-  panel; results replace the tree; Esc clears.
+- Lexical search (M1/S11 + MVP-001 feedback): `electron-main/search.ts` —
+  case-insensitive scan over filenames/headings/body lines (kinds +
+  1-based line numbers + capped excerpts), same denylist as the tree,
+  hard caps (query 200, 6 matches/file, 100 files, 10 MB/file). No
+  embeddings, no index by design (01/18); ripgrep/FTS5 replace the scan
+  at M8 behind the same channels. Perimeters: whole vault, one project
+  bundle (`search-vault` optional `scope` folder — `resolveSearchScope`
+  rejects traversal/absolute/hidden/denied; a missing folder reads as
+  empty), and the docs bundle (`search-dev-docs`, same scan bound to
+  docsRoot). UI: every tree panel (vault / project / dev docs) has the
+  debounced search box (`useTreeSearch` + `SearchResultsList` shared);
+  results replace the tree; Esc clears.
 - Mechanical truth labels (06 §labeling rule, S10): `electron-main/truth.ts`
   (truth-core validator seat, 14 — validators never call AI). Providers
   submit ClaimCandidates that can assert FORM only (interpretive /

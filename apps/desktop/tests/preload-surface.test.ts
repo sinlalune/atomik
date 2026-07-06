@@ -65,7 +65,8 @@ describe('preload surface (13 §IPC rule)', () => {
       openVault: () => Promise<unknown>
       getVault: () => Promise<unknown>
       listVaultFiles: () => Promise<unknown>
-      searchVault: (query: string) => Promise<unknown>
+      searchVault: (query: string, scope?: string) => Promise<unknown>
+      searchDevDocs: (query: string) => Promise<unknown>
       readNote: (relPath: string) => Promise<unknown>
       writeNote: (
         relPath: string,
@@ -118,7 +119,21 @@ describe('preload surface (13 §IPC rule)', () => {
     await api.searchVault('attention')
     expect(invoke).toHaveBeenLastCalledWith(
       ATOMIK_CHANNELS.searchVault,
-      'attention'
+      'attention',
+      undefined
+    )
+
+    await api.searchVault('attention', 'projects/demo')
+    expect(invoke).toHaveBeenLastCalledWith(
+      ATOMIK_CHANNELS.searchVault,
+      'attention',
+      'projects/demo'
+    )
+
+    await api.searchDevDocs('bedrock')
+    expect(invoke).toHaveBeenLastCalledWith(
+      ATOMIK_CHANNELS.searchDevDocs,
+      'bedrock'
     )
 
     await api.readNote('ideas/first.md')

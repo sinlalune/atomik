@@ -74,8 +74,14 @@ function registerVaultHandlers(stateDir: string): void {
   ipcMain.handle(ATOMIK_CHANNELS.listVaultFiles, () =>
     listVaultFiles(requireVault())
   )
-  ipcMain.handle(ATOMIK_CHANNELS.searchVault, (_event, query: unknown) =>
-    searchVault(requireVault(), query)
+  ipcMain.handle(
+    ATOMIK_CHANNELS.searchVault,
+    (_event, query: unknown, scope: unknown) =>
+      searchVault(
+        requireVault(),
+        query,
+        scope === undefined || scope === null ? undefined : scope
+      )
   )
   ipcMain.handle(ATOMIK_CHANNELS.readNote, (_event, relPath: unknown) =>
     readNote(requireVault(), relPath)
@@ -167,6 +173,9 @@ function registerIpcHandlers(docsRoot: string, stateDir: string): void {
   ipcMain.handle(ATOMIK_CHANNELS.listDevDocs, () => listDevDocs(docsRoot))
   ipcMain.handle(ATOMIK_CHANNELS.readDevDoc, (_event, relPath: unknown) =>
     readDevDoc(docsRoot, relPath)
+  )
+  ipcMain.handle(ATOMIK_CHANNELS.searchDevDocs, (_event, query: unknown) =>
+    searchVault(docsRoot, query)
   )
   ipcMain.handle(ATOMIK_CHANNELS.readWorkspaceState, () =>
     readWorkspaceState(stateDir)
