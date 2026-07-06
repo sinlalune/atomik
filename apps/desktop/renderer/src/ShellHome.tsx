@@ -17,7 +17,7 @@ export function ShellHome(): React.JSX.Element {
 
   return (
     <main className="shell-home">
-      <h1>Atomik</h1>
+      <h1>atomik</h1>
       <p className="tagline">
         Local-first AI learning workbench — M0 shell (CP-MVP-001)
       </p>

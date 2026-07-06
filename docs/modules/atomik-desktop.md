@@ -113,6 +113,9 @@ renderer DevDocs.tsx
 - Treating `readDevDoc` casually: its path validation IS the trust boundary
   for renderer-reachable file reads. Widening `DOC_EXTENSIONS` or pointing
   it outside `docs/` is a reviewed security decision, not a tweak.
+- Capitalizing the app name in UI surfaces: the product displays itself in
+  lowercase — "atomik" (owner decision, 2026-07-06). Documentation prose
+  keeps "Atomik".
 
 ## Tests
 

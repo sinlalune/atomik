@@ -17,7 +17,7 @@ export function App(): React.JSX.Element {
   return (
     <div className="app">
       <header className="app-header">
-        <span className="brand">Atomik</span>
+        <span className="brand">atomik</span>
         <nav aria-label="Views">
           <button
             type="button"
