@@ -35,6 +35,13 @@ timestamp: 2026-07-06T00:00:00Z
   writes on open. Last vault remembered in `.atomik/local-settings.json`,
   written by main only (no channel). `ATOMIK_VAULT_DIR` overrides for
   tests/smoke/dev.
+- Lexical search (M1/S11): `electron-main/search.ts` — case-insensitive
+  scan over filenames/headings/body lines (kinds + 1-based line numbers +
+  capped excerpts), same denylist as the tree, hard caps (query 200,
+  6 matches/file, 100 files, 10 MB/file). No embeddings, no index by
+  design (01/18); ripgrep/FTS5 replace the scan at M8 behind the same
+  `search-vault` channel. UI: debounced search box in the VaultView tree
+  panel; results replace the tree; Esc clears.
 - Mechanical truth labels (06 §labeling rule, S10): `electron-main/truth.ts`
   (truth-core validator seat, 14 — validators never call AI). Providers
   submit ClaimCandidates that can assert FORM only (interpretive /
@@ -268,7 +275,10 @@ accumulation, failure/flush paths, summary lifecycle, and the
 content-leak grep), `ai-helpers.test.ts` (default note paths),
 `truth.test.ts` (containment + hash evidence, the no-paraphrase rule,
 form honoring with evidence outranking, the smuggled-label adversarial
-case, reproducibility). The
+case, reproducibility), `search.test.ts` (match kinds + lines,
+case-insensitivity, denylist, caps, query validation). The S11
+acceptance run and its per-line evidence live in
+`atomik-project/sessions/2026-07-06-s11-acceptance-run.md`. The
 CodeMirror typing/save flow and the AiPanel interaction flow are
 validated by owner dogfooding and the learning-note exercises; the
 channels and logic beneath them are unit-covered, and the smoke drives

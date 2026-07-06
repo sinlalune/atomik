@@ -46,3 +46,6 @@ when the shape changes, not on every diff.
 - [08 — Mechanical truth labels: evidence is computed, never claimed](./08-mechanical-truth-labels.md) —
   the labeling rule, quote hashes, form vs evidence, challenge → repair.
   Covers CP-MVP-001 S10.
+- [09 — Lexical search and the acceptance ritual](./09-lexical-search-and-acceptance-runs.md) —
+  why no embeddings first, the retrieval ladder, PASS/STRUCTURAL/DEFERRED
+  honesty. Covers CP-MVP-001 S11.

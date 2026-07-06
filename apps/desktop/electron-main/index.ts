@@ -6,6 +6,7 @@ import { runAiOperation } from './ai-mock'
 import { ActionTraceLedger } from './action-trace'
 import { buildAppInfo } from './app-info'
 import { listDevDocs, readDevDoc, resolveDocsRoot } from './dev-docs'
+import { searchVault } from './search'
 import { buildMainWindowOptions } from './security'
 import { createProject, listProjects } from './project'
 import {
@@ -72,6 +73,9 @@ function registerVaultHandlers(stateDir: string): void {
   ipcMain.handle(ATOMIK_CHANNELS.getVault, () => vaultInfo())
   ipcMain.handle(ATOMIK_CHANNELS.listVaultFiles, () =>
     listVaultFiles(requireVault())
+  )
+  ipcMain.handle(ATOMIK_CHANNELS.searchVault, (_event, query: unknown) =>
+    searchVault(requireVault(), query)
   )
   ipcMain.handle(ATOMIK_CHANNELS.readNote, (_event, relPath: unknown) =>
     readNote(requireVault(), relPath)
@@ -273,8 +277,15 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
     const vaultCount = vaultRoot
       ? ` vault=${listVaultFiles(vaultRoot).notes.length}rootNotes`
       : ''
+    const searchQuery = process.env['ATOMIK_SMOKE_SEARCH']
+    let searchReport = ''
+    if (searchQuery && vaultRoot) {
+      const found = searchVault(vaultRoot, searchQuery)
+      const kinds = found.flatMap((r) => r.matches.map((m) => m.kind))
+      searchReport = ` search=${found.length}files/${[...new Set(kinds)].sort().join('+')}`
+    }
     console.log(
-      `ATOMIK_SMOKE_OK ${app.getName()} ${app.getVersion()} devdocs=${groups.length}groups/${docCount}files panes=${paneCount}${vaultCount}${vaultReport}`
+      `ATOMIK_SMOKE_OK ${app.getName()} ${app.getVersion()} devdocs=${groups.length}groups/${docCount}files panes=${paneCount}${vaultCount}${searchReport}${vaultReport}`
     )
     app.quit()
   } else {

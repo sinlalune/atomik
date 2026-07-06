@@ -454,6 +454,99 @@ body {
   cursor: pointer;
 }
 
+.vault-search {
+  margin: 0 0.4rem 0.5rem;
+}
+
+.vault-search input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 0.8rem;
+  color: inherit;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.28rem 0.55rem;
+}
+
+.vault-search input:focus {
+  outline: 1px solid var(--accent);
+  border-color: var(--accent);
+}
+
+.search-results {
+  font-size: 0.8rem;
+}
+
+.search-empty {
+  margin: 0.5rem;
+  opacity: 0.55;
+}
+
+.search-result {
+  margin-bottom: 0.35rem;
+}
+
+.search-result > button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.2rem 0.5rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-result > button:hover,
+.search-result > button.active {
+  background: var(--code-bg);
+}
+
+.search-result ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 0.6rem;
+}
+
+.search-result li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  padding: 0.05rem 0.3rem;
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.match-kind {
+  flex: none;
+  font-family: ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  font-size: 0.62rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 0.25rem;
+  opacity: 0.8;
+}
+
+.match-kind.kind-heading {
+  color: var(--accent);
+}
+
+.match-excerpt {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .vault-tree ul {
   list-style: none;
   margin: 0;

@@ -20,6 +20,7 @@ export const ATOMIK_CHANNELS = {
   openVault: 'atomik:open-vault',
   getVault: 'atomik:get-vault',
   listVaultFiles: 'atomik:list-vault-files',
+  searchVault: 'atomik:search-vault',
   readNote: 'atomik:read-note',
   writeNote: 'atomik:write-note',
   createNote: 'atomik:create-note',
@@ -129,6 +130,23 @@ export type VaultNoteFile = {
   content: string
   /** Modification time at read, for future conflict checks (S07). */
   mtimeMs: number
+}
+
+/**
+ * Lexical vault search (M1/S11): filename, heading, and full-text matches
+ * from a plain scan — no embeddings, no index (ripgrep/FTS5 are M8).
+ */
+export type SearchMatch = {
+  kind: 'filename' | 'heading' | 'text'
+  /** 1-based line of the match; 0 for filename matches. */
+  line: number
+  excerpt: string
+}
+
+export type SearchResult = {
+  relPath: string
+  name: string
+  matches: SearchMatch[]
 }
 
 /**
@@ -282,6 +300,8 @@ export type AtomikApi = {
   getVault: () => Promise<VaultInfo | null>
   /** Markdown tree of the open vault (dot-dirs and node_modules skipped). */
   listVaultFiles: () => Promise<VaultFolder>
+  /** Lexical search over the vault (filename/heading/full-text, no index). */
+  searchVault: (query: string) => Promise<SearchResult[]>
   /** Reads one note; validated vault-relative .md path. */
   readNote: (relPath: string) => Promise<VaultNoteFile>
   /**
@@ -322,6 +342,7 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'openVault',
   'getVault',
   'listVaultFiles',
+  'searchVault',
   'readNote',
   'writeNote',
   'createNote',

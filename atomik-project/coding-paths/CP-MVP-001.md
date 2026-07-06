@@ -7,7 +7,7 @@ timestamp: 2026-07-05T00:00:00Z
 atomik:
   id: CP-MVP-001
   status: active
-  current_step: S11
+  current_step: S12
   base_commit: 4675233
 ---
 
@@ -86,7 +86,7 @@ Completeness rule (35): every bedrock page 00–35 appears below at least once �
 - [x] S08 Selection → AI operation **mock** → structured response bundle → patch preview → accept/edit/reject into file. One accepted operation = one clear diff.
 - [x] S09 Minimal ActionTrace from the S08 mock: one appended JSON line (location, model/tool id, est/actual tokens when available, latency, external cost, status, outcome, contentRecorded=false) + compact badge.
 - [x] S10 Mechanical truth labels on S08 output per the labeling rule; a mapped citation opens its local source anchor; one challenged claim produces a repair patch preview.
-- [ ] S11 Run all M0–M2 acceptance tests from the roadmap; filename/heading/full-text search works without embeddings; cache deletion destroys nothing.
+- [x] S11 Run all M0–M2 acceptance tests from the roadmap; filename/heading/full-text search works without embeddings; cache deletion destroys nothing.
 - [ ] S12 Experiential gate: two weeks of daily use; friction recorded as project files; resulting priorities patched into `atomik-project/brainstorm/` or the roadmap; path review and close.
 
 Child paths (spawned from here, not widened into here): CP-MVP-002 capture source (M3), CP-MVP-003 PDF (M4).
@@ -95,21 +95,25 @@ Child paths (spawned from here, not widened into here): CP-MVP-002 capture sourc
 
 ```text
 base commit : 4675233 (4675233be87ce6d43f06ed1a7ae7de77a28042f1, branch master — v0.6 seed)
-changed     : none — S10 work unit committed (truth-core checker + claims UI with
-              anchors and challenge/repair, learning note 08, module note, ledger,
-              both logs)
-tests       : 93 passing / 15 vitest suites (adds truth: containment + sha256
-              evidence, no-paraphrase rule, form honoring with evidence outranking,
-              smuggled-label adversarial case, reproducibility; ai-mock now asserts
-              all four labels on every bundle). Typecheck + build clean; smoke e2e:
-              labels=source-backed,model-only,needs-citation,interpretive through
-              the renderer world. Stayed within the four MVP labels: the 28 trigger
-              never fired. Claims UI (chips, [source] anchor jump, [challenge] →
-              repair preview) validated by owner dogfooding per the S07/S08 pattern.
-next action : S11 — run all M0–M2 acceptance tests from the roadmap;
-              filename/heading/full-text search WITHOUT embeddings; cache deletion
-              destroys nothing. This step builds the missing search slice, then
-              executes the acceptance checklist and records results in the ledger.
+changed     : none — S11 work unit committed (lexical search slice + acceptance
+              run record, learning note 09, module note, ledger, both logs)
+tests       : 98 passing / 16 vitest suites (adds search: kinds/lines/case/
+              denylist/caps/validation; preload surface now 17 methods).
+              ACCEPTANCE RUN RECORDED in sessions/2026-07-06-s11-acceptance-run.md:
+              every M0/M1/M2 line PASS except two honest exceptions — "remote
+              content has no Node access" = STRUCTURAL (no remote views until M5;
+              settings pinned+tested) and "hard budget + cancellation" = DEFERRED
+              (meaningless for a synchronous zero-cost mock; named M7 entry
+              criterion). Search e2e (filename+heading marker), no-rewrite (git
+              status 0), FULL state-dir wipe between launches → vault intact.
+              Thinness rule held; 28/33 triggers never fired.
+next action : S12 — EXPERIENTIAL GATE, owner-executed: two consecutive weeks of
+              daily use as the primary learning-notes tool; every friction recorded
+              as project files inside atomik (notes, questions.md, brainstorm/,
+              log.md); resulting priorities patched into brainstorm/ or the
+              roadmap; then path review and close (status: done). Agent role
+              during the gate: fix frictions as micro-units, keep the ledger,
+              never widen scope. Functional tests alone do NOT close this path.
 blockers    : none
 ```
 
