@@ -23,7 +23,14 @@ export function useVaultNote(onNoteOpened?: (relPath: string) => void): {
   const [error, setError] = useState<string | null>(null)
   const lastRequested = useRef<string | null>(null)
 
-  const md = useMemo(() => new MarkdownIt({ html: false, linkify: false }), [])
+  // breaks:true — in the writing surface a single Enter IS a line break
+  // (note-taking expectation; Obsidian's default). Dev Docs stay strict
+  // CommonMark: the corpus is hard-wrapped for editing comfort and soft
+  // breaks there must keep joining into paragraphs.
+  const md = useMemo(
+    () => new MarkdownIt({ html: false, linkify: false, breaks: true }),
+    []
+  )
 
   const openNote = useCallback(
     (relPath: string) => {
