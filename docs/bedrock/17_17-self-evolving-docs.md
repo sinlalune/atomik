@@ -116,6 +116,11 @@ bedrock docs
 module learning notes
   explanation of each core brick
 
+learning notes (docs/learning/)
+  beginner-first layer: the technologies, methodology, and architecture
+  concepts a change mobilizes, taught from zero and anchored to real
+  project files, so the owner can take over any brick an agent built
+
 ADRs
   durable architectural decisions
 
@@ -158,6 +163,8 @@ workspace persistence
 Git behavior
 module ownership
 roadmap phase
+first use of a new technology, framework, or architectural pattern
+  (add or extend the matching docs/learning/ note)
 ```
 
 ## Context migration rule

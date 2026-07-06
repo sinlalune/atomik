@@ -131,6 +131,43 @@ timestamp: YYYY-MM-DDT00:00:00Z
 ## Agent checklist
 ```
 
+## Learning note (beginner layer)
+
+```md
+---
+type: Atomik Learning Note
+title: 'Learning: topic'
+description: Beginner-first walkthrough of the technologies, concepts, and methodology behind <area>.
+tags: [learning]
+timestamp: YYYY-MM-DDT00:00:00Z
+---
+
+# Learning: topic
+
+## Who this is for and what you can do afterwards
+
+## The technologies involved, from zero
+
+## The architecture concepts mobilized (named)
+
+## Walkthrough of the real code
+
+## How it was built (methodology)
+
+## Lessons learned the hard way
+
+## Try it yourself (exercises)
+
+## Vocabulary you now own
+
+## What arrives next
+```
+
+Rules: anchor every claim to real repository files; name each concept
+explicitly; write for someone who did not build the code and does not know
+the stack; keep exercises runnable. Created just-in-time when a step first
+mobilizes a technology (17), updated when the explained shape changes.
+
 ## ADR template
 
 ```md

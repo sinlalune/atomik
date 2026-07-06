@@ -4,7 +4,8 @@ Progressive-disclosure map of the docs plane. The constitution lives in `bedrock
 
 - `bedrock/` — pages 00–35, the durable architecture; `bedrock/archive/` holds superseded drafts
 - `adr/` — accepted decisions (ADR-001…009)
-- `modules/` — module learning notes, populated during implementation
+- `modules/` — module learning notes (contracts), populated during implementation
+- `learning/` — beginner-first layer: technologies, concepts, and methodology taught from zero so the owner can take over any brick
 - `agents/` — agent documentation contract; first prompt for chat-based sessions
 - `contracts/` — machine-readable contract mirrors (JSON)
 - `fixtures/` — reference instances and future test data (their internal links are illustrative by design)

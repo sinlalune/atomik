@@ -8,6 +8,10 @@ timestamp: 2026-07-06T00:00:00Z
 
 # Module: atomik-desktop
 
+> Learning layer: [Learning: the Electron shell, from zero](../learning/01-electron-shell-from-zero.md)
+> teaches the technologies, concepts, and methodology behind this module for
+> someone who did not build it. This note states the contracts.
+
 ## What it owns
 
 - The Electron shell: app lifecycle, the trusted UI window, and the

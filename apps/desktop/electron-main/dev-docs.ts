@@ -34,6 +34,7 @@ const EXCLUDED_ROOT_FILES = new Set(['docs_source.json', 'index.html'])
  *  a new docs area must show up rather than silently disappear. */
 const GROUP_ORDER: ReadonlyArray<{ id: string; label: string }> = [
   { id: '.', label: 'docs' },
+  { id: 'learning', label: 'learning' },
   { id: 'bedrock', label: 'bedrock' },
   { id: 'adr', label: 'ADRs' },
   { id: 'modules', label: 'modules' },
