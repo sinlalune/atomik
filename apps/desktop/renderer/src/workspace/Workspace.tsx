@@ -55,6 +55,9 @@ function TabContent({
     dispatch((state) =>
       updateTabParams(state, tab.id, { tree: treeCollapsed ? 'on' : 'off' })
     )
+  const mode = tab.params?.['mode'] === 'edit' ? ('edit' as const) : ('read' as const)
+  const onModeChange = (next: 'read' | 'edit'): void =>
+    dispatch((state) => updateTabParams(state, tab.id, { mode: next }))
 
   if (tab.view === 'home') return <ShellHome />
   if (tab.view === 'dev-docs') {
@@ -78,6 +81,8 @@ function TabContent({
         }
         treeCollapsed={treeCollapsed}
         onTreeToggle={onTreeToggle}
+        mode={mode}
+        onModeChange={onModeChange}
       />
     )
   }
@@ -99,6 +104,8 @@ function TabContent({
         }
         treeCollapsed={treeCollapsed}
         onTreeToggle={onTreeToggle}
+        mode={mode}
+        onModeChange={onModeChange}
       />
     )
   }

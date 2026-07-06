@@ -72,8 +72,15 @@ function registerVaultHandlers(stateDir: string): void {
   )
   ipcMain.handle(
     ATOMIK_CHANNELS.writeNote,
-    (_event, relPath: unknown, content: unknown) =>
-      writeNote(requireVault(), relPath, content)
+    (_event, relPath: unknown, content: unknown, expectedMtimeMs: unknown) =>
+      writeNote(
+        requireVault(),
+        relPath,
+        content,
+        expectedMtimeMs === undefined || expectedMtimeMs === null
+          ? undefined
+          : expectedMtimeMs
+      )
   )
   ipcMain.handle(
     ATOMIK_CHANNELS.createNote,

@@ -34,3 +34,6 @@ when the shape changes, not on every diff.
 - [04 — Project bundles: conventions, manifests, and safe adoption](./04-project-bundles-and-conventions.md) —
   convention over configuration, idempotent ensure, slugs/NFKD, scoping
   views without new channels. Covers CP-MVP-001 S06.
+- [05 — The editor: CodeMirror, dirty state, and optimistic saves](./05-editor-codemirror-and-optimistic-saves.md) —
+  CodeMirror 6 architecture, imperative libraries inside React, the mtime
+  handshake and conflict banner. Covers CP-MVP-001 S07.

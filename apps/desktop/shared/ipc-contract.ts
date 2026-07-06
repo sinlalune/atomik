@@ -160,8 +160,17 @@ export type AtomikApi = {
   listVaultFiles: () => Promise<VaultFolder>
   /** Reads one note; validated vault-relative .md path. */
   readNote: (relPath: string) => Promise<VaultNoteFile>
-  /** Overwrites an EXISTING note atomically, byte-exact (27). */
-  writeNote: (relPath: string, content: string) => Promise<void>
+  /**
+   * Overwrites an EXISTING note atomically, byte-exact (27). Passing the
+   * mtime received from readNote enables optimistic conflict detection
+   * ("changed on disk since read"); omit it to write unconditionally.
+   * Resolves with the new mtime for the next save.
+   */
+  writeNote: (
+    relPath: string,
+    content: string,
+    expectedMtimeMs?: number
+  ) => Promise<{ mtimeMs: number }>
   /** Creates a NEW note (parents made, exclusive — never clobbers). */
   createNote: (relPath: string, content?: string) => Promise<void>
   /** Project bundles found in the open vault (manifest-detected). */

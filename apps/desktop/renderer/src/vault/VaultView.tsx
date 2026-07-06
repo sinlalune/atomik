@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { VaultFolder, VaultInfo } from '../../../shared/ipc-contract'
+import { EditorPane } from '../editor/EditorPane'
 import { SidebarToggleIcon } from '../icons'
 import { useVaultNote } from './useVaultNote'
+
+export type NoteViewMode = 'read' | 'edit'
 
 export type VaultViewProps = {
   /** Note to show; identical values are ignored (no self-retry on failure). */
@@ -11,6 +14,9 @@ export type VaultViewProps = {
   /** Tree panel visibility, persisted per tab by the workspace. */
   treeCollapsed?: boolean
   onTreeToggle?: () => void
+  /** Read (rendered) or edit (CodeMirror), persisted per tab. */
+  mode?: NoteViewMode
+  onModeChange?: (mode: NoteViewMode) => void
 }
 
 function FolderView({
@@ -57,13 +63,43 @@ export function VaultView({
   notePath,
   onNoteOpened,
   treeCollapsed,
-  onTreeToggle
+  onTreeToggle,
+  mode = 'read',
+  onModeChange
 }: VaultViewProps): React.JSX.Element {
   const [info, setInfo] = useState<VaultInfo | null | 'loading'>('loading')
   const [tree, setTree] = useState<VaultFolder | null>(null)
   const [draftName, setDraftName] = useState('')
-  const { note, html, error, setError, openNote, lastRequested, onContentClick } =
-    useVaultNote(onNoteOpened)
+  const [editorDirty, setEditorDirty] = useState(false)
+  const {
+    note,
+    html,
+    error,
+    setError,
+    openNote,
+    applySaved,
+    lastRequested,
+    onContentClick
+  } = useVaultNote(onNoteOpened)
+
+  const onDirtyChange = useCallback((dirty: boolean) => {
+    setEditorDirty(dirty)
+  }, [])
+
+  /** Note navigation in edit mode must not silently discard a buffer. */
+  const guardedOpen = useCallback(
+    (relPath: string) => {
+      if (
+        editorDirty &&
+        !window.confirm('Unsaved changes will be lost. Continue?')
+      ) {
+        return
+      }
+      setEditorDirty(false)
+      openNote(relPath)
+    },
+    [editorDirty, openNote]
+  )
 
   const refreshTree = useCallback(async () => {
     try {
@@ -167,14 +203,14 @@ export function VaultView({
           <FolderView
             folder={tree}
             activePath={note?.relPath ?? null}
-            onOpen={openNote}
+            onOpen={guardedOpen}
           />
         )}
       </nav>
       )}
       <div
         className="vault-content"
-        onClick={onContentClick}
+        onClick={mode === 'edit' ? undefined : onContentClick}
         {...(note ? { 'data-vault-rendered': '1' } : {})}
       >
         {treeCollapsed && onTreeToggle && (
@@ -187,17 +223,42 @@ export function VaultView({
             <SidebarToggleIcon />
           </button>
         )}
-        {error ? (
-          <p className="error">{error}</p>
-        ) : note ? (
-          <article
-            className="markdown-body"
-            dangerouslySetInnerHTML={{ __html: html }}
+        {error && !note ? (
+          <p className="error note-scroll">{error}</p>
+        ) : !note ? (
+          <p className="pane-placeholder">select a note to read or edit</p>
+        ) : mode === 'edit' ? (
+          <EditorPane
+            key={note.relPath}
+            note={note}
+            onSaved={applySaved}
+            onDirtyChange={onDirtyChange}
+            onSwitchToRead={
+              onModeChange ? () => onModeChange('read') : undefined
+            }
           />
         ) : (
-          <p className="pane-placeholder">
-            select a note — editing arrives at S07
-          </p>
+          <>
+            <div className="note-bar">
+              <span className="note-bar-path" title={note.relPath}>
+                {note.relPath}
+              </span>
+              <span className="note-bar-actions">
+                {onModeChange && (
+                  <button type="button" onClick={() => onModeChange('edit')}>
+                    Edit
+                  </button>
+                )}
+              </span>
+            </div>
+            <div className="note-scroll">
+              {error && <p className="error">{error}</p>}
+              <article
+                className="markdown-body"
+                dangerouslySetInnerHTML={{ __html: html }}
+              />
+            </div>
+          </>
         )}
       </div>
     </div>

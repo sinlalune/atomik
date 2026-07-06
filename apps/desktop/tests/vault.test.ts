@@ -5,6 +5,7 @@ import {
   readdirSync,
   rmSync,
   symlinkSync,
+  utimesSync,
   writeFileSync
 } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -125,8 +126,9 @@ describe('readNote', () => {
 describe('writeNote (edit semantics, byte-exact, atomic)', () => {
   it('overwrites an existing note with exactly the given bytes', () => {
     const content = '# Edited\n\nno trailing newline here'
-    writeNote(vault, 'welcome.md', content)
+    const result = writeNote(vault, 'welcome.md', content)
     expect(readFileSync(join(vault, 'welcome.md'), 'utf8')).toBe(content)
+    expect(typeof result.mtimeMs).toBe('number')
     // no temp residue
     expect(readdirSync(vault).filter((f) => f.includes('.tmp-'))).toEqual([])
   })
@@ -136,6 +138,31 @@ describe('writeNote (edit semantics, byte-exact, atomic)', () => {
     expect(() => writeNote(vault, '../escape.md', 'x')).toThrow()
     expect(() => writeNote(vault, 'welcome.md', 42)).toThrow()
     expect(() => writeNote(vault, 'leak.md', 'overwrite outside?')).toThrow()
+  })
+
+  it('detects concurrent modification through expectedMtimeMs', () => {
+    const read = readNote(vault, 'welcome.md')
+    // out-of-band change with a deterministically different mtime
+    const abs = join(vault, 'welcome.md')
+    writeFileSync(abs, '# changed elsewhere\n')
+    const future = new Date(Date.now() + 5000)
+    utimesSync(abs, future, future)
+
+    expect(() =>
+      writeNote(vault, 'welcome.md', '# mine\n', read.mtimeMs)
+    ).toThrow(/conflict/)
+
+    // a fresh read unlocks the save, and the returned mtime chains onward
+    const fresh = readNote(vault, 'welcome.md')
+    const saved = writeNote(vault, 'welcome.md', '# mine\n', fresh.mtimeMs)
+    expect(readFileSync(abs, 'utf8')).toBe('# mine\n')
+    expect(typeof saved.mtimeMs).toBe('number')
+
+    // omitted mtime writes unconditionally; wrong type is rejected
+    writeNote(vault, 'welcome.md', '# forced\n')
+    expect(() =>
+      writeNote(vault, 'welcome.md', 'x', 'not-a-number')
+    ).toThrow()
   })
 })
 

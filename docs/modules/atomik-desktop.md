@@ -35,6 +35,14 @@ timestamp: 2026-07-06T00:00:00Z
   writes on open. Last vault remembered in `.atomik/local-settings.json`,
   written by main only (no channel). `ATOMIK_VAULT_DIR` overrides for
   tests/smoke/dev.
+- The editor (S07): `renderer/src/editor/EditorPane.tsx` — CodeMirror 6
+  over the RAW note (frontmatter included, no template, no normalization;
+  11/27), explicit save (button + Mod-s), dirty tracking with a
+  navigation guard, and optimistic conflict detection: saves carry the
+  mtime from the last read; `writeNote` refuses stale writes with a
+  'conflict' error and returns the new mtime, chaining save after save.
+  Read/edit mode persists per tab (`mode` param). One EditorView per
+  mounted pane, keyed by note path; view lives in a ref (mount-only).
 - Project bundles (04, S06): `electron-main/project.ts` (incubating
   project-core, 14) — manifest-detected bundles
   (`project.atomik-project.json`; scan skips denied dirs and does not
@@ -187,6 +195,14 @@ vault (04: files are the durable source of record)
 - Silently generating a vault `.gitignore`: 27 sketches a default template,
   but touching a user's vault uninvited violates no-silent-mutation —
   deferred to an explicit, consented flow.
+- Recreating the EditorView on re-render (kills selection/undo/scroll):
+  it lives in a ref, mount-only, remounted by key per note; fresh
+  closures reach it through refs (saveRef pattern).
+- Breaking the mtime handshake: every successful save must adopt the
+  returned mtime or the NEXT save false-conflicts. "Overwrite anyway" is
+  the only sanctioned unconditional write.
+- Adding save-time content "fixes" (trailing newline, frontmatter sort):
+  same byte-fidelity contract as S05 — the buffer IS the file.
 
 ## Tests
 
@@ -201,9 +217,13 @@ resolution), `workspace-model.test.ts` (splits, collapse rules, focus
 repair, fraction clamping), `workspace-state.test.ts` (atomic roundtrip, no
 temp residue, forgiving reads, payload validation caps), `vault.test.ts`
 (path matrix incl. denylist, tree pruning + symlink policy, byte-exact
-write, wx create, settings memory), `project.test.ts` (folder-path matrix,
-slugs, manifest scan incl. no-descend + malformed fallback, idempotent
-ensure, byte-identical adoption), `vault-scope.test.ts` (findSubtree). The smoke run proves boot + Dev Docs
+write, wx create, optimistic-conflict matrix with deterministic mtimes,
+settings memory), `project.test.ts` (folder-path matrix, slugs, manifest
+scan incl. no-descend + malformed fallback, idempotent ensure,
+byte-identical adoption), `vault-scope.test.ts` (findSubtree). The
+CodeMirror typing/save flow itself is validated by owner dogfooding and
+the learning-note exercises; the channel and conflict logic beneath it are
+unit-covered. The smoke run proves boot + Dev Docs
 rendering and reports pane/vault counts; pre-seeded `ATOMIK_STATE_DIR` /
 `ATOMIK_VAULT_DIR` fixtures prove layout restore and, with
 `ATOMIK_SMOKE_VAULT_WRITE=1`, the full renderer→disk write chain (verified
@@ -224,8 +244,11 @@ ATOMIK_SMOKE=1 ATOMIK_SMOKE_DOC=bedrock/22_22-agent-handoff.md \
 
 ## Future extension points
 
-- S07 editor (CodeMirror): `mtimeMs` from `readNote` becomes conflict
-  detection; explicit save / safe autosave policy; read 11 first (trigger).
+- S08 AI patch loop (06): Selection/ContextScope over the editor, mocked
+  provider, response bundle, patch preview → accept/edit/reject through
+  writeNote's guarantees.
+- Safe autosave as an optional policy on top of explicit save (11/18);
+  debounce + the existing mtime handshake make it low-risk later.
 - Vault switching UI (owner-deferred "when necessary"): the channel
   supports it; the view lacks the affordance, and mounted vault/project
   views would need invalidation on switch.
@@ -260,6 +283,8 @@ electron ^43.0.0 · electron-vite ^5.0.0 (pairs with vite ^7) · vite ^7.3.6
 vitest ^3.2.7 (v4 needs vite 8) · react/react-dom ^19.2.x
 typescript ^6.0.3 · @types/node ^24 · markdown-it ^14.3.0 (added S03)
 zustand ^5.0.14 (added S04)
+codemirror ^6.0.2 · @codemirror/lang-markdown ^6.5.0 ·
+@codemirror/theme-one-dark (added S07)
 ```
 
 Dev-environment note (WSL2 Ubuntu noble): Electron needs `libnss3`,

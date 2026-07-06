@@ -8,6 +8,7 @@
 - S04: `modules/atomik-desktop.md` gains the workspace layout contracts (pane tree schema, validation caps, atomic persistence, `.atomik/` decision); `learning/02-react-state-panes-and-disposable-persistence.md` teaches stores, immutability, recursion, atomic writes, and debounce from zero.
 - S05: `modules/atomik-desktop.md` gains the vault contracts (channel family, denylist + symlink policy, byte fidelity, edit vs exclusive create, no-rewrite-on-open proof); `learning/03-vault-io-and-file-trust.md` teaches consent dialogs, wx/TOCTOU, and the file-trust promises from zero.
 - S06: `modules/atomik-desktop.md` gains the project-bundle contracts (manifest detection, idempotent ensure, adoption guarantees, the no-`root`-field deviation from 04's example); `learning/04-project-bundles-and-conventions.md` teaches convention-over-configuration, idempotence, and slugs from zero.
+- S07: `modules/atomik-desktop.md` gains the editor contracts (raw-buffer fidelity, mtime handshake, EditorView-in-a-ref discipline); `learning/05-editor-codemirror-and-optimistic-saves.md` teaches CodeMirror 6, imperative libs inside React, and optimistic locking from zero.
 
 ## 2026-07-05
 

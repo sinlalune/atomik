@@ -66,7 +66,11 @@ describe('preload surface (13 §IPC rule)', () => {
       getVault: () => Promise<unknown>
       listVaultFiles: () => Promise<unknown>
       readNote: (relPath: string) => Promise<unknown>
-      writeNote: (relPath: string, content: string) => Promise<unknown>
+      writeNote: (
+        relPath: string,
+        content: string,
+        expectedMtimeMs?: number
+      ) => Promise<unknown>
       createNote: (relPath: string, content?: string) => Promise<unknown>
       listProjects: () => Promise<unknown>
       createProject: (relPath: string, title: string) => Promise<unknown>
@@ -114,7 +118,16 @@ describe('preload surface (13 §IPC rule)', () => {
     expect(invoke).toHaveBeenLastCalledWith(
       ATOMIK_CHANNELS.writeNote,
       'ideas/first.md',
-      '# Edited\n'
+      '# Edited\n',
+      undefined
+    )
+
+    await api.writeNote('ideas/first.md', '# Edited\n', 123.45)
+    expect(invoke).toHaveBeenLastCalledWith(
+      ATOMIK_CHANNELS.writeNote,
+      'ideas/first.md',
+      '# Edited\n',
+      123.45
     )
 
     await api.createNote('ideas/new.md', '# New\n')

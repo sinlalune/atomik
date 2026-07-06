@@ -4,9 +4,11 @@ import type {
   VaultFolder,
   VaultInfo
 } from '../../../shared/ipc-contract'
+import { EditorPane } from '../editor/EditorPane'
 import { SidebarToggleIcon } from '../icons'
 import { findSubtree } from '../vault/scope'
 import { useVaultNote } from '../vault/useVaultNote'
+import type { NoteViewMode } from '../vault/VaultView'
 
 export type ProjectViewProps = {
   /** Vault-relative folder of the opened bundle. */
@@ -18,6 +20,9 @@ export type ProjectViewProps = {
   /** Tree panel visibility, persisted per tab by the workspace. */
   treeCollapsed?: boolean
   onTreeToggle?: () => void
+  /** Read (rendered) or edit (CodeMirror), persisted per tab. */
+  mode?: NoteViewMode
+  onModeChange?: (mode: NoteViewMode) => void
 }
 
 function slugifyLite(title: string): string {
@@ -42,15 +47,45 @@ export function ProjectView({
   onProjectOpened,
   onNoteOpened,
   treeCollapsed,
-  onTreeToggle
+  onTreeToggle,
+  mode = 'read',
+  onModeChange
 }: ProjectViewProps): React.JSX.Element {
   const [vault, setVault] = useState<VaultInfo | null | 'loading'>('loading')
   const [projects, setProjects] = useState<ProjectInfo[]>([])
   const [tree, setTree] = useState<VaultFolder | null>(null)
   const [draftTitle, setDraftTitle] = useState('')
   const [draftNoteName, setDraftNoteName] = useState('')
-  const { note, html, error, setError, openNote, lastRequested, onContentClick } =
-    useVaultNote(onNoteOpened)
+  const [editorDirty, setEditorDirty] = useState(false)
+  const {
+    note,
+    html,
+    error,
+    setError,
+    openNote,
+    applySaved,
+    lastRequested,
+    onContentClick
+  } = useVaultNote(onNoteOpened)
+
+  const onDirtyChange = useCallback((dirty: boolean) => {
+    setEditorDirty(dirty)
+  }, [])
+
+  /** Note navigation in edit mode must not silently discard a buffer. */
+  const guardedOpen = useCallback(
+    (relPath: string) => {
+      if (
+        editorDirty &&
+        !window.confirm('Unsaved changes will be lost. Continue?')
+      ) {
+        return
+      }
+      setEditorDirty(false)
+      openNote(relPath)
+    },
+    [editorDirty, openNote]
+  )
 
   const refresh = useCallback(async () => {
     try {
@@ -191,10 +226,10 @@ export function ProjectView({
           )}
         </div>
         <div className="project-shortcuts">
-          <button type="button" onClick={() => openNote(`${projectPath}/index.md`)}>
+          <button type="button" onClick={() => guardedOpen(`${projectPath}/index.md`)}>
             index
           </button>
-          <button type="button" onClick={() => openNote(`${projectPath}/log.md`)}>
+          <button type="button" onClick={() => guardedOpen(`${projectPath}/log.md`)}>
             log
           </button>
         </div>
@@ -215,14 +250,14 @@ export function ProjectView({
           <ProjectTree
             folder={scoped}
             activePath={note?.relPath ?? null}
-            onOpen={openNote}
+            onOpen={guardedOpen}
           />
         )}
       </nav>
       )}
       <div
         className="vault-content"
-        onClick={onContentClick}
+        onClick={mode === 'edit' ? undefined : onContentClick}
         {...(note ? { 'data-project-rendered': '1' } : {})}
       >
         {treeCollapsed && onTreeToggle && (
@@ -235,15 +270,42 @@ export function ProjectView({
             <SidebarToggleIcon />
           </button>
         )}
-        {error ? (
-          <p className="error">{error}</p>
-        ) : note ? (
-          <article
-            className="markdown-body"
-            dangerouslySetInnerHTML={{ __html: html }}
+        {error && !note ? (
+          <p className="error note-scroll">{error}</p>
+        ) : !note ? (
+          <p className="pane-placeholder">loading…</p>
+        ) : mode === 'edit' ? (
+          <EditorPane
+            key={note.relPath}
+            note={note}
+            onSaved={applySaved}
+            onDirtyChange={onDirtyChange}
+            onSwitchToRead={
+              onModeChange ? () => onModeChange('read') : undefined
+            }
           />
         ) : (
-          <p className="pane-placeholder">loading…</p>
+          <>
+            <div className="note-bar">
+              <span className="note-bar-path" title={note.relPath}>
+                {note.relPath}
+              </span>
+              <span className="note-bar-actions">
+                {onModeChange && (
+                  <button type="button" onClick={() => onModeChange('edit')}>
+                    Edit
+                  </button>
+                )}
+              </span>
+            </div>
+            <div className="note-scroll">
+              {error && <p className="error">{error}</p>}
+              <article
+                className="markdown-body"
+                dangerouslySetInnerHTML={{ __html: html }}
+              />
+            </div>
+          </>
         )}
       </div>
     </div>

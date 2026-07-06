@@ -27,8 +27,13 @@ const api: AtomikApi = {
   listVaultFiles: () => ipcRenderer.invoke(ATOMIK_CHANNELS.listVaultFiles),
   readNote: (relPath: string) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.readNote, relPath),
-  writeNote: (relPath: string, content: string) =>
-    ipcRenderer.invoke(ATOMIK_CHANNELS.writeNote, relPath, content),
+  writeNote: (relPath: string, content: string, expectedMtimeMs?: number) =>
+    ipcRenderer.invoke(
+      ATOMIK_CHANNELS.writeNote,
+      relPath,
+      content,
+      expectedMtimeMs
+    ),
   createNote: (relPath: string, content?: string) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.createNote, relPath, content),
   listProjects: () => ipcRenderer.invoke(ATOMIK_CHANNELS.listProjects),

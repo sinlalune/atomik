@@ -144,19 +144,33 @@ function checkedContent(content: unknown): string {
   return content
 }
 
-/** Overwrites an existing note atomically. Edit semantics: the target must
- *  already exist (creation is a distinct, exclusive operation). */
+/**
+ * Overwrites an existing note atomically. Edit semantics: the target must
+ * already exist (creation is a distinct, exclusive operation). When
+ * `expectedMtimeMs` is given, the write is refused if the file changed on
+ * disk since that read (optimistic concurrency; S07 editor saves).
+ */
 export function writeNote(
   vaultRoot: string,
   relPath: unknown,
-  content: unknown
-): void {
+  content: unknown,
+  expectedMtimeMs?: unknown
+): { mtimeMs: number } {
   const abs = resolveNotePath(vaultRoot, relPath)
   if (!abs) throw new Error('vault: rejected path')
   const body = checkedContent(content)
   if (!existsSync(abs)) throw new Error('vault: note does not exist')
   assertInsideVault(vaultRoot, abs)
+  if (expectedMtimeMs !== undefined) {
+    if (typeof expectedMtimeMs !== 'number') {
+      throw new Error('vault: rejected mtime')
+    }
+    if (statSync(abs).mtimeMs !== expectedMtimeMs) {
+      throw new Error('vault: conflict — note changed on disk since it was read')
+    }
+  }
   atomicWrite(abs, body)
+  return { mtimeMs: statSync(abs).mtimeMs }
 }
 
 /** Creates a new note; parents are made, existing files never clobbered. */

@@ -7,7 +7,7 @@ timestamp: 2026-07-05T00:00:00Z
 atomik:
   id: CP-MVP-001
   status: active
-  current_step: S07
+  current_step: S08
   base_commit: 4675233
 ---
 
@@ -82,7 +82,7 @@ Completeness rule (35): every bedrock page 00–35 appears below at least once �
 - [x] S04 Tabs and split panes; workspace state in `.atomik/`, disposable.
 - [x] S05 Vault open/read/write for Markdown with atomic, Git-friendly writes; restart survives; no rewrite-on-open.
 - [x] S06 Project bundle open/create with `index.md`, `log.md`, and manifest conventions.
-- [ ] S07 CodeMirror editor + Markdown preview; explicit save or safe autosave.
+- [x] S07 CodeMirror editor + Markdown preview; explicit save or safe autosave.
 - [ ] S08 Selection → AI operation **mock** → structured response bundle → patch preview → accept/edit/reject into file. One accepted operation = one clear diff.
 - [ ] S09 Minimal ActionTrace from the S08 mock: one appended JSON line (location, model/tool id, est/actual tokens when available, latency, external cost, status, outcome, contentRecorded=false) + compact badge.
 - [ ] S10 Mechanical truth labels on S08 output per the labeling rule; a mapped citation opens its local source anchor; one challenged claim produces a repair patch preview.
@@ -95,19 +95,20 @@ Child paths (spawned from here, not widened into here): CP-MVP-002 capture sourc
 
 ```text
 base commit : 4675233 (4675233be87ce6d43f06ed1a7ae7de77a28042f1, branch master — v0.6 seed)
-changed     : none — S06 work unit committed (project-core + ProjectView, shared
-              useVaultNote/findSubtree extraction, learning note 04, module note,
+changed     : none — S07 work unit committed (EditorPane + writeNote optimistic
+              concurrency, read/edit mode per tab, learning note 05, module note,
               ledger, both logs)
-tests       : 71 passing / 11 vitest suites (adds project: folder-path matrix,
-              slugs/NFKD, manifest scan incl. no-descend + malformed fallback,
-              idempotent ensure with byte-identical adoption; vault-scope; preload
-              surface now 13 methods); typecheck + build clean; e2e on a
-              Git-tracked scratch vault: createProject through the running app
-              (three conventional files, git sees only the untracked folder) and
-              a project tab restored from workspace state (screenshot reviewed)
-next action : S07 — CodeMirror editor + Markdown preview; explicit save or safe
-              autosave (conditional trigger: read 11_11-markdown-page-model.md
-              FIRST; mtimeMs conflict checks; 27 write discipline via writeNote)
+tests       : 72 passing / 11 vitest suites (adds the optimistic-conflict matrix
+              with deterministic mtimes; writeNote returns the new mtime; preload
+              routing covers the 3-arg signature); typecheck + build clean; smoke:
+              a vault tab restored in EDIT mode shows CodeMirror over the raw note,
+              frontmatter included (screenshot reviewed). Honest gap: the typing/
+              save/conflict UI flow is validated by owner dogfooding + learning-note
+              exercises, not by automated E2E (Playwright remains "later" per 12)
+next action : S08 — Selection → AI operation MOCK → structured response bundle →
+              patch preview → accept/edit/reject into file; one accepted operation
+              = one clear diff (06 pipeline + mechanical labeling groundwork;
+              re-read 13 §IPC before the new channel; 24 AI-operation template)
 blockers    : none
 ```
 
