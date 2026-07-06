@@ -22,12 +22,14 @@ timestamp: 2026-07-06T00:00:00Z
   CSP lives in `renderer/index.html`.
 - The renderer-facing API surface: `shared/ipc-contract.ts` is the single
   source of truth (`ATOMIK_API_KEY`, `ATOMIK_CHANNELS`, `AtomikApi`,
-  `DOCUMENTED_PRELOAD_SURFACE`). Thirteen channels exist today: shell
-  identity, docs tree + doc read, workspace state read/write (fixed path,
-  validated payload), the vault family — `open-vault` (native dialog in
-  main; user-mediated capability), `get-vault`, `list-vault-files`,
-  `read-note`, `write-note`, `create-note` — and the project pair
-  `list-projects` / `create-project`.
+  `DOCUMENTED_PRELOAD_SURFACE`). Twelve channels exist today: docs tree +
+  doc read, workspace state read/write (fixed path, validated payload),
+  the vault family — `open-vault` (native dialog in main; user-mediated
+  capability), `get-vault`, `list-vault-files`, `read-note`, `write-note`,
+  `create-note` — and the project pair `list-projects` / `create-project`.
+  The S02 shell-identity channel (`get-app-info`) and its ShellHome card
+  were removed on MVP-001 owner feedback ("shell relict"): saved 'home'
+  tabs migrate to vault tabs at load (`migrateRetiredViews`).
 - Vault IO (04/27, S05): `electron-main/vault.ts` (incubating vault-core,
   14) — tree listing (dot-dirs, `.git`, `.atomik`, `node_modules` skipped;
   symlinks not followed), validated vault-relative `.md` paths, byte-exact
@@ -108,6 +110,10 @@ timestamp: 2026-07-06T00:00:00Z
   opens the bundle" check for M0 acceptance. Waits for the rendered view,
   honors `ATOMIK_SMOKE_DOC` (which doc to open) and `ATOMIK_SMOKE_SHOT`
   (PNG capture path), prints `ATOMIK_SMOKE_OK`, exits 0 (1 on timeout).
+  Determinism rule (learned when live dogfooding changed the repo's
+  layout): without an explicit `ATOMIK_STATE_DIR` fixture, smoke gets a
+  scratch state dir — it must never restore the owner's real layout,
+  which would win over the `#dev-docs` hash.
 
 ## Why it exists
 
@@ -142,12 +148,6 @@ retrofitting it.
 ## Data flow
 
 ```text
-renderer App.tsx
-  -> window.atomik.getAppInfo()            (typed AtomikApi)
-  -> preload: ipcRenderer.invoke('atomik:get-app-info')
-  -> main: ipcMain.handle -> buildAppInfo(app/process identity)
-  -> AppInfo back to renderer (read-only; no fs, no secrets)
-
 renderer DevDocs.tsx
   -> window.atomik.listDevDocs() / readDevDoc(relPath)
   -> preload -> named channels
@@ -189,8 +189,8 @@ vault (04: files are the durable source of record)
 - **zustand vs Jotai/Redux/Context** (12 lists zustand or Jotai): zustand —
   one store, selector subscriptions, no providers, ~1 kB; layout logic
   stays in pure `model.ts` functions so the store is replaceable.
-- **Split creates an empty pane** (placeholder with +docs/+shell) rather
-  than auto-cloning a tab: simpler invariants, explicit user intent.
+- **Split creates an empty pane** (placeholder with +project/+vault/+docs)
+  rather than auto-cloning a tab: simpler invariants, explicit user intent.
 - **`.atomik/` stays fully Git-ignored** (resolves the S01 observation):
   we persist `local-workspace.json` (machine-local per 03/27); a shared
   committed `workspace.json` only becomes relevant with collaboration and
@@ -256,7 +256,7 @@ vault (04: files are the durable source of record)
 `apps/desktop/tests/` (vitest, node env): `security-contract.test.ts` (pinned
 webPreferences + contract-file linkage), `preload-surface.test.ts` (exact
 documented surface, no raw `ipcRenderer`, named-channel routing),
-`app-info.test.ts` (pure mapper), `dev-docs-paths.test.ts` (traversal /
+`dev-docs-paths.test.ts` (traversal /
 absolute / NUL / extension / non-string rejections), `dev-docs-list.test.ts`
 (grouping, generated-artifact exclusion, symlink-escape refusal on a fixture
 bundle), `markdown-helpers.test.ts` (frontmatter strip, relative-link

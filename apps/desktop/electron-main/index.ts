@@ -1,10 +1,10 @@
 import { app, BrowserWindow, dialog, ipcMain } from 'electron'
-import { statSync } from 'node:fs'
+import { mkdtempSync, statSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { runAiOperation } from './ai-mock'
 import { ActionTraceLedger } from './action-trace'
-import { buildAppInfo } from './app-info'
 import { listDevDocs, readDevDoc, resolveDocsRoot } from './dev-docs'
 import { searchVault } from './search'
 import { buildMainWindowOptions } from './security'
@@ -140,14 +140,6 @@ function registerVaultHandlers(stateDir: string): void {
 let traces: ActionTraceLedger
 
 function registerIpcHandlers(docsRoot: string, stateDir: string): void {
-  ipcMain.handle(ATOMIK_CHANNELS.getAppInfo, () =>
-    buildAppInfo({
-      name: app.getName(),
-      version: app.getVersion(),
-      versions: process.versions,
-      platform: process.platform
-    })
-  )
   ipcMain.handle(ATOMIK_CHANNELS.listDevDocs, () => listDevDocs(docsRoot))
   ipcMain.handle(ATOMIK_CHANNELS.readDevDoc, (_event, relPath: unknown) =>
     readDevDoc(docsRoot, relPath)
@@ -296,6 +288,12 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
 
 app.whenReady().then(() => {
   const docsRoot = resolveDocsRoot(app.getAppPath())
+  // Smoke is a deterministic check: without an explicit ATOMIK_STATE_DIR
+  // fixture it must not restore whatever layout live dogfooding left in
+  // the repo's .atomik/ (a saved state would win over the #dev-docs hash).
+  if (process.env['ATOMIK_SMOKE'] === '1' && !process.env['ATOMIK_STATE_DIR']) {
+    process.env['ATOMIK_STATE_DIR'] = mkdtempSync(join(tmpdir(), 'atomik-smoke-'))
+  }
   const stateDir = resolveStateDir(app.getAppPath(), process.env)
   traces = new ActionTraceLedger(stateDir)
   app.on('before-quit', () => traces.flush())

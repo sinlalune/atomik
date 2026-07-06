@@ -101,25 +101,30 @@ the network. Belt and suspenders.
 
 IPC (inter-process communication) is how the dining room orders from the
 kitchen. Electron's polite form is `invoke`/`handle`: an async function
-call across processes, by channel name. Follow our simplest call end to
-end — this is the pattern every future feature repeats:
+call across processes, by channel name. Follow one call end to end — this
+is the pattern every future feature repeats. (The original example here,
+the S02 shell identity card and its `get-app-info` channel, was removed
+on MVP-001 owner feedback — "get rid of shell relict". The pattern is
+unchanged; the docs reader is now the simplest chain.)
 
 ```text
-1. renderer/src/ShellHome.tsx
-     window.atomik.getAppInfo()          // looks like a normal async call
+1. renderer/src/dev-docs/DevDocs.tsx
+     window.atomik.readDevDoc(relPath)   // looks like a normal async call
 
 2. electron-preload/index.ts
-     getAppInfo: () => ipcRenderer.invoke('atomik:get-app-info')
+     readDevDoc: (relPath) =>
+       ipcRenderer.invoke('atomik:read-dev-doc', relPath)
                                           // the hatch forwards by NAME
 
 3. electron-main/index.ts
-     ipcMain.handle('atomik:get-app-info', () => buildAppInfo(...))
-                                          // the kitchen answers
+     ipcMain.handle('atomik:read-dev-doc', (_event, relPath) =>
+       readDevDoc(docsRoot, relPath))     // the kitchen answers
 
-4. electron-main/app-info.ts
-     buildAppInfo(...)                    // pure function, unit-tested
+4. electron-main/dev-docs.ts
+     readDevDoc(...)                      // pure logic, path-validated,
+                                          // unit-tested
 
-5. the promise resolves back in React with the AppInfo object
+5. the promise resolves back in React with the DevDocFile object
 ```
 
 Three design rules make this safe and maintainable:
@@ -259,9 +264,9 @@ state lives in the ledger
 
 Do these in order; each proves a layer is yours.
 
-1. **Run and touch the UI.** `npm run dev`, then edit the tagline in
-   `renderer/src/ShellHome.tsx` and save — the window updates live (HMR).
-   You changed the renderer.
+1. **Run and touch the UI.** `npm run dev`, then edit the empty-pane
+   placeholder text in `renderer/src/workspace/Workspace.tsx` and save —
+   the window updates live (HMR). You changed the renderer.
 2. **Watch the constitution defend itself.** In
    `electron-main/security.ts`, change `sandbox: true` to `false`. Run
    `npm test`: `security-contract.test.ts` fails and names the rule.
@@ -276,8 +281,8 @@ Do these in order; each proves a layer is yours.
    re-read `13_13-electron-security.md` §IPC — you just followed the same
    trigger the agents follow. Then remove it all (or keep it as scratch).
 4. **See the two consoles.** `console.log('kitchen')` in the
-   `getAppInfo` handler (terminal) and `console.log('dining room')` in
-   `ShellHome.tsx` (DevTools console, Ctrl+Shift+I). Delete both after.
+   `readDevDoc` handler (terminal) and `console.log('dining room')` in
+   `DevDocs.tsx` (DevTools console, Ctrl+Shift+I). Delete both after.
 5. **Read the state like an agent.** Open
    `atomik-project/coding-paths/CP-MVP-001.md`, find the checkpoint, then
    `git show --stat HEAD` — match the ledger's story to the diff.

@@ -6,7 +6,6 @@ import type {
 } from '../../../shared/ipc-contract'
 import { DevDocs } from '../dev-docs/DevDocs'
 import { ProjectView } from '../project/ProjectView'
-import { ShellHome } from '../ShellHome'
 import { noteDisplayName } from '../vault/scope'
 import { VaultView } from '../vault/VaultView'
 import {
@@ -25,7 +24,6 @@ import { useWorkspace } from './store'
 type Dispatch = (operation: (state: WorkspaceState) => WorkspaceState) => void
 
 const TAB_LABELS: Record<string, string> = {
-  home: 'Shell',
   'dev-docs': 'Dev Docs',
   vault: 'Vault',
   project: 'Project'
@@ -68,7 +66,6 @@ function TabContent({
   const onModeChange = (next: 'read' | 'edit'): void =>
     dispatch((state) => updateTabParams(state, tab.id, { mode: next }))
 
-  if (tab.view === 'home') return <ShellHome />
   if (tab.view === 'dev-docs') {
     return (
       <DevDocs
@@ -196,15 +193,6 @@ function LeafPane({
           </button>
           <button
             type="button"
-            title="New Shell tab"
-            onClick={() =>
-              dispatch((state) => addTab(state, node.id, makeTab('home')))
-            }
-          >
-            +shell
-          </button>
-          <button
-            type="button"
             title="Split side by side"
             onClick={() =>
               dispatch((state) => splitPane(state, node.id, 'horizontal'))
@@ -228,7 +216,7 @@ function LeafPane({
           <TabContent key={active.id} tab={active} dispatch={dispatch} />
         ) : (
           <p className="pane-placeholder">
-            empty pane — open a tab with +docs or +shell
+            empty pane — open a tab with +project, +vault, or +docs
           </p>
         )}
       </div>

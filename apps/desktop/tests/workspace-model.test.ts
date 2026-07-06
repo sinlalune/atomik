@@ -8,6 +8,7 @@ import {
   createDefaultState,
   firstLeafId,
   makeTab,
+  migrateRetiredViews,
   setFocus,
   setFraction,
   splitPane,
@@ -20,10 +21,10 @@ function leaves(node: PaneNode): Array<Extract<PaneNode, { kind: 'leaf' }>> {
 }
 
 describe('createDefaultState', () => {
-  it('defaults to one pane with home + dev-docs, home active', () => {
+  it('defaults to one pane with vault + dev-docs, vault active', () => {
     const state = createDefaultState('')
     const [leaf] = leaves(state.root)
-    expect(leaf!.tabs.map((tab) => tab.view)).toEqual(['home', 'dev-docs'])
+    expect(leaf!.tabs.map((tab) => tab.view)).toEqual(['vault', 'dev-docs'])
     expect(leaf!.activeTabId).toBe(leaf!.tabs[0]!.id)
     expect(state.focusedPaneId).toBe(leaf!.id)
   })
@@ -36,6 +37,28 @@ describe('createDefaultState', () => {
     expect(leaves(deep.root)[0]!.tabs[0]!.params).toEqual({
       docPath: 'bedrock/00_00-orientation.md'
     })
+  })
+})
+
+describe('migrateRetiredViews', () => {
+  it("maps saved 'home' tabs to vault tabs, anywhere in the tree", () => {
+    const state = createDefaultState('')
+    const withHome = splitPane(
+      addTab(state, firstLeafId(state.root), makeTab('home')),
+      firstLeafId(state.root),
+      'horizontal'
+    )
+    const migrated = migrateRetiredViews(withHome)
+    const views = leaves(migrated.root).flatMap((leaf) =>
+      leaf.tabs.map((tab) => tab.view)
+    )
+    expect(views).not.toContain('home')
+    expect(views.filter((view) => view === 'vault')).toHaveLength(2)
+  })
+
+  it('returns the same state identity when nothing is retired', () => {
+    const state = createDefaultState('')
+    expect(migrateRetiredViews(state)).toBe(state)
   })
 })
 

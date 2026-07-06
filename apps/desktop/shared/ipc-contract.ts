@@ -12,7 +12,6 @@ export const ATOMIK_API_KEY = 'atomik' as const
 
 /** Named IPC channels. One entry per channel; no generic bridge. */
 export const ATOMIK_CHANNELS = {
-  getAppInfo: 'atomik:get-app-info',
   listDevDocs: 'atomik:list-dev-docs',
   readDevDoc: 'atomik:read-dev-doc',
   readWorkspaceState: 'atomik:read-workspace-state',
@@ -30,17 +29,6 @@ export const ATOMIK_CHANNELS = {
   resolveAiTrace: 'atomik:resolve-ai-trace',
   getAiTraceSummary: 'atomik:get-ai-trace-summary'
 } as const
-
-/** Read-only identity of the running shell. No vault paths, no secrets. */
-export type AppInfo = {
-  name: string
-  version: string
-  electron: string
-  chrome: string
-  /** Node version of the main process; the renderer itself has no Node. */
-  node: string
-  platform: string
-}
 
 /** One readable file of the documentation bundle (16_16-dev-docs-tab.md). */
 export type DevDocKind = 'markdown' | 'svg' | 'json'
@@ -285,7 +273,6 @@ export type TraceSummary = {
 
 /** The complete API the renderer may call. */
 export type AtomikApi = {
-  getAppInfo: () => Promise<AppInfo>
   /** Enumerates the docs bundle (read-only; generated artifacts excluded). */
   listDevDocs: () => Promise<DevDocsGroup[]>
   /** Reads one doc file; the main process validates the path against docs/. */
@@ -334,7 +321,6 @@ export type AtomikApi = {
  * compare it against the object actually handed to contextBridge.
  */
 export const DOCUMENTED_PRELOAD_SURFACE = [
-  'getAppInfo',
   'listDevDocs',
   'readDevDoc',
   'readWorkspaceState',

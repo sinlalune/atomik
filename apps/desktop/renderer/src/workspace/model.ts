@@ -30,7 +30,7 @@ export function makeLeaf(tabs: WorkspaceTab[]): LeafNode {
 
 /**
  * First-launch layout. The `#dev-docs[:<relPath>]` hash (smoke, deep links)
- * selects a docs-only layout; the normal default is home + docs, home
+ * selects a docs-only layout; the normal default is vault + docs, vault
  * active. A saved state always wins over the hash — this only shapes the
  * default.
  */
@@ -44,9 +44,36 @@ export function createDefaultState(hash: string): WorkspaceState {
       makeTab('dev-docs', relPath ? { docPath: relPath } : undefined)
     ])
   } else {
-    root = makeLeaf([makeTab('home'), makeTab('dev-docs')])
+    root = makeLeaf([makeTab('vault'), makeTab('dev-docs')])
   }
   return { version: 1, root, focusedPaneId: root.id }
+}
+
+/** Tab kinds retired from the open set (03) map forward at load time.
+ *  'home' was the M0 shell identity card, removed on MVP-001 owner
+ *  feedback; a saved layout that still holds one opens as a vault tab. */
+const RETIRED_VIEWS: Record<string, string> = { home: 'vault' }
+
+export function migrateRetiredViews(state: WorkspaceState): WorkspaceState {
+  const migrate = (node: PaneNode): PaneNode => {
+    if (node.kind === 'split') {
+      const first = migrate(node.first)
+      const second = migrate(node.second)
+      return first !== node.first || second !== node.second
+        ? { ...node, first, second }
+        : node
+    }
+    let changed = false
+    const tabs = node.tabs.map((tab) => {
+      const target = RETIRED_VIEWS[tab.view]
+      if (!target) return tab
+      changed = true
+      return { ...tab, view: target }
+    })
+    return changed ? { ...node, tabs } : node
+  }
+  const root = migrate(state.root)
+  return root === state.root ? state : { ...state, root }
 }
 
 export function firstLeafId(node: PaneNode): string {

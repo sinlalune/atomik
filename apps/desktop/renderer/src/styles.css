@@ -70,52 +70,8 @@ body {
   display: flex;
 }
 
-/* shell home ------------------------------------------------------------- */
-
-.shell-home {
-  margin: auto;
-  max-width: 34rem;
-  padding: 2rem;
-}
-
-.shell-home h1 {
-  margin: 0;
-  font-size: 2.25rem;
-  letter-spacing: -0.02em;
-}
-
-.tagline {
-  margin-top: 0.25rem;
-  opacity: 0.75;
-}
-
-.app-info {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: 0.25rem 1rem;
-  margin: 1.5rem 0;
-  padding: 1rem 1.25rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-family: ui-monospace, 'Cascadia Mono', Menlo, monospace;
-  font-size: 0.85rem;
-}
-
-.app-info dt {
-  opacity: 0.6;
-}
-
-.app-info dd {
-  margin: 0;
-}
-
 .error {
   color: light-dark(#a03030, #ff8080);
-}
-
-.next {
-  font-size: 0.8rem;
-  opacity: 0.55;
 }
 
 /* workspace: panes and tabs ------------------------------------------------ */

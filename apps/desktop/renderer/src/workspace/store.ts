@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { WorkspaceState } from '../../../shared/ipc-contract'
-import { createDefaultState } from './model'
+import { createDefaultState, migrateRetiredViews } from './model'
 
 /**
  * Thin stateful shell around the pure model: holds the current
@@ -33,7 +33,11 @@ export const useWorkspace = create<WorkspaceStore>((set, get) => ({
   state: null,
   load: async () => {
     const saved = await window.atomik.readWorkspaceState()
-    set({ state: saved ?? createDefaultState(window.location.hash) })
+    set({
+      state: saved
+        ? migrateRetiredViews(saved)
+        : createDefaultState(window.location.hash)
+    })
   },
   dispatch: (operation) => {
     const current = get().state
