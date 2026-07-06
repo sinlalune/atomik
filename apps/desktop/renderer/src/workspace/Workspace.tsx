@@ -158,39 +158,44 @@ function LeafPane({
       className={`pane${focused ? ' focused' : ''}`}
       onPointerDownCapture={() => dispatch((state) => setFocus(state, node.id))}
     >
-      <header
-        className="tabstrip"
-        onWheel={(event) => {
-          // No visible scrollbar (it sat in the drag region): translate
-          // vertical wheel into horizontal tab scrolling.
-          if (event.deltaY !== 0 && event.deltaX === 0) {
-            event.currentTarget.scrollLeft += event.deltaY
-          }
-        }}
-      >
-        {node.tabs.map((tab) => (
-          <span
-            key={tab.id}
-            className={`tab${tab.id === node.activeTabId ? ' active' : ''}`}
-          >
-            <button
-              type="button"
-              className="tab-title"
-              title={tab.params?.['docPath'] ?? tab.view}
-              onClick={() => dispatch((state) => activateTab(state, node.id, tab.id))}
+      <header className="tabstrip">
+        <div
+          className="tabstrip-tabs"
+          onWheel={(event) => {
+            // No visible scrollbar (it sat in the drag region): translate
+            // vertical wheel into horizontal tab scrolling. Only the TABS
+            // scroll — actions and window controls stay pinned right,
+            // whatever the tab count (owner report: overflowing tabs
+            // pushed the window buttons off-screen).
+            if (event.deltaY !== 0 && event.deltaX === 0) {
+              event.currentTarget.scrollLeft += event.deltaY
+            }
+          }}
+        >
+          {node.tabs.map((tab) => (
+            <span
+              key={tab.id}
+              className={`tab${tab.id === node.activeTabId ? ' active' : ''}`}
             >
-              {tabLabel(tab)}
-            </button>
-            <button
-              type="button"
-              className="tab-close"
-              aria-label="Close tab"
-              onClick={() => dispatch((state) => closeTab(state, node.id, tab.id))}
-            >
-              ×
-            </button>
-          </span>
-        ))}
+              <button
+                type="button"
+                className="tab-title"
+                title={tab.params?.['docPath'] ?? tab.view}
+                onClick={() => dispatch((state) => activateTab(state, node.id, tab.id))}
+              >
+                {tabLabel(tab)}
+              </button>
+              <button
+                type="button"
+                className="tab-close"
+                aria-label="Close tab"
+                onClick={() => dispatch((state) => closeTab(state, node.id, tab.id))}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
         <span className="tabstrip-actions">
           <button
             type="button"

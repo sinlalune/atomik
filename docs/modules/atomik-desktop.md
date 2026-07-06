@@ -30,7 +30,10 @@ timestamp: 2026-07-06T00:00:00Z
   while maximized — dragging a maximized frameless window glitches
   under some window managers, and the strip's overflow scrollbar sat
   INSIDE the drag region, unclickable (owner's maximized-mode bug).
-  The scrollbar is hidden; wheel scrolls overflowing tabs. On Linux the
+  The scrollbar is hidden; wheel scrolls overflowing tabs — and only
+  the TABS region scrolls: strip actions and the window controls are
+  pinned right, visible at any tab count (owner report: overflowing
+  tabs pushed the window buttons off-screen). On Linux the
   window also drops Chromium's client-side shadow (`hasShadow: false`):
   its invisible frame margins are what WSLg kept honoring on maximize —
   transparent gap + rightward offset; fullscreen looked right because

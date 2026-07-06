@@ -133,9 +133,10 @@ body {
 }
 
 /* Tabstrips double as the window drag surface (chromeless frame): empty
-   strip area drags the window; every interactive child opts out. The
-   scrollbar is hidden (it sat INSIDE the drag region — unclickable);
-   overflowing tabs scroll with the wheel instead. */
+   strip area drags the window; every interactive child opts out. Only
+   .tabstrip-tabs scrolls (scrollbar hidden — it sat INSIDE the drag
+   region; wheel scrolls instead): actions and window controls are
+   pinned right and never overflow out of sight. */
 .tabstrip {
   flex: none;
   display: flex;
@@ -143,13 +144,21 @@ body {
   gap: 2px;
   padding: 0.25rem 0.4rem;
   border-bottom: 1px solid var(--border);
-  overflow-x: auto;
-  scrollbar-width: none;
   font-size: 0.8rem;
   -webkit-app-region: drag;
 }
 
-.tabstrip::-webkit-scrollbar {
+.tabstrip-tabs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabstrip-tabs::-webkit-scrollbar {
   display: none;
 }
 
