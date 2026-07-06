@@ -419,9 +419,11 @@ Dev-environment note (WSL2 Ubuntu noble): Electron needs `libnss3`,
 `libnspr4`, `libasound2t64` system packages. Without root they can be
 `apt-get download`-ed and `dpkg -x`-extracted, then passed via
 `LD_LIBRARY_PATH`; for daily dev install them properly with apt.
-WSLg window-geometry escalation ladder, if maximize misbehaves again:
-`hasShadow:false` is already applied (client-side shadow margins were
-the maximized gap/offset); the next lever is running on native Wayland
-instead of XWayland — `ELECTRON_OZONE_PLATFORM_HINT=auto npm run dev` —
-promote it into main (`ozone-platform-hint`) only after the owner
-confirms it behaves better across a real session.
+WSLg window-geometry escalation ladder for the maximized gap/offset:
+(1) `hasShadow:false` — applied; insufficient alone per owner report.
+(2) native Wayland instead of XWayland — PROMOTED TO CODE: main sets
+`ozone-platform-hint=auto` on Linux before ready ('auto' falls back to
+X11 when no compositor; probe + smoke validated locally).
+(3) if the owner still sees the gap: map the maximize verb to
+fullscreen on WSLg (their F11 observation) — owner-confirmed decision,
+not taken unilaterally.

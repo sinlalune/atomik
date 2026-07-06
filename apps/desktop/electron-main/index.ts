@@ -28,6 +28,15 @@ import {
   type VaultInfo
 } from '../shared/ipc-contract'
 
+// Linux: prefer native Wayland over XWayland when a compositor is there
+// ('auto' falls back to X11 otherwise). Under WSLg the XWayland path kept
+// stale frame margins on maximized frameless windows — transparent gap,
+// window offset right (owner report; hasShadow:false alone didn't cure
+// it). Must be set before app is ready.
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('ozone-platform-hint', 'auto')
+}
+
 /** Current vault root — main-process state; the renderer only ever sees
  *  VaultInfo and vault-relative paths. */
 let vaultRoot: string | null = null
