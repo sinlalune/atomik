@@ -49,3 +49,7 @@ when the shape changes, not on every diff.
 - [09 — Lexical search and the acceptance ritual](./09-lexical-search-and-acceptance-runs.md) —
   why no embeddings first, the retrieval ladder, PASS/STRUCTURAL/DEFERRED
   honesty. Covers CP-MVP-001 S11.
+- [10 — Live preview: decorating the raw buffer](./10-live-preview-decorations.md) —
+  CodeMirror decorations, the syntax tree, the reveal rule, compartments,
+  and why styling never touches bytes. Covers the MVP-001 owner-feedback
+  batch (seamless editing) during CP-MVP-002.

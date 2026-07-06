@@ -246,6 +246,22 @@ export function setFocus(state: WorkspaceState, paneId: string): WorkspaceState 
  */
 export type SaveMode = 'auto' | 'manual'
 
+/**
+ * Note view modes (owner feedback on MVP-001: seamless by default).
+ * 'live' = editable with markdown rendered in place (the default),
+ * 'source' = raw CodeMirror for IDE lovers, 'read' = rendered HTML.
+ * The retired 'edit' param value maps to 'source'; anything unknown
+ * lands on the default.
+ */
+export type NoteViewMode = 'read' | 'live' | 'source'
+
+export function noteModeOf(params?: Record<string, string>): NoteViewMode {
+  const raw = params?.['mode']
+  if (raw === 'read') return 'read'
+  if (raw === 'source' || raw === 'edit') return 'source'
+  return 'live'
+}
+
 export function saveModeOf(state: WorkspaceState | null): SaveMode {
   return state?.settings?.['saveMode'] === 'manual' ? 'manual' : 'auto'
 }

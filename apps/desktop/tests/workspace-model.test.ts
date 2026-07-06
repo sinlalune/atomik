@@ -9,6 +9,7 @@ import {
   firstLeafId,
   makeTab,
   migrateRetiredViews,
+  noteModeOf,
   saveModeOf,
   setFocus,
   setFraction,
@@ -40,6 +41,21 @@ describe('createDefaultState', () => {
     expect(leaves(deep.root)[0]!.tabs[0]!.params).toEqual({
       docPath: 'bedrock/00_00-orientation.md'
     })
+  })
+})
+
+describe('noteModeOf (tab mode param)', () => {
+  it("defaults to 'live' — seamless is the default (MVP-001)", () => {
+    expect(noteModeOf(undefined)).toBe('live')
+    expect(noteModeOf({})).toBe('live')
+    expect(noteModeOf({ mode: 'live' })).toBe('live')
+    expect(noteModeOf({ mode: 'garbage' })).toBe('live')
+  })
+
+  it("honors read/source and migrates the retired 'edit' to source", () => {
+    expect(noteModeOf({ mode: 'read' })).toBe('read')
+    expect(noteModeOf({ mode: 'source' })).toBe('source')
+    expect(noteModeOf({ mode: 'edit' })).toBe('source')
   })
 })
 

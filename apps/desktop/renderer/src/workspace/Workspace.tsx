@@ -15,13 +15,15 @@ import {
   clampTreeWidth,
   closeTab,
   makeTab,
+  noteModeOf,
   saveModeOf,
   setFocus,
   setFraction,
   setSaveMode,
   splitPane,
   topRightLeafId,
-  updateTabParams
+  updateTabParams,
+  type NoteViewMode
 } from './model'
 import { useWorkspace } from './store'
 
@@ -72,8 +74,8 @@ function TabContent({
     dispatch((state) =>
       setSaveMode(state, saveModeOf(state) === 'auto' ? 'manual' : 'auto')
     )
-  const mode = tab.params?.['mode'] === 'edit' ? ('edit' as const) : ('read' as const)
-  const onModeChange = (next: 'read' | 'edit'): void =>
+  const mode = noteModeOf(tab.params)
+  const onModeChange = (next: NoteViewMode): void =>
     dispatch((state) => updateTabParams(state, tab.id, { mode: next }))
 
   if (tab.view === 'dev-docs') {

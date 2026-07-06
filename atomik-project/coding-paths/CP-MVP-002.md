@@ -145,8 +145,22 @@ Child path spawned from here, not widened into here: CP-MVP-003 PDF (M4).
 
 ```text
 base commit : 09e2e38 (branch master — CP-MVP-001 close + CP-MVP-002 open)
-changed     : none — S01 work unit committed (this ledger + log.md)
-tests       : 98 passing / 16 suites inherited from CP-MVP-001; typecheck+build clean
+changed     : none — the owner's MVP-001 feedback brief (briefs/) was executed
+              BEFORE S02 as eight dogfooding micro-units (continuous-gate
+              practice; owner instruction), one commit each: .md implied in
+              display names + toggle polish; resizable tree panels; shell
+              relict removed (12-channel surface) + deterministic smoke state
+              dir; chromeless frame with tabs as the window top row
+              (window-control channel); auto-save default with manual toggle
+              (settings map in workspace state); per-perimeter search in all
+              modes (scope-validated + search-dev-docs); index/log pills per
+              folder with eye toggle (NoteTree unification); live-preview
+              seamless editing (read/live/source, live default). Net channel
+              change −1 +3 (get-app-info out; window-control, search scope,
+              search-dev-docs in; 18 total on the preload surface); every
+              unit updated tests + module/learning notes + log.md in the
+              same commit.
+tests       : 126 passing / 16 suites; typecheck + build + smoke green
 next action : S02 — capture session server in main (local endpoint, one-time
               expiring tokens, size/MIME limits, temporary inbox under the state
               dir; typed session channels — re-read 13 §IPC first)

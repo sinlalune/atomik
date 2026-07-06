@@ -1,11 +1,14 @@
-import { markdown } from '@codemirror/lang-markdown'
+import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
+import { Compartment } from '@codemirror/state'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { EditorView, keymap } from '@codemirror/view'
 import { basicSetup } from 'codemirror'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { VaultNoteFile } from '../../../shared/ipc-contract'
-import type { SaveMode } from '../workspace/model'
+import type { NoteViewMode, SaveMode } from '../workspace/model'
 import { AiPanel, type BufferChange } from './AiPanel'
+import { livePreview } from './live-preview'
+import { ModeSwitch } from './ModeSwitch'
 
 /** Auto mode saves this long after the last keystroke. */
 const AUTOSAVE_DELAY_MS = 800
@@ -16,8 +19,10 @@ export type EditorPaneProps = {
   onSaved: (content: string, mtimeMs: number) => void
   /** Lets the host guard note navigation against unsaved changes. */
   onDirtyChange?: (dirty: boolean) => void
-  /** Back to the rendered view (auto mode saves first; manual confirms). */
-  onSwitchToRead?: () => void
+  /** 'live' (seamless, default) or 'source' (raw markdown). */
+  mode?: Extract<NoteViewMode, 'live' | 'source'>
+  /** Mode selection; 'read' unmounts this pane (auto mode saves first). */
+  onModeChange?: (mode: NoteViewMode) => void
   /** AI-created notes bubble up so the host refreshes/opens them. */
   onNoteCreated?: (relPath: string) => void
   /** 'auto' (default): debounced saves + flush on leave; 'manual': S07. */
@@ -43,7 +48,8 @@ export function EditorPane({
   note,
   onSaved,
   onDirtyChange,
-  onSwitchToRead,
+  mode = 'live',
+  onModeChange,
   onNoteCreated,
   saveMode = 'auto',
   onSaveModeToggle
@@ -141,6 +147,21 @@ export function EditorPane({
     }
   }, [applyConflict, markDirty, note.relPath, onSaved])
 
+  // Live preview toggles through a compartment: switching live <-> source
+  // reconfigures the SAME view, so buffer, undo history, and selection
+  // survive the mode change (the raw bytes are identical in both).
+  const previewCompartment = useRef(new Compartment()).current
+  const modeRef = useRef(mode)
+  useEffect(() => {
+    if (modeRef.current === mode) return
+    modeRef.current = mode
+    viewRef.current?.dispatch({
+      effects: previewCompartment.reconfigure(
+        mode === 'live' ? livePreview() : []
+      )
+    })
+  }, [mode, previewCompartment])
+
   // One EditorView per mounted pane; the host keys this component by note
   // path, so a different note is a fresh mount. The view lives in a ref —
   // recreating it on re-render would lose selection, history, and scroll.
@@ -153,7 +174,9 @@ export function EditorPane({
       parent: host,
       extensions: [
         basicSetup,
-        markdown(),
+        // GFM base: strikethrough/tables/task lists parse like they render.
+        markdown({ base: markdownLanguage }),
+        previewCompartment.of(modeRef.current === 'live' ? livePreview() : []),
         ...(prefersDark ? [oneDark] : []),
         EditorView.lineWrapping,
         keymap.of([
@@ -214,20 +237,29 @@ export function EditorPane({
     }
   }, [note.relPath])
 
-  const onReadClick = useCallback(() => {
-    if (!onSwitchToRead) return
-    if (dirty && saveMode === 'auto' && !conflict) {
-      // Seamless: leaving the editor saves; stay put if the save fails.
-      void (async () => {
-        if (await saveRef.current()) onSwitchToRead()
-      })()
-      return
-    }
-    if (dirty && !window.confirm('Unsaved changes will be lost. Continue?')) {
-      return
-    }
-    onSwitchToRead()
-  }, [conflict, dirty, onSwitchToRead, saveMode])
+  const selectMode = useCallback(
+    (next: NoteViewMode) => {
+      if (!onModeChange) return
+      // live <-> source reconfigures in place; only 'read' leaves the
+      // editor, so only 'read' needs the save/confirm gate.
+      if (next !== 'read') {
+        onModeChange(next)
+        return
+      }
+      if (dirty && saveMode === 'auto' && !conflict) {
+        // Seamless: leaving the editor saves; stay put if the save fails.
+        void (async () => {
+          if (await saveRef.current()) onModeChange('read')
+        })()
+        return
+      }
+      if (dirty && !window.confirm('Unsaved changes will be lost. Continue?')) {
+        return
+      }
+      onModeChange('read')
+    },
+    [conflict, dirty, onModeChange, saveMode]
+  )
 
   const getSelection = useCallback(() => {
     const view = viewRef.current
@@ -344,11 +376,7 @@ export function EditorPane({
           >
             {saving ? 'saving…' : saveMode === 'auto' && !dirty ? 'Saved' : 'Save'}
           </button>
-          {onSwitchToRead && (
-            <button type="button" onClick={onReadClick}>
-              Read
-            </button>
-          )}
+          {onModeChange && <ModeSwitch mode={mode} onSelect={selectMode} />}
         </span>
       </div>
       {conflict && (
@@ -363,7 +391,10 @@ export function EditorPane({
         </div>
       )}
       <div ref={bodyRef} className={`editor-body dock-${aiDock}`}>
-        <div ref={hostRef} className="editor-host" />
+        <div
+          ref={hostRef}
+          className={`editor-host${mode === 'live' ? ' live' : ''}`}
+        />
         {showAi && (
           <>
             <div

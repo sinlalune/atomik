@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { VaultFolder, VaultInfo } from '../../../shared/ipc-contract'
 import { EditorPane } from '../editor/EditorPane'
+import { ModeSwitch } from '../editor/ModeSwitch'
 import { SidebarToggleIcon } from '../icons'
 import { SearchResultsList } from '../search/SearchResultsList'
 import { useTreeSearch } from '../search/useTreeSearch'
 import { TreeResizeHandle } from '../TreeResizeHandle'
-import type { SaveMode } from '../workspace/model'
+import type { NoteViewMode, SaveMode } from '../workspace/model'
 import { NoteTree } from './NoteTree'
 import { useVaultNote } from './useVaultNote'
-
-export type NoteViewMode = 'read' | 'edit'
 
 export type VaultViewProps = {
   /** Note to show; identical values are ignored (no self-retry on failure). */
@@ -22,7 +21,7 @@ export type VaultViewProps = {
   /** Tree panel width (px), persisted per tab; undefined = CSS default. */
   treeWidth?: number
   onTreeResize?: (px: number) => void
-  /** Read (rendered) or edit (CodeMirror), persisted per tab. */
+  /** read / live (default) / source, persisted per tab. */
   mode?: NoteViewMode
   onModeChange?: (mode: NoteViewMode) => void
   /** App-wide save policy; auto skips discard prompts (flush-on-leave). */
@@ -42,7 +41,7 @@ export function VaultView({
   onTreeToggle,
   treeWidth,
   onTreeResize,
-  mode = 'read',
+  mode = 'live',
   onModeChange,
   saveMode = 'auto',
   onSaveModeToggle
@@ -224,7 +223,7 @@ export function VaultView({
       )}
       <div
         className="vault-content"
-        onClick={mode === 'edit' ? undefined : onContentClick}
+        onClick={mode === 'read' ? onContentClick : undefined}
         {...(note ? { 'data-vault-rendered': '1' } : {})}
       >
         {treeCollapsed && onTreeToggle && (
@@ -241,15 +240,14 @@ export function VaultView({
           <p className="error note-scroll">{error}</p>
         ) : !note ? (
           <p className="pane-placeholder">select a note to read or edit</p>
-        ) : mode === 'edit' ? (
+        ) : mode !== 'read' ? (
           <EditorPane
             key={note.relPath}
             note={note}
             onSaved={applySaved}
             onDirtyChange={onDirtyChange}
-            onSwitchToRead={
-              onModeChange ? () => onModeChange('read') : undefined
-            }
+            mode={mode}
+            onModeChange={onModeChange}
             onNoteCreated={(relPath) => {
               void refreshTree()
               guardedOpen(relPath)
@@ -265,9 +263,7 @@ export function VaultView({
               </span>
               <span className="note-bar-actions">
                 {onModeChange && (
-                  <button type="button" onClick={() => onModeChange('edit')}>
-                    Edit
-                  </button>
+                  <ModeSwitch mode={mode} onSelect={onModeChange} />
                 )}
               </span>
             </div>

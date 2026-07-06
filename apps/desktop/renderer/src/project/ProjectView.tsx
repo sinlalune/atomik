@@ -5,6 +5,7 @@ import type {
   VaultInfo
 } from '../../../shared/ipc-contract'
 import { EditorPane } from '../editor/EditorPane'
+import { ModeSwitch } from '../editor/ModeSwitch'
 import { SidebarToggleIcon } from '../icons'
 import { SearchResultsList } from '../search/SearchResultsList'
 import { useTreeSearch } from '../search/useTreeSearch'
@@ -12,8 +13,7 @@ import { TreeResizeHandle } from '../TreeResizeHandle'
 import { NoteTree } from '../vault/NoteTree'
 import { findSubtree } from '../vault/scope'
 import { useVaultNote } from '../vault/useVaultNote'
-import type { NoteViewMode } from '../vault/VaultView'
-import type { SaveMode } from '../workspace/model'
+import type { NoteViewMode, SaveMode } from '../workspace/model'
 
 export type ProjectViewProps = {
   /** Vault-relative folder of the opened bundle. */
@@ -28,7 +28,7 @@ export type ProjectViewProps = {
   /** Tree panel width (px), persisted per tab; undefined = CSS default. */
   treeWidth?: number
   onTreeResize?: (px: number) => void
-  /** Read (rendered) or edit (CodeMirror), persisted per tab. */
+  /** read / live (default) / source, persisted per tab. */
   mode?: NoteViewMode
   onModeChange?: (mode: NoteViewMode) => void
   /** App-wide save policy; auto skips discard prompts (flush-on-leave). */
@@ -61,7 +61,7 @@ export function ProjectView({
   onTreeToggle,
   treeWidth,
   onTreeResize,
-  mode = 'read',
+  mode = 'live',
   onModeChange,
   saveMode = 'auto',
   onSaveModeToggle
@@ -302,7 +302,7 @@ export function ProjectView({
       )}
       <div
         className="vault-content"
-        onClick={mode === 'edit' ? undefined : onContentClick}
+        onClick={mode === 'read' ? onContentClick : undefined}
         {...(note ? { 'data-project-rendered': '1' } : {})}
       >
         {treeCollapsed && onTreeToggle && (
@@ -319,15 +319,14 @@ export function ProjectView({
           <p className="error note-scroll">{error}</p>
         ) : !note ? (
           <p className="pane-placeholder">loading…</p>
-        ) : mode === 'edit' ? (
+        ) : mode !== 'read' ? (
           <EditorPane
             key={note.relPath}
             note={note}
             onSaved={applySaved}
             onDirtyChange={onDirtyChange}
-            onSwitchToRead={
-              onModeChange ? () => onModeChange('read') : undefined
-            }
+            mode={mode}
+            onModeChange={onModeChange}
             onNoteCreated={(relPath) => {
               void refresh()
               guardedOpen(relPath)
@@ -343,9 +342,7 @@ export function ProjectView({
               </span>
               <span className="note-bar-actions">
                 {onModeChange && (
-                  <button type="button" onClick={() => onModeChange('edit')}>
-                    Edit
-                  </button>
+                  <ModeSwitch mode={mode} onSelect={onModeChange} />
                 )}
               </span>
             </div>

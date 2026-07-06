@@ -707,6 +707,139 @@ body {
   border-color: var(--border);
 }
 
+/* read / live / source segmented switch */
+.mode-switch {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.mode-switch button {
+  font: inherit;
+  font-size: 0.72rem;
+  color: var(--muted);
+  background: none;
+  border: none;
+  padding: 0.18rem 0.55rem;
+  cursor: pointer;
+}
+
+.mode-switch button + button {
+  border-left: 1px solid var(--border);
+}
+
+.mode-switch button:hover {
+  color: var(--accent);
+}
+
+.mode-switch button.active {
+  background: var(--code-bg);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* live preview (lp-*): decoration classes only — the buffer stays the
+   raw markdown; hidden syntax reappears on the active line */
+.editor-host.live .cm-scroller {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.editor-host .lp-h1 {
+  font-size: 1.55em;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.editor-host .lp-h2 {
+  font-size: 1.3em;
+  font-weight: 650;
+}
+
+.editor-host .lp-h3 {
+  font-size: 1.12em;
+  font-weight: 600;
+}
+
+.editor-host .lp-h4,
+.editor-host .lp-h5,
+.editor-host .lp-h6 {
+  font-weight: 600;
+}
+
+.editor-host .lp-strong {
+  font-weight: 700;
+}
+
+.editor-host .lp-em {
+  font-style: italic;
+}
+
+.editor-host .lp-strike {
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+
+.editor-host .lp-code {
+  font-family: ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  font-size: 0.88em;
+  background: var(--code-bg);
+  border-radius: 4px;
+  padding: 0.05em 0.3em;
+}
+
+.editor-host .lp-link {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.editor-host .lp-quote {
+  border-left: 3px solid var(--accent);
+  padding-left: 0.6rem;
+  color: var(--muted);
+}
+
+.editor-host .lp-fence {
+  background: var(--code-bg);
+  font-family: ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  font-size: 0.85em;
+}
+
+.editor-host .lp-dim {
+  opacity: 0.45;
+}
+
+.editor-host .lp-bullet {
+  color: var(--accent);
+}
+
+.editor-host .lp-frontmatter {
+  font-family: ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  font-size: 0.8em;
+  color: var(--muted);
+}
+
+/* the default highlighter underlines heading tokens; seamless mode
+   drops that (the size/weight already says "heading") */
+.editor-host.live .lp-h1 span,
+.editor-host.live .lp-h2 span,
+.editor-host.live .lp-h3 span,
+.editor-host.live .lp-h4 span,
+.editor-host.live .lp-h5 span,
+.editor-host.live .lp-h6 span,
+.editor-host.live .lp-frontmatter span {
+  text-decoration: none;
+}
+
+.editor-host.live .lp-h1 .lp-link,
+.editor-host.live .lp-h2 .lp-link,
+.editor-host.live .lp-h3 .lp-link {
+  text-decoration: underline;
+}
+
 /* AI panel ----------------------------------------------------------------- */
 
 .editor-body {

@@ -103,8 +103,19 @@ timestamp: 2026-07-06T00:00:00Z
   'manual' (note-bar toggle, app-wide `saveMode` workspace setting)
   restores strict S07 behavior with its confirm guards. Auto-save NEVER
   forces: a conflict pauses it until the banner is resolved by a human.
-  Read/edit mode persists per tab (`mode` param). One EditorView per
-  mounted pane, keyed by note path; view lives in a ref (mount-only).
+  Note modes are read / live / source (`mode` param per tab; retired
+  'edit' maps to source via `noteModeOf`). LIVE is the default: the
+  seamless Obsidian-like surface — `editor/live-preview.ts` decorates
+  the raw buffer from the syntax tree (headings sized, marks hidden,
+  links collapsed, bullets, quote/fence lines; leading frontmatter
+  styled as one dim unit with markdown suppressed inside), and any line
+  the selection touches reveals its full syntax. Pure StateField —
+  unit-tested headless; decoration-only, so 11/27 byte fidelity is
+  untouched. live<->source reconfigure ONE EditorView through a
+  compartment (buffer/undo/selection survive); only the switch to read
+  passes the save-first gate. GFM base (strikethrough/tables parse).
+  One EditorView per mounted pane, keyed by note path; view lives in a
+  ref (mount-only).
 - Project bundles (04, S06): `electron-main/project.ts` (incubating
   project-core, 14) — manifest-detected bundles
   (`project.atomik-project.json`; scan skips denied dirs and does not
@@ -375,7 +386,10 @@ vitest ^3.2.7 (v4 needs vite 8) · react/react-dom ^19.2.x
 typescript ^6.0.3 · @types/node ^24 · markdown-it ^14.3.0 (added S03)
 zustand ^5.0.14 (added S04)
 codemirror ^6.0.2 · @codemirror/lang-markdown ^6.5.0 ·
-@codemirror/theme-one-dark (added S07)
+@codemirror/theme-one-dark (added S07) ·
+@codemirror/{language,state,view} declared explicitly since the
+live-preview extension imports them directly (they were already
+transitive; versions pinned to the installed ^6 line)
 ```
 
 Dev-environment note (WSL2 Ubuntu noble): Electron needs `libnss3`,
