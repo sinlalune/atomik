@@ -158,7 +158,16 @@ function LeafPane({
       className={`pane${focused ? ' focused' : ''}`}
       onPointerDownCapture={() => dispatch((state) => setFocus(state, node.id))}
     >
-      <header className="tabstrip">
+      <header
+        className="tabstrip"
+        onWheel={(event) => {
+          // No visible scrollbar (it sat in the drag region): translate
+          // vertical wheel into horizontal tab scrolling.
+          if (event.deltaY !== 0 && event.deltaX === 0) {
+            event.currentTarget.scrollLeft += event.deltaY
+          }
+        }}
+      >
         {node.tabs.map((tab) => (
           <span
             key={tab.id}

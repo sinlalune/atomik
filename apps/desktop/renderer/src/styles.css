@@ -116,7 +116,9 @@ body {
 }
 
 /* Tabstrips double as the window drag surface (chromeless frame): empty
-   strip area drags the window; every interactive child opts out. */
+   strip area drags the window; every interactive child opts out. The
+   scrollbar is hidden (it sat INSIDE the drag region — unclickable);
+   overflowing tabs scroll with the wheel instead. */
 .tabstrip {
   flex: none;
   display: flex;
@@ -125,12 +127,24 @@ body {
   padding: 0.25rem 0.4rem;
   border-bottom: 1px solid var(--border);
   overflow-x: auto;
+  scrollbar-width: none;
   font-size: 0.8rem;
   -webkit-app-region: drag;
 }
 
+.tabstrip::-webkit-scrollbar {
+  display: none;
+}
+
 .tabstrip .tab,
 .tabstrip button {
+  -webkit-app-region: no-drag;
+}
+
+/* Dragging a maximized frameless window glitches under some window
+   managers (owner bug report, WSLg): while maximized, the strip is a
+   plain toolbar and every click lands where it looks. */
+body[data-maximized] .tabstrip {
   -webkit-app-region: no-drag;
 }
 

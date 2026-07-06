@@ -198,6 +198,17 @@ function createMainWindow(hash?: string): BrowserWindow {
     if (url !== window.webContents.getURL()) event.preventDefault()
   })
 
+  // Maximize state is PUSHED so the custom controls track OS-initiated
+  // changes too, and CSS can drop the drag regions while maximized.
+  const sendWindowState = (): void => {
+    if (window.isDestroyed()) return
+    window.webContents.send(ATOMIK_CHANNELS.windowStateChanged, {
+      maximized: window.isMaximized()
+    })
+  }
+  window.on('maximize', sendWindowState)
+  window.on('unmaximize', sendWindowState)
+
   window.once('ready-to-show', () => window.show())
 
   const devServerUrl = process.env['ELECTRON_RENDERER_URL']

@@ -13,6 +13,9 @@ export const ATOMIK_API_KEY = 'atomik' as const
 /** Named IPC channels. One entry per channel; no generic bridge. */
 export const ATOMIK_CHANNELS = {
   windowControl: 'atomik:window-control',
+  /** Push (main -> renderer): fires on maximize/unmaximize, OS-initiated
+   *  included. Payload is WindowControlState — a boolean, nothing more. */
+  windowStateChanged: 'atomik:window-state-changed',
   listDevDocs: 'atomik:list-dev-docs',
   readDevDoc: 'atomik:read-dev-doc',
   readWorkspaceState: 'atomik:read-workspace-state',
@@ -294,6 +297,10 @@ export type TraceSummary = {
 export type AtomikApi = {
   /** Frame verbs for the chromeless window; validated allowlist in main. */
   windowControl: (action: WindowControlAction) => Promise<WindowControlState>
+  /** Subscribes to maximize/unmaximize pushes; returns the unsubscribe. */
+  onWindowStateChanged: (
+    listener: (state: WindowControlState) => void
+  ) => () => void
   /** Enumerates the docs bundle (read-only; generated artifacts excluded). */
   listDevDocs: () => Promise<DevDocsGroup[]>
   /** Reads one doc file; the main process validates the path against docs/. */
@@ -349,6 +356,7 @@ export type AtomikApi = {
  */
 export const DOCUMENTED_PRELOAD_SURFACE = [
   'windowControl',
+  'onWindowStateChanged',
   'listDevDocs',
   'readDevDoc',
   'readWorkspaceState',

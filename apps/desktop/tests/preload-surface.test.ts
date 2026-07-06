@@ -14,7 +14,10 @@ import {
  */
 const exposeInMainWorld = vi.fn<(key: string, api: unknown) => void>()
 const invoke = vi.fn<(channel: string, ...args: unknown[]) => Promise<unknown>>()
-const mockedIpcRenderer = { invoke }
+const on = vi.fn<(channel: string, listener: (...args: unknown[]) => void) => void>()
+const removeListener =
+  vi.fn<(channel: string, listener: (...args: unknown[]) => void) => void>()
+const mockedIpcRenderer = { invoke, on, removeListener }
 
 vi.mock('electron', () => ({
   contextBridge: {
@@ -58,6 +61,9 @@ describe('preload surface (13 §IPC rule)', () => {
   it('routes every method through its named channel', async () => {
     const api = exposedApi() as {
       windowControl: (action: string) => Promise<unknown>
+      onWindowStateChanged: (
+        listener: (state: unknown) => void
+      ) => () => void
       listDevDocs: () => Promise<unknown>
       readDevDoc: (relPath: string) => Promise<unknown>
       readWorkspaceState: () => Promise<unknown>
@@ -86,6 +92,21 @@ describe('preload surface (13 §IPC rule)', () => {
     expect(invoke).toHaveBeenLastCalledWith(
       ATOMIK_CHANNELS.windowControl,
       'get-state'
+    )
+
+    // The one push subscription: named channel, working unsubscribe, and
+    // the payload reaches the listener without the electron event object.
+    const received: unknown[] = []
+    const unsubscribe = api.onWindowStateChanged((state) => received.push(state))
+    expect(on).toHaveBeenCalledTimes(1)
+    const [pushChannel, wrapped] = on.mock.calls[0]!
+    expect(pushChannel).toBe(ATOMIK_CHANNELS.windowStateChanged)
+    wrapped({ sender: 'electron-event' }, { maximized: true })
+    expect(received).toEqual([{ maximized: true }])
+    unsubscribe()
+    expect(removeListener).toHaveBeenCalledWith(
+      ATOMIK_CHANNELS.windowStateChanged,
+      wrapped
     )
 
     await api.listDevDocs()

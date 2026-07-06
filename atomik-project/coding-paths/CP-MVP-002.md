@@ -157,10 +157,19 @@ changed     : none — the owner's MVP-001 feedback brief (briefs/) was executed
               folder with eye toggle (NoteTree unification); live-preview
               seamless editing (read/live/source, live default). Net channel
               change −1 +3 (get-app-info out; window-control, search scope,
-              search-dev-docs in; 18 total on the preload surface); every
-              unit updated tests + module/learning notes + log.md in the
-              same commit.
-tests       : 126 passing / 16 suites; typecheck + build + smoke green
+              search-dev-docs in); every unit updated tests + module/learning
+              notes + log.md in the same commit. A same-day follow-up batch
+              (units 9–11, owner feedback with maximized-window screenshot)
+              then: dropped the IDE gutters from live mode (basicSetup
+              retired, chrome composed by hand), made blocks render in live
+              (nested code highlighting, clickable task checkboxes, rules,
+              tables) with Ctrl/Cmd+click link follow, and fixed the
+              maximized-window interaction bugs (scrollbar-in-drag-region;
+              drag regions now off while maximized via the one push event
+              channel `window-state-changed`). Read-mode question recorded
+              in brainstorm (keep until M5, decide on usage). Preload
+              surface: 18 invoke channels + 1 push subscription.
+tests       : 130 passing / 16 suites; typecheck + build + smoke green
 next action : S02 — capture session server in main (local endpoint, one-time
               expiring tokens, size/MIME limits, temporary inbox under the state
               dir; typed session channels — re-read 13 §IPC first)

@@ -23,14 +23,22 @@ timestamp: 2026-07-06T00:00:00Z
   (`frame: false`, MVP-001 owner feedback): the tabstrip is the top row
   and the drag surface (`-webkit-app-region`), and min/max/close run
   through the allowlist-validated `window-control` channel, rendered in
-  the top-right pane's strip (`topRightLeafId` picks the seat). Known
-  limit: OS-shortcut maximize isn't observed live; the icon refreshes on
-  the next control click.
+  the top-right pane's strip (`topRightLeafId` picks the seat).
+  Maximize state is PUSHED (`atomik:window-state-changed`, the one
+  main→renderer event; boolean payload) so the icon tracks OS-initiated
+  changes too, and `<body data-maximized>` turns the drag regions OFF
+  while maximized — dragging a maximized frameless window glitches
+  under some window managers, and the strip's overflow scrollbar sat
+  INSIDE the drag region, unclickable (owner's maximized-mode bug).
+  The scrollbar is hidden; wheel scrolls overflowing tabs.
 - The renderer-facing API surface: `shared/ipc-contract.ts` is the single
   source of truth (`ATOMIK_API_KEY`, `ATOMIK_CHANNELS`, `AtomikApi`,
-  `DOCUMENTED_PRELOAD_SURFACE`). Fourteen channels exist today:
-  `window-control` (frame verbs for the chromeless window, allowlist-
-  validated), docs tree + doc read + `search-dev-docs`, workspace state
+  `DOCUMENTED_PRELOAD_SURFACE`). Eighteen invoke channels exist today
+  (the AI trio is described in its own bullets below), plus one push
+  subscription (`onWindowStateChanged` over
+  `atomik:window-state-changed`): `window-control` (frame verbs for the
+  chromeless window, allowlist-validated), docs tree + doc read +
+  `search-dev-docs`, workspace state
   read/write (fixed path, validated payload), the vault family —
   `open-vault` (native dialog in main; user-mediated capability),
   `get-vault`, `list-vault-files`, `search-vault` (optional validated

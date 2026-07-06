@@ -6,6 +6,7 @@ import {
   type AiTraceDecision,
   type AtomikApi,
   type WindowControlAction,
+  type WindowControlState,
   type WorkspaceState
 } from '../shared/ipc-contract'
 
@@ -19,6 +20,14 @@ import {
 const api: AtomikApi = {
   windowControl: (action: WindowControlAction) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.windowControl, action),
+  onWindowStateChanged: (listener: (state: WindowControlState) => void) => {
+    const wrapped = (_event: unknown, state: WindowControlState): void =>
+      listener(state)
+    ipcRenderer.on(ATOMIK_CHANNELS.windowStateChanged, wrapped)
+    return () => {
+      ipcRenderer.removeListener(ATOMIK_CHANNELS.windowStateChanged, wrapped)
+    }
+  },
   listDevDocs: () => ipcRenderer.invoke(ATOMIK_CHANNELS.listDevDocs),
   readDevDoc: (relPath: string) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.readDevDoc, relPath),
