@@ -114,6 +114,15 @@ timestamp: 2026-07-06T00:00:00Z
   04's example recorded: no `root` field in the manifest (derivable,
   staleness-prone). ProjectView scopes the existing vault tree via the
   pure `findSubtree` helper — reads stay on vault channels.
+- The note trees (MVP-001 feedback): `renderer/src/vault/NoteTree.tsx` —
+  ONE recursive tree for the vault and project panels (extracted from
+  their twins). Any folder holding the 04 convention files shows
+  [index] [log] pills on its top row and hides those files from its list
+  until the row's right-docked eye reveals them; per-folder disposable
+  state, `splitPillNotes` (scope.ts) is the pure tested seam. The old
+  project-shortcuts row is subsumed. Dev Docs keeps its grouped list:
+  the pills express the bundle convention, which the docs corpus does
+  not follow.
 - The workspace layout (03): recursive pane tree (leaf tabs / splits with
   draggable fraction), pure operations in `renderer/src/workspace/model.ts`
   (incubating workspace-core, 14), thin zustand store with debounced

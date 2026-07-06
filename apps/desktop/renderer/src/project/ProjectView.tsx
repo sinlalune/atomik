@@ -9,7 +9,8 @@ import { SidebarToggleIcon } from '../icons'
 import { SearchResultsList } from '../search/SearchResultsList'
 import { useTreeSearch } from '../search/useTreeSearch'
 import { TreeResizeHandle } from '../TreeResizeHandle'
-import { findSubtree, noteDisplayName } from '../vault/scope'
+import { NoteTree } from '../vault/NoteTree'
+import { findSubtree } from '../vault/scope'
 import { useVaultNote } from '../vault/useVaultNote'
 import type { NoteViewMode } from '../vault/VaultView'
 import type { SaveMode } from '../workspace/model'
@@ -259,14 +260,6 @@ export function ProjectView({
             </button>
           )}
         </div>
-        <div className="project-shortcuts">
-          <button type="button" onClick={() => guardedOpen(`${projectPath}/index.md`)}>
-            index
-          </button>
-          <button type="button" onClick={() => guardedOpen(`${projectPath}/log.md`)}>
-            log
-          </button>
-        </div>
         <div className="vault-new">
           <input
             value={draftNoteName}
@@ -298,7 +291,7 @@ export function ProjectView({
           />
         ) : (
           scoped && (
-            <ProjectTree
+            <NoteTree
               folder={scoped}
               activePath={note?.relPath ?? null}
               onOpen={guardedOpen}
@@ -370,37 +363,3 @@ export function ProjectView({
   )
 }
 
-function ProjectTree({
-  folder,
-  activePath,
-  onOpen
-}: {
-  folder: VaultFolder
-  activePath: string | null
-  onOpen: (relPath: string) => void
-}): React.JSX.Element {
-  return (
-    <ul>
-      {folder.folders.map((child) => (
-        <li key={child.relPath}>
-          <details open>
-            <summary>{child.name}</summary>
-            <ProjectTree folder={child} activePath={activePath} onOpen={onOpen} />
-          </details>
-        </li>
-      ))}
-      {folder.notes.map((noteRef) => (
-        <li key={noteRef.relPath}>
-          <button
-            type="button"
-            className={noteRef.relPath === activePath ? 'active' : ''}
-            title={noteRef.relPath}
-            onClick={() => onOpen(noteRef.relPath)}
-          >
-            {noteDisplayName(noteRef.name)}
-          </button>
-        </li>
-      ))}
-    </ul>
-  )
-}

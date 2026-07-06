@@ -104,6 +104,41 @@ export function WindowCloseIcon(): React.JSX.Element {
   )
 }
 
+/** Visibility toggle for the index/log files hidden behind their pills. */
+export function EyeIcon(): React.JSX.Element {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.2"
+      aria-hidden="true"
+    >
+      <path d="M1.5 8s2.5-4.5 6.5-4.5S14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z" />
+      <circle cx="8" cy="8" r="2" />
+    </svg>
+  )
+}
+
+export function EyeOffIcon(): React.JSX.Element {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.2"
+      aria-hidden="true"
+    >
+      <path d="M1.5 8s2.5-4.5 6.5-4.5S14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z" />
+      <line x1="3" y1="13" x2="13" y2="3" />
+    </svg>
+  )
+}
+
 /** Panel-with-sidebar pictogram; used for both collapse and expand, the
  *  button title carries the direction. */
 export function SidebarToggleIcon(): React.JSX.Element {

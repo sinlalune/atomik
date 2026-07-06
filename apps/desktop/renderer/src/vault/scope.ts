@@ -1,4 +1,4 @@
-import type { VaultFolder } from '../../../shared/ipc-contract'
+import type { VaultFolder, VaultNoteRef } from '../../../shared/ipc-contract'
 
 /**
  * Pure helper: the subtree of the vault tree rooted at `relPath`
@@ -28,4 +28,25 @@ export function findSubtree(
 export function noteDisplayName(nameOrPath: string): string {
   const base = nameOrPath.slice(nameOrPath.lastIndexOf('/') + 1)
   return base.toLowerCase().endsWith('.md') ? base.slice(0, -3) : base
+}
+
+/**
+ * The bundle-convention files (04: index.md/log.md) surface as PILLS at
+ * the top of any folder that holds them (owner feedback on MVP-001) and
+ * leave the note list — `rest` — unless the folder's eye toggle reveals
+ * them. Pure split; index always precedes log.
+ */
+export function splitPillNotes(notes: VaultNoteRef[]): {
+  pills: VaultNoteRef[]
+  rest: VaultNoteRef[]
+} {
+  const pills: VaultNoteRef[] = []
+  const rest: VaultNoteRef[] = []
+  for (const note of notes) {
+    const lower = note.name.toLowerCase()
+    if (lower === 'index.md' || lower === 'log.md') pills.push(note)
+    else rest.push(note)
+  }
+  pills.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
+  return { pills, rest }
 }

@@ -6,7 +6,7 @@ import { SearchResultsList } from '../search/SearchResultsList'
 import { useTreeSearch } from '../search/useTreeSearch'
 import { TreeResizeHandle } from '../TreeResizeHandle'
 import type { SaveMode } from '../workspace/model'
-import { noteDisplayName } from './scope'
+import { NoteTree } from './NoteTree'
 import { useVaultNote } from './useVaultNote'
 
 export type NoteViewMode = 'read' | 'edit'
@@ -28,41 +28,6 @@ export type VaultViewProps = {
   /** App-wide save policy; auto skips discard prompts (flush-on-leave). */
   saveMode?: SaveMode
   onSaveModeToggle?: () => void
-}
-
-function FolderView({
-  folder,
-  activePath,
-  onOpen
-}: {
-  folder: VaultFolder
-  activePath: string | null
-  onOpen: (relPath: string) => void
-}): React.JSX.Element {
-  return (
-    <ul>
-      {folder.folders.map((child) => (
-        <li key={child.relPath}>
-          <details open>
-            <summary>{child.name}</summary>
-            <FolderView folder={child} activePath={activePath} onOpen={onOpen} />
-          </details>
-        </li>
-      ))}
-      {folder.notes.map((note) => (
-        <li key={note.relPath}>
-          <button
-            type="button"
-            className={note.relPath === activePath ? 'active' : ''}
-            title={note.relPath}
-            onClick={() => onOpen(note.relPath)}
-          >
-            {noteDisplayName(note.name)}
-          </button>
-        </li>
-      ))}
-    </ul>
-  )
 }
 
 /**
@@ -248,7 +213,7 @@ export function VaultView({
           />
         ) : (
           tree && (
-            <FolderView
+            <NoteTree
               folder={tree}
               activePath={note?.relPath ?? null}
               onOpen={guardedOpen}
