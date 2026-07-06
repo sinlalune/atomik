@@ -6,6 +6,7 @@ import type {
 } from '../../../shared/ipc-contract'
 import { EditorPane } from '../editor/EditorPane'
 import { SidebarToggleIcon } from '../icons'
+import { noteDisplayName } from './scope'
 import { useVaultNote } from './useVaultNote'
 
 export type NoteViewMode = 'read' | 'edit'
@@ -50,7 +51,7 @@ function FolderView({
             title={note.relPath}
             onClick={() => onOpen(note.relPath)}
           >
-            {note.name}
+            {noteDisplayName(note.name)}
           </button>
         </li>
       ))}
@@ -243,7 +244,7 @@ export function VaultView({
                   title={result.relPath}
                   onClick={() => guardedOpen(result.relPath)}
                 >
-                  {result.name}
+                  {noteDisplayName(result.name)}
                 </button>
                 <ul>
                   {result.matches.map((match, index) => (
@@ -256,7 +257,9 @@ export function VaultView({
                             : '¶'}
                       </span>
                       <span className="match-excerpt" title={match.excerpt}>
-                        {match.excerpt}
+                        {match.kind === 'filename'
+                          ? noteDisplayName(match.excerpt)
+                          : match.excerpt}
                       </span>
                     </li>
                   ))}

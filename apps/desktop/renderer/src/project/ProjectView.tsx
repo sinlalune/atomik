@@ -6,7 +6,7 @@ import type {
 } from '../../../shared/ipc-contract'
 import { EditorPane } from '../editor/EditorPane'
 import { SidebarToggleIcon } from '../icons'
-import { findSubtree } from '../vault/scope'
+import { findSubtree, noteDisplayName } from '../vault/scope'
 import { useVaultNote } from '../vault/useVaultNote'
 import type { NoteViewMode } from '../vault/VaultView'
 
@@ -343,7 +343,7 @@ function ProjectTree({
             title={noteRef.relPath}
             onClick={() => onOpen(noteRef.relPath)}
           >
-            {noteRef.name}
+            {noteDisplayName(noteRef.name)}
           </button>
         </li>
       ))}

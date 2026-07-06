@@ -7,6 +7,7 @@ import type {
 import { DevDocs } from '../dev-docs/DevDocs'
 import { ProjectView } from '../project/ProjectView'
 import { ShellHome } from '../ShellHome'
+import { noteDisplayName } from '../vault/scope'
 import { VaultView } from '../vault/VaultView'
 import {
   activateTab,
@@ -39,7 +40,7 @@ function tabLabel(tab: WorkspaceTab): string {
       : tab.view === 'vault'
         ? tab.params?.['notePath']
         : undefined
-  if (pathParam) return pathParam.slice(pathParam.lastIndexOf('/') + 1)
+  if (pathParam) return noteDisplayName(pathParam)
   return TAB_LABELS[tab.view] ?? tab.view
 }
 

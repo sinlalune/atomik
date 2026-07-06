@@ -318,12 +318,14 @@ body {
   position: relative;
 }
 
+/* Collapsed state: the same quiet icon, floating — no pill background;
+   hover matches the expanded toggle (owner feedback on MVP-001). */
 .tree-show {
   position: absolute;
   top: 0.55rem;
   left: 0.55rem;
-  border: 1px solid var(--border);
-  background: var(--code-bg);
+  padding: 0.2rem 0.35rem;
+  z-index: 2;
 }
 
 /* dev docs --------------------------------------------------------------- */

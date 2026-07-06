@@ -19,3 +19,13 @@ export function findSubtree(
   }
   return current
 }
+
+/**
+ * Display name of a note: the `.md` suffix is implied everywhere in the
+ * UI (owner feedback on MVP-001). Display-only — relPaths and file bytes
+ * keep the extension; a non-.md name passes through untouched.
+ */
+export function noteDisplayName(nameOrPath: string): string {
+  const base = nameOrPath.slice(nameOrPath.lastIndexOf('/') + 1)
+  return base.toLowerCase().endsWith('.md') ? base.slice(0, -3) : base
+}

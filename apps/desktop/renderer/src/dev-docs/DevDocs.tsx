@@ -19,6 +19,11 @@ export type DevDocsProps = {
 const svgDataUri = (content: string): string =>
   `data:image/svg+xml;charset=utf-8,${encodeURIComponent(content)}`
 
+/** `.md` is implied in displayed names; other extensions stay. Labels can
+ *  carry a subpath prefix (`archive/04_x.md`) which must survive. */
+const docLabel = (label: string): string =>
+  label.toLowerCase().endsWith('.md') ? label.slice(0, -3) : label
+
 /**
  * Inlines relative SVG images (the bedrock diagrams) into the rendered HTML
  * string via a detached document, BEFORE React renders it. Post-render DOM
@@ -160,7 +165,7 @@ export function DevDocs({
                       className={doc?.relPath === entry.relPath ? 'active' : ''}
                       onClick={() => openDoc(entry.relPath)}
                     >
-                      {entry.label}
+                      {docLabel(entry.label)}
                     </button>
                   </li>
                 ))}

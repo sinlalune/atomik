@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { VaultFolder } from '../shared/ipc-contract'
-import { findSubtree } from '../renderer/src/vault/scope'
+import { findSubtree, noteDisplayName } from '../renderer/src/vault/scope'
 
 const tree: VaultFolder = {
   name: 'vault',
@@ -34,5 +34,19 @@ describe('findSubtree', () => {
   it('returns null for unknown paths', () => {
     expect(findSubtree(tree, 'projects/ghost')).toBeNull()
     expect(findSubtree(tree, 'welcome.md')).toBeNull()
+  })
+})
+
+describe('noteDisplayName', () => {
+  it('drops the implied .md and any leading path', () => {
+    expect(noteDisplayName('welcome.md')).toBe('welcome')
+    expect(noteDisplayName('projects/demo/index.md')).toBe('index')
+    expect(noteDisplayName('notes/Read Me.MD')).toBe('Read Me')
+  })
+
+  it('leaves non-.md names untouched (display never invents truncation)', () => {
+    expect(noteDisplayName('diagram.svg')).toBe('diagram.svg')
+    expect(noteDisplayName('md')).toBe('md')
+    expect(noteDisplayName('note.md.bak')).toBe('note.md.bak')
   })
 })
