@@ -109,11 +109,20 @@ timestamp: 2026-07-06T00:00:00Z
   the raw buffer from the syntax tree (headings sized, marks hidden,
   links collapsed, bullets, quote/fence lines; leading frontmatter
   styled as one dim unit with markdown suppressed inside), and any line
-  the selection touches reveals its full syntax. Pure StateField —
-  unit-tested headless; decoration-only, so 11/27 byte fidelity is
-  untouched. live<->source reconfigure ONE EditorView through a
-  compartment (buffer/undo/selection survive); only the switch to read
-  passes the save-first gate. GFM base (strikethrough/tables parse).
+  the selection touches reveals its full syntax. Blocks render too
+  (follow-up feedback): fenced code nests real language highlighting
+  (js/ts/jsx/tsx/html/css packs; others plain), task markers become
+  clickable checkboxes that write back through ordinary transactions
+  (dirty/auto-save/undo apply; checked items struck), horizontal rules
+  draw as rules, tables style mono with dimmed pipes and bold header
+  cells. Ctrl/Cmd+click follows internal links (`linkHrefAt`; plain
+  click places the cursor; external schemes inert until a vetted
+  opener, 13). Live is gutter-free; line numbers/folding/active-line
+  are SOURCE chrome (basicSetup retired, extensions composed by hand).
+  Pure StateField — unit-tested headless; decoration-only, so 11/27
+  byte fidelity is untouched. live<->source reconfigure ONE EditorView
+  through a compartment (buffer/undo/selection survive); only the
+  switch to read passes the save-first gate. GFM base.
   One EditorView per mounted pane, keyed by note path; view lives in a
   ref (mount-only).
 - Project bundles (04, S06): `electron-main/project.ts` (incubating

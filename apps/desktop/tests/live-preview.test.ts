@@ -5,7 +5,8 @@ import { describe, expect, it } from 'vitest'
 import type { LivePreviewKind } from '../renderer/src/editor/live-preview'
 import {
   computeLivePreviewDecorations,
-  frontmatterEnd
+  frontmatterEnd,
+  linkHrefAt
 } from '../renderer/src/editor/live-preview'
 
 type Deco = { from: number; to: number; kind: LivePreviewKind; cls?: string }
@@ -163,6 +164,56 @@ describe('live preview decorations (MVP-001: seamless editing)', () => {
     expect(frontmatterEnd(decorateState('---\nno close ever\n'))).toBe(0)
     expect(frontmatterEnd(decorateState('---\n'))).toBe(0)
     expect(frontmatterEnd(decorateState('regular\ntext\n'))).toBe(0)
+  })
+
+  it('renders task checkboxes (no bullet, dash hidden), strikes done', () => {
+    const doc = '- [ ] todo\n- [x] done\n\nelsewhere\n'
+    const decos = decorate(doc, doc.indexOf('elsewhere'))
+    expect(decos.filter((deco) => deco.kind === 'task')).toHaveLength(2)
+    expect(decos.filter((deco) => deco.kind === 'bullet')).toHaveLength(0)
+    // the '- ' before each checkbox folds away
+    expect(decos).toContainEqual({ from: 0, to: 2, kind: 'hide' })
+    const done = decos.find(
+      (deco) => deco.kind === 'mark' && deco.cls === 'lp-done'
+    )
+    expect(done).toBeDefined()
+    expect(doc.slice(done!.from, done!.to)).toBe(' done')
+  })
+
+  it('replaces a horizontal rule with the widget away from the cursor', () => {
+    const doc = 'above\n\n---\n\nelsewhere\n'
+    const hrFrom = doc.indexOf('---')
+    const away = decorate(doc, doc.indexOf('elsewhere'))
+    expect(away).toContainEqual({ from: hrFrom, to: hrFrom + 3, kind: 'hr' })
+    const onIt = decorate(doc, hrFrom + 1)
+    expect(onIt.filter((deco) => deco.kind === 'hr')).toHaveLength(0)
+  })
+
+  it('styles tables: mono lines, dimmed pipes, bold header cells', () => {
+    const doc = '| a | b |\n| - | - |\n| 1 | 2 |\n\nelsewhere\n'
+    const decos = decorate(doc, doc.indexOf('elsewhere'))
+    expect(
+      decos.filter((deco) => deco.kind === 'line' && deco.cls === 'lp-table')
+    ).toHaveLength(3)
+    expect(
+      decos.some((deco) => deco.kind === 'mark' && deco.cls === 'lp-dim')
+    ).toBe(true)
+    const headerCells = decos.filter(
+      (deco) => deco.kind === 'mark' && deco.cls === 'lp-strong'
+    )
+    expect(headerCells.map((deco) => doc.slice(deco.from, deco.to))).toEqual([
+      'a',
+      'b'
+    ])
+  })
+
+  it('linkHrefAt finds the URL from anywhere inside the link, else null', () => {
+    const doc = 'see [docs](notes/target.md) here\n'
+    const state = decorateState(doc)
+    ensureSyntaxTree(state, state.doc.length, 5000)
+    expect(linkHrefAt(state, doc.indexOf('docs') + 1)).toBe('notes/target.md')
+    expect(linkHrefAt(state, doc.indexOf('see'))).toBeNull()
+    expect(linkHrefAt(state, doc.indexOf('here'))).toBeNull()
   })
 
   it('an active multi-line selection reveals every touched line', () => {

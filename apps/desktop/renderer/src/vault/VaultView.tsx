@@ -252,6 +252,7 @@ export function VaultView({
               void refreshTree()
               guardedOpen(relPath)
             }}
+            onFollowLink={guardedOpen}
             saveMode={saveMode}
             onSaveModeToggle={onSaveModeToggle}
           />

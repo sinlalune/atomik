@@ -54,6 +54,23 @@ syntaxTree(state).iterate({ enter(node) { ... } })
   FencedCode      -> lp-fence lines; fences stay, dimmed
 ```
 
+Block constructs (added on follow-up feedback) go further:
+
+```text
+TaskMarker [ ]/[x] -> a real <input type=checkbox> WIDGET; the list dash
+                      folds away; checked items get lp-done (struck)
+HorizontalRule ---  -> replaced by a rule element
+Table               -> mono lines, dimmed pipes, bold header cells
+FencedCode ```js    -> nested REAL language parse (codeLanguages maps
+                      js/ts/jsx/tsx/html/css to the installed packs)
+```
+
+The checkbox is the interesting one: clicking it dispatches an ordinary
+buffer transaction that rewrites `[ ]` to `[x]` — so dirty tracking,
+auto-save, and undo all just work. Widgets never store document
+positions (they get reused as the doc changes); the click handler asks
+the view where the widget IS at click time (`posAtDOM`).
+
 Two deliberate exceptions:
 
 - **Fences stay visible.** A code block whose delimiters vanish is
@@ -64,6 +81,13 @@ Two deliberate exceptions:
   textually, styles it as one dim unit, and suppresses every other
   decoration inside it. Found by looking at a screenshot, not by a test
   — verify like a user (note 01 §7).
+
+And one interaction rule: **Ctrl/Cmd+click follows an internal link**
+(`linkHrefAt` walks up the tree from the click position to the enclosing
+Link and reads its URL). A plain click must keep placing the cursor —
+that is the difference between an editor and a reader, and it is exactly
+the boundary the read-mode question lives on
+(`atomik-project/brainstorm/2026-07-06-read-mode-vs-live.md`).
 
 ## 3. The reveal rule — why editing never fights the styling
 

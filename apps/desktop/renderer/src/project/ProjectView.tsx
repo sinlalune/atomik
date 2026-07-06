@@ -331,6 +331,7 @@ export function ProjectView({
               void refresh()
               guardedOpen(relPath)
             }}
+            onFollowLink={guardedOpen}
             saveMode={saveMode}
             onSaveModeToggle={onSaveModeToggle}
           />

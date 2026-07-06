@@ -11,6 +11,7 @@ import {
   WidgetType,
   type DecorationSet
 } from '@codemirror/view'
+import type { SyntaxNode } from '@lezer/common'
 
 /**
  * Live preview (owner feedback on MVP-001: "seamless like Obsidian").
@@ -25,7 +26,13 @@ import {
  */
 
 /** Spec tag so tests (and debugging) can classify decorations. */
-export type LivePreviewKind = 'hide' | 'line' | 'mark' | 'bullet'
+export type LivePreviewKind =
+  | 'hide'
+  | 'line'
+  | 'mark'
+  | 'bullet'
+  | 'hr'
+  | 'task'
 
 class BulletWidget extends WidgetType {
   override toDOM(): HTMLElement {
@@ -37,6 +44,55 @@ class BulletWidget extends WidgetType {
 
   override eq(): boolean {
     return true
+  }
+}
+
+class HrWidget extends WidgetType {
+  override toDOM(): HTMLElement {
+    const rule = document.createElement('span')
+    rule.className = 'lp-hr'
+    return rule
+  }
+
+  override eq(): boolean {
+    return true
+  }
+}
+
+/**
+ * Interactive task checkbox standing in for `[ ]` / `[x]`. Clicking it
+ * toggles the marker IN THE BUFFER (an ordinary transaction: dirty flag,
+ * auto-save, undo all apply). The marker position is resolved at click
+ * time via posAtDOM — widgets must not hold offsets, they get reused.
+ */
+class CheckboxWidget extends WidgetType {
+  constructor(private readonly checked: boolean) {
+    super()
+  }
+
+  override toDOM(view: EditorView): HTMLElement {
+    const box = document.createElement('input')
+    box.type = 'checkbox'
+    box.className = 'lp-task'
+    box.checked = this.checked
+    box.addEventListener('click', (event) => {
+      event.preventDefault()
+      const pos = view.posAtDOM(box)
+      const marker = view.state.doc.sliceString(pos, pos + 3)
+      if (!/^\[[ xX]\]$/.test(marker)) return
+      view.dispatch({
+        changes: {
+          from: pos,
+          to: pos + 3,
+          insert: this.checked ? '[ ]' : '[x]'
+        }
+      })
+    })
+    return box
+  }
+
+  override eq(other: CheckboxWidget): boolean {
+    return other.checked === this.checked
   }
 }
 
@@ -182,12 +238,57 @@ export function computeLivePreviewDecorations(
           return
         }
         case 'ListMark': {
+          if (isActiveAt(node.from)) return
+          // Task items render only their checkbox: the list dash (and
+          // its trailing space) folds away entirely.
+          if (node.node.parent?.getChild('Task')) {
+            hideMark(node.from, node.to, true)
+            return
+          }
           const text = state.doc.sliceString(node.from, node.to)
-          if (/^[-*+]$/.test(text) && !isActiveAt(node.from)) {
+          if (/^[-*+]$/.test(text)) {
             decorations.push(bullet.range(node.from, node.to))
           }
           return
         }
+        case 'TaskMarker': {
+          if (isActiveAt(node.from)) return
+          const checked = /x/i.test(
+            state.doc.sliceString(node.from, node.to)
+          )
+          decorations.push(
+            Decoration.replace({
+              lp: 'task' as LivePreviewKind,
+              widget: new CheckboxWidget(checked)
+            }).range(node.from, node.to)
+          )
+          const task = node.node.parent
+          if (checked && task && task.to > node.to) {
+            decorations.push(markDeco('lp-done').range(node.to, task.to))
+          }
+          return
+        }
+        case 'HorizontalRule':
+          if (!isActiveAt(node.from)) {
+            decorations.push(
+              Decoration.replace({
+                lp: 'hr' as LivePreviewKind,
+                widget: new HrWidget()
+              }).range(node.from, node.to)
+            )
+          }
+          return
+        case 'Table':
+          addLineDecos(node.from, node.to, 'lp-table')
+          return
+        case 'TableDelimiter':
+          decorations.push(markDeco('lp-dim').range(node.from, node.to))
+          return
+        case 'TableCell':
+          if (node.node.parent?.name === 'TableHeader' && node.from < node.to) {
+            decorations.push(markDeco('lp-strong').range(node.from, node.to))
+          }
+          return
         case 'Blockquote':
           addLineDecos(node.from, node.to, 'lp-quote')
           return
@@ -204,6 +305,16 @@ export function computeLivePreviewDecorations(
   })
 
   return Decoration.set(decorations, true)
+}
+
+/** The URL of the markdown Link enclosing `pos`, or null. Pure — the
+ *  Ctrl/Cmd+click handler and its tests share it. */
+export function linkHrefAt(state: EditorState, pos: number): string | null {
+  let node: SyntaxNode | null = syntaxTree(state).resolveInner(pos, 0)
+  while (node && node.name !== 'Link') node = node.parent
+  if (!node) return null
+  const url = node.getChild('URL')
+  return url ? state.doc.sliceString(url.from, url.to) : null
 }
 
 export const livePreviewField = StateField.define<DecorationSet>({
@@ -224,7 +335,33 @@ export const livePreviewField = StateField.define<DecorationSet>({
   provide: (field) => EditorView.decorations.from(field)
 })
 
-/** The complete live-preview extension. */
-export function livePreview(): Extension {
-  return [livePreviewField]
+/**
+ * The complete live-preview extension. With `onFollowLink`, Ctrl/Cmd+
+ * click on a link reports its raw href (the host resolves and opens);
+ * a plain click still just places the cursor.
+ */
+export function livePreview(options?: {
+  onFollowLink?: (href: string) => void
+}): Extension {
+  const follow = options?.onFollowLink
+  const extensions: Extension[] = [livePreviewField]
+  if (follow) {
+    extensions.push(
+      EditorView.domEventHandlers({
+        mousedown: (event, view) => {
+          if (event.button !== 0 || !(event.ctrlKey || event.metaKey)) {
+            return false
+          }
+          const pos = view.posAtCoords({ x: event.clientX, y: event.clientY })
+          if (pos === null) return false
+          const href = linkHrefAt(view.state, pos)
+          if (!href) return false
+          event.preventDefault()
+          follow(href)
+          return true
+        }
+      })
+    )
+  }
+  return extensions
 }

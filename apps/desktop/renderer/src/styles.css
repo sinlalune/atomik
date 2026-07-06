@@ -822,6 +822,31 @@ body {
   color: var(--muted);
 }
 
+/* block rendering (MVP-001 follow-up) */
+.editor-host .lp-hr {
+  display: inline-block;
+  width: 100%;
+  vertical-align: middle;
+  border-top: 1px solid var(--border);
+}
+
+.editor-host input.lp-task {
+  vertical-align: middle;
+  margin: 0 0.15rem 0.15rem 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.editor-host .lp-done {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.editor-host .lp-table {
+  font-family: ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  font-size: 0.82em;
+}
+
 /* the default highlighter underlines heading tokens; seamless mode
    drops that (the size/weight already says "heading") */
 .editor-host.live .lp-h1 span,

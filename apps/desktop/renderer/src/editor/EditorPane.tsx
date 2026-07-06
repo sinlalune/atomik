@@ -1,5 +1,13 @@
 import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
+import { cssLanguage } from '@codemirror/lang-css'
+import { htmlLanguage } from '@codemirror/lang-html'
+import {
+  javascriptLanguage,
+  jsxLanguage,
+  tsxLanguage,
+  typescriptLanguage
+} from '@codemirror/lang-javascript'
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import {
   bracketMatching,
@@ -7,7 +15,8 @@ import {
   foldGutter,
   foldKeymap,
   indentOnInput,
-  syntaxHighlighting
+  syntaxHighlighting,
+  type Language
 } from '@codemirror/language'
 import { highlightSelectionMatches, searchKeymap } from '@codemirror/search'
 import { Compartment, type Extension } from '@codemirror/state'
@@ -24,6 +33,7 @@ import {
 } from '@codemirror/view'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { VaultNoteFile } from '../../../shared/ipc-contract'
+import { resolveRelativePath } from '../dev-docs/markdown'
 import type { NoteViewMode, SaveMode } from '../workspace/model'
 import { AiPanel, type BufferChange } from './AiPanel'
 import { livePreview } from './live-preview'
@@ -64,8 +74,35 @@ const SOURCE_CHROME: Extension = [
   highlightActiveLine()
 ]
 
-const modeExtensions = (mode: 'live' | 'source'): Extension =>
-  mode === 'live' ? livePreview() : SOURCE_CHROME
+const modeExtensions = (
+  mode: 'live' | 'source',
+  onFollowLink: (href: string) => void
+): Extension => (mode === 'live' ? livePreview({ onFollowLink }) : SOURCE_CHROME)
+
+/** Fenced-code languages for the installed packs; anything else stays
+ *  plain mono. A registry (language-data) is a later dependency call. */
+function fencedCodeLanguage(info: string): Language | null {
+  switch (info.toLowerCase()) {
+    case 'js':
+    case 'javascript':
+    case 'mjs':
+    case 'cjs':
+      return javascriptLanguage
+    case 'jsx':
+      return jsxLanguage
+    case 'ts':
+    case 'typescript':
+      return typescriptLanguage
+    case 'tsx':
+      return tsxLanguage
+    case 'html':
+      return htmlLanguage
+    case 'css':
+      return cssLanguage
+    default:
+      return null
+  }
+}
 
 export type EditorPaneProps = {
   note: VaultNoteFile
@@ -79,6 +116,8 @@ export type EditorPaneProps = {
   onModeChange?: (mode: NoteViewMode) => void
   /** AI-created notes bubble up so the host refreshes/opens them. */
   onNoteCreated?: (relPath: string) => void
+  /** Ctrl/Cmd+click on an internal link in live mode opens it here. */
+  onFollowLink?: (relPath: string) => void
   /** 'auto' (default): debounced saves + flush on leave; 'manual': S07. */
   saveMode?: SaveMode
   onSaveModeToggle?: () => void
@@ -105,6 +144,7 @@ export function EditorPane({
   mode = 'live',
   onModeChange,
   onNoteCreated,
+  onFollowLink,
   saveMode = 'auto',
   onSaveModeToggle
 }: EditorPaneProps): React.JSX.Element {
@@ -201,6 +241,32 @@ export function EditorPane({
     }
   }, [applyConflict, markDirty, note.relPath, onSaved])
 
+  // Ctrl/Cmd+click follow: the extension reports the raw href; resolve
+  // it against this note and let the host open vault-internal targets.
+  // External schemes stay inert until a vetted opener exists (13).
+  const onFollowLinkRef = useRef(onFollowLink)
+  useEffect(() => {
+    onFollowLinkRef.current = onFollowLink
+  }, [onFollowLink])
+  const followHref = useCallback(
+    (href: string) => {
+      if (/^(https?:|mailto:|#)/.test(href)) return
+      const pathPart = decodeURIComponent(href.split('#')[0] ?? '')
+      const rel = resolveRelativePath(note.relPath, pathPart)
+      if (rel && rel.toLowerCase().endsWith('.md')) {
+        onFollowLinkRef.current?.(rel)
+      }
+    },
+    [note.relPath]
+  )
+  const followHrefRef = useRef(followHref)
+  useEffect(() => {
+    followHrefRef.current = followHref
+  }, [followHref])
+  // Stable across compartment reconfigures; always calls the fresh closure.
+  const followHandler = useRef((href: string) => followHrefRef.current(href))
+    .current
+
   // Live preview toggles through a compartment: switching live <-> source
   // reconfigures the SAME view, so buffer, undo history, and selection
   // survive the mode change (the raw bytes are identical in both).
@@ -210,9 +276,11 @@ export function EditorPane({
     if (modeRef.current === mode) return
     modeRef.current = mode
     viewRef.current?.dispatch({
-      effects: previewCompartment.reconfigure(modeExtensions(mode))
+      effects: previewCompartment.reconfigure(
+        modeExtensions(mode, followHandler)
+      )
     })
-  }, [mode, previewCompartment])
+  }, [followHandler, mode, previewCompartment])
 
   // One EditorView per mounted pane; the host keys this component by note
   // path, so a different note is a fresh mount. The view lives in a ref —
@@ -226,9 +294,13 @@ export function EditorPane({
       parent: host,
       extensions: [
         SHARED_EXTENSIONS,
-        // GFM base: strikethrough/tables/task lists parse like they render.
-        markdown({ base: markdownLanguage }),
-        previewCompartment.of(modeExtensions(modeRef.current)),
+        // GFM base: strikethrough/tables/task lists parse like they
+        // render; fenced code nests real language highlighting.
+        markdown({
+          base: markdownLanguage,
+          codeLanguages: fencedCodeLanguage
+        }),
+        previewCompartment.of(modeExtensions(modeRef.current, followHandler)),
         ...(prefersDark ? [oneDark] : []),
         EditorView.lineWrapping,
         keymap.of([
