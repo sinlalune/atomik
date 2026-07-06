@@ -7,8 +7,8 @@ timestamp: 2026-07-05T00:00:00Z
 atomik:
   id: CP-MVP-001
   status: active
-  current_step: S01
-  base_commit: null        # set at S01
+  current_step: S02
+  base_commit: 4675233
 ---
 
 # Goal
@@ -76,7 +76,7 @@ Completeness rule (35): every bedrock page 00–35 appears below at least once �
 
 # Execution
 
-- [ ] S01 Reconcile the pre-seeded dual-plane layout against ADR-009 (the bundle ships repo-ready); `git init` and first commit if not already done; record `base_commit` in the frontmatter and ledger.
+- [x] S01 Reconcile the pre-seeded dual-plane layout against ADR-009 (the bundle ships repo-ready); `git init` and first commit if not already done; record `base_commit` in the frontmatter and ledger.
 - [ ] S02 Electron + Vite + React + TypeScript with secure main/preload/renderer split; narrow typed contextBridge API only.
 - [ ] S03 Dev Docs tab rendering this documentation bundle from files.
 - [ ] S04 Tabs and split panes; workspace state in `.atomik/`, disposable.
@@ -94,10 +94,10 @@ Child paths (spawned from here, not widened into here): CP-MVP-002 capture sourc
 # Current checkpoint
 
 ```text
-base commit : (unset — record at S01)
-changed     : none
-tests       : none exist yet
-next action : S01 — reconcile pre-seeded layout, record base commit
+base commit : 4675233 (4675233be87ce6d43f06ed1a7ae7de77a28042f1, branch master — v0.6 seed)
+changed     : none — S01 work unit committed (this ledger + atomik-project/log.md)
+tests       : none exist yet (toolchain arrives with S02)
+next action : S02 — Electron + Vite + React + TypeScript scaffold, secure main/preload/renderer split
 blockers    : none
 ```
 
