@@ -258,7 +258,8 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
             const summary = await window.atomik.getAiTraceSummary(bundle.id)
             await window.atomik.resolveAiTrace(bundle.id, 'accepted')
             const shape = [bundle.blocks.length, bundle.patchProposals.length, bundle.claims.length, bundle.actionTraceIds.length].join('/')
-            return 'ok:' + shape + ':' + bundle.patchProposals[0].files[0].kind + ':trace=' + (summary ? summary.location + '/' + summary.wallMs + 'ms' : 'none')
+            const labels = bundle.claims.map((c) => c.label).join(',')
+            return 'ok:' + shape + ':' + bundle.patchProposals[0].files[0].kind + ':trace=' + (summary ? summary.location + '/' + summary.wallMs + 'ms' : 'none') + ':labels=' + labels
           } catch (e) { return 'fail:' + String(e) }
         })()`
       )) as string

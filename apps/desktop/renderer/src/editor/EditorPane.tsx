@@ -173,6 +173,21 @@ export function EditorPane({
     []
   )
 
+  /** Selects and scrolls to a source anchor (S10: a mapped citation
+   *  opens its local source anchor). */
+  const revealRange = useCallback((range: { from: number; to: number }) => {
+    const view = viewRef.current
+    if (!view) return
+    const docLength = view.state.doc.length
+    const from = Math.max(0, Math.min(range.from, docLength))
+    const to = Math.max(from, Math.min(range.to, docLength))
+    view.dispatch({
+      selection: { anchor: from, head: to },
+      effects: EditorView.scrollIntoView(from, { y: 'center' })
+    })
+    view.focus()
+  }, [])
+
   /** Accepted AI changes land in the BUFFER — visible, undoable; the
    *  explicit save stays the single moment a file diff is born (06). */
   const applyChange = useCallback((change: BufferChange) => {
@@ -242,6 +257,7 @@ export function EditorPane({
           getDoc={getDoc}
           applyChange={applyChange}
           requestSave={() => saveRef.current()}
+          openAnchor={revealRange}
           onNoteCreated={onNoteCreated}
           onClose={() => setShowAi(false)}
         />

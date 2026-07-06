@@ -43,3 +43,6 @@ when the shape changes, not on every diff.
 - [07 — Action traces: measuring without spying](./07-action-traces-and-cost-observability.md) —
   the one-line ledger, append-only JSONL, estimated vs actual, content-free
   telemetry. Covers CP-MVP-001 S09.
+- [08 — Mechanical truth labels: evidence is computed, never claimed](./08-mechanical-truth-labels.md) —
+  the labeling rule, quote hashes, form vs evidence, challenge → repair.
+  Covers CP-MVP-001 S10.

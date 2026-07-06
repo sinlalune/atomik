@@ -7,7 +7,7 @@ timestamp: 2026-07-05T00:00:00Z
 atomik:
   id: CP-MVP-001
   status: active
-  current_step: S10
+  current_step: S11
   base_commit: 4675233
 ---
 
@@ -85,7 +85,7 @@ Completeness rule (35): every bedrock page 00–35 appears below at least once �
 - [x] S07 CodeMirror editor + Markdown preview; explicit save or safe autosave.
 - [x] S08 Selection → AI operation **mock** → structured response bundle → patch preview → accept/edit/reject into file. One accepted operation = one clear diff.
 - [x] S09 Minimal ActionTrace from the S08 mock: one appended JSON line (location, model/tool id, est/actual tokens when available, latency, external cost, status, outcome, contentRecorded=false) + compact badge.
-- [ ] S10 Mechanical truth labels on S08 output per the labeling rule; a mapped citation opens its local source anchor; one challenged claim produces a repair patch preview.
+- [x] S10 Mechanical truth labels on S08 output per the labeling rule; a mapped citation opens its local source anchor; one challenged claim produces a repair patch preview.
 - [ ] S11 Run all M0–M2 acceptance tests from the roadmap; filename/heading/full-text search works without embeddings; cache deletion destroys nothing.
 - [ ] S12 Experiential gate: two weeks of daily use; friction recorded as project files; resulting priorities patched into `atomik-project/brainstorm/` or the roadmap; path review and close.
 
@@ -95,23 +95,21 @@ Child paths (spawned from here, not widened into here): CP-MVP-002 capture sourc
 
 ```text
 base commit : 4675233 (4675233be87ce6d43f06ed1a7ae7de77a28042f1, branch master — v0.6 seed)
-changed     : none — S09 work unit committed (ActionTraceLedger + badge + decision
-              reporting, learning note 07, module note, ledger, both logs)
-tests       : 87 passing / 14 vitest suites (adds action-trace: one complete line
-              per decision, append-only accumulation, failure/flush, summary
-              lifecycle, content-leak grep; ai-helpers; preload surface now 16).
-              Typecheck + build clean; smoke e2e: run→summary→resolve through the
-              renderer world (ai=ok:...:trace=deterministic/1ms) and the ledger
-              line inspected — exactly the S09 minimum in 06's shape, decision
-              'accepted', contentRecorded=false. No field beyond the minimum:
-              the 33/operation_trace_contract trigger never fired.
-next action : S10 — mechanical truth labels on S08 output per the labeling rule
-              (source-backed ONLY via deterministic derivation — anchor match /
-              quote hash; all else model-only; interpretive from explicit block
-              metadata); a mapped citation opens its local source anchor; one
-              challenged claim produces a repair patch preview. Trigger: read
-              28_28-truth-evidence-model.md ONLY if tempted beyond the four MVP
-              labels (05/06 truth sections are in-context grounding).
+changed     : none — S10 work unit committed (truth-core checker + claims UI with
+              anchors and challenge/repair, learning note 08, module note, ledger,
+              both logs)
+tests       : 93 passing / 15 vitest suites (adds truth: containment + sha256
+              evidence, no-paraphrase rule, form honoring with evidence outranking,
+              smuggled-label adversarial case, reproducibility; ai-mock now asserts
+              all four labels on every bundle). Typecheck + build clean; smoke e2e:
+              labels=source-backed,model-only,needs-citation,interpretive through
+              the renderer world. Stayed within the four MVP labels: the 28 trigger
+              never fired. Claims UI (chips, [source] anchor jump, [challenge] →
+              repair preview) validated by owner dogfooding per the S07/S08 pattern.
+next action : S11 — run all M0–M2 acceptance tests from the roadmap;
+              filename/heading/full-text search WITHOUT embeddings; cache deletion
+              destroys nothing. This step builds the missing search slice, then
+              executes the acceptance checklist and records results in the ledger.
 blockers    : none
 ```
 

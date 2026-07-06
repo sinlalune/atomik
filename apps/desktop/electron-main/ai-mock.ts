@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { labelClaims, type ClaimCandidate } from './truth'
 import type {
   AiDestination,
   AiOperation,
@@ -76,20 +77,54 @@ const excerpt = (text: string, max = 80): string => {
   return clean.length <= max ? clean : `${clean.slice(0, max)}…`
 }
 
-/** Deterministic placeholder prose, clearly marked as mock output. */
+/** EXACT slice of the selection (containment-checkable, unlike excerpt). */
+const exactQuote = (selection: AiSelection, max = 160): string =>
+  selection.content.slice(0, max).trim()
+
+/** Deterministic placeholder prose, clearly marked as mock output. The
+ *  quote line reproduces the selection EXACTLY so the truth checker can
+ *  derive it (source-backed); the other statements exist to exercise the
+ *  remaining labels. */
 function mockAnswer(operation: AiOperation, selection: AiSelection): string {
   const preset = operation.preset ?? 'free'
   return [
     `**[mock · ${preset}]** Response to: *${excerpt(operation.instruction)}*`,
     '',
-    `Working on the selection «${excerpt(selection.content)}» from`,
-    `\`${selection.relPath}\` (${selection.content.length} chars).`,
+    `Your selection says:`,
+    '',
+    `> ${exactQuote(selection)}`,
     '',
     'This is a deterministic placeholder: the real provider adapter',
-    'arrives behind the same channel at M7+. The pipeline around it —',
-    'selection, bundle, patch preview, accept/edit/reject — is the real',
-    'thing being exercised here (06).'
+    'arrives behind the same channel at M7+. Mock placeholders carry no',
+    'factual value. This pattern is described in the standard literature.',
+    'One way to read the selection: it behaves like a note-taking',
+    'lookup table.'
   ].join('\n')
+}
+
+/** Claim candidates covering the four MVP labels on every response —
+ *  candidates can assert FORM only; labels come from the checker. */
+function mockCandidates(
+  selection: AiSelection,
+  answerBlockId: string
+): ClaimCandidate[] {
+  return [
+    { blockId: answerBlockId, text: exactQuote(selection) },
+    {
+      blockId: answerBlockId,
+      text: 'Mock placeholders carry no factual value.'
+    },
+    {
+      blockId: answerBlockId,
+      text: 'This pattern is described in the standard literature.',
+      assertedForm: 'needs-citation'
+    },
+    {
+      blockId: answerBlockId,
+      text: 'One way to read the selection: it behaves like a note-taking lookup table.',
+      assertedForm: 'interpretive'
+    }
+  ]
 }
 
 /** The text the patch proposes, shaped by the destination. */
@@ -151,6 +186,13 @@ export function runAiOperation(operation: unknown): AiResponseBundle {
             newText: mockProposedText(operation, selection)
           }
 
+  // Mechanical labeling (S10): the mock proposes candidates (form-only
+  // assertions); the deterministic checker assigns every label.
+  const { claims, evidence } = labelClaims(
+    operation.input,
+    mockCandidates(selection, (blocks[0] as AiOutputBlock).id)
+  )
+
   return {
     id: randomUUID(),
     operationId: operation.id,
@@ -163,10 +205,8 @@ export function runAiOperation(operation: unknown): AiResponseBundle {
         status: 'pending'
       }
     ],
-    // Shapes ship from the first mock (06/roadmap M2); content arrives
-    // with S10 (mechanical labels) and later real verification.
-    claims: [],
-    evidence: [],
+    claims,
+    evidence,
     verification: [],
     uncertainties: [
       {

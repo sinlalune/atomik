@@ -4,6 +4,7 @@ import type {
   AiDestination,
   AiResponseBundle,
   AiSelection,
+  ClaimRecord,
   ProposedFileChange,
   TraceSummary,
   VaultNoteFile
@@ -24,6 +25,8 @@ export type AiPanelProps = {
   applyChange: (change: BufferChange) => void
   /** Saves the buffer (the editor's save: mtime handshake, conflicts). */
   requestSave: () => Promise<void>
+  /** Reveals a source anchor range in the editor (S10 citations). */
+  openAnchor: (range: { from: number; to: number }) => void
   /** Fired after a new-note patch is created on disk (refresh + open). */
   onNoteCreated?: (relPath: string) => void
   onClose: () => void
@@ -50,6 +53,7 @@ export function AiPanel({
   getDoc,
   applyChange,
   requestSave,
+  openAnchor,
   onNoteCreated,
   onClose
 }: AiPanelProps): React.JSX.Element {
@@ -68,6 +72,7 @@ export function AiPanel({
   const [ranSelection, setRanSelection] = useState<AiSelection | null>(null)
   const [docAtRun, setDocAtRun] = useState('')
   const [applied, setApplied] = useState<string | null>(null)
+  const [challengedIds, setChallengedIds] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
 
   const md = useMemo(
@@ -204,8 +209,32 @@ export function AiPanel({
     setRanSelection(null)
     setApplied(null)
     setTrace(null)
+    setChallengedIds([])
     setPhase('compose')
   }, [applied, reportDecision])
+
+  /** S10 challenge → repair patch preview: the claim is qualified inside
+   *  the (editable) proposal — a mechanical repair the user reviews and
+   *  accepts through the normal patch path. */
+  const challenge = useCallback((claim: ClaimRecord) => {
+    const marker = ' **[⚠ challenged — needs a source]**'
+    setEditedText((current) =>
+      current.includes(claim.text)
+        ? current.replace(claim.text, `${claim.text}${marker}`)
+        : `${current}\n\n> ⚠ Challenged claim (${claim.label}): "${claim.text}" — do not trust this patch until it is sourced.\n`
+    )
+    setChallengedIds((current) => [...current, claim.id])
+  }, [])
+
+  const openEvidence = useCallback(
+    (claim: ClaimRecord) => {
+      const record = bundle?.evidence.find(
+        (candidate) => candidate.id === claim.evidenceIds[0]
+      )
+      if (record) openAnchor(record.source.range)
+    },
+    [bundle, openAnchor]
+  )
 
   const selectionEmpty = getSelection().text.length === 0
 
@@ -307,6 +336,44 @@ export function AiPanel({
                 dangerouslySetInnerHTML={{ __html: md.render(block.content) }}
               />
             ))}
+            {bundle.claims.length > 0 && (
+              <div className="ai-claims">
+                {bundle.claims.map((claim) => (
+                  <div
+                    key={claim.id}
+                    className={`ai-claim${challengedIds.includes(claim.id) ? ' challenged' : ''}`}
+                  >
+                    <span className={`truth-chip label-${claim.label}`}>
+                      {claim.label}
+                    </span>
+                    <span className="ai-claim-text" title={claim.text}>
+                      {claim.text}
+                    </span>
+                    <span className="ai-claim-actions">
+                      {claim.label === 'source-backed' &&
+                        claim.evidenceIds.length > 0 && (
+                          <button
+                            type="button"
+                            title="Open the source anchor in the editor"
+                            onClick={() => openEvidence(claim)}
+                          >
+                            source
+                          </button>
+                        )}
+                      {!applied && !challengedIds.includes(claim.id) && (
+                        <button
+                          type="button"
+                          title="Challenge: qualify this claim in the patch preview"
+                          onClick={() => challenge(claim)}
+                        >
+                          challenge
+                        </button>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="ai-proposal">
               <div className="ai-proposal-head">
                 patch → {proposalFile.kind === 'create'
@@ -314,7 +381,11 @@ export function AiPanel({
                   : proposalFile.kind === 'replace-range'
                     ? 'replace the selection'
                     : 'append to this note'}
-                <span className="ai-proposal-hint">(editable before accepting)</span>
+                <span className="ai-proposal-hint">
+                  {challengedIds.length > 0
+                    ? '(repair patch preview — challenged claims qualified below)'
+                    : '(editable before accepting)'}
+                </span>
               </div>
               <textarea
                 rows={6}

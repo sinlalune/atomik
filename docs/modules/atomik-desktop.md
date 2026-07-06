@@ -35,6 +35,17 @@ timestamp: 2026-07-06T00:00:00Z
   writes on open. Last vault remembered in `.atomik/local-settings.json`,
   written by main only (no channel). `ATOMIK_VAULT_DIR` overrides for
   tests/smoke/dev.
+- Mechanical truth labels (06 §labeling rule, S10): `electron-main/truth.ts`
+  (truth-core validator seat, 14 — validators never call AI). Providers
+  submit ClaimCandidates that can assert FORM only (interpretive /
+  needs-citation; the type admits nothing else); `labelClaims` computes
+  every label: exact containment in a supplied selection → source-backed
+  with hashed EvidenceRecord (quote + sha256, reproducible); no fuzzy
+  matching by design (a paraphrase is model-only); derivability outranks
+  asserted forms; smuggled labels fall to model-only (adversarial-tested).
+  Panel UI: one chip per claim, [source] opens the anchor in the editor
+  (select + scroll), [challenge] qualifies the claim inside the editable
+  proposal — the repair patch preview accepted through the normal path.
 - The ActionTrace ledger (S09, 33-minimal): `electron-main/action-trace.ts`
   (the execution-core seat, 14) — ONE JSON line per operation appended to
   `.atomik/usage/private/actions.jsonl` at DECISION time (drafts in
@@ -254,7 +265,10 @@ byte-identical adoption), `vault-scope.test.ts` (findSubtree),
 truth arrays, destination→file-change mapping, content determinism),
 `action-trace.test.ts` (one complete line per decision, append-only
 accumulation, failure/flush paths, summary lifecycle, and the
-content-leak grep), `ai-helpers.test.ts` (default note paths). The
+content-leak grep), `ai-helpers.test.ts` (default note paths),
+`truth.test.ts` (containment + hash evidence, the no-paraphrase rule,
+form honoring with evidence outranking, the smuggled-label adversarial
+case, reproducibility). The
 CodeMirror typing/save flow and the AiPanel interaction flow are
 validated by owner dogfooding and the learning-note exercises; the
 channels and logic beneath them are unit-covered, and the smoke drives
@@ -279,10 +293,10 @@ ATOMIK_SMOKE=1 ATOMIK_SMOKE_DOC=bedrock/22_22-agent-handoff.md \
 
 ## Future extension points
 
-- S10 mechanical truth labels: the empty `claims`/`evidence` arrays; the
-  anchor/quote-hash check lives beside the provider seat, never in model
-  self-report.
 - Real provider adapters (M7+) behind the same `run-ai-operation` channel;
+  their claim candidates flow through the same `labelClaims` checker —
+  labels beyond the MVP four (web-checked, disputed, stale) require
+  reading 28 first (path trigger);
   a dedicated ai-panel tab kind when context grows beyond selection-first
   (26 trigger).
 - Safe autosave as an optional policy on top of explicit save (11/18);

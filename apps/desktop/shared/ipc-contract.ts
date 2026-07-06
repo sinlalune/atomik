@@ -184,6 +184,39 @@ export type AiOutputBlock = {
   content: string
 }
 
+/**
+ * Truth labels, MVP set (06 minimal contract; web-checked arrives M7).
+ * `source-backed` is assigned ONLY by the deterministic checker in main
+ * (exact containment + quote hash) — never by provider self-report.
+ * `interpretive`/`needs-citation` describe FORM and may be provider-
+ * asserted; they carry no evidence weight.
+ */
+export type TruthLabel =
+  | 'source-backed'
+  | 'model-only'
+  | 'needs-citation'
+  | 'interpretive'
+
+export type EvidenceRecord = {
+  id: string
+  /** Where the supporting selection lives (05 anchor, MVP slice). */
+  source: { relPath: string; range: { from: number; to: number } }
+  /** Exact quoted text and its hash — the reproducible derivation. */
+  quote: string
+  quoteSha256: string
+}
+
+export type ClaimRecord = {
+  id: string
+  /** Block the claim text appears in. */
+  blockId: string
+  text: string
+  /** Mechanically computed; reproducible from operation + bundle. */
+  label: TruthLabel
+  /** Populated only for source-backed claims. */
+  evidenceIds: string[]
+}
+
 export type ProposedFileChange =
   | { relPath: string; kind: 'replace-range'; range: { from: number; to: number }; newText: string }
   | { relPath: string; kind: 'append'; newText: string }
@@ -206,8 +239,8 @@ export type AiResponseBundle = {
   operationId: string
   blocks: AiOutputBlock[]
   patchProposals: PatchProposal[]
-  claims: unknown[]
-  evidence: unknown[]
+  claims: ClaimRecord[]
+  evidence: EvidenceRecord[]
   verification: unknown[]
   uncertainties: Array<{ message: string; severity?: string }>
   actionTraceIds: string[]

@@ -785,6 +785,89 @@ body {
   color: var(--accent);
 }
 
+.ai-claims {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ai-claim {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.76rem;
+  padding: 0.15rem 0.3rem;
+  border-radius: 6px;
+}
+
+.ai-claim.challenged {
+  background: light-dark(#fdf3e0, #3a3220);
+}
+
+.ai-claim-text {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--muted);
+}
+
+.ai-claim-actions {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.ai-claim-actions button {
+  font: inherit;
+  font-size: 0.7rem;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.05rem 0.5rem;
+  cursor: pointer;
+}
+
+.ai-claim-actions button:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.truth-chip {
+  flex: none;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  border-radius: 999px;
+  padding: 0.08rem 0.5rem;
+  border: 1px solid transparent;
+}
+
+.truth-chip.label-source-backed {
+  color: light-dark(#2f6b2f, #a5d6a5);
+  background: light-dark(#e8f3e8, #223522);
+  border-color: light-dark(#bcd9bc, #3b5c3b);
+}
+
+.truth-chip.label-model-only {
+  color: var(--muted);
+  background: var(--code-bg);
+  border-color: var(--border);
+}
+
+.truth-chip.label-needs-citation {
+  color: light-dark(#8a5a00, #f0c86e);
+  background: light-dark(#fdf3e0, #3a3220);
+  border-color: light-dark(#e6cf9a, #6b5a2e);
+}
+
+.truth-chip.label-interpretive {
+  color: light-dark(#3d4f7a, #aebde4);
+  background: light-dark(#e9edf8, #262c3f);
+  border-color: light-dark(#c3cde8, #47547a);
+}
+
 .ai-trace-badge {
   align-self: flex-start;
   font-family: ui-monospace, 'Cascadia Mono', Menlo, monospace;

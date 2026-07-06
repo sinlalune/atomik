@@ -71,7 +71,7 @@ describe('runAiOperation (mock bundle)', () => {
     expect(() => runAiOperation({ id: 'x' })).toThrow(/rejected/)
   })
 
-  it('produces a 06-shaped bundle with the truth arrays present', () => {
+  it('produces a 06-shaped bundle with mechanically labeled claims', () => {
     const bundle = runAiOperation(validOp())
     expect(bundle.operationId).toBe('op-1')
     expect(bundle.blocks.map((block) => block.role)).toEqual([
@@ -80,8 +80,17 @@ describe('runAiOperation (mock bundle)', () => {
     ])
     expect(bundle.patchProposals).toHaveLength(1)
     expect(bundle.patchProposals[0]!.status).toBe('pending')
-    expect(bundle.claims).toEqual([])
-    expect(bundle.evidence).toEqual([])
+    // every response exercises the four MVP labels (S10)
+    expect(bundle.claims.map((claim) => claim.label)).toEqual([
+      'source-backed',
+      'model-only',
+      'needs-citation',
+      'interpretive'
+    ])
+    const sourced = bundle.claims[0]!
+    expect(sourced.text).toBe('Attention compares queries with keys.')
+    expect(sourced.evidenceIds).toHaveLength(1)
+    expect(bundle.evidence[0]!.source.relPath).toBe('notes/attention.md')
     expect(bundle.verification).toEqual([])
     expect(bundle.uncertainties[0]!.severity).toBe('info')
     expect(bundle.actionTraceIds).toEqual([])
