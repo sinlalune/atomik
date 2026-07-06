@@ -30,7 +30,11 @@ timestamp: 2026-07-06T00:00:00Z
   while maximized — dragging a maximized frameless window glitches
   under some window managers, and the strip's overflow scrollbar sat
   INSIDE the drag region, unclickable (owner's maximized-mode bug).
-  The scrollbar is hidden; wheel scrolls overflowing tabs.
+  The scrollbar is hidden; wheel scrolls overflowing tabs. On Linux the
+  window also drops Chromium's client-side shadow (`hasShadow: false`):
+  its invisible frame margins are what WSLg kept honoring on maximize —
+  transparent gap + rightward offset; fullscreen looked right because
+  it drops the margins. WSLg's OS side draws window shadows itself.
 - The renderer-facing API surface: `shared/ipc-contract.ts` is the single
   source of truth (`ATOMIK_API_KEY`, `ATOMIK_CHANNELS`, `AtomikApi`,
   `DOCUMENTED_PRELOAD_SURFACE`). Eighteen invoke channels exist today
@@ -415,3 +419,9 @@ Dev-environment note (WSL2 Ubuntu noble): Electron needs `libnss3`,
 `libnspr4`, `libasound2t64` system packages. Without root they can be
 `apt-get download`-ed and `dpkg -x`-extracted, then passed via
 `LD_LIBRARY_PATH`; for daily dev install them properly with apt.
+WSLg window-geometry escalation ladder, if maximize misbehaves again:
+`hasShadow:false` is already applied (client-side shadow margins were
+the maximized gap/offset); the next lever is running on native Wayland
+instead of XWayland — `ELECTRON_OZONE_PLATFORM_HINT=auto npm run dev` —
+promote it into main (`ozone-platform-hint`) only after the owner
+confirms it behaves better across a real session.

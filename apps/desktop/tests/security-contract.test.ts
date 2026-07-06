@@ -34,6 +34,18 @@ describe('secure webPreferences (13 §Required settings)', () => {
   it('the trusted window is chromeless (custom frame, drag regions in CSS)', () => {
     expect(buildMainWindowOptions('/fixture/preload.js').frame).toBe(false)
   })
+
+  it('drops the client-side shadow on Linux only (WSLg maximize gap)', () => {
+    expect(
+      buildMainWindowOptions('/fixture/preload.js', 'linux').hasShadow
+    ).toBe(false)
+    expect(
+      buildMainWindowOptions('/fixture/preload.js', 'darwin').hasShadow
+    ).toBeUndefined()
+    expect(
+      buildMainWindowOptions('/fixture/preload.js', 'win32').hasShadow
+    ).toBeUndefined()
+  })
 })
 
 describe('contract file linkage', () => {
