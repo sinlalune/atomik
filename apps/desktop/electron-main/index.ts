@@ -2,6 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import { statSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
+import { runAiOperation } from './ai-mock'
 import { buildAppInfo } from './app-info'
 import { listDevDocs, readDevDoc, resolveDocsRoot } from './dev-docs'
 import { buildMainWindowOptions } from './security'
@@ -95,6 +96,9 @@ function registerVaultHandlers(stateDir: string): void {
     (_event, relPath: unknown, title: unknown) =>
       createProject(requireVault(), relPath, title)
   )
+  ipcMain.handle(ATOMIK_CHANNELS.runAiOperation, (_event, operation: unknown) =>
+    runAiOperation(operation)
+  )
 }
 
 function registerIpcHandlers(docsRoot: string, stateDir: string): void {
@@ -170,11 +174,6 @@ async function waitForDevDocsRender(
  */
 async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> {
   const rendered = await waitForDevDocsRender(window, 15000)
-  const shotPath = process.env['ATOMIK_SMOKE_SHOT']
-  if (rendered && shotPath) {
-    const image = await window.webContents.capturePage()
-    await writeFile(shotPath, image.toPNG())
-  }
   if (rendered) {
     const groups = listDevDocs(docsRoot)
     const docCount = groups.reduce((n, g) => n + g.entries.length, 0)
@@ -208,6 +207,31 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
         })()`
       )) as string
       vaultReport += ` project=${outcome}`
+    }
+    // Optional AI proof: run a mocked operation through the renderer world
+    // and check the bundle shape (S08).
+    if (process.env['ATOMIK_SMOKE_AI'] === '1') {
+      const outcome = (await window.webContents.executeJavaScript(
+        `(async () => {
+          try {
+            const bundle = await window.atomik.runAiOperation({
+              id: crypto.randomUUID(),
+              input: [{ relPath: 'welcome.md', kind: 'text', content: 'First note of this vault.', range: { from: 11, to: 36 } }],
+              instruction: 'Explain this simply.',
+              preset: 'explain',
+              target: { relPath: 'welcome.md', destination: { kind: 'append' } }
+            })
+            const shape = [bundle.blocks.length, bundle.patchProposals.length, bundle.claims.length, bundle.actionTraceIds.length].join('/')
+            return 'ok:' + shape + ':' + bundle.patchProposals[0].files[0].kind
+          } catch (e) { return 'fail:' + String(e) }
+        })()`
+      )) as string
+      vaultReport += ` ai=${outcome}`
+    }
+    const shotPath = process.env['ATOMIK_SMOKE_SHOT']
+    if (shotPath) {
+      const image = await window.webContents.capturePage()
+      await writeFile(shotPath, image.toPNG())
     }
     const vaultCount = vaultRoot
       ? ` vault=${listVaultFiles(vaultRoot).notes.length}rootNotes`

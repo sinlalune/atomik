@@ -37,3 +37,6 @@ when the shape changes, not on every diff.
 - [05 — The editor: CodeMirror, dirty state, and optimistic saves](./05-editor-codemirror-and-optimistic-saves.md) —
   CodeMirror 6 architecture, imperative libraries inside React, the mtime
   handshake and conflict banner. Covers CP-MVP-001 S07.
+- [06 — The AI patch loop: contracts first, intelligence later](./06-ai-patch-loop-and-mock-first.md) —
+  operation/bundle/patch contracts, mock-first, the provider seat, and why
+  the AI channel cannot write. Covers CP-MVP-001 S08.

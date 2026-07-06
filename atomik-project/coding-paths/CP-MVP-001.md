@@ -7,7 +7,7 @@ timestamp: 2026-07-05T00:00:00Z
 atomik:
   id: CP-MVP-001
   status: active
-  current_step: S08
+  current_step: S09
   base_commit: 4675233
 ---
 
@@ -83,7 +83,7 @@ Completeness rule (35): every bedrock page 00–35 appears below at least once �
 - [x] S05 Vault open/read/write for Markdown with atomic, Git-friendly writes; restart survives; no rewrite-on-open.
 - [x] S06 Project bundle open/create with `index.md`, `log.md`, and manifest conventions.
 - [x] S07 CodeMirror editor + Markdown preview; explicit save or safe autosave.
-- [ ] S08 Selection → AI operation **mock** → structured response bundle → patch preview → accept/edit/reject into file. One accepted operation = one clear diff.
+- [x] S08 Selection → AI operation **mock** → structured response bundle → patch preview → accept/edit/reject into file. One accepted operation = one clear diff.
 - [ ] S09 Minimal ActionTrace from the S08 mock: one appended JSON line (location, model/tool id, est/actual tokens when available, latency, external cost, status, outcome, contentRecorded=false) + compact badge.
 - [ ] S10 Mechanical truth labels on S08 output per the labeling rule; a mapped citation opens its local source anchor; one challenged claim produces a repair patch preview.
 - [ ] S11 Run all M0–M2 acceptance tests from the roadmap; filename/heading/full-text search works without embeddings; cache deletion destroys nothing.
@@ -95,20 +95,22 @@ Child paths (spawned from here, not widened into here): CP-MVP-002 capture sourc
 
 ```text
 base commit : 4675233 (4675233be87ce6d43f06ed1a7ae7de77a28042f1, branch master — v0.6 seed)
-changed     : none — S07 work unit committed (EditorPane + writeNote optimistic
-              concurrency, read/edit mode per tab, learning note 05, module note,
+changed     : none — S08 work unit committed (ai-mock provider seat + AiPanel,
+              pipeline contracts in ipc-contract, learning note 06, module note,
               ledger, both logs)
-tests       : 72 passing / 11 vitest suites (adds the optimistic-conflict matrix
-              with deterministic mtimes; writeNote returns the new mtime; preload
-              routing covers the 3-arg signature); typecheck + build clean; smoke:
-              a vault tab restored in EDIT mode shows CodeMirror over the raw note,
-              frontmatter included (screenshot reviewed). Honest gap: the typing/
-              save/conflict UI flow is validated by owner dogfooding + learning-note
-              exercises, not by automated E2E (Playwright remains "later" per 12)
-next action : S08 — Selection → AI operation MOCK → structured response bundle →
-              patch preview → accept/edit/reject into file; one accepted operation
-              = one clear diff (06 pipeline + mechanical labeling groundwork;
-              re-read 13 §IPC before the new channel; 24 AI-operation template)
+tests       : 79 passing / 12 vitest suites (adds ai-mock: operation validation
+              matrix, 06 bundle shape with truth arrays present-but-empty,
+              destination→file-change mapping, content determinism; preload
+              surface now 14 methods); typecheck + build clean; smoke drives the
+              AI channel e2e through the renderer world (ai=ok:2/1/0/0:append).
+              Honest gap: AiPanel interaction flow validated by owner dogfooding
+              + learning-note-06 exercises, not automated E2E
+next action : S09 — minimal ActionTrace from the S08 mock: ONE JSON line appended
+              to .atomik/usage/private/actions.jsonl (location, model/tool id,
+              est/actual tokens when available, latency, external cost, status,
+              outcome, contentRecorded=false) + compact badge. Trigger if any
+              field beyond the minimum tempts: 33 + operation_trace_contract.
+              Thinness rule bites here: one line + one badge, nothing more.
 blockers    : none
 ```
 

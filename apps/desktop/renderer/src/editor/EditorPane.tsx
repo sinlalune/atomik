@@ -4,6 +4,7 @@ import { EditorView, keymap } from '@codemirror/view'
 import { basicSetup } from 'codemirror'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { VaultNoteFile } from '../../../shared/ipc-contract'
+import { AiPanel, type BufferChange } from './AiPanel'
 
 export type EditorPaneProps = {
   note: VaultNoteFile
@@ -37,6 +38,7 @@ export function EditorPane({
   const [saving, setSaving] = useState(false)
   const [conflict, setConflict] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showAi, setShowAi] = useState(false)
 
   const markDirty = useCallback(
     (next: boolean) => {
@@ -152,6 +154,40 @@ export function EditorPane({
     onSwitchToRead()
   }, [dirty, onSwitchToRead])
 
+  const getSelection = useCallback(() => {
+    const view = viewRef.current
+    if (!view) return { from: 0, to: 0, text: '' }
+    const range = view.state.selection.main
+    return {
+      from: range.from,
+      to: range.to,
+      text: view.state.sliceDoc(range.from, range.to)
+    }
+  }, [])
+
+  const getDoc = useCallback(
+    () => viewRef.current?.state.doc.toString() ?? '',
+    []
+  )
+
+  /** Accepted AI changes land in the BUFFER — visible, undoable; the
+   *  explicit save stays the single moment a file diff is born (06). */
+  const applyChange = useCallback((change: BufferChange) => {
+    const view = viewRef.current
+    if (!view) return
+    const docLength = view.state.doc.length
+    if (change.kind === 'replace-range') {
+      const from = Math.max(0, Math.min(change.range.from, docLength))
+      const to = Math.max(from, Math.min(change.range.to, docLength))
+      view.dispatch({ changes: { from, to, insert: change.newText } })
+    } else {
+      view.dispatch({
+        changes: { from: docLength, to: docLength, insert: change.newText }
+      })
+    }
+    view.focus()
+  }, [])
+
   return (
     <div className="editor" data-editor-ready="1">
       <div className="note-bar">
@@ -161,6 +197,14 @@ export function EditorPane({
         </span>
         <span className="note-bar-actions">
           {error && <span className="error editor-msg">{error}</span>}
+          <button
+            type="button"
+            className={showAi ? 'active' : ''}
+            onClick={() => setShowAi((current) => !current)}
+            title="Ask AI about the selection"
+          >
+            AI
+          </button>
           <button
             type="button"
             disabled={saving || !dirty}
@@ -188,6 +232,15 @@ export function EditorPane({
         </div>
       )}
       <div ref={hostRef} className="editor-host" />
+      {showAi && (
+        <AiPanel
+          note={note}
+          getSelection={getSelection}
+          getDoc={getDoc}
+          applyChange={applyChange}
+          onClose={() => setShowAi(false)}
+        />
+      )}
     </div>
   )
 }

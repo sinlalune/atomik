@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import {
   ATOMIK_API_KEY,
   ATOMIK_CHANNELS,
+  type AiOperation,
   type AtomikApi,
   type WorkspaceState
 } from '../shared/ipc-contract'
@@ -38,7 +39,9 @@ const api: AtomikApi = {
     ipcRenderer.invoke(ATOMIK_CHANNELS.createNote, relPath, content),
   listProjects: () => ipcRenderer.invoke(ATOMIK_CHANNELS.listProjects),
   createProject: (relPath: string, title: string) =>
-    ipcRenderer.invoke(ATOMIK_CHANNELS.createProject, relPath, title)
+    ipcRenderer.invoke(ATOMIK_CHANNELS.createProject, relPath, title),
+  runAiOperation: (operation: AiOperation) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.runAiOperation, operation)
 }
 
 contextBridge.exposeInMainWorld(ATOMIK_API_KEY, api)

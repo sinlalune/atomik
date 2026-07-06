@@ -24,7 +24,8 @@ export const ATOMIK_CHANNELS = {
   writeNote: 'atomik:write-note',
   createNote: 'atomik:create-note',
   listProjects: 'atomik:list-projects',
-  createProject: 'atomik:create-project'
+  createProject: 'atomik:create-project',
+  runAiOperation: 'atomik:run-ai-operation'
 } as const
 
 /** Read-only identity of the running shell. No vault paths, no secrets. */
@@ -141,6 +142,75 @@ export type ProjectInfo = {
   title: string
 }
 
+/**
+ * AI operation pipeline (06), S08 slice. The channel is PURE COMPUTE:
+ * selection in, structured bundle out — it can never write. Accepted
+ * patches are applied by the user through the editor buffer and the
+ * existing vault verbs, so every AI write inherits the S05/S07
+ * guarantees (preview, byte fidelity, mtime handshake).
+ */
+
+/** What the user points at (05, MVP slice: text in one note). */
+export type AiSelection = {
+  /** Vault-relative path of the note the selection lives in. */
+  relPath: string
+  kind: 'text'
+  content: string
+  /** Character offsets in the note's current buffer. */
+  range: { from: number; to: number }
+}
+
+export type AiDestination =
+  | { kind: 'replace-selection' }
+  | { kind: 'append' }
+  | { kind: 'new-note'; newNotePath: string }
+
+export type AiOperation = {
+  id: string
+  input: AiSelection[]
+  /** Free text stays first-class (06); presets only scaffold it. */
+  instruction: string
+  preset?: string
+  target: { relPath: string; destination: AiDestination }
+}
+
+/** Open kind/role strings (06): renderers degrade unknown kinds to text. */
+export type AiOutputBlock = {
+  id: string
+  kind: string
+  role?: string
+  content: string
+}
+
+export type ProposedFileChange =
+  | { relPath: string; kind: 'replace-range'; range: { from: number; to: number }; newText: string }
+  | { relPath: string; kind: 'append'; newText: string }
+  | { relPath: string; kind: 'create'; newText: string }
+
+export type PatchProposal = {
+  id: string
+  operationId: string
+  files: ProposedFileChange[]
+  status: 'pending' | 'accepted' | 'edited' | 'rejected'
+}
+
+/**
+ * 06's response bundle. Lightweight operations keep the truth arrays
+ * empty, but the shapes ship from the first mock so S09 (traces) and
+ * S10 (mechanical labels) extend without reshaping.
+ */
+export type AiResponseBundle = {
+  id: string
+  operationId: string
+  blocks: AiOutputBlock[]
+  patchProposals: PatchProposal[]
+  claims: unknown[]
+  evidence: unknown[]
+  verification: unknown[]
+  uncertainties: Array<{ message: string; severity?: string }>
+  actionTraceIds: string[]
+}
+
 /** The complete API the renderer may call. */
 export type AtomikApi = {
   getAppInfo: () => Promise<AppInfo>
@@ -177,6 +247,8 @@ export type AtomikApi = {
   listProjects: () => Promise<ProjectInfo[]>
   /** Creates or adopts a bundle: writes only the missing pieces. */
   createProject: (relPath: string, title: string) => Promise<ProjectInfo>
+  /** Mocked AI operation (S08): pure compute, never writes. */
+  runAiOperation: (operation: AiOperation) => Promise<AiResponseBundle>
 }
 
 /**
@@ -196,5 +268,6 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'writeNote',
   'createNote',
   'listProjects',
-  'createProject'
+  'createProject',
+  'runAiOperation'
 ] as const satisfies readonly (keyof AtomikApi)[]

@@ -35,6 +35,17 @@ timestamp: 2026-07-06T00:00:00Z
   writes on open. Last vault remembered in `.atomik/local-settings.json`,
   written by main only (no channel). `ATOMIK_VAULT_DIR` overrides for
   tests/smoke/dev.
+- The AI patch loop (06, S08): `electron-main/ai-mock.ts` (the ai-core
+  seat, 14) behind `atomik:run-ai-operation` — PURE COMPUTE, validated
+  input (instruction/selection caps, range sanity), content-deterministic
+  06-shaped bundles with the truth/trace arrays present-but-empty (S09/S10
+  seats). `renderer/src/editor/AiPanel.tsx` docks the loop in the editor:
+  selection (or whole note) → instruction/preset → destination
+  (replace-selection / append / new-note) → bundle review → EDITABLE
+  proposal → accept into the BUFFER (undoable; explicit save births the
+  diff) or createNote for new notes; buffer-drift guard before apply.
+  The AI channel has no filesystem path — "AI wrote my file" is
+  structurally impossible.
 - The editor (S07): `renderer/src/editor/EditorPane.tsx` — CodeMirror 6
   over the RAW note (frontmatter included, no template, no normalization;
   11/27), explicit save (button + Mod-s), dirty tracking with a
@@ -203,6 +214,12 @@ vault (04: files are the durable source of record)
   the only sanctioned unconditional write.
 - Adding save-time content "fixes" (trailing newline, frontmatter sort):
   same byte-fidelity contract as S05 — the buffer IS the file.
+- Giving the AI channel any write capability, ever: accepted patches go
+  through the buffer + vault verbs; a provider adapter that writes
+  directly would bypass preview, mtime handshake, and wx (06 safety rule).
+- Closing block kinds into a TypeScript union (06's implementation
+  warning): `kind`/`role` stay open strings; unknown kinds degrade to
+  rendered text.
 
 ## Tests
 
@@ -220,10 +237,13 @@ temp residue, forgiving reads, payload validation caps), `vault.test.ts`
 write, wx create, optimistic-conflict matrix with deterministic mtimes,
 settings memory), `project.test.ts` (folder-path matrix, slugs, manifest
 scan incl. no-descend + malformed fallback, idempotent ensure,
-byte-identical adoption), `vault-scope.test.ts` (findSubtree). The
-CodeMirror typing/save flow itself is validated by owner dogfooding and
-the learning-note exercises; the channel and conflict logic beneath it are
-unit-covered. The smoke run proves boot + Dev Docs
+byte-identical adoption), `vault-scope.test.ts` (findSubtree),
+`ai-mock.test.ts` (operation validation matrix, 06 bundle shape with
+truth arrays, destination→file-change mapping, content determinism). The
+CodeMirror typing/save flow and the AiPanel interaction flow are
+validated by owner dogfooding and the learning-note exercises; the
+channels and logic beneath them are unit-covered, and the smoke drives
+the AI channel e2e through the renderer world (ATOMIK_SMOKE_AI=1). The smoke run proves boot + Dev Docs
 rendering and reports pane/vault counts; pre-seeded `ATOMIK_STATE_DIR` /
 `ATOMIK_VAULT_DIR` fixtures prove layout restore and, with
 `ATOMIK_SMOKE_VAULT_WRITE=1`, the full renderer→disk write chain (verified
@@ -244,9 +264,15 @@ ATOMIK_SMOKE=1 ATOMIK_SMOKE_DOC=bedrock/22_22-agent-handoff.md \
 
 ## Future extension points
 
-- S08 AI patch loop (06): Selection/ContextScope over the editor, mocked
-  provider, response bundle, patch preview → accept/edit/reject through
-  writeNote's guarantees.
+- S09 ActionTrace: one JSON line per operation appended to
+  `.atomik/usage/private/actions.jsonl` + a compact badge; emitted where
+  execution happens (main, beside the mock); `actionTraceIds` is its seat.
+- S10 mechanical truth labels: the empty `claims`/`evidence` arrays; the
+  anchor/quote-hash check lives beside the provider seat, never in model
+  self-report.
+- Real provider adapters (M7+) behind the same `run-ai-operation` channel;
+  a dedicated ai-panel tab kind when context grows beyond selection-first
+  (26 trigger).
 - Safe autosave as an optional policy on top of explicit save (11/18);
   debounce + the existing mtime handshake make it low-risk later.
 - Vault switching UI (owner-deferred "when necessary"): the channel

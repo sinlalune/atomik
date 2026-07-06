@@ -74,6 +74,7 @@ describe('preload surface (13 §IPC rule)', () => {
       createNote: (relPath: string, content?: string) => Promise<unknown>
       listProjects: () => Promise<unknown>
       createProject: (relPath: string, title: string) => Promise<unknown>
+      runAiOperation: (operation: unknown) => Promise<unknown>
     }
     invoke.mockResolvedValue({})
 
@@ -145,6 +146,13 @@ describe('preload surface (13 §IPC rule)', () => {
       ATOMIK_CHANNELS.createProject,
       'projects/demo',
       'Demo'
+    )
+
+    const operation = { id: 'op-1' }
+    await api.runAiOperation(operation)
+    expect(invoke).toHaveBeenLastCalledWith(
+      ATOMIK_CHANNELS.runAiOperation,
+      operation
     )
   })
 })

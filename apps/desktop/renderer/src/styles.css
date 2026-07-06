@@ -616,6 +616,196 @@ body {
   font-size: 0.75rem;
 }
 
+.note-bar-actions button.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* AI panel ----------------------------------------------------------------- */
+
+.ai-panel {
+  flex: none;
+  height: 44%;
+  min-height: 10rem;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border);
+}
+
+.ai-panel-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.ai-panel-title {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.ai-panel-bar .tab-close {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  padding: 0 0.4rem;
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+.ai-panel-bar .tab-close:hover {
+  opacity: 1;
+}
+
+.ai-panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.6rem 0.9rem 1rem;
+  font-size: 0.82rem;
+}
+
+.ai-compose,
+.ai-review {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ai-presets {
+  display: flex;
+  gap: 4px;
+}
+
+.ai-presets button {
+  font: inherit;
+  font-size: 0.75rem;
+  color: var(--muted);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.12rem 0.65rem;
+  cursor: pointer;
+}
+
+.ai-presets button.active,
+.ai-presets button:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.ai-compose textarea,
+.ai-proposal textarea {
+  font: inherit;
+  font-size: 0.82rem;
+  color: inherit;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  resize: vertical;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ai-proposal textarea {
+  font-family: ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.ai-compose textarea:focus,
+.ai-proposal textarea:focus,
+.ai-newnote:focus {
+  outline: 1px solid var(--accent);
+  border-color: var(--accent);
+}
+
+.ai-destination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 1rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.ai-destination label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+}
+
+.ai-newnote {
+  font: inherit;
+  font-size: 0.78rem;
+  color: inherit;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.15rem 0.5rem;
+}
+
+.ai-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.ai-actions button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.15rem 0.75rem;
+  cursor: pointer;
+}
+
+.ai-actions button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.ai-actions button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.ai-applied {
+  font-size: 0.75rem;
+  color: var(--accent);
+}
+
+.ai-block {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.82rem;
+}
+
+.ai-block.role-question {
+  color: var(--muted);
+}
+
+.ai-proposal-head {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.ai-proposal-hint {
+  margin-left: 0.5rem;
+  opacity: 0.7;
+}
+
 .vault-empty {
   margin: auto;
   max-width: 26rem;
