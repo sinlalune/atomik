@@ -236,6 +236,10 @@ export function VaultView({
             onSwitchToRead={
               onModeChange ? () => onModeChange('read') : undefined
             }
+            onNoteCreated={(relPath) => {
+              void refreshTree()
+              guardedOpen(relPath)
+            }}
           />
         ) : (
           <>

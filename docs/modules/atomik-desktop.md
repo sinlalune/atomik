@@ -41,11 +41,12 @@ timestamp: 2026-07-06T00:00:00Z
   06-shaped bundles with the truth/trace arrays present-but-empty (S09/S10
   seats). `renderer/src/editor/AiPanel.tsx` docks the loop in the editor:
   selection (or whole note) → instruction/preset → destination
-  (replace-selection / append / new-note) → bundle review → EDITABLE
-  proposal → accept into the BUFFER (undoable; explicit save births the
-  diff) or createNote for new notes; buffer-drift guard before apply.
-  The AI channel has no filesystem path — "AI wrote my file" is
-  structurally impossible.
+  (replace-selection / append / new-note, path prefilled beside the
+  note) → bundle review → EDITABLE proposal → accept = apply to the
+  buffer AND save immediately (the preview is the review; Ctrl+Z + save
+  reverts) or createNote for new notes (tree refreshes, note opens);
+  buffer-drift guard before apply. The AI channel has no filesystem
+  path — "AI wrote my file" is structurally impossible.
 - The editor (S07): `renderer/src/editor/EditorPane.tsx` — CodeMirror 6
   over the RAW note (frontmatter included, no template, no normalization;
   11/27), explicit save (button + Mod-s), dirty tracking with a

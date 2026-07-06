@@ -68,18 +68,25 @@ range sanity) and returns a bundle. There is no code path from it to the
 filesystem. Accepting a patch flows through what you already trust:
 
 ```text
-replace / append  ->  dispatched into the EDITOR BUFFER (undoable!),
-                      you review it in context, then Ctrl+S — the same
-                      explicit save, mtime handshake, byte fidelity
-create            ->  createNote — exclusive wx, never clobbers
+replace / append  ->  dispatched into the EDITOR BUFFER, then saved
+                      immediately through the editor's own save (mtime
+                      handshake, byte fidelity). The editable preview WAS
+                      the review; accepting is the decision. Ctrl+Z +
+                      save reverts — it's an ordinary undoable edit.
+create            ->  createNote — exclusive wx, never clobbers; the
+                      tree refreshes and the new note opens.
 ```
 
 So "the AI edited my file" is structurally impossible; only "I accepted a
-change and saved it" exists (06's safety rule: no silent writes; the
-patch preview is part of the UX). Two extra guards in the panel: the
-proposal text is EDITABLE before accepting (accept/edit/reject, S08's
-words), and if the buffer changed while you reviewed, applying asks
-first.
+reviewed change" exists (06's safety rule: no silent writes; the patch
+preview is the review). Two extra guards in the panel: the proposal text
+is EDITABLE before accepting (accept/edit/reject, S08's words), and if
+the buffer changed while you reviewed, applying asks first.
+
+Dogfooding note: the first version applied to the buffer WITHOUT saving —
+"accepted" then evaporated behind the read view and the discard guard.
+Owner testing caught it within the hour; accept-saves-immediately is the
+repair. The review moment is the preview, not a second save step.
 
 ## 4. Why the mock lives in the main process
 
@@ -100,11 +107,13 @@ makes the pipeline debuggable while it grows.
 2. Pick a preset (or type your own instruction), choose **append**, Run.
 3. Read the bundle: an answer block, a question block, and the patch
    with its editable proposed text.
-4. Edit the proposal (add a word), **Accept** → it lands in the buffer,
-   dirty dot on. `Ctrl+Z` — it's just an edit; undo works. Redo, then
-   `Ctrl+S`, then `git diff`: one file, exactly the accepted text.
-5. Run another one with **new note** → accept → the note appears in the
-   tree (wx: run it twice, the second create fails — nothing clobbered).
+4. Edit the proposal (add a word), **Accept** → applied AND saved:
+   `git diff` right away shows one file with exactly the accepted text.
+   `Ctrl+Z` then save reverts — it stays an ordinary undoable edit.
+5. Run another one with **new note** (the destination path is prefilled
+   beside the current note — visible, editable) → accept → the tree
+   refreshes and the new note opens (wx: run it twice, the second create
+   fails — nothing clobbered).
 6. In DevTools, send garbage:
    `await window.atomik.runAiOperation({ id: 'x' })` → rejected in main.
 

@@ -14,6 +14,8 @@ export type EditorPaneProps = {
   onDirtyChange?: (dirty: boolean) => void
   /** Back to the rendered view (confirmed here when dirty). */
   onSwitchToRead?: () => void
+  /** AI-created notes bubble up so the host refreshes/opens them. */
+  onNoteCreated?: (relPath: string) => void
 }
 
 /**
@@ -28,7 +30,8 @@ export function EditorPane({
   note,
   onSaved,
   onDirtyChange,
-  onSwitchToRead
+  onSwitchToRead,
+  onNoteCreated
 }: EditorPaneProps): React.JSX.Element {
   const hostRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
@@ -238,6 +241,8 @@ export function EditorPane({
           getSelection={getSelection}
           getDoc={getDoc}
           applyChange={applyChange}
+          requestSave={() => saveRef.current()}
+          onNoteCreated={onNoteCreated}
           onClose={() => setShowAi(false)}
         />
       )}

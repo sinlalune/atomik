@@ -7,6 +7,7 @@ import type {
   ProposedFileChange,
   VaultNoteFile
 } from '../../../shared/ipc-contract'
+import { defaultNewNotePath, ensureMdExtension } from './ai-helpers'
 
 export type BufferChange =
   | { kind: 'replace-range'; range: { from: number; to: number }; newText: string }
@@ -20,6 +21,10 @@ export type AiPanelProps = {
   getDoc: () => string
   /** Applies an accepted change into the editor buffer (undoable). */
   applyChange: (change: BufferChange) => void
+  /** Saves the buffer (the editor's save: mtime handshake, conflicts). */
+  requestSave: () => Promise<void>
+  /** Fired after a new-note patch is created on disk (refresh + open). */
+  onNoteCreated?: (relPath: string) => void
   onClose: () => void
 }
 
@@ -43,12 +48,17 @@ export function AiPanel({
   getSelection,
   getDoc,
   applyChange,
+  requestSave,
+  onNoteCreated,
   onClose
 }: AiPanelProps): React.JSX.Element {
   const [instruction, setInstruction] = useState('')
   const [preset, setPreset] = useState<string | undefined>(undefined)
   const [destination, setDestination] = useState<AiDestination['kind']>('append')
-  const [newNotePath, setNewNotePath] = useState('')
+  // Prefilled and fully visible: the destination path is never a surprise.
+  const [newNotePath, setNewNotePath] = useState(() =>
+    defaultNewNotePath(note.relPath)
+  )
   const [phase, setPhase] = useState<Phase>('compose')
   const [bundle, setBundle] = useState<AiResponseBundle | null>(null)
   const [editedText, setEditedText] = useState('')
@@ -95,12 +105,11 @@ export function AiPanel({
             relPath: note.relPath,
             destination: {
               kind: 'new-note' as const,
-              newNotePath:
+              newNotePath: ensureMdExtension(
                 newNotePath.trim().length > 0
-                  ? newNotePath.trim().toLowerCase().endsWith('.md')
-                    ? newNotePath.trim()
-                    : `${newNotePath.trim()}.md`
-                  : `${note.relPath.replace(/\.md$/, '')}-ai.md`
+                  ? newNotePath.trim()
+                  : defaultNewNotePath(note.relPath)
+              )
             }
           }
         : { relPath: note.relPath, destination: { kind: destination } }
@@ -137,6 +146,7 @@ export function AiPanel({
       if (proposalFile.kind === 'create') {
         await window.atomik.createNote(proposalFile.relPath, editedText)
         setApplied(`created ${proposalFile.relPath}`)
+        onNoteCreated?.(proposalFile.relPath)
       } else {
         if (
           getDoc() !== docAtRun &&
@@ -155,12 +165,16 @@ export function AiPanel({
         } else {
           applyChange({ kind: 'append', newText: editedText })
         }
-        setApplied('applied to the buffer — review it, then save (Ctrl+S)')
+        // Accepting IS the decision: the reviewed patch is saved right
+        // away (one accepted operation = one clear diff). Ctrl+Z + save
+        // reverts; a stale file surfaces the editor's conflict banner.
+        await requestSave()
+        setApplied('applied and saved — Ctrl+Z then save to revert')
       }
     } catch (reason) {
       setError(String(reason))
     }
-  }, [applyChange, bundle, docAtRun, editedText, getDoc, proposalFile, ranSelection])
+  }, [applyChange, bundle, docAtRun, editedText, getDoc, proposalFile, ranSelection, requestSave, onNoteCreated])
 
   const reject = useCallback(() => {
     setBundle(null)
@@ -232,7 +246,7 @@ export function AiPanel({
               {destination === 'new-note' && (
                 <input
                   className="ai-newnote"
-                  placeholder="path/name.md (optional)"
+                  title="Path from the vault root — prefilled beside this note"
                   value={newNotePath}
                   onChange={(event) => setNewNotePath(event.target.value)}
                 />

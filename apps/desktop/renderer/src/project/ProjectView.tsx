@@ -283,6 +283,10 @@ export function ProjectView({
             onSwitchToRead={
               onModeChange ? () => onModeChange('read') : undefined
             }
+            onNoteCreated={(relPath) => {
+              void refresh()
+              guardedOpen(relPath)
+            }}
           />
         ) : (
           <>
