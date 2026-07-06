@@ -1,51 +1,43 @@
-import { useEffect, useState } from 'react'
-import type { AppInfo } from '../../shared/ipc-contract'
+import { useState } from 'react'
+import { DevDocs } from './dev-docs/DevDocs'
+import { ShellHome } from './ShellHome'
+
+type View = 'home' | 'dev-docs'
 
 /**
- * M0 shell (CP-MVP-001 S02). Renders the shell identity fetched over the one
- * typed bridge method, proving main -> preload -> renderer end to end.
- * Dev Docs tab arrives at S03, tabs/panes at S04, vault access at S05.
+ * Interim navigation: a plain two-view switch. The real tabs/panes system
+ * (03) arrives at S04 and absorbs this. `#dev-docs` selects the docs view at
+ * startup (used by the smoke check).
  */
 export function App(): React.JSX.Element {
-  const [info, setInfo] = useState<AppInfo | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    window.atomik.getAppInfo().then(setInfo, (reason: unknown) => {
-      setError(String(reason))
-    })
-  }, [])
+  const [view, setView] = useState<View>(
+    window.location.hash.startsWith('#dev-docs') ? 'dev-docs' : 'home'
+  )
 
   return (
-    <main className="shell">
-      <h1>Atomik</h1>
-      <p className="tagline">
-        Local-first AI learning workbench — M0 shell (CP-MVP-001 S02)
-      </p>
-      {error ? (
-        <p className="error">bridge error: {error}</p>
-      ) : info ? (
-        <dl className="app-info">
-          <dt>app</dt>
-          <dd>
-            {info.name} {info.version}
-          </dd>
-          <dt>electron</dt>
-          <dd>{info.electron}</dd>
-          <dt>chromium</dt>
-          <dd>{info.chrome}</dd>
-          <dt>node (main)</dt>
-          <dd>{info.node}</dd>
-          <dt>platform</dt>
-          <dd>{info.platform}</dd>
-        </dl>
-      ) : (
-        <p>loading…</p>
-      )}
-      <p className="next">
-        Next on the path: Dev Docs tab (S03) · tabs &amp; panes (S04) · vault
-        (S05)
-      </p>
-    </main>
+    <div className="app">
+      <header className="app-header">
+        <span className="brand">Atomik</span>
+        <nav aria-label="Views">
+          <button
+            type="button"
+            className={view === 'home' ? 'active' : ''}
+            onClick={() => setView('home')}
+          >
+            Shell
+          </button>
+          <button
+            type="button"
+            className={view === 'dev-docs' ? 'active' : ''}
+            onClick={() => setView('dev-docs')}
+          >
+            Dev Docs
+          </button>
+        </nav>
+      </header>
+      <div className="app-body">
+        {view === 'home' ? <ShellHome /> : <DevDocs />}
+      </div>
+    </div>
   )
 }

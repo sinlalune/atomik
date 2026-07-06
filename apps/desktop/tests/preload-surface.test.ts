@@ -55,10 +55,24 @@ describe('preload surface (13 §IPC rule)', () => {
     expect(api).not.toHaveProperty('ipcRenderer')
   })
 
-  it('routes getAppInfo through its named channel with no arguments', async () => {
-    invoke.mockResolvedValueOnce({})
-    const api = exposedApi() as { getAppInfo: () => Promise<unknown> }
+  it('routes every method through its named channel', async () => {
+    const api = exposedApi() as {
+      getAppInfo: () => Promise<unknown>
+      listDevDocs: () => Promise<unknown>
+      readDevDoc: (relPath: string) => Promise<unknown>
+    }
+    invoke.mockResolvedValue({})
+
     await api.getAppInfo()
-    expect(invoke).toHaveBeenCalledWith(ATOMIK_CHANNELS.getAppInfo)
+    expect(invoke).toHaveBeenLastCalledWith(ATOMIK_CHANNELS.getAppInfo)
+
+    await api.listDevDocs()
+    expect(invoke).toHaveBeenLastCalledWith(ATOMIK_CHANNELS.listDevDocs)
+
+    await api.readDevDoc('bedrock/00_00-orientation.md')
+    expect(invoke).toHaveBeenLastCalledWith(
+      ATOMIK_CHANNELS.readDevDoc,
+      'bedrock/00_00-orientation.md'
+    )
   })
 })

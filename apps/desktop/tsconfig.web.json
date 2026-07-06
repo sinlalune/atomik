@@ -8,6 +8,7 @@
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
+    "esModuleInterop": true,
     "useDefineForClassFields": true,
     "forceConsistentCasingInFileNames": true,
     "noUnusedLocals": true,

@@ -18,10 +18,18 @@ timestamp: 2026-07-06T00:00:00Z
   CSP lives in `renderer/index.html`.
 - The renderer-facing API surface: `shared/ipc-contract.ts` is the single
   source of truth (`ATOMIK_API_KEY`, `ATOMIK_CHANNELS`, `AtomikApi`,
-  `DOCUMENTED_PRELOAD_SURFACE`). One channel exists today:
-  `atomik:get-app-info`, read-only shell identity.
-- The `ATOMIK_SMOKE=1` launch hook: deterministic "app starts" check for M0
-  acceptance (prints `ATOMIK_SMOKE_OK`, exits 0 after the renderer loads).
+  `DOCUMENTED_PRELOAD_SURFACE`). Three channels exist today, all read-only:
+  `atomik:get-app-info` (shell identity), `atomik:list-dev-docs` (docs
+  tree), `atomik:read-dev-doc` (one validated docs file).
+- The Dev Docs tab (16 MVP slice): grouped docs tree + rendered Markdown
+  with the bedrock diagrams inlined as SVG data URIs, reading the real
+  files under `docs/`. `electron-main/dev-docs.ts` holds the pure logic —
+  the seam where a future dev-docs-core kernel splits off (14).
+  `#dev-docs:<relPath>` deep-links a page at startup.
+- The `ATOMIK_SMOKE=1` launch hook: deterministic "app starts and Dev Docs
+  opens the bundle" check for M0 acceptance. Waits for the rendered view,
+  honors `ATOMIK_SMOKE_DOC` (which doc to open) and `ATOMIK_SMOKE_SHOT`
+  (PNG capture path), prints `ATOMIK_SMOKE_OK`, exits 0 (1 on timeout).
 
 ## Why it exists
 
@@ -61,6 +69,14 @@ renderer App.tsx
   -> preload: ipcRenderer.invoke('atomik:get-app-info')
   -> main: ipcMain.handle -> buildAppInfo(app/process identity)
   -> AppInfo back to renderer (read-only; no fs, no secrets)
+
+renderer DevDocs.tsx
+  -> window.atomik.listDevDocs() / readDevDoc(relPath)
+  -> preload -> named channels
+  -> main: resolveDevDocPath validates (relative-only, extension
+     allowlist, traversal + symlink-escape guards) -> file from docs/
+  -> renderer: markdown-it (html:false) -> relative SVG imgs inlined
+     into the HTML string -> React renders the final string once
 ```
 
 ## Alternatives considered
@@ -91,30 +107,46 @@ renderer App.tsx
   reintroduce a dual-vite type conflict (hit and fixed at S02).
 - Loading any remote URL in the trusted window — denied by handlers; remote
   content gets its own isolated view at M5.
+- Mutating React-owned innerHTML after render (S03 lesson): a later commit
+  of the same `dangerouslySetInnerHTML` content discards manual DOM edits.
+  Pre-process the HTML string instead, then render it once.
+- Treating `readDevDoc` casually: its path validation IS the trust boundary
+  for renderer-reachable file reads. Widening `DOC_EXTENSIONS` or pointing
+  it outside `docs/` is a reviewed security decision, not a tweak.
 
 ## Tests
 
 `apps/desktop/tests/` (vitest, node env): `security-contract.test.ts` (pinned
 webPreferences + contract-file linkage), `preload-surface.test.ts` (exact
 documented surface, no raw `ipcRenderer`, named-channel routing),
-`app-info.test.ts` (pure mapper). The smoke run proves boot + renderer load;
-bridge correctness is covered by the unit suites, not the smoke marker.
+`app-info.test.ts` (pure mapper), `dev-docs-paths.test.ts` (traversal /
+absolute / NUL / extension / non-string rejections), `dev-docs-list.test.ts`
+(grouping, generated-artifact exclusion, symlink-escape refusal on a fixture
+bundle), `markdown-helpers.test.ts` (frontmatter strip, relative-link
+resolution). The smoke run proves boot + Dev Docs rendering (optionally
+screenshot-captured); bridge correctness is covered by the unit suites.
 
 ## Example usage
 
 ```bash
 npm run dev          # HMR dev shell
-npm test             # 9 tests, 3 suites
+npm test             # 28 tests, 6 suites
 npm run typecheck    # node + web configs
 npm run smoke        # build + ATOMIK_SMOKE=1 electron .  -> ATOMIK_SMOKE_OK
+# open a specific doc / capture proof:
+ATOMIK_SMOKE=1 ATOMIK_SMOKE_DOC=bedrock/22_22-agent-handoff.md \
+  ATOMIK_SMOKE_SHOT=/tmp/devdocs.png electron .
 ```
 
 ## Future extension points
 
-- S03 Dev Docs tab: first real IPC growth — extend `ipc-contract.ts`,
-  re-read 13 §IPC, extend the surface test.
-- S04 workspace state under `.atomik/` (disposable), S05 vault IO in main
-  with atomic Git-friendly writes.
+- S04 tabs/panes (03): absorbs the interim two-view header nav; workspace
+  state under `.atomik/` (disposable). S05 vault IO in main with atomic
+  Git-friendly writes — a separate channel family with its own validation,
+  not an extension of the read-only dev-docs one.
+- Dev Docs later modes (16): agent/architecture/context/execution views,
+  search, packaged-build docs path (docs/ currently resolves relative to
+  the repo checkout — packaging must bundle or relocate it).
 - Provider/AI calls (S08+): trusted main/service layer only; renderer sends
   typed operations; local runtimes get a worker/sidecar boundary (12).
 
@@ -139,7 +171,7 @@ with vite 8):
 electron ^43.0.0 · electron-vite ^5.0.0 (pairs with vite ^7) · vite ^7.3.6
 @vitejs/plugin-react ^5 (peers vite ^4.2–^8; v6 needs rolldown vite 8)
 vitest ^3.2.7 (v4 needs vite 8) · react/react-dom ^19.2.x
-typescript ^6.0.3 · @types/node ^24
+typescript ^6.0.3 · @types/node ^24 · markdown-it ^14.3.0 (added S03)
 ```
 
 Dev-environment note (WSL2 Ubuntu noble): Electron needs `libnss3`,

@@ -3,6 +3,7 @@
 ## 2026-07-06
 
 - First module learning note added: `modules/atomik-desktop.md` (CP-MVP-001 S02 — Electron shell, secure split, typed bridge; dated dependency facts inside).
+- `modules/atomik-desktop.md` updated for S03: Dev Docs channels and their trust boundary, docs data flow, React innerHTML lesson, markdown-it dependency fact. The docs bundle is now readable inside the app itself (16).
 
 ## 2026-07-05
 

@@ -13,7 +13,10 @@ import {
  * 13_13-electron-security.md §IPC first (CP-MVP-001 conditional trigger).
  */
 const api: AtomikApi = {
-  getAppInfo: () => ipcRenderer.invoke(ATOMIK_CHANNELS.getAppInfo)
+  getAppInfo: () => ipcRenderer.invoke(ATOMIK_CHANNELS.getAppInfo),
+  listDevDocs: () => ipcRenderer.invoke(ATOMIK_CHANNELS.listDevDocs),
+  readDevDoc: (relPath: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.readDevDoc, relPath)
 }
 
 contextBridge.exposeInMainWorld(ATOMIK_API_KEY, api)
