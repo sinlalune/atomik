@@ -1,0 +1,194 @@
+{
+  "version": "0.2",
+  "status": "foundational-contract",
+  "checked_at": "2026-06-22",
+  "decision": "Verification is routed by claim risk, freshness, local evidence, privacy, and multidimensional cost. Provider-grounded results are transient verification/display objects. Provider usage is represented as child ActionTrace data inside the cross-action execution ledger.",
+  "layers": [
+    {
+      "id": "local-project",
+      "priority": 1,
+      "examples": [
+        "source.md dossiers",
+        "PDF/page anchors",
+        "web snapshots and reader extracts",
+        "notes",
+        "quotes",
+        "transcripts",
+        "logs and ADRs"
+      ]
+    },
+    {
+      "id": "local-public-knowledge",
+      "priority": 2,
+      "examples": [
+        "versioned Wikipedia packs",
+        "Wiktionary packs",
+        "Wikidata entities and Lexemes",
+        "open dictionaries",
+        "official documentation packs"
+      ]
+    },
+    {
+      "id": "live-external-verification",
+      "priority": 3,
+      "examples": [
+        "Grounding with Google Search",
+        "official APIs",
+        "current primary sources",
+        "recent specialist sources"
+      ]
+    },
+    {
+      "id": "human-curation",
+      "priority": 4,
+      "examples": [
+        "accept/edit/reject patch",
+        "mark disputed",
+        "promote source",
+        "write synthesis",
+        "Git commit/rollback"
+      ]
+    }
+  ],
+  "risk_tiers": [
+    {
+      "tier": 0,
+      "name": "transformation",
+      "examples": [
+        "rewrite",
+        "translate",
+        "format",
+        "extract from supplied text"
+      ],
+      "default": "no web"
+    },
+    {
+      "tier": 1,
+      "name": "stable explanation",
+      "examples": [
+        "well-established concept using selected/local sources"
+      ],
+      "default": "local context first"
+    },
+    {
+      "tier": 2,
+      "name": "factual verification",
+      "examples": [
+        "dates",
+        "statistics",
+        "etymology",
+        "recent software behavior",
+        "disputed history"
+      ],
+      "default": "targeted external verification when local support is weak or stale"
+    },
+    {
+      "tier": 3,
+      "name": "high consequence",
+      "examples": [
+        "medical",
+        "legal",
+        "financial",
+        "safety-critical"
+      ],
+      "default": "authoritative current sources, explicit scope, stricter cross-check, prominent human review"
+    }
+  ],
+  "modes": {
+    "fast": "local context unless current/unsupported risk requires escalation",
+    "balanced": "bounded targeted web verification for Tier 2/3",
+    "strict": "stronger source-quality and cross-check rules; uncertainty still allowed",
+    "offline": "local project and installed packs only",
+    "private": "local-only unless user approves a minimized cloud request"
+  },
+  "google_search_grounding_snapshot": {
+    "status": "volatile-provider-fact",
+    "checked_at": "2026-06-22",
+    "official_sources": [
+      "https://ai.google.dev/gemini-api/docs/google-search",
+      "https://ai.google.dev/gemini-api/docs/pricing",
+      "https://ai.google.dev/gemini-api/terms"
+    ],
+    "recorded_facts": [
+      "Gemini 3 may execute multiple search queries for one prompt and billing can count each search query.",
+      "The pricing page checked on this date advertises a 5,000 grounded prompt/request monthly allowance shared across Gemini 3, followed by USD 14 per 1,000 search queries for referenced tiers.",
+      "Current terms restrict caching, analysis, training, automated collection, link harvesting, and database/index construction from Grounded Results, Search Suggestions, and associated links, except for narrow listed purposes.",
+      "Grounding output and associated links/suggestions are intended for the end user who initiated the prompt and have provider-specific display requirements.",
+      "Current terms state additional 30-day storage of prompts, contextual information, and output for grounding-system operation; paid-quota processing references the provider data-processing addendum."
+    ],
+    "atomik_rules": [
+      "do not use grounding as a crawler or dataset builder",
+      "do not harvest returned links into an index",
+      "display grounded results in a provider-compliant distinct component",
+      "allow explicit user import of a destination page through source-core",
+      "record actual query count when available",
+      "hard-limit queries and cost",
+      "recheck terms and pricing before production"
+    ]
+  },
+  "privacy_rules": [
+    "send the claim and minimum excerpt, not the whole vault",
+    "remove unrelated personal identifiers where possible",
+    "never send secrets or provider keys",
+    "make provider trace visible",
+    "support local-only mode",
+    "use an appropriately configured paid API project by default for production private-vault workflows",
+    "do not claim zero retention when provider terms state operational retention",
+    "ActionTrace contentRecorded defaults to false"
+  ],
+  "cost_controls": [
+    "local-source-first retrieval",
+    "claim-level rather than whole-answer verification",
+    "query deduplication within an operation",
+    "hard maximum query count",
+    "project/global budgets",
+    "cost preview for deep verification",
+    "freshness windows by domain",
+    "reuse durable imported sources rather than provider-grounded output",
+    "record all provider calls as ActionTrace children",
+    "distinguish estimated, provider-reported, and billed costs",
+    "record local latency/resources when measurable",
+    "relate cost to accepted verification outcomes"
+  ],
+  "stop_conditions": [
+    "no inspectable evidence",
+    "sources share one upstream origin",
+    "unresolved conflict",
+    "provider-use terms prevent desired reuse",
+    "verification budget exhausted",
+    "current information unreachable",
+    "professional judgment required",
+    "local-only policy with insufficient local evidence"
+  ],
+  "references": [
+    "29_29-verification-grounding-router.md",
+    "32_32-truth-investigation-record.md",
+    "adr/ADR-005-live-grounding-transient-verification.md",
+    "33_33-retrieval-local-execution-cost.md",
+    "34_34-local-execution-investigation-record.md",
+    "operation_trace_contract_v0_1.json",
+    "adr/ADR-008-operation-traces-execution-economics.md"
+  ],
+  "execution_policy": {
+    "locations": [
+      "deterministic",
+      "local-model",
+      "cloud-model",
+      "web"
+    ],
+    "default_order": [
+      "local project evidence",
+      "local deterministic tools",
+      "local public knowledge",
+      "bounded live external verification",
+      "human review"
+    ],
+    "rules": [
+      "enforce local-only/private modes below renderer",
+      "require explicit policy for external fallback",
+      "apply hard query/token/time/cost budgets",
+      "emit parent and child ActionTrace records",
+      "do not capture raw content by default"
+    ]
+  }
+}

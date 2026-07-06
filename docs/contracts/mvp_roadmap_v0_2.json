@@ -1,0 +1,229 @@
+{
+  "version": "0.5",
+  "legacy_filename": "mvp_roadmap_v0_2.json",
+  "principle": "Daily-use workbench before DSL/canvas; minimal truth and privacy-aware operation traces arrive with the first AI loop; direct/lexical/link/structural retrieval precedes optional semantic retrieval; local speech and autocomplete are measured capability adapters; local sources precede live grounding.",
+  "milestones": [
+    {
+      "id": "M0",
+      "name": "Electron shell",
+      "acceptance": [
+        "app starts",
+        "secure typed preload bridge exists",
+        "Dev Docs tab renders v0.5 bedrock",
+        "basic tab/pane UI works",
+        "provider credentials cannot enter renderer or remote views",
+        "trusted local-runtime worker/sidecar boundary is reserved"
+      ]
+    },
+    {
+      "id": "M1",
+      "name": "Markdown vault and project bundle",
+      "acceptance": [
+        "open vault folder",
+        "create/open project folder",
+        "project index.md and log.md exist",
+        "create/edit/save/reopen Markdown note",
+        "Markdown preview works",
+        "filename/heading search works",
+        "workspace state can be deleted without losing knowledge",
+        "file writes do not create noisy diffs"
+      ]
+    },
+    {
+      "id": "M2",
+      "name": "AI over notes with minimal truth and execution contracts",
+      "acceptance": [
+        "text selection creates Selection object",
+        "context scope is represented",
+        "AI mock produces truth-aware response bundle and patch",
+        "source-backed/model-only/needs-citation/interpretive labels render",
+        "minimal ActionTrace records location/model/tool, token estimates/actuals when available, latency, external cost, status, and outcome",
+        "contentRecorded is false by default",
+        "mapped source citation opens a local anchor",
+        "hard budget and cancellation are enforced below renderer",
+        "patch preview accepts into file",
+        "human acceptance is not rendered as factual proof",
+        "accepted patch has a meaningful diff"
+      ]
+    },
+    {
+      "id": "M3",
+      "name": "Capture sources and local speech baseline",
+      "acceptance": [
+        "QR session created",
+        "phone uploads image or short audio",
+        "original asset saved",
+        "source.md dossier created",
+        "image/audio source tab opens",
+        "replaceable OCR/transcription adapter runs",
+        "transcript.md and optional timestamp sidecar can be created",
+        "transcript/model cleanup/original evidence remain distinguishable",
+        "runtime/model/location/latency/external cost are traced",
+        "human transcript correction is supported"
+      ]
+    },
+    {
+      "id": "M4",
+      "name": "PDF source with evidence anchors",
+      "acceptance": [
+        "PDF opens",
+        "source.md dossier exists",
+        "page/text/region anchor exists",
+        "selection/extraction feeds AI",
+        "note cites source.md anchor",
+        "citation can return to original page",
+        "rendered fidelity and extracted-text fidelity are not conflated",
+        "extraction emits an ActionTrace"
+      ]
+    },
+    {
+      "id": "M5",
+      "name": "Web source and explicit imports",
+      "acceptance": [
+        "isolated web view opens URL",
+        "reader extraction saves reader.md",
+        "source.md dossier links URL/snapshot/reader",
+        "access date and available revision metadata are recorded",
+        "AI output cites URL/source dossier",
+        "web source import is separate from provider grounding"
+      ]
+    },
+    {
+      "id": "M6",
+      "name": "Minimal Truth Lens and challenge/repair",
+      "acceptance": [
+        "answer-level claim/evidence summary renders",
+        "compact operation receipt renders",
+        "selected claim opens evidence drawer",
+        "source anchor opens",
+        "challenge reason can be selected",
+        "local verification report is inspectable",
+        "repair patch can be accepted/edited/rejected",
+        "contradiction can remain unresolved"
+      ]
+    },
+    {
+      "id": "M7",
+      "name": "Live verification provider",
+      "acceptance": [
+        "risk/freshness router exists",
+        "local evidence is checked before web search",
+        "verification modes and hard query/token/time/cost budgets exist",
+        "local-only/private mode enforces no cloud call",
+        "provider result renders separately with required links/suggestions",
+        "actual query and token counts are recorded when available",
+        "provider capability/price/terms snapshot has checked_at",
+        "grounding links are not harvested or auto-imported",
+        "one chosen destination source can be imported explicitly through source-core"
+      ]
+    },
+    {
+      "id": "M8",
+      "name": "Hybrid retrieval and agent context basics",
+      "acceptance": [
+        "wikilinks and backlinks are indexed",
+        "source references are searchable",
+        "index.md/log.md helpers exist",
+        "context/current-brief.md can be generated/edited",
+        "path/heading/frontmatter/link/exact/full-text retrieval works",
+        "Tree-sitter/LSP structural adapter can be used for code when available",
+        "scoped retrieval produces inspectable evidence-aware ContextPacket",
+        "retrieval stages/candidates/selected/context tokens/latency are traced",
+        "retrieval score is not displayed as truth status",
+        "no vector database or embedding model is required",
+        "representative retrieval evaluation fixture exists"
+      ]
+    },
+    {
+      "id": "M9",
+      "name": "Measured local assistance and autocomplete",
+      "acceptance": [
+        "deterministic Markdown/link/path completion works",
+        "semantic embedding experiment can be enabled/disabled and rebuilt",
+        "semantic retrieval is compared with lexical/link/structural baseline",
+        "local completion is explicit or debounced and cancellable",
+        "no vault-wide semantic/model call occurs on every keystroke",
+        "desktop edit-prediction experiment records acceptance, accepted characters, latency, memory, and tokens",
+        "mobile defaults to deterministic completion/capture/speech input",
+        "cloud fallback is explicit and budgeted"
+      ]
+    },
+    {
+      "id": "M10",
+      "name": "Public knowledge and dictionary MVP",
+      "acceptance": [
+        "Wikipedia/Wiktionary page can be imported with revision/access metadata",
+        "basic dictionary Markdown page renders",
+        "Wikidata item/Lexeme lookup works",
+        "etymology can be marked attested/reconstructed/disputed/unknown",
+        "attribution export exists",
+        "pack or import deletion does not delete user notes"
+      ]
+    },
+    {
+      "id": "M11",
+      "name": "Truth maintenance and execution economics dashboard",
+      "acceptance": [
+        "claim segmentation assistance works without forcing every sentence into a graph",
+        "contradiction inbox exists",
+        "stale-claim queue exists",
+        "source independence groups can be inspected",
+        "provider and local usage traces are visible",
+        "external cost per accepted patch/result can be computed",
+        "retrieval/transcription/autocomplete outcome-aware metrics can be computed",
+        "claim correction history is reviewable"
+      ]
+    },
+    {
+      "id": "M12",
+      "name": "Atomik DSL",
+      "acceptance": [
+        "DSL parser validates sample",
+        "scene renderer displays sample",
+        "AI can generate/repair scene",
+        "scene source remains diffable",
+        "scene claims link to source/evidence/Truth Lens"
+      ]
+    },
+    {
+      "id": "M13",
+      "name": "Canvas",
+      "acceptance": [
+        "canvas places notes/sources/scenes",
+        "edges reference typed relation claims",
+        "node click opens side page",
+        "claim/evidence status is inspectable",
+        "moving or styling nodes does not mutate epistemic status",
+        "canvas references canonical files rather than duplicating knowledge"
+      ]
+    }
+  ],
+  "continuous_constraints": [
+    "no full canvas before workbench and truth-repair loops work",
+    "no DSL parser before workbench loop works",
+    "no remote content with Node integration",
+    "no provider key in renderer or remote content",
+    "no generic IPC bridge",
+    "no hidden database-only notes",
+    "no source knowledge trapped only in JSON",
+    "no cache/index/embedding as canonical memory",
+    "no mandatory vector database before baseline retrieval is evaluated",
+    "no semantic/model request on every keystroke by default",
+    "no universal truth score presented as certainty",
+    "no unsupported claim labeled source-backed",
+    "no human acceptance presented as factual proof",
+    "no provider-grounding output or links used to build a crawler/index/database",
+    "no raw prompt/output/source content in telemetry by default",
+    "no local external-cost-zero badge that hides measured resource use",
+    "no noisy mass rewrites on app open"
+  ],
+  "references": [
+    "18_18-roadmap.md",
+    "28_28-truth-evidence-model.md",
+    "29_29-verification-grounding-router.md",
+    "30_30-public-knowledge-dictionary.md",
+    "31_31-truth-lens-ux.md",
+    "33_33-retrieval-local-execution-cost.md",
+    "operation_trace_contract_v0_1.json"
+  ]
+}

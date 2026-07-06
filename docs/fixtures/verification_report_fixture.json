@@ -1,0 +1,99 @@
+{
+  "id": "verification_example_2026_06_23_001",
+  "operation_id": "op_example_truth_check_001",
+  "performed_at": "2026-06-23T00:00:00Z",
+  "policy": {
+    "mode": "balanced",
+    "max_web_queries": 3,
+    "allow_private_context_to_cloud": false
+  },
+  "claims": [
+    {
+      "claim_id": "claim_example_publication_date",
+      "statement": "The referenced paper was published in 2017.",
+      "nature": "factual",
+      "risk_tier": 2,
+      "scope": {
+        "time": "publication year"
+      },
+      "result": "supported",
+      "evidence": [
+        {
+          "id": "evidence_paper_pdf_frontmatter",
+          "source_dossier_path": "sources/pdf/example-paper/source.md",
+          "anchor": "p1-bibliographic-header",
+          "role": "supports",
+          "source_class": "primary",
+          "independence_group": "original-paper"
+        }
+      ],
+      "verification_events": [
+        {
+          "method": "source-anchor-check",
+          "performed_by": {
+            "kind": "deterministic-tool"
+          },
+          "result": "supported",
+          "freshness_checked_at": "2026-06-23T00:00:00Z",
+          "limitations": [
+            "The fixture does not resolve online-first versus issue publication conventions."
+          ],
+          "action_trace_ids": [
+            "trace_verify_example_20260623_001"
+          ]
+        }
+      ],
+      "recommended_labels": [
+        "primary-source-backed",
+        "locally-verified",
+        "stable-domain"
+      ]
+    },
+    {
+      "claim_id": "claim_example_interpretation",
+      "statement": "The paper marked a decisive break with all prior approaches.",
+      "nature": "interpretive",
+      "risk_tier": 2,
+      "result": "insufficient",
+      "evidence": [],
+      "verification_events": [
+        {
+          "method": "local-cross-check",
+          "performed_by": {
+            "kind": "local-model",
+            "model": "fixture-local-model"
+          },
+          "result": "insufficient",
+          "limitations": [
+            "The wording is absolute and would require historical comparison and attributed scholarship."
+          ],
+          "action_trace_ids": [
+            "trace_verify_example_20260623_001"
+          ]
+        }
+      ],
+      "recommended_labels": [
+        "interpretive",
+        "needs-review",
+        "insufficient-evidence"
+      ],
+      "suggested_repair": "Attribute the interpretation, narrow the claim, or provide comparative historical sources."
+    }
+  ],
+  "summary": {
+    "supported": 1,
+    "partially_supported": 0,
+    "contradicted": 0,
+    "insufficient": 1,
+    "web_queries": 0,
+    "estimated_cost": {
+      "currency": "USD",
+      "amount": 0
+    }
+  },
+  "action_trace_ids": [
+    "trace_verify_example_20260623_001"
+  ],
+  "provider_usage_compatibility": [],
+  "_fixture_note": "The referenced ActionTrace is stored separately in the execution ledger; provider_usage_compatibility remains only for migration tests. No raw prompt, excerpt, or output is embedded in the trace link."
+}

@@ -1,0 +1,105 @@
+{
+  "id": "trace_ai_note_20260623_001",
+  "parentId": "op_note_20260623_001",
+  "operationId": "op_note_20260623_001",
+  "projectId": "project_atomik",
+  "timestamp": "2026-06-23T14:00:00+02:00",
+  "action": "generate",
+  "execution": {
+    "location": "local-model",
+    "provider": "local-runtime",
+    "model": "example-small-model",
+    "modelVersion": "evaluation-only",
+    "runtime": "example-runtime",
+    "runtimeVersion": "0.x",
+    "deviceProfile": "desktop-cpu",
+    "capabilitySnapshotId": "cap_local_eval_20260623"
+  },
+  "input": {
+    "bytes": 4830,
+    "chunks": 4,
+    "estimatedTokens": 1280,
+    "actualTokens": 1244,
+    "pathIds": [
+      "path:notes/retrieval.md",
+      "path:context/current-brief.md"
+    ],
+    "contentHashes": [
+      "sha256:example-redacted"
+    ]
+  },
+  "output": {
+    "bytes": 1260,
+    "tokens": 308,
+    "filesChanged": 1,
+    "acceptedCharacters": 842
+  },
+  "retrieval": {
+    "strategy": [
+      "direct",
+      "heading",
+      "fts5"
+    ],
+    "candidates": 18,
+    "selected": 4,
+    "contextTokens": 1012,
+    "cacheHit": true,
+    "omitted": 14
+  },
+  "usage": {
+    "inputTokens": 1244,
+    "outputTokens": 308,
+    "cachedInputTokens": 0,
+    "toolCalls": 1,
+    "webQueries": 0,
+    "providerRequests": 1,
+    "retries": 0
+  },
+  "performance": {
+    "wallMs": 1830,
+    "firstResultMs": 420,
+    "cpuMs": 6140,
+    "peakRamBytes": 440401920,
+    "estimatedEnergyWh": null
+  },
+  "billing": {
+    "currency": "EUR",
+    "estimatedAmount": 0.0,
+    "reportedAmount": 0.0,
+    "billedAmount": 0.0,
+    "basis": "provider-reported"
+  },
+  "budget": {
+    "maxInputTokens": 2000,
+    "maxOutputTokens": 500,
+    "maxContextTokens": 1400,
+    "maxWebQueries": 0,
+    "maxWallMs": 5000,
+    "maxExternalCost": {
+      "currency": "EUR",
+      "amount": 0.0
+    },
+    "exhausted": false
+  },
+  "outcome": {
+    "status": "completed",
+    "accepted": true,
+    "edited": true,
+    "patchAccepted": true
+  },
+  "privacy": {
+    "mode": "offline",
+    "externalBytes": 0,
+    "contentRecorded": false,
+    "redactions": 0
+  },
+  "links": {
+    "responseBundleId": "response_20260623_001",
+    "patchProposalIds": [
+      "patch_20260623_001"
+    ],
+    "verificationReportIds": [],
+    "sourceIds": []
+  },
+  "_fixture_note": "Values are illustrative. The content hash is non-reversible placeholder text; no raw prompt or note content is stored."
+}

@@ -1,0 +1,137 @@
+{
+  "version": "0.1",
+  "status": "foundational-contract",
+  "checked_at": "2026-06-22",
+  "decision": "Versioned public knowledge packs provide a broad local retrieval baseline while preserving source revision, licensing, attribution, uncertainty, and specialist-source escalation.",
+  "pack_manifest_required": [
+    "id",
+    "title",
+    "kind",
+    "languages",
+    "source_projects",
+    "snapshot_date",
+    "imported_at",
+    "source_urls",
+    "license",
+    "content"
+  ],
+  "pack_manifest": {
+    "id": "stable pack identifier",
+    "title": "human-readable title",
+    "kind": "wikipedia | wiktionary | wikidata | dictionary | textbook | open string",
+    "languages": "BCP-47 or project language codes",
+    "source_projects": "project names/editions",
+    "snapshot_date": "ISO date",
+    "imported_at": "ISO timestamp",
+    "source_urls": "official source locations",
+    "source_revision_policy": "how record revisions are captured",
+    "license": {
+      "identifiers": "SPDX-like or human-readable identifiers",
+      "attribution_path": "path to human-readable attribution file",
+      "share_alike": "optional boolean",
+      "notes": "optional string[]"
+    },
+    "content": {
+      "records": "integer",
+      "byte_size": "optional integer",
+      "included_scopes": "optional string[]",
+      "excluded_scopes": "optional string[]"
+    },
+    "normalization_version": "optional",
+    "index_version": "optional derived-state version",
+    "integrity": {
+      "hashes": "optional path->hash map"
+    }
+  },
+  "source_posture": {
+    "wikipedia": [
+      "orientation",
+      "mainstream framing",
+      "terminology",
+      "reference graph",
+      "starting bibliography"
+    ],
+    "wiktionary": [
+      "definitions",
+      "forms",
+      "pronunciations",
+      "usage",
+      "quotations",
+      "etymology prose"
+    ],
+    "wikidata_lexemes": [
+      "structured Lexeme identifiers",
+      "Forms",
+      "Senses",
+      "cross-links"
+    ],
+    "specialist_sources": [
+      "domain depth",
+      "primary scholarship",
+      "professional standards",
+      "disputed or narrow claims"
+    ]
+  },
+  "dictionary_entry_required": [
+    "id",
+    "lemma",
+    "language",
+    "forms",
+    "senses",
+    "source_refs"
+  ],
+  "etymology_statuses": [
+    "attested",
+    "reconstructed",
+    "partly-reconstructed",
+    "disputed",
+    "unknown"
+  ],
+  "etymology_relations": [
+    "inherited-from",
+    "borrowed-from",
+    "calque-of",
+    "derived-from",
+    "compound-of",
+    "semantic-shift-from",
+    "reconstructed-from"
+  ],
+  "etymology_rules": [
+    "mark reconstructed forms explicitly",
+    "preserve uncertainty words and alternate hypotheses",
+    "distinguish inheritance from borrowing",
+    "distinguish word-form history from sense history",
+    "distinguish scholarly proposal from consensus",
+    "label folk etymology",
+    "link important transitions to sources",
+    "do not infer origin from superficial form similarity"
+  ],
+  "licensing_rules": [
+    "record project, language, revision/snapshot, and license",
+    "preserve required attribution",
+    "track text and media licenses separately when needed",
+    "preserve share-alike obligations",
+    "avoid implying Wikimedia endorsement",
+    "do not redistribute restricted specialist dictionary content without permission"
+  ],
+  "derived_state": [
+    "full-text indexes",
+    "embeddings",
+    "graph indexes",
+    "thumbnails",
+    "parser caches"
+  ],
+  "deletion_invariant": "Deleting a pack or derived index must not delete user-authored notes or separately imported source dossiers.",
+  "official_sources": [
+    "https://dumps.wikimedia.org/",
+    "https://dumps.wikimedia.org/legal.html",
+    "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+    "https://www.wikidata.org/wiki/Wikidata:Lexicographical_data",
+    "https://enterprise.wikimedia.com/",
+    "https://enterprise.wikimedia.com/docs/"
+  ],
+  "references": [
+    "30_30-public-knowledge-dictionary.md",
+    "adr/ADR-006-public-knowledge-lexicographic-baseline.md"
+  ]
+}

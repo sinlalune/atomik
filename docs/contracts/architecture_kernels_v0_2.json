@@ -1,0 +1,386 @@
+{
+  "version": "0.5",
+  "legacy_filename": "architecture_kernels_v0_2.json",
+  "decision": "Electron Workbench first; project bundles, Markdown source dossiers, minimal truth/evidence status, hybrid scoped retrieval, explicit local/cloud execution policy, privacy-aware ActionTrace receipts, provider boundaries, and Git-compatible writes are foundational. Truth/citation/verification/execution package contracts are incubating; public knowledge packs, advanced local assistance, DSL, and canvas follow later.",
+  "kernels": [
+    {
+      "name": "vault-core",
+      "owns": [
+        "file listing",
+        "read/write",
+        "patch application",
+        "cache boundary",
+        "atomic writes"
+      ],
+      "must_not_own": [
+        "rendering",
+        "AI model calls",
+        "epistemic decisions",
+        "DSL semantics",
+        "project semantics"
+      ]
+    },
+    {
+      "name": "project-core",
+      "owns": [
+        "project bundle manifest",
+        "project resource membership",
+        "index.md/log.md conventions",
+        "project trails",
+        "context folder locations",
+        "optional truth/ folder locations",
+        "OKF import/export profile"
+      ],
+      "must_not_own": [
+        "pane layout",
+        "source extraction internals",
+        "AI model calls",
+        "hidden canonical knowledge",
+        "declaring project claims true"
+      ]
+    },
+    {
+      "name": "workspace-core",
+      "owns": [
+        "tabs",
+        "panes",
+        "view contexts",
+        "active selections",
+        "active claim/evidence inspection state",
+        "workspace state"
+      ],
+      "must_not_own": [
+        "durable knowledge content",
+        "project membership",
+        "source extraction",
+        "verification conclusions"
+      ]
+    },
+    {
+      "name": "source-core",
+      "owns": [
+        "source.md dossiers",
+        "source adapters",
+        "explicit destination-source imports",
+        "extraction",
+        "anchors",
+        "source viewer contracts",
+        "license/attribution metadata",
+        "optional precision sidecars",
+        "audio/video transcription adapters",
+        "transcript correction metadata",
+        "extraction/transcription ActionTrace links"
+      ],
+      "must_not_own": [
+        "note mutation",
+        "AI model calls",
+        "canonical knowledge hidden only in JSON",
+        "automatic crawling from provider-grounding links"
+      ]
+    },
+    {
+      "name": "markdown-core",
+      "owns": [
+        "frontmatter",
+        "headings",
+        "wikilinks",
+        "Markdown links",
+        "fenced block extraction",
+        "Markdown rendering helpers",
+        "stable formatting helpers",
+        "human-readable truth label rendering helpers"
+      ],
+      "must_not_own": [
+        "Electron APIs",
+        "AI prompts",
+        "visual layout",
+        "Git remotes",
+        "source-quality verdicts"
+      ]
+    },
+    {
+      "name": "context-core",
+      "owns": [
+        "context scopes",
+        "index.md/log.md traversal",
+        "context packets",
+        "context pack generation",
+        "retrieval planning",
+        "evidence-role metadata in context entries",
+        "context budget diagnostics",
+        "direct and explicit-scope retrieval",
+        "lexical/full-text retrieval adapters",
+        "Markdown/link/structural retrieval adapters",
+        "optional local semantic retrieval and reranking adapters",
+        "retrieval evaluation fixtures",
+        "retrieval stage traces"
+      ],
+      "must_not_own": [
+        "AI model calls",
+        "silent file mutation",
+        "embedding provider lock-in",
+        "treating retrieval score as truth",
+        "mandatory vector database",
+        "embedding service as required infrastructure",
+        "semantic similarity as truth status"
+      ]
+    },
+    {
+      "name": "execution-core",
+      "status": "incubating-contract",
+      "owns": [
+        "ExecutionPolicy",
+        "OperationBudget",
+        "ActionTrace schema",
+        "private append-only usage ledger",
+        "local/cloud/deterministic/web execution labels",
+        "budget enforcement contracts",
+        "estimated/reported/billed usage distinction",
+        "operation receipt aggregation",
+        "privacy-aware content capture policy"
+      ],
+      "must_not_own": [
+        "model or tool implementation",
+        "provider pricing as timeless constants",
+        "raw prompt/output/source content by default",
+        "canonical knowledge content",
+        "epistemic truth decisions"
+      ],
+      "mvp_note": "Types may begin in shared-types and a small trusted service beside ai-core. Create a package after retrieval, AI, transcription, autocomplete, or verification provide multiple real consumers and tests."
+    },
+    {
+      "name": "ai-core",
+      "owns": [
+        "operation contracts",
+        "prompt wrappers",
+        "truth-aware response bundles",
+        "patch proposals",
+        "model provider adapters",
+        "AI validation/repair loops",
+        "execution policy and operation budget consumption",
+        "ActionTrace linkage for response bundles"
+      ],
+      "must_not_own": [
+        "silent file mutation",
+        "source rendering",
+        "Git commit policy",
+        "declaring claims true",
+        "durable web-source ingestion",
+        "cross-provider usage ledger",
+        "raw prompt/output telemetry by default"
+      ]
+    },
+    {
+      "name": "truth-core",
+      "status": "incubating-contract",
+      "owns": [
+        "ClaimRecord",
+        "EvidenceRecord",
+        "VerificationEvent",
+        "epistemic labels",
+        "contradiction contracts",
+        "freshness contracts",
+        "claim lifecycle contracts"
+      ],
+      "must_not_own": [
+        "model calls",
+        "source import",
+        "universal source ranking",
+        "silent note mutation"
+      ],
+      "mvp_note": "Types may begin in shared-types and ai/context/source cores. Create a package only after multiple real consumers and tests exist."
+    },
+    {
+      "name": "citation-core",
+      "status": "incubating-contract",
+      "owns": [
+        "claim-to-source mapping",
+        "citation formatting",
+        "source anchor resolution",
+        "quote hashes",
+        "citation diagnostics"
+      ],
+      "must_not_own": [
+        "deciding whether a source is correct",
+        "web crawling",
+        "model calls"
+      ],
+      "mvp_note": "May begin as source-core/markdown-core helpers."
+    },
+    {
+      "name": "verification-core",
+      "status": "incubating-contract",
+      "owns": [
+        "risk/freshness router",
+        "verification policies and plans",
+        "deterministic/local/web verification orchestration",
+        "provider capability snapshots",
+        "provider usage and cost traces",
+        "stop conditions"
+      ],
+      "must_not_own": [
+        "durable source ingestion",
+        "provider credentials in renderer",
+        "silent note writes",
+        "unbounded background search"
+      ],
+      "mvp_note": "May begin inside ai-core/context-core behind a provider-neutral interface."
+    },
+    {
+      "name": "knowledge-core",
+      "status": "later",
+      "owns": [
+        "versioned public knowledge-pack manifests",
+        "pack license/attribution",
+        "pack source/revision trace",
+        "pack retrieval interfaces",
+        "dictionary and Lexeme normalization contracts"
+      ],
+      "must_not_own": [
+        "user note ownership",
+        "hidden canonical knowledge",
+        "provider-specific delivery as the only format",
+        "derived indexes as source records"
+      ]
+    },
+    {
+      "name": "git-core",
+      "status": "optional-helper",
+      "owns": [
+        "Git status helpers",
+        "diff helpers",
+        ".gitignore template",
+        "repository boundary detection",
+        "later commit/rollback helpers"
+      ],
+      "must_not_own": [
+        "canonical storage",
+        "mandatory persistence",
+        "remote sync policy",
+        "AI patch semantics",
+        "epistemic proof"
+      ]
+    },
+    {
+      "name": "dev-docs-core",
+      "owns": [
+        "docs manifest",
+        "documentation rendering contracts",
+        "module notes",
+        "ADR index",
+        "agent digest views",
+        "volatile-fact/recheck views"
+      ],
+      "must_not_own": [
+        "runtime product logic",
+        "automatic factual certification"
+      ]
+    },
+    {
+      "name": "graph-core",
+      "status": "later",
+      "owns": [
+        "wikilink graph",
+        "Markdown link graph",
+        "typed relation graph",
+        "claim/edge projections",
+        "backlinks",
+        "relation diagnostics"
+      ],
+      "must_not_own": [
+        "canvas persistence",
+        "AI generation",
+        "canonical relation storage",
+        "anonymous edges without claim provenance when evidence matters"
+      ]
+    },
+    {
+      "name": "lang-core",
+      "status": "later",
+      "owns": [
+        "DSL tokenize",
+        "parse",
+        "validate",
+        "normalize",
+        "print",
+        "diagnostics"
+      ],
+      "must_not_own": [
+        "React",
+        "DOM",
+        "SVG",
+        "AI",
+        "filesystem",
+        "truth verification"
+      ]
+    },
+    {
+      "name": "render-core",
+      "status": "later",
+      "owns": [
+        "scene model",
+        "mark contracts",
+        "layout contracts",
+        "theme tokens",
+        "truth-lens hooks for scene claims"
+      ],
+      "must_not_own": [
+        "parser",
+        "AI prompts",
+        "epistemic status mutation"
+      ]
+    }
+  ],
+  "dependency_rules": [
+    "Electron adapters are platform layers; core kernels should be testable without Electron when possible.",
+    "Project-core owns durable project membership; workspace-core owns UI layout and temporary inspection state.",
+    "Source adapters expose selections, anchors, provenance, and explicit imports but do not mutate notes directly.",
+    "Provider-grounded results do not bypass source-core to become durable knowledge.",
+    "Source knowledge lives in source.md dossiers whenever possible; sidecars support precision/performance only.",
+    "Material unsupported/disputed/stale status cannot exist only in a hidden sidecar.",
+    "Context-core assembles inspectable context packets from project files and installed packs before AI calls.",
+    "Retrieval relevance is not treated as epistemic support.",
+    "AI core returns response bundles and patch proposals; vault applies accepted patches.",
+    "Truth/citation validators never call AI.",
+    "Verification-core may call deterministic tools or provider adapters but never writes the vault directly.",
+    "Provider credentials and billing context remain behind trusted boundaries and never enter renderer or remote views.",
+    "Git-core is optional and must not become canonical storage or factual proof.",
+    "Docs update with boundary, file format, source dossier, claim/evidence, provider, knowledge-pack, context, and Git changes.",
+    "Context-core uses explicit, lexical, link, and structural retrieval before optional semantic stages by default.",
+    "Embeddings, rerankers, vector indexes, and model caches are optional rebuildable state.",
+    "Execution-core policy and budgets are enforced below renderer state.",
+    "Every meaningful retrieval/model/tool/verification/patch action can emit a privacy-aware ActionTrace.",
+    "Provider usage is represented as child ActionTrace data rather than a separate provider-only architecture.",
+    "Raw prompts, note bodies, transcripts, retrieved excerpts, and outputs are not captured in telemetry by default.",
+    "Local execution may report zero external billing but must not be represented as zero operational cost."
+  ],
+  "file_rules": [
+    "Files are the durable source of record; evidence determines epistemic support.",
+    "Canonical user knowledge is Markdown-first.",
+    "Raw source assets are preserved beside Markdown dossiers.",
+    "Important claims may use human-readable claim/verification notes or optional adjacent precision sidecars.",
+    "index.md supports progressive disclosure.",
+    "log.md records meaningful chronological changes.",
+    "Knowledge-pack source manifests and attribution are durable; pack indexes/embeddings are rebuildable.",
+    "Provider-grounded raw result collections are not committed as a reusable knowledge database.",
+    "Caches, indexes, embeddings, thumbnails, and provider caches are rebuildable or disposable.",
+    "Opening Atomik must not rewrite files unnecessarily.",
+    "One accepted AI operation or truth repair should produce one meaningful diff.",
+    "Private ActionTrace ledgers, local model files, and runtime caches are operational state and ignored by Git by default.",
+    "Reviewed aggregate usage reports may be exported explicitly without raw content."
+  ],
+  "references": [
+    "14_14-app-kernels.md",
+    "28_28-truth-evidence-model.md",
+    "29_29-verification-grounding-router.md",
+    "30_30-public-knowledge-dictionary.md",
+    "truth_evidence_contract_v0_1.json",
+    "verification_provider_policy_v0_1.json",
+    "public_knowledge_pack_contract_v0_1.json",
+    "33_33-retrieval-local-execution-cost.md",
+    "34_34-local-execution-investigation-record.md",
+    "operation_trace_contract_v0_1.json",
+    "adr/ADR-007-hybrid-retrieval-optional-semantic-indexes.md",
+    "adr/ADR-008-operation-traces-execution-economics.md"
+  ]
+}

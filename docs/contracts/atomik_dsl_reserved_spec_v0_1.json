@@ -1,0 +1,82 @@
+{
+  "version": "0.2-reserved",
+  "status": "reserved for post-workbench milestone",
+  "canonical_command_order": [
+    "scene",
+    "claim",
+    "subject",
+    "state",
+    "derive",
+    "node",
+    "relation",
+    "mark",
+    "rule",
+    "layout"
+  ],
+  "commands": [
+    {
+      "name": "scene",
+      "meaning": "Complete visual learning unit.",
+      "example": "scene derivative"
+    },
+    {
+      "name": "claim",
+      "meaning": "Central idea the scene tries to teach.",
+      "example": "claim \"A derivative measures local change.\""
+    },
+    {
+      "name": "subject",
+      "meaning": "Linked object under study.",
+      "example": "subject [[Derivative]]"
+    },
+    {
+      "name": "state",
+      "meaning": "Learner-controlled or runtime variable.",
+      "example": "state x = slider -5..5 default 1 label \"x\""
+    },
+    {
+      "name": "derive",
+      "meaning": "Computed value from state or other values.",
+      "example": "derive slope = 2 * x"
+    },
+    {
+      "name": "node",
+      "meaning": "Visible conceptual object.",
+      "example": "node glucose [[Glucose]] tone success"
+    },
+    {
+      "name": "relation",
+      "meaning": "Typed semantic edge that can be indexed.",
+      "example": "relation plant -> glucose produces"
+    },
+    {
+      "name": "mark",
+      "meaning": "Visual sign bound to meaning, data, or state.",
+      "example": "mark meter \"Output\" value output max 100"
+    },
+    {
+      "name": "rule",
+      "meaning": "Condition that changes feedback or emphasis.",
+      "example": "rule slope > 0 => note \"Increasing here.\""
+    },
+    {
+      "name": "layout",
+      "meaning": "Spatial organization without pixel-level authoring.",
+      "example": "layout chart x -5..5 y 0..25"
+    }
+  ],
+  "constraints": [
+    "line-oriented",
+    "English-like",
+    "no raw HTML authoring",
+    "no arbitrary JavaScript",
+    "cheap-LLM repair loop",
+    "parser diagnostics",
+    "visual authority must not imply epistemic authority",
+    "claim-bearing scenes can reference claim and evidence records",
+    "generated scenes remain patch proposals and preserve uncertainty/disagreement cues"
+  ],
+  "defer_note": "Do not implement before Electron Workbench daily-use loop is functional.",
+  "legacy_filename": "atomik_dsl_reserved_spec_v0_1.json",
+  "truth_evidence_note": "A scene explains or arranges claims; it does not independently verify them. Claim/evidence status remains file-backed and inspectable through the Truth Lens."
+}

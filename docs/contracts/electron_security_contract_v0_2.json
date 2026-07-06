@@ -1,0 +1,52 @@
+{
+  "version": "0.5",
+  "legacy_filename": "electron_security_contract_v0_2.json",
+  "rules": [
+    "Remote content never gets nodeIntegration.",
+    "contextIsolation remains true.",
+    "sandbox should be true for remote source views.",
+    "webSecurity must not be disabled.",
+    "Do not expose ipcRenderer directly through preload.",
+    "All IPC channels are named, narrow, typed, documented, and input-validated.",
+    "Capture upload endpoints use one-time expiring tokens and size/type limits.",
+    "Remote source content never receives direct access to project files, source.md dossiers, AI/provider keys, verification providers, billing context, or Git helpers.",
+    "Provider keys and billing credentials never enter the renderer, preload-exposed values, logs, patches, source dossiers, or remote views.",
+    "Cloud AI/verification requests are assembled in a trusted layer from a typed operation and policy-approved minimized context.",
+    "Local-only/private mode is enforced below the renderer UI.",
+    "The system can audit which project paths/excerpts were included in a cloud request without logging secrets.",
+    "Grounding-returned links cannot trigger automatic privileged crawling or source import.",
+    "Provider-grounded results render in a distinct component that can preserve current provider-required links/suggestions and does not grant remote content app privileges.",
+    "Local model, embedding, transcription, and autocomplete runtimes execute only through a trusted worker/sidecar boundary with explicit typed inputs.",
+    "Local runtimes never receive ambient vault access; the trusted layer passes only approved files or excerpts.",
+    "Operation budgets, cancellation, local-only policy, and external fallback approval are enforced below renderer state.",
+    "Remote source content cannot directly trigger a privileged local-model or cloud-model action.",
+    "Model files, derived indexes, and runtime caches are stored outside canonical knowledge and are integrity/version checked.",
+    "ActionTrace content capture defaults to false; raw prompts, note text, transcripts, retrieved excerpts, and outputs are not written to logs by default."
+  ],
+  "provider_privacy_requirements": [
+    "send the smallest sufficient claim/excerpt rather than the whole vault",
+    "remove unrelated personal identifiers where practical",
+    "never send secrets or API keys",
+    "make provider/model/usage trace inspectable",
+    "date provider terms/privacy/cost assumptions and recheck before production",
+    "do not claim zero retention when current provider terms state operational retention",
+    "show deterministic/local/cloud/web execution location",
+    "distinguish estimated, provider-reported, and billed usage/cost",
+    "show external bytes or a privacy disclosure when measurable",
+    "do not present local external cost zero as total cost zero"
+  ],
+  "references": [
+    "https://www.electronjs.org/docs/latest/tutorial/security",
+    "https://www.electronjs.org/docs/latest/tutorial/context-isolation",
+    "https://www.electronjs.org/docs/latest/tutorial/ipc",
+    "https://www.electronjs.org/blog/migrate-to-webcontentsview",
+    "https://ai.google.dev/gemini-api/terms",
+    "13_13-electron-security.md",
+    "29_29-verification-grounding-router.md",
+    "verification_provider_policy_v0_1.json",
+    "33_33-retrieval-local-execution-cost.md",
+    "operation_trace_contract_v0_1.json"
+  ],
+  "provider_research_checked_at": "2026-06-22",
+  "local_runtime_research_checked_at": "2026-06-23"
+}

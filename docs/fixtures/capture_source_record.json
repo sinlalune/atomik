@@ -1,0 +1,15 @@
+{
+  "version": "0.3",
+  "status": "optional-sidecar-example",
+  "note": "Canonical source knowledge should live in source.md. This JSON shape is only an optional machine sidecar example for compatibility, indexing, or migration.",
+  "dossierPath": "sources/captures/2026-06-14-handwritten-attention/source.md",
+  "id": "capture_2026_06_14_001",
+  "type": "capture",
+  "title": "Handwritten notes on attention",
+  "originalPath": "sources/captures/2026-06-14-handwritten-attention/original.jpg",
+  "extractedTextPath": "sources/captures/2026-06-14-handwritten-attention/transcript.md",
+  "capture": {
+    "method": "local-wifi-qr",
+    "mimeType": "image/jpeg"
+  }
+}

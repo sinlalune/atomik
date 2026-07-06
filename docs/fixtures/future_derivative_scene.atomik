@@ -1,0 +1,16 @@
+scene derivative
+claim "A derivative measures local change."
+subject [[Derivative]]
+
+state x = slider -5..5 default 1 label "x"
+derive y = x * x
+derive slope = 2 * x
+
+mark curve parabola "y = x²" y "x*x" tone info
+mark point current "Current point" x x y y tone success
+mark tangent local "Local slope" at current slope slope tone warning
+
+rule slope < 0 => note "The function is decreasing here."
+rule slope > 0 => note "The function is increasing here."
+
+layout chart x -5..5 y 0..25

@@ -1,0 +1,187 @@
+{
+  "version": "0.1",
+  "status": "foundational-contract",
+  "checked_at": "2026-06-23",
+  "decision": "Every meaningful retrieval, transformation, embedding, reranking, transcription, autocomplete, generation, verification, deterministic-tool, web, and patch action emits a privacy-aware ActionTrace. Estimated, runtime/provider-reported, and billed values remain distinct; raw content capture is off by default.",
+  "action_kinds": [
+    "search",
+    "retrieve",
+    "embed",
+    "rerank",
+    "transcribe",
+    "autocomplete",
+    "generate",
+    "verify",
+    "tool",
+    "apply-patch",
+    "index-build",
+    "index-update",
+    "import-source"
+  ],
+  "execution_locations": [
+    "deterministic",
+    "local-model",
+    "cloud-model",
+    "web"
+  ],
+  "privacy_modes": [
+    "offline",
+    "private",
+    "balanced",
+    "cloud"
+  ],
+  "schema": {
+    "id": "string",
+    "parentId": "string?",
+    "operationId": "string?",
+    "projectId": "string?",
+    "timestamp": "ISO-8601",
+    "action": "action_kinds enum",
+    "execution": {
+      "location": "execution_locations enum",
+      "provider": "string?",
+      "model": "string?",
+      "modelVersion": "string?",
+      "runtime": "string?",
+      "runtimeVersion": "string?",
+      "deviceProfile": "string?",
+      "capabilitySnapshotId": "string?"
+    },
+    "input": {
+      "bytes": "integer?",
+      "chunks": "integer?",
+      "audioSeconds": "number?",
+      "estimatedTokens": "integer?",
+      "actualTokens": "integer?",
+      "pathIds": "string[]?",
+      "contentHashes": "string[]?"
+    },
+    "output": {
+      "bytes": "integer?",
+      "chunks": "integer?",
+      "tokens": "integer?",
+      "vectorCount": "integer?",
+      "vectorDimensions": "integer?",
+      "filesChanged": "integer?",
+      "acceptedCharacters": "integer?"
+    },
+    "retrieval": {
+      "strategy": "string[]?",
+      "candidates": "integer?",
+      "selected": "integer?",
+      "contextTokens": "integer?",
+      "cacheHit": "boolean?",
+      "omitted": "integer?"
+    },
+    "usage": {
+      "inputTokens": "integer?",
+      "outputTokens": "integer?",
+      "cachedInputTokens": "integer?",
+      "cacheCreationInputTokens": "integer?",
+      "reasoningTokens": "integer?",
+      "toolCalls": "integer?",
+      "webQueries": "integer?",
+      "providerRequests": "integer?",
+      "retries": "integer?",
+      "audioSeconds": "number?"
+    },
+    "performance": {
+      "wallMs": "number",
+      "firstResultMs": "number?",
+      "cpuMs": "number?",
+      "gpuMs": "number?",
+      "peakRamBytes": "integer?",
+      "estimatedEnergyWh": "number?"
+    },
+    "billing": {
+      "currency": "string",
+      "estimatedAmount": "number?",
+      "reportedAmount": "number?",
+      "billedAmount": "number?",
+      "priceSnapshotId": "string?",
+      "basis": "estimated | provider-reported | billed"
+    },
+    "budget": {
+      "maxInputTokens": "integer?",
+      "maxOutputTokens": "integer?",
+      "maxContextTokens": "integer?",
+      "maxWebQueries": "integer?",
+      "maxWallMs": "number?",
+      "maxExternalCost": "money?",
+      "exhausted": "boolean?"
+    },
+    "outcome": {
+      "status": "completed | cancelled | failed",
+      "accepted": "boolean?",
+      "edited": "boolean?",
+      "patchAccepted": "boolean?",
+      "claimSupported": "boolean?",
+      "errorType": "string?"
+    },
+    "privacy": {
+      "mode": "privacy_modes enum",
+      "externalBytes": "integer?",
+      "contentRecorded": "boolean",
+      "redactions": "integer?",
+      "approvalId": "string?"
+    },
+    "links": {
+      "responseBundleId": "string?",
+      "patchProposalIds": "string[]?",
+      "verificationReportIds": "string[]?",
+      "sourceIds": "string[]?"
+    }
+  },
+  "requirements": [
+    "id, timestamp, action, execution.location, performance.wallMs, outcome.status, privacy.mode, and privacy.contentRecorded are required",
+    "contentRecorded defaults to false",
+    "raw prompts, note bodies, transcripts, retrieved excerpts, and generated outputs are excluded by default",
+    "provider/runtime counts are preferred over estimates when exposed",
+    "billed and model-consumed counts are not silently conflated",
+    "estimated costs link to a dated priceSnapshotId",
+    "local external billing zero does not suppress local performance/resource fields",
+    "parent/child traces represent compound operations without double-counting aggregate totals",
+    "budgets and cancellation are enforced by trusted services below renderer state",
+    "trace deletion cannot delete canonical knowledge or accepted patches"
+  ],
+  "storage": {
+    "default_private_ledger": ".atomik/usage/private/actions.jsonl",
+    "git_default": "ignored",
+    "aggregate_export": [
+      "reports/usage/<period>.md",
+      "reports/usage/<period>.json"
+    ],
+    "content_policy": "counts/identifiers/hashes/path IDs by default; raw content only by explicit opt-in"
+  },
+  "minimum_m2_fields": [
+    "id",
+    "timestamp",
+    "operationId",
+    "action",
+    "execution.location",
+    "execution.provider/model/tool when known",
+    "usage estimated/actual input/output tokens when available",
+    "performance.wallMs",
+    "billing external estimated/reported cost when available",
+    "outcome.status",
+    "outcome.accepted/edited/patchAccepted when known",
+    "privacy.mode",
+    "privacy.contentRecorded=false"
+  ],
+  "outcome_metrics": [
+    "external cost per accepted patch",
+    "tokens per accepted character",
+    "context tokens per opened supporting citation",
+    "queries per successfully verified claim",
+    "transcription compute and corrections per usable minute",
+    "autocomplete latency/tokens per accepted character",
+    "local/cloud ratio by action"
+  ],
+  "references": [
+    "33_33-retrieval-local-execution-cost.md",
+    "34_34-local-execution-investigation-record.md",
+    "adr/ADR-008-operation-traces-execution-economics.md",
+    "https://github.com/open-telemetry/semantic-conventions-genai",
+    "https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/registry/attributes/gen-ai.md"
+  ]
+}

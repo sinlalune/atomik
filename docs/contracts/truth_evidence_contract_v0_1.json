@@ -1,0 +1,250 @@
+{
+  "version": "0.2",
+  "status": "foundational-contract",
+  "checked_at": "2026-06-23",
+  "decision": "Atomik distinguishes durable file authority from epistemic support and represents important claims with separate nature, evidence, verification, freshness, and workflow dimensions.",
+  "principles": [
+    "Files are the durable source of record; evidence determines epistemic support.",
+    "A citation proves traceability, not automatic correctness.",
+    "Human acceptance is editorial workflow state, not factual proof.",
+    "A universal scalar truth score is not the primary trust signal.",
+    "Unsupported claims remain visible as unsupported.",
+    "Interpretive, analogical, predictive, normative, and user-synthesis content must not silently appear as direct fact.",
+    "Optional machine sidecars may support precision but cannot hide material uncertainty, dispute, or missing evidence from human-readable files and UI.",
+    "Every correction is proposed as a reviewable durable patch.",
+    "ActionTrace records execution/cost/privacy/outcome and is not epistemic evidence by itself.",
+    "Verification events and response bundles link to cross-action traces rather than owning provider-only accounting."
+  ],
+  "claim_natures": [
+    "factual",
+    "measurement",
+    "scientific",
+    "historical",
+    "lexicographic",
+    "etymological",
+    "interpretive",
+    "analogical",
+    "predictive",
+    "normative",
+    "user-synthesis",
+    "procedural"
+  ],
+  "evidence_origins": [
+    "model-only",
+    "user-authored",
+    "local-source-backed",
+    "local-public-knowledge-backed",
+    "web-grounded",
+    "primary-source-backed",
+    "secondary-source-backed"
+  ],
+  "verification_states": [
+    "unchecked",
+    "source-linked",
+    "locally-verified",
+    "web-verified",
+    "cross-checked",
+    "partially-supported",
+    "contradicted",
+    "insufficient-evidence",
+    "disputed"
+  ],
+  "freshness_states": [
+    "stable-domain",
+    "current-as-of",
+    "stale",
+    "freshness-unknown",
+    "recheck-required"
+  ],
+  "workflow_states": [
+    "draft",
+    "needs-review",
+    "human-accepted",
+    "human-edited",
+    "superseded",
+    "rejected"
+  ],
+  "claim_record": {
+    "required": [
+      "id",
+      "statement",
+      "nature",
+      "authorship",
+      "evidence",
+      "verification_events",
+      "labels",
+      "lifecycle"
+    ],
+    "fields": {
+      "id": "stable string",
+      "statement": "human-readable claim text",
+      "normalized_statement": "optional retrieval/deduplication form; never replaces visible statement",
+      "nature": "open string, known values listed in claim_natures",
+      "scope": {
+        "subject": "optional",
+        "jurisdiction": "optional",
+        "population": "optional",
+        "language": "optional",
+        "time": "optional",
+        "qualifiers": "optional string array"
+      },
+      "authorship": {
+        "kind": "user | model | source-extract | mixed",
+        "actor": "optional",
+        "operation_id": "optional"
+      },
+      "evidence": "EvidenceRef[]",
+      "verification_events": "VerificationEventRef[]",
+      "labels": "composable string[]",
+      "uncertainty": "optional string[]",
+      "counterclaims": "optional ClaimRef[]",
+      "lifecycle": {
+        "status": "workflow state",
+        "created_at": "ISO timestamp",
+        "updated_at": "optional ISO timestamp",
+        "accepted_at": "optional ISO timestamp"
+      }
+    }
+  },
+  "evidence_record": {
+    "required": [
+      "id",
+      "source",
+      "role"
+    ],
+    "fields": {
+      "id": "stable string",
+      "source": {
+        "source_dossier_path": "optional local path",
+        "external_url": "optional URL",
+        "title": "optional",
+        "author_or_publisher": "optional",
+        "source_type": "optional",
+        "publication_date": "optional",
+        "accessed_at": "optional",
+        "version_or_revision": "optional",
+        "license": "optional"
+      },
+      "anchor": {
+        "kind": "heading | page | quote | time-range | image-region | dom | open string",
+        "value": "anchor value",
+        "quote_hash": "optional integrity hash"
+      },
+      "role": "supports | contradicts | qualifies | background | defines",
+      "source_class": "primary | secondary | tertiary | user-source | unknown",
+      "independence_group": "optional identifier for common upstream origin",
+      "notes": "optional string[]"
+    }
+  },
+  "verification_event": {
+    "required": [
+      "id",
+      "claim_id",
+      "method",
+      "performed_at",
+      "performed_by",
+      "result"
+    ],
+    "methods": [
+      "source-anchor-check",
+      "local-cross-check",
+      "web-search-grounding",
+      "primary-source-check",
+      "calculation",
+      "code-execution",
+      "human-review"
+    ],
+    "results": [
+      "supported",
+      "partially-supported",
+      "contradicted",
+      "insufficient",
+      "inconclusive"
+    ],
+    "fields": {
+      "evidence_added": "optional EvidenceRef[]",
+      "scope_checked": "optional",
+      "freshness_checked_at": "optional ISO timestamp",
+      "limitations": "optional string[]",
+      "cost": {
+        "input_tokens": "optional number",
+        "output_tokens": "optional number",
+        "web_queries": "optional number",
+        "estimated_currency": "optional string",
+        "estimated_amount": "optional number",
+        "status": "legacy compatibility; migrate to action_trace_ids + cost_summary"
+      },
+      "action_trace_ids": "optional string[] referencing operation_trace_contract_v0_1.json",
+      "cost_summary": {
+        "input_tokens": "optional denormalized number",
+        "output_tokens": "optional denormalized number",
+        "web_queries": "optional denormalized number",
+        "estimated_currency": "optional string",
+        "estimated_amount": "optional number",
+        "note": "ActionTrace is authoritative; this is a display/export summary."
+      }
+    }
+  },
+  "response_bundle_extension": {
+    "claims": "ClaimRecord[]",
+    "evidence": "EvidenceRecord[]",
+    "verification": "VerificationEvent[]",
+    "uncertainties": "UncertaintyRecord[]",
+    "provider_trace": "ProviderTrace[] compatibility only; provider calls become child ActionTrace records",
+    "patch_proposals": "PatchProposal[]",
+    "action_trace_ids": "string[]"
+  },
+  "persistence_profiles": {
+    "lightweight_note": [
+      "ordinary Markdown",
+      "optional citations",
+      "no mandatory durable claim ledger"
+    ],
+    "evidence_aware_note": [
+      "ordinary Markdown remains primary",
+      "important claims expose source/status",
+      "optional adjacent sidecar maps exact ranges/anchors"
+    ],
+    "promoted_claim": [
+      "stable claim ID",
+      "human-readable claim record",
+      "explicit evidence and verification history",
+      "suitable for graph projection"
+    ]
+  },
+  "validation_rules": [
+    "model-only and source-backed labels cannot both be asserted without an evidence transition record",
+    "source-backed claims require at least one inspectable EvidenceRecord",
+    "web-verified claims require a dated VerificationEvent",
+    "current-as-of claims require a date value",
+    "human-accepted cannot be converted into supported without evidence or a verification result",
+    "normative claims should expose a frame or rationale when presented as conclusions",
+    "interpretive claims should identify attribution or perspective when appropriate",
+    "contradicted/disputed claims must preserve counterevidence rather than silently deleting it",
+    "a citation anchor must resolve or be marked broken",
+    "source counts must not be treated as independence counts without independence_group analysis"
+  ],
+  "mvp_required_labels": [
+    "source-backed",
+    "model-only",
+    "needs-citation",
+    "web-checked",
+    "interpretive"
+  ],
+  "mvp_required_actions": [
+    "open evidence anchor",
+    "verify claim",
+    "challenge claim",
+    "preview repair patch",
+    "accept/edit/reject repair",
+    "inspect operation receipt"
+  ],
+  "references": [
+    "28_28-truth-evidence-model.md",
+    "31_31-truth-lens-ux.md",
+    "adr/ADR-004-claim-level-truth-evidence.md",
+    "33_33-retrieval-local-execution-cost.md",
+    "operation_trace_contract_v0_1.json",
+    "adr/ADR-008-operation-traces-execution-economics.md"
+  ]
+}
