@@ -1,8 +1,27 @@
+import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
+import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
-import { Compartment } from '@codemirror/state'
+import {
+  bracketMatching,
+  defaultHighlightStyle,
+  foldGutter,
+  foldKeymap,
+  indentOnInput,
+  syntaxHighlighting
+} from '@codemirror/language'
+import { highlightSelectionMatches, searchKeymap } from '@codemirror/search'
+import { Compartment, type Extension } from '@codemirror/state'
 import { oneDark } from '@codemirror/theme-one-dark'
-import { EditorView, keymap } from '@codemirror/view'
-import { basicSetup } from 'codemirror'
+import {
+  drawSelection,
+  dropCursor,
+  EditorView,
+  highlightActiveLine,
+  highlightActiveLineGutter,
+  highlightSpecialChars,
+  keymap,
+  lineNumbers
+} from '@codemirror/view'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { VaultNoteFile } from '../../../shared/ipc-contract'
 import type { NoteViewMode, SaveMode } from '../workspace/model'
@@ -12,6 +31,41 @@ import { ModeSwitch } from './ModeSwitch'
 
 /** Auto mode saves this long after the last keystroke. */
 const AUTOSAVE_DELAY_MS = 800
+
+/**
+ * The editor chrome is composed explicitly (basicSetup retired on
+ * MVP-001 follow-up feedback): both modes share the writing essentials;
+ * the IDE trimmings — line numbers, fold gutter, active-line highlight —
+ * belong to SOURCE mode only. Live is a clean writing surface.
+ */
+const SHARED_EXTENSIONS: Extension = [
+  highlightSpecialChars(),
+  history(),
+  drawSelection(),
+  dropCursor(),
+  indentOnInput(),
+  syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+  bracketMatching(),
+  closeBrackets(),
+  highlightSelectionMatches(),
+  keymap.of([
+    ...closeBracketsKeymap,
+    ...defaultKeymap,
+    ...searchKeymap,
+    ...historyKeymap,
+    ...foldKeymap
+  ])
+]
+
+const SOURCE_CHROME: Extension = [
+  lineNumbers(),
+  highlightActiveLineGutter(),
+  foldGutter(),
+  highlightActiveLine()
+]
+
+const modeExtensions = (mode: 'live' | 'source'): Extension =>
+  mode === 'live' ? livePreview() : SOURCE_CHROME
 
 export type EditorPaneProps = {
   note: VaultNoteFile
@@ -156,9 +210,7 @@ export function EditorPane({
     if (modeRef.current === mode) return
     modeRef.current = mode
     viewRef.current?.dispatch({
-      effects: previewCompartment.reconfigure(
-        mode === 'live' ? livePreview() : []
-      )
+      effects: previewCompartment.reconfigure(modeExtensions(mode))
     })
   }, [mode, previewCompartment])
 
@@ -173,10 +225,10 @@ export function EditorPane({
       doc: note.content,
       parent: host,
       extensions: [
-        basicSetup,
+        SHARED_EXTENSIONS,
         // GFM base: strikethrough/tables/task lists parse like they render.
         markdown({ base: markdownLanguage }),
-        previewCompartment.of(modeRef.current === 'live' ? livePreview() : []),
+        previewCompartment.of(modeExtensions(modeRef.current)),
         ...(prefersDark ? [oneDark] : []),
         EditorView.lineWrapping,
         keymap.of([

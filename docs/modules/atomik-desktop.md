@@ -385,11 +385,13 @@ electron ^43.0.0 · electron-vite ^5.0.0 (pairs with vite ^7) · vite ^7.3.6
 vitest ^3.2.7 (v4 needs vite 8) · react/react-dom ^19.2.x
 typescript ^6.0.3 · @types/node ^24 · markdown-it ^14.3.0 (added S03)
 zustand ^5.0.14 (added S04)
-codemirror ^6.0.2 · @codemirror/lang-markdown ^6.5.0 ·
-@codemirror/theme-one-dark (added S07) ·
-@codemirror/{language,state,view} declared explicitly since the
-live-preview extension imports them directly (they were already
-transitive; versions pinned to the installed ^6 line)
+@codemirror/lang-markdown ^6.5.0 · @codemirror/theme-one-dark (S07) ·
+@codemirror/{language,state,view,commands,search,autocomplete} +
+lang-{javascript,html,css} all declared explicitly — the `codemirror`
+meta-package (basicSetup) is RETIRED: the editor chrome is composed by
+hand so live mode can be gutter-free while source keeps the IDE
+trimmings (MVP-001 follow-up feedback); versions pin the installed ^6
+line
 ```
 
 Dev-environment note (WSL2 Ubuntu noble): Electron needs `libnss3`,
