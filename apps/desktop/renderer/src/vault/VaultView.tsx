@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { VaultFolder, VaultInfo } from '../../../shared/ipc-contract'
 import { EditorPane } from '../editor/EditorPane'
 import { ModeSwitch } from '../editor/ModeSwitch'
-import { SidebarToggleIcon } from '../icons'
+import { SidebarToggleIcon, VaultSwitchIcon } from '../icons'
 import { SearchResultsList } from '../search/SearchResultsList'
 import { useTreeSearch } from '../search/useTreeSearch'
 import { TreeResizeHandle } from '../TreeResizeHandle'
@@ -63,6 +63,7 @@ export function VaultView({
     setError,
     openNote,
     applySaved,
+    reset,
     lastRequested,
     onContentClick
   } = useVaultNote(onNoteOpened)
@@ -109,19 +110,30 @@ export function VaultView({
     )
   }, [refreshTree, setError])
 
+  // Vault switch (this view or any other): drop everything held from the
+  // previous vault. Stale tab params stay harmless — a dead notePath
+  // shows the picker prompt instead of the note.
+  useEffect(() => {
+    return window.atomik.onVaultChanged((vault) => {
+      setInfo(vault)
+      reset()
+      setEditorDirty(false)
+      setSearchQuery('')
+      setTree(null)
+      if (vault) void refreshTree()
+    })
+  }, [refreshTree, reset, setSearchQuery])
+
   useEffect(() => {
     if (info === 'loading' || info === null) return
     if (!notePath || lastRequested.current === notePath) return
     openNote(notePath)
   }, [notePath, info, openNote, lastRequested])
 
+  /** The picker; on success the vault-changed push refreshes every view. */
   const onOpenVault = useCallback(async () => {
-    const vault = await window.atomik.openVault()
-    if (vault) {
-      setInfo(vault)
-      await refreshTree()
-    }
-  }, [refreshTree])
+    await window.atomik.openVault()
+  }, [])
 
   const onCreate = useCallback(async () => {
     const name = draftName.trim()
@@ -170,6 +182,14 @@ export function VaultView({
           <div className="vault-head" title={info.root}>
             {info.name}
           </div>
+          <button
+            type="button"
+            className="tree-toggle"
+            title="Change vault folder…"
+            onClick={() => void onOpenVault()}
+          >
+            <VaultSwitchIcon />
+          </button>
           {onTreeToggle && (
             <button
               type="button"

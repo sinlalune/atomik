@@ -104,6 +104,24 @@ export function WindowCloseIcon(): React.JSX.Element {
   )
 }
 
+/** Folder with a swap arrow — "change the open vault". */
+export function VaultSwitchIcon(): React.JSX.Element {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.2"
+      aria-hidden="true"
+    >
+      <path d="M1.5 4.5a1 1 0 0 1 1-1h3l1.5 1.5h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-10.5a1 1 0 0 1-1-1z" />
+      <path d="M6.5 9.5h4.5m0 0-1.5-1.5m1.5 1.5-1.5 1.5" />
+    </svg>
+  )
+}
+
 /** Visibility toggle for the index/log files hidden behind their pills. */
 export function EyeIcon(): React.JSX.Element {
   return (

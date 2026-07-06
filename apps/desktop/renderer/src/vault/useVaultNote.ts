@@ -16,6 +16,8 @@ export function useVaultNote(onNoteOpened?: (relPath: string) => void): {
   openNote: (relPath: string) => void
   /** Syncs the held note after an editor save (content + fresh mtime). */
   applySaved: (content: string, mtimeMs: number) => void
+  /** Drops everything held from the current vault (vault switch). */
+  reset: () => void
   lastRequested: React.MutableRefObject<string | null>
   onContentClick: (event: React.MouseEvent<HTMLDivElement>) => void
 } {
@@ -51,6 +53,12 @@ export function useVaultNote(onNoteOpened?: (relPath: string) => void): {
     setNote((current) => (current ? { ...current, content, mtimeMs } : current))
   }, [])
 
+  const reset = useCallback(() => {
+    lastRequested.current = null
+    setNote(null)
+    setError(null)
+  }, [])
+
   const html = useMemo(
     () => (note ? md.render(stripFrontmatter(note.content)) : ''),
     [note, md]
@@ -79,6 +87,7 @@ export function useVaultNote(onNoteOpened?: (relPath: string) => void): {
     setError,
     openNote,
     applySaved,
+    reset,
     lastRequested,
     onContentClick
   }

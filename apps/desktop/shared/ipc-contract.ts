@@ -21,6 +21,9 @@ export const ATOMIK_CHANNELS = {
   readWorkspaceState: 'atomik:read-workspace-state',
   writeWorkspaceState: 'atomik:write-workspace-state',
   openVault: 'atomik:open-vault',
+  /** Push (main -> renderer): the open vault changed. Every mounted
+   *  vault-backed view must drop state from the previous vault. */
+  vaultChanged: 'atomik:vault-changed',
   getVault: 'atomik:get-vault',
   listVaultFiles: 'atomik:list-vault-files',
   searchVault: 'atomik:search-vault',
@@ -309,8 +312,11 @@ export type AtomikApi = {
   readWorkspaceState: () => Promise<WorkspaceState | null>
   /** Persists the layout; the main process validates shape and size. */
   writeWorkspaceState: (state: WorkspaceState) => Promise<void>
-  /** Native folder picker in main; null when cancelled. Remembered. */
+  /** Native folder picker in main; null when cancelled. Remembered.
+   *  A successful pick also broadcasts onVaultChanged. */
   openVault: () => Promise<VaultInfo | null>
+  /** Subscribes to vault switches; returns the unsubscribe. */
+  onVaultChanged: (listener: (vault: VaultInfo | null) => void) => () => void
   /** Currently open vault (restored across restarts); null when none. */
   getVault: () => Promise<VaultInfo | null>
   /** Markdown tree of the open vault (dot-dirs and node_modules skipped). */
@@ -362,6 +368,7 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'readWorkspaceState',
   'writeWorkspaceState',
   'openVault',
+  'onVaultChanged',
   'getVault',
   'listVaultFiles',
   'searchVault',

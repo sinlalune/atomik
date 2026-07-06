@@ -64,6 +64,7 @@ describe('preload surface (13 §IPC rule)', () => {
       onWindowStateChanged: (
         listener: (state: unknown) => void
       ) => () => void
+      onVaultChanged: (listener: (vault: unknown) => void) => () => void
       listDevDocs: () => Promise<unknown>
       readDevDoc: (relPath: string) => Promise<unknown>
       readWorkspaceState: () => Promise<unknown>
@@ -94,8 +95,8 @@ describe('preload surface (13 §IPC rule)', () => {
       'get-state'
     )
 
-    // The one push subscription: named channel, working unsubscribe, and
-    // the payload reaches the listener without the electron event object.
+    // Push subscriptions: named channel, working unsubscribe, and the
+    // payload reaches the listener without the electron event object.
     const received: unknown[] = []
     const unsubscribe = api.onWindowStateChanged((state) => received.push(state))
     expect(on).toHaveBeenCalledTimes(1)
@@ -107,6 +108,18 @@ describe('preload surface (13 §IPC rule)', () => {
     expect(removeListener).toHaveBeenCalledWith(
       ATOMIK_CHANNELS.windowStateChanged,
       wrapped
+    )
+
+    const vaults: unknown[] = []
+    const unsubscribeVault = api.onVaultChanged((vault) => vaults.push(vault))
+    const [vaultChannel, vaultWrapped] = on.mock.calls[1]!
+    expect(vaultChannel).toBe(ATOMIK_CHANNELS.vaultChanged)
+    vaultWrapped({ sender: 'electron-event' }, { root: '/v', name: 'v' })
+    expect(vaults).toEqual([{ root: '/v', name: 'v' }])
+    unsubscribeVault()
+    expect(removeListener).toHaveBeenLastCalledWith(
+      ATOMIK_CHANNELS.vaultChanged,
+      vaultWrapped
     )
 
     await api.listDevDocs()

@@ -5,6 +5,7 @@ import {
   type AiOperation,
   type AiTraceDecision,
   type AtomikApi,
+  type VaultInfo,
   type WindowControlAction,
   type WindowControlState,
   type WorkspaceState
@@ -36,6 +37,14 @@ const api: AtomikApi = {
   writeWorkspaceState: (state: WorkspaceState) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.writeWorkspaceState, state),
   openVault: () => ipcRenderer.invoke(ATOMIK_CHANNELS.openVault),
+  onVaultChanged: (listener: (vault: VaultInfo | null) => void) => {
+    const wrapped = (_event: unknown, vault: VaultInfo | null): void =>
+      listener(vault)
+    ipcRenderer.on(ATOMIK_CHANNELS.vaultChanged, wrapped)
+    return () => {
+      ipcRenderer.removeListener(ATOMIK_CHANNELS.vaultChanged, wrapped)
+    }
+  },
   getVault: () => ipcRenderer.invoke(ATOMIK_CHANNELS.getVault),
   listVaultFiles: () => ipcRenderer.invoke(ATOMIK_CHANNELS.listVaultFiles),
   searchVault: (query: string, scope?: string) =>

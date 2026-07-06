@@ -68,7 +68,7 @@ function restoreVault(stateDir: string): void {
 }
 
 function registerVaultHandlers(stateDir: string): void {
-  ipcMain.handle(ATOMIK_CHANNELS.openVault, async () => {
+  ipcMain.handle(ATOMIK_CHANNELS.openVault, async (event) => {
     const result = await dialog.showOpenDialog({
       title: 'Open vault folder',
       properties: ['openDirectory', 'createDirectory']
@@ -77,6 +77,10 @@ function registerVaultHandlers(stateDir: string): void {
     if (result.canceled || !chosen) return null
     vaultRoot = chosen
     persistLastVaultRoot(stateDir, chosen)
+    // Every mounted vault-backed view must drop previous-vault state
+    // (stale writes stay safe regardless: the mtime handshake refuses
+    // them against same-named files in the new vault).
+    event.sender.send(ATOMIK_CHANNELS.vaultChanged, vaultInfo())
     return vaultInfo()
   })
   ipcMain.handle(ATOMIK_CHANNELS.getVault, () => vaultInfo())

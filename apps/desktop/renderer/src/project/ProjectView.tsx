@@ -68,6 +68,7 @@ export function ProjectView({
 }: ProjectViewProps): React.JSX.Element {
   const [vault, setVault] = useState<VaultInfo | null | 'loading'>('loading')
   const [projects, setProjects] = useState<ProjectInfo[]>([])
+  const [projectsLoaded, setProjectsLoaded] = useState(false)
   const [tree, setTree] = useState<VaultFolder | null>(null)
   const [draftTitle, setDraftTitle] = useState('')
   const [draftNoteName, setDraftNoteName] = useState('')
@@ -89,6 +90,7 @@ export function ProjectView({
     setError,
     openNote,
     applySaved,
+    reset,
     lastRequested,
     onContentClick
   } = useVaultNote(onNoteOpened)
@@ -118,6 +120,7 @@ export function ProjectView({
     try {
       setProjects(await window.atomik.listProjects())
       setTree(await window.atomik.listVaultFiles())
+      setProjectsLoaded(true)
     } catch (reason) {
       setError(String(reason))
     }
@@ -136,13 +139,35 @@ export function ProjectView({
     )
   }, [refresh, setError])
 
+  // Vault switch: drop previous-vault state and re-list; a projectPath
+  // that does not exist in the new vault falls back to the picker below.
+  useEffect(() => {
+    return window.atomik.onVaultChanged((info) => {
+      setVault(info)
+      reset()
+      setEditorDirty(false)
+      setSearchQuery('')
+      setProjects([])
+      setProjectsLoaded(false)
+      setTree(null)
+      if (info) void refresh()
+    })
+  }, [refresh, reset, setSearchQuery])
+
+  /** The tab's bundle, only while it exists in the OPEN vault. */
+  const projectExists =
+    projectPath !== undefined &&
+    (!projectsLoaded ||
+      projects.some((project) => project.relPath === projectPath))
+
   // Restore / follow the tab's note; default to the bundle's index.md.
   useEffect(() => {
     if (vault === 'loading' || vault === null || !projectPath) return
+    if (!projectExists) return
     const target = notePath ?? `${projectPath}/index.md`
     if (lastRequested.current === target) return
     openNote(target)
-  }, [vault, projectPath, notePath, openNote, lastRequested])
+  }, [vault, projectPath, projectExists, notePath, openNote, lastRequested])
 
   const onCreateProject = useCallback(async () => {
     const title = draftTitle.trim()
@@ -188,7 +213,7 @@ export function ProjectView({
     )
   }
 
-  if (!projectPath) {
+  if (!projectPath || !projectExists) {
     return (
       <div className="vault-empty">
         <h2>Projects</h2>

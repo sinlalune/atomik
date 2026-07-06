@@ -38,9 +38,10 @@ timestamp: 2026-07-06T00:00:00Z
 - The renderer-facing API surface: `shared/ipc-contract.ts` is the single
   source of truth (`ATOMIK_API_KEY`, `ATOMIK_CHANNELS`, `AtomikApi`,
   `DOCUMENTED_PRELOAD_SURFACE`). Eighteen invoke channels exist today
-  (the AI trio is described in its own bullets below), plus one push
-  subscription (`onWindowStateChanged` over
-  `atomik:window-state-changed`): `window-control` (frame verbs for the
+  (the AI trio is described in its own bullets below), plus two push
+  subscriptions (`onWindowStateChanged` over
+  `atomik:window-state-changed`; `onVaultChanged` over
+  `atomik:vault-changed`): `window-control` (frame verbs for the
   chromeless window, allowlist-validated), docs tree + doc read +
   `search-dev-docs`, workspace state
   read/write (fixed path, validated payload), the vault family —
@@ -372,9 +373,15 @@ ATOMIK_SMOKE=1 ATOMIK_SMOKE_DOC=bedrock/22_22-agent-handoff.md \
 - Autosave SHIPPED as the default policy (MVP-001 feedback) on top of the
   unchanged mtime handshake; remaining seam: observing OS-level window
   close mid-debounce (quit flush) if it ever bites in practice.
-- Vault switching UI (owner-deferred "when necessary"): the channel
-  supports it; the view lacks the affordance, and mounted vault/project
-  views would need invalidation on switch.
+- Vault switching SHIPPED (owner called "necessary" during the MVP-001
+  follow-ups): a change-vault button in the vault tree-bar reuses the
+  S05 `open-vault` dialog; a successful pick broadcasts
+  `atomik:vault-changed` and every mounted vault/project view drops
+  previous-vault state (note buffers, trees, searches, project lists).
+  A tab whose `projectPath` does not exist in the new vault falls back
+  to the project picker; a stale `notePath` shows the selection prompt.
+  Safety came free: a stale editor flush against a same-named file in
+  the new vault is REFUSED by the mtime handshake.
 - Manifest `resources`/`pinned` stay empty until real membership needs
   arrive (S08+ patch destinations; 04).
 - Dev Docs later modes (16): agent/architecture/context/execution views,
