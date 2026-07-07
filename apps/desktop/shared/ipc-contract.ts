@@ -42,6 +42,7 @@ export const ATOMIK_CHANNELS = {
   transcribeSource: 'atomik:transcribe-source',
   addLocalCapture: 'atomik:add-local-capture',
   getCaptureUploadData: 'atomik:get-capture-upload-data',
+  openSourceExternally: 'atomik:open-source-externally',
   runAiOperation: 'atomik:run-ai-operation',
   resolveAiTrace: 'atomik:resolve-ai-trace',
   getAiTraceSummary: 'atomik:get-ai-trace-summary'
@@ -475,6 +476,9 @@ export type AtomikApi = {
   getCaptureUploadData: (
     uploadId: string
   ) => Promise<{ mimeType: string; base64: string }>
+  /** Opens a source ORIGINAL in the OS default player (WSLg audio
+   *  escape hatch); same validation as readSourceAsset. */
+  openSourceExternally: (relPath: string) => Promise<void>
   /** Mocked AI operation (S08): pure compute, never writes. */
   runAiOperation: (operation: AiOperation) => Promise<AiResponseBundle>
   /** Reports the user's decision; main appends the one trace line. */
@@ -514,6 +518,7 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'transcribeSource',
   'addLocalCapture',
   'getCaptureUploadData',
+  'openSourceExternally',
   'runAiOperation',
   'resolveAiTrace',
   'getAiTraceSummary'

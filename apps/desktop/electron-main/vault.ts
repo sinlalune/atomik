@@ -182,7 +182,8 @@ export function sourceAssetRotation(absAsset: string): number {
   }
 }
 
-export function readSourceAsset(vaultRoot: string, relPath: unknown): SourceAsset {
+/** Validated absolute path of a source asset (shared by read + open). */
+export function resolveSourceAssetAbs(vaultRoot: string, relPath: unknown): string {
   if (typeof relPath !== 'string') throw new Error('vault: rejected path')
   if (relPath.length === 0 || relPath.length > MAX_PATH_LENGTH) {
     throw new Error('vault: rejected path')
@@ -204,10 +205,16 @@ export function readSourceAsset(vaultRoot: string, relPath: unknown): SourceAsse
     throw new Error(`vault: asset not found in this vault — ${relPath}`)
   }
   assertInsideVault(vaultRoot, abs)
+  return abs
+}
+
+export function readSourceAsset(vaultRoot: string, relPath: unknown): SourceAsset {
+  const abs = resolveSourceAssetAbs(vaultRoot, relPath)
   const stat = statSync(abs)
   if (stat.size > MAX_ASSET_BYTES) throw new Error('vault: asset too large')
+  const mimeType = SOURCE_ASSET_EXTENSIONS[extname(abs).toLowerCase()]!
   return {
-    relPath,
+    relPath: relPath as string,
     mimeType,
     base64: readFileSync(abs).toString('base64'),
     rotation: sourceAssetRotation(abs)

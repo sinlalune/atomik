@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, session } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, session, shell } from 'electron'
 import { mkdtempSync, statSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -25,6 +25,7 @@ import {
   readLastVaultRoot,
   readNote,
   readSourceAsset,
+  resolveSourceAssetAbs,
   writeNote
 } from './vault'
 import {
@@ -54,7 +55,7 @@ if (process.platform === 'linux') {
   // 2026-07-07). 8× buffers ride over the bridge's hiccups — playback
   // verified smooth to the end with this switch alone.
   if (process.env['WSL_DISTRO_NAME']) {
-    app.commandLine.appendSwitch('audio-buffer-size', '8192')
+    app.commandLine.appendSwitch('audio-buffer-size', '16384')
   }
 }
 
@@ -122,6 +123,16 @@ function registerVaultHandlers(stateDir: string): void {
   )
   ipcMain.handle(ATOMIK_CHANNELS.readSourceAsset, (_event, relPath: unknown) =>
     readSourceAsset(requireVault(), relPath)
+  )
+  // Escape hatch for WSLg's capricious audio output: hand the ORIGINAL
+  // to the OS default player. Same validation as the asset read.
+  ipcMain.handle(
+    ATOMIK_CHANNELS.openSourceExternally,
+    async (_event, relPath: unknown) => {
+      const asset = resolveSourceAssetAbs(requireVault(), relPath)
+      const outcome = await shell.openPath(asset)
+      if (outcome) throw new Error(`open externally: ${outcome}`)
+    }
   )
   ipcMain.handle(
     ATOMIK_CHANNELS.writeNote,

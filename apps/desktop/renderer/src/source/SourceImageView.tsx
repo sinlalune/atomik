@@ -46,6 +46,7 @@ export function SourceImageView({
   )
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [imageError, setImageError] = useState<string | null>(null)
+  const [assetRel, setAssetRel] = useState<string | null>(null)
 
   useEffect(() => {
     if (dossierPath) openNote(dossierPath)
@@ -75,6 +76,7 @@ export function SourceImageView({
       setImageError(`unresolvable resource path — ${resource}`)
       return
     }
+    setAssetRel(rel)
     let cancelled = false
     window.atomik.readSourceAsset(rel).then(
       (asset) => {
@@ -206,7 +208,19 @@ export function SourceImageView({
         )}
         {imageUrl && isAudio && (
           // The audio companion (S08): the original plays, untouched.
-          <audio controls src={imageUrl} />
+          <div className="capture-recording-status">
+            <audio controls src={imageUrl} />
+            <button
+              type="button"
+              className="note-bar-button"
+              title="Lecture via le lecteur système (contourne l'audio WSLg)"
+              onClick={() => {
+                if (assetRel) void window.atomik.openSourceExternally(assetRel)
+              }}
+            >
+              Ouvrir en externe
+            </button>
+          </div>
         )}
         {imageUrl && !isAudio && (
           <img src={imageUrl} alt={`Original of ${dossierPath}`} />
