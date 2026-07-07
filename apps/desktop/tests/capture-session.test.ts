@@ -37,6 +37,9 @@ function makeManager(options: Partial<CaptureSessionOptions> = {}): CaptureSessi
   manager = new CaptureSessionManager({
     inboxRoot,
     host: '127.0.0.1',
+    // Ephemeral in tests: suites must not race each other (or the owner's
+    // live app) for the stable default port.
+    port: 0,
     now: () => nowMs,
     ...options
   })
@@ -255,6 +258,31 @@ describe('capture session server (S02, 08/13 §capture)', () => {
     manager!.resolveUpload(uploadId, 'discarded')
     expect(readdirSync(join(inboxRoot, session.id))).toEqual([])
     expect(manager!.inspect()!.uploads[0]!.resolution).toBe('discarded')
+  })
+
+  it('binds the requested stable port (one firewall rule suffices)', async () => {
+    const port = 42000 + Math.floor(Math.random() * 1000)
+    const session = await makeManager({ port }).start()
+    expect(new URL(session.uploadUrl).port).toBe(String(port))
+    expect((await fetch(session.uploadUrl)).status).toBe(200)
+  })
+
+  it('falls back to an ephemeral port when the stable one is taken', async () => {
+    const port = 43000 + Math.floor(Math.random() * 1000)
+    const blocker = await makeManager({ port }).start()
+    const second = new CaptureSessionManager({
+      inboxRoot: mkdtempSync(join(tmpdir(), 'atomik-capture-inbox2-')),
+      host: '127.0.0.1',
+      port
+    })
+    try {
+      const session = await second.start()
+      expect(new URL(session.uploadUrl).port).not.toBe(String(port))
+      expect((await fetch(session.uploadUrl)).status).toBe(200)
+      expect((await fetch(blocker.uploadUrl)).status).toBe(200)
+    } finally {
+      await second.dispose()
+    }
   })
 })
 

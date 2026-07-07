@@ -451,8 +451,14 @@ app.whenReady().then(() => {
   }
   const stateDir = resolveStateDir(app.getAppPath(), process.env)
   traces = new ActionTraceLedger(stateDir)
+  const capturePort = Number(process.env['ATOMIK_CAPTURE_PORT'])
   capture = new CaptureSessionManager({
-    inboxRoot: join(stateDir, 'capture-inbox')
+    inboxRoot: join(stateDir, 'capture-inbox'),
+    // Stable default port so ONE firewall rule suffices (WSL2 mirrored
+    // networking finding); env overrides, garbage is ignored.
+    ...(Number.isInteger(capturePort) && capturePort >= 0 && capturePort <= 65535
+      ? { port: capturePort }
+      : {})
   })
   app.on('before-quit', () => {
     traces.flush()

@@ -156,7 +156,11 @@ timestamp: 2026-07-06T00:00:00Z
   + one-time token (the token IS the QR capability, carried in
   `uploadUrl`), `stop`/expiry (5 min default)/app-quit invalidate it, and
   the server listens ONLY while a session is active — no port stays open
-  between sessions; a new `start` kills the previous token. Uploads pass
+  between sessions; a new `start` kills the previous token. The port is
+  STABLE by default (`DEFAULT_CAPTURE_PORT` 41414, `ATOMIK_CAPTURE_PORT`
+  overrides; taken port → ephemeral fallback): a random port per session
+  would defeat any targeted firewall rule (WSL2 mirrored-networking
+  finding, owner dogfooding). Uploads pass
   four gates below the renderer: token (timing-safe compare), size cap
   (Content-Length early + streamed count, 25 MB default), declared-MIME
   allowlist (jpeg/png/webp/heic/heif), and magic-byte validation of the
@@ -190,9 +194,20 @@ timestamp: 2026-07-06T00:00:00Z
   validator as project folders (`resolveProjectDirPath`); each inbox
   item is decided exactly ONCE (`getUpload`/`resolveUpload`; both
   decisions clear the inbox files, imports record `importedTo`).
-  Known environment limit: under WSL2 the LAN address is NAT'd — a phone
-  cannot reach it without Windows port-forwarding or WSL2 mirrored
-  networking mode (`networkingMode=mirrored` in `.wslconfig`).
+  WSL2 phone-reachability runbook (owner-walked 2026-07-07): (1)
+  `networkingMode=mirrored` under `[wsl2]` in `%UserProfile%\.wslconfig`
+  + `wsl --shutdown` — WSL then shares the Windows LAN address
+  (verified: `detectLanHost` picks the real `192.168.x.x`, and prefers
+  it over VPN interfaces only by enumeration order — revisit if a VPN
+  interface ever enumerates first); (2) the Hyper-V firewall still
+  blocks INBOUND LAN connections to WSL listeners by default — allow the
+  capture port once, admin PowerShell:
+  `New-NetFirewallHyperVRule -DisplayName "atomik capture" -Direction
+  Inbound -VMCreatorId '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}'
+  -Protocol TCP -LocalPorts 41414 -Action Allow` (that GUID is WSL's
+  VM-creator id; on setups without the HyperV cmdlets use plain
+  `New-NetFirewallRule ... -LocalPort 41414`); (3) phone on the same
+  Wi-Fi, no AP isolation, phone-side VPN off.
 - Project bundles (04, S06): `electron-main/project.ts` (incubating
   project-core, 14) — manifest-detected bundles
   (`project.atomik-project.json`; scan skips denied dirs and does not

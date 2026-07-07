@@ -33,6 +33,16 @@ const DEFAULT_TTL_MS = 5 * 60_000
 const DEFAULT_MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 const DEFAULT_MAX_UPLOADS = 20
 
+/**
+ * STABLE default port (owner dogfooding, WSL2 mirrored networking): a
+ * random ephemeral port per session means no targeted firewall rule can
+ * ever match — the owner would have to allow ALL inbound to WSL. With a
+ * fixed default, one rule opens exactly one port once. If the port is
+ * taken, the server falls back to an ephemeral one (the QR still works;
+ * only the firewall convenience is lost). ATOMIK_CAPTURE_PORT overrides.
+ */
+export const DEFAULT_CAPTURE_PORT = 41414
+
 /** Declared MIME → file extension + magic-byte check ("content validation
  *  after upload", 08). A type uploads only if BOTH gates pass. */
 const CAPTURE_MIME_ALLOWLIST: Record<
@@ -102,7 +112,8 @@ export type CaptureSessionOptions = {
   inboxRoot: string
   /** Bind address override (tests use loopback); default: detected LAN. */
   host?: string
-  /** Port override; default 0 = ephemeral. */
+  /** Port override; default DEFAULT_CAPTURE_PORT, falling back to an
+   *  ephemeral port when taken. 0 = always ephemeral. */
   port?: number
   ttlMs?: number
   maxUploadBytes?: number
@@ -251,10 +262,14 @@ export class CaptureSessionManager {
     const server = createServer((req, res) => {
       void this.handle(req, res)
     })
-    await new Promise<void>((resolve, reject) => {
-      server.once('error', reject)
-      server.listen(this.options.port ?? 0, host, () => resolve())
-    })
+    const preferred = this.options.port ?? DEFAULT_CAPTURE_PORT
+    try {
+      await listenOnce(server, preferred, host)
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code
+      if (code !== 'EADDRINUSE' || preferred === 0) throw error
+      await listenOnce(server, 0, host)
+    }
     this.boundHost = host
     this.boundPort = (server.address() as AddressInfo).port
     this.server = server
@@ -352,6 +367,17 @@ export class CaptureSessionManager {
     res.writeHead(200, { 'content-type': 'application/json' })
     res.end(JSON.stringify({ ok: true, uploadId }))
   }
+}
+
+function listenOnce(server: Server, port: number, host: string): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const onError = (error: Error): void => reject(error)
+    server.once('error', onError)
+    server.listen(port, host, () => {
+      server.removeListener('error', onError)
+      resolve()
+    })
+  })
 }
 
 function reject(res: ServerResponse, status: number): void {

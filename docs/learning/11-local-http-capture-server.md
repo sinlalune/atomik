@@ -157,11 +157,16 @@ IPv4), `now` (a fake clock makes "5 minutes later" a one-line assignment),
 keep: make time and environment CONSTRUCTOR inputs, then test the real
 thing.
 
-One environment fact recorded for dogfooding: under WSL2 the detected
-LAN address is NAT'd — a phone on the house Wi-Fi cannot reach it unless
-Windows forwards the port or WSL2 runs in mirrored networking mode. The
-code is correct; the network path needs owner-side setup (S03 will hit
-this first).
+One environment lesson, walked for real on the owner's machine: under
+WSL2 the detected LAN address is NAT'd, so the phone needs
+`networkingMode=mirrored` (WSL then shares the Windows LAN address) AND
+a Hyper-V firewall rule — mirrored mode still blocks inbound LAN
+connections to WSL listeners by default. That firewall need forced a
+DESIGN change: the server's port is now stable by default
+(`DEFAULT_CAPTURE_PORT` 41414, ephemeral fallback when taken) because a
+random port per session can never match a targeted firewall rule. When
+an environment constraint reshapes code, record both together — the
+module note carries the full runbook.
 
 ## 6. Exercises
 
