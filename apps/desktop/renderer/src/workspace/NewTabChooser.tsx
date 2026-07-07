@@ -6,6 +6,7 @@
 const OPTIONS: ReadonlyArray<{ view: string; label: string; hint: string }> = [
   { view: 'project', label: 'Project', hint: 'work inside a project bundle' },
   { view: 'vault', label: 'Vault', hint: 'browse and edit the whole vault' },
+  { view: 'capture', label: 'Capture', hint: 'photograph notes with your phone' },
   { view: 'dev-docs', label: 'Dev Docs', hint: 'read the documentation corpus' }
 ]
 

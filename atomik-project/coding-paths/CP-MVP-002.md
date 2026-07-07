@@ -7,7 +7,7 @@ timestamp: 2026-07-06T00:00:00Z
 atomik:
   id: CP-MVP-002
   status: active
-  current_step: S03
+  current_step: S04
   base_commit: 09e2e38
 ---
 
@@ -120,7 +120,7 @@ once. 13 appears twice by design (Required + re-read triggers).
       LAN interface, one-time expiring session tokens, size + MIME
       allowlists, temporary inbox under the state dir (NOT the vault);
       typed channels to start/stop/inspect a session (13 §IPC re-read).
-- [ ] S03 QR display + minimal phone upload page (file input with
+- [x] S03 QR display + minimal phone upload page (file input with
       `capture` hint degrading to picker; works for image/*).
 - [ ] S04 Desktop confirmation flow → explicit import: inbox item →
       `sources/captures/<date-slug>/` with `original.*`, `source.md`,
@@ -186,11 +186,33 @@ head        : 09fbe7a — 21 pre-S02 dogfooding micro-units committed
               world). Known environment limit for S03: WSL2 NATs the LAN
               address — phone reachability needs Windows port-forwarding
               or WSL2 mirrored networking; validate on the owner's setup.
-tests       : 151 passing / 17 suites; typecheck + build + smoke
-              (capture=ok) green
-next action : S03 — QR display + minimal phone upload page (file input
-              with `capture` hint degrading to picker, works for image/*);
-              read 03 first if a new tab kind is touched
+              S03 done 2026-07-07 (03 re-read for the new tab kind):
+              the phone page is real — self-contained HTML from
+              `capturePage()` (one `<input type="file" accept="image/*"
+              capture="environment">`, camera hint degrading to picker;
+              fetch-POST of the raw file with the sanitized-name header;
+              extension fallback for empty picker MIME; human messages
+              per status; upload URL derived from the page's own address,
+              token never embedded twice). Desktop: new `capture` tab
+              kind in the chooser — `CaptureView` starts/stops the
+              session, renders the QR renderer-side (`qrcode` ^1.5.4, new
+              dep + @types; the URL is a display capability, not a secret
+              from the user), counts down expiry, polls the inbox (2 s)
+              and lists received uploads with an "import arrives at S04"
+              note. Smoke's capture proof now drives the real tab when a
+              fixture mounts one (start → img.capture-qr; qr-rendered
+              verified with screenshot — the QR/URL show the WSL2 NAT
+              address, so the reachability caveat stands for owner
+              testing).
+tests       : 161 passing / 17 suites; typecheck + build + smoke
+              (capture=ok:...qr-rendered) green
+next action : S04 — desktop confirmation flow → explicit import: inbox
+              item → sources/captures/<date-slug>/ with original.*,
+              source.md, index.md per 07/08 (ensure/wx semantics; no
+              silent vault writes)
+              owner validation pending on S02+S03: real phone upload on
+              the owner's network (WSL2 NAT: needs mirrored networking
+              or a port forward)
 blockers    : none (note: owner dogfooding files remain untracked by choice —
               atomik-project/projects/test/*, atomik-project/test/,
               docs/projects/test/ — keep/clean stays with the owner; the

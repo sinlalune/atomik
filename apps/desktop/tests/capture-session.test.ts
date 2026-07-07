@@ -3,11 +3,13 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
+  capturePage,
   CaptureSessionManager,
   detectLanHost,
   sanitizeClientFileName,
   type CaptureSessionOptions
 } from '../electron-main/capture-session'
+import { formatBytes, formatRemaining } from '../renderer/src/capture/format'
 
 /**
  * S02: every 13 §capture requirement is exercised against the REAL HTTP
@@ -82,6 +84,24 @@ describe('capture session server (S02, 08/13 §capture)', () => {
     expect(await ok.text()).toContain('atomik capture')
     const bad = await fetch(session.uploadUrl.replace(/t=.*$/, `t=${'0'.repeat(32)}`))
     expect(bad.status).toBe(403)
+  })
+
+  it('phone page: camera-hinted image input degrading to a picker, posting to /u/ (S03)', () => {
+    const page = capturePage()
+    // One ordinary file input carries the whole flow: `capture` is a HINT
+    // (camera where supported, regular picker elsewhere), accept scopes it.
+    expect(page).toContain('type="file"')
+    expect(page).toContain('accept="image/*"')
+    expect(page).toContain('capture="environment"')
+    // The upload URL is derived from the page's own address (token kept,
+    // never embedded a second time), and the client name travels as the
+    // display-metadata header the server sanitizes.
+    expect(page).toContain("location.href.replace('/c/', '/u/')")
+    expect(page).toContain('x-atomik-filename')
+    // Empty picker MIME falls back to the extension before the server gates.
+    expect(page).toContain("'image/heic'")
+    // Self-contained: nothing loads from anywhere else.
+    expect(page).not.toMatch(/src="http|href="http/)
   })
 
   it('accepts a valid upload: bytes land in the inbox byte-exact, with a meta sidecar', async () => {
@@ -219,6 +239,21 @@ describe('sanitizeClientFileName', () => {
     expect(sanitizeClientFileName('///', 'capture.jpg')).toBe('capture.jpg')
     expect(sanitizeClientFileName(undefined, 'capture.jpg')).toBe('capture.jpg')
     expect(sanitizeClientFileName('日本語のみ', 'capture.jpg')).toBe('capture.jpg')
+  })
+})
+
+describe('capture view formatting', () => {
+  it('formats the remaining session time as m:ss, never negative', () => {
+    expect(formatRemaining(1_000_000 + 5 * 60_000, 1_000_000)).toBe('5:00')
+    expect(formatRemaining(1_000_000 + 61_000, 1_000_000)).toBe('1:01')
+    expect(formatRemaining(1_000_000 + 900, 1_000_000)).toBe('0:01')
+    expect(formatRemaining(1_000_000, 1_000_000 + 1)).toBe('0:00')
+  })
+
+  it('formats byte counts for humans', () => {
+    expect(formatBytes(512)).toBe('512 B')
+    expect(formatBytes(2048)).toBe('2 KB')
+    expect(formatBytes(3 * 1024 * 1024 + 200_000)).toBe('3.2 MB')
   })
 })
 

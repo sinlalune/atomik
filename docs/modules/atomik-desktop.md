@@ -165,10 +165,21 @@ timestamp: 2026-07-06T00:00:00Z
   `.meta.json` sidecar) — never the vault; the inbox→vault import is
   S04's explicitly confirmed step in main. Client file names are display
   metadata only (sanitized); names on disk are server-chosen. Auth
-  failures are a uniform 403 (no id/token/expiry oracle). Known
-  environment limit: under WSL2 the LAN address is NAT'd — a phone
+  failures are a uniform 403 (no id/token/expiry oracle). The phone page
+  (S03) is a self-contained HTML string served by the same endpoint —
+  one `<input type="file" accept="image/*" capture="environment">` (the
+  `capture` hint opens the camera where supported and DEGRADES to the
+  ordinary picker elsewhere), fetch-POST of the raw file, extension
+  fallback for pickers that hand over an empty MIME, human messages per
+  status code; it derives its upload URL from its own address
+  (`/c/` → `/u/`, token kept). The desktop side is the `capture` tab
+  kind (03; `renderer/src/capture/CaptureView.tsx`): start/stop session,
+  QR of `uploadUrl` (qrcode lib, rendered renderer-side — the URL is a
+  display capability, not a secret from the user), live countdown +
+  2 s inbox polling over `get-capture-session`, received-uploads list.
+  Known environment limit: under WSL2 the LAN address is NAT'd — a phone
   cannot reach it without Windows port-forwarding or WSL2 mirrored
-  networking mode; to be validated in the owner's environment at S03.
+  networking mode (`networkingMode=mirrored` in `.wslconfig`).
 - Project bundles (04, S06): `electron-main/project.ts` (incubating
   project-core, 14) — manifest-detected bundles
   (`project.atomik-project.json`; scan skips denied dirs and does not
@@ -373,7 +384,11 @@ case-insensitivity, denylist, caps, query validation),
 forged/expired/stopped, one-time token across restarts, size cap, MIME
 allowlist + magic-byte mismatch, upload cap, byte-exact inbox writes +
 meta sidecars, endpoint closed outside sessions, file-name sanitation,
-LAN-host detection). The S11
+LAN-host detection, the phone page's input/degrade/URL-derivation
+contract, and the capture view's pure formatting). The smoke's capture
+proof also drives the REAL capture tab when a state fixture mounts one
+(start button → `img.capture-qr` rendered; `qr-rendered` in the
+marker). The S11
 acceptance run and its per-line evidence live in
 `atomik-project/sessions/2026-07-06-s11-acceptance-run.md`. The
 CodeMirror typing/save flow and the AiPanel interaction flow are
@@ -450,6 +465,8 @@ electron ^43.0.0 · electron-vite ^5.0.0 (pairs with vite ^7) · vite ^7.3.6
 vitest ^3.2.7 (v4 needs vite 8) · react/react-dom ^19.2.x
 typescript ^6.0.3 · @types/node ^24 · markdown-it ^14.3.0 (added S03)
 zustand ^5.0.14 (added S04)
+qrcode ^1.5.4 + @types/qrcode ^1.5.6 (added CP-MVP-002 S03; browser
+build renders the capture QR renderer-side via toDataURL)
 @codemirror/lang-markdown ^6.5.0 · @codemirror/theme-one-dark (S07) ·
 @codemirror/{language,state,view,commands,search,autocomplete} +
 lang-{javascript,html,css} all declared explicitly — the `codemirror`

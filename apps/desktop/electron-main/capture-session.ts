@@ -321,19 +321,83 @@ function reject(res: ServerResponse, status: number): void {
   res.end(JSON.stringify({ error: 'capture: request rejected' }))
 }
 
-/** S02 placeholder: proves phone reachability. The real upload page (file
- *  input with capture hint, degrade to picker) is S03's step. */
-function capturePage(): string {
+/**
+ * The phone upload page (S03, 08 §Phone page input). Self-contained HTML —
+ * no framework, no external assets (the phone only ever talks to this one
+ * endpoint). `capture="environment"` opens the camera where supported and
+ * DEGRADES to the ordinary file picker elsewhere (the input works either
+ * way); `accept="image/*"` scopes the picker. The page derives its upload
+ * URL from its own address (`/c/` → `/u/`, token kept), so the token is
+ * never embedded twice. Some pickers hand over files with an empty MIME —
+ * the page falls back to the extension before the server's two gates.
+ * Exported for tests.
+ */
+export function capturePage(): string {
   return `<!doctype html>
 <html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>atomik capture</title>
+<style>
+  :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+  body { margin: 0; padding: 1.2rem; display: flex; flex-direction: column; gap: 1rem; align-items: center; }
+  h1 { font-size: 1.1rem; font-weight: 600; margin: 0.5rem 0 0; }
+  p { margin: 0; opacity: 0.7; font-size: 0.9rem; text-align: center; }
+  label.take {
+    display: block; text-align: center; padding: 1.1rem 2rem; border-radius: 12px;
+    border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+    font-size: 1.05rem; cursor: pointer; width: 100%; max-width: 22rem; box-sizing: border-box;
+  }
+  input[type=file] { display: none; }
+  ul { list-style: none; margin: 0; padding: 0; width: 100%; max-width: 22rem; }
+  li { font-size: 0.9rem; padding: 0.45rem 0.2rem; border-bottom: 1px solid color-mix(in srgb, currentColor 15%, transparent); }
+  li.err { color: #c0392b; }
+</style>
 </head>
 <body>
 <h1>atomik capture</h1>
-<p>Session active — this phone can reach the desktop. The upload page arrives with the next step.</p>
+<p>Take a photo or pick one — it lands on your desktop for review. Nothing enters the vault without confirmation there.</p>
+<label class="take">Take / choose photo
+  <input id="file" type="file" accept="image/*" capture="environment">
+</label>
+<ul id="done"></ul>
+<script>
+  var input = document.getElementById('file')
+  var done = document.getElementById('done')
+  var uploadUrl = location.href.replace('/c/', '/u/')
+  var extMime = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+                  webp: 'image/webp', heic: 'image/heic', heif: 'image/heif' }
+  function report (name, text, isError) {
+    var li = document.createElement('li')
+    li.textContent = name + ' — ' + text
+    if (isError) li.className = 'err'
+    done.prepend(li)
+  }
+  function mimeOf (file) {
+    if (file.type) return file.type
+    var ext = (file.name.split('.').pop() || '').toLowerCase()
+    return extMime[ext] || ''
+  }
+  input.addEventListener('change', function () {
+    var file = input.files && input.files[0]
+    if (!file) return
+    input.value = ''
+    fetch(uploadUrl, {
+      method: 'POST',
+      headers: { 'content-type': mimeOf(file), 'x-atomik-filename': file.name },
+      body: file
+    }).then(function (res) {
+      if (res.ok) return report(file.name, 'uploaded', false)
+      if (res.status === 413) return report(file.name, 'too large', true)
+      if (res.status === 415) return report(file.name, 'not an accepted image type', true)
+      if (res.status === 429) return report(file.name, 'session is full', true)
+      report(file.name, 'refused — session may have expired', true)
+    }).catch(function () {
+      report(file.name, 'network error — is the desktop still on?', true)
+    })
+  })
+</script>
 </body>
 </html>
 `

@@ -367,7 +367,8 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
     }
     // Optional capture proof: session lifecycle through the renderer world
     // (S02). The HTTP surface itself is covered by unit tests; this checks
-    // the typed channels end to end.
+    // the typed channels end to end. When a capture tab is mounted (state
+    // fixture), it also drives the REAL UI: start button → QR rendered.
     if (process.env['ATOMIK_SMOKE_CAPTURE'] === '1') {
       const outcome = (await window.webContents.executeJavaScript(
         `(async () => {
@@ -377,7 +378,17 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
             const seen = await window.atomik.getCaptureSession()
             await window.atomik.stopCaptureSession()
             const after = await window.atomik.getCaptureSession()
-            return 'ok:' + [session.active, urlOk, seen && seen.id === session.id, after && !after.active].join('/')
+            let ui = 'no-panel'
+            const startButton = document.querySelector('.capture-actions button')
+            if (startButton) {
+              startButton.click()
+              const deadline = Date.now() + 5000
+              while (Date.now() < deadline && !document.querySelector('img.capture-qr')) {
+                await new Promise((r) => setTimeout(r, 100))
+              }
+              ui = document.querySelector('img.capture-qr') ? 'qr-rendered' : 'qr-missing'
+            }
+            return 'ok:' + [session.active, urlOk, seen && seen.id === session.id, after && !after.active, ui].join('/')
           } catch (e) { return 'fail:' + String(e) }
         })()`
       )) as string

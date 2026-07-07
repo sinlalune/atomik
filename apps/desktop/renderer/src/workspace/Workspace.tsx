@@ -4,6 +4,7 @@ import type {
   WorkspaceState,
   WorkspaceTab
 } from '../../../shared/ipc-contract'
+import { CaptureView } from '../capture/CaptureView'
 import { DevDocs } from '../dev-docs/DevDocs'
 import { ProjectView } from '../project/ProjectView'
 import { ThemePicker } from '../ThemePicker'
@@ -38,6 +39,7 @@ const TAB_LABELS: Record<string, string> = {
   'dev-docs': 'Dev Docs',
   vault: 'Vault',
   project: 'Project',
+  capture: 'Capture',
   new: 'New tab'
 }
 
@@ -128,6 +130,9 @@ function TabContent({
         onSaveModeToggle={onSaveModeToggle}
       />
     )
+  }
+  if (tab.view === 'capture') {
+    return <CaptureView />
   }
   if (tab.view === 'project') {
     return (

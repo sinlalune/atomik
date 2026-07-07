@@ -12,9 +12,9 @@ timestamp: 2026-07-07T00:00:00Z
 from the main process, capability tokens, and validating file content
 instead of trusting labels.
 
-**Scope.** CP-MVP-002 S02: `electron-main/capture-session.ts` and its
-tests. The QR display and phone page are S03; the inbox→vault import is
-S04.
+**Scope.** CP-MVP-002 S02–S03: `electron-main/capture-session.ts`, the
+phone page it serves, and `renderer/src/capture/CaptureView.tsx`. The
+inbox→vault import is S04.
 
 ## 1. A web server without a framework
 
@@ -106,6 +106,35 @@ S04 confirm    -> sources/captures/...   (canonical, versioned)
 
 The server also listens ONLY while a session is active: `start()` opens
 the port, `stop()`/expiry/quit close it. No idle attack surface.
+
+## 4b. The QR and the page (S03)
+
+The desktop's `capture` tab renders `uploadUrl` as a QR with the
+`qrcode` library — in the RENDERER, which is fine precisely because the
+token is not a secret *from the user*: the QR is how the user hands the
+capability to their own phone, like showing someone a ticket. Contrast
+with provider keys, which never enter the renderer (13) because the
+user displaying them to a phone is not part of any flow.
+
+The phone page is one HTML string in `capturePage()` — no framework, no
+external assets (the phone talks to exactly one endpoint, so nothing
+else may load). Three details worth stealing:
+
+```text
+capture="environment"  a HINT: camera where supported, and the SAME
+                       input silently degrades to a file picker — one
+                       code path, no capability sniffing
+/c/ -> /u/             the page derives its upload URL from its own
+                       address, so the token exists in one place only
+extension fallback     some pickers hand over files with an empty MIME;
+                       the page guesses from the extension, and the
+                       server's magic-byte gate still has the last word
+```
+
+Note what the page does NOT do: it never sees vault paths, session
+lists, or anything beyond "this one session accepts images". The phone
+is treated like any untrusted client — the page is convenience, the
+server is the boundary.
 
 ## 5. Methodology: testing a real server
 
