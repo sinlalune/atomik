@@ -5,6 +5,7 @@ import {
   type AiOperation,
   type AiTraceDecision,
   type AtomikApi,
+  type CaptureImportDestination,
   type VaultInfo,
   type WindowControlAction,
   type WindowControlState,
@@ -71,6 +72,10 @@ const api: AtomikApi = {
     ipcRenderer.invoke(ATOMIK_CHANNELS.stopCaptureSession),
   getCaptureSession: () =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.getCaptureSession),
+  importCaptureUpload: (uploadId: string, destination: CaptureImportDestination) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.importCaptureUpload, uploadId, destination),
+  discardCaptureUpload: (uploadId: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.discardCaptureUpload, uploadId),
   runAiOperation: (operation: AiOperation) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.runAiOperation, operation),
   resolveAiTrace: (bundleId: string, decision: AiTraceDecision) =>

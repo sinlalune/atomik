@@ -224,6 +224,38 @@ describe('capture session server (S02, 08/13 §capture)', () => {
   it('inspect() is null before any session', () => {
     expect(makeManager().inspect()).toBeNull()
   })
+
+  it('getUpload/resolveUpload: each inbox item is decided exactly once', async () => {
+    const session = await makeManager().start()
+    const response = await upload(uploadUrlOf(session.uploadUrl), JPEG)
+    const { uploadId } = (await response.json()) as { uploadId: string }
+
+    const item = manager!.getUpload(uploadId)!
+    expect(item.info.id).toBe(uploadId)
+    expect(readFileSync(item.filePath)).toEqual(JPEG)
+    expect(manager!.getUpload('unknown')).toBeNull()
+    expect(manager!.getUpload(42)).toBeNull()
+
+    manager!.resolveUpload(uploadId, 'imported', 'sources/captures/x/source.md')
+    // Inbox cleared, decision visible, second decision impossible.
+    expect(readdirSync(join(inboxRoot, session.id))).toEqual([])
+    const info = manager!.inspect()!.uploads[0]!
+    expect(info.resolution).toBe('imported')
+    expect(info.importedTo).toBe('sources/captures/x/source.md')
+    expect(manager!.getUpload(uploadId)).toBeNull()
+    expect(() => manager!.resolveUpload(uploadId, 'discarded')).toThrow(
+      /already resolved/
+    )
+  })
+
+  it('discard deletes the inbox files and marks the item', async () => {
+    const session = await makeManager().start()
+    const response = await upload(uploadUrlOf(session.uploadUrl), JPEG)
+    const { uploadId } = (await response.json()) as { uploadId: string }
+    manager!.resolveUpload(uploadId, 'discarded')
+    expect(readdirSync(join(inboxRoot, session.id))).toEqual([])
+    expect(manager!.inspect()!.uploads[0]!.resolution).toBe('discarded')
+  })
 })
 
 describe('sanitizeClientFileName', () => {

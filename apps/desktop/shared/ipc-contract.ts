@@ -36,6 +36,8 @@ export const ATOMIK_CHANNELS = {
   startCaptureSession: 'atomik:start-capture-session',
   stopCaptureSession: 'atomik:stop-capture-session',
   getCaptureSession: 'atomik:get-capture-session',
+  importCaptureUpload: 'atomik:import-capture-upload',
+  discardCaptureUpload: 'atomik:discard-capture-upload',
   runAiOperation: 'atomik:run-ai-operation',
   resolveAiTrace: 'atomik:resolve-ai-trace',
   getAiTraceSummary: 'atomik:get-ai-trace-summary'
@@ -197,6 +199,25 @@ export type CaptureUploadInfo = {
   mimeType: string
   bytes: number
   receivedAtMs: number
+  /** Set once the desktop decided (S04); the inbox file is gone then. */
+  resolution?: 'imported' | 'discarded'
+  /** Vault-relative dossier folder, when resolution = 'imported'. */
+  importedTo?: string
+}
+
+/** Explicit desktop confirmation (S04): where an inbox item becomes a
+ *  capture source bundle (07/08) inside the OPEN vault. */
+export type CaptureImportDestination = {
+  /** Vault-relative folder for the bundle, e.g.
+   *  `sources/captures/2026-07-07-whiteboard`. Validated in main. */
+  relPath: string
+  /** Dossier title (frontmatter + index heading). */
+  title: string
+}
+
+export type CaptureImportResult = {
+  /** Vault-relative path of the created source.md dossier. */
+  dossierPath: string
 }
 
 export type CaptureSessionInfo = {
@@ -390,6 +411,16 @@ export type AtomikApi = {
   stopCaptureSession: () => Promise<void>
   /** Last session's state (uploads survive stop); null before any start. */
   getCaptureSession: () => Promise<CaptureSessionInfo | null>
+  /** THE explicit confirmation (08): copies one inbox item into the open
+   *  vault as a capture source bundle (original.* + source.md + index.md,
+   *  wx — never clobbers), then clears it from the inbox. */
+  importCaptureUpload: (
+    uploadId: string,
+    destination: CaptureImportDestination
+  ) => Promise<CaptureImportResult>
+  /** Rejects one inbox item: its files are deleted, nothing enters the
+   *  vault. */
+  discardCaptureUpload: (uploadId: string) => Promise<void>
   /** Mocked AI operation (S08): pure compute, never writes. */
   runAiOperation: (operation: AiOperation) => Promise<AiResponseBundle>
   /** Reports the user's decision; main appends the one trace line. */
@@ -423,6 +454,8 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'startCaptureSession',
   'stopCaptureSession',
   'getCaptureSession',
+  'importCaptureUpload',
+  'discardCaptureUpload',
   'runAiOperation',
   'resolveAiTrace',
   'getAiTraceSummary'

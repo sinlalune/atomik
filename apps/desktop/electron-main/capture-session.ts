@@ -1,5 +1,5 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto'
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { networkInterfaces } from 'node:os'
@@ -118,6 +118,15 @@ type ActiveSession = {
   expiresAtMs: number
   stopped: boolean
   uploads: CaptureUploadInfo[]
+  /** uploadId → stored file name in the session's inbox dir. */
+  storedNames: Map<string, string>
+}
+
+/** One inbox item handed to the S04 import (bytes stay on disk). */
+export type InboxUpload = {
+  info: CaptureUploadInfo
+  /** Absolute path of the original bytes in the inbox. */
+  filePath: string
 }
 
 export class CaptureSessionManager {
@@ -160,7 +169,8 @@ export class CaptureSessionManager {
       dir,
       expiresAtMs: this.now() + this.ttlMs,
       stopped: false,
-      uploads: []
+      uploads: [],
+      storedNames: new Map()
     }
     this.expiryTimer = setTimeout(() => void this.stop(), this.ttlMs)
     this.expiryTimer.unref()
@@ -202,6 +212,33 @@ export class CaptureSessionManager {
 
   async dispose(): Promise<void> {
     await this.stop()
+  }
+
+  /** Unresolved inbox item for the S04 decision; null when unknown or
+   *  already imported/discarded (each item is decided exactly once). */
+  getUpload(uploadId: unknown): InboxUpload | null {
+    const session = this.session
+    if (!session || typeof uploadId !== 'string') return null
+    const info = session.uploads.find((upload) => upload.id === uploadId)
+    const storedName = session.storedNames.get(uploadId)
+    if (!info || info.resolution || !storedName) return null
+    return { info, filePath: join(session.dir, storedName) }
+  }
+
+  /** Records the desktop's decision and clears the inbox files — after an
+   *  import the vault copy is canonical; after a discard nothing remains. */
+  resolveUpload(
+    uploadId: string,
+    resolution: 'imported' | 'discarded',
+    importedTo?: string
+  ): void {
+    const upload = this.getUpload(uploadId)
+    if (!upload) throw new Error('capture: unknown or already resolved upload')
+    const storedName = this.session!.storedNames.get(uploadId)!
+    rmSync(join(this.session!.dir, storedName), { force: true })
+    rmSync(join(this.session!.dir, `${storedName}.meta.json`), { force: true })
+    upload.info.resolution = resolution
+    if (importedTo !== undefined) upload.info.importedTo = importedTo
   }
 
   private isActive(session: ActiveSession): boolean {
@@ -311,6 +348,7 @@ export class CaptureSessionManager {
       'utf8'
     )
     session.uploads.push(info)
+    session.storedNames.set(uploadId, storedName)
     res.writeHead(200, { 'content-type': 'application/json' })
     res.end(JSON.stringify({ ok: true, uploadId }))
   }

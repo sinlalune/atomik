@@ -40,7 +40,7 @@ timestamp: 2026-07-06T00:00:00Z
   it drops the margins. WSLg's OS side draws window shadows itself.
 - The renderer-facing API surface: `shared/ipc-contract.ts` is the single
   source of truth (`ATOMIK_API_KEY`, `ATOMIK_CHANNELS`, `AtomikApi`,
-  `DOCUMENTED_PRELOAD_SURFACE`). Twenty-one invoke channels exist today
+  `DOCUMENTED_PRELOAD_SURFACE`). Twenty-three invoke channels exist today
   (the AI trio is described in its own bullets below), plus two push
   subscriptions (`onWindowStateChanged` over
   `atomik:window-state-changed`; `onVaultChanged` over
@@ -52,8 +52,9 @@ timestamp: 2026-07-06T00:00:00Z
   `get-vault`, `list-vault-files`, `search-vault` (optional validated
   scope folder), `read-note`, `write-note`, `create-note` — the
   project pair `list-projects` / `create-project` — and the capture
-  session trio `start-capture-session` / `stop-capture-session` /
-  `get-capture-session`.
+  family: `start-capture-session` / `stop-capture-session` /
+  `get-capture-session` plus the S04 decision pair
+  `import-capture-upload` / `discard-capture-upload`.
   The S02 shell-identity channel (`get-app-info`) and its ShellHome card
   were removed on MVP-001 owner feedback ("shell relict"): saved 'home'
   tabs migrate to vault tabs at load (`migrateRetiredViews`).
@@ -176,7 +177,19 @@ timestamp: 2026-07-06T00:00:00Z
   kind (03; `renderer/src/capture/CaptureView.tsx`): start/stop session,
   QR of `uploadUrl` (qrcode lib, rendered renderer-side — the URL is a
   display capability, not a secret from the user), live countdown +
-  2 s inbox polling over `get-capture-session`, received-uploads list.
+  2 s inbox polling over `get-capture-session`, received-uploads list
+  with the S04 per-item decision: Import… (prefilled editable title +
+  destination) or Discard. `electron-main/capture-import.ts` is the ONLY
+  inbox→vault path — explicit, in main, per 07/08 bundle conventions:
+  `sources/captures/<date-slug>/` gets `original.<ext>` byte-exact,
+  `source.md` (Atomik Source frontmatter: resource, capture method/mime/
+  original name/received-at, `status: captured`, S06 seats in the body)
+  and `index.md` (directory map); every file written `wx` and a
+  destination holding any bundle file is refused before a byte lands
+  (mid-write races cleaned up). Destination paths run the same
+  validator as project folders (`resolveProjectDirPath`); each inbox
+  item is decided exactly ONCE (`getUpload`/`resolveUpload`; both
+  decisions clear the inbox files, imports record `importedTo`).
   Known environment limit: under WSL2 the LAN address is NAT'd — a phone
   cannot reach it without Windows port-forwarding or WSL2 mirrored
   networking mode (`networkingMode=mirrored` in `.wslconfig`).
@@ -385,10 +398,14 @@ forged/expired/stopped, one-time token across restarts, size cap, MIME
 allowlist + magic-byte mismatch, upload cap, byte-exact inbox writes +
 meta sidecars, endpoint closed outside sessions, file-name sanitation,
 LAN-host detection, the phone page's input/degrade/URL-derivation
-contract, and the capture view's pure formatting). The smoke's capture
-proof also drives the REAL capture tab when a state fixture mounts one
-(start button → `img.capture-qr` rendered; `qr-rendered` in the
-marker). The S11
+contract, the capture view's pure formatting, and the decide-once
+inbox lifecycle), `capture-import.test.ts` (bundle shape + byte-exact
+original, wx refusal leaving pre-existing bytes untouched, destination
+path/title matrices, vanished-inbox-file no-side-effects, the FULL
+composed loop phone-POST→inbox→import→vault, renderer defaults). The
+smoke's capture proof also drives the REAL capture tab when a state
+fixture mounts one (start button → `img.capture-qr` rendered;
+`qr-rendered` in the marker). The S11
 acceptance run and its per-line evidence live in
 `atomik-project/sessions/2026-07-06-s11-acceptance-run.md`. The
 CodeMirror typing/save flow and the AiPanel interaction flow are

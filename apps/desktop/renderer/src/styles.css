@@ -1729,3 +1729,84 @@ body[data-maximized] .tabstrip {
   color: var(--muted);
   flex: none;
 }
+
+/* capture import (S04) — per-item decision: import into the vault or
+   discard; the form only prefills, main validates and never overwrites */
+.capture-uploads li.capture-upload {
+  display: block;
+}
+
+.capture-upload-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.capture-upload-row .capture-upload-name {
+  flex: 1;
+  min-width: 8rem;
+}
+
+.capture-upload-state {
+  color: var(--accent);
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+
+.capture-upload-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex: none;
+}
+
+.capture-upload-actions button {
+  font: inherit;
+  font-size: 0.78rem;
+  color: var(--muted);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
+  cursor: pointer;
+}
+
+.capture-upload-actions button:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.capture-import-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0.3rem;
+  padding: 0.7rem;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.capture-import-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-align: left;
+}
+
+.capture-import-form input {
+  font: inherit;
+  font-size: 0.85rem;
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+}
+
+.capture-import-form input:focus {
+  outline: none;
+  border-color: var(--accent);
+}

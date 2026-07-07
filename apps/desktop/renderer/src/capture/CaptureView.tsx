@@ -1,7 +1,15 @@
 import QRCode from 'qrcode'
 import { useCallback, useEffect, useState } from 'react'
-import type { CaptureSessionInfo } from '../../../shared/ipc-contract'
-import { formatBytes, formatRemaining } from './format'
+import type {
+  CaptureSessionInfo,
+  CaptureUploadInfo
+} from '../../../shared/ipc-contract'
+import {
+  captureTitleOf,
+  defaultCaptureDestination,
+  formatBytes,
+  formatRemaining
+} from './format'
 
 /**
  * The capture tab (08 §MVP flow, S03): start a session, show its QR, watch
@@ -19,10 +27,12 @@ export function CaptureView(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [nowMs, setNowMs] = useState(() => Date.now())
 
-  // A session may outlive this tab (it lives in main): restore on mount.
-  useEffect(() => {
+  const refresh = useCallback(() => {
     void window.atomik.getCaptureSession().then(setSession, () => {})
   }, [])
+
+  // A session may outlive this tab (it lives in main): restore on mount.
+  useEffect(refresh, [refresh])
 
   // The QR is derived state: recompute when the upload URL changes.
   useEffect(() => {
@@ -50,10 +60,10 @@ export function CaptureView(): React.JSX.Element {
     if (!session?.active) return
     const timer = setInterval(() => {
       setNowMs(Date.now())
-      void window.atomik.getCaptureSession().then(setSession, () => {})
+      refresh()
     }, POLL_MS)
     return () => clearInterval(timer)
-  }, [session?.active])
+  }, [session?.active, refresh])
 
   const start = useCallback(() => {
     setError(null)
@@ -129,21 +139,119 @@ export function CaptureView(): React.JSX.Element {
             <h3>Received ({session.uploads.length})</h3>
             <ul>
               {session.uploads.map((upload) => (
-                <li key={upload.id}>
-                  <span className="capture-upload-name">{upload.fileName}</span>
-                  <span className="capture-upload-meta">
-                    {upload.mimeType} · {formatBytes(upload.bytes)}
-                  </span>
-                </li>
+                <UploadRow
+                  key={upload.id}
+                  upload={upload}
+                  onResolved={refresh}
+                />
               ))}
             </ul>
             <p className="capture-hint">
-              Waiting in the inbox — review and import into the vault
-              arrives with the next step (S04).
+              Inbox items — importing creates a capture source bundle in
+              the open vault; discarding deletes the upload. Nothing
+              enters the vault otherwise.
             </p>
           </div>
         )}
       </div>
     </div>
   )
+}
+
+/**
+ * One inbox item and its S04 decision. The form only PREFILLS destination
+ * and title (visible, editable — the S08 dogfooding lesson); main
+ * validates whatever is submitted and refuses to overwrite.
+ */
+function UploadRow({
+  upload,
+  onResolved
+}: {
+  upload: CaptureUploadInfo
+  onResolved: () => void
+}): React.JSX.Element {
+  const [importing, setImporting] = useState(false)
+  const [title, setTitle] = useState(() => captureTitleOf(upload.fileName))
+  const [relPath, setRelPath] = useState(() =>
+    defaultCaptureDestination(upload.fileName, Date.now())
+  )
+  const [error, setError] = useState<string | null>(null)
+
+  const confirmImport = (): void => {
+    setError(null)
+    window.atomik.importCaptureUpload(upload.id, { relPath, title }).then(
+      () => {
+        setImporting(false)
+        onResolved()
+      },
+      (cause) => setError(readableError(cause))
+    )
+  }
+
+  const discard = (): void => {
+    setError(null)
+    window.atomik
+      .discardCaptureUpload(upload.id)
+      .then(onResolved, (cause) => setError(readableError(cause)))
+  }
+
+  return (
+    <li className="capture-upload">
+      <div className="capture-upload-row">
+        <span className="capture-upload-name">{upload.fileName}</span>
+        <span className="capture-upload-meta">
+          {upload.mimeType} · {formatBytes(upload.bytes)}
+        </span>
+        {upload.resolution === 'imported' && (
+          <span className="capture-upload-state">
+            imported → {upload.importedTo}
+          </span>
+        )}
+        {upload.resolution === 'discarded' && (
+          <span className="capture-upload-state">discarded</span>
+        )}
+        {!upload.resolution && (
+          <span className="capture-upload-actions">
+            <button type="button" onClick={() => setImporting((open) => !open)}>
+              {importing ? 'Cancel' : 'Import…'}
+            </button>
+            <button type="button" onClick={discard}>
+              Discard
+            </button>
+          </span>
+        )}
+      </div>
+      {!upload.resolution && importing && (
+        <div className="capture-import-form">
+          <label>
+            Title
+            <input
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+            />
+          </label>
+          <label>
+            Vault folder
+            <input
+              value={relPath}
+              onChange={(event) => setRelPath(event.target.value)}
+            />
+          </label>
+          <button
+            type="button"
+            className="vault-open-button"
+            onClick={confirmImport}
+          >
+            Import into vault
+          </button>
+        </div>
+      )}
+      {error && <p className="capture-error">{error}</p>}
+    </li>
+  )
+}
+
+/** Electron wraps thrown main-process errors; show the human part. */
+function readableError(cause: unknown): string {
+  return String(cause).replace(/^Error: Error invoking remote method '[^']*': /, '')
 }

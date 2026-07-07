@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { runAiOperation } from './ai-mock'
 import { ActionTraceLedger } from './action-trace'
+import { importCaptureUpload } from './capture-import'
 import { CaptureSessionManager } from './capture-session'
 import { listDevDocs, readDevDoc, resolveDocsRoot } from './dev-docs'
 import { searchVault } from './search'
@@ -167,6 +168,27 @@ function registerCaptureHandlers(): void {
   ipcMain.handle(ATOMIK_CHANNELS.startCaptureSession, () => capture.start())
   ipcMain.handle(ATOMIK_CHANNELS.stopCaptureSession, () => capture.stop())
   ipcMain.handle(ATOMIK_CHANNELS.getCaptureSession, () => capture.inspect())
+  // The explicit confirmation (08): inbox → vault runs HERE, in main, on
+  // a per-item renderer request — never as a side effect of an upload.
+  ipcMain.handle(
+    ATOMIK_CHANNELS.importCaptureUpload,
+    (_event, uploadId: unknown, destination: unknown) => {
+      const vaultRoot = requireVault()
+      const upload = capture.getUpload(uploadId)
+      if (!upload) throw new Error('capture: unknown or already resolved upload')
+      const result = importCaptureUpload(vaultRoot, destination, upload)
+      capture.resolveUpload(upload.info.id, 'imported', result.dossierPath)
+      return result
+    }
+  )
+  ipcMain.handle(
+    ATOMIK_CHANNELS.discardCaptureUpload,
+    (_event, uploadId: unknown) => {
+      const upload = capture.getUpload(uploadId)
+      if (!upload) throw new Error('capture: unknown or already resolved upload')
+      capture.resolveUpload(upload.info.id, 'discarded')
+    }
+  )
 }
 
 /** Frame verbs for the chromeless window (13 §IPC: allowlist-validated;

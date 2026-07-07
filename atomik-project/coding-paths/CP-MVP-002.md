@@ -7,7 +7,7 @@ timestamp: 2026-07-06T00:00:00Z
 atomik:
   id: CP-MVP-002
   status: active
-  current_step: S04
+  current_step: S05
   base_commit: 09e2e38
 ---
 
@@ -122,7 +122,7 @@ once. 13 appears twice by design (Required + re-read triggers).
       typed channels to start/stop/inspect a session (13 §IPC re-read).
 - [x] S03 QR display + minimal phone upload page (file input with
       `capture` hint degrading to picker; works for image/*).
-- [ ] S04 Desktop confirmation flow → explicit import: inbox item →
+- [x] S04 Desktop confirmation flow → explicit import: inbox item →
       `sources/captures/<date-slug>/` with `original.*`, `source.md`,
       `index.md` per 07/08 (ensure/wx semantics; no silent vault writes).
 - [ ] S05 Image source tab: view the original beside the rendered dossier
@@ -204,15 +204,33 @@ head        : 09fbe7a — 21 pre-S02 dogfooding micro-units committed
               verified with screenshot — the QR/URL show the WSL2 NAT
               address, so the reachability caveat stands for owner
               testing).
-tests       : 161 passing / 17 suites; typecheck + build + smoke
+              S04 done 2026-07-07 (13 §IPC re-read for the pair):
+              `capture-import.ts` is the ONLY inbox→vault path — explicit
+              per-item confirmation in main. Bundle per 07/08 at a
+              validated destination (same validator as project folders):
+              `original.<ext>` byte-exact, `source.md` (Atomik Source
+              frontmatter — resource, method/mime/original-name/
+              received-at, `status: captured`; empty extracted-
+              representations section = S06 seat), `index.md` map. Every
+              file `wx`; a destination holding any bundle file refuses
+              BEFORE the first byte; vanished inbox file = zero side
+              effects; mid-write races cleaned up. Decide-once lifecycle
+              in the manager (getUpload/resolveUpload): import and
+              discard both clear the inbox files; imports record
+              importedTo. Channels `import-capture-upload` /
+              `discard-capture-upload` (surface 23 invoke + 2 push).
+              CaptureView rows: Import… (prefilled EDITABLE title +
+              destination, the S08 lesson) / Discard; resolved rows show
+              their outcome. New composed test: the FULL loop phone-POST
+              → inbox → import → vault bundle over real HTTP.
+tests       : 171 passing / 18 suites; typecheck + build + smoke
               (capture=ok:...qr-rendered) green
-next action : S04 — desktop confirmation flow → explicit import: inbox
-              item → sources/captures/<date-slug>/ with original.*,
-              source.md, index.md per 07/08 (ensure/wx semantics; no
-              silent vault writes)
-              owner validation pending on S02+S03: real phone upload on
+next action : S05 — image source tab: view the original beside the
+              rendered dossier (03 trigger for the new tab kind — 03
+              re-read 2026-07-07 already, capture tab)
+              owner validation pending on S02–S04: real phone upload on
               the owner's network (WSL2 NAT: needs mirrored networking
-              or a port forward)
+              or a port forward), then import into the live vault
 blockers    : none (note: owner dogfooding files remain untracked by choice —
               atomik-project/projects/test/*, atomik-project/test/,
               docs/projects/test/ — keep/clean stays with the owner; the

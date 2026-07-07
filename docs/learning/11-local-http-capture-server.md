@@ -12,9 +12,9 @@ timestamp: 2026-07-07T00:00:00Z
 from the main process, capability tokens, and validating file content
 instead of trusting labels.
 
-**Scope.** CP-MVP-002 S02–S03: `electron-main/capture-session.ts`, the
-phone page it serves, and `renderer/src/capture/CaptureView.tsx`. The
-inbox→vault import is S04.
+**Scope.** CP-MVP-002 S02–S04: `electron-main/capture-session.ts`, the
+phone page it serves, `renderer/src/capture/CaptureView.tsx`, and the
+confirmation import in `electron-main/capture-import.ts`.
 
 ## 1. A web server without a framework
 
@@ -96,13 +96,24 @@ phone input alike never choose filesystem paths (13).
 Uploads land under the STATE DIR: `.atomik/capture-inbox/<sessionId>/`.
 Deliberate (08: "temporary inbox before vault write"): the phone can put
 bytes on the machine, but nothing enters the user's knowledge without
-explicit desktop confirmation — that import is S04, in main, through the
-existing ensure/wx write discipline. Compare the ladder:
+explicit desktop confirmation — `capture-import.ts`, the ONLY code path
+from inbox to vault. Compare the ladder:
 
 ```text
 phone upload   -> inbox under .atomik/   (disposable, git-ignored)
 S04 confirm    -> sources/captures/...   (canonical, versioned)
 ```
+
+The import inherits every write discipline you met in note 03: the
+destination runs the same path validator as project folders, every file
+is written `wx` (exclusive — a destination already holding a bundle
+file is refused before a single byte lands), and each inbox item is
+decided exactly once — import and discard both clear the inbox files,
+so there is no state where the same photo can enter the vault twice.
+What lands is 07's canonical bundle: `original.<ext>` byte-exact (the
+evidence), `source.md` (the dossier — note `status: captured` and the
+empty "Extracted representations" section: those are S06's transcription
+seats), `index.md` (the human directory map).
 
 The server also listens ONLY while a session is active: `start()` opens
 the port, `stop()`/expiry/quit close it. No idle attack surface.
@@ -168,3 +179,7 @@ this first).
 5. Kill the app while a session is active; restart. What survives in the
    inbox, and what died with the process? Check `inspect()`'s answer and
    reconcile it with the files on disk.
+6. Import a capture into `sources/captures/demo`, then upload another
+   photo and try importing it to the SAME folder. Which line refuses,
+   what does `git status` show in the vault, and why is "refuse before
+   the first byte" strictly better than "clean up after a clobber"?

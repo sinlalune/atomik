@@ -86,6 +86,11 @@ describe('preload surface (13 §IPC rule)', () => {
       startCaptureSession: () => Promise<unknown>
       stopCaptureSession: () => Promise<unknown>
       getCaptureSession: () => Promise<unknown>
+      importCaptureUpload: (
+        uploadId: string,
+        destination: unknown
+      ) => Promise<unknown>
+      discardCaptureUpload: (uploadId: string) => Promise<unknown>
       runAiOperation: (operation: unknown) => Promise<unknown>
       resolveAiTrace: (bundleId: string, decision: string) => Promise<unknown>
       getAiTraceSummary: (bundleId: string) => Promise<unknown>
@@ -220,6 +225,20 @@ describe('preload surface (13 §IPC rule)', () => {
 
     await api.getCaptureSession()
     expect(invoke).toHaveBeenLastCalledWith(ATOMIK_CHANNELS.getCaptureSession)
+
+    const captureDestination = { relPath: 'sources/captures/demo', title: 'Demo' }
+    await api.importCaptureUpload('upload-1', captureDestination)
+    expect(invoke).toHaveBeenLastCalledWith(
+      ATOMIK_CHANNELS.importCaptureUpload,
+      'upload-1',
+      captureDestination
+    )
+
+    await api.discardCaptureUpload('upload-1')
+    expect(invoke).toHaveBeenLastCalledWith(
+      ATOMIK_CHANNELS.discardCaptureUpload,
+      'upload-1'
+    )
 
     const operation = { id: 'op-1' }
     await api.runAiOperation(operation)
