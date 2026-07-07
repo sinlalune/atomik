@@ -7,7 +7,7 @@ timestamp: 2026-07-07T00:00:00Z
 atomik:
   id: CP-MVP-004
   status: active
-  current_step: S03
+  current_step: S04
   base_commit: bb59575
 ---
 
@@ -124,7 +124,7 @@ Completeness rule (35): every bedrock page 00–35 accounted for below.
       owner (public repo!), define the 33 §evaluation-gates metric sheet
       (correction effort, RTF, peak memory, timestamps, language
       behavior); fixture manifest recorded.
-- [ ] S03 Candidate refresh (dated, 34 form): re-verify whisper.cpp /
+- [x] S03 Candidate refresh (dated, 34 form): re-verify whisper.cpp /
       faster-whisper / sherpa-onnx today — versions, licenses, French
       support, CPU/WSL2 fit; choose ≤3 to run; record what was NOT chosen
       and why.
@@ -162,9 +162,20 @@ changed     : S02 done 2026-07-07 — OWNER DECISION: sources/captures/
               effort per usable transcript minute, ties to the smaller
               runtime.
 tests       : 227 passing / 23 suites
-next action : S03 — dated candidate refresh (whisper.cpp /
-              faster-whisper / sherpa-onnx: versions, licenses, French,
-              CPU/WSL2 fit; choose ≤3, record rejections)
+              S03 done 2026-07-07 (web-checked, dated record in
+              sessions/2026-07-07-speech-candidates.md): all three run —
+              whisper.cpp v1.8.6 (MIT, sidecar binary), faster-whisper
+              (MIT, CTranslate2 int8, python venv, PyAV decode),
+              sherpa-onnx-node 1.13.3 (Apache-2.0, prebuilt npm addon).
+              Rejected with dated reasons: Vosk, Parakeet, Moonshine,
+              whisperX, reference whisper. Multilingual base + small
+              per candidate; PyAV decodes fixtures ONCE to 16 kHz WAV so
+              every candidate sees identical samples. Toolchain verified
+              on the machine (gcc/cmake/python/node; Ryzen 7 8700F,
+              15 GB, no GPU assumed).
+next action : S04 — bench harness + runs (mechanical metrics: RTF, peak
+              RSS, load time, transcripts kept per run); the CORRECTION
+              EFFORT pass is the owner's half once transcripts exist
 blockers    : none recorded
 ```
 
