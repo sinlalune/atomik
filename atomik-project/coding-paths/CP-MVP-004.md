@@ -173,9 +173,17 @@ tests       : 227 passing / 23 suites
               every candidate sees identical samples. Toolchain verified
               on the machine (gcc/cmake/python/node; Ryzen 7 8700F,
               15 GB, no GPU assumed).
-next action : S04 — bench harness + runs (mechanical metrics: RTF, peak
-              RSS, load time, transcripts kept per run); the CORRECTION
-              EFFORT pass is the owner's half once transcripts exist
+              S04 mechanical half DONE 2026-07-07: 24 runs (3 candidates
+              × base/small × 4 fixtures) recorded in the dated record.
+              base FAILS the owner's French; small is the floor and all
+              three candidates tie on short memos; the long fixture
+              discriminates (faster-whisper full transcript; whisper.cpp
+              music-suppressed; sherpa hard ~30 s whisper limit). All
+              candidates hallucinate on silence. RTF/RAM comfortable.
+next action : S04 owner half — correction pass on the .md transcripts in
+              sources/captures/speech-bench-2026-07-07/ (esp. the long
+              one), ideally +1 real 30–90 s spoken memo; then the winner
+              decision seals and S05 seats it
 blockers    : none recorded
 ```
 
