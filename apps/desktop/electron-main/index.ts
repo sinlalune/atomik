@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, session, shell } from 'electron'
 import { execFile } from 'node:child_process'
-import { mkdtempSync, statSync } from 'node:fs'
+import { copyFileSync, mkdtempSync, statSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
@@ -130,7 +130,14 @@ function registerVaultHandlers(stateDir: string): void {
   ipcMain.handle(
     ATOMIK_CHANNELS.openSourceExternally,
     async (_event, relPath: unknown) => {
-      const asset = resolveSourceAssetAbs(requireVault(), relPath)
+      const original = resolveSourceAssetAbs(requireVault(), relPath)
+      // EVIDENCE PROTECTION (owner incident: Windows Photos' ReplaceFile
+      // dance renamed original.jpg to ~RF….TMP through the WSL bridge).
+      // External apps get a TEMP COPY — the original is never theirs to
+      // touch.
+      const copyDir = mkdtempSync(join(tmpdir(), 'atomik-open-'))
+      const asset = join(copyDir, basename(original))
+      copyFileSync(original, asset)
       if (process.env['WSL_DISTRO_NAME']) {
         // No xdg-open inside WSL: convert to a Windows path and let the
         // WINDOWS default player open it (native audio — no WSLg bridge).
