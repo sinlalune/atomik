@@ -145,37 +145,40 @@ Child path spawned from here, not widened into here: CP-MVP-003 PDF (M4).
 
 ```text
 base commit : 09e2e38 (branch master — CP-MVP-001 close + CP-MVP-002 open)
-changed     : none — the owner's MVP-001 feedback brief (briefs/) was executed
-              BEFORE S02 as eight dogfooding micro-units (continuous-gate
-              practice; owner instruction), one commit each: .md implied in
-              display names + toggle polish; resizable tree panels; shell
-              relict removed (12-channel surface) + deterministic smoke state
-              dir; chromeless frame with tabs as the window top row
-              (window-control channel); auto-save default with manual toggle
-              (settings map in workspace state); per-perimeter search in all
-              modes (scope-validated + search-dev-docs); index/log pills per
-              folder with eye toggle (NoteTree unification); live-preview
-              seamless editing (read/live/source, live default). Net channel
-              change −1 +3 (get-app-info out; window-control, search scope,
-              search-dev-docs in); every unit updated tests + module/learning
-              notes + log.md in the same commit. A same-day follow-up batch
-              (units 9–11, owner feedback with maximized-window screenshot)
-              then: dropped the IDE gutters from live mode (basicSetup
-              retired, chrome composed by hand), made blocks render in live
-              (nested code highlighting, clickable task checkboxes, rules,
-              tables) with Ctrl/Cmd+click link follow, and fixed the
-              maximized-window interaction bugs (scrollbar-in-drag-region;
-              drag regions now off while maximized via the one push event
-              channel `window-state-changed`). Read-mode question recorded
-              in brainstorm (keep until M5, decide on usage). Preload
-              surface: 18 invoke channels + 1 push subscription.
-tests       : 130 passing / 16 suites; typecheck + build + smoke green
+head        : 09fbe7a — 21 pre-S02 dogfooding micro-units committed
+              (continuous-gate practice; owner instruction), one commit
+              each; full narrative in log.md. Units 1–8 (feedback brief):
+              .md implied in display names; resizable tree panels; shell
+              relict removed; chromeless frame with tabs as the window
+              top row; auto-save default with manual toggle;
+              per-perimeter search in all modes; index/log pills per
+              folder; live-preview seamless editing (read/live/source,
+              live default). Units 9–14: IDE gutters dropped in live;
+              blocks render in live (code highlighting, clickable
+              checkboxes, rules, tables, Ctrl/Cmd+click links); the WSLg
+              maximize saga root-caused upstream (wslg#1015) — shadow off
+              on Linux, native Wayland (ozone-platform-hint), maximize
+              MEANS fullscreen under WSLg, window state pushed
+              (`window-state-changed`). Units 15–18: live adopts the
+              reading geometry; bare-bracket link parity; quote-inset
+              parity; shared note-rendering tokens in :root feed BOTH
+              read and live (parity fixed at the root). Units 19–20:
+              vault switching ships (`vault-changed` push; views drop
+              stale state; restore guard poisoned against the old vault;
+              missing note reads as a human message). Unit 21: strip
+              actions + window controls pinned outside the tab scroll.
+              Preload surface: 18 invoke channels + 2 push subscriptions.
+tests       : 133 passing / 16 suites (reverified 2026-07-07); typecheck +
+              build + smoke green at unit 21
 next action : S02 — capture session server in main (local endpoint, one-time
               expiring tokens, size/MIME limits, temporary inbox under the state
-              dir; typed session channels — re-read 13 §IPC first)
+              dir; typed session channels — 13 §IPC re-read 2026-07-07)
 blockers    : none (note: owner dogfooding files remain untracked by choice —
-              atomik-project/projects/test/*, atomik-project/test/ — keep/clean
-              decision stays with the owner)
+              atomik-project/projects/test/*, atomik-project/test/,
+              docs/projects/test/ — keep/clean stays with the owner; the
+              owner-edited brainstorm note 2026-07-06-creation-flows-and-dnd.md
+              has a broken frontmatter fence, `---` → `--` on line 1 —
+              left untouched, flagged to the owner)
 ```
 
 # Blockers
