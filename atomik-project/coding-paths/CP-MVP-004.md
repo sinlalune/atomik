@@ -7,7 +7,7 @@ timestamp: 2026-07-07T00:00:00Z
 atomik:
   id: CP-MVP-004
   status: active
-  current_step: S02
+  current_step: S03
   base_commit: bb59575
 ---
 
@@ -119,7 +119,7 @@ Completeness rule (35): every bedrock page 00–35 accounted for below.
 # Execution
 
 - [x] S01 Reconcile ledger vs repository reality; record `base_commit`.
-- [ ] S02 Evaluation protocol + fixtures: pick the owner's real memos
+- [x] S02 Evaluation protocol + fixtures: pick the owner's real memos
       (French + English-technical), decide fixture GIT POLICY with the
       owner (public repo!), define the 33 §evaluation-gates metric sheet
       (correction effort, RTF, peak memory, timestamps, language
@@ -151,12 +151,20 @@ Completeness rule (35): every bedrock page 00–35 accounted for below.
 
 ```text
 base commit : bb59575 (branch master — CP-MVP-002 close + CP-MVP-004 open)
-changed     : none. Reconciliation at open: working tree carries only
-              owner dogfooding files (untracked by choice) + sources/
-              (untracked captures — S02 decides their git policy);
-              227 tests / 23 suites green at the close commit
-next action : S02 — evaluation protocol + fixtures (owner decides the
-              fixture git policy; metric sheet per 33 §evaluation gates)
+changed     : S02 done 2026-07-07 — OWNER DECISION: sources/captures/
+              git-ignored in full (public repo; voice stays local); the
+              committed protocol + fixture manifest carry hashes and
+              metadata instead (sessions/2026-07-07-speech-eval-
+              protocol.md). Four audio fixtures manifested (phone m4a,
+              two desktop webm, one 2020 WhatsApp mp3 — the long one);
+              metric sheet per 33 §evaluation gates with correction
+              effort as THE quality metric; selection rule: correction
+              effort per usable transcript minute, ties to the smaller
+              runtime.
+tests       : 227 passing / 23 suites
+next action : S03 — dated candidate refresh (whisper.cpp /
+              faster-whisper / sherpa-onnx: versions, licenses, French,
+              CPU/WSL2 fit; choose ≤3, record rejections)
 blockers    : none recorded
 ```
 

@@ -5,3 +5,6 @@ out/
 .env
 .env.*
 *.key
+
+# owner captures + evaluation fixtures stay local (owner decision 2026-07-07, CP-MVP-004 S02)
+sources/captures/
