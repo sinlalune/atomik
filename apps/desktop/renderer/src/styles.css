@@ -1650,11 +1650,10 @@ body[data-maximized] .tabstrip {
 .capture-view {
   height: 100%;
   overflow-y: auto;
-  display: flex;
 }
 
 .capture-panel {
-  margin: auto;
+  margin: 0 auto;
   max-width: 28rem;
   padding: 2rem 1.5rem;
   text-align: center;
@@ -1750,6 +1749,10 @@ body[data-maximized] .tabstrip {
 .capture-upload-row .capture-upload-name {
   flex: 1;
   min-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
 }
 
 .capture-upload-state {
@@ -1958,4 +1961,43 @@ body[data-maximized] .tabstrip {
 /* audio originals (S08) — the player centered where the image would be */
 .source-image-original audio {
   width: min(85%, 30rem);
+}
+
+
+/* desktop recorder: device menu + live level meter (owner: a silent
+   take must be visible WHILE recording, not after import) */
+.capture-mic-select {
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--muted);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+  max-width: 16rem;
+}
+
+.capture-recording-status {
+  width: 100%;
+  font-size: 0.8rem;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.capture-level {
+  width: min(100%, 20rem);
+  height: 6px;
+  border-radius: 3px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.capture-level > div {
+  height: 100%;
+  background: var(--accent);
+  transition: width 120ms linear;
 }

@@ -180,7 +180,24 @@ function DesktopRecorder({
   const [startedAtMs, setStartedAtMs] = useState(0)
   const [nowMs, setNowMs] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([])
+  const [deviceId, setDeviceId] = useState('default')
+  const [trackLabel, setTrackLabel] = useState<string | null>(null)
+  const [level, setLevel] = useState(0)
   const recorderRef = useRef<MediaRecorder | null>(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const meterTimerRef = useRef<number | undefined>(undefined)
+
+  // Which microphones exist (owner question: "which device records?").
+  // Labels only appear once mic permission has been granted at least
+  // once, so the list is refreshed again after a successful start.
+  const refreshDevices = useCallback(() => {
+    navigator.mediaDevices?.enumerateDevices().then(
+      (all) => setDevices(all.filter((d) => d.kind === 'audioinput')),
+      () => {}
+    )
+  }, [])
+  useEffect(refreshDevices, [refreshDevices])
 
   useEffect(() => {
     if (!recording) return
@@ -188,46 +205,80 @@ function DesktopRecorder({
     return () => clearInterval(timer)
   }, [recording])
 
+  const teardownMeter = (): void => {
+    window.clearInterval(meterTimerRef.current)
+    void audioContextRef.current?.close().catch(() => {})
+    audioContextRef.current = null
+    setLevel(0)
+    setTrackLabel(null)
+  }
+
   // Unmount while recording: stop the tracks, drop the take.
   useEffect(
     () => () => {
       recorderRef.current?.stream.getTracks().forEach((track) => track.stop())
+      window.clearInterval(meterTimerRef.current)
+      void audioContextRef.current?.close().catch(() => {})
     },
     []
   )
 
   const startRecording = (): void => {
     setError(null)
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(
-      (stream) => {
-        const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' })
-        const chunks: Blob[] = []
-        recorder.ondataavailable = (event) => {
-          if (event.data.size > 0) chunks.push(event.data)
-        }
-        recorder.onstop = () => {
-          stream.getTracks().forEach((track) => track.stop())
-          setRecording(false)
-          void new Blob(chunks, { type: 'audio/webm' })
-            .arrayBuffer()
-            .then((buffer) => {
-              const stamp = new Date().toISOString().slice(0, 16).replace(':', '-')
-              return window.atomik.addLocalCapture(
-                new Uint8Array(buffer),
-                'audio/webm',
-                `desktop-recording-${stamp}.webm`
-              )
-            })
-            .then(onRecorded, (cause) => setError(readableError(cause)))
-        }
-        recorderRef.current = recorder
-        recorder.start()
-        setStartedAtMs(Date.now())
-        setNowMs(Date.now())
-        setRecording(true)
-      },
-      (cause) => setError(micErrorMessage(cause))
-    )
+    navigator.mediaDevices
+      .getUserMedia({
+        audio:
+          deviceId !== 'default' ? { deviceId: { exact: deviceId } } : true
+      })
+      .then(
+        (stream) => {
+          const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' })
+          const chunks: Blob[] = []
+          recorder.ondataavailable = (event) => {
+            if (event.data.size > 0) chunks.push(event.data)
+          }
+          recorder.onstop = () => {
+            stream.getTracks().forEach((track) => track.stop())
+            teardownMeter()
+            setRecording(false)
+            void new Blob(chunks, { type: 'audio/webm' })
+              .arrayBuffer()
+              .then((buffer) => {
+                const stamp = new Date().toISOString().slice(0, 16).replace(':', '-')
+                return window.atomik.addLocalCapture(
+                  new Uint8Array(buffer),
+                  'audio/webm',
+                  `desktop-recording-${stamp}.webm`
+                )
+              })
+              .then(onRecorded, (cause) => setError(readableError(cause)))
+          }
+          recorderRef.current = recorder
+          // Name the device actually in use, and meter it live: a flat
+          // bar during recording means a silent take BEFORE import.
+          setTrackLabel(stream.getAudioTracks()[0]?.label || 'unnamed microphone')
+          const context = new AudioContext()
+          const analyser = context.createAnalyser()
+          analyser.fftSize = 512
+          context.createMediaStreamSource(stream).connect(analyser)
+          audioContextRef.current = context
+          const samples = new Uint8Array(analyser.fftSize)
+          meterTimerRef.current = window.setInterval(() => {
+            analyser.getByteTimeDomainData(samples)
+            let peak = 0
+            for (const value of samples) {
+              peak = Math.max(peak, Math.abs(value - 128))
+            }
+            setLevel(peak / 128)
+          }, 120)
+          recorder.start()
+          setStartedAtMs(Date.now())
+          setNowMs(Date.now())
+          setRecording(true)
+          refreshDevices()
+        },
+        (cause) => setError(micErrorMessage(cause))
+      )
   }
 
   const stopRecording = (): void => {
@@ -236,6 +287,23 @@ function DesktopRecorder({
 
   return (
     <>
+      {!recording && devices.length > 0 && (
+        <select
+          className="capture-mic-select"
+          title="Microphone used by Record here"
+          value={deviceId}
+          onChange={(event) => setDeviceId(event.target.value)}
+        >
+          <option value="default">Default microphone</option>
+          {devices
+            .filter((device) => device.deviceId && device.deviceId !== 'default')
+            .map((device) => (
+              <option key={device.deviceId} value={device.deviceId}>
+                {device.label || 'microphone (name hidden until first use)'}
+              </option>
+            ))}
+        </select>
+      )}
       <button
         type="button"
         className="vault-open-button"
@@ -246,6 +314,14 @@ function DesktopRecorder({
           ? `■ Stop (${formatRemaining(nowMs, startedAtMs)})`
           : '● Record here'}
       </button>
+      {recording && (
+        <div className="capture-recording-status">
+          <span>recording from: {trackLabel}</span>
+          <div className="capture-level" title="Input level — a flat bar means a silent take">
+            <div style={{ width: `${Math.min(100, Math.round(level * 140))}%` }} />
+          </div>
+        </div>
+      )}
       {error && <p className="capture-error">{error}</p>}
     </>
   )
@@ -303,7 +379,9 @@ function UploadRow({
   return (
     <li className="capture-upload">
       <div className="capture-upload-row">
-        <span className="capture-upload-name">{upload.fileName}</span>
+        <span className="capture-upload-name" title={upload.fileName}>
+          {upload.fileName}
+        </span>
         <span className="capture-upload-meta">
           {upload.mimeType} · {formatBytes(upload.bytes)}
         </span>
