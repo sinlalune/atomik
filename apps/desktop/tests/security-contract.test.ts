@@ -35,15 +35,12 @@ describe('secure webPreferences (13 §Required settings)', () => {
     expect(buildMainWindowOptions('/fixture/preload.js').frame).toBe(false)
   })
 
-  it('drops the client-side shadow on Linux only (WSLg maximize gap)', () => {
+  it('keeps the client-side shadow — its margins host the resize handles', () => {
+    // hasShadow:false (once tried against the WSLg maximize gap) made
+    // restored frameless windows unresizable; the gap is cured by the
+    // maximize->fullscreen mapping instead.
     expect(
-      buildMainWindowOptions('/fixture/preload.js', 'linux').hasShadow
-    ).toBe(false)
-    expect(
-      buildMainWindowOptions('/fixture/preload.js', 'darwin').hasShadow
-    ).toBeUndefined()
-    expect(
-      buildMainWindowOptions('/fixture/preload.js', 'win32').hasShadow
+      buildMainWindowOptions('/fixture/preload.js').hasShadow
     ).toBeUndefined()
   })
 })

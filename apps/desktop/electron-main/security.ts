@@ -20,31 +20,28 @@ export const SECURE_WEB_PREFERENCES = {
 /**
  * Options for the trusted Atomik UI window. The preload path is the only
  * per-call input; everything security-relevant comes from
- * SECURE_WEB_PREFERENCES. The platform is injectable for tests only.
+ * SECURE_WEB_PREFERENCES.
  *
  * frame:false — the window is chromeless (owner feedback on MVP-001:
  * tabs ARE the top row; no native title bar, no brand row). The renderer
  * supplies drag regions via CSS and frame verbs through the validated
  * `window-control` channel; nothing about the trust boundary changes.
  *
- * hasShadow:false on Linux — Chromium draws frameless windows with a
- * client-side shadow whose invisible frame margins WSLg keeps honoring
- * when maximized: transparent gap around the content, window offset
- * right (owner report; fullscreen looked correct because it drops the
- * margins). The OS side of WSLg draws window shadows itself, so the
- * client-side one is pure liability there. macOS keeps its native
- * shadow; Windows ignores the flag for normal windows.
+ * The client-side shadow stays ENABLED everywhere: its invisible frame
+ * margins are also where Chromium hosts the edge-resize handles of a
+ * frameless window — hasShadow:false (tried against the WSLg maximize
+ * gap, wslg#1015) made restored windows unresizable (owner report).
+ * The maximize gap is cured independently by the maximize→fullscreen
+ * mapping under WSLg, so the shadow costs nothing there anymore.
  */
 export function buildMainWindowOptions(
-  preloadPath: string,
-  platform: NodeJS.Platform = process.platform
+  preloadPath: string
 ): BrowserWindowConstructorOptions {
   return {
     width: 1200,
     height: 800,
     show: false,
     frame: false,
-    ...(platform === 'linux' ? { hasShadow: false } : {}),
     autoHideMenuBar: true,
     webPreferences: {
       ...SECURE_WEB_PREFERENCES,
