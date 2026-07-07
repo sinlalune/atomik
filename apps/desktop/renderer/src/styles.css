@@ -24,6 +24,9 @@
   --note-quote-border: 3px solid var(--accent);
   --note-code-size: 0.85em;
   --note-code-pad: 0.1em 0.35em;
+
+  /* one shared height for the panel header row and the note bar */
+  --bar-h: 2.1rem;
 }
 
 /* Explicit themes (owner round 2: dark mode + soft pastels for bright
@@ -343,12 +346,19 @@ body[data-maximized] .tabstrip {
 
 /* tree panel collapse ------------------------------------------------------ */
 
+/* The panel header shares the note-bar's row: same height, continuous
+   bottom border — and the collapsed floating toggle centers on it
+   (owner round 3: the two top rows must align). */
 .tree-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.4rem;
-  margin: 0 0.2rem 0.3rem 0;
+  gap: 0.2rem;
+  min-height: var(--bar-h);
+  box-sizing: border-box;
+  margin: 0 -0.5rem 0.5rem;
+  padding: 0.15rem 0.4rem 0.15rem 0.4rem;
+  border-bottom: 1px solid var(--border);
 }
 
 .tree-bar .vault-head {
@@ -417,12 +427,13 @@ body[data-maximized] .tabstrip {
 }
 
 /* Collapsed state: the same quiet icon, floating — no pill background;
-   hover matches the expanded toggle (owner feedback on MVP-001). */
+   hover matches the expanded toggle. Vertically centered on the shared
+   bar height so it aligns with the note-bar content (owner round 3). */
 .tree-show {
   position: absolute;
-  top: 0.55rem;
-  left: 0.55rem;
-  padding: 0.2rem 0.35rem;
+  top: calc((var(--bar-h) - 1.5rem) / 2);
+  left: 0.45rem;
+  padding: 0.28rem 0.35rem;
   z-index: 2;
 }
 
@@ -440,7 +451,7 @@ body[data-maximized] .tabstrip {
   overflow-y: auto;
   overflow-x: hidden;
   border-right: 1px solid var(--border);
-  padding: 0.75rem 0.5rem 2rem;
+  padding: 0 0.5rem 2rem;
   font-size: 0.82rem;
 }
 
@@ -504,7 +515,7 @@ body[data-maximized] .tabstrip {
   overflow-y: auto;
   overflow-x: hidden;
   border-right: 1px solid var(--border);
-  padding: 0.75rem 0.5rem 2rem;
+  padding: 0 0.5rem 2rem;
   font-size: 0.82rem;
 }
 
@@ -701,7 +712,9 @@ body[data-maximized] .tabstrip {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.3rem 0.9rem;
+  min-height: var(--bar-h);
+  box-sizing: border-box;
+  padding: 0.15rem 0.9rem;
   border-bottom: 1px solid var(--border);
   font-size: 0.78rem;
 }
