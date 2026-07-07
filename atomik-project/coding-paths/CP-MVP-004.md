@@ -7,7 +7,7 @@ timestamp: 2026-07-07T00:00:00Z
 atomik:
   id: CP-MVP-004
   status: active
-  current_step: S04
+  current_step: S05
   base_commit: bb59575
 ---
 
@@ -128,7 +128,7 @@ Completeness rule (35): every bedrock page 00–35 accounted for below.
       faster-whisper / sherpa-onnx today — versions, licenses, French
       support, CPU/WSL2 fit; choose ≤3 to run; record what was NOT chosen
       and why.
-- [ ] S04 Bench harness: a repeatable script runs each candidate over the
+- [x] S04 Bench harness: a repeatable script runs each candidate over the
       fixtures and emits the metric sheet per run; results land in the
       dated investigation record; WINNER DECISION recorded with the
       selection rule of 33 (cost per usable corrected transcript).
@@ -180,10 +180,14 @@ tests       : 227 passing / 23 suites
               discriminates (faster-whisper full transcript; whisper.cpp
               music-suppressed; sherpa hard ~30 s whisper limit). All
               candidates hallucinate on silence. RTF/RAM comfortable.
-next action : S04 owner half — correction pass on the .md transcripts in
-              sources/captures/speech-bench-2026-07-07/ (esp. the long
-              one), ideally +1 real 30–90 s spoken memo; then the winner
-              decision seals and S05 seats it
+              S04 SEALED 2026-07-07: the owner's deliberate 30 s memo
+              decided — WINNER whisper-small via whisper.cpp (parakeet
+              collapsed on real French; faster-whisper = quality
+              alternate). Correction pass pending = one homophone.
+next action : S05 — seat whisper.cpp-small as an isolated sidecar
+              behind TranscriptionAdapter (13 §local inference re-read);
+              mock demoted to fallback; audioSeconds + runtime identity
+              in traces; model in the state dir
 blockers    : none recorded
 ```
 

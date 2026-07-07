@@ -174,3 +174,30 @@ before the winner seals.
   **parakeet-v3** (speed, long audio, in-process) and
   **faster-whisper-small** (best sung/hard audio) — with
   **whisper.cpp-small** the deployment-simplicity fallback.
+
+## FINAL ROUND — the owner's deliberate memo decides (2026-07-07)
+
+Fixture: benchmark_device_long (30.6 s spoken French, phone m4a).
+
+| candidate | wall ms | RTF | verdict on REAL French |
+|---|---|---|---|
+| faster-whisper small | 4 984 (fr 0.96) | 0.16 | near-perfect transcript, one homophone slip ("sage"/"sache") |
+| whisper.cpp small | 11 758 (incl. load) | 0.38 | same text, fillers preserved — equally correct |
+| parakeet-v3 (sherpa int8) | 1 524 | 0.05 | **COLLAPSED**: 8 English nonsense words for 30 s of French |
+
+Parakeet's earlier "perfect French" on 4 s clips did not survive a real
+memo: the sherpa transducer export produced English gibberish ("And
+then we're gonna have a very test.") — whether the export defaults to
+EN or the auto-langdetect fails, AS SEATED it cannot serve the owner's
+core use. Dated finding; contradicts leaderboard expectations — which
+is exactly why 34 demands on-machine evidence.
+
+### WINNER: whisper-small, seated via whisper.cpp
+
+Quality is identical between the two whisper implementations on the
+deciding fixture; deployment decides (15): whisper.cpp is a single MIT
+binary + one 487 MB model file, no python runtime to ship, server mode
+available for warm loads. faster-whisper stays the recorded QUALITY
+ALTERNATE (best on hard/sung audio, richer segments) should the seat
+ever need it. Owner correction pass on the two FINAL-*.md transcripts
+confirms (expected effort: one word).
