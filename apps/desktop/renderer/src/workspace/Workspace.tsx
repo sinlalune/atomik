@@ -157,10 +157,35 @@ function TabContent({
     )
   }
   if (tab.view === 'capture') {
-    return <CaptureView onOpenSourceImage={openSourceImage} />
+    return (
+      <CaptureView
+        onOpenSourceImage={openSourceImage}
+        treeCollapsed={treeCollapsed}
+        onTreeToggle={onTreeToggle}
+        treeWidth={treeWidth}
+        onTreeResize={onTreeResize}
+        openFolders={openFolders}
+        onOpenFoldersChange={onOpenFoldersChange}
+      />
+    )
   }
   if (tab.view === 'source-image') {
-    return <SourceImageView dossierPath={tab.params?.['dossierPath']} />
+    return (
+      <SourceImageView
+        dossierPath={tab.params?.['dossierPath']}
+        onDossierOpened={(relPath) =>
+          dispatch((state) =>
+            updateTabParams(state, tab.id, { dossierPath: relPath })
+          )
+        }
+        treeCollapsed={treeCollapsed}
+        onTreeToggle={onTreeToggle}
+        treeWidth={treeWidth}
+        onTreeResize={onTreeResize}
+        openFolders={openFolders}
+        onOpenFoldersChange={onOpenFoldersChange}
+      />
+    )
   }
   if (tab.view === 'project') {
     return (

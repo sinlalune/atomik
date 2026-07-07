@@ -10,6 +10,7 @@ import {
   formatBytes,
   formatRemaining
 } from './format'
+import { SourcesTreePanel } from '../source/SourcesTree'
 
 /**
  * The capture tab (08 §MVP flow, S03): start a session, show its QR, watch
@@ -22,10 +23,22 @@ import {
 const POLL_MS = 2000
 
 export function CaptureView({
-  onOpenSourceImage
+  onOpenSourceImage,
+  treeCollapsed,
+  onTreeToggle,
+  treeWidth,
+  onTreeResize,
+  openFolders = new Set<string>(),
+  onOpenFoldersChange
 }: {
   /** Opens the imported bundle in an image source tab (S05). */
   onOpenSourceImage?: (dossierPath: string) => void
+  treeCollapsed?: boolean
+  onTreeToggle?: () => void
+  treeWidth?: number
+  onTreeResize?: (px: number) => void
+  openFolders?: ReadonlySet<string>
+  onOpenFoldersChange?: (next: ReadonlySet<string>) => void
 }): React.JSX.Element {
   const [session, setSession] = useState<CaptureSessionInfo | null>(null)
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
@@ -91,6 +104,24 @@ export function CaptureView({
   const expired = session !== null && !session.active
 
   return (
+    <div
+      className={`vault${treeCollapsed ? ' no-tree' : ''}`}
+      style={
+        !treeCollapsed && treeWidth !== undefined
+          ? { gridTemplateColumns: `${treeWidth}px 1fr` }
+          : undefined
+      }
+    >
+      {!treeCollapsed && (
+        <SourcesTreePanel
+          activePath={null}
+          onOpen={(relPath) => onOpenSourceImage?.(relPath)}
+          onTreeToggle={onTreeToggle}
+          onTreeResize={onTreeResize}
+          openFolders={openFolders}
+          onOpenFoldersChange={onOpenFoldersChange}
+        />
+      )}
     <div className="capture-view">
       <div className="capture-panel">
         <h2>Phone capture</h2>
@@ -161,6 +192,7 @@ export function CaptureView({
           </div>
         )}
       </div>
+    </div>
     </div>
   )
 }

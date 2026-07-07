@@ -1648,6 +1648,11 @@ body[data-maximized] .tabstrip {
 /* capture view (S03) — QR session panel; uploads are inbox items until
    the S04 confirmation imports them into the vault */
 .capture-view {
+  /* .pane-content is a flex row: without flex:1 this view shrink-wraps
+     and its centered panel hugs the left edge (owner report, twice —
+     the first fix treated the symptom inside the view) */
+  flex: 1;
+  min-width: 0;
   height: 100%;
   overflow-y: auto;
 }
@@ -1821,6 +1826,8 @@ body[data-maximized] .tabstrip {
 /* image source tab (S05) — the original beside the rendered dossier;
    viewer only, nothing here can write */
 .source-image-view {
+  flex: 1;
+  min-width: 0;
   height: 100%;
   display: flex;
   min-height: 0;
@@ -2000,4 +2007,10 @@ body[data-maximized] .tabstrip {
   height: 100%;
   background: var(--accent);
   transition: width 120ms linear;
+}
+
+.tree-empty-hint {
+  margin: 0.8rem;
+  font-size: 0.8rem;
+  color: var(--muted);
 }

@@ -8,6 +8,7 @@ import {
   type Rotation
 } from './dossier'
 import { applyRotation } from './rotate'
+import { SourcesTreePanel } from './SourcesTree'
 
 /**
  * The image source tab (08 "image tab views the original beside the
@@ -19,9 +20,24 @@ import { applyRotation } from './rotate'
  */
 
 export function SourceImageView({
-  dossierPath
+  dossierPath,
+  onDossierOpened,
+  treeCollapsed,
+  onTreeToggle,
+  treeWidth,
+  onTreeResize,
+  openFolders = new Set<string>(),
+  onOpenFoldersChange
 }: {
   dossierPath: string | undefined
+  /** Reports tree navigation so the tab param follows. */
+  onDossierOpened?: (relPath: string) => void
+  treeCollapsed?: boolean
+  onTreeToggle?: () => void
+  treeWidth?: number
+  onTreeResize?: (px: number) => void
+  openFolders?: ReadonlySet<string>
+  onOpenFoldersChange?: (next: ReadonlySet<string>) => void
 }): React.JSX.Element {
   const { note, html, error, openNote, applySaved, onContentClick } =
     useVaultNote()
@@ -131,15 +147,41 @@ export function SourceImageView({
     )
   }
 
-  if (!dossierPath) {
-    return (
-      <p className="pane-placeholder">
-        no dossier — open an imported capture from the Capture tab
-      </p>
-    )
+  const openFromTree = (relPath: string): void => {
+    openNote(relPath)
+    onDossierOpened?.(relPath)
   }
 
   return (
+    <div
+      className={`vault${treeCollapsed ? ' no-tree' : ''}`}
+      style={
+        !treeCollapsed && treeWidth !== undefined
+          ? { gridTemplateColumns: `${treeWidth}px 1fr` }
+          : undefined
+      }
+    >
+      {!treeCollapsed && (
+        <SourcesTreePanel
+          activePath={note?.relPath ?? dossierPath ?? null}
+          onOpen={openFromTree}
+          onTreeToggle={onTreeToggle}
+          onTreeResize={onTreeResize}
+          openFolders={openFolders}
+          onOpenFoldersChange={onOpenFoldersChange}
+        />
+      )}
+      {dossierPath ? renderContent() : (
+        <p className="pane-placeholder">
+          no dossier — pick a source from the tree, or open an imported
+          capture from the Capture tab
+        </p>
+      )}
+    </div>
+  )
+
+  function renderContent(): React.JSX.Element {
+    return (
     <div className="source-image-view">
       <div className="source-image-original">
         {!isAudio && (
@@ -201,5 +243,6 @@ export function SourceImageView({
         </div>
       </div>
     </div>
-  )
+    )
+  }
 }
