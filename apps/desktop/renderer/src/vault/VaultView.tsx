@@ -12,7 +12,7 @@ import { SearchResultsList } from '../search/SearchResultsList'
 import { useTreeSearch } from '../search/useTreeSearch'
 import { TreeResizeHandle } from '../TreeResizeHandle'
 import type { NoteViewMode, SaveMode } from '../workspace/model'
-import { hasImageResource } from '../source/dossier'
+import { hasMediaResource } from '../source/dossier'
 import { NoteTree } from './NoteTree'
 import { allFolderPaths, toggledFolder } from './tree-fold'
 import { useVaultNote } from './useVaultNote'
@@ -333,7 +333,7 @@ export function VaultView({
                 {note.relPath}
               </span>
               <span className="note-bar-actions">
-                {onOpenSourceImage && hasImageResource(note.content) && (
+                {onOpenSourceImage && hasMediaResource(note.content) && (
                   <button
                     type="button"
                     className="note-bar-button"

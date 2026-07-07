@@ -1950,3 +1950,8 @@ body[data-maximized] .tabstrip {
   color: var(--accent);
   border-color: var(--accent);
 }
+
+/* audio originals (S08) — the player centered where the image would be */
+.source-image-original audio {
+  width: min(85%, 30rem);
+}

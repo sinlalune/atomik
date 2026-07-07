@@ -145,7 +145,13 @@ const SOURCE_ASSET_EXTENSIONS: Record<string, string> = {
   '.png': 'image/png',
   '.webp': 'image/webp',
   '.heic': 'image/heic',
-  '.heif': 'image/heif'
+  '.heif': 'image/heif',
+  // audio originals (08 §audio companion, S08)
+  '.m4a': 'audio/mp4',
+  '.webm': 'audio/webm',
+  '.ogg': 'audio/ogg',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav'
 }
 
 const MAX_ASSET_BYTES = 50 * 1024 * 1024

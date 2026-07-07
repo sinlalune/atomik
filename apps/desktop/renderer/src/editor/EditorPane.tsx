@@ -40,7 +40,7 @@ import { AiPanel, type BufferChange } from './AiPanel'
 import { frontmatterEnd, livePreview } from './live-preview'
 import { ModeSwitch } from './ModeSwitch'
 import { quickActions, sourceBundlesOf, type SourceBundle } from './quick-actions'
-import { hasImageResource } from '../source/dossier'
+import { hasMediaResource } from '../source/dossier'
 
 /** Auto mode saves this long after the last keystroke. */
 const AUTOSAVE_DELAY_MS = 800
@@ -544,7 +544,7 @@ export function EditorPane({
           >
             {saving ? 'saving…' : saveMode === 'auto' && !dirty ? 'Saved' : 'Save'}
           </button>
-          {onOpenSourceImage && hasImageResource(note.content) && (
+          {onOpenSourceImage && hasMediaResource(note.content) && (
             <button
               type="button"
               className="note-bar-button"

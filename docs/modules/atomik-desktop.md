@@ -165,8 +165,12 @@ timestamp: 2026-07-06T00:00:00Z
   finding, owner dogfooding). Uploads pass
   four gates below the renderer: token (timing-safe compare), size cap
   (Content-Length early + streamed count, 25 MB default), declared-MIME
-  allowlist (jpeg/png/webp/heic/heif), and magic-byte validation of the
-  received bytes against the DECLARED type. Accepted files land in a
+  allowlist (images jpeg/png/webp/heic/heif; audio — the S08 companion —
+  m4a/mp4, webm, ogg, mp3, wav), and magic-byte validation of the
+  received bytes against the DECLARED type (WAV and WEBP are both RIFF:
+  the sub-brand distinguishes them). The phone page carries both inputs
+  (photo with camera hint; audio with recorder hint), one shared upload
+  path. Accepted files land in a
   temporary inbox under the STATE DIR
   (`.atomik/capture-inbox/<sessionId>/<seq>-<uploadId>.<ext>` + a
   `.meta.json` sidecar) — never the vault; the inbox→vault import is
@@ -221,7 +225,15 @@ timestamp: 2026-07-06T00:00:00Z
   pure). Entry points: [View] on imported rows in the capture tab, and
   a "View original" pill in the vault read-mode note-bar whenever the
   open note declares an image resource — so bundles stay reachable
-  after the capture session is gone. ROTATION (owner correction —
+  after the capture session is gone. AUDIO originals (S08) render as an
+  <audio controls> player in the same tab (same read-only data-URL
+  channel; the asset/transcription extension maps gained the audio
+  types; the View-original pill gates on hasMediaResource). The
+  transcription pipeline is UNCHANGED for audio — same adapter
+  contract; the mock decodes nothing, so the trace's audioSeconds
+  stays null rather than manufacturing precision (33) until a real
+  runtime reports it. Import labels links/anchors by media kind.
+  ROTATION (owner correction —
   some phone photos arrive sideways): a display rotation (0/90/180/270)
   recorded in the dossier frontmatter (`atomik.capture.rotation`,
   `rotationOf`/`withDossierRotation` pure in source/dossier.ts), edited

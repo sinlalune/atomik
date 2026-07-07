@@ -78,13 +78,19 @@ export const mockTranscriptionAdapter: TranscriptionAdapter = {
   }
 }
 
-const IMAGE_MIME: Record<string, string> = {
+const MEDIA_MIME: Record<string, string> = {
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
   '.png': 'image/png',
   '.webp': 'image/webp',
   '.heic': 'image/heic',
-  '.heif': 'image/heif'
+  '.heif': 'image/heif',
+  // the audio companion (S08) rides the SAME adapter contract
+  '.m4a': 'audio/mp4',
+  '.webm': 'audio/webm',
+  '.ogg': 'audio/ogg',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav'
 }
 
 /** Frontmatter `resource:` of a dossier (main-side twin of the renderer
@@ -243,7 +249,7 @@ export async function transcribeSource(
 
   const resource = dossierResource(dossier.content)
   if (!resource) throw new Error('transcription: dossier declares no resource')
-  const mimeType = IMAGE_MIME[extname(resource).toLowerCase()]
+  const mimeType = MEDIA_MIME[extname(resource).toLowerCase()]
   if (!mimeType) {
     throw new Error(`transcription: unsupported resource type — ${resource}`)
   }

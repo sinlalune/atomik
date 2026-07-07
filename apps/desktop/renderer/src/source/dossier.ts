@@ -17,6 +17,17 @@ export function hasImageResource(dossierContent: string): boolean {
   return resource !== null && IMAGE_EXTENSIONS.test(resource)
 }
 
+const AUDIO_EXTENSIONS = /\.(m4a|webm|ogg|mp3|wav)$/i
+
+/** Image OR audio original (S08): anything the source tab can present. */
+export function hasMediaResource(dossierContent: string): boolean {
+  const resource = resourceOf(dossierContent)
+  return (
+    resource !== null &&
+    (IMAGE_EXTENSIONS.test(resource) || AUDIO_EXTENSIONS.test(resource))
+  )
+}
+
 export type Rotation = 0 | 90 | 180 | 270
 
 /**

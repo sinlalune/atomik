@@ -7,7 +7,7 @@ timestamp: 2026-07-06T00:00:00Z
 atomik:
   id: CP-MVP-002
   status: active
-  current_step: S08
+  current_step: S09
   base_commit: 09e2e38
 ---
 
@@ -134,7 +134,7 @@ once. 13 appears twice by design (Required + re-read triggers).
 - [x] S07 Human correction flow: transcript edited in the editor; dossier
       correction state flips model-output → human-corrected; original
       always one click away.
-- [ ] S08 Audio companion: same session accepts short audio; original
+- [x] S08 Audio companion: same session accepts short audio; original
       preserved; same adapter contract produces the transcript.
 - [ ] S09 M3 acceptance run recorded in sessions/; priorities patched;
       path review and close (continuous-gate practice).
@@ -271,10 +271,21 @@ head        : 09fbe7a — 21 pre-S02 dogfooding micro-units committed
               View-original pill for any note declaring an image resource
               (dossier and transcript both) — the original stays one
               click away while correcting.
-tests       : 216 passing / 25 suites; typecheck + build + smoke green
-next action : S08 — audio companion: same session accepts short audio;
-              original preserved; same adapter contract produces the
-              transcript (audioSeconds trace seat fills)
+              S08 done 2026-07-07: the audio companion rides every
+              existing seam — capture allowlist gains m4a/webm/ogg/mp3/
+              wav with magic-byte sniffers (WAV vs WEBP disambiguated by
+              RIFF sub-brand), the phone page gains the audio input
+              (record hint degrading to picker), import labels by media
+              kind, the source tab plays audio originals (<audio>, same
+              data-URL channel), and transcription runs the IDENTICAL
+              adapter contract on audio. Honest per 33: the mock decodes
+              nothing, so audioSeconds stays null — a real runtime fills
+              it when a dated 34 evaluation seats one.
+tests       : 220 passing / 25 suites; typecheck + build + smoke green
+next action : S09 — M3 acceptance run recorded in sessions/; priorities
+              patched; path review and close (continuous-gate practice);
+              owner-side validation of the audio loop from a real phone
+              still pending
 blockers    : none (note: owner dogfooding files remain untracked by choice —
               atomik-project/projects/test/*, atomik-project/test/,
               docs/projects/test/ — keep/clean stays with the owner; the

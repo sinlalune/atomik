@@ -68,11 +68,48 @@ const CAPTURE_MIME_ALLOWLIST: Record<
   },
   // HEIC/HEIF (iPhone default) are ISO BMFF containers: 'ftyp' at offset 4.
   'image/heic': { extension: 'heic', matches: isIsoBmff },
-  'image/heif': { extension: 'heif', matches: isIsoBmff }
+  'image/heif': { extension: 'heif', matches: isIsoBmff },
+  // Audio companion (08, S08): what phone recorders actually hand over —
+  // iOS records m4a (ISO BMFF), Android MediaRecorder webm/ogg; mp3/wav
+  // cover picked files. Same size cap: capture means SHORT audio.
+  'audio/mp4': { extension: 'm4a', matches: isIsoBmff },
+  'audio/x-m4a': { extension: 'm4a', matches: isIsoBmff },
+  'audio/webm': { extension: 'webm', matches: isEbml },
+  'audio/ogg': {
+    extension: 'ogg',
+    matches: (b) => b.length >= 4 && b.toString('latin1', 0, 4) === 'OggS'
+  },
+  'audio/mpeg': {
+    extension: 'mp3',
+    matches: (b) =>
+      b.length >= 3 &&
+      ((b[0] === 0x49 && b[1] === 0x44 && b[2] === 0x33) || // ID3
+        (b[0] === 0xff && ((b[1] ?? 0) & 0xe0) === 0xe0)) // frame sync
+  },
+  'audio/wav': { extension: 'wav', matches: isWave },
+  'audio/x-wav': { extension: 'wav', matches: isWave }
 }
 
 function isIsoBmff(bytes: Buffer): boolean {
   return bytes.length >= 12 && bytes.toString('latin1', 4, 8) === 'ftyp'
+}
+
+function isEbml(bytes: Buffer): boolean {
+  return (
+    bytes.length >= 4 &&
+    bytes[0] === 0x1a &&
+    bytes[1] === 0x45 &&
+    bytes[2] === 0xdf &&
+    bytes[3] === 0xa3
+  )
+}
+
+function isWave(bytes: Buffer): boolean {
+  return (
+    bytes.length >= 12 &&
+    bytes.toString('latin1', 0, 4) === 'RIFF' &&
+    bytes.toString('latin1', 8, 12) === 'WAVE'
+  )
 }
 
 /** First non-internal IPv4 — the LAN address the phone can reach. Falls
@@ -425,13 +462,17 @@ export function capturePage(): string {
 <label class="take">Take / choose photo
   <input id="file" type="file" accept="image/*" capture="environment">
 </label>
+<label class="take">Record / choose audio
+  <input id="audio" type="file" accept="audio/*" capture>
+</label>
 <ul id="done"></ul>
 <script>
-  var input = document.getElementById('file')
   var done = document.getElementById('done')
   var uploadUrl = location.href.replace('/c/', '/u/')
   var extMime = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
-                  webp: 'image/webp', heic: 'image/heic', heif: 'image/heif' }
+                  webp: 'image/webp', heic: 'image/heic', heif: 'image/heif',
+                  m4a: 'audio/mp4', webm: 'audio/webm', ogg: 'audio/ogg',
+                  mp3: 'audio/mpeg', wav: 'audio/wav' }
   function report (name, text, isError) {
     var li = document.createElement('li')
     li.textContent = name + ' — ' + text
@@ -443,24 +484,28 @@ export function capturePage(): string {
     var ext = (file.name.split('.').pop() || '').toLowerCase()
     return extMime[ext] || ''
   }
-  input.addEventListener('change', function () {
-    var file = input.files && input.files[0]
-    if (!file) return
-    input.value = ''
-    fetch(uploadUrl, {
-      method: 'POST',
-      headers: { 'content-type': mimeOf(file), 'x-atomik-filename': file.name },
-      body: file
-    }).then(function (res) {
-      if (res.ok) return report(file.name, 'uploaded', false)
-      if (res.status === 413) return report(file.name, 'too large', true)
-      if (res.status === 415) return report(file.name, 'not an accepted image type', true)
-      if (res.status === 429) return report(file.name, 'session is full', true)
-      report(file.name, 'refused — session may have expired', true)
-    }).catch(function () {
-      report(file.name, 'network error — is the desktop still on?', true)
+  function wire (input) {
+    input.addEventListener('change', function () {
+      var file = input.files && input.files[0]
+      if (!file) return
+      input.value = ''
+      fetch(uploadUrl, {
+        method: 'POST',
+        headers: { 'content-type': mimeOf(file), 'x-atomik-filename': file.name },
+        body: file
+      }).then(function (res) {
+        if (res.ok) return report(file.name, 'uploaded', false)
+        if (res.status === 413) return report(file.name, 'too large', true)
+        if (res.status === 415) return report(file.name, 'not an accepted media type', true)
+        if (res.status === 429) return report(file.name, 'session is full', true)
+        report(file.name, 'refused — session may have expired', true)
+      }).catch(function () {
+        report(file.name, 'network error — is the desktop still on?', true)
+      })
     })
-  })
+  }
+  wire(document.getElementById('file'))
+  wire(document.getElementById('audio'))
 </script>
 </body>
 </html>

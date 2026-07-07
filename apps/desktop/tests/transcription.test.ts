@@ -258,3 +258,47 @@ describe('human correction flow (S07)', () => {
     ).toBe('---\ntitle: x\n---\nbody\n')
   })
 })
+
+describe('audio companion (S08) — same adapter contract', () => {
+  it('transcribes an audio original through the identical pipeline', async () => {
+    const dir = join(vault, 'sources/captures/memo')
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(
+      join(dir, 'original.m4a'),
+      Buffer.concat([Buffer.from([0, 0, 0, 24]), Buffer.from('ftypM4A audio')])
+    )
+    writeFileSync(
+      join(dir, 'source.md'),
+      [
+        '---',
+        'type: Atomik Source',
+        'title: Voice memo',
+        'resource: ./original.m4a',
+        'atomik:',
+        '  id: capture_a',
+        '  status: captured',
+        '  capture:',
+        '    method: local-wifi-qr',
+        '---',
+        '',
+        '## Extracted representations',
+        '',
+        '- None yet — transcription arrives with the adapter (S06).',
+        ''
+      ].join('\n')
+    )
+    const result = await transcribeSource(
+      vault,
+      'sources/captures/memo/source.md',
+      mockTranscriptionAdapter,
+      traces
+    )
+    const transcript = readFileSync(join(vault, result.transcriptPath), 'utf8')
+    expect(transcript).toContain('resource: ./original.m4a')
+    expect(transcript).toContain('mime     : audio/mp4')
+    const line = ledgerLines()[0]!
+    expect(line['action']).toBe('transcribe')
+    // honest: the mock decodes nothing, so no duration is manufactured
+    expect((line['input'] as Record<string, unknown>)['audioSeconds']).toBeNull()
+  })
+})

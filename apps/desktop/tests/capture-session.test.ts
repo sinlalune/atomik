@@ -338,3 +338,62 @@ describe('detectLanHost', () => {
     ).toBe('127.0.0.1')
   })
 })
+
+describe('audio companion (S08) — same session, same gates', () => {
+  const M4A = Buffer.concat([
+    Buffer.from([0x00, 0x00, 0x00, 0x18]),
+    Buffer.from('ftypM4A '),
+    Buffer.from('atomik-audio-payload')
+  ])
+  const WEBM = Buffer.concat([
+    Buffer.from([0x1a, 0x45, 0xdf, 0xa3]),
+    Buffer.from('atomik-webm-audio')
+  ])
+  const OGG = Buffer.concat([Buffer.from('OggS'), Buffer.from('x')])
+  const MP3 = Buffer.concat([Buffer.from('ID3'), Buffer.from('x')])
+  const WAV = Buffer.concat([
+    Buffer.from('RIFF'),
+    Buffer.from([0, 0, 0, 0]),
+    Buffer.from('WAVE')
+  ])
+
+  it('accepts phone audio formats with matching magic bytes', async () => {
+    const session = await makeManager().start()
+    const cases: Array<[string, Buffer, string]> = [
+      ['audio/mp4', M4A, 'm4a'],
+      ['audio/webm', WEBM, 'webm'],
+      ['audio/ogg', OGG, 'ogg'],
+      ['audio/mpeg', MP3, 'mp3'],
+      ['audio/wav', WAV, 'wav']
+    ]
+    for (const [mime, bytes, extension] of cases) {
+      const response = await upload(uploadUrlOf(session.uploadUrl), bytes, {
+        'content-type': mime
+      })
+      expect(response.status, mime).toBe(200)
+      const files = readdirSync(join(inboxRoot, session.id))
+      expect(files.some((f) => f.endsWith(`.${extension}`)), extension).toBe(true)
+    }
+  })
+
+  it('audio declared with image magic (and vice versa) is refused', async () => {
+    const session = await makeManager().start()
+    expect(
+      (await upload(uploadUrlOf(session.uploadUrl), JPEG, { 'content-type': 'audio/mp4' })).status
+    ).toBe(415)
+    expect(
+      (await upload(uploadUrlOf(session.uploadUrl), M4A, { 'content-type': 'image/jpeg' })).status
+    ).toBe(415)
+    // WAV is RIFF like WEBP — the sub-brand must still match.
+    expect(
+      (await upload(uploadUrlOf(session.uploadUrl), WAV, { 'content-type': 'image/webp' })).status
+    ).toBe(415)
+  })
+
+  it('the phone page carries the audio input', () => {
+    const page = capturePage()
+    expect(page).toContain('accept="audio/*"')
+    expect(page).toContain('Record / choose audio')
+    expect(page).toContain("m4a: 'audio/mp4'")
+  })
+})

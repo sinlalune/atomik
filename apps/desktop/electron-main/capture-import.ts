@@ -43,6 +43,11 @@ function checkedDestination(destination: unknown): CaptureImportDestination {
   }
 }
 
+/** 'image' or 'audio' — labels links and anchors honestly (08). */
+function mediaKindOf(info: CaptureUploadInfo): 'image' | 'audio' {
+  return info.mimeType.startsWith('audio/') ? 'audio' : 'image'
+}
+
 function sourceDossier(
   title: string,
   originalName: string,
@@ -50,6 +55,7 @@ function sourceDossier(
   iso: string
 ): string {
   const day = iso.slice(0, 10)
+  const kind = mediaKindOf(info)
   return [
     '---',
     'type: Atomik Source',
@@ -73,7 +79,7 @@ function sourceDossier(
     '',
     '## Original',
     '',
-    `- [Original image](./${originalName})`,
+    `- [Original ${kind}](./${originalName})`,
     '',
     '## Extracted representations',
     '',
@@ -83,7 +89,7 @@ function sourceDossier(
     '',
     '| Anchor | Meaning | Target |',
     '|---|---|---|',
-    `| \`original-image\` | full original capture | \`./${originalName}\` |`,
+    `| \`original-${kind}\` | full original capture | \`./${originalName}\` |`,
     '',
     '## Notes created from this source',
     '',
@@ -109,6 +115,7 @@ function bundleIndex(title: string, originalName: string, iso: string): string {
     ''
   ].join('\n')
 }
+
 
 export function importCaptureUpload(
   vaultRoot: string,

@@ -41,6 +41,7 @@ export function SourceImageView({
   // byte-untouched); the buttons edit the dossier, the canvas rotates
   // pixels for display only.
   const rotation = note ? rotationOf(note.content) : 0
+  const isAudio = base !== null && base.mimeType.startsWith('audio/')
 
   // The image follows the note: parse `resource:` and fetch the asset.
   useEffect(() => {
@@ -141,25 +142,32 @@ export function SourceImageView({
   return (
     <div className="source-image-view">
       <div className="source-image-original">
-        <div className="source-image-tools">
-          <button
-            type="button"
-            title="Rotate left (recorded in the dossier; the original file is untouched)"
-            onClick={() => rotate(-90)}
-          >
-            ⟲
-          </button>
-          <button
-            type="button"
-            title="Rotate right (recorded in the dossier; the original file is untouched)"
-            onClick={() => rotate(90)}
-          >
-            ⟳
-          </button>
-        </div>
-        {imageUrl ? (
+        {!isAudio && (
+          <div className="source-image-tools">
+            <button
+              type="button"
+              title="Rotate left (recorded in the dossier; the original file is untouched)"
+              onClick={() => rotate(-90)}
+            >
+              ⟲
+            </button>
+            <button
+              type="button"
+              title="Rotate right (recorded in the dossier; the original file is untouched)"
+              onClick={() => rotate(90)}
+            >
+              ⟳
+            </button>
+          </div>
+        )}
+        {imageUrl && isAudio && (
+          // The audio companion (S08): the original plays, untouched.
+          <audio controls src={imageUrl} />
+        )}
+        {imageUrl && !isAudio && (
           <img src={imageUrl} alt={`Original of ${dossierPath}`} />
-        ) : (
+        )}
+        {!imageUrl && (
           <p className="pane-placeholder">
             {imageError ?? 'loading original…'}
           </p>
