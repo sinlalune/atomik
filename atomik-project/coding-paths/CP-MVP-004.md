@@ -7,7 +7,7 @@ timestamp: 2026-07-07T00:00:00Z
 atomik:
   id: CP-MVP-004
   status: active
-  current_step: S06
+  current_step: S07
   base_commit: bb59575
 ---
 
@@ -137,7 +137,7 @@ Completeness rule (35): every bedrock page 00–35 accounted for below.
       cancellation/timeout, model files in the state dir (git-ignored),
       integrity note; mock demoted to fallback; `audioSeconds` + real
       runtime identity in traces.
-- [ ] S06 Segments sidecar + correction flow check: optional
+- [x] S06 Segments sidecar + correction flow check: optional
       `segments.json` (07 sidecar rules; 04 trigger), transcript quality
       pass on the owner's memos; correction flow unchanged end to end.
 - [ ] S07 OCR GO/NO-GO (dated): printed-page candidates checked with the
@@ -195,8 +195,15 @@ tests       : 227 passing / 23 suites
               on the owner machine. OWNER STEP to activate: sudo apt
               install ffmpeg (Electron cannot decode m4a itself — no
               AAC license; same finding as playback).
-next action : S06 — segments sidecar + correction-flow check on real
-              transcripts; then S07 OCR GO/NO-GO; S08 acceptance+close
+              S06 done 2026-07-07 (04 trigger honored — the sidecar
+              never hides knowledge, transcript.md stays canonical):
+              whisper-cli -oj time anchors parsed (tolerant), written wx
+              as segments.json beside the transcript when present, linked
+              from the transcript body; cleanup on races; trace carries
+              reported audioSeconds. Correction flow already owner-
+              validated on the real memo.
+next action : S07 — OCR GO/NO-GO (dated) on the owner's Pascal pages;
+              then S08 acceptance + close
 blockers    : none recorded
 ```
 

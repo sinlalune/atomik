@@ -37,6 +37,9 @@ export type TranscriptionOutput = {
   location: 'deterministic' | 'local-model' | 'cloud-model'
   /** Runtime-reported duration; null when the adapter decodes nothing. */
   audioSeconds?: number
+  /** Optional time anchors (07 sidecar rules): written as segments.json
+   *  beside the transcript — a machine aid, never the canonical text. */
+  segments?: Array<{ startMs: number; endMs: number; text: string }>
 }
 
 export interface TranscriptionAdapter {
@@ -140,6 +143,9 @@ export function transcriptDocument(
     `> ${output.modelVersion} (${output.location}). The original stays the`,
     '> evidence; correct this text freely — your corrections are the point.',
     '',
+    ...(output.segments && output.segments.length > 0
+      ? ['Time anchors: [segments.json](./segments.json) — machine sidecar (07); this file stays the canonical text.', '']
+      : []),
     output.markdown
   ].join('\n')
 }
@@ -283,6 +289,14 @@ export async function transcribeSource(
       transcriptDocument(output, basename(originalAbs), traceId, iso),
       { flag: 'wx' }
     )
+    const segmentsAbs = join(dirname(dossierAbs), 'segments.json')
+    if (output.segments && output.segments.length > 0) {
+      writeFileSync(
+        segmentsAbs,
+        `${JSON.stringify({ generatedBy: output.model, unit: 'ms', segments: output.segments }, null, 2)}\n`,
+        { flag: 'wx' }
+      )
+    }
     try {
       writeNote(
         vaultRoot,
@@ -292,6 +306,7 @@ export async function transcribeSource(
       )
     } catch (error) {
       rmSync(transcriptAbs, { force: true })
+      rmSync(segmentsAbs, { force: true })
       throw error
     }
     traces.recordTranscription({

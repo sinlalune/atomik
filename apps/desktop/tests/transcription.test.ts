@@ -325,3 +325,34 @@ describe('whisper.cpp seat (S05) — bounded sidecar', () => {
     rmSync(bin, { recursive: true, force: true })
   })
 })
+
+describe('segments sidecar (CP-MVP-004 S06)', () => {
+  it('writes segments.json wx when the adapter reports time anchors', async () => {
+    const dossierPath = seedBundle()
+    const withSegments = {
+      id: 'seg',
+      transcribe: () => Promise.resolve({
+        markdown: 'bonjour', model: 'm', modelVersion: '1', runtime: 'r',
+        runtimeVersion: '1', location: 'local-model' as const, audioSeconds: 2,
+        segments: [{ startMs: 0, endMs: 1200, text: 'bonjour' }]
+      })
+    }
+    await transcribeSource(vault, dossierPath, withSegments, traces)
+    const side = JSON.parse(readFileSync(join(vault, 'sources/captures/pascal/segments.json'), 'utf8'))
+    expect(side.unit).toBe('ms')
+    expect(side.segments[0].endMs).toBe(1200)
+    const transcript = readFileSync(join(vault, 'sources/captures/pascal/transcript.md'), 'utf8')
+    expect(transcript).toContain('[segments.json](./segments.json)')
+    // trace carries reported audioSeconds
+    expect((ledgerLines()[0]!['input'] as Record<string, unknown>)['audioSeconds']).toBe(2)
+  })
+
+  it('parses whisper.cpp -oj output and tolerates garbage', async () => {
+    const { parseWhisperSegments } = await import('../electron-main/whisper-adapter')
+    const parsed = parseWhisperSegments(JSON.stringify({
+      transcription: [{ offsets: { from: 0, to: 900 }, text: ' Bonjour ' }]
+    }))
+    expect(parsed).toEqual([{ startMs: 0, endMs: 900, text: 'Bonjour' }])
+    expect(parseWhisperSegments('not json')).toEqual([])
+  })
+})
