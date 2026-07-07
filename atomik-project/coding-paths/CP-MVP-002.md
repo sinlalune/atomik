@@ -293,8 +293,11 @@ head        : 09fbe7a — 21 pre-S02 dogfooding micro-units committed
 tests       : 220 passing / 23 suites; typecheck + build + smoke green
 next action : S09 close — OWNER review seals the path (continuous-gate
               practice): read the acceptance run, decide close + what
-              opens next (34 runtime evaluation vs CP-MVP-003 PDF);
-              optionally validate the audio loop from the phone first
+              opens next (34 runtime evaluation vs CP-MVP-003 PDF).
+              Audio loop OWNER-VALIDATED 2026-07-07 both ways (phone
+              m4a after the bytes-outrank-labels fix; desktop mic after
+              selecting the Windows default input — the WSLg bridge
+              exposes one device). Nothing blocks the close.
 blockers    : none (note: owner dogfooding files remain untracked by choice —
               atomik-project/projects/test/*, atomik-project/test/,
               docs/projects/test/ — keep/clean stays with the owner; the

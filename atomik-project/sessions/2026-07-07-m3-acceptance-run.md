@@ -69,6 +69,17 @@ against the real server; endpoint closed outside sessions.
 3. Dogfooding pressure this path absorbed (21 pre-S02 units + 5 in-path
    units) suggests keeping the continuous-gate practice unchanged.
 
+## Addendum — same day, after the dogfooding batch
+
+Owner-device AUDIO is now VALIDATED end to end, both directions: phone
+recording (URecorder m4a, accepted after the bytes-outrank-labels fix)
+and desktop mic (audible take after selecting the right Windows default
+input — WSLg exposes exactly one bridge device, so the physical mic is
+chosen in Windows; recorded in the module note). Audio playback fixed
+en route (CSP `media-src`). The only remaining honest gaps are the
+deliberately deferred ones (timestamp sidecar → 34 evaluation; inbox
+recovery listing).
+
 ## Review and close
 
 Per the continuous-gate practice, the PATH CLOSE is the owner's
