@@ -261,8 +261,14 @@ function DesktopRecorder({
     setError(null)
     navigator.mediaDevices
       .getUserMedia({
-        audio:
-          deviceId !== 'default' ? { deviceId: { exact: deviceId } } : true
+        // Processing (echo cancel/noise suppress) adds resampling load on
+        // the fragile WSLg bridge; a memo recorder doesn't need it.
+        audio: {
+          ...(deviceId !== 'default' ? { deviceId: { exact: deviceId } } : {}),
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        }
       })
       .then(
         (stream) => {
@@ -314,7 +320,7 @@ function DesktopRecorder({
             }
             setLevel(peak / 128)
           }, 120)
-          recorder.start()
+          recorder.start(1000)
           setStartedAtMs(Date.now())
           setNowMs(Date.now())
           setRecording(true)

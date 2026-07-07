@@ -43,6 +43,11 @@ import {
 // it). Must be set before app is ready.
 if (process.platform === 'linux') {
   app.commandLine.appendSwitch('ozone-platform-hint', 'auto')
+  // WSLg's RDP audio bridge stalls under sustained capture with the
+  // default client latency (owner: mic level flatlines/spikes ~20 s in,
+  // recordings truncate). Larger Pulse client buffers are the known
+  // mitigation; inherited by Chromium's audio service.
+  process.env['PULSE_LATENCY_MSEC'] ??= '60'
 }
 
 /** Current vault root — main-process state; the renderer only ever sees
