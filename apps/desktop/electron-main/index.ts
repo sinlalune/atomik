@@ -7,6 +7,7 @@ import { runAiOperation } from './ai-mock'
 import { ActionTraceLedger } from './action-trace'
 import { importCaptureUpload } from './capture-import'
 import { CaptureSessionManager } from './capture-session'
+import { mockTranscriptionAdapter, transcribeSource } from './transcription'
 import { listDevDocs, readDevDoc, resolveDocsRoot } from './dev-docs'
 import { searchVault } from './search'
 import { buildMainWindowOptions } from './security'
@@ -192,6 +193,14 @@ function registerCaptureHandlers(): void {
       if (!upload) throw new Error('capture: unknown or already resolved upload')
       capture.resolveUpload(upload.info.id, 'discarded')
     }
+  )
+  // S06: the replaceable transcription seat, mock-first. The adapter is
+  // chosen HERE (main); a real runtime swaps in behind the same contract
+  // only through a dated capability evaluation (34).
+  ipcMain.handle(
+    ATOMIK_CHANNELS.transcribeSource,
+    (_event, dossierPath: unknown) =>
+      transcribeSource(requireVault(), dossierPath, mockTranscriptionAdapter, traces)
   )
 }
 

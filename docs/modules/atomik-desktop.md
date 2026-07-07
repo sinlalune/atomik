@@ -40,7 +40,7 @@ timestamp: 2026-07-06T00:00:00Z
   it drops the margins. WSLg's OS side draws window shadows itself.
 - The renderer-facing API surface: `shared/ipc-contract.ts` is the single
   source of truth (`ATOMIK_API_KEY`, `ATOMIK_CHANNELS`, `AtomikApi`,
-  `DOCUMENTED_PRELOAD_SURFACE`). Twenty-four invoke channels exist today
+  `DOCUMENTED_PRELOAD_SURFACE`). Twenty-five invoke channels exist today
   (the AI trio is described in its own bullets below), plus two push
   subscriptions (`onWindowStateChanged` over
   `atomik:window-state-changed`; `onVaultChanged` over
@@ -55,7 +55,8 @@ timestamp: 2026-07-06T00:00:00Z
   project pair `list-projects` / `create-project` — and the capture
   family: `start-capture-session` / `stop-capture-session` /
   `get-capture-session` plus the S04 decision pair
-  `import-capture-upload` / `discard-capture-upload`.
+  `import-capture-upload` / `discard-capture-upload` and the S06
+  `transcribe-source`.
   The S02 shell-identity channel (`get-app-info`) and its ShellHome card
   were removed on MVP-001 owner feedback ("shell relict"): saved 'home'
   tabs migrate to vault tabs at load (`migrateRetiredViews`).
@@ -245,6 +246,27 @@ timestamp: 2026-07-06T00:00:00Z
   a ready image embed (angle-bracketed destination, space-safe) or a
   dossier link when the bundle has no image. Providers beyond captures
   can join the same menu later.
+- The transcription seat (07/08/33, CP-MVP-002 S06):
+  `electron-main/transcription.ts` — a REPLACEABLE adapter contract
+  (`TranscriptionAdapter`: job in, markdown + full model/runtime/version
+  identity out) holding a deterministic MOCK (same bytes → same output;
+  it states plainly that no recognition ran — fabricating a transcript
+  would be exactly the dishonesty 08 forbids). A real local runtime may
+  take the seat only through a dated capability evaluation (34). The
+  pipeline (`transcribeSource`, main-only): dossier → resource →
+  original (containment + image allowlist) → adapter → `transcript.md`
+  written `wx` and VISIBLY derived (Atomik Transcript frontmatter:
+  `derived: true`, `correction_state: model-output`, full transcription
+  identity + `action_trace_id`; banner heading) → dossier updated
+  through the mtime handshake (status → transcribed, transcription
+  block, extracted-representations link; transcript cleaned up if the
+  dossier write races). It REFUSES to clobber an existing transcript —
+  S07's human corrections live there. Every run appends exactly ONE
+  ActionTrace line (`action: 'transcribe'`, 33 fields: runtime identity,
+  input bytes + sha256 content hash — never content —, `audioSeconds`
+  null until the S08 audio companion; the trace id pre-generated so the
+  files can reference it). UI: a Transcribe button in the image tab's
+  dossier bar when no transcript exists yet.
 - Project bundles (04, S06): `electron-main/project.ts` (incubating
   project-core, 14) — manifest-detected bundles
   (`project.atomik-project.json`; scan skips denied dirs and does not
@@ -463,7 +485,10 @@ original, wx refusal leaving pre-existing bytes untouched, destination
 path/title matrices, vanished-inbox-file no-side-effects, the FULL
 composed loop phone-POST→inbox→import→vault, renderer defaults),
 `source-dossier.test.ts` (frontmatter resource parsing, image-extension
-gate); `vault.test.ts` additionally covers `readSourceAsset` (base64 +
+gate, rotation metadata round-trip), `transcription.test.ts` (mock
+determinism + honesty, the full pipeline incl. dossier update and the
+no-clobber rule, the transcribe trace fields with the content-leak
+check, failed-adapter accounting); `vault.test.ts` additionally covers `readSourceAsset` (base64 +
 MIME happy path, extension allowlist, note-path discipline reused,
 human missing-asset message). The
 smoke's capture proof also drives the REAL capture tab when a state

@@ -39,6 +39,7 @@ export const ATOMIK_CHANNELS = {
   getCaptureSession: 'atomik:get-capture-session',
   importCaptureUpload: 'atomik:import-capture-upload',
   discardCaptureUpload: 'atomik:discard-capture-upload',
+  transcribeSource: 'atomik:transcribe-source',
   runAiOperation: 'atomik:run-ai-operation',
   resolveAiTrace: 'atomik:resolve-ai-trace',
   getAiTraceSummary: 'atomik:get-ai-trace-summary'
@@ -234,6 +235,22 @@ export type CaptureImportDestination = {
 export type CaptureImportResult = {
   /** Vault-relative path of the created source.md dossier. */
   dossierPath: string
+}
+
+/**
+ * Transcription (07/08, S06): a REPLACEABLE adapter turns a source
+ * original into `transcript.md` — a visibly DERIVED representation. The
+ * S06 adapter is a deterministic mock (no real OCR runs; the transcript
+ * says so); a real local runtime arrives only through a dated capability
+ * evaluation (34) behind the same contract. The dossier records model/
+ * runtime/version and the correction state; the run emits an ActionTrace
+ * with the transcription fields (33).
+ */
+export type TranscribeResult = {
+  /** Vault-relative path of the created transcript.md. */
+  transcriptPath: string
+  /** ActionTrace id of the run (recorded in the dossier too). */
+  traceId: string
 }
 
 export type CaptureSessionInfo = {
@@ -439,6 +456,9 @@ export type AtomikApi = {
   /** Rejects one inbox item: its files are deleted, nothing enters the
    *  vault. */
   discardCaptureUpload: (uploadId: string) => Promise<void>
+  /** Runs the transcription adapter on a dossier's original; refuses to
+   *  clobber an existing transcript (corrections live there, S07). */
+  transcribeSource: (dossierPath: string) => Promise<TranscribeResult>
   /** Mocked AI operation (S08): pure compute, never writes. */
   runAiOperation: (operation: AiOperation) => Promise<AiResponseBundle>
   /** Reports the user's decision; main appends the one trace line. */
@@ -475,6 +495,7 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'getCaptureSession',
   'importCaptureUpload',
   'discardCaptureUpload',
+  'transcribeSource',
   'runAiOperation',
   'resolveAiTrace',
   'getAiTraceSummary'

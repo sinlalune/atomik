@@ -1,0 +1,203 @@
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { ActionTraceLedger } from '../electron-main/action-trace'
+import {
+  dossierResource,
+  mockTranscriptionAdapter,
+  transcribeSource,
+  withTranscriptionRecorded
+} from '../electron-main/transcription'
+
+/**
+ * S06: the transcription seat — contract + deterministic mock. The
+ * transcript must be VISIBLY derived, the dossier must record model/
+ * runtime/version + correction state, and the run must land ONE
+ * ActionTrace line with the transcription fields (33) and no content.
+ */
+
+const JPEG = Buffer.concat([
+  Buffer.from([0xff, 0xd8, 0xff, 0xe0]),
+  Buffer.from('pretend-photo-bytes')
+])
+
+let vault: string
+let stateDir: string
+let traces: ActionTraceLedger
+
+function seedBundle(rel = 'sources/captures/pascal'): string {
+  const dir = join(vault, rel)
+  mkdirSync(dir, { recursive: true })
+  writeFileSync(join(dir, 'original.jpg'), JPEG)
+  writeFileSync(
+    join(dir, 'source.md'),
+    [
+      '---',
+      'type: Atomik Source',
+      'title: Pascal page',
+      'resource: ./original.jpg',
+      'atomik:',
+      '  id: capture_x',
+      '  source_type: capture',
+      '  status: captured',
+      '  capture:',
+      '    method: local-wifi-qr',
+      '---',
+      '',
+      '# Source dossier',
+      '',
+      '## Extracted representations',
+      '',
+      '- None yet — transcription arrives with the adapter (S06).',
+      ''
+    ].join('\n')
+  )
+  return `${rel}/source.md`
+}
+
+beforeEach(() => {
+  vault = mkdtempSync(join(tmpdir(), 'atomik-transcribe-vault-'))
+  stateDir = mkdtempSync(join(tmpdir(), 'atomik-transcribe-state-'))
+  traces = new ActionTraceLedger(stateDir)
+})
+
+afterEach(() => {
+  rmSync(vault, { recursive: true, force: true })
+  rmSync(stateDir, { recursive: true, force: true })
+})
+
+function ledgerLines(): Array<Record<string, unknown>> {
+  if (!existsSync(traces.ledgerPath())) return []
+  return readFileSync(traces.ledgerPath(), 'utf8')
+    .trim()
+    .split('\n')
+    .map((line) => JSON.parse(line) as Record<string, unknown>)
+}
+
+describe('mock adapter', () => {
+  it('is deterministic and never pretends to have read the image', async () => {
+    const job = { originalAbs: '/x/original.jpg', mimeType: 'image/jpeg', bytes: JPEG }
+    const first = await mockTranscriptionAdapter.transcribe(job)
+    const second = await mockTranscriptionAdapter.transcribe(job)
+    expect(first).toEqual(second)
+    expect(first.markdown).toContain('No text recognition ran')
+    expect(first.markdown).toContain('sha256')
+    expect(first.location).toBe('deterministic')
+  })
+})
+
+describe('transcribeSource pipeline', () => {
+  it('creates a visibly derived transcript.md and updates the dossier', async () => {
+    const dossierPath = seedBundle()
+    const result = await transcribeSource(
+      vault,
+      dossierPath,
+      mockTranscriptionAdapter,
+      traces
+    )
+    expect(result.transcriptPath).toBe('sources/captures/pascal/transcript.md')
+
+    const transcript = readFileSync(join(vault, result.transcriptPath), 'utf8')
+    expect(transcript).toContain('type: Atomik Transcript')
+    expect(transcript).toContain('derived: true')
+    expect(transcript).toContain('correction_state: model-output')
+    expect(transcript).toContain('model: atomik-mock-transcriber')
+    expect(transcript).toContain(`action_trace_id: ${result.traceId}`)
+    expect(transcript).toContain('# Transcript — model output, uncorrected')
+
+    const dossier = readFileSync(join(vault, dossierPath), 'utf8')
+    expect(dossier).toContain('  status: transcribed')
+    expect(dossier).toContain('    model: atomik-mock-transcriber')
+    expect(dossier).toContain('    runtime: deterministic')
+    expect(dossier).toContain('    correction_state: model-output')
+    expect(dossier).toContain(`    action_trace_id: ${result.traceId}`)
+    expect(dossier).toContain('- [Transcript](./transcript.md) — model output, uncorrected.')
+    expect(dossier).not.toContain('None yet — transcription arrives')
+  })
+
+  it('emits one transcribe trace with the 33 fields and zero content', async () => {
+    const dossierPath = seedBundle()
+    const result = await transcribeSource(vault, dossierPath, mockTranscriptionAdapter, traces)
+    const lines = ledgerLines()
+    expect(lines).toHaveLength(1)
+    const line = lines[0]!
+    expect(line['id']).toBe(result.traceId)
+    expect(line['action']).toBe('transcribe')
+    const execution = line['execution'] as Record<string, unknown>
+    expect(execution['location']).toBe('deterministic')
+    expect(execution['model']).toBe('atomik-mock-transcriber')
+    expect(execution['runtime']).toBe('deterministic')
+    const input = line['input'] as Record<string, unknown>
+    expect(input['bytes']).toBe(JPEG.length)
+    expect(input['audioSeconds']).toBeNull()
+    expect((input['contentHashes'] as string[])[0]).toMatch(/^[a-f0-9]{64}$/)
+    expect((line['privacy'] as Record<string, unknown>)['contentRecorded']).toBe(false)
+    expect((line['outcome'] as Record<string, unknown>)['status']).toBe('completed')
+    // No transcript prose in telemetry.
+    const raw = readFileSync(traces.ledgerPath(), 'utf8')
+    expect(raw).not.toContain('No text recognition ran')
+  })
+
+  it('refuses to clobber an existing transcript (corrections live there)', async () => {
+    const dossierPath = seedBundle()
+    writeFileSync(
+      join(vault, 'sources/captures/pascal/transcript.md'),
+      'human corrected content\n'
+    )
+    await expect(
+      transcribeSource(vault, dossierPath, mockTranscriptionAdapter, traces)
+    ).rejects.toThrow(/already exists/)
+    expect(
+      readFileSync(join(vault, 'sources/captures/pascal/transcript.md'), 'utf8')
+    ).toBe('human corrected content\n')
+    // the dossier stayed untouched too
+    expect(readFileSync(join(vault, dossierPath), 'utf8')).toContain('status: captured')
+  })
+
+  it('rejects non-dossier paths and missing resources', async () => {
+    await expect(
+      transcribeSource(vault, '../outside/source.md', mockTranscriptionAdapter, traces)
+    ).rejects.toThrow(/rejected dossier path/)
+    const dir = join(vault, 'plain')
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(join(dir, 'source.md'), '# no frontmatter\n')
+    await expect(
+      transcribeSource(vault, 'plain/source.md', mockTranscriptionAdapter, traces)
+    ).rejects.toThrow(/declares no resource/)
+  })
+
+  it('records a failed line when the adapter throws', async () => {
+    const dossierPath = seedBundle()
+    const failing = {
+      id: 'boom',
+      transcribe: () => Promise.reject(new Error('adapter exploded'))
+    }
+    await expect(
+      transcribeSource(vault, dossierPath, failing, traces)
+    ).rejects.toThrow('adapter exploded')
+    const lines = ledgerLines()
+    expect(lines).toHaveLength(1)
+    expect((lines[0]!['outcome'] as Record<string, unknown>)['status']).toBe('failed')
+    expect(existsSync(join(vault, 'sources/captures/pascal/transcript.md'))).toBe(false)
+  })
+})
+
+describe('pure pieces', () => {
+  it('dossierResource strips angle brackets and needs frontmatter', () => {
+    expect(dossierResource('---\nresource: <./a b.jpg>\n---\n')).toBe('./a b.jpg')
+    expect(dossierResource('resource: ./x.jpg\n')).toBeNull()
+  })
+
+  it('withTranscriptionRecorded is a no-op on non-frontmatter content', () => {
+    const output = {
+      markdown: '',
+      model: 'm',
+      modelVersion: '1',
+      runtime: 'r',
+      runtimeVersion: '1',
+      location: 'deterministic' as const
+    }
+    expect(withTranscriptionRecorded('# plain\n', output, 't', 'iso')).toBe('# plain\n')
+  })
+})

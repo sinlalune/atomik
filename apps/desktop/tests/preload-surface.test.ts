@@ -92,6 +92,7 @@ describe('preload surface (13 §IPC rule)', () => {
         destination: unknown
       ) => Promise<unknown>
       discardCaptureUpload: (uploadId: string) => Promise<unknown>
+      transcribeSource: (dossierPath: string) => Promise<unknown>
       runAiOperation: (operation: unknown) => Promise<unknown>
       resolveAiTrace: (bundleId: string, decision: string) => Promise<unknown>
       getAiTraceSummary: (bundleId: string) => Promise<unknown>
@@ -245,6 +246,12 @@ describe('preload surface (13 §IPC rule)', () => {
     expect(invoke).toHaveBeenLastCalledWith(
       ATOMIK_CHANNELS.discardCaptureUpload,
       'upload-1'
+    )
+
+    await api.transcribeSource('sources/captures/demo/source.md')
+    expect(invoke).toHaveBeenLastCalledWith(
+      ATOMIK_CHANNELS.transcribeSource,
+      'sources/captures/demo/source.md'
     )
 
     const operation = { id: 'op-1' }

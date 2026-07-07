@@ -7,7 +7,7 @@ timestamp: 2026-07-06T00:00:00Z
 atomik:
   id: CP-MVP-002
   status: active
-  current_step: S06
+  current_step: S07
   base_commit: 09e2e38
 ---
 
@@ -127,7 +127,7 @@ once. 13 appears twice by design (Required + re-read triggers).
       `index.md` per 07/08 (ensure/wx semantics; no silent vault writes).
 - [x] S05 Image source tab: view the original beside the rendered dossier
       (03 trigger for the new tab kind).
-- [ ] S06 Replaceable transcription adapter contract + deterministic MOCK
+- [x] S06 Replaceable transcription adapter contract + deterministic MOCK
       (ai-mock seat pattern): `transcript.md` visibly derived, dossier
       records model/runtime/version + correction state, ActionTrace line
       with the transcription fields (33 + trace contract read first).
@@ -238,13 +238,32 @@ head        : 09fbe7a — 21 pre-S02 dogfooding micro-units committed
               imported capture rows + "View original" pill in the vault
               read-mode note-bar. Verified on the owner's real Pascal
               bundle (screenshot).
-tests       : 180 passing / 20 suites; typecheck + build + smoke green
-next action : S06 — replaceable transcription adapter contract +
-              deterministic MOCK (ai-mock seat pattern): transcript.md
-              visibly derived, dossier records model/runtime/version +
-              correction state, ActionTrace with transcription fields —
-              READ FIRST: 33 + docs/contracts/operation_trace_contract_
-              v0_1.json (promoted Required trigger)
+              S06 done 2026-07-07 (33 + trace contract read first):
+              `transcription.ts` — replaceable TranscriptionAdapter
+              contract + deterministic mock (honest: states no
+              recognition ran; never fabricates content). Pipeline in
+              main: dossier → original (containment + allowlist) →
+              adapter → transcript.md (`wx`, visibly derived: Atomik
+              Transcript frontmatter with derived/correction_state/full
+              transcription identity/action_trace_id + banner) → dossier
+              update via mtime handshake (status transcribed,
+              transcription block, extracted-representations link);
+              REFUSES existing transcript (S07 corrections live there).
+              ONE trace line per run: action 'transcribe', runtime
+              identity, input bytes + sha256 (never content),
+              audioSeconds null until S08, completed/failed. Channel
+              `transcribe-source` (25 invoke + 2 push); Transcribe
+              button in the image tab. Between S05 and S06, five
+              dogfooding micro-units shipped on owner reports: stable
+              capture port 41414 + WSL2 firewall runbook (phone loop
+              OWNER-VALIDATED end to end); read-mode inline images;
+              live-mode image embeds + '@' quick actions; rotation as
+              dossier metadata; trees collapsed by default with per-tab
+              fold memory.
+tests       : 212 passing / 25 suites; typecheck + build + smoke green
+next action : S07 — human correction flow: transcript edited in the
+              editor; dossier correction state flips model-output →
+              human-corrected; original always one click away
 blockers    : none (note: owner dogfooding files remain untracked by choice —
               atomik-project/projects/test/*, atomik-project/test/,
               docs/projects/test/ — keep/clean stays with the owner; the

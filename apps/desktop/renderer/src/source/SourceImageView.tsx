@@ -96,6 +96,30 @@ export function SourceImageView({
     }
   }, [base, rotation])
 
+  const [transcribing, setTranscribing] = useState(false)
+
+  // S06: run the adapter, then re-read the dossier (it changed on disk —
+  // status, transcription identity, and the transcript link are in it).
+  const transcribe = (): void => {
+    if (!note) return
+    setTranscribing(true)
+    window.atomik.transcribeSource(note.relPath).then(
+      () => {
+        setTranscribing(false)
+        openNote(note.relPath)
+      },
+      (cause) => {
+        setTranscribing(false)
+        setImageError(
+          String(cause).replace(
+            /^Error: Error invoking remote method '[^']+': Error: /,
+            ''
+          )
+        )
+      }
+    )
+  }
+
   const rotate = (delta: 90 | -90): void => {
     if (!note) return
     const next = (((rotation + delta) % 360) + 360) % 360 as Rotation
@@ -145,6 +169,19 @@ export function SourceImageView({
         <div className="note-bar">
           <span className="note-bar-path" title={note?.relPath ?? dossierPath}>
             {note?.relPath ?? dossierPath}
+          </span>
+          <span className="note-bar-actions">
+            {note && !note.content.includes('./transcript.md') && (
+              <button
+                type="button"
+                className="note-bar-button"
+                title="Run the transcription adapter (S06 mock — records model/runtime in the dossier)"
+                disabled={transcribing}
+                onClick={transcribe}
+              >
+                {transcribing ? 'Transcribing…' : 'Transcribe'}
+              </button>
+            )}
           </span>
         </div>
         <div className="note-scroll" onClick={onContentClick}>
