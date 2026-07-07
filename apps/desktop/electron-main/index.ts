@@ -1,4 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, session, shell } from 'electron'
+import { execFile } from 'node:child_process'
 import { mkdtempSync, statSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -130,6 +131,18 @@ function registerVaultHandlers(stateDir: string): void {
     ATOMIK_CHANNELS.openSourceExternally,
     async (_event, relPath: unknown) => {
       const asset = resolveSourceAssetAbs(requireVault(), relPath)
+      if (process.env['WSL_DISTRO_NAME']) {
+        // No xdg-open inside WSL: convert to a Windows path and let the
+        // WINDOWS default player open it (native audio — no WSLg bridge).
+        const winPath = await new Promise<string>((res, rej) =>
+          execFile('wslpath', ['-w', asset], (e, out) =>
+            e ? rej(e) : res(out.trim())
+          )
+        )
+        // explorer.exe's exit code is meaningless; fire and forget.
+        execFile('explorer.exe', [winPath], () => {})
+        return
+      }
       const outcome = await shell.openPath(asset)
       if (outcome) throw new Error(`open externally: ${outcome}`)
     }
