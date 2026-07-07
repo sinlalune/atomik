@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { runAiOperation } from './ai-mock'
 import { ActionTraceLedger } from './action-trace'
+import { CaptureSessionManager } from './capture-session'
 import { listDevDocs, readDevDoc, resolveDocsRoot } from './dev-docs'
 import { searchVault } from './search'
 import { buildMainWindowOptions } from './security'
@@ -157,6 +158,16 @@ function registerVaultHandlers(stateDir: string): void {
 
 /** S09 ledger; constructed at startup with the resolved state dir. */
 let traces: ActionTraceLedger
+
+/** Capture session server (S02); inbox lives under the state dir, never
+ *  the vault — the inbox→vault import is S04's explicitly confirmed step. */
+let capture: CaptureSessionManager
+
+function registerCaptureHandlers(): void {
+  ipcMain.handle(ATOMIK_CHANNELS.startCaptureSession, () => capture.start())
+  ipcMain.handle(ATOMIK_CHANNELS.stopCaptureSession, () => capture.stop())
+  ipcMain.handle(ATOMIK_CHANNELS.getCaptureSession, () => capture.inspect())
+}
 
 /** Frame verbs for the chromeless window (13 §IPC: allowlist-validated;
  *  scoped to the calling window — only the trusted UI has this preload). */
@@ -354,6 +365,24 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
       )) as string
       vaultReport += ` ai=${outcome}`
     }
+    // Optional capture proof: session lifecycle through the renderer world
+    // (S02). The HTTP surface itself is covered by unit tests; this checks
+    // the typed channels end to end.
+    if (process.env['ATOMIK_SMOKE_CAPTURE'] === '1') {
+      const outcome = (await window.webContents.executeJavaScript(
+        `(async () => {
+          try {
+            const session = await window.atomik.startCaptureSession()
+            const urlOk = /^http:\\/\\/[^/]+\\/c\\/[a-f0-9]{16}\\?t=[a-f0-9]{32}$/.test(session.uploadUrl)
+            const seen = await window.atomik.getCaptureSession()
+            await window.atomik.stopCaptureSession()
+            const after = await window.atomik.getCaptureSession()
+            return 'ok:' + [session.active, urlOk, seen && seen.id === session.id, after && !after.active].join('/')
+          } catch (e) { return 'fail:' + String(e) }
+        })()`
+      )) as string
+      vaultReport += ` capture=${outcome}`
+    }
     const shotPath = process.env['ATOMIK_SMOKE_SHOT']
     if (shotPath) {
       const image = await window.webContents.capturePage()
@@ -389,10 +418,17 @@ app.whenReady().then(() => {
   }
   const stateDir = resolveStateDir(app.getAppPath(), process.env)
   traces = new ActionTraceLedger(stateDir)
-  app.on('before-quit', () => traces.flush())
+  capture = new CaptureSessionManager({
+    inboxRoot: join(stateDir, 'capture-inbox')
+  })
+  app.on('before-quit', () => {
+    traces.flush()
+    void capture.dispose()
+  })
   restoreVault(stateDir)
   registerIpcHandlers(docsRoot, stateDir)
   registerVaultHandlers(stateDir)
+  registerCaptureHandlers()
 
   const smoke = process.env['ATOMIK_SMOKE'] === '1'
   const smokeDoc = process.env['ATOMIK_SMOKE_DOC']

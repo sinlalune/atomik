@@ -53,3 +53,7 @@ when the shape changes, not on every diff.
   CodeMirror decorations, the syntax tree, the reveal rule, compartments,
   and why styling never touches bytes. Covers the MVP-001 owner-feedback
   batch (seamless editing) during CP-MVP-002.
+- [11 — A local HTTP capture server, from zero](./11-local-http-capture-server.md) —
+  node:http without a framework, capability tokens and constant-time
+  compare, magic-byte validation, the inbox/vault boundary, testing a real
+  server. Covers CP-MVP-002 S02.

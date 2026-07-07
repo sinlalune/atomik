@@ -40,7 +40,7 @@ timestamp: 2026-07-06T00:00:00Z
   it drops the margins. WSLg's OS side draws window shadows itself.
 - The renderer-facing API surface: `shared/ipc-contract.ts` is the single
   source of truth (`ATOMIK_API_KEY`, `ATOMIK_CHANNELS`, `AtomikApi`,
-  `DOCUMENTED_PRELOAD_SURFACE`). Eighteen invoke channels exist today
+  `DOCUMENTED_PRELOAD_SURFACE`). Twenty-one invoke channels exist today
   (the AI trio is described in its own bullets below), plus two push
   subscriptions (`onWindowStateChanged` over
   `atomik:window-state-changed`; `onVaultChanged` over
@@ -50,8 +50,10 @@ timestamp: 2026-07-06T00:00:00Z
   read/write (fixed path, validated payload), the vault family —
   `open-vault` (native dialog in main; user-mediated capability),
   `get-vault`, `list-vault-files`, `search-vault` (optional validated
-  scope folder), `read-note`, `write-note`, `create-note` — and the
-  project pair `list-projects` / `create-project`.
+  scope folder), `read-note`, `write-note`, `create-note` — the
+  project pair `list-projects` / `create-project` — and the capture
+  session trio `start-capture-session` / `stop-capture-session` /
+  `get-capture-session`.
   The S02 shell-identity channel (`get-app-info`) and its ShellHome card
   were removed on MVP-001 owner feedback ("shell relict"): saved 'home'
   tabs migrate to vault tabs at load (`migrateRetiredViews`).
@@ -141,6 +143,28 @@ timestamp: 2026-07-06T00:00:00Z
   switch to read passes the save-first gate. GFM base.
   One EditorView per mounted pane, keyed by note path; view lives in a
   ref (mount-only).
+- The capture session server (08/13 §capture, CP-MVP-002 S02):
+  `electron-main/capture-session.ts` (incubating capture-core, 14) — a
+  short-lived `node:http` endpoint bound to the FIRST non-internal IPv4
+  (never 0.0.0.0; loopback fallback offline) that the owner's phone
+  uploads originals to. One session at a time: `start` mints a random id
+  + one-time token (the token IS the QR capability, carried in
+  `uploadUrl`), `stop`/expiry (5 min default)/app-quit invalidate it, and
+  the server listens ONLY while a session is active — no port stays open
+  between sessions; a new `start` kills the previous token. Uploads pass
+  four gates below the renderer: token (timing-safe compare), size cap
+  (Content-Length early + streamed count, 25 MB default), declared-MIME
+  allowlist (jpeg/png/webp/heic/heif), and magic-byte validation of the
+  received bytes against the DECLARED type. Accepted files land in a
+  temporary inbox under the STATE DIR
+  (`.atomik/capture-inbox/<sessionId>/<seq>-<uploadId>.<ext>` + a
+  `.meta.json` sidecar) — never the vault; the inbox→vault import is
+  S04's explicitly confirmed step in main. Client file names are display
+  metadata only (sanitized); names on disk are server-chosen. Auth
+  failures are a uniform 403 (no id/token/expiry oracle). Known
+  environment limit: under WSL2 the LAN address is NAT'd — a phone
+  cannot reach it without Windows port-forwarding or WSL2 mirrored
+  networking mode; to be validated in the owner's environment at S03.
 - Project bundles (04, S06): `electron-main/project.ts` (incubating
   project-core, 14) — manifest-detected bundles
   (`project.atomik-project.json`; scan skips denied dirs and does not
@@ -340,13 +364,19 @@ content-leak grep), `ai-helpers.test.ts` (default note paths),
 `truth.test.ts` (containment + hash evidence, the no-paraphrase rule,
 form honoring with evidence outranking, the smuggled-label adversarial
 case, reproducibility), `search.test.ts` (match kinds + lines,
-case-insensitivity, denylist, caps, query validation). The S11
+case-insensitivity, denylist, caps, query validation),
+`capture-session.test.ts` (real HTTP over loopback: token gate incl.
+forged/expired/stopped, one-time token across restarts, size cap, MIME
+allowlist + magic-byte mismatch, upload cap, byte-exact inbox writes +
+meta sidecars, endpoint closed outside sessions, file-name sanitation,
+LAN-host detection). The S11
 acceptance run and its per-line evidence live in
 `atomik-project/sessions/2026-07-06-s11-acceptance-run.md`. The
 CodeMirror typing/save flow and the AiPanel interaction flow are
 validated by owner dogfooding and the learning-note exercises; the
 channels and logic beneath them are unit-covered, and the smoke drives
-the AI channel e2e through the renderer world (ATOMIK_SMOKE_AI=1). The smoke run proves boot + Dev Docs
+the AI channel e2e through the renderer world (ATOMIK_SMOKE_AI=1) and
+the capture session lifecycle likewise (ATOMIK_SMOKE_CAPTURE=1). The smoke run proves boot + Dev Docs
 rendering and reports pane/vault counts; pre-seeded `ATOMIK_STATE_DIR` /
 `ATOMIK_VAULT_DIR` fixtures prove layout restore and, with
 `ATOMIK_SMOKE_VAULT_WRITE=1`, the full renderer→disk write chain (verified

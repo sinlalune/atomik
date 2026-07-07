@@ -65,6 +65,12 @@ const api: AtomikApi = {
   listProjects: () => ipcRenderer.invoke(ATOMIK_CHANNELS.listProjects),
   createProject: (relPath: string, title: string) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.createProject, relPath, title),
+  startCaptureSession: () =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.startCaptureSession),
+  stopCaptureSession: () =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.stopCaptureSession),
+  getCaptureSession: () =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.getCaptureSession),
   runAiOperation: (operation: AiOperation) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.runAiOperation, operation),
   resolveAiTrace: (bundleId: string, decision: AiTraceDecision) =>

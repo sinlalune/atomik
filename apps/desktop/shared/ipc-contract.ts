@@ -33,6 +33,9 @@ export const ATOMIK_CHANNELS = {
   createNote: 'atomik:create-note',
   listProjects: 'atomik:list-projects',
   createProject: 'atomik:create-project',
+  startCaptureSession: 'atomik:start-capture-session',
+  stopCaptureSession: 'atomik:stop-capture-session',
+  getCaptureSession: 'atomik:get-capture-session',
   runAiOperation: 'atomik:run-ai-operation',
   resolveAiTrace: 'atomik:resolve-ai-trace',
   getAiTraceSummary: 'atomik:get-ai-trace-summary'
@@ -173,6 +176,36 @@ export type ProjectInfo = {
   relPath: string
   id: string
   title: string
+}
+
+/**
+ * Capture session (08, 13 §capture upload security), S02 slice: a
+ * short-lived local HTTP endpoint on the LAN interface that the owner's
+ * phone uploads originals to. Uploads land in a temporary INBOX under the
+ * state dir — NEVER the vault; importing into the vault is a separate,
+ * explicitly confirmed step (S04) that runs in main. The QR payload is
+ * `uploadUrl`: it carries the one-time token, which dies with the session
+ * (stop, expiry, or app quit) and never authorizes a second session.
+ */
+export type CaptureUploadInfo = {
+  id: string
+  /** Sanitized client file name — display metadata only; names on disk
+   *  are always server-chosen. */
+  fileName: string
+  /** Declared MIME, verified against the received bytes' magic numbers. */
+  mimeType: string
+  bytes: number
+  receivedAtMs: number
+}
+
+export type CaptureSessionInfo = {
+  id: string
+  /** Phone-facing URL (LAN address; token included) — the QR payload. */
+  uploadUrl: string
+  expiresAtMs: number
+  /** False once stopped or expired; uploads are refused from then on. */
+  active: boolean
+  uploads: CaptureUploadInfo[]
 }
 
 /**
@@ -348,6 +381,14 @@ export type AtomikApi = {
   listProjects: () => Promise<ProjectInfo[]>
   /** Creates or adopts a bundle: writes only the missing pieces. */
   createProject: (relPath: string, title: string) => Promise<ProjectInfo>
+  /** Opens the LAN endpoint and mints a fresh one-time session (any
+   *  previous session is invalidated first). */
+  startCaptureSession: () => Promise<CaptureSessionInfo>
+  /** Invalidates the session and closes the endpoint; inbox files stay
+   *  for the S04 confirmation flow. */
+  stopCaptureSession: () => Promise<void>
+  /** Last session's state (uploads survive stop); null before any start. */
+  getCaptureSession: () => Promise<CaptureSessionInfo | null>
   /** Mocked AI operation (S08): pure compute, never writes. */
   runAiOperation: (operation: AiOperation) => Promise<AiResponseBundle>
   /** Reports the user's decision; main appends the one trace line. */
@@ -378,6 +419,9 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'createNote',
   'listProjects',
   'createProject',
+  'startCaptureSession',
+  'stopCaptureSession',
+  'getCaptureSession',
   'runAiOperation',
   'resolveAiTrace',
   'getAiTraceSummary'

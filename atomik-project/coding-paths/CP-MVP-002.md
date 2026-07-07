@@ -7,7 +7,7 @@ timestamp: 2026-07-06T00:00:00Z
 atomik:
   id: CP-MVP-002
   status: active
-  current_step: S02
+  current_step: S03
   base_commit: 09e2e38
 ---
 
@@ -116,7 +116,7 @@ once. 13 appears twice by design (Required + re-read triggers).
 # Execution
 
 - [x] S01 Reconcile ledger vs repository reality; record `base_commit`.
-- [ ] S02 Capture session server in main: local HTTP endpoint bound to the
+- [x] S02 Capture session server in main: local HTTP endpoint bound to the
       LAN interface, one-time expiring session tokens, size + MIME
       allowlists, temporary inbox under the state dir (NOT the vault);
       typed channels to start/stop/inspect a session (13 §IPC re-read).
@@ -168,11 +168,29 @@ head        : 09fbe7a — 21 pre-S02 dogfooding micro-units committed
               missing note reads as a human message). Unit 21: strip
               actions + window controls pinned outside the tab scroll.
               Preload surface: 18 invoke channels + 2 push subscriptions.
-tests       : 133 passing / 16 suites (reverified 2026-07-07); typecheck +
-              build + smoke green at unit 21
-next action : S02 — capture session server in main (local endpoint, one-time
-              expiring tokens, size/MIME limits, temporary inbox under the state
-              dir; typed session channels — 13 §IPC re-read 2026-07-07)
+              S02 done 2026-07-07: `electron-main/capture-session.ts`
+              (incubating capture-core) — node:http endpoint bound to the
+              first non-internal IPv4 (never 0.0.0.0; loopback offline),
+              open ONLY while a session is active; one-time expiring
+              tokens (crypto-random, timing-safe compare, 5 min TTL, die
+              on stop/expiry/quit/restart; uniform 403, no oracle); size
+              cap 25 MB (Content-Length + streamed count); MIME allowlist
+              jpeg/png/webp/heic/heif with magic-byte validation of the
+              received bytes against the DECLARED type; temporary inbox
+              `.atomik/capture-inbox/<sessionId>/` (server-chosen names +
+              meta sidecars; client names sanitized display metadata) —
+              vault untouched, import is S04's confirmed step. Three new
+              typed channels (13 §IPC re-read): start/stop/get-capture-
+              session; surface now 21 invoke + 2 push. Smoke gains
+              ATOMIK_SMOKE_CAPTURE=1 (lifecycle through the renderer
+              world). Known environment limit for S03: WSL2 NATs the LAN
+              address — phone reachability needs Windows port-forwarding
+              or WSL2 mirrored networking; validate on the owner's setup.
+tests       : 151 passing / 17 suites; typecheck + build + smoke
+              (capture=ok) green
+next action : S03 — QR display + minimal phone upload page (file input
+              with `capture` hint degrading to picker, works for image/*);
+              read 03 first if a new tab kind is touched
 blockers    : none (note: owner dogfooding files remain untracked by choice —
               atomik-project/projects/test/*, atomik-project/test/,
               docs/projects/test/ — keep/clean stays with the owner; the

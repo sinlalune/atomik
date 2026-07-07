@@ -83,6 +83,9 @@ describe('preload surface (13 §IPC rule)', () => {
       createNote: (relPath: string, content?: string) => Promise<unknown>
       listProjects: () => Promise<unknown>
       createProject: (relPath: string, title: string) => Promise<unknown>
+      startCaptureSession: () => Promise<unknown>
+      stopCaptureSession: () => Promise<unknown>
+      getCaptureSession: () => Promise<unknown>
       runAiOperation: (operation: unknown) => Promise<unknown>
       resolveAiTrace: (bundleId: string, decision: string) => Promise<unknown>
       getAiTraceSummary: (bundleId: string) => Promise<unknown>
@@ -208,6 +211,15 @@ describe('preload surface (13 §IPC rule)', () => {
       'projects/demo',
       'Demo'
     )
+
+    await api.startCaptureSession()
+    expect(invoke).toHaveBeenLastCalledWith(ATOMIK_CHANNELS.startCaptureSession)
+
+    await api.stopCaptureSession()
+    expect(invoke).toHaveBeenLastCalledWith(ATOMIK_CHANNELS.stopCaptureSession)
+
+    await api.getCaptureSession()
+    expect(invoke).toHaveBeenLastCalledWith(ATOMIK_CHANNELS.getCaptureSession)
 
     const operation = { id: 'op-1' }
     await api.runAiOperation(operation)
