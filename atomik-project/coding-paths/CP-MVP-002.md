@@ -281,11 +281,20 @@ head        : 09fbe7a — 21 pre-S02 dogfooding micro-units committed
               adapter contract on audio. Honest per 33: the mock decodes
               nothing, so audioSeconds stays null — a real runtime fills
               it when a dated 34 evaluation seats one.
-tests       : 220 passing / 25 suites; typecheck + build + smoke green
-next action : S09 — M3 acceptance run recorded in sessions/; priorities
-              patched; path review and close (continuous-gate practice);
-              owner-side validation of the audio loop from a real phone
-              still pending
+              S09 acceptance run RECORDED 2026-07-07
+              (sessions/2026-07-07-m3-acceptance-run.md): every 18 §M3
+              build + truth/execution intent PASS except two honest
+              entries — timestamp sidecar DEFERRED to the 34 evaluation
+              (meaningless for a mock), owner-device AUDIO upload pending
+              (same QR flow as the validated image loop). Priority
+              observations recorded: the 34-gated local runtime
+              evaluation is the highest-value next investment; CP-MVP-003
+              (PDF) reuses the capture seams.
+tests       : 220 passing / 23 suites; typecheck + build + smoke green
+next action : S09 close — OWNER review seals the path (continuous-gate
+              practice): read the acceptance run, decide close + what
+              opens next (34 runtime evaluation vs CP-MVP-003 PDF);
+              optionally validate the audio loop from the phone first
 blockers    : none (note: owner dogfooding files remain untracked by choice —
               atomik-project/projects/test/*, atomik-project/test/,
               docs/projects/test/ — keep/clean stays with the owner; the
