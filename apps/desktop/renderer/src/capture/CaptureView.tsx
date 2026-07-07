@@ -226,7 +226,7 @@ function DesktopRecorder({
         setNowMs(Date.now())
         setRecording(true)
       },
-      () => setError('microphone unavailable or permission denied')
+      (cause) => setError(micErrorMessage(cause))
     )
   }
 
@@ -249,6 +249,16 @@ function DesktopRecorder({
       {error && <p className="capture-error">{error}</p>}
     </>
   )
+}
+
+/** Mic failures have distinct causes; say which one it was. */
+function micErrorMessage(cause: unknown): string {
+  const name = (cause as DOMException | undefined)?.name
+  if (name === 'NotFoundError') {
+    return 'no microphone found — under WSL this usually means the libpulse0 system package is missing (sudo apt-get install libpulse0), then restart atomik'
+  }
+  if (name === 'NotAllowedError') return 'microphone permission denied'
+  return `microphone unavailable — ${String((cause as Error | undefined)?.message ?? cause)}`
 }
 
 /**

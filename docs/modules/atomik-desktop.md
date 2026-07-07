@@ -613,7 +613,11 @@ line
 ```
 
 Dev-environment note (WSL2 Ubuntu noble): Electron needs `libnss3`,
-`libnspr4`, `libasound2t64` system packages. Without root they can be
+`libnspr4`, `libasound2t64` system packages — and `libpulse0` for the
+MICROPHONE (probe-verified 2026-07-07: without it Chromium sees zero
+audio inputs and getUserMedia fails NotFoundError; with it, WSLg's
+RDPSource — the Windows mic — appears and records; enumerate/gum only
+exist in secure contexts, so probes must load file:// not data:). Without root they can be
 `apt-get download`-ed and `dpkg -x`-extracted, then passed via
 `LD_LIBRARY_PATH`; for daily dev install them properly with apt.
 WSLg maximized gap/offset — RESOLVED as an upstream bug we route
