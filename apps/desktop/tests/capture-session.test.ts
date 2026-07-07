@@ -507,3 +507,17 @@ describe('desktop capture (owner request) — same inbox, same gates, no endpoin
     expect(response.status).toBe(200)
   })
 })
+
+describe('pre-import preview (owner request)', () => {
+  it('serves undecided inbox bytes, refuses after the decision', async () => {
+    const session = await makeManager().start()
+    const response = await upload(uploadUrlOf(session.uploadUrl), JPEG)
+    const { uploadId } = (await response.json()) as { uploadId: string }
+    const data = manager!.readUploadData(uploadId)
+    expect(data.mimeType).toBe('image/jpeg')
+    expect(Buffer.from(data.base64, 'base64')).toEqual(JPEG)
+    manager!.resolveUpload(uploadId, 'discarded')
+    expect(() => manager!.readUploadData(uploadId)).toThrow(/already resolved/)
+    expect(() => manager!.readUploadData('nope')).toThrow()
+  })
+})

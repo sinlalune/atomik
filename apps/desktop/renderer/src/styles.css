@@ -2018,3 +2018,8 @@ body[data-maximized] .tabstrip {
   font-size: 0.8rem;
   color: var(--muted);
 }
+
+/* pre-import preview (owner: listen before deciding, re-record if bad) */
+.capture-preview { margin: 0.4rem 0; }
+.capture-preview audio { width: 100%; }
+.capture-preview img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); }

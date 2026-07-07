@@ -1,5 +1,5 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto'
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { networkInterfaces } from 'node:os'
@@ -308,6 +308,16 @@ export class CaptureSessionManager {
 
   async dispose(): Promise<void> {
     await this.stop()
+  }
+
+  /** Bytes of an undecided inbox item, for pre-import preview. */
+  readUploadData(uploadId: unknown): { mimeType: string; base64: string } {
+    const upload = this.getUpload(uploadId)
+    if (!upload) throw new Error('capture: unknown or already resolved upload')
+    return {
+      mimeType: upload.info.mimeType,
+      base64: readFileSync(upload.filePath).toString('base64')
+    }
   }
 
   /** Unresolved inbox item for the S04 decision; null when unknown or

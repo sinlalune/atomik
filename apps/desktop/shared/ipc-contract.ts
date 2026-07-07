@@ -41,6 +41,7 @@ export const ATOMIK_CHANNELS = {
   discardCaptureUpload: 'atomik:discard-capture-upload',
   transcribeSource: 'atomik:transcribe-source',
   addLocalCapture: 'atomik:add-local-capture',
+  getCaptureUploadData: 'atomik:get-capture-upload-data',
   runAiOperation: 'atomik:run-ai-operation',
   resolveAiTrace: 'atomik:resolve-ai-trace',
   getAiTraceSummary: 'atomik:get-ai-trace-summary'
@@ -469,6 +470,11 @@ export type AtomikApi = {
     mimeType: string,
     fileName: string
   ) => Promise<CaptureUploadInfo>
+  /** Read-only bytes of an UNDECIDED inbox item — preview before the
+   *  import decision (listen / look, re-record if bad). */
+  getCaptureUploadData: (
+    uploadId: string
+  ) => Promise<{ mimeType: string; base64: string }>
   /** Mocked AI operation (S08): pure compute, never writes. */
   runAiOperation: (operation: AiOperation) => Promise<AiResponseBundle>
   /** Reports the user's decision; main appends the one trace line. */
@@ -507,6 +513,7 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'discardCaptureUpload',
   'transcribeSource',
   'addLocalCapture',
+  'getCaptureUploadData',
   'runAiOperation',
   'resolveAiTrace',
   'getAiTraceSummary'

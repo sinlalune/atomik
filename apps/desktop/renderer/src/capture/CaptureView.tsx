@@ -1,3 +1,4 @@
+import fixWebmDuration from 'fix-webm-duration'
 import QRCode from 'qrcode'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type {
@@ -217,6 +218,7 @@ function DesktopRecorder({
   const [trackLabel, setTrackLabel] = useState<string | null>(null)
   const [level, setLevel] = useState(0)
   const recorderRef = useRef<MediaRecorder | null>(null)
+  const startedAtRef = useRef(0)
   const audioContextRef = useRef<AudioContext | null>(null)
   const meterTimerRef = useRef<number | undefined>(undefined)
 
@@ -273,8 +275,16 @@ function DesktopRecorder({
             stream.getTracks().forEach((track) => track.stop())
             teardownMeter()
             setRecording(false)
-            void new Blob(chunks, { type: 'audio/webm' })
-              .arrayBuffer()
+            // MediaRecorder streams WebM without a Duration element —
+            // external players misjudge it (delayed start, ~early
+            // cutoff). We know the elapsed time; patch the container.
+            const durationMs = Date.now() - startedAtRef.current
+            void fixWebmDuration(
+              new Blob(chunks, { type: 'audio/webm' }),
+              durationMs,
+              { logger: false }
+            )
+              .then((fixed) => fixed.arrayBuffer())
               .then((buffer) => {
                 const stamp = new Date().toISOString().slice(0, 16).replace(':', '-')
                 return window.atomik.addLocalCapture(
@@ -286,6 +296,7 @@ function DesktopRecorder({
               .then(onRecorded, (cause) => setError(readableError(cause)))
           }
           recorderRef.current = recorder
+          startedAtRef.current = Date.now()
           // Name the device actually in use, and meter it live: a flat
           // bar during recording means a silent take BEFORE import.
           setTrackLabel(stream.getAudioTracks()[0]?.label || 'unnamed microphone')
@@ -384,6 +395,7 @@ function UploadRow({
   onOpenSourceImage?: ((dossierPath: string) => void) | undefined
 }): React.JSX.Element {
   const [importing, setImporting] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [title, setTitle] = useState(() => captureTitleOf(upload.fileName))
   const [relPath, setRelPath] = useState(() =>
     defaultCaptureDestination(upload.fileName, Date.now())
@@ -436,6 +448,19 @@ function UploadRow({
         )}
         {!upload.resolution && (
           <span className="capture-upload-actions">
+            <button
+              type="button"
+              onClick={() => {
+                if (previewUrl) return setPreviewUrl(null)
+                window.atomik.getCaptureUploadData(upload.id).then(
+                  (data) =>
+                    setPreviewUrl(`data:${data.mimeType};base64,${data.base64}`),
+                  (cause) => setError(readableError(cause))
+                )
+              }}
+            >
+              {previewUrl ? 'Hide' : upload.mimeType.startsWith('audio/') ? 'Listen' : 'Preview'}
+            </button>
             <button type="button" onClick={() => setImporting((open) => !open)}>
               {importing ? 'Cancel' : 'Import…'}
             </button>
@@ -445,6 +470,15 @@ function UploadRow({
           </span>
         )}
       </div>
+      {previewUrl && (
+        <div className="capture-preview">
+          {upload.mimeType.startsWith('audio/') ? (
+            <audio controls autoPlay src={previewUrl} />
+          ) : (
+            <img src={previewUrl} alt={upload.fileName} />
+          )}
+        </div>
+      )}
       {!upload.resolution && importing && (
         <div className="capture-import-form">
           <label>

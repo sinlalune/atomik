@@ -225,6 +225,10 @@ function registerCaptureHandlers(): void {
     (_event, bytes: unknown, mimeType: unknown, fileName: unknown) =>
       capture.addLocalUpload(bytes, mimeType, fileName)
   )
+  ipcMain.handle(
+    ATOMIK_CHANNELS.getCaptureUploadData,
+    (_event, uploadId: unknown) => capture.readUploadData(uploadId)
+  )
 }
 
 /** Frame verbs for the chromeless window (13 §IPC: allowlist-validated;
