@@ -161,6 +161,10 @@ export type SourceAsset = {
   relPath: string
   mimeType: string
   base64: string
+  /** Display rotation (0/90/180/270, clockwise) recorded in the sibling
+   *  dossier — the original bytes are evidence and stay untouched;
+   *  every viewer applies this at render time. */
+  rotation: number
 }
 
 /**

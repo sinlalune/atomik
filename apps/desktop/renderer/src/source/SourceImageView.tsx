@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react'
 import { resolveRelativePath } from '../dev-docs/markdown'
 import { useVaultNote } from '../vault/useVaultNote'
-import { resourceOf } from './dossier'
+import {
+  resourceOf,
+  rotationOf,
+  withDossierRotation,
+  type Rotation
+} from './dossier'
+import { applyRotation } from './rotate'
 
 /**
  * The image source tab (08 "image tab views the original beside the
@@ -17,7 +23,11 @@ export function SourceImageView({
 }: {
   dossierPath: string | undefined
 }): React.JSX.Element {
-  const { note, html, error, openNote, onContentClick } = useVaultNote()
+  const { note, html, error, openNote, applySaved, onContentClick } =
+    useVaultNote()
+  const [base, setBase] = useState<{ dataUrl: string; mimeType: string } | null>(
+    null
+  )
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [imageError, setImageError] = useState<string | null>(null)
 
@@ -27,8 +37,14 @@ export function SourceImageView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dossierPath])
 
+  // The rotation is dossier metadata (the original is evidence and stays
+  // byte-untouched); the buttons edit the dossier, the canvas rotates
+  // pixels for display only.
+  const rotation = note ? rotationOf(note.content) : 0
+
   // The image follows the note: parse `resource:` and fetch the asset.
   useEffect(() => {
+    setBase(null)
     setImageUrl(null)
     setImageError(null)
     if (!note) return
@@ -46,7 +62,10 @@ export function SourceImageView({
     window.atomik.readSourceAsset(rel).then(
       (asset) => {
         if (cancelled) return
-        setImageUrl(`data:${asset.mimeType};base64,${asset.base64}`)
+        setBase({
+          dataUrl: `data:${asset.mimeType};base64,${asset.base64}`,
+          mimeType: asset.mimeType
+        })
       },
       (cause) => {
         if (cancelled) return
@@ -61,7 +80,31 @@ export function SourceImageView({
     return () => {
       cancelled = true
     }
-  }, [note])
+    // the base bytes depend on the note identity, not its edited content
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [note?.relPath])
+
+  // Display = base pixels + recorded rotation.
+  useEffect(() => {
+    if (!base) return
+    let cancelled = false
+    void applyRotation(base.dataUrl, rotation, base.mimeType).then((url) => {
+      if (!cancelled) setImageUrl(url)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [base, rotation])
+
+  const rotate = (delta: 90 | -90): void => {
+    if (!note) return
+    const next = (((rotation + delta) % 360) + 360) % 360 as Rotation
+    const content = withDossierRotation(note.content, next)
+    window.atomik.writeNote(note.relPath, content, note.mtimeMs).then(
+      ({ mtimeMs }) => applySaved(content, mtimeMs),
+      (cause) => setImageError(String(cause))
+    )
+  }
 
   if (!dossierPath) {
     return (
@@ -74,6 +117,22 @@ export function SourceImageView({
   return (
     <div className="source-image-view">
       <div className="source-image-original">
+        <div className="source-image-tools">
+          <button
+            type="button"
+            title="Rotate left (recorded in the dossier; the original file is untouched)"
+            onClick={() => rotate(-90)}
+          >
+            ⟲
+          </button>
+          <button
+            type="button"
+            title="Rotate right (recorded in the dossier; the original file is untouched)"
+            onClick={() => rotate(90)}
+          >
+            ⟳
+          </button>
+        </div>
         {imageUrl ? (
           <img src={imageUrl} alt={`Original of ${dossierPath}`} />
         ) : (

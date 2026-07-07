@@ -150,6 +150,32 @@ const SOURCE_ASSET_EXTENSIONS: Record<string, string> = {
 
 const MAX_ASSET_BYTES = 50 * 1024 * 1024
 
+/**
+ * Display rotation for an asset, read from a sibling `source.md` whose
+ * `resource:` names it (mirrors the renderer's dossier parse). The
+ * original stays byte-untouched — rotation is a recorded correction.
+ */
+export function sourceAssetRotation(absAsset: string): number {
+  try {
+    const dossierPath = join(dirname(absAsset), 'source.md')
+    if (!existsSync(dossierPath)) return 0
+    const content = readFileSync(dossierPath, 'utf8').slice(0, 8192)
+    const fence = /^---\n([\s\S]*?)\n---/.exec(content)
+    if (!fence) return 0
+    const resource = /^resource:\s*(.+)\s*$/m.exec(fence[1]!)
+    if (!resource) return 0
+    const named = basename(
+      resource[1]!.trim().replace(/^<|>$/g, '').replace(/^\.\//, '')
+    )
+    if (named !== basename(absAsset)) return 0
+    const line = /^\s*rotation:\s*(\d+)\s*$/m.exec(fence[1]!)
+    const value = line ? Number(line[1]) : 0
+    return value === 90 || value === 180 || value === 270 ? value : 0
+  } catch {
+    return 0
+  }
+}
+
 export function readSourceAsset(vaultRoot: string, relPath: unknown): SourceAsset {
   if (typeof relPath !== 'string') throw new Error('vault: rejected path')
   if (relPath.length === 0 || relPath.length > MAX_PATH_LENGTH) {
@@ -177,7 +203,8 @@ export function readSourceAsset(vaultRoot: string, relPath: unknown): SourceAsse
   return {
     relPath,
     mimeType,
-    base64: readFileSync(abs).toString('base64')
+    base64: readFileSync(abs).toString('base64'),
+    rotation: sourceAssetRotation(abs)
   }
 }
 

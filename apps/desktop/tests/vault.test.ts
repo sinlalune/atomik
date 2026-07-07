@@ -248,3 +248,31 @@ describe('readSourceAsset (S05 image tab)', () => {
     )
   })
 })
+
+describe('sourceAssetRotation (S05 rotation metadata)', () => {
+  it('reads the sibling dossier rotation when the resource names the asset', () => {
+    const dir = join(vault, 'sources', 'rot')
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(join(dir, 'original.png'), Buffer.from([0x89, 0x50]))
+    writeFileSync(
+      join(dir, 'source.md'),
+      '---\nresource: ./original.png\natomik:\n  capture:\n    rotation: 90\n---\nbody\n'
+    )
+    expect(readSourceAsset(vault, 'sources/rot/original.png').rotation).toBe(90)
+    // another asset in the same folder is NOT covered by that dossier
+    writeFileSync(join(dir, 'other.png'), Buffer.from([0x89, 0x50]))
+    expect(readSourceAsset(vault, 'sources/rot/other.png').rotation).toBe(0)
+  })
+
+  it('defaults to 0 without a dossier or with garbage values', () => {
+    expect(readSourceAsset(vault, 'assets/picture.png').rotation).toBe(0)
+    const dir = join(vault, 'sources', 'rot2')
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(join(dir, 'original.png'), Buffer.from([0x89, 0x50]))
+    writeFileSync(
+      join(dir, 'source.md'),
+      '---\nresource: ./original.png\nrotation: 45\n---\n'
+    )
+    expect(readSourceAsset(vault, 'sources/rot2/original.png').rotation).toBe(0)
+  })
+})

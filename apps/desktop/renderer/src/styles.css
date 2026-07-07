@@ -1918,3 +1918,35 @@ body[data-maximized] .tabstrip {
   font-size: 0.75rem;
   margin-left: 0.6rem;
 }
+
+/* rotate tools on the image tab — the correction lands in the dossier,
+   the original file stays byte-untouched */
+.source-image-original {
+  position: relative;
+}
+
+.source-image-tools {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  display: flex;
+  gap: 0.3rem;
+  z-index: 1;
+}
+
+.source-image-tools button {
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  cursor: pointer;
+}
+
+.source-image-tools button:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}

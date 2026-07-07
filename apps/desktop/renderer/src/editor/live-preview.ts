@@ -15,6 +15,7 @@ import {
 } from '@codemirror/view'
 import type { SyntaxNode } from '@lezer/common'
 import type { AtomikApi } from '../../../shared/ipc-contract'
+import { applyRotation } from '../source/rotate'
 
 /** The preload bridge, reached at call time only (this module is also
  *  imported by headless node tests, which never render widgets). */
@@ -136,27 +137,31 @@ class ImageWidget extends WidgetType {
       imageDataCache.set(this.vaultRel, 'loading')
       atomik()
         .readSourceAsset(this.vaultRel)
-        .then(
-        (asset) => {
-          imageDataCache.set(
-            this.vaultRel,
-            `data:${asset.mimeType};base64,${asset.base64}`
+        .then(async (asset) =>
+          applyRotation(
+            `data:${asset.mimeType};base64,${asset.base64}`,
+            asset.rotation,
+            asset.mimeType
           )
-          try {
-            view.dispatch({ effects: imageCacheBump.of(null) })
-          } catch {
-            /* view already destroyed */
+        )
+        .then(
+          (dataUrl) => {
+            imageDataCache.set(this.vaultRel, dataUrl)
+            try {
+              view.dispatch({ effects: imageCacheBump.of(null) })
+            } catch {
+              /* view already destroyed */
+            }
+          },
+          () => {
+            imageDataCache.set(this.vaultRel, 'failed')
+            try {
+              view.dispatch({ effects: imageCacheBump.of(null) })
+            } catch {
+              /* view already destroyed */
+            }
           }
-        },
-        () => {
-          imageDataCache.set(this.vaultRel, 'failed')
-          try {
-            view.dispatch({ effects: imageCacheBump.of(null) })
-          } catch {
-            /* view already destroyed */
-          }
-        }
-      )
+        )
     }
     return host
   }

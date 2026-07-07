@@ -220,7 +220,16 @@ timestamp: 2026-07-06T00:00:00Z
   pure). Entry points: [View] on imported rows in the capture tab, and
   a "View original" pill in the vault read-mode note-bar whenever the
   open note declares an image resource — so bundles stay reachable
-  after the capture session is gone. Read-mode notes also INLINE
+  after the capture session is gone. ROTATION (owner correction —
+  some phone photos arrive sideways): a display rotation (0/90/180/270)
+  recorded in the dossier frontmatter (`atomik.capture.rotation`,
+  `rotationOf`/`withDossierRotation` pure in source/dossier.ts), edited
+  by ⟲/⟳ buttons on the image tab through the ordinary writeNote
+  handshake. The ORIGINAL bytes are evidence (07/08) and are never
+  rewritten: `read-source-asset` returns the sibling-dossier rotation
+  (`sourceAssetRotation`, resource-name matched), and every viewer —
+  image tab, read inline, live widget — redraws the pixels on a canvas
+  at display time (`source/rotate.ts`). Read-mode notes also INLINE
   vault images: every relative `<img>` with an allowlisted extension is
   swapped for a data URL fetched through the same channel
   (`vault/note-images.ts`, pure collect/inline pair; failures keep the

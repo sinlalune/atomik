@@ -2,6 +2,7 @@ import MarkdownIt from 'markdown-it'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { VaultNoteFile } from '../../../shared/ipc-contract'
 import { resolveRelativePath, stripFrontmatter } from '../dev-docs/markdown'
+import { applyRotation } from '../source/rotate'
 import { inlineImageSources, vaultImageSources } from './note-images'
 
 /**
@@ -87,7 +88,12 @@ export function useVaultNote(onNoteOpened?: (relPath: string) => void): {
       [...sources].map(async ([src, rel]) => {
         try {
           const asset = await window.atomik.readSourceAsset(rel)
-          return [src, `data:${asset.mimeType};base64,${asset.base64}`] as const
+          const dataUrl = await applyRotation(
+            `data:${asset.mimeType};base64,${asset.base64}`,
+            asset.rotation,
+            asset.mimeType
+          )
+          return [src, dataUrl] as const
         } catch {
           return [src, null] as const
         }
