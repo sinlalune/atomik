@@ -1,5 +1,7 @@
 import { syntaxTree } from '@codemirror/language'
 import {
+  Facet,
+  StateEffect,
   StateField,
   type EditorState,
   type Extension,
@@ -12,6 +14,12 @@ import {
   type DecorationSet
 } from '@codemirror/view'
 import type { SyntaxNode } from '@lezer/common'
+import type { AtomikApi } from '../../../shared/ipc-contract'
+
+/** The preload bridge, reached at call time only (this module is also
+ *  imported by headless node tests, which never render widgets). */
+const atomik = (): AtomikApi =>
+  (globalThis as unknown as { atomik: AtomikApi }).atomik
 
 /**
  * Live preview (owner feedback on MVP-001: "seamless like Obsidian").
@@ -35,6 +43,132 @@ export type LivePreviewKind =
   | 'task'
   | 'metadata'
   | 'table'
+  | 'image'
+
+/**
+ * The note's vault-relative path, needed to resolve image embeds. Views
+ * without it (tests, non-vault surfaces) simply render no image widgets.
+ */
+export const notePathFacet = Facet.define<string, string | null>({
+  combine: (values) => values[0] ?? null
+})
+
+const INLINABLE_IMAGE = /\.(jpe?g|png|webp|heic|heif)$/i
+
+/**
+ * Vault-relative resolution for an embed destination, matching the read
+ * pipeline: relative only, `..` never escapes the root, angle-bracket
+ * and percent-encoded destinations both arrive decoded from the parser.
+ */
+export function resolveEmbedPath(
+  notePath: string,
+  destination: string
+): string | null {
+  const raw = destination.replace(/^<|>$/g, '')
+  let decoded = raw
+  try {
+    decoded = decodeURIComponent(raw)
+  } catch {
+    /* keep raw */
+  }
+  if (decoded.length === 0 || decoded.startsWith('/')) return null
+  if (!INLINABLE_IMAGE.test(decoded)) return null
+  const segments = notePath.split('/').slice(0, -1)
+  for (const part of decoded.split('/')) {
+    if (part === '' || part === '.') continue
+    if (part === '..') {
+      if (segments.length === 0) return null
+      segments.pop()
+      continue
+    }
+    segments.push(part)
+  }
+  return segments.length > 0 ? segments.join('/') : null
+}
+
+/** Bumped whenever an async image fetch settles: the field recomputes so
+ *  placeholder chips become images (or honest broken chips). */
+export const imageCacheBump = StateEffect.define<null>()
+
+/** vault relPath → data URL | 'loading' | 'failed'. Module-level on
+ *  purpose: the bytes are identical across every view of the note. */
+const imageDataCache = new Map<string, string | 'loading' | 'failed'>()
+
+/** Test seam. */
+export function primeImageCache(relPath: string, dataUrl: string): void {
+  imageDataCache.set(relPath, dataUrl)
+}
+
+class ImageWidget extends WidgetType {
+  /** Cache state when the decoration was built: two widgets are equal
+   *  only if the image data they would render is also the same. */
+  private readonly builtWith: string | undefined
+
+  constructor(
+    private readonly vaultRel: string,
+    private readonly alt: string
+  ) {
+    super()
+    this.builtWith = imageDataCache.get(vaultRel)
+  }
+
+  override toDOM(view: EditorView): HTMLElement {
+    const host = document.createElement('span')
+    host.className = 'lp-image'
+    const cached = imageDataCache.get(this.vaultRel)
+    if (typeof cached === 'string' && cached !== 'loading' && cached !== 'failed') {
+      const img = document.createElement('img')
+      img.src = cached
+      img.alt = this.alt
+      host.appendChild(img)
+      // Clicking the rendered image puts the cursor on the embed, which
+      // reveals the raw syntax for editing (the table-widget pattern).
+      host.addEventListener('click', (event) => {
+        event.preventDefault()
+        view.dispatch({ selection: { anchor: view.posAtDOM(host) } })
+        view.focus()
+      })
+      return host
+    }
+    host.classList.add('lp-image-pending')
+    host.textContent = cached === 'failed' ? `image not found: ${this.alt}` : '… image'
+    if (cached === undefined) {
+      imageDataCache.set(this.vaultRel, 'loading')
+      atomik()
+        .readSourceAsset(this.vaultRel)
+        .then(
+        (asset) => {
+          imageDataCache.set(
+            this.vaultRel,
+            `data:${asset.mimeType};base64,${asset.base64}`
+          )
+          try {
+            view.dispatch({ effects: imageCacheBump.of(null) })
+          } catch {
+            /* view already destroyed */
+          }
+        },
+        () => {
+          imageDataCache.set(this.vaultRel, 'failed')
+          try {
+            view.dispatch({ effects: imageCacheBump.of(null) })
+          } catch {
+            /* view already destroyed */
+          }
+        }
+      )
+    }
+    return host
+  }
+
+  override eq(other: ImageWidget): boolean {
+    return (
+      other.vaultRel === this.vaultRel &&
+      other.alt === this.alt &&
+      other.builtWith === this.builtWith
+    )
+  }
+}
 
 /**
  * Minimal GFM table parse for the rendered widget: header row,
@@ -308,6 +442,30 @@ export function computeLivePreviewDecorations(
         return
       }
       switch (node.name) {
+        case 'Image': {
+          // `![alt](dest)` renders as the actual image away from the
+          // cursor (owner report: embeds showed raw text in live). The
+          // touched line reveals the raw syntax, like every other mark.
+          const notePath = state.facet(notePathFacet)
+          if (!notePath || isActiveAt(node.from)) return
+          const url = node.node.getChild('URL')
+          if (!url) return
+          const vaultRel = resolveEmbedPath(
+            notePath,
+            state.doc.sliceString(url.from, url.to)
+          )
+          if (!vaultRel) return
+          const alt = /!\[([^\]]*)\]/.exec(
+            state.doc.sliceString(node.from, node.to)
+          )?.[1]
+          decorations.push(
+            Decoration.replace({
+              lp: 'image' as LivePreviewKind,
+              widget: new ImageWidget(vaultRel, alt || vaultRel)
+            }).range(node.from, node.to)
+          )
+          return false
+        }
         case 'Link':
           // Only a REAL link ([text](url)) gets link treatment. The
           // parser also emits Link nodes for bare [text] (unresolved
@@ -483,6 +641,7 @@ export const livePreviewField = StateField.define<DecorationSet>({
     if (
       transaction.docChanged ||
       transaction.selection ||
+      transaction.effects.some((effect) => effect.is(imageCacheBump)) ||
       syntaxTree(transaction.state) !== syntaxTree(transaction.startState)
     ) {
       return computeLivePreviewDecorations(transaction.state)
@@ -499,9 +658,14 @@ export const livePreviewField = StateField.define<DecorationSet>({
  */
 export function livePreview(options?: {
   onFollowLink?: (href: string) => void
+  /** Vault-relative note path; enables image embeds. */
+  notePath?: string
 }): Extension {
   const follow = options?.onFollowLink
   const extensions: Extension[] = [livePreviewField]
+  if (options?.notePath) {
+    extensions.push(notePathFacet.of(options.notePath))
+  }
   if (follow) {
     extensions.push(
       EditorView.domEventHandlers({

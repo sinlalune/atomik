@@ -224,8 +224,18 @@ timestamp: 2026-07-06T00:00:00Z
   vault images: every relative `<img>` with an allowlisted extension is
   swapped for a data URL fetched through the same channel
   (`vault/note-images.ts`, pure collect/inline pair; failures keep the
-  broken src — honest, like a broken link). Live mode does not render
-  embeds yet (follow-up candidate, recorded).
+  broken src — honest, like a broken link). LIVE mode renders embeds
+  too (owner report): the `Image` node becomes an ImageWidget away from
+  the cursor (touched line reveals raw syntax; click puts the cursor on
+  the embed) — async data-URL cache + `imageCacheBump` effect recompute,
+  note path supplied via `notePathFacet`; `resolveEmbedPath` accepts
+  `<…>`/percent-encoded destinations and refuses root escapes. And the
+  editor gained "@" QUICK ACTIONS (`editor/quick-actions.ts`, the only
+  registered autocomplete source): `@` lists every source bundle
+  (folder holding source.md), filtered as you type; picking one inserts
+  a ready image embed (angle-bracketed destination, space-safe) or a
+  dossier link when the bundle has no image. Providers beyond captures
+  can join the same menu later.
 - Project bundles (04, S06): `electron-main/project.ts` (incubating
   project-core, 14) — manifest-detected bundles
   (`project.atomik-project.json`; scan skips denied dirs and does not

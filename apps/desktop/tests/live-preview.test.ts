@@ -7,7 +7,9 @@ import {
   computeLivePreviewDecorations,
   frontmatterEnd,
   linkHrefAt,
-  parseTable
+  notePathFacet,
+  parseTable,
+  resolveEmbedPath
 } from '../renderer/src/editor/live-preview'
 
 type Deco = { from: number; to: number; kind: LivePreviewKind; cls?: string }
@@ -304,5 +306,66 @@ describe('live preview decorations (MVP-001: seamless editing)', () => {
     }
     expect(kinds).not.toContain('hide')
     expect(kinds).not.toContain('bullet')
+  })
+})
+
+describe('image embeds in live mode (owner report: raw text shown)', () => {
+  const withNotePath = (doc: string, cursor = 0): Deco[] => {
+    const state = EditorState.create({
+      doc,
+      selection: EditorSelection.cursor(Math.min(cursor, doc.length)),
+      extensions: [
+        markdown({ base: markdownLanguage }),
+        notePathFacet.of('notes/idea.md')
+      ]
+    })
+    ensureSyntaxTree(state, state.doc.length, 5000)
+    const set = computeLivePreviewDecorations(state)
+    const out: Deco[] = []
+    const iter = set.iter()
+    while (iter.value) {
+      const spec = iter.value.spec as { lp: LivePreviewKind; class?: string }
+      out.push({ from: iter.from, to: iter.to, kind: spec.lp })
+      iter.next()
+    }
+    return out
+  }
+
+  it('replaces the whole embed with an image widget away from the cursor', () => {
+    const doc = 'above\n\n![page](../sources/captures/P/original.jpg)\n'
+    const decos = withNotePath(doc, 0)
+    const start = doc.indexOf('![')
+    expect(decos).toContainEqual({
+      from: start,
+      to: doc.indexOf(')') + 1,
+      kind: 'image'
+    })
+  })
+
+  it('reveals the raw syntax on the touched line', () => {
+    const doc = '![page](../sources/captures/P/original.jpg)\n'
+    expect(withNotePath(doc, 3).filter((d) => d.kind === 'image')).toEqual([])
+  })
+
+  it('renders nothing without a note path or for non-image destinations', () => {
+    const doc = '![page](img.jpg)\n'
+    expect(decorate(doc, 0).filter((d) => d.kind === 'image')).toEqual([])
+    const pdf = '![doc](file.pdf)\n'
+    expect(withNotePath(pdf, 0).filter((d) => d.kind === 'image')).toEqual([])
+  })
+
+  it('resolveEmbedPath: relative only, root-escape refused, <> and %20 accepted', () => {
+    expect(resolveEmbedPath('notes/idea.md', '../sources/P/original.jpg')).toBe(
+      'sources/P/original.jpg'
+    )
+    expect(resolveEmbedPath('notes/idea.md', '<../sources/Pascal 2/x.jpg>')).toBe(
+      'sources/Pascal 2/x.jpg'
+    )
+    expect(resolveEmbedPath('notes/idea.md', 'Pascal%202/x.jpg')).toBe(
+      'notes/Pascal 2/x.jpg'
+    )
+    expect(resolveEmbedPath('top.md', '../../escape.jpg')).toBeNull()
+    expect(resolveEmbedPath('top.md', '/absolute.jpg')).toBeNull()
+    expect(resolveEmbedPath('top.md', 'not-an-image.txt')).toBeNull()
   })
 })

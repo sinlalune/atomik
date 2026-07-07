@@ -1871,3 +1871,50 @@ body[data-maximized] .tabstrip {
 .capture-upload-view {
   margin-left: 0.5rem;
 }
+
+/* live-mode image embeds — the rendered photo stands in for ![](…);
+   clicking it reveals the raw syntax (table-widget pattern) */
+.lp-image img {
+  max-width: min(100%, 34rem);
+  max-height: 24rem;
+  display: block;
+  margin: 0.4rem 0;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.lp-image-pending {
+  display: inline-block;
+  font-size: 0.8rem;
+  color: var(--muted);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.1rem 0.5rem;
+}
+
+/* "@" quick actions menu (cm autocomplete tooltip) */
+.cm-tooltip.cm-tooltip-autocomplete {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cm-tooltip-autocomplete ul li {
+  font-family: inherit;
+  padding: 0.25rem 0.6rem;
+}
+
+.cm-tooltip-autocomplete ul li[aria-selected] {
+  background: var(--code-bg);
+  color: var(--accent);
+}
+
+.cm-completionDetail {
+  color: var(--muted);
+  font-style: normal;
+  font-size: 0.75rem;
+  margin-left: 0.6rem;
+}

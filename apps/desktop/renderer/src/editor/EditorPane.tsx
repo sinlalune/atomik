@@ -39,6 +39,7 @@ import { useWorkspace } from '../workspace/store'
 import { AiPanel, type BufferChange } from './AiPanel'
 import { frontmatterEnd, livePreview } from './live-preview'
 import { ModeSwitch } from './ModeSwitch'
+import { quickActions, sourceBundlesOf, type SourceBundle } from './quick-actions'
 
 /** Auto mode saves this long after the last keystroke. */
 const AUTOSAVE_DELAY_MS = 800
@@ -77,8 +78,14 @@ const SOURCE_CHROME: Extension = [
 
 const modeExtensions = (
   mode: 'live' | 'source',
-  onFollowLink: (href: string) => void
-): Extension => (mode === 'live' ? livePreview({ onFollowLink }) : SOURCE_CHROME)
+  onFollowLink: (href: string) => void,
+  notePath: string
+): Extension =>
+  mode === 'live' ? livePreview({ onFollowLink, notePath }) : SOURCE_CHROME
+
+/** Source bundles for the "@" menu, freshly listed per menu opening. */
+const listSourceBundles = (): Promise<SourceBundle[]> =>
+  window.atomik.listVaultFiles().then(sourceBundlesOf)
 
 /** Fenced-code languages for the installed packs; anything else stays
  *  plain mono. A registry (language-data) is a later dependency call. */
@@ -295,10 +302,10 @@ export function EditorPane({
     modeRef.current = mode
     viewRef.current?.dispatch({
       effects: previewCompartment.reconfigure(
-        modeExtensions(mode, followHandler)
+        modeExtensions(mode, followHandler, note.relPath)
       )
     })
-  }, [followHandler, mode, previewCompartment])
+  }, [followHandler, mode, note.relPath, previewCompartment])
 
   // One EditorView per mounted pane; the host keys this component by note
   // path, so a different note is a fresh mount. The view lives in a ref —
@@ -317,8 +324,12 @@ export function EditorPane({
           base: markdownLanguage,
           codeLanguages: fencedCodeLanguage
         }),
-        previewCompartment.of(modeExtensions(modeRef.current, followHandler)),
+        previewCompartment.of(
+          modeExtensions(modeRef.current, followHandler, note.relPath)
+        ),
         darkCompartment.of(editorDarkRef.current ? [oneDark] : []),
+        // "@" quick actions: captures menu, inserts ready embeds.
+        quickActions(note.relPath, listSourceBundles),
         EditorView.lineWrapping,
         keymap.of([
           {
