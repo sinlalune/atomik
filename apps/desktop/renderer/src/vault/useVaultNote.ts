@@ -1,7 +1,8 @@
 import MarkdownIt from 'markdown-it'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { VaultNoteFile } from '../../../shared/ipc-contract'
 import { resolveRelativePath, stripFrontmatter } from '../dev-docs/markdown'
+import { inlineImageSources, vaultImageSources } from './note-images'
 
 /**
  * Shared note-reading logic for vault-backed views (VaultView,
@@ -66,10 +67,43 @@ export function useVaultNote(onNoteOpened?: (relPath: string) => void): {
     setError(null)
   }, [])
 
-  const html = useMemo(
+  const rawHtml = useMemo(
     () => (note ? md.render(stripFrontmatter(note.content)) : ''),
     [note, md]
   )
+
+  // Vault images render as data URLs (the sandboxed renderer cannot load
+  // files): paint the note immediately, swap the sources in when the
+  // assets arrive. Failed fetches keep their src (visible broken image —
+  // honest, like a broken link).
+  const [html, setHtml] = useState('')
+  useEffect(() => {
+    setHtml(rawHtml)
+    if (!note) return
+    const sources = vaultImageSources(rawHtml, note.relPath)
+    if (sources.size === 0) return
+    let cancelled = false
+    void Promise.all(
+      [...sources].map(async ([src, rel]) => {
+        try {
+          const asset = await window.atomik.readSourceAsset(rel)
+          return [src, `data:${asset.mimeType};base64,${asset.base64}`] as const
+        } catch {
+          return [src, null] as const
+        }
+      })
+    ).then((pairs) => {
+      if (cancelled) return
+      const dataUrls = new Map<string, string>()
+      for (const [src, dataUrl] of pairs) {
+        if (dataUrl !== null) dataUrls.set(src, dataUrl)
+      }
+      if (dataUrls.size > 0) setHtml(inlineImageSources(rawHtml, dataUrls))
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [rawHtml, note])
 
   const onContentClick = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {

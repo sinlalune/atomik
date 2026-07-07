@@ -220,7 +220,12 @@ timestamp: 2026-07-06T00:00:00Z
   pure). Entry points: [View] on imported rows in the capture tab, and
   a "View original" pill in the vault read-mode note-bar whenever the
   open note declares an image resource — so bundles stay reachable
-  after the capture session is gone.
+  after the capture session is gone. Read-mode notes also INLINE
+  vault images: every relative `<img>` with an allowlisted extension is
+  swapped for a data URL fetched through the same channel
+  (`vault/note-images.ts`, pure collect/inline pair; failures keep the
+  broken src — honest, like a broken link). Live mode does not render
+  embeds yet (follow-up candidate, recorded).
 - Project bundles (04, S06): `electron-main/project.ts` (incubating
   project-core, 14) — manifest-detected bundles
   (`project.atomik-project.json`; scan skips denied dirs and does not
