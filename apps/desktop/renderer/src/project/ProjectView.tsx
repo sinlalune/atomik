@@ -6,7 +6,7 @@ import type {
 } from '../../../shared/ipc-contract'
 import { EditorPane } from '../editor/EditorPane'
 import { ModeSwitch } from '../editor/ModeSwitch'
-import { SidebarToggleIcon } from '../icons'
+import { CollapseAllIcon, ExpandAllIcon, SidebarToggleIcon } from '../icons'
 import { SearchResultsList } from '../search/SearchResultsList'
 import { useTreeSearch } from '../search/useTreeSearch'
 import { TreeResizeHandle } from '../TreeResizeHandle'
@@ -70,6 +70,7 @@ export function ProjectView({
   const [projects, setProjects] = useState<ProjectInfo[]>([])
   const [projectsLoaded, setProjectsLoaded] = useState(false)
   const [tree, setTree] = useState<VaultFolder | null>(null)
+  const [fold, setFold] = useState({ open: true, epoch: 0 })
   const [draftTitle, setDraftTitle] = useState('')
   const [draftNoteName, setDraftNoteName] = useState('')
   // Project-scoped search perimeter (owner feedback on MVP-001).
@@ -282,6 +283,26 @@ export function ProjectView({
           <div className="vault-head" title={projectPath}>
             {projectTitle}
           </div>
+          <button
+            type="button"
+            className="tree-toggle"
+            title="Expand all folders"
+            onClick={() =>
+              setFold((current) => ({ open: true, epoch: current.epoch + 1 }))
+            }
+          >
+            <ExpandAllIcon />
+          </button>
+          <button
+            type="button"
+            className="tree-toggle"
+            title="Collapse all folders"
+            onClick={() =>
+              setFold((current) => ({ open: false, epoch: current.epoch + 1 }))
+            }
+          >
+            <CollapseAllIcon />
+          </button>
           {onTreeToggle && (
             <button
               type="button"
@@ -328,6 +349,8 @@ export function ProjectView({
               folder={scoped}
               activePath={note?.relPath ?? null}
               onOpen={guardedOpen}
+              defaultOpen={fold.open}
+              foldEpoch={fold.epoch}
             />
           )
         )}

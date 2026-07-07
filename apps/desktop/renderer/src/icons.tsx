@@ -122,6 +122,42 @@ export function VaultSwitchIcon(): React.JSX.Element {
   )
 }
 
+/** Double chevron down — "expand every folder". */
+export function ExpandAllIcon(): React.JSX.Element {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      aria-hidden="true"
+    >
+      <path d="M4 3.5 8 7l4-3.5" />
+      <path d="M4 9l4 3.5L12 9" />
+    </svg>
+  )
+}
+
+/** Double chevron up — "collapse every folder". */
+export function CollapseAllIcon(): React.JSX.Element {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      aria-hidden="true"
+    >
+      <path d="M4 7l4-3.5L12 7" />
+      <path d="M4 12.5 8 9l4 3.5" />
+    </svg>
+  )
+}
+
 /** Visibility toggle for the index/log files hidden behind their pills. */
 export function EyeIcon(): React.JSX.Element {
   return (

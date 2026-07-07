@@ -2,7 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { VaultFolder, VaultInfo } from '../../../shared/ipc-contract'
 import { EditorPane } from '../editor/EditorPane'
 import { ModeSwitch } from '../editor/ModeSwitch'
-import { SidebarToggleIcon, VaultSwitchIcon } from '../icons'
+import {
+  CollapseAllIcon,
+  ExpandAllIcon,
+  SidebarToggleIcon,
+  VaultSwitchIcon
+} from '../icons'
 import { SearchResultsList } from '../search/SearchResultsList'
 import { useTreeSearch } from '../search/useTreeSearch'
 import { TreeResizeHandle } from '../TreeResizeHandle'
@@ -48,6 +53,7 @@ export function VaultView({
 }: VaultViewProps): React.JSX.Element {
   const [info, setInfo] = useState<VaultInfo | null | 'loading'>('loading')
   const [tree, setTree] = useState<VaultFolder | null>(null)
+  const [fold, setFold] = useState({ open: true, epoch: 0 })
   const [draftName, setDraftName] = useState('')
   const searchVault = useCallback(
     (query: string) => window.atomik.searchVault(query),
@@ -192,6 +198,26 @@ export function VaultView({
           <button
             type="button"
             className="tree-toggle"
+            title="Expand all folders"
+            onClick={() =>
+              setFold((current) => ({ open: true, epoch: current.epoch + 1 }))
+            }
+          >
+            <ExpandAllIcon />
+          </button>
+          <button
+            type="button"
+            className="tree-toggle"
+            title="Collapse all folders"
+            onClick={() =>
+              setFold((current) => ({ open: false, epoch: current.epoch + 1 }))
+            }
+          >
+            <CollapseAllIcon />
+          </button>
+          <button
+            type="button"
+            className="tree-toggle"
             title="Change vault folder…"
             onClick={() => void onOpenVault()}
           >
@@ -243,6 +269,8 @@ export function VaultView({
               folder={tree}
               activePath={note?.relPath ?? null}
               onOpen={guardedOpen}
+              defaultOpen={fold.open}
+              foldEpoch={fold.epoch}
             />
           )
         )}

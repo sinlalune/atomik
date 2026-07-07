@@ -14,11 +14,17 @@ import { noteDisplayName, splitPillNotes } from './scope'
 export function NoteTree({
   folder,
   activePath,
-  onOpen
+  onOpen,
+  defaultOpen = true,
+  foldEpoch = 0
 }: {
   folder: VaultFolder
   activePath: string | null
   onOpen: (relPath: string) => void
+  /** Expand/collapse-all: a new epoch remounts every folder with this
+   *  default; individual toggling stays free afterwards. */
+  defaultOpen?: boolean
+  foldEpoch?: number
 }): React.JSX.Element {
   const { pills, rest } = splitPillNotes(folder.notes)
   const [showPillFiles, setShowPillFiles] = useState(false)
@@ -56,9 +62,15 @@ export function NoteTree({
       <ul>
         {folder.folders.map((child) => (
           <li key={child.relPath}>
-            <details open>
+            <details key={`${child.relPath}@${foldEpoch}`} open={defaultOpen}>
               <summary>{child.name}</summary>
-              <NoteTree folder={child} activePath={activePath} onOpen={onOpen} />
+              <NoteTree
+                folder={child}
+                activePath={activePath}
+                onOpen={onOpen}
+                defaultOpen={defaultOpen}
+                foldEpoch={foldEpoch}
+              />
             </details>
           </li>
         ))}
