@@ -6,8 +6,8 @@ tags: [coding-path, mvp, m3, capture, sources, transcription]
 timestamp: 2026-07-06T00:00:00Z
 atomik:
   id: CP-MVP-002
-  status: active
-  current_step: S09
+  status: done
+  current_step: closed
   base_commit: 09e2e38
 ---
 
@@ -136,7 +136,7 @@ once. 13 appears twice by design (Required + re-read triggers).
       always one click away.
 - [x] S08 Audio companion: same session accepts short audio; original
       preserved; same adapter contract produces the transcript.
-- [ ] S09 M3 acceptance run recorded in sessions/; priorities patched;
+- [x] S09 M3 acceptance run recorded in sessions/; priorities patched;
       path review and close (continuous-gate practice).
 
 Child path spawned from here, not widened into here: CP-MVP-003 PDF (M4).
@@ -291,13 +291,11 @@ head        : 09fbe7a — 21 pre-S02 dogfooding micro-units committed
               evaluation is the highest-value next investment; CP-MVP-003
               (PDF) reuses the capture seams.
 tests       : 220 passing / 23 suites; typecheck + build + smoke green
-next action : S09 close — OWNER review seals the path (continuous-gate
-              practice): read the acceptance run, decide close + what
-              opens next (34 runtime evaluation vs CP-MVP-003 PDF).
-              Audio loop OWNER-VALIDATED 2026-07-07 both ways (phone
-              m4a after the bytes-outrank-labels fix; desktop mic after
-              selecting the Windows default input — the WSLg bridge
-              exposes one device). Nothing blocks the close.
+next action : NONE — PATH CLOSED 2026-07-07 by owner decision. The owner
+              chose the LOCAL SPEECH RUNTIME EVALUATION as the next path
+              (CP-MVP-004, completing M3's "local speech baseline"
+              promise); CP-MVP-003 (PDF, M4) stays reserved. Audio loop
+              owner-validated both ways before the close.
 blockers    : none (note: owner dogfooding files remain untracked by choice —
               atomik-project/projects/test/*, atomik-project/test/,
               docs/projects/test/ — keep/clean stays with the owner; the

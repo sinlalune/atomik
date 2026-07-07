@@ -84,3 +84,7 @@ recovery listing).
 
 Per the continuous-gate practice, the PATH CLOSE is the owner's
 decision. This record is the agent-side half; the owner review seals it.
+
+SEALED 2026-07-07: owner reviewed and closed the path, choosing the
+LOCAL SPEECH RUNTIME EVALUATION (priority observation 1) as the next
+path — CP-MVP-004. CP-MVP-003 (PDF) stays reserved for M4.
