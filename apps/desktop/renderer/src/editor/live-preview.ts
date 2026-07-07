@@ -34,6 +34,33 @@ export type LivePreviewKind =
   | 'hr'
   | 'task'
   | 'metadata'
+  | 'table'
+
+/**
+ * Minimal GFM table parse for the rendered widget: header row,
+ * delimiter row (validated, discarded), body rows. Cell text stays
+ * plain — inline markdown inside cells is a later refinement.
+ */
+export function parseTable(
+  source: string
+): { header: string[]; rows: string[][] } | null {
+  const lines = source
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+  if (lines.length < 2) return null
+  const cells = (line: string): string[] =>
+    line
+      .replace(/^\|/, '')
+      .replace(/\|$/, '')
+      .split('|')
+      .map((cell) => cell.trim())
+  if (!/^[\s|:-]+$/.test(lines[1] as string)) return null
+  return {
+    header: cells(lines[0] as string),
+    rows: lines.slice(2).map(cells)
+  }
+}
 
 class BulletWidget extends WidgetType {
   override toDOM(): HTMLElement {
@@ -57,6 +84,50 @@ class HrWidget extends WidgetType {
 
   override eq(): boolean {
     return true
+  }
+}
+
+/**
+ * Rendered table (owner round 3: live must render tables like read).
+ * Clicking anywhere in it puts the cursor inside the raw block, which
+ * reveals the source for editing.
+ */
+class TableWidget extends WidgetType {
+  constructor(private readonly source: string) {
+    super()
+  }
+
+  override toDOM(view: EditorView): HTMLElement {
+    const host = document.createElement('span')
+    host.className = 'lp-table-widget'
+    const parsed = parseTable(this.source)
+    if (!parsed) {
+      host.textContent = this.source
+      return host
+    }
+    const table = document.createElement('table')
+    const thead = table.createTHead().insertRow()
+    for (const cell of parsed.header) {
+      const th = document.createElement('th')
+      th.textContent = cell
+      thead.appendChild(th)
+    }
+    const body = table.createTBody()
+    for (const row of parsed.rows) {
+      const tr = body.insertRow()
+      for (const cell of row) tr.insertCell().textContent = cell
+    }
+    host.appendChild(table)
+    host.addEventListener('click', (event) => {
+      event.preventDefault()
+      view.dispatch({ selection: { anchor: view.posAtDOM(host) } })
+      view.focus()
+    })
+    return host
+  }
+
+  override eq(other: TableWidget): boolean {
+    return other.source === this.source
   }
 }
 
@@ -338,9 +409,26 @@ export function computeLivePreviewDecorations(
             )
           }
           return
-        case 'Table':
+        case 'Table': {
+          // Away from the cursor the whole block renders as a REAL table
+          // (owner round 3); touched, it shows raw with the mono styling.
+          const firstLine = state.doc.lineAt(node.from).number
+          const lastLine = state.doc.lineAt(node.to).number
+          const touched = active.from <= lastLine && active.to >= firstLine
+          if (!touched) {
+            decorations.push(
+              Decoration.replace({
+                lp: 'table' as LivePreviewKind,
+                widget: new TableWidget(
+                  state.doc.sliceString(node.from, node.to)
+                )
+              }).range(node.from, node.to)
+            )
+            return false
+          }
           addLineDecos(node.from, node.to, 'lp-table')
           return
+        }
         case 'TableDelimiter':
           decorations.push(markDeco('lp-dim').range(node.from, node.to))
           return
@@ -355,9 +443,18 @@ export function computeLivePreviewDecorations(
         case 'QuoteMark':
           if (!isActiveAt(node.from)) hideMark(node.from, node.to, true)
           return
-        case 'FencedCode':
+        case 'FencedCode': {
           addLineDecos(node.from, node.to, 'lp-fence')
+          // first/last lines carry read's rounded corners; with the
+          // fence marks folded they read as the block's padding
+          const first = state.doc.lineAt(node.from)
+          const last = state.doc.lineAt(node.to)
+          decorations.push(lineDeco('lp-fence-first').range(first.from))
+          if (last.from !== first.from) {
+            decorations.push(lineDeco('lp-fence-last').range(last.from))
+          }
           return
+        }
         default:
           return
       }

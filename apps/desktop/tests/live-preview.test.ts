@@ -6,7 +6,8 @@ import type { LivePreviewKind } from '../renderer/src/editor/live-preview'
 import {
   computeLivePreviewDecorations,
   frontmatterEnd,
-  linkHrefAt
+  linkHrefAt,
+  parseTable
 } from '../renderer/src/editor/live-preview'
 
 type Deco = { from: number; to: number; kind: LivePreviewKind; cls?: string }
@@ -130,6 +131,13 @@ describe('live preview decorations (MVP-001: seamless editing)', () => {
     expect(
       away.filter((deco) => deco.kind === 'line' && deco.cls === 'lp-fence')
     ).toHaveLength(3)
+    // rounded caps for read parity: first + last fence lines tagged
+    expect(
+      away.some((deco) => deco.kind === 'line' && deco.cls === 'lp-fence-first')
+    ).toBe(true)
+    expect(
+      away.some((deco) => deco.kind === 'line' && deco.cls === 'lp-fence-last')
+    ).toBe(true)
 
     const onFence = decorate(doc, 1)
     expect(
@@ -205,22 +213,41 @@ describe('live preview decorations (MVP-001: seamless editing)', () => {
     expect(onIt.filter((deco) => deco.kind === 'hr')).toHaveLength(0)
   })
 
-  it('styles tables: mono lines, dimmed pipes, bold header cells', () => {
+  it('renders tables as a widget away from the cursor, raw when touched', () => {
     const doc = '| a | b |\n| - | - |\n| 1 | 2 |\n\nelsewhere\n'
-    const decos = decorate(doc, doc.indexOf('elsewhere'))
+    const away = decorate(doc, doc.indexOf('elsewhere'))
+    const tableEnd = doc.indexOf('|\n\n') + 1
+    expect(away.filter((deco) => deco.kind === 'table')).toEqual([
+      { from: 0, to: tableEnd, kind: 'table' }
+    ])
     expect(
-      decos.filter((deco) => deco.kind === 'line' && deco.cls === 'lp-table')
+      away.some((deco) => deco.kind === 'line' && deco.cls === 'lp-table')
+    ).toBe(false)
+
+    const touched = decorate(doc, doc.indexOf('1'))
+    expect(touched.filter((deco) => deco.kind === 'table')).toHaveLength(0)
+    expect(
+      touched.filter((deco) => deco.kind === 'line' && deco.cls === 'lp-table')
     ).toHaveLength(3)
     expect(
-      decos.some((deco) => deco.kind === 'mark' && deco.cls === 'lp-dim')
+      touched.some((deco) => deco.kind === 'mark' && deco.cls === 'lp-dim')
     ).toBe(true)
-    const headerCells = decos.filter(
+    const headerCells = touched.filter(
       (deco) => deco.kind === 'mark' && deco.cls === 'lp-strong'
     )
     expect(headerCells.map((deco) => doc.slice(deco.from, deco.to))).toEqual([
       'a',
       'b'
     ])
+  })
+
+  it('parseTable splits header/delimiter/rows and rejects non-tables', () => {
+    expect(parseTable('| a | b |\n| - | - |\n| 1 | 2 |')).toEqual({
+      header: ['a', 'b'],
+      rows: [['1', '2']]
+    })
+    expect(parseTable('| a | b |\n| not a delimiter |')).toBeNull()
+    expect(parseTable('just text')).toBeNull()
   })
 
   it('leaves bare [text] literal — only [text](url) is a link (read parity)', () => {

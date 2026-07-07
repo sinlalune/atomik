@@ -873,6 +873,14 @@ body[data-maximized] .tabstrip {
   padding: var(--note-pad);
 }
 
+/* ...and the READING surface: live uses the app tokens for background
+   and text (oneDark's own canvas stays a SOURCE-mode thing; nested code
+   colors still come from the highlight style). */
+.editor-host.live .cm-editor {
+  background-color: var(--bg);
+  color: var(--fg);
+}
+
 .editor-host.live .cm-line {
   padding-left: 0;
 }
@@ -881,6 +889,44 @@ body[data-maximized] .tabstrip {
    (higher specificity on purpose — same token as read) */
 .editor-host.live .cm-line.lp-quote {
   padding-left: var(--note-quote-inset);
+}
+
+/* fenced blocks carry read's pre geometry: inner padding + rounded
+   caps on the (folded) fence lines */
+.editor-host.live .cm-line.lp-fence {
+  padding: 0 1.1rem;
+}
+
+.editor-host.live .cm-line.lp-fence-first {
+  border-radius: 8px 8px 0 0;
+}
+
+.editor-host.live .cm-line.lp-fence-last {
+  border-radius: 0 0 8px 8px;
+}
+
+/* rendered table widget — same skin as .markdown-body table */
+.editor-host .lp-table-widget {
+  display: inline-block;
+  max-width: 100%;
+  overflow-x: auto;
+  cursor: pointer;
+}
+
+.editor-host .lp-table-widget table {
+  border-collapse: collapse;
+  font-size: 0.9em;
+}
+
+.editor-host .lp-table-widget th,
+.editor-host .lp-table-widget td {
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.7rem;
+  text-align: left;
+}
+
+.editor-host .lp-table-widget th {
+  font-weight: 650;
 }
 
 .editor-host .lp-h1 {
@@ -1001,20 +1047,39 @@ body[data-maximized] .tabstrip {
   font-size: 0.82em;
 }
 
-/* The default syntax highlighter underlines heading and link TOKENS —
-   including bare [text] the parser tags as a link but read renders
-   literally. Seamless mode neutralizes every default underline and the
-   lp-* classes re-assert the ones the READ view actually shows. */
-.editor-host.live .cm-content :where(span) {
+/* The syntax highlighter's markdown TOKEN styling (colored headings,
+   underlined links, tinted marks) belongs to SOURCE mode — live is a
+   reading surface (owner round 3, all themes). Neutralize color, weight,
+   style, and decoration on every span outside fenced code (nested code
+   keeps its real highlighting), then re-assert exactly what the READ
+   view shows through the lp-* classes. */
+.editor-host.live .cm-line:not(.lp-fence) :where(span) {
+  color: inherit;
+  font-weight: inherit;
+  font-style: inherit;
   text-decoration: none;
 }
 
+.editor-host.live .cm-content .lp-strong {
+  font-weight: 700;
+}
+
+.editor-host.live .cm-content .lp-em {
+  font-style: italic;
+}
+
 .editor-host.live .cm-content .lp-link {
+  color: var(--accent);
   text-decoration: underline;
+}
+
+.editor-host.live .cm-content .lp-code {
+  font-family: ui-monospace, 'Cascadia Mono', Menlo, monospace;
 }
 
 .editor-host.live .cm-content .lp-strike,
 .editor-host.live .cm-content .lp-done {
+  color: var(--muted);
   text-decoration: line-through;
 }
 
