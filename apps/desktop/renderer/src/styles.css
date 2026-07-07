@@ -1697,6 +1697,10 @@ body[data-maximized] .tabstrip {
 
 .capture-actions {
   margin: 1rem 0;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .capture-uploads {

@@ -397,3 +397,70 @@ describe('audio companion (S08) — same session, same gates', () => {
     expect(page).toContain("m4a: 'audio/mp4'")
   })
 })
+
+describe('desktop capture (owner request) — same inbox, same gates, no endpoint', () => {
+  const WEBM = Buffer.concat([
+    Buffer.from([0x1a, 0x45, 0xdf, 0xa3]),
+    Buffer.from('desktop-recording')
+  ])
+
+  it('a recording lands in the inbox exactly like a phone upload', () => {
+    const localManager = makeManager()
+    const info = localManager.addLocalUpload(
+      new Uint8Array(WEBM),
+      'audio/webm;codecs=opus',
+      'desktop-recording-2026-07-07.webm'
+    )
+    expect(info.mimeType).toBe('audio/webm')
+    expect(info.fileName).toBe('desktop-recording-2026-07-07.webm')
+    const inspected = localManager.inspect()!
+    // local-only record: no endpoint, no URL, not active — but decidable
+    expect(inspected.uploadUrl).toBe('')
+    expect(inspected.active).toBe(false)
+    expect(inspected.uploads).toHaveLength(1)
+    const item = localManager.getUpload(info.id)!
+    expect(readFileSync(item.filePath)).toEqual(WEBM)
+    localManager.resolveUpload(info.id, 'imported', 'sources/captures/x/source.md')
+    expect(localManager.inspect()!.uploads[0]!.resolution).toBe('imported')
+  })
+
+  it('joins an active phone session instead of replacing it', async () => {
+    const session = await makeManager().start()
+    await upload(uploadUrlOf(session.uploadUrl), JPEG)
+    manager!.addLocalUpload(new Uint8Array(WEBM), 'audio/webm', 'memo.webm')
+    const inspected = manager!.inspect()!
+    expect(inspected.id).toBe(session.id)
+    expect(inspected.active).toBe(true)
+    expect(inspected.uploads).toHaveLength(2)
+  })
+
+  it('applies the same gates: type, magic, size, payload shape', () => {
+    const localManager = makeManager()
+    expect(() =>
+      localManager.addLocalUpload(new Uint8Array(WEBM), 'text/plain', 'x.txt')
+    ).toThrow(/rejected media type/)
+    expect(() =>
+      localManager.addLocalUpload(new Uint8Array(JPEG), 'audio/webm', 'x.webm')
+    ).toThrow(/do not match/)
+    expect(() =>
+      localManager.addLocalUpload('nope' as unknown as Uint8Array, 'audio/webm', 'x')
+    ).toThrow(/rejected recording payload/)
+    const tinyCap = makeManager({ maxUploadBytes: 8 })
+    expect(() =>
+      tinyCap.addLocalUpload(new Uint8Array(WEBM), 'audio/webm', 'x.webm')
+    ).toThrow(/too large/)
+  })
+
+  it('accepts the nonstandard audio/m4a alias over HTTP too', async () => {
+    const M4A = Buffer.concat([
+      Buffer.from([0x00, 0x00, 0x00, 0x18]),
+      Buffer.from('ftypM4A '),
+      Buffer.from('x')
+    ])
+    const session = await makeManager().start()
+    const response = await upload(uploadUrlOf(session.uploadUrl), M4A, {
+      'content-type': 'audio/m4a'
+    })
+    expect(response.status).toBe(200)
+  })
+})

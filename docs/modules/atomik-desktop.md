@@ -40,7 +40,7 @@ timestamp: 2026-07-06T00:00:00Z
   it drops the margins. WSLg's OS side draws window shadows itself.
 - The renderer-facing API surface: `shared/ipc-contract.ts` is the single
   source of truth (`ATOMIK_API_KEY`, `ATOMIK_CHANNELS`, `AtomikApi`,
-  `DOCUMENTED_PRELOAD_SURFACE`). Twenty-five invoke channels exist today
+  `DOCUMENTED_PRELOAD_SURFACE`). Twenty-six invoke channels exist today
   (the AI trio is described in its own bullets below), plus two push
   subscriptions (`onWindowStateChanged` over
   `atomik:window-state-changed`; `onVaultChanged` over
@@ -55,8 +55,9 @@ timestamp: 2026-07-06T00:00:00Z
   project pair `list-projects` / `create-project` — and the capture
   family: `start-capture-session` / `stop-capture-session` /
   `get-capture-session` plus the S04 decision pair
-  `import-capture-upload` / `discard-capture-upload` and the S06
-  `transcribe-source`.
+  `import-capture-upload` / `discard-capture-upload` the S06
+  `transcribe-source`, and `add-local-capture` (desktop mic recordings →
+  the same inbox through the same gates; no endpoint opens).
   The S02 shell-identity channel (`get-app-info`) and its ShellHome card
   were removed on MVP-001 owner feedback ("shell relict"): saved 'home'
   tabs migrate to vault tabs at load (`migrateRetiredViews`).
@@ -170,7 +171,15 @@ timestamp: 2026-07-06T00:00:00Z
   received bytes against the DECLARED type (WAV and WEBP are both RIFF:
   the sub-brand distinguishes them). The phone page carries both inputs
   (photo with camera hint; audio with recorder hint), one shared upload
-  path. Accepted files land in a
+  path. DESKTOP MIC (owner request): CaptureView records via
+  MediaRecorder in the trusted renderer and hands the bytes to main over
+  `add-local-capture`, which runs the SAME gates and lands the SAME
+  inbox shape (shared `storeUpload`); with no usable session a LOCAL
+  record is created lazily — stopped, `uploadUrl: ''`, never reachable
+  from the network. The permission posture is now EXPLICIT in main:
+  only 'media' is granted, only to app content; every other permission
+  request is denied outright. m4a arrives as audio/mp4, audio/x-m4a, or
+  the nonstandard audio/m4a — all aliased. Accepted files land in a
   temporary inbox under the STATE DIR
   (`.atomik/capture-inbox/<sessionId>/<seq>-<uploadId>.<ext>` + a
   `.meta.json` sidecar) — never the vault; the inbox→vault import is

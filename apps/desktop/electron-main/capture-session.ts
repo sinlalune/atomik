@@ -74,6 +74,8 @@ const CAPTURE_MIME_ALLOWLIST: Record<
   // cover picked files. Same size cap: capture means SHORT audio.
   'audio/mp4': { extension: 'm4a', matches: isIsoBmff },
   'audio/x-m4a': { extension: 'm4a', matches: isIsoBmff },
+  // nonstandard but real: several OS pickers declare m4a files this way
+  'audio/m4a': { extension: 'm4a', matches: isIsoBmff },
   'audio/webm': { extension: 'webm', matches: isEbml },
   'audio/ogg': {
     extension: 'ogg',
@@ -165,6 +167,8 @@ type ActiveSession = {
   dir: string
   expiresAtMs: number
   stopped: boolean
+  /** Created by a desktop recording; never had a network endpoint. */
+  local?: boolean
   uploads: CaptureUploadInfo[]
   /** uploadId → stored file name in the session's inbox dir. */
   storedNames: Map<string, string>
@@ -251,7 +255,9 @@ export class CaptureSessionManager {
     if (!session) return null
     return {
       id: session.id,
-      uploadUrl: `http://${this.boundHost}:${this.boundPort}/c/${session.id}?t=${session.token}`,
+      uploadUrl: session.local
+        ? ''
+        : `http://${this.boundHost}:${this.boundPort}/c/${session.id}?t=${session.token}`,
       expiresAtMs: session.expiresAtMs,
       active: this.isActive(session),
       uploads: [...session.uploads]
@@ -379,16 +385,32 @@ export class CaptureSessionManager {
     const bytes = Buffer.concat(chunks)
     if (bytes.length === 0) return reject(res, 400)
     if (!spec.matches(bytes)) return reject(res, 415)
+    const info = this.storeUpload(
+      session,
+      bytes,
+      declared,
+      spec,
+      req.headers['x-atomik-filename']
+    )
+    res.writeHead(200, { 'content-type': 'application/json' })
+    res.end(JSON.stringify({ ok: true, uploadId: info.id }))
+  }
 
+  /** Shared inbox write: the phone path and the desktop mic land the
+   *  same shape, same sidecar, same decide-once lifecycle. */
+  private storeUpload(
+    session: ActiveSession,
+    bytes: Buffer,
+    declared: string,
+    spec: { extension: string },
+    clientFileName: unknown
+  ): CaptureUploadInfo {
     const uploadId = randomBytes(6).toString('hex')
     const sequence = String(session.uploads.length + 1).padStart(2, '0')
     const storedName = `${sequence}-${uploadId}.${spec.extension}`
     const info: CaptureUploadInfo = {
       id: uploadId,
-      fileName: sanitizeClientFileName(
-        req.headers['x-atomik-filename'],
-        `capture.${spec.extension}`
-      ),
+      fileName: sanitizeClientFileName(clientFileName, `capture.${spec.extension}`),
       mimeType: declared,
       bytes: bytes.length,
       receivedAtMs: this.now()
@@ -401,8 +423,56 @@ export class CaptureSessionManager {
     )
     session.uploads.push(info)
     session.storedNames.set(uploadId, storedName)
-    res.writeHead(200, { 'content-type': 'application/json' })
-    res.end(JSON.stringify({ ok: true, uploadId }))
+    return info
+  }
+
+  /**
+   * Desktop capture (owner request): a recording made ON this machine
+   * (renderer MediaRecorder) enters the SAME inbox through the SAME
+   * gates — size cap, MIME allowlist, magic-byte validation — and the
+   * same explicit import decides it. No session/server is required or
+   * opened: a local inbox record is created lazily when none is usable
+   * (the endpoint stays closed; nothing about the network posture
+   * changes).
+   */
+  addLocalUpload(bytes: unknown, mimeType: unknown, fileName: unknown): CaptureUploadInfo {
+    if (!(bytes instanceof Uint8Array) || bytes.length === 0) {
+      throw new Error('capture: rejected recording payload')
+    }
+    if (bytes.length > this.maxUploadBytes) {
+      throw new Error('capture: recording too large')
+    }
+    const declared = String(mimeType ?? '')
+      .split(';')[0]!
+      .trim()
+      .toLowerCase()
+    const spec = CAPTURE_MIME_ALLOWLIST[declared]
+    if (!spec) throw new Error(`capture: rejected media type — ${declared}`)
+    const buffer = Buffer.from(bytes)
+    if (!spec.matches(buffer)) {
+      throw new Error('capture: bytes do not match the declared type')
+    }
+    let session = this.session
+    if (session && session.uploads.length >= this.maxUploads) {
+      // Replacing a full session would orphan its undecided items.
+      throw new Error('capture: session is full — decide the pending items first')
+    }
+    if (!session) {
+      const id = randomBytes(8).toString('hex')
+      session = {
+        id,
+        token: randomBytes(16).toString('hex'),
+        dir: join(this.options.inboxRoot, id),
+        expiresAtMs: this.now(),
+        stopped: true, // never uploadable from outside
+        local: true,
+        uploads: [],
+        storedNames: new Map()
+      }
+      mkdirSync(session.dir, { recursive: true })
+      this.session = session
+    }
+    return this.storeUpload(session, buffer, declared, spec, fileName)
   }
 }
 

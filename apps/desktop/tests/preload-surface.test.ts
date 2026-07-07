@@ -93,6 +93,11 @@ describe('preload surface (13 §IPC rule)', () => {
       ) => Promise<unknown>
       discardCaptureUpload: (uploadId: string) => Promise<unknown>
       transcribeSource: (dossierPath: string) => Promise<unknown>
+      addLocalCapture: (
+        bytes: Uint8Array,
+        mimeType: string,
+        fileName: string
+      ) => Promise<unknown>
       runAiOperation: (operation: unknown) => Promise<unknown>
       resolveAiTrace: (bundleId: string, decision: string) => Promise<unknown>
       getAiTraceSummary: (bundleId: string) => Promise<unknown>
@@ -252,6 +257,15 @@ describe('preload surface (13 §IPC rule)', () => {
     expect(invoke).toHaveBeenLastCalledWith(
       ATOMIK_CHANNELS.transcribeSource,
       'sources/captures/demo/source.md'
+    )
+
+    const recording = new Uint8Array([1, 2, 3])
+    await api.addLocalCapture(recording, 'audio/webm', 'memo.webm')
+    expect(invoke).toHaveBeenLastCalledWith(
+      ATOMIK_CHANNELS.addLocalCapture,
+      recording,
+      'audio/webm',
+      'memo.webm'
     )
 
     const operation = { id: 'op-1' }

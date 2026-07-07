@@ -80,6 +80,8 @@ const api: AtomikApi = {
     ipcRenderer.invoke(ATOMIK_CHANNELS.discardCaptureUpload, uploadId),
   transcribeSource: (dossierPath: string) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.transcribeSource, dossierPath),
+  addLocalCapture: (bytes: Uint8Array, mimeType: string, fileName: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.addLocalCapture, bytes, mimeType, fileName),
   runAiOperation: (operation: AiOperation) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.runAiOperation, operation),
   resolveAiTrace: (bundleId: string, decision: AiTraceDecision) =>

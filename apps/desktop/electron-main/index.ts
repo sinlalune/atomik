@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, session } from 'electron'
 import { mkdtempSync, statSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -218,6 +218,12 @@ function registerCaptureHandlers(): void {
     ATOMIK_CHANNELS.transcribeSource,
     (_event, dossierPath: unknown) =>
       transcribeSource(requireVault(), dossierPath, mockTranscriptionAdapter, traces)
+  )
+  // Desktop mic (owner request): same inbox, same gates, no endpoint.
+  ipcMain.handle(
+    ATOMIK_CHANNELS.addLocalCapture,
+    (_event, bytes: unknown, mimeType: unknown, fileName: unknown) =>
+      capture.addLocalUpload(bytes, mimeType, fileName)
   )
 }
 
@@ -472,6 +478,18 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
 }
 
 app.whenReady().then(() => {
+  // Permission posture made EXPLICIT (13): the trusted UI may use the
+  // microphone (desktop capture, owner request); every other permission
+  // request — and any from future non-app content — is denied outright.
+  session.defaultSession.setPermissionRequestHandler(
+    (webContents, permission, callback) => {
+      const url = webContents.getURL()
+      const isAppContent =
+        url.startsWith('file://') || url.startsWith('http://localhost')
+      callback(isAppContent && permission === 'media')
+    }
+  )
+
   const docsRoot = resolveDocsRoot(app.getAppPath())
   // Smoke is a deterministic check: without an explicit ATOMIK_STATE_DIR
   // fixture it must not restore whatever layout live dogfooding left in

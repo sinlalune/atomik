@@ -40,6 +40,7 @@ export const ATOMIK_CHANNELS = {
   importCaptureUpload: 'atomik:import-capture-upload',
   discardCaptureUpload: 'atomik:discard-capture-upload',
   transcribeSource: 'atomik:transcribe-source',
+  addLocalCapture: 'atomik:add-local-capture',
   runAiOperation: 'atomik:run-ai-operation',
   resolveAiTrace: 'atomik:resolve-ai-trace',
   getAiTraceSummary: 'atomik:get-ai-trace-summary'
@@ -255,7 +256,8 @@ export type TranscribeResult = {
 
 export type CaptureSessionInfo = {
   id: string
-  /** Phone-facing URL (LAN address; token included) — the QR payload. */
+  /** Phone-facing URL (LAN address; token included) — the QR payload.
+   *  EMPTY for local-only records (desktop recordings; no endpoint). */
   uploadUrl: string
   expiresAtMs: number
   /** False once stopped or expired; uploads are refused from then on. */
@@ -459,6 +461,14 @@ export type AtomikApi = {
   /** Runs the transcription adapter on a dossier's original; refuses to
    *  clobber an existing transcript (corrections live there, S07). */
   transcribeSource: (dossierPath: string) => Promise<TranscribeResult>
+  /** Desktop mic recording → the SAME inbox through the same gates
+   *  (size/MIME/magic); the explicit import decides it like any phone
+   *  upload. Opens no network endpoint. */
+  addLocalCapture: (
+    bytes: Uint8Array,
+    mimeType: string,
+    fileName: string
+  ) => Promise<CaptureUploadInfo>
   /** Mocked AI operation (S08): pure compute, never writes. */
   runAiOperation: (operation: AiOperation) => Promise<AiResponseBundle>
   /** Reports the user's decision; main appends the one trace line. */
@@ -496,6 +506,7 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'importCaptureUpload',
   'discardCaptureUpload',
   'transcribeSource',
+  'addLocalCapture',
   'runAiOperation',
   'resolveAiTrace',
   'getAiTraceSummary'
