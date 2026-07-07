@@ -71,16 +71,24 @@ auto-save, and undo all just work. Widgets never store document
 positions (they get reused as the doc changes); the click handler asks
 the view where the widget IS at click time (`posAtDOM`).
 
-Two deliberate exceptions:
+Two constructs get FOLDING, not just styling (owner round two: "live
+must render like read, and read strips/renders these"):
 
-- **Fences stay visible.** A code block whose delimiters vanish is
-  disorienting to edit — you cannot see where it ends. Dimmed, not hidden.
-- **Frontmatter is opted out wholesale.** The markdown grammar has no
-  frontmatter node, so `title: ...` followed by `---` misparses as a
-  giant setext heading. `frontmatterEnd()` detects the leading block
-  textually, styles it as one dim unit, and suppresses every other
-  decoration inside it. Found by looking at a screenshot, not by a test
-  — verify like a user (note 01 §7).
+- **Fence lines fold to padding.** Away from the cursor the ``` and
+  language info hide, leaving empty tinted lines that read as the code
+  block's padding — visually the read rendering. The active line shows
+  them dimmed for editing. (v1 kept them always-visible "so you can see
+  where the block ends"; the tinted lines turned out to say that
+  better.)
+- **Frontmatter folds to a `⋯ metadata` chip.** The markdown grammar
+  has no frontmatter node (the block would misparse as a giant setext
+  heading), so `frontmatterEnd()` detects it textually; away from the
+  cursor one replace decoration collapses it to a clickable chip, and
+  any selection touching its lines reveals the raw dim block. The
+  editor also opens with the cursor placed AFTER the frontmatter —
+  the default position 0 would sit inside it and hold it open. Found
+  by looking at screenshots, not by tests — verify like a user
+  (note 01 §7).
 
 And one interaction rule: **Ctrl/Cmd+click follows an internal link**
 (`linkHrefAt` walks up the tree from the click position to the enclosing

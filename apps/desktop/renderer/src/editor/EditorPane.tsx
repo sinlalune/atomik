@@ -36,7 +36,7 @@ import type { VaultNoteFile } from '../../../shared/ipc-contract'
 import { resolveRelativePath } from '../dev-docs/markdown'
 import type { NoteViewMode, SaveMode } from '../workspace/model'
 import { AiPanel, type BufferChange } from './AiPanel'
-import { livePreview } from './live-preview'
+import { frontmatterEnd, livePreview } from './live-preview'
 import { ModeSwitch } from './ModeSwitch'
 
 /** Auto mode saves this long after the last keystroke. */
@@ -330,6 +330,17 @@ export function EditorPane({
       ]
     })
     viewRef.current = view
+    // Live opens ON THE CONTENT: the default cursor position (0) sits
+    // inside the frontmatter and would reveal it — the fold only holds
+    // while the selection is elsewhere.
+    if (modeRef.current === 'live') {
+      const fmEnd = frontmatterEnd(view.state)
+      if (fmEnd > 0) {
+        view.dispatch({
+          selection: { anchor: Math.min(fmEnd + 1, view.state.doc.length) }
+        })
+      }
+    }
     view.focus()
     return () => {
       viewRef.current = null

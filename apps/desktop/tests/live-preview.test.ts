@@ -119,16 +119,22 @@ describe('live preview decorations (MVP-001: seamless editing)', () => {
     ).toBe(true)
   })
 
-  it('keeps fence marks visible (dimmed) — only inline backticks hide', () => {
+  it('folds fence marks away from the cursor, dims them on the active line', () => {
     const doc = '```js\ncode()\n```\n\nelsewhere\n'
-    const decos = decorate(doc, doc.indexOf('elsewhere'))
-    expect(hidden(decos)).toEqual([])
+    const away = decorate(doc, doc.indexOf('elsewhere'))
+    // opening ``` + js info + closing ``` all fold; block lines stay tinted
+    expect(away.filter((deco) => deco.kind === 'hide')).toHaveLength(3)
     expect(
-      decos.some((deco) => deco.kind === 'mark' && deco.cls === 'lp-dim')
-    ).toBe(true)
+      away.some((deco) => deco.kind === 'mark' && deco.cls === 'lp-dim')
+    ).toBe(false)
     expect(
-      decos.filter((deco) => deco.kind === 'line' && deco.cls === 'lp-fence')
+      away.filter((deco) => deco.kind === 'line' && deco.cls === 'lp-fence')
     ).toHaveLength(3)
+
+    const onFence = decorate(doc, 1)
+    expect(
+      onFence.some((deco) => deco.kind === 'mark' && deco.cls === 'lp-dim')
+    ).toBe(true)
   })
 
   it('hides GFM strikethrough marks and styles the content', () => {
@@ -141,21 +147,31 @@ describe('live preview decorations (MVP-001: seamless editing)', () => {
     ).toBe(true)
   })
 
-  it('treats leading frontmatter as one dim unit — no markdown inside', () => {
+  it('folds frontmatter to a metadata chip away from the cursor', () => {
     const doc = '---\ntitle: X --- Y\ntags: [a]\n---\n\n# Real heading\n'
-    expect(frontmatterEnd(decorateState(doc))).toBe(doc.indexOf('\n\n'))
+    const fmEnd = doc.indexOf('\n\n')
+    expect(frontmatterEnd(decorateState(doc))).toBe(fmEnd)
     const decos = decorate(doc, doc.length - 1)
-    const fmDecos = decos.filter((deco) => deco.from < doc.indexOf('\n\n'))
-    // four frontmatter lines, each styled, nothing else in the block
+    // one chip replaces the whole block; no markdown decorations inside
+    expect(decos.filter((deco) => deco.from < fmEnd)).toEqual([
+      { from: 0, to: fmEnd, kind: 'metadata' }
+    ])
+    // the real heading below still gets its size
+    expect(
+      decos.some((deco) => deco.kind === 'line' && deco.cls === 'lp-h1')
+    ).toBe(true)
+  })
+
+  it('reveals raw frontmatter (dim unit, no markdown inside) when touched', () => {
+    const doc = '---\ntitle: X --- Y\ntags: [a]\n---\n\n# Real heading\n'
+    const fmEnd = doc.indexOf('\n\n')
+    const decos = decorate(doc, doc.indexOf('tags'))
+    const fmDecos = decos.filter((deco) => deco.from < fmEnd)
     expect(fmDecos).toHaveLength(4)
     expect(
       fmDecos.every(
         (deco) => deco.kind === 'line' && deco.cls === 'lp-frontmatter'
       )
-    ).toBe(true)
-    // the real heading below still gets its size + hidden mark
-    expect(
-      decos.some((deco) => deco.kind === 'line' && deco.cls === 'lp-h1')
     ).toBe(true)
   })
 

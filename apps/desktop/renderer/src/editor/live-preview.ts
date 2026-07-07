@@ -33,6 +33,7 @@ export type LivePreviewKind =
   | 'bullet'
   | 'hr'
   | 'task'
+  | 'metadata'
 
 class BulletWidget extends WidgetType {
   override toDOM(): HTMLElement {
@@ -52,6 +53,32 @@ class HrWidget extends WidgetType {
     const rule = document.createElement('span')
     rule.className = 'lp-hr'
     return rule
+  }
+
+  override eq(): boolean {
+    return true
+  }
+}
+
+/**
+ * Folded frontmatter (owner follow-up: seamless mode must not open on a
+ * screenful of metadata — read strips it entirely). Clicking the chip
+ * puts the cursor inside, which reveals the raw block for editing.
+ */
+class MetadataChipWidget extends WidgetType {
+  override toDOM(view: EditorView): HTMLElement {
+    const chip = document.createElement('button')
+    chip.type = 'button'
+    chip.className = 'lp-metadata'
+    chip.textContent = '⋯ metadata'
+    chip.title = 'Show the note metadata (frontmatter)'
+    chip.addEventListener('click', (event) => {
+      event.preventDefault()
+      const pos = view.posAtDOM(chip)
+      view.dispatch({ selection: { anchor: pos } })
+      view.focus()
+    })
+    return chip
   }
 
   override eq(): boolean {
@@ -175,8 +202,23 @@ export function computeLivePreviewDecorations(
     }
   }
 
+  // Frontmatter folds to a chip while the selection is elsewhere (read
+  // strips it entirely; live must not open on a screenful of metadata).
+  // Any selection touching its lines reveals the raw block, dim mono.
   const fmEnd = frontmatterEnd(state)
-  if (fmEnd > 0) addLineDecos(0, fmEnd, 'lp-frontmatter')
+  if (fmEnd > 0) {
+    const fmLastLine = state.doc.lineAt(fmEnd).number
+    if (active.from <= fmLastLine) {
+      addLineDecos(0, fmEnd, 'lp-frontmatter')
+    } else {
+      decorations.push(
+        Decoration.replace({
+          lp: 'metadata' as LivePreviewKind,
+          widget: new MetadataChipWidget()
+        }).range(0, fmEnd)
+      )
+    }
+  }
 
   syntaxTree(state).iterate({
     enter: (node) => {
@@ -214,18 +256,22 @@ export function computeLivePreviewDecorations(
           if (!isActiveAt(node.from)) hideMark(node.from, node.to)
           return
         case 'CodeMark': {
-          // Inline backticks hide; fence marks stay (dimmed) — a fenced
-          // block whose fences vanish is disorienting while editing.
+          // Inline backticks hide. Fence marks fold too (owner follow-up:
+          // blocks must render like read): away from the cursor the fence
+          // line empties into a tinted padding line of the block; the
+          // active line shows them dimmed for editing.
           const parent = node.node.parent
           if (parent?.name === 'InlineCode' && !isActiveAt(node.from)) {
             hideMark(node.from, node.to)
           } else if (parent?.name === 'FencedCode') {
-            decorations.push(markDeco('lp-dim').range(node.from, node.to))
+            if (!isActiveAt(node.from)) hideMark(node.from, node.to)
+            else decorations.push(markDeco('lp-dim').range(node.from, node.to))
           }
           return
         }
         case 'CodeInfo':
-          decorations.push(markDeco('lp-dim').range(node.from, node.to))
+          if (!isActiveAt(node.from)) hideMark(node.from, node.to)
+          else decorations.push(markDeco('lp-dim').range(node.from, node.to))
           return
         case 'LinkMark': {
           // Brackets fold only inside a real link; bare [text] (and
