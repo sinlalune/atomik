@@ -262,3 +262,27 @@ Open question for the seating decision: license-clean VLM (Qwen2.5-VL
 7B Apache, slower; or SmolVLM/SmolDocling to bench) vs fast-but-lossy
 RapidOCR vs BOTH (RapidOCR for instant search-grade text, VLM for
 on-demand quality transcription — 33's ladder applied to OCR).
+
+## S07 addendum 3 — sub-4B general multimodal round + GPU discovery (2026-07-07)
+
+Same upright Pascal photo, same prompt, CPU 8 threads:
+
+| candidate | wall | verdict |
+|---|---|---|
+| Qwen2.5-VL 3B Q4 | 192 s | ★★★ near-print, anti-hallucination passed — quality reference (license: Qwen Research on 3B) |
+| Gemma 3 4B Q4 | 127 s | ★★☆ real transcription, accents OK — but MEANING-CHANGING errors ("est mort à la fenêtre" for "se met à la fenêtre", "l'oplogie") — insidious for trust |
+| SmolVLM2 2.2B Q4 | 23 s | ✗ DISQUALIFIED: pure hallucination (invented a 1952 journal article + offered a translation) — the exact 08 dishonesty failure mode |
+| RapidOCR (ref) | 3.6 s | ★★ honest but lossy (accents, order) |
+
+Notes: Ministral 3B is TEXT-ONLY (not a VLM candidate; Mistral vision
+starts at Pixtral 12B). Meaning-changing VLM errors are worse than
+RapidOCR's honest degradation for the truth model — a seated VLM needs
+the correction flow AND ideally a confidence/verification story.
+
+**GPU DISCOVERY: RTX 5070 (12 GB) is CUDA-visible in this WSL2.** A
+CUDA rebuild would collapse VLM latency (~192 s → seconds) and make
+Qwen2.5-VL-7B (Apache!) viable — potentially dissolving both the speed
+AND license objections at once. Device-tier framing (33) stands: CPU
+numbers define the floor for other laptops; GPU is the probed bonus
+tier. Next candidates if the round extends: MiniCPM-V 2.0, Granite
+Vision 2B, Moondream2, LFM2-VL 1.6B.
