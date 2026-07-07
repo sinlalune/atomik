@@ -113,3 +113,64 @@ S02 gap) — makes the final call.
 Bench artifacts: harness + raw outputs under `.atomik/speech-bench/`;
 correctable transcripts as .md in `sources/captures/speech-bench-2026-07-07/`
 (git-ignored with the rest of captures).
+
+## Addendum — owner research corrects the candidate set (2026-07-07)
+
+The owner's market study (`docs/research/model-research.md`, committed)
+adds two candidates the S03 refresh missed:
+
+- **Parakeet-TDT-0.6B-v3** — the S03 rejection ("EN/GPU") was STALE:
+  v3 covers 25 European languages incl. French, CC-BY-4.0, ONNX,
+  reported RTFx ~3,333 and 6.34% avg WER (Open ASR leaderboard).
+  Attribution required (CC-BY). Benching via sherpa-onnx transducer.
+- **whisper large-v3-turbo** — 809M distilled large-v3 (MIT), the
+  research's pick for CPU laptops; ~2.6 GB RAM fits this machine.
+  Benching via whisper.cpp and faster-whisper.
+- **Voxtral Mini Transcribe V2** (~4% FLEURS-FR WER, Apache 2.0) noted
+  as the French quality reference but NOT benched: 4B/BF16 targets GPU
+  (16 GB VRAM); revisit if a quantized CPU path appears.
+
+Fixture honesty note from the owner: the current recordings were not
+made with evaluation in mind (4 s name-checks + one sung note); new
+30–90 s spoken memos (FR with EN technical terms) are being recorded
+before the winner seals.
+
+## Extension results — owner-research candidates (run 2026-07-07, same machine)
+
+| candidate | model | fixture | audio s | wall ms | RTF | peak RSS MB | lang |
+|---|---|---|---|---|---|---|---|
+| faster-whisper | large-v3-turbo | fx-desktop-1 | 3.2 | 10455 | 3.27 | 1937 | en |
+| faster-whisper | large-v3-turbo | fx-desktop-2 | 4.1 | 10934 | 2.67 | 1653 | fr |
+| faster-whisper | large-v3-turbo | fx-urecorder | 3.5 | 10717 | 3.06 | 1653 | fr |
+| faster-whisper | large-v3-turbo | fx-whatsapp | 181.1 | 46418 | 0.26 | 1653 | fr |
+| parakeet-v3-sherpa | tdt-0.6b-v3-int8 | fx-desktop-1 | 3.2 | 183 | 0.06 | 847 | — |
+| parakeet-v3-sherpa | tdt-0.6b-v3-int8 | fx-desktop-2 | 4.1 | 224 | 0.05 | 857 | — |
+| parakeet-v3-sherpa | tdt-0.6b-v3-int8 | fx-urecorder | 3.5 | 188 | 0.05 | 853 | — |
+| parakeet-v3-sherpa | tdt-0.6b-v3-int8 | fx-whatsapp | 181.1 | 14712 | 0.08 | 2486 | — |
+| whisper.cpp | large-v3-turbo | fx-desktop-1 | 3.2 | 20883 | 6.53 | 1802 | — |
+| whisper.cpp | large-v3-turbo | fx-desktop-2 | 4.1 | 21103 | 5.15 | 1802 | — |
+| whisper.cpp | large-v3-turbo | fx-urecorder | 3.5 | 20876 | 5.96 | 1802 | — |
+| whisper.cpp | large-v3-turbo | fx-whatsapp | 181.1 | 80942 | 0.45 | 1846 | — |
+
+### Findings
+
+- **Parakeet-TDT-0.6B-v3 (sherpa-onnx, int8) is the mechanical leader**:
+  perfect French on the short memos in ~200 ms (RTF 0.05 — an order of
+  magnitude faster than whisper-small), and a FULL coherent transcript
+  of the 181 s sung fixture in 14.7 s (no 30 s transducer limit; RAM
+  scales with length, 2.5 GB peak on the long one). Slightly weaker
+  than faster-whisper-small on sung lyrics; equal on speech. CC-BY-4.0
+  (attribution required). In-process npm integration available — still
+  to be seated as an isolated worker per 13.
+- **large-v3-turbo is NOT worth it on this CPU**: 10–21 s per short
+  memo (incl. load), 1.6–1.9 GB RAM, quality identical to small on
+  speech — and it dropped a consonant small got right ("Julie" vs
+  "Julien"); whisper.cpp turbo hallucinated the classic "Sous-titrage
+  Société Radio-Canada" loop on the sung fixture. The research's
+  laptop-ceiling pick assumes GPU-class hardware; on this Ryzen the
+  small/Parakeet tier wins.
+- Standing: quality tie on trivial memos means the OWNER MEMOS
+  (30–90 s spoken FR + EN technical terms) decide between
+  **parakeet-v3** (speed, long audio, in-process) and
+  **faster-whisper-small** (best sung/hard audio) — with
+  **whisper.cpp-small** the deployment-simplicity fallback.
