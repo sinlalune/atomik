@@ -48,6 +48,14 @@ if (process.platform === 'linux') {
   // NOTE: forcing PULSE_LATENCY_MSEC here broke device discovery on the
   // owner's WSLg (NotFoundError) — libpulse rejected the stream config.
   // Reverted; opt in explicitly via the shell env if ever re-tested.
+  // WSLg's RDP audio path underruns under sustained streaming with
+  // Chromium's default buffer: UNMUTED playback froze at ~15 s while a
+  // muted run reached the end (probe-proven on the owner's machine,
+  // 2026-07-07). 8× buffers ride over the bridge's hiccups — playback
+  // verified smooth to the end with this switch alone.
+  if (process.env['WSL_DISTRO_NAME']) {
+    app.commandLine.appendSwitch('audio-buffer-size', '8192')
+  }
 }
 
 /** Current vault root — main-process state; the renderer only ever sees
