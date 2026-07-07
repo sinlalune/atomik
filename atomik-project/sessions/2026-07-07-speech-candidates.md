@@ -240,3 +240,25 @@ SmolDocling/VLMs — owner decides if the comparative extends before the
 seating decision. The deployment-cost analysis (python sidecar
 +300–500 MB vs onnxruntime-node reimplementation vs native binary) is
 in the conversation record of this date and drives the seat choice.
+
+## S07 addendum 2 — the llama.cpp VLM route (owner's question, 2026-07-07)
+
+Qwen2.5-VL 3B Q4 via `llama-mtmd-cli` (built from llama.cpp master) on
+the UPRIGHT Pascal photo: **192 s CPU, and the quality is in another
+league** — full French with accents, correct reading order (intro,
+TEXTE 4 header, Pascal's flow), clean punctuation; anti-hallucination
+check passed (passages corroborate RapidOCR's raw fragments verbatim).
+Artifact: speech-bench-2026-07-07/OCR-qwen25vl-pascal.md.
+
+Decision table for the OCR seat:
+
+| route | quality (real photo) | speed | deploy | license |
+|---|---|---|---|---|
+| Qwen2.5-VL 3B / llama.cpp | ★★★ near-print | 192 s/page CPU | single binary + 3.3 GB models (the whisper pattern) | ⚠ 3B = Qwen Research license — 7B is Apache but ~2× slower; SmolVLM Apache fallback unbenched |
+| RapidOCR (python) | ★★ usable, accents lossy, order scrambled | 3.6 s/page | +300–500 MB python shipping | Apache-2.0 |
+| Tesseract | ✗ fails on phone photos | 2.6 s | trivial | Apache-2.0 |
+
+Open question for the seating decision: license-clean VLM (Qwen2.5-VL
+7B Apache, slower; or SmolVLM/SmolDocling to bench) vs fast-but-lossy
+RapidOCR vs BOTH (RapidOCR for instant search-grade text, VLM for
+on-demand quality transcription — 33's ladder applied to OCR).
