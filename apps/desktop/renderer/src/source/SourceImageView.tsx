@@ -7,7 +7,7 @@ import {
   withDossierRotation,
   type Rotation
 } from './dossier'
-import { applyRotation } from './rotate'
+import { applyRotation, mediaObjectUrl } from './rotate'
 import { SourcesTreePanel } from './SourcesTree'
 
 /**
@@ -80,7 +80,9 @@ export function SourceImageView({
       (asset) => {
         if (cancelled) return
         setBase({
-          dataUrl: `data:${asset.mimeType};base64,${asset.base64}`,
+          dataUrl: asset.mimeType.startsWith('audio/')
+            ? mediaObjectUrl(asset.base64, asset.mimeType)
+            : `data:${asset.mimeType};base64,${asset.base64}`,
           mimeType: asset.mimeType
         })
       },

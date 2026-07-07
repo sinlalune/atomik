@@ -34,3 +34,11 @@ export function applyRotation(
     image.src = dataUrl
   })
 }
+
+/** Media plays through a Blob URL, not a giant data: URL — Chromium's
+ *  data-URL media path stalls mid-file on some containers (owner: phone
+ *  m4a stopped ~14 s of 30). Caller revokes. */
+export function mediaObjectUrl(base64: string, mimeType: string): string {
+  const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
+  return URL.createObjectURL(new Blob([bytes], { type: mimeType }))
+}

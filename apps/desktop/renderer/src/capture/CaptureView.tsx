@@ -11,6 +11,7 @@ import {
   formatBytes,
   formatRemaining
 } from './format'
+import { mediaObjectUrl } from '../source/rotate'
 import { SourcesTreePanel } from '../source/SourcesTree'
 
 /**
@@ -460,7 +461,11 @@ function UploadRow({
                 if (previewUrl) return setPreviewUrl(null)
                 window.atomik.getCaptureUploadData(upload.id).then(
                   (data) =>
-                    setPreviewUrl(`data:${data.mimeType};base64,${data.base64}`),
+                    setPreviewUrl(
+                      data.mimeType.startsWith('audio/')
+                        ? mediaObjectUrl(data.base64, data.mimeType)
+                        : `data:${data.mimeType};base64,${data.base64}`
+                    ),
                   (cause) => setError(readableError(cause))
                 )
               }}
