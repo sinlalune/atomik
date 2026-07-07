@@ -220,3 +220,23 @@ candidate from the owner's research. The TranscriptionAdapter contract
 is ready either way — images ride the same seat when one is chosen.
 Handwriting: untested, expectations stay honest (owner research: weak
 across traditional engines).
+
+## S07 addendum — OCR comparative on the owner's research picks (2026-07-07)
+
+Same real Pascal photo (phone, oblique, curved page, French print):
+
+| candidate (owner research) | time | output on the REAL photo |
+|---|---|---|
+| RapidOCR (Paddle models, onnxruntime CPU) | 3.6 s | 20 usable lines, full sentences; accents partial, line order scrambled by the angle |
+| Tesseract 5 -l fra, raw photo | 2.7 s | pure garbage — the stored image is ROTATED and Tesseract has no angle classifier |
+| Tesseract 5 -l fra, pre-rotated upright | 2.6 s | still mostly noise/fragments (curved page, uneven light defeat the classic engine) |
+
+Findings: (1) deep text-detection (Paddle/RapidOCR) decisively beats the
+classic engine on real phone photos — Tesseract's niche is flat clean
+scans; (2) whatever gets seated MUST apply the dossier rotation before
+recognition (Tesseract went from garbage to fragments just by
+uprighting). Unbenched from the research: docTR (torch, ~800 MB),
+SmolDocling/VLMs — owner decides if the comparative extends before the
+seating decision. The deployment-cost analysis (python sidecar
++300–500 MB vs onnxruntime-node reimplementation vs native binary) is
+in the conversation record of this date and drives the seat choice.
