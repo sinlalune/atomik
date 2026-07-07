@@ -14,6 +14,7 @@ import { TreeResizeHandle } from '../TreeResizeHandle'
 import type { NoteViewMode, SaveMode } from '../workspace/model'
 import { hasImageResource } from '../source/dossier'
 import { NoteTree } from './NoteTree'
+import { allFolderPaths, toggledFolder } from './tree-fold'
 import { useVaultNote } from './useVaultNote'
 
 export type VaultViewProps = {
@@ -36,7 +37,13 @@ export type VaultViewProps = {
   /** Opens a dossier's original in an image source tab (S05); shown in
    *  the read-mode note-bar when the note declares an image resource. */
   onOpenSourceImage?: (dossierPath: string) => void
+  /** Controlled fold state: open folders, persisted per tab (collapsed
+   *  by default — owner request). */
+  openFolders?: ReadonlySet<string>
+  onOpenFoldersChange?: (next: ReadonlySet<string>) => void
 }
+
+const NO_OPEN_FOLDERS: ReadonlySet<string> = new Set()
 
 /**
  * Vault tab (04/M1 slice): tree of the user's Markdown knowledge, rendered
@@ -54,11 +61,12 @@ export function VaultView({
   onModeChange,
   saveMode = 'auto',
   onSaveModeToggle,
-  onOpenSourceImage
+  onOpenSourceImage,
+  openFolders = NO_OPEN_FOLDERS,
+  onOpenFoldersChange
 }: VaultViewProps): React.JSX.Element {
   const [info, setInfo] = useState<VaultInfo | null | 'loading'>('loading')
   const [tree, setTree] = useState<VaultFolder | null>(null)
-  const [fold, setFold] = useState({ open: true, epoch: 0 })
   const [draftName, setDraftName] = useState('')
   const searchVault = useCallback(
     (query: string) => window.atomik.searchVault(query),
@@ -205,7 +213,7 @@ export function VaultView({
             className="tree-toggle"
             title="Expand all folders"
             onClick={() =>
-              setFold((current) => ({ open: true, epoch: current.epoch + 1 }))
+              tree && onOpenFoldersChange?.(new Set(allFolderPaths(tree)))
             }
           >
             <ExpandAllIcon />
@@ -214,9 +222,7 @@ export function VaultView({
             type="button"
             className="tree-toggle"
             title="Collapse all folders"
-            onClick={() =>
-              setFold((current) => ({ open: false, epoch: current.epoch + 1 }))
-            }
+            onClick={() => onOpenFoldersChange?.(new Set())}
           >
             <CollapseAllIcon />
           </button>
@@ -274,8 +280,11 @@ export function VaultView({
               folder={tree}
               activePath={note?.relPath ?? null}
               onOpen={guardedOpen}
-              defaultOpen={fold.open}
-              foldEpoch={fold.epoch}
+              openFolders={openFolders}
+              onFolderToggle={(relPath, open) => {
+                const next = toggledFolder(openFolders, relPath, open)
+                if (next !== openFolders) onOpenFoldersChange?.(next)
+              }}
             />
           )
         )}

@@ -31,6 +31,7 @@ import {
   updateTabParams,
   type NoteViewMode
 } from './model'
+import { parseOpenFolders, serializeOpenFolders } from '../vault/tree-fold'
 import { NewTabChooser } from './NewTabChooser'
 import { useWorkspace } from './store'
 
@@ -102,6 +103,12 @@ function TabContent({
     dispatch((state) =>
       addTab(state, paneId, makeTab('source-image', { dossierPath }))
     )
+  // Tree fold state: collapsed by default, remembered per tab (owner).
+  const openFolders = parseOpenFolders(tab.params?.['treeOpen'])
+  const onOpenFoldersChange = (next: ReadonlySet<string>): void =>
+    dispatch((state) =>
+      updateTabParams(state, tab.id, { treeOpen: serializeOpenFolders(next) })
+    )
 
   if (tab.view === 'new') {
     return (
@@ -115,6 +122,8 @@ function TabContent({
   if (tab.view === 'dev-docs') {
     return (
       <DevDocs
+        openFolders={openFolders}
+        onOpenFoldersChange={onOpenFoldersChange}
         docPath={tab.params?.['docPath']}
         onDocOpened={(relPath) =>
           dispatch((state) => updateTabParams(state, tab.id, { docPath: relPath }))
@@ -130,6 +139,8 @@ function TabContent({
     return (
       <VaultView
         onOpenSourceImage={openSourceImage}
+        openFolders={openFolders}
+        onOpenFoldersChange={onOpenFoldersChange}
         notePath={tab.params?.['notePath']}
         onNoteOpened={(relPath) =>
           dispatch((state) => updateTabParams(state, tab.id, { notePath: relPath }))
@@ -154,6 +165,8 @@ function TabContent({
   if (tab.view === 'project') {
     return (
       <ProjectView
+        openFolders={openFolders}
+        onOpenFoldersChange={onOpenFoldersChange}
         projectPath={tab.params?.['projectPath']}
         notePath={tab.params?.['notePath']}
         onCloseTab={closeThisTab}

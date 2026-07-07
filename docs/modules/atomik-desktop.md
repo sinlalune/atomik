@@ -254,6 +254,13 @@ timestamp: 2026-07-06T00:00:00Z
   04's example recorded: no `root` field in the manifest (derivable,
   staleness-prone). ProjectView scopes the existing vault tree via the
   pure `findSubtree` helper — reads stay on vault channels.
+- Tree fold state (owner request): every tree — vault, project, dev
+  docs — opens COLLAPSED by default, and the open set is CONTROLLED and
+  remembered per tab (`treeOpen` param, JSON array clamped under the
+  param cap; `vault/tree-fold.ts` pure: parse/serialize/toggle/
+  allFolderPaths). Expand/collapse-all buttons set the whole set; the
+  toggle handler is identity-stable so the details mount event never
+  churns the workspace file.
 - The note trees (MVP-001 feedback): `renderer/src/vault/NoteTree.tsx` —
   ONE recursive tree for the vault and project panels (extracted from
   their twins). Any folder holding the 04 convention files shows

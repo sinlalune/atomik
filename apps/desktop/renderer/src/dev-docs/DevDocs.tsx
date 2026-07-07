@@ -1,10 +1,11 @@
 import MarkdownIt from 'markdown-it'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { DevDocFile, DevDocsGroup } from '../../../shared/ipc-contract'
-import { SidebarToggleIcon } from '../icons'
+import { CollapseAllIcon, ExpandAllIcon, SidebarToggleIcon } from '../icons'
 import { SearchResultsList } from '../search/SearchResultsList'
 import { useTreeSearch } from '../search/useTreeSearch'
 import { TreeResizeHandle } from '../TreeResizeHandle'
+import { toggledFolder } from '../vault/tree-fold'
 import { resolveRelativePath, stripFrontmatter } from './markdown'
 
 const DEFAULT_DOC = 'index.md'
@@ -20,7 +21,13 @@ export type DevDocsProps = {
   /** Tree panel width (px), persisted per tab; undefined = CSS default. */
   treeWidth?: number
   onTreeResize?: (px: number) => void
+  /** Controlled fold state: open GROUP ids, persisted per tab (collapsed
+   *  by default — owner request). */
+  openFolders?: ReadonlySet<string>
+  onOpenFoldersChange?: (next: ReadonlySet<string>) => void
 }
+
+const NO_OPEN_FOLDERS: ReadonlySet<string> = new Set()
 
 const svgDataUri = (content: string): string =>
   `data:image/svg+xml;charset=utf-8,${encodeURIComponent(content)}`
@@ -70,7 +77,9 @@ export function DevDocs({
   treeCollapsed,
   onTreeToggle,
   treeWidth,
-  onTreeResize
+  onTreeResize,
+  openFolders = NO_OPEN_FOLDERS,
+  onOpenFoldersChange
 }: DevDocsProps): React.JSX.Element {
   const [groups, setGroups] = useState<DevDocsGroup[]>([])
   const [doc, setDoc] = useState<DevDocFile | null>(null)
@@ -166,6 +175,24 @@ export function DevDocs({
           {onTreeResize && <TreeResizeHandle onResize={onTreeResize} />}
           <div className="tree-bar">
             <span className="tree-bar-label">documentation</span>
+            <button
+              type="button"
+              className="tree-toggle"
+              title="Expand all groups"
+              onClick={() =>
+                onOpenFoldersChange?.(new Set(groups.map((group) => group.id)))
+              }
+            >
+              <ExpandAllIcon />
+            </button>
+            <button
+              type="button"
+              className="tree-toggle"
+              title="Collapse all groups"
+              onClick={() => onOpenFoldersChange?.(new Set())}
+            >
+              <CollapseAllIcon />
+            </button>
             {onTreeToggle && (
               <button
                 type="button"
@@ -195,7 +222,18 @@ export function DevDocs({
             />
           ) : (
             groups.map((group) => (
-              <details key={group.id} open>
+              <details
+                key={group.id}
+                open={openFolders.has(group.id)}
+                onToggle={(event) => {
+                  const next = toggledFolder(
+                    openFolders,
+                    group.id,
+                    event.currentTarget.open
+                  )
+                  if (next !== openFolders) onOpenFoldersChange?.(next)
+                }}
+              >
                 <summary>{group.label}</summary>
                 <ul>
                   {group.entries.map((entry) => (

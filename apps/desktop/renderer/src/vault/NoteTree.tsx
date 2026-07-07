@@ -15,16 +15,16 @@ export function NoteTree({
   folder,
   activePath,
   onOpen,
-  defaultOpen = true,
-  foldEpoch = 0
+  openFolders,
+  onFolderToggle
 }: {
   folder: VaultFolder
   activePath: string | null
   onOpen: (relPath: string) => void
-  /** Expand/collapse-all: a new epoch remounts every folder with this
-   *  default; individual toggling stays free afterwards. */
-  defaultOpen?: boolean
-  foldEpoch?: number
+  /** CONTROLLED fold state (owner request: collapsed by default, state
+   *  remembered per tab) — the set of open folder relPaths. */
+  openFolders: ReadonlySet<string>
+  onFolderToggle: (relPath: string, open: boolean) => void
 }): React.JSX.Element {
   const { pills, rest } = splitPillNotes(folder.notes)
   const [showPillFiles, setShowPillFiles] = useState(false)
@@ -62,14 +62,19 @@ export function NoteTree({
       <ul>
         {folder.folders.map((child) => (
           <li key={child.relPath}>
-            <details key={`${child.relPath}@${foldEpoch}`} open={defaultOpen}>
+            <details
+              open={openFolders.has(child.relPath)}
+              onToggle={(event) =>
+                onFolderToggle(child.relPath, event.currentTarget.open)
+              }
+            >
               <summary>{child.name}</summary>
               <NoteTree
                 folder={child}
                 activePath={activePath}
                 onOpen={onOpen}
-                defaultOpen={defaultOpen}
-                foldEpoch={foldEpoch}
+                openFolders={openFolders}
+                onFolderToggle={onFolderToggle}
               />
             </details>
           </li>

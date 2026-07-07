@@ -12,6 +12,7 @@ import { useTreeSearch } from '../search/useTreeSearch'
 import { TreeResizeHandle } from '../TreeResizeHandle'
 import { NoteTree } from '../vault/NoteTree'
 import { findSubtree } from '../vault/scope'
+import { allFolderPaths, toggledFolder } from '../vault/tree-fold'
 import { useVaultNote } from '../vault/useVaultNote'
 import type { NoteViewMode, SaveMode } from '../workspace/model'
 
@@ -36,7 +37,13 @@ export type ProjectViewProps = {
   /** App-wide save policy; auto skips discard prompts (flush-on-leave). */
   saveMode?: SaveMode
   onSaveModeToggle?: () => void
+  /** Controlled fold state: open folders, persisted per tab (collapsed
+   *  by default — owner request). */
+  openFolders?: ReadonlySet<string>
+  onOpenFoldersChange?: (next: ReadonlySet<string>) => void
 }
+
+const NO_OPEN_FOLDERS: ReadonlySet<string> = new Set()
 
 function slugifyLite(title: string): string {
   const slug = title
@@ -67,13 +74,14 @@ export function ProjectView({
   mode = 'live',
   onModeChange,
   saveMode = 'auto',
-  onSaveModeToggle
+  onSaveModeToggle,
+  openFolders = NO_OPEN_FOLDERS,
+  onOpenFoldersChange
 }: ProjectViewProps): React.JSX.Element {
   const [vault, setVault] = useState<VaultInfo | null | 'loading'>('loading')
   const [projects, setProjects] = useState<ProjectInfo[]>([])
   const [projectsLoaded, setProjectsLoaded] = useState(false)
   const [tree, setTree] = useState<VaultFolder | null>(null)
-  const [fold, setFold] = useState({ open: true, epoch: 0 })
   const [draftTitle, setDraftTitle] = useState('')
   const [draftNoteName, setDraftNoteName] = useState('')
   // Project-scoped search perimeter (owner feedback on MVP-001).
@@ -296,7 +304,7 @@ export function ProjectView({
             className="tree-toggle"
             title="Expand all folders"
             onClick={() =>
-              setFold((current) => ({ open: true, epoch: current.epoch + 1 }))
+              scoped && onOpenFoldersChange?.(new Set(allFolderPaths(scoped)))
             }
           >
             <ExpandAllIcon />
@@ -305,9 +313,7 @@ export function ProjectView({
             type="button"
             className="tree-toggle"
             title="Collapse all folders"
-            onClick={() =>
-              setFold((current) => ({ open: false, epoch: current.epoch + 1 }))
-            }
+            onClick={() => onOpenFoldersChange?.(new Set())}
           >
             <CollapseAllIcon />
           </button>
@@ -357,8 +363,11 @@ export function ProjectView({
               folder={scoped}
               activePath={note?.relPath ?? null}
               onOpen={guardedOpen}
-              defaultOpen={fold.open}
-              foldEpoch={fold.epoch}
+              openFolders={openFolders}
+              onFolderToggle={(relPath, open) => {
+                const next = toggledFolder(openFolders, relPath, open)
+                if (next !== openFolders) onOpenFoldersChange?.(next)
+              }}
             />
           )
         )}
