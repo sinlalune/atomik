@@ -6,6 +6,7 @@ import type {
 } from '../../../shared/ipc-contract'
 import { DevDocs } from '../dev-docs/DevDocs'
 import { ProjectView } from '../project/ProjectView'
+import { ThemePicker } from '../ThemePicker'
 import { noteDisplayName } from '../vault/scope'
 import { VaultView } from '../vault/VaultView'
 import { WindowControls } from '../WindowControls'
@@ -21,6 +22,7 @@ import {
   setFraction,
   setSaveMode,
   splitPane,
+  themeOf,
   topRightLeafId,
   updateTabParams,
   type NoteViewMode
@@ -243,7 +245,12 @@ function LeafPane({
             ⬓
           </button>
         </span>
-        {node.id === controlsPaneId && <WindowControls />}
+        {node.id === controlsPaneId && (
+          <>
+            <ThemePicker />
+            <WindowControls />
+          </>
+        )}
       </header>
       <div className="pane-content">
         {active ? (
@@ -360,6 +367,14 @@ export function Workspace(): React.JSX.Element {
   useEffect(() => {
     void load()
   }, [load])
+
+  // Theme lands on <html data-theme>; 'system' removes it so the
+  // light-dark() tokens follow the OS again.
+  const theme = themeOf(state)
+  useEffect(() => {
+    if (theme === 'system') delete document.documentElement.dataset['theme']
+    else document.documentElement.dataset['theme'] = theme
+  }, [theme])
 
   if (!state) return <p className="workspace-loading">loading workspace…</p>
 

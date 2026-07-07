@@ -34,7 +34,8 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { VaultNoteFile } from '../../../shared/ipc-contract'
 import { resolveRelativePath } from '../dev-docs/markdown'
-import type { NoteViewMode, SaveMode } from '../workspace/model'
+import { themeOf, type NoteViewMode, type SaveMode } from '../workspace/model'
+import { useWorkspace } from '../workspace/store'
 import { AiPanel, type BufferChange } from './AiPanel'
 import { frontmatterEnd, livePreview } from './live-preview'
 import { ModeSwitch } from './ModeSwitch'
@@ -267,6 +268,23 @@ export function EditorPane({
   const followHandler = useRef((href: string) => followHrefRef.current(href))
     .current
 
+  // The editor's dark theme follows the app theme (round-2 feedback:
+  // explicit dark + pastels), not the mount-time OS query alone.
+  const appTheme = useWorkspace((store) => themeOf(store.state))
+  const editorDark =
+    appTheme === 'dark' ||
+    (appTheme === 'system' &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches)
+  const editorDarkRef = useRef(editorDark)
+  const darkCompartment = useRef(new Compartment()).current
+  useEffect(() => {
+    if (editorDarkRef.current === editorDark) return
+    editorDarkRef.current = editorDark
+    viewRef.current?.dispatch({
+      effects: darkCompartment.reconfigure(editorDark ? [oneDark] : [])
+    })
+  }, [darkCompartment, editorDark])
+
   // Live preview toggles through a compartment: switching live <-> source
   // reconfigures the SAME view, so buffer, undo history, and selection
   // survive the mode change (the raw bytes are identical in both).
@@ -288,7 +306,6 @@ export function EditorPane({
   useEffect(() => {
     const host = hostRef.current
     if (!host) return
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
     const view = new EditorView({
       doc: note.content,
       parent: host,
@@ -301,7 +318,7 @@ export function EditorPane({
           codeLanguages: fencedCodeLanguage
         }),
         previewCompartment.of(modeExtensions(modeRef.current, followHandler)),
-        ...(prefersDark ? [oneDark] : []),
+        darkCompartment.of(editorDarkRef.current ? [oneDark] : []),
         EditorView.lineWrapping,
         keymap.of([
           {

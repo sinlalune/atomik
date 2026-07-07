@@ -274,6 +274,34 @@ export function setSaveMode(
   return { ...state, settings: { ...state.settings, saveMode: mode } }
 }
 
+/**
+ * App-wide theme (owner feedback round 2: an explicit dark mode plus
+ * soft pastel palettes for bright screens). 'system' follows the OS;
+ * pastels are tinted light palettes. Unknown values read as 'system'.
+ */
+export const THEMES = [
+  'system',
+  'light',
+  'dark',
+  'green',
+  'blue',
+  'orange',
+  'grey',
+  'pink'
+] as const
+
+export type Theme = (typeof THEMES)[number]
+
+export function themeOf(state: WorkspaceState | null): Theme {
+  const raw = state?.settings?.['theme'] ?? ''
+  return (THEMES as readonly string[]).includes(raw) ? (raw as Theme) : 'system'
+}
+
+export function setTheme(state: WorkspaceState, theme: Theme): WorkspaceState {
+  if (themeOf(state) === theme) return state
+  return { ...state, settings: { ...state.settings, theme } }
+}
+
 /** Merges params into the tab, wherever it lives (tab ids are unique). */
 export function updateTabParams(
   state: WorkspaceState,

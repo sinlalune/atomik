@@ -118,7 +118,11 @@ timestamp: 2026-07-06T00:00:00Z
   Save policy is AUTO by default (owner feedback): debounced 800 ms after
   typing pauses, flush when the editor unmounts (note switch/tab close),
   save-then-switch on Read — no discard prompts; the button + Mod-s stay.
-  'manual' (note-bar toggle, app-wide `saveMode` workspace setting)
+  'manual' (note-bar toggle, app-wide `saveMode` workspace setting —
+  the settings map also carries `theme`: system/light/dark + five soft
+  pastels, picked from the top-row selector next to the window controls;
+  `<html data-theme>` + color-scheme drive every light-dark() token and
+  the editor's oneDark follows through a compartment)
   restores strict S07 behavior with its confirm guards. Auto-save NEVER
   forces: a conflict pauses it until the banner is resolved by a human.
   Note modes are read / live / source (`mode` param per tab; retired

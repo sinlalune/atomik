@@ -5,6 +5,8 @@
   --muted: light-dark(#6b6b62, #9a9aa2);
   --accent: light-dark(#3d5a3d, #9ec49e);
   --code-bg: light-dark(#f1f1ec, #26262c);
+  --bg: light-dark(#fafaf8, #1b1b1f);
+  --fg: light-dark(#26261f, #e8e8e3);
 
   /* Note-rendering tokens — the READ view (.markdown-body) and the LIVE
      view (lp-* decorations) both consume THESE, never their own copies:
@@ -24,12 +26,69 @@
   --note-code-pad: 0.1em 0.35em;
 }
 
+/* Explicit themes (owner round 2: dark mode + soft pastels for bright
+   screens). 'light'/'dark' force the color-scheme so every light-dark()
+   token follows; pastels are tinted light palettes overriding the base
+   tokens. 'system' = no data-theme attribute. */
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+:root[data-theme='green'] {
+  color-scheme: light;
+  --bg: #eaf0e7;
+  --code-bg: #dee7d9;
+  --border: #c8d5c2;
+  --accent: #3f6a45;
+  --muted: #5f6b5c;
+}
+
+:root[data-theme='blue'] {
+  color-scheme: light;
+  --bg: #e8eef4;
+  --code-bg: #dce5ee;
+  --border: #c3d2e0;
+  --accent: #35608f;
+  --muted: #5c6875;
+}
+
+:root[data-theme='orange'] {
+  color-scheme: light;
+  --bg: #f5eee3;
+  --code-bg: #ede2d0;
+  --border: #dcc9ac;
+  --accent: #a05a1f;
+  --muted: #6f6354;
+}
+
+:root[data-theme='grey'] {
+  color-scheme: light;
+  --bg: #e9eaec;
+  --code-bg: #dfe1e4;
+  --border: #c9ccd1;
+  --accent: #4a5568;
+  --muted: #62666d;
+}
+
+:root[data-theme='pink'] {
+  color-scheme: light;
+  --bg: #f4eaee;
+  --code-bg: #ecdde4;
+  --border: #dcc3cf;
+  --accent: #a04468;
+  --muted: #6f5a63;
+}
+
 body {
   margin: 0;
   height: 100vh;
   overflow: hidden;
-  background: light-dark(#fafaf8, #1b1b1f);
-  color: light-dark(#26261f, #e8e8e3);
+  background: var(--bg);
+  color: var(--fg);
 }
 
 #root,
@@ -221,6 +280,25 @@ body[data-maximized] .tabstrip {
 
 .tabstrip-actions button:hover {
   opacity: 1;
+  background: var(--code-bg);
+}
+
+.theme-picker {
+  flex: none;
+  font: inherit;
+  font-size: 0.72rem;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 0.2rem 0.1rem;
+  margin-left: 6px;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.theme-picker:hover {
+  color: var(--accent);
   background: var(--code-bg);
 }
 

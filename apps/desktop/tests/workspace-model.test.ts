@@ -14,7 +14,9 @@ import {
   setFocus,
   setFraction,
   setSaveMode,
+  setTheme,
   splitPane,
+  themeOf,
   topRightLeafId,
   TREE_WIDTH_DEFAULT,
   updateTabParams
@@ -76,6 +78,25 @@ describe('save mode (workspace settings)', () => {
     expect(saveModeOf(manual)).toBe('manual')
     expect(setSaveMode(manual, 'manual')).toBe(manual)
     expect(saveModeOf(setSaveMode(manual, 'auto'))).toBe('auto')
+  })
+})
+
+describe('theme (workspace settings)', () => {
+  it("defaults to 'system' — absent state, absent settings, unknown values", () => {
+    expect(themeOf(null)).toBe('system')
+    expect(themeOf(createDefaultState(''))).toBe('system')
+    expect(
+      themeOf({ ...createDefaultState(''), settings: { theme: 'neon' } })
+    ).toBe('system')
+  })
+
+  it('setTheme round-trips, coexists with saveMode, no-ops on same value', () => {
+    const state = setSaveMode(createDefaultState(''), 'manual')
+    const green = setTheme(state, 'green')
+    expect(themeOf(green)).toBe('green')
+    expect(saveModeOf(green)).toBe('manual')
+    expect(setTheme(green, 'green')).toBe(green)
+    expect(themeOf(setTheme(green, 'system'))).toBe('system')
   })
 })
 
