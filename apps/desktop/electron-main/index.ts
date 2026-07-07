@@ -10,8 +10,10 @@ import { CaptureSessionManager } from './capture-session'
 import {
   mockTranscriptionAdapter,
   recordTranscriptCorrection,
-  transcribeSource
+  transcribeSource,
+  type TranscriptionAdapter
 } from './transcription'
+import { createWhisperCppAdapter, whisperSeatReady } from './whisper-adapter'
 import { listDevDocs, readDevDoc, resolveDocsRoot } from './dev-docs'
 import { searchVault } from './search'
 import { buildMainWindowOptions } from './security'
@@ -189,6 +191,10 @@ let traces: ActionTraceLedger
  *  the vault — the inbox→vault import is S04's explicitly confirmed step. */
 let capture: CaptureSessionManager
 
+/** The seat (S05): whisper.cpp-small when binary+model+ffmpeg exist,
+ *  the honest mock otherwise — capture never blocks on a runtime. */
+let transcriptionAdapter: TranscriptionAdapter = mockTranscriptionAdapter
+
 function registerCaptureHandlers(): void {
   ipcMain.handle(ATOMIK_CHANNELS.startCaptureSession, () => capture.start())
   ipcMain.handle(ATOMIK_CHANNELS.stopCaptureSession, () => capture.stop())
@@ -220,7 +226,7 @@ function registerCaptureHandlers(): void {
   ipcMain.handle(
     ATOMIK_CHANNELS.transcribeSource,
     (_event, dossierPath: unknown) =>
-      transcribeSource(requireVault(), dossierPath, mockTranscriptionAdapter, traces)
+      transcribeSource(requireVault(), dossierPath, transcriptionAdapter, traces)
   )
   // Desktop mic (owner request): same inbox, same gates, no endpoint.
   ipcMain.handle(
@@ -507,6 +513,14 @@ app.whenReady().then(() => {
   const stateDir = resolveStateDir(app.getAppPath(), process.env)
   traces = new ActionTraceLedger(stateDir)
   const capturePort = Number(process.env['ATOMIK_CAPTURE_PORT'])
+  const speechPaths = {
+    binary: process.env['ATOMIK_WHISPER_BIN'] ?? join(stateDir, 'speech', 'whisper-cli'),
+    model: process.env['ATOMIK_WHISPER_MODEL'] ?? join(stateDir, 'speech', 'ggml-small.bin'),
+    ffmpeg: process.env['ATOMIK_FFMPEG'] ?? '/usr/bin/ffmpeg'
+  }
+  if (whisperSeatReady(speechPaths)) {
+    transcriptionAdapter = createWhisperCppAdapter(speechPaths)
+  }
   capture = new CaptureSessionManager({
     inboxRoot: join(stateDir, 'capture-inbox'),
     // Stable default port so ONE firewall rule suffices (WSL2 mirrored

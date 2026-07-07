@@ -35,6 +35,8 @@ export type TranscriptionOutput = {
   runtime: string
   runtimeVersion: string
   location: 'deterministic' | 'local-model' | 'cloud-model'
+  /** Runtime-reported duration; null when the adapter decodes nothing. */
+  audioSeconds?: number
 }
 
 export interface TranscriptionAdapter {
@@ -77,6 +79,7 @@ export const mockTranscriptionAdapter: TranscriptionAdapter = {
     })
   }
 }
+
 
 const MEDIA_MIME: Record<string, string> = {
   '.jpg': 'image/jpeg',
@@ -296,6 +299,7 @@ export async function transcribeSource(
       output,
       inputBytes: bytes.length,
       contentSha256,
+      audioSeconds: output.audioSeconds ?? null,
       wallMs: now() - started,
       status: 'completed'
     })
@@ -307,6 +311,7 @@ export async function transcribeSource(
       output: null,
       inputBytes: bytes.length,
       contentSha256,
+      audioSeconds: null,
       wallMs: now() - started,
       status: 'failed'
     })

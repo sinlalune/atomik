@@ -302,3 +302,26 @@ describe('audio companion (S08) — same adapter contract', () => {
     expect((line['input'] as Record<string, unknown>)['audioSeconds']).toBeNull()
   })
 })
+
+describe('whisper.cpp seat (S05) — bounded sidecar', () => {
+  it('pipes decode→transcribe with real subprocesses and reports identity', async () => {
+    const { createWhisperCppAdapter, whisperSeatReady } = await import('../electron-main/whisper-adapter')
+    const bin = mkdtempSync(join(tmpdir(), 'atomik-seat-'))
+    const fakeFfmpeg = join(bin, 'ffmpeg')
+    const fakeWhisper = join(bin, 'whisper-cli')
+    // fake ffmpeg writes a 1s 16k wav; fake whisper prints a transcript
+    writeFileSync(fakeFfmpeg, `#!/bin/bash\nout="\${@: -1}"\nhead -c 32044 /dev/zero > "$out"\n`, { mode: 0o755 })
+    writeFileSync(fakeWhisper, '#!/bin/bash\necho "bonjour benchmark"\n', { mode: 0o755 })
+    const paths = { binary: fakeWhisper, model: fakeFfmpeg, ffmpeg: fakeFfmpeg }
+    expect(whisperSeatReady(paths)).toBe(true)
+    const out = await createWhisperCppAdapter(paths).transcribe({
+      originalAbs: '/x/original.m4a', mimeType: 'audio/mp4', bytes: JPEG
+    })
+    expect(out.markdown).toBe('bonjour benchmark')
+    expect(out.runtime).toBe('whisper.cpp')
+    expect(out.location).toBe('local-model')
+    expect(out.audioSeconds).toBeCloseTo(1, 1)
+    expect(whisperSeatReady({ ...paths, ffmpeg: '/nope' })).toBe(false)
+    rmSync(bin, { recursive: true, force: true })
+  })
+})

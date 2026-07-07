@@ -63,7 +63,7 @@ type TranscribeTraceLine = {
     runtime: string
     runtimeVersion: string
   }
-  input: { bytes: number; audioSeconds: null; contentHashes: string[] }
+  input: { bytes: number; audioSeconds: number | null; contentHashes: string[] }
   performance: { wallMs: number }
   billing: { currency: 'EUR'; estimatedAmount: 0; basis: 'estimated' }
   outcome: { status: 'completed' | 'failed' }
@@ -81,6 +81,7 @@ export type TranscriptionRecord = {
   } | null
   inputBytes: number
   contentSha256: string
+  audioSeconds?: number | null
   wallMs: number
   status: 'completed' | 'failed'
 }
@@ -125,8 +126,8 @@ export class ActionTraceLedger {
       },
       input: {
         bytes: record.inputBytes,
-        // Images have no duration; the audio companion (S08) fills this.
-        audioSeconds: null,
+        // runtime-reported only (33): null when nothing decoded audio
+        audioSeconds: record.audioSeconds ?? null,
         contentHashes: [record.contentSha256]
       },
       performance: { wallMs: record.wallMs },

@@ -7,7 +7,7 @@ timestamp: 2026-07-07T00:00:00Z
 atomik:
   id: CP-MVP-004
   status: active
-  current_step: S05
+  current_step: S06
   base_commit: bb59575
 ---
 
@@ -132,7 +132,7 @@ Completeness rule (35): every bedrock page 00–35 accounted for below.
       fixtures and emits the metric sheet per run; results land in the
       dated investigation record; WINNER DECISION recorded with the
       selection rule of 33 (cost per usable corrected transcript).
-- [ ] S05 Seat the winner: isolated sidecar/worker behind
+- [x] S05 Seat the winner: isolated sidecar/worker behind
       `TranscriptionAdapter` (13 §local inference re-read) — bounded jobs,
       cancellation/timeout, model files in the state dir (git-ignored),
       integrity note; mock demoted to fallback; `audioSeconds` + real
@@ -184,10 +184,19 @@ tests       : 227 passing / 23 suites
               decided — WINNER whisper-small via whisper.cpp (parakeet
               collapsed on real French; faster-whisper = quality
               alternate). Correction pass pending = one homophone.
-next action : S05 — seat whisper.cpp-small as an isolated sidecar
-              behind TranscriptionAdapter (13 §local inference re-read);
-              mock demoted to fallback; audioSeconds + runtime identity
-              in traces; model in the state dir
+              S05 done 2026-07-07: `whisper-adapter.ts` — bounded
+              sidecar (execFile, hard timeouts + SIGKILL, tmp workdir,
+              no vault access): ffmpeg decodes the original to 16 kHz
+              WAV, whisper-cli -l auto transcribes; identity + runtime-
+              reported audioSeconds flow into transcript/dossier/trace.
+              Seat chosen at startup (env-overridable paths, state-dir
+              defaults); MOCK stays the fallback when binary/model/
+              ffmpeg missing. Binary+model installed to .atomik/speech/
+              on the owner machine. OWNER STEP to activate: sudo apt
+              install ffmpeg (Electron cannot decode m4a itself — no
+              AAC license; same finding as playback).
+next action : S06 — segments sidecar + correction-flow check on real
+              transcripts; then S07 OCR GO/NO-GO; S08 acceptance+close
 blockers    : none recorded
 ```
 
