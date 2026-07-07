@@ -162,10 +162,22 @@ describe('capture session server (S02, 08/13 §capture)', () => {
     expect(response.status).toBe(415)
   })
 
-  it('rejects bytes whose magic does not match the declared type', async () => {
+  it('bytes outrank labels: declared JPEG with PNG content lands as PNG', async () => {
     const session = await makeManager().start()
-    // Declared JPEG, actual PNG bytes: content validation must win.
+    // Client MIME labels are unreliable (Android calls .m4a audio/mpeg);
+    // the stored type is what the bytes ARE, within the declared family.
     const response = await upload(uploadUrlOf(session.uploadUrl), PNG)
+    expect(response.status).toBe(200)
+    const info = manager!.inspect()!.uploads[0]!
+    expect(info.mimeType).toBe('image/png')
+    const files = readdirSync(join(inboxRoot, session.id))
+    expect(files.some((f) => f.endsWith('.png'))).toBe(true)
+  })
+
+  it('refuses content matching no known signature', async () => {
+    const session = await makeManager().start()
+    const garbage = Buffer.from('plain text pretending to be a photo')
+    const response = await upload(uploadUrlOf(session.uploadUrl), garbage)
     expect(response.status).toBe(415)
     expect(readdirSync(join(inboxRoot, session.id))).toEqual([])
   })
@@ -376,7 +388,7 @@ describe('audio companion (S08) — same session, same gates', () => {
     }
   })
 
-  it('audio declared with image magic (and vice versa) is refused', async () => {
+  it('the declared FAMILY still gates: image bytes cannot enter as audio', async () => {
     const session = await makeManager().start()
     expect(
       (await upload(uploadUrlOf(session.uploadUrl), JPEG, { 'content-type': 'audio/mp4' })).status
@@ -384,9 +396,40 @@ describe('audio companion (S08) — same session, same gates', () => {
     expect(
       (await upload(uploadUrlOf(session.uploadUrl), M4A, { 'content-type': 'image/jpeg' })).status
     ).toBe(415)
-    // WAV is RIFF like WEBP — the sub-brand must still match.
+    // WAV is RIFF like WEBP — the sub-brand keeps them apart.
     expect(
       (await upload(uploadUrlOf(session.uploadUrl), WAV, { 'content-type': 'image/webp' })).status
+    ).toBe(415)
+  })
+
+  it("Android's mislabeled m4a (declared audio/mpeg) is accepted as what it is", async () => {
+    // The owner's URecorder case: ISO-BMFF bytes, audio/mpeg label.
+    const session = await makeManager().start()
+    const response = await upload(uploadUrlOf(session.uploadUrl), M4A, {
+      'content-type': 'audio/mpeg',
+      'x-atomik-filename': 'URecorder_20260707_133328.m4a'
+    })
+    expect(response.status).toBe(200)
+    const info = manager!.inspect()!.uploads[0]!
+    expect(info.mimeType).toBe('audio/mp4')
+    const files = readdirSync(join(inboxRoot, session.id))
+    expect(files.some((f) => f.endsWith('.m4a'))).toBe(true)
+  })
+
+  it('ISO-BMFF splits by brand: heic bytes are images, not audio', async () => {
+    const HEIC = Buffer.concat([
+      Buffer.from([0x00, 0x00, 0x00, 0x18]),
+      Buffer.from('ftypheic'),
+      Buffer.from('x')
+    ])
+    const session = await makeManager().start()
+    expect(
+      (await upload(uploadUrlOf(session.uploadUrl), HEIC, { 'content-type': 'image/heic' })).status
+    ).toBe(200)
+    expect(manager!.inspect()!.uploads[0]!.mimeType).toBe('image/heic')
+    // the same bytes declared as audio: family mismatch
+    expect(
+      (await upload(uploadUrlOf(session.uploadUrl), HEIC, { 'content-type': 'audio/mp4' })).status
     ).toBe(415)
   })
 
@@ -441,7 +484,7 @@ describe('desktop capture (owner request) — same inbox, same gates, no endpoin
     ).toThrow(/rejected media type/)
     expect(() =>
       localManager.addLocalUpload(new Uint8Array(JPEG), 'audio/webm', 'x.webm')
-    ).toThrow(/do not match/)
+    ).toThrow(/do not match the declared media family/)
     expect(() =>
       localManager.addLocalUpload('nope' as unknown as Uint8Array, 'audio/webm', 'x')
     ).toThrow(/rejected recording payload/)

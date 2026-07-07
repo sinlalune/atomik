@@ -165,11 +165,16 @@ timestamp: 2026-07-06T00:00:00Z
   would defeat any targeted firewall rule (WSL2 mirrored-networking
   finding, owner dogfooding). Uploads pass
   four gates below the renderer: token (timing-safe compare), size cap
-  (Content-Length early + streamed count, 25 MB default), declared-MIME
-  allowlist (images jpeg/png/webp/heic/heif; audio — the S08 companion —
-  m4a/mp4, webm, ogg, mp3, wav), and magic-byte validation of the
-  received bytes against the DECLARED type (WAV and WEBP are both RIFF:
-  the sub-brand distinguishes them). The phone page carries both inputs
+  (Content-Length early + streamed count, 25 MB default), content SNIFFING with
+  the declared MIME pinning only the media FAMILY — bytes outrank labels
+  (owner report: Android declares .m4a as audio/mpeg; client labels are
+  unreliable everywhere). Known signatures: images jpeg/png/webp/heic;
+  audio m4a/webm/ogg/mp3/wav. ISO-BMFF splits by ftyp brand (heic-family
+  brands = image, everything else = m4a audio); WAV and WEBP are both
+  RIFF, split by sub-brand. Unknown content, or content whose family
+  contradicts the declaration, is refused; what is stored — extension
+  and canonical MIME — is what the bytes ARE, with the client's declared
+  MIME kept in the meta sidecar for provenance. The phone page carries both inputs
   (photo with camera hint; audio with recorder hint), one shared upload
   path. DESKTOP MIC (owner request): CaptureView records via
   MediaRecorder in the trusted renderer and hands the bytes to main over

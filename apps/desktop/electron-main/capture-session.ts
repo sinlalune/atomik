@@ -43,57 +43,99 @@ const DEFAULT_MAX_UPLOADS = 20
  */
 export const DEFAULT_CAPTURE_PORT = 41414
 
-/** Declared MIME → file extension + magic-byte check ("content validation
- *  after upload", 08). A type uploads only if BOTH gates pass. */
-const CAPTURE_MIME_ALLOWLIST: Record<
-  string,
-  { extension: string; matches: (bytes: Buffer) => boolean }
-> = {
-  'image/jpeg': {
+/**
+ * Content sniffing table ("content validation after upload", 08). BYTES
+ * OUTRANK LABELS (owner report: Android declares .m4a as audio/mpeg —
+ * client MIME labels are unreliable everywhere). The declared type only
+ * pins the media FAMILY (image vs audio); what gets stored — extension
+ * and canonical MIME — is what the bytes actually are. A file whose
+ * content matches no known signature, or whose family contradicts the
+ * declaration, is refused.
+ */
+type MediaSpec = {
+  mime: string
+  extension: string
+  family: 'image' | 'audio'
+  matches: (bytes: Buffer) => boolean
+}
+
+/** ISO-BMFF ftyp brands that mean a HEIC/HEIF image (vs m4a audio). */
+const HEIC_BRANDS = new Set(['heic', 'heix', 'hevc', 'hevx', 'mif1', 'msf1'])
+
+const SNIFF_TABLE: MediaSpec[] = [
+  {
+    mime: 'image/jpeg',
     extension: 'jpg',
+    family: 'image',
     matches: (b) => b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff
   },
-  'image/png': {
+  {
+    mime: 'image/png',
     extension: 'png',
+    family: 'image',
     matches: (b) =>
       b.length >= 8 &&
       b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
   },
-  'image/webp': {
+  {
+    mime: 'image/webp',
     extension: 'webp',
+    family: 'image',
     matches: (b) =>
       b.length >= 12 &&
       b.toString('latin1', 0, 4) === 'RIFF' &&
       b.toString('latin1', 8, 12) === 'WEBP'
   },
-  // HEIC/HEIF (iPhone default) are ISO BMFF containers: 'ftyp' at offset 4.
-  'image/heic': { extension: 'heic', matches: isIsoBmff },
-  'image/heif': { extension: 'heif', matches: isIsoBmff },
-  // Audio companion (08, S08): what phone recorders actually hand over —
-  // iOS records m4a (ISO BMFF), Android MediaRecorder webm/ogg; mp3/wav
-  // cover picked files. Same size cap: capture means SHORT audio.
-  'audio/mp4': { extension: 'm4a', matches: isIsoBmff },
-  'audio/x-m4a': { extension: 'm4a', matches: isIsoBmff },
-  // nonstandard but real: several OS pickers declare m4a files this way
-  'audio/m4a': { extension: 'm4a', matches: isIsoBmff },
-  'audio/webm': { extension: 'webm', matches: isEbml },
-  'audio/ogg': {
+  // ISO-BMFF splits by ftyp brand: heic-family brands are images…
+  {
+    mime: 'image/heic',
+    extension: 'heic',
+    family: 'image',
+    matches: (b) => isIsoBmff(b) && HEIC_BRANDS.has(isoBrand(b))
+  },
+  // …every other brand a phone hands over is an m4a-style audio container.
+  {
+    mime: 'audio/mp4',
+    extension: 'm4a',
+    family: 'audio',
+    matches: (b) => isIsoBmff(b) && !HEIC_BRANDS.has(isoBrand(b))
+  },
+  { mime: 'audio/webm', extension: 'webm', family: 'audio', matches: isEbml },
+  {
+    mime: 'audio/ogg',
     extension: 'ogg',
+    family: 'audio',
     matches: (b) => b.length >= 4 && b.toString('latin1', 0, 4) === 'OggS'
   },
-  'audio/mpeg': {
+  {
+    mime: 'audio/mpeg',
     extension: 'mp3',
+    family: 'audio',
     matches: (b) =>
       b.length >= 3 &&
       ((b[0] === 0x49 && b[1] === 0x44 && b[2] === 0x33) || // ID3
         (b[0] === 0xff && ((b[1] ?? 0) & 0xe0) === 0xe0)) // frame sync
   },
-  'audio/wav': { extension: 'wav', matches: isWave },
-  'audio/x-wav': { extension: 'wav', matches: isWave }
+  { mime: 'audio/wav', extension: 'wav', family: 'audio', matches: isWave }
+]
+
+/** The spec the BYTES identify as, or null for unknown content. */
+export function sniffMedia(bytes: Buffer): MediaSpec | null {
+  return SNIFF_TABLE.find((spec) => spec.matches(bytes)) ?? null
+}
+
+function declaredFamily(mimeType: string): 'image' | 'audio' | null {
+  if (mimeType.startsWith('image/')) return 'image'
+  if (mimeType.startsWith('audio/')) return 'audio'
+  return null
 }
 
 function isIsoBmff(bytes: Buffer): boolean {
   return bytes.length >= 12 && bytes.toString('latin1', 4, 8) === 'ftyp'
+}
+
+function isoBrand(bytes: Buffer): string {
+  return bytes.toString('latin1', 8, 12).trim().toLowerCase()
 }
 
 function isEbml(bytes: Buffer): boolean {
@@ -364,8 +406,8 @@ export class CaptureSessionManager {
       .split(';')[0]!
       .trim()
       .toLowerCase()
-    const spec = CAPTURE_MIME_ALLOWLIST[declared]
-    if (!spec) return reject(res, 415)
+    const family = declaredFamily(declared)
+    if (!family) return reject(res, 415)
     const declaredLength = Number(req.headers['content-length'])
     if (Number.isFinite(declaredLength) && declaredLength > this.maxUploadBytes) {
       return reject(res, 413)
@@ -384,12 +426,16 @@ export class CaptureSessionManager {
     }
     const bytes = Buffer.concat(chunks)
     if (bytes.length === 0) return reject(res, 400)
-    if (!spec.matches(bytes)) return reject(res, 415)
+    // Bytes outrank labels: unknown content, or content whose family
+    // contradicts the declaration, is refused; what matches is stored
+    // as what it IS.
+    const spec = sniffMedia(bytes)
+    if (!spec || spec.family !== family) return reject(res, 415)
     const info = this.storeUpload(
       session,
       bytes,
-      declared,
       spec,
+      declared,
       req.headers['x-atomik-filename']
     )
     res.writeHead(200, { 'content-type': 'application/json' })
@@ -401,8 +447,8 @@ export class CaptureSessionManager {
   private storeUpload(
     session: ActiveSession,
     bytes: Buffer,
+    spec: { mime: string; extension: string },
     declared: string,
-    spec: { extension: string },
     clientFileName: unknown
   ): CaptureUploadInfo {
     const uploadId = randomBytes(6).toString('hex')
@@ -411,14 +457,15 @@ export class CaptureSessionManager {
     const info: CaptureUploadInfo = {
       id: uploadId,
       fileName: sanitizeClientFileName(clientFileName, `capture.${spec.extension}`),
-      mimeType: declared,
+      // canonical SNIFFED type — what the bytes are, not what the client said
+      mimeType: spec.mime,
       bytes: bytes.length,
       receivedAtMs: this.now()
     }
     writeFileSync(join(session.dir, storedName), bytes)
     writeFileSync(
       join(session.dir, `${storedName}.meta.json`),
-      `${JSON.stringify({ ...info, storedName }, null, 2)}\n`,
+      `${JSON.stringify({ ...info, storedName, declaredMimeType: declared }, null, 2)}\n`,
       'utf8'
     )
     session.uploads.push(info)
@@ -446,11 +493,12 @@ export class CaptureSessionManager {
       .split(';')[0]!
       .trim()
       .toLowerCase()
-    const spec = CAPTURE_MIME_ALLOWLIST[declared]
-    if (!spec) throw new Error(`capture: rejected media type — ${declared}`)
+    const family = declaredFamily(declared)
+    if (!family) throw new Error(`capture: rejected media type — ${declared}`)
     const buffer = Buffer.from(bytes)
-    if (!spec.matches(buffer)) {
-      throw new Error('capture: bytes do not match the declared type')
+    const spec = sniffMedia(buffer)
+    if (!spec || spec.family !== family) {
+      throw new Error('capture: bytes do not match the declared media family')
     }
     let session = this.session
     if (session && session.uploads.length >= this.maxUploads) {
@@ -472,7 +520,7 @@ export class CaptureSessionManager {
       mkdirSync(session.dir, { recursive: true })
       this.session = session
     }
-    return this.storeUpload(session, buffer, declared, spec, fileName)
+    return this.storeUpload(session, buffer, spec, declared, fileName)
   }
 }
 
