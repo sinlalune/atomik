@@ -7,7 +7,7 @@ timestamp: 2026-07-07T00:00:00Z
 atomik:
   id: CP-MVP-004
   status: active
-  current_step: S07
+  current_step: S08
   base_commit: bb59575
 ---
 
@@ -140,7 +140,7 @@ Completeness rule (35): every bedrock page 00–35 accounted for below.
 - [x] S06 Segments sidecar + correction flow check: optional
       `segments.json` (07 sidecar rules; 04 trigger), transcript quality
       pass on the owner's memos; correction flow unchanged end to end.
-- [ ] S07 OCR GO/NO-GO (dated): printed-page candidates checked with the
+- [x] S07 OCR GO/NO-GO (dated): printed-page candidates checked with the
       same discipline; seat only if a cheap candidate passes; handwriting
       expectations recorded honestly either way.
 - [ ] S08 Acceptance run against the M3 acceptance intents this path
@@ -202,8 +202,12 @@ tests       : 227 passing / 23 suites
               from the transcript body; cleanup on races; trace carries
               reported audioSeconds. Correction flow already owner-
               validated on the real memo.
-next action : S07 — OCR GO/NO-GO (dated) on the owner's Pascal pages;
-              then S08 acceptance + close
+              S07 done 2026-07-07: GO on capability (RapidOCR read the
+              real Pascal photo — usable French in 3.6 s CPU), seating
+              DEFERRED as its own decision (python deployment question;
+              options recorded in the dated record). Handwriting stays
+              honestly untested.
+next action : S08 — acceptance run + path review and close (owner)
 blockers    : none recorded
 ```
 

@@ -201,3 +201,22 @@ available for warm loads. faster-whisper stays the recorded QUALITY
 ALTERNATE (best on hard/sung audio, richer segments) should the seat
 ever need it. Owner correction pass on the two FINAL-*.md transcripts
 confirms (expected effort: one word).
+
+## S07 — OCR GO/NO-GO (dated 2026-07-07)
+
+RapidOCR (PaddleOCR models on onnxruntime, Apache-2.0, pure CPU) on the
+owner's REAL Pascal page photo (oblique, curved page, French print):
+load 0.6 s, recognition 3.6 s, 20 lines — the text is genuinely usable
+("Qu'est-ce que le moi ?", full sentences, accents partially dropped,
+line ORDER scrambled by the oblique/rotated shot — one line came out
+mirrored; the dossier rotation should be applied before recognition).
+
+**VERDICT: GO on capability, seating DEFERRED as its own decision.**
+The blocker is deployment, not quality: RapidOCR is python (the same
+shipping question faster-whisper lost on). Options recorded for the
+seating step: onnxruntime-node + Paddle pre/post reimplementation
+(heavy), a python sidecar (revisits the S05 decision), or a VLM
+candidate from the owner's research. The TranscriptionAdapter contract
+is ready either way — images ride the same seat when one is chosen.
+Handwriting: untested, expectations stay honest (owner research: weak
+across traditional engines).
