@@ -1655,11 +1655,15 @@ body[data-maximized] .tabstrip {
   min-width: 0;
   height: 100%;
   overflow-y: auto;
+  /* both-axis centering; `safe` falls back to scroll-from-top when the
+     panel outgrows the pane (owner round 3: height too) */
+  display: grid;
+  grid-template-columns: min(28rem, 100%);
+  justify-content: center;
+  align-content: safe center;
 }
 
 .capture-panel {
-  margin: 0 auto;
-  max-width: 28rem;
   padding: 2rem 1.5rem;
   text-align: center;
 }
