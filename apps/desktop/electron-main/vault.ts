@@ -19,7 +19,7 @@ import {
   relative,
   resolve
 } from 'node:path'
-import type { VaultFolder, VaultNoteFile } from '../shared/ipc-contract'
+import type { SourceAsset, VaultFolder, VaultNoteFile } from '../shared/ipc-contract'
 
 /**
  * Vault IO — the incubating vault-core kernel (14): file tree, note
@@ -128,6 +128,56 @@ export function readNote(vaultRoot: string, relPath: unknown): VaultNoteFile {
     relPath: relPath as string,
     content: readFileSync(abs, 'utf8'),
     mtimeMs: stat.mtimeMs
+  }
+}
+
+/**
+ * Read-only viewer access to a source ORIGINAL (07: the preserved
+ * evidence object; S05 image tab). Everything about the .md discipline
+ * holds — validated vault-relative path, containment, size cap — except
+ * the extension: exactly the image types the capture allowlist can have
+ * produced. Returned as base64 for one narrow reason: the sandboxed
+ * renderer has no file access, and a data URL keeps it that way.
+ */
+const SOURCE_ASSET_EXTENSIONS: Record<string, string> = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.heic': 'image/heic',
+  '.heif': 'image/heif'
+}
+
+const MAX_ASSET_BYTES = 50 * 1024 * 1024
+
+export function readSourceAsset(vaultRoot: string, relPath: unknown): SourceAsset {
+  if (typeof relPath !== 'string') throw new Error('vault: rejected path')
+  if (relPath.length === 0 || relPath.length > MAX_PATH_LENGTH) {
+    throw new Error('vault: rejected path')
+  }
+  if (relPath.includes('\\') || relPath.includes('\0')) {
+    throw new Error('vault: rejected path')
+  }
+  if (isAbsolute(relPath) || hasDeniedSegment(relPath)) {
+    throw new Error('vault: rejected path')
+  }
+  const mimeType = SOURCE_ASSET_EXTENSIONS[extname(relPath).toLowerCase()]
+  if (!mimeType) throw new Error('vault: rejected asset type')
+  const abs = resolve(vaultRoot, normalize(relPath))
+  const rel = relative(vaultRoot, abs)
+  if (rel.length === 0 || rel.startsWith('..') || isAbsolute(rel)) {
+    throw new Error('vault: rejected path')
+  }
+  if (!existsSync(abs)) {
+    throw new Error(`vault: asset not found in this vault — ${relPath}`)
+  }
+  assertInsideVault(vaultRoot, abs)
+  const stat = statSync(abs)
+  if (stat.size > MAX_ASSET_BYTES) throw new Error('vault: asset too large')
+  return {
+    relPath,
+    mimeType,
+    base64: readFileSync(abs).toString('base64')
   }
 }
 

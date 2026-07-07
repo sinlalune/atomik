@@ -7,7 +7,7 @@ timestamp: 2026-07-06T00:00:00Z
 atomik:
   id: CP-MVP-002
   status: active
-  current_step: S05
+  current_step: S06
   base_commit: 09e2e38
 ---
 
@@ -125,7 +125,7 @@ once. 13 appears twice by design (Required + re-read triggers).
 - [x] S04 Desktop confirmation flow → explicit import: inbox item →
       `sources/captures/<date-slug>/` with `original.*`, `source.md`,
       `index.md` per 07/08 (ensure/wx semantics; no silent vault writes).
-- [ ] S05 Image source tab: view the original beside the rendered dossier
+- [x] S05 Image source tab: view the original beside the rendered dossier
       (03 trigger for the new tab kind).
 - [ ] S06 Replaceable transcription adapter contract + deterministic MOCK
       (ai-mock seat pattern): `transcript.md` visibly derived, dossier
@@ -223,14 +223,28 @@ head        : 09fbe7a — 21 pre-S02 dogfooding micro-units committed
               destination, the S08 lesson) / Discard; resolved rows show
               their outcome. New composed test: the FULL loop phone-POST
               → inbox → import → vault bundle over real HTTP.
-tests       : 171 passing / 18 suites; typecheck + build + smoke
-              (capture=ok:...qr-rendered) green
-next action : S05 — image source tab: view the original beside the
-              rendered dossier (03 trigger for the new tab kind — 03
-              re-read 2026-07-07 already, capture tab)
-              owner validation pending on S02–S04: real phone upload on
-              the owner's network (WSL2 NAT: needs mirrored networking
-              or a port forward), then import into the live vault
+              OWNER VALIDATION 2026-07-07: the full loop ran on real
+              hardware — phone photo → QR page → upload (after the
+              mirrored-networking + Hyper-V firewall runbook and the
+              stable-port fix, both recorded) → confirmation import →
+              bundles in the live vault (sources/captures/Pascal, …/
+              Pascal 2). S05 done same day (03 re-read; tab kind
+              `source-image`): `read-source-asset` channel (24 invoke +
+              2 push) — read-only image originals, note-path discipline
+              + extension allowlist + 50 MB cap, base64→data URL for the
+              sandboxed renderer; SourceImageView shows the original
+              beside the rendered dossier (resource: parsed from
+              frontmatter, source/dossier.ts pure); entries: [View] on
+              imported capture rows + "View original" pill in the vault
+              read-mode note-bar. Verified on the owner's real Pascal
+              bundle (screenshot).
+tests       : 180 passing / 20 suites; typecheck + build + smoke green
+next action : S06 — replaceable transcription adapter contract +
+              deterministic MOCK (ai-mock seat pattern): transcript.md
+              visibly derived, dossier records model/runtime/version +
+              correction state, ActionTrace with transcription fields —
+              READ FIRST: 33 + docs/contracts/operation_trace_contract_
+              v0_1.json (promoted Required trigger)
 blockers    : none (note: owner dogfooding files remain untracked by choice —
               atomik-project/projects/test/*, atomik-project/test/,
               docs/projects/test/ — keep/clean stays with the owner; the

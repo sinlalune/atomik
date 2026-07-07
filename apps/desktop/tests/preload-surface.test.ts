@@ -75,6 +75,7 @@ describe('preload surface (13 §IPC rule)', () => {
       searchVault: (query: string, scope?: string) => Promise<unknown>
       searchDevDocs: (query: string) => Promise<unknown>
       readNote: (relPath: string) => Promise<unknown>
+      readSourceAsset: (relPath: string) => Promise<unknown>
       writeNote: (
         relPath: string,
         content: string,
@@ -182,6 +183,12 @@ describe('preload surface (13 §IPC rule)', () => {
     expect(invoke).toHaveBeenLastCalledWith(
       ATOMIK_CHANNELS.readNote,
       'ideas/first.md'
+    )
+
+    await api.readSourceAsset('sources/captures/demo/original.jpg')
+    expect(invoke).toHaveBeenLastCalledWith(
+      ATOMIK_CHANNELS.readSourceAsset,
+      'sources/captures/demo/original.jpg'
     )
 
     await api.writeNote('ideas/first.md', '# Edited\n')

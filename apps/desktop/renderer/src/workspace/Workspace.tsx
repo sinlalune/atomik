@@ -7,6 +7,7 @@ import type {
 import { CaptureView } from '../capture/CaptureView'
 import { DevDocs } from '../dev-docs/DevDocs'
 import { ProjectView } from '../project/ProjectView'
+import { SourceImageView } from '../source/SourceImageView'
 import { ThemePicker } from '../ThemePicker'
 import { noteDisplayName } from '../vault/scope'
 import { VaultView } from '../vault/VaultView'
@@ -40,12 +41,18 @@ const TAB_LABELS: Record<string, string> = {
   vault: 'Vault',
   project: 'Project',
   capture: 'Capture',
+  'source-image': 'Image',
   new: 'New tab'
 }
 
 function tabLabel(tab: WorkspaceTab): string {
   if (tab.view === 'project' && tab.params?.['projectTitle']) {
     return tab.params['projectTitle']
+  }
+  if (tab.view === 'source-image' && tab.params?.['dossierPath']) {
+    // The bundle folder names the capture (…/<bundle>/source.md).
+    const segments = tab.params['dossierPath'].split('/')
+    return segments[segments.length - 2] ?? 'Image'
   }
   const pathParam =
     tab.view === 'dev-docs'
@@ -89,6 +96,12 @@ function TabContent({
   const mode = noteModeOf(tab.params)
   const onModeChange = (next: NoteViewMode): void =>
     dispatch((state) => updateTabParams(state, tab.id, { mode: next }))
+  // Any view can open a capture bundle beside itself (03: "open source
+  // dossier beside original" — here: original + dossier as one tab).
+  const openSourceImage = (dossierPath: string): void =>
+    dispatch((state) =>
+      addTab(state, paneId, makeTab('source-image', { dossierPath }))
+    )
 
   if (tab.view === 'new') {
     return (
@@ -116,6 +129,7 @@ function TabContent({
   if (tab.view === 'vault') {
     return (
       <VaultView
+        onOpenSourceImage={openSourceImage}
         notePath={tab.params?.['notePath']}
         onNoteOpened={(relPath) =>
           dispatch((state) => updateTabParams(state, tab.id, { notePath: relPath }))
@@ -132,7 +146,10 @@ function TabContent({
     )
   }
   if (tab.view === 'capture') {
-    return <CaptureView />
+    return <CaptureView onOpenSourceImage={openSourceImage} />
+  }
+  if (tab.view === 'source-image') {
+    return <SourceImageView dossierPath={tab.params?.['dossierPath']} />
   }
   if (tab.view === 'project') {
     return (

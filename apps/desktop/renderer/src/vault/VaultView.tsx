@@ -12,6 +12,7 @@ import { SearchResultsList } from '../search/SearchResultsList'
 import { useTreeSearch } from '../search/useTreeSearch'
 import { TreeResizeHandle } from '../TreeResizeHandle'
 import type { NoteViewMode, SaveMode } from '../workspace/model'
+import { hasImageResource } from '../source/dossier'
 import { NoteTree } from './NoteTree'
 import { useVaultNote } from './useVaultNote'
 
@@ -32,6 +33,9 @@ export type VaultViewProps = {
   /** App-wide save policy; auto skips discard prompts (flush-on-leave). */
   saveMode?: SaveMode
   onSaveModeToggle?: () => void
+  /** Opens a dossier's original in an image source tab (S05); shown in
+   *  the read-mode note-bar when the note declares an image resource. */
+  onOpenSourceImage?: (dossierPath: string) => void
 }
 
 /**
@@ -49,7 +53,8 @@ export function VaultView({
   mode = 'live',
   onModeChange,
   saveMode = 'auto',
-  onSaveModeToggle
+  onSaveModeToggle,
+  onOpenSourceImage
 }: VaultViewProps): React.JSX.Element {
   const [info, setInfo] = useState<VaultInfo | null | 'loading'>('loading')
   const [tree, setTree] = useState<VaultFolder | null>(null)
@@ -318,6 +323,16 @@ export function VaultView({
                 {note.relPath}
               </span>
               <span className="note-bar-actions">
+                {onOpenSourceImage && hasImageResource(note.content) && (
+                  <button
+                    type="button"
+                    className="note-bar-button"
+                    title="View the original beside this dossier"
+                    onClick={() => onOpenSourceImage(note.relPath)}
+                  >
+                    View original
+                  </button>
+                )}
                 {onModeChange && (
                   <ModeSwitch mode={mode} onSelect={onModeChange} />
                 )}

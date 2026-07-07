@@ -40,7 +40,7 @@ timestamp: 2026-07-06T00:00:00Z
   it drops the margins. WSLg's OS side draws window shadows itself.
 - The renderer-facing API surface: `shared/ipc-contract.ts` is the single
   source of truth (`ATOMIK_API_KEY`, `ATOMIK_CHANNELS`, `AtomikApi`,
-  `DOCUMENTED_PRELOAD_SURFACE`). Twenty-three invoke channels exist today
+  `DOCUMENTED_PRELOAD_SURFACE`). Twenty-four invoke channels exist today
   (the AI trio is described in its own bullets below), plus two push
   subscriptions (`onWindowStateChanged` over
   `atomik:window-state-changed`; `onVaultChanged` over
@@ -50,7 +50,8 @@ timestamp: 2026-07-06T00:00:00Z
   read/write (fixed path, validated payload), the vault family —
   `open-vault` (native dialog in main; user-mediated capability),
   `get-vault`, `list-vault-files`, `search-vault` (optional validated
-  scope folder), `read-note`, `write-note`, `create-note` — the
+  scope folder), `read-note`, `read-source-asset` (read-only image
+  originals for viewer tabs, S05), `write-note`, `create-note` — the
   project pair `list-projects` / `create-project` — and the capture
   family: `start-capture-session` / `stop-capture-session` /
   `get-capture-session` plus the S04 decision pair
@@ -207,7 +208,19 @@ timestamp: 2026-07-06T00:00:00Z
   -Protocol TCP -LocalPorts 41414 -Action Allow` (that GUID is WSL's
   VM-creator id; on setups without the HyperV cmdlets use plain
   `New-NetFirewallRule ... -LocalPort 41414`); (3) phone on the same
-  Wi-Fi, no AP isolation, phone-side VPN off.
+  Wi-Fi, no AP isolation, phone-side VPN off. Owner-validated end to
+  end 2026-07-07: phone photo → QR page → upload → confirmation import
+  → bundle in the live vault.
+- The image source tab (08 §MVP flow, S05): tab kind `source-image`
+  (params: `dossierPath`) — `renderer/src/source/SourceImageView.tsx`
+  shows the ORIGINAL (data URL from `read-source-asset`; viewer only,
+  07's viewer≠extractor split) beside the rendered `source.md`, whose
+  relative .md links open in place. The original is located through
+  the dossier's frontmatter `resource:` line (`source/dossier.ts`,
+  pure). Entry points: [View] on imported rows in the capture tab, and
+  a "View original" pill in the vault read-mode note-bar whenever the
+  open note declares an image resource — so bundles stay reachable
+  after the capture session is gone.
 - Project bundles (04, S06): `electron-main/project.ts` (incubating
   project-core, 14) — manifest-detected bundles
   (`project.atomik-project.json`; scan skips denied dirs and does not
@@ -417,7 +430,11 @@ contract, the capture view's pure formatting, and the decide-once
 inbox lifecycle), `capture-import.test.ts` (bundle shape + byte-exact
 original, wx refusal leaving pre-existing bytes untouched, destination
 path/title matrices, vanished-inbox-file no-side-effects, the FULL
-composed loop phone-POST→inbox→import→vault, renderer defaults). The
+composed loop phone-POST→inbox→import→vault, renderer defaults),
+`source-dossier.test.ts` (frontmatter resource parsing, image-extension
+gate); `vault.test.ts` additionally covers `readSourceAsset` (base64 +
+MIME happy path, extension allowlist, note-path discipline reused,
+human missing-asset message). The
 smoke's capture proof also drives the REAL capture tab when a state
 fixture mounts one (start button → `img.capture-qr` rendered;
 `qr-rendered` in the marker). The S11

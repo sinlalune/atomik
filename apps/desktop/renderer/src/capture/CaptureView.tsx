@@ -21,7 +21,12 @@ import {
 
 const POLL_MS = 2000
 
-export function CaptureView(): React.JSX.Element {
+export function CaptureView({
+  onOpenSourceImage
+}: {
+  /** Opens the imported bundle in an image source tab (S05). */
+  onOpenSourceImage?: (dossierPath: string) => void
+}): React.JSX.Element {
   const [session, setSession] = useState<CaptureSessionInfo | null>(null)
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -143,6 +148,7 @@ export function CaptureView(): React.JSX.Element {
                   key={upload.id}
                   upload={upload}
                   onResolved={refresh}
+                  onOpenSourceImage={onOpenSourceImage}
                 />
               ))}
             </ul>
@@ -165,10 +171,12 @@ export function CaptureView(): React.JSX.Element {
  */
 function UploadRow({
   upload,
-  onResolved
+  onResolved,
+  onOpenSourceImage
 }: {
   upload: CaptureUploadInfo
   onResolved: () => void
+  onOpenSourceImage?: ((dossierPath: string) => void) | undefined
 }): React.JSX.Element {
   const [importing, setImporting] = useState(false)
   const [title, setTitle] = useState(() => captureTitleOf(upload.fileName))
@@ -205,6 +213,15 @@ function UploadRow({
         {upload.resolution === 'imported' && (
           <span className="capture-upload-state">
             imported → {upload.importedTo}
+            {onOpenSourceImage && upload.importedTo && (
+              <button
+                type="button"
+                className="capture-upload-view"
+                onClick={() => onOpenSourceImage(upload.importedTo!)}
+              >
+                View
+              </button>
+            )}
           </span>
         )}
         {upload.resolution === 'discarded' && (

@@ -29,6 +29,7 @@ export const ATOMIK_CHANNELS = {
   searchVault: 'atomik:search-vault',
   searchDevDocs: 'atomik:search-dev-docs',
   readNote: 'atomik:read-note',
+  readSourceAsset: 'atomik:read-source-asset',
   writeNote: 'atomik:write-note',
   createNote: 'atomik:create-note',
   listProjects: 'atomik:list-projects',
@@ -149,6 +150,17 @@ export type VaultNoteFile = {
   content: string
   /** Modification time at read, for future conflict checks (S07). */
   mtimeMs: number
+}
+
+/**
+ * A source ORIGINAL for viewers (07 evidence object; S05 image tab).
+ * Read-only, image extensions only, base64 because the sandboxed renderer
+ * has no file access — it becomes a data URL and nothing more.
+ */
+export type SourceAsset = {
+  relPath: string
+  mimeType: string
+  base64: string
 }
 
 /**
@@ -386,6 +398,8 @@ export type AtomikApi = {
   searchDevDocs: (query: string) => Promise<SearchResult[]>
   /** Reads one note; validated vault-relative .md path. */
   readNote: (relPath: string) => Promise<VaultNoteFile>
+  /** Reads one source original (image allowlist) for a viewer tab. */
+  readSourceAsset: (relPath: string) => Promise<SourceAsset>
   /**
    * Overwrites an EXISTING note atomically, byte-exact (27). Passing the
    * mtime received from readNote enables optimistic conflict detection
@@ -447,6 +461,7 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'searchVault',
   'searchDevDocs',
   'readNote',
+  'readSourceAsset',
   'writeNote',
   'createNote',
   'listProjects',

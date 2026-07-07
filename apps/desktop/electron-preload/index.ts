@@ -54,6 +54,8 @@ const api: AtomikApi = {
     ipcRenderer.invoke(ATOMIK_CHANNELS.searchDevDocs, query),
   readNote: (relPath: string) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.readNote, relPath),
+  readSourceAsset: (relPath: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.readSourceAsset, relPath),
   writeNote: (relPath: string, content: string, expectedMtimeMs?: number) =>
     ipcRenderer.invoke(
       ATOMIK_CHANNELS.writeNote,

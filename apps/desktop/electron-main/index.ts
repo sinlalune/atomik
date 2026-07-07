@@ -17,6 +17,7 @@ import {
   persistLastVaultRoot,
   readLastVaultRoot,
   readNote,
+  readSourceAsset,
   writeNote
 } from './vault'
 import {
@@ -100,6 +101,9 @@ function registerVaultHandlers(stateDir: string): void {
   )
   ipcMain.handle(ATOMIK_CHANNELS.readNote, (_event, relPath: unknown) =>
     readNote(requireVault(), relPath)
+  )
+  ipcMain.handle(ATOMIK_CHANNELS.readSourceAsset, (_event, relPath: unknown) =>
+    readSourceAsset(requireVault(), relPath)
   )
   ipcMain.handle(
     ATOMIK_CHANNELS.writeNote,

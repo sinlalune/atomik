@@ -17,6 +17,7 @@ import {
   persistLastVaultRoot,
   readLastVaultRoot,
   readNote,
+  readSourceAsset,
   resolveNotePath,
   writeNote
 } from '../electron-main/vault'
@@ -211,5 +212,39 @@ describe('last-vault settings', () => {
     const empty = mkdtempSync(join(tmpdir(), 'atomik-nosettings-'))
     expect(readLastVaultRoot(empty)).toBeNull()
     rmSync(empty, { recursive: true, force: true })
+  })
+})
+
+describe('readSourceAsset (S05 image tab)', () => {
+  it('reads an image original as base64 with its MIME', () => {
+    const asset = readSourceAsset(vault, 'assets/picture.png')
+    expect(asset.mimeType).toBe('image/png')
+    expect(Buffer.from(asset.base64, 'base64').toString()).toBe('not-markdown')
+    expect(asset.relPath).toBe('assets/picture.png')
+  })
+
+  it('refuses non-image extensions — .md stays on the note channel', () => {
+    for (const relPath of ['welcome.md', 'assets/data.json', 'assets/movie.mp4']) {
+      expect(() => readSourceAsset(vault, relPath)).toThrow(/rejected asset type/)
+    }
+  })
+
+  it('applies the same path discipline as notes', () => {
+    for (const relPath of [
+      '../outside.png',
+      '/etc/pw.png',
+      '.git/x.png',
+      'a\\b.png',
+      42,
+      ''
+    ]) {
+      expect(() => readSourceAsset(vault, relPath)).toThrow(/rejected path/)
+    }
+  })
+
+  it('answers a missing asset with a human message', () => {
+    expect(() => readSourceAsset(vault, 'assets/gone.jpg')).toThrow(
+      /asset not found in this vault/
+    )
   })
 })
