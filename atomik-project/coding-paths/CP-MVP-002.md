@@ -7,7 +7,7 @@ timestamp: 2026-07-06T00:00:00Z
 atomik:
   id: CP-MVP-002
   status: active
-  current_step: S07
+  current_step: S08
   base_commit: 09e2e38
 ---
 
@@ -131,7 +131,7 @@ once. 13 appears twice by design (Required + re-read triggers).
       (ai-mock seat pattern): `transcript.md` visibly derived, dossier
       records model/runtime/version + correction state, ActionTrace line
       with the transcription fields (33 + trace contract read first).
-- [ ] S07 Human correction flow: transcript edited in the editor; dossier
+- [x] S07 Human correction flow: transcript edited in the editor; dossier
       correction state flips model-output → human-corrected; original
       always one click away.
 - [ ] S08 Audio companion: same session accepts short audio; original
@@ -260,10 +260,21 @@ head        : 09fbe7a — 21 pre-S02 dogfooding micro-units committed
               live-mode image embeds + '@' quick actions; rotation as
               dossier metadata; trees collapsed by default with per-tab
               fold memory.
-tests       : 212 passing / 25 suites; typecheck + build + smoke green
-next action : S07 — human correction flow: transcript edited in the
-              editor; dossier correction state flips model-output →
-              human-corrected; original always one click away
+              S07 done 2026-07-07 (owner hit the gap live: corrected the
+              transcript, dossier didn't flip): `recordTranscriptCorrection`
+              hooks after write-note in main — saving a bundle's
+              transcript.md flips the DOSSIER to human-corrected +
+              corrected_at and updates its transcript link; flips exactly
+              once; the transcript's bytes stay exactly what the user
+              saved (27); bookkeeping never fails the save (racing dossier
+              retries on the next save). The editor note-bar gains the
+              View-original pill for any note declaring an image resource
+              (dossier and transcript both) — the original stays one
+              click away while correcting.
+tests       : 216 passing / 25 suites; typecheck + build + smoke green
+next action : S08 — audio companion: same session accepts short audio;
+              original preserved; same adapter contract produces the
+              transcript (audioSeconds trace seat fills)
 blockers    : none (note: owner dogfooding files remain untracked by choice —
               atomik-project/projects/test/*, atomik-project/test/,
               docs/projects/test/ — keep/clean stays with the owner; the

@@ -40,6 +40,7 @@ import { AiPanel, type BufferChange } from './AiPanel'
 import { frontmatterEnd, livePreview } from './live-preview'
 import { ModeSwitch } from './ModeSwitch'
 import { quickActions, sourceBundlesOf, type SourceBundle } from './quick-actions'
+import { hasImageResource } from '../source/dossier'
 
 /** Auto mode saves this long after the last keystroke. */
 const AUTOSAVE_DELAY_MS = 800
@@ -129,6 +130,9 @@ export type EditorPaneProps = {
   /** 'auto' (default): debounced saves + flush on leave; 'manual': S07. */
   saveMode?: SaveMode
   onSaveModeToggle?: () => void
+  /** Shown when the note declares an image resource (dossier or
+   *  transcript): the original stays one click away while editing. */
+  onOpenSourceImage?: (dossierPath: string) => void
 }
 
 /**
@@ -154,7 +158,8 @@ export function EditorPane({
   onNoteCreated,
   onFollowLink,
   saveMode = 'auto',
-  onSaveModeToggle
+  onSaveModeToggle,
+  onOpenSourceImage
 }: EditorPaneProps): React.JSX.Element {
   const hostRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
@@ -539,6 +544,16 @@ export function EditorPane({
           >
             {saving ? 'saving…' : saveMode === 'auto' && !dirty ? 'Saved' : 'Save'}
           </button>
+          {onOpenSourceImage && hasImageResource(note.content) && (
+            <button
+              type="button"
+              className="note-bar-button"
+              title="View the original beside the dossier"
+              onClick={() => onOpenSourceImage(note.relPath)}
+            >
+              View original
+            </button>
+          )}
           {onModeChange && <ModeSwitch mode={mode} onSelect={selectMode} />}
         </span>
       </div>

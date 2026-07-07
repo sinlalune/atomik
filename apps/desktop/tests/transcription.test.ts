@@ -6,7 +6,9 @@ import { ActionTraceLedger } from '../electron-main/action-trace'
 import {
   dossierResource,
   mockTranscriptionAdapter,
+  recordTranscriptCorrection,
   transcribeSource,
+  withCorrectionRecorded,
   withTranscriptionRecorded
 } from '../electron-main/transcription'
 
@@ -199,5 +201,60 @@ describe('pure pieces', () => {
       location: 'deterministic' as const
     }
     expect(withTranscriptionRecorded('# plain\n', output, 't', 'iso')).toBe('# plain\n')
+  })
+})
+
+describe('human correction flow (S07)', () => {
+  async function transcribedBundle(): Promise<string> {
+    const dossierPath = seedBundle()
+    await transcribeSource(vault, dossierPath, mockTranscriptionAdapter, traces)
+    return dossierPath
+  }
+
+  it('an editor save of transcript.md flips the dossier to human-corrected', async () => {
+    const dossierPath = await transcribedBundle()
+    // the editor save itself: user content lands byte-exact first
+    writeFileSync(
+      join(vault, 'sources/captures/pascal/transcript.md'),
+      'my corrected reading of the page\n'
+    )
+    const flipped = recordTranscriptCorrection(
+      vault,
+      'sources/captures/pascal/transcript.md',
+      () => Date.UTC(2026, 6, 7, 15)
+    )
+    expect(flipped).toBe(true)
+    const dossier = readFileSync(join(vault, dossierPath), 'utf8')
+    expect(dossier).toContain('    correction_state: human-corrected')
+    expect(dossier).toContain('    corrected_at: 2026-07-07T15:00:00.000Z')
+    expect(dossier).toContain('- [Transcript](./transcript.md) — human-corrected.')
+    expect(dossier).not.toContain('correction_state: model-output')
+    // the transcript file itself keeps the user's exact bytes
+    expect(
+      readFileSync(join(vault, 'sources/captures/pascal/transcript.md'), 'utf8')
+    ).toBe('my corrected reading of the page\n')
+  })
+
+  it('flips exactly once: a second save is a no-op', async () => {
+    const dossierPath = await transcribedBundle()
+    expect(recordTranscriptCorrection(vault, 'sources/captures/pascal/transcript.md')).toBe(true)
+    const after = readFileSync(join(vault, dossierPath), 'utf8')
+    expect(recordTranscriptCorrection(vault, 'sources/captures/pascal/transcript.md')).toBe(false)
+    expect(readFileSync(join(vault, dossierPath), 'utf8')).toBe(after)
+  })
+
+  it('ignores non-transcript saves and orphan transcripts', async () => {
+    const dossierPath = await transcribedBundle()
+    expect(recordTranscriptCorrection(vault, dossierPath)).toBe(false)
+    mkdirSync(join(vault, 'loose'), { recursive: true })
+    writeFileSync(join(vault, 'loose/transcript.md'), 'orphan\n')
+    expect(recordTranscriptCorrection(vault, 'loose/transcript.md')).toBe(false)
+  })
+
+  it('withCorrectionRecorded is pure and gated on model-output', () => {
+    expect(withCorrectionRecorded('# plain\n', 'iso')).toBe('# plain\n')
+    expect(
+      withCorrectionRecorded('---\ntitle: x\n---\nbody\n', 'iso')
+    ).toBe('---\ntitle: x\n---\nbody\n')
   })
 })

@@ -7,7 +7,11 @@ import { runAiOperation } from './ai-mock'
 import { ActionTraceLedger } from './action-trace'
 import { importCaptureUpload } from './capture-import'
 import { CaptureSessionManager } from './capture-session'
-import { mockTranscriptionAdapter, transcribeSource } from './transcription'
+import {
+  mockTranscriptionAdapter,
+  recordTranscriptCorrection,
+  transcribeSource
+} from './transcription'
 import { listDevDocs, readDevDoc, resolveDocsRoot } from './dev-docs'
 import { searchVault } from './search'
 import { buildMainWindowOptions } from './security'
@@ -108,8 +112,8 @@ function registerVaultHandlers(stateDir: string): void {
   )
   ipcMain.handle(
     ATOMIK_CHANNELS.writeNote,
-    (_event, relPath: unknown, content: unknown, expectedMtimeMs: unknown) =>
-      writeNote(
+    (_event, relPath: unknown, content: unknown, expectedMtimeMs: unknown) => {
+      const result = writeNote(
         requireVault(),
         relPath,
         content,
@@ -117,6 +121,19 @@ function registerVaultHandlers(stateDir: string): void {
           ? undefined
           : expectedMtimeMs
       )
+      // S07: saving a bundle's transcript IS the human correction — the
+      // dossier flips to human-corrected. Bookkeeping must never fail
+      // the user's save; a racing dossier retries on the next save
+      // (the state is still model-output until the flip lands).
+      if (typeof relPath === 'string') {
+        try {
+          recordTranscriptCorrection(requireVault(), relPath)
+        } catch {
+          /* dossier busy — the next transcript save retries */
+        }
+      }
+      return result
+    }
   )
   ipcMain.handle(
     ATOMIK_CHANNELS.createNote,

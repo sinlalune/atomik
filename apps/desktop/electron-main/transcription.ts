@@ -174,6 +174,55 @@ export function withTranscriptionRecorded(
 }
 
 /**
+ * The dossier after a human correction (S07): the correction state flips
+ * to human-corrected with its date, and the extracted-representations
+ * line says so. Pure; a no-op on anything not in model-output state.
+ */
+export function withCorrectionRecorded(dossier: string, iso: string): string {
+  const fence = /^---\n([\s\S]*?)\n---/.exec(dossier)
+  if (!fence) return dossier
+  if (!/^ {4}correction_state: model-output$/m.test(fence[1]!)) return dossier
+  const frontmatter = fence[1]!.replace(
+    /^ {4}correction_state: model-output$/m,
+    `    correction_state: human-corrected\n    corrected_at: ${iso}`
+  )
+  let next = dossier.replace(fence[0], () => `---\n${frontmatter}\n---`)
+  next = next.replace(
+    /^- \[Transcript\]\(\.\/transcript\.md\) — model output, uncorrected\.$/m,
+    '- [Transcript](./transcript.md) — human-corrected.'
+  )
+  return next
+}
+
+/**
+ * The S07 hook, called by main after ANY successful note save: when the
+ * saved file is a bundle's transcript.md and its dossier still records
+ * model-output, the dossier flips to human-corrected — an editor save IS
+ * the human touching the transcript (saves only fire on real edits). The
+ * transcript's own bytes are never modified here: the save is the
+ * user's, byte-exact (27); the DOSSIER is where correction state lives
+ * (07/08). Returns whether a flip happened.
+ */
+export function recordTranscriptCorrection(
+  vaultRoot: string,
+  savedRelPath: string,
+  now: () => number = Date.now
+): boolean {
+  if (basename(savedRelPath) !== 'transcript.md') return false
+  const dossierRel = savedRelPath.replace(/transcript\.md$/, 'source.md')
+  const dossierAbs = resolveNotePath(vaultRoot, dossierRel)
+  if (!dossierAbs || !existsSync(dossierAbs)) return false
+  const dossier = readNote(vaultRoot, dossierRel)
+  const updated = withCorrectionRecorded(
+    dossier.content,
+    new Date(now()).toISOString()
+  )
+  if (updated === dossier.content) return false
+  writeNote(vaultRoot, dossierRel, updated, dossier.mtimeMs)
+  return true
+}
+
+/**
  * The pipeline: dossier → original → adapter → transcript.md + dossier
  * update + ActionTrace. Refuses to clobber an existing transcript (the
  * human corrections of S07 live there; delete it explicitly to re-run).

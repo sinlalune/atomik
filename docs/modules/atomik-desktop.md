@@ -266,7 +266,17 @@ timestamp: 2026-07-06T00:00:00Z
   input bytes + sha256 content hash — never content —, `audioSeconds`
   null until the S08 audio companion; the trace id pre-generated so the
   files can reference it). UI: a Transcribe button in the image tab's
-  dossier bar when no transcript exists yet.
+  dossier bar when no transcript exists yet. The HUMAN CORRECTION flow
+  (S07): saving a bundle's transcript.md through the ordinary editor
+  save (`recordTranscriptCorrection`, hooked after `write-note` in main;
+  bookkeeping never fails the save, a racing dossier retries on the
+  next save) flips the DOSSIER to `correction_state: human-corrected`
+  + `corrected_at`, and its transcript link says so — the transcript's
+  own bytes stay exactly what the user saved (27); the dossier is where
+  correction state lives (07/08). Editing keeps the original one click
+  away: the editor note-bar shows the View-original pill whenever the
+  open note declares an image resource (dossier AND transcript both
+  do).
 - Project bundles (04, S06): `electron-main/project.ts` (incubating
   project-core, 14) — manifest-detected bundles
   (`project.atomik-project.json`; scan skips denied dirs and does not

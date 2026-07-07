@@ -313,6 +313,7 @@ export function VaultView({
           <EditorPane
             key={note.relPath}
             note={note}
+            onOpenSourceImage={onOpenSourceImage}
             onSaved={applySaved}
             onDirtyChange={onDirtyChange}
             mode={mode}
