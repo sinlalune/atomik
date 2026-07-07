@@ -7,8 +7,8 @@ timestamp: 2026-07-07T00:00:00Z
 atomik:
   id: CP-MVP-004
   status: active
-  current_step: S01
-  base_commit: TBD
+  current_step: S02
+  base_commit: bb59575
 ---
 
 # Goal
@@ -118,7 +118,7 @@ Completeness rule (35): every bedrock page 00–35 accounted for below.
 
 # Execution
 
-- [ ] S01 Reconcile ledger vs repository reality; record `base_commit`.
+- [x] S01 Reconcile ledger vs repository reality; record `base_commit`.
 - [ ] S02 Evaluation protocol + fixtures: pick the owner's real memos
       (French + English-technical), decide fixture GIT POLICY with the
       owner (public repo!), define the 33 §evaluation-gates metric sheet
@@ -150,11 +150,13 @@ Completeness rule (35): every bedrock page 00–35 accounted for below.
 # Current checkpoint
 
 ```text
-base commit : TBD (S01 records it)
-changed     : nothing yet — path opened 2026-07-07 at the CP-MVP-002
-              close (owner decision: runtime evaluation before PDF)
-tests       : 227 passing / 23 suites at open
-next action : S01 — reconcile and record base_commit
+base commit : bb59575 (branch master — CP-MVP-002 close + CP-MVP-004 open)
+changed     : none. Reconciliation at open: working tree carries only
+              owner dogfooding files (untracked by choice) + sources/
+              (untracked captures — S02 decides their git policy);
+              227 tests / 23 suites green at the close commit
+next action : S02 — evaluation protocol + fixtures (owner decides the
+              fixture git policy; metric sheet per 33 §evaluation gates)
 blockers    : none recorded
 ```
 
