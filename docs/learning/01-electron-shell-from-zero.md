@@ -275,8 +275,8 @@ state lives in the ledger
 
 Do these in order; each proves a layer is yours.
 
-1. **Run and touch the UI.** `npm run dev`, then edit the empty-pane
-   placeholder text in `renderer/src/workspace/Workspace.tsx` and save —
+1. **Run and touch the UI.** `npm run dev`, then edit the "New tab"
+   heading in `renderer/src/workspace/NewTabChooser.tsx` and save —
    the window updates live (HMR). You changed the renderer.
 2. **Watch the constitution defend itself.** In
    `electron-main/security.ts`, change `sandbox: true` to `false`. Run

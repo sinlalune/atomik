@@ -14,6 +14,7 @@ import {
   activateTab,
   addTab,
   clampTreeWidth,
+  closeEmptyPane,
   closeTab,
   makeTab,
   noteModeOf,
@@ -21,12 +22,14 @@ import {
   setFocus,
   setFraction,
   setSaveMode,
+  setTabView,
   splitPane,
   themeOf,
   topRightLeafId,
   updateTabParams,
   type NoteViewMode
 } from './model'
+import { NewTabChooser } from './NewTabChooser'
 import { useWorkspace } from './store'
 
 type Dispatch = (operation: (state: WorkspaceState) => WorkspaceState) => void
@@ -34,7 +37,8 @@ type Dispatch = (operation: (state: WorkspaceState) => WorkspaceState) => void
 const TAB_LABELS: Record<string, string> = {
   'dev-docs': 'Dev Docs',
   vault: 'Vault',
-  project: 'Project'
+  project: 'Project',
+  new: 'New tab'
 }
 
 function tabLabel(tab: WorkspaceTab): string {
@@ -53,11 +57,15 @@ function tabLabel(tab: WorkspaceTab): string {
 
 function TabContent({
   tab,
+  paneId,
   dispatch
 }: {
   tab: WorkspaceTab
+  paneId: string
   dispatch: Dispatch
 }): React.JSX.Element {
+  const closeThisTab = (): void =>
+    dispatch((state) => closeTab(state, paneId, tab.id))
   const treeCollapsed = tab.params?.['tree'] === 'off'
   const onTreeToggle = (): void =>
     dispatch((state) =>
@@ -80,6 +88,15 @@ function TabContent({
   const onModeChange = (next: NoteViewMode): void =>
     dispatch((state) => updateTabParams(state, tab.id, { mode: next }))
 
+  if (tab.view === 'new') {
+    return (
+      <NewTabChooser
+        onPick={(view) => dispatch((state) => setTabView(state, tab.id, view))}
+        onClose={closeThisTab}
+        closeLabel="Close tab"
+      />
+    )
+  }
   if (tab.view === 'dev-docs') {
     return (
       <DevDocs
@@ -117,6 +134,7 @@ function TabContent({
       <ProjectView
         projectPath={tab.params?.['projectPath']}
         notePath={tab.params?.['notePath']}
+        onCloseTab={closeThisTab}
         onProjectOpened={(project) =>
           dispatch((state) =>
             updateTabParams(state, tab.id, {
@@ -146,12 +164,15 @@ function LeafPane({
   node,
   focused,
   controlsPaneId,
+  rootLeafId,
   dispatch
 }: {
   node: Extract<PaneNode, { kind: 'leaf' }>
   focused: boolean
   /** Leaf whose tabstrip hosts the window controls (top-right corner). */
   controlsPaneId: string
+  /** The root leaf (when the root IS a leaf) can never be closed. */
+  rootLeafId: string | null
   dispatch: Dispatch
 }): React.JSX.Element {
   const active = node.tabs.find((tab) => tab.id === node.activeTabId)
@@ -197,35 +218,18 @@ function LeafPane({
               </button>
             </span>
           ))}
+          <button
+            type="button"
+            className="tab-new"
+            title="New tab"
+            onClick={() =>
+              dispatch((state) => addTab(state, node.id, makeTab('new')))
+            }
+          >
+            +
+          </button>
         </div>
         <span className="tabstrip-actions">
-          <button
-            type="button"
-            title="New Project tab"
-            onClick={() =>
-              dispatch((state) => addTab(state, node.id, makeTab('project')))
-            }
-          >
-            +project
-          </button>
-          <button
-            type="button"
-            title="New Vault tab"
-            onClick={() =>
-              dispatch((state) => addTab(state, node.id, makeTab('vault')))
-            }
-          >
-            +vault
-          </button>
-          <button
-            type="button"
-            title="New Dev Docs tab"
-            onClick={() =>
-              dispatch((state) => addTab(state, node.id, makeTab('dev-docs')))
-            }
-          >
-            +docs
-          </button>
           <button
             type="button"
             title="Split side by side"
@@ -254,11 +258,24 @@ function LeafPane({
       </header>
       <div className="pane-content">
         {active ? (
-          <TabContent key={active.id} tab={active} dispatch={dispatch} />
+          <TabContent
+            key={active.id}
+            tab={active}
+            paneId={node.id}
+            dispatch={dispatch}
+          />
         ) : (
-          <p className="pane-placeholder">
-            empty pane — open a tab with +project, +vault, or +docs
-          </p>
+          <NewTabChooser
+            onPick={(view) =>
+              dispatch((state) => addTab(state, node.id, makeTab(view)))
+            }
+            onClose={
+              node.id !== rootLeafId
+                ? () => dispatch((state) => closeEmptyPane(state, node.id))
+                : undefined
+            }
+            closeLabel="Close pane"
+          />
         )}
       </div>
     </section>
@@ -269,11 +286,13 @@ function SplitPaneView({
   node,
   focusedPaneId,
   controlsPaneId,
+  rootLeafId,
   dispatch
 }: {
   node: Extract<PaneNode, { kind: 'split' }>
   focusedPaneId: string
   controlsPaneId: string
+  rootLeafId: string | null
   dispatch: Dispatch
 }): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -310,6 +329,7 @@ function SplitPaneView({
           node={node.first}
           focusedPaneId={focusedPaneId}
           controlsPaneId={controlsPaneId}
+          rootLeafId={rootLeafId}
           dispatch={dispatch}
         />
       </div>
@@ -324,6 +344,7 @@ function SplitPaneView({
           node={node.second}
           focusedPaneId={focusedPaneId}
           controlsPaneId={controlsPaneId}
+          rootLeafId={rootLeafId}
           dispatch={dispatch}
         />
       </div>
@@ -335,11 +356,13 @@ function PaneNodeView({
   node,
   focusedPaneId,
   controlsPaneId,
+  rootLeafId,
   dispatch
 }: {
   node: PaneNode
   focusedPaneId: string
   controlsPaneId: string
+  rootLeafId: string | null
   dispatch: Dispatch
 }): React.JSX.Element {
   return node.kind === 'leaf' ? (
@@ -347,6 +370,7 @@ function PaneNodeView({
       node={node}
       focused={node.id === focusedPaneId}
       controlsPaneId={controlsPaneId}
+      rootLeafId={rootLeafId}
       dispatch={dispatch}
     />
   ) : (
@@ -354,6 +378,7 @@ function PaneNodeView({
       node={node}
       focusedPaneId={focusedPaneId}
       controlsPaneId={controlsPaneId}
+      rootLeafId={rootLeafId}
       dispatch={dispatch}
     />
   )
@@ -384,6 +409,7 @@ export function Workspace(): React.JSX.Element {
         node={state.root}
         focusedPaneId={state.focusedPaneId}
         controlsPaneId={topRightLeafId(state.root)}
+        rootLeafId={state.root.kind === 'leaf' ? state.root.id : null}
         dispatch={dispatch}
       />
     </div>

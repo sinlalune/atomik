@@ -22,6 +22,8 @@ export type ProjectViewProps = {
   notePath?: string
   onProjectOpened?: (project: ProjectInfo) => void
   onNoteOpened?: (relPath: string) => void
+  /** Escape hatch on the picker screens (a mistakenly opened tab). */
+  onCloseTab?: () => void
   /** Tree panel visibility, persisted per tab by the workspace. */
   treeCollapsed?: boolean
   onTreeToggle?: () => void
@@ -57,6 +59,7 @@ export function ProjectView({
   notePath,
   onProjectOpened,
   onNoteOpened,
+  onCloseTab,
   treeCollapsed,
   onTreeToggle,
   treeWidth,
@@ -258,6 +261,11 @@ export function ProjectView({
           </button>
         </div>
         {error && <p className="error">{error}</p>}
+        {onCloseTab && (
+          <button type="button" className="chooser-close" onClick={onCloseTab}>
+            Close tab
+          </button>
+        )}
       </div>
     )
   }

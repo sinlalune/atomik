@@ -1533,6 +1533,36 @@ body[data-maximized] .tabstrip {
   margin: 0 auto;
 }
 
+/* single "+" next to the last tab (browser-style) */
+.tabstrip .tab-new {
+  flex: none;
+  padding: 0.2rem 0.55rem;
+  opacity: 0.65;
+}
+
+.tabstrip .tab-new:hover {
+  opacity: 1;
+  background: var(--code-bg);
+}
+
+/* escape hatch on chooser screens */
+.chooser-close {
+  font: inherit;
+  font-size: 0.78rem;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.25rem 0.9rem;
+  cursor: pointer;
+  margin-top: 1rem;
+}
+
+.chooser-close:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 /* markdown typography ------------------------------------------------------ */
 
 .markdown-body {

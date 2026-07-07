@@ -302,6 +302,53 @@ export function setTheme(state: WorkspaceState, theme: Theme): WorkspaceState {
   return { ...state, settings: { ...state.settings, theme } }
 }
 
+/** Replaces a tab's VIEW — the new-tab chooser morphing into its pick.
+ *  Params reset: they described the previous view. */
+export function setTabView(
+  state: WorkspaceState,
+  tabId: string,
+  view: string
+): WorkspaceState {
+  const root = mapNode(state.root, (node) => {
+    if (node.kind !== 'leaf') return node
+    const index = node.tabs.findIndex((tab) => tab.id === tabId)
+    if (index === -1) return node
+    const tabs = [...node.tabs]
+    tabs[index] = { id: tabId, view }
+    return { ...node, tabs }
+  })
+  if (root === state.root) return state
+  return { ...state, root }
+}
+
+/** Closes an EMPTY pane (a split's leftover): the parent split collapses
+ *  into the sibling. Panes with tabs and the root leaf are untouched —
+ *  the workspace never disappears. */
+export function closeEmptyPane(
+  state: WorkspaceState,
+  paneId: string
+): WorkspaceState {
+  const remove = (node: PaneNode): PaneNode | null => {
+    if (node.kind === 'leaf') {
+      return node.id === paneId && node.tabs.length === 0 ? null : node
+    }
+    const first = remove(node.first)
+    const second = remove(node.second)
+    if (first === null) return second
+    if (second === null) return first
+    if (first !== node.first || second !== node.second) {
+      return { ...node, first, second }
+    }
+    return node
+  }
+  const removed = remove(state.root)
+  if (removed === null || removed === state.root) return state
+  const focusedPaneId = paneExists(removed, state.focusedPaneId)
+    ? state.focusedPaneId
+    : firstLeafId(removed)
+  return { ...state, root: removed, focusedPaneId }
+}
+
 /** Merges params into the tab, wherever it lives (tab ids are unique). */
 export function updateTabParams(
   state: WorkspaceState,

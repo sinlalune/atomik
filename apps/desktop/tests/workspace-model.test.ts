@@ -4,6 +4,7 @@ import {
   activateTab,
   addTab,
   clampTreeWidth,
+  closeEmptyPane,
   closeTab,
   createDefaultState,
   firstLeafId,
@@ -14,6 +15,7 @@ import {
   setFocus,
   setFraction,
   setSaveMode,
+  setTabView,
   setTheme,
   splitPane,
   themeOf,
@@ -118,6 +120,40 @@ describe('topRightLeafId (window-controls seat)', () => {
     const rightSplit = (stacked.root as Extract<PaneNode, { kind: 'split' }>)
       .second as Extract<PaneNode, { kind: 'split' }>
     expect(topRightLeafId(stacked.root)).toBe(firstLeafId(rightSplit.first))
+  })
+})
+
+describe('setTabView (new-tab chooser morphing)', () => {
+  it('replaces the view and clears params; unknown tab is a no-op', () => {
+    const base = createDefaultState('')
+    const leafId = firstLeafId(base.root)
+    const chooser = makeTab('new')
+    const state = addTab(base, leafId, chooser)
+    const picked = setTabView(state, chooser.id, 'project')
+    const tabs = leaves(picked.root)[0]!.tabs
+    const morphed = tabs.find((tab) => tab.id === chooser.id)!
+    expect(morphed.view).toBe('project')
+    expect(morphed.params).toBeUndefined()
+    expect(setTabView(picked, 'ghost-tab', 'vault')).toBe(picked)
+  })
+})
+
+describe('closeEmptyPane', () => {
+  it('collapses an empty split pane into its sibling', () => {
+    const base = createDefaultState('')
+    const split = splitPane(base, firstLeafId(base.root), 'horizontal')
+    const emptyPaneId = split.focusedPaneId
+    const closed = closeEmptyPane(split, emptyPaneId)
+    expect(closed.root.kind).toBe('leaf')
+    expect(closed.focusedPaneId).toBe(firstLeafId(closed.root))
+  })
+
+  it('never closes panes with tabs, nor the root leaf', () => {
+    const base = createDefaultState('')
+    const rootLeaf = firstLeafId(base.root)
+    expect(closeEmptyPane(base, rootLeaf)).toBe(base)
+    const split = splitPane(base, rootLeaf, 'horizontal')
+    expect(closeEmptyPane(split, rootLeaf)).toBe(split)
   })
 })
 
