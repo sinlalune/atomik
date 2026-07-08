@@ -55,7 +55,10 @@ export function createQwenVlOcrAdapter(
         const args = [
           '-m', paths.model, '--mmproj', paths.mmproj,
           '--image', sized, '-p', PROMPT,
-          '--temp', '0', '-t', '8', '-c', '8192'
+          '--temp', '0', '-t', '8', '-c', '8192',
+          // a real page is ~1–2k tokens; this bounds degeneration loops
+          // (e.g. a sideways page) to minutes-not-hours on the CPU tier
+          '-n', '3000'
         ]
         let tier: 'cuda' | 'cpu' = cudaHealthy ? 'cuda' : 'cpu'
         let text: string
