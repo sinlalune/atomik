@@ -6,7 +6,7 @@ tags: [coding-path, m3-completion, transcription, speech, evaluation, local-runt
 timestamp: 2026-07-07T00:00:00Z
 atomik:
   id: CP-MVP-004
-  status: active
+  status: done
   current_step: S08
   base_commit: bb59575
 ---
@@ -143,9 +143,12 @@ Completeness rule (35): every bedrock page 00–35 accounted for below.
 - [x] S07 OCR GO/NO-GO (dated): printed-page candidates checked with the
       same discipline; seat only if a cheap candidate passes; handwriting
       expectations recorded honestly either way.
-- [ ] S08 Acceptance run against the M3 acceptance intents this path
+- [x] S08 Acceptance run against the M3 acceptance intents this path
       completes + 33 acceptance lines; priorities patched; review and
-      close.
+      close. Run recorded 2026-07-07; OWNER REVIEW + CLOSE 2026-07-08 —
+      the owner's seat directives ("add CUDA to whisper; seat Qwen3-VL
+      4B CUDA with CPU fallback; only Mistral OCR API as fallback") are
+      the deferred-decision output; execution opens as CP-MVP-005.
 
 # Current checkpoint
 
@@ -236,8 +239,8 @@ tests       : 227 passing / 23 suites
               different pages; only Pascal 2 has an Adobe scan.
               S08 acceptance run recorded 2026-07-07
               (sessions/2026-07-07-cp-mvp-004-acceptance.md).
-next action : owner — path review + close decision + OCR seat decision
-              (options in S07 addendum 4 §implications)
+next action : NONE — PATH CLOSED 2026-07-08 (owner review; seat
+              directives recorded in S08 and executed via CP-MVP-005)
 blockers    : none recorded
 ```
 

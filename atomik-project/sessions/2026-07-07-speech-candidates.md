@@ -448,6 +448,7 @@ racine).
 | Qwen3-VL 2B @2,5k × Adobe | 18,4 s | complet, classe en dessous |
 | Unlimited-OCR Q4 × scan maison 12 MP | 41,8 s | complet, fin dégradée + LaTeX halluciné |
 | Unlimited-OCR Q4 × Adobe 3,4 MP | 16,5 s | **COLLAPSE à 40 %** (boucle sur le titre, zéro Leibniz) — sa fragilité est corrélée aux pixels BAS : exactement ce qu'un pipeline PDF lui donnerait |
+| RapidOCR × scan maison / Adobe (ajout 2026-07-08, question owner) | 6,2 s / 5,8 s CPU | un scan propre NE le répare PAS : accents perdus (« haissent », « éte »), mots fusionnés (« CONSCIENCEETINCONSCIENT »), guillemets 《》, une proposition sautée — la perte est intrinsèque, pas photo-induite ; valide son exclusion du siège |
 
 ### Ce que le tier scan change au siège
 
