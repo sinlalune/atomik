@@ -51,6 +51,8 @@ export function SourcesTreePanel({
 
   useEffect(refresh, [refresh])
   useEffect(() => window.atomik.onVaultChanged(refresh), [refresh])
+  // S05f: transcription lands files (transcript.md, scan.jpg) — refresh
+  useEffect(() => window.atomik.onVaultFilesChanged(refresh), [refresh])
 
   return (
     <nav className="vault-tree" aria-label="Sources tree">

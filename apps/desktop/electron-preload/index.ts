@@ -46,6 +46,13 @@ const api: AtomikApi = {
       ipcRenderer.removeListener(ATOMIK_CHANNELS.vaultChanged, wrapped)
     }
   },
+  onVaultFilesChanged: (listener: () => void) => {
+    const wrapped = (): void => listener()
+    ipcRenderer.on(ATOMIK_CHANNELS.vaultFilesChanged, wrapped)
+    return () => {
+      ipcRenderer.removeListener(ATOMIK_CHANNELS.vaultFilesChanged, wrapped)
+    }
+  },
   getVault: () => ipcRenderer.invoke(ATOMIK_CHANNELS.getVault),
   listVaultFiles: () => ipcRenderer.invoke(ATOMIK_CHANNELS.listVaultFiles),
   searchVault: (query: string, scope?: string) =>

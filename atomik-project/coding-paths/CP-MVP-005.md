@@ -169,6 +169,16 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       dossier rotation (mod 360) — formula VALIDATED on both dossiers
       (Pascal: EXIF 3 + manual 270 = 90 CW; Pascal 2: EXIF 6 + 0 =
       90 CW). No user rotation needed for phone photos anymore.
+- [x] S05f Owner findings (2026-07-08): (1) Cloud OCR on an
+      already-transcribed dossier — answered from code: the pipeline
+      refuses BEFORE any network call (nothing sent), and the buttons
+      hide once the dossier links a transcript; escalation = delete
+      transcript.md explicitly (a friendlier re-run affordance is a
+      future candidate). (2) Trees didn't refresh after transcription:
+      new lightweight `vaultFilesChanged` push (13 §IPC) emitted by
+      both transcribe handlers after files land; SourcesTree and the
+      vault tree subscribe — refresh only, never the state-drop of a
+      vault switch.
 - [ ] S06 Acceptance run + path review and close (owner).
 
 # Current checkpoint

@@ -299,15 +299,19 @@ function registerCaptureHandlers(stateDir: string): void {
   // only through a dated capability evaluation (34).
   ipcMain.handle(
     ATOMIK_CHANNELS.transcribeSource,
-    (_event, dossierPath: unknown) =>
-      transcribeSource(requireVault(), dossierPath, transcriptionAdapter, traces)
+    async (event, dossierPath: unknown) => {
+      const result = await transcribeSource(requireVault(), dossierPath, transcriptionAdapter, traces)
+      // new files landed (transcript, scan, segments) — trees refresh
+      event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
+      return result
+    }
   )
   // CP-MVP-005 S05: the cloud OCR rung — EXPLICIT per-capture action,
   // never a silent fallback (13). Key stays main-process; absent key =
   // explanatory refusal and nothing leaves the machine.
   ipcMain.handle(
     ATOMIK_CHANNELS.transcribeSourceCloud,
-    (_event, dossierPath: unknown) => {
+    async (event, dossierPath: unknown) => {
       // S05b: the AI settings store is the user path; env = dev override
       const key = readMistralKey(stateDir) ?? process.env['MISTRAL_API_KEY']?.trim() ?? null
       if (!key) {
@@ -315,7 +319,9 @@ function registerCaptureHandlers(stateDir: string): void {
           'cloud ocr: no Mistral API key configured (Settings → AI) — nothing was sent'
         )
       }
-      return transcribeSource(requireVault(), dossierPath, createMistralOcrAdapter(key), traces)
+      const result = await transcribeSource(requireVault(), dossierPath, createMistralOcrAdapter(key), traces)
+      event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
+      return result
     }
   )
   // S05b: AI settings — the raw key never returns to the renderer.

@@ -150,6 +150,13 @@ export function VaultView({
     })
   }, [lastRequested, refreshTree, reset, setSearchQuery])
 
+  // S05f: new files landed (transcription) — refresh the tree only,
+  // never dropping editor or view state like a vault switch does.
+  useEffect(
+    () => window.atomik.onVaultFilesChanged(() => void refreshTree()),
+    [refreshTree]
+  )
+
   useEffect(() => {
     if (info === 'loading' || info === null) return
     if (!notePath || lastRequested.current === notePath) return

@@ -24,6 +24,7 @@ export const ATOMIK_CHANNELS = {
   /** Push (main -> renderer): the open vault changed. Every mounted
    *  vault-backed view must drop state from the previous vault. */
   vaultChanged: 'atomik:vault-changed',
+  vaultFilesChanged: 'atomik:vault-files-changed',
   getVault: 'atomik:get-vault',
   listVaultFiles: 'atomik:list-vault-files',
   searchVault: 'atomik:search-vault',
@@ -419,6 +420,10 @@ export type AtomikApi = {
   openVault: () => Promise<VaultInfo | null>
   /** Subscribes to vault switches; returns the unsubscribe. */
   onVaultChanged: (listener: (vault: VaultInfo | null) => void) => () => void
+  /** Lightweight "files appeared/changed in the vault" push (S05f) —
+   *  fired by main after operations that LAND files (transcription,
+   *  cloud OCR); trees refresh without dropping any view state. */
+  onVaultFilesChanged: (listener: () => void) => () => void
   /** Currently open vault (restored across restarts); null when none. */
   getVault: () => Promise<VaultInfo | null>
   /** Markdown tree of the open vault (dot-dirs and node_modules skipped). */
@@ -520,6 +525,7 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'writeWorkspaceState',
   'openVault',
   'onVaultChanged',
+  'onVaultFilesChanged',
   'getVault',
   'listVaultFiles',
   'searchVault',
