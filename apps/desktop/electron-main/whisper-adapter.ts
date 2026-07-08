@@ -1,7 +1,7 @@
-import { execFile } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
+import { runSidecar } from './sidecar'
 import type { TranscriptionAdapter, TranscriptionOutput } from './transcription'
 
 /**
@@ -23,28 +23,7 @@ export type WhisperPaths = { binary: string; model: string; ffmpeg: string; cuda
 const DECODE_TIMEOUT_MS = 120_000
 const TRANSCRIBE_TIMEOUT_MS = 600_000
 
-function run(cmd: string, args: string[], timeoutMs: number): Promise<string> {
-  return new Promise((resolve, reject) => {
-    execFile(
-      cmd,
-      args,
-      {
-        timeout: timeoutMs,
-        killSignal: 'SIGKILL',
-        maxBuffer: 32 * 1024 * 1024,
-        // installed sidecars carry their .so files beside the binary
-        env: {
-          ...process.env,
-          LD_LIBRARY_PATH: [dirname(cmd), process.env['LD_LIBRARY_PATH']].filter(Boolean).join(':')
-        }
-      },
-      (error, stdout, stderr) => {
-        if (error) reject(new Error(`transcription: ${cmd} failed — ${stderr.slice(0, 300) || error.message}`))
-        else resolve(stdout)
-      }
-    )
-  })
-}
+const run = runSidecar
 
 /** whisper.cpp -oj JSON → time anchors; tolerant of shape drift. */
 export function parseWhisperSegments(

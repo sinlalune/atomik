@@ -1,6 +1,6 @@
-import { app, BrowserWindow, dialog, ipcMain, session, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, session, shell } from 'electron'
 import { execFile } from 'node:child_process'
-import { copyFileSync, mkdtempSync, statSync } from 'node:fs'
+import { copyFileSync, mkdtempSync, statSync, writeFileSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
@@ -11,10 +11,12 @@ import { CaptureSessionManager } from './capture-session'
 import {
   mockTranscriptionAdapter,
   recordTranscriptCorrection,
+  routeByMedia,
   transcribeSource,
   type TranscriptionAdapter
 } from './transcription'
 import { createWhisperCppAdapter, whisperSeatReady } from './whisper-adapter'
+import { createQwenVlOcrAdapter, ocrSeatReady, type ImageResizer } from './ocr-adapter'
 import { listDevDocs, readDevDoc, resolveDocsRoot } from './dev-docs'
 import { searchVault } from './search'
 import { buildMainWindowOptions } from './security'
@@ -230,9 +232,27 @@ let traces: ActionTraceLedger
  *  the vault — the inbox→vault import is S04's explicitly confirmed step. */
 let capture: CaptureSessionManager
 
-/** The seat (S05): whisper.cpp-small when binary+model+ffmpeg exist,
- *  the honest mock otherwise — capture never blocks on a runtime. */
+/** The seats (S05 speech; CP-MVP-005 S03 OCR): real runtimes when their
+ *  pieces exist, the honest mock otherwise — capture never blocks on a
+ *  runtime. `transcriptionAdapter` routes by media family. */
 let transcriptionAdapter: TranscriptionAdapter = mockTranscriptionAdapter
+
+/** THE PROVEN OCR HARNESS (S07 addendum 5): pre-resize to the token
+ *  budget in main — pixels/784 tokens, dimensions multiples of 28,
+ *  never upscale — via Electron's own nativeImage (15: no new image
+ *  dependency). llama.cpp's flag-based cap is broken for this model. */
+const nativeImageResizer: ImageResizer = (srcAbs, dstAbs, budgetTokens) => {
+  const img = nativeImage.createFromPath(srcAbs)
+  const size = img.getSize()
+  if (size.width === 0 || size.height === 0) {
+    return Promise.reject(new Error(`ocr: unreadable image — ${basename(srcAbs)}`))
+  }
+  const scale = Math.min(1, Math.sqrt((budgetTokens * 784) / (size.width * size.height)))
+  const width = Math.max(28, Math.round((size.width * scale) / 28) * 28)
+  const height = Math.max(28, Math.round((size.height * scale) / 28) * 28)
+  writeFileSync(dstAbs, img.resize({ width, height, quality: 'best' }).toJPEG(95))
+  return Promise.resolve({ width, height })
+}
 
 function registerCaptureHandlers(): void {
   ipcMain.handle(ATOMIK_CHANNELS.startCaptureSession, () => capture.start())
@@ -559,9 +579,20 @@ app.whenReady().then(() => {
     // optional CUDA tier (CP-MVP-005 S02) — adapter checks existence
     cudaBinary: process.env['ATOMIK_WHISPER_BIN_CUDA'] ?? join(stateDir, 'speech', 'cuda', 'whisper-cli')
   }
-  if (whisperSeatReady(speechPaths)) {
-    transcriptionAdapter = createWhisperCppAdapter(speechPaths)
+  const ocrPaths = {
+    binary: process.env['ATOMIK_OCR_BIN'] ?? join(stateDir, 'ocr', 'cpu', 'llama-mtmd-cli'),
+    model: process.env['ATOMIK_OCR_MODEL'] ?? join(stateDir, 'ocr', 'models', 'qwen3vl-4b-q4.gguf'),
+    mmproj: process.env['ATOMIK_OCR_MMPROJ'] ?? join(stateDir, 'ocr', 'models', 'qwen3vl-4b-mmproj.gguf'),
+    // optional CUDA tier — adapter checks existence, demotes on failure
+    cudaBinary: process.env['ATOMIK_OCR_BIN_CUDA'] ?? join(stateDir, 'ocr', 'cuda', 'llama-mtmd-cli')
   }
+  const audioSeat = whisperSeatReady(speechPaths)
+    ? createWhisperCppAdapter(speechPaths)
+    : mockTranscriptionAdapter
+  const ocrSeat = ocrSeatReady(ocrPaths)
+    ? createQwenVlOcrAdapter(ocrPaths, nativeImageResizer)
+    : mockTranscriptionAdapter
+  transcriptionAdapter = routeByMedia(audioSeat, ocrSeat)
   capture = new CaptureSessionManager({
     inboxRoot: join(stateDir, 'capture-inbox'),
     // Stable default port so ONE firewall rule suffices (WSL2 mirrored

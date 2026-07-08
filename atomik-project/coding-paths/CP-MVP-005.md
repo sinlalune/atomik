@@ -117,7 +117,7 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       fixture (dated walls, CPU-vs-CUDA row in the 34 record); install
       to the state dir; adapter fallback chain CUDA → CPU → mock with
       tests; tier identity in traces.
-- [ ] S03 OCR seat (13 re-read first): `ocr-adapter` sidecar on the
+- [x] S03 OCR seat (13 re-read first): `ocr-adapter` sidecar on the
       whisper-adapter pattern — nativeImage pre-resize (≈2 500 tokens,
       multiples of 28), llama-mtmd-cli bounded job, CUDA → CPU → mock
       startup selection, model + binary in state dir (sha256), identity
@@ -158,8 +158,20 @@ tests       : 234 passing / 23 suites (S02 added the fallback-chain
               reproduced byte-equal), 181 s fixture 5.7 s vs 14.7 s
               CPU (2.6×). -l auto trap re-met in manual verify and
               recorded again.
-next action : S03 — OCR seat (13 re-read first): ocr-adapter sidecar,
-              nativeImage pre-resize, CUDA→CPU→mock selection
+              S03 done 2026-07-08 (13 §local-inference + §IPC re-read):
+              ocr-adapter.ts + routeByMedia(audio, ocr) + sidecar.ts
+              (shared bounded-exec, LD_LIBRARY_PATH self-containment).
+              Pre-resize via injected nativeImage resizer (≈2500
+              tokens, /28, no upscale) — the proven harness is
+              structural, --image-max-tokens never used. Installed
+              self-contained .atomik/ocr/{cpu,cuda,models} from the
+              benched PR#24975 NO_VMM builds; sha256 recorded.
+              Installed-seat verify: 3.85 s CUDA on the pre-sized
+              Leibniz page; CPU-tier install verify run at close of
+              unit. Tests 234→237; typecheck green. HEIC gap honest.
+next action : S04 — owner validates the in-app OCR flow on the real
+              Pascal dossiers (restart app; Transcribe on an image
+              dossier), correction flow end to end
 blockers    : none recorded
 ```
 

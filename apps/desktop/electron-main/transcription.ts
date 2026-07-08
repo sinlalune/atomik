@@ -48,6 +48,21 @@ export interface TranscriptionAdapter {
 }
 
 /**
+ * Media router (CP-MVP-005 S03): one seat per media family — images go
+ * to the OCR adapter, audio to the speech adapter. Pure composition;
+ * identity in the output always comes from the adapter that answered.
+ */
+export function routeByMedia(
+  audio: TranscriptionAdapter,
+  ocr: TranscriptionAdapter
+): TranscriptionAdapter {
+  return {
+    id: 'media-router',
+    transcribe: (job) => (job.mimeType.startsWith('image/') ? ocr : audio).transcribe(job)
+  }
+}
+
+/**
  * Deterministic mock: same bytes → same output, and the output states
  * plainly that no recognition ran. It proves the pipeline (file shapes,
  * dossier updates, traces, correction flow) without fabricating content.

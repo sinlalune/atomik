@@ -320,6 +320,28 @@ timestamp: 2026-07-06T00:00:00Z
   181 s fixture 5.7 s CUDA vs 14.7 s CPU (2.6×). Trap re-met during
   verify: whisper.cpp WITHOUT `-l auto` silently TRANSLATES French to
   English — the adapter always passes it; never hand-verify without it.
+- The OCR seat (07/08/33, CP-MVP-005 S03; owner decision on the
+  CP-MVP-004 evaluation): `ocr-adapter.ts` seats Qwen3-VL 4B Q4_K_M
+  (Apache-2.0) behind the SAME `TranscriptionAdapter` contract via
+  `llama-mtmd-cli` — bounded job, 600 s timeout + SIGKILL, tmp workdir,
+  image in / text out, zero vault access. `transcription.ts` gains
+  `routeByMedia(audio, ocr)`: images → OCR seat, audio → whisper seat;
+  identity always comes from the adapter that answered. THE PROVEN
+  HARNESS from the bench is structural: main PRE-RESIZES the image to
+  ≈2 500 tokens (pixels/784, dimensions multiples of 28, never
+  upscaled) with Electron's own `nativeImage` (15: no new image
+  dependency; the resizer is INJECTED so tests stub it — vitest has no
+  Electron) — llama.cpp's `--image-max-tokens` is broken for this model
+  (stalls, dated refs in the record). CUDA tier first with sticky
+  per-session demotion, CPU floor fallback, mock last; runs on the
+  benched PR#24975 NO_VMM builds (REQUIRED on this WSL2 — master's
+  CUDA build hits the VMM bug). Installs self-contained under
+  `.atomik/ocr/{cpu,cuda,models}` (sha256 recorded in the record); env
+  overrides `ATOMIK_OCR_BIN[_CUDA]/MODEL/MMPROJ`. Installed-seat verify
+  2026-07-08: 3.85 s CUDA on the pre-sized Leibniz page. Known honest
+  gaps: HEIC/HEIF likely unreadable by nativeImage on Linux (resizer
+  rejects → trace failed, no fabrication); the seat prompt is the bench
+  standard FR transcription prompt.
 - Project bundles (04, S06): `electron-main/project.ts` (incubating
   project-core, 14) — manifest-detected bundles
   (`project.atomik-project.json`; scan skips denied dirs and does not

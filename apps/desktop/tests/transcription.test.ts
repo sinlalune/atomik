@@ -379,6 +379,76 @@ describe('whisper CUDA tier (CP-MVP-005 S02) — fallback chain', () => {
   })
 })
 
+describe('OCR seat (CP-MVP-005 S03) — Qwen3-VL sidecar with pre-resize', () => {
+  const JOB_IMG = { originalAbs: '/x/original.jpg', mimeType: 'image/jpeg', bytes: JPEG }
+  const seat = async () => {
+    const { createQwenVlOcrAdapter, ocrSeatReady } = await import('../electron-main/ocr-adapter')
+    const bin = mkdtempSync(join(tmpdir(), 'atomik-ocr-seat-'))
+    const fakeCpu = join(bin, 'llama-mtmd-cli')
+    writeFileSync(fakeCpu, '#!/bin/bash\necho "texte de la page"\n', { mode: 0o755 })
+    const model = join(bin, 'model.gguf')
+    const mmproj = join(bin, 'mmproj.gguf')
+    writeFileSync(model, 'x')
+    writeFileSync(mmproj, 'x')
+    const budgets: number[] = []
+    const resize = (_src: string, dst: string, budget: number) => {
+      budgets.push(budget)
+      writeFileSync(dst, 'resized')
+      return Promise.resolve({ width: 756, height: 1036 })
+    }
+    return { createQwenVlOcrAdapter, ocrSeatReady, bin, fakeCpu, model, mmproj, budgets, resize }
+  }
+
+  it('pre-resizes to the proven budget and reports qwen identity', async () => {
+    const { createQwenVlOcrAdapter, ocrSeatReady, bin, fakeCpu, model, mmproj, budgets, resize } = await seat()
+    const paths = { binary: fakeCpu, model, mmproj }
+    expect(ocrSeatReady(paths)).toBe(true)
+    expect(ocrSeatReady({ ...paths, mmproj: '/nope' })).toBe(false)
+    const out = await createQwenVlOcrAdapter(paths, resize).transcribe(JOB_IMG)
+    expect(budgets).toEqual([2500])
+    expect(out.markdown).toBe('texte de la page')
+    expect(out.model).toContain('Qwen3-VL-4B')
+    expect(out.runtime).toContain('llama-mtmd-cli')
+    expect(out.runtimeVersion).not.toContain('+cuda')
+    expect(out.location).toBe('local-model')
+    expect(out.audioSeconds).toBeUndefined()
+    rmSync(bin, { recursive: true, force: true })
+  })
+
+  it('tries CUDA first, falls back to CPU, and demotes for the session', async () => {
+    const { createQwenVlOcrAdapter, bin, fakeCpu, model, mmproj, resize } = await seat()
+    const marker = join(bin, 'cuda-invocations')
+    const fakeCuda = join(bin, 'llama-mtmd-cli-cuda')
+    writeFileSync(fakeCuda, `#!/bin/bash\necho x >> "${marker}"\nexit 1\n`, { mode: 0o755 })
+    const adapter = createQwenVlOcrAdapter({ binary: fakeCpu, model, mmproj, cudaBinary: fakeCuda }, resize)
+    const first = await adapter.transcribe(JOB_IMG)
+    expect(first.markdown).toBe('texte de la page')
+    expect(first.runtimeVersion).not.toContain('+cuda')
+    await adapter.transcribe(JOB_IMG)
+    expect(readFileSync(marker, 'utf8').trim().split('\n')).toHaveLength(1)
+    rmSync(bin, { recursive: true, force: true })
+  })
+
+  it('routes image jobs to the OCR seat and audio jobs to the speech seat', async () => {
+    const { routeByMedia } = await import('../electron-main/transcription')
+    const answered: string[] = []
+    const fake = (name: string) => ({
+      id: name,
+      transcribe: () => {
+        answered.push(name)
+        return Promise.resolve({
+          markdown: name, model: 'm', modelVersion: '1', runtime: 'r',
+          runtimeVersion: '1', location: 'local-model' as const
+        })
+      }
+    })
+    const router = routeByMedia(fake('audio'), fake('ocr'))
+    await router.transcribe({ originalAbs: '/x/a.jpg', mimeType: 'image/jpeg', bytes: JPEG })
+    await router.transcribe({ originalAbs: '/x/a.m4a', mimeType: 'audio/mp4', bytes: JPEG })
+    expect(answered).toEqual(['ocr', 'audio'])
+  })
+})
+
 describe('segments sidecar (CP-MVP-004 S06)', () => {
   it('writes segments.json wx when the adapter reports time anchors', async () => {
     const dossierPath = seedBundle()

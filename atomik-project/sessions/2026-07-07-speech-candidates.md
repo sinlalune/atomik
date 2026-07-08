@@ -486,6 +486,27 @@ whisper.cpp TRADUIT silencieusement le français en anglais —
 l'adaptateur le passe toujours. Tests 231 → 234 (chaîne de repli :
 CUDA répond/échoue-et-démote/absent) ; typecheck vert.
 
+## CP-MVP-005 S03 — Qwen3-VL 4B prend le siège OCR (2026-07-08)
+
+Directive owner exécutée sur l'évidence des addenda. `ocr-adapter.ts`
+(sidecar borné llama-mtmd-cli, même contrat TranscriptionAdapter) +
+`routeByMedia` (images → OCR, audio → whisper). LE HARNAIS PROUVÉ est
+STRUCTUREL : pré-redimensionnement dans main via `nativeImage`
+(≈2 500 tokens, multiples de 28, jamais d'upscale, resizer injecté pour
+les tests) — jamais `--image-max-tokens`. Tier CUDA d'abord (démotion
+collante), floor CPU, mock en dernier. Binaires = les builds BENCHÉS
+PR#24975 NO_VMM (requis sur ce WSL2), installés auto-contenus sous
+`.atomik/ocr/{cpu,cuda,models}` ; sha256 :
+`ceb08f2f…` (qwen3vl-4b-q4.gguf), `5d5e6983…` (mmproj). Vérification du
+siège installé : **3,85 s CUDA** sur la page Leibniz pré-dimensionnée
+(sortie française correcte) ; vérif du tier CPU installé : **96,6 s**
+sur la variante 1k (transcript complet, exit 0). Gaps honnêtes consignés :
+HEIC/HEIF probablement illisible par nativeImage sous Linux (échec
+propre tracé, jamais de fabrication) ; prompt du siège = le prompt FR
+standard du banc. Tests 234 → 237 (budget de resize, identité, chaîne
+CUDA→CPU collante, routage par média) ; typecheck vert. S04 = validation
+owner in-app (bouton Transcribe sur un dossier image après redémarrage).
+
 ### Proposition owner (2026-07-08) : Mistral OCR 3.0 comme référence API
 
 L'owner a essayé Mistral OCR 3.0 (API uniquement) et le juge fort. Deux
