@@ -7,8 +7,8 @@ timestamp: 2026-07-08T15:15:00Z
 atomik:
   id: CP-MVP-003
   status: active
-  current_step: S01
-  base_commit: null
+  current_step: S02
+  base_commit: 35ec031
 ---
 
 # Goal
@@ -99,7 +99,7 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
 
 # Execution
 
-- [ ] S01 Bootstrap (22): reconcile ledger vs repo; record `base_commit`;
+- [x] S01 Bootstrap (22): reconcile ledger vs repo; record `base_commit`;
       re-read 10 + 03 + 05 (the pages this path implements).
 - [ ] S02 PDF engine decision (15, dated): pdf.js/pdfjs-dist vs
       alternatives — rendering + text layer, worker isolation under 13,
@@ -123,13 +123,20 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
 # Current checkpoint
 
 ```text
-base commit : (set at S01)
+base commit : 35ec031
 changed     : path opened 2026-07-08 on owner directive ("ok for PDF
               page, as source and as a viewer and text extraction")
               at CP-MVP-005 close. Inherits the proven OCR seat for
               scanned pages.
-tests       : 247 passing / 25 suites at open
-next action : S01 — bootstrap + base_commit + required re-reads
+              S01 done 2026-07-08: base_commit 35ec031; 247/25 tests
+              verified; tree = owner dogfooding files only; 10/03/05
+              re-read — bundle shape sources/pdf/<slug>/ with
+              extracted.md + anchors, "extraction is never the only
+              path" (OCR seat ready), tabs are views over resources,
+              selections are typed objects, renderer fidelity ≠
+              extraction fidelity.
+tests       : 247 passing / 25 suites
+next action : S02 — PDF engine decision (15, dated, web-checked)
 blockers    : none recorded
 ```
 
