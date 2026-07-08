@@ -69,9 +69,10 @@ export function createWhisperCppAdapter(paths: WhisperPaths): TranscriptionAdapt
         if (tier === 'cuda') {
           try {
             text = (await run(paths.cudaBinary!, args, TRANSCRIBE_TIMEOUT_MS)).trim()
-          } catch {
+          } catch (cause) {
             cudaHealthy = false
             tier = 'cpu'
+            console.warn('[atomik] whisper cuda tier demoted for this session:', String(cause))
             text = (await run(paths.binary, args, TRANSCRIBE_TIMEOUT_MS)).trim()
           }
         } else {

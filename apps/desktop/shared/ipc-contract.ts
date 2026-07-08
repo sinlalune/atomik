@@ -46,8 +46,17 @@ export const ATOMIK_CHANNELS = {
   openSourceExternally: 'atomik:open-source-externally',
   runAiOperation: 'atomik:run-ai-operation',
   resolveAiTrace: 'atomik:resolve-ai-trace',
-  getAiTraceSummary: 'atomik:get-ai-trace-summary'
+  getAiTraceSummary: 'atomik:get-ai-trace-summary',
+  getAiSettings: 'atomik:get-ai-settings',
+  setMistralApiKey: 'atomik:set-mistral-api-key'
 } as const
+
+/** What the renderer may know about AI settings (13): presence and a
+ *  recognition hint — the raw key never crosses back. */
+export type AiSettingsPublic = {
+  mistralKeyPresent: boolean
+  mistralKeyHint: string | null
+}
 
 /**
  * Frame verbs for the chromeless trusted window (the tabstrip is the top
@@ -491,6 +500,11 @@ export type AtomikApi = {
   resolveAiTrace: (bundleId: string, decision: AiTraceDecision) => Promise<void>
   /** Badge data for a pending operation; null when unknown. */
   getAiTraceSummary: (bundleId: string) => Promise<TraceSummary | null>
+  /** AI settings (S05b): presence + masked hint only. */
+  getAiSettings: () => Promise<AiSettingsPublic>
+  /** Stores (or clears, with null) the Mistral API key MAIN-SIDE; the
+   *  response is the new public view, never the key. */
+  setMistralApiKey: (key: string | null) => Promise<AiSettingsPublic>
 }
 
 /**
@@ -528,5 +542,7 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'openSourceExternally',
   'runAiOperation',
   'resolveAiTrace',
-  'getAiTraceSummary'
+  'getAiTraceSummary',
+  'getAiSettings',
+  'setMistralApiKey'
 ] as const satisfies readonly (keyof AtomikApi)[]

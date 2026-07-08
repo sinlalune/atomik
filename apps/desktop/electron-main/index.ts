@@ -17,7 +17,9 @@ import {
 } from './transcription'
 import { createWhisperCppAdapter, whisperSeatReady } from './whisper-adapter'
 import { createQwenVlOcrAdapter, ocrSeatReady, type ImageResizer } from './ocr-adapter'
-import { createMistralOcrAdapter, resolveMistralKey } from './mistral-ocr-adapter'
+import { createMistralOcrAdapter } from './mistral-ocr-adapter'
+import { publicAiSettings, readMistralKey, writeMistralKey } from './ai-settings'
+import { scanCleanRgba } from './scan-filter'
 import { listDevDocs, readDevDoc, resolveDocsRoot } from './dev-docs'
 import { searchVault } from './search'
 import { buildMainWindowOptions } from './security'
@@ -241,7 +243,10 @@ let transcriptionAdapter: TranscriptionAdapter = mockTranscriptionAdapter
 /** THE PROVEN OCR HARNESS (S07 addendum 5): pre-resize to the token
  *  budget in main — pixels/784 tokens, dimensions multiples of 28,
  *  never upscale — via Electron's own nativeImage (15: no new image
- *  dependency). llama.cpp's flag-based cap is broken for this model. */
+ *  dependency), THEN the bench's scan filter (S05b, owner directive):
+ *  illumination flattening + contrast stretch, the treatment that put
+ *  the clean-scan tier's quality on the table. llama.cpp's flag-based
+ *  cap is broken for this model and is never used. */
 const nativeImageResizer: ImageResizer = (srcAbs, dstAbs, budgetTokens) => {
   const img = nativeImage.createFromPath(srcAbs)
   const size = img.getSize()
@@ -251,11 +256,16 @@ const nativeImageResizer: ImageResizer = (srcAbs, dstAbs, budgetTokens) => {
   const scale = Math.min(1, Math.sqrt((budgetTokens * 784) / (size.width * size.height)))
   const width = Math.max(28, Math.round((size.width * scale) / 28) * 28)
   const height = Math.max(28, Math.round((size.height * scale) / 28) * 28)
-  writeFileSync(dstAbs, img.resize({ width, height, quality: 'best' }).toJPEG(95))
+  const resized = img.resize({ width, height, quality: 'best' })
+  const cleaned = scanCleanRgba(resized.toBitmap(), width, height)
+  writeFileSync(
+    dstAbs,
+    nativeImage.createFromBitmap(cleaned, { width, height }).toJPEG(95)
+  )
   return Promise.resolve({ width, height })
 }
 
-function registerCaptureHandlers(): void {
+function registerCaptureHandlers(stateDir: string): void {
   ipcMain.handle(ATOMIK_CHANNELS.startCaptureSession, () => capture.start())
   ipcMain.handle(ATOMIK_CHANNELS.stopCaptureSession, () => capture.stop())
   ipcMain.handle(ATOMIK_CHANNELS.getCaptureSession, () => capture.inspect())
@@ -294,15 +304,25 @@ function registerCaptureHandlers(): void {
   ipcMain.handle(
     ATOMIK_CHANNELS.transcribeSourceCloud,
     (_event, dossierPath: unknown) => {
-      const key = resolveMistralKey(process.env, join(app.getAppPath(), '.env.local'))
+      // S05b: the AI settings store is the user path; env = dev override
+      const key = readMistralKey(stateDir) ?? process.env['MISTRAL_API_KEY']?.trim() ?? null
       if (!key) {
         throw new Error(
-          'cloud ocr: no MISTRAL_API_KEY configured (env or .env.local) — nothing was sent'
+          'cloud ocr: no Mistral API key configured (Settings → AI) — nothing was sent'
         )
       }
       return transcribeSource(requireVault(), dossierPath, createMistralOcrAdapter(key), traces)
     }
   )
+  // S05b: AI settings — the raw key never returns to the renderer.
+  ipcMain.handle(ATOMIK_CHANNELS.getAiSettings, () => publicAiSettings(stateDir))
+  ipcMain.handle(ATOMIK_CHANNELS.setMistralApiKey, (_event, key: unknown) => {
+    if (key !== null && typeof key !== 'string') {
+      throw new Error('ai settings: key must be a string or null')
+    }
+    writeMistralKey(stateDir, key)
+    return publicAiSettings(stateDir)
+  })
   // Desktop mic (owner request): same inbox, same gates, no endpoint.
   ipcMain.handle(
     ATOMIK_CHANNELS.addLocalCapture,
@@ -624,7 +644,7 @@ app.whenReady().then(() => {
   restoreVault(stateDir)
   registerIpcHandlers(docsRoot, stateDir)
   registerVaultHandlers(stateDir)
-  registerCaptureHandlers()
+  registerCaptureHandlers(stateDir)
 
   const smoke = process.env['ATOMIK_SMOKE'] === '1'
   const smokeDoc = process.env['ATOMIK_SMOKE_DOC']

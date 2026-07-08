@@ -430,16 +430,10 @@ describe('OCR seat (CP-MVP-005 S03) — Qwen3-VL sidecar with pre-resize', () =>
   })
 
   it('cloud rung (S05): pinned model, cloud-derived identity, no silent behavior', async () => {
-    const { createMistralOcrAdapter, resolveMistralKey, MISTRAL_OCR_MODEL } =
+    const { createMistralOcrAdapter, MISTRAL_OCR_MODEL } =
       await import('../electron-main/mistral-ocr-adapter')
     expect(MISTRAL_OCR_MODEL).toBe('mistral-ocr-4-0')
-    // key resolution: env wins, .env.local fallback, absent → null
-    const dir = mkdtempSync(join(tmpdir(), 'atomik-envlocal-'))
-    const envLocal = join(dir, '.env.local')
-    writeFileSync(envLocal, 'MISTRAL_API_KEY="from-file"\n')
-    expect(resolveMistralKey({ MISTRAL_API_KEY: 'from-env' }, envLocal)).toBe('from-env')
-    expect(resolveMistralKey({}, envLocal)).toBe('from-file')
-    expect(resolveMistralKey({}, join(dir, 'absent'))).toBeNull()
+    const dir = mkdtempSync(join(tmpdir(), 'atomik-cloud-'))
     // success path: request shape + identity
     const calls: Array<{ url: string; body: string }> = []
     const okFetch = ((url: string, init: { body: string }) => {

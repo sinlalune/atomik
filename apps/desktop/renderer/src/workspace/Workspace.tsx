@@ -8,6 +8,7 @@ import { CaptureView } from '../capture/CaptureView'
 import { DevDocs } from '../dev-docs/DevDocs'
 import { ProjectView } from '../project/ProjectView'
 import { SourceImageView } from '../source/SourceImageView'
+import { AiSettings } from '../AiSettings'
 import { ThemePicker } from '../ThemePicker'
 import { noteDisplayName } from '../vault/scope'
 import { VaultView } from '../vault/VaultView'
@@ -311,6 +312,7 @@ function LeafPane({
         </span>
         {node.id === controlsPaneId && (
           <>
+            <AiSettings />
             <ThemePicker />
             <WindowControls />
           </>

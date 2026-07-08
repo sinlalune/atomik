@@ -305,6 +305,99 @@ body[data-maximized] .tabstrip {
   background: var(--code-bg);
 }
 
+/* Settings → AI (S05b): gear + popover panel in the top row. */
+.ai-settings {
+  position: relative;
+  flex: none;
+  -webkit-app-region: no-drag;
+}
+
+.ai-settings-toggle {
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 0.15rem 0.35rem;
+  cursor: pointer;
+}
+
+.ai-settings-toggle:hover {
+  color: var(--accent);
+  background: var(--code-bg);
+}
+
+.ai-settings-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  width: 320px;
+  padding: 0.75rem 0.9rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  font-size: 0.8rem;
+}
+
+.ai-settings-panel h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+}
+
+.ai-settings-panel h4 {
+  margin: 0 0 0.25rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.ai-settings-status {
+  margin: 0 0 0.5rem;
+}
+
+.ai-settings-row {
+  display: flex;
+  gap: 6px;
+}
+
+.ai-settings-row input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  color: inherit;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.25rem 0.4rem;
+}
+
+.ai-settings-row button {
+  font: inherit;
+  color: var(--muted);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+}
+
+.ai-settings-row button:hover:not(:disabled) {
+  color: var(--accent);
+}
+
+.ai-settings-row button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.ai-settings-note {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
 .window-controls {
   flex: none;
   display: inline-flex;

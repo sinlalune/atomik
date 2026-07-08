@@ -58,9 +58,12 @@ export function createQwenVlOcrAdapter(
         if (tier === 'cuda') {
           try {
             text = (await runSidecar(paths.cudaBinary!, [...args, '-ngl', '99'], OCR_TIMEOUT_MS)).trim()
-          } catch {
+          } catch (cause) {
             cudaHealthy = false
             tier = 'cpu'
+            // demotion must be VISIBLE (S04 finding): the tier answering
+            // is in every trace, but the WHY only exists right here.
+            console.warn('[atomik] ocr cuda tier demoted for this session:', String(cause))
             text = (await runSidecar(paths.binary, args, OCR_TIMEOUT_MS)).trim()
           }
         } else {

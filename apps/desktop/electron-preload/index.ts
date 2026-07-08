@@ -93,7 +93,10 @@ const api: AtomikApi = {
   resolveAiTrace: (bundleId: string, decision: AiTraceDecision) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.resolveAiTrace, bundleId, decision),
   getAiTraceSummary: (bundleId: string) =>
-    ipcRenderer.invoke(ATOMIK_CHANNELS.getAiTraceSummary, bundleId)
+    ipcRenderer.invoke(ATOMIK_CHANNELS.getAiTraceSummary, bundleId),
+  getAiSettings: () => ipcRenderer.invoke(ATOMIK_CHANNELS.getAiSettings),
+  setMistralApiKey: (key: string | null) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.setMistralApiKey, key)
 }
 
 contextBridge.exposeInMainWorld(ATOMIK_API_KEY, api)

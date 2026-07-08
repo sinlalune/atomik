@@ -1,12 +1,12 @@
-import { readFileSync } from 'node:fs'
 import type { TranscriptionAdapter } from './transcription'
 
 /**
  * The cloud OCR rung (CP-MVP-005 S05; owner decision): Mistral OCR as
  * an EXPLICIT per-capture action — never a silent fallback (13:
  * "require explicit policy before any local failure falls back to
- * cloud"). The key lives main-process only (env or the git-ignored
- * .env.local); the renderer sees a typed channel and nothing else.
+ * cloud"). The key lives main-process only (the AI settings store in
+ * the state dir — S05b — with the env var as a dev override); the
+ * renderer sees typed channels and never the raw key.
  * Output is visibly cloud-derived (28): `location: 'cloud-model'` +
  * provider identity land in the transcript frontmatter, the dossier,
  * and the trace. The model id is PINNED — a dated seat, benched
@@ -17,20 +17,6 @@ import type { TranscriptionAdapter } from './transcription'
 export const MISTRAL_OCR_MODEL = 'mistral-ocr-4-0'
 const API_URL = 'https://api.mistral.ai/v1/ocr'
 const TIMEOUT_MS = 180_000
-
-/** Env first, then the git-ignored .env.local (dev reality). Never the
- *  renderer, never the repo. */
-export function resolveMistralKey(env: NodeJS.ProcessEnv, envLocalAbs: string): string | null {
-  const fromEnv = env['MISTRAL_API_KEY']?.trim()
-  if (fromEnv) return fromEnv
-  try {
-    const line = /^MISTRAL_API_KEY=(.+)$/m.exec(readFileSync(envLocalAbs, 'utf8'))
-    const value = line?.[1]?.trim().replace(/^"|"$/g, '')
-    return value && value.length > 0 ? value : null
-  } catch {
-    return null
-  }
-}
 
 type OcrResponse = { pages?: Array<{ markdown?: string }>; model?: string }
 

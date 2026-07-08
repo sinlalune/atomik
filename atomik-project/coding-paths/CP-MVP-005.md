@@ -130,6 +130,15 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       env/.env.local; absent key = explanatory no-op), result lands as
       cloud-derived transcript (28 provenance, model id pinned); tests
       incl. no-key and refusal paths; no silent calls.
+- [x] S05b Owner refinements (directive 2026-07-08): (1) the bench's
+      SCAN FILTER seated in the OCR pipeline — illumination flattening
+      + percentile stretch on raw bitmaps, dependency-free, after the
+      resize; (2) Settings → AI menu (gear, top row): Mistral key via
+      input field, stored main-only in the state dir (0600, masked
+      hint back, raw key never returns); .env.local reading REMOVED —
+      env var stays as dev override; (3) CUDA demotion made VISIBLE
+      (console.warn with the cause — S04 finding: silent fallback is
+      undiagnosable).
 - [ ] S06 Acceptance run + path review and close (owner).
 
 # Current checkpoint
@@ -178,10 +187,21 @@ tests       : 234 passing / 23 suites (S02 added the fallback-chain
               result visibly cloud-derived through the ordinary
               pipeline (frontmatter + dossier + trace). Tests 237→238;
               typecheck/build/smoke green.
+              S05b done 2026-07-08 (owner directives): scan filter in
+              the OCR pipeline (scan-filter.ts, pure, tested on a
+              synthetic unevenly-lit page); Settings → AI menu
+              (ai-settings.ts store 0600 + typed channels + gear
+              popover; raw key never returns to renderer); .env.local
+              removed from key resolution; CUDA demotions now warn
+              with their cause. Owner's first S04 attempt aborted (dev
+              reload mid-run, no trace — the demotion-visibility gap
+              this fixes). Tests 238→242 / 25 suites;
+              typecheck/build/smoke green.
 next action : S04 — owner validates the in-app flows on the real
               Pascal dossiers (restart app: Transcribe = local Qwen
-              seat; Cloud OCR = explicit Mistral rung), correction
-              flow end to end. Then S06 acceptance + close.
+              seat; Cloud OCR = explicit Mistral rung; tier readable
+              in transcript.md runtime_version), correction flow end
+              to end. Then S06 acceptance + close.
 blockers    : none recorded
 ```
 
