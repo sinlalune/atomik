@@ -1,0 +1,116 @@
+import { useEffect, useRef, useState } from 'react'
+import * as pdfjs from 'pdfjs-dist'
+import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+
+/**
+ * The PDF page viewer (CP-MVP-003 S04, bedrock 10): pdf.js in the
+ * SANDBOXED renderer, worker from the local bundle (CSP forbids
+ * remote). pdf.js 6.x removed the eval'd font path entirely, retiring
+ * CVE-2024-4367 by construction (the S02 posture, now structural
+ * upstream). Display only — extraction is main's job (S05); renderer
+ * fidelity and extraction fidelity stay separate claims.
+ */
+
+pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
+
+export function PdfView({
+  dataUrl,
+  initialPage = 1
+}: {
+  dataUrl: string
+  initialPage?: number
+}): React.JSX.Element {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const hostRef = useRef<HTMLDivElement | null>(null)
+  const docRef = useRef<pdfjs.PDFDocumentProxy | null>(null)
+  const [numPages, setNumPages] = useState(0)
+  const [page, setPage] = useState(initialPage)
+  const [error, setError] = useState<string | null>(null)
+
+  // load the document from the gated bytes
+  useEffect(() => {
+    let cancelled = false
+    const base64 = dataUrl.slice(dataUrl.indexOf('base64,') + 7)
+    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
+    const task = pdfjs.getDocument({ data: bytes })
+    task.promise.then(
+      (doc) => {
+        if (cancelled) return
+        docRef.current = doc
+        setNumPages(doc.numPages)
+        setPage((current) => Math.min(Math.max(1, current), doc.numPages))
+      },
+      (cause: unknown) => {
+        if (!cancelled) setError(`pdf: ${String(cause)}`)
+      }
+    )
+    return () => {
+      cancelled = true
+      docRef.current = null
+      // destroying the loading task tears down document and worker both
+      void task.destroy()
+    }
+    // dataUrl identifies the document
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataUrl])
+
+  // render the current page, fitted to the host width
+  useEffect(() => {
+    if (numPages === 0) return
+    let cancelled = false
+    void (async () => {
+      const doc = docRef.current
+      const canvas = canvasRef.current
+      if (!doc || !canvas) return
+      try {
+        const pdfPage = await doc.getPage(page)
+        if (cancelled) return
+        const hostWidth = hostRef.current?.clientWidth ?? 800
+        const probe = pdfPage.getViewport({ scale: 1 })
+        const scale = Math.max(0.25, (hostWidth - 24) / probe.width)
+        const ratio = window.devicePixelRatio || 1
+        const viewport = pdfPage.getViewport({ scale: scale * ratio })
+        canvas.width = viewport.width
+        canvas.height = viewport.height
+        canvas.style.width = `${viewport.width / ratio}px`
+        canvas.style.height = `${viewport.height / ratio}px`
+        const context = canvas.getContext('2d')
+        if (!context) return
+        await pdfPage.render({ canvas, canvasContext: context, viewport }).promise
+      } catch (cause) {
+        if (!cancelled) setError(`pdf render: ${String(cause)}`)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [page, numPages])
+
+  if (error) return <p className="error">{error}</p>
+  return (
+    <div className="pdf-view" ref={hostRef}>
+      <div className="pdf-nav">
+        <button
+          type="button"
+          className="note-bar-button"
+          disabled={page <= 1}
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+        >
+          ‹
+        </button>
+        <span className="pdf-nav-status">
+          page {page} / {numPages || '…'}
+        </span>
+        <button
+          type="button"
+          className="note-bar-button"
+          disabled={numPages === 0 || page >= numPages}
+          onClick={() => setPage((p) => Math.min(numPages, p + 1))}
+        >
+          ›
+        </button>
+      </div>
+      <canvas ref={canvasRef} className="pdf-canvas" />
+    </div>
+  )
+}

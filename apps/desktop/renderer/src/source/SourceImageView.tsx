@@ -8,6 +8,7 @@ import {
   type Rotation
 } from './dossier'
 import { applyRotation, mediaObjectUrl } from './rotate'
+import { PdfView } from './PdfView'
 import { SourcesTreePanel } from './SourcesTree'
 
 /**
@@ -72,6 +73,10 @@ export function SourceImageView({
   const isDossier = note?.relPath.split('/').pop() === 'source.md'
   const [assetRotation, setAssetRotation] = useState(0)
 
+  // CP-MVP-003 S04: PDFs render through the PdfView (pdf.js, display
+  // only); rotation and the media transcribe buttons don't apply.
+  const isPdf = base?.mimeType === 'application/pdf'
+
   // The image follows the note: parse `resource:` and fetch the asset.
   useEffect(() => {
     setBase(null)
@@ -121,9 +126,9 @@ export function SourceImageView({
   // Display = base pixels + recorded rotation (the scan is already
   // upright — never re-rotate it). On the dossier the note's own
   // frontmatter is live (optimistic rotate); elsewhere the dossier's
-  // value arrives with the asset.
+  // value arrives with the asset. PDFs skip this path entirely.
   useEffect(() => {
-    if (!base) return
+    if (!base || base.mimeType === 'application/pdf') return
     let cancelled = false
     const displayRotation =
       shown === 'scan' ? 0 : isDossier ? rotation : assetRotation
@@ -263,10 +268,11 @@ export function SourceImageView({
             </button>
           </div>
         )}
-        {imageUrl && !isAudio && (
+        {isPdf && base && <PdfView dataUrl={base.dataUrl} />}
+        {imageUrl && !isAudio && !isPdf && (
           <img src={imageUrl} alt={`Original of ${dossierPath}`} />
         )}
-        {!imageUrl && (
+        {!imageUrl && !isPdf && (
           <p className="pane-placeholder">
             {imageError ?? 'loading original…'}
           </p>
@@ -306,6 +312,7 @@ export function SourceImageView({
                 </button>
               )}
             {note &&
+              !isPdf &&
               note.relPath.split('/').pop() === 'source.md' &&
               !note.content.includes('./transcript.md') && (
               <>

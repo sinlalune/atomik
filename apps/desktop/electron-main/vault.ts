@@ -151,7 +151,10 @@ const SOURCE_ASSET_EXTENSIONS: Record<string, string> = {
   '.webm': 'audio/webm',
   '.ogg': 'audio/ogg',
   '.mp3': 'audio/mpeg',
-  '.wav': 'audio/wav'
+  '.wav': 'audio/wav',
+  // PDF originals (10, CP-MVP-003 S04) — rendered by pdf.js in the
+  // sandboxed renderer; bytes ride the same containment gates
+  '.pdf': 'application/pdf'
 }
 
 const MAX_ASSET_BYTES = 50 * 1024 * 1024

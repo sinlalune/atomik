@@ -398,6 +398,37 @@ body[data-maximized] .tabstrip {
   font-size: 0.72rem;
 }
 
+/* PDF viewer (CP-MVP-003 S04) */
+.pdf-view {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+}
+
+.pdf-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+
+.pdf-nav-status {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.pdf-canvas {
+  max-width: 100%;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+  border-radius: 3px;
+  background: white;
+}
+
 .window-controls {
   flex: none;
   display: inline-flex;

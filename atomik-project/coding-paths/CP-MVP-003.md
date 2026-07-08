@@ -118,9 +118,17 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       in the dossier per 10 §evidence); channel import-pdf-source
       (main dialog) + ＋PDF button in the sources tree (opens the new
       dossier); vaultFilesChanged emitted. Tests 247→251.
-- [ ] S04 Viewer tab (13 §isolation re-read first): new view kind,
+- [x] S04 Viewer tab (13 §isolation re-read first): new view kind,
       page navigation, tab param + restore, no remote content, local
-      worker only; tests + screenshot.
+      worker only; tests + screenshot. DONE 2026-07-08: .pdf enters
+      the asset allowlist (same containment gates, 50 MB cap);
+      PdfView.tsx — pdf.js 6.1.200 in the sandboxed renderer, worker
+      from the LOCAL bundle, canvas render fitted to pane, ‹ page N/M ›
+      nav; v6 removed the eval font path so the CVE-2024-4367 posture
+      is structural upstream; rotation tools and transcribe buttons
+      don't apply to PDFs (scoped out). DEFERRED to S06: page-in-tab-
+      param restore (rides the open-at-page mechanism citation return
+      needs anyway). Owner screenshot pending (his JF_Quote fixture).
 - [ ] S05 Text extraction: text-layer pages → derived per-page text
       (visibly derived, identity + trace); image-only pages → the
       SEATED OCR pipeline; extraction status on the dossier; correction
@@ -151,9 +159,10 @@ tests       : 251 passing / 26 suites
               record in sessions/2026-07-08-pdf-engine-decision.md);
               installed, 0 vulnerabilities.
               S03 done 2026-07-08: PDF-as-source landed (see step).
-next action : S04 — viewer tab (13 §isolation re-read first): new view
-              kind over the pdf dossier, page nav, tab param restore,
-              local worker, isEvalSupported:false
+next action : S05 — extraction: pdf.js legacy in MAIN → extracted.md
+              (derived, identity + trace); image-only pages via the
+              seated OCR pipeline; owner's JF_Quote PDF as the real
+              verification fixture
 blockers    : none recorded
 ```
 
