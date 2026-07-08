@@ -60,13 +60,19 @@ export function SourceImageView({
   const rotation = note ? rotationOf(note.content) : 0
   const isAudio = base !== null && base.mimeType.startsWith('audio/')
 
+  // S05g: the cleaned scan (when transcription landed one) is viewable
+  // beside the original — the original stays the evidence.
+  const hasScan = note?.content.includes('./scan.jpg') ?? false
+  const [shown, setShown] = useState<'original' | 'scan'>('original')
+  useEffect(() => setShown('original'), [note?.relPath])
+
   // The image follows the note: parse `resource:` and fetch the asset.
   useEffect(() => {
     setBase(null)
     setImageUrl(null)
     setImageError(null)
     if (!note) return
-    const resource = resourceOf(note.content)
+    const resource = shown === 'scan' ? './scan.jpg' : resourceOf(note.content)
     if (!resource) {
       setImageError('this dossier declares no resource — nothing to view')
       return
@@ -103,19 +109,21 @@ export function SourceImageView({
     }
     // the base bytes depend on the note identity, not its edited content
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [note?.relPath])
+  }, [note?.relPath, shown])
 
-  // Display = base pixels + recorded rotation.
+  // Display = base pixels + recorded rotation (the scan is already
+  // upright — never re-rotate it).
   useEffect(() => {
     if (!base) return
     let cancelled = false
-    void applyRotation(base.dataUrl, rotation, base.mimeType).then((url) => {
+    const displayRotation = shown === 'scan' ? 0 : rotation
+    void applyRotation(base.dataUrl, displayRotation, base.mimeType).then((url) => {
       if (!cancelled) setImageUrl(url)
     })
     return () => {
       cancelled = true
     }
-  }, [base, rotation])
+  }, [base, rotation, shown])
 
   const [transcribing, setTranscribing] = useState(false)
   const [cloudBusy, setCloudBusy] = useState(false)
@@ -247,6 +255,20 @@ export function SourceImageView({
             {note?.relPath ?? dossierPath}
           </span>
           <span className="note-bar-actions">
+            {note && hasScan && !isAudio && (
+              <button
+                type="button"
+                className="note-bar-button"
+                title={
+                  shown === 'original'
+                    ? 'Show the cleaned scan the model read (scan.jpg)'
+                    : 'Show the original photo — the evidence'
+                }
+                onClick={() => setShown(shown === 'original' ? 'scan' : 'original')}
+              >
+                {shown === 'original' ? 'View scan' : 'View original'}
+              </button>
+            )}
             {note && !note.content.includes('./transcript.md') && (
               <>
                 <button
