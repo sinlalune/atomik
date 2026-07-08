@@ -113,7 +113,7 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
 - [x] S01 Bootstrap: reconcile ledger vs repository reality; record
       `base_commit`; verify the owner-decision record (S07 addenda 4–5 +
       Mistral reference) is complete as this path's evidence base.
-- [ ] S02 Speech CUDA tier: verify the bench CUDA whisper-cli on a real
+- [x] S02 Speech CUDA tier: verify the bench CUDA whisper-cli on a real
       fixture (dated walls, CPU-vs-CUDA row in the 34 record); install
       to the state dir; adapter fallback chain CUDA → CPU → mock with
       tests; tier identity in traces.
@@ -142,13 +142,24 @@ changed     : path opened 2026-07-08 on owner directive — the OCR seat
               Mistral OCR API as the only extra fallback, explicit
               opt-in per capture. Evidence base: CP-MVP-004 S07
               addenda 1–5 + Mistral ceiling reference (all committed).
-tests       : 231 passing / 23 suites VERIFIED at S01 (npm test, 1.1 s)
+tests       : 234 passing / 23 suites (S02 added the fallback-chain
+              trio); typecheck green
               S01 done 2026-07-08: base_commit 94559f7; working tree
               carries only owner dogfooding files + git-ignored
               .env.local (key hygiene checked); evidence base complete
               (addenda 1–5 + Mistral ceiling, all committed).
-next action : S02 — whisper CUDA tier (verify bench binary on real
-              fixture, dated walls; then adapter fallback chain + tests)
+              S02 done 2026-07-08: CUDA whisper seated — self-contained
+              install .atomik/speech/cuda/ (adapter exports
+              LD_LIBRARY_PATH; the S05 CPU install's silent dependence
+              on the bench build tree found and fixed the same way);
+              automatic CUDA → CPU → mock chain, sticky per-session
+              demotion, tier identity in runtimeVersion (+cuda).
+              Measured: owner memo 1.83 s (sealed transcript
+              reproduced byte-equal), 181 s fixture 5.7 s vs 14.7 s
+              CPU (2.6×). -l auto trap re-met in manual verify and
+              recorded again.
+next action : S03 — OCR seat (13 re-read first): ocr-adapter sidecar,
+              nativeImage pre-resize, CUDA→CPU→mock selection
 blockers    : none recorded
 ```
 

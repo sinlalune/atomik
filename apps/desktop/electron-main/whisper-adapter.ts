@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import type { TranscriptionAdapter, TranscriptionOutput } from './transcription'
 
 /**
@@ -12,9 +12,13 @@ import type { TranscriptionAdapter, TranscriptionOutput } from './transcription'
  * ffmpeg (system) decodes originals to 16 kHz WAV first — whisper-cli
  * reads wav/mp3/flac only. When any piece is missing, main falls back
  * to the mock: capture must never block on a runtime (08).
+ *
+ * CP-MVP-005 S02 adds the CUDA tier: an optional second binary tried
+ * first and demoted (per session) on its first failure. The identity
+ * in traces says which tier answered (`runtimeVersion` +cuda suffix).
  */
 
-export type WhisperPaths = { binary: string; model: string; ffmpeg: string }
+export type WhisperPaths = { binary: string; model: string; ffmpeg: string; cudaBinary?: string }
 
 const DECODE_TIMEOUT_MS = 120_000
 const TRANSCRIBE_TIMEOUT_MS = 600_000
@@ -24,7 +28,16 @@ function run(cmd: string, args: string[], timeoutMs: number): Promise<string> {
     execFile(
       cmd,
       args,
-      { timeout: timeoutMs, killSignal: 'SIGKILL', maxBuffer: 32 * 1024 * 1024 },
+      {
+        timeout: timeoutMs,
+        killSignal: 'SIGKILL',
+        maxBuffer: 32 * 1024 * 1024,
+        // installed sidecars carry their .so files beside the binary
+        env: {
+          ...process.env,
+          LD_LIBRARY_PATH: [dirname(cmd), process.env['LD_LIBRARY_PATH']].filter(Boolean).join(':')
+        }
+      },
       (error, stdout, stderr) => {
         if (error) reject(new Error(`transcription: ${cmd} failed — ${stderr.slice(0, 300) || error.message}`))
         else resolve(stdout)
@@ -58,6 +71,10 @@ export function whisperSeatReady(paths: WhisperPaths): boolean {
 }
 
 export function createWhisperCppAdapter(paths: WhisperPaths): TranscriptionAdapter {
+  // CUDA is this machine's bonus tier (33): tried first while healthy,
+  // demoted for the session on its first failure so later jobs pay no
+  // failing attempt — the CPU floor stays the answer everywhere else.
+  let cudaHealthy = paths.cudaBinary !== undefined && existsSync(paths.cudaBinary)
   return {
     id: 'whisper.cpp-small',
     transcribe: async (job): Promise<TranscriptionOutput> => {
@@ -67,9 +84,20 @@ export function createWhisperCppAdapter(paths: WhisperPaths): TranscriptionAdapt
         await run(paths.ffmpeg, ['-y', '-i', job.originalAbs, '-ar', '16000', '-ac', '1', wav], DECODE_TIMEOUT_MS)
         const audioSeconds = Math.max(0, (statSync(wav).size - 44) / 2 / 16000)
         const outBase = join(work, 'out')
-        const text = (
-          await run(paths.binary, ['-m', paths.model, '-f', wav, '-t', '8', '-np', '-nt', '-l', 'auto', '-oj', '-of', outBase], TRANSCRIBE_TIMEOUT_MS)
-        ).trim()
+        const args = ['-m', paths.model, '-f', wav, '-t', '8', '-np', '-nt', '-l', 'auto', '-oj', '-of', outBase]
+        let tier: 'cuda' | 'cpu' = cudaHealthy ? 'cuda' : 'cpu'
+        let text: string
+        if (tier === 'cuda') {
+          try {
+            text = (await run(paths.cudaBinary!, args, TRANSCRIBE_TIMEOUT_MS)).trim()
+          } catch {
+            cudaHealthy = false
+            tier = 'cpu'
+            text = (await run(paths.binary, args, TRANSCRIBE_TIMEOUT_MS)).trim()
+          }
+        } else {
+          text = (await run(paths.binary, args, TRANSCRIBE_TIMEOUT_MS)).trim()
+        }
         const segments = parseWhisperSegments(
           existsSync(`${outBase}.json`) ? readFileSync(`${outBase}.json`, 'utf8') : ''
         )
@@ -78,7 +106,7 @@ export function createWhisperCppAdapter(paths: WhisperPaths): TranscriptionAdapt
           model: 'whisper-small-multilingual (ggml)',
           modelVersion: 'ggml-small 2026 snapshot',
           runtime: 'whisper.cpp',
-          runtimeVersion: 'v1.8.6',
+          runtimeVersion: tier === 'cuda' ? 'v1.8.6+cuda' : 'v1.8.6',
           location: 'local-model',
           audioSeconds,
           ...(segments.length > 0 ? { segments } : {})

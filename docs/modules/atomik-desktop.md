@@ -303,6 +303,23 @@ timestamp: 2026-07-06T00:00:00Z
   away: the editor note-bar shows the View-original pill whenever the
   open note declares an image resource (dossier AND transcript both
   do).
+- The whisper CUDA tier (33 device tiers, CP-MVP-005 S02):
+  `whisper-adapter.ts` takes an optional `cudaBinary` (env
+  `ATOMIK_WHISPER_BIN_CUDA`, default `speech/cuda/whisper-cli` in the
+  state dir) tried FIRST and demoted for the session on its first
+  failure — later jobs pay no failing attempt; the CPU floor answers
+  everywhere else and CPU-only machines see zero change. Which tier
+  answered is visible in identity (`runtimeVersion` gains `+cuda`) and
+  therefore in every trace. Sidecar installs are SELF-CONTAINED: the
+  adapter exports `LD_LIBRARY_PATH=dirname(binary)` to the child
+  (RUNPATH loses to LD_LIBRARY_PATH, so libs beside the binary win) —
+  found because the S05 CPU install silently resolved its `.so` files
+  from the BENCH BUILD TREE via runpath; both installs now carry their
+  libs. Measured on the owner machine (2026-07-08): owner memo 1.83 s
+  CUDA (sealed CPU transcript reproduced byte-equal with `-l auto`),
+  181 s fixture 5.7 s CUDA vs 14.7 s CPU (2.6×). Trap re-met during
+  verify: whisper.cpp WITHOUT `-l auto` silently TRANSLATES French to
+  English — the adapter always passes it; never hand-verify without it.
 - Project bundles (04, S06): `electron-main/project.ts` (incubating
   project-core, 14) — manifest-detected bundles
   (`project.atomik-project.json`; scan skips denied dirs and does not

@@ -326,6 +326,59 @@ describe('whisper.cpp seat (S05) — bounded sidecar', () => {
   })
 })
 
+describe('whisper CUDA tier (CP-MVP-005 S02) — fallback chain', () => {
+  const seat = async () => {
+    const { createWhisperCppAdapter } = await import('../electron-main/whisper-adapter')
+    const bin = mkdtempSync(join(tmpdir(), 'atomik-cuda-'))
+    const fakeFfmpeg = join(bin, 'ffmpeg')
+    writeFileSync(fakeFfmpeg, `#!/bin/bash\nout="\${@: -1}"\nhead -c 32044 /dev/zero > "$out"\n`, { mode: 0o755 })
+    const fakeCpu = join(bin, 'whisper-cli')
+    writeFileSync(fakeCpu, '#!/bin/bash\necho "depuis le cpu"\n', { mode: 0o755 })
+    return { createWhisperCppAdapter, bin, fakeFfmpeg, fakeCpu }
+  }
+  const JOB = { originalAbs: '/x/original.m4a', mimeType: 'audio/mp4', bytes: JPEG }
+
+  it('answers from CUDA when the tier binary works, and says so in identity', async () => {
+    const { createWhisperCppAdapter, bin, fakeFfmpeg, fakeCpu } = await seat()
+    const fakeCuda = join(bin, 'whisper-cli-cuda')
+    writeFileSync(fakeCuda, '#!/bin/bash\necho "depuis le gpu"\n', { mode: 0o755 })
+    const out = await createWhisperCppAdapter({
+      binary: fakeCpu, model: fakeFfmpeg, ffmpeg: fakeFfmpeg, cudaBinary: fakeCuda
+    }).transcribe(JOB)
+    expect(out.markdown).toBe('depuis le gpu')
+    expect(out.runtimeVersion).toBe('v1.8.6+cuda')
+    rmSync(bin, { recursive: true, force: true })
+  })
+
+  it('falls back to CPU on CUDA failure and demotes the tier for the session', async () => {
+    const { createWhisperCppAdapter, bin, fakeFfmpeg, fakeCpu } = await seat()
+    const marker = join(bin, 'cuda-invocations')
+    const fakeCuda = join(bin, 'whisper-cli-cuda')
+    writeFileSync(fakeCuda, `#!/bin/bash\necho x >> "${marker}"\nexit 1\n`, { mode: 0o755 })
+    const adapter = createWhisperCppAdapter({
+      binary: fakeCpu, model: fakeFfmpeg, ffmpeg: fakeFfmpeg, cudaBinary: fakeCuda
+    })
+    const first = await adapter.transcribe(JOB)
+    expect(first.markdown).toBe('depuis le cpu')
+    expect(first.runtimeVersion).toBe('v1.8.6')
+    const second = await adapter.transcribe(JOB)
+    expect(second.markdown).toBe('depuis le cpu')
+    // sticky demotion: the failing CUDA binary ran exactly once
+    expect(readFileSync(marker, 'utf8').trim().split('\n')).toHaveLength(1)
+    rmSync(bin, { recursive: true, force: true })
+  })
+
+  it('is unchanged when no CUDA binary exists (the CPU floor)', async () => {
+    const { createWhisperCppAdapter, bin, fakeFfmpeg, fakeCpu } = await seat()
+    const out = await createWhisperCppAdapter({
+      binary: fakeCpu, model: fakeFfmpeg, ffmpeg: fakeFfmpeg, cudaBinary: join(bin, 'absent')
+    }).transcribe(JOB)
+    expect(out.markdown).toBe('depuis le cpu')
+    expect(out.runtimeVersion).toBe('v1.8.6')
+    rmSync(bin, { recursive: true, force: true })
+  })
+})
+
 describe('segments sidecar (CP-MVP-004 S06)', () => {
   it('writes segments.json wx when the adapter reports time anchors', async () => {
     const dossierPath = seedBundle()

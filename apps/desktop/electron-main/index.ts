@@ -555,7 +555,9 @@ app.whenReady().then(() => {
   const speechPaths = {
     binary: process.env['ATOMIK_WHISPER_BIN'] ?? join(stateDir, 'speech', 'whisper-cli'),
     model: process.env['ATOMIK_WHISPER_MODEL'] ?? join(stateDir, 'speech', 'ggml-small.bin'),
-    ffmpeg: process.env['ATOMIK_FFMPEG'] ?? '/usr/bin/ffmpeg'
+    ffmpeg: process.env['ATOMIK_FFMPEG'] ?? '/usr/bin/ffmpeg',
+    // optional CUDA tier (CP-MVP-005 S02) — adapter checks existence
+    cudaBinary: process.env['ATOMIK_WHISPER_BIN_CUDA'] ?? join(stateDir, 'speech', 'cuda', 'whisper-cli')
   }
   if (whisperSeatReady(speechPaths)) {
     transcriptionAdapter = createWhisperCppAdapter(speechPaths)

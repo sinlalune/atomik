@@ -465,6 +465,27 @@ Artefact : `OCR-pascal2-scan-tier-comparative.md` ; images
 `pascal2-{scan,adobe}-{1k,2k5}.jpg` + `scan-clean.py` sous
 `.atomik/speech-bench/`.
 
+## CP-MVP-005 S02 — le tier CUDA prend le siège whisper (2026-07-08)
+
+Directive owner exécutée. Binaire CUDA whisper.cpp v1.8.6 (build-cuda
+d'hier) installé AUTO-CONTENU dans `.atomik/speech/cuda/` (binaire +
+libs ; l'adaptateur exporte `LD_LIBRARY_PATH` vers le sidecar — trouvé
+au passage : l'install CPU de S05 résolvait ses .so depuis l'arbre de
+build du BENCH via runpath ; les deux installs portent leurs libs
+désormais). Chaîne de repli AUTOMATIQUE CUDA → CPU → mock dans
+`whisper-adapter.ts` (démotion collante par session ; l'identité trace
+le tier : `runtimeVersion` +cuda). Mesures machine owner :
+
+| fixture | CPU (S04) | CUDA installé |
+|---|---|---|
+| mémo owner (benchmark_device_long) | — (référence scellée) | **1,83 s**, transcript octet-égal au scellé (`-l auto`) |
+| fx-whatsapp (181 s) | 14,7 s | **5,7 s** (2,6×) |
+
+Piège S04 recroisé en vérification manuelle : sans `-l auto`,
+whisper.cpp TRADUIT silencieusement le français en anglais —
+l'adaptateur le passe toujours. Tests 231 → 234 (chaîne de repli :
+CUDA répond/échoue-et-démote/absent) ; typecheck vert.
+
 ### Proposition owner (2026-07-08) : Mistral OCR 3.0 comme référence API
 
 L'owner a essayé Mistral OCR 3.0 (API uniquement) et le juge fort. Deux
