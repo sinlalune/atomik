@@ -145,9 +145,18 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       Tests 251→253. Correction-flow-on-extracted note: the S07 hook
       keys on transcript.md — extracted.md correction flip is an S06
       companion item.
-- [ ] S06 Anchors: page anchors recorded with notes created from
+- [x] S06 Anchors: page anchors recorded with notes created from
       selections (05/06); citation return path opens the viewer at the
-      page; tests.
+      page; tests. DONE 2026-07-08: "⚓ anchor page N" writes a durable
+      row to the dossier's Useful-anchors table (withPageAnchor, pure,
+      idempotent — the citation IS a file edit); CITATION RETURN works
+      dossier-internal AND cross-note — the shared note-link handler
+      routes any `…/original.pdf#page=N` to the sibling dossier via a
+      pending-page registry (pdf-open.ts), the PDF view jumps on open;
+      requestedPage plumbed through PdfView. Companion: the correction-
+      flip hook now serves BOTH transcript.md and extracted.md (one
+      hook, two derived files) — editing extracted.md flips the dossier
+      to human-corrected. Tests 254→257.
 - [ ] S07 Acceptance run against 18 §M4 intents + truth slice; owner
       validation on a real PDF; review and close.
 
@@ -171,8 +180,8 @@ tests       : 251 passing / 26 suites
               record in sessions/2026-07-08-pdf-engine-decision.md);
               installed, 0 vulnerabilities.
               S03 done 2026-07-08: PDF-as-source landed (see step).
-next action : S06 — anchors + citation return (open-at-page), page-in-
-              tab-param restore, extracted.md correction flip
+next action : S07 — acceptance run (18 §M4 intents + truth slice),
+              owner validation on the real JF_Quote PDF, review + close
 blockers    : none recorded
 ```
 

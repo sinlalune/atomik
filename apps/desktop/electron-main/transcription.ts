@@ -318,6 +318,29 @@ export function withCorrectionRecorded(dossier: string, iso: string): string {
 }
 
 /**
+ * The PDF twin (CP-MVP-003 S06): editing extracted.md flips the dossier
+ * to a corrected extraction. The extraction block gains a corrected_at
+ * (it carried no correction_state), and the representations line says
+ * so. Pure; idempotent (a second save is a no-op).
+ */
+export function withExtractionCorrectionRecorded(dossier: string, iso: string): string {
+  const fence = /^---\n([\s\S]*?)\n---/.exec(dossier)
+  if (!fence) return dossier
+  if (!/^ {2}extracted_text: \.\/extracted\.md$/m.test(fence[1]!)) return dossier
+  if (/^ {2}extraction_corrected_at:/m.test(fence[1]!)) return dossier
+  const frontmatter = fence[1]!.replace(
+    /^( {2}extracted_text: \.\/extracted\.md)$/m,
+    `$1\n  extraction_corrected_at: ${iso}`
+  )
+  let next = dossier.replace(fence[0], () => `---\n${frontmatter}\n---`)
+  next = next.replace(
+    /^- \[Extracted text\]\(\.\/extracted\.md\) — derived, uncorrected\.$/m,
+    '- [Extracted text](./extracted.md) — human-corrected.'
+  )
+  return next
+}
+
+/**
  * The S07 hook, called by main after ANY successful note save: when the
  * saved file is a bundle's transcript.md and its dossier still records
  * model-output, the dossier flips to human-corrected — an editor save IS
@@ -331,15 +354,20 @@ export function recordTranscriptCorrection(
   savedRelPath: string,
   now: () => number = Date.now
 ): boolean {
-  if (basename(savedRelPath) !== 'transcript.md') return false
-  const dossierRel = savedRelPath.replace(/transcript\.md$/, 'source.md')
+  const base = basename(savedRelPath)
+  // one hook, two derived files: transcript.md and extracted.md (S06)
+  const flip =
+    base === 'transcript.md'
+      ? { source: /transcript\.md$/, apply: withCorrectionRecorded }
+      : base === 'extracted.md'
+        ? { source: /extracted\.md$/, apply: withExtractionCorrectionRecorded }
+        : null
+  if (!flip) return false
+  const dossierRel = savedRelPath.replace(flip.source, 'source.md')
   const dossierAbs = resolveNotePath(vaultRoot, dossierRel)
   if (!dossierAbs || !existsSync(dossierAbs)) return false
   const dossier = readNote(vaultRoot, dossierRel)
-  const updated = withCorrectionRecorded(
-    dossier.content,
-    new Date(now()).toISOString()
-  )
+  const updated = flip.apply(dossier.content, new Date(now()).toISOString())
   if (updated === dossier.content) return false
   writeNote(vaultRoot, dossierRel, updated, dossier.mtimeMs)
   return true

@@ -532,6 +532,29 @@ describe('OCR seat (CP-MVP-005 S03) — Qwen3-VL sidecar with pre-resize', () =>
     expect(() => resetTranscription(vault, dossierPath)).toThrow('no transcript')
   })
 
+  it('extraction correction flip (S06): saving extracted.md flips the dossier', async () => {
+    const { recordTranscriptCorrection } = await import('../electron-main/transcription')
+    const { importPdfFromPath } = await import('../electron-main/pdf-import')
+    const { extractPdfSource } = await import('../electron-main/pdf-extract')
+    const inbox = mkdtempSync(join(tmpdir(), 'atomik-x-inbox-'))
+    writeFileSync(join(inbox, 'd.pdf'), '%PDF-1.7 z')
+    const dossierPath = importPdfFromPath(vault, join(inbox, 'd.pdf')).dossierPath
+    await extractPdfSource(
+      vault, dossierPath,
+      () => Promise.resolve({ pages: ['assez de texte pour une vraie page ici'] }),
+      null, null, traces
+    )
+    // simulate the editor save hook firing on extracted.md
+    const flipped = recordTranscriptCorrection(vault, 'sources/pdf/d/extracted.md')
+    expect(flipped).toBe(true)
+    const dossier = readFileSync(join(vault, 'sources/pdf/d/source.md'), 'utf8')
+    expect(dossier).toContain('extraction_corrected_at:')
+    expect(dossier).toContain('- [Extracted text](./extracted.md) — human-corrected.')
+    // idempotent: a second save is a no-op
+    expect(recordTranscriptCorrection(vault, 'sources/pdf/d/extracted.md')).toBe(false)
+    rmSync(inbox, { recursive: true, force: true })
+  })
+
   it('routes image jobs to the OCR seat and audio jobs to the speech seat', async () => {
     const { routeByMedia } = await import('../electron-main/transcription')
     const answered: string[] = []

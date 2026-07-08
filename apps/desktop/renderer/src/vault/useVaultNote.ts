@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { VaultNoteFile } from '../../../shared/ipc-contract'
 import { resolveRelativePath, stripFrontmatter } from '../dev-docs/markdown'
 import { applyRotation } from '../source/rotate'
+import { pdfPageTarget, setPendingPdfPage } from '../source/pdf-open'
 import { inlineImageSources, vaultImageSources } from './note-images'
 
 /**
@@ -120,9 +121,18 @@ export function useVaultNote(onNoteOpened?: (relPath: string) => void): {
       event.preventDefault()
       if (/^(https?:|mailto:)/.test(href)) return
       if (!note) return
-      const pathPart = decodeURIComponent(href.split('#')[0] ?? '')
+      const [rawPath, rawHash = ''] = href.split('#')
+      const pathPart = decodeURIComponent(rawPath ?? '')
       const rel = resolveRelativePath(note.relPath, pathPart)
-      if (rel && rel.endsWith('.md')) openNote(rel)
+      if (!rel) return
+      // citation return (S06): a PDF page link opens the dossier at page
+      const pdfTarget = pdfPageTarget(rel, rawHash)
+      if (pdfTarget) {
+        setPendingPdfPage(pdfTarget.dossierRel, pdfTarget.page)
+        openNote(pdfTarget.dossierRel)
+        return
+      }
+      if (rel.endsWith('.md')) openNote(rel)
     },
     [note, openNote]
   )

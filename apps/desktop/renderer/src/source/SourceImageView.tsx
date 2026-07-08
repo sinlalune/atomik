@@ -5,8 +5,10 @@ import {
   resourceOf,
   rotationOf,
   withDossierRotation,
+  withPageAnchor,
   type Rotation
 } from './dossier'
+import { takePendingPdfPage } from './pdf-open'
 import { applyRotation, mediaObjectUrl } from './rotate'
 import { PdfView } from './PdfView'
 import { SourcesTreePanel } from './SourcesTree'
@@ -76,6 +78,26 @@ export function SourceImageView({
   // CP-MVP-003 S04: PDFs render through the PdfView (pdf.js, display
   // only); rotation and the media transcribe buttons don't apply.
   const isPdf = base?.mimeType === 'application/pdf'
+
+  // S06: citation return — a pending page (set by a PDF link click)
+  // is taken when this dossier opens and handed to the viewer.
+  const [requestedPage, setRequestedPage] = useState<number | null>(null)
+  useEffect(() => {
+    if (note && note.relPath.split('/').pop() === 'source.md') {
+      setRequestedPage(takePendingPdfPage(note.relPath))
+    }
+  }, [note?.relPath])
+
+  // S06: "anchor this page" writes a durable anchor row to the dossier.
+  const anchorPage = (page: number): void => {
+    if (!note) return
+    const next = withPageAnchor(note.content, page)
+    if (next === note.content) return
+    window.atomik.writeNote(note.relPath, next, note.mtimeMs).then(
+      ({ mtimeMs }) => applySaved(next, mtimeMs),
+      (cause) => setImageError(String(cause))
+    )
+  }
 
   // The image follows the note: parse `resource:` and fetch the asset.
   useEffect(() => {
@@ -268,7 +290,13 @@ export function SourceImageView({
             </button>
           </div>
         )}
-        {isPdf && base && <PdfView dataUrl={base.dataUrl} />}
+        {isPdf && base && (
+          <PdfView
+            dataUrl={base.dataUrl}
+            requestedPage={requestedPage}
+            onAnchorPage={isDossier ? anchorPage : undefined}
+          />
+        )}
         {imageUrl && !isAudio && !isPdf && (
           <img src={imageUrl} alt={`Original of ${dossierPath}`} />
         )}

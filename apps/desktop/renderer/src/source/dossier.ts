@@ -68,3 +68,18 @@ export function withDossierRotation(
   }
   return dossierContent.replace(fence[0], () => `---\n${next}\n---`)
 }
+
+/**
+ * A page anchor added to the dossier's "Useful anchors" table (S06):
+ * a durable, clickable citation to a page — the link the return path
+ * consumes. Idempotent per page; pure. Returns the content unchanged
+ * when the table is absent (a hand-emptied dossier is not our concern).
+ */
+export function withPageAnchor(dossierContent: string, page: number): string {
+  const row = `| \`p${page}\` | page ${page} | ./original.pdf#page=${page} |`
+  if (dossierContent.includes(`#page=${page} |`)) return dossierContent
+  const header = /^\| Anchor \| Meaning \| Target \|\n\|[-| ]+\|\n/m.exec(dossierContent)
+  if (!header) return dossierContent
+  const insertAt = header.index + header[0].length
+  return `${dossierContent.slice(0, insertAt)}${row}\n${dossierContent.slice(insertAt)}`
+}

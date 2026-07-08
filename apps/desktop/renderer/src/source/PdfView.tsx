@@ -15,17 +15,28 @@ pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
 
 export function PdfView({
   dataUrl,
-  initialPage = 1
+  requestedPage,
+  onAnchorPage
 }: {
   dataUrl: string
-  initialPage?: number
+  /** Citation return (S06): a page to jump to; changes re-navigate. */
+  requestedPage?: number | null
+  /** "Anchor this page" — records a durable page anchor in the dossier. */
+  onAnchorPage?: (page: number) => void
 }): React.JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const hostRef = useRef<HTMLDivElement | null>(null)
   const docRef = useRef<pdfjs.PDFDocumentProxy | null>(null)
   const [numPages, setNumPages] = useState(0)
-  const [page, setPage] = useState(initialPage)
+  const [page, setPage] = useState(requestedPage ?? 1)
   const [error, setError] = useState<string | null>(null)
+
+  // citation return: jump when the requested page changes (and is real)
+  useEffect(() => {
+    if (requestedPage && requestedPage >= 1) {
+      setPage(numPages ? Math.min(requestedPage, numPages) : requestedPage)
+    }
+  }, [requestedPage, numPages])
 
   // load the document from the gated bytes
   useEffect(() => {
@@ -109,6 +120,16 @@ export function PdfView({
         >
           ›
         </button>
+        {onAnchorPage && numPages > 0 && (
+          <button
+            type="button"
+            className="note-bar-button"
+            title={`Record a durable anchor to page ${page} in the dossier`}
+            onClick={() => onAnchorPage(page)}
+          >
+            ⚓ anchor page {page}
+          </button>
+        )}
       </div>
       <canvas ref={canvasRef} className="pdf-canvas" />
     </div>
