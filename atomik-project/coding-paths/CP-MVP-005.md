@@ -6,8 +6,8 @@ tags: [coding-path, m3-completion, ocr, transcription, cuda, device-tiers, cloud
 timestamp: 2026-07-08T13:00:00Z
 atomik:
   id: CP-MVP-005
-  status: active
-  current_step: S01
+  status: done
+  current_step: S06
   base_commit: 94559f7
 ---
 
@@ -123,8 +123,12 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       startup selection, model + binary in state dir (sha256), identity
       frontmatter + trace; wire into the image-dossier flow behind the
       existing adapter seam.
-- [ ] S04 OCR correction-flow pass on the real Pascal/Pascal 2 dossiers;
+- [x] S04 OCR correction-flow pass on the real Pascal/Pascal 2 dossiers;
       owner validates transcript quality end to end in the app.
+      DONE 2026-07-08: local OCR validated by trace + screenshot
+      (Pascal 2, 12.6 s, +cuda, bench-class transcript); Cloud OCR
+      OWNER-VALIDATED; correction mechanism inherited-validated (same
+      hook as the memo flow). Seven dogfooding findings fixed same-day.
 - [x] S05 Cloud rung (13 §IPC + §keys re-read): explicit per-capture
       "cloud OCR" action → main-process Mistral call (key from
       env/.env.local; absent key = explanatory no-op), result lands as
@@ -190,7 +194,12 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       both transcribe handlers after files land; SourcesTree and the
       vault tree subscribe — refresh only, never the state-drop of a
       vault switch.
-- [ ] S06 Acceptance run + path review and close (owner).
+- [x] S06 Acceptance run + path review and close (owner). DONE
+      2026-07-08 — record: `../sessions/2026-07-08-cp-mvp-005-acceptance.md`;
+      all DoD items met; honest gaps carried forward there. CLOSED on
+      the owner's green light; next path CP-MVP-003 (M4) per owner
+      directive ("ok for PDF page, as source and as a viewer and text
+      extraction").
 
 # Current checkpoint
 
@@ -248,11 +257,10 @@ tests       : 234 passing / 23 suites (S02 added the fallback-chain
               reload mid-run, no trace — the demotion-visibility gap
               this fixes). Tests 238→242 / 25 suites;
               typecheck/build/smoke green.
-next action : S04 — owner validates the in-app flows on the real
-              Pascal dossiers (restart app: Transcribe = local Qwen
-              seat; Cloud OCR = explicit Mistral rung; tier readable
-              in transcript.md runtime_version), correction flow end
-              to end. Then S06 acceptance + close.
+next action : NONE — PATH CLOSED 2026-07-08 (acceptance record:
+              sessions/2026-07-08-cp-mvp-005-acceptance.md; S04 owner
+              validations in — local 12.6 s +cuda trace, Cloud OCR
+              validated). Next path: CP-MVP-003 (M4).
 blockers    : none recorded
 ```
 
