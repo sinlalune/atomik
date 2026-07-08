@@ -368,6 +368,20 @@ L'owner a fait tourner Qwen3-VL 2B (unsloth/Qwen3-VL-2B-Instruct-GGUF,
   lent, rien d'autre ne change. Sur cette page, à ce budget de pixels,
   fichier owner et fichier bench sont interchangeables.
 
+### Licence Qwen2.5-VL 3B — VÉRIFIÉE SUR TEXTE (owner, 2026-07-08)
+
+L'owner a produit le fichier de licence complet : « Qwen RESEARCH LICENSE
+AGREEMENT » (release 2024-09-19, Alibaba Cloud). Clauses opérantes :
+§2.a droits accordés « FOR NON-COMMERCIAL PURPOSES ONLY » avec §1.i
+« Non-Commercial » = « research or evaluation purposes only » (plus
+étroit que « pas de revenu » — même un usage produit gratuit est hors
+grant) ; §2.b usage commercial = licence séparée à demander ; §3
+redistribution = copie de l'accord + fichier NOTICE ; §8 droit chinois,
+juridiction exclusive Hangzhou. **Verdict pratique : le bench (évaluation)
+est couvert ; le SIÈGE ne peut pas être 3B dans quoi que ce soit de
+livré.** Rivaux propres : Qwen3-VL 2B/4B et Qwen2.5-VL 7B (Apache-2.0),
+Unlimited-OCR (MIT), RapidOCR (Apache-2.0).
+
 ### Implications pour le siège OCR (décision owner, échelle 33)
 
 - **GPU présent** : Unlimited-OCR Q4 (MIT) à 8,6 s/page structurel
@@ -389,3 +403,72 @@ Artefacts : `sources/captures/speech-bench-2026-07-08/OCR-*.md` ; runs
 bruts `.atomik/speech-bench/ocr-*.{out,err,time}` ; harnais
 `run-vlm.sh` ; prompt standard « Transcris fidèlement tout le texte de
 cette page. » (unlim : son prompt canonique « document parsing. »).
+
+## S07 addendum 5 — tier « scan propre » + LE harnais Qwen correct (2026-07-08)
+
+Idée owner : bencher une entrée « scan/PDF propre » à côté de la photo
+brute. Page Pascal 2 (« Conscience et inconscient », fin du passage
+Pascal + TEXTE 5 Leibniz). Deux scanners : le nôtre (`scan-clean.py` —
+rotation, aplatissement d'illumination par division du fond estimé,
+étirement de contraste ; 20 lignes de PIL, 12 MP) et Adobe Scan owner
+(dewarp/dérotation, 3,4 MP).
+
+### Le bug Qwen3-VL 4B et sa résolution (web + contrôles)
+
+Sur ces fichiers scan, le 4B stalle — capé (`--image-max-tokens 1024`)
+OU natif : encode ×40–100 (19–29 s au lieu de 0,2–0,5 s) puis décodage
+~2 tok/s, VRAM saturée, reproduit en solo. Le terrain le connaît :
+issues llama.cpp #17345 (« vl_high_resolution_images not taking
+effect », 4B), #17012 (8B freeze en image processing), discussion
+#17172 (« --image-max-tokens doesn't fix it » — réponse : smart-resize
+EN AMONT, le comptage réel ≈ pixels/784). 2B et 2.5-VL 3B insensibles
+sur les mêmes fichiers.
+
+**LE HARNAIS CORRECT (recette datée, validée par matrice 5 runs) :
+pré-redimensionner l'image soi-même au budget de tokens voulu
+(≈ 2 500 tokens pour une page dense ; dimensions multiples de 28 ;
+LANCZOS), `-c 8192`, et ne JAMAIS compter sur `--image-max-tokens`.**
+Résultat 4B : 9,5 s GPU / 154 s CPU (encode 33,5 s) sur la même page
+qui le stallait 10 min — et c'est la mécanique exacte des pipelines
+HF/Unsloth/LM Studio (la question owner d'hier, refermée par la
+racine).
+
+### Résultats tier scan (GPU, build PR#24975)
+
+| run | wall | verdict |
+|---|---|---|
+| **Qwen3-VL 4B @2,5k × Adobe** | **9,5 s** | **MEILLEUR TRANSCRIPT DU BANC** : structure complète (TEXTE 5, notes a/b, folio près), ancres d'appels de note inline (`aperceptiona`, `corps'`, `incontinentb`), 2 fautes de mot (« je vous vois », « habitué ») |
+| Qwen3-VL 4B @2,5k × scan maison | 10,0 s | même classe (header perdu, micro-erreurs différentes au même point difficile) |
+| Qwen3-VL 4B @2,5k × Adobe, CPU 8t | 154 s | même classe que GPU — le floor sans GPU passe de 441 s à 2 min 34 |
+| Qwen2.5-VL 3B × Adobe (brut) | 41,7 s | excellent aussi — mais licence RESEARCH vérifiée sur texte (owner) : « research or evaluation purposes only », siège interdit |
+| Qwen3-VL 2B @2,5k × Adobe | 18,4 s | complet, classe en dessous |
+| Unlimited-OCR Q4 × scan maison 12 MP | 41,8 s | complet, fin dégradée + LaTeX halluciné |
+| Unlimited-OCR Q4 × Adobe 3,4 MP | 16,5 s | **COLLAPSE à 40 %** (boucle sur le titre, zéro Leibniz) — sa fragilité est corrélée aux pixels BAS : exactement ce qu'un pipeline PDF lui donnerait |
+
+### Ce que le tier scan change au siège
+
+Le tandem **pré-resize + Qwen3-VL 4B (Apache-2.0)** règle d'un coup
+qualité (meilleur transcript du banc), licence (le 3B Research devient
+inutile) et vitesse GPU (9,5 s), et ramène le floor CPU à ~2,5 min la
+page dense. Le scanner maison suffit comme normalisation d'entrée
+(Adobe garde l'avantage dewarp sur photos pires que celle-ci). unlim
+reste l'option « OCR structurel » GPU (régions + folio) mais ne doit
+JAMAIS être nourri en basse résolution. RapidOCR 3,6 s inchangé en
+instantané. Décision de siège : owner.
+
+Artefact : `OCR-pascal2-scan-tier-comparative.md` ; images
+`pascal2-{scan,adobe}-{1k,2k5}.jpg` + `scan-clean.py` sous
+`.atomik/speech-bench/`.
+
+### Proposition owner (2026-07-08) : Mistral OCR 3.0 comme référence API
+
+L'owner a essayé Mistral OCR 3.0 (API uniquement) et le juge fort. Deux
+usages proposés : (a) **référence plafond du banc** — même statut que
+Voxtral côté speech : une ligne de référence datée, PAS un candidat au
+siège local ; à bencher sur les deux pages du dossier dès qu'une clé
+API est fournie côté owner (opt-in cloud explicite) ; (b) **option
+in-app par API pour les scans douteux** — cohérent avec l'échelle 33
+(floor local + tier cloud explicite), à instruire selon les règles
+bedrock : clé provider jamais dans le renderer (13), sortie marquée
+cloud-derived dans le modèle de vérité (28), opt-in par capture, pas de
+silencieux. Décision d'intégration = coding path provider, pas ce banc.

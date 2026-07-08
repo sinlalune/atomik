@@ -217,6 +217,15 @@ tests       : 227 passing / 23 suites
               unlim-GPU 8.6 s/page complete+structured; Qwen3-VL 4B
               Apache = best CPU quality at 441 s; RapidOCR 3.6 s floor
               unchanged. WSL2 caveats recorded (NO_VMM, VRAM spill).
+              SCAN TIER added 2026-07-08 (S07 addendum 5): owner Adobe
+              scan + own scan-clean.py both work; THE PROPER QWEN
+              HARNESS is pre-resizing the image to the token budget
+              (never --image-max-tokens — llama.cpp large-image path
+              stalls the 4B, dated bug refs) → Qwen3-VL 4B Apache
+              @2.5k-tokens = best transcript of the whole bench at
+              9.5 s GPU / 154 s CPU. Qwen2.5-VL 3B license VERIFIED on
+              text (Research: non-commercial only) = seat-disqualified;
+              the Apache 4B now matches it anyway.
               S08 acceptance run recorded 2026-07-07
               (sessions/2026-07-07-cp-mvp-004-acceptance.md).
 next action : owner — path review + close decision + OCR seat decision
