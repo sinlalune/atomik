@@ -226,6 +226,14 @@ tests       : 227 passing / 23 suites
               9.5 s GPU / 154 s CPU. Qwen2.5-VL 3B license VERIFIED on
               text (Research: non-commercial only) = seat-disqualified;
               the Apache 4B now matches it anyway.
+              API CEILING benched 2026-07-08 on owner key: Mistral OCR
+              4-0 (= latest; owner's 3.0 already superseded) —
+              letter-perfect on both scans (~2.4 s API), best raw-photo
+              transcript (3 micro-errors). Local→ceiling gap: ~2 word
+              errors → ~0. Proposed in-app opt-in cloud rung = its own
+              provider coding path. NOTE: photo tier = Pascal page
+              (folio 10), scan tier = Pascal 2 page (folio 11) — two
+              different pages; only Pascal 2 has an Adobe scan.
               S08 acceptance run recorded 2026-07-07
               (sessions/2026-07-07-cp-mvp-004-acceptance.md).
 next action : owner — path review + close decision + OCR seat decision

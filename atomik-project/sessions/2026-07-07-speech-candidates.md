@@ -407,8 +407,12 @@ cette page. » (unlim : son prompt canonique « document parsing. »).
 ## S07 addendum 5 — tier « scan propre » + LE harnais Qwen correct (2026-07-08)
 
 Idée owner : bencher une entrée « scan/PDF propre » à côté de la photo
-brute. Page Pascal 2 (« Conscience et inconscient », fin du passage
-Pascal + TEXTE 5 Leibniz). Deux scanners : le nôtre (`scan-clean.py` —
+brute. ⚠ Page DIFFÉRENTE de celle du tier photo (rappel owner) : le
+tier photo travaille la page du dossier Pascal (TEXTE 4, folio 10), le
+tier scan la page du dossier Pascal 2 (« Conscience et inconscient »,
+fin du passage Pascal + TEXTE 5 Leibniz, folio 11) — seule Pascal 2 a
+un scan Adobe ; les comparaisons inter-tiers sont donc inter-pages,
+les classements intra-tier à entrée identique. Deux scanners : le nôtre (`scan-clean.py` —
 rotation, aplatissement d'illumination par division du fond estimé,
 étirement de contraste ; 20 lignes de PIL, 12 MP) et Adobe Scan owner
 (dewarp/dérotation, 3,4 MP).
@@ -465,8 +469,17 @@ Artefact : `OCR-pascal2-scan-tier-comparative.md` ; images
 L'owner a essayé Mistral OCR 3.0 (API uniquement) et le juge fort. Deux
 usages proposés : (a) **référence plafond du banc** — même statut que
 Voxtral côté speech : une ligne de référence datée, PAS un candidat au
-siège local ; à bencher sur les deux pages du dossier dès qu'une clé
-API est fournie côté owner (opt-in cloud explicite) ; (b) **option
+siège local — **BENCHÉE le 2026-07-08 sur clé owner (.env.local,
+git-ignoré)** : id résolu `mistral-ocr-4-0` (= `latest` ; la 3.0 que
+l'owner a essayée a déjà un successeur). Photo brute Pascal 1 :
+meilleur transcript brut du banc (3 micro-fautes : « parier »,
+« cogitationes », « pp. 16-19 »), 3,1 s API. Scans (Adobe ET maison) :
+**lettre-parfait sur toutes les sondes** — y compris « je vois bien »
+et « habité » où le 4B local glisse, ancres de notes en exposants
+Unicode ᵃ/¹/ᵇ, folios — ~2,4–2,9 s API, sorties de même taille sur les
+deux scanners. Écart local→plafond quantifié : ~2 fautes de mot
+(Qwen3-VL 4B @2,5k) → ~0. Artefact : `OCR-mistral-reference.md` ;
+(b) **option
 in-app par API pour les scans douteux** — cohérent avec l'échelle 33
 (floor local + tier cloud explicite), à instruire selon les règles
 bedrock : clé provider jamais dans le renderer (13), sortie marquée
