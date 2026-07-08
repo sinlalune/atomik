@@ -412,7 +412,28 @@ describe('OCR seat (CP-MVP-005 S03) — Qwen3-VL sidecar with pre-resize', () =>
     expect(out.runtimeVersion).not.toContain('+cuda')
     expect(out.location).toBe('local-model')
     expect(out.audioSeconds).toBeUndefined()
+    // S05c: the cleaned scan the model read travels with the output
+    expect(out.scanJpeg?.toString()).toBe('resized')
     rmSync(bin, { recursive: true, force: true })
+  })
+
+  it('lands scan.jpg in the dossier and links it (S05c)', async () => {
+    const dossierPath = seedBundle()
+    const withScan = {
+      id: 'scanner',
+      transcribe: () => Promise.resolve({
+        markdown: 'texte', model: 'm', modelVersion: '1', runtime: 'r',
+        runtimeVersion: '1', location: 'local-model' as const,
+        scanJpeg: Buffer.from('fake-jpeg-bytes')
+      })
+    }
+    await transcribeSource(vault, dossierPath, withScan, traces)
+    const bundleDir = join(vault, 'sources/captures/pascal')
+    expect(readFileSync(join(bundleDir, 'scan.jpg'), 'utf8')).toBe('fake-jpeg-bytes')
+    const transcript = readFileSync(join(bundleDir, 'transcript.md'), 'utf8')
+    expect(transcript).toContain('[scan.jpg](./scan.jpg)')
+    const dossier = readFileSync(join(bundleDir, 'source.md'), 'utf8')
+    expect(dossier).toContain('[Cleaned scan](./scan.jpg)')
   })
 
   it('tries CUDA first, falls back to CPU, and demotes for the session', async () => {

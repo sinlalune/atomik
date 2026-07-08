@@ -40,6 +40,11 @@ export type TranscriptionOutput = {
   /** Optional time anchors (07 sidecar rules): written as segments.json
    *  beside the transcript — a machine aid, never the canonical text. */
   segments?: Array<{ startMs: number; endMs: number; text: string }>
+  /** Optional cleaned scan (CP-MVP-005 S05c): the pre-processed image
+   *  the OCR model actually read — landed as scan.jpg beside the
+   *  transcript. Machine-derived and regenerable; the ORIGINAL stays
+   *  the evidence, always. */
+  scanJpeg?: Buffer
 }
 
 export interface TranscriptionAdapter {
@@ -161,6 +166,9 @@ export function transcriptDocument(
     ...(output.segments && output.segments.length > 0
       ? ['Time anchors: [segments.json](./segments.json) — machine sidecar (07); this file stays the canonical text.', '']
       : []),
+    ...(output.scanJpeg
+      ? ['Cleaned scan: [scan.jpg](./scan.jpg) — the flattened image the model read; the original stays the evidence.', '']
+      : []),
     output.markdown
   ].join('\n')
 }
@@ -198,7 +206,9 @@ export function withTranscriptionRecorded(
   let next = dossier.replace(fence[0], () => `---\n${frontmatter}\n---`)
   next = next.replace(
     /^- None yet — transcription arrives with the adapter \(S06\)\.$/m,
-    '- [Transcript](./transcript.md) — model output, uncorrected.'
+    output.scanJpeg
+      ? '- [Transcript](./transcript.md) — model output, uncorrected.\n- [Cleaned scan](./scan.jpg) — machine-derived image the model read.'
+      : '- [Transcript](./transcript.md) — model output, uncorrected.'
   )
   return next
 }
@@ -312,6 +322,13 @@ export async function transcribeSource(
         { flag: 'wx' }
       )
     }
+    const scanAbs = join(dirname(dossierAbs), 'scan.jpg')
+    if (output.scanJpeg) {
+      // plain write, not wx: a pure machine derivative — re-running the
+      // adapter legitimately regenerates it (the transcript's wx above
+      // stays the gate on re-runs).
+      writeFileSync(scanAbs, output.scanJpeg)
+    }
     try {
       writeNote(
         vaultRoot,
@@ -322,6 +339,7 @@ export async function transcribeSource(
     } catch (error) {
       rmSync(transcriptAbs, { force: true })
       rmSync(segmentsAbs, { force: true })
+      if (output.scanJpeg) rmSync(scanAbs, { force: true })
       throw error
     }
     traces.recordTranscription({

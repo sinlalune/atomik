@@ -139,6 +139,13 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       env var stays as dev override; (3) CUDA demotion made VISIBLE
       (console.warn with the cause — S04 finding: silent fallback is
       undiagnosable).
+- [x] S05c Owner request (2026-07-08): the cleaned scan LANDS IN THE
+      DOSSIER as scan.jpg beside the transcript (segments.json seam:
+      adapter reports scanJpeg, the pipeline owns the vault write,
+      cleanup on dossier race) — linked from transcript body and the
+      dossier's extracted representations; plain write (machine
+      derivative, regenerable; the transcript's wx stays the re-run
+      gate); the ORIGINAL stays the evidence.
 - [ ] S06 Acceptance run + path review and close (owner).
 
 # Current checkpoint

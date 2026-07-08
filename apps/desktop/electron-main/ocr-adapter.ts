@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { runSidecar } from './sidecar'
@@ -75,7 +75,10 @@ export function createQwenVlOcrAdapter(
           modelVersion: 'bartowski GGUF, benched 2026-07-08',
           runtime: 'llama.cpp llama-mtmd-cli',
           runtimeVersion: tier === 'cuda' ? 'PR#24975@649864fc6+cuda' : 'PR#24975@649864fc6',
-          location: 'local-model'
+          location: 'local-model',
+          // the cleaned scan the model actually read → lands in the
+          // dossier as scan.jpg (S05c, owner request)
+          scanJpeg: readFileSync(sized)
         }
       } finally {
         rmSync(work, { recursive: true, force: true })
