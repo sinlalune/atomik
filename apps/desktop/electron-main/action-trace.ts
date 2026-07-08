@@ -54,7 +54,7 @@ type ActionTraceLine = {
 type TranscribeTraceLine = {
   id: string
   timestamp: string
-  action: 'transcribe'
+  action: 'transcribe' | 'extract'
   execution: {
     location: 'deterministic' | 'local-model' | 'cloud-model'
     provider: 'atomik'
@@ -72,6 +72,9 @@ type TranscribeTraceLine = {
 
 export type TranscriptionRecord = {
   id: string
+  /** 'transcribe' (default) or 'extract' — PDF extraction (CP-MVP-003
+   *  S05) rides the same shape: identity, bytes+hash, wall, outcome. */
+  action?: 'transcribe' | 'extract'
   output: {
     model: string
     modelVersion: string
@@ -115,7 +118,7 @@ export class ActionTraceLedger {
     this.append({
       id: record.id,
       timestamp: new Date().toISOString(),
-      action: 'transcribe',
+      action: record.action ?? 'transcribe',
       execution: {
         location: record.output?.location ?? 'deterministic',
         provider: 'atomik',

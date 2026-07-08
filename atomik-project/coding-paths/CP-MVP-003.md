@@ -129,10 +129,22 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       don't apply to PDFs (scoped out). DEFERRED to S06: page-in-tab-
       param restore (rides the open-at-page mechanism citation return
       needs anyway). Owner screenshot pending (his JF_Quote fixture).
-- [ ] S05 Text extraction: text-layer pages → derived per-page text
+- [x] S05 Text extraction: text-layer pages → derived per-page text
       (visibly derived, identity + trace); image-only pages → the
       SEATED OCR pipeline; extraction status on the dossier; correction
-      flow verified on extracted text; tests.
+      flow verified on extracted text; tests. DONE 2026-07-08:
+      pdf-extract.ts (transcription-shaped pipeline, DI reader +
+      rasterizer + OCR seat; wx no-clobber; dossier status→extracted +
+      extracted_text + trace id; index line; ONE 'extract' trace —
+      deterministic when pure text-layer, local-model when OCR pages
+      ran); pdf-text.ts (pdf.js legacy in MAIN + pdftoppm rasterizer,
+      ffmpeg-precedent: absent system tool → honest per-page
+      placeholder — poppler NOT installed on this machine, noted);
+      Extract-text button on pdf dossiers. REAL VERIFY: the owner's
+      JF_Quote PDF — 2 pages, ~5.1k chars/page, 125 ms, French intact.
+      Tests 251→253. Correction-flow-on-extracted note: the S07 hook
+      keys on transcript.md — extracted.md correction flip is an S06
+      companion item.
 - [ ] S06 Anchors: page anchors recorded with notes created from
       selections (05/06); citation return path opens the viewer at the
       page; tests.
@@ -159,10 +171,8 @@ tests       : 251 passing / 26 suites
               record in sessions/2026-07-08-pdf-engine-decision.md);
               installed, 0 vulnerabilities.
               S03 done 2026-07-08: PDF-as-source landed (see step).
-next action : S05 — extraction: pdf.js legacy in MAIN → extracted.md
-              (derived, identity + trace); image-only pages via the
-              seated OCR pipeline; owner's JF_Quote PDF as the real
-              verification fixture
+next action : S06 — anchors + citation return (open-at-page), page-in-
+              tab-param restore, extracted.md correction flip
 blockers    : none recorded
 ```
 

@@ -44,6 +44,7 @@ export const ATOMIK_CHANNELS = {
   transcribeSourceCloud: 'atomik:transcribe-source-cloud',
   resetTranscription: 'atomik:reset-transcription',
   importPdfSource: 'atomik:import-pdf-source',
+  extractPdfSource: 'atomik:extract-pdf-source',
   addLocalCapture: 'atomik:add-local-capture',
   getCaptureUploadData: 'atomik:get-capture-upload-data',
   openSourceExternally: 'atomik:open-source-externally',
@@ -495,6 +496,10 @@ export type AtomikApi = {
    *  bundle — original.pdf untouched + dossier (sha256) + index. Null
    *  when the user cancels the dialog. */
   importPdfSource: () => Promise<CaptureImportResult | null>
+  /** PDF text extraction (S05): text-layer pages parse locally; image-
+   *  only pages ride the seated OCR when the system can rasterize.
+   *  Lands extracted.md (derived, traced); refuses to clobber. */
+  extractPdfSource: (dossierPath: string) => Promise<{ extractedPath: string; traceId: string }>
   /** Desktop mic recording → the SAME inbox through the same gates
    *  (size/MIME/magic); the explicit import decides it like any phone
    *  upload. Opens no network endpoint. */
@@ -557,6 +562,7 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'transcribeSourceCloud',
   'resetTranscription',
   'importPdfSource',
+  'extractPdfSource',
   'addLocalCapture',
   'getCaptureUploadData',
   'openSourceExternally',

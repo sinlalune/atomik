@@ -21,6 +21,8 @@ import { createQwenVlOcrAdapter, ocrSeatReady, type ImageResizer } from './ocr-a
 import { createMistralOcrAdapter } from './mistral-ocr-adapter'
 import { publicAiSettings, readMistralKey, writeMistralKey } from './ai-settings'
 import { importPdfFromPath } from './pdf-import'
+import { extractPdfSource } from './pdf-extract'
+import { pdftoppmRasterizer, readPdfTextWithPdfjs } from './pdf-text'
 import { rotateRgba, scanCleanRgba } from './scan-filter'
 import { listDevDocs, readDevDoc, resolveDocsRoot } from './dev-docs'
 import { searchVault } from './search'
@@ -242,6 +244,10 @@ let capture: CaptureSessionManager
  *  runtime. `transcriptionAdapter` routes by media family. */
 let transcriptionAdapter: TranscriptionAdapter = mockTranscriptionAdapter
 
+/** The REAL OCR seat when its pieces exist (null otherwise) — shared by
+ *  the media router and the PDF extraction fallback (S05). */
+let ocrAdapter: TranscriptionAdapter | null = null
+
 /** THE PROVEN OCR HARNESS (S07 addendum 5): pre-resize to the token
  *  budget in main — pixels/784 tokens, dimensions multiples of 28,
  *  never upscale — via Electron's own nativeImage (15: no new image
@@ -339,6 +345,26 @@ function registerCaptureHandlers(stateDir: string): void {
     event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
     return result
   })
+  // CP-MVP-003 S05: PDF extraction — text layer in main; image-only
+  // pages ride the REAL OCR seat when the system can rasterize.
+  ipcMain.handle(
+    ATOMIK_CHANNELS.extractPdfSource,
+    async (event, dossierPath: unknown) => {
+      const rasterize = pdftoppmRasterizer(
+        process.env['ATOMIK_PDFTOPPM'] ?? '/usr/bin/pdftoppm'
+      )
+      const result = await extractPdfSource(
+        requireVault(),
+        dossierPath,
+        readPdfTextWithPdfjs,
+        ocrAdapter,
+        rasterize,
+        traces
+      )
+      event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
+      return result
+    }
+  )
   // S05h: the explicit re-run affordance — renderer confirms first.
   ipcMain.handle(
     ATOMIK_CHANNELS.resetTranscription,
@@ -658,10 +684,10 @@ app.whenReady().then(() => {
   const audioSeat = whisperSeatReady(speechPaths)
     ? createWhisperCppAdapter(speechPaths)
     : mockTranscriptionAdapter
-  const ocrSeat = ocrSeatReady(ocrPaths)
+  ocrAdapter = ocrSeatReady(ocrPaths)
     ? createQwenVlOcrAdapter(ocrPaths, nativeImageResizer)
-    : mockTranscriptionAdapter
-  transcriptionAdapter = routeByMedia(audioSeat, ocrSeat)
+    : null
+  transcriptionAdapter = routeByMedia(audioSeat, ocrAdapter ?? mockTranscriptionAdapter)
   capture = new CaptureSessionManager({
     inboxRoot: join(stateDir, 'capture-inbox'),
     // Stable default port so ONE firewall rule suffices (WSL2 mirrored

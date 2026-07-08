@@ -284,6 +284,22 @@ export function SourceImageView({
             {note?.relPath ?? dossierPath}
           </span>
           <span className="note-bar-actions">
+            {note &&
+              isPdf &&
+              isDossier &&
+              !note.content.includes('./extracted.md') && (
+                <button
+                  type="button"
+                  className="note-bar-button"
+                  title="Extract the text layer locally (image-only pages use the OCR seat when a rasterizer is installed) — lands extracted.md, derived and traced"
+                  disabled={transcribing}
+                  onClick={() =>
+                    runTranscription(window.atomik.extractPdfSource, setTranscribing)
+                  }
+                >
+                  {transcribing ? 'Extracting…' : 'Extract text'}
+                </button>
+              )}
             {note && hasScan && !isAudio && (
               <button
                 type="button"

@@ -92,6 +92,8 @@ const api: AtomikApi = {
   resetTranscription: (dossierPath: string) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.resetTranscription, dossierPath),
   importPdfSource: () => ipcRenderer.invoke(ATOMIK_CHANNELS.importPdfSource),
+  extractPdfSource: (dossierPath: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.extractPdfSource, dossierPath),
   addLocalCapture: (bytes: Uint8Array, mimeType: string, fileName: string) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.addLocalCapture, bytes, mimeType, fileName),
   getCaptureUploadData: (uploadId: string) =>
