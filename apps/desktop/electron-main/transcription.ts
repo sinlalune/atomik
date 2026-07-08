@@ -3,7 +3,7 @@ import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { basename, dirname, extname, join, resolve } from 'node:path'
 import type { TranscribeResult } from '../shared/ipc-contract'
 import type { ActionTraceLedger } from './action-trace'
-import { assertInsideVault, readNote, resolveNotePath, writeNote } from './vault'
+import { assertInsideVault, readNote, resolveNotePath, sourceAssetRotation, writeNote } from './vault'
 
 /**
  * The transcription seat (07 §audio/video adapter, 08 §truth treatment;
@@ -25,6 +25,10 @@ export type TranscriptionJob = {
   originalAbs: string
   mimeType: string
   bytes: Buffer
+  /** Dossier-recorded display rotation (degrees CW) — the OCR seat
+   *  uprights the image before recognition (S07 note); the original
+   *  stays byte-untouched. */
+  rotation?: number
 }
 
 export type TranscriptionOutput = {
@@ -307,7 +311,12 @@ export async function transcribeSource(
   // exactly one line is appended either way (completed or failed).
   const traceId = traces.newTraceId()
   try {
-    const output = await adapter.transcribe({ originalAbs, mimeType, bytes })
+    const output = await adapter.transcribe({
+      originalAbs,
+      mimeType,
+      bytes,
+      rotation: sourceAssetRotation(originalAbs)
+    })
     const iso = new Date(now()).toISOString()
     writeFileSync(
       transcriptAbs,

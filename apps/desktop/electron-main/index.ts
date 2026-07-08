@@ -19,7 +19,7 @@ import { createWhisperCppAdapter, whisperSeatReady } from './whisper-adapter'
 import { createQwenVlOcrAdapter, ocrSeatReady, type ImageResizer } from './ocr-adapter'
 import { createMistralOcrAdapter } from './mistral-ocr-adapter'
 import { publicAiSettings, readMistralKey, writeMistralKey } from './ai-settings'
-import { scanCleanRgba } from './scan-filter'
+import { rotateRgba, scanCleanRgba } from './scan-filter'
 import { listDevDocs, readDevDoc, resolveDocsRoot } from './dev-docs'
 import { searchVault } from './search'
 import { buildMainWindowOptions } from './security'
@@ -247,7 +247,7 @@ let transcriptionAdapter: TranscriptionAdapter = mockTranscriptionAdapter
  *  illumination flattening + contrast stretch, the treatment that put
  *  the clean-scan tier's quality on the table. llama.cpp's flag-based
  *  cap is broken for this model and is never used. */
-const nativeImageResizer: ImageResizer = (srcAbs, dstAbs, budgetTokens) => {
+const nativeImageResizer: ImageResizer = (srcAbs, dstAbs, budgetTokens, rotationDegrees) => {
   const img = nativeImage.createFromPath(srcAbs)
   const size = img.getSize()
   if (size.width === 0 || size.height === 0) {
@@ -257,12 +257,16 @@ const nativeImageResizer: ImageResizer = (srcAbs, dstAbs, budgetTokens) => {
   const width = Math.max(28, Math.round((size.width * scale) / 28) * 28)
   const height = Math.max(28, Math.round((size.height * scale) / 28) * 28)
   const resized = img.resize({ width, height, quality: 'best' })
-  const cleaned = scanCleanRgba(resized.toBitmap(), width, height)
+  // upright per the dossier's recorded rotation (S07 note), then flatten
+  const upright = rotateRgba(resized.toBitmap(), width, height, rotationDegrees)
+  const cleaned = scanCleanRgba(upright.pixels, upright.width, upright.height)
   writeFileSync(
     dstAbs,
-    nativeImage.createFromBitmap(cleaned, { width, height }).toJPEG(95)
+    nativeImage
+      .createFromBitmap(cleaned, { width: upright.width, height: upright.height })
+      .toJPEG(95)
   )
-  return Promise.resolve({ width, height })
+  return Promise.resolve({ width: upright.width, height: upright.height })
 }
 
 function registerCaptureHandlers(stateDir: string): void {

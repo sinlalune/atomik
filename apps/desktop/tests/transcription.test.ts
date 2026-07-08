@@ -391,21 +391,24 @@ describe('OCR seat (CP-MVP-005 S03) — Qwen3-VL sidecar with pre-resize', () =>
     writeFileSync(model, 'x')
     writeFileSync(mmproj, 'x')
     const budgets: number[] = []
-    const resize = (_src: string, dst: string, budget: number) => {
+    const rotations: number[] = []
+    const resize = (_src: string, dst: string, budget: number, rotation: number) => {
       budgets.push(budget)
+      rotations.push(rotation)
       writeFileSync(dst, 'resized')
       return Promise.resolve({ width: 756, height: 1036 })
     }
-    return { createQwenVlOcrAdapter, ocrSeatReady, bin, fakeCpu, model, mmproj, budgets, resize }
+    return { createQwenVlOcrAdapter, ocrSeatReady, bin, fakeCpu, model, mmproj, budgets, rotations, resize }
   }
 
   it('pre-resizes to the proven budget and reports qwen identity', async () => {
-    const { createQwenVlOcrAdapter, ocrSeatReady, bin, fakeCpu, model, mmproj, budgets, resize } = await seat()
+    const { createQwenVlOcrAdapter, ocrSeatReady, bin, fakeCpu, model, mmproj, budgets, rotations, resize } = await seat()
     const paths = { binary: fakeCpu, model, mmproj }
     expect(ocrSeatReady(paths)).toBe(true)
     expect(ocrSeatReady({ ...paths, mmproj: '/nope' })).toBe(false)
-    const out = await createQwenVlOcrAdapter(paths, resize).transcribe(JOB_IMG)
+    const out = await createQwenVlOcrAdapter(paths, resize).transcribe({ ...JOB_IMG, rotation: 270 })
     expect(budgets).toEqual([2500])
+    expect(rotations).toEqual([270])
     expect(out.markdown).toBe('texte de la page')
     expect(out.model).toContain('Qwen3-VL-4B')
     expect(out.runtime).toContain('llama-mtmd-cli')

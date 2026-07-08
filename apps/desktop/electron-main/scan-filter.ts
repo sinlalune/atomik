@@ -7,6 +7,40 @@
  * the app (15). Channel-order agnostic (channels are averaged), so BGRA
  * from `toBitmap()` is fine. Pure; ~O(n) via an integral image.
  */
+/** Clockwise quarter-turn rotation on raw RGBA pixels (the dossier's
+ *  recorded display rotation, applied so the model reads the page
+ *  upright — S07's first improvement note, now structural). */
+export function rotateRgba(
+  pixels: Buffer,
+  width: number,
+  height: number,
+  degrees: number
+): { pixels: Buffer; width: number; height: number } {
+  const turns = ((Math.round(degrees / 90) % 4) + 4) % 4
+  let src = pixels
+  let w = width
+  let h = height
+  for (let t = 0; t < turns; t++) {
+    const dst = Buffer.alloc(src.length)
+    // 90° CW: src (x, y) → dst (h-1-y, x); dst is h wide, w tall
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const from = (y * w + x) * 4
+        const to = (x * h + (h - 1 - y)) * 4
+        dst[to] = src[from]!
+        dst[to + 1] = src[from + 1]!
+        dst[to + 2] = src[from + 2]!
+        dst[to + 3] = src[from + 3]!
+      }
+    }
+    src = dst
+    const swap = w
+    w = h
+    h = swap
+  }
+  return { pixels: src, width: w, height: h }
+}
+
 export function scanCleanRgba(pixels: Buffer, width: number, height: number): Buffer {
   const n = width * height
   if (pixels.length < n * 4) throw new Error('scan-filter: buffer smaller than dimensions')

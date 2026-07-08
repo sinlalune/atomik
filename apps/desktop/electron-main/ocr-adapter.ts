@@ -25,10 +25,14 @@ export type OcrPaths = { binary: string; model: string; mmproj: string; cudaBina
 export type ImageResizer = (
   srcAbs: string,
   dstAbs: string,
-  budgetTokens: number
+  budgetTokens: number,
+  rotationDegrees: number
 ) => Promise<{ width: number; height: number }>
 
 const OCR_TIMEOUT_MS = 600_000
+/** A healthy CUDA run is 4–15 s; the S04 incident burned 600 s in a
+ *  stalled CUDA attempt before falling back. Fail fast to the floor. */
+const OCR_CUDA_ATTEMPT_TIMEOUT_MS = 90_000
 const TOKEN_BUDGET = 2_500
 const PROMPT = 'Transcris fidèlement tout le texte de cette page.'
 
@@ -47,7 +51,7 @@ export function createQwenVlOcrAdapter(
       const work = mkdtempSync(join(tmpdir(), 'atomik-ocr-'))
       const sized = join(work, 'input.jpg')
       try {
-        await resize(job.originalAbs, sized, TOKEN_BUDGET)
+        await resize(job.originalAbs, sized, TOKEN_BUDGET, job.rotation ?? 0)
         const args = [
           '-m', paths.model, '--mmproj', paths.mmproj,
           '--image', sized, '-p', PROMPT,
@@ -57,7 +61,7 @@ export function createQwenVlOcrAdapter(
         let text: string
         if (tier === 'cuda') {
           try {
-            text = (await runSidecar(paths.cudaBinary!, [...args, '-ngl', '99'], OCR_TIMEOUT_MS)).trim()
+            text = (await runSidecar(paths.cudaBinary!, [...args, '-ngl', '99'], OCR_CUDA_ATTEMPT_TIMEOUT_MS)).trim()
           } catch (cause) {
             cudaHealthy = false
             tier = 'cpu'

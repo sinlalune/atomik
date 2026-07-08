@@ -146,6 +146,18 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       dossier's extracted representations; plain write (machine
       derivative, regenerable; the transcript's wx stays the re-run
       gate); the ORIGINAL stays the evidence.
+- [x] S05d S04-incident fixes (2026-07-08): the owner's first in-app
+      run stalled 600 s in the CUDA attempt then died on a dev reload
+      (trace: wallMs 652 428, failed, Pascal 2 bytes). (1) The seat now
+      UPRIGHTS the image per the dossier's recorded rotation before
+      recognition (S07's first improvement note, now structural;
+      rotateRgba pure CW quarter-turns; scan.jpg lands upright too).
+      (2) The CUDA ATTEMPT times out at 90 s (healthy runs are 4–15 s)
+      — a stall now costs seconds-scale before the CPU floor answers,
+      not 10 minutes. Note: Pascal 2 has NO recorded rotation — the
+      owner uprights it in-app (two clicks) for best results; an
+      unrotated sideways page is the suspected stall trigger (dated
+      hypothesis; the 90 s cap bounds it either way).
 - [ ] S06 Acceptance run + path review and close (owner).
 
 # Current checkpoint

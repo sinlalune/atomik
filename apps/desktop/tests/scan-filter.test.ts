@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { scanCleanRgba } from '../electron-main/scan-filter'
+import { rotateRgba, scanCleanRgba } from '../electron-main/scan-filter'
 
 /** Synthetic page photo: paper brightness slides 120→220 across the
  *  width (uneven lighting), "ink" pixels sit at 25% of local paper. */
@@ -47,5 +47,20 @@ describe('scan filter (CP-MVP-005 S05b) — illumination flattening', () => {
 
   it('rejects a buffer smaller than the declared dimensions', () => {
     expect(() => scanCleanRgba(Buffer.alloc(16), 10, 10)).toThrow('scan-filter')
+  })
+
+  it('rotates clockwise by quarter turns (dossier rotation)', () => {
+    // 2×1 image: [A B] — after 90° CW it is 1 wide, 2 tall: [A] over [B]
+    const px = Buffer.from([1, 1, 1, 255, 2, 2, 2, 255])
+    const quarter = rotateRgba(px, 2, 1, 90)
+    expect([quarter.width, quarter.height]).toEqual([1, 2])
+    expect(quarter.pixels[0]).toBe(1)
+    expect(quarter.pixels[4]).toBe(2)
+    // 270° CW: [B] over [A]
+    const threeQuarter = rotateRgba(px, 2, 1, 270)
+    expect(threeQuarter.pixels[0]).toBe(2)
+    expect(threeQuarter.pixels[4]).toBe(1)
+    // 0° and 360° are identity
+    expect(rotateRgba(px, 2, 1, 360).pixels.equals(px)).toBe(true)
   })
 })
