@@ -20,6 +20,7 @@ import { createWhisperCppAdapter, whisperSeatReady } from './whisper-adapter'
 import { createQwenVlOcrAdapter, ocrSeatReady, type ImageResizer } from './ocr-adapter'
 import { createMistralOcrAdapter } from './mistral-ocr-adapter'
 import { publicAiSettings, readMistralKey, writeMistralKey } from './ai-settings'
+import { importPdfFromPath } from './pdf-import'
 import { rotateRgba, scanCleanRgba } from './scan-filter'
 import { listDevDocs, readDevDoc, resolveDocsRoot } from './dev-docs'
 import { searchVault } from './search'
@@ -325,6 +326,19 @@ function registerCaptureHandlers(stateDir: string): void {
       return result
     }
   )
+  // CP-MVP-003 S03: PDF as source — explicit file pick, gated bytes.
+  ipcMain.handle(ATOMIK_CHANNELS.importPdfSource, async (event) => {
+    const picked = await dialog.showOpenDialog({
+      title: 'Import PDF as source',
+      filters: [{ name: 'PDF', extensions: ['pdf'] }],
+      properties: ['openFile']
+    })
+    const chosen = picked.filePaths[0]
+    if (picked.canceled || !chosen) return null
+    const result = importPdfFromPath(requireVault(), chosen)
+    event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
+    return result
+  })
   // S05h: the explicit re-run affordance — renderer confirms first.
   ipcMain.handle(
     ATOMIK_CHANNELS.resetTranscription,

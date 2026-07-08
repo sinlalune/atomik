@@ -110,9 +110,14 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       architecture); mupdf AGPL rejected, pdfium native-weight
       rejected, react-pdf needless, poppler noted as future extraction
       alternative. Record: sessions/2026-07-08-pdf-engine-decision.md.
-- [ ] S03 PDF as SOURCE: import path(s) → standard bundle (original.pdf
+- [x] S03 PDF as SOURCE: import path(s) → standard bundle (original.pdf
       + source.md + index.md) through the existing gates; dossier
-      status/type for pdf; tests.
+      status/type for pdf; tests. DONE 2026-07-08: pdf-import.ts
+      (magic %PDF- outranks label, checked BEFORE the vault is
+      touched; 200 MB cap; slug dedupe; wx + cleanup; sha256 + bytes
+      in the dossier per 10 §evidence); channel import-pdf-source
+      (main dialog) + ＋PDF button in the sources tree (opens the new
+      dossier); vaultFilesChanged emitted. Tests 247→251.
 - [ ] S04 Viewer tab (13 §isolation re-read first): new view kind,
       page navigation, tab param + restore, no remote content, local
       worker only; tests + screenshot.
@@ -141,8 +146,14 @@ changed     : path opened 2026-07-08 on owner directive ("ok for PDF
               path" (OCR seat ready), tabs are views over resources,
               selections are typed objects, renderer fidelity ≠
               extraction fidelity.
-tests       : 247 passing / 25 suites
-next action : S02 — PDF engine decision (15, dated, web-checked)
+tests       : 251 passing / 26 suites
+              S02 done 2026-07-08: pdfjs-dist 6.1.200 (dated decision
+              record in sessions/2026-07-08-pdf-engine-decision.md);
+              installed, 0 vulnerabilities.
+              S03 done 2026-07-08: PDF-as-source landed (see step).
+next action : S04 — viewer tab (13 §isolation re-read first): new view
+              kind over the pdf dossier, page nav, tab param restore,
+              local worker, isEvalSupported:false
 blockers    : none recorded
 ```
 

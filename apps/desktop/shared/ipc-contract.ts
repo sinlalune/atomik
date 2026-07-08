@@ -43,6 +43,7 @@ export const ATOMIK_CHANNELS = {
   transcribeSource: 'atomik:transcribe-source',
   transcribeSourceCloud: 'atomik:transcribe-source-cloud',
   resetTranscription: 'atomik:reset-transcription',
+  importPdfSource: 'atomik:import-pdf-source',
   addLocalCapture: 'atomik:add-local-capture',
   getCaptureUploadData: 'atomik:get-capture-upload-data',
   openSourceExternally: 'atomik:open-source-externally',
@@ -489,6 +490,11 @@ export type AtomikApi = {
    *  local or cloud — can record cleanly. The renderer confirms first:
    *  human corrections live in the transcript and are lost. */
   resetTranscription: (dossierPath: string) => Promise<void>
+  /** PDF as source (CP-MVP-003 S03): main opens a file dialog, validates
+   *  the magic (bytes outrank labels), and lands a sources/pdf/<slug>/
+   *  bundle — original.pdf untouched + dossier (sha256) + index. Null
+   *  when the user cancels the dialog. */
+  importPdfSource: () => Promise<CaptureImportResult | null>
   /** Desktop mic recording → the SAME inbox through the same gates
    *  (size/MIME/magic); the explicit import decides it like any phone
    *  upload. Opens no network endpoint. */
@@ -550,6 +556,7 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'transcribeSource',
   'transcribeSourceCloud',
   'resetTranscription',
+  'importPdfSource',
   'addLocalCapture',
   'getCaptureUploadData',
   'openSourceExternally',

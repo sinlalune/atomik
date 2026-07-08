@@ -62,6 +62,24 @@ export function SourcesTreePanel({
         <button
           type="button"
           className="tree-toggle"
+          title="Import a PDF as a source bundle (original preserved as evidence)"
+          onClick={() =>
+            window.atomik.importPdfSource().then(
+              (result) => {
+                if (result) {
+                  refresh()
+                  onOpen(result.dossierPath)
+                }
+              },
+              () => refresh()
+            )
+          }
+        >
+          ＋PDF
+        </button>
+        <button
+          type="button"
+          className="tree-toggle"
           title="Expand all folders"
           onClick={() =>
             tree && onOpenFoldersChange?.(new Set(allFolderPaths(tree)))
