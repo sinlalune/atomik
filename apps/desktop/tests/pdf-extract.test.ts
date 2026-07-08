@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { ActionTraceLedger } from '../electron-main/action-trace'
-import { extractPdfSource } from '../electron-main/pdf-extract'
+import { extractPdfSource, resetExtraction } from '../electron-main/pdf-extract'
 import { importPdfFromPath } from '../electron-main/pdf-import'
 
 describe('PDF extraction (CP-MVP-003 S05) — text layer + OCR seat fallback', () => {
@@ -79,5 +79,28 @@ describe('PDF extraction (CP-MVP-003 S05) — text layer + OCR seat fallback', (
     const lines = readFileSync(traces.ledgerPath(), 'utf8').trim().split('\n')
     expect(lines).toHaveLength(1)
     expect(existsSync(join(vault, 'sources/pdf/doc/extracted.md'))).toBe(true)
+  })
+
+  it('lifecycle: extract → delete → extract records cleanly (the day-to-day loop)', async () => {
+    const dossierPath = seedPdfBundle()
+    const reader = () => Promise.resolve({ pages: ['Assez de texte pour être une vraie page.'] })
+    await extractPdfSource(vault, dossierPath, reader, null, null, traces)
+
+    resetExtraction(vault, dossierPath)
+    expect(existsSync(join(vault, 'sources/pdf/doc/extracted.md'))).toBe(false)
+    const dossier = readFileSync(join(vault, 'sources/pdf/doc/source.md'), 'utf8')
+    expect(dossier).toContain('status: imported')
+    expect(dossier).not.toContain('extracted_text:')
+    expect(dossier).toContain('- None yet — extraction arrives with the PDF pipeline (S05).')
+    expect(readFileSync(join(vault, 'sources/pdf/doc/index.md'), 'utf8')).not.toContain('extracted.md')
+
+    await extractPdfSource(vault, dossierPath, reader, null, null, traces)
+    const again = readFileSync(join(vault, 'sources/pdf/doc/source.md'), 'utf8')
+    expect(again).toContain('status: extracted')
+    expect((again.match(/extracted_text:/g) ?? [])).toHaveLength(1)
+    expect(() => {
+      resetExtraction(vault, dossierPath)
+      resetExtraction(vault, dossierPath)
+    }).toThrow('no extraction')
   })
 })

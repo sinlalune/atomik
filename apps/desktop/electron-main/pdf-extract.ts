@@ -89,6 +89,53 @@ export function withExtractionRecorded(dossier: string, iso: string, traceId: st
   return next
 }
 
+/** The dossier after an extraction deletion — pure inverse of
+ *  withExtractionRecorded. */
+export function withExtractionCleared(dossier: string): string {
+  const fence = /^---\n([\s\S]*?)\n---/.exec(dossier)
+  if (!fence) return dossier
+  const frontmatter = fence[1]!
+    .replace(/\n {2}extracted_text: \.\/extracted\.md/g, '')
+    .replace(/\n {2}extraction_trace_id: [^\n]*/g, '')
+    .replace(/\n {2}extracted_at: [^\n]*/g, '')
+    .replace(/^( {2}status:) extracted$/m, (_m, key: string) => `${key} imported`)
+  let next = dossier.replace(fence[0], () => `---\n${frontmatter}\n---`)
+  next = next.replace(
+    /^- \[Extracted text\]\(\.\/extracted\.md\) — derived, uncorrected\.$/m,
+    '- None yet — extraction arrives with the PDF pipeline (S05).'
+  )
+  return next
+}
+
+/** The explicit re-run affordance for extractions (the lifecycle ships
+ *  WITH the artifact — owner feedback, twice): extracted.md leaves the
+ *  bundle, the dossier and index return to their pre-extraction shape.
+ *  The renderer confirms first. */
+export function resetExtraction(vaultRoot: string, dossierRelPath: unknown): void {
+  const dossierAbs = resolveNotePath(vaultRoot, dossierRelPath)
+  if (!dossierAbs || basename(dossierAbs) !== 'source.md') {
+    throw new Error('pdf-extract: rejected dossier path')
+  }
+  const extractedAbs = join(dirname(dossierAbs), 'extracted.md')
+  if (!existsSync(extractedAbs)) {
+    throw new Error('pdf-extract: no extraction to delete')
+  }
+  const dossier = readNote(vaultRoot, dossierRelPath)
+  rmSync(extractedAbs, { force: true })
+  writeNote(vaultRoot, dossierRelPath, withExtractionCleared(dossier.content), dossier.mtimeMs)
+  try {
+    const indexRel = (dossierRelPath as string).replace(/source\.md$/, 'index.md')
+    const index = readNote(vaultRoot, indexRel)
+    const kept = index.content
+      .split('\n')
+      .filter((line) => !line.includes('](./extracted.md)'))
+      .join('\n')
+    writeNote(vaultRoot, indexRel, kept, index.mtimeMs)
+  } catch {
+    /* the map is best-effort */
+  }
+}
+
 export async function extractPdfSource(
   vaultRoot: string,
   dossierRelPath: unknown,

@@ -300,6 +300,28 @@ export function SourceImageView({
                   {transcribing ? 'Extracting…' : 'Extract text'}
                 </button>
               )}
+            {note &&
+              isPdf &&
+              isDossier &&
+              note.content.includes('./extracted.md') && (
+                <button
+                  type="button"
+                  className="note-bar-button"
+                  title="Delete extracted.md after confirmation — corrections in it are lost; enables a fresh extraction"
+                  disabled={transcribing}
+                  onClick={() => {
+                    const confirmed = window.confirm(
+                      'Delete this extraction (extracted.md)?\n\n' +
+                        'Any corrections you made there are lost. The original PDF ' +
+                        'stays untouched; Extract text becomes available again.'
+                    )
+                    if (confirmed)
+                      runTranscription(window.atomik.resetExtraction, setTranscribing)
+                  }}
+                >
+                  {transcribing ? 'Deleting…' : 'Delete extraction…'}
+                </button>
+              )}
             {note && hasScan && !isAudio && (
               <button
                 type="button"

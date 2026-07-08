@@ -45,6 +45,7 @@ export const ATOMIK_CHANNELS = {
   resetTranscription: 'atomik:reset-transcription',
   importPdfSource: 'atomik:import-pdf-source',
   extractPdfSource: 'atomik:extract-pdf-source',
+  resetExtraction: 'atomik:reset-extraction',
   addLocalCapture: 'atomik:add-local-capture',
   getCaptureUploadData: 'atomik:get-capture-upload-data',
   openSourceExternally: 'atomik:open-source-externally',
@@ -500,6 +501,9 @@ export type AtomikApi = {
    *  only pages ride the seated OCR when the system can rasterize.
    *  Lands extracted.md (derived, traced); refuses to clobber. */
   extractPdfSource: (dossierPath: string) => Promise<{ extractedPath: string; traceId: string }>
+  /** Deletes extracted.md and restores the dossier/index so a fresh
+   *  extraction can run — renderer confirms (corrections are lost). */
+  resetExtraction: (dossierPath: string) => Promise<void>
   /** Desktop mic recording → the SAME inbox through the same gates
    *  (size/MIME/magic); the explicit import decides it like any phone
    *  upload. Opens no network endpoint. */
@@ -563,6 +567,7 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'resetTranscription',
   'importPdfSource',
   'extractPdfSource',
+  'resetExtraction',
   'addLocalCapture',
   'getCaptureUploadData',
   'openSourceExternally',

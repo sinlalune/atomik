@@ -21,7 +21,7 @@ import { createQwenVlOcrAdapter, ocrSeatReady, type ImageResizer } from './ocr-a
 import { createMistralOcrAdapter } from './mistral-ocr-adapter'
 import { publicAiSettings, readMistralKey, writeMistralKey } from './ai-settings'
 import { importPdfFromPath } from './pdf-import'
-import { extractPdfSource } from './pdf-extract'
+import { extractPdfSource, resetExtraction } from './pdf-extract'
 import { pdftoppmRasterizer, readPdfTextWithPdfjs } from './pdf-text'
 import { rotateRgba, scanCleanRgba } from './scan-filter'
 import { listDevDocs, readDevDoc, resolveDocsRoot } from './dev-docs'
@@ -363,6 +363,14 @@ function registerCaptureHandlers(stateDir: string): void {
       )
       event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
       return result
+    }
+  )
+  // extraction lifecycle (owner feedback: ship delete with create)
+  ipcMain.handle(
+    ATOMIK_CHANNELS.resetExtraction,
+    (event, dossierPath: unknown) => {
+      resetExtraction(requireVault(), dossierPath)
+      event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
     }
   )
   // S05h: the explicit re-run affordance — renderer confirms first.
