@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-005
   status: active
   current_step: S01
-  base_commit: null
+  base_commit: 94559f7
 ---
 
 # Goal
@@ -110,7 +110,7 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
 
 # Execution
 
-- [ ] S01 Bootstrap: reconcile ledger vs repository reality; record
+- [x] S01 Bootstrap: reconcile ledger vs repository reality; record
       `base_commit`; verify the owner-decision record (S07 addenda 4–5 +
       Mistral reference) is complete as this path's evidence base.
 - [ ] S02 Speech CUDA tier: verify the bench CUDA whisper-cli on a real
@@ -142,8 +142,13 @@ changed     : path opened 2026-07-08 on owner directive — the OCR seat
               Mistral OCR API as the only extra fallback, explicit
               opt-in per capture. Evidence base: CP-MVP-004 S07
               addenda 1–5 + Mistral ceiling reference (all committed).
-tests       : 231 passing / 23 suites at open (per CP-MVP-004 close)
-next action : S01 — bootstrap + base_commit
+tests       : 231 passing / 23 suites VERIFIED at S01 (npm test, 1.1 s)
+              S01 done 2026-07-08: base_commit 94559f7; working tree
+              carries only owner dogfooding files + git-ignored
+              .env.local (key hygiene checked); evidence base complete
+              (addenda 1–5 + Mistral ceiling, all committed).
+next action : S02 — whisper CUDA tier (verify bench binary on real
+              fixture, dated walls; then adapter fallback chain + tests)
 blockers    : none recorded
 ```
 
