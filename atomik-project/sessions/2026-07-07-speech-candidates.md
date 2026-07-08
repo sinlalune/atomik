@@ -286,3 +286,106 @@ AND license objections at once. Device-tier framing (33) stands: CPU
 numbers define the floor for other laptops; GPU is the probed bonus
 tier. Next candidates if the round extends: MiniCPM-V 2.0, Granite
 Vision 2B, Moondream2, LFM2-VL 1.6B.
+
+## S07 addendum 4 — les deux « pannes » résolues + tier GPU complet (2026-07-08)
+
+### Diagnostics (les leads du brief de handoff, fermés)
+
+1. **Qwen3-VL « stdout vide » = observation prématurée, pas une panne.**
+   L'encodage image seul prend 105–107 s CPU sur la photo 12 MP ; les
+   observations d'hier (25 s/87 s) tombaient PENDANT l'encodage. Les
+   modèles fonctionnent parfaitement (transcriptions complètes ci-dessous).
+2. **Unlimited-OCR, trois couches d'oignon :** (a) le crash
+   `std::runtime_error` = chat template custom refusé sans `--jinja`
+   (l'arch DeepSeek-OCR charge très bien : PR #17400 mergé au master le
+   2026-03-25) ; (b) la recette du README HF (`--jinja` +
+   `<|grounding|>Convert…`) → sortie **VIDE SILENCIEUSE** (exit 0,
+   4 octets de blanc) sur le master stock ET sur le build PR — le mode
+   d'échec dangereux ; (c) la recette de l'AUTEUR du PR marche :
+   `--chat-template deepseek-ocr -p "document parsing." --temp 0
+   --flash-attn off -n 4096 -c 16384` + params DRY. Le PR #24975
+   (R-SWA, **DRAFT non mergé**, head 649864fc6 incl. fix V-cache F32 du
+   2026-06-27) est REQUIS pour une vraie génération.
+3. **Bug CUDA VMM de WSL2** : `cuMemSetAccess: device not ready` dans le
+   pool VMM ggml sur les grosses allocations du mmproj Qwen3-VL →
+   rebuild `-DGGML_CUDA_NO_VMM=ON` règle le crash (c'était l'autre
+   moitié de la « panne GPU » d'hier). Corroboration : gemma3 et
+   qwen25vl-3b sortent OCTET-IDENTIQUES sur build master et build PR.
+
+### Tier CPU natif (8 threads, Ryzen 8700F, page redressée 3024×4032, temp 0)
+
+| candidat | quant | wall | encode | verdict |
+|---|---|---|---|---|
+| RapidOCR (réf. 07-07) | onnx | 3,6 s | — | ★★ honnête/pertes |
+| Unlimited-OCR (PR#24975, recette auteur) | Q4_K_M | 25,2 s | 9,6 s | ★★☆ régions typées MAIS **tronque le tiers bas** (doublon dégradé puis arrêt à ~700/4096 tokens) |
+| SmolVLM2 (réf. 07-07) | Q4 | 23 s | — | ✗ hallucine |
+| Gemma 3 4B (réf. 07-07) | Q4 | 127 s | — | ★★☆ erreurs de sens |
+| Qwen2.5-VL 3B (réf. 07-07) | Q4_K_M | 192 s | — | ★★★ référence qualité (⚠ licence Research) |
+| Qwen3-VL 2B | Q4_K_M | 291 s | 107 s | ★★★ ≈ référence ; capte la ligne « U'est-ce » que la réf. saute ; 2 typos (« périsables », « obligaement ») |
+| Qwen2.5-VL 7B | Q4_K_M | 300 s | 83 s | ★★★ fidèle à la mise en page print (césures, note ¹) ; « périsposables », « obligéamment », « je le haïs » |
+| Qwen3-VL 4B | Q4_K_M | 441 s | 105 s | **★★★+ meilleure qualité du banc** : seul à lire le bloc marginal Husserl + l'appel de note ¹ ; « fusent », « obligamment » |
+
+### Tier GPU (RTX 5070 12 Go, WSL2, build PR#24975 NO_VMM, -ngl 99, résolution native)
+
+| candidat | wall | encode | verdict |
+|---|---|---|---|
+| Unlimited-OCR IQ3_XXS | 7,0 s | 0,5 s | complet, sans doublon, mais dégradation de quant mesurée (« l'obze », « je le fais » contresens, régions grossières) |
+| Gemma 3 4B | 8,5 s | 0,49 s | ✗ première moitié = erreurs connues, puis **effondrement** (« Vous Hilton lecouvrez… toujours million. », boucles inventées) — numérique CUDA divergente au greedy |
+| **Unlimited-OCR Q4_K_M** | **8,6 s** | 0,6 s | **PAGE COMPLÈTE** (la troncature CPU disparaît) + folio « 10 » ; seul candidat à écrire « obligeamment » ; doublon présent mais la génération REPREND ; « révolé » (le CPU avait « vérole » juste) |
+| Qwen2.5-VL 3B | 12,9 s | 4,3 s | complet, ≈ qualité CPU — 13× le CPU |
+| Qwen2.5-VL 7B hybride `--no-mmproj-offload` | 105,5 s | 86 s (CPU) | complet du TEXTE 4 à la fin mais **perd le chapeau d'intro** que le run tout-CPU avait |
+| Qwen3-VL 2B | 543 s | — | déborde les 12 Go à rés. native (activations mmproj) → paging mémoire unifiée : **plus lent que le CPU** |
+| Qwen3-VL 4B | DNF (cap 600 s) | — | idem, sortie partielle |
+| Qwen2.5-VL 7B -ngl 99 | DNF (cap 480 s) | 209 s+ | idem (modèle+mmproj+activations > VRAM) |
+
+### Contrôles `--image-max-tokens 1024` — la question Unsloth de l'owner
+
+L'owner a fait tourner Qwen3-VL 2B (unsloth/Qwen3-VL-2B-Instruct-GGUF,
+**UD-Q4_K_XL**) « parfait en quelques secondes ». Décomposition :
+
+- **La vitesse est le budget de pixels, point.** Capé à 1024 tokens
+  image : 2B Q4 **9,5 s** (encode 0,27 s), 2B Q8_0 13,0 s, 4B 10,8 s —
+  contre 9 min/DNF à résolution native. Les pipelines HF/LM Studio
+  réduisent l'image en amont ; llama.cpp brut encode la photo 12 MP
+  quasi native.
+- **Mais le cap coûte des lettres à toute précision** (sur CETTE photo,
+  petit corps) : 2B Q4 capé → « je le **fais** », « vous ne l'**êtes**
+  point », diacritiques perdues ; Q8_0 capé récupère l'ôtez/haïssable
+  mais garde « je le fais »/« l'aimé-t-il » ; 4B capé perd le bloc
+  Husserl et invente « l'inconfortabilité ».
+- **Le fichier unsloth n'embarque AUCUN cap** (diff des métadonnées
+  mmproj : cosmétique uniquement, `image_size=768` identique) — la
+  vitesse « Unsloth » vient du runtime, pas de l'artefact.
+- **UD-Q4_K_XL capé (l'artefact exact de l'owner)** : encore PLUS
+  d'erreurs de lettres (« l'aimer-t-il », « qui tuer », « m'aimer-t-on »)
+  et exécution ~1 tok/s sur ce build CUDA (fallback CPU probable d'un
+  type de tenseur UD) — « parfait en secondes » ne se reproduit pas dans
+  llama.cpp brut sur cette image. Image de test différente probable
+  côté owner (à vérifier : la déposer dans captures/ et on la banc-teste).
+- **UD-Q4_K_XL natif CPU : 334 s (encode 107 s), transcript
+  OCTET-IDENTIQUE au Q4_K_M bartowski** (mêmes deux typos) — la piste
+  « la quant UD lit mieux » tombe aussi ; l'artefact est ~15 % plus
+  lent, rien d'autre ne change. Sur cette page, à ce budget de pixels,
+  fichier owner et fichier bench sont interchangeables.
+
+### Implications pour le siège OCR (décision owner, échelle 33)
+
+- **GPU présent** : Unlimited-OCR Q4 (MIT) à 8,6 s/page structurel
+  (régions typées + folio) est le nouveau fait marquant. Réserves :
+  build PR **draft non mergé** (risque maintenance/supply), le floor
+  CPU tronque silencieusement (garde-fou de complétude obligatoire si
+  seaté), fautes propres (« TEXT 4 », « siron », « révolé » GPU).
+- **Floor CPU qualité (autres laptops)** : Qwen3-VL 4B Apache 441 s
+  (le seul à tout lire) > Qwen2.5-VL 7B Apache 300 s (fidèle print) >
+  Qwen3-VL 2B Apache 291 s. La réf. 3B reste sous licence Research.
+- **Instantané honnête** : RapidOCR 3,6 s inchangé.
+- **L'échelle 33 appliquée** : RapidOCR immédiat pour le texte
+  cherchable + VLM on-demand pour la transcription qualité ; unlim-GPU
+  en tier bonus quand le GPU existe.
+- ⚠ Tout chiffre GPU ici = WSL2 + NO_VMM + PR draft : à re-benchmarker
+  sur build natif avant de sceller un siège GPU.
+
+Artefacts : `sources/captures/speech-bench-2026-07-08/OCR-*.md` ; runs
+bruts `.atomik/speech-bench/ocr-*.{out,err,time}` ; harnais
+`run-vlm.sh` ; prompt standard « Transcris fidèlement tout le texte de
+cette page. » (unlim : son prompt canonique « document parsing. »).

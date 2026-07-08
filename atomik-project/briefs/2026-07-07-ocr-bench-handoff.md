@@ -6,6 +6,11 @@ timestamp: 2026-07-07T20:00:00Z
 
 # Reprendre ici (session pleine — synthèse de handoff)
 
+> **RÉSOLU 2026-07-08** — les deux pannes de la section « EN PANNE » sont
+> fermées et le bench CPU/GPU est complet : voir « S07 addendum 4 » dans
+> `../sessions/2026-07-07-speech-candidates.md` (vérité à jour) et le
+> Work Ledger de CP-MVP-004. Ce brief reste comme instantané historique.
+
 ## État global
 - **CP-MVP-002 (M3): CLOS.** CP-MVP-004: S01–S08 exécutés, **clôture owner en attente**; whisper.cpp-small SIÈGE la transcription (validé "perfect" sur mémo réel), segments.json OK. Registre/ledger à jour.
 - Record daté maître: `sessions/2026-07-07-speech-candidates.md` (37+ runs). Acceptance: `sessions/2026-07-07-cp-mvp-004-acceptance.md`.

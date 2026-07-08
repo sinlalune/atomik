@@ -207,7 +207,20 @@ tests       : 227 passing / 23 suites
               DEFERRED as its own decision (python deployment question;
               options recorded in the dated record). Handwriting stays
               honestly untested.
-next action : S08 — acceptance run + path review and close (owner)
+              S07 ANNEXE closed 2026-07-08: the OCR comparative is
+              COMPLETE — CPU and GPU tiers side by side (S07 addendum 4
+              in the dated record). Both handoff-brief debug leads
+              resolved: Qwen3-VL was never broken (105 s image encode
+              mistaken for a hang); Unlimited-OCR runs (MIT) but needs
+              the DRAFT PR#24975 build + the PR author's exact recipe —
+              the HF README recipe fails SILENTLY. Headline numbers:
+              unlim-GPU 8.6 s/page complete+structured; Qwen3-VL 4B
+              Apache = best CPU quality at 441 s; RapidOCR 3.6 s floor
+              unchanged. WSL2 caveats recorded (NO_VMM, VRAM spill).
+              S08 acceptance run recorded 2026-07-07
+              (sessions/2026-07-07-cp-mvp-004-acceptance.md).
+next action : owner — path review + close decision + OCR seat decision
+              (options in S07 addendum 4 §implications)
 blockers    : none recorded
 ```
 
