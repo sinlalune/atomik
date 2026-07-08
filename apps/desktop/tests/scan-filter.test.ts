@@ -64,3 +64,36 @@ describe('scan filter (CP-MVP-005 S05b) — illumination flattening', () => {
     expect(rotateRgba(px, 2, 1, 360).pixels.equals(px)).toBe(true)
   })
 })
+
+describe('EXIF orientation (CP-MVP-005 S05e) — the display/OCR parity fix', () => {
+  const app1 = (tiff: number[]): Buffer => {
+    const payload = Buffer.from([0x45, 0x78, 0x69, 0x66, 0, 0, ...tiff])
+    const header = Buffer.from([0xff, 0xd8, 0xff, 0xe1, 0, 0])
+    header.writeUInt16BE(payload.length + 2, 4)
+    return Buffer.concat([header, payload])
+  }
+
+  it('reads orientation 6 (little-endian) as 90° CW', async () => {
+    const { exifOrientationDegrees } = await import('../electron-main/exif')
+    const jpeg = app1([
+      0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00, // II, 42, IFD@8
+      0x01, 0x00, // 1 entry
+      0x12, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00
+    ])
+    expect(exifOrientationDegrees(jpeg)).toBe(90)
+  })
+
+  it('reads orientation 3 (big-endian) as 180°, and tolerates absence/garbage', async () => {
+    const { exifOrientationDegrees } = await import('../electron-main/exif')
+    const jpeg = app1([
+      0x4d, 0x4d, 0x00, 0x2a, 0x00, 0x00, 0x00, 0x08, // MM, 42, IFD@8
+      0x00, 0x01,
+      0x01, 0x12, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x00, 0x03, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00
+    ])
+    expect(exifOrientationDegrees(jpeg)).toBe(180)
+    expect(exifOrientationDegrees(Buffer.from([0xff, 0xd8, 0xff, 0xd9]))).toBe(0)
+    expect(exifOrientationDegrees(Buffer.from('not a jpeg'))).toBe(0)
+  })
+})

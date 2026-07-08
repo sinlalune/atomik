@@ -1,6 +1,7 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { exifOrientationDegrees } from './exif'
 import { runSidecar } from './sidecar'
 import type { TranscriptionAdapter, TranscriptionOutput } from './transcription'
 
@@ -51,7 +52,11 @@ export function createQwenVlOcrAdapter(
       const work = mkdtempSync(join(tmpdir(), 'atomik-ocr-'))
       const sized = join(work, 'input.jpg')
       try {
-        await resize(job.originalAbs, sized, TOKEN_BUDGET, job.rotation ?? 0)
+        // effective uprighting = EXIF orientation (what the display
+        // applies silently) + the dossier's recorded correction —
+        // validated on both Pascal dossiers (S05e)
+        const rotation = (exifOrientationDegrees(job.bytes) + (job.rotation ?? 0)) % 360
+        await resize(job.originalAbs, sized, TOKEN_BUDGET, rotation)
         const args = [
           '-m', paths.model, '--mmproj', paths.mmproj,
           '--image', sized, '-p', PROMPT,

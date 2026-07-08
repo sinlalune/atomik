@@ -158,6 +158,17 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       owner uprights it in-app (two clicks) for best results; an
       unrotated sideways page is the suspected stall trigger (dated
       hypothesis; the 90 s cap bounds it either way).
+- [x] S05e The TRUE root cause, owner-spotted ("Pascal 2 is already
+      portrait"): EXIF Orientation — Chromium's display path applies it
+      silently (the page LOOKS upright), Electron's nativeImage does
+      NOT (the model received landscape). Trigger PROVEN by
+      reproduction first (sideways input → 'eu tantôt' loop, 24 KB for
+      a 3 KB page, ctx overflow at 58 s — CUDA itself flawless; -n 3000
+      added to bound loops on both tiers). Fix: dependency-free EXIF
+      orientation reader (exif.ts); effective uprighting = EXIF +
+      dossier rotation (mod 360) — formula VALIDATED on both dossiers
+      (Pascal: EXIF 3 + manual 270 = 90 CW; Pascal 2: EXIF 6 + 0 =
+      90 CW). No user rotation needed for phone photos anymore.
 - [ ] S06 Acceptance run + path review and close (owner).
 
 # Current checkpoint
