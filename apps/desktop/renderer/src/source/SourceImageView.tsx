@@ -66,6 +66,12 @@ export function SourceImageView({
   const [shown, setShown] = useState<'original' | 'scan'>('original')
   useEffect(() => setShown('original'), [note?.relPath])
 
+  // S05i: orientation is the DOSSIER's state — consumers inherit it.
+  // A transcript (or any non-dossier note) carries no rotation of its
+  // own; main returns the dossier-recorded one with the asset.
+  const isDossier = note?.relPath.split('/').pop() === 'source.md'
+  const [assetRotation, setAssetRotation] = useState(0)
+
   // The image follows the note: parse `resource:` and fetch the asset.
   useEffect(() => {
     setBase(null)
@@ -87,6 +93,7 @@ export function SourceImageView({
     window.atomik.readSourceAsset(rel).then(
       (asset) => {
         if (cancelled) return
+        setAssetRotation(asset.rotation ?? 0)
         setBase({
           dataUrl: asset.mimeType.startsWith('audio/')
             ? mediaObjectUrl(asset.base64, asset.mimeType)
@@ -112,18 +119,21 @@ export function SourceImageView({
   }, [note?.relPath, shown])
 
   // Display = base pixels + recorded rotation (the scan is already
-  // upright — never re-rotate it).
+  // upright — never re-rotate it). On the dossier the note's own
+  // frontmatter is live (optimistic rotate); elsewhere the dossier's
+  // value arrives with the asset.
   useEffect(() => {
     if (!base) return
     let cancelled = false
-    const displayRotation = shown === 'scan' ? 0 : rotation
+    const displayRotation =
+      shown === 'scan' ? 0 : isDossier ? rotation : assetRotation
     void applyRotation(base.dataUrl, displayRotation, base.mimeType).then((url) => {
       if (!cancelled) setImageUrl(url)
     })
     return () => {
       cancelled = true
     }
-  }, [base, rotation, shown])
+  }, [base, rotation, shown, isDossier, assetRotation])
 
   const [transcribing, setTranscribing] = useState(false)
   const [cloudBusy, setCloudBusy] = useState(false)
@@ -217,7 +227,9 @@ export function SourceImageView({
     return (
     <div className="source-image-view">
       <div className="source-image-original">
-        {!isAudio && (
+        {!isAudio && isDossier && (
+          // rotation is edited on the dossier only — anywhere else the
+          // buttons would write into the WRONG note's frontmatter
           <div className="source-image-tools">
             <button
               type="button"
