@@ -269,7 +269,9 @@ export function SourceImageView({
                 {shown === 'original' ? 'View scan' : 'View original'}
               </button>
             )}
-            {note && !note.content.includes('./transcript.md') && (
+            {note &&
+              note.relPath.split('/').pop() === 'source.md' &&
+              !note.content.includes('./transcript.md') && (
               <>
                 <button
                   type="button"
