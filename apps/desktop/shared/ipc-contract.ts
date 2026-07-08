@@ -40,6 +40,7 @@ export const ATOMIK_CHANNELS = {
   importCaptureUpload: 'atomik:import-capture-upload',
   discardCaptureUpload: 'atomik:discard-capture-upload',
   transcribeSource: 'atomik:transcribe-source',
+  transcribeSourceCloud: 'atomik:transcribe-source-cloud',
   addLocalCapture: 'atomik:add-local-capture',
   getCaptureUploadData: 'atomik:get-capture-upload-data',
   openSourceExternally: 'atomik:open-source-externally',
@@ -463,6 +464,11 @@ export type AtomikApi = {
   /** Runs the transcription adapter on a dossier's original; refuses to
    *  clobber an existing transcript (corrections live there, S07). */
   transcribeSource: (dossierPath: string) => Promise<TranscribeResult>
+  /** EXPLICIT cloud OCR (CP-MVP-005 S05): sends the dossier's original
+   *  image to the Mistral OCR API — only ever on this user action,
+   *  never as a silent fallback; the result is visibly cloud-derived.
+   *  Refuses without a configured key; same no-clobber rule. */
+  transcribeSourceCloud: (dossierPath: string) => Promise<TranscribeResult>
   /** Desktop mic recording → the SAME inbox through the same gates
    *  (size/MIME/magic); the explicit import decides it like any phone
    *  upload. Opens no network endpoint. */
@@ -516,6 +522,7 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'importCaptureUpload',
   'discardCaptureUpload',
   'transcribeSource',
+  'transcribeSourceCloud',
   'addLocalCapture',
   'getCaptureUploadData',
   'openSourceExternally',

@@ -429,6 +429,46 @@ describe('OCR seat (CP-MVP-005 S03) — Qwen3-VL sidecar with pre-resize', () =>
     rmSync(bin, { recursive: true, force: true })
   })
 
+  it('cloud rung (S05): pinned model, cloud-derived identity, no silent behavior', async () => {
+    const { createMistralOcrAdapter, resolveMistralKey, MISTRAL_OCR_MODEL } =
+      await import('../electron-main/mistral-ocr-adapter')
+    expect(MISTRAL_OCR_MODEL).toBe('mistral-ocr-4-0')
+    // key resolution: env wins, .env.local fallback, absent → null
+    const dir = mkdtempSync(join(tmpdir(), 'atomik-envlocal-'))
+    const envLocal = join(dir, '.env.local')
+    writeFileSync(envLocal, 'MISTRAL_API_KEY="from-file"\n')
+    expect(resolveMistralKey({ MISTRAL_API_KEY: 'from-env' }, envLocal)).toBe('from-env')
+    expect(resolveMistralKey({}, envLocal)).toBe('from-file')
+    expect(resolveMistralKey({}, join(dir, 'absent'))).toBeNull()
+    // success path: request shape + identity
+    const calls: Array<{ url: string; body: string }> = []
+    const okFetch = ((url: string, init: { body: string }) => {
+      calls.push({ url, body: init.body })
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ pages: [{ markdown: 'page un' }, { markdown: 'page deux' }], model: 'mistral-ocr-4-0' })
+      })
+    }) as unknown as typeof fetch
+    const out = await createMistralOcrAdapter('k', okFetch).transcribe({
+      originalAbs: '/x/original.jpg', mimeType: 'image/jpeg', bytes: JPEG
+    })
+    expect(out.markdown).toBe('page un\n\npage deux')
+    expect(out.location).toBe('cloud-model')
+    expect(out.runtime).toBe('mistral-api')
+    const sent = JSON.parse(calls[0]!.body) as { model: string; document: { image_url: string } }
+    expect(sent.model).toBe('mistral-ocr-4-0')
+    expect(sent.document.image_url.startsWith('data:image/jpeg;base64,')).toBe(true)
+    // failure path: explicit error, nothing swallowed
+    const badFetch = (() =>
+      Promise.resolve({ ok: false, status: 401, text: () => Promise.resolve('bad key') })) as unknown as typeof fetch
+    await expect(
+      createMistralOcrAdapter('k', badFetch).transcribe({
+        originalAbs: '/x/original.jpg', mimeType: 'image/jpeg', bytes: JPEG
+      })
+    ).rejects.toThrow('HTTP 401')
+    rmSync(dir, { recursive: true, force: true })
+  })
+
   it('routes image jobs to the OCR seat and audio jobs to the speech seat', async () => {
     const { routeByMedia } = await import('../electron-main/transcription')
     const answered: string[] = []

@@ -342,6 +342,21 @@ timestamp: 2026-07-06T00:00:00Z
   gaps: HEIC/HEIF likely unreadable by nativeImage on Linux (resizer
   rejects → trace failed, no fabrication); the seat prompt is the bench
   standard FR transcription prompt.
+- The cloud OCR rung (13/28, CP-MVP-005 S05): `mistral-ocr-adapter.ts`
+  — Mistral OCR behind the SAME TranscriptionAdapter contract, invoked
+  ONLY by the new typed channel `transcribe-source-cloud` behind an
+  explicit renderer button ("Cloud OCR", whose title says it SENDS the
+  image) — never a silent fallback (13: explicit policy before local
+  falls back to cloud). Model id PINNED `mistral-ocr-4-0` (benched
+  letter-perfect on the bench scans 2026-07-08); upgrades are a new
+  dated decision, not alias drift. The key resolves main-process only
+  (env `MISTRAL_API_KEY`, then the git-ignored `.env.local`); absent
+  key = explanatory refusal, nothing leaves the machine. The result
+  rides the ordinary pipeline so `location: 'cloud-model'` + provider
+  identity land in transcript frontmatter, dossier, and trace; the
+  no-clobber rule holds (delete the local transcript to escalate — the
+  same explicit re-run rule as everywhere). fetch with AbortController
+  (180 s); bytes go as a data URI, original untouched.
 - Project bundles (04, S06): `electron-main/project.ts` (incubating
   project-core, 14) — manifest-detected bundles
   (`project.atomik-project.json`; scan skips denied dirs and does not

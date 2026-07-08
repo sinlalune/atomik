@@ -17,6 +17,7 @@ import {
 } from './transcription'
 import { createWhisperCppAdapter, whisperSeatReady } from './whisper-adapter'
 import { createQwenVlOcrAdapter, ocrSeatReady, type ImageResizer } from './ocr-adapter'
+import { createMistralOcrAdapter, resolveMistralKey } from './mistral-ocr-adapter'
 import { listDevDocs, readDevDoc, resolveDocsRoot } from './dev-docs'
 import { searchVault } from './search'
 import { buildMainWindowOptions } from './security'
@@ -286,6 +287,21 @@ function registerCaptureHandlers(): void {
     ATOMIK_CHANNELS.transcribeSource,
     (_event, dossierPath: unknown) =>
       transcribeSource(requireVault(), dossierPath, transcriptionAdapter, traces)
+  )
+  // CP-MVP-005 S05: the cloud OCR rung — EXPLICIT per-capture action,
+  // never a silent fallback (13). Key stays main-process; absent key =
+  // explanatory refusal and nothing leaves the machine.
+  ipcMain.handle(
+    ATOMIK_CHANNELS.transcribeSourceCloud,
+    (_event, dossierPath: unknown) => {
+      const key = resolveMistralKey(process.env, join(app.getAppPath(), '.env.local'))
+      if (!key) {
+        throw new Error(
+          'cloud ocr: no MISTRAL_API_KEY configured (env or .env.local) — nothing was sent'
+        )
+      }
+      return transcribeSource(requireVault(), dossierPath, createMistralOcrAdapter(key), traces)
+    }
   )
   // Desktop mic (owner request): same inbox, same gates, no endpoint.
   ipcMain.handle(

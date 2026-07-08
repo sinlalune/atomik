@@ -118,19 +118,23 @@ export function SourceImageView({
   }, [base, rotation])
 
   const [transcribing, setTranscribing] = useState(false)
+  const [cloudBusy, setCloudBusy] = useState(false)
 
   // S06: run the adapter, then re-read the dossier (it changed on disk —
   // status, transcription identity, and the transcript link are in it).
-  const transcribe = (): void => {
+  const runTranscription = (
+    invoke: (relPath: string) => Promise<unknown>,
+    setBusy: (b: boolean) => void
+  ): void => {
     if (!note) return
-    setTranscribing(true)
-    window.atomik.transcribeSource(note.relPath).then(
+    setBusy(true)
+    invoke(note.relPath).then(
       () => {
-        setTranscribing(false)
+        setBusy(false)
         openNote(note.relPath)
       },
       (cause) => {
-        setTranscribing(false)
+        setBusy(false)
         setImageError(
           String(cause).replace(
             /^Error: Error invoking remote method '[^']+': Error: /,
@@ -140,6 +144,12 @@ export function SourceImageView({
       }
     )
   }
+  const transcribe = (): void =>
+    runTranscription(window.atomik.transcribeSource, setTranscribing)
+  // CP-MVP-005 S05: the EXPLICIT cloud rung — this button is the only
+  // path by which an image ever leaves the machine for OCR.
+  const transcribeCloud = (): void =>
+    runTranscription(window.atomik.transcribeSourceCloud, setCloudBusy)
 
   const rotate = (delta: 90 | -90): void => {
     if (!note) return
@@ -238,15 +248,26 @@ export function SourceImageView({
           </span>
           <span className="note-bar-actions">
             {note && !note.content.includes('./transcript.md') && (
-              <button
-                type="button"
-                className="note-bar-button"
-                title="Run the transcription adapter (S06 mock — records model/runtime in the dossier)"
-                disabled={transcribing}
-                onClick={transcribe}
-              >
-                {transcribing ? 'Transcribing…' : 'Transcribe'}
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="note-bar-button"
+                  title="Run the LOCAL seat (images: Qwen3-VL 4B sidecar; audio: whisper.cpp) — nothing leaves this machine"
+                  disabled={transcribing || cloudBusy}
+                  onClick={transcribe}
+                >
+                  {transcribing ? 'Transcribing…' : 'Transcribe'}
+                </button>
+                <button
+                  type="button"
+                  className="note-bar-button"
+                  title="SENDS this image to the Mistral OCR API (cloud) — explicit action, result marked cloud-derived; requires a configured key"
+                  disabled={transcribing || cloudBusy}
+                  onClick={transcribeCloud}
+                >
+                  {cloudBusy ? 'Cloud OCR…' : 'Cloud OCR'}
+                </button>
+              </>
             )}
           </span>
         </div>

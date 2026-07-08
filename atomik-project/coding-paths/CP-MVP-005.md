@@ -125,7 +125,7 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       existing adapter seam.
 - [ ] S04 OCR correction-flow pass on the real Pascal/Pascal 2 dossiers;
       owner validates transcript quality end to end in the app.
-- [ ] S05 Cloud rung (13 §IPC + §keys re-read): explicit per-capture
+- [x] S05 Cloud rung (13 §IPC + §keys re-read): explicit per-capture
       "cloud OCR" action → main-process Mistral call (key from
       env/.env.local; absent key = explanatory no-op), result lands as
       cloud-derived transcript (28 provenance, model id pinned); tests
@@ -169,9 +169,19 @@ tests       : 234 passing / 23 suites (S02 added the fallback-chain
               Installed-seat verify: 3.85 s CUDA on the pre-sized
               Leibniz page; CPU-tier install verify run at close of
               unit. Tests 234→237; typecheck green. HEIC gap honest.
-next action : S04 — owner validates the in-app OCR flow on the real
-              Pascal dossiers (restart app; Transcribe on an image
-              dossier), correction flow end to end
+              S05 done 2026-07-08 (13 §IPC + keys re-read): the cloud
+              rung — mistral-ocr-adapter.ts (model PINNED
+              mistral-ocr-4-0), typed channel transcribe-source-cloud,
+              explicit "Cloud OCR" button beside "Transcribe" (its
+              title says it SENDS the image), key main-process only
+              (env → .env.local), absent key = explanatory refusal,
+              result visibly cloud-derived through the ordinary
+              pipeline (frontmatter + dossier + trace). Tests 237→238;
+              typecheck/build/smoke green.
+next action : S04 — owner validates the in-app flows on the real
+              Pascal dossiers (restart app: Transcribe = local Qwen
+              seat; Cloud OCR = explicit Mistral rung), correction
+              flow end to end. Then S06 acceptance + close.
 blockers    : none recorded
 ```
 
