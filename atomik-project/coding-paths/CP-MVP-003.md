@@ -101,9 +101,15 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
 
 - [x] S01 Bootstrap (22): reconcile ledger vs repo; record `base_commit`;
       re-read 10 + 03 + 05 (the pages this path implements).
-- [ ] S02 PDF engine decision (15, dated): pdf.js/pdfjs-dist vs
+- [x] S02 PDF engine decision (15, dated): pdf.js/pdfjs-dist vs
       alternatives — rendering + text layer, worker isolation under 13,
       bundle weight; record what was NOT chosen and why.
+      DONE 2026-07-08: pdfjs-dist 6.1.200 (Apache-2.0), isEvalSupported
+      false always, local worker; viewer in renderer / extraction via
+      legacy build in MAIN (the 10 fidelity split as process
+      architecture); mupdf AGPL rejected, pdfium native-weight
+      rejected, react-pdf needless, poppler noted as future extraction
+      alternative. Record: sessions/2026-07-08-pdf-engine-decision.md.
 - [ ] S03 PDF as SOURCE: import path(s) → standard bundle (original.pdf
       + source.md + index.md) through the existing gates; dossier
       status/type for pdf; tests.
