@@ -169,6 +169,17 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       dossier rotation (mod 360) — formula VALIDATED on both dossiers
       (Pascal: EXIF 3 + manual 270 = 90 CW; Pascal 2: EXIF 6 + 0 =
       90 CW). No user rotation needed for phone photos anymore.
+- [x] S05h Owner requests (2026-07-08): (1) index.md — the bundle's
+      human directory map — now gains transcript.md and scan.jpg lines
+      when transcription lands them (idempotent, best-effort: the map
+      never fails a completed run) and loses them on reset; (2) the
+      RE-RUN AFFORDANCE: "Delete transcript…" button on the source
+      note when a transcript exists — renderer confirm (corrections
+      are lost), then resetTranscription removes transcript/segments/
+      scan, restores the dossier to pre-transcription shape (block
+      dropped, status captured, None-yet line back), prunes the index,
+      emits vaultFilesChanged; Transcribe/Cloud OCR reappear. Round-
+      trip tested: transcribe → reset → transcribe records cleanly.
 - [x] S05f Owner findings (2026-07-08): (1) Cloud OCR on an
       already-transcribed dossier — answered from code: the pipeline
       refuses BEFORE any network call (nothing sent), and the buttons

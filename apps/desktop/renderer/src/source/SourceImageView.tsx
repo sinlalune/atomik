@@ -158,6 +158,17 @@ export function SourceImageView({
   // path by which an image ever leaves the machine for OCR.
   const transcribeCloud = (): void =>
     runTranscription(window.atomik.transcribeSourceCloud, setCloudBusy)
+  // S05h: the explicit re-run affordance — corrections live in the
+  // transcript, so deleting it is a consciously confirmed act.
+  const deleteTranscript = (): void => {
+    if (!note) return
+    const confirmed = window.confirm(
+      'Delete this transcript (and its scan/segments)?\n\n' +
+        'Any corrections you made in transcript.md are lost. The original ' +
+        'stays untouched; Transcribe and Cloud OCR become available again.'
+    )
+    if (confirmed) runTranscription(window.atomik.resetTranscription, setTranscribing)
+  }
 
   const rotate = (delta: 90 | -90): void => {
     if (!note) return
@@ -269,6 +280,19 @@ export function SourceImageView({
                 {shown === 'original' ? 'View scan' : 'View original'}
               </button>
             )}
+            {note &&
+              note.relPath.split('/').pop() === 'source.md' &&
+              note.content.includes('./transcript.md') && (
+                <button
+                  type="button"
+                  className="note-bar-button"
+                  title="Delete transcript.md (and scan/segments) after confirmation — corrections are lost; enables a fresh Transcribe or Cloud OCR run"
+                  disabled={transcribing || cloudBusy}
+                  onClick={deleteTranscript}
+                >
+                  {transcribing ? 'Deleting…' : 'Delete transcript…'}
+                </button>
+              )}
             {note &&
               note.relPath.split('/').pop() === 'source.md' &&
               !note.content.includes('./transcript.md') && (

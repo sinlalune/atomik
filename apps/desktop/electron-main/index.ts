@@ -11,6 +11,7 @@ import { CaptureSessionManager } from './capture-session'
 import {
   mockTranscriptionAdapter,
   recordTranscriptCorrection,
+  resetTranscription,
   routeByMedia,
   transcribeSource,
   type TranscriptionAdapter
@@ -322,6 +323,14 @@ function registerCaptureHandlers(stateDir: string): void {
       const result = await transcribeSource(requireVault(), dossierPath, createMistralOcrAdapter(key), traces)
       event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
       return result
+    }
+  )
+  // S05h: the explicit re-run affordance — renderer confirms first.
+  ipcMain.handle(
+    ATOMIK_CHANNELS.resetTranscription,
+    (event, dossierPath: unknown) => {
+      resetTranscription(requireVault(), dossierPath)
+      event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
     }
   )
   // S05b: AI settings — the raw key never returns to the renderer.

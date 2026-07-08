@@ -487,6 +487,51 @@ describe('OCR seat (CP-MVP-005 S03) — Qwen3-VL sidecar with pre-resize', () =>
     rmSync(dir, { recursive: true, force: true })
   })
 
+  it('reset (S05h): transcribe → delete → transcribe again, files and dossier restored', async () => {
+    const { resetTranscription, withIndexLinks, withIndexLinksCleared } =
+      await import('../electron-main/transcription')
+    const dossierPath = seedBundle()
+    const bundleDir = join(vault, 'sources/captures/pascal')
+    // give the bundle an index like real imports have
+    writeFileSync(
+      join(bundleDir, 'index.md'),
+      '---\ntype: Atomik Index\n---\n\n# pascal\n\n- [source.md](./source.md) — the canonical source dossier.\n'
+    )
+    const scanner = {
+      id: 'scanner',
+      transcribe: () => Promise.resolve({
+        markdown: 'texte', model: 'm', modelVersion: '1', runtime: 'r',
+        runtimeVersion: '1', location: 'local-model' as const,
+        scanJpeg: Buffer.from('jpg')
+      })
+    }
+    await transcribeSource(vault, dossierPath, scanner, traces)
+    const index = readFileSync(join(bundleDir, 'index.md'), 'utf8')
+    expect(index).toContain('](./transcript.md)')
+    expect(index).toContain('](./scan.jpg)')
+    // idempotence of the index helper
+    expect(withIndexLinks(withIndexLinks(index, true), true)).toBe(withIndexLinks(index, true))
+    expect(withIndexLinksCleared(index)).not.toContain('scan.jpg')
+
+    resetTranscription(vault, dossierPath)
+    expect(existsSync(join(bundleDir, 'transcript.md'))).toBe(false)
+    expect(existsSync(join(bundleDir, 'scan.jpg'))).toBe(false)
+    const dossier = readFileSync(join(bundleDir, 'source.md'), 'utf8')
+    expect(dossier).not.toContain('transcription:')
+    expect(dossier).toContain('status: captured')
+    expect(dossier).toContain('- None yet — transcription arrives with the adapter (S06).')
+    expect(readFileSync(join(bundleDir, 'index.md'), 'utf8')).not.toContain('transcript.md)')
+
+    // a fresh run records cleanly after the reset
+    await transcribeSource(vault, dossierPath, scanner, traces)
+    const again = readFileSync(join(bundleDir, 'source.md'), 'utf8')
+    expect(again).toContain('status: transcribed')
+    expect((again.match(/ {2}transcription:/g) ?? [])).toHaveLength(1)
+    // refuses when nothing to delete
+    resetTranscription(vault, dossierPath)
+    expect(() => resetTranscription(vault, dossierPath)).toThrow('no transcript')
+  })
+
   it('routes image jobs to the OCR seat and audio jobs to the speech seat', async () => {
     const { routeByMedia } = await import('../electron-main/transcription')
     const answered: string[] = []

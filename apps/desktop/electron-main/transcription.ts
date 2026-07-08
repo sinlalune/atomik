@@ -217,6 +217,85 @@ export function withTranscriptionRecorded(
   return next
 }
 
+const INDEX_TRANSCRIPT_LINE = '- [transcript.md](./transcript.md) — derived transcript.'
+const INDEX_SCAN_LINE = '- [scan.jpg](./scan.jpg) — cleaned scan the model read.'
+
+/** index.md is the bundle's human directory map (S05h): transcription
+ *  extends it, reset prunes it. Idempotent, tolerant of hand edits. */
+export function withIndexLinks(index: string, hasScan: boolean): string {
+  let next = index.trimEnd()
+  if (!next.includes('](./transcript.md)')) next = `${next}\n${INDEX_TRANSCRIPT_LINE}`
+  if (hasScan && !next.includes('](./scan.jpg)')) next = `${next}\n${INDEX_SCAN_LINE}`
+  return `${next}\n`
+}
+
+export function withIndexLinksCleared(index: string): string {
+  const kept = index
+    .split('\n')
+    .filter((line) => !line.includes('](./transcript.md)') && !line.includes('](./scan.jpg)'))
+  return kept.join('\n')
+}
+
+/**
+ * The dossier after a transcript deletion (S05h — the explicit re-run
+ * affordance): the transcription block leaves the frontmatter, status
+ * returns to captured, and the extracted-representations seat goes back
+ * to its empty line so a re-run records cleanly. Pure.
+ */
+export function withTranscriptionCleared(dossier: string): string {
+  const fence = /^---\n([\s\S]*?)\n---/.exec(dossier)
+  if (!fence) return dossier
+  const frontmatter = fence[1]!
+    .replace(/\n {2}transcription:(?:\n {4}.*)*/g, '')
+    .replace(/^( {2}status:) transcribed$/m, (_m, key: string) => `${key} captured`)
+  let next = dossier.replace(fence[0], () => `---\n${frontmatter}\n---`)
+  next = next.replace(
+    /^- \[Transcript\]\(\.\/transcript\.md\) — (?:model output, uncorrected|human-corrected)\.(?:\n- \[Cleaned scan\]\(\.\/scan\.jpg\) — machine-derived image the model read\.)?$/m,
+    '- None yet — transcription arrives with the adapter (S06).'
+  )
+  return next
+}
+
+/**
+ * The explicit deletion behind the re-run affordance: transcript,
+ * segments, and scan leave the bundle; the dossier and index are
+ * restored to their pre-transcription shape. The confirmation lives in
+ * the renderer — this function assumes the user already said yes.
+ */
+export function resetTranscription(
+  vaultRoot: string,
+  dossierRelPath: unknown,
+  now: () => number = Date.now
+): void {
+  const dossierAbs = resolveNotePath(vaultRoot, dossierRelPath)
+  if (!dossierAbs || basename(dossierAbs) !== 'source.md') {
+    throw new Error('transcription: rejected dossier path')
+  }
+  const dir = dirname(dossierAbs)
+  const transcriptAbs = join(dir, 'transcript.md')
+  if (!existsSync(transcriptAbs)) {
+    throw new Error('transcription: no transcript to delete')
+  }
+  const dossier = readNote(vaultRoot, dossierRelPath)
+  rmSync(transcriptAbs, { force: true })
+  rmSync(join(dir, 'segments.json'), { force: true })
+  rmSync(join(dir, 'scan.jpg'), { force: true })
+  writeNote(
+    vaultRoot,
+    dossierRelPath,
+    withTranscriptionCleared(dossier.content),
+    dossier.mtimeMs
+  )
+  try {
+    const indexRel = (dossierRelPath as string).replace(/source\.md$/, 'index.md')
+    const index = readNote(vaultRoot, indexRel)
+    writeNote(vaultRoot, indexRel, withIndexLinksCleared(index.content), index.mtimeMs)
+  } catch {
+    // the map is best-effort — its absence or a race never blocks
+  }
+  void now
+}
+
 /**
  * The dossier after a human correction (S07): the correction state flips
  * to human-corrected with its date, and the extracted-representations
@@ -350,6 +429,15 @@ export async function transcribeSource(
       rmSync(segmentsAbs, { force: true })
       if (output.scanJpeg) rmSync(scanAbs, { force: true })
       throw error
+    }
+    try {
+      // the human directory map follows (S05h) — best-effort, never
+      // failing a completed transcription over the map
+      const indexRel = (dossierRelPath as string).replace(/source\.md$/, 'index.md')
+      const index = readNote(vaultRoot, indexRel)
+      writeNote(vaultRoot, indexRel, withIndexLinks(index.content, Boolean(output.scanJpeg)), index.mtimeMs)
+    } catch {
+      /* tolerated */
     }
     traces.recordTranscription({
       id: traceId,

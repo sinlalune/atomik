@@ -42,6 +42,7 @@ export const ATOMIK_CHANNELS = {
   discardCaptureUpload: 'atomik:discard-capture-upload',
   transcribeSource: 'atomik:transcribe-source',
   transcribeSourceCloud: 'atomik:transcribe-source-cloud',
+  resetTranscription: 'atomik:reset-transcription',
   addLocalCapture: 'atomik:add-local-capture',
   getCaptureUploadData: 'atomik:get-capture-upload-data',
   openSourceExternally: 'atomik:open-source-externally',
@@ -483,6 +484,11 @@ export type AtomikApi = {
    *  never as a silent fallback; the result is visibly cloud-derived.
    *  Refuses without a configured key; same no-clobber rule. */
   transcribeSourceCloud: (dossierPath: string) => Promise<TranscribeResult>
+  /** The explicit re-run affordance (S05h): deletes transcript.md (and
+   *  segments/scan) and restores the dossier + index so a fresh run —
+   *  local or cloud — can record cleanly. The renderer confirms first:
+   *  human corrections live in the transcript and are lost. */
+  resetTranscription: (dossierPath: string) => Promise<void>
   /** Desktop mic recording → the SAME inbox through the same gates
    *  (size/MIME/magic); the explicit import decides it like any phone
    *  upload. Opens no network endpoint. */
@@ -543,6 +549,7 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'discardCaptureUpload',
   'transcribeSource',
   'transcribeSourceCloud',
+  'resetTranscription',
   'addLocalCapture',
   'getCaptureUploadData',
   'openSourceExternally',
