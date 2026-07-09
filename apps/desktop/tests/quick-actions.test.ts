@@ -74,14 +74,31 @@ describe('insertionFor', () => {
 
   it('inserts an image embed with an angle-bracketed destination', () => {
     expect(
-      insertionFor('notes/idea.md', bundle, 'sources/captures/Pascal 2/original.jpg')
+      insertionFor('notes/idea.md', bundle, {
+        kind: 'image',
+        vaultRel: 'sources/captures/Pascal 2/original.jpg'
+      }).text
     ).toBe('![Pascal 2](<../sources/captures/Pascal 2/original.jpg>)')
   })
 
-  it('falls back to a dossier link when the bundle has no image', () => {
-    expect(insertionFor('notes/idea.md', bundle, null)).toBe(
+  it('falls back to a dossier link when the bundle has no media', () => {
+    expect(insertionFor('notes/idea.md', bundle, null).text).toBe(
       '[Pascal 2](<../sources/captures/Pascal 2/source.md>)'
     )
+  })
+
+  it('inserts a PDF citation with the page number pre-selected (S06)', () => {
+    const pdf = { name: 'jf-quote', dossierPath: 'sources/pdf/jf-quote/source.md' }
+    const insertion = insertionFor('notes/idea.md', pdf, {
+      kind: 'pdf',
+      vaultRel: 'sources/pdf/jf-quote/original.pdf'
+    })
+    expect(insertion.text).toBe(
+      '[jf-quote](<../sources/pdf/jf-quote/original.pdf#page=1>)'
+    )
+    // the selected span is exactly the page digit, ready to type over
+    expect(insertion.text.slice(insertion.selectFrom, insertion.selectTo)).toBe('1')
+    expect(insertion.text.slice(insertion.selectTo)).toBe('>)')
   })
 })
 

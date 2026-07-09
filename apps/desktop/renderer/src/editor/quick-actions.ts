@@ -67,31 +67,56 @@ export function relativePathBetween(
   return [...Array<string>(ups).fill('..'), ...target.slice(common)].join('/')
 }
 
+/** What to insert, plus an optional selection (offsets INTO text) the
+ *  editor places the cursor on — e.g. a citation's page number, ready
+ *  to be typed over. */
+export type Insertion = { text: string; selectFrom?: number; selectTo?: number }
+
 /**
  * The markdown to insert for a picked bundle. Image resource → embed;
- * anything else → a plain link to the dossier. Angle brackets always:
- * they keep destinations with spaces valid CommonMark.
+ * PDF resource → a page CITATION with the page number pre-selected
+ * (S06: nobody hand-types bundle paths); anything else → a plain link
+ * to the dossier. Angle brackets always: they keep destinations with
+ * spaces valid CommonMark.
  */
 export function insertionFor(
   notePath: string,
   bundle: SourceBundle,
-  resourceVaultRel: string | null
-): string {
-  if (resourceVaultRel) {
-    return `![${bundle.name}](<${relativePathBetween(notePath, resourceVaultRel)}>)`
+  resource: ResourceInfo | null
+): Insertion {
+  if (resource?.kind === 'image') {
+    return {
+      text: `![${bundle.name}](<${relativePathBetween(notePath, resource.vaultRel)}>)`
+    }
   }
-  return `[${bundle.name}](<${relativePathBetween(notePath, bundle.dossierPath)}>)`
+  if (resource?.kind === 'pdf') {
+    // the label carries no page number — only the target does, so the
+    // selected digit is the single thing to type over (no label drift)
+    const text = `[${bundle.name}](<${relativePathBetween(notePath, resource.vaultRel)}#page=1>)`
+    const selectTo = text.length - 2 // just before `>)`
+    return { text, selectFrom: selectTo - 1, selectTo }
+  }
+  return {
+    text: `[${bundle.name}](<${relativePathBetween(notePath, bundle.dossierPath)}>)`
+  }
 }
 
 const IMAGE_RESOURCE = /\.(jpe?g|png|webp|heic|heif)$/i
+const PDF_RESOURCE = /\.pdf$/i
 
-/** The bundle's original as a vault-relative path, when it is an image. */
-async function imageResourceOf(bundle: SourceBundle): Promise<string | null> {
+export type ResourceInfo = { kind: 'image' | 'pdf'; vaultRel: string }
+
+/** The bundle's original (image or pdf) as a vault-relative path. */
+async function resourceInfoOf(bundle: SourceBundle): Promise<ResourceInfo | null> {
   try {
     const dossier = await atomik().readNote(bundle.dossierPath)
     const resource = resourceOf(dossier.content)
-    if (!resource || !IMAGE_RESOURCE.test(resource)) return null
-    return resolveRelativePath(bundle.dossierPath, resource)
+    if (!resource) return null
+    const vaultRel = resolveRelativePath(bundle.dossierPath, resource)
+    if (!vaultRel) return null
+    if (IMAGE_RESOURCE.test(resource)) return { kind: 'image', vaultRel }
+    if (PDF_RESOURCE.test(resource)) return { kind: 'pdf', vaultRel }
+    return null
   } catch {
     return null
   }
@@ -113,13 +138,19 @@ export function quickActionsSource(
       detail: 'capture',
       type: 'variable',
       apply: (view: EditorView, _completion, applyFrom, applyTo) => {
-        void imageResourceOf(bundle).then((resourceRel) => {
+        void resourceInfoOf(bundle).then((resource) => {
+          const insertion = insertionFor(notePath, bundle, resource)
           view.dispatch({
-            changes: {
-              from: applyFrom,
-              to: applyTo,
-              insert: insertionFor(notePath, bundle, resourceRel)
-            }
+            changes: { from: applyFrom, to: applyTo, insert: insertion.text },
+            // citations land with the page number selected — type over it
+            ...(insertion.selectFrom !== undefined && insertion.selectTo !== undefined
+              ? {
+                  selection: {
+                    anchor: applyFrom + insertion.selectFrom,
+                    head: applyFrom + insertion.selectTo
+                  }
+                }
+              : {})
           })
         })
       }
