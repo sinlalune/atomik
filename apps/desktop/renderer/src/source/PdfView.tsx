@@ -40,6 +40,21 @@ export function PdfView({
     }
   }, [requestedPage, numPages])
 
+  // the pane's real width — 0 at mount in a fresh tab (layout races the
+  // effect; the owner's "blank until poked"), so the render effect waits
+  // for the observer's first real measurement and follows pane resizes.
+  const [hostWidth, setHostWidth] = useState(0)
+  useEffect(() => {
+    const host = hostRef.current
+    if (!host) return
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width ?? 0
+      setHostWidth((current) => (Math.abs(current - width) > 1 ? width : current))
+    })
+    observer.observe(host)
+    return () => observer.disconnect()
+  }, [])
+
   // load the document from the gated bytes
   useEffect(() => {
     let cancelled = false
@@ -67,9 +82,10 @@ export function PdfView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataUrl])
 
-  // render the current page, fitted to the host width
+  // render the current page, fitted to the host width (waits for a real
+  // measurement — rendering into a 0-width pane is the blank-view bug)
   useEffect(() => {
-    if (numPages === 0) return
+    if (numPages === 0 || hostWidth < 40) return
     let cancelled = false
     void (async () => {
       const doc = docRef.current
@@ -78,7 +94,6 @@ export function PdfView({
       try {
         const pdfPage = await doc.getPage(page)
         if (cancelled) return
-        const hostWidth = hostRef.current?.clientWidth ?? 800
         const probe = pdfPage.getViewport({ scale: 1 })
         const scale = Math.max(0.25, (hostWidth - 24) / probe.width)
         const ratio = window.devicePixelRatio || 1
@@ -97,7 +112,7 @@ export function PdfView({
     return () => {
       cancelled = true
     }
-  }, [page, numPages])
+  }, [page, numPages, hostWidth])
 
   if (error) return <p className="error">{error}</p>
   return (
