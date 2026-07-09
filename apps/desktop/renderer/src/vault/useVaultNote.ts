@@ -13,9 +13,11 @@ import { inlineImageSources, vaultImageSources } from './note-images'
  */
 export function useVaultNote(
   onNoteOpened?: (relPath: string) => void,
-  /** How a PDF citation opens its source VIEWER (S06). Without it, a PDF
-   *  page link falls back to opening the dossier markdown. */
-  onOpenPdfAtPage?: (dossierRel: string) => void
+  /** How SOURCE targets open their viewer (S06/S06e): PDF citations,
+   *  bare media originals, and dossier (source.md) links all route
+   *  here when the host provides it — a source belongs in the source
+   *  view, not the markdown editor. Absent → plain openNote. */
+  onOpenSourceView?: (dossierRel: string) => void
 ): {
   note: VaultNoteFile | null
   html: string
@@ -136,13 +138,27 @@ export function useVaultNote(
       const pdfTarget = pdfPageTarget(rel, rawHash)
       if (pdfTarget) {
         setPendingPdfPage(pdfTarget.dossierRel, pdfTarget.page)
-        if (onOpenPdfAtPage) onOpenPdfAtPage(pdfTarget.dossierRel)
+        if (onOpenSourceView) onOpenSourceView(pdfTarget.dossierRel)
         else openNote(pdfTarget.dossierRel)
+        return
+      }
+      // S06e (owner): a bare original.pdf link (no page) opens the
+      // source view of its bundle — it used to be a dead click.
+      if (rel.toLowerCase().endsWith('.pdf')) {
+        const dossierRel = rel.replace(/[^/]+\.pdf$/i, 'source.md')
+        if (onOpenSourceView) onOpenSourceView(dossierRel)
+        else openNote(dossierRel)
+        return
+      }
+      // S06e (owner): a dossier link opens the SOURCE VIEW (dossier +
+      // original side by side), not the markdown editor.
+      if (rel.split('/').pop() === 'source.md' && onOpenSourceView) {
+        onOpenSourceView(rel)
         return
       }
       if (rel.endsWith('.md')) openNote(rel)
     },
-    [note, openNote, onOpenPdfAtPage]
+    [note, openNote, onOpenSourceView]
   )
 
   return {
