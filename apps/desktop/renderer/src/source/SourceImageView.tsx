@@ -8,7 +8,7 @@ import {
   withPageAnchor,
   type Rotation
 } from './dossier'
-import { takePendingPdfPage } from './pdf-open'
+import { pdfPageTarget, takePendingPdfPage } from './pdf-open'
 import { applyRotation, mediaObjectUrl } from './rotate'
 import { PdfView } from './PdfView'
 import { SourcesTreePanel } from './SourcesTree'
@@ -79,14 +79,35 @@ export function SourceImageView({
   // only); rotation and the media transcribe buttons don't apply.
   const isPdf = base?.mimeType === 'application/pdf'
 
-  // S06: citation return — a pending page (set by a PDF link click)
-  // is taken when this dossier opens and handed to the viewer.
-  const [requestedPage, setRequestedPage] = useState<number | null>(null)
+  // S06: citation return — a pending page (set by a cross-note PDF link
+  // click) is taken when this dossier opens and handed to the viewer.
+  const [requestedPage, setRequestedPage] = useState<{ page: number } | null>(null)
   useEffect(() => {
     if (note && note.relPath.split('/').pop() === 'source.md') {
-      setRequestedPage(takePendingPdfPage(note.relPath))
+      const pending = takePendingPdfPage(note.relPath)
+      setRequestedPage(pending != null ? { page: pending } : null)
     }
   }, [note?.relPath])
+
+  // A PDF page link INSIDE this dossier (its own anchor table) can't go
+  // through openNote — re-opening the same note wouldn't re-fire the
+  // effect above — so jump the viewer directly; delegate everything
+  // else (cross-note PDF links, .md links) to the shared handler.
+  const onDossierClick = (event: React.MouseEvent<HTMLDivElement>): void => {
+    const anchor = (event.target as HTMLElement).closest('a')
+    if (anchor && note) {
+      const href = anchor.getAttribute('href') ?? ''
+      const [rawPath, rawHash = ''] = href.split('#')
+      const rel = resolveRelativePath(note.relPath, decodeURIComponent(rawPath ?? ''))
+      const target = rel ? pdfPageTarget(rel, rawHash) : null
+      if (target && target.dossierRel === note.relPath) {
+        event.preventDefault()
+        setRequestedPage({ page: target.page })
+        return
+      }
+    }
+    onContentClick(event)
+  }
 
   // S06: "anchor this page" writes a durable anchor row to the dossier.
   const anchorPage = (page: number): void => {
@@ -404,7 +425,7 @@ export function SourceImageView({
             )}
           </span>
         </div>
-        <div className="note-scroll" onClick={onContentClick}>
+        <div className="note-scroll" onClick={onDossierClick}>
           {error && <p className="error">{error}</p>}
           <article
             className="markdown-body"

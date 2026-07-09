@@ -17,15 +17,16 @@ const DOSSIER = [
 ].join('\n')
 
 describe('PDF anchors + citation return (CP-MVP-003 S06)', () => {
-  it('adds a page anchor row idempotently', () => {
+  it('adds a page anchor row with a CLICKABLE target, idempotently', () => {
     const once = withPageAnchor(DOSSIER, 3)
-    expect(once).toContain('| `p3` | page 3 | ./original.pdf#page=3 |')
+    // the Target is a real markdown link, not bare text (the S06 bug)
+    expect(once).toContain('| `p3` | page 3 | [page 3](./original.pdf#page=3) |')
     // inserted right under the header, above the existing row
     expect(once.indexOf('#page=3')).toBeLessThan(once.indexOf('original-pdf'))
     // idempotent
     expect(withPageAnchor(once, 3)).toBe(once)
     // a different page adds a second row
-    expect(withPageAnchor(once, 7)).toContain('#page=7')
+    expect(withPageAnchor(once, 7)).toContain('[page 7](./original.pdf#page=7)')
   })
 
   it('parses PDF page targets to the sibling dossier', () => {

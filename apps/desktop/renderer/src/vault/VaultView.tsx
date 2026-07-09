@@ -85,7 +85,7 @@ export function VaultView({
     reset,
     lastRequested,
     onContentClick
-  } = useVaultNote(onNoteOpened)
+  } = useVaultNote(onNoteOpened, onOpenSourceImage)
 
   const onDirtyChange = useCallback((dirty: boolean) => {
     setEditorDirty(dirty)

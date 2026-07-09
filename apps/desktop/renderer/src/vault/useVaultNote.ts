@@ -11,7 +11,12 @@ import { inlineImageSources, vaultImageSources } from './note-images'
  * ProjectView): open a note through the bridge, render it, follow
  * relative .md links, and never self-retry a failing path.
  */
-export function useVaultNote(onNoteOpened?: (relPath: string) => void): {
+export function useVaultNote(
+  onNoteOpened?: (relPath: string) => void,
+  /** How a PDF citation opens its source VIEWER (S06). Without it, a PDF
+   *  page link falls back to opening the dossier markdown. */
+  onOpenPdfAtPage?: (dossierRel: string) => void
+): {
   note: VaultNoteFile | null
   html: string
   error: string | null
@@ -125,16 +130,19 @@ export function useVaultNote(onNoteOpened?: (relPath: string) => void): {
       const pathPart = decodeURIComponent(rawPath ?? '')
       const rel = resolveRelativePath(note.relPath, pathPart)
       if (!rel) return
-      // citation return (S06): a PDF page link opens the dossier at page
+      // citation return (S06): a PDF page link opens the source VIEWER
+      // at the page (falling back to the dossier markdown if the host
+      // can't open a viewer).
       const pdfTarget = pdfPageTarget(rel, rawHash)
       if (pdfTarget) {
         setPendingPdfPage(pdfTarget.dossierRel, pdfTarget.page)
-        openNote(pdfTarget.dossierRel)
+        if (onOpenPdfAtPage) onOpenPdfAtPage(pdfTarget.dossierRel)
+        else openNote(pdfTarget.dossierRel)
         return
       }
       if (rel.endsWith('.md')) openNote(rel)
     },
-    [note, openNote]
+    [note, openNote, onOpenPdfAtPage]
   )
 
   return {

@@ -76,8 +76,9 @@ export function withDossierRotation(
  * when the table is absent (a hand-emptied dossier is not our concern).
  */
 export function withPageAnchor(dossierContent: string, page: number): string {
-  const row = `| \`p${page}\` | page ${page} | ./original.pdf#page=${page} |`
-  if (dossierContent.includes(`#page=${page} |`)) return dossierContent
+  // the Target is a REAL markdown link — the citation must be clickable
+  const row = `| \`p${page}\` | page ${page} | [page ${page}](./original.pdf#page=${page}) |`
+  if (dossierContent.includes(`#page=${page})`)) return dossierContent
   const header = /^\| Anchor \| Meaning \| Target \|\n\|[-| ]+\|\n/m.exec(dossierContent)
   if (!header) return dossierContent
   const insertAt = header.index + header[0].length

@@ -19,8 +19,9 @@ export function PdfView({
   onAnchorPage
 }: {
   dataUrl: string
-  /** Citation return (S06): a page to jump to; changes re-navigate. */
-  requestedPage?: number | null
+  /** Citation return (S06): a jump request; a NEW object each time (even
+   *  for the same page) so a repeat click re-navigates. */
+  requestedPage?: { page: number } | null
   /** "Anchor this page" — records a durable page anchor in the dossier. */
   onAnchorPage?: (page: number) => void
 }): React.JSX.Element {
@@ -28,13 +29,14 @@ export function PdfView({
   const hostRef = useRef<HTMLDivElement | null>(null)
   const docRef = useRef<pdfjs.PDFDocumentProxy | null>(null)
   const [numPages, setNumPages] = useState(0)
-  const [page, setPage] = useState(requestedPage ?? 1)
+  const [page, setPage] = useState(requestedPage?.page ?? 1)
   const [error, setError] = useState<string | null>(null)
 
-  // citation return: jump when the requested page changes (and is real)
+  // citation return: jump when a request arrives (and is real)
   useEffect(() => {
-    if (requestedPage && requestedPage >= 1) {
-      setPage(numPages ? Math.min(requestedPage, numPages) : requestedPage)
+    const want = requestedPage?.page
+    if (want && want >= 1) {
+      setPage(numPages ? Math.min(want, numPages) : want)
     }
   }, [requestedPage, numPages])
 
