@@ -15,10 +15,69 @@ import type { TranscriptionAdapter } from './transcription'
  */
 
 export const MISTRAL_OCR_MODEL = 'mistral-ocr-4-0'
+/** Pinned live 2026-07-09 (owner key, /v1/models) — dated, no alias. */
+export const VOXTRAL_MODEL = 'voxtral-mini-2602'
 const API_URL = 'https://api.mistral.ai/v1/ocr'
+const TRANSCRIBE_URL = 'https://api.mistral.ai/v1/audio/transcriptions'
 const TIMEOUT_MS = 180_000
 
 type OcrResponse = { pages?: Array<{ markdown?: string }>; model?: string }
+
+type TranscribeResponse = {
+  text?: string
+  model?: string
+  usage?: { audio_seconds?: number }
+}
+
+/** The cloud SPEECH rung (S06f, owner request): Voxtral transcription
+ *  behind the same explicit posture as the OCR rung — the cloud
+ *  handler routes audio here, images to OCR, one honest button each. */
+export function createVoxtralTranscribeAdapter(
+  key: string,
+  fetchImpl: typeof fetch = fetch
+): TranscriptionAdapter {
+  return {
+    id: 'mistral-voxtral',
+    transcribe: async (job) => {
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+      try {
+        const form = new FormData()
+        form.set('model', VOXTRAL_MODEL)
+        form.set(
+          'file',
+          new Blob([new Uint8Array(job.bytes)], { type: job.mimeType }),
+          job.originalAbs.split('/').pop() ?? 'audio'
+        )
+        const response = await fetchImpl(TRANSCRIBE_URL, {
+          method: 'POST',
+          headers: { authorization: `Bearer ${key}` },
+          body: form,
+          signal: controller.signal
+        })
+        if (!response.ok) {
+          const detail = (await response.text()).slice(0, 200)
+          throw new Error(`cloud transcribe: HTTP ${response.status} — ${detail}`)
+        }
+        const parsed = (await response.json()) as TranscribeResponse
+        const text = (parsed.text ?? '').trim()
+        return {
+          markdown: text.length > 0 ? text : '*(no speech recognized)*',
+          model: 'voxtral-mini',
+          modelVersion: parsed.model ?? VOXTRAL_MODEL,
+          runtime: 'mistral-api',
+          runtimeVersion: VOXTRAL_MODEL,
+          location: 'cloud-model',
+          ...(parsed.usage?.audio_seconds !== undefined
+            ? { audioSeconds: parsed.usage.audio_seconds }
+            : {})
+        }
+      } finally {
+        clearTimeout(timer)
+      }
+    }
+  }
+}
 
 export function createMistralOcrAdapter(
   key: string,

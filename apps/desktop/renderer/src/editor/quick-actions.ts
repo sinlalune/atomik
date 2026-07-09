@@ -136,6 +136,31 @@ export function anchorInsertionFor(
   }
 }
 
+/** A derived text quoted into the note as a block, with its citation
+ *  (S06f, owner request): the body travels INTO the note — corrected
+ *  text becomes writable material — and the link points home. */
+export function quoteBlockFor(
+  bundleName: string,
+  kind: 'extracted text' | 'transcript',
+  body: string,
+  citationRel: string
+): string {
+  const quoted = body
+    .trim()
+    .split('\n')
+    .map((line) => (line.length > 0 ? `> ${line}` : '>'))
+    .join('\n')
+  return `> **${bundleName} — ${kind}** ([source](<${citationRel}>))\n>\n${quoted}\n`
+}
+
+export type BundleEntry = {
+  label: string
+  detail: string
+  insertion?: Insertion
+  /** Deferred body (derived files are read at APPLY time, not menu time). */
+  loadInsertion?: () => Promise<Insertion>
+}
+
 /** All menu entries for one bundle (S06c, owner feedback: the menu must
  *  offer the CHOICES — dossier link, free-page citation, and every
  *  recorded anchor — not force one). */
@@ -143,7 +168,7 @@ export function bundleCompletions(
   notePath: string,
   bundle: SourceBundle,
   dossierContent: string | null
-): Array<{ label: string; detail: string; insertion: Insertion }> {
+): BundleEntry[] {
   const resource = dossierContent ? resourceInfoFrom(bundle, dossierContent) : null
   if (resource?.kind === 'image') {
     return [
@@ -188,6 +213,45 @@ export function bundleCompletions(
   ]
 }
 
+/** Derived-text entries for a bundle (S06f): whichever of extracted.md
+ *  / transcript.md the dossier links becomes an insert-as-quote-block
+ *  option; the body is read at APPLY time. */
+export function derivedTextEntries(
+  notePath: string,
+  bundle: SourceBundle,
+  dossierContent: string | null,
+  readDossier: DossierReader
+): BundleEntry[] {
+  if (!dossierContent) return []
+  const bundleDir = bundle.dossierPath.replace(/source\.md$/, '')
+  const entries: BundleEntry[] = []
+  const derived: Array<{ file: string; kind: 'extracted text' | 'transcript'; label: string }> = [
+    { file: 'extracted.md', kind: 'extracted text', label: 'extracted' },
+    { file: 'transcript.md', kind: 'transcript', label: 'transcript' }
+  ]
+  for (const { file, kind, label } of derived) {
+    if (!dossierContent.includes(`./${file}`)) continue
+    const derivedPath = `${bundleDir}${file}`
+    entries.push({
+      label: `@${bundle.name} ${label}`,
+      detail: `insert ${kind} as a quote block`,
+      loadInsertion: async () => {
+        const content = (await readDossier(derivedPath)) ?? ''
+        const body = content.replace(/^---\n[\s\S]*?\n---\n*/, '')
+        return {
+          text: quoteBlockFor(
+            bundle.name,
+            kind,
+            body,
+            relativePathBetween(notePath, derivedPath)
+          )
+        }
+      }
+    })
+  }
+  return entries
+}
+
 /** Completion source: `@` + filter over EVERY entry each bundle offers
  *  (dossier link, page citation, recorded anchors). Dossiers are read
  *  at menu time through the injected reader. */
@@ -204,29 +268,36 @@ export function quickActionsSource(
     const contents = await Promise.all(
       bundles.map((bundle) => readDossier(bundle.dossierPath))
     )
-    const options: Completion[] = bundles.flatMap((bundle, index) =>
-      bundleCompletions(notePath, bundle, contents[index] ?? null).map((entry) => ({
+    const options: Completion[] = bundles.flatMap((bundle, index) => {
+      const content = contents[index] ?? null
+      const entries = [
+        ...bundleCompletions(notePath, bundle, content),
+        ...derivedTextEntries(notePath, bundle, content, readDossier)
+      ]
+      return entries.map((entry) => ({
         label: entry.label,
         displayLabel: entry.label.slice(1),
         detail: entry.detail,
         type: 'variable',
         apply: (view: EditorView, _completion, applyFrom, applyTo) => {
-          view.dispatch({
-            changes: { from: applyFrom, to: applyTo, insert: entry.insertion.text },
-            // free-page citations land with the digit selected
-            ...(entry.insertion.selectFrom !== undefined &&
-            entry.insertion.selectTo !== undefined
-              ? {
-                  selection: {
-                    anchor: applyFrom + entry.insertion.selectFrom,
-                    head: applyFrom + entry.insertion.selectTo
+          const dispatch = (insertion: Insertion): void =>
+            view.dispatch({
+              changes: { from: applyFrom, to: applyTo, insert: insertion.text },
+              // free-page citations land with the digit selected
+              ...(insertion.selectFrom !== undefined && insertion.selectTo !== undefined
+                ? {
+                    selection: {
+                      anchor: applyFrom + insertion.selectFrom,
+                      head: applyFrom + insertion.selectTo
+                    }
                   }
-                }
-              : {})
-          })
+                : {})
+            })
+          if (entry.insertion) dispatch(entry.insertion)
+          else if (entry.loadInsertion) void entry.loadInsertion().then(dispatch)
         }
       }))
-    )
+    })
     return { from, options, validFor: /^@[^@]*$/ }
   }
 }

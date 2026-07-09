@@ -5,8 +5,10 @@ import { describe, expect, it } from 'vitest'
 import type { VaultFolder } from '../shared/ipc-contract'
 import {
   bundleCompletions,
+  derivedTextEntries,
   insertionFor,
   quickActionsSource,
+  quoteBlockFor,
   relativePathBetween,
   sourceBundlesOf
 } from '../renderer/src/editor/quick-actions'
@@ -153,16 +155,45 @@ describe('quickActionsSource', () => {
       '@jf-quote dossier'
     ])
     // the recorded anchor inserts an exact, fixed citation
-    expect(entries[1]!.insertion.text).toBe(
+    expect(entries[1]!.insertion!.text).toBe(
       '[jf-quote — page 2](<../sources/pdf/jf-quote/original.pdf#page=2>)'
     )
-    expect(entries[1]!.insertion.selectFrom).toBeUndefined()
+    expect(entries[1]!.insertion!.selectFrom).toBeUndefined()
     // the free-page citation keeps the digit selected
-    expect(entries[0]!.insertion.selectFrom).toBeDefined()
+    expect(entries[0]!.insertion!.selectFrom).toBeDefined()
     // the dossier link is always available
-    expect(entries[2]!.insertion.text).toBe(
+    expect(entries[2]!.insertion!.text).toBe(
       '[jf-quote](<../sources/pdf/jf-quote/source.md>)'
     )
+  })
+
+  it('offers derived-text quote blocks read at apply time (S06f)', async () => {
+    const bundle = { name: 'jf-quote', dossierPath: 'sources/pdf/jf-quote/source.md' }
+    const dossier = 'resource: ./original.pdf\n- [Extracted text](./extracted.md) — derived.'
+    const reads: string[] = []
+    const readDossier = (path: string): Promise<string | null> => {
+      reads.push(path)
+      return Promise.resolve('---\ntype: X\n---\n\nLigne un.\n\nLigne deux.')
+    }
+    const entries = derivedTextEntries('notes/idea.md', bundle, dossier, readDossier)
+    expect(entries.map((e) => e.label)).toEqual(['@jf-quote extracted'])
+    expect(reads).toHaveLength(0) // nothing read at MENU time
+    const insertion = await entries[0]!.loadInsertion!()
+    expect(reads).toEqual(['sources/pdf/jf-quote/extracted.md'])
+    expect(insertion.text).toBe(
+      [
+        '> **jf-quote — extracted text** ([source](<../sources/pdf/jf-quote/extracted.md>))',
+        '>',
+        '> Ligne un.',
+        '>',
+        '> Ligne deux.',
+        ''
+      ].join('\n')
+    )
+    // frontmatter stripped, body quoted
+    expect(insertion.text).not.toContain('type: X')
+    // pure block helper is stable
+    expect(quoteBlockFor('n', 'transcript', 'a\n\nb', 'x.md')).toContain('> **n — transcript**')
   })
 
   it('stays quiet without "@" unless explicitly invoked', async () => {

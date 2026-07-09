@@ -18,7 +18,7 @@ import {
 } from './transcription'
 import { createWhisperCppAdapter, whisperSeatReady } from './whisper-adapter'
 import { createQwenVlOcrAdapter, ocrSeatReady, type ImageResizer } from './ocr-adapter'
-import { createMistralOcrAdapter } from './mistral-ocr-adapter'
+import { createMistralOcrAdapter, createVoxtralTranscribeAdapter } from './mistral-ocr-adapter'
 import { publicAiSettings, readMistralKey, writeMistralKey } from './ai-settings'
 import { importPdfFromPath } from './pdf-import'
 import { extractPdfSource, resetExtraction } from './pdf-extract'
@@ -327,7 +327,13 @@ function registerCaptureHandlers(stateDir: string): void {
           'cloud ocr: no Mistral API key configured (Settings → AI) — nothing was sent'
         )
       }
-      const result = await transcribeSource(requireVault(), dossierPath, createMistralOcrAdapter(key), traces)
+      // S06f: the cloud rung routes by media like the local one —
+      // images → Mistral OCR, audio → Voxtral. One button, honest twice.
+      const cloudSeat = routeByMedia(
+        createVoxtralTranscribeAdapter(key),
+        createMistralOcrAdapter(key)
+      )
+      const result = await transcribeSource(requireVault(), dossierPath, cloudSeat, traces)
       event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
       return result
     }

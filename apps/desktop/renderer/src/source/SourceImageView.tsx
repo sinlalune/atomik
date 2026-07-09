@@ -415,11 +415,17 @@ export function SourceImageView({
                 <button
                   type="button"
                   className="note-bar-button"
-                  title="SENDS this image to the Mistral OCR API (cloud) — explicit action, result marked cloud-derived; requires a configured key"
+                  title={
+                    isAudio
+                      ? 'SENDS this audio to Mistral Voxtral (cloud) — explicit action, result marked cloud-derived; requires a configured key'
+                      : 'SENDS this image to the Mistral OCR API (cloud) — explicit action, result marked cloud-derived; requires a configured key'
+                  }
                   disabled={transcribing || cloudBusy}
                   onClick={transcribeCloud}
                 >
-                  {cloudBusy ? 'Cloud OCR…' : 'Cloud OCR'}
+                  {cloudBusy
+                    ? isAudio ? 'Cloud transcribe…' : 'Cloud OCR…'
+                    : isAudio ? 'Cloud transcribe' : 'Cloud OCR'}
                 </button>
               </>
             )}
