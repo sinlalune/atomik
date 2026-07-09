@@ -13,7 +13,7 @@ import type { AtomikApi, VaultFolder } from '../../../shared/ipc-contract'
 const atomik = (): AtomikApi =>
   (globalThis as unknown as { atomik: AtomikApi }).atomik
 import { resolveRelativePath } from '../dev-docs/markdown'
-import { resourceOf } from '../source/dossier'
+import { pageAnchorsOf, resourceOf, type PageAnchor } from '../source/dossier'
 
 /**
  * "@" quick actions (owner request): typing `@` in the editor opens a
@@ -106,56 +106,143 @@ const PDF_RESOURCE = /\.pdf$/i
 
 export type ResourceInfo = { kind: 'image' | 'pdf'; vaultRel: string }
 
+/** Dossier content accessor — injected so tests run headless and the
+ *  live app can cache; null when unreadable. */
+export type DossierReader = (dossierPath: string) => Promise<string | null>
+
 /** The bundle's original (image or pdf) as a vault-relative path. */
-async function resourceInfoOf(bundle: SourceBundle): Promise<ResourceInfo | null> {
-  try {
-    const dossier = await atomik().readNote(bundle.dossierPath)
-    const resource = resourceOf(dossier.content)
-    if (!resource) return null
-    const vaultRel = resolveRelativePath(bundle.dossierPath, resource)
-    if (!vaultRel) return null
-    if (IMAGE_RESOURCE.test(resource)) return { kind: 'image', vaultRel }
-    if (PDF_RESOURCE.test(resource)) return { kind: 'pdf', vaultRel }
-    return null
-  } catch {
-    return null
+export function resourceInfoFrom(
+  bundle: SourceBundle,
+  dossierContent: string
+): ResourceInfo | null {
+  const resource = resourceOf(dossierContent)
+  if (!resource) return null
+  const vaultRel = resolveRelativePath(bundle.dossierPath, resource)
+  if (!vaultRel) return null
+  if (IMAGE_RESOURCE.test(resource)) return { kind: 'image', vaultRel }
+  if (PDF_RESOURCE.test(resource)) return { kind: 'pdf', vaultRel }
+  return null
+}
+
+/** An exact citation to a RECORDED anchor — target fixed, no selection. */
+export function anchorInsertionFor(
+  notePath: string,
+  bundle: SourceBundle,
+  resourceVaultRel: string,
+  anchor: PageAnchor
+): Insertion {
+  return {
+    text: `[${bundle.name} — ${anchor.meaning}](<${relativePathBetween(notePath, resourceVaultRel)}#page=${anchor.page}>)`
   }
 }
 
-/** Completion source: `@` + optional filter, capture bundles as options. */
+/** All menu entries for one bundle (S06c, owner feedback: the menu must
+ *  offer the CHOICES — dossier link, free-page citation, and every
+ *  recorded anchor — not force one). */
+export function bundleCompletions(
+  notePath: string,
+  bundle: SourceBundle,
+  dossierContent: string | null
+): Array<{ label: string; detail: string; insertion: Insertion }> {
+  const resource = dossierContent ? resourceInfoFrom(bundle, dossierContent) : null
+  if (resource?.kind === 'image') {
+    return [
+      {
+        label: `@${bundle.name}`,
+        detail: 'capture — image embed',
+        insertion: insertionFor(notePath, bundle, resource)
+      },
+      {
+        label: `@${bundle.name} dossier`,
+        detail: 'link to source.md',
+        insertion: insertionFor(notePath, bundle, null)
+      }
+    ]
+  }
+  if (resource?.kind === 'pdf') {
+    const anchors = dossierContent ? pageAnchorsOf(dossierContent) : []
+    return [
+      {
+        label: `@${bundle.name} page…`,
+        detail: 'PDF citation — type the page',
+        insertion: insertionFor(notePath, bundle, resource)
+      },
+      ...anchors.map((anchor) => ({
+        label: `@${bundle.name} ${anchor.anchor}`,
+        detail: `anchor — ${anchor.meaning}`,
+        insertion: anchorInsertionFor(notePath, bundle, resource.vaultRel, anchor)
+      })),
+      {
+        label: `@${bundle.name} dossier`,
+        detail: 'link to source.md',
+        insertion: insertionFor(notePath, bundle, null)
+      }
+    ]
+  }
+  return [
+    {
+      label: `@${bundle.name}`,
+      detail: 'link to source.md',
+      insertion: insertionFor(notePath, bundle, null)
+    }
+  ]
+}
+
+/** Completion source: `@` + filter over EVERY entry each bundle offers
+ *  (dossier link, page citation, recorded anchors). Dossiers are read
+ *  at menu time through the injected reader. */
 export function quickActionsSource(
   notePath: string,
-  listBundles: () => Promise<SourceBundle[]>
+  listBundles: () => Promise<SourceBundle[]>,
+  readDossier: DossierReader
 ) {
   return async (context: CompletionContext): Promise<CompletionResult | null> => {
-    const match = context.matchBefore(/@[^\s@]*/)
+    const match = context.matchBefore(/@[^@]*/)
     if (!match && !context.explicit) return null
     const from = match ? match.from : context.pos
     const bundles = await listBundles()
-    const options: Completion[] = bundles.map((bundle) => ({
-      label: `@${bundle.name}`,
-      displayLabel: bundle.name,
-      detail: 'capture',
-      type: 'variable',
-      apply: (view: EditorView, _completion, applyFrom, applyTo) => {
-        void resourceInfoOf(bundle).then((resource) => {
-          const insertion = insertionFor(notePath, bundle, resource)
+    const contents = await Promise.all(
+      bundles.map((bundle) => readDossier(bundle.dossierPath))
+    )
+    const options: Completion[] = bundles.flatMap((bundle, index) =>
+      bundleCompletions(notePath, bundle, contents[index] ?? null).map((entry) => ({
+        label: entry.label,
+        displayLabel: entry.label.slice(1),
+        detail: entry.detail,
+        type: 'variable',
+        apply: (view: EditorView, _completion, applyFrom, applyTo) => {
           view.dispatch({
-            changes: { from: applyFrom, to: applyTo, insert: insertion.text },
-            // citations land with the page number selected — type over it
-            ...(insertion.selectFrom !== undefined && insertion.selectTo !== undefined
+            changes: { from: applyFrom, to: applyTo, insert: entry.insertion.text },
+            // free-page citations land with the digit selected
+            ...(entry.insertion.selectFrom !== undefined &&
+            entry.insertion.selectTo !== undefined
               ? {
                   selection: {
-                    anchor: applyFrom + insertion.selectFrom,
-                    head: applyFrom + insertion.selectTo
+                    anchor: applyFrom + entry.insertion.selectFrom,
+                    head: applyFrom + entry.insertion.selectTo
                   }
                 }
               : {})
           })
-        })
-      }
-    }))
-    return { from, options, validFor: /^@[^\s@]*$/ }
+        }
+      }))
+    )
+    return { from, options, validFor: /^@[^@]*$/ }
+  }
+}
+
+/** Live reader with a short cache — the menu may fire per keystroke. */
+const dossierCache = new Map<string, { content: string | null; at: number }>()
+const readDossierCached: DossierReader = async (dossierPath) => {
+  const hit = dossierCache.get(dossierPath)
+  if (hit && Date.now() - hit.at < 5_000) return hit.content
+  try {
+    const note = await atomik().readNote(dossierPath)
+    dossierCache.set(dossierPath, { content: note.content, at: Date.now() })
+    return note.content
+  } catch {
+    dossierCache.set(dossierPath, { content: null, at: Date.now() })
+    return null
   }
 }
 
@@ -164,7 +251,7 @@ export function quickActions(
   listBundles: () => Promise<SourceBundle[]>
 ): Extension {
   return autocompletion({
-    override: [quickActionsSource(notePath, listBundles)],
+    override: [quickActionsSource(notePath, listBundles, readDossierCached)],
     activateOnTyping: true,
     icons: false
   })

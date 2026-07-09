@@ -4,6 +4,7 @@ import { EditorState } from '@codemirror/state'
 import { describe, expect, it } from 'vitest'
 import type { VaultFolder } from '../shared/ipc-contract'
 import {
+  bundleCompletions,
   insertionFor,
   quickActionsSource,
   relativePathBetween,
@@ -103,8 +104,25 @@ describe('insertionFor', () => {
 })
 
 describe('quickActionsSource', () => {
-  const source = quickActionsSource('notes/idea.md', () =>
-    Promise.resolve(sourceBundlesOf(tree))
+  const PDF_DOSSIER = [
+    '---',
+    'type: Atomik Source',
+    'resource: ./original.pdf',
+    '---',
+    '',
+    '| Anchor | Meaning | Target |',
+    '|---|---|---|',
+    '| `p2` | page 2 | [page 2](./original.pdf#page=2) |',
+    ''
+  ].join('\n')
+  const readDossier = (dossierPath: string): Promise<string | null> =>
+    Promise.resolve(
+      dossierPath.startsWith('sources/pdf/') ? PDF_DOSSIER : '---\ntype: Atomik Source\n---'
+    )
+  const source = quickActionsSource(
+    'notes/idea.md',
+    () => Promise.resolve(sourceBundlesOf(tree)),
+    readDossier
   )
 
   async function complete(doc: string, pos: number, explicit = false) {
@@ -123,7 +141,28 @@ describe('quickActionsSource', () => {
       '@Pascal',
       '@Zebra'
     ])
-    expect(result!.options[0]!.detail).toBe('capture')
+    expect(result!.options[0]!.detail).toBe('link to source.md')
+  })
+
+  it('offers the full choice set for a PDF bundle: citation, anchors, dossier', () => {
+    const bundle = { name: 'jf-quote', dossierPath: 'sources/pdf/jf-quote/source.md' }
+    const entries = bundleCompletions('notes/idea.md', bundle, PDF_DOSSIER)
+    expect(entries.map((e) => e.label)).toEqual([
+      '@jf-quote page…',
+      '@jf-quote p2',
+      '@jf-quote dossier'
+    ])
+    // the recorded anchor inserts an exact, fixed citation
+    expect(entries[1]!.insertion.text).toBe(
+      '[jf-quote — page 2](<../sources/pdf/jf-quote/original.pdf#page=2>)'
+    )
+    expect(entries[1]!.insertion.selectFrom).toBeUndefined()
+    // the free-page citation keeps the digit selected
+    expect(entries[0]!.insertion.selectFrom).toBeDefined()
+    // the dossier link is always available
+    expect(entries[2]!.insertion.text).toBe(
+      '[jf-quote](<../sources/pdf/jf-quote/source.md>)'
+    )
   })
 
   it('stays quiet without "@" unless explicitly invoked', async () => {

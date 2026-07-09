@@ -69,6 +69,23 @@ export function withDossierRotation(
   return dossierContent.replace(fence[0], () => `---\n${next}\n---`)
 }
 
+export type PageAnchor = { anchor: string; meaning: string; page: number }
+
+/** The dossier's recorded page anchors (S06c) — every Useful-anchors
+ *  row whose target carries #page=N, whatever the target's format. */
+export function pageAnchorsOf(dossierContent: string): PageAnchor[] {
+  const anchors: PageAnchor[] = []
+  const row = /^\| `([^`]+)` \| ([^|]+) \| [^|]*#page=(\d+)[^|]* \|$/gm
+  for (const match of dossierContent.matchAll(row)) {
+    anchors.push({
+      anchor: match[1]!,
+      meaning: match[2]!.trim(),
+      page: Number(match[3])
+    })
+  }
+  return anchors
+}
+
 /**
  * A page anchor added to the dossier's "Useful anchors" table (S06):
  * a durable, clickable citation to a page — the link the return path
