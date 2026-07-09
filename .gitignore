@@ -8,3 +8,5 @@ out/
 
 # owner captures + evaluation fixtures stay local (owner decision 2026-07-07, CP-MVP-004 S02)
 sources/captures/
+# PDF source bundles: user documents stay local (same S02 decision as captures — the repo is public)
+sources/pdf/

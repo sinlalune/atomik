@@ -180,6 +180,15 @@ tests       : 251 passing / 26 suites
               record in sessions/2026-07-08-pdf-engine-decision.md);
               installed, 0 vulnerabilities.
               S03 done 2026-07-08: PDF-as-source landed (see step).
+              S06-fixes 2026-07-09 (owner screenshots): anchor Targets
+              are real markdown links now (old rows in the owner vault
+              MIGRATED); same-dossier anchor clicks jump the viewer
+              directly; cross-note citations open the source VIEWER
+              (not the dossier markdown) via onOpenPdfAtPage.
+              S06b 2026-07-09 (owner request): the @ quick-actions menu
+              inserts PDF CITATIONS — complete relative link with the
+              page digit pre-selected to type over; bundle paths are
+              never hand-typed (the dead-link class dies). Tests 258.
 next action : S07 — acceptance run (18 §M4 intents + truth slice),
               owner validation on the real JF_Quote PDF, review + close
 blockers    : none recorded
