@@ -407,14 +407,30 @@ body[data-maximized] .tabstrip {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 8px;
+  padding: 0 8px 8px;
+}
+
+/* exactly ONE scroller: when the pane hosts the PDF view, the parent
+ * yields its scroll (and its image-centering) to it — two scrollbars
+ * was the owner's report */
+.source-image-original:has(.pdf-view) {
+  overflow: hidden;
+  align-items: stretch;
+  justify-content: stretch;
 }
 
 .pdf-nav {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   flex: none;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  width: 100%;
+  padding: 8px 0;
+  background: light-dark(#e8e8e2, #141417);
 }
 
 .pdf-nav-status {
