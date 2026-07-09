@@ -275,9 +275,10 @@ export function SourceImageView({
     return (
     <div className="source-image-view">
       <div className="source-image-original">
-        {!isAudio && isDossier && (
-          // rotation is edited on the dossier only — anywhere else the
-          // buttons would write into the WRONG note's frontmatter
+        {!isAudio && !isPdf && isDossier && (
+          // rotation is edited on the dossier only (and is a PHOTO
+          // correction — PDFs have no business with it) — anywhere else
+          // the buttons would write into the WRONG note's frontmatter
           <div className="source-image-tools">
             <button
               type="button"

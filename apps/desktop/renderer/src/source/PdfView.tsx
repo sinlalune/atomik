@@ -83,7 +83,11 @@ export function PdfView({
   }, [dataUrl])
 
   // render the current page, fitted to the host width (waits for a real
-  // measurement — rendering into a 0-width pane is the blank-view bug)
+  // measurement — rendering into a 0-width pane is the blank-view bug).
+  // Exactly ONE render at a time: pdf.js refuses overlapping render()
+  // calls on the same canvas, so the previous task is CANCELLED first
+  // (the owner hit the race by flipping pages during a resize).
+  const renderTaskRef = useRef<{ cancel: () => void } | null>(null)
   useEffect(() => {
     if (numPages === 0 || hostWidth < 40) return
     let cancelled = false
@@ -104,13 +108,21 @@ export function PdfView({
         canvas.style.height = `${viewport.height / ratio}px`
         const context = canvas.getContext('2d')
         if (!context) return
-        await pdfPage.render({ canvas, canvasContext: context, viewport }).promise
+        renderTaskRef.current?.cancel()
+        const task = pdfPage.render({ canvas, canvasContext: context, viewport })
+        renderTaskRef.current = task
+        await task.promise
       } catch (cause) {
-        if (!cancelled) setError(`pdf render: ${String(cause)}`)
+        // a cancelled render is the mechanism working, not an error
+        const name = (cause as { name?: string } | null)?.name
+        if (!cancelled && name !== 'RenderingCancelledException') {
+          setError(`pdf render: ${String(cause)}`)
+        }
       }
     })()
     return () => {
       cancelled = true
+      renderTaskRef.current?.cancel()
     }
   }, [page, numPages, hostWidth])
 
