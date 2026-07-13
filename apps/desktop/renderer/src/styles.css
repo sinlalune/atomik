@@ -1124,11 +1124,11 @@ body[data-maximized] .tabstrip {
   padding: var(--note-pad);
 }
 
-/* ...and the READING surface: live uses the app tokens for background
-   and text (oneDark's own canvas stays a SOURCE-mode thing; nested code
-   colors still come from the highlight style). */
+/* ...and the READING surface: live sits on the CONTENT surface like
+   read mode (oneDark's own canvas stays a SOURCE-mode thing; nested
+   code colors still come from the highlight style). */
 .editor-host.live .cm-editor {
-  background-color: var(--bg);
+  background-color: var(--surface);
   color: var(--fg);
 }
 
@@ -2054,7 +2054,7 @@ body[data-maximized] .tabstrip {
   font: inherit;
   font-size: 0.85rem;
   color: inherit;
-  background: var(--bg);
+  background: var(--code-bg);
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 0.3rem 0.5rem;
@@ -2199,7 +2199,9 @@ body[data-maximized] .tabstrip {
   font-size: 1rem;
   line-height: 1;
   color: var(--muted);
-  background: var(--bg);
+  /* the stage is --bg now — the pill needs the surface tone to stand
+     on it (it vanished when both wore --bg) */
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 0.3rem 0.5rem;
