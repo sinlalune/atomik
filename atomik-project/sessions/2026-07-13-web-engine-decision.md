@@ -161,3 +161,14 @@ New recheck triggers: Google walls again despite the Firefox
 presentation (→ investigate the flow Google serves, consider the
 controlled auth window WITH this presentation); Google flags the pinned
 Firefox as OUTDATED (→ bump FIREFOX_UA, one dated line).
+
+**OUTCOME 2026-07-13 — VALIDATED.** The first retry after seating the
+mitigation still walled: the partition carried the FLAGGED state from
+the pre-mitigation attempt (Google's verdict persists in session
+cookies; "Réessayer" replays it). After clearing
+`~/.config/atomik-desktop/Partitions/web-sources` and logging in fresh
+through the Firefox presentation, the owner signed in successfully and
+**Colab runs in the pane** — the M5 workbench scenario is alive.
+Operational note for the future: if the wall ever reappears, clear the
+partition BEFORE judging the mitigation dead — a poisoned session
+looks identical to a failed workaround.

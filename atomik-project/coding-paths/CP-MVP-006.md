@@ -296,8 +296,13 @@ tests       : 272 passing / 30 suites — tests/typecheck/build/smoke
               ONLY (pinned FIREFOX_UA, Sec-CH-UA stripped, JS-visible
               UA switched per main-frame nav); Chrome everywhere else.
               The auth-child-window fallback was NOT taken (same
-              engine, same hints, same wall). Tests 272→274. AWAITING
-              owner retry of the Google login.
+              engine, same hints, same wall). Tests 272→274.
+              OWNER VALIDATED 2026-07-13: after clearing the POISONED
+              partition (the pre-mitigation flag persists in cookies —
+              operational note in the decision record), Google login
+              SUCCEEDED through the Firefox presentation and COLAB
+              RUNS IN THE PANE. The named S02 risk is closed; the
+              workbench scenario is alive. S03 fully owner-validated.
 next action : S04 — Import as source: explicit action → sources/web/
               <slug>/ bundle (source.md with 09 evidence metadata +
               snapshot.mhtml hashed + index.md) through the gates;
