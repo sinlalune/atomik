@@ -8,8 +8,8 @@ atomik:
   id: CP-MVP-006
   status: active
   accepted: 2026-07-13
-  current_step: S01
-  base_commit: null
+  current_step: S02
+  base_commit: 5381a12
 ---
 
 # Goal
@@ -158,8 +158,24 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
 
 # Execution
 
-- [ ] S01 Bootstrap (22): reconcile ledger vs repo; record `base_commit`;
+- [x] S01 Bootstrap (22): reconcile ledger vs repo; record `base_commit`;
       re-read 09 + 03 + 05 + 13 (remote-content sections in full).
+      DONE 2026-07-13: base_commit 5381a12; 262/28 re-verified at S01;
+      dirty tree = owner dogfooding files only. Pins from the reads:
+      03 — `source-web` is ALREADY a named MVP tab type and the pane
+      ops already promise side-by-side source views (the workbench
+      scenario is the pane system working as designed, no new pane
+      machinery); 05 — `WebResource` + `'source-web'` ViewKind exist
+      in the type sketch, Selection kind 'text' + SourceAnchor
+      textRange cover reader anchors (coordinate sidecar stays
+      optional, as with PDF); 13 (full) — the four required settings
+      apply to the EMBED, the live view must NEVER mutate vault files
+      (import runs through a typed main channel), every new
+      WebContentsView needs a documented trust boundary + tests
+      (security documentation rule), no keys near remote views, remote
+      content never triggers provider calls; 09 — two paths kept
+      separate (live view vs extracted view), evidence metadata list,
+      no auto-crawl from grounding links.
 - [ ] S02 Engine decisions (15, dated; 13-constrained): (a) the embed
       approach — WebContentsView vs webview tag vs BrowserView, judged
       against the pane system (the view must sit INSIDE a split) and
@@ -200,18 +216,24 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
 # Current checkpoint
 
 ```text
-base commit : null — set at S01
+base commit : 5381a12
 changed     : path PROPOSED and ACCEPTED 2026-07-13 (owner directive:
               normal web navigation; reader view / extract text AND
               image as source; Colab on one panel + math PDF on
               another — "everything for learning"). Scope revised to
-              carry the directive before activation: Colab as the
-              embed bench, session/popup policy as dated S02
-              decisions, image capture into media/, the workbench
-              scenario as an S07 acceptance intent.
-tests       : 262 passing / 28 suites at acceptance
-next action : S01 bootstrap — reconcile, base_commit, re-read
-              09 + 03 + 05 + 13 (remote-content sections in full)
+              carry the directive before activation.
+              S01 done 2026-07-13: base_commit 5381a12; 262/28
+              re-verified; tree = owner dogfooding files only;
+              09/03/05/13 read — source-web tab type and WebResource
+              already named by the bedrock; 13's embed posture and
+              the never-mutate-vault rule pinned (see step).
+tests       : 262 passing / 28 suites — re-verified at S01
+next action : S02 — dated 15 decisions under 13: embed approach
+              (WebContentsView vs webview vs BrowserView, judged
+              against the pane system + the Colab bench), partition
+              PERSISTENCE + popup/window.open policy, reader engine
+              (incl. image capture), snapshot format; record the
+              not-chosen. No install without the record.
 blockers    : none recorded. Standing note: provider key store found
               EMPTY 2026-07-09 — re-enter via ⚙ before cloud-rung work
               (not expected on this path's critical line).
