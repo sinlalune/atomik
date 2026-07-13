@@ -5,7 +5,16 @@
   --muted: light-dark(#6b6b62, #9a9aa2);
   --accent: light-dark(#3d5a3d, #9ec49e);
   --code-bg: light-dark(#f1f1ec, #26262c);
-  --bg: light-dark(#fafaf8, #1b1b1f);
+  /* Two-surface layering (owner request, dogfooding round: "segment the
+     zones"): --bg is the CHROME — window shell, tabstrips, bars, tree
+     panels, media stage; --surface is the CONTENT — editors, rendered
+     notes, viewers, popovers. The active tab of the focused pane wears
+     --surface so it fuses with the content below it; everything
+     chrome-side sits one step back. Keep the ladder ordered in both
+     schemes: light chrome < code-bg < surface; dark chrome < surface
+     < code-bg. */
+  --bg: light-dark(#ecece6, #141418);
+  --surface: light-dark(#fbfbf9, #1e1e23);
   --fg: light-dark(#26261f, #e8e8e3);
 
   /* Note-rendering tokens — the READ view (.markdown-body) and the LIVE
@@ -43,7 +52,8 @@
 
 :root[data-theme='green'] {
   color-scheme: light;
-  --bg: #eaf0e7;
+  --bg: #e2eadd;
+  --surface: #f3f7f0;
   --code-bg: #dee7d9;
   --border: #c8d5c2;
   --accent: #3f6a45;
@@ -52,7 +62,8 @@
 
 :root[data-theme='blue'] {
   color-scheme: light;
-  --bg: #e8eef4;
+  --bg: #dfe8f0;
+  --surface: #f1f5f9;
   --code-bg: #dce5ee;
   --border: #c3d2e0;
   --accent: #35608f;
@@ -61,7 +72,8 @@
 
 :root[data-theme='orange'] {
   color-scheme: light;
-  --bg: #f5eee3;
+  --bg: #efe6d4;
+  --surface: #faf5ec;
   --code-bg: #ede2d0;
   --border: #dcc9ac;
   --accent: #a05a1f;
@@ -70,7 +82,8 @@
 
 :root[data-theme='grey'] {
   color-scheme: light;
-  --bg: #e9eaec;
+  --bg: #e0e2e5;
+  --surface: #f2f3f5;
   --code-bg: #dfe1e4;
   --border: #c9ccd1;
   --accent: #4a5568;
@@ -79,7 +92,8 @@
 
 :root[data-theme='pink'] {
   color-scheme: light;
-  --bg: #f4eaee;
+  --bg: #eddfe6;
+  --surface: #faf2f6;
   --code-bg: #ecdde4;
   --border: #dcc3cf;
   --accent: #a04468;
@@ -190,8 +204,14 @@ body {
   flex-direction: column;
 }
 
-.pane.focused > .tabstrip {
-  border-bottom-color: var(--accent);
+/* Focus lives on the ACTIVE TAB, not the whole strip: in the focused
+   pane it wears the content surface (fusing with the pane below) plus
+   an accent top line; in unfocused panes it stays a quiet chrome pill.
+   One glance answers both "which tab" and "which pane". */
+.pane.focused > .tabstrip .tab.active {
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: inset 0 2px 0 var(--accent);
 }
 
 /* Tabstrips double as the window drag surface (chromeless frame): empty
@@ -205,6 +225,7 @@ body {
   align-items: center;
   gap: 2px;
   padding: 0.25rem 0.4rem;
+  background: var(--bg);
   border-bottom: 1px solid var(--border);
   font-size: 0.8rem;
   -webkit-app-region: drag;
@@ -241,10 +262,16 @@ body[data-maximized] .tabstrip {
   align-items: center;
   border-radius: 6px;
   white-space: nowrap;
+  color: var(--muted);
+}
+
+.tab:hover {
+  color: var(--fg);
 }
 
 .tab.active {
   background: var(--code-bg);
+  color: var(--fg);
   font-weight: 600;
 }
 
@@ -335,7 +362,7 @@ body[data-maximized] .tabstrip {
   z-index: 40;
   width: 320px;
   padding: 0.75rem 0.9rem;
-  background: var(--bg);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
@@ -430,7 +457,8 @@ body[data-maximized] .tabstrip {
   z-index: 5;
   width: 100%;
   padding: 8px 0;
-  background: light-dark(#e8e8e2, #141417);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
 }
 
 .pdf-nav-status {
@@ -464,6 +492,8 @@ body[data-maximized] .tabstrip {
   gap: 6px;
   padding: 6px 8px;
   flex: none;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
 }
 
 .web-url {
@@ -477,8 +507,8 @@ body[data-maximized] .tabstrip {
   min-width: 0;
   padding: 4px 10px;
   border-radius: 6px;
-  border: 1px solid light-dark(#c8c8c0, #33333a);
-  background: light-dark(#fdfdfa, #1b1b1f);
+  border: 1px solid var(--border);
+  background: var(--surface);
   color: inherit;
   font: inherit;
   font-size: 13px;
@@ -538,6 +568,9 @@ body[data-maximized] .tabstrip {
   min-width: 0;
   display: flex;
   overflow: hidden;
+  /* the content surface — every view's working area sits one step
+     brighter than the chrome around it */
+  background: var(--surface);
 }
 
 .pane-placeholder {
@@ -611,6 +644,8 @@ body[data-maximized] .tabstrip {
 .devdocs-tree,
 .vault-tree {
   position: relative;
+  /* side panels are chrome — recessed behind the content surface */
+  background: var(--bg);
 }
 
 .tree-resize {
@@ -917,6 +952,7 @@ body[data-maximized] .tabstrip {
   min-height: var(--bar-h);
   box-sizing: border-box;
   padding: 0.15rem 0.9rem;
+  background: var(--bg);
   border-bottom: 1px solid var(--border);
   font-size: 0.78rem;
 }
@@ -2045,7 +2081,9 @@ body[data-maximized] .tabstrip {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: light-dark(#e8e8e2, #141417);
+  /* the media STAGE is chrome — the original stands apart from the
+     dossier's content surface beside it */
+  background: var(--bg);
   border-right: 1px solid var(--border);
   overflow: auto;
 }
@@ -2116,9 +2154,11 @@ body[data-maximized] .tabstrip {
 
 /* "@" quick actions menu (cm autocomplete tooltip) */
 .cm-tooltip.cm-tooltip-autocomplete {
-  background: var(--bg);
+  /* popovers float on the content surface, like the settings panel */
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   overflow: hidden;
 }
 
