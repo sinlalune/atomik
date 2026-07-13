@@ -807,7 +807,16 @@ Dev-environment note (WSL2 Ubuntu noble): Electron needs `libnss3`,
 `libnspr4`, `libasound2t64` system packages — `poppler-utils` provides
 `pdftoppm` for PDF-OCR rasterizing (installed by owner 2026-07-08;
 absent, scanned pages land honest placeholders, no code change to
-re-enable) — and `libpulse0` for the
+re-enable). Two stderr lines are KNOWN WSLg noise/limits
+(probe-verified 2026-07-13): `WebGL1 blocklisted` is REAL — WebGL 1
+AND 2 return null contexts under WSLg's blocklisted GL (probed
+directly; regular pages and Colab's editor don't care; GPU-rendered
+outputs — plotly 3D, three.js — would fail). The knob, IF a page the
+owner needs visibly breaks, is `ignore-gpu-blocklist` as a DATED
+decision — not preemptively, GPU flags can destabilize the renderer.
+`UPower ... ServiceUnknown` is the Battery Status API probing a
+daemon WSL doesn't run — zero impact, no action. Electron also needs
+`libpulse0` for the
 MICROPHONE (probe-verified 2026-07-07: without it Chromium sees zero
 audio inputs and getUserMedia fails NotFoundError; with it, WSLg's
 RDPSource — the Windows mic — appears and records; enumerate/gum only
