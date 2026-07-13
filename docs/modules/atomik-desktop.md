@@ -435,7 +435,31 @@ timestamp: 2026-07-06T00:00:00Z
   hostname, restore reloads the page; tab SWITCHES only hide the view,
   so a running page (a Colab session) survives; tab CLOSE destroys it
   (both close paths call `destroyTabView`). E2E probe: ATOMIK_SMOKE_WEB
-  (below).
+  (below). Google-auth compatibility: the exact hosts
+  accounts.google.com/accounts.youtube.com get a FIREFOX presentation
+  (pinned UA, Sec-CH-UA stripped, JS-visible UA switched per
+  navigation) — the dated S03c mitigation, owner-validated; everywhere
+  else stays normalized Chrome.
+- Web import as source (09, CP-MVP-006 S04): `electron-main/web-import.ts`
+  + channel `web-view-import-source` behind the EXPLICIT "Import as
+  source" button in the web nav (09: never automatic). Lands
+  `sources/web/<slug>/`: `snapshot.mhtml` — the page AS RENDERED via
+  `savePage(…, 'MHTML')`, sha256 + bytes in the dossier — plus
+  `source.md` (09 evidence metadata: original/canonical URL,
+  accessed_at, author/publisher/published/updated when the page's meta
+  tags offer them, license row "not reviewed" until a human fills it)
+  and `index.md`. EVERY page-controlled string is hostile until
+  sanitized (`cleanMetaText`: one line, control chars gone, `|`/backtick
+  stripped, capped; YAML-quoted title; canonical dropped unless
+  http(s)) — frontmatter/markdown-table injection dies in tests. Slug
+  from title with URL fallback, numbered siblings, wx + full-bundle
+  cleanup on any failure (a failed savePage leaves NOTHING). Metadata
+  probe is a read-only one-shot `executeJavaScript` with a 3 s race —
+  a hostile/hung page falls back to title+URL. On success the dossier
+  opens in a new vault tab. `sources/web/` entered `.gitignore` in the
+  SAME commit (the 2026-07-09 incident rule; snapshots of logged-in
+  pages are personal). SourceImageView shows a friendly line for web
+  dossiers (URL original; the web-view routing click lands in S06).
 - Project bundles (04, S06): `electron-main/project.ts` (incubating
   project-core, 14) — manifest-detected bundles
   (`project.atomik-project.json`; scan skips denied dirs and does not
@@ -681,8 +705,15 @@ anchors, derived-text quote blocks read at apply time),
 `web-view.test.ts` (guest prefs = the four settings + partition and NO
 preload asserted, the two-permission allowlist, http(s)-only URL gate,
 opaque view ids, closed control-action set, bounds clamping, the
-Chrome-UA normalization), `web-urls.test.ts` (URL-bar input: bare host
-gains https, non-web schemes refused);
+Chrome-UA normalization, the auth-host Firefox presentation incl.
+lookalike-domain exclusion and client-hint stripping),
+`web-urls.test.ts` (URL-bar input: bare host gains https, non-web
+schemes refused), `web-import.test.ts` (honest slugs with URL
+fallback, hostile-text sanitization incl. control bytes, bundle shape
+with hashed snapshot + evidence table + index, frontmatter/markdown
+injection defeated, non-page refusals before the vault is touched,
+javascript: canonical dropped, numbered siblings, failed/empty
+snapshot leaves no half bundle);
 `vault.test.ts` additionally covers `readSourceAsset` (base64 +
 MIME happy path, extension allowlist, note-path discipline reused,
 human missing-asset message). The
@@ -700,7 +731,11 @@ web tab has an OPT-IN probe (ATOMIK_SMOKE_WEB=<url> plus a state
 fixture restoring a source-web tab — network-dependent, never part of
 the default deterministic run) that waits for the URL bar to reflect
 the real navigation: restore → ensure → isolated load → typed push →
-DOM, verified `web=navigated(example.org)` 2026-07-13. The smoke run proves boot + Dev Docs
+DOM, verified `web=navigated(example.org)` 2026-07-13; stacking
+ATOMIK_SMOKE_WEB_IMPORT=1 (+ a vault fixture) clicks the REAL
+Import-as-source button once it enables and waits for the bundle on
+disk — the whole S04 chain, verified `webImport=ok(example-domain)`
+2026-07-13 (real Blink MHTML, hashes recorded). The smoke run proves boot + Dev Docs
 rendering and reports pane/vault counts; pre-seeded `ATOMIK_STATE_DIR` /
 `ATOMIK_VAULT_DIR` fixtures prove layout restore and, with
 `ATOMIK_SMOKE_VAULT_WRITE=1`, the full renderer→disk write chain (verified

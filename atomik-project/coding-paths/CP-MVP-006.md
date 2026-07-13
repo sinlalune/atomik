@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-006
   status: active
   accepted: 2026-07-13
-  current_step: S04
+  current_step: S05
   base_commit: 5381a12
 ---
 
@@ -230,11 +230,28 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       PENDING: Colab login + daily navigation + the workbench scenario
       (web beside a real PDF tab) — the named Google-login-wall risk
       resolves on his machine, not here.
-- [ ] S04 Import as source: explicit action → `sources/web/<slug>/`
+- [x] S04 Import as source: explicit action → `sources/web/<slug>/`
       bundle (source.md with the 09 evidence metadata + snapshot.html
       hashed + index.md) through the gates; `sources/web/` into
       `.gitignore` in the SAME commit that creates the bundle type;
       dossier opens on import; tests.
+      DONE 2026-07-13: web-import.ts + channel web-view-import-source
+      behind the explicit button. snapshot.mhtml = savePage MHTML (the
+      page AS RENDERED; sha256 + bytes in the dossier); source.md
+      carries the 09 evidence set (original/canonical URL, accessed_at,
+      meta author/publisher/published/updated when offered, license
+      row awaiting a human); EVERY page-controlled string sanitized —
+      frontmatter/markdown injection defeated in tests; slug from
+      title (URL fallback), numbered siblings, wx + full-bundle
+      cleanup (failed/empty savePage leaves NOTHING); metadata probe =
+      read-only executeJavaScript, 3 s race, hostile page falls back
+      to title+URL. Dossier opens in a new vault tab on success;
+      sources/web/ in .gitignore THIS commit (incident rule);
+      SourceImageView shows web dossiers a friendly URL line (S06
+      wires the click). Tests 274→282/31. E2E PROVEN on the real app:
+      smoke rung ATOMIK_SMOKE_WEB_IMPORT clicks the real button →
+      webImport=ok(example-domain), real Blink MHTML on disk, hashes
+      recorded.
 - [ ] S05 Reader extraction: reader.md derived (identity + trace id,
       ONE ActionTrace, wx no-clobber) behind the adapter seam, WITH
       page images captured into media/ (hashed, relative references);
@@ -265,8 +282,9 @@ changed     : path PROPOSED and ACCEPTED 2026-07-13 (owner directive:
               09/03/05/13 read — source-web tab type and WebResource
               already named by the bedrock; 13's embed posture and
               the never-mutate-vault rule pinned (see step).
-tests       : 272 passing / 30 suites — tests/typecheck/build/smoke
-              green at S03 close; e2e web probe navigated
+tests       : 282 passing / 31 suites — tests/typecheck/build/smoke
+              green at S04 close; e2e probes: web=navigated +
+              webImport=ok on the real app
               S02 done 2026-07-13: WebContentsView + persist:web-sources
               + Readability-over-captured-DOM + MHTML snapshot (dated
               record in sessions/2026-07-13-web-engine-decision.md);
@@ -303,12 +321,15 @@ tests       : 272 passing / 30 suites — tests/typecheck/build/smoke
               SUCCEEDED through the Firefox presentation and COLAB
               RUNS IN THE PANE. The named S02 risk is closed; the
               workbench scenario is alive. S03 fully owner-validated.
-next action : S04 — Import as source: explicit action → sources/web/
-              <slug>/ bundle (source.md with 09 evidence metadata +
-              snapshot.mhtml hashed + index.md) through the gates;
-              sources/web/ into .gitignore IN THE SAME COMMIT as the
-              bundle type (incident rule); dossier opens on import;
-              tests. Owner can bench S03 meanwhile.
+next action : S05 — reader extraction: reader.md derived from the
+              CAPTURED page (S02: Readability over the serialized DOM,
+              parsed in MAIN via linkedom; never a re-fetch), text AND
+              images (media/ hashed, relative refs; removed with
+              delete/re-run); identity + trace id frontmatter, ONE
+              ActionTrace; Delete reader…/re-run same unit,
+              round-trip tested; correction flip gains its third
+              derived file; extraction status on the dossier; tests.
+              Owner dogfooding S04 on real pages meanwhile.
 blockers    : none recorded. Standing note: provider key store found
               EMPTY 2026-07-09 — re-enter via ⚙ before cloud-rung work
               (not expected on this path's critical line).

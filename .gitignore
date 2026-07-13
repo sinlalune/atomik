@@ -10,3 +10,6 @@ out/
 sources/captures/
 # PDF source bundles: user documents stay local (same S02 decision as captures — the repo is public)
 sources/pdf/
+# web source bundles: snapshots of (possibly logged-in) pages stay local — same class,
+# entered AT bundle-type creation per the 2026-07-09 incident rule (CP-MVP-006 S04)
+sources/web/

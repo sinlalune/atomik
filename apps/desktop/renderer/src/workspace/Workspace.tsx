@@ -195,6 +195,11 @@ function TabContent({
         onUrlChange={(url) =>
           dispatch((state) => updateTabParams(state, tab.id, { url }))
         }
+        onImported={(dossierPath) =>
+          dispatch((state) =>
+            addTab(state, paneId, makeTab('vault', { notePath: dossierPath }))
+          )
+        }
       />
     )
   }

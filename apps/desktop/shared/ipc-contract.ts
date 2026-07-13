@@ -60,6 +60,7 @@ export const ATOMIK_CHANNELS = {
   webViewSetBounds: 'atomik:web-view-set-bounds',
   webViewSetVisible: 'atomik:web-view-set-visible',
   webViewDestroy: 'atomik:web-view-destroy',
+  webViewImportSource: 'atomik:web-view-import-source',
   /** Push (main -> renderer): navigation state of one embedded web view. */
   webViewState: 'atomik:web-view-state'
 } as const
@@ -583,6 +584,9 @@ export type AtomikApi = {
   webViewSetVisible: (id: string, visible: boolean) => Promise<void>
   /** Tears the view down when its tab closes. */
   webViewDestroy: (id: string) => Promise<void>
+  /** EXPLICIT Import-as-source (09): snapshots the tab's current page
+   *  into a sources/web/<slug>/ bundle; returns the new dossier. */
+  webViewImportSource: (id: string) => Promise<CaptureImportResult>
   /** Push: navigation snapshots of every web view; filter by state.id. */
   onWebViewState: (listener: (state: WebViewState) => void) => () => void
 }
@@ -636,5 +640,6 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'webViewSetBounds',
   'webViewSetVisible',
   'webViewDestroy',
+  'webViewImportSource',
   'onWebViewState'
 ] as const satisfies readonly (keyof AtomikApi)[]

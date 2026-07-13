@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, nativeImage, session, shell, WebContentsView } from 'electron'
 import { execFile } from 'node:child_process'
-import { copyFileSync, mkdtempSync, statSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdtempSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
@@ -21,6 +21,7 @@ import { createQwenVlOcrAdapter, ocrSeatReady, type ImageResizer } from './ocr-a
 import { createMistralOcrAdapter, createVoxtralTranscribeAdapter } from './mistral-ocr-adapter'
 import { publicAiSettings, readMistralKey, writeMistralKey } from './ai-settings'
 import { importPdfFromPath } from './pdf-import'
+import { importWebSource, type WebPageMeta } from './web-import'
 import { extractPdfSource, resetExtraction } from './pdf-extract'
 import { pdftoppmRasterizer, readPdfTextWithPdfjs } from './pdf-text'
 import { rotateRgba, scanCleanRgba } from './scan-filter'
@@ -672,6 +673,47 @@ function registerWebViewHandlers(getWindow: () => BrowserWindow | null): void {
     }
   )
 
+  // CP-MVP-006 S04: the EXPLICIT Import-as-source action (09 — never
+  // automatic). Snapshot + metadata come from the page the user SAW;
+  // every page-controlled string is sanitized in web-import.ts before
+  // it touches a file. The renderer chooses nothing but the tab.
+  ipcMain.handle(
+    ATOMIK_CHANNELS.webViewImportSource,
+    async (event, id: unknown) => {
+      const { view } = requireView(id)
+      const contents = view.webContents
+      const url = contents.getURL()
+      // read-only metadata probe; a hostile/hung page must not block the
+      // import — 3 s and we fall back to title+url only
+      let meta: Partial<WebPageMeta> | null = null
+      try {
+        const probed = (await Promise.race([
+          contents.executeJavaScript(
+            `(() => { try { return JSON.stringify({
+              canonical: document.querySelector('link[rel="canonical"]')?.href ?? null,
+              author: document.querySelector('meta[name="author"]')?.getAttribute('content') ?? null,
+              publisher: document.querySelector('meta[property="og:site_name"]')?.getAttribute('content') ?? null,
+              published: document.querySelector('meta[property="article:published_time"]')?.getAttribute('content') ?? null,
+              modified: document.querySelector('meta[property="article:modified_time"]')?.getAttribute('content') ?? null,
+              description: document.querySelector('meta[name="description"]')?.getAttribute('content') ?? null
+            }) } catch { return null } })()`
+          ),
+          new Promise((resolve) => setTimeout(() => resolve(null), 3000))
+        ])) as string | null
+        meta = probed ? (JSON.parse(probed) as Partial<WebPageMeta>) : null
+      } catch {
+        meta = null
+      }
+      const result = await importWebSource(
+        requireVault(),
+        { url, title: contents.getTitle(), meta },
+        (absPath) => contents.savePage(absPath, 'MHTML')
+      )
+      event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
+      return result
+    }
+  )
+
   ipcMain.handle(ATOMIK_CHANNELS.webViewDestroy, (_event, id: unknown) => {
     if (!isWebViewId(id)) throw new Error('web-view: rejected id')
     const view = views.get(id)
@@ -876,6 +918,51 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
         if (!navigated) await new Promise((resolve) => setTimeout(resolve, 500))
       }
       webReport = navigated ? ` web=navigated(${host})` : ' web=TIMEOUT'
+      // Deeper opt-in rung: ATOMIK_SMOKE_WEB_IMPORT=1 clicks the REAL
+      // Import-as-source button and waits for the bundle on disk —
+      // renderer click → typed channel → savePage on the live view →
+      // gates → vault files, the whole S04 chain.
+      if (navigated && process.env['ATOMIK_SMOKE_WEB_IMPORT'] === '1' && vaultRoot) {
+        // wait for the button to be ENABLED (loading settles), then click
+        const clicked = await (async () => {
+          const deadline = Date.now() + 15000
+          while (Date.now() < deadline) {
+            const hit = (await window.webContents.executeJavaScript(
+              `(() => { const b = document.querySelector('.web-import:not([disabled])'); if (b) { b.click(); return true } return false })()`
+            )) as boolean
+            if (hit) return true
+            await new Promise((resolve) => setTimeout(resolve, 500))
+          }
+          return false
+        })()
+        const importDeadline = Date.now() + 25000
+        let bundle: string | null = null
+        while (clicked && Date.now() < importDeadline && !bundle) {
+          const webRoot = join(vaultRoot, 'sources', 'web')
+          if (existsSync(webRoot)) {
+            for (const slug of readdirSync(webRoot)) {
+              const dir = join(webRoot, slug)
+              if (
+                existsSync(join(dir, 'source.md')) &&
+                existsSync(join(dir, 'snapshot.mhtml')) &&
+                statSync(join(dir, 'snapshot.mhtml')).size > 0
+              ) {
+                bundle = slug
+                break
+              }
+            }
+          }
+          if (!bundle) await new Promise((resolve) => setTimeout(resolve, 500))
+        }
+        if (bundle) {
+          webReport += ` webImport=ok(${bundle})`
+        } else {
+          const hint = (await window.webContents.executeJavaScript(
+            `document.querySelector('.web-hint.error')?.textContent ?? ''`
+          )) as string
+          webReport += ` webImport=FAILED(clicked=${clicked}${hint ? ` err=${JSON.stringify(hint.slice(0, 160))}` : ''})`
+        }
+      }
     }
     console.log(
       `ATOMIK_SMOKE_OK ${app.getName()} ${app.getVersion()} devdocs=${groups.length}groups/${docCount}files panes=${paneCount}${vaultCount}${searchReport}${vaultReport}${webReport}`

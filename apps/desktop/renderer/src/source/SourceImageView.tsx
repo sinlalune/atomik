@@ -137,6 +137,12 @@ export function SourceImageView({
       setImageError('this dossier declares no resource — nothing to view')
       return
     }
+    // web dossiers (S04): the original is a URL, not a vault asset —
+    // routing web dossiers into the WEB view lands in S06
+    if (/^https?:/i.test(resource)) {
+      setImageError(`web source — the original lives at ${resource} (open it in a Web tab; S06 wires this click)`)
+      return
+    }
     const rel = resolveRelativePath(note.relPath, resource)
     if (!rel) {
       setImageError(`unresolvable resource path — ${resource}`)

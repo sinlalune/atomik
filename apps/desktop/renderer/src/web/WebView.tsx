@@ -17,7 +17,8 @@ import { normalizeInputUrl } from './urls'
 export function WebView({
   tabId,
   initialUrl,
-  onUrlChange
+  onUrlChange,
+  onImported
 }: {
   /** The tab id doubles as the view id in main's registry. */
   tabId: string
@@ -25,11 +26,15 @@ export function WebView({
   initialUrl?: string
   /** Reports navigations so the tab param follows. */
   onUrlChange?: (url: string) => void
+  /** A landed import — the host opens the new dossier (S04). */
+  onImported?: (dossierPath: string) => void
 }): React.JSX.Element {
   const hostRef = useRef<HTMLDivElement | null>(null)
   const [state, setState] = useState<WebViewState | null>(null)
   const [input, setInput] = useState(initialUrl ?? '')
   const [inputError, setInputError] = useState<string | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [imported, setImported] = useState<string | null>(null)
   const [covered, setCovered] = useState(webOverlayCovered())
   const inputFocused = useRef(false)
   const initialUrlRef = useRef(initialUrl)
@@ -142,6 +147,29 @@ export function WebView({
     void window.atomik.webViewControl(tabId, action).catch(() => {})
   }
 
+  // The EXPLICIT import (09): this button is the ONLY road from the live
+  // page to the vault — snapshot + dossier land main-side, gated.
+  const importSource = (): void => {
+    setImporting(true)
+    setImported(null)
+    setInputError(null)
+    window.atomik.webViewImportSource(tabId).then(
+      ({ dossierPath }) => {
+        setImporting(false)
+        setImported(dossierPath)
+        onImported?.(dossierPath)
+      },
+      (cause) => {
+        setImporting(false)
+        setInputError(String(cause))
+      }
+    )
+  }
+
+  const importable =
+    ready && !importing && !state?.loading && Boolean(state?.url) &&
+    state?.url !== 'about:blank'
+
   return (
     <div className="web-view-tab">
       <div className="web-nav">
@@ -194,8 +222,22 @@ export function WebView({
             aria-label="Address"
           />
         </form>
+        <button
+          type="button"
+          className="note-bar-button web-import"
+          disabled={!importable}
+          title="Import this page as a source — snapshot + dossier into sources/web/"
+          onClick={importSource}
+        >
+          {importing ? 'importing…' : 'Import as source'}
+        </button>
       </div>
       {inputError && <p className="web-hint error">{inputError}</p>}
+      {imported && (
+        <p className="web-hint">
+          imported → <code>{imported}</code> — the dossier opened in a new tab
+        </p>
+      )}
       {state?.failure && (
         <p className="web-hint error">
           {state.failure}{' '}
