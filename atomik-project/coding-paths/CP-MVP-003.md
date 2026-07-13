@@ -7,7 +7,7 @@ timestamp: 2026-07-08T15:15:00Z
 atomik:
   id: CP-MVP-003
   status: active
-  current_step: S02
+  current_step: S07
   base_commit: 35ec031
 ---
 
@@ -175,7 +175,8 @@ changed     : path opened 2026-07-08 on owner directive ("ok for PDF
               path" (OCR seat ready), tabs are views over resources,
               selections are typed objects, renderer fidelity ≠
               extraction fidelity.
-tests       : 251 passing / 26 suites
+tests       : 260 passing / 28 suites — re-verified 2026-07-13 with
+              typecheck, both green
               S02 done 2026-07-08: pdfjs-dist 6.1.200 (dated decision
               record in sessions/2026-07-08-pdf-engine-decision.md);
               installed, 0 vulnerabilities.
@@ -189,8 +190,39 @@ tests       : 251 passing / 26 suites
               inserts PDF CITATIONS — complete relative link with the
               page digit pre-selected to type over; bundle paths are
               never hand-typed (the dead-link class dies). Tests 258.
+              S06c 2026-07-09 (owner feedback): the @ menu offers the
+              FULL choice set per source — free-page citation, EVERY
+              recorded ⚓ anchor as an exact citation (pageAnchorsOf
+              parses the Useful-anchors table), plain dossier link;
+              image bundles: embed + link; dossiers read at menu time
+              via injected reader (5 s cache). Tests 259.
+              S06d/e/f 2026-07-09 (owner dogfooding pass): first-render
+              0-width race fixed (ResizeObserver); sources ALWAYS open
+              in the SOURCE VIEW (three link families routed, incl.
+              bare original.pdf and dossier source.md); cloud rung
+              routes by media — VOXTRAL seated (voxtral-mini-2602,
+              verified live) for speech, Mistral OCR for images; @
+              menu inserts derived text (extracted/transcript) as
+              quote blocks. Tests 260.
+              S06g 2026-07-09: ONE render at a time — previous
+              RenderTask cancelled before each render and on effect
+              cleanup (RenderingCancelledException = the mechanism
+              working, not an error); rotate ⟲⟳ tools off PDF views.
+              S06h 2026-07-09: ONE scrollbar — the parent pane yields
+              scroll and centering to the PDF view (:has(.pdf-view));
+              page nav sticky so page N/M + anchor stay reachable.
+              RECONCILED 2026-07-13 (22 §4, on re-entry): S06c–S06h
+              had landed in git WITHOUT ledger records (log also
+              missing S06c/g/h) and current_step sat stale at S02 —
+              the same-work-unit rule was missed on those commits.
+              Backfilled here and in log.md; tests/typecheck
+              re-verified green; base_commit 35ec031 unchanged; dirty
+              tree = owner dogfooding files only.
 next action : S07 — acceptance run (18 §M4 intents + truth slice),
-              owner validation on the real JF_Quote PDF, review + close
+              owner validation on the real JF_Quote PDF, review + close.
+              Note for S07: provider key store was found EMPTY on
+              2026-07-09 — re-enter the key via ⚙ before cloud-rung
+              checks.
 blockers    : none recorded
 ```
 
