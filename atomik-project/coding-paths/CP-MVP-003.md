@@ -6,7 +6,8 @@ tags: [coding-path, m4, pdf, source, viewer, extraction, anchors]
 timestamp: 2026-07-08T15:15:00Z
 atomik:
   id: CP-MVP-003
-  status: active
+  status: done
+  closed: 2026-07-13
   current_step: S07
   base_commit: 35ec031
 ---
@@ -157,8 +158,12 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       flip hook now serves BOTH transcript.md and extracted.md (one
       hook, two derived files) — editing extracted.md flips the dossier
       to human-corrected. Tests 254→257.
-- [ ] S07 Acceptance run against 18 §M4 intents + truth slice; owner
+- [x] S07 Acceptance run against 18 §M4 intents + truth slice; owner
       validation on a real PDF; review and close.
+      OWNER VALIDATED 2026-07-13 ("all ok" on the 8-point checklist —
+      import, render, page restore, extraction, anchor + @ citation,
+      citation return, correction flip, delete/extract round trip).
+      PATH CLOSED 2026-07-13.
       MACHINE SWEEP DONE 2026-07-13 (record:
       sessions/2026-07-13-cp-mvp-003-acceptance.md): every verifiable
       DoD item met. The sweep FOUND AND FIXED two path misses in the
@@ -231,12 +236,14 @@ tests       : 262 passing / 28 suites — tests/typecheck/build/smoke
               Backfilled here and in log.md; tests/typecheck
               re-verified green; base_commit 35ec031 unchanged; dirty
               tree = owner dogfooding files only.
-next action : S07 CLOSE — owner walks the validation checklist in
-              sessions/2026-07-13-cp-mvp-003-acceptance.md on the real
-              JF_Quote PDF; on his OK: status→done, ACTIVE.md pointer
-              advances, bedrock 10 status planned→mvp in the close
-              commit. Note: provider key store was found EMPTY on
-              2026-07-09 — re-enter via ⚙ before cloud-rung checks.
+next action : NONE — path CLOSED 2026-07-13 (owner validated the
+              acceptance checklist; acceptance record:
+              sessions/2026-07-13-cp-mvp-003-acceptance.md). M4 done;
+              bedrock 10 flipped planned→mvp. Next milestone per the
+              register: M5 (web source tab) — open a NEW path per the
+              opening rule (never widen a closing path). Standing
+              note: provider key store found EMPTY 2026-07-09 —
+              re-enter via ⚙ before the next cloud-rung work.
 blockers    : none recorded
 ```
 

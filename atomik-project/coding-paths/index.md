@@ -27,7 +27,7 @@ Late paths are better paths: they inherit module notes, friction records from th
 | M3 | capture sources + local speech baseline | CP-MVP-002 | done (2026-07-07) |
 | M3 (completion) | local speech runtime — 34 evaluation + seating | CP-MVP-004 | done (2026-07-08) |
 | M3 (seats) | CUDA tiers + OCR seat + opt-in cloud rung | CP-MVP-005 | done (2026-07-08) |
-| M4 | PDF source + strong anchors | CP-MVP-003 | active |
+| M4 | PDF source + strong anchors | CP-MVP-003 | done (2026-07-13) |
 | M5 | web source tab + explicit imports | — | not opened |
 | M6 | minimal Truth Lens + challenge/repair | — | not opened |
 | M7 | live verification provider | — | not opened |

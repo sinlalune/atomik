@@ -132,6 +132,9 @@ On the real JF_Quote PDF (or any personal PDF):
 ## Verdict
 
 All machine-verifiable DoD items met; two acceptance findings fixed in
-this work unit; gaps recorded honestly. CP-MVP-003 CLOSES on owner
-validation of the checklist above — until then the path stays active
-at S07.
+this work unit; gaps recorded honestly.
+
+**OWNER VALIDATED 2026-07-13** — "all ok" on the 8-point checklist.
+CP-MVP-003 CLOSED 2026-07-13; M4 done. Bedrock 10 flipped
+planned→mvp; register updated; no active path — next per register:
+M5 (web source tab), to be proposed as a new path.

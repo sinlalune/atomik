@@ -2,7 +2,7 @@
 {
   "id": "10-pdf-source-tab",
   "title": "PDF source tab",
-  "status": "planned",
+  "status": "mvp",
   "tags": [
     "pdf",
     "sources",
