@@ -25,6 +25,8 @@ import { SourcesTreePanel } from './SourcesTree'
 export function SourceImageView({
   dossierPath,
   onDossierOpened,
+  initialPdfPage,
+  onPdfPageChange,
   treeCollapsed,
   onTreeToggle,
   treeWidth,
@@ -35,6 +37,10 @@ export function SourceImageView({
   dossierPath: string | undefined
   /** Reports tree navigation so the tab param follows. */
   onDossierOpened?: (relPath: string) => void
+  /** PDF page restore (S07): the tab param's page, read at mount. */
+  initialPdfPage?: number
+  /** Reports PDF page turns so the tab param follows. */
+  onPdfPageChange?: (page: number) => void
   treeCollapsed?: boolean
   onTreeToggle?: () => void
   treeWidth?: number
@@ -316,6 +322,8 @@ export function SourceImageView({
           <PdfView
             dataUrl={base.dataUrl}
             requestedPage={requestedPage}
+            initialPage={initialPdfPage}
+            onPageChange={onPdfPageChange}
             onAnchorPage={isDossier ? anchorPage : undefined}
           />
         )}

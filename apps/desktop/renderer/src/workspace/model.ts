@@ -262,6 +262,14 @@ export function noteModeOf(params?: Record<string, string>): NoteViewMode {
   return 'live'
 }
 
+/** The PDF page a source tab was on (03 recoverable UI state, like
+ *  mode/treeW): a positive integer or absent — the viewer then starts
+ *  at page 1. */
+export function pdfPageOf(params?: Record<string, string>): number | undefined {
+  const raw = Number(params?.['page'])
+  return Number.isInteger(raw) && raw >= 1 ? raw : undefined
+}
+
 export function saveModeOf(state: WorkspaceState | null): SaveMode {
   return state?.settings?.['saveMode'] === 'manual' ? 'manual' : 'auto'
 }

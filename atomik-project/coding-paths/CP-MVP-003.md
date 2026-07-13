@@ -159,6 +159,19 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       to human-corrected. Tests 254→257.
 - [ ] S07 Acceptance run against 18 §M4 intents + truth slice; owner
       validation on a real PDF; review and close.
+      MACHINE SWEEP DONE 2026-07-13 (record:
+      sessions/2026-07-13-cp-mvp-003-acceptance.md): every verifiable
+      DoD item met. The sweep FOUND AND FIXED two path misses in the
+      same unit — (1) page-in-tab-param restore (S04 deferred it to
+      S06, S06 only built the in-session jump): page turns now persist
+      as the tab's `page` param and restore on reopen (pdfPageOf +
+      initialPage/onPageChange; citation return outranks); (2) the
+      module note had ZERO CP-MVP-003 coverage — absorbed (owns/data
+      flow/tests/dated pdfjs-dist + poppler facts). Honest gaps
+      recorded: page anchors only (text-span/region not cheap),
+      ## Page N headers unlinked, sources/pdf .gitignore deviation
+      stands, key store to re-enter. Tests 260→262. AWAITING owner
+      validation (checklist in the record); then close.
 
 # Current checkpoint
 
@@ -175,8 +188,8 @@ changed     : path opened 2026-07-08 on owner directive ("ok for PDF
               path" (OCR seat ready), tabs are views over resources,
               selections are typed objects, renderer fidelity ≠
               extraction fidelity.
-tests       : 260 passing / 28 suites — re-verified 2026-07-13 with
-              typecheck, both green
+tests       : 262 passing / 28 suites — tests/typecheck/build/smoke
+              all green at the S07 sweep, 2026-07-13
               S02 done 2026-07-08: pdfjs-dist 6.1.200 (dated decision
               record in sessions/2026-07-08-pdf-engine-decision.md);
               installed, 0 vulnerabilities.
@@ -218,11 +231,12 @@ tests       : 260 passing / 28 suites — re-verified 2026-07-13 with
               Backfilled here and in log.md; tests/typecheck
               re-verified green; base_commit 35ec031 unchanged; dirty
               tree = owner dogfooding files only.
-next action : S07 — acceptance run (18 §M4 intents + truth slice),
-              owner validation on the real JF_Quote PDF, review + close.
-              Note for S07: provider key store was found EMPTY on
-              2026-07-09 — re-enter the key via ⚙ before cloud-rung
-              checks.
+next action : S07 CLOSE — owner walks the validation checklist in
+              sessions/2026-07-13-cp-mvp-003-acceptance.md on the real
+              JF_Quote PDF; on his OK: status→done, ACTIVE.md pointer
+              advances, bedrock 10 status planned→mvp in the close
+              commit. Note: provider key store was found EMPTY on
+              2026-07-09 — re-enter via ⚙ before cloud-rung checks.
 blockers    : none recorded
 ```
 

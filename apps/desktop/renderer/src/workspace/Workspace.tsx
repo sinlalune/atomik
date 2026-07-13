@@ -21,6 +21,7 @@ import {
   closeTab,
   makeTab,
   noteModeOf,
+  pdfPageOf,
   saveModeOf,
   setFocus,
   setFraction,
@@ -177,6 +178,12 @@ function TabContent({
         onDossierOpened={(relPath) =>
           dispatch((state) =>
             updateTabParams(state, tab.id, { dossierPath: relPath })
+          )
+        }
+        initialPdfPage={pdfPageOf(tab.params)}
+        onPdfPageChange={(page) =>
+          dispatch((state) =>
+            updateTabParams(state, tab.id, { page: String(page) })
           )
         }
         treeCollapsed={treeCollapsed}

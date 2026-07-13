@@ -11,6 +11,7 @@ import {
   makeTab,
   migrateRetiredViews,
   noteModeOf,
+  pdfPageOf,
   saveModeOf,
   setFocus,
   setFraction,
@@ -60,6 +61,22 @@ describe('noteModeOf (tab mode param)', () => {
     expect(noteModeOf({ mode: 'read' })).toBe('read')
     expect(noteModeOf({ mode: 'source' })).toBe('source')
     expect(noteModeOf({ mode: 'edit' })).toBe('source')
+  })
+})
+
+describe('pdfPageOf (tab page param — PDF viewer restore, S07)', () => {
+  it('reads a positive integer page', () => {
+    expect(pdfPageOf({ page: '7' })).toBe(7)
+    expect(pdfPageOf({ page: '1' })).toBe(1)
+  })
+
+  it('anything else reads as absent — the viewer starts at page 1', () => {
+    expect(pdfPageOf(undefined)).toBeUndefined()
+    expect(pdfPageOf({})).toBeUndefined()
+    expect(pdfPageOf({ page: '0' })).toBeUndefined()
+    expect(pdfPageOf({ page: '-3' })).toBeUndefined()
+    expect(pdfPageOf({ page: '2.5' })).toBeUndefined()
+    expect(pdfPageOf({ page: 'garbage' })).toBeUndefined()
   })
 })
 

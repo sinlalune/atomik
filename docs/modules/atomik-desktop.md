@@ -357,6 +357,61 @@ timestamp: 2026-07-06T00:00:00Z
   no-clobber rule holds (delete the local transcript to escalate — the
   same explicit re-run rule as everywhere). fetch with AbortController
   (180 s); bytes go as a data URI, original untouched.
+- PDF as source (10, CP-MVP-003 S03): `electron-main/pdf-import.ts` +
+  channel `import-pdf-source` (main-process file dialog; ＋PDF button in
+  the sources tree opens the new dossier). The `%PDF-` magic outranks
+  the file label and is checked BEFORE the vault is touched; 200 MB cap;
+  slug dedupe (numbered siblings, never overwrite); `wx` + cleanup on
+  failure; sha256 + byte count land in the dossier (10 §evidence). The
+  result is the standard `sources/pdf/<slug>/` bundle — `original.pdf`
+  byte-untouched evidence + `source.md` dossier + `index.md` map —
+  through the same gates as captures. `sources/pdf/` is `.gitignore`d
+  (same personal-media class as captures; the 2026-07-09 incident fix —
+  new user-media zones enter `.gitignore` at bundle-type creation).
+- The PDF viewer (10/13, CP-MVP-003 S04 + S06d/g/h + S07):
+  `renderer/src/source/PdfView.tsx` inside the source-image tab —
+  pdf.js 6 in the SANDBOXED renderer, worker from the LOCAL bundle
+  (CSP forbids remote), display-only (renderer fidelity and extraction
+  fidelity are separate claims). First render waits for the
+  ResizeObserver's real measurement (the 0-width mount race) and
+  follows pane resizes; exactly ONE render at a time — the previous
+  RenderTask is cancelled first, `RenderingCancelledException` is the
+  mechanism working, not an error; ONE scrollbar — the parent pane
+  yields scrolling via `:has(.pdf-view)`, the page nav is sticky. Page
+  turns persist as the tab's `page` param (03 recoverable UI state,
+  `pdfPageOf`) and restore on reopen; a citation-return jump outranks
+  the restored page. Rotate tools don't apply to PDFs (rotation is a
+  photo correction).
+- PDF text extraction (10/28/33, CP-MVP-003 S05/S05b):
+  `electron-main/pdf-extract.ts` + `pdf-text.ts`, channel
+  `extract-pdf-source` — pdf.js LEGACY build in MAIN, so extraction
+  claims never come from the display path. Per-page `## Page N`
+  sections land in a visibly DERIVED `extracted.md` (frontmatter:
+  engine identity, OCR pages, `action_trace_id`,
+  `correction_state: model-output`); pages under 20 chars are
+  image-only and rasterize via system `pdftoppm` (ffmpeg precedent:
+  absent tool = honest per-page placeholder) into the SEATED OCR
+  pipeline; ONE 'extract' ActionTrace per run — `deterministic` when
+  pure text-layer, `local-model` when OCR pages ran; failures traced
+  too. `wx` no-clobber: corrections live in extracted.md once a human
+  touches it (editing it flips the dossier human-corrected — the same
+  hook as transcript.md); `Delete extraction…` (`resetExtraction`) is
+  the explicit delete/re-run affordance, round-trip tested (the
+  lifecycle ships WITH the artifact — owner feedback, standing
+  practice).
+- PDF anchors + citation return (05/10, CP-MVP-003 S06/b/c/e): "⚓
+  anchor page N" writes a durable row to the dossier's Useful-anchors
+  table whose Target IS a markdown link `[page N](./original.pdf#page=N)`
+  (`withPageAnchor` — pure, idempotent; the citation is a file edit).
+  The @ quick-actions menu inserts complete PDF citations (relative
+  link with the page digit pre-selected — bundle paths are never
+  hand-typed), EVERY recorded anchor as an exact citation
+  (`pageAnchorsOf`), and derived-text quote blocks (read at APPLY, not
+  at menu; source link at head). Any `…/original.pdf#page=N` click —
+  dossier-internal or cross-note — opens the SOURCE VIEW at that page
+  via the pending-page registry (`pdf-open.ts`); bare `original.pdf`
+  and dossier `source.md` links route there too (sources open in the
+  source view).
 - Project bundles (04, S06): `electron-main/project.ts` (incubating
   project-core, 14) — manifest-detected bundles
   (`project.atomik-project.json`; scan skips denied dirs and does not
@@ -458,6 +513,15 @@ vault (04: files are the durable source of record)
   write: writeNote (target must exist) / createNote (wx, never clobbers)
         -> byte-exact atomic temp+rename; one edit = one clean Git diff
   open/list/read never write (proven: git status stays empty)
+
+pdf extraction (10: renderer fidelity and extraction fidelity separate)
+  Extract text button -> extract-pdf-source(dossierPath) -> main
+  re-reads original.pdf bytes (never the viewer's) -> pdf.js legacy
+  text layer per page -> thin pages rasterized (pdftoppm) -> seated
+  OCR adapter -> extracted.md written wx (derived frontmatter with
+  engine + trace id) -> dossier status→extracted + index line
+  -> ONE 'extract' ActionTrace (deterministic | local-model);
+  failure also lands a trace; vaultFilesChanged refreshes trees
 ```
 
 ## Alternatives considered
@@ -578,7 +642,19 @@ composed loop phone-POST→inbox→import→vault, renderer defaults),
 gate, rotation metadata round-trip), `transcription.test.ts` (mock
 determinism + honesty, the full pipeline incl. dossier update and the
 no-clobber rule, the transcribe trace fields with the content-leak
-check, failed-adapter accounting); `vault.test.ts` additionally covers `readSourceAsset` (base64 +
+check, failed-adapter accounting), `pdf-import.test.ts` (honest slugs,
+bundle shape with untouched original + dossier sha256 + index map,
+bytes-outrank-labels refusal BEFORE the vault is touched, numbered
+siblings instead of overwrites), `pdf-extract.test.ts` (per-page text
++ OCR fallback pages + dossier/index/trace, honesty without a
+rasterizer, deterministic-vs-local-model trace location, no-clobber,
+the extract→delete→extract lifecycle round trip),
+`pdf-anchors.test.ts` (clickable idempotent anchor rows;
+`#page=N`-target parsing to the sibling dossier), `quick-actions.test.ts`
+(source bundle collection, relative paths, PDF citation with the page
+digit pre-selected, the full per-source choice set incl. recorded
+anchors, derived-text quote blocks read at apply time);
+`vault.test.ts` additionally covers `readSourceAsset` (base64 +
 MIME happy path, extension allowlist, note-path discipline reused,
 human missing-asset message). The
 smoke's capture proof also drives the REAL capture tab when a state
@@ -601,7 +677,7 @@ no-rewrite-on-open (git status stays empty).
 
 ```bash
 npm run dev          # HMR dev shell
-npm test             # 28 tests, 6 suites
+npm test             # 262 tests, 28 suites (S07 count — grows per step)
 npm run typecheck    # node + web configs
 npm run smoke        # build + ATOMIK_SMOKE=1 electron .  -> ATOMIK_SMOKE_OK
 # open a specific doc / capture proof:
@@ -669,10 +745,22 @@ meta-package (basicSetup) is RETIRED: the editor chrome is composed by
 hand so live mode can be gutter-free while source keeps the IDE
 trimmings (MVP-001 follow-up feedback); versions pin the installed ^6
 line
+pdfjs-dist 6.1.200 EXACT (added CP-MVP-003 S02; Apache-2.0; dated
+decision: atomik-project/sessions/2026-07-08-pdf-engine-decision.md —
+mupdf AGPL rejected, pdfium native-weight rejected, react-pdf
+needless, poppler noted as extraction alternative). Fresh build =
+viewer in the sandboxed renderer; LEGACY build = extraction in main.
+v6 removed the eval'd font path (the CVE-2024-4367 posture is
+structural upstream; isEvalSupported retired, destroy() moved to the
+loading task). Recheck on any pdfjs bump: worker bundling, the
+legacy/fresh split, and the render-cancellation contract
 ```
 
 Dev-environment note (WSL2 Ubuntu noble): Electron needs `libnss3`,
-`libnspr4`, `libasound2t64` system packages — and `libpulse0` for the
+`libnspr4`, `libasound2t64` system packages — `poppler-utils` provides
+`pdftoppm` for PDF-OCR rasterizing (installed by owner 2026-07-08;
+absent, scanned pages land honest placeholders, no code change to
+re-enable) — and `libpulse0` for the
 MICROPHONE (probe-verified 2026-07-07: without it Chromium sees zero
 audio inputs and getUserMedia fails NotFoundError; with it, WSLg's
 RDPSource — the Windows mic — appears and records; enumerate/gum only

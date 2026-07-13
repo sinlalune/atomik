@@ -16,12 +16,19 @@ pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
 export function PdfView({
   dataUrl,
   requestedPage,
+  initialPage,
+  onPageChange,
   onAnchorPage
 }: {
   dataUrl: string
   /** Citation return (S06): a jump request; a NEW object each time (even
    *  for the same page) so a repeat click re-navigates. */
   requestedPage?: { page: number } | null
+  /** Restore (S07, 03 recoverable UI state): the page the tab param
+   *  recorded — read once at mount; a citation return outranks it. */
+  initialPage?: number
+  /** Reports page turns so the tab param can follow. */
+  onPageChange?: (page: number) => void
   /** "Anchor this page" — records a durable page anchor in the dossier. */
   onAnchorPage?: (page: number) => void
 }): React.JSX.Element {
@@ -29,8 +36,16 @@ export function PdfView({
   const hostRef = useRef<HTMLDivElement | null>(null)
   const docRef = useRef<pdfjs.PDFDocumentProxy | null>(null)
   const [numPages, setNumPages] = useState(0)
-  const [page, setPage] = useState(requestedPage?.page ?? 1)
+  const [page, setPage] = useState(requestedPage?.page ?? initialPage ?? 1)
   const [error, setError] = useState<string | null>(null)
+
+  // page turns persist as the tab's page param — reopening the tab (or
+  // the app) returns to this page
+  useEffect(() => {
+    onPageChange?.(page)
+    // page-driven: the freshest callback of that render is the right one
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page])
 
   // citation return: jump when a request arrives (and is real)
   useEffect(() => {
