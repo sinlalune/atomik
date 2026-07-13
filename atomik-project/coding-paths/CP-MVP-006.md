@@ -276,6 +276,16 @@ tests       : 272 passing / 30 suites — tests/typecheck/build/smoke
               tab param, probe web=navigated(example.org) panes=2.
               Owner bench pending: Colab login (the named wall risk),
               daily nav feel, workbench split beside a real PDF.
+              S03b 2026-07-13 (owner screenshot, first bench minutes):
+              the web tab rendered as a 295px strip — .pane-content is
+              a flex ROW and .web-view-tab had no flex:1, so the column
+              sized to its intrinsic width. Fixed + screenshot-verified
+              full-pane. Owner reached accounts.google.com in the view
+              (login page renders; wall not hit at the sign-in step).
+              Privacy question answered with on-disk evidence: the
+              Google session lives in ~/.config/atomik-desktop/
+              Partitions/web-sources/ — OUTSIDE the repo; git sees
+              none of it (verified).
 next action : S04 — Import as source: explicit action → sources/web/
               <slug>/ bundle (source.md with 09 evidence metadata +
               snapshot.mhtml hashed + index.md) through the gates;
