@@ -12,6 +12,7 @@ import { AiSettings } from '../AiSettings'
 import { ThemePicker } from '../ThemePicker'
 import { noteDisplayName } from '../vault/scope'
 import { VaultView } from '../vault/VaultView'
+import { WebView } from '../web/WebView'
 import { WindowControls } from '../WindowControls'
 import {
   activateTab,
@@ -45,7 +46,13 @@ const TAB_LABELS: Record<string, string> = {
   project: 'Project',
   capture: 'Capture',
   'source-image': 'Image',
+  'source-web': 'Web',
   new: 'New tab'
+}
+
+/** A closing web tab tears down its native view (owned by main). */
+function destroyTabView(tab: WorkspaceTab): void {
+  if (tab.view === 'source-web') void window.atomik.webViewDestroy(tab.id)
 }
 
 function tabLabel(tab: WorkspaceTab): string {
@@ -56,6 +63,13 @@ function tabLabel(tab: WorkspaceTab): string {
     // The bundle folder names the capture (…/<bundle>/source.md).
     const segments = tab.params['dossierPath'].split('/')
     return segments[segments.length - 2] ?? 'Image'
+  }
+  if (tab.view === 'source-web' && tab.params?.['url']) {
+    try {
+      return new URL(tab.params['url']).hostname || 'Web'
+    } catch {
+      return 'Web'
+    }
   }
   const pathParam =
     tab.view === 'dev-docs'
@@ -76,8 +90,10 @@ function TabContent({
   paneId: string
   dispatch: Dispatch
 }): React.JSX.Element {
-  const closeThisTab = (): void =>
+  const closeThisTab = (): void => {
+    destroyTabView(tab)
     dispatch((state) => closeTab(state, paneId, tab.id))
+  }
   const treeCollapsed = tab.params?.['tree'] === 'off'
   const onTreeToggle = (): void =>
     dispatch((state) =>
@@ -168,6 +184,17 @@ function TabContent({
         onTreeResize={onTreeResize}
         openFolders={openFolders}
         onOpenFoldersChange={onOpenFoldersChange}
+      />
+    )
+  }
+  if (tab.view === 'source-web') {
+    return (
+      <WebView
+        tabId={tab.id}
+        initialUrl={tab.params?.['url']}
+        onUrlChange={(url) =>
+          dispatch((state) => updateTabParams(state, tab.id, { url }))
+        }
       />
     )
   }
@@ -271,7 +298,7 @@ function LeafPane({
               <button
                 type="button"
                 className="tab-title"
-                title={tab.params?.['docPath'] ?? tab.view}
+                title={tab.params?.['docPath'] ?? tab.params?.['url'] ?? tab.view}
                 onClick={() => dispatch((state) => activateTab(state, node.id, tab.id))}
               >
                 {tabLabel(tab)}
@@ -280,7 +307,10 @@ function LeafPane({
                 type="button"
                 className="tab-close"
                 aria-label="Close tab"
-                onClick={() => dispatch((state) => closeTab(state, node.id, tab.id))}
+                onClick={() => {
+                  destroyTabView(tab)
+                  dispatch((state) => closeTab(state, node.id, tab.id))
+                }}
               >
                 ×
               </button>

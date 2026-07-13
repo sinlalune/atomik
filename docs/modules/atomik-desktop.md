@@ -412,6 +412,30 @@ timestamp: 2026-07-06T00:00:00Z
   via the pending-page registry (`pdf-open.ts`); bare `original.pdf`
   and dossier `source.md` links route there too (sources open in the
   source view).
+- The web tab (09/13, CP-MVP-006 S03; engine decision:
+  atomik-project/sessions/2026-07-13-web-engine-decision.md): tab kind
+  `source-web` — the trusted UI renders only the browser CHROME
+  (`renderer/src/web/WebView.tsx`: URL bar, back/forward/reload-stop,
+  honest load-failure strip); the page itself is an isolated
+  WebContentsView owned by MAIN (`registerWebViewHandlers` in index.ts,
+  gates in `electron-main/web-view.ts`): the four required settings +
+  `persist:web-sources` partition and NO preload — zero bridge surface,
+  the live page can never reach the vault (13 source security rule).
+  Session posture applied once: UA normalized to plain Chrome (the
+  recorded login-wall mitigation), permissions deny-by-default
+  (fullscreen + clipboard-sanitized-write only), downloads cancelled,
+  popups denied with browse-in-place. http(s)-only is enforced in MAIN
+  (`isAllowedWebUrl`) on ensure, navigate, will-navigate and popups —
+  whatever the renderer asked. The renderer reports the placeholder's
+  rect (ResizeObserver + window resize + per-render check for
+  divider-drag moves); geometry channels are tolerant of the
+  ensure/report race; overlays that could sit under the native view
+  take the `web/overlay.ts` guard (the settings panel does). The URL
+  rides the tab's `url` param (03) — the tab label becomes the
+  hostname, restore reloads the page; tab SWITCHES only hide the view,
+  so a running page (a Colab session) survives; tab CLOSE destroys it
+  (both close paths call `destroyTabView`). E2E probe: ATOMIK_SMOKE_WEB
+  (below).
 - Project bundles (04, S06): `electron-main/project.ts` (incubating
   project-core, 14) — manifest-detected bundles
   (`project.atomik-project.json`; scan skips denied dirs and does not
@@ -653,7 +677,12 @@ the extract→delete→extract lifecycle round trip),
 `#page=N`-target parsing to the sibling dossier), `quick-actions.test.ts`
 (source bundle collection, relative paths, PDF citation with the page
 digit pre-selected, the full per-source choice set incl. recorded
-anchors, derived-text quote blocks read at apply time);
+anchors, derived-text quote blocks read at apply time),
+`web-view.test.ts` (guest prefs = the four settings + partition and NO
+preload asserted, the two-permission allowlist, http(s)-only URL gate,
+opaque view ids, closed control-action set, bounds clamping, the
+Chrome-UA normalization), `web-urls.test.ts` (URL-bar input: bare host
+gains https, non-web schemes refused);
 `vault.test.ts` additionally covers `readSourceAsset` (base64 +
 MIME happy path, extension allowlist, note-path discipline reused,
 human missing-asset message). The
@@ -666,7 +695,12 @@ CodeMirror typing/save flow and the AiPanel interaction flow are
 validated by owner dogfooding and the learning-note exercises; the
 channels and logic beneath them are unit-covered, and the smoke drives
 the AI channel e2e through the renderer world (ATOMIK_SMOKE_AI=1) and
-the capture session lifecycle likewise (ATOMIK_SMOKE_CAPTURE=1). The smoke run proves boot + Dev Docs
+the capture session lifecycle likewise (ATOMIK_SMOKE_CAPTURE=1); the
+web tab has an OPT-IN probe (ATOMIK_SMOKE_WEB=<url> plus a state
+fixture restoring a source-web tab — network-dependent, never part of
+the default deterministic run) that waits for the URL bar to reflect
+the real navigation: restore → ensure → isolated load → typed push →
+DOM, verified `web=navigated(example.org)` 2026-07-13. The smoke run proves boot + Dev Docs
 rendering and reports pane/vault counts; pre-seeded `ATOMIK_STATE_DIR` /
 `ATOMIK_VAULT_DIR` fixtures prove layout restore and, with
 `ATOMIK_SMOKE_VAULT_WRITE=1`, the full renderer→disk write chain (verified
@@ -720,6 +754,9 @@ before any new IPC channel or preload method:
   re-read 13 §IPC; update shared/ipc-contract.ts + preload + tests same unit
 never expose ipcRenderer, fs, or shell to the renderer
 keep SECURE_WEB_PREFERENCES exact; changes are ADR-level security decisions
+never give the web guest a preload, app-session access, or a non-http(s)
+  URL — web-view.test.ts asserts the gates; a "quick devtools bridge"
+  into remote content is the forbidden shortcut wearing a new hat
 run typecheck + test + build + smoke before committing shell changes
 update this note in the same work unit as any boundary change
 ```

@@ -53,7 +53,15 @@ export const ATOMIK_CHANNELS = {
   resolveAiTrace: 'atomik:resolve-ai-trace',
   getAiTraceSummary: 'atomik:get-ai-trace-summary',
   getAiSettings: 'atomik:get-ai-settings',
-  setMistralApiKey: 'atomik:set-mistral-api-key'
+  setMistralApiKey: 'atomik:set-mistral-api-key',
+  webViewEnsure: 'atomik:web-view-ensure',
+  webViewNavigate: 'atomik:web-view-navigate',
+  webViewControl: 'atomik:web-view-control',
+  webViewSetBounds: 'atomik:web-view-set-bounds',
+  webViewSetVisible: 'atomik:web-view-set-visible',
+  webViewDestroy: 'atomik:web-view-destroy',
+  /** Push (main -> renderer): navigation state of one embedded web view. */
+  webViewState: 'atomik:web-view-state'
 } as const
 
 /** What the renderer may know about AI settings (13): presence and a
@@ -61,6 +69,34 @@ export const ATOMIK_CHANNELS = {
 export type AiSettingsPublic = {
   mistralKeyPresent: boolean
   mistralKeyHint: string | null
+}
+
+/**
+ * The embedded web view (M5, bedrock 09/13): remote content lives in an
+ * isolated WebContentsView owned by MAIN (persist:web-sources partition,
+ * the four required settings, NO preload — zero bridge surface). Only
+ * this typed navigation snapshot ever crosses to the trusted UI.
+ */
+export type WebViewControlAction = 'back' | 'forward' | 'reload' | 'stop'
+
+/** DIP rect of the placeholder pane the native view covers. */
+export type WebViewBounds = {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export type WebViewState = {
+  /** The owning tab's id — the renderer filters pushes by it. */
+  id: string
+  url: string
+  title: string
+  loading: boolean
+  canGoBack: boolean
+  canGoForward: boolean
+  /** Main-frame load failure, human-readable; null when healthy. */
+  failure: string | null
 }
 
 /**
@@ -531,6 +567,24 @@ export type AtomikApi = {
   /** Stores (or clears, with null) the Mistral API key MAIN-SIDE; the
    *  response is the new public view, never the key. */
   setMistralApiKey: (key: string | null) => Promise<AiSettingsPublic>
+  /** Ensures a tab's isolated web view exists (created on first call,
+   *  loading `url`); idempotent — an existing view ignores `url`. */
+  webViewEnsure: (
+    id: string,
+    url?: string
+  ) => Promise<{ state: WebViewState; created: boolean }>
+  /** Navigates a web view; http(s) only, re-validated in main. */
+  webViewNavigate: (id: string, url: string) => Promise<void>
+  /** back / forward / reload / stop. */
+  webViewControl: (id: string, action: WebViewControlAction) => Promise<void>
+  /** Positions the native view under the tab's placeholder rect. */
+  webViewSetBounds: (id: string, bounds: WebViewBounds) => Promise<void>
+  /** Shows/hides the native view (tab switches, overlay guard). */
+  webViewSetVisible: (id: string, visible: boolean) => Promise<void>
+  /** Tears the view down when its tab closes. */
+  webViewDestroy: (id: string) => Promise<void>
+  /** Push: navigation snapshots of every web view; filter by state.id. */
+  onWebViewState: (listener: (state: WebViewState) => void) => () => void
 }
 
 /**
@@ -575,5 +629,12 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'resolveAiTrace',
   'getAiTraceSummary',
   'getAiSettings',
-  'setMistralApiKey'
+  'setMistralApiKey',
+  'webViewEnsure',
+  'webViewNavigate',
+  'webViewControl',
+  'webViewSetBounds',
+  'webViewSetVisible',
+  'webViewDestroy',
+  'onWebViewState'
 ] as const satisfies readonly (keyof AtomikApi)[]

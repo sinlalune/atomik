@@ -7,6 +7,9 @@ import {
   type AtomikApi,
   type CaptureImportDestination,
   type VaultInfo,
+  type WebViewBounds,
+  type WebViewControlAction,
+  type WebViewState,
   type WindowControlAction,
   type WindowControlState,
   type WorkspaceState
@@ -110,7 +113,27 @@ const api: AtomikApi = {
     ipcRenderer.invoke(ATOMIK_CHANNELS.getAiTraceSummary, bundleId),
   getAiSettings: () => ipcRenderer.invoke(ATOMIK_CHANNELS.getAiSettings),
   setMistralApiKey: (key: string | null) =>
-    ipcRenderer.invoke(ATOMIK_CHANNELS.setMistralApiKey, key)
+    ipcRenderer.invoke(ATOMIK_CHANNELS.setMistralApiKey, key),
+  webViewEnsure: (id: string, url?: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.webViewEnsure, id, url),
+  webViewNavigate: (id: string, url: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.webViewNavigate, id, url),
+  webViewControl: (id: string, action: WebViewControlAction) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.webViewControl, id, action),
+  webViewSetBounds: (id: string, bounds: WebViewBounds) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.webViewSetBounds, id, bounds),
+  webViewSetVisible: (id: string, visible: boolean) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.webViewSetVisible, id, visible),
+  webViewDestroy: (id: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.webViewDestroy, id),
+  onWebViewState: (listener: (state: WebViewState) => void) => {
+    const wrapped = (_event: unknown, state: WebViewState): void =>
+      listener(state)
+    ipcRenderer.on(ATOMIK_CHANNELS.webViewState, wrapped)
+    return () => {
+      ipcRenderer.removeListener(ATOMIK_CHANNELS.webViewState, wrapped)
+    }
+  }
 }
 
 contextBridge.exposeInMainWorld(ATOMIK_API_KEY, api)

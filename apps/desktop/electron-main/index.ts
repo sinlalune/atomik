@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, session, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, session, shell, WebContentsView } from 'electron'
 import { execFile } from 'node:child_process'
 import { copyFileSync, mkdtempSync, statSync, writeFileSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
@@ -44,9 +44,20 @@ import {
   writeWorkspaceState
 } from './workspace-state'
 import {
+  clampedViewBounds,
+  guestWebPreferences,
+  isAllowedWebUrl,
+  isWebViewControlAction,
+  isWebViewId,
+  normalizeChromeUserAgent,
+  WEB_ALLOWED_PERMISSIONS,
+  WEB_PARTITION
+} from './web-view'
+import {
   ATOMIK_CHANNELS,
   type AiOperation,
-  type VaultInfo
+  type VaultInfo,
+  type WebViewState
 } from '../shared/ipc-contract'
 
 // Linux: prefer native Wayland over XWayland when a compositor is there
@@ -473,6 +484,183 @@ function registerIpcHandlers(docsRoot: string, stateDir: string): void {
   )
 }
 
+/**
+ * The embedded web views (CP-MVP-006 S03, bedrock 09/13; engine decision
+ * sessions/2026-07-13-web-engine-decision.md): one isolated
+ * WebContentsView per web tab, owned here in MAIN. The guest gets the
+ * four required settings and NO preload; the persist:web-sources session
+ * is deny-by-default; the trusted UI only ever exchanges typed snapshots
+ * and geometry with it. The live page can never reach the vault: there
+ * is no bridge to reach it with (13 source security rule).
+ */
+function registerWebViewHandlers(getWindow: () => BrowserWindow | null): void {
+  const views = new Map<string, WebContentsView>()
+  let sessionConfigured = false
+
+  const webSession = (): Electron.Session => {
+    const ses = session.fromPartition(WEB_PARTITION)
+    if (!sessionConfigured) {
+      sessionConfigured = true
+      // The Google-login-wall mitigation (S02, recorded): the UA reads
+      // as plain Chrome — Electron and app tokens dropped.
+      ses.setUserAgent(normalizeChromeUserAgent(ses.getUserAgent(), app.getName()))
+      ses.setPermissionRequestHandler((_contents, permission, callback) => {
+        callback(WEB_ALLOWED_PERMISSIONS.has(permission))
+      })
+      ses.setPermissionCheckHandler((_contents, permission) =>
+        WEB_ALLOWED_PERMISSIONS.has(permission)
+      )
+      // Downloads are out of MVP scope — cancelled, not dropped silently
+      // into the filesystem (S02 decision; save-to-inbox is future work).
+      ses.on('will-download', (event) => event.preventDefault())
+    }
+    return ses
+  }
+
+  const stateOf = (
+    id: string,
+    view: WebContentsView,
+    failure: string | null
+  ): WebViewState => ({
+    id,
+    url: view.webContents.getURL(),
+    title: view.webContents.getTitle(),
+    loading: view.webContents.isLoading(),
+    canGoBack: view.webContents.navigationHistory.canGoBack(),
+    canGoForward: view.webContents.navigationHistory.canGoForward(),
+    failure
+  })
+
+  const push = (
+    id: string,
+    view: WebContentsView,
+    failure: string | null = null
+  ): void => {
+    const window = getWindow()
+    if (!window || window.isDestroyed() || view.webContents.isDestroyed()) return
+    window.webContents.send(ATOMIK_CHANNELS.webViewState, stateOf(id, view, failure))
+  }
+
+  const requireView = (id: unknown): { id: string; view: WebContentsView } => {
+    if (!isWebViewId(id)) throw new Error('web-view: rejected id')
+    const view = views.get(id)
+    if (!view) throw new Error('web-view: unknown id')
+    return { id, view }
+  }
+
+  ipcMain.handle(
+    ATOMIK_CHANNELS.webViewEnsure,
+    (_event, id: unknown, url: unknown) => {
+      if (!isWebViewId(id)) throw new Error('web-view: rejected id')
+      const existing = views.get(id)
+      if (existing) return { state: stateOf(id, existing, null), created: false }
+      const window = getWindow()
+      if (!window || window.isDestroyed()) throw new Error('web-view: no window')
+      const target = url === undefined ? 'about:blank' : url
+      if (!isAllowedWebUrl(target)) throw new Error('web-view: rejected url')
+      webSession()
+      const view = new WebContentsView({ webPreferences: guestWebPreferences() })
+      views.set(id, view)
+      view.setVisible(false)
+      view.setBounds({ x: 0, y: 0, width: 0, height: 0 })
+      window.contentView.addChildView(view)
+      const contents = view.webContents
+      // Popups denied; the destination browses IN PLACE (S02 decision).
+      contents.setWindowOpenHandler(({ url: popupUrl }) => {
+        if (isAllowedWebUrl(popupUrl)) void contents.loadURL(popupUrl)
+        return { action: 'deny' }
+      })
+      contents.on('will-navigate', (event, nextUrl) => {
+        if (!isAllowedWebUrl(nextUrl)) event.preventDefault()
+      })
+      contents.on('did-start-loading', () => push(id, view))
+      contents.on('did-stop-loading', () => push(id, view))
+      contents.on('did-navigate', () => push(id, view))
+      contents.on('did-navigate-in-page', () => push(id, view))
+      contents.on('page-title-updated', () => push(id, view))
+      contents.on(
+        'did-fail-load',
+        (_event, errorCode, errorDescription, _validatedUrl, isMainFrame) => {
+          // -3 is an aborted load (redirects, stop) — not a failure
+          if (isMainFrame && errorCode !== -3) {
+            push(id, view, `${errorDescription || 'load failed'} (${errorCode})`)
+          }
+        }
+      )
+      contents.on('render-process-gone', (_event, details) => {
+        push(id, view, `page crashed (${details.reason})`)
+      })
+      void contents.loadURL(target).catch(() => {
+        /* did-fail-load already reported it */
+      })
+      return { state: stateOf(id, view, null), created: true }
+    }
+  )
+
+  ipcMain.handle(
+    ATOMIK_CHANNELS.webViewNavigate,
+    (_event, id: unknown, url: unknown) => {
+      const { view } = requireView(id)
+      if (!isAllowedWebUrl(url)) throw new Error('web-view: rejected url')
+      void view.webContents.loadURL(url).catch(() => {
+        /* did-fail-load already reported it */
+      })
+    }
+  )
+
+  ipcMain.handle(
+    ATOMIK_CHANNELS.webViewControl,
+    (_event, id: unknown, action: unknown) => {
+      const { view } = requireView(id)
+      if (!isWebViewControlAction(action)) {
+        throw new Error('web-view: rejected action')
+      }
+      const contents = view.webContents
+      if (action === 'back' && contents.navigationHistory.canGoBack()) {
+        contents.navigationHistory.goBack()
+      } else if (action === 'forward' && contents.navigationHistory.canGoForward()) {
+        contents.navigationHistory.goForward()
+      } else if (action === 'reload') {
+        contents.reload()
+      } else if (action === 'stop') {
+        contents.stop()
+      }
+    }
+  )
+
+  // Geometry channels are TOLERANT of unknown ids: the renderer reports
+  // rects around the async ensure; a report that races creation is noise,
+  // not a bug.
+  ipcMain.handle(
+    ATOMIK_CHANNELS.webViewSetBounds,
+    (_event, id: unknown, bounds: unknown) => {
+      if (!isWebViewId(id)) throw new Error('web-view: rejected id')
+      const view = views.get(id)
+      const clamped = clampedViewBounds(bounds)
+      if (view && clamped) view.setBounds(clamped)
+    }
+  )
+
+  ipcMain.handle(
+    ATOMIK_CHANNELS.webViewSetVisible,
+    (_event, id: unknown, visible: unknown) => {
+      if (!isWebViewId(id)) throw new Error('web-view: rejected id')
+      if (typeof visible !== 'boolean') throw new Error('web-view: rejected flag')
+      views.get(id)?.setVisible(visible)
+    }
+  )
+
+  ipcMain.handle(ATOMIK_CHANNELS.webViewDestroy, (_event, id: unknown) => {
+    if (!isWebViewId(id)) throw new Error('web-view: rejected id')
+    const view = views.get(id)
+    if (!view) return
+    views.delete(id)
+    const window = getWindow()
+    if (window && !window.isDestroyed()) window.contentView.removeChildView(view)
+    if (!view.webContents.isDestroyed()) view.webContents.close()
+  })
+}
+
 function createMainWindow(hash?: string): BrowserWindow {
   const window = new BrowserWindow(
     buildMainWindowOptions(join(__dirname, '../preload/index.js'))
@@ -648,8 +836,27 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
       const kinds = found.flatMap((r) => r.matches.map((m) => m.kind))
       searchReport = ` search=${found.length}files/${[...new Set(kinds)].sort().join('+')}`
     }
+    // Opt-in web-tab probe (CP-MVP-006 S03; network-dependent, so never
+    // part of the default deterministic run): with a state fixture that
+    // restores a source-web tab, ATOMIK_SMOKE_WEB=<url> waits for the
+    // trusted UI's URL bar to reflect the REAL navigation — restore →
+    // ensure → isolated view loads → typed push → renderer DOM, e2e.
+    let webReport = ''
+    const webProbeUrl = process.env['ATOMIK_SMOKE_WEB']
+    if (webProbeUrl) {
+      const host = new URL(webProbeUrl).hostname
+      const deadline = Date.now() + 20000
+      let navigated = false
+      while (Date.now() < deadline && !navigated) {
+        navigated = (await window.webContents.executeJavaScript(
+          `[...document.querySelectorAll('.web-url input')].some((el) => el.value.includes(${JSON.stringify(host)}))`
+        )) as boolean
+        if (!navigated) await new Promise((resolve) => setTimeout(resolve, 500))
+      }
+      webReport = navigated ? ` web=navigated(${host})` : ' web=TIMEOUT'
+    }
     console.log(
-      `ATOMIK_SMOKE_OK ${app.getName()} ${app.getVersion()} devdocs=${groups.length}groups/${docCount}files panes=${paneCount}${vaultCount}${searchReport}${vaultReport}`
+      `ATOMIK_SMOKE_OK ${app.getName()} ${app.getVersion()} devdocs=${groups.length}groups/${docCount}files panes=${paneCount}${vaultCount}${searchReport}${vaultReport}${webReport}`
     )
     app.quit()
   } else {
@@ -718,6 +925,7 @@ app.whenReady().then(() => {
   registerIpcHandlers(docsRoot, stateDir)
   registerVaultHandlers(stateDir)
   registerCaptureHandlers(stateDir)
+  registerWebViewHandlers(() => BrowserWindow.getAllWindows()[0] ?? null)
 
   const smoke = process.env['ATOMIK_SMOKE'] === '1'
   const smokeDoc = process.env['ATOMIK_SMOKE_DOC']

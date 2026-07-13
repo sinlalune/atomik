@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import type { AiSettingsPublic } from '../../shared/ipc-contract'
+import { acquireWebOverlay } from './web/overlay'
 
 /**
  * Settings → AI (CP-MVP-005 S05b, owner directive): the Mistral API key
@@ -23,7 +24,12 @@ export function AiSettings(): React.JSX.Element {
       if (!panelRef.current?.contains(event.target as Node)) setOpen(false)
     }
     document.addEventListener('mousedown', onDown)
-    return () => document.removeEventListener('mousedown', onDown)
+    // an open panel could sit UNDER a native web view — hide those (S03)
+    const releaseOverlay = acquireWebOverlay()
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      releaseOverlay()
+    }
   }, [open])
 
   const submit = (key: string | null): void => {

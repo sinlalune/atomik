@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-006
   status: active
   accepted: 2026-07-13
-  current_step: S03
+  current_step: S04
   base_commit: 5381a12
 ---
 
@@ -205,12 +205,31 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       built-in savePage MHTML, one self-contained evidence file
       (deviation from 09's snapshot.html sketch recorded). Installed:
       4 packages, 0 vulnerabilities; 262/28 + typecheck green.
-- [ ] S03 Web view tab: new view kind, URL bar + nav controls, isolated
+- [x] S03 Web view tab: new view kind, URL bar + nav controls, isolated
       embed per S02, URL in the tab param + restore; normal navigation
       (links, history, loading/error states) verified on ordinary pages
       AND the Colab bench; the tab splits beside a PDF tab (03 — the
       workbench scenario stands up here); navigation events stay inside
       the view (no vault writes); tests.
+      DONE 2026-07-13 (code): tab kind `source-web` — trusted chrome in
+      the renderer (WebView.tsx: URL bar, back/forward/reload-stop,
+      honest failure strip), one isolated WebContentsView per tab in
+      MAIN (registry in index.ts, gates in web-view.ts: four required
+      settings + persist:web-sources, NO preload; http(s)-only enforced
+      main-side on ensure/navigate/will-navigate/popups; UA normalized;
+      deny-by-default permissions; downloads cancelled; popups
+      browse-in-place). URL rides the `url` tab param (label =
+      hostname); tab switch hides the view (a running Colab survives),
+      tab close destroys it; bounds sync = ResizeObserver + window
+      resize + per-render check; settings panel takes the overlay
+      guard. Seven typed channels + push; preload surface pinned.
+      Tests 262→272/30; typecheck/build/smoke green. E2E PROBED:
+      ATOMIK_SMOKE_WEB fixture run → `web=navigated(example.org)`
+      panes=2 (dev-docs split beside the web tab — restore → ensure →
+      real load → typed push → URL bar, the whole chain). OWNER BENCH
+      PENDING: Colab login + daily navigation + the workbench scenario
+      (web beside a real PDF tab) — the named Google-login-wall risk
+      resolves on his machine, not here.
 - [ ] S04 Import as source: explicit action → `sources/web/<slug>/`
       bundle (source.md with the 09 evidence metadata + snapshot.html
       hashed + index.md) through the gates; `sources/web/` into
@@ -246,18 +265,23 @@ changed     : path PROPOSED and ACCEPTED 2026-07-13 (owner directive:
               09/03/05/13 read — source-web tab type and WebResource
               already named by the bedrock; 13's embed posture and
               the never-mutate-vault rule pinned (see step).
-tests       : 262 passing / 28 suites — re-verified after the S02
-              install, typecheck green
+tests       : 272 passing / 30 suites — tests/typecheck/build/smoke
+              green at S03 close; e2e web probe navigated
               S02 done 2026-07-13: WebContentsView + persist:web-sources
               + Readability-over-captured-DOM + MHTML snapshot (dated
               record in sessions/2026-07-13-web-engine-decision.md);
               readability/linkedom/turndown(+gfm) installed, 0 vulns.
-next action : S03 — web view tab: new view kind, URL bar + nav
-              controls, isolated WebContentsView per the S02 posture,
-              URL in the tab param + restore; normal nav verified on
-              ordinary pages AND the Colab bench; splits beside a PDF
-              tab; navigation events never touch the vault; tests.
-              13 §IPC re-read before the new channels.
+              S03 done 2026-07-13: the web tab is REAL — isolated view
+              registry in main, trusted chrome in the renderer, url
+              tab param, probe web=navigated(example.org) panes=2.
+              Owner bench pending: Colab login (the named wall risk),
+              daily nav feel, workbench split beside a real PDF.
+next action : S04 — Import as source: explicit action → sources/web/
+              <slug>/ bundle (source.md with 09 evidence metadata +
+              snapshot.mhtml hashed + index.md) through the gates;
+              sources/web/ into .gitignore IN THE SAME COMMIT as the
+              bundle type (incident rule); dossier opens on import;
+              tests. Owner can bench S03 meanwhile.
 blockers    : none recorded. Standing note: provider key store found
               EMPTY 2026-07-09 — re-enter via ⚙ before cloud-rung work
               (not expected on this path's critical line).

@@ -445,6 +445,65 @@ body[data-maximized] .tabstrip {
   background: white;
 }
 
+/* CP-MVP-006 S03: the web tab. The nav row is trusted UI; the page is a
+ * native isolated view positioned over .web-host by main — the div is a
+ * measured placeholder, never a container of remote content. */
+.web-view-tab {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+}
+
+.web-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  flex: none;
+}
+
+.web-url {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+}
+
+.web-url input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid light-dark(#c8c8c0, #33333a);
+  background: light-dark(#fdfdfa, #1b1b1f);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}
+
+.web-hint {
+  margin: 0;
+  padding: 2px 12px 6px;
+  font-size: 12px;
+  flex: none;
+}
+
+.web-host {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+}
+
+.web-host .pane-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+}
+
 .window-controls {
   flex: none;
   display: inline-flex;
