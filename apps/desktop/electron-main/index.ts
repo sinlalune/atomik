@@ -44,9 +44,12 @@ import {
   writeWorkspaceState
 } from './workspace-state'
 import {
+  authRequestHeaders,
   clampedViewBounds,
+  FIREFOX_UA,
   guestWebPreferences,
   isAllowedWebUrl,
+  isGoogleAuthUrl,
   isWebViewControlAction,
   isWebViewId,
   normalizeChromeUserAgent,
@@ -513,6 +516,17 @@ function registerWebViewHandlers(getWindow: () => BrowserWindow | null): void {
       // Downloads are out of MVP scope — cancelled, not dropped silently
       // into the filesystem (S02 decision; save-to-inbox is future work).
       ses.on('will-download', (event) => event.preventDefault())
+      // Google-login compatibility (S03c, dated in web-view.ts): requests
+      // to the auth hosts present as Firefox — client hints stripped —
+      // so the embedded-Chromium fingerprint that walled the owner's
+      // login disappears; every other request keeps the Chrome UA.
+      ses.webRequest.onBeforeSendHeaders((details, callback) => {
+        if (isGoogleAuthUrl(details.url)) {
+          callback({ requestHeaders: authRequestHeaders(details.requestHeaders) })
+        } else {
+          callback({})
+        }
+      })
     }
     return ses
   }
@@ -572,6 +586,14 @@ function registerWebViewHandlers(getWindow: () => BrowserWindow | null): void {
       })
       contents.on('will-navigate', (event, nextUrl) => {
         if (!isAllowedWebUrl(nextUrl)) event.preventDefault()
+      })
+      // navigator.userAgent must match the wire (S03c): page scripts on
+      // the auth hosts read Firefox too; everywhere else, Chrome.
+      contents.on('did-start-navigation', (event) => {
+        if (!event.isMainFrame || event.isSameDocument) return
+        contents.setUserAgent(
+          isGoogleAuthUrl(event.url) ? FIREFOX_UA : webSession().getUserAgent()
+        )
       })
       contents.on('did-start-loading', () => push(id, view))
       contents.on('did-stop-loading', () => push(id, view))

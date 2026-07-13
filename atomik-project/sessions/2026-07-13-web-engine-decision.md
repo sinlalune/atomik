@@ -123,8 +123,41 @@ bundle type (S04; the 2026-07-09 incident rule).
 - Electron major bump → re-read the web-embeds guide (webview stance,
   WebContentsView API drift) and re-verify savePage types.
 - Google login wall on the Colab bench → UA normalization, then the
-  auth-child-window fallback design.
+  auth-child-window fallback design. **FIRED 2026-07-13 — see addendum.**
 - Readability mangles owner-relevant math pages → 34 bench vs
   defuddle.
 - Owner needs downloads from the web view → design the save-to-inbox
   flow deliberately.
+
+## Addendum S03c (2026-07-13): the wall fell — diagnosis and the seated mitigation
+
+The owner hit "Impossible de vous connecter — ce navigateur ou cette
+application ne sont peut-être pas sécurisés" at Google sign-in, WITH
+the normalized UA active. Captured ON THIS MACHINE from the live guest:
+
+```text
+ua     : Mozilla/5.0 (X11; Linux x86_64) … Chrome/150.0.7871.46 Safari/537.36   ← clean
+brands : Not;A=Brand 8 · Chromium 150                                           ← the tell
+```
+
+The client-hint brands say Chromium-WITHOUT-Google-Chrome — the exact
+fingerprint of an embedded Chromium; the UA alone was never going to be
+enough. The auth-child-window fallback was NOT taken: same engine, same
+hints, same wall.
+
+**Seated mitigation (dated):** on the exact hosts `accounts.google.com`
++ `accounts.youtube.com` ONLY, the guest presents as Firefox — pinned
+`FIREFOX_UA` (Firefox/140, Linux), `Sec-CH-UA*` headers stripped (a
+Firefox profile legitimately sends none), and `navigator.userAgent`
+switched per main-frame navigation so page scripts read the same story
+as the wire. Everywhere else — Colab included, which wants Chrome —
+the normalized Chrome UA stays. This is the community-standard
+compatibility path for a HUMAN logging into their OWN account inside an
+Electron browser (nativefier#831 lineage; re-confirmed via search
+2026-07-13); it is not automation and evades nothing but a
+false-positive embedded-webview heuristic.
+
+New recheck triggers: Google walls again despite the Firefox
+presentation (→ investigate the flow Google serves, consider the
+controlled auth window WITH this presentation); Google flags the pinned
+Firefox as OUTDATED (→ bump FIREFOX_UA, one dated line).

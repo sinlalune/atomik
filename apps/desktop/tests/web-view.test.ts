@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { SECURE_WEB_PREFERENCES } from '../electron-main/security'
 import {
+  authRequestHeaders,
   clampedViewBounds,
+  FIREFOX_UA,
   guestWebPreferences,
   isAllowedWebUrl,
+  isGoogleAuthUrl,
   isWebViewControlAction,
   isWebViewId,
   normalizeChromeUserAgent,
@@ -89,5 +92,33 @@ describe('embedded web view gates (CP-MVP-006 S03, 13)', () => {
     )
     // idempotent on an already-clean UA
     expect(normalizeChromeUserAgent(normalized, 'atomik-desktop')).toBe(normalized)
+  })
+
+  it('only the exact Google auth hosts get the Firefox presentation (S03c)', () => {
+    expect(isGoogleAuthUrl('https://accounts.google.com/v3/signin')).toBe(true)
+    expect(isGoogleAuthUrl('https://accounts.youtube.com/accounts/x')).toBe(true)
+    expect(isGoogleAuthUrl('https://colab.research.google.com/')).toBe(false)
+    expect(isGoogleAuthUrl('https://www.google.com/')).toBe(false)
+    // exact hostname: a lookalike suffix domain stays out
+    expect(isGoogleAuthUrl('https://accounts.google.com.evil.example/')).toBe(false)
+    expect(isGoogleAuthUrl('not a url')).toBe(false)
+  })
+
+  it('auth requests present as Firefox with client hints REMOVED (S03c)', () => {
+    expect(FIREFOX_UA).toContain('Firefox/')
+    expect(FIREFOX_UA).not.toContain('Chrome')
+    expect(FIREFOX_UA).not.toContain('Electron')
+    const rewritten = authRequestHeaders({
+      'User-Agent': 'Mozilla/5.0 (...) Chrome/150.0.0.0 Safari/537.36',
+      'sec-ch-ua': '"Not;A=Brand";v="8", "Chromium";v="150"',
+      'Sec-CH-UA-Mobile': '?0',
+      'sec-ch-ua-platform': '"Linux"',
+      Accept: 'text/html',
+      Cookie: 'x=1'
+    })
+    expect(rewritten['User-Agent']).toBe(FIREFOX_UA)
+    expect(Object.keys(rewritten).some((k) => k.toLowerCase().startsWith('sec-ch-ua'))).toBe(false)
+    expect(rewritten['Accept']).toBe('text/html')
+    expect(rewritten['Cookie']).toBe('x=1')
   })
 })

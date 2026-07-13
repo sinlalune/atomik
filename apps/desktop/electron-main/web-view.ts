@@ -93,3 +93,49 @@ export function normalizeChromeUserAgent(
   }
   return normalized.replace(/\s{2,}/g, ' ').trim()
 }
+
+/**
+ * The wall fell anyway (owner bench 2026-07-13, "Impossible de vous
+ * connecter — ce navigateur ou cette application ne sont peut-être pas
+ * sécurisés"): the clean Chrome UA is betrayed by the CLIENT-HINT
+ * brands — captured on this machine: `Not;A=Brand + Chromium` WITHOUT
+ * `Google Chrome`, the fingerprint of an embedded Chromium. The dated
+ * mitigation (community-standard for a human logging into their OWN
+ * account in an Electron browser; nativefier#831 lineage): on the
+ * Google AUTH hosts only, the guest presents as FIREFOX — a profile
+ * that legitimately sends no Chromium client hints — while everywhere
+ * else (Colab included, which wants Chrome) keeps the normalized
+ * Chrome UA. Checked 2026-07-13; recheck triggers: Google walls again,
+ * or flags the pinned Firefox version as outdated.
+ */
+export const GOOGLE_AUTH_HOSTS: ReadonlySet<string> = new Set([
+  'accounts.google.com',
+  'accounts.youtube.com'
+])
+
+export const FIREFOX_UA =
+  'Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0'
+
+/** Exact-hostname match — `accounts.google.com.evil.example` stays out. */
+export function isGoogleAuthUrl(raw: string): boolean {
+  try {
+    return GOOGLE_AUTH_HOSTS.has(new URL(raw).hostname)
+  } catch {
+    return false
+  }
+}
+
+/** Headers for an auth-host request: Firefox UA, client hints REMOVED —
+ *  a Firefox that sends Sec-CH-UA would be a new fingerprint, not a fix. */
+export function authRequestHeaders(
+  headers: Record<string, string>
+): Record<string, string> {
+  const rewritten: Record<string, string> = {}
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase().startsWith('sec-ch-ua')) continue
+    if (key.toLowerCase() === 'user-agent') continue
+    rewritten[key] = value
+  }
+  rewritten['User-Agent'] = FIREFOX_UA
+  return rewritten
+}

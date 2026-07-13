@@ -286,6 +286,18 @@ tests       : 272 passing / 30 suites — tests/typecheck/build/smoke
               Google session lives in ~/.config/atomik-desktop/
               Partitions/web-sources/ — OUTSIDE the repo; git sees
               none of it (verified).
+              S03c 2026-07-13 (owner screenshot): the GOOGLE WALL fell
+              at sign-in ("ce navigateur … pas sécurisés") — the named
+              S02 risk, trigger fired. Diagnosed with live evidence:
+              UA clean but client-hint brands = Chromium WITHOUT
+              Google Chrome (captured from the guest). Seated dated
+              mitigation (decision-record addendum): Firefox
+              presentation on accounts.google.com/accounts.youtube.com
+              ONLY (pinned FIREFOX_UA, Sec-CH-UA stripped, JS-visible
+              UA switched per main-frame nav); Chrome everywhere else.
+              The auth-child-window fallback was NOT taken (same
+              engine, same hints, same wall). Tests 272→274. AWAITING
+              owner retry of the Google login.
 next action : S04 — Import as source: explicit action → sources/web/
               <slug>/ bundle (source.md with 09 evidence metadata +
               snapshot.mhtml hashed + index.md) through the gates;
