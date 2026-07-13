@@ -6,9 +6,11 @@ timestamp: 2026-07-13T11:00:00Z
 
 # Active coding path
 
-- **None active.** CP-MVP-003 closed 2026-07-13; the next milestone is
-  M5 (web source tab + explicit imports) per the register — open a new
-  path just-in-time per the opening rule in [index.md](./index.md).
+- **None active.** CP-MVP-003 closed 2026-07-13.
+- **Proposed, awaiting owner acceptance:**
+  [CP-MVP-006 — Web source tab (M5)](./CP-MVP-006.md) (draft,
+  2026-07-13). On acceptance: its status flips to active, this pointer
+  moves to it, and execution begins at S01.
 - Milestone → path register: [index.md](./index.md)
 - Previous: [CP-MVP-003 — PDF source tab (M4)](./CP-MVP-003.md) — done 2026-07-13 (acceptance: `../sessions/2026-07-13-cp-mvp-003-acceptance.md`); [CP-MVP-005 — Seats hardening](./CP-MVP-005.md) — done 2026-07-08 (acceptance: `../sessions/2026-07-08-cp-mvp-005-acceptance.md`); [CP-MVP-004](./CP-MVP-004.md) — done 2026-07-08; [CP-MVP-002](./CP-MVP-002.md) — done 2026-07-07; [CP-MVP-001](./CP-MVP-001.md) — done 2026-07-06
 
