@@ -460,6 +460,15 @@ timestamp: 2026-07-06T00:00:00Z
   SAME commit (the 2026-07-09 incident rule; snapshots of logged-in
   pages are personal). SourceImageView shows a friendly line for web
   dossiers (URL original; the web-view routing click lands in S06).
+- Link-click routing S04b (owner reports, same day): the shared
+  note-link handler (`useVaultNote`) kills three dead-click classes —
+  external http(s) links open a WEB TAB (`onOpenWebUrl`, threaded from
+  Workspace to VaultView/ProjectView/SourceImageView); `.mhtml`
+  snapshots open EXTERNALLY (openSourceExternally; `.mhtml` joined the
+  asset allowlist for it); image/audio ORIGINALS route to the source
+  view of their bundle exactly like PDFs since S06e
+  (`isMediaFilePath`) — every dossier's "Original photo/audio" link
+  was equally dead. mailto stays inert; no in-place navigation ever.
 - Project bundles (04, S06): `electron-main/project.ts` (incubating
   project-core, 14) — manifest-detected bundles
   (`project.atomik-project.json`; scan skips denied dirs and does not

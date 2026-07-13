@@ -115,6 +115,11 @@ function TabContent({
   const mode = noteModeOf(tab.params)
   const onModeChange = (next: NoteViewMode): void =>
     dispatch((state) => updateTabParams(state, tab.id, { mode: next }))
+  // Any note's external http(s) link opens IN the workbench (S04b —
+  // the web dossier's "Original URL" was a dead click; the web is one
+  // tab away).
+  const openWebUrl = (url: string): void =>
+    dispatch((state) => addTab(state, paneId, makeTab('source-web', { url })))
   // Any view can open a capture bundle beside itself (03: "open source
   // dossier beside original" — here: original + dossier as one tab).
   const openSourceImage = (dossierPath: string): void =>
@@ -157,6 +162,7 @@ function TabContent({
     return (
       <VaultView
         onOpenSourceImage={openSourceImage}
+        onOpenWebUrl={openWebUrl}
         openFolders={openFolders}
         onOpenFoldersChange={onOpenFoldersChange}
         notePath={tab.params?.['notePath']}
@@ -212,6 +218,7 @@ function TabContent({
             updateTabParams(state, tab.id, { dossierPath: relPath })
           )
         }
+        onOpenWebUrl={openWebUrl}
         initialPdfPage={pdfPageOf(tab.params)}
         onPdfPageChange={(page) =>
           dispatch((state) =>
@@ -232,6 +239,7 @@ function TabContent({
       <ProjectView
         openFolders={openFolders}
         onOpenFoldersChange={onOpenFoldersChange}
+        onOpenWebUrl={openWebUrl}
         projectPath={tab.params?.['projectPath']}
         notePath={tab.params?.['notePath']}
         onCloseTab={closeThisTab}

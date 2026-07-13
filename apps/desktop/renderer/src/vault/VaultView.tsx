@@ -37,6 +37,8 @@ export type VaultViewProps = {
   /** Opens a dossier's original in an image source tab (S05); shown in
    *  the read-mode note-bar when the note declares an image resource. */
   onOpenSourceImage?: (dossierPath: string) => void
+  /** Opens an external http(s) link in a web tab (S04b). */
+  onOpenWebUrl?: (url: string) => void
   /** Controlled fold state: open folders, persisted per tab (collapsed
    *  by default — owner request). */
   openFolders?: ReadonlySet<string>
@@ -62,6 +64,7 @@ export function VaultView({
   saveMode = 'auto',
   onSaveModeToggle,
   onOpenSourceImage,
+  onOpenWebUrl,
   openFolders = NO_OPEN_FOLDERS,
   onOpenFoldersChange
 }: VaultViewProps): React.JSX.Element {
@@ -85,7 +88,7 @@ export function VaultView({
     reset,
     lastRequested,
     onContentClick
-  } = useVaultNote(onNoteOpened, onOpenSourceImage)
+  } = useVaultNote(onNoteOpened, onOpenSourceImage, onOpenWebUrl)
 
   const onDirtyChange = useCallback((dirty: boolean) => {
     setEditorDirty(dirty)

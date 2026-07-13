@@ -252,6 +252,16 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       smoke rung ATOMIK_SMOKE_WEB_IMPORT clicks the real button →
       webImport=ok(example-domain), real Blink MHTML on disk, hashes
       recorded.
+      S04b 2026-07-13 (owner reports, first dogfooding minutes): THREE
+      dead-click classes killed in the shared link router — external
+      http(s) links → a WEB TAB (onOpenWebUrl through all three note
+      hosts); .mhtml snapshots → external open (allowlist + the audio
+      escape hatch); image/audio ORIGINALS → the source view of their
+      bundle (isMediaFilePath — the PDF pattern of S06e extended to
+      its siblings; "Original photo/audio" rows were dead since the
+      capture milestone, the web dossier revealed the class). Part of
+      S06's routing pre-landed on owner report; S06 keeps web-dossier→
+      web-view routing and the @ citations. Tests 283.
 - [ ] S05 Reader extraction: reader.md derived (identity + trace id,
       ONE ActionTrace, wx no-clobber) behind the adapter seam, WITH
       page images captured into media/ (hashed, relative references);

@@ -28,6 +28,13 @@ export function hasMediaResource(dossierContent: string): boolean {
   )
 }
 
+/** True for a path the source view can present as an ORIGINAL (image or
+ *  audio) — the link-click router (S04b) sends these to the source view
+ *  of their bundle, like PDFs since S06e. */
+export function isMediaFilePath(path: string): boolean {
+  return IMAGE_EXTENSIONS.test(path) || AUDIO_EXTENSIONS.test(path)
+}
+
 export type Rotation = 0 | 90 | 180 | 270
 
 /**

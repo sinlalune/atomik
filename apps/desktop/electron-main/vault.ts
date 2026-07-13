@@ -154,7 +154,11 @@ const SOURCE_ASSET_EXTENSIONS: Record<string, string> = {
   '.wav': 'audio/wav',
   // PDF originals (10, CP-MVP-003 S04) — rendered by pdf.js in the
   // sandboxed renderer; bytes ride the same containment gates
-  '.pdf': 'application/pdf'
+  '.pdf': 'application/pdf',
+  // web snapshots (09, CP-MVP-006 S04) — evidence files; the in-app
+  // click opens them EXTERNALLY (openSourceExternally), the renderer
+  // never renders remote-origin markup itself
+  '.mhtml': 'multipart/related'
 }
 
 const MAX_ASSET_BYTES = 50 * 1024 * 1024

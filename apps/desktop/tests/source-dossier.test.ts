@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   hasImageResource,
+  isMediaFilePath,
   resourceOf,
   rotationOf,
   withDossierRotation
@@ -34,6 +35,17 @@ describe('dossier resource parsing', () => {
       hasImageResource('---\nresource: ./original.pdf\n---\n')
     ).toBe(false)
     expect(hasImageResource('# no dossier\n')).toBe(false)
+  })
+})
+
+describe('isMediaFilePath (S04b — the link router sends originals to the source view)', () => {
+  it('accepts the image and audio families, refuses the rest', () => {
+    for (const path of ['a/original.jpg', 'x.PNG', 'memo.m4a', 'talk.mp3', 'clip.webm']) {
+      expect(isMediaFilePath(path)).toBe(true)
+    }
+    for (const path of ['note.md', 'original.pdf', 'snapshot.mhtml', 'archive.zip']) {
+      expect(isMediaFilePath(path)).toBe(false)
+    }
   })
 })
 

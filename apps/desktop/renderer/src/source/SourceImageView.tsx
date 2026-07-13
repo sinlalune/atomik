@@ -27,6 +27,7 @@ export function SourceImageView({
   onDossierOpened,
   initialPdfPage,
   onPdfPageChange,
+  onOpenWebUrl,
   treeCollapsed,
   onTreeToggle,
   treeWidth,
@@ -41,6 +42,9 @@ export function SourceImageView({
   initialPdfPage?: number
   /** Reports PDF page turns so the tab param follows. */
   onPdfPageChange?: (page: number) => void
+  /** Opens an external http(s) link in a web tab (S04b) — web dossiers
+   *  carry an Original URL. */
+  onOpenWebUrl?: (url: string) => void
   treeCollapsed?: boolean
   onTreeToggle?: () => void
   treeWidth?: number
@@ -49,7 +53,7 @@ export function SourceImageView({
   onOpenFoldersChange?: (next: ReadonlySet<string>) => void
 }): React.JSX.Element {
   const { note, html, error, openNote, applySaved, onContentClick } =
-    useVaultNote()
+    useVaultNote(undefined, undefined, onOpenWebUrl)
   const [base, setBase] = useState<{ dataUrl: string; mimeType: string } | null>(
     null
   )

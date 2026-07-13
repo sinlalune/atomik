@@ -2,6 +2,7 @@ import MarkdownIt from 'markdown-it'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { VaultNoteFile } from '../../../shared/ipc-contract'
 import { resolveRelativePath, stripFrontmatter } from '../dev-docs/markdown'
+import { isMediaFilePath } from '../source/dossier'
 import { applyRotation } from '../source/rotate'
 import { pdfPageTarget, setPendingPdfPage } from '../source/pdf-open'
 import { inlineImageSources, vaultImageSources } from './note-images'
@@ -17,7 +18,11 @@ export function useVaultNote(
    *  bare media originals, and dossier (source.md) links all route
    *  here when the host provides it — a source belongs in the source
    *  view, not the markdown editor. Absent → plain openNote. */
-  onOpenSourceView?: (dossierRel: string) => void
+  onOpenSourceView?: (dossierRel: string) => void,
+  /** How EXTERNAL http(s) links open (S04b, owner report: the web
+   *  dossier's "Original URL" was a dead click): the host opens a web
+   *  tab. Absent → the click stays inert (never in-place navigation). */
+  onOpenWebUrl?: (url: string) => void
 ): {
   note: VaultNoteFile | null
   html: string
@@ -126,12 +131,24 @@ export function useVaultNote(
       const href = anchor.getAttribute('href') ?? ''
       if (href.startsWith('#')) return
       event.preventDefault()
-      if (/^(https?:|mailto:)/.test(href)) return
+      // S04b (owner: "Original URL did nothing"): the web is one tab
+      // away — external links open there. mailto stays inert.
+      if (/^https?:/i.test(href)) {
+        onOpenWebUrl?.(href)
+        return
+      }
+      if (/^mailto:/i.test(href)) return
       if (!note) return
       const [rawPath, rawHash = ''] = href.split('#')
       const pathPart = decodeURIComponent(rawPath ?? '')
       const rel = resolveRelativePath(note.relPath, pathPart)
       if (!rel) return
+      // S04b: the snapshot is evidence, not a note — open it the way
+      // the OS knows how (same escape hatch as audio originals).
+      if (rel.toLowerCase().endsWith('.mhtml')) {
+        void window.atomik.openSourceExternally(rel).catch(() => {})
+        return
+      }
       // citation return (S06): a PDF page link opens the source VIEWER
       // at the page (falling back to the dossier markdown if the host
       // can't open a viewer).
@@ -144,8 +161,10 @@ export function useVaultNote(
       }
       // S06e (owner): a bare original.pdf link (no page) opens the
       // source view of its bundle — it used to be a dead click.
-      if (rel.toLowerCase().endsWith('.pdf')) {
-        const dossierRel = rel.replace(/[^/]+\.pdf$/i, 'source.md')
+      // S04b (owner, same class): image and audio ORIGINALS too — every
+      // dossier's "Original photo/audio" link was equally dead.
+      if (rel.toLowerCase().endsWith('.pdf') || isMediaFilePath(rel)) {
+        const dossierRel = rel.replace(/[^/]+$/, 'source.md')
         if (onOpenSourceView) onOpenSourceView(dossierRel)
         else openNote(dossierRel)
         return
@@ -158,7 +177,7 @@ export function useVaultNote(
       }
       if (rel.endsWith('.md')) openNote(rel)
     },
-    [note, openNote, onOpenSourceView]
+    [note, openNote, onOpenSourceView, onOpenWebUrl]
   )
 
   return {

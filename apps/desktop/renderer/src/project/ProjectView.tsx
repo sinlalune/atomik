@@ -37,6 +37,8 @@ export type ProjectViewProps = {
   /** App-wide save policy; auto skips discard prompts (flush-on-leave). */
   saveMode?: SaveMode
   onSaveModeToggle?: () => void
+  /** Opens an external http(s) link in a web tab (S04b). */
+  onOpenWebUrl?: (url: string) => void
   /** Controlled fold state: open folders, persisted per tab (collapsed
    *  by default — owner request). */
   openFolders?: ReadonlySet<string>
@@ -75,6 +77,7 @@ export function ProjectView({
   onModeChange,
   saveMode = 'auto',
   onSaveModeToggle,
+  onOpenWebUrl,
   openFolders = NO_OPEN_FOLDERS,
   onOpenFoldersChange
 }: ProjectViewProps): React.JSX.Element {
@@ -105,7 +108,7 @@ export function ProjectView({
     reset,
     lastRequested,
     onContentClick
-  } = useVaultNote(onNoteOpened)
+  } = useVaultNote(onNoteOpened, undefined, onOpenWebUrl)
 
   const onDirtyChange = useCallback((dirty: boolean) => {
     setEditorDirty(dirty)
