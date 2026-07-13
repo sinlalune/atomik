@@ -6,7 +6,8 @@ tags: [coding-path, m5, web, source, webcontentsview, reader, snapshot, import]
 timestamp: 2026-07-13T11:30:00Z
 atomik:
   id: CP-MVP-006
-  status: draft
+  status: active
+  accepted: 2026-07-13
   current_step: S01
   base_commit: null
 ---
@@ -25,6 +26,16 @@ milestone: import is durable source ingestion; provider grounding is a
 separate transient path; grounding links are NEVER auto-crawled or
 indexed.
 
+Owner directive at acceptance (2026-07-13): "navigate through internet
+like a normal web nav", "enable a reader view or extract text and
+image as a source", and the learning-workbench scenario — "a Google
+Colab page open on a panel and a PDF explaining the math on another,
+everything for learning". That sets the bar: REAL navigation on
+app-class pages (Colab is the named bench), extraction captures text
+AND images, and the web tab is an ordinary pane citizen so it splits
+beside the M4 PDF tab. The workbench scenario is an S07 acceptance
+intent, not decoration.
+
 Dividends inherited from CP-MVP-003/005: the source-bundle pattern and
 its gates, derived-file provenance + ONE ActionTrace per extraction,
 the delete/re-run lifecycle as standing practice, the @ citation menu,
@@ -33,14 +44,22 @@ transcript.md and extracted.md), tab params as recoverable UI state.
 
 # Definition of done
 
-- **Isolated web view**: a web tab (new view kind per 03) with URL bar
-  + back/forward/reload, remote content in an ISOLATED
-  WebContentsView-or-equivalent (S02 decision under 13): no Node, no
-  Atomik IPC, no provider keys, no preload bridge into remote pages;
-  the URL rides the tab param and restores on reopen (03, learned at
-  CP-MVP-003 S07 — recoverable UI state ships WITH the view, not
-  later). If live embedding fails, reader/snapshot import of a fetched
-  page may still work (09 invariant).
+- **Isolated web view, normal navigation**: a web tab (new view kind
+  per 03) with URL bar + back/forward/reload, remote content in an
+  ISOLATED WebContentsView-or-equivalent (S02 decision under 13): no
+  Node, no Atomik IPC, no provider keys, no preload bridge into remote
+  pages; the URL rides the tab param and restores on reopen (03,
+  learned at CP-MVP-003 S07 — recoverable UI state ships WITH the
+  view, not later). Navigation feels like a browser: in-page links
+  navigate, history works, loading/error states are honest, and
+  app-class pages stay usable — GOOGLE COLAB is the named bench page.
+  Session/partition persistence (staying logged in vs ephemeral) and
+  the popup/`window.open` policy are DATED S02 decisions under 13, not
+  accidents. The web tab is an ordinary pane citizen: it splits beside
+  any other tab — the owner's learning-workbench scenario (Colab on
+  one panel, a math PDF on the other) must hold. If live embedding
+  fails, reader/snapshot import of a fetched page may still work (09
+  invariant).
 - **Import as source (explicit)**: an Import-as-source action — never
   automatic — creates `sources/web/<slug>/` through the standard
   gates: `source.md` (identity/status + web evidence metadata: URL,
@@ -51,13 +70,17 @@ transcript.md and extracted.md), tab params as recoverable UI state.
   `sources/web/` enters `.gitignore` AT bundle-type creation (the
   2026-07-09 incident rule — new user-media zones are protected on
   day one).
-- **Reader extraction**: `reader.md` lands as a visibly DERIVED
-  representation behind the adapter seam (07) — extraction identity +
-  trace id in frontmatter, ONE ActionTrace per run (33); the
-  correction flow works on reader.md (the shared flip hook gains its
-  third derived file); **Delete reader… / re-run ships in the same
-  unit, round-trip tested** (standing practice). Engine is a heavy
-  dependency: dated 15 decision with rejected alternatives recorded.
+- **Reader extraction — text AND images**: `reader.md` lands as a
+  visibly DERIVED representation behind the adapter seam (07),
+  Markdown-first; page images are captured into the bundle (`media/`,
+  byte-hashed, referenced relatively from reader.md — an image the
+  reader text needs is source material, not a hotlink that rots);
+  extraction identity + trace id in frontmatter, ONE ActionTrace per
+  run (33); the correction flow works on reader.md (the shared flip
+  hook gains its third derived file); **Delete reader… / re-run ships
+  in the same unit, round-trip tested, and removes media/ with it**
+  (standing practice). Engine is a heavy dependency: dated 15 decision
+  with rejected alternatives recorded.
 - **Selection → AI → note**: reader.md selections flow through
   labelClaims (evidence: relPath + range + quote hash, unchanged
   mechanism); the @ menu offers web bundles (URL citation, dossier
@@ -138,42 +161,57 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
 - [ ] S01 Bootstrap (22): reconcile ledger vs repo; record `base_commit`;
       re-read 09 + 03 + 05 + 13 (remote-content sections in full).
 - [ ] S02 Engine decisions (15, dated; 13-constrained): (a) the embed
-      approach — WebContentsView vs webview tag vs BrowserView, with the
-      isolation posture (partition, permissions, no preload into remote
-      content) written down; (b) the reader-extraction engine —
-      Readability vs alternatives; (c) the snapshot format — raw HTML vs
-      single-file; record what was NOT chosen and why. No install
-      without the record.
+      approach — WebContentsView vs webview tag vs BrowserView, judged
+      against the pane system (the view must sit INSIDE a split) and
+      the Colab bench; (b) the isolation posture written down:
+      partition + its PERSISTENCE (login state is a privacy decision),
+      permissions, popup/`window.open` policy, no preload into remote
+      content; (c) the reader-extraction engine — Readability vs
+      alternatives — including IMAGE capture; (d) the snapshot format —
+      raw HTML vs single-file. Record what was NOT chosen and why. No
+      install without the record.
 - [ ] S03 Web view tab: new view kind, URL bar + nav controls, isolated
-      embed per S02, URL in the tab param + restore; navigation events
-      stay inside the view (no vault writes); tests.
+      embed per S02, URL in the tab param + restore; normal navigation
+      (links, history, loading/error states) verified on ordinary pages
+      AND the Colab bench; the tab splits beside a PDF tab (03 — the
+      workbench scenario stands up here); navigation events stay inside
+      the view (no vault writes); tests.
 - [ ] S04 Import as source: explicit action → `sources/web/<slug>/`
       bundle (source.md with the 09 evidence metadata + snapshot.html
       hashed + index.md) through the gates; `sources/web/` into
       `.gitignore` in the SAME commit that creates the bundle type;
       dossier opens on import; tests.
 - [ ] S05 Reader extraction: reader.md derived (identity + trace id,
-      ONE ActionTrace, wx no-clobber) behind the adapter seam;
-      Delete reader…/re-run in the same unit, round-trip tested;
-      correction flip extends to reader.md (one hook, three derived
-      files); extraction status on the dossier; tests.
+      ONE ActionTrace, wx no-clobber) behind the adapter seam, WITH
+      page images captured into media/ (hashed, relative references);
+      Delete reader…/re-run in the same unit, round-trip tested,
+      media/ removed with it; correction flip extends to reader.md
+      (one hook, three derived files); extraction status on the
+      dossier; tests.
 - [ ] S06 Citations + selection → AI → note: @ menu offers web bundles
       (URL citation, dossier link, reader quote blocks); web dossier
       links route to the source view; selection → AI → note carries
       URL provenance; tests.
 - [ ] S07 Acceptance run against 18 §M5 intents + the truth/provider
-      boundary; owner validation on real pages; review and close.
+      boundary; owner validation on real pages INCLUDING the
+      learning-workbench scenario (Colab on one panel, a math PDF on
+      the other, notes taken from both); review and close.
 
 # Current checkpoint
 
 ```text
-base commit : null — not started; set at S01
-changed     : path PROPOSED 2026-07-13 at CP-MVP-003 close (M4 done,
-              owner-validated). Drafted from 18 §M5 + bedrock 09 per
-              the register's opening rule. Awaiting owner acceptance;
-              execution begins at S01 only after acceptance (22).
-tests       : 262 passing / 28 suites at proposal time
-next action : owner reviews/accepts this path; then S01 bootstrap
+base commit : null — set at S01
+changed     : path PROPOSED and ACCEPTED 2026-07-13 (owner directive:
+              normal web navigation; reader view / extract text AND
+              image as source; Colab on one panel + math PDF on
+              another — "everything for learning"). Scope revised to
+              carry the directive before activation: Colab as the
+              embed bench, session/popup policy as dated S02
+              decisions, image capture into media/, the workbench
+              scenario as an S07 acceptance intent.
+tests       : 262 passing / 28 suites at acceptance
+next action : S01 bootstrap — reconcile, base_commit, re-read
+              09 + 03 + 05 + 13 (remote-content sections in full)
 blockers    : none recorded. Standing note: provider key store found
               EMPTY 2026-07-09 — re-enter via ⚙ before cloud-rung work
               (not expected on this path's critical line).
