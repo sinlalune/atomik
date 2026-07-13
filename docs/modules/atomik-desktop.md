@@ -754,6 +754,16 @@ v6 removed the eval'd font path (the CVE-2024-4367 posture is
 structural upstream; isEvalSupported retired, destroy() moved to the
 loading task). Recheck on any pdfjs bump: worker bundling, the
 legacy/fresh split, and the render-cancellation contract
+@mozilla/readability 0.6.0 (Apache-2.0) · linkedom 0.18.13 (ISC) ·
+turndown 7.2.4 + turndown-plugin-gfm 1.0.2 (MIT) — added CP-MVP-006
+S02 (dated decision:
+atomik-project/sessions/2026-07-13-web-engine-decision.md): reader
+extraction runs in MAIN over the CAPTURED post-JS DOM (linkedom
+parse), never a re-fetch; snapshot = built-in savePage MHTML (no
+dep); embed = built-in WebContentsView — webview tag officially
+discouraged, BrowserView deprecated (checked 2026-07-13 against the
+web-embeds guide + electron.d.ts 43.0.0). Recheck all four on any
+Electron major bump. 0 vulnerabilities at install
 ```
 
 Dev-environment note (WSL2 Ubuntu noble): Electron needs `libnss3`,

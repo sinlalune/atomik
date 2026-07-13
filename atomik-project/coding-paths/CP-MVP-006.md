@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-006
   status: active
   accepted: 2026-07-13
-  current_step: S02
+  current_step: S03
   base_commit: 5381a12
 ---
 
@@ -176,7 +176,7 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       content never triggers provider calls; 09 — two paths kept
       separate (live view vs extracted view), evidence metadata list,
       no auto-crawl from grounding links.
-- [ ] S02 Engine decisions (15, dated; 13-constrained): (a) the embed
+- [x] S02 Engine decisions (15, dated; 13-constrained): (a) the embed
       approach — WebContentsView vs webview tag vs BrowserView, judged
       against the pane system (the view must sit INSIDE a split) and
       the Colab bench; (b) the isolation posture written down:
@@ -186,6 +186,25 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       alternatives — including IMAGE capture; (d) the snapshot format —
       raw HTML vs single-file. Record what was NOT chosen and why. No
       install without the record.
+      DONE 2026-07-13 (record: sessions/2026-07-13-web-engine-decision.md):
+      (a) WebContentsView — webview officially discouraged (guide
+      fetched today), BrowserView deprecated in electron.d.ts 43.0.0,
+      iframe dies on X-Frame-Options; bounds-sync seam + hide-on-modal
+      named as S03 costs. (b) Guest = the four required settings, NO
+      preload; partition persist:web-sources (logins survive — privacy
+      cost stated, owner may veto); permissions deny-by-default
+      (allow fullscreen + clipboard-sanitized-write); popups deny +
+      browse-in-place with the Google-login-wall risk NAMED (UA
+      normalization queued, auth-child-window as fallback design);
+      downloads cancelled for MVP. (c) @mozilla/readability 0.6.0
+      over the CAPTURED post-JS DOM parsed in MAIN via linkedom
+      0.18.13; turndown 7.2.4 + gfm plugin for markdown; images via
+      main net through the existing gates into media/ (no new dep);
+      article-extractor rejected (re-fetch ≠ what the user saw),
+      defuddle NOTED as the math re-bench alternative. (d) snapshot =
+      built-in savePage MHTML, one self-contained evidence file
+      (deviation from 09's snapshot.html sketch recorded). Installed:
+      4 packages, 0 vulnerabilities; 262/28 + typecheck green.
 - [ ] S03 Web view tab: new view kind, URL bar + nav controls, isolated
       embed per S02, URL in the tab param + restore; normal navigation
       (links, history, loading/error states) verified on ordinary pages
@@ -227,13 +246,18 @@ changed     : path PROPOSED and ACCEPTED 2026-07-13 (owner directive:
               09/03/05/13 read — source-web tab type and WebResource
               already named by the bedrock; 13's embed posture and
               the never-mutate-vault rule pinned (see step).
-tests       : 262 passing / 28 suites — re-verified at S01
-next action : S02 — dated 15 decisions under 13: embed approach
-              (WebContentsView vs webview vs BrowserView, judged
-              against the pane system + the Colab bench), partition
-              PERSISTENCE + popup/window.open policy, reader engine
-              (incl. image capture), snapshot format; record the
-              not-chosen. No install without the record.
+tests       : 262 passing / 28 suites — re-verified after the S02
+              install, typecheck green
+              S02 done 2026-07-13: WebContentsView + persist:web-sources
+              + Readability-over-captured-DOM + MHTML snapshot (dated
+              record in sessions/2026-07-13-web-engine-decision.md);
+              readability/linkedom/turndown(+gfm) installed, 0 vulns.
+next action : S03 — web view tab: new view kind, URL bar + nav
+              controls, isolated WebContentsView per the S02 posture,
+              URL in the tab param + restore; normal nav verified on
+              ordinary pages AND the Colab bench; splits beside a PDF
+              tab; navigation events never touch the vault; tests.
+              13 §IPC re-read before the new channels.
 blockers    : none recorded. Standing note: provider key store found
               EMPTY 2026-07-09 — re-enter via ⚙ before cloud-rung work
               (not expected on this path's critical line).
