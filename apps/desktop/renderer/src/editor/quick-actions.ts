@@ -96,6 +96,11 @@ export function insertionFor(
     const selectTo = text.length - 2 // just before `>)`
     return { text, selectFrom: selectTo - 1, selectTo }
   }
+  if (resource?.kind === 'web') {
+    // a web citation points at the LIVE page (the dossier link is a
+    // separate menu entry); the URL is absolute, no relative path
+    return { text: `[${bundle.name}](<${resource.url}>)` }
+  }
   return {
     text: `[${bundle.name}](<${relativePathBetween(notePath, bundle.dossierPath)}>)`
   }
@@ -103,8 +108,11 @@ export function insertionFor(
 
 const IMAGE_RESOURCE = /\.(jpe?g|png|webp|heic|heif)$/i
 const PDF_RESOURCE = /\.pdf$/i
+const WEB_RESOURCE = /^https?:/i
 
-export type ResourceInfo = { kind: 'image' | 'pdf'; vaultRel: string }
+export type ResourceInfo =
+  | { kind: 'image' | 'pdf'; vaultRel: string }
+  | { kind: 'web'; url: string }
 
 /** Dossier content accessor — injected so tests run headless and the
  *  live app can cache; null when unreadable. */
@@ -117,6 +125,8 @@ export function resourceInfoFrom(
 ): ResourceInfo | null {
   const resource = resourceOf(dossierContent)
   if (!resource) return null
+  // a web source's resource IS the URL — no vault path to resolve
+  if (WEB_RESOURCE.test(resource)) return { kind: 'web', url: resource }
   const vaultRel = resolveRelativePath(bundle.dossierPath, resource)
   if (!vaultRel) return null
   if (IMAGE_RESOURCE.test(resource)) return { kind: 'image', vaultRel }
@@ -141,7 +151,7 @@ export function anchorInsertionFor(
  *  text becomes writable material — and the link points home. */
 export function quoteBlockFor(
   bundleName: string,
-  kind: 'extracted text' | 'transcript',
+  kind: 'extracted text' | 'transcript' | 'reader text',
   body: string,
   citationRel: string
 ): string {
@@ -204,6 +214,20 @@ export function bundleCompletions(
       }
     ]
   }
+  if (resource?.kind === 'web') {
+    return [
+      {
+        label: `@${bundle.name} url`,
+        detail: 'web citation — the live page',
+        insertion: insertionFor(notePath, bundle, resource)
+      },
+      {
+        label: `@${bundle.name} dossier`,
+        detail: 'link to source.md',
+        insertion: insertionFor(notePath, bundle, null)
+      }
+    ]
+  }
   return [
     {
       label: `@${bundle.name}`,
@@ -225,9 +249,14 @@ export function derivedTextEntries(
   if (!dossierContent) return []
   const bundleDir = bundle.dossierPath.replace(/source\.md$/, '')
   const entries: BundleEntry[] = []
-  const derived: Array<{ file: string; kind: 'extracted text' | 'transcript'; label: string }> = [
+  const derived: Array<{
+    file: string
+    kind: 'extracted text' | 'transcript' | 'reader text'
+    label: string
+  }> = [
     { file: 'extracted.md', kind: 'extracted text', label: 'extracted' },
-    { file: 'transcript.md', kind: 'transcript', label: 'transcript' }
+    { file: 'transcript.md', kind: 'transcript', label: 'transcript' },
+    { file: 'reader.md', kind: 'reader text', label: 'reader' }
   ]
   for (const { file, kind, label } of derived) {
     if (!dossierContent.includes(`./${file}`)) continue

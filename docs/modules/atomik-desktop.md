@@ -735,8 +735,9 @@ the extract→delete→extract lifecycle round trip),
 `pdf-anchors.test.ts` (clickable idempotent anchor rows;
 `#page=N`-target parsing to the sibling dossier), `quick-actions.test.ts`
 (source bundle collection, relative paths, PDF citation with the page
-digit pre-selected, the full per-source choice set incl. recorded
-anchors, derived-text quote blocks read at apply time),
+digit pre-selected, WEB citation to the absolute live-page URL, the
+full per-source choice set incl. recorded anchors, derived-text quote
+blocks read at apply time incl. reader.md for web bundles),
 `web-view.test.ts` (guest prefs = the four settings + partition and NO
 preload asserted, the two-permission allowlist, http(s)-only URL gate,
 opaque view ids, closed control-action set, bounds clamping, the

@@ -103,6 +103,16 @@ describe('insertionFor', () => {
     expect(insertion.text.slice(insertion.selectFrom, insertion.selectTo)).toBe('1')
     expect(insertion.text.slice(insertion.selectTo)).toBe('>)')
   })
+
+  it('inserts a web citation pointing at the absolute live-page URL (S06)', () => {
+    const web = { name: 'backprop', dossierPath: 'sources/web/backprop/source.md' }
+    expect(
+      insertionFor('notes/idea.md', web, {
+        kind: 'web',
+        url: 'https://en.wikipedia.org/wiki/Backpropagation'
+      }).text
+    ).toBe('[backprop](<https://en.wikipedia.org/wiki/Backpropagation>)')
+  })
 })
 
 describe('quickActionsSource', () => {
@@ -165,6 +175,43 @@ describe('quickActionsSource', () => {
     expect(entries[2]!.insertion!.text).toBe(
       '[jf-quote](<../sources/pdf/jf-quote/source.md>)'
     )
+  })
+
+  it('offers the web choice set: url citation + dossier (CP-MVP-006 S06)', () => {
+    const bundle = { name: 'backprop', dossierPath: 'sources/web/backprop/source.md' }
+    const dossier = [
+      '---',
+      'type: Atomik Source',
+      'resource: https://en.wikipedia.org/wiki/Backpropagation',
+      '---'
+    ].join('\n')
+    const entries = bundleCompletions('notes/idea.md', bundle, dossier)
+    expect(entries.map((e) => e.label)).toEqual([
+      '@backprop url',
+      '@backprop dossier'
+    ])
+    expect(entries[0]!.insertion!.text).toBe(
+      '[backprop](<https://en.wikipedia.org/wiki/Backpropagation>)'
+    )
+    expect(entries[1]!.insertion!.text).toBe(
+      '[backprop](<../sources/web/backprop/source.md>)'
+    )
+  })
+
+  it('offers reader.md as a derived quote block for web bundles (S06)', async () => {
+    const bundle = { name: 'backprop', dossierPath: 'sources/web/backprop/source.md' }
+    const dossier = 'resource: https://x/\n- [Reader text](./reader.md) — derived, uncorrected.'
+    const reads: string[] = []
+    const readDossier = (path: string): Promise<string | null> => {
+      reads.push(path)
+      return Promise.resolve('---\ntype: X\n---\n\nBackprop is chain rule.')
+    }
+    const entries = derivedTextEntries('notes/idea.md', bundle, dossier, readDossier)
+    expect(entries.map((e) => e.label)).toEqual(['@backprop reader'])
+    const insertion = await entries[0]!.loadInsertion!()
+    expect(reads).toEqual(['sources/web/backprop/reader.md'])
+    expect(insertion.text).toContain('> **backprop — reader text**')
+    expect(insertion.text).toContain('> Backprop is chain rule.')
   })
 
   it('offers derived-text quote blocks read at apply time (S06f)', async () => {
