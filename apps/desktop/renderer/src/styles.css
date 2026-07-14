@@ -537,6 +537,41 @@ body[data-maximized] .tabstrip {
   text-align: center;
 }
 
+/* the left pane of a WEB source dossier (S05): no local original to
+ * show — the live page and the snapshot are one click away, and the
+ * reader extraction is the point */
+.web-source-panel {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  padding: 24px;
+  max-width: 22rem;
+  text-align: center;
+}
+
+.web-source-host {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--fg);
+  word-break: break-all;
+}
+
+.web-source-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.web-source-note {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
 .window-controls {
   flex: none;
   display: inline-flex;

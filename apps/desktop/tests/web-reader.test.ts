@@ -1,0 +1,158 @@
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { ActionTraceLedger } from '../electron-main/action-trace'
+import {
+  extractWebReader,
+  readerFromSnapshot,
+  resetWebReader,
+  withReaderCleared,
+  withReaderCorrectionRecorded,
+  withReaderRecorded
+} from '../electron-main/web-reader'
+
+const CRLF = '\r\n'
+/** A synthetic Blink-style MHTML: an article with a heading, a paragraph
+ *  long enough for Readability to keep, and one embedded PNG. */
+function articleSnapshot(): Buffer {
+  const b = 'B0UND'
+  const body =
+    '<html><head><title>Gradient Descent</title></head><body><article>' +
+    '<h1>Gradient Descent</h1>' +
+    '<p>Gradient descent is an iterative optimization algorithm for finding a ' +
+    'local minimum of a differentiable function. It takes repeated steps in the ' +
+    'opposite direction of the gradient. This paragraph is deliberately long so ' +
+    'the readability heuristic keeps it as the main content of the page.</p>' +
+    '<p>The learning rate controls the step size and matters a great deal in ' +
+    'practice; too large diverges, too small crawls. Here is a figure:</p>' +
+    '<img src="https://ex.org/curve.png" alt="loss curve">' +
+    '</article></body></html>'
+  const lines = [
+    'From: <Saved by Blink>',
+    `Content-Type: multipart/related; boundary="${b}"`,
+    '',
+    `--${b}`,
+    'Content-Type: text/html',
+    'Content-Transfer-Encoding: 8bit',
+    'Content-Location: https://ex.org/gd',
+    '',
+    body,
+    `--${b}`,
+    'Content-Type: image/png',
+    'Content-Transfer-Encoding: base64',
+    'Content-Location: https://ex.org/curve.png',
+    '',
+    Buffer.from('THE-REAL-PNG-BYTES-comfortably-over-the-64-byte-minimum-threshold-0123456789').toString('base64'),
+    `--${b}--`,
+    ''
+  ]
+  return Buffer.from(lines.join(CRLF), 'latin1')
+}
+
+const webDossier = (): string =>
+  [
+    '---',
+    'type: Atomik Source',
+    'resource: https://ex.org/gd',
+    'atomik:',
+    '  source_type: web',
+    '  status: imported',
+    '  original_url: https://ex.org/gd',
+    '  snapshot: ./snapshot.mhtml',
+    '---',
+    '',
+    '## Extracted representations',
+    '',
+    '- None yet — reader extraction arrives with the web pipeline (S05).',
+    ''
+  ].join('\n')
+
+describe('web reader extraction (CP-MVP-006 S05)', () => {
+  let vault: string
+  let traces: ActionTraceLedger
+  let dir: string
+  const dossierRel = 'sources/web/gd/source.md'
+  beforeEach(() => {
+    vault = mkdtempSync(join(tmpdir(), 'atomik-reader-vault-'))
+    traces = new ActionTraceLedger(mkdtempSync(join(tmpdir(), 'atomik-reader-traces-')))
+    dir = join(vault, 'sources/web/gd')
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(join(dir, 'source.md'), webDossier())
+    writeFileSync(join(dir, 'index.md'), '# gd\n')
+    writeFileSync(join(dir, 'snapshot.mhtml'), articleSnapshot())
+  })
+  afterEach(() => rmSync(vault, { recursive: true, force: true }))
+
+  it('readerFromSnapshot pulls title, markdown, and the embedded image', () => {
+    const { title, markdown, media } = readerFromSnapshot(articleSnapshot(), 'https://ex.org/gd')
+    expect(title).toContain('Gradient Descent')
+    expect(markdown).toContain('Gradient descent is an iterative')
+    expect(media).toHaveLength(1)
+    // the markdown references the LOCAL media file, not the remote URL
+    expect(markdown).toContain('media/')
+    expect(markdown).not.toContain('https://ex.org/curve.png')
+    expect(media[0]!.name).toMatch(/^[0-9a-f]{16}\.png$/)
+  })
+
+  it('lands reader.md + media/, flips the dossier, records ONE deterministic trace', () => {
+    const { readerPath, imageCount } = extractWebReader(vault, dossierRel, traces)
+    expect(readerPath).toBe('sources/web/gd/reader.md')
+    expect(imageCount).toBe(1)
+    const reader = readFileSync(join(dir, 'reader.md'), 'utf8')
+    expect(reader).toContain('type: Atomik Reader Text')
+    expect(reader).toContain('correction_state: model-output')
+    expect(reader).toMatch(/action_trace_id: /)
+    expect(readdirSync(join(dir, 'media'))).toHaveLength(1)
+    const dossier = readFileSync(join(dir, 'source.md'), 'utf8')
+    expect(dossier).toContain('status: extracted')
+    expect(dossier).toContain('reader_text: ./reader.md')
+    expect(dossier).toContain('- [Reader text](./reader.md) — derived, uncorrected.')
+    expect(readFileSync(join(dir, 'index.md'), 'utf8')).toContain('](./reader.md)')
+    const trace = JSON.parse(readFileSync(traces.ledgerPath(), 'utf8').trim().split('\n').pop()!)
+    expect(trace.action).toBe('extract')
+    expect(trace.execution.location).toBe('deterministic')
+    expect(trace.outcome.status).toBe('completed')
+  })
+
+  it('refuses to clobber an existing reader.md', () => {
+    extractWebReader(vault, dossierRel, traces)
+    expect(() => extractWebReader(vault, dossierRel, traces)).toThrow('already exists')
+  })
+
+  it('the lifecycle: extract → delete → extract, clean each time', () => {
+    extractWebReader(vault, dossierRel, traces)
+    resetWebReader(vault, dossierRel)
+    expect(existsSync(join(dir, 'reader.md'))).toBe(false)
+    expect(existsSync(join(dir, 'media'))).toBe(false)
+    const dossier = readFileSync(join(dir, 'source.md'), 'utf8')
+    expect(dossier).toContain('status: imported')
+    expect(dossier).not.toContain('reader_text:')
+    expect(dossier).toContain('- None yet — reader extraction arrives with the web pipeline (S05).')
+    expect(readFileSync(join(dir, 'index.md'), 'utf8')).not.toContain('](./reader.md)')
+    // a second extract lands cleanly — no double reader_text ever
+    const { imageCount } = extractWebReader(vault, dossierRel, traces)
+    expect(imageCount).toBe(1)
+    expect((readFileSync(join(dir, 'source.md'), 'utf8').match(/reader_text:/g) ?? [])).toHaveLength(1)
+    expect(() => resetWebReader(vault, dossierRel)).not.toThrow()
+    resetWebReader // idempotency of the guard checked below
+  })
+
+  it('reset without a reader refuses', () => {
+    expect(() => resetWebReader(vault, dossierRel)).toThrow('no reader')
+  })
+
+  it('the correction-flip functions are pure and idempotent', () => {
+    const recorded = withReaderRecorded(webDossier(), '2026-07-13T00:00:00Z', 'tr_1')
+    expect(recorded).toContain('reader_text: ./reader.md')
+    const flipped = withReaderCorrectionRecorded(recorded, '2026-07-13T01:00:00Z')
+    expect(flipped).toContain('reader_corrected_at: 2026-07-13T01:00:00Z')
+    expect(flipped).toContain('human-corrected')
+    // idempotent: a second flip is a no-op
+    expect(withReaderCorrectionRecorded(flipped, '2026-07-13T02:00:00Z')).toBe(flipped)
+    // cleared returns to the pre-extraction shape
+    const cleared = withReaderCleared(flipped)
+    expect(cleared).toContain('status: imported')
+    expect(cleared).not.toContain('reader_text:')
+  })
+})

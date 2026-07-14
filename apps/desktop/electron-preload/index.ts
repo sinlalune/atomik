@@ -128,6 +128,10 @@ const api: AtomikApi = {
     ipcRenderer.invoke(ATOMIK_CHANNELS.webViewDestroy, id),
   webViewImportSource: (id: string) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.webViewImportSource, id),
+  extractWebReader: (dossierPath: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.extractWebReader, dossierPath),
+  resetWebReader: (dossierPath: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.resetWebReader, dossierPath),
   onWebViewState: (listener: (state: WebViewState) => void) => {
     const wrapped = (_event: unknown, state: WebViewState): void =>
       listener(state)

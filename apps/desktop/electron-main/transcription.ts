@@ -4,6 +4,7 @@ import { basename, dirname, extname, join, resolve } from 'node:path'
 import type { TranscribeResult } from '../shared/ipc-contract'
 import type { ActionTraceLedger } from './action-trace'
 import { assertInsideVault, readNote, resolveNotePath, sourceAssetRotation, writeNote } from './vault'
+import { withReaderCorrectionRecorded } from './web-reader'
 
 /**
  * The transcription seat (07 §audio/video adapter, 08 §truth treatment;
@@ -355,13 +356,16 @@ export function recordTranscriptCorrection(
   now: () => number = Date.now
 ): boolean {
   const base = basename(savedRelPath)
-  // one hook, two derived files: transcript.md and extracted.md (S06)
+  // one hook, THREE derived files: transcript.md (S07), extracted.md
+  // (CP-MVP-003 S06), reader.md (CP-MVP-006 S05)
   const flip =
     base === 'transcript.md'
       ? { source: /transcript\.md$/, apply: withCorrectionRecorded }
       : base === 'extracted.md'
         ? { source: /extracted\.md$/, apply: withExtractionCorrectionRecorded }
-        : null
+        : base === 'reader.md'
+          ? { source: /reader\.md$/, apply: withReaderCorrectionRecorded }
+          : null
   if (!flip) return false
   const dossierRel = savedRelPath.replace(flip.source, 'source.md')
   const dossierAbs = resolveNotePath(vaultRoot, dossierRel)

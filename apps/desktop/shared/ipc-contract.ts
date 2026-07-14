@@ -61,6 +61,8 @@ export const ATOMIK_CHANNELS = {
   webViewSetVisible: 'atomik:web-view-set-visible',
   webViewDestroy: 'atomik:web-view-destroy',
   webViewImportSource: 'atomik:web-view-import-source',
+  extractWebReader: 'atomik:extract-web-reader',
+  resetWebReader: 'atomik:reset-web-reader',
   /** Push (main -> renderer): navigation state of one embedded web view. */
   webViewState: 'atomik:web-view-state'
 } as const
@@ -587,6 +589,13 @@ export type AtomikApi = {
   /** EXPLICIT Import-as-source (09): snapshots the tab's current page
    *  into a sources/web/<slug>/ bundle; returns the new dossier. */
   webViewImportSource: (id: string) => Promise<CaptureImportResult>
+  /** Reader extraction (S05): the web dossier's snapshot → derived
+   *  reader.md (text + images in media/); returns the reader path. */
+  extractWebReader: (
+    dossierPath: string
+  ) => Promise<{ readerPath: string; traceId: string; imageCount: number }>
+  /** Deletes a reader extraction (reader.md + media/) so it can re-run. */
+  resetWebReader: (dossierPath: string) => Promise<void>
   /** Push: navigation snapshots of every web view; filter by state.id. */
   onWebViewState: (listener: (state: WebViewState) => void) => () => void
 }
@@ -641,5 +650,7 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'webViewSetVisible',
   'webViewDestroy',
   'webViewImportSource',
+  'extractWebReader',
+  'resetWebReader',
   'onWebViewState'
 ] as const satisfies readonly (keyof AtomikApi)[]

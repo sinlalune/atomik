@@ -22,6 +22,7 @@ import { createMistralOcrAdapter, createVoxtralTranscribeAdapter } from './mistr
 import { publicAiSettings, readMistralKey, writeMistralKey } from './ai-settings'
 import { importPdfFromPath } from './pdf-import'
 import { importWebSource, type WebPageMeta } from './web-import'
+import { extractWebReader, resetWebReader } from './web-reader'
 import { extractPdfSource, resetExtraction } from './pdf-extract'
 import { pdftoppmRasterizer, readPdfTextWithPdfjs } from './pdf-text'
 import { rotateRgba, scanCleanRgba } from './scan-filter'
@@ -391,6 +392,24 @@ function registerCaptureHandlers(stateDir: string): void {
     ATOMIK_CHANNELS.resetExtraction,
     (event, dossierPath: unknown) => {
       resetExtraction(requireVault(), dossierPath)
+      event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
+    }
+  )
+  // CP-MVP-006 S05: web reader extraction — snapshot.mhtml → reader.md
+  // (text + images), deterministic, one trace. Runs in MAIN over the
+  // on-disk snapshot; never a re-fetch, never the display path.
+  ipcMain.handle(
+    ATOMIK_CHANNELS.extractWebReader,
+    (event, dossierPath: unknown) => {
+      const result = extractWebReader(requireVault(), dossierPath, traces)
+      event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
+      return result
+    }
+  )
+  ipcMain.handle(
+    ATOMIK_CHANNELS.resetWebReader,
+    (event, dossierPath: unknown) => {
+      resetWebReader(requireVault(), dossierPath)
       event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
     }
   )

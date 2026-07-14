@@ -202,8 +202,10 @@ function TabContent({
           dispatch((state) => updateTabParams(state, tab.id, { url }))
         }
         onImported={(dossierPath) =>
+          // a web dossier is a SOURCE — it opens in the source view
+          // (web-source panel + Extract reader button), not the editor
           dispatch((state) =>
-            addTab(state, paneId, makeTab('vault', { notePath: dossierPath }))
+            addTab(state, paneId, makeTab('source-image', { dossierPath }))
           )
         }
       />

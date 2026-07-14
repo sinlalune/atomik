@@ -460,6 +460,32 @@ timestamp: 2026-07-06T00:00:00Z
   SAME commit (the 2026-07-09 incident rule; snapshots of logged-in
   pages are personal). SourceImageView shows a friendly line for web
   dossiers (URL original; the web-view routing click lands in S06).
+- Web reader extraction (09/28/33, CP-MVP-006 S05):
+  `electron-main/web-reader.ts` (+ `mhtml.ts` for the snapshot parse),
+  channels `extract-web-reader` / `reset-web-reader`. The captured
+  `snapshot.mhtml` becomes a visibly DERIVED `reader.md` — the page's
+  main content as Markdown, TEXT AND IMAGES: `mhtml.ts` parses the
+  multipart snapshot (quoted-printable/base64 decode), linkedom builds
+  the DOM, Readability picks the article (charThreshold 200; falls back
+  to the full body so reader.md is never empty on app-like pages),
+  turndown+gfm emits Markdown, and every article `<img>` (mhtml-part OR
+  data: URI) lands in `media/` hashed with its markdown ref rewritten
+  relative. Runs in MAIN over the ON-DISK snapshot — never a re-fetch
+  (bedrock 09), never the display path (the 10 fidelity split). ONE
+  deterministic 'extract' ActionTrace per run (failures traced too);
+  `wx` no-clobber; `reader.md` frontmatter carries engine identity +
+  trace id + `correction_state: model-output`; dossier flips
+  status→extracted with `reader_text`/`reader_trace_id`; `Delete
+  reader…` (`resetWebReader`) removes reader.md AND media/, restoring
+  the pre-extraction shape (the owner's standing delete-with-create
+  rule, round-trip tested). The correction-flip hook now serves THREE
+  derived files (transcript.md, extracted.md, reader.md) — editing
+  reader.md flips the dossier human-corrected. SourceImageView renders
+  a web-source panel for web dossiers (live-page + snapshot buttons,
+  Extract/Delete reader) instead of an image/pdf; transcribe/OCR/
+  rotation are gated off web. Proven on a real Wikipedia capture:
+  92 KB Markdown + 116 SVG math renders in media/ (the study-math
+  case, the S02 defuddle re-bench trigger not yet needed).
 - Link-click routing S04b (owner reports, same day): the shared
   note-link handler (`useVaultNote`) kills three dead-click classes —
   external http(s) links open a WEB TAB (`onOpenWebUrl`, threaded from
@@ -722,7 +748,13 @@ fallback, hostile-text sanitization incl. control bytes, bundle shape
 with hashed snapshot + evidence table + index, frontmatter/markdown
 injection defeated, non-page refusals before the vault is touched,
 javascript: canonical dropped, numbered siblings, failed/empty
-snapshot leaves no half bundle);
+snapshot leaves no half bundle), `mhtml.test.ts` (QP/base64 decode,
+image resource collection, missing-boundary/no-HTML throws, extension
+map), `web-reader.test.ts` (title+markdown+embedded image from a
+synthetic snapshot with local media rewrite, reader.md+media/ landing
+with dossier flip and ONE deterministic trace, no-clobber, the
+extract→delete→extract lifecycle, the pure idempotent correction-flip
+functions);
 `vault.test.ts` additionally covers `readSourceAsset` (base64 +
 MIME happy path, extension allowlist, note-path discipline reused,
 human missing-asset message). The
@@ -826,6 +858,9 @@ meta-package (basicSetup) is RETIRED: the editor chrome is composed by
 hand so live mode can be gutter-free while source keeps the IDE
 trimmings (MVP-001 follow-up feedback); versions pin the installed ^6
 line
+@types/turndown ^5.0.5 (dev; turndown-plugin-gfm has no published
+types — a local `turndown-plugin-gfm.d.ts` declares the Plugin members
+used, CP-MVP-006 S05)
 pdfjs-dist 6.1.200 EXACT (added CP-MVP-003 S02; Apache-2.0; dated
 decision: atomik-project/sessions/2026-07-08-pdf-engine-decision.md —
 mupdf AGPL rejected, pdfium native-weight rejected, react-pdf

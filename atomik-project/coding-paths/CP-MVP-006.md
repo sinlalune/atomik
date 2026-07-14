@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-006
   status: active
   accepted: 2026-07-13
-  current_step: S05
+  current_step: S06
   base_commit: 5381a12
 ---
 
@@ -262,13 +262,29 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       capture milestone, the web dossier revealed the class). Part of
       S06's routing pre-landed on owner report; S06 keeps web-dossier→
       web-view routing and the @ citations. Tests 283.
-- [ ] S05 Reader extraction: reader.md derived (identity + trace id,
+- [x] S05 Reader extraction: reader.md derived (identity + trace id,
       ONE ActionTrace, wx no-clobber) behind the adapter seam, WITH
       page images captured into media/ (hashed, relative references);
       Delete reader…/re-run in the same unit, round-trip tested,
       media/ removed with it; correction flip extends to reader.md
       (one hook, three derived files); extraction status on the
       dossier; tests.
+      DONE 2026-07-13: web-reader.ts + mhtml.ts. Extraction reads the
+      ON-DISK snapshot.mhtml (never a re-fetch, never the display
+      path): mhtml parse (QP/base64) → linkedom → Readability
+      (charThreshold 200, full-body fallback so reader.md is never
+      empty) → turndown+gfm; every <img> (mhtml-part or data:) lands
+      in media/ hashed, refs rewritten relative — TEXT AND IMAGES.
+      ONE deterministic 'extract' trace; wx no-clobber; dossier flips
+      status→extracted; Delete reader… removes reader.md + media/
+      (round-trip tested); the flip hook now serves THREE derived
+      files (reader.md joins transcript/extracted). SourceImageView
+      grows a web-source panel (live-page + snapshot buttons,
+      Extract/Delete reader); transcribe/OCR/rotation gated off web.
+      Deps: @types/turndown + a local gfm .d.ts. Tests 283→292/33.
+      PROVEN on a real Wikipedia capture: 92 KB Markdown + 116 SVG
+      MATH renders in media/ — the study-math case, defuddle re-bench
+      NOT needed. Owner dogfooding pending on his real pages.
 - [ ] S06 Citations + selection → AI → note: @ menu offers web bundles
       (URL citation, dossier link, reader quote blocks); web dossier
       links route to the source view; selection → AI → note carries
@@ -331,15 +347,16 @@ tests       : 282 passing / 31 suites — tests/typecheck/build/smoke
               SUCCEEDED through the Firefox presentation and COLAB
               RUNS IN THE PANE. The named S02 risk is closed; the
               workbench scenario is alive. S03 fully owner-validated.
-next action : S05 — reader extraction: reader.md derived from the
-              CAPTURED page (S02: Readability over the serialized DOM,
-              parsed in MAIN via linkedom; never a re-fetch), text AND
-              images (media/ hashed, relative refs; removed with
-              delete/re-run); identity + trace id frontmatter, ONE
-              ActionTrace; Delete reader…/re-run same unit,
-              round-trip tested; correction flip gains its third
-              derived file; extraction status on the dossier; tests.
-              Owner dogfooding S04 on real pages meanwhile.
+tests       : 292 passing / 33 suites — green at S05 close; reader
+              proven on a real Wikipedia snapshot (92 KB md, 116 SVG
+              math renders)
+next action : S06 — selection → AI → note + @ citations for web
+              sources: reader.md selections through labelClaims (URL
+              provenance carried); @ menu offers web bundles (URL
+              citation, dossier link, reader quote blocks); web
+              dossier links route to the WEB view (read the dossier /
+              open the page). Owner dogfooding S05 extraction on his
+              real pages meanwhile.
 blockers    : none recorded. Standing note: provider key store found
               EMPTY 2026-07-09 — re-enter via ⚙ before cloud-rung work
               (not expected on this path's critical line).

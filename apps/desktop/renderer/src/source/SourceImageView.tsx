@@ -89,6 +89,17 @@ export function SourceImageView({
   // only); rotation and the media transcribe buttons don't apply.
   const isPdf = base?.mimeType === 'application/pdf'
 
+  // CP-MVP-006 S05: a web dossier's resource is a URL (no local asset);
+  // its "original" is the live page + the snapshot, and its derived
+  // file is reader.md (not transcript/extracted). Transcribe/OCR and
+  // rotation never apply.
+  const webUrl = (() => {
+    const resource = note ? resourceOf(note.content) : null
+    return resource && /^https?:/i.test(resource) ? resource : null
+  })()
+  const isWeb = webUrl !== null && isDossier
+  const hasReader = note?.content.includes('./reader.md') ?? false
+
   // S06: citation return — a pending page (set by a cross-note PDF link
   // click) is taken when this dossier opens and handed to the viewer.
   const [requestedPage, setRequestedPage] = useState<{ page: number } | null>(null)
@@ -141,12 +152,10 @@ export function SourceImageView({
       setImageError('this dossier declares no resource — nothing to view')
       return
     }
-    // web dossiers (S04): the original is a URL, not a vault asset —
-    // routing web dossiers into the WEB view lands in S06
-    if (/^https?:/i.test(resource)) {
-      setImageError(`web source — the original lives at ${resource} (open it in a Web tab; S06 wires this click)`)
-      return
-    }
+    // web dossiers (S04/S05): the original is a URL, not a vault asset;
+    // the left pane renders a dedicated web-source panel (below) instead
+    // of an image/pdf. Nothing to fetch here.
+    if (/^https?:/i.test(resource)) return
     const rel = resolveRelativePath(note.relPath, resource)
     if (!rel) {
       setImageError(`unresolvable resource path — ${resource}`)
@@ -337,10 +346,41 @@ export function SourceImageView({
             onAnchorPage={isDossier ? anchorPage : undefined}
           />
         )}
-        {imageUrl && !isAudio && !isPdf && (
+        {isWeb && webUrl && (
+          <div className="web-source-panel">
+            <p className="web-source-host">{new URL(webUrl).hostname}</p>
+            <div className="web-source-actions">
+              <button
+                type="button"
+                className="note-bar-button"
+                title="Open the live page in a Web tab"
+                onClick={() => onOpenWebUrl?.(webUrl)}
+              >
+                Open live page ↗
+              </button>
+              <button
+                type="button"
+                className="note-bar-button"
+                title="Open the saved snapshot (the evidence) in your system browser"
+                onClick={() => {
+                  const rel = resolveRelativePath(note!.relPath, './snapshot.mhtml')
+                  if (rel) void window.atomik.openSourceExternally(rel).catch(() => {})
+                }}
+              >
+                Open snapshot
+              </button>
+            </div>
+            <p className="web-source-note">
+              {hasReader
+                ? 'Reader text extracted — read and correct it in the dossier.'
+                : 'Extract the reader text to read, annotate, and cite this page.'}
+            </p>
+          </div>
+        )}
+        {imageUrl && !isAudio && !isPdf && !isWeb && (
           <img src={imageUrl} alt={`Original of ${dossierPath}`} />
         )}
-        {!imageUrl && !isPdf && (
+        {!imageUrl && !isPdf && !isWeb && (
           <p className="pane-placeholder">
             {imageError ?? 'loading original…'}
           </p>
@@ -352,6 +392,38 @@ export function SourceImageView({
             {note?.relPath ?? dossierPath}
           </span>
           <span className="note-bar-actions">
+            {note && isWeb && !hasReader && (
+              <button
+                type="button"
+                className="note-bar-button"
+                title="Extract the page's main content from the snapshot — text and images (incl. math figures) land in reader.md, derived and traced"
+                disabled={transcribing}
+                onClick={() =>
+                  runTranscription(window.atomik.extractWebReader, setTranscribing)
+                }
+              >
+                {transcribing ? 'Extracting…' : 'Extract reader text'}
+              </button>
+            )}
+            {note && isWeb && hasReader && (
+              <button
+                type="button"
+                className="note-bar-button"
+                title="Delete reader.md and its media/ after confirmation — corrections in it are lost; enables a fresh extraction"
+                disabled={transcribing}
+                onClick={() => {
+                  const confirmed = window.confirm(
+                    'Delete this reader extraction (reader.md + media/)?\n\n' +
+                      'Any corrections you made there are lost. The snapshot ' +
+                      'stays untouched; Extract reader text becomes available again.'
+                  )
+                  if (confirmed)
+                    runTranscription(window.atomik.resetWebReader, setTranscribing)
+                }}
+              >
+                {transcribing ? 'Deleting…' : 'Delete reader…'}
+              </button>
+            )}
             {note &&
               isPdf &&
               isDossier &&
@@ -419,6 +491,7 @@ export function SourceImageView({
               )}
             {note &&
               !isPdf &&
+              !isWeb &&
               note.relPath.split('/').pop() === 'source.md' &&
               !note.content.includes('./transcript.md') && (
               <>
