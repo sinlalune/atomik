@@ -106,8 +106,67 @@ export function readerFromSnapshot(
     bulletListMarker: '-'
   })
   turndown.use(gfm)
-  const markdown = turndown.turndown(frag.body.innerHTML).trim()
+  // gfm converts SIMPLE tables to pipe tables but KEEPS complex ones
+  // (Wikipedia infoboxes: row-headers, colspan) as raw HTML — which the
+  // vault renderer (html:false) then shows as literal tag soup (owner
+  // report). Flatten every leftover table to readable "header: cells"
+  // lines in the DOM before turndown so nothing raw survives.
+  flattenComplexTables(frag)
+  const markdown = stripLeftoverHtml(turndown.turndown(frag.body.innerHTML)).trim()
   return { title, markdown, media }
+}
+
+/** A GFM pipe table needs a header ROW (top row all-<th>); tables that
+ *  lead with row-headers (infoboxes) don't qualify, so gfm leaves them
+ *  as raw HTML. Rewrite each such table into paragraphs turndown keeps
+ *  as text — one line per row, cells joined by " — ". */
+function flattenComplexTables(root: { querySelectorAll: (s: string) => ArrayLike<Element> }): void {
+  for (const table of Array.from(root.querySelectorAll('table'))) {
+    const rows = Array.from(table.querySelectorAll('tr'))
+    const firstCells = rows[0] ? Array.from(rows[0].querySelectorAll('th,td')) : []
+    const hasHeaderRow = firstCells.length > 0 && firstCells.every((c) => c.tagName === 'TH')
+    if (hasHeaderRow) continue // gfm handles this cleanly — leave it
+    const lines = rows
+      .map((row) =>
+        Array.from(row.querySelectorAll('th,td'))
+          .map((cell) => (cell.textContent ?? '').replace(/\s+/g, ' ').trim())
+          .filter((text) => text.length > 0)
+          .join(' — ')
+      )
+      .filter((line) => line.length > 0)
+    const doc = table.ownerDocument
+    if (!doc) continue
+    const block = doc.createElement('div')
+    for (const line of lines) {
+      const p = doc.createElement('p')
+      p.textContent = line
+      block.appendChild(p)
+    }
+    table.replaceWith(block)
+  }
+}
+
+/** Safety net: whatever raw HTML turndown still passed through (stray
+ *  tables, spans, comments) is stripped to its text so the vault
+ *  renderer never shows literal tags. A reader is lossy by design; the
+ *  user corrects. Fast-paths when there is no markup. */
+export function stripLeftoverHtml(markdown: string): string {
+  if (!/<[a-z!/][^>]*>/i.test(markdown)) return markdown
+  return markdown
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<(script|style)[\s\S]*?<\/\1>/gi, '')
+    .replace(/<\/(tr|table|div|p|li|h[1-6]|section|article)>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#3[49];/g, "'")
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]{2,}/g, ' ')
 }
 
 export function readerDocument(

@@ -7,6 +7,7 @@ import {
   extractWebReader,
   readerFromSnapshot,
   resetWebReader,
+  stripLeftoverHtml,
   withReaderCleared,
   withReaderCorrectionRecorded,
   withReaderRecorded
@@ -179,6 +180,27 @@ describe('web reader extraction (CP-MVP-006 S05)', () => {
     expect((readFileSync(join(dir, 'source.md'), 'utf8').match(/reader_text:/g) ?? [])).toHaveLength(1)
     expect(() => resetWebReader(vault, dossierRel)).not.toThrow()
     resetWebReader // idempotency of the guard checked below
+  })
+
+  it('stripLeftoverHtml is the raw-HTML safety net: tables become text, no tag soup', () => {
+    // fast path: plain markdown untouched
+    expect(stripLeftoverHtml('plain **markdown**')).toBe('plain **markdown**')
+    // stray inline tags stripped, text kept, whitespace collapsed
+    expect(stripLeftoverHtml('<span>a</span> and <b>b</b>').trim()).toBe('a and b')
+    // entities decoded alongside the tags they travel with (leftover HTML)
+    expect(stripLeftoverHtml('<i>x&nbsp;y &amp; z</i>').trim()).toBe('x y & z')
+    // the actual failure mode (owner report): a leftover infobox table
+    // that turndown kept as raw HTML — reduced to readable text, no tags
+    const rawTable =
+      '<table about="#mwt2"><tbody>' +
+      '<tr><th scope="row">Création</th><td>1975</td></tr>' +
+      '<tr><th scope="row">Type</th><td>Conférence</td></tr>' +
+      '</tbody></table>'
+    const out = stripLeftoverHtml(rawTable)
+    expect(/<table|<tbody|<tr|<td|<th/.test(out)).toBe(false)
+    expect(out).toContain('Création')
+    expect(out).toContain('1975')
+    expect(out).toContain('Conférence')
   })
 
   it('reset without a reader refuses', () => {
