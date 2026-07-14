@@ -537,6 +537,24 @@ body[data-maximized] .tabstrip {
   text-align: center;
 }
 
+/* live reader mode (S06): OUR extracted markdown, rendered over the
+ * web-host where the native view sits (which is hidden while reading).
+ * The content surface, a comfortable reading column. */
+.web-reader {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  background: var(--surface);
+  display: flex;
+  justify-content: center;
+}
+
+.web-reader .markdown-body {
+  max-width: var(--note-column);
+  width: 100%;
+  padding: var(--note-pad);
+}
+
 /* the left pane of a WEB source dossier (S05): no local original to
  * show — the live page and the snapshot are one click away, and the
  * reader extraction is the point */

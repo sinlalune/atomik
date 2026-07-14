@@ -22,7 +22,7 @@ import { createMistralOcrAdapter, createVoxtralTranscribeAdapter } from './mistr
 import { publicAiSettings, readMistralKey, writeMistralKey } from './ai-settings'
 import { importPdfFromPath } from './pdf-import'
 import { importWebSource, type WebPageMeta } from './web-import'
-import { extractWebReader, resetWebReader } from './web-reader'
+import { extractWebReader, readerFromHtml, resetWebReader } from './web-reader'
 import { extractPdfSource, resetExtraction } from './pdf-extract'
 import { pdftoppmRasterizer, readPdfTextWithPdfjs } from './pdf-text'
 import { rotateRgba, scanCleanRgba } from './scan-filter'
@@ -733,6 +733,24 @@ function registerWebViewHandlers(getWindow: () => BrowserWindow | null): void {
     }
   )
 
+  // Live reader mode (CP-MVP-006 S06): extract the tab's CURRENT page to
+  // reader markdown IN MEMORY — no file, no images (transient read; the
+  // durable path with local media is Import-as-source). Same engine as
+  // the snapshot extraction, fed the live post-JS DOM.
+  ipcMain.handle(
+    ATOMIK_CHANNELS.webViewReaderText,
+    async (_event, id: unknown) => {
+      const { view } = requireView(id)
+      const contents = view.webContents
+      const url = contents.getURL()
+      const pageHtml = (await contents.executeJavaScript(
+        'document.documentElement.outerHTML'
+      )) as string
+      const { title, markdown } = readerFromHtml(pageHtml, url, new Map())
+      return { title, markdown }
+    }
+  )
+
   ipcMain.handle(ATOMIK_CHANNELS.webViewDestroy, (_event, id: unknown) => {
     if (!isWebViewId(id)) throw new Error('web-view: rejected id')
     const view = views.get(id)
@@ -981,6 +999,22 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
           )) as string
           webReport += ` webImport=FAILED(clicked=${clicked}${hint ? ` err=${JSON.stringify(hint.slice(0, 160))}` : ''})`
         }
+      }
+      // Live reader-mode probe (S06): click "Aa reader" and wait for the
+      // extracted markdown overlay to render with real headings.
+      if (navigated && process.env['ATOMIK_SMOKE_WEB_READER'] === '1') {
+        await window.webContents.executeJavaScript(
+          `(() => { const b = [...document.querySelectorAll('.web-nav button')].find((el) => /reader/i.test(el.textContent)); if (b) b.click(); return Boolean(b) })()`
+        )
+        const readerDeadline = Date.now() + 15000
+        let headings = 0
+        while (Date.now() < readerDeadline && headings === 0) {
+          headings = (await window.webContents.executeJavaScript(
+            `document.querySelectorAll('.web-reader .markdown-body h2, .web-reader .markdown-body h3').length`
+          )) as number
+          if (headings === 0) await new Promise((resolve) => setTimeout(resolve, 500))
+        }
+        webReport += headings > 0 ? ` webReader=ok(${headings}h)` : ' webReader=TIMEOUT'
       }
     }
     console.log(

@@ -262,6 +262,19 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       capture milestone, the web dossier revealed the class). Part of
       S06's routing pre-landed on owner report; S06 keeps web-dossier→
       web-view routing and the @ citations. Tests 283.
+      S06 @ CITATIONS 2026-07-13: the @ menu offers web bundles (url
+      citation to the live page + dossier link) and reader.md as a
+      derived quote block. Tests 295.
+      S05e + S06 LIVE READER (owner steer "les deux, dans cet ordre"):
+      (1) STRUCTURE-FIRST extraction — findContentRoot + stripChrome
+      preserve the section hierarchy Readability rased (G7: 0 → 7 h2/
+      5 h3/4 h4); expandCellSpans repeats merged headers so spanned
+      tables promote to real pipe tables. (2) LIVE READER MODE — an
+      "Aa reader" toggle on the web viewer renders the current page as
+      clean text in place (no file), reusing readerFromHtml with no
+      images; native view hides while reading; a real navigation (not
+      a hash jump) drops it. E2E: webReader=ok(23h) on live Wikipedia,
+      persists, button flips. Tests 301.
 - [x] S05 Reader extraction: reader.md derived (identity + trace id,
       ONE ActionTrace, wx no-clobber) behind the adapter seam, WITH
       page images captured into media/ (hashed, relative references);

@@ -1,7 +1,20 @@
-import { useEffect, useRef, useState } from 'react'
+import MarkdownIt from 'markdown-it'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { WebViewState } from '../../../shared/ipc-contract'
 import { onWebOverlayChange, webOverlayCovered } from './overlay'
 import { normalizeInputUrl } from './urls'
+
+/** A page's identity for reader invalidation: origin + path, hash and
+ *  query jitter ignored (an in-page anchor jump is the same page). */
+function pageKey(url: string | undefined): string | null {
+  if (!url) return null
+  try {
+    const parsed = new URL(url)
+    return `${parsed.origin}${parsed.pathname}`
+  } catch {
+    return url
+  }
+}
 
 /**
  * The web tab (CP-MVP-006 S03, bedrock 09; tab kind `source-web`). This
@@ -35,6 +48,11 @@ export function WebView({
   const [inputError, setInputError] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
   const [imported, setImported] = useState<string | null>(null)
+  // live reader mode (S06): a transient, in-place readable render of the
+  // current page — no file, no import. Toggling it hides the native view.
+  const [reader, setReader] = useState<{ title: string; html: string } | null>(null)
+  const [readerBusy, setReaderBusy] = useState(false)
+  const md = useMemo(() => new MarkdownIt({ html: false, linkify: true, breaks: false }), [])
   const [covered, setCovered] = useState(webOverlayCovered())
   const inputFocused = useRef(false)
   const initialUrlRef = useRef(initialUrl)
@@ -96,15 +114,16 @@ export function WebView({
   // overlay guard (S02 named cost: native views paint over the UI)
   useEffect(() => onWebOverlayChange(setCovered), [])
 
-  // the view exists once state does; visible = mounted, uncovered
+  // the view exists once state does; visible = mounted, uncovered, and
+  // NOT showing the reader overlay (which sits where the native view is)
   const ready = state !== null
   useEffect(() => {
     if (!ready) return
-    void window.atomik.webViewSetVisible(tabId, !covered)
+    void window.atomik.webViewSetVisible(tabId, !covered && reader === null)
     return () => {
       void window.atomik.webViewSetVisible(tabId, false)
     }
-  }, [tabId, covered, ready])
+  }, [tabId, covered, ready, reader])
 
   // geometry: element resizes, window resizes, and divider drags that
   // only MOVE the pane (per-render check catches those)
@@ -146,6 +165,40 @@ export function WebView({
   const control = (action: 'back' | 'forward' | 'reload' | 'stop'): void => {
     void window.atomik.webViewControl(tabId, action).catch(() => {})
   }
+
+  // Reader mode (S06): a superficial, in-place readable render of the
+  // current page. Same engine as Import-as-source, minus files and
+  // images — a quick read, not a durable source. Toggle off returns to
+  // the live page; navigating away drops it (the page changed).
+  const toggleReader = (): void => {
+    if (reader) {
+      setReader(null)
+      return
+    }
+    setReaderBusy(true)
+    setInputError(null)
+    window.atomik.webViewReaderText(tabId).then(
+      ({ title, markdown }) => {
+        setReaderBusy(false)
+        readerUrl.current = pageKey(state?.url)
+        setReader({ title, html: md.render(markdown) })
+      },
+      (cause) => {
+        setReaderBusy(false)
+        setInputError(`reader: ${String(cause)}`)
+      }
+    )
+  }
+  // a REAL navigation invalidates the reader (it belonged to the old
+  // page); an in-page hash/anchor jump does NOT (Wikipedia fires those,
+  // and closing the reader on them is jarring) — compare origin+path
+  const readerUrl = useRef<string | null>(null)
+  useEffect(() => {
+    if (reader && state?.url && pageKey(state.url) !== readerUrl.current) {
+      setReader(null)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state?.url])
 
   // The EXPLICIT import (09): this button is the ONLY road from the live
   // page to the vault — snapshot + dossier land main-side, gated.
@@ -224,6 +277,17 @@ export function WebView({
         </form>
         <button
           type="button"
+          className={`note-bar-button${reader ? ' active' : ''}`}
+          // reads the CURRENT DOM — needs only a live view, not a
+          // finished load (some pages never report load-complete)
+          disabled={(!ready || readerBusy) && !reader}
+          title="Reader mode — read this page as clean text in place (no file). Toggle off to return to the live page."
+          onClick={toggleReader}
+        >
+          {readerBusy ? 'reading…' : reader ? '✕ reader' : 'Aa reader'}
+        </button>
+        <button
+          type="button"
           className="note-bar-button web-import"
           disabled={!importable}
           title="Import this page as a source — snapshot + dossier into sources/web/"
@@ -254,8 +318,18 @@ export function WebView({
         {!ready && (
           <p className="pane-placeholder">
             Type an address above — the page opens here, isolated from your
-            vault. Import as source lands in S04.
+            vault. “Import as source” saves it; “reader” reads it in place.
           </p>
+        )}
+        {reader && (
+          <div className="web-reader note-scroll">
+            <div
+              className="markdown-body"
+              // reader HTML is OUR extraction (turndown → markdown-it,
+              // html:false) — never the page's own markup
+              dangerouslySetInnerHTML={{ __html: reader.html }}
+            />
+          </div>
         )}
       </div>
     </div>

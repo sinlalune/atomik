@@ -117,14 +117,28 @@ export function stripChrome(root: DomElement): void {
   }
 }
 
-/** Pure-ish core: parse the snapshot, run Readability, map the article's
- *  images onto snapshot resources, emit Markdown + the media files to
- *  write. No fs here — the caller lands the bytes. */
+/** Parse the on-disk snapshot and extract — the durable-import path. */
 export function readerFromSnapshot(
   snapshot: Buffer,
   pageUrl: string
 ): { title: string; markdown: string; media: Array<{ name: string; bytes: Buffer }> } {
   const { html, resources } = parseMhtml(snapshot)
+  return readerFromHtml(html, pageUrl, resources)
+}
+
+/**
+ * The extraction core (S05e), shared by the durable snapshot import and
+ * the LIVE reader-mode toggle (S06). Structure-first content pick,
+ * chrome strip, table normalization, markdown. Images resolve against
+ * `resources` (the snapshot's embedded parts, or data: URIs); the live
+ * reader passes an EMPTY map, so its remote images simply drop — a
+ * transient read is text+structure, durability is Import-as-source.
+ */
+export function readerFromHtml(
+  html: string,
+  pageUrl: string,
+  resources: Map<string, { contentType: string; bytes: Buffer }>
+): { title: string; markdown: string; media: Array<{ name: string; bytes: Buffer }> } {
   const { document } = parseHTML(html)
   const docTitle = (document.querySelector('title')?.textContent ?? '').trim()
 

@@ -440,6 +440,23 @@ timestamp: 2026-07-06T00:00:00Z
   (pinned UA, Sec-CH-UA stripped, JS-visible UA switched per
   navigation) — the dated S03c mitigation, owner-validated; everywhere
   else stays normalized Chrome.
+- Live reader mode (09, CP-MVP-006 S06; owner: Obsidian-style reader on
+  the web viewer): an "Aa reader" toggle in the web nav renders the
+  CURRENT page as clean text IN PLACE — no file, no import. Channel
+  `web-view-reader-text` → main runs `executeJavaScript` for the live
+  post-JS `outerHTML` and feeds it to the SAME extraction core as the
+  snapshot import (`readerFromHtml`, structure-first + tables), with an
+  EMPTY resource map so remote images simply drop (a transient read is
+  text+structure; durability with local media is Import-as-source). The
+  renderer renders the returned markdown with markdown-it (html:false —
+  never the page's own markup) into a `.web-reader` overlay on the
+  content surface, and HIDES the native view while reading (the toggle
+  extends the visibility rule: visible only when uncovered AND not
+  reading). Reader button gates on view-EXISTS, not load-complete (some
+  pages never settle); a REAL navigation (origin+path change, hash
+  jitter ignored) drops the reader, an in-page anchor jump doesn't.
+  E2E probed: ATOMIK_SMOKE_WEB_READER clicks "Aa reader" on live
+  Wikipedia → 23 headings extracted, persists, button flips ✕ reader.
 - Web import as source (09, CP-MVP-006 S04): `electron-main/web-import.ts`
   + channel `web-view-import-source` behind the EXPLICIT "Import as
   source" button in the web nav (09: never automatic). Lands
