@@ -3,8 +3,12 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { ActionTraceLedger } from '../electron-main/action-trace'
+import { parseHTML } from 'linkedom'
+import TurndownService from 'turndown'
+import { gfm } from 'turndown-plugin-gfm'
 import {
   extractWebReader,
+  normalizeTables,
   readerFromSnapshot,
   resetWebReader,
   stripLeftoverHtml,
@@ -12,6 +16,16 @@ import {
   withReaderCorrectionRecorded,
   withReaderRecorded
 } from '../electron-main/web-reader'
+
+/** Run the table pass + turndown in isolation (Readability strips small
+ *  synthetic tables, so the full pipeline can't exercise this). */
+function tableMarkdown(inner: string): string {
+  const { document } = parseHTML(`<html><body>${inner}</body></html>`)
+  normalizeTables(document as unknown as Parameters<typeof normalizeTables>[0])
+  const td = new TurndownService({ headingStyle: 'atx', bulletListMarker: '-' })
+  td.use(gfm)
+  return td.turndown((document as unknown as { body: { innerHTML: string } }).body.innerHTML)
+}
 
 const CRLF = '\r\n'
 /** A synthetic Blink-style MHTML: an article with a heading, a paragraph
@@ -180,6 +194,27 @@ describe('web reader extraction (CP-MVP-006 S05)', () => {
     expect((readFileSync(join(dir, 'source.md'), 'utf8').match(/reader_text:/g) ?? [])).toHaveLength(1)
     expect(() => resetWebReader(vault, dossierRel)).not.toThrow()
     resetWebReader // idempotency of the guard checked below
+  })
+
+  it('promotes a regular table to a markdown pipe table (owner: why not a table)', () => {
+    const md = tableMarkdown(
+      '<table><tr><td>Année</td><td>PIB</td></tr><tr><td>2020</td><td>21T</td></tr></table>'
+    )
+    expect(md).toContain('| --- | --- |')
+    expect(md).toContain('| Année | PIB |')
+    expect(md).toContain('| 2020 | 21T |')
+    expect(/<table|<td|<tr/.test(md)).toBe(false)
+  })
+
+  it('flattens an infobox (colspan / row-headers / <br>) to readable dash lines', () => {
+    const md = tableMarkdown(
+      '<table><tr><td colspan="2">Titre</td></tr>' +
+        '<tr><th scope="row">Création</th><td>1975</td></tr>' +
+        '<tr><th scope="row">Ancien</th><td>G5<br>G6</td></tr></table>'
+    )
+    expect(md).toContain('Création — 1975')
+    expect(md).toContain('Ancien — G5 · G6') // <br> became " · "
+    expect(/<table|<td|<tr/.test(md)).toBe(false)
   })
 
   it('stripLeftoverHtml is the raw-HTML safety net: tables become text, no tag soup', () => {

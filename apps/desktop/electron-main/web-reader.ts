@@ -106,43 +106,104 @@ export function readerFromSnapshot(
     bulletListMarker: '-'
   })
   turndown.use(gfm)
-  // gfm converts SIMPLE tables to pipe tables but KEEPS complex ones
-  // (Wikipedia infoboxes: row-headers, colspan) as raw HTML — which the
-  // vault renderer (html:false) then shows as literal tag soup (owner
-  // report). Flatten every leftover table to readable "header: cells"
-  // lines in the DOM before turndown so nothing raw survives.
-  flattenComplexTables(frag)
+  // gfm converts tables with a proper header ROW; everything else
+  // (Wikipedia infoboxes: row-headers, colspan, multi-block cells)
+  // would survive as raw HTML — literal tag soup in the vault renderer
+  // (owner report). normalizeTables upgrades what CAN be a faithful
+  // markdown table and flattens what can't; stripLeftoverHtml nets any
+  // remainder.
+  normalizeTables(frag)
   const markdown = stripLeftoverHtml(turndown.turndown(frag.body.innerHTML)).trim()
   return { title, markdown, media }
 }
 
-/** A GFM pipe table needs a header ROW (top row all-<th>); tables that
- *  lead with row-headers (infoboxes) don't qualify, so gfm leaves them
- *  as raw HTML. Rewrite each such table into paragraphs turndown keeps
- *  as text — one line per row, cells joined by " — ". */
-function flattenComplexTables(root: { querySelectorAll: (s: string) => ArrayLike<Element> }): void {
+/**
+ * Table triage (owner: "why not a markdown table?"): a GFM pipe table
+ * REQUIRES a header row and single-line cells. So —
+ * - header-row tables: left for gfm (it converts them faithfully);
+ * - REGULAR row-header tables (consistent column count, no
+ *   colspan/rowspan, no nested table, no block children in cells):
+ *   PROMOTED — an empty <thead> row is prepended so gfm converts them
+ *   into a real pipe table, inline formatting preserved;
+ * - everything else (infobox monsters): flattened to one readable
+ *   "cells — joined" paragraph per row — a broken pipe grid would be
+ *   worse than text. In-cell <br> becomes " · " either way.
+ */
+export function normalizeTables(root: { querySelectorAll: (s: string) => ArrayLike<Element> }): void {
   for (const table of Array.from(root.querySelectorAll('table'))) {
+    const doc = table.ownerDocument
+    if (!doc) continue
+    // multi-line cells break pipe tables and smear flatten output alike
+    for (const br of Array.from(table.querySelectorAll('br'))) {
+      br.parentNode?.replaceChild(doc.createTextNode(' · '), br)
+    }
     const rows = Array.from(table.querySelectorAll('tr'))
-    const firstCells = rows[0] ? Array.from(rows[0].querySelectorAll('th,td')) : []
+    // DIRECT cell children only — a descendant query would pull a nested
+    // table's cells into the parent row (duplication)
+    const grid = rows.map((row) =>
+      Array.from(row.children).filter(
+        (cell) => cell.tagName === 'TH' || cell.tagName === 'TD'
+      )
+    )
+    const firstCells = grid[0] ?? []
     const hasHeaderRow = firstCells.length > 0 && firstCells.every((c) => c.tagName === 'TH')
-    if (hasHeaderRow) continue // gfm handles this cleanly — leave it
-    const lines = rows
-      .map((row) =>
-        Array.from(row.querySelectorAll('th,td'))
-          .map((cell) => (cell.textContent ?? '').replace(/\s+/g, ' ').trim())
+    if (hasHeaderRow) continue // gfm converts these cleanly
+
+    const nested = table.querySelector('table') !== null
+    const spanned = grid.some((cells) =>
+      cells.some(
+        (cell) =>
+          (cell.getAttribute('colspan') ?? '1') !== '1' ||
+          (cell.getAttribute('rowspan') ?? '1') !== '1'
+      )
+    )
+    const blockCells = grid.some((cells) =>
+      cells.some((cell) => cell.querySelector('div,p,ul,ol,blockquote,h1,h2,h3') !== null)
+    )
+    const columnCounts = new Set(grid.map((cells) => cells.length))
+    const regular =
+      !nested &&
+      !spanned &&
+      !blockCells &&
+      columnCounts.size === 1 &&
+      (grid[0]?.length ?? 0) >= 2
+
+    if (regular) {
+      // promote: an empty header row makes it a valid GFM table; gfm
+      // then converts cells with their inline markdown (links, images)
+      const thead = doc.createElement('thead')
+      const headRow = doc.createElement('tr')
+      for (let i = 0; i < grid[0]!.length; i++) {
+        headRow.appendChild(doc.createElement('th'))
+      }
+      thead.appendChild(headRow)
+      table.insertBefore(thead, table.firstChild)
+      continue
+    }
+
+    // flatten to one readable paragraph per row (in-cell images kept as
+    // markdown refs — already rewritten to ./media/ above)
+    const lines = grid
+      .map((cells) =>
+        cells
+          .map((cell) => {
+            const images = Array.from(cell.querySelectorAll('img'))
+              .map((img) => `![](${img.getAttribute('src') ?? ''})`)
+              .join(' ')
+            const text = (cell.textContent ?? '').replace(/\s+/g, ' ').trim()
+            return [text, images].filter((part) => part.length > 0).join(' ')
+          })
           .filter((text) => text.length > 0)
           .join(' — ')
       )
       .filter((line) => line.length > 0)
-    const doc = table.ownerDocument
-    if (!doc) continue
     const block = doc.createElement('div')
     for (const line of lines) {
       const p = doc.createElement('p')
       p.textContent = line
       block.appendChild(p)
     }
-    table.replaceWith(block)
+    table.parentNode?.replaceChild(block, table)
   }
 }
 
