@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, screen, session, shell, WebContentsView } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, session, shell, WebContentsView } from 'electron'
 import { execFile } from 'node:child_process'
 import { copyFileSync, existsSync, mkdtempSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
@@ -452,50 +452,20 @@ const WINDOW_CONTROL_ACTIONS = new Set([
 ])
 
 /**
- * Maximize (owner: a real maximize, no fullscreen crutch, no offset).
- * WSLg's window-manager maximize is BROKEN for borderless windows
- * (microsoft/wslg#1015: transparent gap + offset clicks) and dropping
- * the client-side shadow didn't cure it — the offset is in the WM's
- * maximize geometry itself. So under WSLg we DON'T use the WM maximize
- * at all: we position the window ourselves over the display's work area
- * (excludes the taskbar), and restore the saved bounds — a manual
- * maximize that fills the screen honestly and coexists with the
- * taskbar. Off WSLg, the native maximize is fine. Fullscreen (F11) is
- * its own separate thing.
+ * Maximize: the NATIVE WM maximize (owner: no fullscreen crutch, keep
+ * the taskbar, no lag). Probed under WSLg 2026-07-14: `window.maximize()`
+ * lands {0,0,1920,1032} on a 1080 screen — it RESERVES the taskbar (the
+ * WM proxies to Windows, which knows it), whereas `screen.workArea`
+ * wrongly reports the full 1080 and setBounds(workArea) both covered the
+ * taskbar and was laggy. So we trust the WM maximize. No shadow toggle:
+ * toggling `hasShadow` at maximize time was the likely offset source.
+ * Fullscreen (F11) is its own separate thing.
  */
-const IS_WSLG =
-  process.platform === 'linux' && Boolean(process.env['WSL_DISTRO_NAME'])
-
-/** Bounds to restore to, present ONLY while WSLg-maximized (doubles as
- *  the "are we maximized" flag under WSLg). */
-const wslgRestoreBounds = new WeakMap<BrowserWindow, Electron.Rectangle>()
-
 function isWindowMaximized(window: BrowserWindow): boolean {
-  return IS_WSLG ? wslgRestoreBounds.has(window) : window.isMaximized()
-}
-
-function wslgMaximize(window: BrowserWindow): void {
-  if (wslgRestoreBounds.has(window)) return
-  const bounds = window.getBounds()
-  wslgRestoreBounds.set(window, bounds)
-  window.setHasShadow(false)
-  window.setBounds(screen.getDisplayMatching(bounds).workArea)
-}
-
-function wslgRestore(window: BrowserWindow): void {
-  const bounds = wslgRestoreBounds.get(window)
-  if (!bounds) return
-  wslgRestoreBounds.delete(window)
-  window.setBounds(bounds)
-  window.setHasShadow(true)
+  return window.isMaximized()
 }
 
 function toggleMaximize(window: BrowserWindow): void {
-  if (IS_WSLG) {
-    if (wslgRestoreBounds.has(window)) wslgRestore(window)
-    else wslgMaximize(window)
-    return
-  }
   if (window.isMaximized()) window.unmaximize()
   else window.maximize()
 }
@@ -806,21 +776,8 @@ function createMainWindow(hash?: string): BrowserWindow {
       maximized: isWindowMaximized(window)
     })
   }
-  if (IS_WSLG) {
-    // The WM maximize is broken here (wslg#1015), so an OS-initiated
-    // maximize (snap, Win+Up) must be converted to our manual
-    // work-area fit — undo the WM's attempt, then position ourselves.
-    // A re-entrancy guard: our own setBounds doesn't re-trigger this.
-    window.on('maximize', () => {
-      window.unmaximize()
-      wslgMaximize(window)
-      sendWindowState()
-    })
-    window.on('unmaximize', sendWindowState)
-  } else {
-    window.on('maximize', sendWindowState)
-    window.on('unmaximize', sendWindowState)
-  }
+  window.on('maximize', sendWindowState)
+  window.on('unmaximize', sendWindowState)
 
   window.once('ready-to-show', () => window.show())
 

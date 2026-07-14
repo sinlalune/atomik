@@ -967,16 +967,18 @@ WSLg maximized gap/offset (microsoft/wslg#1015, open since 2023): a
 borderless maximized window keeps a transparent gap and offset clicks.
 History: the fix used to map maximize→fullscreen, but that ALSO hid the
 taskbar and read as F11 (owner's "maximized window" complaint).
-SUPERSEDED 2026-07-14 (owner: "drop the fullscreen crutch"). First try
-was `setHasShadow(false)` + the native maximize — the owner reported the
-offset PERSISTED, so the offset is in the WM's maximize GEOMETRY itself,
-not the shadow. FINAL FIX: under WSLg (`IS_WSLG`) don't use the WM
-maximize at all — position the window ourselves over
-`screen.getDisplayMatching(bounds).workArea` and restore the saved
-bounds (`wslgRestoreBounds` WeakMap doubles as the maximized flag); an
-OS-initiated maximize (snap/Win+Up) is caught on the `maximize` event,
-`unmaximize()`d, and redone as the manual work-area fit. Probe-verified
-2026-07-14: `setBounds(workArea)` lands EXACTLY (getBounds after ==
-workArea, no offset) — the WM path was the culprit. Shadow still
-dropped while maximized. `ozone-platform-hint=auto` kept. Owner to
-confirm the final visual (headless proves the bounds, not the pixels).
+SETTLED 2026-07-14 (owner: "drop the fullscreen crutch", then "laggy +
+hides the taskbar"). Three tries, resolved by a decisive probe:
+(1) native maximize + `setHasShadow(false)` toggle → owner saw the
+offset persist; (2) manual `setBounds(screen.workArea)` → no offset but
+LAGGY and it HID THE TASKBAR. The probe explained why: under WSLg
+`screen.workArea` wrongly reports the full 1080, but `window.maximize()`
+lands {0,0,1920,1032} — the WM maximize RESERVES the taskbar (it proxies
+to Windows, which knows the taskbar) and is the fast path. (3) FINAL:
+plain native `window.maximize()`/`unmaximize()`, no shadow toggle (that
+toggle was the likely offset source), no manual bounds. Respects the
+taskbar, no lag. `ozone-platform-hint=auto` kept. If a visible offset
+STILL shows on some WSLg build it's genuine wslg#1015 — then the honest
+options are: live with it, native frame (`frame:true`, loses the custom
+header), or fullscreen-maximize (hides taskbar). Owner confirms the
+visual.
