@@ -115,8 +115,171 @@ body {
   flex-direction: column;
 }
 
-/* chromeless frame: no native title bar, no brand row — the tabstrip is
-   the window top row (owner feedback on MVP-001) */
+/* App header (owner request: restore the header — brand · menu · window
+   controls — with tabs on the row below). Chromeless frame: THIS row is
+   the window's drag surface; interactive children opt out. */
+.app-header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.2rem;
+  padding: 0 0.5rem 0 0.85rem;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  -webkit-app-region: drag;
+}
+
+body[data-maximized] .app-header {
+  -webkit-app-region: no-drag;
+}
+
+.app-brand {
+  font-weight: 650;
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+  color: var(--fg);
+  -webkit-app-region: no-drag;
+  user-select: none;
+}
+
+.app-header-spacer {
+  flex: 1;
+}
+
+.app-header .window-controls,
+.app-header .app-menu {
+  -webkit-app-region: no-drag;
+}
+
+/* the single menu button (☰) + its dropdown (theme + AI key) */
+.app-menu {
+  position: relative;
+  flex: none;
+}
+
+.app-menu-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.4rem;
+  font: inherit;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.app-menu-toggle:hover,
+.app-menu-toggle[aria-expanded='true'] {
+  color: var(--accent);
+  background: var(--code-bg);
+}
+
+.app-menu-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  width: 300px;
+  padding: 0.75rem 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  font-size: 0.8rem;
+}
+
+.app-menu-panel h4 {
+  margin: 0.6rem 0 0.35rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.app-menu-panel h4:first-child {
+  margin-top: 0;
+}
+
+.app-menu-themes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.app-menu-theme {
+  font: inherit;
+  font-size: 0.75rem;
+  color: inherit;
+  background: var(--code-bg);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+  text-transform: capitalize;
+}
+
+.app-menu-theme:hover {
+  border-color: var(--border);
+}
+
+.app-menu-theme.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.app-menu-status {
+  margin: 0 0 0.4rem;
+  color: var(--muted);
+}
+
+.app-menu-row {
+  display: flex;
+  gap: 6px;
+}
+
+.app-menu-row input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  color: inherit;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.25rem 0.4rem;
+}
+
+.app-menu-row button,
+.app-menu-clear {
+  font: inherit;
+  color: var(--muted);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+}
+
+.app-menu-row button:hover:not(:disabled),
+.app-menu-clear:hover:not(:disabled) {
+  color: var(--accent);
+}
+
+.app-menu-clear {
+  margin-top: 6px;
+}
+
+.app-menu-note {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.app-menu-error {
+  margin: 0.4rem 0 0;
+}
 
 .devdocs-tree li > button {
   font: inherit;

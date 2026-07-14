@@ -20,24 +20,31 @@ timestamp: 2026-07-06T00:00:00Z
 - The security posture of that window: `SECURE_WEB_PREFERENCES`
   (`electron-main/security.ts`) pins 13's required settings; the renderer's
   CSP lives in `renderer/index.html`. The window is chromeless
-  (`frame: false`, MVP-001 owner feedback): the tabstrip is the top row
-  and the drag surface (`-webkit-app-region`), and min/max/close run
-  through the allowlist-validated `window-control` channel, rendered in
-  the top-right pane's strip (`topRightLeafId` picks the seat).
+  (`frame: false`): a GLOBAL app header (`AppHeader` — brand "atomik",
+  the `AppMenu` ☰ dropdown holding theme + Mistral key, and
+  `WindowControls`) is the top row and the drag surface
+  (`-webkit-app-region`); the per-pane tabstrips sit on the row below
+  and no longer carry the window controls (owner request 2026-07-14,
+  reversing the MVP-001 tabstrip-is-the-top-row layout). min/max/close
+  run through the allowlist-validated `window-control` channel.
   Maximize state is PUSHED (`atomik:window-state-changed`, the one
   main→renderer event; boolean payload) so the icon tracks OS-initiated
-  changes too, and `<body data-maximized>` turns the drag regions OFF
-  while maximized — dragging a maximized frameless window glitches
-  under some window managers, and the strip's overflow scrollbar sat
-  INSIDE the drag region, unclickable (owner's maximized-mode bug).
-  The scrollbar is hidden; wheel scrolls overflowing tabs — and only
-  the TABS region scrolls: strip actions and the window controls are
-  pinned right, visible at any tab count (owner report: overflowing
-  tabs pushed the window buttons off-screen). On Linux the
-  window also drops Chromium's client-side shadow (`hasShadow: false`):
-  its invisible frame margins are what WSLg kept honoring on maximize —
-  transparent gap + rightward offset; fullscreen looked right because
-  it drops the margins. WSLg's OS side draws window shadows itself.
+  changes too (snap, Win+Up), and `<body data-maximized>` turns the
+  drag regions OFF while maximized — dragging a maximized frameless
+  window glitches. The strip's overflow scrollbar is hidden (it sat
+  inside the drag region); wheel scrolls overflowing tabs.
+  MAXIMIZE IS REAL (owner 2026-07-14, "drop the fullscreen crutch"):
+  the old WSLg workaround mapped maximize→fullscreen (wslg#1015: a
+  borderless maximized window kept a transparent gap + offset clicks),
+  but fullscreen also hid the taskbar. Root cause of the gap = the
+  client-side SHADOW margins, so instead the window keeps its shadow
+  when restored (edge-resize handles live in those margins) and DROPS
+  it while maximized (`setHasShadow(false)` on the `maximize` event,
+  `true` on `unmaximize`) — no gap maximized, resize back when
+  restored, and a real maximize that coexists with the taskbar.
+  Fullscreen (F11) is now its own separate thing. NEEDS owner visual
+  verification on live WSLg (headless capturePage can't confirm the
+  maximize geometry).
 - The renderer-facing API surface: `shared/ipc-contract.ts` is the single
   source of truth (`ATOMIK_API_KEY`, `ATOMIK_CHANNELS`, `AtomikApi`,
   `DOCUMENTED_PRELOAD_SURFACE`). Twenty-six invoke channels exist today
@@ -956,15 +963,17 @@ RDPSource — the Windows mic — appears and records; enumerate/gum only
 exist in secure contexts, so probes must load file:// not data:). Without root they can be
 `apt-get download`-ed and `dpkg -x`-extracted, then passed via
 `LD_LIBRARY_PATH`; for daily dev install them properly with apt.
-WSLg maximized gap/offset — RESOLVED as an upstream bug we route
-around: WSLg cannot maximize borderless windows (microsoft/wslg#1015,
-open since 2023, reproduces with plain Chrome; clicks offset by the
-gap). Ladder walked: (1) `hasShadow:false` (kept — wslg#1050, shadow
-border in screenshots); (2) `ozone-platform-hint=auto` (kept — native
-Wayland under WSLg); (3) THE FIX: under WSLg (`WSL_DISTRO_NAME` set),
-maximize MEANS fullscreen — the window-control verb toggles fullscreen,
-and even OS-initiated maximize (snap/Win+Up) converts via the maximize
-event; `isWindowMaximized` reports either mechanism so icon and
-`data-maximized` CSS behave identically. Owner-validated behavior (the
-F11 observation). Probe-verified: maximize request → fullscreen at full
-screen bounds, restore returns to prior bounds.
+WSLg maximized gap/offset (microsoft/wslg#1015, open since 2023): a
+borderless maximized window keeps a transparent gap and offset clicks.
+History: the fix used to map maximize→fullscreen, but that ALSO hid the
+taskbar and read as F11 (owner's "maximized window" complaint).
+SUPERSEDED 2026-07-14 (owner: "drop the fullscreen crutch"): the gap is
+the client-side SHADOW margins, so maximize is a REAL maximize now and
+the shadow is dropped WHILE maximized (`setHasShadow(false)` on the
+`maximize` event) and restored on `unmaximize` — no gap when maximized,
+resize handles back when restored (they live in the shadow margins),
+taskbar stays. `ozone-platform-hint=auto` kept (native Wayland under
+WSLg). Recheck trigger: if real maximize still shows a gap/offset on
+some WSLg build, revisit (a per-build `setBounds` to the work area is
+the next lever). Owner to visually confirm — headless capturePage
+can't verify maximize geometry.

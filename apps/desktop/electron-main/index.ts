@@ -452,27 +452,22 @@ const WINDOW_CONTROL_ACTIONS = new Set([
 ])
 
 /**
- * WSLg cannot maximize borderless windows correctly — the window keeps a
- * transparent gap, sits offset, and clicks land offset by the gap
- * (microsoft/wslg#1015, unfixed since 2023; reproduces with plain
- * Chrome). Fullscreen avoids that code path entirely and renders like a
- * proper maximized window there (owner-validated via F11). So under
- * WSLg, "maximize" MEANS fullscreen.
+ * Real maximize (owner: drop the fullscreen crutch). The old WSLg
+ * workaround mapped maximize → fullscreen because a borderless
+ * maximized window kept a transparent gap and offset clicks
+ * (microsoft/wslg#1015). Root cause of that gap: the client-side
+ * SHADOW margins. So instead of hiding behind fullscreen (which also
+ * hides the taskbar — the "maximized window" complaint), we drop the
+ * shadow WHILE MAXIMIZED and restore it on unmaximize (see
+ * createMainWindow) — no gap when maximized, resize handles back when
+ * restored. Maximize is a real maximize that coexists with the
+ * taskbar; fullscreen (F11) is now its own separate thing.
  */
-const FULLSCREEN_IS_MAXIMIZE =
-  process.platform === 'linux' && Boolean(process.env['WSL_DISTRO_NAME'])
-
-/** The one boolean the renderer needs: "is the window filling the
- *  screen" — by either mechanism. */
 function isWindowMaximized(window: BrowserWindow): boolean {
-  return window.isMaximized() || window.isFullScreen()
+  return window.isMaximized()
 }
 
 function toggleMaximize(window: BrowserWindow): void {
-  if (FULLSCREEN_IS_MAXIMIZE) {
-    window.setFullScreen(!window.isFullScreen())
-    return
-  }
   if (window.isMaximized()) window.unmaximize()
   else window.maximize()
 }
@@ -775,27 +770,27 @@ function createMainWindow(hash?: string): BrowserWindow {
   })
 
   // Maximize state is PUSHED so the custom controls track OS-initiated
-  // changes too, and CSS can drop the drag regions while maximized.
-  // Fullscreen counts as maximized (WSLg mapping + the F11 path).
+  // changes too (snap, Win+Up), and CSS can drop the drag regions while
+  // maximized (dragging a maximized borderless window glitches).
   const sendWindowState = (): void => {
     if (window.isDestroyed()) return
     window.webContents.send(ATOMIK_CHANNELS.windowStateChanged, {
       maximized: isWindowMaximized(window)
     })
   }
-  window.on('maximize', sendWindowState)
-  window.on('unmaximize', sendWindowState)
-  window.on('enter-full-screen', sendWindowState)
-  window.on('leave-full-screen', sendWindowState)
-
-  // Under WSLg even OS-INITIATED maximize (snap, Win+Up) must convert:
-  // the WM's own maximized state is the broken path (wslg#1015).
-  if (FULLSCREEN_IS_MAXIMIZE) {
-    window.on('maximize', () => {
-      window.unmaximize()
-      window.setFullScreen(true)
-    })
-  }
+  // The shadow margins are the WSLg maximize gap (wslg#1015): drop them
+  // while maximized, restore them when restored so edge-resize handles
+  // (which live in the shadow margins) come back. However OR whoever
+  // triggers the maximize — button, snap, Win+Up — this keeps the
+  // geometry honest without the fullscreen crutch.
+  window.on('maximize', () => {
+    window.setHasShadow(false)
+    sendWindowState()
+  })
+  window.on('unmaximize', () => {
+    window.setHasShadow(true)
+    sendWindowState()
+  })
 
   window.once('ready-to-show', () => window.show())
 
@@ -924,6 +919,12 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
     }
     const shotPath = process.env['ATOMIK_SMOKE_SHOT']
     if (shotPath) {
+      if (process.env['ATOMIK_SMOKE_MENU'] === '1') {
+        await window.webContents.executeJavaScript(
+          `document.querySelector('.app-menu-toggle')?.click()`
+        )
+        await new Promise((resolve) => setTimeout(resolve, 300))
+      }
       const image = await window.webContents.capturePage()
       await writeFile(shotPath, image.toPNG())
     }

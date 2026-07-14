@@ -1,13 +1,16 @@
+import { AppHeader } from './AppHeader'
 import { Workspace } from './workspace/Workspace'
 
 /**
- * The shell frame is the workspace itself (owner feedback on MVP-001:
- * minimalist chrome — no brand row, no native title bar; the tabstrip is
- * the window's top row and hosts the window controls).
+ * The shell: a global header row (brand · menu · window controls) over
+ * the workspace pane tree (owner request — restore the header; tabs sit
+ * on the row below, per pane). The header is the chromeless window's
+ * drag surface; the window controls live there once, not per pane.
  */
 export function App(): React.JSX.Element {
   return (
     <div className="app">
+      <AppHeader />
       <Workspace />
     </div>
   )

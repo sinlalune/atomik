@@ -37,6 +37,25 @@ export function DockRightIcon(): React.JSX.Element {
 }
 
 /** Window frame verbs for the chromeless window. */
+export function MenuIcon(): React.JSX.Element {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <line x1="3" y1="4.5" x2="13" y2="4.5" />
+      <line x1="3" y1="8" x2="13" y2="8" />
+      <line x1="3" y1="11.5" x2="13" y2="11.5" />
+    </svg>
+  )
+}
+
 export function WindowMinimizeIcon(): React.JSX.Element {
   return (
     <svg

@@ -8,12 +8,9 @@ import { CaptureView } from '../capture/CaptureView'
 import { DevDocs } from '../dev-docs/DevDocs'
 import { ProjectView } from '../project/ProjectView'
 import { SourceImageView } from '../source/SourceImageView'
-import { AiSettings } from '../AiSettings'
-import { ThemePicker } from '../ThemePicker'
 import { noteDisplayName } from '../vault/scope'
 import { VaultView } from '../vault/VaultView'
 import { WebView } from '../web/WebView'
-import { WindowControls } from '../WindowControls'
 import {
   activateTab,
   addTab,
@@ -30,7 +27,6 @@ import {
   setTabView,
   splitPane,
   themeOf,
-  topRightLeafId,
   updateTabParams,
   type NoteViewMode
 } from './model'
@@ -276,14 +272,11 @@ function TabContent({
 function LeafPane({
   node,
   focused,
-  controlsPaneId,
   rootLeafId,
   dispatch
 }: {
   node: Extract<PaneNode, { kind: 'leaf' }>
   focused: boolean
-  /** Leaf whose tabstrip hosts the window controls (top-right corner). */
-  controlsPaneId: string
   /** The root leaf (when the root IS a leaf) can never be closed. */
   rootLeafId: string | null
   dispatch: Dispatch
@@ -365,13 +358,6 @@ function LeafPane({
             ⬓
           </button>
         </span>
-        {node.id === controlsPaneId && (
-          <>
-            <AiSettings />
-            <ThemePicker />
-            <WindowControls />
-          </>
-        )}
       </header>
       <div className="pane-content">
         {active ? (
@@ -402,13 +388,11 @@ function LeafPane({
 function SplitPaneView({
   node,
   focusedPaneId,
-  controlsPaneId,
   rootLeafId,
   dispatch
 }: {
   node: Extract<PaneNode, { kind: 'split' }>
   focusedPaneId: string
-  controlsPaneId: string
   rootLeafId: string | null
   dispatch: Dispatch
 }): React.JSX.Element {
@@ -445,7 +429,6 @@ function SplitPaneView({
         <PaneNodeView
           node={node.first}
           focusedPaneId={focusedPaneId}
-          controlsPaneId={controlsPaneId}
           rootLeafId={rootLeafId}
           dispatch={dispatch}
         />
@@ -460,7 +443,6 @@ function SplitPaneView({
         <PaneNodeView
           node={node.second}
           focusedPaneId={focusedPaneId}
-          controlsPaneId={controlsPaneId}
           rootLeafId={rootLeafId}
           dispatch={dispatch}
         />
@@ -472,13 +454,11 @@ function SplitPaneView({
 function PaneNodeView({
   node,
   focusedPaneId,
-  controlsPaneId,
   rootLeafId,
   dispatch
 }: {
   node: PaneNode
   focusedPaneId: string
-  controlsPaneId: string
   rootLeafId: string | null
   dispatch: Dispatch
 }): React.JSX.Element {
@@ -486,7 +466,6 @@ function PaneNodeView({
     <LeafPane
       node={node}
       focused={node.id === focusedPaneId}
-      controlsPaneId={controlsPaneId}
       rootLeafId={rootLeafId}
       dispatch={dispatch}
     />
@@ -494,7 +473,6 @@ function PaneNodeView({
     <SplitPaneView
       node={node}
       focusedPaneId={focusedPaneId}
-      controlsPaneId={controlsPaneId}
       rootLeafId={rootLeafId}
       dispatch={dispatch}
     />
@@ -525,7 +503,6 @@ export function Workspace(): React.JSX.Element {
       <PaneNodeView
         node={state.root}
         focusedPaneId={state.focusedPaneId}
-        controlsPaneId={topRightLeafId(state.root)}
         rootLeafId={state.root.kind === 'leaf' ? state.root.id : null}
         dispatch={dispatch}
       />
