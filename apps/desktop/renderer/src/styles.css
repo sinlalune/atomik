@@ -1872,6 +1872,19 @@ body[data-maximized] .tabstrip {
   color: var(--accent);
 }
 
+/* External links wear a small ↗ so they never read as internal note
+   links (owner request; the Obsidian/MediaWiki convention). Pure CSS on
+   the href — internal .md links and #anchors stay unmarked. */
+.markdown-body a[href^="http"]::after {
+  content: '↗';
+  display: inline-block;
+  margin-left: 0.15em;
+  font-size: 0.75em;
+  vertical-align: super;
+  line-height: 0;
+  opacity: 0.7;
+}
+
 .markdown-body img {
   max-width: 100%;
 }

@@ -9,7 +9,7 @@ import { resolveRelativePath } from '../dev-docs/markdown'
  * non-image paths stay untouched.
  */
 
-const INLINABLE = /\.(jpe?g|png|webp|heic|heif)$/i
+const INLINABLE = /\.(jpe?g|png|webp|heic|heif|svg|gif)$/i
 
 /** Rendered-src → vault-relative path, for every inlinable image. Pure. */
 export function vaultImageSources(

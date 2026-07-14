@@ -63,7 +63,10 @@ export function readerFromSnapshot(
   // (no <html>) on the floor — wrap it fully or the body comes back empty.
   const { document: frag } = parseHTML(`<html><body>${contentHtml}</body></html>`)
   const media: Array<{ name: string; bytes: Buffer }> = []
-  const seen = new Map<string, string>() // resource location -> media name
+  // dedup by CONTENT hash, not by src URL: two different URLs can carry
+  // identical bytes (a shared icon), and both must map to the ONE media
+  // file — writing the same name twice with wx is the owner's EEXIST.
+  const written = new Set<string>()
   for (const img of Array.from(frag.querySelectorAll('img'))) {
     const src = img.getAttribute('src') ?? ''
     let bytes: Buffer | null = null
@@ -87,12 +90,10 @@ export function readerFromSnapshot(
       img.remove()
       continue
     }
-    const key = src
-    let name = seen.get(key) ?? null
-    if (!name) {
-      const digest = createHash('sha256').update(bytes).digest('hex').slice(0, 16)
-      name = `${digest}${ext}`
-      seen.set(key, name)
+    const digest = createHash('sha256').update(bytes).digest('hex').slice(0, 16)
+    const name = `${digest}${ext}`
+    if (!written.has(name)) {
+      written.add(name)
       media.push({ name, bytes })
     }
     img.setAttribute('src', `./${MEDIA_DIRNAME}/${name}`)
@@ -237,8 +238,13 @@ export function extractWebReader(
   try {
     const { title, markdown, media } = readerFromSnapshot(snapshot, pageUrl)
     const iso = new Date(now()).toISOString()
+    // reader.md is guarded absent above; a media/ here is the debris of
+    // an earlier FAILED run — clear it so this extract self-heals (the
+    // owner's bundle was wedged: orphan media/ but no reader.md meant
+    // neither re-extract (EEXIST) nor delete (no reader) could proceed).
+    const mediaDir = join(dir, MEDIA_DIRNAME)
+    rmSync(mediaDir, { recursive: true, force: true })
     if (media.length > 0) {
-      const mediaDir = join(dir, MEDIA_DIRNAME)
       mkdirSync(mediaDir, { recursive: true })
       for (const file of media) {
         writeFileSync(join(mediaDir, file.name), file.bytes, { flag: 'wx' })
@@ -291,6 +297,10 @@ export function extractWebReader(
       imageCount: media.length
     }
   } catch (error) {
+    // leave NO partial bundle behind — a half-written media/ would fail
+    // the next extract with EEXIST (the owner hit exactly this)
+    rmSync(readerAbs, { force: true })
+    rmSync(join(dir, MEDIA_DIRNAME), { recursive: true, force: true })
     traces.recordTranscription({
       id: traceId,
       action: 'extract',

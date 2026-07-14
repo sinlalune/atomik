@@ -120,6 +120,49 @@ describe('web reader extraction (CP-MVP-006 S05)', () => {
     expect(() => extractWebReader(vault, dossierRel, traces)).toThrow('already exists')
   })
 
+  it('two images with identical bytes collapse to ONE media file (the EEXIST bug)', () => {
+    const b = 'DUP'
+    const img = Buffer.from('same-bytes-shared-icon-comfortably-over-the-64-byte-minimum-1234567890').toString('base64')
+    const dup = [
+      'From: <Saved by Blink>',
+      `Content-Type: multipart/related; boundary="${b}"`,
+      '',
+      `--${b}`,
+      'Content-Type: text/html',
+      'Content-Transfer-Encoding: 8bit',
+      'Content-Location: https://ex.org/gd',
+      '',
+      '<html><body><article><h1>Two icons, one file</h1>' +
+        '<p>A paragraph long enough for the whole-body fallback to keep it as content here.</p>' +
+        '<img src="https://ex.org/a.png"><img src="https://ex.org/b.png"></article></body></html>',
+      `--${b}`,
+      'Content-Type: image/png',
+      'Content-Transfer-Encoding: base64',
+      'Content-Location: https://ex.org/a.png',
+      '',
+      img,
+      `--${b}`,
+      'Content-Type: image/png',
+      'Content-Transfer-Encoding: base64',
+      'Content-Location: https://ex.org/b.png',
+      '',
+      img,
+      `--${b}--`,
+      ''
+    ].join('\r\n')
+    const { media } = readerFromSnapshot(Buffer.from(dup, 'latin1'), 'https://ex.org/gd')
+    expect(media).toHaveLength(1) // deduped by content hash, not by URL
+  })
+
+  it('self-heals a wedged bundle: orphan media/ + no reader.md still extracts', () => {
+    // simulate a prior failed run: media/ exists, reader.md does not
+    mkdirSync(join(dir, 'media'), { recursive: true })
+    writeFileSync(join(dir, 'media', 'stale.webp'), 'orphan bytes')
+    expect(() => extractWebReader(vault, dossierRel, traces)).not.toThrow()
+    expect(existsSync(join(dir, 'media', 'stale.webp'))).toBe(false) // cleared
+    expect(existsSync(join(dir, 'reader.md'))).toBe(true)
+  })
+
   it('the lifecycle: extract → delete → extract, clean each time', () => {
     extractWebReader(vault, dossierRel, traces)
     resetWebReader(vault, dossierRel)

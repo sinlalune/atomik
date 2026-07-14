@@ -158,7 +158,12 @@ const SOURCE_ASSET_EXTENSIONS: Record<string, string> = {
   // web snapshots (09, CP-MVP-006 S04) — evidence files; the in-app
   // click opens them EXTERNALLY (openSourceExternally), the renderer
   // never renders remote-origin markup itself
-  '.mhtml': 'multipart/related'
+  '.mhtml': 'multipart/related',
+  // reader-extraction media (09, CP-MVP-006 S05): figures and the SVG
+  // math renders that matter for study pages, served as data URLs into
+  // the rendered reader.md like any vault image
+  '.svg': 'image/svg+xml',
+  '.gif': 'image/gif'
 }
 
 const MAX_ASSET_BYTES = 50 * 1024 * 1024

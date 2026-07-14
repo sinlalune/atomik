@@ -486,6 +486,15 @@ timestamp: 2026-07-06T00:00:00Z
   rotation are gated off web. Proven on a real Wikipedia capture:
   92 KB Markdown + 116 SVG math renders in media/ (the study-math
   case, the S02 defuddle re-bench trigger not yet needed).
+  S05b (owner dogfooding, three bugs): media dedup is by CONTENT hash,
+  not src URL — two URLs with identical bytes (a shared icon) collapse
+  to ONE media file (the EEXIST that wedged a bundle); the failure path
+  AND a stale `media/` from an earlier failed run are cleared before
+  writing, so extraction SELF-HEALS a bundle stuck with orphan media/
+  and no reader.md (neither re-extract nor delete could proceed);
+  `.svg`/`.gif` joined the asset allowlist + the inlinable set so the
+  math renders actually show in reader.md (they were fetched-then-
+  rejected before).
 - Link-click routing S04b (owner reports, same day): the shared
   note-link handler (`useVaultNote`) kills three dead-click classes —
   external http(s) links open a WEB TAB (`onOpenWebUrl`, threaded from
