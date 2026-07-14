@@ -345,27 +345,30 @@ export function normalizeTables(root: { querySelectorAll: (s: string) => ArrayLi
       continue
     }
 
-    // flatten to one readable paragraph per row (in-cell images kept as
-    // markdown refs — already rewritten to ./media/ above)
-    const lines = grid
-      .map((cells) =>
-        cells
-          .map((cell) => {
-            const images = Array.from(cell.querySelectorAll('img'))
-              .map((img) => `![](${img.getAttribute('src') ?? ''})`)
-              .join(' ')
-            const text = (cell.textContent ?? '').replace(/\s+/g, ' ').trim()
-            return [text, images].filter((part) => part.length > 0).join(' ')
-          })
-          .filter((text) => text.length > 0)
-          .join(' — ')
-      )
-      .filter((line) => line.length > 0)
+    // flatten to one readable paragraph per row. Build with REAL nodes,
+    // not a string: text as text nodes, images as CLONED <img> elements
+    // (turndown then emits proper `![](./media/…)` — a stringified ref
+    // set as textContent would be escaped to literal `\![\]\(…\)`, the
+    // owner's bug). Consecutive identical cells (colspan expansion's
+    // "X — X") are deduped.
     const block = doc.createElement('div')
-    for (const line of lines) {
+    for (const cells of grid) {
       const p = doc.createElement('p')
-      p.textContent = line
-      block.appendChild(p)
+      let prevText: string | null = null
+      for (const cell of cells) {
+        const text = (cell.textContent ?? '').replace(/\s+/g, ' ').trim()
+        const images = Array.from(cell.querySelectorAll('img'))
+        if (text.length === 0 && images.length === 0) continue
+        if (images.length === 0 && text === prevText) continue // colspan dup
+        prevText = text
+        if (p.childNodes.length > 0) p.appendChild(doc.createTextNode(' — '))
+        if (text.length > 0) p.appendChild(doc.createTextNode(text))
+        for (const img of images) {
+          p.appendChild(doc.createTextNode(' '))
+          p.appendChild(img.cloneNode(true))
+        }
+      }
+      if (p.childNodes.length > 0) block.appendChild(p)
     }
     table.parentNode?.replaceChild(block, table)
   }

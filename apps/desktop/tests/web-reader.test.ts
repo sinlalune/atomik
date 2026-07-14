@@ -216,6 +216,21 @@ describe('web reader extraction (CP-MVP-006 S05)', () => {
     expect(/<table|<td|<tr/.test(md)).toBe(false)
   })
 
+  it('flattened cells keep images as real refs (not escaped) and dedupe colspan dups', () => {
+    // an infobox row with a colspan title (→ would dup) and a value cell
+    // carrying an image; block cell forces the flatten path
+    const md = tableMarkdown(
+      '<table><tr><td colspan="2">Groupe des sept</td></tr>' +
+        '<tr><th scope="row">Carte</th><td><div><img src="./media/x.webp" alt="Carte"></div></td></tr></table>'
+    )
+    // the colspan title is NOT duplicated "Groupe des sept — Groupe des sept"
+    expect(md).not.toMatch(/Groupe des sept — Groupe des sept/)
+    // the image is a REAL markdown ref, not escaped literal \![\]
+    expect(md).toContain('![Carte](./media/x.webp)')
+    expect(md).not.toContain('\\!\\[')
+    expect(/<img|<table|<td/.test(md)).toBe(false)
+  })
+
   it('repeats merged headers so spanned tables promote to a pipe table (owner idea)', () => {
     // colspan header repeated across its columns
     const colspan = tableMarkdown(
