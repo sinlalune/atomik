@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { resolveRelativePath } from '../dev-docs/markdown'
 import { useVaultNote } from '../vault/useVaultNote'
+import { useNavHistory } from '../vault/nav-history'
 import {
   resourceOf,
   rotationOf,
@@ -28,6 +29,7 @@ export function SourceImageView({
   initialPdfPage,
   onPdfPageChange,
   onOpenWebUrl,
+  historyKey,
   treeCollapsed,
   onTreeToggle,
   treeWidth,
@@ -45,6 +47,8 @@ export function SourceImageView({
   /** Opens an external http(s) link in a web tab (S04b) — web dossiers
    *  carry an Original URL. */
   onOpenWebUrl?: (url: string) => void
+  /** Keys this tab's ‹ › navigation trail (the tab id). */
+  historyKey?: string
   treeCollapsed?: boolean
   onTreeToggle?: () => void
   treeWidth?: number
@@ -54,6 +58,7 @@ export function SourceImageView({
 }): React.JSX.Element {
   const { note, html, error, openNote, applySaved, onContentClick } =
     useVaultNote(undefined, undefined, onOpenWebUrl)
+  const nav = useNavHistory(historyKey, note?.relPath, openNote)
   const [base, setBase] = useState<{ dataUrl: string; mimeType: string } | null>(
     null
   )
@@ -388,6 +393,26 @@ export function SourceImageView({
       </div>
       <div className="source-image-dossier">
         <div className="note-bar">
+          <span className="note-bar-nav">
+            <button
+              type="button"
+              className="note-bar-button"
+              disabled={!nav.backOk}
+              title="Back to the previously viewed note"
+              onClick={nav.back}
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              className="note-bar-button"
+              disabled={!nav.forwardOk}
+              title="Forward"
+              onClick={nav.forward}
+            >
+              ›
+            </button>
+          </span>
           <span className="note-bar-path" title={note?.relPath ?? dossierPath}>
             {note?.relPath ?? dossierPath}
           </span>

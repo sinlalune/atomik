@@ -163,6 +163,7 @@ function TabContent({
       <VaultView
         onOpenSourceImage={openSourceImage}
         onOpenWebUrl={openWebUrl}
+        historyKey={tab.id}
         openFolders={openFolders}
         onOpenFoldersChange={onOpenFoldersChange}
         notePath={tab.params?.['notePath']}
@@ -221,6 +222,7 @@ function TabContent({
           )
         }
         onOpenWebUrl={openWebUrl}
+        historyKey={tab.id}
         initialPdfPage={pdfPageOf(tab.params)}
         onPdfPageChange={(page) =>
           dispatch((state) =>
@@ -242,6 +244,7 @@ function TabContent({
         openFolders={openFolders}
         onOpenFoldersChange={onOpenFoldersChange}
         onOpenWebUrl={openWebUrl}
+        historyKey={tab.id}
         projectPath={tab.params?.['projectPath']}
         notePath={tab.params?.['notePath']}
         onCloseTab={closeThisTab}

@@ -1014,7 +1014,17 @@ body[data-maximized] .tabstrip {
   padding-left: 2.6rem;
 }
 
+.note-bar-nav {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: 0.4rem;
+}
+
 .note-bar-path {
+  flex: 1;
+  min-width: 0;
   font-family: ui-monospace, 'Cascadia Mono', Menlo, monospace;
   color: var(--muted);
   white-space: nowrap;
@@ -2150,8 +2160,16 @@ body[data-maximized] .tabstrip {
   /* the media STAGE is chrome — the original stands apart from the
      dossier's content surface beside it */
   background: var(--bg);
-  border-right: 1px solid var(--border);
+  border-left: 1px solid var(--border);
   overflow: auto;
+  /* owner request: reading order is tree → DOSSIER → preview — the
+     knowledge text sits next to the tree, the media stage after it
+     (flex order; the DOM keeps original-first for the existing code) */
+  order: 2;
+}
+
+.source-image-dossier {
+  order: 1;
 }
 
 .source-image-original img {

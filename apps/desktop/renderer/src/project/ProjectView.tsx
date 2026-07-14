@@ -11,6 +11,7 @@ import { SearchResultsList } from '../search/SearchResultsList'
 import { useTreeSearch } from '../search/useTreeSearch'
 import { TreeResizeHandle } from '../TreeResizeHandle'
 import { NoteTree } from '../vault/NoteTree'
+import { useNavHistory } from '../vault/nav-history'
 import { findSubtree } from '../vault/scope'
 import { allFolderPaths, toggledFolder } from '../vault/tree-fold'
 import { useVaultNote } from '../vault/useVaultNote'
@@ -39,6 +40,8 @@ export type ProjectViewProps = {
   onSaveModeToggle?: () => void
   /** Opens an external http(s) link in a web tab (S04b). */
   onOpenWebUrl?: (url: string) => void
+  /** Keys this tab's ‹ › navigation trail (the tab id). */
+  historyKey?: string
   /** Controlled fold state: open folders, persisted per tab (collapsed
    *  by default — owner request). */
   openFolders?: ReadonlySet<string>
@@ -78,6 +81,7 @@ export function ProjectView({
   saveMode = 'auto',
   onSaveModeToggle,
   onOpenWebUrl,
+  historyKey,
   openFolders = NO_OPEN_FOLDERS,
   onOpenFoldersChange
 }: ProjectViewProps): React.JSX.Element {
@@ -130,6 +134,7 @@ export function ProjectView({
     },
     [editorDirty, openNote, saveMode]
   )
+  const nav = useNavHistory(historyKey, note?.relPath, guardedOpen)
 
   const refresh = useCallback(async () => {
     try {
@@ -414,6 +419,26 @@ export function ProjectView({
         ) : (
           <>
             <div className="note-bar">
+              <span className="note-bar-nav">
+                <button
+                  type="button"
+                  className="note-bar-button"
+                  disabled={!nav.backOk}
+                  title="Back to the previously viewed note"
+                  onClick={nav.back}
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  className="note-bar-button"
+                  disabled={!nav.forwardOk}
+                  title="Forward"
+                  onClick={nav.forward}
+                >
+                  ›
+                </button>
+              </span>
               <span className="note-bar-path" title={note.relPath}>
                 {note.relPath}
               </span>
