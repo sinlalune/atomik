@@ -935,7 +935,14 @@ outputs — plotly 3D, three.js — would fail). The knob, IF a page the
 owner needs visibly breaks, is `ignore-gpu-blocklist` as a DATED
 decision — not preemptively, GPU flags can destabilize the renderer.
 `UPower ... ServiceUnknown` is the Battery Status API probing a
-daemon WSL doesn't run — zero impact, no action. Electron also needs
+daemon WSL doesn't run — zero impact, no action. `atom_cache.cc: Add
+application/vnd.portal.filetransfer / .files to kAtomsToCache`
+(ERROR-severity but informational; owner saw it 2026-07-14 opening the
+web viewer) is Chromium noting XDG desktop-portal file-transfer MIME
+atoms it hit during X11 clipboard/drag-drop and suggesting it cache
+them — a logging quirk, not a failure; same benign WSLg class (not
+probed like WebGL, but the message content and location are
+unambiguous). Electron also needs
 `libpulse0` for the
 MICROPHONE (probe-verified 2026-07-07: without it Chromium sees zero
 audio inputs and getUserMedia fails NotFoundError; with it, WSLg's
