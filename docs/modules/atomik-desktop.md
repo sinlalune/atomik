@@ -942,7 +942,13 @@ web viewer) is Chromium noting XDG desktop-portal file-transfer MIME
 atoms it hit during X11 clipboard/drag-drop and suggesting it cache
 them — a logging quirk, not a failure; same benign WSLg class (not
 probed like WebGL, but the message content and location are
-unambiguous). Electron also needs
+unambiguous). `GLib-GObject: gsignal.c: instance ... has no handler
+with id N` (owner saw it 2026-07-14) is a GObject signal-handler
+cleanup warning from the GTK layer BENEATH Electron (double-disconnect
+race in dialog/window integration) — harmless, not Atomik code. General
+rule for WSLg: Electron emits a steady trickle of ERROR-tagged GTK/X11/
+GLib warnings that are cosmetic; treat them as noise UNLESS a visible
+symptom accompanies one (a dialog crash, a hang, a blank view). Electron also needs
 `libpulse0` for the
 MICROPHONE (probe-verified 2026-07-07: without it Chromium sees zero
 audio inputs and getUserMedia fails NotFoundError; with it, WSLg's
