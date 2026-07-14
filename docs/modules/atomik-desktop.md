@@ -486,6 +486,20 @@ timestamp: 2026-07-06T00:00:00Z
   rotation are gated off web. Proven on a real Wikipedia capture:
   92 KB Markdown + 116 SVG math renders in media/ (the study-math
   case, the S02 defuddle re-bench trigger not yet needed).
+  S05e (owner: "récupérer les balises de hiérarchie" + "répéter les
+  en-têtes fusionnés"): STRUCTURE-FIRST extraction. Readability RASED
+  every section heading on Wikipedia Parsoid HTML (h2/h3/h4 → gone, a
+  149 KB flat wall) — so `findContentRoot` now picks the real content
+  container (mw-parser-output / main / [role=main] / article / CMS
+  wrappers; first match with ≥500 chars AND a heading) and `stripChrome`
+  removes nav/toc/navbox/editsection/reflist furniture ourselves,
+  keeping headings/lists/tables; Readability stays the FALLBACK for
+  generic article pages with no strong container. Merged table cells
+  are EXPANDED (`expandCellSpans`: colspan cloned per column, rowspan
+  carried down a span-aware matrix) so spanned tables become regular
+  and promote to real pipe tables instead of flattening. The G7 reader
+  went from 0 headings to 7 h2 + 5 h3 + 4 h4, 4 pipe tables, no raw
+  HTML — a structured note.
   S05b (owner dogfooding, three bugs): media dedup is by CONTENT hash,
   not src URL — two URLs with identical bytes (a shared icon) collapse
   to ONE media file (the EEXIST that wedged a bundle); the failure path

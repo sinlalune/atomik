@@ -33,6 +33,90 @@ export type ReaderExtraction = {
   imageCount: number
 }
 
+type DomElement = {
+  tagName: string
+  textContent: string | null
+  innerHTML: string
+  querySelector: (s: string) => DomElement | null
+  querySelectorAll: (s: string) => ArrayLike<DomElement>
+}
+type DomDocument = {
+  querySelector: (s: string) => DomElement | null
+  querySelectorAll: (s: string) => ArrayLike<DomElement>
+}
+
+/** Selectors for the main content container, strongest first. Covers
+ *  Wikipedia (mw-parser-output), semantic HTML (main / [role=main] /
+ *  article), and common CMS content wrappers. The first match with real
+ *  text AND at least one heading wins — that heading requirement is what
+ *  distinguishes a structured article from a chrome wrapper. */
+const CONTENT_ROOTS = [
+  '#mw-content-text .mw-parser-output',
+  '#mw-content-text',
+  'main .mw-parser-output',
+  '[role="main"]',
+  'main',
+  'article',
+  '#content .post',
+  '.post-content',
+  '.article-content',
+  '.entry-content',
+  '#bodyContent'
+]
+
+/** Chrome to strip from the picked content root before conversion — the
+ *  cruft Readability would have removed, minus the headings it wrongly
+ *  takes with it. Kept conservative: content-bearing tables (infoboxes)
+ *  stay, only navigation/edit/reference furniture goes. */
+const CHROME_SELECTORS = [
+  'nav',
+  'aside',
+  'footer',
+  'header[role]',
+  'script',
+  'style',
+  'noscript',
+  'form',
+  'link',
+  '.mw-editsection',
+  '.mw-jump-link',
+  '.noprint',
+  '.navbox',
+  '.vertical-navbox',
+  '.toc',
+  '#toc',
+  '.mw-indicators',
+  '.catlinks',
+  '.printfooter',
+  '.mw-references-wrap',
+  '.reflist',
+  '.sistersitebox',
+  '.metadata.mbox-small',
+  '[role="navigation"]',
+  '[role="complementary"]',
+  '.hatnote',
+  '.shortdescription'
+]
+
+export function findContentRoot(document: DomDocument): DomElement | null {
+  for (const selector of CONTENT_ROOTS) {
+    const node = document.querySelector(selector)
+    if (!node) continue
+    const text = (node.textContent ?? '').replace(/\s+/g, ' ').trim()
+    const hasHeading = node.querySelector('h1,h2,h3') !== null
+    if (text.length >= 500 && hasHeading) return node
+  }
+  return null
+}
+
+export function stripChrome(root: DomElement): void {
+  for (const selector of CHROME_SELECTORS) {
+    for (const node of Array.from(root.querySelectorAll(selector))) {
+      ;(node as unknown as { remove?: () => void }).remove?.()
+    }
+  }
+}
+
 /** Pure-ish core: parse the snapshot, run Readability, map the article's
  *  images onto snapshot resources, emit Markdown + the media files to
  *  write. No fs here — the caller lands the bytes. */
@@ -42,21 +126,34 @@ export function readerFromSnapshot(
 ): { title: string; markdown: string; media: Array<{ name: string; bytes: Buffer }> } {
   const { html, resources } = parseMhtml(snapshot)
   const { document } = parseHTML(html)
-  // Readability MUTATES the document it parses — clone the title before,
-  // and parse on a throwaway so the fallback can read the real body.
   const docTitle = (document.querySelector('title')?.textContent ?? '').trim()
-  const { document: readableDoc } = parseHTML(html)
-  const article = new Readability(readableDoc as unknown as Document, {
-    charThreshold: 200
-  }).parse()
-  const title = (article?.title ?? '').trim() || docTitle || new URL(pageUrl).hostname
-  // Readability returns null on sparse/app-like pages — fall back to the
-  // page body so reader.md is never empty (an honest whole-page dump the
-  // user can trim, better than nothing).
-  const contentHtml =
-    article?.content && article.content.trim().length > 0
-      ? article.content
-      : (document.body?.innerHTML ?? '')
+
+  // Structure-first extraction (S05e, owner: "récupérer les balises de
+  // hiérarchie"). Readability RASES the section headings on reference
+  // HTML (Wikipedia Parsoid: h2/h3/h4 → gone), leaving a flat wall. So
+  // FIRST try to grab the real content container ourselves and strip the
+  // chrome — headings, lists, and structure survive. Only when no strong
+  // container is found do we fall back to Readability (the generic
+  // article path), then to the whole body.
+  const root = findContentRoot(document)
+  let title = docTitle || new URL(pageUrl).hostname
+  let contentHtml: string
+  if (root) {
+    stripChrome(root)
+    contentHtml = root.innerHTML
+    const h1 = document.querySelector('h1')
+    title = (h1?.textContent ?? '').trim() || title
+  } else {
+    const { document: readableDoc } = parseHTML(html)
+    const article = new Readability(readableDoc as unknown as Document, {
+      charThreshold: 200
+    }).parse()
+    title = (article?.title ?? '').trim() || title
+    contentHtml =
+      article?.content && article.content.trim().length > 0
+        ? article.content
+        : (document.body?.innerHTML ?? '')
+  }
 
   // Re-parse the article fragment so we can rewrite <img> src to local
   // media paths BEFORE turndown sees them. linkedom drops a BARE <body>
@@ -129,6 +226,62 @@ export function readerFromSnapshot(
  *   "cells — joined" paragraph per row — a broken pipe grid would be
  *   worse than text. In-cell <br> becomes " · " either way.
  */
+/**
+ * Repeat merged cells into a full grid (owner: "why not just repeat the
+ * headers in each column, even if less aesthetic"): every colspan/rowspan
+ * is duplicated (a clone per covered column, carried down per covered
+ * row), so a table that was irregular only because of spans becomes a
+ * clean rectangle the promotion path can turn into a real pipe table.
+ * Rebuilds each <tr>'s cells from a span-aware matrix. Flat tables only.
+ */
+function expandCellSpans(table: Element): void {
+  const directRows = Array.from(table.querySelectorAll('tr'))
+  const matrix: Element[][] = []
+  const carry: Array<{ cell: Element; rowsLeft: number } | null> = []
+  directRows.forEach((row, r) => {
+    matrix[r] = matrix[r] ?? []
+    const cells = Array.from(row.children).filter(
+      (cell) => cell.tagName === 'TH' || cell.tagName === 'TD'
+    )
+    let col = 0
+    const place = (cell: Element, rowSpan: number): void => {
+      while (matrix[r]![col] !== undefined) col += 1
+      matrix[r]![col] = cell
+      for (let extra = 1; extra < rowSpan; extra++) {
+        carry[col] = { cell, rowsLeft: rowSpan - extra }
+      }
+      col += 1
+    }
+    // first, drop any cells carried down from a rowspan above
+    for (let c = 0; c < carry.length; c++) {
+      const pending = carry[c]
+      if (pending && pending.rowsLeft > 0) {
+        matrix[r]![c] = pending.cell.cloneNode(true) as Element
+        pending.rowsLeft -= 1
+        if (pending.rowsLeft === 0) carry[c] = null
+      }
+    }
+    for (const cell of cells) {
+      const colSpan = Math.max(1, Math.min(50, Number(cell.getAttribute('colspan') ?? '1') || 1))
+      const rowSpan = Math.max(1, Math.min(500, Number(cell.getAttribute('rowspan') ?? '1') || 1))
+      for (let n = 0; n < colSpan; n++) {
+        place(n === 0 ? cell : (cell.cloneNode(true) as Element), rowSpan)
+      }
+    }
+  })
+  // rebuild each row from the matrix, spans stripped
+  directRows.forEach((row, r) => {
+    const line = matrix[r] ?? []
+    for (const child of Array.from(row.children)) child.remove()
+    for (const cell of line) {
+      if (!cell) continue
+      cell.removeAttribute('colspan')
+      cell.removeAttribute('rowspan')
+      row.appendChild(cell)
+    }
+  })
+}
+
 export function normalizeTables(root: { querySelectorAll: (s: string) => ArrayLike<Element> }): void {
   for (const table of Array.from(root.querySelectorAll('table'))) {
     const doc = table.ownerDocument
@@ -137,6 +290,12 @@ export function normalizeTables(root: { querySelectorAll: (s: string) => ArrayLi
     for (const br of Array.from(table.querySelectorAll('br'))) {
       br.parentNode?.replaceChild(doc.createTextNode(' · '), br)
     }
+    const nested = table.querySelector('table') !== null
+    // EXPAND merged cells (owner: "repeat the headers in each column"):
+    // colspan/rowspan get duplicated into a full grid, so a table that
+    // only looked irregular because of spans becomes REGULAR and gets
+    // promoted to a real pipe table. Skip nested tables (they flatten).
+    if (!nested) expandCellSpans(table)
     const rows = Array.from(table.querySelectorAll('tr'))
     // DIRECT cell children only — a descendant query would pull a nested
     // table's cells into the parent row (duplication)
@@ -149,21 +308,12 @@ export function normalizeTables(root: { querySelectorAll: (s: string) => ArrayLi
     const hasHeaderRow = firstCells.length > 0 && firstCells.every((c) => c.tagName === 'TH')
     if (hasHeaderRow) continue // gfm converts these cleanly
 
-    const nested = table.querySelector('table') !== null
-    const spanned = grid.some((cells) =>
-      cells.some(
-        (cell) =>
-          (cell.getAttribute('colspan') ?? '1') !== '1' ||
-          (cell.getAttribute('rowspan') ?? '1') !== '1'
-      )
-    )
     const blockCells = grid.some((cells) =>
       cells.some((cell) => cell.querySelector('div,p,ul,ol,blockquote,h1,h2,h3') !== null)
     )
     const columnCounts = new Set(grid.map((cells) => cells.length))
     const regular =
       !nested &&
-      !spanned &&
       !blockCells &&
       columnCounts.size === 1 &&
       (grid[0]?.length ?? 0) >= 2

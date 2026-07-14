@@ -206,15 +206,32 @@ describe('web reader extraction (CP-MVP-006 S05)', () => {
     expect(/<table|<td|<tr/.test(md)).toBe(false)
   })
 
-  it('flattens an infobox (colspan / row-headers / <br>) to readable dash lines', () => {
+  it('flattens an infobox (row-headers / block cells / <br>) to readable dash lines', () => {
     const md = tableMarkdown(
-      '<table><tr><td colspan="2">Titre</td></tr>' +
-        '<tr><th scope="row">Création</th><td>1975</td></tr>' +
+      '<table><tr><th scope="row">Création</th><td><p>1975</p></td></tr>' +
         '<tr><th scope="row">Ancien</th><td>G5<br>G6</td></tr></table>'
     )
     expect(md).toContain('Création — 1975')
     expect(md).toContain('Ancien — G5 · G6') // <br> became " · "
     expect(/<table|<td|<tr/.test(md)).toBe(false)
+  })
+
+  it('repeats merged headers so spanned tables promote to a pipe table (owner idea)', () => {
+    // colspan header repeated across its columns
+    const colspan = tableMarkdown(
+      '<table><tr><th colspan="2">Données</th></tr>' +
+        '<tr><td>Année</td><td>PIB</td></tr><tr><td>2020</td><td>21T</td></tr></table>'
+    )
+    expect(colspan).toContain('| Données | Données |')
+    expect(colspan).toContain('| 2020 | 21T |')
+    expect(/<table|<td|<tr/.test(colspan)).toBe(false)
+    // rowspan value carried down into each covered row
+    const rowspan = tableMarkdown(
+      '<table><tr><td>2020</td><td rowspan="2">France</td><td>21T</td></tr>' +
+        '<tr><td>2021</td><td>23T</td></tr></table>'
+    )
+    expect(rowspan).toContain('| 2020 | France | 21T |')
+    expect(rowspan).toContain('| 2021 | France | 23T |')
   })
 
   it('stripLeftoverHtml is the raw-HTML safety net: tables become text, no tag soup', () => {
