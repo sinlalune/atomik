@@ -967,13 +967,16 @@ WSLg maximized gap/offset (microsoft/wslg#1015, open since 2023): a
 borderless maximized window keeps a transparent gap and offset clicks.
 History: the fix used to map maximize→fullscreen, but that ALSO hid the
 taskbar and read as F11 (owner's "maximized window" complaint).
-SUPERSEDED 2026-07-14 (owner: "drop the fullscreen crutch"): the gap is
-the client-side SHADOW margins, so maximize is a REAL maximize now and
-the shadow is dropped WHILE maximized (`setHasShadow(false)` on the
-`maximize` event) and restored on `unmaximize` — no gap when maximized,
-resize handles back when restored (they live in the shadow margins),
-taskbar stays. `ozone-platform-hint=auto` kept (native Wayland under
-WSLg). Recheck trigger: if real maximize still shows a gap/offset on
-some WSLg build, revisit (a per-build `setBounds` to the work area is
-the next lever). Owner to visually confirm — headless capturePage
-can't verify maximize geometry.
+SUPERSEDED 2026-07-14 (owner: "drop the fullscreen crutch"). First try
+was `setHasShadow(false)` + the native maximize — the owner reported the
+offset PERSISTED, so the offset is in the WM's maximize GEOMETRY itself,
+not the shadow. FINAL FIX: under WSLg (`IS_WSLG`) don't use the WM
+maximize at all — position the window ourselves over
+`screen.getDisplayMatching(bounds).workArea` and restore the saved
+bounds (`wslgRestoreBounds` WeakMap doubles as the maximized flag); an
+OS-initiated maximize (snap/Win+Up) is caught on the `maximize` event,
+`unmaximize()`d, and redone as the manual work-area fit. Probe-verified
+2026-07-14: `setBounds(workArea)` lands EXACTLY (getBounds after ==
+workArea, no offset) — the WM path was the culprit. Shadow still
+dropped while maximized. `ozone-platform-hint=auto` kept. Owner to
+confirm the final visual (headless proves the bounds, not the pixels).
