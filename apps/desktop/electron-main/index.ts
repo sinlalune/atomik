@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, screen, session, shell, WebContentsView } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, screen, session, shell, utilityProcess, WebContentsView } from 'electron'
 import { execFile } from 'node:child_process'
 import { copyFileSync, existsSync, mkdtempSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
@@ -22,7 +22,14 @@ import { createMistralOcrAdapter, createVoxtralTranscribeAdapter } from './mistr
 import { publicAiSettings, readMistralKey, writeMistralKey } from './ai-settings'
 import { importPdfFromPath } from './pdf-import'
 import { importWebSource, type WebPageMeta } from './web-import'
-import { extractWebReader, readerFromHtml, resetWebReader } from './web-reader'
+import {
+  extractWebReaderAsync,
+  readerFromHtml,
+  readerFromSnapshot,
+  resetWebReader,
+  type ReaderComputeResult,
+  type ReaderJob
+} from './web-reader'
 import { extractPdfSource, resetExtraction } from './pdf-extract'
 import { pdftoppmRasterizer, readPdfTextWithPdfjs } from './pdf-text'
 import { rotateRgba, scanCleanRgba } from './scan-filter'
@@ -403,12 +410,19 @@ function registerCaptureHandlers(stateDir: string): void {
     }
   )
   // CP-MVP-006 S05: web reader extraction — snapshot.mhtml → reader.md
-  // (text + images), deterministic, one trace. Runs in MAIN over the
-  // on-disk snapshot; never a re-fetch, never the display path.
+  // (text + images), deterministic, one trace. Validation, file writes,
+  // dossier handshake, and the trace stay in MAIN over the on-disk
+  // snapshot (never a re-fetch, never the display path); the CPU slab
+  // rides the utility-process worker (perf audit 2026-07-15).
   ipcMain.handle(
     ATOMIK_CHANNELS.extractWebReader,
-    (event, dossierPath: unknown) => {
-      const result = extractWebReader(requireVault(), dossierPath, traces)
+    async (event, dossierPath: unknown) => {
+      const result = await extractWebReaderAsync(
+        requireVault(),
+        dossierPath,
+        traces,
+        runReaderJob
+      )
       event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
       return result
     }
@@ -447,6 +461,75 @@ function registerCaptureHandlers(stateDir: string): void {
     ATOMIK_CHANNELS.getCaptureUploadData,
     (_event, uploadId: unknown) => capture.readUploadData(uploadId)
   )
+}
+
+/**
+ * Reader jobs (mhtml/HTML → markdown) run in a short-lived
+ * utilityProcess so their DOM+turndown slab never blocks main — the
+ * perf audit (2026-07-15) measured 834 ms for a 650 KB page, during
+ * which every IPC call and window verb froze. One fork per job:
+ * extraction is user-initiated and rare, so memory returns to zero
+ * between jobs; a 120 s timeout kills a wedged worker; if the fork
+ * itself fails (packaging gap), the job honestly runs in-process — the
+ * old behavior, slow but correct.
+ */
+const READER_WORKER_TIMEOUT_MS = 120_000
+
+function computeReaderJobInProcess(job: ReaderJob): ReaderComputeResult {
+  return job.kind === 'snapshot'
+    ? readerFromSnapshot(Buffer.from(job.snapshot), job.pageUrl)
+    : readerFromHtml(job.html, job.pageUrl, new Map())
+}
+
+function runReaderJob(job: ReaderJob): Promise<ReaderComputeResult> {
+  return new Promise((resolve, reject) => {
+    let child: Electron.UtilityProcess
+    try {
+      child = utilityProcess.fork(join(__dirname, 'reader-worker.js'), [], {
+        serviceName: 'atomik-reader'
+      })
+    } catch {
+      try {
+        resolve(computeReaderJobInProcess(job))
+      } catch (error) {
+        reject(error instanceof Error ? error : new Error(String(error)))
+      }
+      return
+    }
+    let settled = false
+    let timer: NodeJS.Timeout | null = null
+    const settle = (fn: () => void): void => {
+      if (settled) return
+      settled = true
+      if (timer) clearTimeout(timer)
+      fn()
+    }
+    timer = setTimeout(() => {
+      settle(() => {
+        child.kill()
+        reject(new Error('web-reader: extraction timed out (120s)'))
+      })
+    }, READER_WORKER_TIMEOUT_MS)
+    child.on('message', (message: unknown) => {
+      const answer = message as
+        | ({ ok: true } & ReaderComputeResult)
+        | { ok: false; error: string }
+      settle(() => {
+        child.kill()
+        if (answer.ok) {
+          resolve({ title: answer.title, markdown: answer.markdown, media: answer.media })
+        } else {
+          reject(new Error(answer.error))
+        }
+      })
+    })
+    child.on('exit', (code) => {
+      settle(() =>
+        reject(new Error(`web-reader: worker exited before answering (code ${code})`))
+      )
+    })
+    child.postMessage(job)
+  })
 }
 
 /** Frame verbs for the chromeless window (13 §IPC: allowlist-validated;
@@ -845,7 +928,8 @@ function registerWebViewHandlers(getWindow: () => BrowserWindow | null): void {
   // Live reader mode (CP-MVP-006 S06): extract the tab's CURRENT page to
   // reader markdown IN MEMORY — no file, no images (transient read; the
   // durable path with local media is Import-as-source). Same engine as
-  // the snapshot extraction, fed the live post-JS DOM.
+  // the snapshot extraction, fed the live post-JS DOM; the conversion
+  // slab rides the worker so a heavy page never freezes the app.
   ipcMain.handle(
     ATOMIK_CHANNELS.webViewReaderText,
     async (_event, id: unknown) => {
@@ -855,7 +939,11 @@ function registerWebViewHandlers(getWindow: () => BrowserWindow | null): void {
       const pageHtml = (await contents.executeJavaScript(
         'document.documentElement.outerHTML'
       )) as string
-      const { title, markdown } = readerFromHtml(pageHtml, url, new Map())
+      const { title, markdown } = await runReaderJob({
+        kind: 'html',
+        html: pageHtml,
+        pageUrl: url
+      })
       return { title, markdown }
     }
   )

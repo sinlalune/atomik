@@ -9,7 +9,15 @@ import { defineConfig } from 'electron-vite'
 export default defineConfig({
   main: {
     build: {
-      lib: { entry: resolve(__dirname, 'electron-main/index.ts') }
+      // Two entries: the app, and the reader-extraction worker forked as
+      // a utilityProcess (perf audit 2026-07-15 — the mhtml→markdown
+      // slab measured 834 ms in-main and must not block the event loop).
+      rollupOptions: {
+        input: {
+          index: resolve(__dirname, 'electron-main/index.ts'),
+          'reader-worker': resolve(__dirname, 'electron-main/reader-worker.ts')
+        }
+      }
     }
   },
   preload: {

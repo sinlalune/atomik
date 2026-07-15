@@ -499,8 +499,18 @@ timestamp: 2026-07-06T00:00:00Z
   to the full body so reader.md is never empty on app-like pages),
   turndown+gfm emits Markdown, and every article `<img>` (mhtml-part OR
   data: URI) lands in `media/` hashed with its markdown ref rewritten
-  relative. Runs in MAIN over the ON-DISK snapshot — never a re-fetch
-  (bedrock 09), never the display path (the 10 fidelity split). ONE
+  relative. Validation, file writes, the dossier handshake, and the
+  trace run in MAIN over the ON-DISK snapshot — never a re-fetch
+  (bedrock 09), never the display path (the 10 fidelity split) — but
+  the CPU SLAB (mhtml parse + DOM builds + Readability + turndown)
+  rides a utilityProcess WORKER (`reader-worker.ts`, second build
+  entry; perf audit 2026-07-15: 834 ms measured in-main for a 650 KB
+  page, worker-probe shows worst main stall 13 ms). `index.ts`
+  `runReaderJob`: fork per job, 120 s timeout+kill, in-process fallback
+  if the fork fails; `extractWebReaderAsync` takes compute INJECTED
+  (unit-tested with stubs — success parity, failure cleanup + failed
+  trace, same-bundle concurrency refusal); the live "Aa reader" rides
+  the same worker. ONE
   deterministic 'extract' ActionTrace per run (failures traced too);
   `wx` no-clobber; `reader.md` frontmatter carries engine identity +
   trace id + `correction_state: model-output`; dossier flips

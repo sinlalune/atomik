@@ -501,6 +501,157 @@ function readerParts(vaultRoot: string, dossierRelPath: unknown): { dir: string;
   return { dir: dirname(dossierAbs), dossierRel: dossierRelPath as string }
 }
 
+/** What the compute stage produces — from `readerFromSnapshot` in-process
+ *  or from the utility-process worker (whose structured clone hands the
+ *  media bytes back as Uint8Array). */
+export type ReaderComputeResult = {
+  title: string
+  markdown: string
+  media: Array<{ name: string; bytes: Uint8Array }>
+}
+
+/** A reader-extraction job as sent to the worker (reader-worker.ts). */
+export type ReaderJob =
+  | { kind: 'snapshot'; snapshot: Uint8Array; pageUrl: string }
+  | { kind: 'html'; html: string; pageUrl: string }
+
+type ReaderPrep = {
+  dir: string
+  dossierRel: string
+  dossierContent: string
+  dossierMtimeMs: number
+  pageUrl: string
+  snapshot: Buffer
+  readerAbs: string
+}
+
+/** Validation + reads BEFORE any compute: same checks, same order, same
+ *  messages as ever — errors here happen before a trace id exists, so
+ *  refusals never land a failure trace (unchanged behavior). */
+function prepareWebReaderExtraction(vaultRoot: string, dossierRelPath: unknown): ReaderPrep {
+  const { dir, dossierRel } = readerParts(vaultRoot, dossierRelPath)
+  const dossier = readNote(vaultRoot, dossierRel)
+  const urlMatch = /^ {2}original_url: (\S+)$/m.exec(dossier.content)
+  if (!urlMatch) throw new Error('web-reader: dossier declares no original_url')
+  const snapshotAbs = join(dir, 'snapshot.mhtml')
+  if (!existsSync(snapshotAbs)) throw new Error('web-reader: snapshot.mhtml not found')
+  const readerAbs = join(dir, 'reader.md')
+  if (existsSync(readerAbs)) {
+    throw new Error('web-reader: reader.md already exists — corrections live there; delete it to re-run')
+  }
+  return {
+    dir,
+    dossierRel,
+    dossierContent: dossier.content,
+    dossierMtimeMs: dossier.mtimeMs,
+    pageUrl: urlMatch[1]!,
+    snapshot: readFileSync(snapshotAbs),
+    readerAbs
+  }
+}
+
+/** Land a computed extraction: media/ + reader.md (wx), dossier flip
+ *  through the mtime handshake (rollback on race), best-effort index
+ *  line, ONE completed trace. */
+function landWebReaderExtraction(
+  vaultRoot: string,
+  prep: ReaderPrep,
+  computed: ReaderComputeResult,
+  traces: ActionTraceLedger,
+  traceId: string,
+  started: number,
+  now: () => number
+): { readerPath: string; traceId: string; imageCount: number } {
+  const { title, markdown, media } = computed
+  const iso = new Date(now()).toISOString()
+  // reader.md is guarded absent in prepare; a media/ here is the debris
+  // of an earlier FAILED run — clear it so this extract self-heals (the
+  // owner's bundle was wedged: orphan media/ but no reader.md meant
+  // neither re-extract (EEXIST) nor delete (no reader) could proceed).
+  const mediaDir = join(prep.dir, MEDIA_DIRNAME)
+  rmSync(mediaDir, { recursive: true, force: true })
+  if (media.length > 0) {
+    mkdirSync(mediaDir, { recursive: true })
+    for (const file of media) {
+      writeFileSync(join(mediaDir, file.name), file.bytes, { flag: 'wx' })
+    }
+  }
+  writeFileSync(
+    prep.readerAbs,
+    readerDocument({ title, markdown, imageCount: media.length }, prep.pageUrl, traceId, iso),
+    { flag: 'wx' }
+  )
+  try {
+    writeNote(
+      vaultRoot,
+      prep.dossierRel,
+      withReaderRecorded(prep.dossierContent, iso, traceId),
+      prep.dossierMtimeMs
+    )
+  } catch (error) {
+    rmSync(prep.readerAbs, { force: true })
+    rmSync(join(prep.dir, MEDIA_DIRNAME), { recursive: true, force: true })
+    throw error
+  }
+  try {
+    const indexRel = prep.dossierRel.replace(/source\.md$/, 'index.md')
+    const index = readNote(vaultRoot, indexRel)
+    if (!index.content.includes('](./reader.md)')) {
+      writeNote(
+        vaultRoot,
+        indexRel,
+        `${index.content.trimEnd()}\n- [reader.md](./reader.md) — derived reader text.\n`,
+        index.mtimeMs
+      )
+    }
+  } catch {
+    /* the map is best-effort */
+  }
+  traces.recordTranscription({
+    id: traceId,
+    action: 'extract',
+    output: {
+      model: 'readability + turndown',
+      modelVersion: '0.6.0',
+      runtime: 'linkedom (main)',
+      runtimeVersion: '0.18.13',
+      location: 'deterministic'
+    },
+    inputBytes: prep.snapshot.length,
+    contentSha256: createHash('sha256').update(prep.snapshot).digest('hex'),
+    wallMs: now() - started,
+    status: 'completed'
+  })
+  return {
+    readerPath: prep.dossierRel.replace(/source\.md$/, 'reader.md'),
+    traceId,
+    imageCount: media.length
+  }
+}
+
+/** Failure cleanup: leave NO partial bundle behind — a half-written
+ *  media/ would fail the next extract with EEXIST (the owner hit exactly
+ *  this) — and record the ONE failed trace. */
+function recordWebReaderFailure(
+  prep: ReaderPrep,
+  traces: ActionTraceLedger,
+  traceId: string,
+  started: number,
+  now: () => number
+): void {
+  rmSync(prep.readerAbs, { force: true })
+  rmSync(join(prep.dir, MEDIA_DIRNAME), { recursive: true, force: true })
+  traces.recordTranscription({
+    id: traceId,
+    action: 'extract',
+    output: null,
+    inputBytes: prep.snapshot.length,
+    contentSha256: createHash('sha256').update(prep.snapshot).digest('hex'),
+    wallMs: now() - started,
+    status: 'failed'
+  })
+}
+
 export function extractWebReader(
   vaultRoot: string,
   dossierRelPath: unknown,
@@ -508,96 +659,59 @@ export function extractWebReader(
   now: () => number = Date.now
 ): { readerPath: string; traceId: string; imageCount: number } {
   const started = now()
-  const { dir, dossierRel } = readerParts(vaultRoot, dossierRelPath)
-  const dossier = readNote(vaultRoot, dossierRel)
-  const urlMatch = /^ {2}original_url: (\S+)$/m.exec(dossier.content)
-  if (!urlMatch) throw new Error('web-reader: dossier declares no original_url')
-  const pageUrl = urlMatch[1]!
-  const snapshotAbs = join(dir, 'snapshot.mhtml')
-  if (!existsSync(snapshotAbs)) throw new Error('web-reader: snapshot.mhtml not found')
-  const readerAbs = join(dir, 'reader.md')
-  if (existsSync(readerAbs)) {
-    throw new Error('web-reader: reader.md already exists — corrections live there; delete it to re-run')
-  }
-
-  const snapshot = readFileSync(snapshotAbs)
+  const prep = prepareWebReaderExtraction(vaultRoot, dossierRelPath)
   const traceId = traces.newTraceId()
   try {
-    const { title, markdown, media } = readerFromSnapshot(snapshot, pageUrl)
-    const iso = new Date(now()).toISOString()
-    // reader.md is guarded absent above; a media/ here is the debris of
-    // an earlier FAILED run — clear it so this extract self-heals (the
-    // owner's bundle was wedged: orphan media/ but no reader.md meant
-    // neither re-extract (EEXIST) nor delete (no reader) could proceed).
-    const mediaDir = join(dir, MEDIA_DIRNAME)
-    rmSync(mediaDir, { recursive: true, force: true })
-    if (media.length > 0) {
-      mkdirSync(mediaDir, { recursive: true })
-      for (const file of media) {
-        writeFileSync(join(mediaDir, file.name), file.bytes, { flag: 'wx' })
-      }
-    }
-    writeFileSync(
-      readerAbs,
-      readerDocument({ title, markdown, imageCount: media.length }, pageUrl, traceId, iso),
-      { flag: 'wx' }
-    )
+    const computed = readerFromSnapshot(prep.snapshot, prep.pageUrl)
+    return landWebReaderExtraction(vaultRoot, prep, computed, traces, traceId, started, now)
+  } catch (error) {
+    recordWebReaderFailure(prep, traces, traceId, started, now)
+    throw error
+  }
+}
+
+/** One extraction per bundle at a time: the async path opens a window
+ *  between prepare and land where a second run's wx failure would clean
+ *  up the FIRST run's fresh files. Same-process double-clicks die here;
+ *  cross-process races stay on the wx guards as ever. */
+const inFlightReaders = new Set<string>()
+
+/**
+ * The production path (perf audit 2026-07-15): same prepare/land/trace
+ * semantics as `extractWebReader`, but the CPU slab — mhtml parse, DOM
+ * builds, Readability, turndown; measured 834 ms in-main for a 650 KB
+ * page — runs through an injected async `compute` (the utility-process
+ * worker in index.ts; anything in tests). File IO, dossier handshake,
+ * and traces stay in the caller's process.
+ */
+export async function extractWebReaderAsync(
+  vaultRoot: string,
+  dossierRelPath: unknown,
+  traces: ActionTraceLedger,
+  compute: (job: ReaderJob) => Promise<ReaderComputeResult>,
+  now: () => number = Date.now
+): Promise<{ readerPath: string; traceId: string; imageCount: number }> {
+  const started = now()
+  const prep = prepareWebReaderExtraction(vaultRoot, dossierRelPath)
+  if (inFlightReaders.has(prep.readerAbs)) {
+    throw new Error('web-reader: extraction already running for this bundle')
+  }
+  inFlightReaders.add(prep.readerAbs)
+  try {
+    const traceId = traces.newTraceId()
     try {
-      writeNote(vaultRoot, dossierRel, withReaderRecorded(dossier.content, iso, traceId), dossier.mtimeMs)
+      const computed = await compute({
+        kind: 'snapshot',
+        snapshot: prep.snapshot,
+        pageUrl: prep.pageUrl
+      })
+      return landWebReaderExtraction(vaultRoot, prep, computed, traces, traceId, started, now)
     } catch (error) {
-      rmSync(readerAbs, { force: true })
-      rmSync(join(dir, MEDIA_DIRNAME), { recursive: true, force: true })
+      recordWebReaderFailure(prep, traces, traceId, started, now)
       throw error
     }
-    try {
-      const indexRel = dossierRel.replace(/source\.md$/, 'index.md')
-      const index = readNote(vaultRoot, indexRel)
-      if (!index.content.includes('](./reader.md)')) {
-        writeNote(
-          vaultRoot,
-          indexRel,
-          `${index.content.trimEnd()}\n- [reader.md](./reader.md) — derived reader text.\n`,
-          index.mtimeMs
-        )
-      }
-    } catch {
-      /* the map is best-effort */
-    }
-    traces.recordTranscription({
-      id: traceId,
-      action: 'extract',
-      output: {
-        model: 'readability + turndown',
-        modelVersion: '0.6.0',
-        runtime: 'linkedom (main)',
-        runtimeVersion: '0.18.13',
-        location: 'deterministic'
-      },
-      inputBytes: snapshot.length,
-      contentSha256: createHash('sha256').update(snapshot).digest('hex'),
-      wallMs: now() - started,
-      status: 'completed'
-    })
-    return {
-      readerPath: dossierRel.replace(/source\.md$/, 'reader.md'),
-      traceId,
-      imageCount: media.length
-    }
-  } catch (error) {
-    // leave NO partial bundle behind — a half-written media/ would fail
-    // the next extract with EEXIST (the owner hit exactly this)
-    rmSync(readerAbs, { force: true })
-    rmSync(join(dir, MEDIA_DIRNAME), { recursive: true, force: true })
-    traces.recordTranscription({
-      id: traceId,
-      action: 'extract',
-      output: null,
-      inputBytes: snapshot.length,
-      contentSha256: createHash('sha256').update(snapshot).digest('hex'),
-      wallMs: now() - started,
-      status: 'failed'
-    })
-    throw error
+  } finally {
+    inFlightReaders.delete(prep.readerAbs)
   }
 }
 

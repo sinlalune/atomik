@@ -8,13 +8,15 @@ import TurndownService from 'turndown'
 import { gfm } from 'turndown-plugin-gfm'
 import {
   extractWebReader,
+  extractWebReaderAsync,
   normalizeTables,
   readerFromSnapshot,
   resetWebReader,
   stripLeftoverHtml,
   withReaderCleared,
   withReaderCorrectionRecorded,
-  withReaderRecorded
+  withReaderRecorded,
+  type ReaderJob
 } from '../electron-main/web-reader'
 
 /** Run the table pass + turndown in isolation (Readability strips small
@@ -133,6 +135,64 @@ describe('web reader extraction (CP-MVP-006 S05)', () => {
   it('refuses to clobber an existing reader.md', () => {
     extractWebReader(vault, dossierRel, traces)
     expect(() => extractWebReader(vault, dossierRel, traces)).toThrow('already exists')
+  })
+
+  // The async path (perf audit 2026-07-15): the CPU slab is an injected
+  // compute (the utility-process worker in production) — prepare, land,
+  // dossier flip, and trace semantics must be identical to the sync path.
+  const snapshotCompute = async (job: ReaderJob) => {
+    if (job.kind !== 'snapshot') throw new Error('expected a snapshot job')
+    return readerFromSnapshot(Buffer.from(job.snapshot), job.pageUrl)
+  }
+
+  it('extractWebReaderAsync lands the same bundle through an injected compute', async () => {
+    const { readerPath, imageCount } = await extractWebReaderAsync(
+      vault,
+      dossierRel,
+      traces,
+      snapshotCompute
+    )
+    expect(readerPath).toBe('sources/web/gd/reader.md')
+    expect(imageCount).toBe(1)
+    expect(readFileSync(join(dir, 'reader.md'), 'utf8')).toContain('type: Atomik Reader Text')
+    expect(readdirSync(join(dir, 'media'))).toHaveLength(1)
+    expect(readFileSync(join(dir, 'source.md'), 'utf8')).toContain('status: extracted')
+    const trace = JSON.parse(readFileSync(traces.ledgerPath(), 'utf8').trim().split('\n').pop()!)
+    expect(trace.action).toBe('extract')
+    expect(trace.outcome.status).toBe('completed')
+  })
+
+  it('extractWebReaderAsync compute failure leaves no partial bundle + a failed trace', async () => {
+    await expect(
+      extractWebReaderAsync(vault, dossierRel, traces, async () => {
+        throw new Error('worker died')
+      })
+    ).rejects.toThrow('worker died')
+    expect(existsSync(join(dir, 'reader.md'))).toBe(false)
+    expect(existsSync(join(dir, 'media'))).toBe(false)
+    const trace = JSON.parse(readFileSync(traces.ledgerPath(), 'utf8').trim().split('\n').pop()!)
+    expect(trace.outcome.status).toBe('failed')
+  })
+
+  it('extractWebReaderAsync refuses a concurrent run for the same bundle', async () => {
+    let release: () => void = () => {}
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const first = extractWebReaderAsync(vault, dossierRel, traces, async (job) => {
+      await gate
+      return snapshotCompute(job)
+    })
+    await expect(
+      extractWebReaderAsync(vault, dossierRel, traces, async () => {
+        throw new Error('unreachable')
+      })
+    ).rejects.toThrow('already running')
+    release()
+    await first
+    // the first run survived the refused second one
+    expect(existsSync(join(dir, 'reader.md'))).toBe(true)
+    expect(readdirSync(join(dir, 'media'))).toHaveLength(1)
   })
 
   it('two images with identical bytes collapse to ONE media file (the EEXIST bug)', () => {
