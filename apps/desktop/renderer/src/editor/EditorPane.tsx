@@ -133,6 +133,8 @@ export type EditorPaneProps = {
   /** Shown when the note declares an image resource (dossier or
    *  transcript): the original stays one click away while editing. */
   onOpenSourceImage?: (dossierPath: string) => void
+  /** Opens a URL in a web tab (S06: AI evidence from a web reader). */
+  onOpenWebUrl?: (url: string) => void
 }
 
 /**
@@ -159,7 +161,8 @@ export function EditorPane({
   onFollowLink,
   saveMode = 'auto',
   onSaveModeToggle,
-  onOpenSourceImage
+  onOpenSourceImage,
+  onOpenWebUrl
 }: EditorPaneProps): React.JSX.Element {
   const hostRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
@@ -597,6 +600,7 @@ export function EditorPane({
                 await saveRef.current()
               }}
               openAnchor={revealRange}
+              onOpenWebUrl={onOpenWebUrl}
               onNoteCreated={onNoteCreated}
               onClose={() => setShowAi(false)}
               dock={aiDock}

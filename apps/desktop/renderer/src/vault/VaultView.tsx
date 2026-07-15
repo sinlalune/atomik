@@ -330,6 +330,7 @@ export function VaultView({
             key={note.relPath}
             note={note}
             onOpenSourceImage={onOpenSourceImage}
+            onOpenWebUrl={onOpenWebUrl}
             onSaved={applySaved}
             onDirtyChange={onDirtyChange}
             mode={mode}

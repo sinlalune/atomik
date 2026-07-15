@@ -404,6 +404,7 @@ export function ProjectView({
           <EditorPane
             key={note.relPath}
             note={note}
+            onOpenWebUrl={onOpenWebUrl}
             onSaved={applySaved}
             onDirtyChange={onDirtyChange}
             mode={mode}

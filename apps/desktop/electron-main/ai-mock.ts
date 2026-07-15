@@ -6,7 +6,8 @@ import type {
   AiOutputBlock,
   AiResponseBundle,
   AiSelection,
-  ProposedFileChange
+  ProposedFileChange,
+  WebEvidenceProvenance
 } from '../shared/ipc-contract'
 
 /**
@@ -127,28 +128,66 @@ function mockCandidates(
   ]
 }
 
+/** '/'-separated relative link from one vault note to another (the link
+ *  router resolves hrefs relative to the note; root-absolute is a dead
+ *  click). */
+function relativeLink(fromRelPath: string, toRelPath: string): string {
+  const fromDirs = fromRelPath.split('/').slice(0, -1)
+  const toParts = toRelPath.split('/')
+  let common = 0
+  while (
+    common < fromDirs.length &&
+    common < toParts.length - 1 &&
+    fromDirs[common] === toParts[common]
+  ) {
+    common += 1
+  }
+  const ups = fromDirs.slice(common).map(() => '..')
+  return [...ups, ...toParts.slice(common)].join('/') || toRelPath
+}
+
+/** The provenance line a note carries when the selection lives in a web
+ *  reader (09: "create note with URL/provenance"). */
+function provenanceLine(
+  webSource: WebEvidenceProvenance,
+  targetRelPath: string
+): string {
+  const accessed = webSource.accessedAt
+    ? ` — accessed ${webSource.accessedAt.slice(0, 10)}`
+    : ''
+  const name = webSource.title ?? webSource.url
+  const dossier = relativeLink(targetRelPath, webSource.dossierPath)
+  return `Source: [${name}](${webSource.url})${accessed} · [dossier](${dossier})`
+}
+
 /** The text the patch proposes, shaped by the destination. */
 function mockProposedText(
   operation: AiOperation,
-  selection: AiSelection
+  selection: AiSelection,
+  webSource?: WebEvidenceProvenance
 ): string {
   const preset = operation.preset ?? 'free'
   const stamp = `> **[mock ${preset}]** ${excerpt(operation.instruction, 120)}`
-  switch (operation.target.destination.kind) {
+  const destination = operation.target.destination
+  switch (destination.kind) {
     case 'replace-selection':
       return `${selection.content}\n\n${stamp}\n>\n> Placeholder rewrite of the selection above.`
     case 'append':
-      return `\n## [mock] ${excerpt(operation.instruction, 60)}\n\n${stamp}\n>\n> Placeholder section derived from «${excerpt(selection.content)}».\n`
+      return `\n## [mock] ${excerpt(operation.instruction, 60)}\n\n${stamp}\n>\n> Placeholder section derived from «${excerpt(selection.content)}».\n${webSource ? `\n${provenanceLine(webSource, operation.target.relPath)}\n` : ''}`
     case 'new-note':
-      return `# ${excerpt(operation.instruction, 60)}\n\n${stamp}\n\nSource selection (from \`${selection.relPath}\`):\n\n> ${excerpt(selection.content, 400)}\n`
+      return `# ${excerpt(operation.instruction, 60)}\n\n${stamp}\n\nSource selection (from \`${selection.relPath}\`):\n\n> ${excerpt(selection.content, 400)}\n${webSource ? `\n${provenanceLine(webSource, destination.newNotePath)}\n` : ''}`
   }
 }
 
-export function runAiOperation(operation: unknown): AiResponseBundle {
+export function runAiOperation(
+  operation: unknown,
+  provenance?: Map<string, WebEvidenceProvenance>
+): AiResponseBundle {
   if (!isValidAiOperation(operation)) {
     throw new Error('ai: rejected operation')
   }
   const selection = operation.input[0] as AiSelection
+  const webSource = provenance?.get(selection.relPath)
 
   const blocks: AiOutputBlock[] = [
     {
@@ -166,31 +205,35 @@ export function runAiOperation(operation: unknown): AiResponseBundle {
   ]
 
   const destination = operation.target.destination
+  const proposedText = mockProposedText(operation, selection, webSource)
   const file: ProposedFileChange =
     destination.kind === 'replace-selection'
       ? {
           relPath: operation.target.relPath,
           kind: 'replace-range',
           range: selection.range,
-          newText: mockProposedText(operation, selection)
+          newText: proposedText
         }
       : destination.kind === 'append'
         ? {
             relPath: operation.target.relPath,
             kind: 'append',
-            newText: mockProposedText(operation, selection)
+            newText: proposedText
           }
         : {
             relPath: destination.newNotePath,
             kind: 'create',
-            newText: mockProposedText(operation, selection)
+            newText: proposedText
           }
 
   // Mechanical labeling (S10): the mock proposes candidates (form-only
   // assertions); the deterministic checker assigns every label.
+  // Web provenance rides the evidence records (S06 — resolved by the
+  // caller from the dossier; this module stays fs-free).
   const { claims, evidence } = labelClaims(
     operation.input,
-    mockCandidates(selection, (blocks[0] as AiOutputBlock).id)
+    mockCandidates(selection, (blocks[0] as AiOutputBlock).id),
+    provenance
   )
 
   return {

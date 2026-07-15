@@ -28,6 +28,9 @@ export type AiPanelProps = {
   requestSave: () => Promise<void>
   /** Reveals a source anchor range in the editor (S10 citations). */
   openAnchor: (range: { from: number; to: number }) => void
+  /** Opens a URL in a web tab (S06: evidence from a web reader carries
+   *  URL provenance — the live page is one click away). */
+  onOpenWebUrl?: (url: string) => void
   /** Fired after a new-note patch is created on disk (refresh + open). */
   onNoteCreated?: (relPath: string) => void
   onClose: () => void
@@ -59,6 +62,7 @@ export function AiPanel({
   applyChange,
   requestSave,
   openAnchor,
+  onOpenWebUrl,
   onNoteCreated,
   onClose,
   dock,
@@ -244,6 +248,16 @@ export function AiPanel({
     [bundle, openAnchor]
   )
 
+  /** URL provenance of a claim's first evidence record, when its
+   *  selection came from a web reader (S06). */
+  const evidenceUrl = useCallback(
+    (claim: ClaimRecord): string | undefined =>
+      bundle?.evidence.find(
+        (candidate) => candidate.id === claim.evidenceIds[0]
+      )?.source.url,
+    [bundle]
+  )
+
   const selectionEmpty = getSelection().text.length === 0
 
   return (
@@ -381,6 +395,17 @@ export function AiPanel({
                             onClick={() => openEvidence(claim)}
                           >
                             source
+                          </button>
+                        )}
+                      {claim.label === 'source-backed' &&
+                        onOpenWebUrl &&
+                        evidenceUrl(claim) && (
+                          <button
+                            type="button"
+                            title={`Open the live page — ${evidenceUrl(claim)}`}
+                            onClick={() => onOpenWebUrl(evidenceUrl(claim)!)}
+                          >
+                            page ↗
                           </button>
                         )}
                       {!applied && !challengedIds.includes(claim.id) && (

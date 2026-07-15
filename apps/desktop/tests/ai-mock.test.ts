@@ -133,4 +133,56 @@ describe('runAiOperation (mock bundle)', () => {
       second.patchProposals[0]!.files[0]!.newText
     )
   })
+
+  it('a web-reader selection carries URL provenance into note and evidence (S06)', () => {
+    const op = validOp({
+      input: [
+        {
+          relPath: 'sources/web/guide/reader.md',
+          kind: 'text',
+          content: 'Attention compares queries with keys.',
+          range: { from: 10, to: 47 }
+        }
+      ],
+      target: {
+        relPath: 'sources/web/guide/reader.md',
+        destination: { kind: 'new-note', newNotePath: 'notes/from-guide.md' }
+      }
+    })
+    const provenance = new Map([
+      [
+        'sources/web/guide/reader.md',
+        {
+          url: 'https://example.org/guide',
+          dossierPath: 'sources/web/guide/source.md',
+          accessedAt: '2026-07-13T10:00:00Z',
+          title: 'A guide'
+        }
+      ]
+    ])
+    const bundle = runAiOperation(op, provenance)
+    const created = bundle.patchProposals[0]!.files[0]!
+    // 09: "create note with URL/provenance" — the note cites the live
+    // page AND links the dossier relative to its own location.
+    expect(created.newText).toContain(
+      'Source: [A guide](https://example.org/guide) — accessed 2026-07-13'
+    )
+    expect(created.newText).toContain('[dossier](../sources/web/guide/source.md)')
+    // the exact-quote evidence record carries the same provenance
+    const backed = bundle.evidence.find((record) => record.source.url)
+    expect(backed?.source.url).toBe('https://example.org/guide')
+    expect(backed?.source.dossierPath).toBe('sources/web/guide/source.md')
+  })
+
+  it('without provenance the proposal text is unchanged (no Source line)', () => {
+    const op = validOp({
+      target: {
+        relPath: 'notes/attention.md',
+        destination: { kind: 'new-note', newNotePath: 'notes/attention-ai.md' }
+      }
+    })
+    expect(runAiOperation(op).patchProposals[0]!.files[0]!.newText).not.toContain(
+      'Source: ['
+    )
+  })
 })

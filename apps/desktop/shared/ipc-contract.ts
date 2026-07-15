@@ -375,10 +375,26 @@ export type TruthLabel =
   | 'needs-citation'
   | 'interpretive'
 
+/**
+ * URL provenance for evidence anchored in a web reader (09: notes carry
+ * URL/provenance). The minimal slice of 28's evidence-source sketch:
+ * url → externalUrl, dossierPath → sourceDossierPath, accessedAt, title.
+ * Resolved main-side from the source dossier — never renderer-asserted.
+ */
+export type WebEvidenceProvenance = {
+  /** The page the reader text was extracted from (dossier original_url). */
+  url: string
+  /** Vault-relative path of the source dossier (source.md). */
+  dossierPath: string
+  accessedAt?: string
+  title?: string
+}
+
 export type EvidenceRecord = {
   id: string
-  /** Where the supporting selection lives (05 anchor, MVP slice). */
-  source: { relPath: string; range: { from: number; to: number } }
+  /** Where the supporting selection lives (05 anchor, MVP slice). Web
+   *  provenance fields are present when that place is a web reader. */
+  source: { relPath: string; range: { from: number; to: number } } & Partial<WebEvidenceProvenance>
   /** Exact quoted text and its hash — the reproducible derivation. */
   quote: string
   quoteSha256: string

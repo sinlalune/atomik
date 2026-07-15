@@ -4,7 +4,8 @@ import type {
   AiSelection,
   ClaimRecord,
   EvidenceRecord,
-  TruthLabel
+  TruthLabel,
+  WebEvidenceProvenance
 } from '../shared/ipc-contract'
 
 /**
@@ -34,10 +35,14 @@ const sha256 = (text: string): string =>
 /**
  * Labels candidates against the operation's selections. Deterministic:
  * identical inputs yield identical labels/evidence (ids aside).
+ * `provenance` maps a selection relPath to its web provenance (resolved
+ * by the caller — this module never reads files); matched evidence
+ * carries it so notes can cite the live page (09).
  */
 export function labelClaims(
   selections: AiSelection[],
-  candidates: ClaimCandidate[]
+  candidates: ClaimCandidate[],
+  provenance?: Map<string, WebEvidenceProvenance>
 ): { claims: ClaimRecord[]; evidence: EvidenceRecord[] } {
   const claims: ClaimRecord[] = []
   const evidence: EvidenceRecord[] = []
@@ -56,11 +61,13 @@ export function labelClaims(
       // source-backed. It also outranks any asserted form — an exact
       // quote is evidence regardless of what the provider calls it.
       label = 'source-backed'
+      const webSource = provenance?.get(supporting.relPath)
       const record: EvidenceRecord = {
         id: `ev_${randomUUID()}`,
         source: {
           relPath: supporting.relPath,
-          range: supporting.range
+          range: supporting.range,
+          ...(webSource ?? {})
         },
         quote: text,
         quoteSha256: sha256(text)

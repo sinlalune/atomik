@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-006
   status: active
   accepted: 2026-07-13
-  current_step: S06
+  current_step: S07
   base_commit: 5381a12
 ---
 
@@ -298,10 +298,31 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       PROVEN on a real Wikipedia capture: 92 KB Markdown + 116 SVG
       MATH renders in media/ — the study-math case, defuddle re-bench
       NOT needed. Owner dogfooding pending on his real pages.
-- [ ] S06 Citations + selection → AI → note: @ menu offers web bundles
+- [x] S06 Citations + selection → AI → note: @ menu offers web bundles
       (URL citation, dossier link, reader quote blocks); web dossier
       links route to the source view; selection → AI → note carries
       URL provenance; tests.
+      DONE 2026-07-15 (the two halves pre-landed at S04/S05 — @
+      citations, dossier↔web routing, live reader — this unit closed
+      the LAST gap: URL provenance). web-provenance.ts resolves a
+      reader.md selection to its dossier identity (original_url,
+      accessed_at, unquoted title) CALLER-side in the run-ai-operation
+      handler — truth.ts/ai-mock.ts stay fs-free; EvidenceRecord.source
+      gains the optional url/dossierPath/accessedAt/title slice of 28's
+      sketch (never renderer-asserted); strict relPath match (dot-free
+      slug, can't leave sources/web/), best-effort resolve (broken
+      dossier → no-URL evidence, never a failed operation). New-note/
+      append proposals from a web reader carry "Source: [title](url) —
+      accessed date · [dossier](relative link)" (09: create note with
+      URL/provenance; dossier link RELATIVE — root-absolute is a dead
+      click in the router); the claim chip grows [page ↗]
+      (onOpenWebUrl threaded both note hosts → EditorPane → AiPanel).
+      Tests 337→347/38 (web-provenance suite; truth + ai-mock
+      provenance cases incl. unchanged no-provenance shapes).
+      E2E PROVEN: new rung ATOMIK_SMOKE_AI_WEB=1 seeds a fixture
+      bundle → aiWeb=ok:url=…:dossier=… on the real app (renderer →
+      typed channel → dossier read → evidence url + Source line).
+      Typecheck/build/smoke green.
 - [ ] S07 Acceptance run against 18 §M5 intents + the truth/provider
       boundary; owner validation on real pages INCLUDING the
       learning-workbench scenario (Colab on one panel, a math PDF on
@@ -360,16 +381,21 @@ tests       : 282 passing / 31 suites — tests/typecheck/build/smoke
               SUCCEEDED through the Firefox presentation and COLAB
               RUNS IN THE PANE. The named S02 risk is closed; the
               workbench scenario is alive. S03 fully owner-validated.
-tests       : 292 passing / 33 suites — green at S05 close; reader
-              proven on a real Wikipedia snapshot (92 KB md, 116 SVG
-              math renders)
-next action : S06 — selection → AI → note + @ citations for web
-              sources: reader.md selections through labelClaims (URL
-              provenance carried); @ menu offers web bundles (URL
-              citation, dossier link, reader quote blocks); web
-              dossier links route to the WEB view (read the dossier /
-              open the page). Owner dogfooding S05 extraction on his
-              real pages meanwhile.
+tests       : 347 passing / 38 suites — green at S06 close (the
+              intervening perf audit + 4 perf batches raised the base
+              to 337/37; S06's unit adds web-provenance + provenance
+              cases). Typecheck/build/smoke green; e2e rung
+              ATOMIK_SMOKE_AI_WEB=1 → aiWeb=ok on the real app.
+              S06 done 2026-07-15 (see step): URL provenance closes —
+              web-provenance.ts caller-side resolve, EvidenceRecord
+              carries url/dossier/accessedAt/title, proposals cite
+              "Source: [title](url) · [dossier]", [page ↗] chip.
+next action : S07 — acceptance run against 18 §M5 intents + the
+              truth/provider boundary; owner validation on real pages
+              INCLUDING the learning-workbench scenario (Colab on one
+              panel, a math PDF on the other, notes taken from both);
+              review and close. Owner: dogfood selection → AI → note
+              from a real reader.md and check the Source line + chips.
 blockers    : none recorded. Standing note: provider key store found
               EMPTY 2026-07-09 — re-enter via ⚙ before cloud-rung work
               (not expected on this path's critical line).

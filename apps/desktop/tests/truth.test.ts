@@ -83,4 +83,45 @@ describe('labelClaims — the mechanical labeling rule (06)', () => {
     const { claims } = labelClaims([selection], [candidate('   ')])
     expect(claims[0]!.label).toBe('model-only')
   })
+
+  it('web provenance rides the evidence when the caller resolved it (S06)', () => {
+    const readerSelection: AiSelection = {
+      ...selection,
+      relPath: 'sources/web/guide/reader.md'
+    }
+    const provenance = new Map([
+      [
+        'sources/web/guide/reader.md',
+        {
+          url: 'https://example.org/guide',
+          dossierPath: 'sources/web/guide/source.md',
+          accessedAt: '2026-07-13T10:00:00Z',
+          title: 'A guide'
+        }
+      ]
+    ])
+    const { evidence } = labelClaims(
+      [readerSelection],
+      [candidate('query vector with key vectors')],
+      provenance
+    )
+    expect(evidence[0]!.source.url).toBe('https://example.org/guide')
+    expect(evidence[0]!.source.dossierPath).toBe('sources/web/guide/source.md')
+    expect(evidence[0]!.source.accessedAt).toBe('2026-07-13T10:00:00Z')
+    // the anchor stays intact beside the provenance
+    expect(evidence[0]!.source.relPath).toBe('sources/web/guide/reader.md')
+    expect(evidence[0]!.source.range).toEqual({ from: 120, to: 220 })
+  })
+
+  it('no provenance entry → the evidence shape is unchanged (no url keys)', () => {
+    const { evidence } = labelClaims(
+      [selection],
+      [candidate('query vector with key vectors')],
+      new Map()
+    )
+    expect(evidence[0]!.source).toEqual({
+      relPath: 'notes/attention.md',
+      range: { from: 120, to: 220 }
+    })
+  })
 })

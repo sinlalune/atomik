@@ -103,6 +103,24 @@ timestamp: 2026-07-06T00:00:00Z
   Panel UI: one chip per claim, [source] opens the anchor in the editor
   (select + scroll), [challenge] qualifies the claim inside the editable
   proposal — the repair patch preview accepted through the normal path.
+- URL provenance on web-reader evidence (09/28, CP-MVP-006 S06):
+  `electron-main/web-provenance.ts` resolves a `sources/web/<slug>/
+  reader.md` selection to its dossier's identity (original_url,
+  accessed_at, unquoted title) — CALLER-side in the `run-ai-operation`
+  handler, so truth.ts/ai-mock.ts stay fs-free; `labelClaims` takes the
+  resolved map and spreads it into `EvidenceRecord.source` (the
+  url/dossierPath/accessedAt/title slice of 28's evidence sketch,
+  renderer never asserts it). The relPath match is strict (one dot-free
+  slug segment — can't climb out of sources/web/); resolution is
+  best-effort by design (a broken dossier degrades to no-URL evidence,
+  never a failed operation). Downstream: a new-note/append proposal
+  from a web reader carries `Source: [title](url) — accessed date ·
+  [dossier](relative-link)` (09 "create note with URL/provenance"; the
+  dossier link is computed RELATIVE to the target note — root-absolute
+  hrefs are dead clicks in the link router), and the AiPanel claim chip
+  grows [page ↗] beside [source] (onOpenWebUrl threaded VaultView/
+  ProjectView → EditorPane → AiPanel). E2E rung `ATOMIK_SMOKE_AI_WEB=1`
+  seeds a fixture bundle and proves the whole chain on the real app.
 - The ActionTrace ledger (S09, 33-minimal): `electron-main/action-trace.ts`
   (the execution-core seat, 14) — ONE JSON line per operation appended to
   `.atomik/usage/private/actions.jsonl` at DECISION time (drafts in
@@ -496,8 +514,8 @@ timestamp: 2026-07-06T00:00:00Z
   a hostile/hung page falls back to title+URL. On success the dossier
   opens in a new vault tab. `sources/web/` entered `.gitignore` in the
   SAME commit (the 2026-07-09 incident rule; snapshots of logged-in
-  pages are personal). SourceImageView shows a friendly line for web
-  dossiers (URL original; the web-view routing click lands in S06).
+  pages are personal). SourceImageView's web panel: "Open live page ↗"
+  (→ web tab) + "Open snapshot" (external), Extract/Delete reader.
 - Web reader extraction (09/28/33, CP-MVP-006 S05):
   `electron-main/web-reader.ts` (+ `mhtml.ts` for the snapshot parse),
   channels `extract-web-reader` / `reset-web-reader`. The captured
@@ -788,13 +806,17 @@ settings memory), `project.test.ts` (folder-path matrix, slugs, manifest
 scan incl. no-descend + malformed fallback, idempotent ensure,
 byte-identical adoption), `vault-scope.test.ts` (findSubtree),
 `ai-mock.test.ts` (operation validation matrix, 06 bundle shape with
-truth arrays, destination→file-change mapping, content determinism),
+truth arrays, destination→file-change mapping, content determinism,
+web-reader provenance into note text + evidence and its absence),
+`web-provenance.test.ts` (dossier→provenance parse incl. quoted-title
+unquote and null on no-URL, fs resolve best-effort, strict relPath),
 `action-trace.test.ts` (one complete line per decision, append-only
 accumulation, failure/flush paths, summary lifecycle, and the
 content-leak grep), `ai-helpers.test.ts` (default note paths),
 `truth.test.ts` (containment + hash evidence, the no-paraphrase rule,
 form honoring with evidence outranking, the smuggled-label adversarial
-case, reproducibility), `search.test.ts` (match kinds + lines,
+case, reproducibility, provenance riding matched evidence and the
+unchanged no-provenance shape), `search.test.ts` (match kinds + lines,
 case-insensitivity, denylist, caps, query validation),
 `capture-session.test.ts` (real HTTP over loopback: token gate incl.
 forged/expired/stopped, one-time token across restarts, size cap, MIME

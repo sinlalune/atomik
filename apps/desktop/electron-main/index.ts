@@ -1,10 +1,11 @@
 import { app, BrowserWindow, dialog, ipcMain, nativeImage, screen, session, shell, utilityProcess, WebContentsView } from 'electron'
 import { execFile } from 'node:child_process'
-import { copyFileSync, existsSync, mkdtempSync, readdirSync, statSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
-import { runAiOperation } from './ai-mock'
+import { isValidAiOperation, runAiOperation } from './ai-mock'
+import { webProvenanceFor } from './web-provenance'
 import { ActionTraceLedger } from './action-trace'
 import { importCaptureUpload } from './capture-import'
 import { CaptureSessionManager } from './capture-session'
@@ -234,7 +235,21 @@ function registerVaultHandlers(stateDir: string): void {
   ipcMain.handle(ATOMIK_CHANNELS.runAiOperation, (_event, operation: unknown) => {
     const started = Date.now()
     try {
-      const bundle = runAiOperation(operation)
+      // S06 URL provenance: web-reader selections trace back to their
+      // dossier BEFORE the pure-compute call — ai-mock/truth never read
+      // files. Best-effort: a failed resolve degrades to no-URL evidence.
+      let provenance
+      if (isValidAiOperation(operation)) {
+        try {
+          provenance = webProvenanceFor(
+            requireVault(),
+            operation.input.map((selection) => selection.relPath)
+          )
+        } catch {
+          provenance = undefined
+        }
+      }
+      const bundle = runAiOperation(operation, provenance)
       const traceId = traces.draftFor(
         operation as AiOperation,
         bundle,
@@ -1116,6 +1131,53 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
         })()`
       )) as string
       vaultReport += ` ai=${outcome}`
+    }
+    // Opt-in rung (S06): seed a fixture web bundle and prove URL
+    // provenance end to end — reader.md selection → main resolves the
+    // dossier → evidence carries the url → the proposed note cites it.
+    if (process.env['ATOMIK_SMOKE_AI_WEB'] === '1' && vaultRoot) {
+      const bundleDir = join(vaultRoot, 'sources', 'web', 'smoke-page')
+      mkdirSync(bundleDir, { recursive: true })
+      writeFileSync(
+        join(bundleDir, 'source.md'),
+        [
+          '---',
+          'type: Atomik Source',
+          'title: "Smoke Page"',
+          'resource: https://example.org/smoke',
+          'atomik:',
+          '  source_type: web',
+          '  status: extracted',
+          '  original_url: https://example.org/smoke',
+          '  accessed_at: 2026-07-15T00:00:00Z',
+          '---',
+          '',
+          '# Source dossier',
+          ''
+        ].join('\n')
+      )
+      writeFileSync(
+        join(bundleDir, 'reader.md'),
+        '# Reader text\n\nThe reader text of the smoke page.\n'
+      )
+      const outcome = (await window.webContents.executeJavaScript(
+        `(async () => {
+          try {
+            const bundle = await window.atomik.runAiOperation({
+              id: crypto.randomUUID(),
+              input: [{ relPath: 'sources/web/smoke-page/reader.md', kind: 'text', content: 'The reader text of the smoke page.', range: { from: 16, to: 50 } }],
+              instruction: 'Explain this simply.',
+              target: { relPath: 'sources/web/smoke-page/reader.md', destination: { kind: 'new-note', newNotePath: 'notes/smoke-web-ai.md' } }
+            })
+            const backed = bundle.evidence.find((r) => r.source.url)
+            const note = bundle.patchProposals[0].files[0].newText
+            const cited = note.includes('Source: [Smoke Page](https://example.org/smoke)')
+            if (backed && cited) return 'ok:url=' + backed.source.url + ':dossier=' + backed.source.dossierPath
+            return 'fail:url=' + (backed ? backed.source.url : 'none') + ':cited=' + cited
+          } catch (e) { return 'fail:' + String(e) }
+        })()`
+      )) as string
+      vaultReport += ` aiWeb=${outcome}`
     }
     // Optional capture proof: session lifecycle through the renderer world
     // (S02). The HTTP surface itself is covered by unit tests; this checks
