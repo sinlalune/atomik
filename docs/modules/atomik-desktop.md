@@ -33,18 +33,23 @@ timestamp: 2026-07-06T00:00:00Z
   drag regions OFF while maximized — dragging a maximized frameless
   window glitches. The strip's overflow scrollbar is hidden (it sat
   inside the drag region); wheel scrolls overflowing tabs.
-  MAXIMIZE IS REAL (owner 2026-07-14, "drop the fullscreen crutch"):
-  the old WSLg workaround mapped maximize→fullscreen (wslg#1015: a
-  borderless maximized window kept a transparent gap + offset clicks),
-  but fullscreen also hid the taskbar. Root cause of the gap = the
-  client-side SHADOW margins, so instead the window keeps its shadow
-  when restored (edge-resize handles live in those margins) and DROPS
-  it while maximized (`setHasShadow(false)` on the `maximize` event,
-  `true` on `unmaximize`) — no gap maximized, resize back when
-  restored, and a real maximize that coexists with the taskbar.
-  Fullscreen (F11) is now its own separate thing. NEEDS owner visual
-  verification on live WSLg (headless capturePage can't confirm the
-  maximize geometry).
+  MAXIMIZE IS REAL (owner 2026-07-14, "drop the fullscreen crutch"),
+  and under WSLg it is OURS: WSLg cannot maximize borderless windows
+  (wslg#1015 — Windows-side probe 2026-07-15: the WM presents the
+  content +32px right/down while input stays put, so everything
+  visible sits 32px from where it clicks). Off WSLg the native
+  maximize runs; under WSLg (`IS_WSLG`) the window never enters the
+  WM-maximized state — maximize positions the window over the TRUE
+  per-monitor Windows work area (powershell-queried; Electron's
+  `screen.workArea` lies there) and restore returns the saved stable
+  bounds (`wslgRestoreBounds` WeakMap doubles as the maximized flag);
+  snap/Win+Up converts on the 'maximize' event after its 'unmaximize'
+  settles. Shadow untouched everywhere. Pure query parsing/matching in
+  `wslg-workarea.ts` (unit-tested); probe method + measurements in the
+  dev-env note below. Fullscreen (F11) is its own separate thing.
+  Verified end-to-end 2026-07-15 (real □ click → exact work-area fit,
+  taskbar visible, exact restore round-trip, input aligned) — owner
+  eyeball is the final gate.
 - The renderer-facing API surface: `shared/ipc-contract.ts` is the single
   source of truth (`ATOMIK_API_KEY`, `ATOMIK_CHANNELS`, `AtomikApi`,
   `DOCUMENTED_PRELOAD_SURFACE`). Twenty-six invoke channels exist today
@@ -963,22 +968,44 @@ RDPSource — the Windows mic — appears and records; enumerate/gum only
 exist in secure contexts, so probes must load file:// not data:). Without root they can be
 `apt-get download`-ed and `dpkg -x`-extracted, then passed via
 `LD_LIBRARY_PATH`; for daily dev install them properly with apt.
-WSLg maximized gap/offset (microsoft/wslg#1015, open since 2023): a
-borderless maximized window keeps a transparent gap and offset clicks.
-History: the fix used to map maximize→fullscreen, but that ALSO hid the
-taskbar and read as F11 (owner's "maximized window" complaint).
-SETTLED 2026-07-14 (owner: "drop the fullscreen crutch", then "laggy +
-hides the taskbar"). Three tries, resolved by a decisive probe:
-(1) native maximize + `setHasShadow(false)` toggle → owner saw the
-offset persist; (2) manual `setBounds(screen.workArea)` → no offset but
-LAGGY and it HID THE TASKBAR. The probe explained why: under WSLg
-`screen.workArea` wrongly reports the full 1080, but `window.maximize()`
-lands {0,0,1920,1032} — the WM maximize RESERVES the taskbar (it proxies
-to Windows, which knows the taskbar) and is the fast path. (3) FINAL:
-plain native `window.maximize()`/`unmaximize()`, no shadow toggle (that
-toggle was the likely offset source), no manual bounds. Respects the
-taskbar, no lag. `ozone-platform-hint=auto` kept. If a visible offset
-STILL shows on some WSLg build it's genuine wslg#1015 — then the honest
-options are: live with it, native frame (`frame:true`, loses the custom
-header), or fullscreen-maximize (hides taskbar). Owner confirms the
-visual.
+WSLg maximized gap/offset (microsoft/wslg#1015) — ROOT-CAUSED AND FIXED
+2026-07-15 with a WINDOWS-SIDE probe. The method (capturePage cannot see
+WM compositing; this can): from WSL, `powershell.exe` interop
+screenshots the REAL Windows desktop (System.Drawing CopyFromScreen),
+reads the RAIL host window rect (FindWindow/EnumWindows +
+GetWindowRect/DWM), and injects clicks (SetCursorPos + mouse_event); an
+Electron probe window with colored edge bands turns offsets into
+numbers. MEASURED (both monitors): restored windows are pixel-exact
+(host = content + ~32-36px shadow margin, correctly offset);
+WM-MAXIMIZED windows keep CORRECT logical bounds (0,0,1920,1032 — why
+every bounds-level probe said "fixed") but the host window grows 32px
+too tall and the CONTENT presents +32px right/down with INPUT
+unshifted: transparent band at left/top, content clipped right/bottom,
+every click lands 32px from what it appears to hit. A manual setBounds
+to the true work area (no WM state) is pixel-perfect AND click-perfect
+with the shadow ON, in 0-1 ms — the earlier "lag" was the setHasShadow
+toggle. Two more traps: Electron's `screen.workArea` LIES under WSLg
+(full 1080, no taskbar inset, both monitors), and the naive snap
+conversion (unmaximize + setBounds inside the 'maximize' event) is
+beaten by the WM's async restore — the window ends 4px inset all around
+(measured). THE FIX (`index.ts` + `wslg-workarea.ts`): under `IS_WSLG`
+the WM-maximized state is never entered; maximize = setBounds to the
+matching Windows screen's WORK AREA — queried via powershell.exe
+(`WINDOWS_SCREENS_PS_COMMAND`) at startup and on display changes;
+coordinate mapping Linux = Windows − virtual-screen origin
+(probe-verified); parse + display matching are PURE and unit-tested;
+fallback = display minus a 48px bottom strip — restore = saved STABLE
+bounds (debounce-recorded; the WM dance emits junk rects), snap/Win+Up
+converts after 'unmaximize' settles plus one guarded re-assert at
+250 ms. Accepted dev-env quirks: Win+Down on a WSLg-maximized window
+minimizes (the WM never sees a maximized state); an edge-resize while
+WSLg-maximized keeps the flag until the next toggle. PLATFORM REALITY
+(2026-07-15): despite `ozone-platform-hint=auto` and a live wayland-0
+socket, the app runs XWAYLAND on this machine — forcing
+`--ozone-platform=wayland` crashes (no DRM render node) — so the old
+"native Wayland under WSLg" claim is retired; all measurements are the
+X11 path, i.e. what the owner actually runs. Verified on the REAL app
+by clicking its own □ Windows-side: host rect lands exactly at
+content = work area (taskbar visible), restore returns the exact
+original rect, the ☰ menu opens where it is drawn. Owner eyeball = the
+final gate.

@@ -2,7 +2,7 @@
 type: Atomik Brief
 title: WSLg window maximize — persistent offset (still unsolved)
 timestamp: 2026-07-14T16:00:00Z
-status: open — handed to a fresh session
+status: resolved 2026-07-15 — fix shipped and probe-verified; owner visual confirmation pending
 tags: [electron, window, wslg, maximize, chromeless, dev-env]
 base_commit: fa6fdf5
 ---
@@ -180,3 +180,31 @@ Then the real options, in rough order of "keeps the custom header":
 - `apps/desktop/renderer/src/WindowControls.tsx`,
   `apps/desktop/renderer/src/AppHeader.tsx`, and the `.app-header` /
   `body[data-maximized]` CSS in `renderer/src/styles.css`.
+
+## RESOLUTION (2026-07-15, fresh session)
+
+The "cannot verify headlessly" wall fell: from WSL, `powershell.exe`
+can screenshot the REAL composited Windows desktop, read the RAIL host
+window rect, and inject clicks — a probe window with colored edge
+bands turned the offset into numbers. What "décalage" actually was,
+measured on both monitors: a WM-maximized borderless window keeps
+CORRECT logical bounds but its content PRESENTS +32px right/down with
+input unshifted — everything visible clicks 32px away; transparent
+band left/top, content clipped right/bottom. Restored windows are
+pixel-exact; a manual setBounds to the true work area is pixel- and
+click-perfect with the shadow ON, in 0-1 ms (the "lag" was the
+setHasShadow toggle). `screen.workArea` lies on BOTH monitors, and the
+naive snap conversion loses the race against the WM's async restore
+(ends 4px inset — why attempt #2's pattern was also subtly wrong).
+
+Fix shipped (option 2 of this brief, corrected): under `IS_WSLG` never
+enter the WM-maximized state — maximize = setBounds to the Windows
+work area (powershell-queried per monitor, pure parse/matching in
+`wslg-workarea.ts`, unit-tested, 48px fallback), restore = debounced
+stable bounds, snap converts after 'unmaximize' settles + guarded
+re-assert. Platform reality: the app runs XWayland (auto → x11; forced
+wayland crashes, no DRM node) — the note's "native Wayland" claim was
+stale. End-to-end verified by clicking the app's own □ Windows-side:
+content = work area exactly, taskbar visible, exact restore
+round-trip, ☰ opens where drawn. Full record: module note WSLg
+section + log.md 2026-07-15. Owner's eyes are the last gate.

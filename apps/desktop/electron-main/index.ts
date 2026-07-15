@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, session, shell, WebContentsView } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, screen, session, shell, WebContentsView } from 'electron'
 import { execFile } from 'node:child_process'
 import { copyFileSync, existsSync, mkdtempSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
@@ -46,6 +46,12 @@ import {
   writeWorkspaceState
 } from './workspace-state'
 import {
+  parseWindowsScreens,
+  WINDOWS_SCREENS_PS_COMMAND,
+  wslgWorkAreaFor,
+  type WindowsScreens
+} from './wslg-workarea'
+import {
   authRequestHeaders,
   clampedViewBounds,
   FIREFOX_UA,
@@ -65,11 +71,12 @@ import {
   type WebViewState
 } from '../shared/ipc-contract'
 
-// Linux: prefer native Wayland over XWayland when a compositor is there
-// ('auto' falls back to X11 otherwise). Under WSLg the XWayland path kept
-// stale frame margins on maximized frameless windows — transparent gap,
-// window offset right (owner report; hasShadow:false alone didn't cure
-// it). Must be set before app is ready.
+// Linux: 'auto' prefers native Wayland where it can initialize and falls
+// back to X11 otherwise. REALITY CHECK 2026-07-15 on the owner's WSLg:
+// auto resolves to X11 (XWayland) — forcing --ozone-platform=wayland
+// crashes outright (no DRM render node under this WSL), so X11 is the
+// live path and the WSLg maximize handling below is probed against it.
+// The switch stays for real Linux desktops. Must be set before ready.
 if (process.platform === 'linux') {
   app.commandLine.appendSwitch('ozone-platform-hint', 'auto')
   // NOTE: forcing PULSE_LATENCY_MSEC here broke device discovery on the
@@ -452,20 +459,129 @@ const WINDOW_CONTROL_ACTIONS = new Set([
 ])
 
 /**
- * Maximize: the NATIVE WM maximize (owner: no fullscreen crutch, keep
- * the taskbar, no lag). Probed under WSLg 2026-07-14: `window.maximize()`
- * lands {0,0,1920,1032} on a 1080 screen — it RESERVES the taskbar (the
- * WM proxies to Windows, which knows it), whereas `screen.workArea`
- * wrongly reports the full 1080 and setBounds(workArea) both covered the
- * taskbar and was laggy. So we trust the WM maximize. No shadow toggle:
- * toggling `hasShadow` at maximize time was the likely offset source.
+ * Maximize: the native WM maximize everywhere EXCEPT WSLg. WSLg cannot
+ * maximize borderless windows (microsoft/wslg#1015) — Windows-side
+ * screenshots (2026-07-15, both monitors) measured the maximized RAIL
+ * host window presenting the CONTENT +32px right/down (the client-side
+ * shadow margin WSLg forgets to subtract) while INPUT stays unshifted:
+ * everything visible sits 32px away from where it clicks, with a
+ * transparent band at left/top and content clipped at right/bottom.
+ * Electron's logical bounds read correct the whole time, which is why
+ * every bounds-level probe said "fixed" while the owner kept seeing the
+ * offset. The same probe showed a plain setBounds to the true work area
+ * renders AND clicks pixel-perfect, shadow untouched, in 0-1 ms (the
+ * old "lag" was the setHasShadow toggle, not setBounds).
+ *
+ * So under WSLg: maximize = OUR bounds over the Windows work area
+ * (powershell-queried per monitor — Electron's screen.workArea lies:
+ * full 1080, no taskbar), restore = the saved stable bounds, and the
+ * WeakMap doubles as the maximized flag. OS-initiated maximize (snap,
+ * Win+Up, drag-region double-click) is converted on the 'maximize'
+ * event, but the manual fit is applied only AFTER 'unmaximize' settles:
+ * the WM's async restore beats a synchronous setBounds (probe-measured
+ * — the naive convert ended 4px inset all around). Accepted quirks of
+ * never entering the WM state, dev-env only: Win+Down on a
+ * WSLg-maximized window minimizes instead of restoring, and an edge
+ * resize while WSLg-maximized keeps the flag until the next toggle.
  * Fullscreen (F11) is its own separate thing.
  */
+const IS_WSLG =
+  process.platform === 'linux' && Boolean(process.env['WSL_DISTRO_NAME'])
+
+/** True Windows-side screen geometry under WSLg — null until the first
+ *  query answers; refreshed (debounced) on display changes. */
+let windowsScreens: WindowsScreens | null = null
+
+function refreshWindowsScreens(): void {
+  if (!IS_WSLG) return
+  execFile(
+    'powershell.exe',
+    ['-NoProfile', '-Command', WINDOWS_SCREENS_PS_COMMAND],
+    { timeout: 15000 },
+    (error, stdout) => {
+      if (!error) {
+        windowsScreens = parseWindowsScreens(String(stdout)) ?? windowsScreens
+      }
+    }
+  )
+}
+
+/** Bounds to restore to, present ONLY while WSLg-maximized (doubles as
+ *  the "are we maximized" flag under WSLg). */
+const wslgRestoreBounds = new WeakMap<BrowserWindow, Electron.Rectangle>()
+
+/** Last STABLE un-maximized bounds (debounced in createMainWindow): the
+ *  WM maximize dance emits transient junk rects (probe: 1208×804), so
+ *  the restore target is recorded well before any conversion starts. */
+const wslgStableBounds = new WeakMap<BrowserWindow, Electron.Rectangle>()
+
+/** Windows whose WM maximize is being converted to the manual fit. */
+const wslgPendingConversion = new WeakSet<BrowserWindow>()
+
 function isWindowMaximized(window: BrowserWindow): boolean {
-  return window.isMaximized()
+  return IS_WSLG ? wslgRestoreBounds.has(window) : window.isMaximized()
+}
+
+/** Maximize state is PUSHED so the custom controls track OS-initiated
+ *  changes too, and CSS can drop the drag regions while maximized. */
+function sendWindowState(window: BrowserWindow): void {
+  if (window.isDestroyed()) return
+  window.webContents.send(ATOMIK_CHANNELS.windowStateChanged, {
+    maximized: isWindowMaximized(window)
+  })
+}
+
+function wslgApplyMaximizeBounds(
+  window: BrowserWindow,
+  anchor: Electron.Rectangle
+): void {
+  const target = wslgWorkAreaFor(
+    screen.getDisplayMatching(anchor).bounds,
+    windowsScreens
+  )
+  window.setBounds(target)
+  // One guarded re-assert: a WM configure racing ours can still land
+  // late (probe-measured on the snap conversion).
+  setTimeout(() => {
+    if (window.isDestroyed() || !wslgRestoreBounds.has(window)) return
+    const b = window.getBounds()
+    if (
+      b.x !== target.x ||
+      b.y !== target.y ||
+      b.width !== target.width ||
+      b.height !== target.height
+    ) {
+      window.setBounds(target)
+    }
+  }, 250)
+}
+
+function wslgMaximize(window: BrowserWindow): void {
+  if (!wslgRestoreBounds.has(window)) {
+    wslgRestoreBounds.set(
+      window,
+      wslgStableBounds.get(window) ?? window.getBounds()
+    )
+  }
+  const anchor = wslgRestoreBounds.get(window) ?? window.getBounds()
+  wslgApplyMaximizeBounds(window, anchor)
+  sendWindowState(window)
+}
+
+function wslgRestore(window: BrowserWindow): void {
+  const bounds = wslgRestoreBounds.get(window)
+  if (!bounds) return
+  wslgRestoreBounds.delete(window)
+  window.setBounds(bounds)
+  sendWindowState(window)
 }
 
 function toggleMaximize(window: BrowserWindow): void {
+  if (IS_WSLG) {
+    if (wslgRestoreBounds.has(window)) wslgRestore(window)
+    else wslgMaximize(window)
+    return
+  }
   if (window.isMaximized()) window.unmaximize()
   else window.maximize()
 }
@@ -767,17 +883,46 @@ function createMainWindow(hash?: string): BrowserWindow {
     if (url !== window.webContents.getURL()) event.preventDefault()
   })
 
-  // Maximize state is PUSHED so the custom controls track OS-initiated
-  // changes too (snap, Win+Up), and CSS can drop the drag regions while
-  // maximized (dragging a maximized borderless window glitches).
-  const sendWindowState = (): void => {
-    if (window.isDestroyed()) return
-    window.webContents.send(ATOMIK_CHANNELS.windowStateChanged, {
-      maximized: isWindowMaximized(window)
+  if (IS_WSLG) {
+    // Record the restore target only when the geometry is STABLE — the
+    // WM maximize dance emits transient rects that must never become
+    // the bounds we restore to.
+    let stableTimer: NodeJS.Timeout | null = null
+    const recordStable = (): void => {
+      if (stableTimer) clearTimeout(stableTimer)
+      stableTimer = setTimeout(() => {
+        stableTimer = null
+        if (window.isDestroyed() || window.isMaximized()) return
+        if (wslgRestoreBounds.has(window)) return
+        wslgStableBounds.set(window, window.getBounds())
+      }, 300)
+    }
+    window.on('resize', recordStable)
+    window.on('move', recordStable)
+    window.once('ready-to-show', recordStable)
+
+    // wslg#1015: never present the WM-maximized state — convert snap /
+    // Win+Up / drag-region double-click to the manual work-area fit,
+    // applied only after the WM's own restore settles (it beats a
+    // synchronous setBounds).
+    window.on('maximize', () => {
+      wslgPendingConversion.add(window)
+      window.unmaximize()
     })
+    window.on('unmaximize', () => {
+      if (wslgPendingConversion.has(window)) {
+        wslgPendingConversion.delete(window)
+        setTimeout(() => {
+          if (!window.isDestroyed()) wslgMaximize(window)
+        }, 150)
+      } else {
+        sendWindowState(window)
+      }
+    })
+  } else {
+    window.on('maximize', () => sendWindowState(window))
+    window.on('unmaximize', () => sendWindowState(window))
   }
-  window.on('maximize', sendWindowState)
-  window.on('unmaximize', sendWindowState)
 
   window.once('ready-to-show', () => window.show())
 
@@ -1071,6 +1216,23 @@ app.whenReady().then(() => {
     traces.flush()
     void capture.dispose()
   })
+  // WSLg maximize needs the TRUE per-monitor work area (Windows-side);
+  // query once now, re-query when the display layout changes.
+  refreshWindowsScreens()
+  if (IS_WSLG) {
+    let displayTimer: NodeJS.Timeout | null = null
+    const queueRefresh = (): void => {
+      if (displayTimer) clearTimeout(displayTimer)
+      displayTimer = setTimeout(() => {
+        displayTimer = null
+        refreshWindowsScreens()
+      }, 1000)
+    }
+    screen.on('display-metrics-changed', queueRefresh)
+    screen.on('display-added', queueRefresh)
+    screen.on('display-removed', queueRefresh)
+  }
+
   restoreVault(stateDir)
   registerIpcHandlers(docsRoot, stateDir)
   registerVaultHandlers(stateDir)
