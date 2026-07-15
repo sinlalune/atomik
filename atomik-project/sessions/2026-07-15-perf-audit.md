@@ -291,3 +291,28 @@ blaming app code — and prefer the measured numbers above.
   markdown, 650 KB HTML). Beware the headless ensureSyntaxTree stall —
   use `markdownLanguage.parser.parse()` for big docs.
 - Memory/CPU: /proc RSS + utime/stime deltas per electron process.
+
+## Addendum — corrections executed (same day)
+
+Owner: "Correct what you feel necessary before adding more features."
+Four committed units (8f5130b, 6554cba, 55d5ecf, 5121f2f):
+
+- **Action 1** — reader extraction → utilityProcess worker. Measured:
+  main-thread stall during a 650 KB extraction 834 ms → **13 ms**.
+- **Action 3** — one bounded image cache shared by live+read (64 MB
+  LRU), cleared on vault switch, invalidated on rotation — the two
+  staleness BUGS are fixed and autosaves stop re-fetching images.
+- **Action 2** — code-split SourceImageView (pdf.js) + CaptureView.
+  Measured: eager bundle 2.98 → 2.0 MB; launch-to-content 1.70–1.82 s
+  → **0.71 s**.
+- **Action 10 + parts of 6/8** — small-fixes batch: stat-first PDF cap,
+  doc.eq dirty check (no more whole-doc string per keystroke), blob-URL
+  revocation, latest-wins search guard, destroyed-webview guard,
+  AppMenu theme selector, base64ToBytes fast decode, PdfView 120 ms
+  drag debounce.
+
+Deferred to path planning (unchanged findings): 4 (ArrayBuffer/protocol
+media transport), 5 (lazy read pipeline — largely mitigated by the
+cache), 6's drag-commit restructure, 7 (OCR worker), 9 (workspace
+memoization), and the M8 search rework. Tests 324 → 337/37 across the
+four units; every unit shipped with typecheck/build/smoke green.
