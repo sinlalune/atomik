@@ -6,6 +6,7 @@ import { isMediaFilePath } from '../source/dossier'
 import { applyRotation } from '../source/rotate'
 import { pdfPageTarget, setPendingPdfPage } from '../source/pdf-open'
 import { inlineImageSources, vaultImageSources } from './note-images'
+import { getCachedImage, isCachedDataUrl, setCachedImage } from './image-cache'
 
 /**
  * Shared note-reading logic for vault-backed views (VaultView,
@@ -99,6 +100,11 @@ export function useVaultNote(
     let cancelled = false
     void Promise.all(
       [...sources].map(async ([src, rel]) => {
+        // the SHARED bounded cache (with live mode): an autosave used to
+        // re-fetch every inline image over IPC — now it hits here
+        const cached = getCachedImage(rel)
+        if (isCachedDataUrl(cached)) return [src, cached] as const
+        if (cached === 'failed') return [src, null] as const
         try {
           const asset = await window.atomik.readSourceAsset(rel)
           const dataUrl = await applyRotation(
@@ -106,8 +112,10 @@ export function useVaultNote(
             asset.rotation,
             asset.mimeType
           )
+          setCachedImage(rel, dataUrl)
           return [src, dataUrl] as const
         } catch {
+          setCachedImage(rel, 'failed')
           return [src, null] as const
         }
       })

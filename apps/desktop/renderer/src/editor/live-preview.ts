@@ -16,6 +16,7 @@ import {
 import type { SyntaxNode } from '@lezer/common'
 import type { AtomikApi } from '../../../shared/ipc-contract'
 import { applyRotation } from '../source/rotate'
+import { getCachedImage, isCachedDataUrl, setCachedImage } from '../vault/image-cache'
 
 /** The preload bridge, reached at call time only (this module is also
  *  imported by headless node tests, which never render widgets). */
@@ -91,14 +92,10 @@ export function resolveEmbedPath(
  *  placeholder chips become images (or honest broken chips). */
 export const imageCacheBump = StateEffect.define<null>()
 
-/** vault relPath → data URL | 'loading' | 'failed'. Module-level on
- *  purpose: the bytes are identical across every view of the note. */
-const imageDataCache = new Map<string, string | 'loading' | 'failed'>()
-
-/** Test seam. */
-export function primeImageCache(relPath: string, dataUrl: string): void {
-  imageDataCache.set(relPath, dataUrl)
-}
+// The image bytes live in the SHARED bounded cache (vault/image-cache):
+// live and read mode render the same assets, and the cache is cleared on
+// vault switch / invalidated on rotation (perf audit 2026-07-15 — the
+// old module-level Map here grew forever and served stale bytes).
 
 class ImageWidget extends WidgetType {
   /** Cache state when the decoration was built: two widgets are equal
@@ -110,14 +107,14 @@ class ImageWidget extends WidgetType {
     private readonly alt: string
   ) {
     super()
-    this.builtWith = imageDataCache.get(vaultRel)
+    this.builtWith = getCachedImage(vaultRel)
   }
 
   override toDOM(view: EditorView): HTMLElement {
     const host = document.createElement('span')
     host.className = 'lp-image'
-    const cached = imageDataCache.get(this.vaultRel)
-    if (typeof cached === 'string' && cached !== 'loading' && cached !== 'failed') {
+    const cached = getCachedImage(this.vaultRel)
+    if (isCachedDataUrl(cached)) {
       const img = document.createElement('img')
       img.src = cached
       img.alt = this.alt
@@ -134,7 +131,7 @@ class ImageWidget extends WidgetType {
     host.classList.add('lp-image-pending')
     host.textContent = cached === 'failed' ? `image not found: ${this.alt}` : '… image'
     if (cached === undefined) {
-      imageDataCache.set(this.vaultRel, 'loading')
+      setCachedImage(this.vaultRel, 'loading')
       atomik()
         .readSourceAsset(this.vaultRel)
         .then(async (asset) =>
@@ -146,7 +143,7 @@ class ImageWidget extends WidgetType {
         )
         .then(
           (dataUrl) => {
-            imageDataCache.set(this.vaultRel, dataUrl)
+            setCachedImage(this.vaultRel, dataUrl)
             try {
               view.dispatch({ effects: imageCacheBump.of(null) })
             } catch {
@@ -154,7 +151,7 @@ class ImageWidget extends WidgetType {
             }
           },
           () => {
-            imageDataCache.set(this.vaultRel, 'failed')
+            setCachedImage(this.vaultRel, 'failed')
             try {
               view.dispatch({ effects: imageCacheBump.of(null) })
             } catch {

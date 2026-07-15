@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { resolveRelativePath } from '../dev-docs/markdown'
 import { useVaultNote } from '../vault/useVaultNote'
 import { useNavHistory } from '../vault/nav-history'
+import { invalidateImage } from '../vault/image-cache'
 import {
   resourceOf,
   rotationOf,
@@ -263,7 +264,13 @@ export function SourceImageView({
     const next = (((rotation + delta) % 360) + 360) % 360 as Rotation
     const content = withDossierRotation(note.content, next)
     window.atomik.writeNote(note.relPath, content, note.mtimeMs).then(
-      ({ mtimeMs }) => applySaved(content, mtimeMs),
+      ({ mtimeMs }) => {
+        applySaved(content, mtimeMs)
+        // the shared image cache bakes rotation into its data URLs —
+        // drop this asset so live/read re-fetch with the new rotation
+        // (stale-after-rotate was a real bug, perf audit 2026-07-15)
+        if (assetRel) invalidateImage(assetRel)
+      },
       (cause) => setImageError(String(cause))
     )
   }

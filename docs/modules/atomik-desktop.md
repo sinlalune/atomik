@@ -277,7 +277,16 @@ timestamp: 2026-07-06T00:00:00Z
   the cursor (touched line reveals raw syntax; click puts the cursor on
   the embed) — async data-URL cache + `imageCacheBump` effect recompute,
   note path supplied via `notePathFacet`; `resolveEmbedPath` accepts
-  `<…>`/percent-encoded destinations and refuses root escapes. And the
+  `<…>`/percent-encoded destinations and refuses root escapes.
+  IMAGE BYTES live in ONE shared BOUNDED cache (`vault/image-cache.ts`,
+  64 MB LRU, rotation baked into the cached data URL; perf audit
+  2026-07-15): live widgets and read-mode inlining consult the same
+  entries — an autosave no longer re-fetches every inline image over
+  IPC — and the cache is CLEARED on vault switch (App.tsx global
+  subscription; same relPath ≠ same file) and INVALIDATED per asset
+  when a rotation lands (SourceImageView.rotate). Both were live-mode
+  staleness BUGS before (old vault's bytes / pre-rotation pixels served
+  until restart). And the
   editor gained "@" QUICK ACTIONS (`editor/quick-actions.ts`, the only
   registered autocomplete source): `@` lists every source bundle
   (folder holding source.md), filtered as you type; picking one inserts
