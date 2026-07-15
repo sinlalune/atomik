@@ -727,6 +727,12 @@ pdf extraction (10: renderer fidelity and extraction fidelity separate)
 
 ## Common mistakes
 
+- Re-quoting selection text without de-quoting first (S06b, owner report):
+  an @ quote block is a common selection, and `excerpt`'s whitespace
+  collapse turns its per-line `> ` markers into literal mid-sentence `>`.
+  Compose display text via `dequote`/`quoteBlock` (ai-mock.ts) — but NEVER
+  sanitize the selection, claim candidates, or evidence: the containment
+  check and the 05 anchors refer to the buffer's raw bytes.
 - Adding a preload method without extending `ipc-contract.ts` and the surface
   test in the same change — the test fails by design; re-read 13 §IPC first
   (CP-MVP-001 conditional trigger).

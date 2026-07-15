@@ -82,10 +82,34 @@ const excerpt = (text: string, max = 80): string => {
 const exactQuote = (selection: AiSelection, max = 160): string =>
   selection.content.slice(0, max).trim()
 
+/** Strips markdown blockquote markers so already-quoted material (an @
+ *  quote block is a common selection) can be re-quoted without nesting
+ *  garbage — excerpt's whitespace collapse turned per-line '> ' into
+ *  literal mid-sentence '>' (owner report, S06b). DISPLAY-side only:
+ *  selections, claim candidates, and evidence keep the RAW bytes — the
+ *  containment check and the 05 anchors refer to the buffer as it is. */
+const dequote = (text: string): string =>
+  text
+    .split('\n')
+    .map((line) => line.replace(/^[ \t]*(?:>[ \t]?)+/, ''))
+    .join('\n')
+
+/** A well-formed quote block from raw selection text: de-quote, cap,
+ *  then re-quote line by line (a blank line stays inside the block). */
+function quoteBlock(text: string, max: number): string {
+  const clean = dequote(text).trim()
+  const capped = clean.length <= max ? clean : `${clean.slice(0, max)}…`
+  return capped
+    .split('\n')
+    .map((line) => (line.trim().length > 0 ? `> ${line.trimEnd()}` : '>'))
+    .join('\n')
+}
+
 /** Deterministic placeholder prose, clearly marked as mock output. The
- *  quote line reproduces the selection EXACTLY so the truth checker can
- *  derive it (source-backed); the other statements exist to exercise the
- *  remaining labels. */
+ *  claim CANDIDATE reproduces the selection exactly (raw bytes, so the
+ *  truth checker can derive source-backed); the DISPLAYED quote is
+ *  de-quoted + re-quoted so an already-quoted selection stays readable;
+ *  the other statements exist to exercise the remaining labels. */
 function mockAnswer(operation: AiOperation, selection: AiSelection): string {
   const preset = operation.preset ?? 'free'
   return [
@@ -93,7 +117,7 @@ function mockAnswer(operation: AiOperation, selection: AiSelection): string {
     '',
     `Your selection says:`,
     '',
-    `> ${exactQuote(selection)}`,
+    quoteBlock(selection.content, 160),
     '',
     'This is a deterministic placeholder: the real provider adapter',
     'arrives behind the same channel at M7+. Mock placeholders carry no',
@@ -173,9 +197,9 @@ function mockProposedText(
     case 'replace-selection':
       return `${selection.content}\n\n${stamp}\n>\n> Placeholder rewrite of the selection above.`
     case 'append':
-      return `\n## [mock] ${excerpt(operation.instruction, 60)}\n\n${stamp}\n>\n> Placeholder section derived from «${excerpt(selection.content)}».\n${webSource ? `\n${provenanceLine(webSource, operation.target.relPath)}\n` : ''}`
+      return `\n## [mock] ${excerpt(operation.instruction, 60)}\n\n${stamp}\n>\n> Placeholder section derived from «${excerpt(dequote(selection.content))}».\n${webSource ? `\n${provenanceLine(webSource, operation.target.relPath)}\n` : ''}`
     case 'new-note':
-      return `# ${excerpt(operation.instruction, 60)}\n\n${stamp}\n\nSource selection (from \`${selection.relPath}\`):\n\n> ${excerpt(selection.content, 400)}\n${webSource ? `\n${provenanceLine(webSource, destination.newNotePath)}\n` : ''}`
+      return `# ${excerpt(operation.instruction, 60)}\n\n${stamp}\n\nSource selection (from \`${selection.relPath}\`):\n\n${quoteBlock(selection.content, 400)}\n${webSource ? `\n${provenanceLine(webSource, destination.newNotePath)}\n` : ''}`
   }
 }
 

@@ -174,6 +174,52 @@ describe('runAiOperation (mock bundle)', () => {
     expect(backed?.source.dossierPath).toBe('sources/web/guide/source.md')
   })
 
+  it('an already-quoted selection re-quotes cleanly; evidence keeps raw bytes (S06b)', () => {
+    // the owner's case: an @ transcript quote block IS the selection
+    const quoted = [
+      '> **Pascal — transcript** ([source](<sources/pascal/source.md>))',
+      '>',
+      '> Et ainsi vous ne le rendez pas aimable à ceux qui en haïssent',
+      "> l'injustice. Vous ne le rendez aimable qu'aux injustes."
+    ].join('\n')
+    const op = validOp({
+      input: [
+        {
+          relPath: 'notes/test.md',
+          kind: 'text',
+          content: quoted,
+          range: { from: 0, to: quoted.length }
+        }
+      ],
+      target: {
+        relPath: 'notes/test.md',
+        destination: { kind: 'new-note', newNotePath: 'notes/quote-ai.md' }
+      }
+    })
+    const bundle = runAiOperation(op)
+    const note = bundle.patchProposals[0]!.files[0]!.newText
+    // line-by-line re-quote: no literal '>' lands mid-sentence
+    expect(note).toContain(
+      "> Et ainsi vous ne le rendez pas aimable à ceux qui en haïssent\n> l'injustice."
+    )
+    expect(note).not.toMatch(/haïssent > l'injustice/)
+    // raw bytes still rule the truth check: exact-quote claim stays
+    // source-backed and the evidence quote is the buffer as it is
+    const backed = bundle.claims.find((claim) => claim.label === 'source-backed')
+    expect(backed).toBeDefined()
+    expect(bundle.evidence[0]!.quote.startsWith('> **Pascal')).toBe(true)
+
+    const appended = runAiOperation(
+      validOp({
+        input: op.input,
+        target: { relPath: 'notes/test.md', destination: { kind: 'append' } }
+      })
+    ).patchProposals[0]!.files[0]!.newText
+    // the inline «excerpt» is de-quoted before whitespace collapse
+    expect(appended).toContain('derived from «**Pascal — transcript**')
+    expect(appended).not.toMatch(/haïssent > l/)
+  })
+
   it('without provenance the proposal text is unchanged (no Source line)', () => {
     const op = validOp({
       target: {

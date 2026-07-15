@@ -323,6 +323,17 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       bundle → aiWeb=ok:url=…:dossier=… on the real app (renderer →
       typed channel → dossier read → evidence url + Source line).
       Typecheck/build/smoke green.
+      S06b 2026-07-15 (owner report, first dogfooding screenshot):
+      selecting an @ QUOTE BLOCK and running AI re-quoted the already-
+      quoted markdown — excerpt's whitespace collapse turned per-line
+      "> " into literal mid-sentence ">" («haïssent > l'injustice»).
+      Fix where the owner guessed: in the note-side QUOTING, never the
+      prompt — dequote/quoteBlock compose the displayed quote (proper
+      line-by-line re-quote), while the selection, claim candidates,
+      and evidence keep RAW bytes (containment + 05 anchors refer to
+      the buffer as it is; source-backed proven preserved in the
+      test). @ quote-block import format itself confirmed and kept.
+      Idiom in Common mistakes. Tests 347→348/38.
 - [ ] S07 Acceptance run against 18 §M5 intents + the truth/provider
       boundary; owner validation on real pages INCLUDING the
       learning-workbench scenario (Colab on one panel, a math PDF on
@@ -381,7 +392,7 @@ tests       : 282 passing / 31 suites — tests/typecheck/build/smoke
               SUCCEEDED through the Firefox presentation and COLAB
               RUNS IN THE PANE. The named S02 risk is closed; the
               workbench scenario is alive. S03 fully owner-validated.
-tests       : 347 passing / 38 suites — green at S06 close (the
+tests       : 348 passing / 38 suites — green at S06b close (the
               intervening perf audit + 4 perf batches raised the base
               to 337/37; S06's unit adds web-provenance + provenance
               cases). Typecheck/build/smoke green; e2e rung
