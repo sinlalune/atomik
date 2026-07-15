@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { assertInsideVault } from './vault'
 import type { CaptureImportResult } from '../shared/ipc-contract'
@@ -93,6 +93,13 @@ export function importPdfFromPath(
   absPdfPath: string,
   now: () => number = Date.now
 ): CaptureImportResult {
+  // cap check BEFORE the read: the old order slurped an oversized file
+  // into memory just to refuse it (perf audit 2026-07-15 — up to a
+  // main-thread 200 MB read for nothing); stat is free. The byte check
+  // stays: the file can change between stat and read.
+  if (statSync(absPdfPath).size > MAX_PDF_BYTES) {
+    throw new Error('pdf-import: file too large')
+  }
   // read + validate BEFORE touching the vault — bytes outrank labels
   const bytes = readFileSync(absPdfPath)
   if (bytes.length > MAX_PDF_BYTES) throw new Error('pdf-import: file too large')

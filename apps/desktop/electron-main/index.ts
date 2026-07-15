@@ -779,7 +779,16 @@ function registerWebViewHandlers(getWindow: () => BrowserWindow | null): void {
     (_event, id: unknown, url: unknown) => {
       if (!isWebViewId(id)) throw new Error('web-view: rejected id')
       const existing = views.get(id)
-      if (existing) return { state: stateOf(id, existing, null), created: false }
+      if (existing) {
+        if (existing.webContents.isDestroyed()) {
+          // a window close destroyed the guest under us — drop the
+          // stale entry and recreate below (stateOf on a destroyed
+          // webContents throws; perf audit 2026-07-15)
+          views.delete(id)
+        } else {
+          return { state: stateOf(id, existing, null), created: false }
+        }
+      }
       const window = getWindow()
       if (!window || window.isDestroyed()) throw new Error('web-view: no window')
       const target = url === undefined ? 'about:blank' : url

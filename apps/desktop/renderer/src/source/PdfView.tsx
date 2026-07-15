@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as pdfjs from 'pdfjs-dist'
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+import { base64ToBytes } from './bytes'
 
 /**
  * The PDF page viewer (CP-MVP-003 S04, bedrock 10): pdf.js in the
@@ -62,19 +63,36 @@ export function PdfView({
   useEffect(() => {
     const host = hostRef.current
     if (!host) return
+    let timer: number | undefined
+    let measuredOnce = false
     const observer = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width ?? 0
-      setHostWidth((current) => (Math.abs(current - width) > 1 ? width : current))
+      const apply = (): void =>
+        setHostWidth((current) => (Math.abs(current - width) > 1 ? width : current))
+      window.clearTimeout(timer)
+      // the FIRST real measurement lands immediately (the blank-until-
+      // poked race needs it); later changes settle 120 ms — a divider
+      // drag was re-rastering the page at full res per pointermove
+      // (perf audit 2026-07-15)
+      if (!measuredOnce && width > 0) {
+        measuredOnce = true
+        apply()
+      } else {
+        timer = window.setTimeout(apply, 120)
+      }
     })
     observer.observe(host)
-    return () => observer.disconnect()
+    return () => {
+      window.clearTimeout(timer)
+      observer.disconnect()
+    }
   }, [])
 
   // load the document from the gated bytes
   useEffect(() => {
     let cancelled = false
     const base64 = dataUrl.slice(dataUrl.indexOf('base64,') + 7)
-    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
+    const bytes = base64ToBytes(base64)
     const task = pdfjs.getDocument({ data: bytes })
     task.promise.then(
       (doc) => {

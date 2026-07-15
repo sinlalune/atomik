@@ -13,9 +13,10 @@ import { useWorkspace } from './workspace/store'
  * raw key goes DOWN the typed channel once and never comes back, 13).
  */
 export function AppMenu(): React.JSX.Element {
-  const state = useWorkspace((store) => store.state)
+  // subscribe to the THEME string, not the whole store — the menu was
+  // re-rendering on every workspace dispatch (divider drags included)
+  const theme = useWorkspace((store) => themeOf(store.state))
   const dispatch = useWorkspace((store) => store.dispatch)
-  const theme = themeOf(state)
 
   const [open, setOpen] = useState(false)
   const [settings, setSettings] = useState<AiSettingsPublic | null>(null)

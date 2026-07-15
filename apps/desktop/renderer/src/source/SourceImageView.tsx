@@ -67,6 +67,16 @@ export function SourceImageView({
   const [imageError, setImageError] = useState<string | null>(null)
   const [assetRel, setAssetRel] = useState<string | null>(null)
 
+  // Audio plays through a blob: URL (rotate.ts) — revoke the PREVIOUS
+  // one whenever base changes and on unmount, or every audio open
+  // retains its full bytes for the session (perf audit 2026-07-15).
+  useEffect(() => {
+    const url = base?.dataUrl
+    return () => {
+      if (url?.startsWith('blob:')) URL.revokeObjectURL(url)
+    }
+  }, [base])
+
   useEffect(() => {
     if (dossierPath) openNote(dossierPath)
     // openNote is stable; re-run only when the tab points elsewhere.

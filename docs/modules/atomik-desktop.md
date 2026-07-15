@@ -750,6 +750,14 @@ pdf extraction (10: renderer fidelity and extraction fidelity separate)
 - Recreating the EditorView on re-render (kills selection/undo/scroll):
   it lives in a ref, mount-only, remounted by key per note; fresh
   closures reach it through refs (saveRef pattern).
+- Comparing editor content as strings on hot paths: the dirty check is
+  `doc.eq(savedDoc)` on CM Text (structure-shared) — a `toString()`
+  compare materializes the whole document per keystroke (perf audit
+  2026-07-15). Same family: decode base64 with `base64ToBytes`
+  (source/bytes.ts), never `Uint8Array.from(atob(…), cb)` (one JS call
+  per byte); and every `URL.createObjectURL` needs a revoke on
+  change/unmount (SourceImageView/CaptureView pattern) or the media
+  bytes stay for the session.
 - Breaking the mtime handshake: every successful save must adopt the
   returned mtime or the NEXT save false-conflicts. "Overwrite anyway" is
   the only sanctioned unconditional write.

@@ -23,10 +23,24 @@ export function useTreeSearch(
       setResults(null)
       return
     }
+    // latest-wins: a slower older scan must never overwrite a newer
+    // one's results (the cleanup marks the in-flight request stale
+    // when the query moves on)
+    let stale = false
     const timer = window.setTimeout(() => {
-      search(trimmed).then(setResults, () => setResults([]))
+      search(trimmed).then(
+        (found) => {
+          if (!stale) setResults(found)
+        },
+        () => {
+          if (!stale) setResults([])
+        }
+      )
     }, 250)
-    return () => window.clearTimeout(timer)
+    return () => {
+      stale = true
+      window.clearTimeout(timer)
+    }
   }, [query, search])
 
   return { query, setQuery, results }

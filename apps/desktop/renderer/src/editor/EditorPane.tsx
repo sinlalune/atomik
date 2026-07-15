@@ -19,7 +19,7 @@ import {
   type Language
 } from '@codemirror/language'
 import { highlightSelectionMatches, searchKeymap } from '@codemirror/search'
-import { Compartment, type Extension } from '@codemirror/state'
+import { Compartment, Text, type Extension } from '@codemirror/state'
 import { oneDark } from '@codemirror/theme-one-dark'
 import {
   drawSelection,
@@ -164,7 +164,11 @@ export function EditorPane({
   const hostRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const mtimeRef = useRef(note.mtimeMs)
-  const savedDocRef = useRef(note.content)
+  /** The saved document as a CM Text: `doc.eq` compares via structure
+   *  sharing, where the old string compare materialized the WHOLE
+   *  document on every keystroke (perf audit 2026-07-15 — pure GC
+   *  pressure at MB-note scale). Set from the view's real doc at mount. */
+  const savedDocRef = useRef<Text>(Text.empty)
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
   const [conflict, setConflict] = useState(false)
@@ -205,7 +209,8 @@ export function EditorPane({
       const view = viewRef.current
       if (!view) return false
       window.clearTimeout(autoTimerRef.current)
-      const content = view.state.doc.toString()
+      const docAtSave = view.state.doc
+      const content = docAtSave.toString()
       setSaving(true)
       setError(null)
       try {
@@ -215,10 +220,10 @@ export function EditorPane({
           force ? undefined : mtimeRef.current
         )
         mtimeRef.current = result.mtimeMs
-        savedDocRef.current = content
+        savedDocRef.current = docAtSave
         applyConflict(false)
         // The buffer may have moved on during the await; stay dirty then.
-        markDirty(view.state.doc.toString() !== content)
+        markDirty(!view.state.doc.eq(docAtSave))
         onSaved(content, result.mtimeMs)
         return true
       } catch (reason) {
@@ -245,7 +250,7 @@ export function EditorPane({
         changes: { from: 0, to: view.state.doc.length, insert: fresh.content }
       })
       mtimeRef.current = fresh.mtimeMs
-      savedDocRef.current = fresh.content
+      savedDocRef.current = view.state.doc
       applyConflict(false)
       markDirty(false)
       onSaved(fresh.content, fresh.mtimeMs)
@@ -348,7 +353,7 @@ export function EditorPane({
         ]),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
-            const changed = update.state.doc.toString() !== savedDocRef.current
+            const changed = !update.state.doc.eq(savedDocRef.current)
             markDirtyRef.current(changed)
             // Auto mode: save shortly after typing pauses. Never while a
             // conflict banner is up — resolution stays a human decision.
@@ -363,6 +368,8 @@ export function EditorPane({
       ]
     })
     viewRef.current = view
+    // the saved baseline IS the view's initial doc (identical splitting)
+    savedDocRef.current = view.state.doc
     // Live opens ON THE CONTENT: the default cursor position (0) sits
     // inside the frontmatter and would reveal it — the fold only holds
     // while the selection is elsewhere.

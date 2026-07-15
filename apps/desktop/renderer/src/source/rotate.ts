@@ -1,3 +1,5 @@
+import { base64ToBytes } from './bytes'
+
 /**
  * Display-time rotation (owner correction for sideways phone photos).
  * The rotation lives in the dossier; the pixels are redrawn on a canvas
@@ -37,8 +39,8 @@ export function applyRotation(
 
 /** Media plays through a Blob URL, not a giant data: URL — Chromium's
  *  data-URL media path stalls mid-file on some containers (owner: phone
- *  m4a stopped ~14 s of 30). Caller revokes. */
+ *  m4a stopped ~14 s of 30). Caller revokes (consumers hold the URL in
+ *  state and revoke the previous value on change/unmount). */
 export function mediaObjectUrl(base64: string, mimeType: string): string {
-  const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
-  return URL.createObjectURL(new Blob([bytes], { type: mimeType }))
+  return URL.createObjectURL(new Blob([base64ToBytes(base64)], { type: mimeType }))
 }

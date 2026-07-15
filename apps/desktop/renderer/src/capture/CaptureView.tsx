@@ -403,6 +403,14 @@ function UploadRow({
 }): React.JSX.Element {
   const [importing, setImporting] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  // audio previews are blob: URLs — revoke the previous one on change /
+  // hide / unmount, or each Listen retains the full bytes for the
+  // session (perf audit 2026-07-15)
+  useEffect(() => {
+    return () => {
+      if (previewUrl?.startsWith('blob:')) URL.revokeObjectURL(previewUrl)
+    }
+  }, [previewUrl])
   const [title, setTitle] = useState(() => captureTitleOf(upload.fileName))
   const [relPath, setRelPath] = useState(() =>
     defaultCaptureDestination(upload.fileName, Date.now())
