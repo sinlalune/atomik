@@ -1,13 +1,11 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef } from 'react'
 import type {
   PaneNode,
   WorkspaceState,
   WorkspaceTab
 } from '../../../shared/ipc-contract'
-import { CaptureView } from '../capture/CaptureView'
 import { DevDocs } from '../dev-docs/DevDocs'
 import { ProjectView } from '../project/ProjectView'
-import { SourceImageView } from '../source/SourceImageView'
 import { noteDisplayName } from '../vault/scope'
 import { VaultView } from '../vault/VaultView'
 import { WebView } from '../web/WebView'
@@ -33,6 +31,17 @@ import {
 import { parseOpenFolders, serializeOpenFolders } from '../vault/tree-fold'
 import { NewTabChooser } from './NewTabChooser'
 import { useWorkspace } from './store'
+
+// Code-split the two heavy views (perf audit 2026-07-15: zero dynamic
+// imports meant pdf.js — 24% of a 3 MB bundle — plus qrcode and
+// fix-webm-duration parsed at EVERY launch). Their chunks load on the
+// first source/capture tab; local files, so the Suspense gap is a blink.
+const CaptureView = lazy(() =>
+  import('../capture/CaptureView').then((m) => ({ default: m.CaptureView }))
+)
+const SourceImageView = lazy(() =>
+  import('../source/SourceImageView').then((m) => ({ default: m.SourceImageView }))
+)
 
 type Dispatch = (operation: (state: WorkspaceState) => WorkspaceState) => void
 
@@ -179,15 +188,17 @@ function TabContent({
   }
   if (tab.view === 'capture') {
     return (
-      <CaptureView
-        onOpenSourceImage={openSourceImage}
-        treeCollapsed={treeCollapsed}
-        onTreeToggle={onTreeToggle}
-        treeWidth={treeWidth}
-        onTreeResize={onTreeResize}
-        openFolders={openFolders}
-        onOpenFoldersChange={onOpenFoldersChange}
-      />
+      <Suspense fallback={<div className="view-loading" />}>
+        <CaptureView
+          onOpenSourceImage={openSourceImage}
+          treeCollapsed={treeCollapsed}
+          onTreeToggle={onTreeToggle}
+          treeWidth={treeWidth}
+          onTreeResize={onTreeResize}
+          openFolders={openFolders}
+          onOpenFoldersChange={onOpenFoldersChange}
+        />
+      </Suspense>
     )
   }
   if (tab.view === 'source-web') {
@@ -210,28 +221,30 @@ function TabContent({
   }
   if (tab.view === 'source-image') {
     return (
-      <SourceImageView
-        dossierPath={tab.params?.['dossierPath']}
-        onDossierOpened={(relPath) =>
-          dispatch((state) =>
-            updateTabParams(state, tab.id, { dossierPath: relPath })
-          )
-        }
-        onOpenWebUrl={openWebUrl}
-        historyKey={tab.id}
-        initialPdfPage={pdfPageOf(tab.params)}
-        onPdfPageChange={(page) =>
-          dispatch((state) =>
-            updateTabParams(state, tab.id, { page: String(page) })
-          )
-        }
-        treeCollapsed={treeCollapsed}
-        onTreeToggle={onTreeToggle}
-        treeWidth={treeWidth}
-        onTreeResize={onTreeResize}
-        openFolders={openFolders}
-        onOpenFoldersChange={onOpenFoldersChange}
-      />
+      <Suspense fallback={<div className="view-loading" />}>
+        <SourceImageView
+          dossierPath={tab.params?.['dossierPath']}
+          onDossierOpened={(relPath) =>
+            dispatch((state) =>
+              updateTabParams(state, tab.id, { dossierPath: relPath })
+            )
+          }
+          onOpenWebUrl={openWebUrl}
+          historyKey={tab.id}
+          initialPdfPage={pdfPageOf(tab.params)}
+          onPdfPageChange={(page) =>
+            dispatch((state) =>
+              updateTabParams(state, tab.id, { page: String(page) })
+            )
+          }
+          treeCollapsed={treeCollapsed}
+          onTreeToggle={onTreeToggle}
+          treeWidth={treeWidth}
+          onTreeResize={onTreeResize}
+          openFolders={openFolders}
+          onOpenFoldersChange={onOpenFoldersChange}
+        />
+      </Suspense>
     )
   }
   if (tab.view === 'project') {

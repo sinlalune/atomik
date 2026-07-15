@@ -596,7 +596,13 @@ timestamp: 2026-07-06T00:00:00Z
   (incubating workspace-core, 14), thin zustand store with debounced
   persistence, disposable state in `.atomik/local-workspace.json`
   (`electron-main/workspace-state.ts`; `ATOMIK_STATE_DIR` overrides the
-  location for tests/smoke).
+  location for tests/smoke). The two HEAVY views are CODE-SPLIT
+  (React.lazy in Workspace.tsx; perf audit 2026-07-15):
+  SourceImageView (pulls pdf.js — its chunk is ~850 KB) and CaptureView
+  (qrcode + fix-webm-duration) load on their first tab; the eager
+  bundle dropped 2.98 → 2.0 MB and measured launch-to-content went
+  1.7–1.8 s → ~0.71 s. Keep new heavy deps behind a lazy view — a
+  plain static import from any eager module undoes the split silently.
 - The Dev Docs tab (16 MVP slice): grouped docs tree + rendered Markdown
   with the bedrock diagrams inlined as SVG data URIs, reading the real
   files under `docs/`. `electron-main/dev-docs.ts` holds the pure logic —
