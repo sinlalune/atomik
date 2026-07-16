@@ -51,7 +51,7 @@ describe('deleteNote — user notes go to the trash (CP-MVP-007 S03)', () => {
     expect(existsSync(join(vault, 'notes/deep/leaf.md'))).toBe(true)
   })
 
-  it('refuses bundle-internal files — the bundle deletes as a unit', async () => {
+  it('refuses bundle CONTRACT files — the bundle deletes as a unit', async () => {
     await expect(
       deleteNote(vault, 'sources/web/guide/reader.md', fakeTrash)
     ).rejects.toThrow(/bundle/)
@@ -59,6 +59,13 @@ describe('deleteNote — user notes go to the trash (CP-MVP-007 S03)', () => {
       deleteNote(vault, 'sources/web/guide/source.md', fakeTrash)
     ).rejects.toThrow(/bundle/)
     expect(trashed).toEqual([])
+  })
+
+  it('an ordinary note LIVING in a bundle folder deletes fine (S07e-e owner report)', async () => {
+    writeFileSync(join(vault, 'sources/web/guide/ai-notes.md'), '# thoughts\n')
+    const result = await deleteNote(vault, 'sources/web/guide/ai-notes.md', fakeTrash)
+    expect(result.relPath).toBe('sources/web/guide/ai-notes.md')
+    expect(existsSync(join(vault, 'sources/web/guide/source.md'))).toBe(true)
   })
 
   it('rejects traversal, non-md, and missing targets before the trash', async () => {
@@ -151,18 +158,28 @@ describe('relocate — rename/move as the previewed refactor (CP-MVP-007 S04)', 
     expect(readFileSync(join(vault, 'notes/idea-links-2.md'), 'utf8')).toBe(before)
   })
 
-  it('refuses convention files, bundle files, bundle targets, collisions', () => {
+  it('refuses convention files, bundle contract files and names, collisions', () => {
     writeFileSync(join(vault, 'notes/index.md'), '# map\n')
     expect(() => relocatePreview(vault, 'notes/index.md', 'notes/map.md')).toThrow(/convention/)
     expect(() => relocatePreview(vault, 'notes/idea.md', 'notes/log.md')).toThrow(/convention/)
     expect(() =>
       relocatePreview(vault, 'sources/web/guide/reader.md', 'notes/reader.md')
     ).toThrow(/bundle/)
+    // a contract NAME stays reserved inside a bundle (it would shadow
+    // the derived file's lifecycle verbs)
     expect(() =>
-      relocatePreview(vault, 'notes/idea.md', 'sources/web/guide/idea.md')
-    ).toThrow(/inside a source bundle/)
+      relocatePreview(vault, 'notes/idea.md', 'sources/web/guide/transcript.md')
+    ).toThrow(/contract file/)
     expect(() => relocatePreview(vault, 'notes/idea.md', 'notes/citing.md')).toThrow(/already exists/)
     expect(() => relocatePreview(vault, 'notes/idea.md', 'notes/idea.md')).toThrow(/same path/)
+  })
+
+  it('an ordinary note moves freely OUT of (and into) a bundle folder (S07e-e)', () => {
+    writeFileSync(join(vault, 'sources/web/guide/ai-notes.md'), '# thoughts\n')
+    relocateApply(vault, 'sources/web/guide/ai-notes.md', 'notes/ai-notes.md')
+    expect(existsSync(join(vault, 'notes/ai-notes.md'))).toBe(true)
+    relocateApply(vault, 'notes/ai-notes.md', 'sources/web/guide/ai-notes.md')
+    expect(existsSync(join(vault, 'sources/web/guide/ai-notes.md'))).toBe(true)
   })
 
   it('rolls back the move when a link rewrite fails midway', () => {

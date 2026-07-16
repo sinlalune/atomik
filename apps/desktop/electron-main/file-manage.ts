@@ -28,13 +28,33 @@ const rel = (vaultRoot: string, abs: string): string =>
 
 /**
  * Bundle-internal rule (S01 pin): a folder that directly contains
- * source.md is a bundle root — its files (source.md itself included)
- * delete WITH the bundle, never individually. Derived files keep
- * their in-view verbs, which also restore dossier state.
+ * source.md is a bundle root. The rule protects the bundle's CONTRACT
+ * files — the dossier, its human map, and the derived representations
+ * (each owns a lifecycle verb that also restores dossier state): they
+ * delete/move WITH the bundle, never individually. User/AI notes that
+ * merely LIVE in a bundle folder are ordinary notes (S07e-e owner
+ * report: an AI-generated note in sources/web/<slug>/ refused
+ * deletion under the earlier folder-wide guard).
  */
 function bundleRootOf(absNote: string): string | null {
   const dir = dirname(absNote)
   return existsSync(join(dir, 'source.md')) ? dir : null
+}
+
+const BUNDLE_CONTRACT_FILES = new Set([
+  'source.md',
+  'index.md',
+  'transcript.md',
+  'extracted.md',
+  'reader.md'
+])
+
+const isBundleContractName = (absNote: string): boolean =>
+  BUNDLE_CONTRACT_FILES.has(basename(absNote).toLowerCase())
+
+function bundleContractRootOf(absNote: string): string | null {
+  const root = bundleRootOf(absNote)
+  return root && isBundleContractName(absNote) ? root : null
 }
 
 export async function deleteNote(
@@ -46,7 +66,7 @@ export async function deleteNote(
   if (!abs) throw new Error('file-manage: rejected path')
   if (!existsSync(abs)) throw new Error('file-manage: note not found')
   assertInsideVault(vaultRoot, abs)
-  const bundleRoot = bundleRootOf(abs)
+  const bundleRoot = bundleContractRootOf(abs)
   if (bundleRoot) {
     throw new Error(
       `file-manage: bundle file — delete the bundle folder instead (${rel(vaultRoot, bundleRoot)})`
@@ -196,14 +216,19 @@ function computeRelocate(
       throw new Error('file-manage: convention file (index/log) — it stays with its folder')
     }
   }
-  const fromBundle = bundleRootOf(fromAbs)
+  const fromBundle = bundleContractRootOf(fromAbs)
   if (fromBundle) {
     throw new Error(
       `file-manage: bundle file — the bundle folder moves as a unit (${rel(vaultRoot, fromBundle)})`
     )
   }
-  if (existsSync(join(dirname(toAbs), 'source.md'))) {
-    throw new Error('file-manage: target is inside a source bundle')
+  // Inside a bundle, the contract NAMES stay reserved — a note renamed
+  // to reader.md would shadow the derived file's lifecycle verbs.
+  if (
+    existsSync(join(dirname(toAbs), 'source.md')) &&
+    isBundleContractName(toAbs)
+  ) {
+    throw new Error('file-manage: target name is a bundle contract file')
   }
 
   // A same-folder rename leaves the moved note's resolution basis
