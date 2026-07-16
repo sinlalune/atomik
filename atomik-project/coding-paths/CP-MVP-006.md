@@ -6,8 +6,9 @@ tags: [coding-path, m5, web, source, webcontentsview, reader, snapshot, import]
 timestamp: 2026-07-13T11:30:00Z
 atomik:
   id: CP-MVP-006
-  status: active
+  status: done
   accepted: 2026-07-13
+  closed: 2026-07-16
   current_step: S07
   base_commit: 5381a12
 ---
@@ -334,10 +335,18 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       the buffer as it is; source-backed proven preserved in the
       test). @ quote-block import format itself confirmed and kept.
       Idiom in Common mistakes. Tests 347→348/38.
-- [ ] S07 Acceptance run against 18 §M5 intents + the truth/provider
+- [x] S07 Acceptance run against 18 §M5 intents + the truth/provider
       boundary; owner validation on real pages INCLUDING the
       learning-workbench scenario (Colab on one panel, a math PDF on
       the other, notes taken from both); review and close.
+      DONE 2026-07-16 (owner: "Clore CP-MVP-006 validé"). Machine
+      sweep + accumulated owner validation recorded in
+      sessions/2026-07-16-cp-mvp-006-acceptance.md — every §M5 intent
+      ✓, boundary ✓ (no provider reachable from the web path, no
+      crawler exists, rendering ≠ extraction structural), honest gaps
+      carried (license row human-pending; ProjectView dossier links
+      open as markdown — pre-existing, all source kinds). Tests
+      348/38 at close.
 
 # Current checkpoint
 
@@ -401,12 +410,10 @@ tests       : 348 passing / 38 suites — green at S06b close (the
               web-provenance.ts caller-side resolve, EvidenceRecord
               carries url/dossier/accessedAt/title, proposals cite
               "Source: [title](url) · [dossier]", [page ↗] chip.
-next action : S07 — acceptance run against 18 §M5 intents + the
-              truth/provider boundary; owner validation on real pages
-              INCLUDING the learning-workbench scenario (Colab on one
-              panel, a math PDF on the other, notes taken from both);
-              review and close. Owner: dogfood selection → AI → note
-              from a real reader.md and check the Source line + chips.
+next action : none — PATH CLOSED 2026-07-16 (acceptance:
+              ../sessions/2026-07-16-cp-mvp-006-acceptance.md).
+              Successor: CP-MVP-007 (tree file management), accepted
+              and active the same day.
 blockers    : none recorded. Standing note: provider key store found
               EMPTY 2026-07-09 — re-enter via ⚙ before cloud-rung work
               (not expected on this path's critical line).

@@ -6,7 +6,8 @@ tags: [coding-path, m1, vault, tree, file-management, rename, refactor, dnd, tra
 timestamp: 2026-07-16T00:00:00Z
 atomik:
   id: CP-MVP-007
-  status: proposed
+  status: active
+  accepted: 2026-07-16
   current_step: S01
   base_commit: 9de5f01
 ---
@@ -200,22 +201,20 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
 
 ```text
 base commit : 9de5f01
-changed     : path PROPOSED 2026-07-16 from the owner's dogfooding
-              directive; four scoping decisions taken by the owner
-              same day (D folders, OS trash, rename=refactor+preview,
-              move+DnD in). Survey recorded: zero existing
-              rename/move/delete verbs or UI; no watcher; push-refresh
-              only after main-side landings. AWAITING acceptance;
-              activates when CP-MVP-006 closes (one active parent
-              path).
-tests       : 348 passing / 38 suites at proposal (CP-MVP-006 S06b
-              close state).
-next action : owner accepts (or amends) the path; then S01.
-blockers    : CP-MVP-006 S07 acceptance run still open — owner bench
-              (Colab + math PDF workbench scenario) closes it.
+changed     : path PROPOSED and ACCEPTED 2026-07-16 (owner:
+              "j'accepte le chemin CP-MVP-007", same message that
+              closed CP-MVP-006); four scoping decisions taken by the
+              owner same day (D folders, OS trash,
+              rename=refactor+preview, move+DnD in). Survey recorded:
+              zero existing rename/move/delete verbs or UI; no
+              watcher; push-refresh only after main-side landings.
+tests       : 348 passing / 38 suites at activation.
+next action : S01 bootstrap — reads (04/27/20/03/13), brainstorm
+              addendum (17), bundle-guard inventory, base_commit.
+blockers    : none recorded.
 ```
 
 # Blockers
 
-- CP-MVP-006 must close before activation (rule: one active parent
-  path). The S07 acceptance bench is the owner's.
+- None recorded. (CP-MVP-006 closed 2026-07-16 before activation —
+  the one-active-parent-path rule held.)

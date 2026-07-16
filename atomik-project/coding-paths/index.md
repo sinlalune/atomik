@@ -28,8 +28,8 @@ Late paths are better paths: they inherit module notes, friction records from th
 | M3 (completion) | local speech runtime — 34 evaluation + seating | CP-MVP-004 | done (2026-07-08) |
 | M3 (seats) | CUDA tiers + OCR seat + opt-in cloud rung | CP-MVP-005 | done (2026-07-08) |
 | M4 | PDF source + strong anchors | CP-MVP-003 | done (2026-07-13) |
-| M5 | web source tab + explicit imports | CP-MVP-006 | active (accepted 2026-07-13) |
-| M1 (friction pass) | tree file management — create/rename/move/delete + DnD | CP-MVP-007 | proposed (2026-07-16, owner directive + 4 scoping decisions) |
+| M5 | web source tab + explicit imports | CP-MVP-006 | done (2026-07-16) |
+| M1 (friction pass) | tree file management — create/rename/move/delete + DnD | CP-MVP-007 | active (accepted 2026-07-16) |
 | M6 | minimal Truth Lens + challenge/repair | — | not opened |
 | M7 | live verification provider | — | not opened |
 | M8 | hybrid retrieval + agent context basics | — | not opened |
