@@ -11,7 +11,7 @@ import {
   captureSlug,
   captureTitleOf,
   defaultCaptureDestination
-} from '../renderer/src/capture/format'
+} from '../renderer/src/import/format'
 
 /**
  * S04: the ONLY inbox→vault path — explicit, wx-guarded, per 07/08 bundle

@@ -1,14 +1,65 @@
 /**
- * The single "+" flow (owner round 3): a new tab opens ON this chooser
- * — pick what the tab becomes, or close it if it was a misclick. The
- * same surface serves a split's empty pane (closeLabel differs).
+ * The two chooser surfaces (S07e, owner directive).
+ *
+ * New PANE: an empty untyped pane (fresh split, or the root after its ✕)
+ * picks its TREE TYPE — vault, project, or docs. The choice is standing:
+ * the pane's tree panel stays put (shown or hidden) and every tab type
+ * displays it.
+ *
+ * New TAB (+ in a typed pane): only views SERVED here — note (of the
+ * pane's kind), import, web. Docs never appear: a docs tree is a pane
+ * type, chosen at pane birth.
  */
-const OPTIONS: ReadonlyArray<{ view: string; label: string; hint: string }> = [
-  { view: 'project', label: 'Project', hint: 'work inside a project bundle' },
-  { view: 'vault', label: 'Vault', hint: 'browse and edit the whole vault' },
-  { view: 'capture', label: 'Capture', hint: 'photograph notes with your phone' },
-  { view: 'source-web', label: 'Web', hint: 'browse the web, isolated; import pages as sources' },
-  { view: 'dev-docs', label: 'Dev Docs', hint: 'read the documentation corpus' }
+
+export type PaneKindPick = 'vault' | 'project' | 'docs'
+
+const PANE_OPTIONS: ReadonlyArray<{
+  kind: PaneKindPick
+  label: string
+  hint: string
+}> = [
+  { kind: 'vault', label: 'Vault', hint: 'the whole vault tree — browse, manage, edit' },
+  { kind: 'project', label: 'Projects', hint: 'work inside a project bundle' },
+  { kind: 'docs', label: 'Docs', hint: 'read the documentation corpus' }
+]
+
+export function NewPaneChooser({
+  onPick,
+  onClose,
+  closeLabel
+}: {
+  onPick: (kind: PaneKindPick) => void
+  onClose?: (() => void) | undefined
+  closeLabel?: string
+}): React.JSX.Element {
+  return (
+    <div className="vault-empty new-tab-chooser">
+      <h2>New pane</h2>
+      <ul className="project-list">
+        {PANE_OPTIONS.map((option) => (
+          <li key={option.kind}>
+            <button type="button" onClick={() => onPick(option.kind)}>
+              {option.label}
+              <span className="project-path">{option.hint}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      {onClose && (
+        <button type="button" className="chooser-close" onClick={onClose}>
+          {closeLabel ?? 'Close'}
+        </button>
+      )}
+    </div>
+  )
+}
+
+export type TabPick = 'note' | 'import' | 'web'
+
+const TAB_OPTIONS: ReadonlyArray<{ pick: TabPick; label: string; hint: string }> = [
+  { pick: 'note', label: 'Note', hint: 'a note from this pane’s tree' },
+  { pick: 'import', label: 'Import', hint: 'bring sources in — phone, PDF, recording, web' },
+  { pick: 'web', label: 'Web', hint: 'browse the web, isolated; import pages as sources' }
 ]
 
 export function NewTabChooser({
@@ -16,7 +67,7 @@ export function NewTabChooser({
   onClose,
   closeLabel
 }: {
-  onPick: (view: string) => void
+  onPick: (pick: TabPick) => void
   onClose?: (() => void) | undefined
   closeLabel?: string
 }): React.JSX.Element {
@@ -24,9 +75,9 @@ export function NewTabChooser({
     <div className="vault-empty new-tab-chooser">
       <h2>New tab</h2>
       <ul className="project-list">
-        {OPTIONS.map((option) => (
-          <li key={option.view}>
-            <button type="button" onClick={() => onPick(option.view)}>
+        {TAB_OPTIONS.map((option) => (
+          <li key={option.pick}>
+            <button type="button" onClick={() => onPick(option.pick)}>
               {option.label}
               <span className="project-path">{option.hint}</span>
             </button>

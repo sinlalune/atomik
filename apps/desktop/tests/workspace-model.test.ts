@@ -5,6 +5,7 @@ import {
   addTab,
   clampTreeWidth,
   closeEmptyPane,
+  closePane,
   closeTab,
   closeTabsWithin,
   createDefaultState,
@@ -40,17 +41,19 @@ function leaves(node: PaneNode): Array<Extract<PaneNode, { kind: 'leaf' }>> {
 }
 
 describe('createDefaultState', () => {
-  it('defaults to one pane with vault + dev-docs, vault active', () => {
+  it('defaults to one vault-typed pane with a vault tab (S07e: docs are a New Pane away)', () => {
     const state = createDefaultState('')
     const [leaf] = leaves(state.root)
-    expect(leaf!.tabs.map((tab) => tab.view)).toEqual(['vault', 'dev-docs'])
+    expect(leaf!.tabs.map((tab) => tab.view)).toEqual(['vault'])
+    expect(leaf!.tree).toEqual({ kind: 'vault' })
     expect(leaf!.activeTabId).toBe(leaf!.tabs[0]!.id)
     expect(state.focusedPaneId).toBe(leaf!.id)
   })
 
-  it('the #dev-docs hash selects a docs-only layout, with optional deep link', () => {
+  it('the #dev-docs hash selects a docs-typed pane, with optional deep link', () => {
     const plain = createDefaultState('#dev-docs')
     expect(leaves(plain.root)[0]!.tabs.map((tab) => tab.view)).toEqual(['dev-docs'])
+    expect(leaves(plain.root)[0]!.tree).toEqual({ kind: 'docs' })
 
     const deep = createDefaultState('#dev-docs:bedrock/00_00-orientation.md')
     expect(leaves(deep.root)[0]!.tabs[0]!.params).toEqual({
@@ -241,9 +244,12 @@ describe('splitPane', () => {
 
 describe('closeTab', () => {
   it('activates the next neighbor when the active tab closes', () => {
-    const state = createDefaultState('')
+    let state = createDefaultState('')
+    const leafId = leaves(state.root)[0]!.id
+    state = addTab(state, leafId, makeTab('dev-docs'))
     const leaf = leaves(state.root)[0]!
-    const closed = closeTab(state, leaf.id, leaf.tabs[0]!.id)
+    state = activateTab(state, leafId, leaf.tabs[0]!.id)
+    const closed = closeTab(state, leafId, leaf.tabs[0]!.id)
     const after = leaves(closed.root)[0]!
     expect(after.tabs.map((tab) => tab.view)).toEqual(['dev-docs'])
     expect(after.activeTabId).toBe(after.tabs[0]!.id)
@@ -280,7 +286,7 @@ describe('tab and focus operations', () => {
     const tab = makeTab('dev-docs', { docPath: 'log.md' })
     const next = addTab(state, leaf.id, tab)
     const after = leaves(next.root)[0]!
-    expect(after.tabs).toHaveLength(3)
+    expect(after.tabs).toHaveLength(2)
     expect(after.activeTabId).toBe(tab.id)
   })
 
@@ -291,8 +297,10 @@ describe('tab and focus operations', () => {
   })
 
   it('updateTabParams merges params wherever the tab lives', () => {
-    const state = createDefaultState('')
-    const tab = leaves(state.root)[0]!.tabs[1]!
+    let state = createDefaultState('')
+    const leafId = leaves(state.root)[0]!.id
+    const tab = makeTab('dev-docs', { docPath: 'log.md' })
+    state = addTab(state, leafId, tab)
     const next = updateTabParams(state, tab.id, { docPath: 'bedrock/18_18-roadmap.md' })
     expect(leaves(next.root)[0]!.tabs[1]!.params).toEqual({
       docPath: 'bedrock/18_18-roadmap.md'
@@ -418,7 +426,7 @@ describe('pane tree — ONE panel per pane, typed by the pane (S07d)', () => {
     expect(paneTreeScopeOf({ kind: 'project' })).toEqual({ kind: 'vault' })
   })
 
-  it('splitPane hands the pane tree to the new empty leaf', () => {
+  it('splitPane leaves the new pane UNTYPED — it presents the New Pane chooser (S07e)', () => {
     const base = createDefaultState('h')
     const paneId = rootLeaf(base).id
     let state = setPaneTreeScope(base, paneId, {
@@ -431,28 +439,92 @@ describe('pane tree — ONE panel per pane, typed by the pane (S07d)', () => {
       kind: 'project',
       projectPath: 'projects/x'
     })
-    expect(paneTreeScopeOf(paneTreeOf(second!))).toEqual({
+    expect(second!.tree).toBeUndefined()
+  })
+
+  it('the docs scope round-trips and drops stale project keys', () => {
+    const base = createDefaultState('h')
+    const paneId = rootLeaf(base).id
+    let state = setPaneTreeScope(base, paneId, {
       kind: 'project',
       projectPath: 'projects/x'
     })
+    state = setPaneTreeScope(state, paneId, { kind: 'docs' })
+    const tree = paneTreeOf(rootLeaf(state))
+    expect(paneTreeScopeOf(tree)).toEqual({ kind: 'docs' })
+    expect(tree['projectPath']).toBeUndefined()
+  })
+})
+
+describe('closePane — the tabstrip ✕ (S07e)', () => {
+  it('collapses a non-root pane, tabs and all, into its sibling', () => {
+    let state = createDefaultState('h')
+    const rootId = (state.root as { id: string }).id
+    state = splitPane(state, rootId, 'horizontal')
+    const second = leaves(state.root)[1]!
+    state = addTab(state, second.id, makeTab('vault', { notePath: 'a.md' }))
+    const closed = closePane(state, second.id)
+    expect(closed.root.kind).toBe('leaf')
+    expect((closed.root as { id: string }).id).toBe(rootId)
+    expect(closed.focusedPaneId).toBe(rootId)
+  })
+
+  it('the root pane empties and loses its type — back to the New Pane chooser', () => {
+    const state = createDefaultState('h')
+    const rootId = (state.root as { id: string }).id
+    const closed = closePane(state, rootId)
+    const leaf = closed.root as Extract<PaneNode, { kind: 'leaf' }>
+    expect(leaf.tabs).toEqual([])
+    expect(leaf.tree).toBeUndefined()
+    expect(closePane(closed, rootId)).toBe(closed)
+  })
+})
+
+describe('setTabView — the chooser morph carries pane params (S07e)', () => {
+  it('applies the given params so a project-pane note tab knows its project', () => {
+    const base = createDefaultState('h')
+    const leafId = (base.root as { id: string }).id
+    const chooser = makeTab('new')
+    const state = addTab(base, leafId, chooser)
+    const picked = setTabView(state, chooser.id, 'project', {
+      projectPath: 'projects/x'
+    })
+    const morphed = leaves(picked.root)[0]!.tabs.find(
+      (tab) => tab.id === chooser.id
+    )!
+    expect(morphed.view).toBe('project')
+    expect(morphed.params).toEqual({ projectPath: 'projects/x' })
   })
 })
 
 describe('migratePaneTrees — pre-S07d layouts derive the pane tree', () => {
+  /** A saved-before-S07d leaf: no `tree` field, params still on tabs. */
+  const legacyState = (
+    tabs: Array<{ id: string; view: string; params?: Record<string, string> }>,
+    activeTabId: string | null
+  ): WorkspaceState => ({
+    version: 1,
+    focusedPaneId: 'p1',
+    root: { kind: 'leaf', id: 'p1', tabs, activeTabId }
+  })
+
   it('derives from the ACTIVE tab: project tab types the pane, tree params carry over', () => {
-    const base = createDefaultState('h')
-    const leafId = (base.root as { id: string }).id
-    let state = addTab(base, leafId, makeTab('vault', { notePath: 'a.md' }))
-    state = addTab(
-      state,
-      leafId,
-      makeTab('project', {
-        projectPath: 'projects/x',
-        projectTitle: 'X',
-        tree: 'off',
-        treeW: '333',
-        treeOpen: JSON.stringify(['projects/x'])
-      })
+    const state = legacyState(
+      [
+        { id: 't1', view: 'vault', params: { notePath: 'a.md' } },
+        {
+          id: 't2',
+          view: 'project',
+          params: {
+            projectPath: 'projects/x',
+            projectTitle: 'X',
+            tree: 'off',
+            treeW: '333',
+            treeOpen: JSON.stringify(['projects/x'])
+          }
+        }
+      ],
+      't2'
     )
     const migrated = migratePaneTrees(state)
     const tree = paneTreeOf(migrated.root as Extract<PaneNode, { kind: 'leaf' }>)
@@ -466,11 +538,25 @@ describe('migratePaneTrees — pre-S07d layouts derive the pane tree', () => {
     expect([...paneTreeOpenFolders(tree)]).toEqual(['projects/x'])
   })
 
-  it('defaults to vault and keeps identity once every leaf carries a tree', () => {
-    const state = migratePaneTrees(createDefaultState('h'))
-    const leaf = state.root as Extract<PaneNode, { kind: 'leaf' }>
-    expect(leaf.tree).toEqual({ kind: 'vault' })
-    expect(migratePaneTrees(state)).toBe(state)
+  it('an active dev-docs tab types the pane docs (S07e)', () => {
+    const migrated = migratePaneTrees(
+      legacyState([{ id: 't1', view: 'dev-docs' }], 't1')
+    )
+    const tree = paneTreeOf(migrated.root as Extract<PaneNode, { kind: 'leaf' }>)
+    expect(paneTreeScopeOf(tree)).toEqual({ kind: 'docs' })
+  })
+
+  it('defaults to vault, leaves EMPTY panes untyped, keeps identity when done', () => {
+    const migrated = migratePaneTrees(
+      legacyState([{ id: 't1', view: 'vault' }], 't1')
+    )
+    expect((migrated.root as Extract<PaneNode, { kind: 'leaf' }>).tree).toEqual({
+      kind: 'vault'
+    })
+    expect(migratePaneTrees(migrated)).toBe(migrated)
+
+    const empty = migratePaneTrees(legacyState([], ''))
+    expect((empty.root as Extract<PaneNode, { kind: 'leaf' }>).tree).toBeUndefined()
   })
 })
 

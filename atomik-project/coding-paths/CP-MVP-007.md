@@ -331,24 +331,42 @@ bench fixes : S06b white app (props typed, never destructured — the
               close the pane's tabs under the deleted path; the
               relocate push now also rewrites dossierPath/projectPath
               params (dossier tabs follow bundle moves — S05 gap) and
-              the pane tree's scope + folds. Dev-docs keeps its own
-              in-content docs tree (not vault content). Deviations
-              recorded: web tab's native view paints over the show
-              toggle (switch tabs to reach it); sources tree's
-              sources/-scoping retired (full vault tree serves
-              sources). Screenshot-verified: panel full height, tabs
-              at its right, vault tree constant under a dev-docs tab,
+              the pane tree's scope + folds. Deviations recorded: web
+              tab's native view paints over the show toggle (switch
+              tabs to reach it); sources tree's sources/-scoping
+              retired (full vault tree serves sources).
+              Screenshot-verified: panel full height, tabs at its
+              right, vault tree constant under a dev-docs tab,
               bottom-right toggle.
-tests       : 396 passing / 41 suites — green after the bench fixes
-              (S07d adds the pane-tree matrix: accessors/migration/
-              scope switch/split inheritance/relocate-follow/
-              closeTabsWithin + main-side tree validation);
+              S07e owner bench on S07d: TYPED CHOOSERS — a fresh split
+              (or the root after its ✕) is UNTYPED and shows the New
+              Pane chooser (Vault / Projects / Docs = the pane's
+              standing tree type; Projects stays untyped until a real
+              bundle opens); the (+) New tab chooser in a typed pane
+              offers ONLY Note / Import / Web (note = a tab of the
+              pane's kind; docs left the tab chooser — a docs tree is
+              a pane TYPE now, the DevDocs tree lifted into
+              PaneTreePanel and the view reduced to one rendered doc).
+              ✕ Close pane in the tabstrip actions (non-root collapses
+              with its tabs; the root empties and de-types). "Capture"
+              became the IMPORT page — PDF import (the tree panel's
+              ＋PDF button removed), the web route, phone capture QR,
+              desktop recorder, one surface, same gates and inbox;
+              view id stays 'capture' for saved layouts. Default
+              layout is now ONE vault pane; #dev-docs builds a
+              docs-typed pane; migration types active-dev-docs leaves
+              'docs' and leaves empty panes untyped.
+tests       : 401 passing / 41 suites — green after the bench fixes
+              (S07d pane-tree matrix + S07e: docs scope, closePane,
+              chooser-morph params, untyped splits, docs migration);
               typecheck/build/smoke green; e2e
               vaultWrite=ok+folder+trash+reloc+fmove re-proven on the
-              S07d layout (OS trash real on WSL; rename AND
+              S07e layout (OS trash real on WSL; rename AND
               folder-move refactors update citing notes on disk);
-              real-app launch (restored vault layout, migration path)
-              = zero Uncaught.
+              real-app launches (fresh default AND restored-legacy
+              migration paths) = zero Uncaught; docs-pane layout
+              screenshot-verified (docs tree as pane chrome, ✕ in the
+              tabstrip, bottom-right toggle).
               S01 done 2026-07-16 (same session as acceptance):
               doctrine pinned (04/27/20/13 — see step), decisions
               addendum in brainstorm/2026-07-16-tree-file-management-

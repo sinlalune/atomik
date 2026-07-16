@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { VaultFolder, VaultInfo } from '../../../shared/ipc-contract'
+import type {
+  DevDocsGroup,
+  VaultFolder,
+  VaultInfo
+} from '../../../shared/ipc-contract'
 import {
   CollapseAllIcon,
   ExpandAllIcon,
@@ -41,7 +45,7 @@ import {
 
 export type PaneTreePanelProps = {
   tree: PaneTree
-  /** Vault path of the active tab's file, for the highlight. */
+  /** Vault (or docs) path of the active tab's file, for the highlight. */
   activePath: string | null
   /** App-wide save policy — manual mode confirms before a dirty
    *  editor's pane navigates away (the guard the views used to own). */
@@ -57,12 +61,133 @@ export type PaneTreePanelProps = {
   onOpenNote: (relPath: string) => void
   /** Route a dossier to a source tab. */
   onOpenSource: (dossierPath: string) => void
+  /** Route a doc to a dev-docs tab (docs panes, S07e). */
+  onOpenDoc: (relPath: string) => void
   /** A delete landed — the pane closes its tabs under this path. */
   onDeleted: (relPath: string) => void
 }
 
 const isDossierPath = (relPath: string): boolean =>
   relPath.split('/').pop() === 'source.md'
+
+/** `.md` is implied in displayed doc names; other extensions stay. */
+const docLabel = (label: string): string =>
+  label.toLowerCase().endsWith('.md') ? label.slice(0, -3) : label
+
+/**
+ * The docs-typed pane's panel (S07e): the documentation tree, lifted
+ * out of the DevDocs view — same grouped list, search, and fold state,
+ * now pane chrome like its vault/project siblings.
+ */
+function DocsTreePanel({
+  tree,
+  activePath,
+  onPatch,
+  onOpenDoc
+}: Pick<PaneTreePanelProps, 'tree' | 'activePath' | 'onPatch' | 'onOpenDoc'>):
+  React.JSX.Element {
+  const openFolders = paneTreeOpenFolders(tree)
+  const [groups, setGroups] = useState<DevDocsGroup[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const searchDocs = useCallback(
+    (query: string) => window.atomik.searchDevDocs(query),
+    []
+  )
+  const { query: searchQuery, setQuery: setSearchQuery, results: searchResults } =
+    useTreeSearch(searchDocs)
+
+  useEffect(() => {
+    window.atomik
+      .listDevDocs()
+      .then(setGroups, (reason: unknown) => setError(String(reason)))
+  }, [])
+
+  const setOpenFolders = (next: ReadonlySet<string>): void =>
+    onPatch({ open: serializeOpenFolders(next) })
+
+  return (
+    <nav className="vault-tree pane-tree" aria-label="Documentation tree">
+      <TreeResizeHandle onResize={(px) => onPatch({ w: String(px) })} />
+      <div className="tree-bar">
+        <span className="tree-bar-label">documentation</span>
+        <button
+          type="button"
+          className="tree-toggle"
+          title="Expand all groups"
+          onClick={() => setOpenFolders(new Set(groups.map((group) => group.id)))}
+        >
+          <ExpandAllIcon />
+        </button>
+        <button
+          type="button"
+          className="tree-toggle"
+          title="Collapse all groups"
+          onClick={() => setOpenFolders(new Set())}
+        >
+          <CollapseAllIcon />
+        </button>
+      </div>
+      <div className="vault-search">
+        <input
+          placeholder="search docs…"
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') setSearchQuery('')
+          }}
+        />
+      </div>
+      {error && <p className="error">{error}</p>}
+      <div className="pane-tree-scroll">
+        {searchResults !== null ? (
+          <SearchResultsList
+            results={searchResults}
+            activePath={activePath}
+            onOpen={onOpenDoc}
+          />
+        ) : (
+          groups.map((group) => (
+            <details
+              key={group.id}
+              open={openFolders.has(group.id)}
+              onToggle={(event) => {
+                const next = toggledFolder(
+                  openFolders,
+                  group.id,
+                  event.currentTarget.open
+                )
+                if (next !== openFolders) setOpenFolders(next)
+              }}
+            >
+              <summary>{group.label}</summary>
+              <ul>
+                {group.entries.map((entry) => (
+                  <li key={entry.relPath}>
+                    <button
+                      type="button"
+                      className={activePath === entry.relPath ? 'active' : ''}
+                      onClick={() => onOpenDoc(entry.relPath)}
+                    >
+                      {docLabel(entry.label)}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ))
+        )}
+      </div>
+      <button
+        type="button"
+        className="tree-toggle pane-tree-hide"
+        title="Hide tree panel"
+        onClick={() => onPatch({ off: '1' })}
+      >
+        <SidebarToggleIcon />
+      </button>
+    </nav>
+  )
+}
 
 export function PaneTreePanel({
   tree,
@@ -73,6 +198,7 @@ export function PaneTreePanel({
   onScopeChange,
   onOpenNote,
   onOpenSource,
+  onOpenDoc,
   onDeleted
 }: PaneTreePanelProps): React.JSX.Element {
   const scope = paneTreeScopeOf(tree)
@@ -285,6 +411,20 @@ export function PaneTreePanel({
     await window.atomik.openVault()
   }, [])
 
+  // Docs panes delegate to the documentation panel — same chrome, the
+  // docs corpus instead of the vault. (After every hook: a pane that
+  // retypes must keep this component's hook order stable.)
+  if (scope.kind === 'docs') {
+    return (
+      <DocsTreePanel
+        tree={tree}
+        activePath={activePath}
+        onPatch={onPatch}
+        onOpenDoc={onOpenDoc}
+      />
+    )
+  }
+
   // Project scope: the subtree while it exists; the deleted-project
   // fallback is the whole vault (a tree panel never goes blank).
   const scopedTree = ((): VaultFolder | null => {
@@ -348,21 +488,6 @@ export function PaneTreePanel({
         >
           {headLabel}
         </div>
-        <button
-          type="button"
-          className="tree-toggle"
-          title="Import a PDF as a source bundle (original preserved as evidence)"
-          onClick={() =>
-            window.atomik.importPdfSource().then(
-              (result) => {
-                if (result) onOpenSource(result.dossierPath)
-              },
-              () => undefined
-            )
-          }
-        >
-          ＋PDF
-        </button>
         <button
           type="button"
           className="tree-toggle"

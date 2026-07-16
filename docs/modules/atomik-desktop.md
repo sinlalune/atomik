@@ -1209,3 +1209,35 @@ final gate.
   grid child spanning both rows (the S07c negative-margin pull-up is
   retired); `.pane-content` sits at (row 2, col 2) without the
   padding-top hack.
+
+## Typed choosers, docs panes, close-pane, the Import page (S07e, owner bench)
+
+- Owner bench report on S07d: the (+) chooser still offered pane-type
+  choices inside a typed pane. S07e separates the two surfaces: a fresh
+  split (or the root after its ✕) is UNTYPED and shows the **New Pane**
+  chooser — Vault / Projects / Docs — whose pick is the pane's standing
+  tree type; the (+) **New tab** chooser inside a typed pane offers only
+  views served from that tree: **Note** (a vault/project note tab of the
+  pane's kind; a doc tab in docs panes), **Import**, **Web**. Docs left
+  the tab chooser entirely — a docs tree is a pane type. Picking
+  Projects opens the picker tab and the pane stays untyped until a real
+  bundle is opened (onProjectOpened carries the projectPath).
+- **Docs panes**: 'docs' joins the pane-tree kinds; the documentation
+  tree (groups, search, fold state) moved OUT of the DevDocs view into
+  `PaneTreePanel` (DocsTreePanel branch — same chrome, the app's docs
+  corpus instead of the vault). DevDocs renders one doc and follows its
+  docPath param; doc clicks route like notes (active dev-docs tab, else
+  a new one). The default layout is now ONE vault pane (docs are a New
+  Pane away); the `#dev-docs` smoke/deep-link hash builds a docs-typed
+  pane, and migration types leaves with an active dev-docs tab 'docs'.
+- **Close pane**: ✕ in the tabstrip actions right of the split buttons
+  (`closePane`): a non-root pane collapses into its sibling, tabs and
+  all (web views destroyed by the caller); the root pane empties AND
+  loses its type — back to the New Pane chooser, the workspace never
+  disappears.
+- **Import page** (formerly "Capture" — view id stays 'capture' so
+  saved layouts keep opening): one surface for every source entry path —
+  Import PDF… (moved off the tree panel's ＋PDF button, now gone),
+  the web route (opens an isolated Web tab; pages import from there),
+  the phone-capture QR session, and the desktop recorder. Same gates,
+  same inbox, same explicit confirmation as before.

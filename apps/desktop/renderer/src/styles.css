@@ -281,20 +281,6 @@ body[data-maximized] .app-header {
   margin: 0.4rem 0 0;
 }
 
-.devdocs-tree li > button {
-  font: inherit;
-  color: inherit;
-  background: none;
-  border: none;
-  border-radius: 6px;
-  padding: 0.3rem 0.7rem;
-  cursor: pointer;
-}
-
-.devdocs-tree li > button:hover {
-  background: var(--code-bg);
-}
-
 .error {
   color: light-dark(#a03030, #ff8080);
 }
@@ -870,7 +856,6 @@ body[data-maximized] .tabstrip {
 
 /* tree panel resize ------------------------------------------------------- */
 
-.devdocs-tree,
 .vault-tree {
   position: relative;
   /* side panels are chrome — recessed behind the content surface */
@@ -913,15 +898,9 @@ body[data-maximized] .tabstrip {
   grid-template-columns: minmax(160px, 240px) 1fr;
 }
 
-.devdocs-tree {
-  overflow-y: auto;
-  overflow-x: hidden;
-  border-right: 1px solid var(--border);
-  padding: 0 0.5rem 2rem;
-  font-size: 0.82rem;
-}
-
-.devdocs-tree summary {
+/* The docs-typed pane panel (S07e): group headers keep the docs tree's
+   quiet uppercase look — entries reuse the vault-tree row styles. */
+.pane-tree-scroll > details > summary {
   margin: 0.9rem 0.5rem 0.25rem;
   font-size: 0.72rem;
   text-transform: uppercase;
@@ -929,29 +908,6 @@ body[data-maximized] .tabstrip {
   color: var(--muted);
   cursor: pointer;
   user-select: none;
-}
-
-.devdocs-tree ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-/* tree entries only — the .tree-toggle button must keep its own size */
-.devdocs-tree li > button {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 0.22rem 0.5rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.devdocs-tree li > button.active {
-  background: var(--code-bg);
-  color: var(--accent);
-  font-weight: 600;
 }
 
 .devdocs-content {
@@ -2135,8 +2091,41 @@ body[data-maximized] .tabstrip {
   text-align: left;
 }
 
-/* capture view (S03) — QR session panel; uploads are inbox items until
-   the S04 confirmation imports them into the vault */
+/* import view (S07e — formerly capture, S03): every source entry path
+   on one page — PDF, web route, phone capture QR session, desktop
+   recorder; uploads stay inbox items until explicitly imported */
+.import-options {
+  display: flex;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  margin: 0.4rem 0 1.6rem;
+  text-align: left;
+}
+
+.import-option {
+  flex: 1;
+  min-width: 12rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.8rem 1rem 0.95rem;
+  background: var(--bg);
+}
+
+.import-option h3 {
+  margin: 0 0 0.3rem;
+  font-size: 0.9rem;
+}
+
+.import-option p {
+  margin: 0 0 0.65rem;
+  font-size: 0.8rem;
+}
+
+.import-capture-head {
+  margin: 0.2rem 0 0.4rem;
+  font-size: 0.95rem;
+}
+
 .capture-view {
   /* .pane-content is a flex row: without flex:1 this view shrink-wraps
      and its centered panel hugs the left edge (owner report, twice —

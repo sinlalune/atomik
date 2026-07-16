@@ -9,7 +9,7 @@ import {
   sanitizeClientFileName,
   type CaptureSessionOptions
 } from '../electron-main/capture-session'
-import { formatBytes, formatRemaining } from '../renderer/src/capture/format'
+import { formatBytes, formatRemaining } from '../renderer/src/import/format'
 
 /**
  * S02: every 13 §capture requirement is exercised against the REAL HTTP

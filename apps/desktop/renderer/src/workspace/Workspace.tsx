@@ -12,8 +12,8 @@ import { WebView } from '../web/WebView'
 import {
   activateTab,
   addTab,
-  clampTreeWidth,
   closeEmptyPane,
+  closePane,
   closeTab,
   closeTabsWithin,
   makeTab,
@@ -35,10 +35,15 @@ import {
   updatePaneTree,
   updateTabParams,
   type NoteViewMode,
-  type PaneNoteGuard
+  type PaneNoteGuard,
+  type PaneTreeScope
 } from './model'
-import { parseOpenFolders, serializeOpenFolders } from '../vault/tree-fold'
-import { NewTabChooser } from './NewTabChooser'
+import {
+  NewPaneChooser,
+  NewTabChooser,
+  type PaneKindPick,
+  type TabPick
+} from './NewTabChooser'
 import { PaneTreePanel } from './PaneTreePanel'
 import { SidebarToggleIcon } from '../icons'
 import { useWorkspace } from './store'
@@ -46,9 +51,9 @@ import { useWorkspace } from './store'
 // Code-split the two heavy views (perf audit 2026-07-15: zero dynamic
 // imports meant pdf.js — 24% of a 3 MB bundle — plus qrcode and
 // fix-webm-duration parsed at EVERY launch). Their chunks load on the
-// first source/capture tab; local files, so the Suspense gap is a blink.
-const CaptureView = lazy(() =>
-  import('../capture/CaptureView').then((m) => ({ default: m.CaptureView }))
+// first source/import tab; local files, so the Suspense gap is a blink.
+const ImportView = lazy(() =>
+  import('../import/ImportView').then((m) => ({ default: m.ImportView }))
 )
 const SourceImageView = lazy(() =>
   import('../source/SourceImageView').then((m) => ({ default: m.SourceImageView }))
@@ -57,10 +62,10 @@ const SourceImageView = lazy(() =>
 type Dispatch = (operation: (state: WorkspaceState) => WorkspaceState) => void
 
 const TAB_LABELS: Record<string, string> = {
-  'dev-docs': 'Dev Docs',
+  'dev-docs': 'Docs',
   vault: 'Vault',
   project: 'Project',
-  capture: 'Capture',
+  capture: 'Import',
   'source-image': 'Image',
   'source-web': 'Web',
   new: 'New tab'
@@ -69,6 +74,29 @@ const TAB_LABELS: Record<string, string> = {
 /** A closing web tab tears down its native view (owned by main). */
 function destroyTabView(tab: WorkspaceTab): void {
   if (tab.view === 'source-web') void window.atomik.webViewDestroy(tab.id)
+}
+
+/** What a New-tab pick opens, given the pane's type (S07e): 'note' is
+ *  a note OF THE PANE — project panes open project note tabs, docs
+ *  panes a doc tab; 'import' keeps the 'capture' view id so saved
+ *  layouts keep opening. */
+function tabForPick(
+  pick: TabPick,
+  scope: PaneTreeScope
+): { view: string; params?: Record<string, string> } {
+  if (pick === 'import') return { view: 'capture' }
+  if (pick === 'web') return { view: 'source-web' }
+  if (scope.kind === 'project') {
+    return {
+      view: 'project',
+      params: {
+        projectPath: scope.projectPath,
+        ...(scope.projectTitle ? { projectTitle: scope.projectTitle } : {})
+      }
+    }
+  }
+  if (scope.kind === 'docs') return { view: 'dev-docs' }
+  return { view: 'vault' }
 }
 
 function tabLabel(tab: WorkspaceTab): string {
@@ -100,11 +128,14 @@ function tabLabel(tab: WorkspaceTab): string {
 function TabContent({
   tab,
   paneId,
+  paneScope,
   registerGuard,
   dispatch
 }: {
   tab: WorkspaceTab
   paneId: string
+  /** The pane's tree type — a 'new' tab morphs into a view OF this pane. */
+  paneScope: PaneTreeScope
   /** Note views register their dirty state with the pane (S07d) so the
    *  pane tree can guard navigation and the refactor verbs. */
   registerGuard: (guard: PaneNoteGuard | null) => void
@@ -114,21 +145,6 @@ function TabContent({
     destroyTabView(tab)
     dispatch((state) => closeTab(state, paneId, tab.id))
   }
-  // The dev-docs tree browses the APP's documentation, not the vault —
-  // it stays the view's own, per tab, below the tabstrip (S07d: the
-  // pane chrome column belongs to the pane tree).
-  const treeCollapsed = tab.params?.['tree'] === 'off'
-  const onTreeToggle = (): void =>
-    dispatch((state) =>
-      updateTabParams(state, tab.id, { tree: treeCollapsed ? 'on' : 'off' })
-    )
-  const treeWidthParam = tab.params?.['treeW']
-  const treeWidth =
-    treeWidthParam === undefined
-      ? undefined
-      : clampTreeWidth(Number(treeWidthParam))
-  const onTreeResize = (px: number): void =>
-    dispatch((state) => updateTabParams(state, tab.id, { treeW: String(px) }))
   // App-wide save policy (workspace settings; 'auto' when unset).
   const saveMode = useWorkspace((store) => saveModeOf(store.state))
   const onSaveModeToggle = (): void =>
@@ -149,17 +165,14 @@ function TabContent({
     dispatch((state) =>
       addTab(state, paneId, makeTab('source-image', { dossierPath }))
     )
-  // Dev-docs fold state: collapsed by default, remembered per tab.
-  const openFolders = parseOpenFolders(tab.params?.['treeOpen'])
-  const onOpenFoldersChange = (next: ReadonlySet<string>): void =>
-    dispatch((state) =>
-      updateTabParams(state, tab.id, { treeOpen: serializeOpenFolders(next) })
-    )
 
   if (tab.view === 'new') {
     return (
       <NewTabChooser
-        onPick={(view) => dispatch((state) => setTabView(state, tab.id, view))}
+        onPick={(pick) => {
+          const next = tabForPick(pick, paneScope)
+          dispatch((state) => setTabView(state, tab.id, next.view, next.params))
+        }}
         onClose={closeThisTab}
         closeLabel="Close tab"
       />
@@ -168,16 +181,10 @@ function TabContent({
   if (tab.view === 'dev-docs') {
     return (
       <DevDocs
-        openFolders={openFolders}
-        onOpenFoldersChange={onOpenFoldersChange}
         docPath={tab.params?.['docPath']}
         onDocOpened={(relPath) =>
           dispatch((state) => updateTabParams(state, tab.id, { docPath: relPath }))
         }
-        treeCollapsed={treeCollapsed}
-        onTreeToggle={onTreeToggle}
-        treeWidth={treeWidth}
-        onTreeResize={onTreeResize}
       />
     )
   }
@@ -202,7 +209,12 @@ function TabContent({
   if (tab.view === 'capture') {
     return (
       <Suspense fallback={<div className="view-loading" />}>
-        <CaptureView onOpenSourceImage={openSourceImage} />
+        <ImportView
+          onOpenSourceImage={openSourceImage}
+          onOpenWebTab={() =>
+            dispatch((state) => addTab(state, paneId, makeTab('source-web')))
+          }
+        />
       </Suspense>
     )
   }
@@ -300,14 +312,18 @@ function LeafPane({
 }): React.JSX.Element {
   const active = node.tabs.find((tab) => tab.id === node.activeTabId)
 
-  // S07d (owner): ONE tree panel per pane, typed by the PANE (vault or
-  // project) — tabs are just views served from it, so switching tabs
-  // (web included) never changes the panel. It spans the full pane
-  // height (S07c look), the tabstrip starts at its right, and the
-  // hide/show toggle sits at the panel's bottom right.
+  // S07d/S07e (owner): ONE tree panel per pane, typed by the PANE —
+  // vault, project, or docs — chosen at pane birth (New Pane chooser)
+  // and standing from then on: tabs are just views served from it, so
+  // switching tabs (web included) never changes the panel. It spans
+  // the full pane height, the tabstrip starts at its right, and the
+  // hide/show toggle sits at the panel's bottom right. An UNTYPED pane
+  // (fresh split, or the root after its ✕) has no panel yet.
+  const untyped = node.tree === undefined
   const tree = paneTreeOf(node)
+  const scope = paneTreeScopeOf(tree)
   const treeHidden = paneTreeHidden(tree)
-  const treeWidth = treeHidden ? 0 : paneTreeWidth(tree)
+  const treeWidth = untyped || treeHidden ? 0 : paneTreeWidth(tree)
 
   // Note views register their dirty editor here (cleared on unmount);
   // the pane tree reads it at decision time.
@@ -323,13 +339,13 @@ function LeafPane({
 
   // Tree → tabs routing: a note lands in the active note view (it
   // follows its notePath param) or opens a new note tab of the pane's
-  // kind; a dossier lands in the active source tab or a new one.
+  // kind; a dossier lands in the active source tab or a new one; a doc
+  // (docs panes) in the active dev-docs tab or a new one.
   const openNoteFromTree = (relPath: string): void => {
     if (active && (active.view === 'vault' || active.view === 'project')) {
       dispatch((state) => updateTabParams(state, active.id, { notePath: relPath }))
       return
     }
-    const scope = paneTreeScopeOf(tree)
     dispatch((state) =>
       addTab(
         state,
@@ -352,6 +368,35 @@ function LeafPane({
     dispatch((state) =>
       addTab(state, node.id, makeTab('source-image', { dossierPath }))
     )
+  }
+  const openDocFromTree = (relPath: string): void => {
+    if (active && active.view === 'dev-docs') {
+      dispatch((state) => updateTabParams(state, active.id, { docPath: relPath }))
+      return
+    }
+    dispatch((state) =>
+      addTab(state, node.id, makeTab('dev-docs', { docPath: relPath }))
+    )
+  }
+  // A New Pane pick is the pane's standing type (S07e). Projects stay
+  // untyped until a bundle is actually opened — the picker tab's
+  // onProjectOpened types the pane with the real projectPath.
+  const pickPaneKind = (kind: PaneKindPick): void => {
+    if (kind === 'project') {
+      dispatch((state) => addTab(state, node.id, makeTab('project')))
+      return
+    }
+    dispatch((state) =>
+      addTab(
+        setPaneTreeScope(state, node.id, { kind }),
+        node.id,
+        makeTab(kind === 'docs' ? 'dev-docs' : 'vault')
+      )
+    )
+  }
+  const closeThisPane = (): void => {
+    node.tabs.forEach(destroyTabView)
+    dispatch((state) => closePane(state, node.id))
   }
 
   return (
@@ -430,14 +475,26 @@ function LeafPane({
           >
             ⬓
           </button>
+          <button
+            type="button"
+            title={
+              node.id === rootLeafId
+                ? 'Close pane (back to the New Pane chooser)'
+                : 'Close pane'
+            }
+            onClick={closeThisPane}
+          >
+            ✕
+          </button>
         </span>
       </header>
-      {!treeHidden && (
+      {!untyped && !treeHidden && (
         <PaneTreePanel
           tree={tree}
           activePath={
             active?.params?.['notePath'] ??
             active?.params?.['dossierPath'] ??
+            active?.params?.['docPath'] ??
             null
           }
           saveMode={saveMode}
@@ -445,18 +502,19 @@ function LeafPane({
           onPatch={(patch) =>
             dispatch((state) => updatePaneTree(state, node.id, patch))
           }
-          onScopeChange={(scope) =>
-            dispatch((state) => setPaneTreeScope(state, node.id, scope))
+          onScopeChange={(nextScope) =>
+            dispatch((state) => setPaneTreeScope(state, node.id, nextScope))
           }
           onOpenNote={openNoteFromTree}
           onOpenSource={openSourceFromTree}
+          onOpenDoc={openDocFromTree}
           onDeleted={(relPath) =>
             dispatch((state) => closeTabsWithin(state, node.id, relPath))
           }
         />
       )}
       <div className="pane-content">
-        {treeHidden && (
+        {!untyped && treeHidden && (
           <button
             type="button"
             className="tree-toggle pane-tree-show"
@@ -473,14 +531,28 @@ function LeafPane({
             key={active.id}
             tab={active}
             paneId={node.id}
+            paneScope={scope}
             registerGuard={registerGuard}
             dispatch={dispatch}
           />
+        ) : untyped ? (
+          <NewPaneChooser
+            onPick={pickPaneKind}
+            onClose={
+              node.id !== rootLeafId
+                ? () => dispatch((state) => closeEmptyPane(state, node.id))
+                : undefined
+            }
+            closeLabel="Close pane"
+          />
         ) : (
           <NewTabChooser
-            onPick={(view) =>
-              dispatch((state) => addTab(state, node.id, makeTab(view)))
-            }
+            onPick={(pick) => {
+              const next = tabForPick(pick, scope)
+              dispatch((state) =>
+                addTab(state, node.id, makeTab(next.view, next.params))
+              )
+            }}
             onClose={
               node.id !== rootLeafId
                 ? () => dispatch((state) => closeEmptyPane(state, node.id))

@@ -31,9 +31,9 @@ export function makeLeaf(tabs: WorkspaceTab[]): LeafNode {
 
 /**
  * First-launch layout. The `#dev-docs[:<relPath>]` hash (smoke, deep links)
- * selects a docs-only layout; the normal default is vault + docs, vault
- * active. A saved state always wins over the hash — this only shapes the
- * default.
+ * selects a docs-only layout (a docs-typed pane, S07e); the normal default
+ * is one vault pane — docs are a New Pane away. A saved state always wins
+ * over the hash — this only shapes the default.
  */
 export function createDefaultState(hash: string): WorkspaceState {
   let root: LeafNode
@@ -41,11 +41,14 @@ export function createDefaultState(hash: string): WorkspaceState {
     const relPath = hash.startsWith('#dev-docs:')
       ? decodeURIComponent(hash.slice('#dev-docs:'.length))
       : ''
-    root = makeLeaf([
-      makeTab('dev-docs', relPath ? { docPath: relPath } : undefined)
-    ])
+    root = {
+      ...makeLeaf([
+        makeTab('dev-docs', relPath ? { docPath: relPath } : undefined)
+      ]),
+      tree: { kind: 'docs' }
+    }
   } else {
-    root = makeLeaf([makeTab('vault'), makeTab('dev-docs')])
+    root = { ...makeLeaf([makeTab('vault')]), tree: { kind: 'vault' } }
   }
   return { version: 1, root, focusedPaneId: root.id }
 }
@@ -128,6 +131,7 @@ export type PaneTree = Record<string, string>
 export type PaneTreeScope =
   | { kind: 'vault' }
   | { kind: 'project'; projectPath: string; projectTitle?: string }
+  | { kind: 'docs' }
 
 /** What a note view registers with its pane (S07d bridge): the dirty
  *  editor's note path, read at decision time — the pane tree's
@@ -147,6 +151,7 @@ export function paneTreeScopeOf(tree: PaneTree): PaneTreeScope {
       ? { kind: 'project', projectPath, projectTitle: title }
       : { kind: 'project', projectPath }
   }
+  if (tree['kind'] === 'docs') return { kind: 'docs' }
   return { kind: 'vault' }
 }
 
@@ -184,9 +189,9 @@ export function updatePaneTree(
   }))
 }
 
-/** Retypes the pane (vault ↔ project). Scope keys are REPLACED — a
- *  stale projectPath must not survive a switch back to vault — while
- *  panel preferences (off/w/open) ride along. */
+/** Retypes the pane (vault / project / docs). Scope keys are REPLACED —
+ *  a stale projectPath must not survive a switch — while panel
+ *  preferences (off/w/open) ride along. */
 export function setPaneTreeScope(
   state: WorkspaceState,
   paneId: string,
@@ -207,7 +212,7 @@ export function setPaneTreeScope(
             projectPath: scope.projectPath,
             ...(scope.projectTitle ? { projectTitle: scope.projectTitle } : {})
           }
-        : { ...kept, kind: 'vault' }
+        : { ...kept, kind: scope.kind }
     return { ...node, tree }
   })
 }
@@ -215,41 +220,46 @@ export function setPaneTreeScope(
 /**
  * S07d load-time migration: leaves saved before the pane owned its tree
  * derive one from the ACTIVE tab — a project tab types the pane
- * 'project'; the tab's tree/treeW/treeOpen params carry over as the
- * panel's off/w/open, so the owner's widths and fold state survive.
+ * 'project', a dev-docs tab types it 'docs' (S07e); the tab's
+ * tree/treeW/treeOpen params carry over as the panel's off/w/open, so
+ * the owner's widths and fold state survive. Empty leaves stay
+ * UNTYPED — they present the New Pane chooser.
  */
 export function migratePaneTrees(state: WorkspaceState): WorkspaceState {
   const root = mapNode(state.root, (node) => {
     if (node.kind !== 'leaf' || node.tree !== undefined) return node
     const active =
       node.tabs.find((tab) => tab.id === node.activeTabId) ?? node.tabs[0]
+    if (!active) return node
     const tree: PaneTree = { kind: 'vault' }
-    const projectPath = active?.params?.['projectPath']
-    if (active?.view === 'project' && projectPath) {
+    const projectPath = active.params?.['projectPath']
+    if (active.view === 'project' && projectPath) {
       tree['kind'] = 'project'
       tree['projectPath'] = projectPath
       const title = active.params?.['projectTitle']
       if (title) tree['projectTitle'] = title
+    } else if (active.view === 'dev-docs') {
+      tree['kind'] = 'docs'
     }
-    if (active?.params?.['tree'] === 'off') tree['off'] = '1'
-    const width = active?.params?.['treeW']
+    if (active.params?.['tree'] === 'off') tree['off'] = '1'
+    const width = active.params?.['treeW']
     if (width !== undefined) tree['w'] = width
-    const open = active?.params?.['treeOpen']
+    const open = active.params?.['treeOpen']
     if (open !== undefined) tree['open'] = open
     return { ...node, tree }
   })
   return root === state.root ? state : { ...state, root }
 }
 
-/** Splits a leaf: it keeps its tabs as the first child; the second child is
- *  a fresh empty leaf, which takes focus — and INHERITS the pane tree
- *  (S07d: splitting a project pane yields another project pane). */
+/** Splits a leaf: it keeps its tabs as the first child; the second child
+ *  is a fresh empty UNTYPED leaf, which takes focus and presents the
+ *  New Pane chooser (S07e — the owner picks the pane's tree type). */
 export function splitPane(
   state: WorkspaceState,
   paneId: string,
   direction: PaneDirection
 ): WorkspaceState {
-  const emptyId = newId()
+  const empty = makeLeaf([])
   const root = mapNode(state.root, (node) =>
     node.kind === 'leaf' && node.id === paneId
       ? {
@@ -258,18 +268,51 @@ export function splitPane(
           direction,
           fraction: 0.5,
           first: node,
-          second: {
-            kind: 'leaf' as const,
-            id: emptyId,
-            tabs: [],
-            activeTabId: null,
-            ...(node.tree ? { tree: node.tree } : {})
-          }
+          second: empty
         }
       : node
   )
   if (root === state.root) return state
-  return { ...state, root, focusedPaneId: emptyId }
+  return { ...state, root, focusedPaneId: empty.id }
+}
+
+/**
+ * S07e: the tabstrip's ✕ closes the whole PANE — a non-root leaf
+ * collapses into its sibling; the root leaf instead empties and loses
+ * its type, returning to the New Pane chooser (the workspace never
+ * disappears). The caller destroys native views of the closed tabs.
+ */
+export function closePane(state: WorkspaceState, paneId: string): WorkspaceState {
+  if (state.root.kind === 'leaf') {
+    if (state.root.id !== paneId) return state
+    if (state.root.tabs.length === 0 && state.root.tree === undefined) {
+      return state
+    }
+    const root: LeafNode = {
+      kind: 'leaf',
+      id: state.root.id,
+      tabs: [],
+      activeTabId: null
+    }
+    return { ...state, root }
+  }
+  const remove = (node: PaneNode): PaneNode | null => {
+    if (node.kind === 'leaf') return node.id === paneId ? null : node
+    const first = remove(node.first)
+    const second = remove(node.second)
+    if (first === null) return second
+    if (second === null) return first
+    if (first !== node.first || second !== node.second) {
+      return { ...node, first, second }
+    }
+    return node
+  }
+  const removed = remove(state.root)
+  if (removed === null || removed === state.root) return state
+  const focusedPaneId = paneExists(removed, state.focusedPaneId)
+    ? state.focusedPaneId
+    : firstLeafId(removed)
+  return { ...state, root: removed, focusedPaneId }
 }
 
 export function addTab(
@@ -445,18 +488,20 @@ export function setTheme(state: WorkspaceState, theme: Theme): WorkspaceState {
 }
 
 /** Replaces a tab's VIEW — the new-tab chooser morphing into its pick.
- *  Params reset: they described the previous view. */
+ *  Params reset to the given ones (S07e: a note tab in a project pane
+ *  needs its projectPath); they described the previous view otherwise. */
 export function setTabView(
   state: WorkspaceState,
   tabId: string,
-  view: string
+  view: string,
+  params?: Record<string, string>
 ): WorkspaceState {
   const root = mapNode(state.root, (node) => {
     if (node.kind !== 'leaf') return node
     const index = node.tabs.findIndex((tab) => tab.id === tabId)
     if (index === -1) return node
     const tabs = [...node.tabs]
-    tabs[index] = { id: tabId, view }
+    tabs[index] = params ? { id: tabId, view, params } : { id: tabId, view }
     return { ...node, tabs }
   })
   if (root === state.root) return state

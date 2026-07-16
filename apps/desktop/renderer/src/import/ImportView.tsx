@@ -14,26 +14,48 @@ import {
 import { mediaObjectUrl } from '../source/rotate'
 
 /**
- * The capture tab (08 §MVP flow, S03): start a session, show its QR, watch
- * uploads arrive in the inbox. Pure view over the three typed channels —
- * session state, tokens, and every security gate live in main
- * (capture-session.ts); the renderer only ever sees CaptureSessionInfo.
- * Uploads listed here are INBOX items; the confirm-into-vault step is S04.
- * Source navigation lives in the PANE tree (S07d) — no view-owned tree.
+ * The Import tab (S07e, owner directive — formerly "Capture"): ONE
+ * coherent page gathering every way a source enters the vault. Phone
+ * capture (08 §MVP flow: session + QR + inbox; gates live main-side in
+ * capture-session.ts), the desktop mic recorder (same inbox, same
+ * gates), PDF import (moved off the tree panel's ＋PDF button), and the
+ * web route (import pages from an isolated Web tab). Inbox items only
+ * enter the vault on explicit confirmation, as before. The tab's view
+ * id stays 'capture' so saved layouts keep opening.
  */
 
 const POLL_MS = 2000
 
-export function CaptureView({
-  onOpenSourceImage
+export function ImportView({
+  onOpenSourceImage,
+  onOpenWebTab
 }: {
   /** Opens the imported bundle in an image source tab (S05). */
   onOpenSourceImage?: (dossierPath: string) => void
+  /** Opens an isolated Web tab (pages import from there — CP-MVP-006). */
+  onOpenWebTab?: () => void
 }): React.JSX.Element {
   const [session, setSession] = useState<CaptureSessionInfo | null>(null)
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [pdfBusy, setPdfBusy] = useState(false)
   const [nowMs, setNowMs] = useState(() => Date.now())
+
+  // The PDF import (CP-MVP-003): native file picker main-side, original
+  // preserved as evidence; the new dossier opens beside this tab.
+  const importPdf = useCallback(() => {
+    setPdfBusy(true)
+    window.atomik.importPdfSource().then(
+      (result) => {
+        setPdfBusy(false)
+        if (result) onOpenSourceImage?.(result.dossierPath)
+      },
+      (cause) => {
+        setPdfBusy(false)
+        setError(String(cause))
+      }
+    )
+  }, [onOpenSourceImage])
 
   const refresh = useCallback(() => {
     void window.atomik.getCaptureSession().then(setSession, () => {})
@@ -97,7 +119,41 @@ export function CaptureView({
     <div className="vault no-tree">
     <div className="capture-view">
       <div className="capture-panel">
-        <h2>Phone capture</h2>
+        <h2>Import sources</h2>
+        <div className="import-options">
+          <div className="import-option">
+            <h3>PDF</h3>
+            <p>
+              A document becomes a source bundle — the original preserved
+              as evidence, text extractable beside it.
+            </p>
+            <button
+              type="button"
+              className="vault-open-button"
+              disabled={pdfBusy}
+              onClick={importPdf}
+            >
+              {pdfBusy ? 'Importing…' : 'Import PDF…'}
+            </button>
+          </div>
+          {onOpenWebTab && (
+            <div className="import-option">
+              <h3>Web page</h3>
+              <p>
+                Browse in an isolated Web tab and import any page as a
+                source — snapshot plus dossier, URL provenance recorded.
+              </p>
+              <button
+                type="button"
+                className="vault-open-button"
+                onClick={onOpenWebTab}
+              >
+                Open a Web tab
+              </button>
+            </div>
+          )}
+        </div>
+        <h3 className="import-capture-head">Phone capture</h3>
         {!session && (
           <p>
             Photograph handwritten notes, whiteboards, or book pages with

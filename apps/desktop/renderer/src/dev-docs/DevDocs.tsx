@@ -1,11 +1,6 @@
 import MarkdownIt from 'markdown-it'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { DevDocFile, DevDocsGroup } from '../../../shared/ipc-contract'
-import { CollapseAllIcon, ExpandAllIcon, SidebarToggleIcon } from '../icons'
-import { SearchResultsList } from '../search/SearchResultsList'
-import { useTreeSearch } from '../search/useTreeSearch'
-import { TreeResizeHandle } from '../TreeResizeHandle'
-import { toggledFolder } from '../vault/tree-fold'
+import type { DevDocFile } from '../../../shared/ipc-contract'
 import { resolveRelativePath, stripFrontmatter } from './markdown'
 
 const DEFAULT_DOC = 'index.md'
@@ -15,27 +10,10 @@ export type DevDocsProps = {
   docPath?: string
   /** Reports every successfully opened doc (the tab persists it). */
   onDocOpened?: (relPath: string) => void
-  /** Tree panel visibility, persisted per tab by the workspace. */
-  treeCollapsed?: boolean
-  onTreeToggle?: () => void
-  /** Tree panel width (px), persisted per tab; undefined = CSS default. */
-  treeWidth?: number
-  onTreeResize?: (px: number) => void
-  /** Controlled fold state: open GROUP ids, persisted per tab (collapsed
-   *  by default — owner request). */
-  openFolders?: ReadonlySet<string>
-  onOpenFoldersChange?: (next: ReadonlySet<string>) => void
 }
-
-const NO_OPEN_FOLDERS: ReadonlySet<string> = new Set()
 
 const svgDataUri = (content: string): string =>
   `data:image/svg+xml;charset=utf-8,${encodeURIComponent(content)}`
-
-/** `.md` is implied in displayed names; other extensions stay. Labels can
- *  carry a subpath prefix (`archive/04_x.md`) which must survive. */
-const docLabel = (label: string): string =>
-  label.toLowerCase().endsWith('.md') ? label.slice(0, -3) : label
 
 /**
  * Inlines relative SVG images (the bedrock diagrams) into the rendered HTML
@@ -67,31 +45,14 @@ async function inlineSvgImages(
 }
 
 /**
- * Dev Docs tab, MVP slice of 16: docs tree left, rendered Markdown center,
- * reading the real files under docs/ through the typed bridge. Advanced
- * modes (agent/architecture/context/execution views) are later milestones.
+ * Dev Docs tab, MVP slice of 16 (S07e): ONE rendered doc. The docs tree
+ * left of it is the PANE's panel (docs-typed panes, PaneTreePanel) —
+ * this view only follows its docPath tab param and renders the doc.
  */
-export function DevDocs({
-  docPath,
-  onDocOpened,
-  treeCollapsed,
-  onTreeToggle,
-  treeWidth,
-  onTreeResize,
-  openFolders = NO_OPEN_FOLDERS,
-  onOpenFoldersChange
-}: DevDocsProps): React.JSX.Element {
-  const [groups, setGroups] = useState<DevDocsGroup[]>([])
+export function DevDocs({ docPath, onDocOpened }: DevDocsProps): React.JSX.Element {
   const [doc, setDoc] = useState<DevDocFile | null>(null)
   const [html, setHtml] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  // Docs-scoped search perimeter (owner feedback on MVP-001).
-  const searchDocs = useCallback(
-    (query: string) => window.atomik.searchDevDocs(query),
-    []
-  )
-  const { query: searchQuery, setQuery: setSearchQuery, results: searchResults } =
-    useTreeSearch(searchDocs)
   // Guards the docPath effect against re-requesting a path that already
   // failed or is in flight (a failing prop would otherwise retry forever).
   const lastRequested = useRef<string | null>(null)
@@ -112,12 +73,6 @@ export function DevDocs({
     },
     [onDocOpened]
   )
-
-  useEffect(() => {
-    window.atomik
-      .listDevDocs()
-      .then(setGroups, (reason: unknown) => setError(String(reason)))
-  }, [])
 
   useEffect(() => {
     const target = docPath ?? DEFAULT_DOC
@@ -162,112 +117,12 @@ export function DevDocs({
     doc !== null && (doc.kind !== 'markdown' ? true : html !== null)
 
   return (
-    <div
-      className={`devdocs${treeCollapsed ? ' no-tree' : ''}`}
-      style={
-        !treeCollapsed && treeWidth !== undefined
-          ? { gridTemplateColumns: `${treeWidth}px 1fr` }
-          : undefined
-      }
-    >
-      {!treeCollapsed && (
-        <nav className="devdocs-tree" aria-label="Documentation tree">
-          {onTreeResize && <TreeResizeHandle onResize={onTreeResize} />}
-          <div className="tree-bar">
-            <span className="tree-bar-label">documentation</span>
-            <button
-              type="button"
-              className="tree-toggle"
-              title="Expand all groups"
-              onClick={() =>
-                onOpenFoldersChange?.(new Set(groups.map((group) => group.id)))
-              }
-            >
-              <ExpandAllIcon />
-            </button>
-            <button
-              type="button"
-              className="tree-toggle"
-              title="Collapse all groups"
-              onClick={() => onOpenFoldersChange?.(new Set())}
-            >
-              <CollapseAllIcon />
-            </button>
-            {onTreeToggle && (
-              <button
-                type="button"
-                className="tree-toggle"
-                title="Hide tree panel"
-                onClick={onTreeToggle}
-              >
-                <SidebarToggleIcon />
-              </button>
-            )}
-          </div>
-          <div className="vault-search">
-            <input
-              placeholder="search docs…"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Escape') setSearchQuery('')
-              }}
-            />
-          </div>
-          {searchResults !== null ? (
-            <SearchResultsList
-              results={searchResults}
-              activePath={doc?.relPath ?? null}
-              onOpen={openDoc}
-            />
-          ) : (
-            groups.map((group) => (
-              <details
-                key={group.id}
-                open={openFolders.has(group.id)}
-                onToggle={(event) => {
-                  const next = toggledFolder(
-                    openFolders,
-                    group.id,
-                    event.currentTarget.open
-                  )
-                  if (next !== openFolders) onOpenFoldersChange?.(next)
-                }}
-              >
-                <summary>{group.label}</summary>
-                <ul>
-                  {group.entries.map((entry) => (
-                    <li key={entry.relPath}>
-                      <button
-                        type="button"
-                        className={doc?.relPath === entry.relPath ? 'active' : ''}
-                        onClick={() => openDoc(entry.relPath)}
-                      >
-                        {docLabel(entry.label)}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            ))
-          )}
-        </nav>
-      )}
+    <div className="devdocs no-tree">
       <div
         className="devdocs-content"
         onClick={onContentClick}
         {...(rendered ? { 'data-devdocs-rendered': '1' } : {})}
       >
-        {treeCollapsed && onTreeToggle && (
-          <button
-            type="button"
-            className="tree-toggle tree-show"
-            title="Show tree panel"
-            onClick={onTreeToggle}
-          >
-            <SidebarToggleIcon />
-          </button>
-        )}
         {error ? (
           <p className="error">{error}</p>
         ) : !doc ? (
