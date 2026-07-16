@@ -20,7 +20,8 @@ export function TreeMenu({
   onNewNote,
   onNewFolder,
   onDelete,
-  onRename
+  onRename,
+  onMove
 }: {
   target: TreeMenuTarget
   /** Shown for the root target ('' relPath) instead of the folder name. */

@@ -35,7 +35,8 @@ export function NoteTree({
   openFolders,
   onFolderToggle,
   onFolderMenu,
-  onNoteMenu
+  onNoteMenu,
+  onDropNode
 }: {
   folder: VaultFolder
   activePath: string | null
