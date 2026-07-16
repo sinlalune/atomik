@@ -2608,3 +2608,9 @@ body[data-maximized] .tabstrip {
   white-space: normal;
   overflow-wrap: anywhere;
 }
+
+.tree-menu > button.tree-menu-danger:hover,
+.tree-menu > button.tree-menu-danger:focus-visible {
+  color: light-dark(#a03030, #ff8080);
+  background: light-dark(#f6e4e4, #3a2426);
+}

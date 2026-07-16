@@ -34,6 +34,8 @@ export const ATOMIK_CHANNELS = {
   writeNote: 'atomik:write-note',
   createNote: 'atomik:create-note',
   createFolder: 'atomik:create-folder',
+  deleteNote: 'atomik:delete-note',
+  deleteFolder: 'atomik:delete-folder',
   listProjects: 'atomik:list-projects',
   createProject: 'atomik:create-project',
   startCaptureSession: 'atomik:start-capture-session',
@@ -524,6 +526,11 @@ export type AtomikApi = {
   /** Creates a NEW note (parents made, exclusive — never clobbers). */
   createNote: (relPath: string, content?: string) => Promise<void>
   createFolder: (relPath: string) => Promise<FolderInfo>
+  /** Both send USER files to the OS trash (CP-MVP-007: recoverable
+   *  outside the app) — never a hard delete. Bundle-internal notes
+   *  are refused main-side; a bundle deletes as its whole folder. */
+  deleteNote: (relPath: string) => Promise<{ relPath: string }>
+  deleteFolder: (relPath: string) => Promise<{ relPath: string }>
   /** Project bundles found in the open vault (manifest-detected). */
   listProjects: () => Promise<ProjectInfo[]>
   /** Creates or adopts a bundle: writes only the missing pieces. */
@@ -654,6 +661,8 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'writeNote',
   'createNote',
   'createFolder',
+  'deleteNote',
+  'deleteFolder',
   'listProjects',
   'createProject',
   'startCaptureSession',

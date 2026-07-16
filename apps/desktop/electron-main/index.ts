@@ -38,6 +38,7 @@ import { listDevDocs, readDevDoc, resolveDocsRoot } from './dev-docs'
 import { searchVault } from './search'
 import { buildMainWindowOptions } from './security'
 import { createFolder, createProject, listProjects } from './project'
+import { deleteFolder, deleteNote } from './file-manage'
 import {
   createNote,
   listVaultFiles,
@@ -234,6 +235,22 @@ function registerVaultHandlers(stateDir: string): void {
     const info = createFolder(requireVault(), relPath)
     event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
     return info
+  })
+  // CP-MVP-007 S03: user files go to the OS TRASH (shell.trashItem) —
+  // recoverable; a rejected trash surfaces, never a silent hard delete.
+  ipcMain.handle(ATOMIK_CHANNELS.deleteNote, async (event, relPath: unknown) => {
+    const result = await deleteNote(requireVault(), relPath, (abs) =>
+      shell.trashItem(abs)
+    )
+    event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
+    return result
+  })
+  ipcMain.handle(ATOMIK_CHANNELS.deleteFolder, async (event, relPath: unknown) => {
+    const result = await deleteFolder(requireVault(), relPath, (abs) =>
+      shell.trashItem(abs)
+    )
+    event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
+    return result
   })
   ipcMain.handle(ATOMIK_CHANNELS.listProjects, () =>
     listProjects(requireVault())
@@ -1109,7 +1126,16 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
             const folder = await window.atomik.createFolder('smoke/folder-by-smoke')
             const index = await window.atomik.readNote(folder.indexRelPath)
             if (!index.content.includes('Atomik Folder Index')) return 'fail:folder-index'
-            return 'ok+folder'
+            // S03: delete round trip through the REAL OS trash — this
+            // also probes whether trash works on this machine (WSL).
+            let trash = ''
+            try {
+              await window.atomik.createNote('smoke/to-delete.md')
+              await window.atomik.deleteNote('smoke/to-delete.md')
+              try { await window.atomik.readNote('smoke/to-delete.md'); trash = '+trash-STALE' }
+              catch { trash = '+trash' }
+            } catch (e) { trash = '+trash-fail:' + String(e).slice(0, 80) }
+            return 'ok+folder' + trash
           } catch (e) { return 'fail:' + String(e) }
         })()`
       )) as string

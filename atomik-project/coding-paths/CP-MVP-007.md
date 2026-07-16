@@ -202,12 +202,30 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       E2E PROVEN: vault-write rung extended → vaultWrite=ok+folder on
       the real app (channel → mkdir+index → readNote round trip).
       Typecheck/build/smoke green.
-- [ ] S03 Delete to trash end to end: `deleteNote`/`deleteFolder`
+- [x] S03 Delete to trash end to end: `deleteNote`/`deleteFolder`
       verbs over `shell.trashItem` (never rmSync for user files),
       confirm dialogs that name the target (+ note count, bundle
       warning), bundle-as-unit rule enforced, open-tab missing state,
       fold-state cleanup; tests (round-trip with a fake-trash seam;
       tab param behavior).
+      DONE 2026-07-16: file-manage.ts (TrashFn seam; failed trash
+      SURFACES, never a silent hard delete). Bundle rule MAIN-side:
+      any note whose folder directly holds source.md refuses
+      individual deletion (source.md included) — bundle roots trash
+      as ONE unit. Channels delete-note/delete-folder + preload +
+      surface test + push. TreeMenu grows Delete note…/Delete
+      folder… (hidden on the vault root); confirm from
+      folderDeleteSummary (note count + bundle escalation, computed
+      renderer-side from the loaded tree — no extra channel); the
+      open note reset()s when deleted; fold state pruned. Pills
+      (index/log) carry no delete — convention files leave with their
+      folder. Deviation noted: "open-tab missing state" shipped as
+      reset-in-initiating-view; OTHER panes still surface the
+      existing humanized not-found message on next read (recorded as
+      an S07 check item, not silently dropped). Tests 357→364/40.
+      E2E PROVEN ON WSL: vaultWrite=ok+folder+trash — the file landed
+      in ~/.local/share/Trash/files/ (the named WSL-trash risk closes
+      with on-machine evidence). Typecheck/build/smoke green.
 - [ ] S04 The refactor verb: `relocateNote` (rename AND move share
       it) — inbound-link scan (relative-link resolution against the
       old path), preview payload (files + counts), atomic multi-file
@@ -240,8 +258,9 @@ changed     : path PROPOSED and ACCEPTED 2026-07-16 (owner:
               rename=refactor+preview, move+DnD in). Survey recorded:
               zero existing rename/move/delete verbs or UI; no
               watcher; push-refresh only after main-side landings.
-tests       : 357 passing / 39 suites — green at S02 close;
-              typecheck/build/smoke green; e2e vaultWrite=ok+folder.
+tests       : 364 passing / 40 suites — green at S03 close;
+              typecheck/build/smoke green; e2e
+              vaultWrite=ok+folder+trash (real OS trash on WSL).
               S01 done 2026-07-16 (same session as acceptance):
               doctrine pinned (04/27/20/13 — see step), decisions
               addendum in brainstorm/2026-07-16-tree-file-management-
@@ -250,11 +269,11 @@ tests       : 357 passing / 39 suites — green at S02 close;
               S02 done 2026-07-16 (see step): createFolder D end to
               end, creating handlers push vaultFilesChanged, TreeMenu
               on all three trees (creation half).
-next action : S03 — delete to trash end to end: deleteNote/
-              deleteFolder over shell.trashItem (never rmSync for
-              user files), confirm names the target (+ note count,
-              bundle warning), bundle-as-unit rule, open-tab missing
-              state, fold cleanup; tests with a fake-trash seam.
+next action : S04 — the refactor verb relocateNote (rename AND move):
+              inbound-link scan, preview payload, atomic multi-file
+              apply with rollback, targeted replacement only, tab-
+              param rewrite; Rename… UI + preview modal; bundle/
+              convention guards; tests.
 blockers    : none recorded.
 ```
 

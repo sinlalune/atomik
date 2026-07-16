@@ -17,7 +17,8 @@ export function NoteTree({
   onOpen,
   openFolders,
   onFolderToggle,
-  onFolderMenu
+  onFolderMenu,
+  onNoteMenu
 }: {
   folder: VaultFolder
   activePath: string | null
@@ -29,6 +30,8 @@ export function NoteTree({
   /** Context menu on a folder node (CP-MVP-007): right-click or
    *  Shift+F10 reports the folder and a screen position. */
   onFolderMenu?: (relPath: string, x: number, y: number) => void
+  /** Same for note nodes (S03: delete). */
+  onNoteMenu?: (relPath: string, x: number, y: number) => void
 }): React.JSX.Element {
   const { pills, rest } = splitPillNotes(folder.notes)
   const [showPillFiles, setShowPillFiles] = useState(false)
@@ -106,6 +109,7 @@ export function NoteTree({
                 openFolders={openFolders}
                 onFolderToggle={onFolderToggle}
                 onFolderMenu={onFolderMenu}
+                onNoteMenu={onNoteMenu}
               />
             </details>
           </li>
@@ -117,6 +121,29 @@ export function NoteTree({
               className={note.relPath === activePath ? 'active' : ''}
               title={note.relPath}
               onClick={() => onOpen(note.relPath)}
+              onContextMenu={
+                onNoteMenu
+                  ? (event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      onNoteMenu(note.relPath, event.clientX, event.clientY)
+                    }
+                  : undefined
+              }
+              onKeyDown={
+                onNoteMenu
+                  ? (event) => {
+                      if (
+                        event.key === 'ContextMenu' ||
+                        (event.key === 'F10' && event.shiftKey)
+                      ) {
+                        event.preventDefault()
+                        const rect = event.currentTarget.getBoundingClientRect()
+                        onNoteMenu(note.relPath, rect.left + 16, rect.bottom)
+                      }
+                    }
+                  : undefined
+              }
             >
               {noteDisplayName(note.name)}
             </button>

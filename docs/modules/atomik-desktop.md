@@ -708,6 +708,22 @@ vault (04: files are the durable source of record)
         (childRelPath in tree-menu.ts pre-checks one dot-free
         separator-free segment); errors land inside the popup; created
         folder opens its index and joins the fold state.
+  delete to OS trash (CP-MVP-007 S03, owner decision): deleteNote /
+        deleteFolder in file-manage.ts over a TrashFn SEAM (prod =
+        shell.trashItem; a rejected trash SURFACES, never a silent
+        hard delete — rmSync stays reserved for derived files).
+        Bundle rule enforced MAIN-side: a note whose folder directly
+        holds source.md refuses individual deletion (source.md
+        included) — the bundle root trashes as ONE unit. Renderer:
+        Delete note…/Delete folder… in TreeMenu (hidden on the vault
+        root); confirm text from folderDeleteSummary (note count +
+        bundle-count escalation, computed from the loaded tree — no
+        extra channel); the open note reset()s when it leaves with the
+        target; fold state pruned (prunedOpenFolders). Pills
+        (index/log) carry no delete — convention files leave with
+        their folder. PROVEN ON THIS WSL MACHINE: smoke rung
+        vaultWrite=ok+folder+trash, file recovered from
+        ~/.local/share/Trash/files/ (the WSL-trash risk is closed).
 
 pdf extraction (10: renderer fidelity and extraction fidelity separate)
   Extract text button -> extract-pdf-source(dossierPath) -> main
@@ -830,7 +846,10 @@ scan incl. no-descend + malformed fallback, idempotent ensure,
 byte-identical adoption, createFolder D-convention incl. adoption /
 sacred-index refusal / traversal matrix), `tree-menu.test.ts`
 (childRelPath segment gate: .md once, root paths, separators/hidden/
-oversize refused), `vault-scope.test.ts` (findSubtree),
+oversize refused), `file-manage.test.ts` (trash seam: note/folder
+round trips, bundle-internal refusal incl. source.md itself, vault-
+root/traversal/missing rejections, failed-trash-never-hard-deletes),
+`vault-scope.test.ts` (findSubtree),
 `ai-mock.test.ts` (operation validation matrix, 06 bundle shape with
 truth arrays, destination→file-change mapping, content determinism,
 web-reader provenance into note text + evidence and its absence),

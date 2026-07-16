@@ -18,7 +18,8 @@ export function TreeMenu({
   scopeLabel,
   onClose,
   onNewNote,
-  onNewFolder
+  onNewFolder,
+  onDelete
 }: {
   target: TreeMenuTarget
   /** Shown for the root target ('' relPath) instead of the folder name. */
@@ -26,6 +27,9 @@ export function TreeMenu({
   onClose: () => void
   onNewNote: (relPath: string) => Promise<void>
   onNewFolder: (relPath: string) => Promise<void>
+  /** Trash the target (S03). The host owns the confirm (it holds the
+   *  tree for the summary); resolving without deleting is a cancel. */
+  onDelete?: (target: TreeMenuTarget) => Promise<void>
 }): React.JSX.Element {
   const [mode, setMode] = useState<'menu' | 'note' | 'folder'>('menu')
   const [name, setName] = useState('')
@@ -53,6 +57,19 @@ export function TreeMenu({
     target.relPath.length > 0
       ? (target.relPath.split('/').pop() ?? target.relPath)
       : scopeLabel
+
+  const runDelete = async (): Promise<void> => {
+    if (!onDelete || busy) return
+    setBusy(true)
+    setError(null)
+    try {
+      await onDelete(target)
+      onClose()
+    } catch (reason) {
+      setBusy(false)
+      setError(String(reason))
+    }
+  }
 
   const submit = async (): Promise<void> => {
     if (busy || mode === 'menu') return
@@ -99,12 +116,31 @@ export function TreeMenu({
         </div>
         {mode === 'menu' ? (
           <>
-            <button type="button" role="menuitem" onClick={() => setMode('note')}>
-              New note here
-            </button>
-            <button type="button" role="menuitem" onClick={() => setMode('folder')}>
-              New folder…
-            </button>
+            {target.kind === 'folder' && (
+              <>
+                <button type="button" role="menuitem" onClick={() => setMode('note')}>
+                  New note here
+                </button>
+                <button type="button" role="menuitem" onClick={() => setMode('folder')}>
+                  New folder…
+                </button>
+              </>
+            )}
+            {onDelete && !(target.kind === 'folder' && target.relPath === '') && (
+              <button
+                type="button"
+                role="menuitem"
+                className="tree-menu-danger"
+                disabled={busy}
+                onClick={() => void runDelete()}
+              >
+                {busy
+                  ? 'deleting…'
+                  : target.kind === 'note'
+                    ? 'Delete note…'
+                    : 'Delete folder…'}
+              </button>
+            )}
           </>
         ) : (
           <div className="tree-menu-form">

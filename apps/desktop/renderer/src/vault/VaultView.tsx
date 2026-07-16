@@ -15,7 +15,12 @@ import type { NoteViewMode, SaveMode } from '../workspace/model'
 import { hasMediaResource } from '../source/dossier'
 import { NoteTree } from './NoteTree'
 import { TreeMenu } from './TreeMenu'
-import type { TreeMenuTarget } from './tree-menu'
+import {
+  deleteConfirmText,
+  folderDeleteSummary,
+  prunedOpenFolders,
+  type TreeMenuTarget
+} from './tree-menu'
 import { useNavHistory } from './nav-history'
 import { allFolderPaths, toggledFolder } from './tree-fold'
 import { useVaultNote } from './useVaultNote'
@@ -212,6 +217,32 @@ export function VaultView({
     },
     [guardedOpen, onOpenFoldersChange, openFolders]
   )
+  // S03: confirm names the target (+ what rides along); cancel = resolve
+  // without deleting. The open note clears when it leaves with the target.
+  const menuDelete = useCallback(
+    async (target: TreeMenuTarget) => {
+      const summary =
+        target.kind === 'folder' && tree
+          ? folderDeleteSummary(tree, target.relPath)
+          : null
+      if (!window.confirm(deleteConfirmText(target, summary))) return
+      if (target.kind === 'note') {
+        await window.atomik.deleteNote(target.relPath)
+        if (note?.relPath === target.relPath) reset()
+      } else {
+        await window.atomik.deleteFolder(target.relPath)
+        if (
+          note &&
+          (note.relPath === target.relPath ||
+            note.relPath.startsWith(`${target.relPath}/`))
+        ) {
+          reset()
+        }
+        onOpenFoldersChange?.(prunedOpenFolders(openFolders, target.relPath))
+      }
+    },
+    [note, onOpenFoldersChange, openFolders, reset, tree]
+  )
 
   if (info === 'loading') return <p className="pane-placeholder">loading vault…</p>
 
@@ -247,7 +278,7 @@ export function VaultView({
           // background right-click = the vault root (folder-node menus
           // stopPropagation before reaching here)
           event.preventDefault()
-          setTreeMenu({ relPath: '', x: event.clientX, y: event.clientY })
+          setTreeMenu({ kind: 'folder', relPath: '', x: event.clientX, y: event.clientY })
         }}
       >
         {onTreeResize && <TreeResizeHandle onResize={onTreeResize} />}
@@ -332,7 +363,12 @@ export function VaultView({
                 const next = toggledFolder(openFolders, relPath, open)
                 if (next !== openFolders) onOpenFoldersChange?.(next)
               }}
-              onFolderMenu={(relPath, x, y) => setTreeMenu({ relPath, x, y })}
+              onFolderMenu={(relPath, x, y) =>
+                setTreeMenu({ kind: 'folder', relPath, x, y })
+              }
+              onNoteMenu={(relPath, x, y) =>
+                setTreeMenu({ kind: 'note', relPath, x, y })
+              }
             />
           )
         )}
@@ -343,6 +379,7 @@ export function VaultView({
             onClose={() => setTreeMenu(null)}
             onNewNote={menuNewNote}
             onNewFolder={menuNewFolder}
+            onDelete={menuDelete}
           />
         )}
       </nav>

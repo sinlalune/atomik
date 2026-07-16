@@ -4,7 +4,12 @@ import { CollapseAllIcon, ExpandAllIcon, SidebarToggleIcon } from '../icons'
 import { TreeResizeHandle } from '../TreeResizeHandle'
 import { NoteTree } from '../vault/NoteTree'
 import { TreeMenu } from '../vault/TreeMenu'
-import type { TreeMenuTarget } from '../vault/tree-menu'
+import {
+  deleteConfirmText,
+  folderDeleteSummary,
+  prunedOpenFolders,
+  type TreeMenuTarget
+} from '../vault/tree-menu'
 import { findSubtree } from '../vault/scope'
 import { allFolderPaths, toggledFolder } from '../vault/tree-fold'
 
@@ -64,7 +69,12 @@ export function SourcesTreePanel({
       onContextMenu={(event) => {
         if (!tree) return
         event.preventDefault()
-        setTreeMenu({ relPath: tree.relPath, x: event.clientX, y: event.clientY })
+        setTreeMenu({
+          kind: 'folder',
+          relPath: tree.relPath,
+          x: event.clientX,
+          y: event.clientY
+        })
       }}
     >
       {onTreeResize && <TreeResizeHandle onResize={onTreeResize} />}
@@ -127,7 +137,12 @@ export function SourcesTreePanel({
             const next = toggledFolder(openFolders, relPath, open)
             if (next !== openFolders) onOpenFoldersChange?.(next)
           }}
-          onFolderMenu={(relPath, x, y) => setTreeMenu({ relPath, x, y })}
+          onFolderMenu={(relPath, x, y) =>
+            setTreeMenu({ kind: 'folder', relPath, x, y })
+          }
+          onNoteMenu={(relPath, x, y) =>
+            setTreeMenu({ kind: 'note', relPath, x, y })
+          }
         />
       ) : (
         <p className="tree-empty-hint">no vault open</p>
@@ -147,6 +162,20 @@ export function SourcesTreePanel({
             refresh()
             onOpenFoldersChange?.(new Set([...openFolders, created.relPath]))
             onOpen(created.indexRelPath)
+          }}
+          onDelete={async (target) => {
+            const summary =
+              target.kind === 'folder' && tree
+                ? folderDeleteSummary(tree, target.relPath)
+                : null
+            if (!window.confirm(deleteConfirmText(target, summary))) return
+            await (target.kind === 'note'
+              ? window.atomik.deleteNote(target.relPath)
+              : window.atomik.deleteFolder(target.relPath))
+            if (target.kind === 'folder') {
+              onOpenFoldersChange?.(prunedOpenFolders(openFolders, target.relPath))
+            }
+            refresh()
           }}
         />
       )}

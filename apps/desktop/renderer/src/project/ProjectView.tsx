@@ -12,7 +12,12 @@ import { useTreeSearch } from '../search/useTreeSearch'
 import { TreeResizeHandle } from '../TreeResizeHandle'
 import { NoteTree } from '../vault/NoteTree'
 import { TreeMenu } from '../vault/TreeMenu'
-import type { TreeMenuTarget } from '../vault/tree-menu'
+import {
+  deleteConfirmText,
+  folderDeleteSummary,
+  prunedOpenFolders,
+  type TreeMenuTarget
+} from '../vault/tree-menu'
 import { useNavHistory } from '../vault/nav-history'
 import { findSubtree } from '../vault/scope'
 import { allFolderPaths, toggledFolder } from '../vault/tree-fold'
@@ -247,6 +252,32 @@ export function ProjectView({
     },
     [guardedOpen, onOpenFoldersChange, openFolders]
   )
+  const menuDelete = useCallback(
+    async (target: TreeMenuTarget) => {
+      const scoped = tree && projectPath ? findSubtree(tree, projectPath) : null
+      const summary =
+        target.kind === 'folder' && scoped
+          ? folderDeleteSummary(scoped, target.relPath)
+          : null
+      if (!window.confirm(deleteConfirmText(target, summary))) return
+      if (target.kind === 'note') {
+        await window.atomik.deleteNote(target.relPath)
+        if (note?.relPath === target.relPath) reset()
+      } else {
+        await window.atomik.deleteFolder(target.relPath)
+        if (
+          note &&
+          (note.relPath === target.relPath ||
+            note.relPath.startsWith(`${target.relPath}/`))
+        ) {
+          reset()
+        }
+        onOpenFoldersChange?.(prunedOpenFolders(openFolders, target.relPath))
+      }
+      await refresh()
+    },
+    [note, onOpenFoldersChange, openFolders, projectPath, refresh, reset, tree]
+  )
 
   if (vault === 'loading') {
     return <p className="pane-placeholder">loading…</p>
@@ -327,7 +358,12 @@ export function ProjectView({
         onContextMenu={(event) => {
           if (!projectPath) return
           event.preventDefault()
-          setTreeMenu({ relPath: projectPath, x: event.clientX, y: event.clientY })
+          setTreeMenu({
+            kind: 'folder',
+            relPath: projectPath,
+            x: event.clientX,
+            y: event.clientY
+          })
         }}
       >
         {onTreeResize && <TreeResizeHandle onResize={onTreeResize} />}
@@ -404,7 +440,12 @@ export function ProjectView({
                 const next = toggledFolder(openFolders, relPath, open)
                 if (next !== openFolders) onOpenFoldersChange?.(next)
               }}
-              onFolderMenu={(relPath, x, y) => setTreeMenu({ relPath, x, y })}
+              onFolderMenu={(relPath, x, y) =>
+                setTreeMenu({ kind: 'folder', relPath, x, y })
+              }
+              onNoteMenu={(relPath, x, y) =>
+                setTreeMenu({ kind: 'note', relPath, x, y })
+              }
             />
           )
         )}
@@ -415,6 +456,7 @@ export function ProjectView({
             onClose={() => setTreeMenu(null)}
             onNewNote={menuNewNote}
             onNewFolder={menuNewFolder}
+            onDelete={menuDelete}
           />
         )}
       </nav>
