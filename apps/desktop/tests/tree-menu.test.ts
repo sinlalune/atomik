@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { childRelPath } from '../renderer/src/vault/tree-menu'
+import { childRelPath, moveTargetRelPath } from '../renderer/src/vault/tree-menu'
 
 describe('childRelPath — names typed into the tree menu (CP-MVP-007 S02)', () => {
   it('builds note paths, appending .md exactly once', () => {
@@ -24,5 +24,21 @@ describe('childRelPath — names typed into the tree menu (CP-MVP-007 S02)', () 
 
   it('trims surrounding whitespace before judging', () => {
     expect(childRelPath('notes', '  idea  ', 'note')).toBe('notes/idea.md')
+  })
+})
+
+describe('moveTargetRelPath — Move to… destinations (S05)', () => {
+  it('keeps the name, retargets the folder; empty = vault root', () => {
+    expect(moveTargetRelPath('notes/idea.md', 'archive')).toBe('archive/idea.md')
+    expect(moveTargetRelPath('notes/deep', 'archive/2026')).toBe('archive/2026/deep')
+    expect(moveTargetRelPath('notes/idea.md', '')).toBe('idea.md')
+    expect(moveTargetRelPath('notes/idea.md', ' /archive/ ')).toBe('archive/idea.md')
+  })
+
+  it('refuses hidden/traversal segments and control characters', () => {
+    expect(moveTargetRelPath('notes/idea.md', '../out')).toBeNull()
+    expect(moveTargetRelPath('notes/idea.md', 'a//b')).toBeNull()
+    expect(moveTargetRelPath('notes/idea.md', '.git')).toBeNull()
+    expect(moveTargetRelPath('notes/idea.md', 'a\\b')).toBeNull()
   })
 })

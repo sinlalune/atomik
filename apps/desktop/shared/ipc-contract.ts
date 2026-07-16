@@ -38,6 +38,8 @@ export const ATOMIK_CHANNELS = {
   deleteFolder: 'atomik:delete-folder',
   relocatePreview: 'atomik:relocate-preview',
   relocateApply: 'atomik:relocate-apply',
+  relocateFolderPreview: 'atomik:relocate-folder-preview',
+  relocateFolderApply: 'atomik:relocate-folder-apply',
   /** Push (main -> renderer): a note moved; tabs re-point their params. */
   noteRelocated: 'atomik:note-relocated',
   listProjects: 'atomik:list-projects',
@@ -555,6 +557,10 @@ export type AtomikApi = {
    *  user saw what changes. */
   relocatePreview: (from: string, to: string) => Promise<RelocatePreview>
   relocateApply: (from: string, to: string) => Promise<RelocateResult>
+  /** Folder form (S05): prefix-wide refactor; bundle roots move as
+   *  units, folders inside a bundle refuse. */
+  relocateFolderPreview: (from: string, to: string) => Promise<RelocatePreview>
+  relocateFolderApply: (from: string, to: string) => Promise<RelocateResult>
   onNoteRelocated: (
     listener: (move: { from: string; to: string }) => void
   ) => () => void
@@ -692,6 +698,8 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'deleteFolder',
   'relocatePreview',
   'relocateApply',
+  'relocateFolderPreview',
+  'relocateFolderApply',
   'onNoteRelocated',
   'listProjects',
   'createProject',

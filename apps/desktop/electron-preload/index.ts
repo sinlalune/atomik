@@ -85,6 +85,10 @@ const api: AtomikApi = {
     ipcRenderer.invoke(ATOMIK_CHANNELS.relocatePreview, from, to),
   relocateApply: (from: string, to: string) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.relocateApply, from, to),
+  relocateFolderPreview: (from: string, to: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.relocateFolderPreview, from, to),
+  relocateFolderApply: (from: string, to: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.relocateFolderApply, from, to),
   onNoteRelocated: (listener: (move: { from: string; to: string }) => void) => {
     const wrapped = (_event: unknown, move: { from: string; to: string }): void =>
       listener(move)

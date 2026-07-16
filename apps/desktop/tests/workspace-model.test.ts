@@ -333,3 +333,28 @@ describe('relocateTabPaths — tabs follow a renamed/moved note (CP-MVP-007 S04)
     expect(relocateTabPaths(state, 'ghost.md', 'x.md')).toBe(state)
   })
 })
+
+describe('relocateTabPaths — fold state follows a folder move (S05)', () => {
+  it('rewrites treeOpen entries under the moved prefix', () => {
+    const base = createDefaultState('h')
+    const leafId = base.root.kind === 'leaf' ? base.root.id : ''
+    const state = addTab(
+      base,
+      leafId,
+      makeTab('vault', {
+        notePath: 'notes/idea.md',
+        treeOpen: JSON.stringify(['notes', 'notes/deep', 'other'])
+      })
+    )
+    const moved = relocateTabPaths(state, 'notes', 'archive')
+    const tab = (moved.root as { tabs: Array<{ params?: Record<string, string> }> }).tabs.find(
+      (candidate) => candidate.params?.['notePath'] === 'archive/idea.md'
+    )
+    expect(tab).toBeDefined()
+    expect(JSON.parse(tab!.params!['treeOpen']!)).toEqual([
+      'archive',
+      'archive/deep',
+      'other'
+    ])
+  })
+})

@@ -175,6 +175,24 @@ export function SourcesTreePanel({
             await window.atomik.relocateApply(from, to)
             refresh()
           }}
+          onMove={async (target, to) => {
+            const preview =
+              target.kind === 'note'
+                ? await window.atomik.relocatePreview(target.relPath, to)
+                : await window.atomik.relocateFolderPreview(target.relPath, to)
+            const links =
+              preview.totalLinks > 0
+                ? ` ${preview.totalLinks} link(s) update in ${preview.edits.length} note(s).`
+                : ' No links need updating.'
+            if (!window.confirm(`Move “${target.relPath}” → “${to}”?${links}`)) return
+            await (target.kind === 'note'
+              ? window.atomik.relocateApply(target.relPath, to)
+              : window.atomik.relocateFolderApply(target.relPath, to))
+            if (target.kind === 'folder') {
+              onOpenFoldersChange?.(prunedOpenFolders(openFolders, target.relPath))
+            }
+            refresh()
+          }}
           onDelete={async (target) => {
             const summary =
               target.kind === 'folder' && tree

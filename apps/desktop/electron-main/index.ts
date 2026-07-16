@@ -38,7 +38,14 @@ import { listDevDocs, readDevDoc, resolveDocsRoot } from './dev-docs'
 import { searchVault } from './search'
 import { buildMainWindowOptions } from './security'
 import { createFolder, createProject, listProjects } from './project'
-import { deleteFolder, deleteNote, relocateApply, relocatePreview } from './file-manage'
+import {
+  deleteFolder,
+  deleteNote,
+  relocateApply,
+  relocateFolderApply,
+  relocateFolderPreview,
+  relocatePreview
+} from './file-manage'
 import {
   createNote,
   listVaultFiles,
@@ -264,6 +271,24 @@ function registerVaultHandlers(stateDir: string): void {
     (event, from: unknown, to: unknown) => {
       const result = relocateApply(requireVault(), from, to)
       event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
+      event.sender.send(ATOMIK_CHANNELS.noteRelocated, {
+        from: result.from,
+        to: result.to
+      })
+      return result
+    }
+  )
+  ipcMain.handle(
+    ATOMIK_CHANNELS.relocateFolderPreview,
+    (_event, from: unknown, to: unknown) =>
+      relocateFolderPreview(requireVault(), from, to)
+  )
+  ipcMain.handle(
+    ATOMIK_CHANNELS.relocateFolderApply,
+    (event, from: unknown, to: unknown) => {
+      const result = relocateFolderApply(requireVault(), from, to)
+      event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
+      // the same push: relocateTabPaths' prefix form covers folders
       event.sender.send(ATOMIK_CHANNELS.noteRelocated, {
         from: result.from,
         to: result.to
@@ -1166,7 +1191,19 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
               reloc = prev.totalLinks === 1 && citer.content.includes('(target-renamed.md)')
                 ? '+reloc' : '+reloc-FAIL:' + prev.totalLinks + '/' + citer.content
             } catch (e) { reloc = '+reloc-fail:' + String(e).slice(0, 80) }
-            return 'ok+folder' + trash + reloc
+            // S05: folder move — inbound links follow prefix-wide.
+            let fmove = ''
+            try {
+              await window.atomik.createFolder('smoke/box')
+              await window.atomik.createNote('smoke/box/inside.md')
+              await window.atomik.createNote('smoke/pointing.md', 'see [in](box/inside.md)\\n')
+              await window.atomik.relocateFolderApply('smoke/box', 'smoke/box-moved')
+              const pointing = await window.atomik.readNote('smoke/pointing.md')
+              const inside = await window.atomik.readNote('smoke/box-moved/inside.md')
+              fmove = pointing.content.includes('(box-moved/inside.md)') && inside
+                ? '+fmove' : '+fmove-FAIL:' + pointing.content
+            } catch (e) { fmove = '+fmove-fail:' + String(e).slice(0, 80) }
+            return 'ok+folder' + trash + reloc + fmove
           } catch (e) { return 'fail:' + String(e) }
         })()`
       )) as string

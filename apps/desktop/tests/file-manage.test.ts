@@ -6,6 +6,8 @@ import {
   deleteFolder,
   deleteNote,
   relocateApply,
+  relocateFolderApply,
+  relocateFolderPreview,
   relocatePreview,
   type TrashFn
 } from '../electron-main/file-manage'
@@ -178,5 +180,62 @@ describe('relocate — rename/move as the previewed refactor (CP-MVP-007 S04)', 
     } finally {
       chmodSync(citingAbs, 0o644)
     }
+  })
+})
+
+describe('relocate FOLDER — prefix-wide refactor, bundles as units (S05)', () => {
+  beforeEach(() => {
+    writeFileSync(
+      join(vault, 'notes/deep/inner.md'),
+      'Sibling [leaf](leaf.md); outside [idea](../idea.md).\n'
+    )
+    writeFileSync(
+      join(vault, 'outside.md'),
+      'Inbound [leaf](notes/deep/leaf.md) and [dossier](sources/web/guide/source.md).\n'
+    )
+  })
+
+  it('moves the folder; inbound targets follow prefix-wide; internal links keep their bytes', () => {
+    relocateFolderApply(vault, 'notes/deep', 'archive')
+    expect(existsSync(join(vault, 'notes/deep'))).toBe(false)
+    expect(readFileSync(join(vault, 'outside.md'), 'utf8')).toContain(
+      '[leaf](archive/leaf.md)'
+    )
+    const inner = readFileSync(join(vault, 'archive/inner.md'), 'utf8')
+    expect(inner).toContain('[leaf](leaf.md)')
+    expect(inner).toContain('[idea](../notes/idea.md)')
+  })
+
+  it('a bundle root moves as a unit and its inbound dossier links follow', () => {
+    relocateFolderApply(vault, 'sources/web/guide', 'sources/web/guide-kept')
+    expect(readFileSync(join(vault, 'outside.md'), 'utf8')).toContain(
+      '[dossier](sources/web/guide-kept/source.md)'
+    )
+    expect(existsSync(join(vault, 'sources/web/guide-kept/reader.md'))).toBe(true)
+  })
+
+  it('refuses folders inside a bundle, bundle targets, self-nesting, collisions', () => {
+    expect(() =>
+      relocateFolderPreview(vault, 'sources/web/guide/media', 'media-out')
+    ).toThrow(/inside a source bundle/)
+    expect(() =>
+      relocateFolderPreview(vault, 'notes/deep', 'sources/web/guide/deep')
+    ).toThrow(/inside a source bundle/)
+    expect(() => relocateFolderPreview(vault, 'notes', 'notes/deep/sub')).toThrow(
+      /into itself/
+    )
+    mkdirSync(join(vault, 'occupied'), { recursive: true })
+    expect(() => relocateFolderPreview(vault, 'notes/deep', 'occupied')).toThrow(
+      /already exists/
+    )
+    expect(() => relocateFolderPreview(vault, 'ghost', 'x')).toThrow(/not found/)
+  })
+
+  it('preview writes nothing', () => {
+    const before = readFileSync(join(vault, 'outside.md'), 'utf8')
+    const preview = relocateFolderPreview(vault, 'notes/deep', 'archive')
+    expect(preview.totalLinks).toBeGreaterThan(0)
+    expect(readFileSync(join(vault, 'outside.md'), 'utf8')).toBe(before)
+    expect(existsSync(join(vault, 'notes/deep'))).toBe(true)
   })
 })

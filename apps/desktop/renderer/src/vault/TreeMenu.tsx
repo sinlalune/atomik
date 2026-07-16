@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { childRelPath, type TreeMenuTarget } from './tree-menu'
+import { childRelPath, moveTargetRelPath, type TreeMenuTarget } from './tree-menu'
 
 /**
  * The tree context menu (CP-MVP-007 S02): right-click (or Shift+F10)
@@ -34,8 +34,13 @@ export function TreeMenu({
   /** Rename a note (S04) — the host runs the previewed refactor;
    *  resolving without applying is a cancel. */
   onRename?: (from: string, to: string) => Promise<void>
+  /** Move to a typed destination folder (S05) — same previewed
+   *  refactor, note or folder form chosen by the host. */
+  onMove?: (target: TreeMenuTarget, to: string) => Promise<void>
 }): React.JSX.Element {
-  const [mode, setMode] = useState<'menu' | 'note' | 'folder' | 'rename'>('menu')
+  const [mode, setMode] = useState<'menu' | 'note' | 'folder' | 'rename' | 'move'>(
+    'menu'
+  )
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -77,16 +82,25 @@ export function TreeMenu({
 
   const submit = async (): Promise<void> => {
     if (busy || mode === 'menu') return
-    const parentRel =
-      mode === 'rename'
-        ? target.relPath.split('/').slice(0, -1).join('/')
-        : target.relPath
-    const relPath = childRelPath(parentRel, name, mode === 'folder' ? 'folder' : 'note')
+    const relPath =
+      mode === 'move'
+        ? moveTargetRelPath(target.relPath, name)
+        : childRelPath(
+            mode === 'rename'
+              ? target.relPath.split('/').slice(0, -1).join('/')
+              : target.relPath,
+            name,
+            mode === 'folder' ? 'folder' : 'note'
+          )
     if (!relPath) {
-      setError('one name, no “/”, no leading dot')
+      setError(
+        mode === 'move'
+          ? 'a destination folder path (empty = vault root)'
+          : 'one name, no “/”, no leading dot'
+      )
       return
     }
-    if (mode === 'rename' && relPath === target.relPath) {
+    if ((mode === 'rename' || mode === 'move') && relPath === target.relPath) {
       onClose()
       return
     }
@@ -94,6 +108,7 @@ export function TreeMenu({
     setError(null)
     try {
       if (mode === 'rename') await onRename?.(target.relPath, relPath)
+      else if (mode === 'move') await onMove?.(target, relPath)
       else if (mode === 'note') await onNewNote(relPath)
       else await onNewFolder(relPath)
       onClose()
@@ -152,6 +167,18 @@ export function TreeMenu({
                 Rename…
               </button>
             )}
+            {onMove && target.relPath !== '' && (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setName(target.relPath.split('/').slice(0, -1).join('/'))
+                  setMode('move')
+                }}
+              >
+                Move to…
+              </button>
+            )}
             {onDelete && !(target.kind === 'folder' && target.relPath === '') && (
               <button
                 type="button"
@@ -177,9 +204,11 @@ export function TreeMenu({
               placeholder={
                 mode === 'rename'
                   ? 'new name…'
-                  : mode === 'note'
-                    ? 'note name…'
-                    : 'folder name…'
+                  : mode === 'move'
+                    ? 'destination folder (empty = root)…'
+                    : mode === 'note'
+                      ? 'note name…'
+                      : 'folder name…'
               }
               onChange={(event) => setName(event.target.value)}
               onKeyDown={(event) => {

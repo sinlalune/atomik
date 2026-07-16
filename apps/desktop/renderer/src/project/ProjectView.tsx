@@ -275,6 +275,36 @@ export function ProjectView({
     },
     [editorDirty, note, openNote, refresh]
   )
+  const menuMove = useCallback(
+    async (target: TreeMenuTarget, to: string) => {
+      if (
+        editorDirty &&
+        note &&
+        (note.relPath === target.relPath ||
+          note.relPath.startsWith(`${target.relPath}/`))
+      ) {
+        throw new Error('save or discard the open changes first')
+      }
+      const preview =
+        target.kind === 'note'
+          ? await window.atomik.relocatePreview(target.relPath, to)
+          : await window.atomik.relocateFolderPreview(target.relPath, to)
+      const links =
+        preview.totalLinks > 0
+          ? `\n\n${preview.totalLinks} link${preview.totalLinks === 1 ? '' : 's'} update in ${preview.edits.length} note${preview.edits.length === 1 ? '' : 's'}.`
+          : '\n\nNo links need updating.'
+      if (!window.confirm(`Move “${target.relPath}” → “${to}”?${links}`)) return
+      if (target.kind === 'note') {
+        await window.atomik.relocateApply(target.relPath, to)
+        if (note?.relPath === target.relPath) openNote(to)
+      } else {
+        await window.atomik.relocateFolderApply(target.relPath, to)
+        onOpenFoldersChange?.(prunedOpenFolders(openFolders, target.relPath))
+      }
+      await refresh()
+    },
+    [editorDirty, note, onOpenFoldersChange, openFolders, openNote, refresh]
+  )
   const menuDelete = useCallback(
     async (target: TreeMenuTarget) => {
       const scoped = tree && projectPath ? findSubtree(tree, projectPath) : null
@@ -481,6 +511,7 @@ export function ProjectView({
             onNewFolder={menuNewFolder}
             onDelete={menuDelete}
             onRename={menuRename}
+            onMove={menuMove}
           />
         )}
       </nav>

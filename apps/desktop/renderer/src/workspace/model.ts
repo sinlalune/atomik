@@ -4,6 +4,7 @@ import type {
   WorkspaceState,
   WorkspaceTab
 } from '../../../shared/ipc-contract'
+import { parseOpenFolders, serializeOpenFolders } from '../vault/tree-fold'
 
 /**
  * Pure workspace-layout operations — the incubating workspace-core kernel
@@ -397,12 +398,29 @@ export function relocateTabPaths(
     if (node.kind !== 'leaf') return node
     let changed = false
     const tabs = node.tabs.map((tab) => {
-      const notePath = tab.params?.['notePath']
-      if (!notePath) return tab
-      const next = rewrite(notePath)
-      if (next === notePath) return tab
+      const params: Record<string, string> = { ...tab.params }
+      let touched = false
+      const notePath = params['notePath']
+      if (notePath) {
+        const next = rewrite(notePath)
+        if (next !== notePath) {
+          params['notePath'] = next
+          touched = true
+        }
+      }
+      // folder moves drag the FOLD state too (S05)
+      const treeOpen = params['treeOpen']
+      if (treeOpen) {
+        const open = [...parseOpenFolders(treeOpen)]
+        const rewritten = open.map(rewrite)
+        if (rewritten.some((value, index) => value !== open[index])) {
+          params['treeOpen'] = serializeOpenFolders(new Set(rewritten))
+          touched = true
+        }
+      }
+      if (!touched) return tab
       changed = true
-      return { ...tab, params: { ...tab.params, notePath: next } }
+      return { ...tab, params }
     })
     return changed ? { ...node, tabs } : node
   })

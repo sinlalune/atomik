@@ -275,6 +275,127 @@ export function relocateApply(
   return { from, to, filesChanged: edits.length + 1 }
 }
 
+/* Folder relocate (S05): the same refactor, prefix-wide. A bundle
+ * root MOVES AS A UNIT here — that is the sanctioned way to move a
+ * bundle; folders inside a bundle stay put (internal contract). */
+
+function insideBundle(vaultRoot: string, absDir: string): string | null {
+  let dir = absDir
+  while (true) {
+    const parent = dirname(dir)
+    if (parent === dir) return null
+    const parentRel = relative(vaultRoot, parent)
+    if (parentRel.length === 0 || parentRel.startsWith('..')) return null
+    if (existsSync(join(parent, 'source.md'))) return parent
+    dir = parent
+  }
+}
+
+function computeFolderRelocate(
+  vaultRoot: string,
+  fromRel: unknown,
+  toRel: unknown
+): ComputedRelocate & { from: string; to: string } {
+  const fromAbs = resolveProjectDirPath(vaultRoot, fromRel)
+  const toAbs = resolveProjectDirPath(vaultRoot, toRel)
+  if (!fromAbs || !toAbs) throw new Error('file-manage: rejected path')
+  const from = rel(vaultRoot, fromAbs)
+  const to = rel(vaultRoot, toAbs)
+  if (from === to) throw new Error('file-manage: same path')
+  if (!existsSync(fromAbs) || !statSync(fromAbs).isDirectory()) {
+    throw new Error('file-manage: folder not found')
+  }
+  if (existsSync(toAbs)) throw new Error(`file-manage: target already exists — ${to}`)
+  if (to === from || to.startsWith(`${from}/`)) {
+    throw new Error('file-manage: cannot move a folder into itself')
+  }
+  assertInsideVault(vaultRoot, fromAbs)
+  const enclosing = insideBundle(vaultRoot, fromAbs)
+  if (enclosing) {
+    throw new Error(
+      `file-manage: folder is inside a source bundle (${rel(vaultRoot, enclosing)}) — the bundle moves as a unit`
+    )
+  }
+  const toParent = dirname(toAbs)
+  if (existsSync(join(toParent, 'source.md')) || insideBundle(vaultRoot, toParent)) {
+    throw new Error('file-manage: target is inside a source bundle')
+  }
+
+  const mapPath = (resolved: string): string | null =>
+    resolved === from
+      ? to
+      : resolved.startsWith(`${from}/`)
+        ? `${to}${resolved.slice(from.length)}`
+        : null
+
+  const edits: ComputedRelocate['edits'] = []
+  for (const noteRel of walkNotes(vaultRoot)) {
+    const abs = join(vaultRoot, noteRel)
+    const before = readFileSync(abs, 'utf8')
+    const inside = noteRel === from || noteRel.startsWith(`${from}/`)
+    const newNoteRel = inside ? `${to}${noteRel.slice(from.length)}` : noteRel
+    const { after, count } = inside
+      ? // a note riding the move: every outgoing target keeps pointing
+        // at the same file — moved siblings via mapPath, outsiders as
+        // they were — but re-emitted from the note's NEW home
+        rewriteLinks(before, noteRel, newNoteRel, (resolved) =>
+          mapPath(resolved) ?? resolved
+        )
+      : // outside notes: inbound targets under the moved folder follow
+        rewriteLinks(before, noteRel, noteRel, mapPath)
+    if (count > 0 && after !== before) {
+      edits.push({ relPath: noteRel, count, abs, before, after })
+    }
+  }
+  return { from, to, fromAbs, toAbs, edits }
+}
+
+export function relocateFolderPreview(
+  vaultRoot: string,
+  fromRel: unknown,
+  toRel: unknown
+): RelocatePreview {
+  const { from, to, edits } = computeFolderRelocate(vaultRoot, fromRel, toRel)
+  return {
+    from,
+    to,
+    edits: edits.map(({ relPath, count }) => ({ relPath, count })),
+    totalLinks: edits.reduce((sum, edit) => sum + edit.count, 0)
+  }
+}
+
+export function relocateFolderApply(
+  vaultRoot: string,
+  fromRel: unknown,
+  toRel: unknown
+): { from: string; to: string; filesChanged: number } {
+  const { from, to, fromAbs, toAbs, edits } = computeFolderRelocate(
+    vaultRoot,
+    fromRel,
+    toRel
+  )
+  mkdirSync(dirname(toAbs), { recursive: true })
+  assertInsideVault(vaultRoot, dirname(toAbs))
+  if (existsSync(toAbs)) throw new Error(`file-manage: target already exists — ${to}`)
+  renameSync(fromAbs, toAbs)
+  const applied: Array<{ abs: string; before: string }> = []
+  try {
+    for (const edit of edits) {
+      const inside = edit.relPath === from || edit.relPath.startsWith(`${from}/`)
+      const targetAbs = inside
+        ? join(toAbs, relative(fromAbs, edit.abs))
+        : edit.abs
+      writeFileSync(targetAbs, edit.after, 'utf8')
+      applied.push({ abs: targetAbs, before: edit.before })
+    }
+  } catch (error) {
+    for (const undo of applied) writeFileSync(undo.abs, undo.before, 'utf8')
+    renameSync(toAbs, fromAbs)
+    throw error
+  }
+  return { from, to, filesChanged: edits.length + 1 }
+}
+
 export async function deleteFolder(
   vaultRoot: string,
   relPath: unknown,

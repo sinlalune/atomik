@@ -37,6 +37,27 @@ export function childRelPath(
   return `${base}${clean.toLowerCase().endsWith('.md') ? clean : `${clean}.md`}`
 }
 
+/**
+ * Target path for "Move to…": the name stays, the destination folder
+ * is typed (''/vault root allowed; segments validated — the main-side
+ * validator remains the real gate).
+ */
+export function moveTargetRelPath(
+  fromRelPath: string,
+  destFolder: string
+): string | null {
+  const base = fromRelPath.split('/').pop()
+  if (!base) return null
+  const clean = destFolder.trim().replace(/^\/+|\/+$/g, '')
+  if (clean === '') return base
+  if (clean.length > 400 || /[\\\0]/.test(clean)) return null
+  const segments = clean.split('/')
+  if (segments.some((segment) => segment === '' || segment.startsWith('.'))) {
+    return null
+  }
+  return `${segments.join('/')}/${base}`
+}
+
 /** What a folder deletion takes with it — drives the confirm text. */
 export type DeleteSummary = {
   name: string

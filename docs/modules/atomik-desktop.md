@@ -746,6 +746,19 @@ vault (04: files are the durable source of record)
         style links and wikilinks not scanned (none produced by the
         app; 20's link index will subsume), preview is a confirm list
         (a diff modal can come with 20).
+  Move to… + FOLDER relocate (S05): relocateFolderPreview/Apply — the
+        same refactor prefix-wide (mapPath rewrites every target under
+        the moved folder; notes RIDING the move re-emit outgoing links
+        from their new home, sibling links keep their bytes). Bundle
+        roots move AS UNITS (the sanctioned way to move a bundle);
+        folders INSIDE a bundle refuse (media/ stays put), bundle
+        targets refuse, self-nesting refuses. Apply rewrites riding
+        notes at their NEW paths, rollback restores both. "Move to…"
+        in TreeMenu (both kinds; destination typed, '' = root —
+        moveTargetRelPath validates segments, main re-validates);
+        moves always confirm. The note-relocated push covers folders:
+        relocateTabPaths rewrites notePath AND treeOpen fold params
+        prefix-wide across every pane.
 
 pdf extraction (10: renderer fidelity and extraction fidelity separate)
   Extract text button -> extract-pdf-source(dossierPath) -> main
