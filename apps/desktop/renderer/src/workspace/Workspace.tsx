@@ -209,12 +209,7 @@ function TabContent({
   if (tab.view === 'capture') {
     return (
       <Suspense fallback={<div className="view-loading" />}>
-        <ImportView
-          onOpenSourceImage={openSourceImage}
-          onOpenWebTab={() =>
-            dispatch((state) => addTab(state, paneId, makeTab('source-web')))
-          }
-        />
+        <ImportView onOpenSourceImage={openSourceImage} onOpenWebUrl={openWebUrl} />
       </Suspense>
     )
   }

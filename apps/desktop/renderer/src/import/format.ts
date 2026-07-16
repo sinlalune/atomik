@@ -42,3 +42,14 @@ export function defaultCaptureDestination(
   const day = new Date(nowMs).toISOString().slice(0, 10)
   return `sources/captures/${day}-${captureSlug(captureTitleOf(fileName))}`
 }
+
+/** A typed address becomes a navigable URL (S07e Import page): scheme
+ *  kept when http(s) is given, https:// assumed for bare hosts, every
+ *  other scheme refused; whitespace-only reads as nothing. */
+export function webImportUrl(input: string): string | null {
+  const clean = input.trim()
+  if (clean.length === 0) return null
+  if (/^https?:\/\//i.test(clean)) return clean
+  if (/^[a-z][a-z0-9+.-]*:/i.test(clean)) return null
+  return `https://${clean}`
+}

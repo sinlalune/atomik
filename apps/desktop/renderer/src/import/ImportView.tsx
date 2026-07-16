@@ -9,7 +9,8 @@ import {
   captureTitleOf,
   defaultCaptureDestination,
   formatBytes,
-  formatRemaining
+  formatRemaining,
+  webImportUrl
 } from './format'
 import { mediaObjectUrl } from '../source/rotate'
 
@@ -28,18 +29,27 @@ const POLL_MS = 2000
 
 export function ImportView({
   onOpenSourceImage,
-  onOpenWebTab
+  onOpenWebUrl
 }: {
   /** Opens the imported bundle in an image source tab (S05). */
   onOpenSourceImage?: (dossierPath: string) => void
-  /** Opens an isolated Web tab (pages import from there — CP-MVP-006). */
-  onOpenWebTab?: () => void
+  /** Opens an isolated Web tab AT a URL (pages import from there —
+   *  CP-MVP-006; S07e owner bench: a URL field, not a bare tab). */
+  onOpenWebUrl?: (url: string) => void
 }): React.JSX.Element {
   const [session, setSession] = useState<CaptureSessionInfo | null>(null)
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pdfBusy, setPdfBusy] = useState(false)
+  const [webDraft, setWebDraft] = useState('')
   const [nowMs, setNowMs] = useState(() => Date.now())
+
+  const openWebDraft = useCallback(() => {
+    const url = webImportUrl(webDraft)
+    if (!url) return
+    setWebDraft('')
+    onOpenWebUrl?.(url)
+  }, [onOpenWebUrl, webDraft])
 
   // The PDF import (CP-MVP-003): native file picker main-side, original
   // preserved as evidence; the new dossier opens beside this tab.
@@ -136,20 +146,30 @@ export function ImportView({
               {pdfBusy ? 'Importing…' : 'Import PDF…'}
             </button>
           </div>
-          {onOpenWebTab && (
+          {onOpenWebUrl && (
             <div className="import-option">
               <h3>Web page</h3>
               <p>
-                Browse in an isolated Web tab and import any page as a
-                source — snapshot plus dossier, URL provenance recorded.
+                A page opens in an isolated Web tab — import it there as
+                a source: snapshot plus dossier, URL provenance recorded.
               </p>
-              <button
-                type="button"
-                className="vault-open-button"
-                onClick={onOpenWebTab}
-              >
-                Open a Web tab
-              </button>
+              <div className="vault-new import-web-url">
+                <input
+                  value={webDraft}
+                  placeholder="https://…"
+                  onChange={(event) => setWebDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') openWebDraft()
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={webImportUrl(webDraft) === null}
+                  onClick={openWebDraft}
+                >
+                  Open
+                </button>
+              </div>
             </div>
           )}
         </div>

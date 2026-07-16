@@ -10,7 +10,8 @@ import {
 import {
   captureSlug,
   captureTitleOf,
-  defaultCaptureDestination
+  defaultCaptureDestination,
+  webImportUrl
 } from '../renderer/src/import/format'
 
 /**
@@ -197,5 +198,24 @@ describe('capture import defaults (renderer)', () => {
     expect(defaultCaptureDestination('IMG_2042.HEIC', FIXED_NOW)).toBe(
       'sources/captures/2026-07-07-img-2042'
     )
+  })
+})
+
+describe('webImportUrl (S07e Import page — the web URL field)', () => {
+  it('keeps http(s), assumes https for bare hosts, trims', () => {
+    expect(webImportUrl('https://en.wikipedia.org/wiki/Cell')).toBe(
+      'https://en.wikipedia.org/wiki/Cell'
+    )
+    expect(webImportUrl('http://localhost:3000/page')).toBe(
+      'http://localhost:3000/page'
+    )
+    expect(webImportUrl('  example.org/a b  ')).toBe('https://example.org/a b')
+  })
+
+  it('refuses empty input and non-web schemes', () => {
+    expect(webImportUrl('')).toBeNull()
+    expect(webImportUrl('   ')).toBeNull()
+    expect(webImportUrl('file:///etc/passwd')).toBeNull()
+    expect(webImportUrl('javascript:alert(1)')).toBeNull()
   })
 })
