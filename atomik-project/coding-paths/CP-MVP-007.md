@@ -158,12 +158,29 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
 
 # Execution
 
-- [ ] S01 Bootstrap (22): reconcile ledger vs repo; record
+- [x] S01 Bootstrap (22): reconcile ledger vs repo; record
       `base_commit`; read 04 + 27 + 20 §rename + 03 §persistence +
       13 §IPC in full; write the brainstorm ADDENDUM recording the
       owner's four 2026-07-16 decisions (incl. the B→D and
       DnD-included deviations, 17); pin the bundle-guard inventory
       (which paths are bundle-internal, which roots move as units).
+      DONE 2026-07-16: base_commit 9de5f01 (348/38 verified at S06b
+      close, same session); addendum written as a SIBLING note
+      (brainstorm/2026-07-16-tree-file-management-decisions.md — the
+      06-07 original carries live owner edits; editing it would block
+      the owner's next merge). Pins from the reads: 04 — one op, one
+      meaningful reviewable diff; deleting containers must never
+      delete user notes; 27 — no mass rewrites, targeted link
+      replacement only, rename+backlinks = sanctioned atomic labeled
+      refactor NEVER mixed with content edits; 20 — broken-link
+      detection is a diagnostic, never silent auto-repair (the
+      PREVIEW is the acceptance gate); 13 §IPC — explicit narrow
+      channels, model output never chooses filesystem paths, every
+      new channel documented with trust boundary + tests. KEY
+      INVENTORY FINDING: the bundle-root marker is "folder directly
+      containing source.md" — location-independent (capture bundles
+      land at user-chosen paths), so guards key on the marker, not a
+      sources/ prefix. Full inventory in the addendum note.
 - [ ] S02 Folder creation (D) end to end: `createFolder` verb +
       channel (path-validated, wx index.md, project-convention body),
       `vaultFilesChanged` push lands on ALL trees (fixing the
@@ -209,8 +226,15 @@ changed     : path PROPOSED and ACCEPTED 2026-07-16 (owner:
               zero existing rename/move/delete verbs or UI; no
               watcher; push-refresh only after main-side landings.
 tests       : 348 passing / 38 suites at activation.
-next action : S01 bootstrap — reads (04/27/20/03/13), brainstorm
-              addendum (17), bundle-guard inventory, base_commit.
+              S01 done 2026-07-16 (same session as acceptance):
+              doctrine pinned (04/27/20/13 — see step), decisions
+              addendum in brainstorm/2026-07-16-tree-file-management-
+              decisions.md, bundle-guard rule = source.md marker
+              (location-independent).
+next action : S02 — folder creation (D) end to end: createFolder
+              verb + channel (wx index.md), vaultFilesChanged push
+              for ALL landings incl. plain note creation, context-
+              menu skeleton (New note here / New folder…), tests.
 blockers    : none recorded.
 ```
 
