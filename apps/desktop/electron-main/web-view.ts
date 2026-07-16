@@ -30,6 +30,32 @@ export function guestWebPreferences(): WebPreferences {
   return { ...SECURE_WEB_PREFERENCES, partition: WEB_PARTITION }
 }
 
+/** The snapshot PREVIEW guest (S07e-c): same four required settings,
+ *  but an EPHEMERAL in-memory partition — saved evidence renders with
+ *  zero cookies and shares nothing with the live web session. */
+export const SNAPSHOT_PARTITION = 'snapshot-preview'
+
+export function snapshotWebPreferences(): WebPreferences {
+  return { ...SECURE_WEB_PREFERENCES, partition: SNAPSHOT_PARTITION }
+}
+
+/** The only vault file a snapshot view may render: a clean relative
+ *  path whose basename is snapshot.mhtml — no dots, no absolutes, no
+ *  backslashes; main still realpath-checks against the vault root. */
+export function isSnapshotRelPath(raw: unknown): raw is string {
+  if (typeof raw !== 'string' || raw.length === 0 || raw.length > 1024) {
+    return false
+  }
+  if (raw.startsWith('/') || raw.includes('\\') || raw.includes('\0')) {
+    return false
+  }
+  const segments = raw.split('/')
+  if (segments.some((segment) => segment === '' || segment === '.' || segment === '..')) {
+    return false
+  }
+  return segments[segments.length - 1] === 'snapshot.mhtml'
+}
+
 /** View ids are tab ids — uuid-shaped opaque tokens, nothing pathy. */
 export function isWebViewId(raw: unknown): raw is string {
   return typeof raw === 'string' && /^[0-9a-zA-Z_-]{1,64}$/.test(raw)

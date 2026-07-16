@@ -70,6 +70,12 @@ export const ATOMIK_CHANNELS = {
   webViewSetVisible: 'atomik:web-view-set-visible',
   webViewDestroy: 'atomik:web-view-destroy',
   webViewImportSource: 'atomik:web-view-import-source',
+  /** Direct URL import (S07e-c): a hidden isolated guest loads the page
+   *  main-side and the same web-import gates land the bundle. */
+  importWebUrl: 'atomik:import-web-url',
+  /** Renders a bundle's snapshot.mhtml as the source preview — an
+   *  ephemeral isolated view, navigation denied (evidence is static). */
+  webViewShowSnapshot: 'atomik:web-view-show-snapshot',
   webViewReaderText: 'atomik:web-view-reader-text',
   extractWebReader: 'atomik:extract-web-reader',
   resetWebReader: 'atomik:reset-web-reader',
@@ -663,6 +669,14 @@ export type AtomikApi = {
   /** EXPLICIT Import-as-source (09): snapshots the tab's current page
    *  into a sources/web/<slug>/ bundle; returns the new dossier. */
   webViewImportSource: (id: string) => Promise<CaptureImportResult>
+  /** Direct URL import (S07e-c, Import page): a hidden isolated guest
+   *  loads the page main-side, then the SAME import gates land the
+   *  bundle — still explicit, one URL, one bundle. */
+  importWebUrl: (url: string) => Promise<CaptureImportResult>
+  /** Renders a web bundle's snapshot.mhtml as the source preview: an
+   *  ephemeral isolated view in the shared registry (bounds/visible/
+   *  destroy as any web view); navigation denied — evidence is static. */
+  webViewShowSnapshot: (id: string, snapshotRelPath: string) => Promise<void>
   /** Live reader mode (S06): extracts the tab's CURRENT page to reader
    *  markdown in memory — no file, no images (transient read). */
   webViewReaderText: (id: string) => Promise<{ title: string; markdown: string }>
@@ -735,6 +749,8 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'webViewSetVisible',
   'webViewDestroy',
   'webViewImportSource',
+  'importWebUrl',
+  'webViewShowSnapshot',
   'webViewReaderText',
   'extractWebReader',
   'resetWebReader',

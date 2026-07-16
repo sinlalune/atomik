@@ -28,28 +28,39 @@ import { mediaObjectUrl } from '../source/rotate'
 const POLL_MS = 2000
 
 export function ImportView({
-  onOpenSourceImage,
-  onOpenWebUrl
+  onOpenSourceImage
 }: {
   /** Opens the imported bundle in an image source tab (S05). */
   onOpenSourceImage?: (dossierPath: string) => void
-  /** Opens an isolated Web tab AT a URL (pages import from there —
-   *  CP-MVP-006; S07e owner bench: a URL field, not a bare tab). */
-  onOpenWebUrl?: (url: string) => void
 }): React.JSX.Element {
   const [session, setSession] = useState<CaptureSessionInfo | null>(null)
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pdfBusy, setPdfBusy] = useState(false)
   const [webDraft, setWebDraft] = useState('')
+  const [webBusy, setWebBusy] = useState(false)
   const [nowMs, setNowMs] = useState(() => Date.now())
 
-  const openWebDraft = useCallback(() => {
+  // Direct URL import (S07e-c, owner): paste, click Import, the bundle
+  // lands and the dossier opens — the page loads in a hidden isolated
+  // guest main-side; same gates and provenance as the web tab's button.
+  const importWebDraft = useCallback(() => {
     const url = webImportUrl(webDraft)
-    if (!url) return
-    setWebDraft('')
-    onOpenWebUrl?.(url)
-  }, [onOpenWebUrl, webDraft])
+    if (!url || webBusy) return
+    setWebBusy(true)
+    setError(null)
+    window.atomik.importWebUrl(url).then(
+      (result) => {
+        setWebBusy(false)
+        setWebDraft('')
+        onOpenSourceImage?.(result.dossierPath)
+      },
+      (cause) => {
+        setWebBusy(false)
+        setError(String(cause))
+      }
+    )
+  }, [onOpenSourceImage, webBusy, webDraft])
 
   // The PDF import (CP-MVP-003): native file picker main-side, original
   // preserved as evidence; the new dossier opens beside this tab.
@@ -146,32 +157,32 @@ export function ImportView({
               {pdfBusy ? 'Importing…' : 'Import PDF…'}
             </button>
           </div>
-          {onOpenWebUrl && (
-            <div className="import-option">
-              <h3>Web page</h3>
-              <p>
-                A page opens in an isolated Web tab — import it there as
-                a source: snapshot plus dossier, URL provenance recorded.
-              </p>
-              <div className="vault-new import-web-url">
-                <input
-                  value={webDraft}
-                  placeholder="https://…"
-                  onChange={(event) => setWebDraft(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') openWebDraft()
-                  }}
-                />
-                <button
-                  type="button"
-                  disabled={webImportUrl(webDraft) === null}
-                  onClick={openWebDraft}
-                >
-                  Open
-                </button>
-              </div>
+          <div className="import-option">
+            <h3>Web page</h3>
+            <p>
+              Paste an address and it lands as a source — snapshot plus
+              dossier, URL provenance recorded; the dossier opens with
+              the snapshot as its preview.
+            </p>
+            <div className="vault-new import-web-url">
+              <input
+                value={webDraft}
+                placeholder="https://…"
+                disabled={webBusy}
+                onChange={(event) => setWebDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') importWebDraft()
+                }}
+              />
+              <button
+                type="button"
+                disabled={webBusy || webImportUrl(webDraft) === null}
+                onClick={importWebDraft}
+              >
+                {webBusy ? 'Importing…' : 'Import'}
+              </button>
             </div>
-          )}
+          </div>
         </div>
         <h3 className="import-capture-head">Phone capture</h3>
         {!session && (

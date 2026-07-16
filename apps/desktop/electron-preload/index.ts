@@ -150,6 +150,10 @@ const api: AtomikApi = {
     ipcRenderer.invoke(ATOMIK_CHANNELS.webViewDestroy, id),
   webViewImportSource: (id: string) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.webViewImportSource, id),
+  importWebUrl: (url: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.importWebUrl, url),
+  webViewShowSnapshot: (id: string, snapshotRelPath: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.webViewShowSnapshot, id, snapshotRelPath),
   webViewReaderText: (id: string) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.webViewReaderText, id),
   extractWebReader: (dossierPath: string) =>

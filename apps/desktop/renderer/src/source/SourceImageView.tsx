@@ -13,6 +13,7 @@ import {
 import { pdfPageTarget, takePendingPdfPage } from './pdf-open'
 import { applyRotation, mediaObjectUrl } from './rotate'
 import { PdfView } from './PdfView'
+import { SnapshotView } from './SnapshotView'
 
 /**
  * The image source tab (08 "image tab views the original beside the
@@ -339,33 +340,51 @@ export function SourceImageView({
         )}
         {isWeb && webUrl && (
           <div className="web-source-panel">
-            <p className="web-source-host">{new URL(webUrl).hostname}</p>
-            <div className="web-source-actions">
-              <button
-                type="button"
-                className="note-bar-button"
-                title="Open the live page in a Web tab"
-                onClick={() => onOpenWebUrl?.(webUrl)}
-              >
-                Open live page ↗
-              </button>
-              <button
-                type="button"
-                className="note-bar-button"
-                title="Open the saved snapshot (the evidence) in your system browser"
-                onClick={() => {
-                  const rel = resolveRelativePath(note!.relPath, './snapshot.mhtml')
-                  if (rel) void window.atomik.openSourceExternally(rel).catch(() => {})
-                }}
-              >
-                Open snapshot
-              </button>
+            <div className="web-source-bar">
+              <p className="web-source-host" title={webUrl}>
+                {new URL(webUrl).hostname}
+              </p>
+              <span className="web-source-actions">
+                <button
+                  type="button"
+                  className="note-bar-button"
+                  title="Open the live page in a Web tab"
+                  onClick={() => onOpenWebUrl?.(webUrl)}
+                >
+                  Live ↗
+                </button>
+                <button
+                  type="button"
+                  className="note-bar-button"
+                  title="Open the saved snapshot (the evidence) in your system browser"
+                  onClick={() => {
+                    const rel = resolveRelativePath(note!.relPath, './snapshot.mhtml')
+                    if (rel) void window.atomik.openSourceExternally(rel).catch(() => {})
+                  }}
+                >
+                  External
+                </button>
+              </span>
             </div>
-            <p className="web-source-note">
-              {hasReader
-                ? 'Reader text extracted — read and correct it in the dossier.'
-                : 'Extract the reader text to read, annotate, and cite this page.'}
-            </p>
+            {(() => {
+              // The snapshot IS the original (S07e-c): it previews here
+              // like an image or PDF would. Keyed per tab so two tabs on
+              // different dossiers never share a native view.
+              const rel = resolveRelativePath(note!.relPath, './snapshot.mhtml')
+              return rel && historyKey ? (
+                <SnapshotView
+                  key={`${historyKey}:${rel}`}
+                  viewId={`snap-${historyKey}`}
+                  snapshotRelPath={rel}
+                />
+              ) : (
+                <p className="web-source-note">
+                  {hasReader
+                    ? 'Reader text extracted — read and correct it in the dossier.'
+                    : 'Extract the reader text to read, annotate, and cite this page.'}
+                </p>
+              )
+            })()}
           </div>
         )}
         {imageUrl && !isAudio && !isPdf && !isWeb && (

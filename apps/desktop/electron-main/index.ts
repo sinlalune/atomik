@@ -4,6 +4,7 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, statSync
 import { writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { isValidAiOperation, runAiOperation } from './ai-mock'
 import { webProvenanceFor } from './web-provenance'
 import { ActionTraceLedger } from './action-trace'
@@ -47,6 +48,7 @@ import {
   relocatePreview
 } from './file-manage'
 import {
+  assertInsideVault,
   createNote,
   listVaultFiles,
   persistLastVaultRoot,
@@ -74,9 +76,12 @@ import {
   guestWebPreferences,
   isAllowedWebUrl,
   isGoogleAuthUrl,
+  isSnapshotRelPath,
   isWebViewControlAction,
   isWebViewId,
   normalizeChromeUserAgent,
+  SNAPSHOT_PARTITION,
+  snapshotWebPreferences,
   WEB_ALLOWED_PERMISSIONS,
   WEB_PARTITION
 } from './web-view'
@@ -983,6 +988,31 @@ function registerWebViewHandlers(getWindow: () => BrowserWindow | null): void {
     }
   )
 
+  // read-only metadata probe; a hostile/hung page must not block the
+  // import — 3 s and we fall back to title+url only
+  const probePageMeta = async (
+    contents: Electron.WebContents
+  ): Promise<Partial<WebPageMeta> | null> => {
+    try {
+      const probed = (await Promise.race([
+        contents.executeJavaScript(
+          `(() => { try { return JSON.stringify({
+            canonical: document.querySelector('link[rel="canonical"]')?.href ?? null,
+            author: document.querySelector('meta[name="author"]')?.getAttribute('content') ?? null,
+            publisher: document.querySelector('meta[property="og:site_name"]')?.getAttribute('content') ?? null,
+            published: document.querySelector('meta[property="article:published_time"]')?.getAttribute('content') ?? null,
+            modified: document.querySelector('meta[property="article:modified_time"]')?.getAttribute('content') ?? null,
+            description: document.querySelector('meta[name="description"]')?.getAttribute('content') ?? null
+          }) } catch { return null } })()`
+        ),
+        new Promise((resolve) => setTimeout(() => resolve(null), 3000))
+      ])) as string | null
+      return probed ? (JSON.parse(probed) as Partial<WebPageMeta>) : null
+    } catch {
+      return null
+    }
+  }
+
   // CP-MVP-006 S04: the EXPLICIT Import-as-source action (09 — never
   // automatic). Snapshot + metadata come from the page the user SAW;
   // every page-controlled string is sanitized in web-import.ts before
@@ -993,27 +1023,7 @@ function registerWebViewHandlers(getWindow: () => BrowserWindow | null): void {
       const { view } = requireView(id)
       const contents = view.webContents
       const url = contents.getURL()
-      // read-only metadata probe; a hostile/hung page must not block the
-      // import — 3 s and we fall back to title+url only
-      let meta: Partial<WebPageMeta> | null = null
-      try {
-        const probed = (await Promise.race([
-          contents.executeJavaScript(
-            `(() => { try { return JSON.stringify({
-              canonical: document.querySelector('link[rel="canonical"]')?.href ?? null,
-              author: document.querySelector('meta[name="author"]')?.getAttribute('content') ?? null,
-              publisher: document.querySelector('meta[property="og:site_name"]')?.getAttribute('content') ?? null,
-              published: document.querySelector('meta[property="article:published_time"]')?.getAttribute('content') ?? null,
-              modified: document.querySelector('meta[property="article:modified_time"]')?.getAttribute('content') ?? null,
-              description: document.querySelector('meta[name="description"]')?.getAttribute('content') ?? null
-            }) } catch { return null } })()`
-          ),
-          new Promise((resolve) => setTimeout(() => resolve(null), 3000))
-        ])) as string | null
-        meta = probed ? (JSON.parse(probed) as Partial<WebPageMeta>) : null
-      } catch {
-        meta = null
-      }
+      const meta = await probePageMeta(contents)
       const result = await importWebSource(
         requireVault(),
         { url, title: contents.getTitle(), meta },
@@ -1021,6 +1031,135 @@ function registerWebViewHandlers(getWindow: () => BrowserWindow | null): void {
       )
       event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
       return result
+    }
+  )
+
+  // S07e-c (owner bench, Import page): direct URL import. A HIDDEN
+  // guest — same partition, same session gates, popups denied, only
+  // http(s) navigation — loads the page main-side; then the exact
+  // webViewImportSource path lands the bundle. Still explicit: one
+  // typed URL, one click, one bundle. The guest dies either way.
+  ipcMain.handle(ATOMIK_CHANNELS.importWebUrl, async (event, url: unknown) => {
+    if (!isAllowedWebUrl(url) || url === 'about:blank') {
+      throw new Error('web-import: rejected url')
+    }
+    const vaultRoot = requireVault()
+    const window = getWindow()
+    if (!window || window.isDestroyed()) throw new Error('web-import: no window')
+    webSession()
+    const view = new WebContentsView({ webPreferences: guestWebPreferences() })
+    const contents = view.webContents
+    try {
+      view.setVisible(false)
+      view.setBounds({ x: 0, y: 0, width: 0, height: 0 })
+      window.contentView.addChildView(view)
+      contents.setWindowOpenHandler(() => ({ action: 'deny' }))
+      contents.on('will-navigate', (navEvent, nextUrl) => {
+        if (!isAllowedWebUrl(nextUrl)) navEvent.preventDefault()
+      })
+      contents.on('did-start-navigation', (navEvent) => {
+        if (!navEvent.isMainFrame || navEvent.isSameDocument) return
+        contents.setUserAgent(
+          isGoogleAuthUrl(navEvent.url) ? FIREFOX_UA : webSession().getUserAgent()
+        )
+      })
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(
+          () => reject(new Error('page load timed out (45 s)')),
+          45000
+        )
+        contents.once('did-finish-load', () => {
+          clearTimeout(timer)
+          resolve()
+        })
+        contents.on(
+          'did-fail-load',
+          (_event, errorCode, errorDescription, _validatedUrl, isMainFrame) => {
+            if (isMainFrame && errorCode !== -3) {
+              clearTimeout(timer)
+              reject(new Error(`${errorDescription || 'load failed'} (${errorCode})`))
+            }
+          }
+        )
+        void contents.loadURL(url).catch(() => {
+          /* did-fail-load reports it */
+        })
+      })
+      // let late scripts settle — the snapshot should be the page a
+      // reader would see, not the loading skeleton
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const meta = await probePageMeta(contents)
+      const result = await importWebSource(
+        vaultRoot,
+        { url: contents.getURL(), title: contents.getTitle(), meta },
+        (absPath) => contents.savePage(absPath, 'MHTML')
+      )
+      event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
+      return result
+    } finally {
+      if (!window.isDestroyed()) window.contentView.removeChildView(view)
+      if (!contents.isDestroyed()) contents.close()
+    }
+  })
+
+  // S07e-c: the snapshot PREVIEW — a web bundle's snapshot.mhtml renders
+  // where other sources show their original. Ephemeral in-memory
+  // partition (zero cookies, nothing shared with the live web session),
+  // permissions denied, downloads cancelled, EVERY navigation denied —
+  // the evidence is static. Registered in the shared views map so
+  // bounds/visibility/destroy work like any web view.
+  let snapshotSessionConfigured = false
+  const snapshotSession = (): Electron.Session => {
+    const ses = session.fromPartition(SNAPSHOT_PARTITION)
+    if (!snapshotSessionConfigured) {
+      snapshotSessionConfigured = true
+      ses.setPermissionRequestHandler((_contents, _permission, callback) =>
+        callback(false)
+      )
+      ses.setPermissionCheckHandler(() => false)
+      ses.on('will-download', (event) => event.preventDefault())
+    }
+    return ses
+  }
+
+  ipcMain.handle(
+    ATOMIK_CHANNELS.webViewShowSnapshot,
+    (_event, id: unknown, relPath: unknown) => {
+      if (!isWebViewId(id)) throw new Error('snapshot-view: rejected id')
+      if (!isSnapshotRelPath(relPath)) {
+        throw new Error('snapshot-view: rejected path')
+      }
+      const vaultRoot = requireVault()
+      const abs = join(vaultRoot, relPath)
+      if (!existsSync(abs)) throw new Error('snapshot-view: no snapshot file')
+      assertInsideVault(vaultRoot, abs)
+      const fileUrl = pathToFileURL(abs).toString()
+      const existing = views.get(id)
+      if (existing && !existing.webContents.isDestroyed()) {
+        if (existing.webContents.getURL() !== fileUrl) {
+          void existing.webContents.loadURL(fileUrl).catch(() => {})
+        }
+        return
+      }
+      views.delete(id)
+      const window = getWindow()
+      if (!window || window.isDestroyed()) {
+        throw new Error('snapshot-view: no window')
+      }
+      snapshotSession()
+      const view = new WebContentsView({
+        webPreferences: snapshotWebPreferences()
+      })
+      views.set(id, view)
+      view.setVisible(false)
+      view.setBounds({ x: 0, y: 0, width: 0, height: 0 })
+      window.contentView.addChildView(view)
+      const contents = view.webContents
+      contents.setWindowOpenHandler(() => ({ action: 'deny' }))
+      contents.on('will-navigate', (navEvent) => navEvent.preventDefault())
+      void contents.loadURL(fileUrl).catch(() => {
+        /* a broken snapshot shows blank; the dossier stays readable */
+      })
     }
   )
 
@@ -1421,6 +1560,67 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
         }
         webReport += headings > 0 ? ` webReader=ok(${headings}h)` : ' webReader=TIMEOUT'
       }
+    }
+    // Direct URL import rung (S07e-c, network-dependent, opt-in):
+    // ATOMIK_SMOKE_WEB_URL_IMPORT=<url> drives the Import page's channel
+    // end to end — hidden guest load → gates → bundle — then checks the
+    // landed snapshot is non-empty on disk. No web-tab fixture needed.
+    const urlImportProbe = process.env['ATOMIK_SMOKE_WEB_URL_IMPORT']
+    if (urlImportProbe && vaultRoot) {
+      const outcome = (await window.webContents.executeJavaScript(
+        `(async () => {
+          try {
+            const r = await window.atomik.importWebUrl(${JSON.stringify(urlImportProbe)})
+            return 'ok:' + r.dossierPath
+          } catch (e) { return 'fail:' + String(e).slice(0, 160) }
+        })()`
+      )) as string
+      if (outcome.startsWith('ok:')) {
+        const dossierRel = outcome.slice(3)
+        const snapshotAbs = join(
+          vaultRoot,
+          dossierRel.split('/').slice(0, -1).join('/'),
+          'snapshot.mhtml'
+        )
+        const solid = existsSync(snapshotAbs) && statSync(snapshotAbs).size > 0
+        webReport += solid
+          ? ` webUrlImport=ok(${dossierRel})`
+          : ` webUrlImport=EMPTY(${dossierRel})`
+      } else {
+        webReport += ` webUrlImport=FAILED(${outcome.slice(5, 160)})`
+      }
+    }
+    // Snapshot preview rung (S07e-c, opt-in): with a state fixture whose
+    // active tab is a WEB dossier, waits for the preview channel to
+    // settle — .snapshot-host present with its loading placeholder gone
+    // means main validated the path, built the isolated view, and the
+    // renderer flipped ready. (capturePage cannot see native views; the
+    // pixels themselves are an owner-bench item.)
+    if (process.env['ATOMIK_SMOKE_SNAPSHOT'] === '1') {
+      const deadline = Date.now() + 15000
+      let status = 'TIMEOUT'
+      while (Date.now() < deadline) {
+        const probed = (await window.webContents.executeJavaScript(
+          `(() => {
+            const host = document.querySelector('.snapshot-host')
+            if (!host) return 'no-host'
+            if (host.querySelector('.pane-placeholder')) return 'pending'
+            const bar = document.querySelector('.web-source-bar .web-source-host')
+            const dossier = document.querySelector('.source-image-dossier .markdown-body')
+            const rect = host.getBoundingClientRect()
+            return 'ok(bar=' + (bar ? bar.textContent : 'NONE') +
+              ',dossier=' + (dossier ? dossier.textContent.length : 0) + 'chars' +
+              ',host=' + Math.round(rect.width) + 'x' + Math.round(rect.height) + ')'
+          })()`
+        )) as string
+        if (probed.startsWith('ok')) {
+          status = probed
+          break
+        }
+        status = probed
+        await new Promise((resolve) => setTimeout(resolve, 500))
+      }
+      webReport += ` snapshotPreview=${status}`
     }
     console.log(
       `ATOMIK_SMOKE_OK ${app.getName()} ${app.getVersion()} devdocs=${groups.length}groups/${docCount}files panes=${paneCount}${vaultCount}${searchReport}${vaultReport}${webReport}`

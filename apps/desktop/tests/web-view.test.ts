@@ -7,9 +7,12 @@ import {
   guestWebPreferences,
   isAllowedWebUrl,
   isGoogleAuthUrl,
+  isSnapshotRelPath,
   isWebViewControlAction,
   isWebViewId,
   normalizeChromeUserAgent,
+  SNAPSHOT_PARTITION,
+  snapshotWebPreferences,
   WEB_ALLOWED_PERMISSIONS,
   WEB_PARTITION
 } from '../electron-main/web-view'
@@ -120,5 +123,34 @@ describe('embedded web view gates (CP-MVP-006 S03, 13)', () => {
     expect(Object.keys(rewritten).some((k) => k.toLowerCase().startsWith('sec-ch-ua'))).toBe(false)
     expect(rewritten['Accept']).toBe('text/html')
     expect(rewritten['Cookie']).toBe('x=1')
+  })
+})
+
+describe('snapshot preview gates (S07e-c)', () => {
+  it('snapshotWebPreferences: four required settings, EPHEMERAL partition', () => {
+    const prefs = snapshotWebPreferences()
+    expect(prefs.sandbox).toBe(true)
+    expect(prefs.contextIsolation).toBe(true)
+    expect(prefs.nodeIntegration).toBe(false)
+    expect(prefs.webSecurity).toBe(true)
+    expect(prefs.partition).toBe(SNAPSHOT_PARTITION)
+    expect(prefs.partition!.startsWith('persist:')).toBe(false)
+    expect(prefs.partition).not.toBe(WEB_PARTITION)
+    expect(prefs.preload).toBeUndefined()
+  })
+
+  it('isSnapshotRelPath: only clean vault-relative snapshot.mhtml paths', () => {
+    expect(isSnapshotRelPath('sources/web/page/snapshot.mhtml')).toBe(true)
+    expect(isSnapshotRelPath('deep/nested/bundle/snapshot.mhtml')).toBe(true)
+    expect(isSnapshotRelPath('snapshot.mhtml')).toBe(true)
+    expect(isSnapshotRelPath('sources/web/page/other.mhtml')).toBe(false)
+    expect(isSnapshotRelPath('sources/web/page/source.md')).toBe(false)
+    expect(isSnapshotRelPath('../escape/snapshot.mhtml')).toBe(false)
+    expect(isSnapshotRelPath('a/./b/snapshot.mhtml')).toBe(false)
+    expect(isSnapshotRelPath('/abs/snapshot.mhtml')).toBe(false)
+    expect(isSnapshotRelPath('a\\b\\snapshot.mhtml')).toBe(false)
+    expect(isSnapshotRelPath('a//snapshot.mhtml')).toBe(false)
+    expect(isSnapshotRelPath('')).toBe(false)
+    expect(isSnapshotRelPath(42)).toBe(false)
   })
 })

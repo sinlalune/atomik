@@ -1241,3 +1241,36 @@ final gate.
   the web route (opens an isolated Web tab; pages import from there),
   the phone-capture QR session, and the desktop recorder. Same gates,
   same inbox, same explicit confirmation as before.
+
+## Direct URL import + snapshot preview (S07e-c, owner bench)
+
+- Owner bench on S07e-b: the Import page's web card must IMPORT, not
+  open a browser — "paste a URL, click Import, it lands as a source,
+  the dossier opens, and the snapshot previews like any other original".
+- `importWebUrl` (typed channel): main validates the URL
+  (isAllowedWebUrl), loads it in a HIDDEN guest — same partition, same
+  session gates (UA normalization, auth-host Firefox profile, popups
+  denied, http(s)-only navigation), 45 s load timeout + 1.5 s settle —
+  then the EXACT importWebSource path lands the bundle (sanitizers,
+  wx, provenance); the guest is removed and closed either way. Still
+  explicit: one typed URL, one click, one bundle.
+- `webViewShowSnapshot` (typed channel): renders a bundle's
+  snapshot.mhtml where other sources show their original. Pure gates in
+  web-view.ts (tested): `isSnapshotRelPath` (clean relative path,
+  basename snapshot.mhtml, no dots/absolutes/backslashes; main still
+  realpath-checks via assertInsideVault) and `snapshotWebPreferences`
+  (four required settings, EPHEMERAL `snapshot-preview` partition —
+  zero cookies, nothing shared with the live web session, permissions
+  denied, downloads cancelled, will-navigate always prevented: evidence
+  is static). The view joins the shared registry, so bounds/visibility/
+  destroy work like any web view.
+- Renderer: `source/SnapshotView.tsx` mirrors WebView's geometry
+  discipline (rect reports, overlay guard, destroy-on-unmount);
+  SourceImageView's web panel = slim identity bar (host, Live ↗,
+  External) over the filling preview. The Import card drives
+  importWebUrl with the pure `webImportUrl` normalization.
+- E2E rungs: ATOMIK_SMOKE_WEB_URL_IMPORT=<url> (real Wikipedia import
+  proven: bundle + non-empty snapshot on disk) and ATOMIK_SMOKE_SNAPSHOT
+  (fixture with a web-dossier tab: bar=en.wikipedia.org, dossier text
+  rendered, snapshot host sized — capturePage cannot see native views,
+  so the painted pixels stay an owner-bench item).

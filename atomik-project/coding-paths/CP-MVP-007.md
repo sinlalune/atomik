@@ -356,17 +356,32 @@ bench fixes : S06b white app (props typed, never destructured — the
               layout is now ONE vault pane; #dev-docs builds a
               docs-typed pane; migration types active-dev-docs leaves
               'docs' and leaves empty panes untyped.
-tests       : 401 passing / 41 suites — green after the bench fixes
+              S07e-b/c owner bench on the Import page: the web card
+              IMPORTS — paste a URL, one click, importWebUrl loads the
+              page in a HIDDEN guest (same partition/session gates,
+              45 s timeout) and the existing importWebSource path
+              lands the bundle; the dossier opens with the SNAPSHOT as
+              its preview (webViewShowSnapshot: ephemeral isolated
+              partition, path realpath-gated, navigation denied —
+              evidence is static; SnapshotView mirrors WebView's
+              geometry discipline). ＋two documented preload methods;
+              pure gates (isSnapshotRelPath, snapshotWebPreferences,
+              webImportUrl) tested. E2E: real-Wikipedia
+              webUrlImport=ok + snapshotPreview=ok probes; the painted
+              preview pixels stay an owner-bench item (capturePage
+              cannot see native views).
+tests       : 405 passing / 41 suites — green after the bench fixes
               (S07d pane-tree matrix + S07e: docs scope, closePane,
-              chooser-morph params, untyped splits, docs migration);
-              typecheck/build/smoke green; e2e
+              chooser-morph params, untyped splits, docs migration +
+              S07e-c snapshot gates); typecheck/build/smoke green; e2e
               vaultWrite=ok+folder+trash+reloc+fmove re-proven on the
               S07e layout (OS trash real on WSL; rename AND
               folder-move refactors update citing notes on disk);
               real-app launches (fresh default AND restored-legacy
               migration paths) = zero Uncaught; docs-pane layout
               screenshot-verified (docs tree as pane chrome, ✕ in the
-              tabstrip, bottom-right toggle).
+              tabstrip, bottom-right toggle); direct URL import proven
+              on live Wikipedia (bundle + non-empty snapshot on disk).
               S01 done 2026-07-16 (same session as acceptance):
               doctrine pinned (04/27/20/13 — see step), decisions
               addendum in brainstorm/2026-07-16-tree-file-management-

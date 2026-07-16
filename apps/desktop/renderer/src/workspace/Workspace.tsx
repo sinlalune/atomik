@@ -209,7 +209,7 @@ function TabContent({
   if (tab.view === 'capture') {
     return (
       <Suspense fallback={<div className="view-loading" />}>
-        <ImportView onOpenSourceImage={openSourceImage} onOpenWebUrl={openWebUrl} />
+        <ImportView onOpenSourceImage={openSourceImage} />
       </Suspense>
     )
   }
