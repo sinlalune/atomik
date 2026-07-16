@@ -14,6 +14,7 @@ import { TreeResizeHandle } from '../TreeResizeHandle'
 import type { NoteViewMode, SaveMode } from '../workspace/model'
 import { hasMediaResource } from '../source/dossier'
 import { NoteTree, parseTreeDrag } from './NoteTree'
+import { noteFollowTarget } from './note-follow'
 import { TreeMenu } from './TreeMenu'
 import {
   deleteConfirmText,
@@ -177,10 +178,20 @@ export function VaultView({
     [refreshTree]
   )
 
+  // S07a (owner: creation flashed other notes): follow the tab param
+  // only on a REAL transition — a stale prop re-render must never
+  // re-open the previous note while the param catches up.
+  const followState = useRef<{ prevProp: string | undefined }>({
+    prevProp: undefined
+  })
   useEffect(() => {
     if (info === 'loading' || info === null) return
-    if (!notePath || lastRequested.current === notePath) return
-    openNote(notePath)
+    const target = noteFollowTarget(
+      followState.current,
+      notePath,
+      lastRequested.current
+    )
+    if (target) openNote(target)
   }, [notePath, info, openNote, lastRequested])
 
   /** The picker; on success the vault-changed push refreshes every view. */

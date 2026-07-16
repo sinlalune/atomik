@@ -11,6 +11,7 @@ import { SearchResultsList } from '../search/SearchResultsList'
 import { useTreeSearch } from '../search/useTreeSearch'
 import { TreeResizeHandle } from '../TreeResizeHandle'
 import { NoteTree, parseTreeDrag } from '../vault/NoteTree'
+import { noteFollowTarget } from '../vault/note-follow'
 import { TreeMenu } from '../vault/TreeMenu'
 import {
   deleteConfirmText,
@@ -200,12 +201,20 @@ export function ProjectView({
       projects.some((project) => project.relPath === projectPath))
 
   // Restore / follow the tab's note; default to the bundle's index.md.
+  // S07a: follow only on a REAL param transition (stale re-renders
+  // must never flash the previous note back).
+  const followState = useRef<{ prevProp: string | undefined }>({
+    prevProp: undefined
+  })
   useEffect(() => {
     if (vault === 'loading' || vault === null || !projectPath) return
     if (!projectExists) return
-    const target = notePath ?? `${projectPath}/index.md`
-    if (lastRequested.current === target) return
-    openNote(target)
+    const target = noteFollowTarget(
+      followState.current,
+      notePath ?? `${projectPath}/index.md`,
+      lastRequested.current
+    )
+    if (target) openNote(target)
   }, [vault, projectPath, projectExists, notePath, openNote, lastRequested])
 
   const onCreateProject = useCallback(async () => {
