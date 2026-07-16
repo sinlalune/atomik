@@ -13,6 +13,7 @@ import {
   activateTab,
   addTab,
   clampTreeWidth,
+  TREE_WIDTH_DEFAULT,
   closeEmptyPane,
   closeTab,
   makeTab,
@@ -60,6 +61,16 @@ const TAB_LABELS: Record<string, string> = {
 function destroyTabView(tab: WorkspaceTab): void {
   if (tab.view === 'source-web') void window.atomik.webViewDestroy(tab.id)
 }
+
+/** Views whose left tree panel is pane chrome (S07c): the pane grid
+ *  reserves their tree column so the tabstrip starts at its right. */
+const TREE_PANE_VIEWS = new Set([
+  'vault',
+  'project',
+  'capture',
+  'source-image',
+  'dev-docs'
+])
 
 function tabLabel(tab: WorkspaceTab): string {
   if (tab.view === 'project' && tab.params?.['projectTitle']) {
@@ -296,9 +307,23 @@ function LeafPane({
   dispatch: Dispatch
 }): React.JSX.Element {
   const active = node.tabs.find((tab) => tab.id === node.activeTabId)
+
+  // S07c (owner): the tree panel reads as PANE CHROME — it spans the
+  // full pane height (up under the app header) and the tabstrip starts
+  // at its right. The pane grid reserves a column matching the active
+  // tab's tree width (same params the view uses), and the view's tree
+  // pulls itself up into the tabstrip row via CSS. Views without a
+  // tree get a zero column — tabs start at the pane edge as before.
+  const activeTreeWidth = (() => {
+    if (!active || !TREE_PANE_VIEWS.has(active.view)) return 0
+    if (active.params?.['tree'] === 'off') return 0
+    const param = active.params?.['treeW']
+    return param === undefined ? TREE_WIDTH_DEFAULT : clampTreeWidth(Number(param))
+  })()
   return (
     <section
       className={`pane${focused ? ' focused' : ''}`}
+      style={{ gridTemplateColumns: `${activeTreeWidth}px minmax(0, 1fr)` }}
       onPointerDownCapture={() => dispatch((state) => setFocus(state, node.id))}
     >
       <header className="tabstrip">

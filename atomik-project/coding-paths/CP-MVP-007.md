@@ -306,7 +306,18 @@ changed     : path PROPOSED and ACCEPTED 2026-07-16 (owner:
               rename=refactor+preview, move+DnD in). Survey recorded:
               zero existing rename/move/delete verbs or UI; no
               watcher; push-refresh only after main-side landings.
-tests       : 380 passing / 40 suites — green at S06 close;
+bench fixes : S06b white app (props typed, never destructured — the
+              piped-gate lesson), S07a creation flashes (follow the
+              notePath param only on real transitions —
+              note-follow.ts, tested), S07b project tree missed
+              creations (vaultFilesChanged subscription synced across
+              all three hosts), S07c owner directive: the tree panel
+              is PANE CHROME — pane grid reserves the active tab's
+              tree column, tabstrip starts at its right, trees rise
+              under the app header (screenshot-verified; dev-docs
+              included; known edge: panes narrower than ~400px with
+              no treeW param misalign by the minmax default).
+tests       : 383 passing / 41 suites — green after the bench fixes;
               typecheck/build/smoke green; e2e
               vaultWrite=ok+folder+trash+reloc+fmove (OS trash real
               on WSL; rename AND folder-move refactors update citing
