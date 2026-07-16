@@ -1,32 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { VaultFolder, VaultInfo } from '../../../shared/ipc-contract'
+import type { VaultInfo } from '../../../shared/ipc-contract'
 import { EditorPane } from '../editor/EditorPane'
 import { ModeSwitch } from '../editor/ModeSwitch'
-import {
-  CollapseAllIcon,
-  ExpandAllIcon,
-  SidebarToggleIcon,
-  VaultSwitchIcon
-} from '../icons'
-import { SearchResultsList } from '../search/SearchResultsList'
-import { useTreeSearch } from '../search/useTreeSearch'
-import { TreeResizeHandle } from '../TreeResizeHandle'
-import type { NoteViewMode, SaveMode } from '../workspace/model'
+import type { NoteViewMode, PaneNoteGuard, SaveMode } from '../workspace/model'
 import { hasMediaResource } from '../source/dossier'
-import { NoteTree, parseTreeDrag } from './NoteTree'
 import { noteFollowTarget } from './note-follow'
-import { TreeMenu } from './TreeMenu'
-import {
-  deleteConfirmText,
-  dropMoveTarget,
-  folderDeleteSummary,
-  prunedOpenFolders,
-  TREE_DRAG_MIME,
-  type TreeDragSource,
-  type TreeMenuTarget
-} from './tree-menu'
 import { useNavHistory } from './nav-history'
-import { allFolderPaths, toggledFolder } from './tree-fold'
 import { useVaultNote } from './useVaultNote'
 
 export type VaultViewProps = {
@@ -34,12 +13,9 @@ export type VaultViewProps = {
   notePath?: string
   /** Reports every successfully opened note (the tab persists it). */
   onNoteOpened?: (relPath: string) => void
-  /** Tree panel visibility, persisted per tab by the workspace. */
-  treeCollapsed?: boolean
-  onTreeToggle?: () => void
-  /** Tree panel width (px), persisted per tab; undefined = CSS default. */
-  treeWidth?: number
-  onTreeResize?: (px: number) => void
+  /** Registers this view's dirty editor with the pane (S07d): the pane
+   *  tree guards navigation and the refactor verbs with it. */
+  registerGuard?: (guard: PaneNoteGuard | null) => void
   /** read / live (default) / source, persisted per tab. */
   mode?: NoteViewMode
   onModeChange?: (mode: NoteViewMode) => void
@@ -53,46 +29,26 @@ export type VaultViewProps = {
   onOpenWebUrl?: (url: string) => void
   /** Keys this tab's ‹ › navigation trail (the tab id). */
   historyKey?: string
-  /** Controlled fold state: open folders, persisted per tab (collapsed
-   *  by default — owner request). */
-  openFolders?: ReadonlySet<string>
-  onOpenFoldersChange?: (next: ReadonlySet<string>) => void
 }
 
-const NO_OPEN_FOLDERS: ReadonlySet<string> = new Set()
-
 /**
- * Vault tab (04/M1 slice): tree of the user's Markdown knowledge, rendered
- * read view, note creation. Editing arrives with CodeMirror at S07 — this
- * view proves the read/write plumbing without pretending to be the editor.
+ * Vault tab (04/M1 slice; S07d): ONE note, read or edit. The tree left
+ * of it is the PANE's panel (workspace/PaneTreePanel) — this view only
+ * follows its notePath tab param and renders the note surface.
  */
 export function VaultView({
   notePath,
   onNoteOpened,
-  treeCollapsed,
-  onTreeToggle,
-  treeWidth,
-  onTreeResize,
+  registerGuard,
   mode = 'live',
   onModeChange,
   saveMode = 'auto',
   onSaveModeToggle,
   onOpenSourceImage,
   onOpenWebUrl,
-  historyKey,
-  openFolders = NO_OPEN_FOLDERS,
-  onOpenFoldersChange
+  historyKey
 }: VaultViewProps): React.JSX.Element {
   const [info, setInfo] = useState<VaultInfo | null | 'loading'>('loading')
-  const [tree, setTree] = useState<VaultFolder | null>(null)
-  const [draftName, setDraftName] = useState('')
-  const [treeMenu, setTreeMenu] = useState<TreeMenuTarget | null>(null)
-  const searchVault = useCallback(
-    (query: string) => window.atomik.searchVault(query),
-    []
-  )
-  const { query: searchQuery, setQuery: setSearchQuery, results: searchResults } =
-    useTreeSearch(searchVault)
   const [editorDirty, setEditorDirty] = useState(false)
   const {
     note,
@@ -109,6 +65,19 @@ export function VaultView({
   const onDirtyChange = useCallback((dirty: boolean) => {
     setEditorDirty(dirty)
   }, [])
+
+  // The pane bridge (S07d): the pane tree reads the dirty note's path
+  // at decision time — refs keep the closure current without re-runs.
+  const dirtyRef = useRef(false)
+  dirtyRef.current = editorDirty
+  const openRef = useRef<string | null>(null)
+  openRef.current = note?.relPath ?? null
+  useEffect(() => {
+    registerGuard?.({
+      dirtyPath: () => (dirtyRef.current ? openRef.current : null)
+    })
+    return () => registerGuard?.(null)
+  }, [registerGuard])
 
   /** Note navigation in edit mode must not silently discard a buffer.
    *  Auto-save mode navigates freely: the unmounting editor flushes. */
@@ -129,26 +98,15 @@ export function VaultView({
   // ‹ › replay through the SAME guarded door as any user navigation
   const nav = useNavHistory(historyKey, note?.relPath, guardedOpen)
 
-  const refreshTree = useCallback(async () => {
-    try {
-      setTree(await window.atomik.listVaultFiles())
-    } catch (reason) {
-      setError(String(reason))
-    }
-  }, [setError])
-
   useEffect(() => {
     window.atomik.getVault().then(
-      async (vault) => {
-        setInfo(vault)
-        if (vault) await refreshTree()
-      },
+      (vault) => setInfo(vault),
       (reason: unknown) => {
         setInfo(null)
         setError(String(reason))
       }
     )
-  }, [refreshTree, setError])
+  }, [setError])
 
   // Vault switch (this view or any other): drop everything held from the
   // previous vault, and POISON the restore guard with the stale tab
@@ -165,18 +123,8 @@ export function VaultView({
       reset()
       lastRequested.current = notePathRef.current ?? null
       setEditorDirty(false)
-      setSearchQuery('')
-      setTree(null)
-      if (vault) void refreshTree()
     })
-  }, [lastRequested, refreshTree, reset, setSearchQuery])
-
-  // S05f: new files landed (transcription) — refresh the tree only,
-  // never dropping editor or view state like a vault switch does.
-  useEffect(
-    () => window.atomik.onVaultFilesChanged(() => void refreshTree()),
-    [refreshTree]
-  )
+  }, [lastRequested, reset])
 
   // S07a (owner: creation flashed other notes): follow the tab param
   // only on a REAL transition — a stale prop re-render must never
@@ -194,137 +142,6 @@ export function VaultView({
     if (target) openNote(target)
   }, [notePath, info, openNote, lastRequested])
 
-  /** The picker; on success the vault-changed push refreshes every view. */
-  const onOpenVault = useCallback(async () => {
-    await window.atomik.openVault()
-  }, [])
-
-  const onCreate = useCallback(async () => {
-    const name = draftName.trim()
-    if (!name) return
-    const relPath = name.toLowerCase().endsWith('.md') ? name : `${name}.md`
-    try {
-      await window.atomik.createNote(relPath)
-      setDraftName('')
-      await refreshTree()
-      openNote(relPath)
-    } catch (reason) {
-      setError(String(reason))
-    }
-  }, [draftName, openNote, refreshTree, setError])
-
-  // CP-MVP-007 S02: context-menu creation. Errors surface INSIDE the
-  // menu popup (it stays open on reject); the tree refreshes via the
-  // main-side vaultFilesChanged push.
-  const menuNewNote = useCallback(
-    async (relPath: string) => {
-      await window.atomik.createNote(relPath)
-      guardedOpen(relPath)
-    },
-    [guardedOpen]
-  )
-  const menuNewFolder = useCallback(
-    async (relPath: string) => {
-      const created = await window.atomik.createFolder(relPath)
-      onOpenFoldersChange?.(new Set([...openFolders, created.relPath]))
-      guardedOpen(created.indexRelPath)
-    },
-    [guardedOpen, onOpenFoldersChange, openFolders]
-  )
-  // S04: rename = the previewed refactor. The preview text IS the
-  // acceptance gate (20/27); a dirty open editor blocks its own rename.
-  const menuRename = useCallback(
-    async (from: string, to: string) => {
-      if (editorDirty && note?.relPath === from) {
-        throw new Error('save or discard the open changes first')
-      }
-      const preview = await window.atomik.relocatePreview(from, to)
-      if (preview.totalLinks > 0) {
-        const others = preview.edits.filter((edit) => edit.relPath !== from)
-        const lines = others
-          .slice(0, 8)
-          .map((edit) => `  ${edit.relPath} (${edit.count})`)
-        const more = others.length > 8 ? `\n  … +${others.length - 8} more` : ''
-        const ok = window.confirm(
-          `Renaming updates ${preview.totalLinks} link${preview.totalLinks === 1 ? '' : 's'} in ${others.length} note${others.length === 1 ? '' : 's'}:\n\n${lines.join('\n')}${more}\n\nApply the rename refactor?`
-        )
-        if (!ok) return
-      }
-      await window.atomik.relocateApply(from, to)
-      if (note?.relPath === from) openNote(to)
-    },
-    [editorDirty, note, openNote]
-  )
-  // S05: Move to… — always confirmed (a move is a bigger gesture than a
-  // rename); folder form goes prefix-wide, tabs follow via the push.
-  const menuMove = useCallback(
-    async (target: TreeMenuTarget, to: string) => {
-      if (
-        editorDirty &&
-        note &&
-        (note.relPath === target.relPath ||
-          note.relPath.startsWith(`${target.relPath}/`))
-      ) {
-        throw new Error('save or discard the open changes first')
-      }
-      const preview =
-        target.kind === 'note'
-          ? await window.atomik.relocatePreview(target.relPath, to)
-          : await window.atomik.relocateFolderPreview(target.relPath, to)
-      const links =
-        preview.totalLinks > 0
-          ? `\n\n${preview.totalLinks} link${preview.totalLinks === 1 ? '' : 's'} update in ${preview.edits.length} note${preview.edits.length === 1 ? '' : 's'}.`
-          : '\n\nNo links need updating.'
-      if (!window.confirm(`Move “${target.relPath}” → “${to}”?${links}`)) return
-      if (target.kind === 'note') {
-        await window.atomik.relocateApply(target.relPath, to)
-        if (note?.relPath === target.relPath) openNote(to)
-      } else {
-        await window.atomik.relocateFolderApply(target.relPath, to)
-        onOpenFoldersChange?.(prunedOpenFolders(openFolders, target.relPath))
-      }
-    },
-    [editorDirty, note, onOpenFoldersChange, openFolders, openNote]
-  )
-  // S06: DnD is an INPUT BINDING over the proven Move flow — same
-  // preview, same confirm, same verb.
-  const dropNode = useCallback(
-    (source: TreeDragSource, destFolder: string) => {
-      const to = dropMoveTarget(source, destFolder)
-      if (!to) return
-      void menuMove({ ...source, x: 0, y: 0 }, to).catch((reason) =>
-        setError(String(reason))
-      )
-    },
-    [menuMove, setError]
-  )
-  // S03: confirm names the target (+ what rides along); cancel = resolve
-  // without deleting. The open note clears when it leaves with the target.
-  const menuDelete = useCallback(
-    async (target: TreeMenuTarget) => {
-      const summary =
-        target.kind === 'folder' && tree
-          ? folderDeleteSummary(tree, target.relPath)
-          : null
-      if (!window.confirm(deleteConfirmText(target, summary))) return
-      if (target.kind === 'note') {
-        await window.atomik.deleteNote(target.relPath)
-        if (note?.relPath === target.relPath) reset()
-      } else {
-        await window.atomik.deleteFolder(target.relPath)
-        if (
-          note &&
-          (note.relPath === target.relPath ||
-            note.relPath.startsWith(`${target.relPath}/`))
-        ) {
-          reset()
-        }
-        onOpenFoldersChange?.(prunedOpenFolders(openFolders, target.relPath))
-      }
-    },
-    [note, onOpenFoldersChange, openFolders, reset, tree]
-  )
-
   if (info === 'loading') return <p className="pane-placeholder">loading vault…</p>
 
   if (info === null) {
@@ -335,7 +152,11 @@ export function VaultView({
           A vault is a normal folder of Markdown files — your durable
           knowledge, readable with or without atomik.
         </p>
-        <button type="button" className="vault-open-button" onClick={onOpenVault}>
+        <button
+          type="button"
+          className="vault-open-button"
+          onClick={() => void window.atomik.openVault()}
+        >
           Open vault folder…
         </button>
       </div>
@@ -343,157 +164,12 @@ export function VaultView({
   }
 
   return (
-    <div
-      className={`vault${treeCollapsed ? ' no-tree' : ''}`}
-      style={
-        !treeCollapsed && treeWidth !== undefined
-          ? { gridTemplateColumns: `${treeWidth}px 1fr` }
-          : undefined
-      }
-    >
-      {!treeCollapsed && (
-      <nav
-        className="vault-tree"
-        aria-label="Vault tree"
-        onContextMenu={(event) => {
-          // background right-click = the vault root (folder-node menus
-          // stopPropagation before reaching here)
-          event.preventDefault()
-          setTreeMenu({ kind: 'folder', relPath: '', x: event.clientX, y: event.clientY })
-        }}
-        onDragOver={(event) => {
-          if (!event.dataTransfer.types.includes(TREE_DRAG_MIME)) return
-          event.preventDefault()
-          event.dataTransfer.dropEffect = 'move'
-        }}
-        onDrop={(event) => {
-          // background drop = the vault root (folder targets stop propagation)
-          event.preventDefault()
-          const source = parseTreeDrag(event.dataTransfer.getData(TREE_DRAG_MIME))
-          if (source) dropNode(source, '')
-        }}
-      >
-        {onTreeResize && <TreeResizeHandle onResize={onTreeResize} />}
-        <div className="tree-bar">
-          <div className="vault-head" title={info.root}>
-            {info.name}
-          </div>
-          <button
-            type="button"
-            className="tree-toggle"
-            title="Expand all folders"
-            onClick={() =>
-              tree && onOpenFoldersChange?.(new Set(allFolderPaths(tree)))
-            }
-          >
-            <ExpandAllIcon />
-          </button>
-          <button
-            type="button"
-            className="tree-toggle"
-            title="Collapse all folders"
-            onClick={() => onOpenFoldersChange?.(new Set())}
-          >
-            <CollapseAllIcon />
-          </button>
-          <button
-            type="button"
-            className="tree-toggle"
-            title="Change vault folder…"
-            onClick={() => void onOpenVault()}
-          >
-            <VaultSwitchIcon />
-          </button>
-          {onTreeToggle && (
-            <button
-              type="button"
-              className="tree-toggle"
-              title="Hide tree panel"
-              onClick={onTreeToggle}
-            >
-              <SidebarToggleIcon />
-            </button>
-          )}
-        </div>
-        <div className="vault-new">
-          <input
-            value={draftName}
-            placeholder="new note name…"
-            onChange={(event) => setDraftName(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') void onCreate()
-            }}
-          />
-          <button type="button" onClick={() => void onCreate()}>
-            +
-          </button>
-        </div>
-        <div className="vault-search">
-          <input
-            placeholder="search vault…"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') setSearchQuery('')
-            }}
-          />
-        </div>
-        {searchResults !== null ? (
-          <SearchResultsList
-            results={searchResults}
-            activePath={note?.relPath ?? null}
-            onOpen={guardedOpen}
-          />
-        ) : (
-          tree && (
-            <NoteTree
-              folder={tree}
-              activePath={note?.relPath ?? null}
-              onOpen={guardedOpen}
-              openFolders={openFolders}
-              onFolderToggle={(relPath, open) => {
-                const next = toggledFolder(openFolders, relPath, open)
-                if (next !== openFolders) onOpenFoldersChange?.(next)
-              }}
-              onFolderMenu={(relPath, x, y) =>
-                setTreeMenu({ kind: 'folder', relPath, x, y })
-              }
-              onNoteMenu={(relPath, x, y) =>
-                setTreeMenu({ kind: 'note', relPath, x, y })
-              }
-              onDropNode={dropNode}
-            />
-          )
-        )}
-        {treeMenu && (
-          <TreeMenu
-            target={treeMenu}
-            scopeLabel={info.name}
-            onClose={() => setTreeMenu(null)}
-            onNewNote={menuNewNote}
-            onNewFolder={menuNewFolder}
-            onDelete={menuDelete}
-            onRename={menuRename}
-            onMove={menuMove}
-          />
-        )}
-      </nav>
-      )}
+    <div className="vault no-tree">
       <div
         className="vault-content"
         onClick={mode === 'read' ? onContentClick : undefined}
         {...(note ? { 'data-vault-rendered': '1' } : {})}
       >
-        {treeCollapsed && onTreeToggle && (
-          <button
-            type="button"
-            className="tree-toggle tree-show"
-            title="Show tree panel"
-            onClick={onTreeToggle}
-          >
-            <SidebarToggleIcon />
-          </button>
-        )}
         {error && !note ? (
           <p className="error note-scroll">{error}</p>
         ) : !note ? (
@@ -508,10 +184,7 @@ export function VaultView({
             onDirtyChange={onDirtyChange}
             mode={mode}
             onModeChange={onModeChange}
-            onNoteCreated={(relPath) => {
-              void refreshTree()
-              guardedOpen(relPath)
-            }}
+            onNoteCreated={guardedOpen}
             onFollowLink={guardedOpen}
             saveMode={saveMode}
             onSaveModeToggle={onSaveModeToggle}

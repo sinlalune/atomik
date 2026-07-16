@@ -32,18 +32,23 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+/** Tab params, workspace settings, and the pane tree share one shape:
+ *  a flat string map with capped keys and values. */
+function isValidStringMap(value: unknown): boolean {
+  if (!isRecord(value)) return false
+  for (const [key, mapValue] of Object.entries(value)) {
+    if (key.length === 0 || key.length > 64) return false
+    if (typeof mapValue !== 'string' || mapValue.length > MAX_PARAM_VALUE) return false
+  }
+  return true
+}
+
 function isValidTab(value: unknown): value is WorkspaceTab {
   if (!isRecord(value)) return false
   if (typeof value['id'] !== 'string' || value['id'].length === 0 || value['id'].length > MAX_ID) return false
   if (typeof value['view'] !== 'string' || value['view'].length === 0 || value['view'].length > 64) return false
   const params = value['params']
-  if (params !== undefined) {
-    if (!isRecord(params)) return false
-    for (const [key, paramValue] of Object.entries(params)) {
-      if (key.length === 0 || key.length > 64) return false
-      if (typeof paramValue !== 'string' || paramValue.length > MAX_PARAM_VALUE) return false
-    }
-  }
+  if (params !== undefined && !isValidStringMap(params)) return false
   return true
 }
 
@@ -54,6 +59,8 @@ function isValidPane(value: unknown, depth: number): value is PaneNode {
     const tabs = value['tabs']
     if (!Array.isArray(tabs) || tabs.length > MAX_TABS_PER_LEAF) return false
     if (!tabs.every(isValidTab)) return false
+    const tree = value['tree']
+    if (tree !== undefined && !isValidStringMap(tree)) return false
     const active = value['activeTabId']
     if (active === null) return true
     if (typeof active !== 'string') return false
@@ -73,15 +80,7 @@ export function isValidWorkspaceState(value: unknown): value is WorkspaceState {
   if (value['version'] !== 1) return false
   if (typeof value['focusedPaneId'] !== 'string') return false
   const settings = value['settings']
-  if (settings !== undefined) {
-    if (!isRecord(settings)) return false
-    for (const [key, settingValue] of Object.entries(settings)) {
-      if (key.length === 0 || key.length > 64) return false
-      if (typeof settingValue !== 'string' || settingValue.length > MAX_PARAM_VALUE) {
-        return false
-      }
-    }
-  }
+  if (settings !== undefined && !isValidStringMap(settings)) return false
   return isValidPane(value['root'], 0)
 }
 

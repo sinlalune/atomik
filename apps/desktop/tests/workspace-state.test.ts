@@ -161,3 +161,24 @@ describe('write validation (renderer payloads are untrusted)', () => {
     ).toBe(false)
   })
 })
+
+describe('pane tree (S07d — optional string map on leaves)', () => {
+  it('round-trips a leaf tree and stays valid without one', () => {
+    const state = validState()
+    const first = (state.root as { first: { tree?: Record<string, string> } })
+      .first
+    first.tree = { kind: 'project', projectPath: 'projects/x', w: '300' }
+    writeWorkspaceState(dir, state)
+    expect(readWorkspaceState(dir)).toEqual(state)
+    expect(isValidWorkspaceState(validState())).toBe(true)
+  })
+
+  it('rejects non-record trees and non-string values', () => {
+    const badShape = validState()
+    ;(badShape.root as { first: { tree?: unknown } }).first.tree = 'vault'
+    expect(isValidWorkspaceState(badShape)).toBe(false)
+    const badValue = validState()
+    ;(badValue.root as { first: { tree?: unknown } }).first.tree = { w: 300 }
+    expect(isValidWorkspaceState(badValue)).toBe(false)
+  })
+})

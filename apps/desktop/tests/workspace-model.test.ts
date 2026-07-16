@@ -6,16 +6,24 @@ import {
   clampTreeWidth,
   closeEmptyPane,
   closeTab,
+  closeTabsWithin,
   createDefaultState,
   firstLeafId,
   makeTab,
+  migratePaneTrees,
   migrateRetiredViews,
   noteModeOf,
+  paneTreeHidden,
+  paneTreeOf,
+  paneTreeOpenFolders,
+  paneTreeScopeOf,
+  paneTreeWidth,
   pdfPageOf,
   relocateTabPaths,
   saveModeOf,
   setFocus,
   setFraction,
+  setPaneTreeScope,
   setSaveMode,
   setTabView,
   setTheme,
@@ -23,6 +31,7 @@ import {
   themeOf,
   topRightLeafId,
   TREE_WIDTH_DEFAULT,
+  updatePaneTree,
   updateTabParams
 } from '../renderer/src/workspace/model'
 
@@ -356,5 +365,194 @@ describe('relocateTabPaths — fold state follows a folder move (S05)', () => {
       'archive/deep',
       'other'
     ])
+  })
+})
+
+describe('pane tree — ONE panel per pane, typed by the pane (S07d)', () => {
+  const rootLeaf = (state: WorkspaceState): Extract<PaneNode, { kind: 'leaf' }> =>
+    state.root as Extract<PaneNode, { kind: 'leaf' }>
+
+  it('absent tree reads as the vault tree with defaults', () => {
+    const state = createDefaultState('h')
+    const tree = paneTreeOf(rootLeaf(state))
+    expect(paneTreeScopeOf(tree)).toEqual({ kind: 'vault' })
+    expect(paneTreeHidden(tree)).toBe(false)
+    expect(paneTreeWidth(tree)).toBe(TREE_WIDTH_DEFAULT)
+    expect([...paneTreeOpenFolders(tree)]).toEqual([])
+  })
+
+  it('updatePaneTree merges panel preferences; width clamps on read', () => {
+    const base = createDefaultState('h')
+    const paneId = rootLeaf(base).id
+    let state = updatePaneTree(base, paneId, { off: '1', w: '9000' })
+    state = updatePaneTree(state, paneId, { open: JSON.stringify(['a']) })
+    const tree = paneTreeOf(rootLeaf(state))
+    expect(paneTreeHidden(tree)).toBe(true)
+    expect(paneTreeWidth(tree)).toBe(520)
+    expect([...paneTreeOpenFolders(tree)]).toEqual(['a'])
+  })
+
+  it('setPaneTreeScope retypes the pane, keeps prefs, drops stale scope keys', () => {
+    const base = createDefaultState('h')
+    const paneId = rootLeaf(base).id
+    let state = updatePaneTree(base, paneId, { w: '300' })
+    state = setPaneTreeScope(state, paneId, {
+      kind: 'project',
+      projectPath: 'projects/x',
+      projectTitle: 'X'
+    })
+    expect(paneTreeScopeOf(paneTreeOf(rootLeaf(state)))).toEqual({
+      kind: 'project',
+      projectPath: 'projects/x',
+      projectTitle: 'X'
+    })
+    expect(paneTreeWidth(paneTreeOf(rootLeaf(state)))).toBe(300)
+    state = setPaneTreeScope(state, paneId, { kind: 'vault' })
+    const tree = paneTreeOf(rootLeaf(state))
+    expect(paneTreeScopeOf(tree)).toEqual({ kind: 'vault' })
+    expect(tree['projectPath']).toBeUndefined()
+    expect(paneTreeWidth(tree)).toBe(300)
+  })
+
+  it('a project scope without projectPath reads as vault (garbled state)', () => {
+    expect(paneTreeScopeOf({ kind: 'project' })).toEqual({ kind: 'vault' })
+  })
+
+  it('splitPane hands the pane tree to the new empty leaf', () => {
+    const base = createDefaultState('h')
+    const paneId = rootLeaf(base).id
+    let state = setPaneTreeScope(base, paneId, {
+      kind: 'project',
+      projectPath: 'projects/x'
+    })
+    state = splitPane(state, paneId, 'horizontal')
+    const [first, second] = leaves(state.root)
+    expect(paneTreeScopeOf(paneTreeOf(first!))).toEqual({
+      kind: 'project',
+      projectPath: 'projects/x'
+    })
+    expect(paneTreeScopeOf(paneTreeOf(second!))).toEqual({
+      kind: 'project',
+      projectPath: 'projects/x'
+    })
+  })
+})
+
+describe('migratePaneTrees — pre-S07d layouts derive the pane tree', () => {
+  it('derives from the ACTIVE tab: project tab types the pane, tree params carry over', () => {
+    const base = createDefaultState('h')
+    const leafId = (base.root as { id: string }).id
+    let state = addTab(base, leafId, makeTab('vault', { notePath: 'a.md' }))
+    state = addTab(
+      state,
+      leafId,
+      makeTab('project', {
+        projectPath: 'projects/x',
+        projectTitle: 'X',
+        tree: 'off',
+        treeW: '333',
+        treeOpen: JSON.stringify(['projects/x'])
+      })
+    )
+    const migrated = migratePaneTrees(state)
+    const tree = paneTreeOf(migrated.root as Extract<PaneNode, { kind: 'leaf' }>)
+    expect(paneTreeScopeOf(tree)).toEqual({
+      kind: 'project',
+      projectPath: 'projects/x',
+      projectTitle: 'X'
+    })
+    expect(paneTreeHidden(tree)).toBe(true)
+    expect(paneTreeWidth(tree)).toBe(333)
+    expect([...paneTreeOpenFolders(tree)]).toEqual(['projects/x'])
+  })
+
+  it('defaults to vault and keeps identity once every leaf carries a tree', () => {
+    const state = migratePaneTrees(createDefaultState('h'))
+    const leaf = state.root as Extract<PaneNode, { kind: 'leaf' }>
+    expect(leaf.tree).toEqual({ kind: 'vault' })
+    expect(migratePaneTrees(state)).toBe(state)
+  })
+})
+
+describe('relocateTabPaths — the pane tree and source/project params follow (S07d)', () => {
+  it('rewrites the pane tree scope and fold state on a folder move', () => {
+    const base = createDefaultState('h')
+    const paneId = (base.root as { id: string }).id
+    let state = setPaneTreeScope(base, paneId, {
+      kind: 'project',
+      projectPath: 'projects/x'
+    })
+    state = updatePaneTree(state, paneId, {
+      open: JSON.stringify(['projects/x', 'projects/x/deep', 'other'])
+    })
+    const moved = relocateTabPaths(state, 'projects/x', 'archive/x')
+    const tree = paneTreeOf(moved.root as Extract<PaneNode, { kind: 'leaf' }>)
+    expect(tree['projectPath']).toBe('archive/x')
+    expect([...paneTreeOpenFolders(tree)]).toEqual([
+      'archive/x',
+      'archive/x/deep',
+      'other'
+    ])
+  })
+
+  it('rewrites dossierPath and projectPath tab params too', () => {
+    const base = createDefaultState('h')
+    const leafId = (base.root as { id: string }).id
+    let state = addTab(
+      base,
+      leafId,
+      makeTab('source-image', { dossierPath: 'sources/img/pic/source.md' })
+    )
+    state = addTab(
+      state,
+      leafId,
+      makeTab('project', { projectPath: 'projects/x', notePath: 'projects/x/a.md' })
+    )
+    const moved = relocateTabPaths(state, 'sources/img/pic', 'sources/img/photo')
+    const dossiers = (moved.root as { tabs: Array<{ params?: Record<string, string> }> }).tabs.map(
+      (tab) => tab.params?.['dossierPath']
+    )
+    expect(dossiers).toContain('sources/img/photo/source.md')
+    const proj = relocateTabPaths(state, 'projects/x', 'projects/y')
+    const projTab = (proj.root as { tabs: Array<{ params?: Record<string, string> }> }).tabs.find(
+      (tab) => tab.params?.['projectPath'] !== undefined
+    )
+    expect(projTab!.params!['projectPath']).toBe('projects/y')
+    expect(projTab!.params!['notePath']).toBe('projects/y/a.md')
+  })
+})
+
+describe('closeTabsWithin — a delete closes the deleting pane\'s views (S07d)', () => {
+  it('closes tabs whose note/dossier/project params sit under the deleted path', () => {
+    const base = createDefaultState('h')
+    const leafId = (base.root as { id: string }).id
+    let state = addTab(base, leafId, makeTab('vault', { notePath: 'notes/a.md' }))
+    state = addTab(state, leafId, makeTab('vault', { notePath: 'keep.md' }))
+    state = addTab(
+      state,
+      leafId,
+      makeTab('source-image', { dossierPath: 'notes/pic/source.md' })
+    )
+    const closed = closeTabsWithin(state, leafId, 'notes')
+    const params = (closed.root as { tabs: Array<{ params?: Record<string, string> }> }).tabs.map(
+      (tab) => tab.params?.['notePath'] ?? tab.params?.['dossierPath']
+    )
+    expect(params).toContain('keep.md')
+    expect(params).not.toContain('notes/a.md')
+    expect(params).not.toContain('notes/pic/source.md')
+  })
+
+  it('touches only the named pane and keeps identity when nothing matches', () => {
+    const base = createDefaultState('h')
+    const rootId = (base.root as { id: string }).id
+    let state = splitPane(base, rootId, 'horizontal')
+    const [first, second] = leaves(state.root)
+    state = addTab(state, second!.id, makeTab('vault', { notePath: 'notes/a.md' }))
+    const untouched = closeTabsWithin(state, first!.id, 'notes')
+    const stillOpen = leaves(untouched.root).some((leaf) =>
+      leaf.tabs.some((tab) => tab.params?.['notePath'] === 'notes/a.md')
+    )
+    expect(stillOpen).toBe(true)
+    expect(closeTabsWithin(state, second!.id, 'ghost')).toBe(state)
   })
 })

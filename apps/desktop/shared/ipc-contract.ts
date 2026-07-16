@@ -169,6 +169,12 @@ export type PaneNode =
       id: string
       tabs: WorkspaceTab[]
       activeTabId: string | null
+      /** The pane's ONE tree panel (S07d, owner directive): pane chrome
+       *  typed by the pane, never by the active tab — tabs are just views
+       *  served from it. String map validated like tab params. Known keys:
+       *  kind = 'vault' (default) | 'project'; projectPath/projectTitle
+       *  (project kind); off = '1' hidden; w = width px; open = fold state. */
+      tree?: Record<string, string>
     }
   | {
       kind: 'split'

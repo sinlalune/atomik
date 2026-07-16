@@ -115,14 +115,141 @@ export function clampTreeWidth(px: number): number {
   return Math.round(Math.min(520, Math.max(160, px)))
 }
 
+/**
+ * The pane's ONE tree panel (S07d, owner directive): the tree is pane
+ * chrome typed by the PANE — 'vault' or 'project' — and tabs are just
+ * views served from it, so switching tabs never changes the panel.
+ * Same flat string map as tab params. Keys: kind, projectPath,
+ * projectTitle (project scope), off = '1' hidden, w = width px,
+ * open = fold state (tree-fold serialization).
+ */
+export type PaneTree = Record<string, string>
+
+export type PaneTreeScope =
+  | { kind: 'vault' }
+  | { kind: 'project'; projectPath: string; projectTitle?: string }
+
+/** What a note view registers with its pane (S07d bridge): the dirty
+ *  editor's note path, read at decision time — the pane tree's
+ *  navigation guard and the rename/move/delete dirty block use it. */
+export type PaneNoteGuard = { dirtyPath: () => string | null }
+
+/** Absent tree reads as the vault tree — the default pane type. */
+export function paneTreeOf(node: LeafNode): PaneTree {
+  return node.tree ?? { kind: 'vault' }
+}
+
+export function paneTreeScopeOf(tree: PaneTree): PaneTreeScope {
+  const projectPath = tree['projectPath']
+  if (tree['kind'] === 'project' && projectPath) {
+    const title = tree['projectTitle']
+    return title
+      ? { kind: 'project', projectPath, projectTitle: title }
+      : { kind: 'project', projectPath }
+  }
+  return { kind: 'vault' }
+}
+
+export const paneTreeHidden = (tree: PaneTree): boolean => tree['off'] === '1'
+
+export function paneTreeWidth(tree: PaneTree): number {
+  const raw = tree['w']
+  return raw === undefined ? TREE_WIDTH_DEFAULT : clampTreeWidth(Number(raw))
+}
+
+export function paneTreeOpenFolders(tree: PaneTree): ReadonlySet<string> {
+  return parseOpenFolders(tree['open'])
+}
+
+function mapLeaf(
+  state: WorkspaceState,
+  paneId: string,
+  fn: (node: LeafNode) => LeafNode
+): WorkspaceState {
+  const root = mapNode(state.root, (node) =>
+    node.kind === 'leaf' && node.id === paneId ? fn(node) : node
+  )
+  return root === state.root ? state : { ...state, root }
+}
+
+/** Merges panel preferences (off/w/open) into the pane's tree. */
+export function updatePaneTree(
+  state: WorkspaceState,
+  paneId: string,
+  patch: Record<string, string>
+): WorkspaceState {
+  return mapLeaf(state, paneId, (node) => ({
+    ...node,
+    tree: { ...paneTreeOf(node), ...patch }
+  }))
+}
+
+/** Retypes the pane (vault ↔ project). Scope keys are REPLACED — a
+ *  stale projectPath must not survive a switch back to vault — while
+ *  panel preferences (off/w/open) ride along. */
+export function setPaneTreeScope(
+  state: WorkspaceState,
+  paneId: string,
+  scope: PaneTreeScope
+): WorkspaceState {
+  return mapLeaf(state, paneId, (node) => {
+    const current = paneTreeOf(node)
+    const kept: PaneTree = {}
+    for (const key of ['off', 'w', 'open']) {
+      const value = current[key]
+      if (value !== undefined) kept[key] = value
+    }
+    const tree: PaneTree =
+      scope.kind === 'project'
+        ? {
+            ...kept,
+            kind: 'project',
+            projectPath: scope.projectPath,
+            ...(scope.projectTitle ? { projectTitle: scope.projectTitle } : {})
+          }
+        : { ...kept, kind: 'vault' }
+    return { ...node, tree }
+  })
+}
+
+/**
+ * S07d load-time migration: leaves saved before the pane owned its tree
+ * derive one from the ACTIVE tab — a project tab types the pane
+ * 'project'; the tab's tree/treeW/treeOpen params carry over as the
+ * panel's off/w/open, so the owner's widths and fold state survive.
+ */
+export function migratePaneTrees(state: WorkspaceState): WorkspaceState {
+  const root = mapNode(state.root, (node) => {
+    if (node.kind !== 'leaf' || node.tree !== undefined) return node
+    const active =
+      node.tabs.find((tab) => tab.id === node.activeTabId) ?? node.tabs[0]
+    const tree: PaneTree = { kind: 'vault' }
+    const projectPath = active?.params?.['projectPath']
+    if (active?.view === 'project' && projectPath) {
+      tree['kind'] = 'project'
+      tree['projectPath'] = projectPath
+      const title = active.params?.['projectTitle']
+      if (title) tree['projectTitle'] = title
+    }
+    if (active?.params?.['tree'] === 'off') tree['off'] = '1'
+    const width = active?.params?.['treeW']
+    if (width !== undefined) tree['w'] = width
+    const open = active?.params?.['treeOpen']
+    if (open !== undefined) tree['open'] = open
+    return { ...node, tree }
+  })
+  return root === state.root ? state : { ...state, root }
+}
+
 /** Splits a leaf: it keeps its tabs as the first child; the second child is
- *  a fresh empty leaf, which takes focus. */
+ *  a fresh empty leaf, which takes focus — and INHERITS the pane tree
+ *  (S07d: splitting a project pane yields another project pane). */
 export function splitPane(
   state: WorkspaceState,
   paneId: string,
   direction: PaneDirection
 ): WorkspaceState {
-  const empty = makeLeaf([])
+  const emptyId = newId()
   const root = mapNode(state.root, (node) =>
     node.kind === 'leaf' && node.id === paneId
       ? {
@@ -131,12 +258,18 @@ export function splitPane(
           direction,
           fraction: 0.5,
           first: node,
-          second: empty
+          second: {
+            kind: 'leaf' as const,
+            id: emptyId,
+            tabs: [],
+            activeTabId: null,
+            ...(node.tree ? { tree: node.tree } : {})
+          }
         }
       : node
   )
   if (root === state.root) return state
-  return { ...state, root, focusedPaneId: empty.id }
+  return { ...state, root, focusedPaneId: emptyId }
 }
 
 export function addTab(
@@ -380,8 +513,9 @@ export function updateTabParams(
 
 /**
  * CP-MVP-007 S04: a relocated note drags every tab param that pointed
- * at it. The prefix form covers folder moves (S05) for free. Identity-
- * stable when nothing matches.
+ * at it. The prefix form covers folder moves (S05) for free; the pane
+ * tree follows too (S07d — its scope and fold state name paths).
+ * Identity-stable when nothing matches.
  */
 export function relocateTabPaths(
   state: WorkspaceState,
@@ -394,27 +528,34 @@ export function relocateTabPaths(
       : value.startsWith(`${from}/`)
         ? `${to}${value.slice(from.length)}`
         : value
+  const rewriteFolds = (serialized: string): string | null => {
+    const open = [...parseOpenFolders(serialized)]
+    const rewritten = open.map(rewrite)
+    return rewritten.some((value, index) => value !== open[index])
+      ? serializeOpenFolders(new Set(rewritten))
+      : null
+  }
   const root = mapNode(state.root, (node) => {
     if (node.kind !== 'leaf') return node
     let changed = false
     const tabs = node.tabs.map((tab) => {
       const params: Record<string, string> = { ...tab.params }
       let touched = false
-      const notePath = params['notePath']
-      if (notePath) {
-        const next = rewrite(notePath)
-        if (next !== notePath) {
-          params['notePath'] = next
+      for (const key of ['notePath', 'dossierPath', 'projectPath']) {
+        const value = params[key]
+        if (!value) continue
+        const next = rewrite(value)
+        if (next !== value) {
+          params[key] = next
           touched = true
         }
       }
       // folder moves drag the FOLD state too (S05)
       const treeOpen = params['treeOpen']
       if (treeOpen) {
-        const open = [...parseOpenFolders(treeOpen)]
-        const rewritten = open.map(rewrite)
-        if (rewritten.some((value, index) => value !== open[index])) {
-          params['treeOpen'] = serializeOpenFolders(new Set(rewritten))
+        const folds = rewriteFolds(treeOpen)
+        if (folds !== null) {
+          params['treeOpen'] = folds
           touched = true
         }
       }
@@ -422,7 +563,62 @@ export function relocateTabPaths(
       changed = true
       return { ...tab, params }
     })
-    return changed ? { ...node, tabs } : node
+    // the PANE tree (S07d): project scope and fold state follow
+    let tree = node.tree
+    if (tree) {
+      const patch: Record<string, string> = {}
+      const projectPath = tree['projectPath']
+      if (projectPath) {
+        const next = rewrite(projectPath)
+        if (next !== projectPath) patch['projectPath'] = next
+      }
+      const open = tree['open']
+      if (open) {
+        const folds = rewriteFolds(open)
+        if (folds !== null) patch['open'] = folds
+      }
+      if (Object.keys(patch).length > 0) {
+        tree = { ...tree, ...patch }
+        changed = true
+      }
+    }
+    return changed ? { ...node, tabs, ...(tree ? { tree } : {}) } : node
   })
   return root === state.root ? state : { ...state, root }
+}
+
+/**
+ * S07d: a delete initiated from a pane's tree closes that pane's tabs
+ * viewing the deleted note or anything under the deleted folder — a
+ * tab is a view from the tree, and the tree item is gone. Other panes
+ * keep the S03 behavior (humanized not-found on next read). Web tabs
+ * never match (no vault path params), so no native view is orphaned.
+ */
+export function closeTabsWithin(
+  state: WorkspaceState,
+  paneId: string,
+  relPath: string
+): WorkspaceState {
+  const gone = (tab: WorkspaceTab): boolean => {
+    for (const key of ['notePath', 'dossierPath', 'projectPath']) {
+      const value = tab.params?.[key]
+      if (value && (value === relPath || value.startsWith(`${relPath}/`))) {
+        return true
+      }
+    }
+    return false
+  }
+  const leaf = ((): LeafNode | null => {
+    let found: LeafNode | null = null
+    mapNode(state.root, (node) => {
+      if (node.kind === 'leaf' && node.id === paneId) found = node
+      return node
+    })
+    return found
+  })()
+  if (!leaf) return state
+  return leaf.tabs.filter(gone).reduce(
+    (current, tab) => closeTab(current, paneId, tab.id),
+    state
+  )
 }

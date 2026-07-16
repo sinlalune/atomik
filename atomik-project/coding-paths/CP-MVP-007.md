@@ -316,12 +316,39 @@ bench fixes : S06b white app (props typed, never destructured — the
               tree column, tabstrip starts at its right, trees rise
               under the app header (screenshot-verified; dev-docs
               included; known edge: panes narrower than ~400px with
-              no treeW param misalign by the minmax default).
-tests       : 383 passing / 41 suites — green after the bench fixes;
+              no treeW param misalign by the minmax default),
+              S07d owner directive: ONE tree panel PER PANE, typed by
+              the pane (vault or project) — tabs are just views from
+              that tree (notes → note tabs, source.md → source tabs),
+              switching tabs (web included) never changes the panel,
+              hide/show toggle at the panel's BOTTOM RIGHT. Pane state
+              gains a validated `tree` map (migration derives it from
+              the active tab, carrying tree/treeW/treeOpen); the three
+              view-owned trees consolidate into PaneTreePanel (full
+              S02–S06 verb set; SourcesTree deleted, ＋PDF moved to
+              the panel bar); dirty-editor guards moved to the pane
+              door (PaneNoteGuard bridge); deletes from the panel
+              close the pane's tabs under the deleted path; the
+              relocate push now also rewrites dossierPath/projectPath
+              params (dossier tabs follow bundle moves — S05 gap) and
+              the pane tree's scope + folds. Dev-docs keeps its own
+              in-content docs tree (not vault content). Deviations
+              recorded: web tab's native view paints over the show
+              toggle (switch tabs to reach it); sources tree's
+              sources/-scoping retired (full vault tree serves
+              sources). Screenshot-verified: panel full height, tabs
+              at its right, vault tree constant under a dev-docs tab,
+              bottom-right toggle.
+tests       : 396 passing / 41 suites — green after the bench fixes
+              (S07d adds the pane-tree matrix: accessors/migration/
+              scope switch/split inheritance/relocate-follow/
+              closeTabsWithin + main-side tree validation);
               typecheck/build/smoke green; e2e
-              vaultWrite=ok+folder+trash+reloc+fmove (OS trash real
-              on WSL; rename AND folder-move refactors update citing
-              notes on disk).
+              vaultWrite=ok+folder+trash+reloc+fmove re-proven on the
+              S07d layout (OS trash real on WSL; rename AND
+              folder-move refactors update citing notes on disk);
+              real-app launch (restored vault layout, migration path)
+              = zero Uncaught.
               S01 done 2026-07-16 (same session as acceptance):
               doctrine pinned (04/27/20/13 — see step), decisions
               addendum in brainstorm/2026-07-16-tree-file-management-

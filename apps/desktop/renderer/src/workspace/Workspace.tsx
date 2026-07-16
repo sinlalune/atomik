@@ -13,25 +13,34 @@ import {
   activateTab,
   addTab,
   clampTreeWidth,
-  TREE_WIDTH_DEFAULT,
   closeEmptyPane,
   closeTab,
+  closeTabsWithin,
   makeTab,
   noteModeOf,
+  paneTreeHidden,
+  paneTreeOf,
+  paneTreeScopeOf,
+  paneTreeWidth,
   pdfPageOf,
   relocateTabPaths,
   saveModeOf,
   setFocus,
   setFraction,
+  setPaneTreeScope,
   setSaveMode,
   setTabView,
   splitPane,
   themeOf,
+  updatePaneTree,
   updateTabParams,
-  type NoteViewMode
+  type NoteViewMode,
+  type PaneNoteGuard
 } from './model'
 import { parseOpenFolders, serializeOpenFolders } from '../vault/tree-fold'
 import { NewTabChooser } from './NewTabChooser'
+import { PaneTreePanel } from './PaneTreePanel'
+import { SidebarToggleIcon } from '../icons'
 import { useWorkspace } from './store'
 
 // Code-split the two heavy views (perf audit 2026-07-15: zero dynamic
@@ -62,16 +71,6 @@ function destroyTabView(tab: WorkspaceTab): void {
   if (tab.view === 'source-web') void window.atomik.webViewDestroy(tab.id)
 }
 
-/** Views whose left tree panel is pane chrome (S07c): the pane grid
- *  reserves their tree column so the tabstrip starts at its right. */
-const TREE_PANE_VIEWS = new Set([
-  'vault',
-  'project',
-  'capture',
-  'source-image',
-  'dev-docs'
-])
-
 function tabLabel(tab: WorkspaceTab): string {
   if (tab.view === 'project' && tab.params?.['projectTitle']) {
     return tab.params['projectTitle']
@@ -101,16 +100,23 @@ function tabLabel(tab: WorkspaceTab): string {
 function TabContent({
   tab,
   paneId,
+  registerGuard,
   dispatch
 }: {
   tab: WorkspaceTab
   paneId: string
+  /** Note views register their dirty state with the pane (S07d) so the
+   *  pane tree can guard navigation and the refactor verbs. */
+  registerGuard: (guard: PaneNoteGuard | null) => void
   dispatch: Dispatch
 }): React.JSX.Element {
   const closeThisTab = (): void => {
     destroyTabView(tab)
     dispatch((state) => closeTab(state, paneId, tab.id))
   }
+  // The dev-docs tree browses the APP's documentation, not the vault —
+  // it stays the view's own, per tab, below the tabstrip (S07d: the
+  // pane chrome column belongs to the pane tree).
   const treeCollapsed = tab.params?.['tree'] === 'off'
   const onTreeToggle = (): void =>
     dispatch((state) =>
@@ -143,7 +149,7 @@ function TabContent({
     dispatch((state) =>
       addTab(state, paneId, makeTab('source-image', { dossierPath }))
     )
-  // Tree fold state: collapsed by default, remembered per tab (owner).
+  // Dev-docs fold state: collapsed by default, remembered per tab.
   const openFolders = parseOpenFolders(tab.params?.['treeOpen'])
   const onOpenFoldersChange = (next: ReadonlySet<string>): void =>
     dispatch((state) =>
@@ -181,16 +187,11 @@ function TabContent({
         onOpenSourceImage={openSourceImage}
         onOpenWebUrl={openWebUrl}
         historyKey={tab.id}
-        openFolders={openFolders}
-        onOpenFoldersChange={onOpenFoldersChange}
         notePath={tab.params?.['notePath']}
         onNoteOpened={(relPath) =>
           dispatch((state) => updateTabParams(state, tab.id, { notePath: relPath }))
         }
-        treeCollapsed={treeCollapsed}
-        onTreeToggle={onTreeToggle}
-        treeWidth={treeWidth}
-        onTreeResize={onTreeResize}
+        registerGuard={registerGuard}
         mode={mode}
         onModeChange={onModeChange}
         saveMode={saveMode}
@@ -201,15 +202,7 @@ function TabContent({
   if (tab.view === 'capture') {
     return (
       <Suspense fallback={<div className="view-loading" />}>
-        <CaptureView
-          onOpenSourceImage={openSourceImage}
-          treeCollapsed={treeCollapsed}
-          onTreeToggle={onTreeToggle}
-          treeWidth={treeWidth}
-          onTreeResize={onTreeResize}
-          openFolders={openFolders}
-          onOpenFoldersChange={onOpenFoldersChange}
-        />
+        <CaptureView onOpenSourceImage={openSourceImage} />
       </Suspense>
     )
   }
@@ -249,12 +242,6 @@ function TabContent({
               updateTabParams(state, tab.id, { page: String(page) })
             )
           }
-          treeCollapsed={treeCollapsed}
-          onTreeToggle={onTreeToggle}
-          treeWidth={treeWidth}
-          onTreeResize={onTreeResize}
-          openFolders={openFolders}
-          onOpenFoldersChange={onOpenFoldersChange}
         />
       </Suspense>
     )
@@ -262,28 +249,33 @@ function TabContent({
   if (tab.view === 'project') {
     return (
       <ProjectView
-        openFolders={openFolders}
-        onOpenFoldersChange={onOpenFoldersChange}
         onOpenWebUrl={openWebUrl}
         historyKey={tab.id}
         projectPath={tab.params?.['projectPath']}
         notePath={tab.params?.['notePath']}
         onCloseTab={closeThisTab}
         onProjectOpened={(project) =>
+          // opening a project TYPES the pane (S07d): its tree panel
+          // becomes the project tree until explicitly switched back
           dispatch((state) =>
-            updateTabParams(state, tab.id, {
-              projectPath: project.relPath,
-              projectTitle: project.title
-            })
+            setPaneTreeScope(
+              updateTabParams(state, tab.id, {
+                projectPath: project.relPath,
+                projectTitle: project.title
+              }),
+              paneId,
+              {
+                kind: 'project',
+                projectPath: project.relPath,
+                projectTitle: project.title
+              }
+            )
           )
         }
         onNoteOpened={(relPath) =>
           dispatch((state) => updateTabParams(state, tab.id, { notePath: relPath }))
         }
-        treeCollapsed={treeCollapsed}
-        onTreeToggle={onTreeToggle}
-        treeWidth={treeWidth}
-        onTreeResize={onTreeResize}
+        registerGuard={registerGuard}
         mode={mode}
         onModeChange={onModeChange}
         saveMode={saveMode}
@@ -308,22 +300,64 @@ function LeafPane({
 }): React.JSX.Element {
   const active = node.tabs.find((tab) => tab.id === node.activeTabId)
 
-  // S07c (owner): the tree panel reads as PANE CHROME — it spans the
-  // full pane height (up under the app header) and the tabstrip starts
-  // at its right. The pane grid reserves a column matching the active
-  // tab's tree width (same params the view uses), and the view's tree
-  // pulls itself up into the tabstrip row via CSS. Views without a
-  // tree get a zero column — tabs start at the pane edge as before.
-  const activeTreeWidth = (() => {
-    if (!active || !TREE_PANE_VIEWS.has(active.view)) return 0
-    if (active.params?.['tree'] === 'off') return 0
-    const param = active.params?.['treeW']
-    return param === undefined ? TREE_WIDTH_DEFAULT : clampTreeWidth(Number(param))
-  })()
+  // S07d (owner): ONE tree panel per pane, typed by the PANE (vault or
+  // project) — tabs are just views served from it, so switching tabs
+  // (web included) never changes the panel. It spans the full pane
+  // height (S07c look), the tabstrip starts at its right, and the
+  // hide/show toggle sits at the panel's bottom right.
+  const tree = paneTreeOf(node)
+  const treeHidden = paneTreeHidden(tree)
+  const treeWidth = treeHidden ? 0 : paneTreeWidth(tree)
+
+  // Note views register their dirty editor here (cleared on unmount);
+  // the pane tree reads it at decision time.
+  const guardRef = useRef<PaneNoteGuard | null>(null)
+  const registerGuard = useCallback((guard: PaneNoteGuard | null) => {
+    guardRef.current = guard
+  }, [])
+  const dirtyPath = useCallback(
+    () => guardRef.current?.dirtyPath() ?? null,
+    []
+  )
+  const saveMode = useWorkspace((store) => saveModeOf(store.state))
+
+  // Tree → tabs routing: a note lands in the active note view (it
+  // follows its notePath param) or opens a new note tab of the pane's
+  // kind; a dossier lands in the active source tab or a new one.
+  const openNoteFromTree = (relPath: string): void => {
+    if (active && (active.view === 'vault' || active.view === 'project')) {
+      dispatch((state) => updateTabParams(state, active.id, { notePath: relPath }))
+      return
+    }
+    const scope = paneTreeScopeOf(tree)
+    dispatch((state) =>
+      addTab(
+        state,
+        node.id,
+        scope.kind === 'project'
+          ? makeTab('project', {
+              projectPath: scope.projectPath,
+              ...(scope.projectTitle ? { projectTitle: scope.projectTitle } : {}),
+              notePath: relPath
+            })
+          : makeTab('vault', { notePath: relPath })
+      )
+    )
+  }
+  const openSourceFromTree = (dossierPath: string): void => {
+    if (active && active.view === 'source-image') {
+      dispatch((state) => updateTabParams(state, active.id, { dossierPath }))
+      return
+    }
+    dispatch((state) =>
+      addTab(state, node.id, makeTab('source-image', { dossierPath }))
+    )
+  }
+
   return (
     <section
       className={`pane${focused ? ' focused' : ''}`}
-      style={{ gridTemplateColumns: `${activeTreeWidth}px minmax(0, 1fr)` }}
+      style={{ gridTemplateColumns: `${treeWidth}px minmax(0, 1fr)` }}
       onPointerDownCapture={() => dispatch((state) => setFocus(state, node.id))}
     >
       <header className="tabstrip">
@@ -398,12 +432,48 @@ function LeafPane({
           </button>
         </span>
       </header>
+      {!treeHidden && (
+        <PaneTreePanel
+          tree={tree}
+          activePath={
+            active?.params?.['notePath'] ??
+            active?.params?.['dossierPath'] ??
+            null
+          }
+          saveMode={saveMode}
+          dirtyPath={dirtyPath}
+          onPatch={(patch) =>
+            dispatch((state) => updatePaneTree(state, node.id, patch))
+          }
+          onScopeChange={(scope) =>
+            dispatch((state) => setPaneTreeScope(state, node.id, scope))
+          }
+          onOpenNote={openNoteFromTree}
+          onOpenSource={openSourceFromTree}
+          onDeleted={(relPath) =>
+            dispatch((state) => closeTabsWithin(state, node.id, relPath))
+          }
+        />
+      )}
       <div className="pane-content">
+        {treeHidden && (
+          <button
+            type="button"
+            className="tree-toggle pane-tree-show"
+            title="Show tree panel"
+            onClick={() =>
+              dispatch((state) => updatePaneTree(state, node.id, { off: '0' }))
+            }
+          >
+            <SidebarToggleIcon />
+          </button>
+        )}
         {active ? (
           <TabContent
             key={active.id}
             tab={active}
             paneId={node.id}
+            registerGuard={registerGuard}
             dispatch={dispatch}
           />
         ) : (

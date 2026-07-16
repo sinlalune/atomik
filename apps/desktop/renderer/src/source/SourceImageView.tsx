@@ -13,7 +13,6 @@ import {
 import { pdfPageTarget, takePendingPdfPage } from './pdf-open'
 import { applyRotation, mediaObjectUrl } from './rotate'
 import { PdfView } from './PdfView'
-import { SourcesTreePanel } from './SourcesTree'
 
 /**
  * The image source tab (08 "image tab views the original beside the
@@ -21,7 +20,9 @@ import { SourcesTreePanel } from './SourcesTree'
  * untouched (07: viewer ≠ extractor). Right: the rendered source.md — the
  * canonical dossier, whose relative .md links (transcript later, notes)
  * open in place. The image arrives as a data URL through the read-only
- * asset channel; this view can never write anything.
+ * asset channel; this view can never write anything. Navigation between
+ * sources comes from the PANE tree (S07d) via the dossierPath param —
+ * the view no longer carries its own tree panel.
  */
 
 export function SourceImageView({
@@ -30,16 +31,10 @@ export function SourceImageView({
   initialPdfPage,
   onPdfPageChange,
   onOpenWebUrl,
-  historyKey,
-  treeCollapsed,
-  onTreeToggle,
-  treeWidth,
-  onTreeResize,
-  openFolders = new Set<string>(),
-  onOpenFoldersChange
+  historyKey
 }: {
   dossierPath: string | undefined
-  /** Reports tree navigation so the tab param follows. */
+  /** Reports every opened dossier so the tab param follows. */
   onDossierOpened?: (relPath: string) => void
   /** PDF page restore (S07): the tab param's page, read at mount. */
   initialPdfPage?: number
@@ -50,15 +45,11 @@ export function SourceImageView({
   onOpenWebUrl?: (url: string) => void
   /** Keys this tab's ‹ › navigation trail (the tab id). */
   historyKey?: string
-  treeCollapsed?: boolean
-  onTreeToggle?: () => void
-  treeWidth?: number
-  onTreeResize?: (px: number) => void
-  openFolders?: ReadonlySet<string>
-  onOpenFoldersChange?: (next: ReadonlySet<string>) => void
 }): React.JSX.Element {
+  // Every open reports (S07d): with the tree at the pane, the tab param
+  // is the only trail — internal .md navigation must persist too.
   const { note, html, error, openNote, applySaved, onContentClick } =
-    useVaultNote(undefined, undefined, onOpenWebUrl)
+    useVaultNote(onDossierOpened, undefined, onOpenWebUrl)
   const nav = useNavHistory(historyKey, note?.relPath, openNote)
   const [base, setBase] = useState<{ dataUrl: string; mimeType: string } | null>(
     null
@@ -285,30 +276,8 @@ export function SourceImageView({
     )
   }
 
-  const openFromTree = (relPath: string): void => {
-    openNote(relPath)
-    onDossierOpened?.(relPath)
-  }
-
   return (
-    <div
-      className={`vault${treeCollapsed ? ' no-tree' : ''}`}
-      style={
-        !treeCollapsed && treeWidth !== undefined
-          ? { gridTemplateColumns: `${treeWidth}px 1fr` }
-          : undefined
-      }
-    >
-      {!treeCollapsed && (
-        <SourcesTreePanel
-          activePath={note?.relPath ?? dossierPath ?? null}
-          onOpen={openFromTree}
-          onTreeToggle={onTreeToggle}
-          onTreeResize={onTreeResize}
-          openFolders={openFolders}
-          onOpenFoldersChange={onOpenFoldersChange}
-        />
-      )}
+    <div className="vault no-tree">
       {dossierPath ? renderContent() : (
         <p className="pane-placeholder">
           no dossier — pick a source from the tree, or open an imported

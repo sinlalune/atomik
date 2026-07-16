@@ -1160,3 +1160,52 @@ by clicking its own □ Windows-side: host rect lands exactly at
 content = work area (taskbar visible), restore returns the exact
 original rect, the ☰ menu opens where it is drawn. Owner eyeball = the
 final gate.
+
+## One tree panel per pane (CP-MVP-007 S07d, owner directive)
+
+- The tree panel is PANE state, not tab state: each leaf pane carries an
+  optional `tree` string map (same validation as tab params, main-side
+  `workspace-state.ts`) — `kind` = 'vault' (default) | 'project',
+  `projectPath`/`projectTitle` for the project scope, `off`/`w`/`open`
+  as panel preferences. Tabs are just VIEWS served from that tree
+  (notes → note tabs, `source.md` → source tabs); switching tabs — web
+  included — never changes the panel. The web view stays "free": no
+  tree relationship, but the pane panel remains beside it.
+- `workspace/PaneTreePanel.tsx` consolidates the three former view-owned
+  trees (VaultView / ProjectView / SourcesTree, the last deleted): one
+  panel per pane hosting the FULL S02–S06 verb set (create note/folder,
+  rename/move behind the preview, delete-to-trash, DnD over the Move
+  flow, scoped search, ＋PDF import). The bar and inputs stay put; only
+  the tree list scrolls; the hide toggle is pinned BOTTOM RIGHT of the
+  panel (owner directive), and the show toggle floats bottom left of
+  the content when hidden. Known edge: an active web tab's native view
+  paints over the show toggle — switch tabs to reach it.
+- Routing (Workspace.tsx): a tree click updates the ACTIVE tab's
+  `notePath`/`dossierPath` param when it is a matching view (the views
+  follow their params — the S07a `noteFollowTarget` discipline), else
+  opens a new tab of the pane's kind. Opening a project in a Project
+  tab TYPES the pane (`setPaneTreeScope`); the project tree bar carries
+  a switch-back-to-vault button; a missing project folder falls back to
+  rendering the vault tree.
+- The dirty-editor guards moved to the pane door: note views register a
+  `PaneNoteGuard` (`dirtyPath()`, refs under a stable callback) — the
+  panel confirms manual-mode navigation and refuses rename/move/delete
+  of the dirty note, same messages as before.
+- Deletes initiated from a pane's tree CLOSE that pane's tabs under the
+  deleted path (`closeTabsWithin` — never web tabs, so no native view
+  is orphaned); other panes keep the S03 humanized not-found. Renames/
+  moves keep flowing through the `note-relocated` push, which now also
+  rewrites `dossierPath`/`projectPath` tab params (dossier tabs did not
+  follow bundle moves before) and the pane tree's scope + fold state.
+- Migration (`migratePaneTrees`, load-time like `migrateRetiredViews`):
+  pre-S07d leaves derive their tree from the ACTIVE tab — a project tab
+  types the pane; the tab's `tree`/`treeW`/`treeOpen` params carry over
+  as `off`/`w`/`open`, so saved widths and fold state survive. The
+  per-tab params stay only for Dev Docs, whose docs tree browses the
+  APP corpus, not the vault — it keeps its own in-content tree below
+  the tabstrip.
+- Layout: `.pane` grid unchanged [tree col | tabstrip/content], but the
+  column now comes from the PANE tree state; `.pane-tree` is a real
+  grid child spanning both rows (the S07c negative-margin pull-up is
+  retired); `.pane-content` sits at (row 2, col 2) without the
+  padding-top hack.

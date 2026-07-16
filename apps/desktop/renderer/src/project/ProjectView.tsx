@@ -1,32 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type {
-  ProjectInfo,
-  VaultFolder,
-  VaultInfo
-} from '../../../shared/ipc-contract'
+import type { ProjectInfo, VaultInfo } from '../../../shared/ipc-contract'
 import { EditorPane } from '../editor/EditorPane'
 import { ModeSwitch } from '../editor/ModeSwitch'
-import { CollapseAllIcon, ExpandAllIcon, SidebarToggleIcon } from '../icons'
-import { SearchResultsList } from '../search/SearchResultsList'
-import { useTreeSearch } from '../search/useTreeSearch'
-import { TreeResizeHandle } from '../TreeResizeHandle'
-import { NoteTree, parseTreeDrag } from '../vault/NoteTree'
 import { noteFollowTarget } from '../vault/note-follow'
-import { TreeMenu } from '../vault/TreeMenu'
-import {
-  deleteConfirmText,
-  dropMoveTarget,
-  folderDeleteSummary,
-  prunedOpenFolders,
-  TREE_DRAG_MIME,
-  type TreeDragSource,
-  type TreeMenuTarget
-} from '../vault/tree-menu'
 import { useNavHistory } from '../vault/nav-history'
-import { findSubtree } from '../vault/scope'
-import { allFolderPaths, toggledFolder } from '../vault/tree-fold'
 import { useVaultNote } from '../vault/useVaultNote'
-import type { NoteViewMode, SaveMode } from '../workspace/model'
+import type { NoteViewMode, PaneNoteGuard, SaveMode } from '../workspace/model'
 
 export type ProjectViewProps = {
   /** Vault-relative folder of the opened bundle. */
@@ -37,12 +16,9 @@ export type ProjectViewProps = {
   onNoteOpened?: (relPath: string) => void
   /** Escape hatch on the picker screens (a mistakenly opened tab). */
   onCloseTab?: () => void
-  /** Tree panel visibility, persisted per tab by the workspace. */
-  treeCollapsed?: boolean
-  onTreeToggle?: () => void
-  /** Tree panel width (px), persisted per tab; undefined = CSS default. */
-  treeWidth?: number
-  onTreeResize?: (px: number) => void
+  /** Registers this view's dirty editor with the pane (S07d): the pane
+   *  tree guards navigation and the refactor verbs with it. */
+  registerGuard?: (guard: PaneNoteGuard | null) => void
   /** read / live (default) / source, persisted per tab. */
   mode?: NoteViewMode
   onModeChange?: (mode: NoteViewMode) => void
@@ -53,13 +29,7 @@ export type ProjectViewProps = {
   onOpenWebUrl?: (url: string) => void
   /** Keys this tab's ‹ › navigation trail (the tab id). */
   historyKey?: string
-  /** Controlled fold state: open folders, persisted per tab (collapsed
-   *  by default — owner request). */
-  openFolders?: ReadonlySet<string>
-  onOpenFoldersChange?: (next: ReadonlySet<string>) => void
 }
-
-const NO_OPEN_FOLDERS: ReadonlySet<string> = new Set()
 
 function slugifyLite(title: string): string {
   const slug = title
@@ -72,10 +42,10 @@ function slugifyLite(title: string): string {
 }
 
 /**
- * Project bundle tab (04, 03's project-overview): pick or create/adopt a
- * bundle, then work inside it — index.md/log.md shortcuts, a tree scoped
- * to the project folder, and note creation rooted there. Reads go through
- * the existing vault channels; only list/create-project are new.
+ * Project bundle tab (04, 03's project-overview; S07d): pick or
+ * create/adopt a bundle, then work on ONE note inside it. Opening a
+ * project TYPES the pane — the tree left of this view is the pane's
+ * panel scoped to the project folder (workspace/PaneTreePanel).
  */
 export function ProjectView({
   projectPath,
@@ -83,36 +53,18 @@ export function ProjectView({
   onProjectOpened,
   onNoteOpened,
   onCloseTab,
-  treeCollapsed,
-  onTreeToggle,
-  treeWidth,
-  onTreeResize,
+  registerGuard,
   mode = 'live',
   onModeChange,
   saveMode = 'auto',
   onSaveModeToggle,
   onOpenWebUrl,
-  historyKey,
-  openFolders = NO_OPEN_FOLDERS,
-  onOpenFoldersChange
+  historyKey
 }: ProjectViewProps): React.JSX.Element {
   const [vault, setVault] = useState<VaultInfo | null | 'loading'>('loading')
   const [projects, setProjects] = useState<ProjectInfo[]>([])
   const [projectsLoaded, setProjectsLoaded] = useState(false)
-  const [tree, setTree] = useState<VaultFolder | null>(null)
   const [draftTitle, setDraftTitle] = useState('')
-  const [draftNoteName, setDraftNoteName] = useState('')
-  const [treeMenu, setTreeMenu] = useState<TreeMenuTarget | null>(null)
-  // Project-scoped search perimeter (owner feedback on MVP-001).
-  const searchProject = useCallback(
-    (query: string) =>
-      projectPath
-        ? window.atomik.searchVault(query, projectPath)
-        : Promise.resolve([]),
-    [projectPath]
-  )
-  const { query: searchQuery, setQuery: setSearchQuery, results: searchResults } =
-    useTreeSearch(searchProject)
   const [editorDirty, setEditorDirty] = useState(false)
   const {
     note,
@@ -129,6 +81,19 @@ export function ProjectView({
   const onDirtyChange = useCallback((dirty: boolean) => {
     setEditorDirty(dirty)
   }, [])
+
+  // The pane bridge (S07d): the pane tree reads the dirty note's path
+  // at decision time — refs keep the closure current without re-runs.
+  const dirtyRef = useRef(false)
+  dirtyRef.current = editorDirty
+  const openRef = useRef<string | null>(null)
+  openRef.current = note?.relPath ?? null
+  useEffect(() => {
+    registerGuard?.({
+      dirtyPath: () => (dirtyRef.current ? openRef.current : null)
+    })
+    return () => registerGuard?.(null)
+  }, [registerGuard])
 
   /** Note navigation in edit mode must not silently discard a buffer.
    *  Auto-save mode navigates freely: the unmounting editor flushes. */
@@ -151,7 +116,6 @@ export function ProjectView({
   const refresh = useCallback(async () => {
     try {
       setProjects(await window.atomik.listProjects())
-      setTree(await window.atomik.listVaultFiles())
       setProjectsLoaded(true)
     } catch (reason) {
       setError(String(reason))
@@ -171,9 +135,8 @@ export function ProjectView({
     )
   }, [refresh, setError])
 
-  // S07b (owner report: the project tree missed menu creations): the
-  // SAME push subscription as VaultView/SourcesTree — every main-side
-  // landing refreshes this tree too, whichever view initiated it.
+  // S07b: every main-side landing may create/adopt a bundle — keep the
+  // picker's project list current, whichever view initiated.
   useEffect(
     () => window.atomik.onVaultFilesChanged(() => void refresh()),
     [refresh]
@@ -194,13 +157,11 @@ export function ProjectView({
       reset()
       lastRequested.current = staleTargetRef.current
       setEditorDirty(false)
-      setSearchQuery('')
       setProjects([])
       setProjectsLoaded(false)
-      setTree(null)
       if (info) void refresh()
     })
-  }, [lastRequested, refresh, reset, setSearchQuery])
+  }, [lastRequested, refresh, reset])
 
   /** The tab's bundle, only while it exists in the OPEN vault. */
   const projectExists =
@@ -240,127 +201,6 @@ export function ProjectView({
       setError(String(reason))
     }
   }, [draftTitle, onProjectOpened, refresh, setError])
-
-  const onCreateNote = useCallback(async () => {
-    if (!projectPath) return
-    const name = draftNoteName.trim()
-    if (!name) return
-    const relPath = `${projectPath}/${name.toLowerCase().endsWith('.md') ? name : `${name}.md`}`
-    try {
-      await window.atomik.createNote(relPath)
-      setDraftNoteName('')
-      await refresh()
-      openNote(relPath)
-    } catch (reason) {
-      setError(String(reason))
-    }
-  }, [draftNoteName, openNote, projectPath, refresh, setError])
-
-  // CP-MVP-007 S02: context-menu creation, scoped to the project subtree.
-  const menuNewNote = useCallback(
-    async (relPath: string) => {
-      await window.atomik.createNote(relPath)
-      guardedOpen(relPath)
-    },
-    [guardedOpen]
-  )
-  const menuNewFolder = useCallback(
-    async (relPath: string) => {
-      const created = await window.atomik.createFolder(relPath)
-      onOpenFoldersChange?.(new Set([...openFolders, created.relPath]))
-      guardedOpen(created.indexRelPath)
-    },
-    [guardedOpen, onOpenFoldersChange, openFolders]
-  )
-  const menuRename = useCallback(
-    async (from: string, to: string) => {
-      if (editorDirty && note?.relPath === from) {
-        throw new Error('save or discard the open changes first')
-      }
-      const preview = await window.atomik.relocatePreview(from, to)
-      if (preview.totalLinks > 0) {
-        const others = preview.edits.filter((edit) => edit.relPath !== from)
-        const lines = others
-          .slice(0, 8)
-          .map((edit) => `  ${edit.relPath} (${edit.count})`)
-        const more = others.length > 8 ? `\n  … +${others.length - 8} more` : ''
-        const ok = window.confirm(
-          `Renaming updates ${preview.totalLinks} link${preview.totalLinks === 1 ? '' : 's'} in ${others.length} note${others.length === 1 ? '' : 's'}:\n\n${lines.join('\n')}${more}\n\nApply the rename refactor?`
-        )
-        if (!ok) return
-      }
-      await window.atomik.relocateApply(from, to)
-      if (note?.relPath === from) openNote(to)
-      await refresh()
-    },
-    [editorDirty, note, openNote, refresh]
-  )
-  const menuMove = useCallback(
-    async (target: TreeMenuTarget, to: string) => {
-      if (
-        editorDirty &&
-        note &&
-        (note.relPath === target.relPath ||
-          note.relPath.startsWith(`${target.relPath}/`))
-      ) {
-        throw new Error('save or discard the open changes first')
-      }
-      const preview =
-        target.kind === 'note'
-          ? await window.atomik.relocatePreview(target.relPath, to)
-          : await window.atomik.relocateFolderPreview(target.relPath, to)
-      const links =
-        preview.totalLinks > 0
-          ? `\n\n${preview.totalLinks} link${preview.totalLinks === 1 ? '' : 's'} update in ${preview.edits.length} note${preview.edits.length === 1 ? '' : 's'}.`
-          : '\n\nNo links need updating.'
-      if (!window.confirm(`Move “${target.relPath}” → “${to}”?${links}`)) return
-      if (target.kind === 'note') {
-        await window.atomik.relocateApply(target.relPath, to)
-        if (note?.relPath === target.relPath) openNote(to)
-      } else {
-        await window.atomik.relocateFolderApply(target.relPath, to)
-        onOpenFoldersChange?.(prunedOpenFolders(openFolders, target.relPath))
-      }
-      await refresh()
-    },
-    [editorDirty, note, onOpenFoldersChange, openFolders, openNote, refresh]
-  )
-  const dropNode = useCallback(
-    (source: TreeDragSource, destFolder: string) => {
-      const to = dropMoveTarget(source, destFolder)
-      if (!to) return
-      void menuMove({ ...source, x: 0, y: 0 }, to).catch((reason) =>
-        setError(String(reason))
-      )
-    },
-    [menuMove, setError]
-  )
-  const menuDelete = useCallback(
-    async (target: TreeMenuTarget) => {
-      const scoped = tree && projectPath ? findSubtree(tree, projectPath) : null
-      const summary =
-        target.kind === 'folder' && scoped
-          ? folderDeleteSummary(scoped, target.relPath)
-          : null
-      if (!window.confirm(deleteConfirmText(target, summary))) return
-      if (target.kind === 'note') {
-        await window.atomik.deleteNote(target.relPath)
-        if (note?.relPath === target.relPath) reset()
-      } else {
-        await window.atomik.deleteFolder(target.relPath)
-        if (
-          note &&
-          (note.relPath === target.relPath ||
-            note.relPath.startsWith(`${target.relPath}/`))
-        ) {
-          reset()
-        }
-        onOpenFoldersChange?.(prunedOpenFolders(openFolders, target.relPath))
-      }
-      await refresh()
-    },
-    [note, onOpenFoldersChange, openFolders, projectPath, refresh, reset, tree]
-  )
 
   if (vault === 'loading') {
     return <p className="pane-placeholder">loading…</p>
@@ -420,159 +260,13 @@ export function ProjectView({
     )
   }
 
-  const scoped = tree ? findSubtree(tree, projectPath) : null
-  const projectTitle =
-    projects.find((project) => project.relPath === projectPath)?.title ??
-    projectPath
-
   return (
-    <div
-      className={`vault project${treeCollapsed ? ' no-tree' : ''}`}
-      style={
-        !treeCollapsed && treeWidth !== undefined
-          ? { gridTemplateColumns: `${treeWidth}px 1fr` }
-          : undefined
-      }
-    >
-      {!treeCollapsed && (
-      <nav
-        className="vault-tree"
-        aria-label="Project tree"
-        onContextMenu={(event) => {
-          if (!projectPath) return
-          event.preventDefault()
-          setTreeMenu({
-            kind: 'folder',
-            relPath: projectPath,
-            x: event.clientX,
-            y: event.clientY
-          })
-        }}
-        onDragOver={(event) => {
-          if (!event.dataTransfer.types.includes(TREE_DRAG_MIME)) return
-          event.preventDefault()
-          event.dataTransfer.dropEffect = 'move'
-        }}
-        onDrop={(event) => {
-          if (!projectPath) return
-          event.preventDefault()
-          const source = parseTreeDrag(event.dataTransfer.getData(TREE_DRAG_MIME))
-          if (source) dropNode(source, projectPath)
-        }}
-      >
-        {onTreeResize && <TreeResizeHandle onResize={onTreeResize} />}
-        <div className="tree-bar">
-          <div className="vault-head" title={projectPath}>
-            {projectTitle}
-          </div>
-          <button
-            type="button"
-            className="tree-toggle"
-            title="Expand all folders"
-            onClick={() =>
-              scoped && onOpenFoldersChange?.(new Set(allFolderPaths(scoped)))
-            }
-          >
-            <ExpandAllIcon />
-          </button>
-          <button
-            type="button"
-            className="tree-toggle"
-            title="Collapse all folders"
-            onClick={() => onOpenFoldersChange?.(new Set())}
-          >
-            <CollapseAllIcon />
-          </button>
-          {onTreeToggle && (
-            <button
-              type="button"
-              className="tree-toggle"
-              title="Hide tree panel"
-              onClick={onTreeToggle}
-            >
-              <SidebarToggleIcon />
-            </button>
-          )}
-        </div>
-        <div className="vault-new">
-          <input
-            value={draftNoteName}
-            placeholder="new note in project…"
-            onChange={(event) => setDraftNoteName(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') void onCreateNote()
-            }}
-          />
-          <button type="button" onClick={() => void onCreateNote()}>
-            +
-          </button>
-        </div>
-        <div className="vault-search">
-          <input
-            placeholder="search project…"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') setSearchQuery('')
-            }}
-          />
-        </div>
-        {searchResults !== null ? (
-          <SearchResultsList
-            results={searchResults}
-            activePath={note?.relPath ?? null}
-            onOpen={guardedOpen}
-          />
-        ) : (
-          scoped && (
-            <NoteTree
-              folder={scoped}
-              activePath={note?.relPath ?? null}
-              onOpen={guardedOpen}
-              openFolders={openFolders}
-              onFolderToggle={(relPath, open) => {
-                const next = toggledFolder(openFolders, relPath, open)
-                if (next !== openFolders) onOpenFoldersChange?.(next)
-              }}
-              onFolderMenu={(relPath, x, y) =>
-                setTreeMenu({ kind: 'folder', relPath, x, y })
-              }
-              onNoteMenu={(relPath, x, y) =>
-                setTreeMenu({ kind: 'note', relPath, x, y })
-              }
-              onDropNode={dropNode}
-            />
-          )
-        )}
-        {treeMenu && (
-          <TreeMenu
-            target={treeMenu}
-            scopeLabel={projectTitle ?? 'project'}
-            onClose={() => setTreeMenu(null)}
-            onNewNote={menuNewNote}
-            onNewFolder={menuNewFolder}
-            onDelete={menuDelete}
-            onRename={menuRename}
-            onMove={menuMove}
-          />
-        )}
-      </nav>
-      )}
+    <div className="vault project no-tree">
       <div
         className="vault-content"
         onClick={mode === 'read' ? onContentClick : undefined}
         {...(note ? { 'data-project-rendered': '1' } : {})}
       >
-        {treeCollapsed && onTreeToggle && (
-          <button
-            type="button"
-            className="tree-toggle tree-show"
-            title="Show tree panel"
-            onClick={onTreeToggle}
-          >
-            <SidebarToggleIcon />
-          </button>
-        )}
         {error && !note ? (
           <p className="error note-scroll">{error}</p>
         ) : !note ? (
@@ -586,10 +280,7 @@ export function ProjectView({
             onDirtyChange={onDirtyChange}
             mode={mode}
             onModeChange={onModeChange}
-            onNoteCreated={(relPath) => {
-              void refresh()
-              guardedOpen(relPath)
-            }}
+            onNoteCreated={guardedOpen}
             onFollowLink={guardedOpen}
             saveMode={saveMode}
             onSaveModeToggle={onSaveModeToggle}
@@ -639,4 +330,3 @@ export function ProjectView({
     </div>
   )
 }
-
