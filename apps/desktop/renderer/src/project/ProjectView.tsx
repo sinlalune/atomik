@@ -11,6 +11,8 @@ import { SearchResultsList } from '../search/SearchResultsList'
 import { useTreeSearch } from '../search/useTreeSearch'
 import { TreeResizeHandle } from '../TreeResizeHandle'
 import { NoteTree } from '../vault/NoteTree'
+import { TreeMenu } from '../vault/TreeMenu'
+import type { TreeMenuTarget } from '../vault/tree-menu'
 import { useNavHistory } from '../vault/nav-history'
 import { findSubtree } from '../vault/scope'
 import { allFolderPaths, toggledFolder } from '../vault/tree-fold'
@@ -91,6 +93,7 @@ export function ProjectView({
   const [tree, setTree] = useState<VaultFolder | null>(null)
   const [draftTitle, setDraftTitle] = useState('')
   const [draftNoteName, setDraftNoteName] = useState('')
+  const [treeMenu, setTreeMenu] = useState<TreeMenuTarget | null>(null)
   // Project-scoped search perimeter (owner feedback on MVP-001).
   const searchProject = useCallback(
     (query: string) =>
@@ -228,6 +231,23 @@ export function ProjectView({
     }
   }, [draftNoteName, openNote, projectPath, refresh, setError])
 
+  // CP-MVP-007 S02: context-menu creation, scoped to the project subtree.
+  const menuNewNote = useCallback(
+    async (relPath: string) => {
+      await window.atomik.createNote(relPath)
+      guardedOpen(relPath)
+    },
+    [guardedOpen]
+  )
+  const menuNewFolder = useCallback(
+    async (relPath: string) => {
+      const created = await window.atomik.createFolder(relPath)
+      onOpenFoldersChange?.(new Set([...openFolders, created.relPath]))
+      guardedOpen(created.indexRelPath)
+    },
+    [guardedOpen, onOpenFoldersChange, openFolders]
+  )
+
   if (vault === 'loading') {
     return <p className="pane-placeholder">loading…</p>
   }
@@ -301,7 +321,15 @@ export function ProjectView({
       }
     >
       {!treeCollapsed && (
-      <nav className="vault-tree" aria-label="Project tree">
+      <nav
+        className="vault-tree"
+        aria-label="Project tree"
+        onContextMenu={(event) => {
+          if (!projectPath) return
+          event.preventDefault()
+          setTreeMenu({ relPath: projectPath, x: event.clientX, y: event.clientY })
+        }}
+      >
         {onTreeResize && <TreeResizeHandle onResize={onTreeResize} />}
         <div className="tree-bar">
           <div className="vault-head" title={projectPath}>
@@ -376,8 +404,18 @@ export function ProjectView({
                 const next = toggledFolder(openFolders, relPath, open)
                 if (next !== openFolders) onOpenFoldersChange?.(next)
               }}
+              onFolderMenu={(relPath, x, y) => setTreeMenu({ relPath, x, y })}
             />
           )
+        )}
+        {treeMenu && (
+          <TreeMenu
+            target={treeMenu}
+            scopeLabel={projectTitle ?? 'project'}
+            onClose={() => setTreeMenu(null)}
+            onNewNote={menuNewNote}
+            onNewFolder={menuNewFolder}
+          />
         )}
       </nav>
       )}

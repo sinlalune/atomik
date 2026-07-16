@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { basename, isAbsolute, join, normalize, relative, resolve } from 'node:path'
 import { assertInsideVault } from './vault'
-import type { ProjectInfo } from '../shared/ipc-contract'
+import type { FolderInfo, ProjectInfo } from '../shared/ipc-contract'
 
 /**
  * Project bundles (04) — the incubating project-core kernel (14): manifest,
@@ -132,6 +132,51 @@ function checkedTitle(title: unknown): string {
 function ensureFile(abs: string, content: string): void {
   if (existsSync(abs)) return
   writeFileSync(abs, content, { encoding: 'utf8', flag: 'wx' })
+}
+
+/** YAML-safe double quoting for a value that came from a path segment. */
+const yamlQuote = (text: string): string =>
+  `"${text.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+
+/**
+ * Plain-folder creation, option D (CP-MVP-007 owner decision
+ * 2026-07-16): a folder is born WITH its `index.md` map — the project
+ * convention generalized, minus the manifest. Dividend: a D-folder is
+ * never empty, so listVaultFiles' prune-empty invariant stands.
+ * Adoption-friendly like createProject: an existing folder WITHOUT an
+ * index gains one; an existing index refuses (content is sacred).
+ */
+export function createFolder(vaultRoot: string, relPath: unknown): FolderInfo {
+  const absDir = resolveProjectDirPath(vaultRoot, relPath)
+  if (!absDir) throw new Error('folder: rejected path')
+  const rel = relative(vaultRoot, absDir).split(/[\\/]/).join('/')
+  const indexAbs = join(absDir, 'index.md')
+  if (existsSync(indexAbs)) {
+    throw new Error(`folder: already exists — ${rel}/index.md`)
+  }
+  mkdirSync(absDir, { recursive: true })
+  assertInsideVault(vaultRoot, absDir)
+  const name = basename(absDir).replace(/[\r\n\t]+/g, ' ').trim()
+  const iso = new Date().toISOString()
+  // wx (not ensureFile): a race landing an index between the check and
+  // the write must surface, never silently keep going.
+  writeFileSync(
+    indexAbs,
+    [
+      '---',
+      'type: Atomik Folder Index',
+      `title: ${yamlQuote(name)}`,
+      'description: ',
+      'tags: []',
+      `timestamp: ${iso}`,
+      '---',
+      '',
+      `# ${name}`,
+      ''
+    ].join('\n'),
+    { encoding: 'utf8', flag: 'wx' }
+  )
+  return { relPath: rel, indexRelPath: `${rel}/index.md` }
 }
 
 export function createProject(

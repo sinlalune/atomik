@@ -691,6 +691,23 @@ vault (04: files are the durable source of record)
   write: writeNote (target must exist) / createNote (wx, never clobbers)
         -> byte-exact atomic temp+rename; one edit = one clean Git diff
   open/list/read never write (proven: git status stays empty)
+  folders (CP-MVP-007 S02, owner decision D): createFolder(relPath) in
+        project.ts -> resolveProjectDirPath gate -> mkdir + index.md
+        (wx, "Atomik Folder Index", YAML-quoted title from the segment)
+        — a folder is born WITH its map, so listVaultFiles' prune-empty
+        invariant stands; adopts an index-less existing folder, refuses
+        an existing index (content is sacred). Every creating handler
+        (createNote/createFolder/createProject) now pushes
+        vaultFilesChanged — before S02 only main-side landings pushed
+        and OTHER open trees went stale after a plain creation.
+  tree context menu (CP-MVP-007 S02): right-click / Shift+F10 on a
+        folder node or the tree background (= scope root) in ALL THREE
+        trees (vault, project, sources) -> TreeMenu popup (New note
+        here / New folder…; hand-rolled, zero deps) -> name input IN
+        the popup, main-side validators stay the real gate
+        (childRelPath in tree-menu.ts pre-checks one dot-free
+        separator-free segment); errors land inside the popup; created
+        folder opens its index and joins the fold state.
 
 pdf extraction (10: renderer fidelity and extraction fidelity separate)
   Extract text button -> extract-pdf-source(dossierPath) -> main
@@ -810,7 +827,10 @@ temp residue, forgiving reads, payload validation caps), `vault.test.ts`
 write, wx create, optimistic-conflict matrix with deterministic mtimes,
 settings memory), `project.test.ts` (folder-path matrix, slugs, manifest
 scan incl. no-descend + malformed fallback, idempotent ensure,
-byte-identical adoption), `vault-scope.test.ts` (findSubtree),
+byte-identical adoption, createFolder D-convention incl. adoption /
+sacred-index refusal / traversal matrix), `tree-menu.test.ts`
+(childRelPath segment gate: .md once, root paths, separators/hidden/
+oversize refused), `vault-scope.test.ts` (findSubtree),
 `ai-mock.test.ts` (operation validation matrix, 06 bundle shape with
 truth arrays, destination→file-change mapping, content determinism,
 web-reader provenance into note text + evidence and its absence),

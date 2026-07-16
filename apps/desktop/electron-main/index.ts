@@ -37,7 +37,7 @@ import { rotateRgba, scanCleanRgba } from './scan-filter'
 import { listDevDocs, readDevDoc, resolveDocsRoot } from './dev-docs'
 import { searchVault } from './search'
 import { buildMainWindowOptions } from './security'
-import { createProject, listProjects } from './project'
+import { createFolder, createProject, listProjects } from './project'
 import {
   createNote,
   listVaultFiles,
@@ -219,18 +219,32 @@ function registerVaultHandlers(stateDir: string): void {
       return result
     }
   )
+  // CP-MVP-007 S02: every landing that changes the tree pushes
+  // vaultFilesChanged — before this, plain creations refreshed only the
+  // initiating view and every OTHER open tree went stale.
   ipcMain.handle(
     ATOMIK_CHANNELS.createNote,
-    (_event, relPath: unknown, content: unknown) =>
-      createNote(requireVault(), relPath, content)
+    (event, relPath: unknown, content: unknown) => {
+      const result = createNote(requireVault(), relPath, content)
+      event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
+      return result
+    }
   )
+  ipcMain.handle(ATOMIK_CHANNELS.createFolder, (event, relPath: unknown) => {
+    const info = createFolder(requireVault(), relPath)
+    event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
+    return info
+  })
   ipcMain.handle(ATOMIK_CHANNELS.listProjects, () =>
     listProjects(requireVault())
   )
   ipcMain.handle(
     ATOMIK_CHANNELS.createProject,
-    (_event, relPath: unknown, title: unknown) =>
-      createProject(requireVault(), relPath, title)
+    (event, relPath: unknown, title: unknown) => {
+      const info = createProject(requireVault(), relPath, title)
+      event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
+      return info
+    }
   )
   ipcMain.handle(ATOMIK_CHANNELS.runAiOperation, (_event, operation: unknown) => {
     const started = Date.now()
@@ -1090,7 +1104,12 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
           try {
             await window.atomik.createNote('smoke/created-by-smoke.md')
             await window.atomik.writeNote('welcome.md', '# Welcome\\n\\nedited by smoke, no trailing newline')
-            return 'ok'
+            // CP-MVP-007 S02: folder creation through the real channel —
+            // option D means the index.md must exist and be readable
+            const folder = await window.atomik.createFolder('smoke/folder-by-smoke')
+            const index = await window.atomik.readNote(folder.indexRelPath)
+            if (!index.content.includes('Atomik Folder Index')) return 'fail:folder-index'
+            return 'ok+folder'
           } catch (e) { return 'fail:' + String(e) }
         })()`
       )) as string

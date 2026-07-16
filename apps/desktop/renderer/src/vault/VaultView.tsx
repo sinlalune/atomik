@@ -14,6 +14,8 @@ import { TreeResizeHandle } from '../TreeResizeHandle'
 import type { NoteViewMode, SaveMode } from '../workspace/model'
 import { hasMediaResource } from '../source/dossier'
 import { NoteTree } from './NoteTree'
+import { TreeMenu } from './TreeMenu'
+import type { TreeMenuTarget } from './tree-menu'
 import { useNavHistory } from './nav-history'
 import { allFolderPaths, toggledFolder } from './tree-fold'
 import { useVaultNote } from './useVaultNote'
@@ -75,6 +77,7 @@ export function VaultView({
   const [info, setInfo] = useState<VaultInfo | null | 'loading'>('loading')
   const [tree, setTree] = useState<VaultFolder | null>(null)
   const [draftName, setDraftName] = useState('')
+  const [treeMenu, setTreeMenu] = useState<TreeMenuTarget | null>(null)
   const searchVault = useCallback(
     (query: string) => window.atomik.searchVault(query),
     []
@@ -191,6 +194,25 @@ export function VaultView({
     }
   }, [draftName, openNote, refreshTree, setError])
 
+  // CP-MVP-007 S02: context-menu creation. Errors surface INSIDE the
+  // menu popup (it stays open on reject); the tree refreshes via the
+  // main-side vaultFilesChanged push.
+  const menuNewNote = useCallback(
+    async (relPath: string) => {
+      await window.atomik.createNote(relPath)
+      guardedOpen(relPath)
+    },
+    [guardedOpen]
+  )
+  const menuNewFolder = useCallback(
+    async (relPath: string) => {
+      const created = await window.atomik.createFolder(relPath)
+      onOpenFoldersChange?.(new Set([...openFolders, created.relPath]))
+      guardedOpen(created.indexRelPath)
+    },
+    [guardedOpen, onOpenFoldersChange, openFolders]
+  )
+
   if (info === 'loading') return <p className="pane-placeholder">loading vault…</p>
 
   if (info === null) {
@@ -218,7 +240,16 @@ export function VaultView({
       }
     >
       {!treeCollapsed && (
-      <nav className="vault-tree" aria-label="Vault tree">
+      <nav
+        className="vault-tree"
+        aria-label="Vault tree"
+        onContextMenu={(event) => {
+          // background right-click = the vault root (folder-node menus
+          // stopPropagation before reaching here)
+          event.preventDefault()
+          setTreeMenu({ relPath: '', x: event.clientX, y: event.clientY })
+        }}
+      >
         {onTreeResize && <TreeResizeHandle onResize={onTreeResize} />}
         <div className="tree-bar">
           <div className="vault-head" title={info.root}>
@@ -301,8 +332,18 @@ export function VaultView({
                 const next = toggledFolder(openFolders, relPath, open)
                 if (next !== openFolders) onOpenFoldersChange?.(next)
               }}
+              onFolderMenu={(relPath, x, y) => setTreeMenu({ relPath, x, y })}
             />
           )
+        )}
+        {treeMenu && (
+          <TreeMenu
+            target={treeMenu}
+            scopeLabel={info.name}
+            onClose={() => setTreeMenu(null)}
+            onNewNote={menuNewNote}
+            onNewFolder={menuNewFolder}
+          />
         )}
       </nav>
       )}

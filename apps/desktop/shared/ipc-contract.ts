@@ -33,6 +33,7 @@ export const ATOMIK_CHANNELS = {
   readSourceAsset: 'atomik:read-source-asset',
   writeNote: 'atomik:write-note',
   createNote: 'atomik:create-note',
+  createFolder: 'atomik:create-folder',
   listProjects: 'atomik:list-projects',
   createProject: 'atomik:create-project',
   startCaptureSession: 'atomik:start-capture-session',
@@ -254,6 +255,15 @@ export type ProjectInfo = {
   relPath: string
   id: string
   title: string
+}
+
+/** Plain-folder creation result (CP-MVP-007, option D: a folder is
+ *  born with its index.md map). */
+export type FolderInfo = {
+  /** Vault-relative folder path. */
+  relPath: string
+  /** The index.md that materialized the folder. */
+  indexRelPath: string
 }
 
 /**
@@ -513,6 +523,7 @@ export type AtomikApi = {
   ) => Promise<{ mtimeMs: number }>
   /** Creates a NEW note (parents made, exclusive — never clobbers). */
   createNote: (relPath: string, content?: string) => Promise<void>
+  createFolder: (relPath: string) => Promise<FolderInfo>
   /** Project bundles found in the open vault (manifest-detected). */
   listProjects: () => Promise<ProjectInfo[]>
   /** Creates or adopts a bundle: writes only the missing pieces. */
@@ -642,6 +653,7 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'readSourceAsset',
   'writeNote',
   'createNote',
+  'createFolder',
   'listProjects',
   'createProject',
   'startCaptureSession',

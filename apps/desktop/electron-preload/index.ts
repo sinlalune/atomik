@@ -75,6 +75,8 @@ const api: AtomikApi = {
     ),
   createNote: (relPath: string, content?: string) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.createNote, relPath, content),
+  createFolder: (relPath: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.createFolder, relPath),
   listProjects: () => ipcRenderer.invoke(ATOMIK_CHANNELS.listProjects),
   createProject: (relPath: string, title: string) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.createProject, relPath, title),

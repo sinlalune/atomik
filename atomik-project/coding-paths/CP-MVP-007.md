@@ -181,12 +181,27 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       containing source.md" — location-independent (capture bundles
       land at user-chosen paths), so guards key on the marker, not a
       sources/ prefix. Full inventory in the addendum note.
-- [ ] S02 Folder creation (D) end to end: `createFolder` verb +
+- [x] S02 Folder creation (D) end to end: `createFolder` verb +
       channel (path-validated, wx index.md, project-convention body),
       `vaultFilesChanged` push lands on ALL trees (fixing the
       caller-only refresh gap for plain creations too), context-menu
       skeleton on tree nodes with New note here / New folder…; tests
       (round-trip: create → visible → index opens; traversal guards).
+      DONE 2026-07-16: createFolder in project.ts (resolveProjectDirPath
+      gate, mkdir + wx index.md "Atomik Folder Index", YAML-quoted
+      title from the segment; adopts an index-less folder, refuses an
+      existing index). Channel atomik:create-folder + preload +
+      surface test; createNote/createFolder/createProject handlers now
+      PUSH vaultFilesChanged (the stale-other-trees gap closed).
+      TreeMenu popup (hand-rolled, zero deps) on ALL THREE trees:
+      right-click/Shift+F10 on folder nodes AND the background (=
+      scope root); action → name input in place; renderer pre-check
+      childRelPath (one dot-free segment), main validators stay the
+      gate; errors render inside the popup; the created folder opens
+      its index and joins the fold state. Tests 348→357/39.
+      E2E PROVEN: vault-write rung extended → vaultWrite=ok+folder on
+      the real app (channel → mkdir+index → readNote round trip).
+      Typecheck/build/smoke green.
 - [ ] S03 Delete to trash end to end: `deleteNote`/`deleteFolder`
       verbs over `shell.trashItem` (never rmSync for user files),
       confirm dialogs that name the target (+ note count, bundle
@@ -225,16 +240,21 @@ changed     : path PROPOSED and ACCEPTED 2026-07-16 (owner:
               rename=refactor+preview, move+DnD in). Survey recorded:
               zero existing rename/move/delete verbs or UI; no
               watcher; push-refresh only after main-side landings.
-tests       : 348 passing / 38 suites at activation.
+tests       : 357 passing / 39 suites — green at S02 close;
+              typecheck/build/smoke green; e2e vaultWrite=ok+folder.
               S01 done 2026-07-16 (same session as acceptance):
               doctrine pinned (04/27/20/13 — see step), decisions
               addendum in brainstorm/2026-07-16-tree-file-management-
               decisions.md, bundle-guard rule = source.md marker
               (location-independent).
-next action : S02 — folder creation (D) end to end: createFolder
-              verb + channel (wx index.md), vaultFilesChanged push
-              for ALL landings incl. plain note creation, context-
-              menu skeleton (New note here / New folder…), tests.
+              S02 done 2026-07-16 (see step): createFolder D end to
+              end, creating handlers push vaultFilesChanged, TreeMenu
+              on all three trees (creation half).
+next action : S03 — delete to trash end to end: deleteNote/
+              deleteFolder over shell.trashItem (never rmSync for
+              user files), confirm names the target (+ note count,
+              bundle warning), bundle-as-unit rule, open-tab missing
+              state, fold cleanup; tests with a fake-trash seam.
 blockers    : none recorded.
 ```
 

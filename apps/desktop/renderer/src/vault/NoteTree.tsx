@@ -16,7 +16,8 @@ export function NoteTree({
   activePath,
   onOpen,
   openFolders,
-  onFolderToggle
+  onFolderToggle,
+  onFolderMenu
 }: {
   folder: VaultFolder
   activePath: string | null
@@ -25,6 +26,9 @@ export function NoteTree({
    *  remembered per tab) — the set of open folder relPaths. */
   openFolders: ReadonlySet<string>
   onFolderToggle: (relPath: string, open: boolean) => void
+  /** Context menu on a folder node (CP-MVP-007): right-click or
+   *  Shift+F10 reports the folder and a screen position. */
+  onFolderMenu?: (relPath: string, x: number, y: number) => void
 }): React.JSX.Element {
   const { pills, rest } = splitPillNotes(folder.notes)
   const [showPillFiles, setShowPillFiles] = useState(false)
@@ -68,13 +72,40 @@ export function NoteTree({
                 onFolderToggle(child.relPath, event.currentTarget.open)
               }
             >
-              <summary>{child.name}</summary>
+              <summary
+                onContextMenu={
+                  onFolderMenu
+                    ? (event) => {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        onFolderMenu(child.relPath, event.clientX, event.clientY)
+                      }
+                    : undefined
+                }
+                onKeyDown={
+                  onFolderMenu
+                    ? (event) => {
+                        if (
+                          event.key === 'ContextMenu' ||
+                          (event.key === 'F10' && event.shiftKey)
+                        ) {
+                          event.preventDefault()
+                          const rect = event.currentTarget.getBoundingClientRect()
+                          onFolderMenu(child.relPath, rect.left + 16, rect.bottom)
+                        }
+                      }
+                    : undefined
+                }
+              >
+                {child.name}
+              </summary>
               <NoteTree
                 folder={child}
                 activePath={activePath}
                 onOpen={onOpen}
                 openFolders={openFolders}
                 onFolderToggle={onFolderToggle}
+                onFolderMenu={onFolderMenu}
               />
             </details>
           </li>

@@ -3,6 +3,8 @@ import type { VaultFolder } from '../../../shared/ipc-contract'
 import { CollapseAllIcon, ExpandAllIcon, SidebarToggleIcon } from '../icons'
 import { TreeResizeHandle } from '../TreeResizeHandle'
 import { NoteTree } from '../vault/NoteTree'
+import { TreeMenu } from '../vault/TreeMenu'
+import type { TreeMenuTarget } from '../vault/tree-menu'
 import { findSubtree } from '../vault/scope'
 import { allFolderPaths, toggledFolder } from '../vault/tree-fold'
 
@@ -35,6 +37,7 @@ export function SourcesTreePanel({
   onOpenFoldersChange?: ((next: ReadonlySet<string>) => void) | undefined
 }): React.JSX.Element {
   const [tree, setTree] = useState<VaultFolder | null>(null)
+  const [treeMenu, setTreeMenu] = useState<TreeMenuTarget | null>(null)
 
   const refresh = useCallback(() => {
     window.atomik.getVault().then(
@@ -55,7 +58,15 @@ export function SourcesTreePanel({
   useEffect(() => window.atomik.onVaultFilesChanged(refresh), [refresh])
 
   return (
-    <nav className="vault-tree" aria-label="Sources tree">
+    <nav
+      className="vault-tree"
+      aria-label="Sources tree"
+      onContextMenu={(event) => {
+        if (!tree) return
+        event.preventDefault()
+        setTreeMenu({ relPath: tree.relPath, x: event.clientX, y: event.clientY })
+      }}
+    >
       {onTreeResize && <TreeResizeHandle onResize={onTreeResize} />}
       <div className="tree-bar">
         <div className="vault-head">sources</div>
@@ -116,9 +127,28 @@ export function SourcesTreePanel({
             const next = toggledFolder(openFolders, relPath, open)
             if (next !== openFolders) onOpenFoldersChange?.(next)
           }}
+          onFolderMenu={(relPath, x, y) => setTreeMenu({ relPath, x, y })}
         />
       ) : (
         <p className="tree-empty-hint">no vault open</p>
+      )}
+      {treeMenu && (
+        <TreeMenu
+          target={treeMenu}
+          scopeLabel="sources"
+          onClose={() => setTreeMenu(null)}
+          onNewNote={async (relPath) => {
+            await window.atomik.createNote(relPath)
+            refresh()
+            onOpen(relPath)
+          }}
+          onNewFolder={async (relPath) => {
+            const created = await window.atomik.createFolder(relPath)
+            refresh()
+            onOpenFoldersChange?.(new Set([...openFolders, created.relPath]))
+            onOpen(created.indexRelPath)
+          }}
+        />
       )}
     </nav>
   )

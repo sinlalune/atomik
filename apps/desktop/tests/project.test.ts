@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   PROJECT_MANIFEST,
+  createFolder,
   createProject,
   listProjects,
   resolveProjectDirPath,
@@ -135,5 +136,48 @@ describe('createProject (idempotent ensure)', () => {
     expect(() => createProject(vault, 'projects/ok', '')).toThrow()
     expect(() => createProject(vault, 'projects/ok', '  ')).toThrow()
     expect(() => createProject(vault, 'projects/ok', 'x'.repeat(300))).toThrow()
+  })
+})
+
+describe('createFolder — option D: a folder is born with its index.md (CP-MVP-007)', () => {
+  it('creates the folder and its index map; title from the segment', () => {
+    const info = createFolder(vault, 'jardinage')
+    expect(info).toEqual({ relPath: 'jardinage', indexRelPath: 'jardinage/index.md' })
+    const index = readFileSync(join(vault, 'jardinage/index.md'), 'utf8')
+    expect(index).toContain('type: Atomik Folder Index')
+    expect(index).toContain('title: "jardinage"')
+    expect(index).toContain('# jardinage')
+  })
+
+  it('creates nested parents in one call', () => {
+    const info = createFolder(vault, 'depth/one/two')
+    expect(info.indexRelPath).toBe('depth/one/two/index.md')
+    expect(readFileSync(join(vault, info.indexRelPath), 'utf8')).toContain('# two')
+  })
+
+  it('adopts an existing folder without an index (only the index lands)', () => {
+    mkdirSync(join(vault, 'adopted-plain'), { recursive: true })
+    writeFileSync(join(vault, 'adopted-plain', 'note.md'), '# kept\n')
+    const info = createFolder(vault, 'adopted-plain')
+    expect(info.relPath).toBe('adopted-plain')
+    expect(readFileSync(join(vault, 'adopted-plain/note.md'), 'utf8')).toBe('# kept\n')
+    expect(readFileSync(join(vault, 'adopted-plain/index.md'), 'utf8')).toContain(
+      'Atomik Folder Index'
+    )
+  })
+
+  it('refuses when an index already exists — content is sacred', () => {
+    const before = readFileSync(join(vault, 'atomik-plane/index.md'), 'utf8')
+    expect(() => createFolder(vault, 'atomik-plane')).toThrow(/already exists/)
+    expect(readFileSync(join(vault, 'atomik-plane/index.md'), 'utf8')).toBe(before)
+  })
+
+  it('rejects traversal, absolute, hidden, and denied paths', () => {
+    expect(() => createFolder(vault, '../escape')).toThrow()
+    expect(() => createFolder(vault, '/abs')).toThrow()
+    expect(() => createFolder(vault, '.hidden')).toThrow()
+    expect(() => createFolder(vault, '.git/inside')).toThrow()
+    expect(() => createFolder(vault, 'ok/../..')).toThrow()
+    expect(() => createFolder(vault, 42)).toThrow()
   })
 })

@@ -2520,3 +2520,91 @@ body[data-maximized] .tabstrip {
 .view-loading {
   flex: 1;
 }
+
+/* Tree context menu (CP-MVP-007 S02): one popup for folder actions;
+   picking an action flips it to a name input in place. */
+.tree-menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+}
+
+.tree-menu {
+  position: fixed;
+  z-index: 61;
+  min-width: 180px;
+  max-width: 260px;
+  padding: 0.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+}
+
+.tree-menu-head {
+  padding: 0.2rem 0.5rem 0.3rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.2rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-menu > button {
+  font: inherit;
+  font-size: 0.82rem;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: none;
+  border-radius: 5px;
+  padding: 0.3rem 0.5rem;
+  cursor: pointer;
+}
+
+.tree-menu > button:hover,
+.tree-menu > button:focus-visible {
+  background: var(--code-bg);
+  color: var(--accent);
+}
+
+.tree-menu-form {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+}
+
+.tree-menu-form input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg);
+  color: inherit;
+}
+
+.tree-menu-form button {
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: none;
+  color: inherit;
+  padding: 0 0.5rem;
+  cursor: pointer;
+}
+
+.tree-menu-error {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.72rem;
+  color: light-dark(#a03030, #ff8080);
+  max-width: 240px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
