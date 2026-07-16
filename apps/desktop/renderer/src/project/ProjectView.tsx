@@ -171,6 +171,14 @@ export function ProjectView({
     )
   }, [refresh, setError])
 
+  // S07b (owner report: the project tree missed menu creations): the
+  // SAME push subscription as VaultView/SourcesTree — every main-side
+  // landing refreshes this tree too, whichever view initiated it.
+  useEffect(
+    () => window.atomik.onVaultFilesChanged(() => void refresh()),
+    [refresh]
+  )
+
   // Vault switch: drop previous-vault state and re-list; a projectPath
   // that does not exist in the new vault falls back to the picker below.
   // The restore guard is POISONED with the stale target so the old
