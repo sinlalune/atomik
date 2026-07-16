@@ -19,6 +19,10 @@ This folder is an ordinary Atomik project bundle living beside the code plane in
 - `sessions/` — optional session notes.
 - `sources/` — optional imported specs and references as source dossiers.
 
+## Recently promoted decisions
+
+- 2026-07-16 — **One surface, two layers**: the scene editor and the freeform drawing layer share one editing surface with two entity kinds — bound entities (Scene-IR-backed; the DSL is the serialization of the bound layer) and free ink (sidecar drawing file; no claims) — connected by a promotion gradient and a detachment path. Accepted as [ADR-010](../docs/adr/ADR-010-one-surface-two-layers.md); reserved doctrine added to bedrock 19 and 21; origin pack in [sessions/2026-07-16-one-surface-two-layers/](./sessions/2026-07-16-one-surface-two-layers/one_surface_two_layers_amendment_pack.md).
+
 ## Ground rules
 
 - Bedrock and ADRs stay canonical under `docs/`; promotion from `brainstorm/` goes through reviewed patches.

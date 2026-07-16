@@ -57,7 +57,8 @@
       "Clicking nodes opens pages/tabs.",
       "AI-generated canvas is a patch proposal.",
       "Canvas files must remain reviewable and versionable.",
-      "Canvas emphasis and spatial proximity must not imply stronger evidence unless explicitly represented."
+      "Canvas emphasis and spatial proximity must not imply stronger evidence unless explicitly represented.",
+      "Free ink carries no epistemic status; a hand-drawn edge between bound nodes is annotation, not a relation claim."
     ]
   }
 }
@@ -135,3 +136,27 @@ challenge and repair
 ```
 
 The canvas remains a projection over files and claim records; moving a node never changes epistemic status.
+
+## Free-ink layer (reserved)
+
+The canvas (and the page-level scene surface — doc 19, "One surface, two layers") hosts
+a freeform drawing layer:
+
+```text
+canonical form   sidecar drawing file beside the page (Excalidraw document), or a
+                 fenced drawing block; referenced by path like any resource
+component        embeddable MIT drawing editor (Excalidraw) — license verified, see
+                 ADR-010's volatile-fact table; recheck before integration
+semantics        none — ink is annotation and thinking surface, never knowledge record
+diff discipline  pragmatic, not strict: ink carries no claims, so the comprehensible-
+                 diff rule binds knowledge changes, not strokes
+```
+
+Ink may annotate *over* a rendered scene (circle a node while studying). Anchoring is an
+open design question for the implementing path: entity-id anchoring survives layout
+changes; absolute coordinates drift. Record the choice in the path, not here.
+
+Promotion and detachment follow doc 19's gradient. Promotion of canvas ink into scenes
+or notes flows through the AI patch pipeline as a proposal. A hand-drawn arrow between
+two bound nodes *looks* like a relation but is not one — the renderer must keep the two
+visually distinguishable (roughness vs rendered style), and the Truth Lens ignores ink.

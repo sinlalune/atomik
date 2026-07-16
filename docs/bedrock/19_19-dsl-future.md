@@ -148,3 +148,45 @@ known uncertainty or disputed alternatives
 ```
 
 Visual confidence is dangerous: a polished animation can make a weak claim feel inevitable. The future scene inspector should connect the scene's central claim to the same Truth Lens and source anchors used by notes.
+
+## One surface, two layers (reserved)
+
+The scene renderer and the freeform drawing layer share one editing surface with two
+kinds of entities:
+
+```text
+bound entity   backed by the Scene IR; canonical form = the DSL lines of the fenced
+               block; edits = semantic operations + projection pins, written back as
+               printer-emitted line patches (one gesture, one line in the diff)
+free ink       strokes, shapes, labels with no semantics; canonical form = a sidecar
+               drawing file; carries no claims and no Truth-Lens obligations
+```
+
+A gradient connects them, not a wall:
+
+```text
+draw freely
+  -> select shapes
+  -> promote to model-plane statements
+     (deterministic mapping; archetype/claim proposal through the patch pipeline)
+  -> bound scene
+
+bound scene
+  -> detach as ink copy (lossy by design, provenance noted)
+  -> riff freely
+```
+
+Invariants:
+
+- The bound scene's modifiability is bounded — semantic operations and pins, never
+  pixel-canonical. Unlimited modifiability is provided by detachment, **as a copy**.
+- Promotion is a patch proposal, never a silent write.
+- The DSL is the **serialization of the bound layer**. Typing it, generating it, and
+  drawing-then-promoting are three entry paths converging on the same file form.
+- Visual roughness is an honest signal: hand-drawn ink renders rough because it carries
+  no claim; only bound entities expose epistemic status. This extends "polish ≠ truth":
+  roughness does not mean false — it means *unclaimed*.
+
+Drawing from scratch is itself a learning act (retrieval practice — doc 02: outputs more
+durable than inputs), so the free-ink block may ship as a workbench feature independent
+of, and possibly before, the DSL editing surface. Sequencing is a roadmap (18) decision.
