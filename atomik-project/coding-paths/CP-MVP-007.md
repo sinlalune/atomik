@@ -271,10 +271,24 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       Tests 371→378/40. E2E PROVEN: rung → vaultWrite=…+fmove (the
       pointing note follows a folder move on disk).
       Typecheck/build/smoke green.
-- [ ] S06 Drag-and-drop: native HTML5 drag on tree nodes, folder drop
+- [x] S06 Drag-and-drop: native HTML5 drag on tree nodes, folder drop
       targets (hover-expand), drop → the S05 flow (preview included);
       keyboard path re-verified; tests where the DOM seam allows +
       smoke rung for the full chain.
+      DONE 2026-07-16: notes and folder summaries drag (payload =
+      TREE_DRAG_MIME JSON, parseTreeDrag validates); folder summaries
+      + the tree background (= scope root) are drop targets with a
+      .drop-target highlight; dropMoveTarget computes the destination
+      (same-parent / own-subtree drops = no-ops) and the drop runs
+      the EXACT Move flow — preview, confirm, verb, guards — never a
+      shortcut. Keyboard path = the menu (kept). Deviations recorded:
+      hover-EXPAND on drag-over not shipped (open the folder first or
+      use Move to…; revisit on owner feedback); no DnD smoke rung —
+      synthetic drag events can't carry a real gesture, helpers are
+      unit-tested and the chain below the gesture is the proven S05
+      flow, the gesture itself is an S07 owner-bench item. Tests
+      378→380/40; typecheck/build/smoke green
+      (vaultWrite=ok+folder+trash+reloc+fmove unchanged).
 - [ ] S07 Acceptance: run against 18 §M1 acceptance intents (one op =
       one understandable diff; no rewrite-on-open) + the four owner
       decisions; owner validation on the live vault (their real
@@ -292,7 +306,7 @@ changed     : path PROPOSED and ACCEPTED 2026-07-16 (owner:
               rename=refactor+preview, move+DnD in). Survey recorded:
               zero existing rename/move/delete verbs or UI; no
               watcher; push-refresh only after main-side landings.
-tests       : 378 passing / 40 suites — green at S05 close;
+tests       : 380 passing / 40 suites — green at S06 close;
               typecheck/build/smoke green; e2e
               vaultWrite=ok+folder+trash+reloc+fmove (OS trash real
               on WSL; rename AND folder-move refactors update citing
@@ -305,9 +319,15 @@ tests       : 378 passing / 40 suites — green at S05 close;
               S02 done 2026-07-16 (see step): createFolder D end to
               end, creating handlers push vaultFilesChanged, TreeMenu
               on all three trees (creation half).
-next action : S06 — drag-and-drop: native HTML5 drag on tree nodes,
-              folder drop targets, drop → the S05 flow (preview
-              included); keyboard path re-verified; smoke rung.
+next action : S07 — acceptance: 18 §M1 intents (one op = one
+              understandable diff; no rewrite-on-open) + the four
+              owner decisions, OWNER BENCH on the live vault: a real
+              folder created from the menu, a real rename with
+              backlinks (check the preview), a bundle moved as a
+              unit, a note dragged between folders, a delete
+              recovered from the OS trash. S06 bench extras: DnD
+              gesture feel, hover-expand need, typed-destination vs
+              picker.
 blockers    : none recorded.
 ```
 

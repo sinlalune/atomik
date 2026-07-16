@@ -2,12 +2,15 @@ import { useCallback, useEffect, useState } from 'react'
 import type { VaultFolder } from '../../../shared/ipc-contract'
 import { CollapseAllIcon, ExpandAllIcon, SidebarToggleIcon } from '../icons'
 import { TreeResizeHandle } from '../TreeResizeHandle'
-import { NoteTree } from '../vault/NoteTree'
+import { NoteTree, parseTreeDrag } from '../vault/NoteTree'
 import { TreeMenu } from '../vault/TreeMenu'
 import {
   deleteConfirmText,
+  dropMoveTarget,
   folderDeleteSummary,
   prunedOpenFolders,
+  TREE_DRAG_MIME,
+  type TreeDragSource,
   type TreeMenuTarget
 } from '../vault/tree-menu'
 import { findSubtree } from '../vault/scope'
@@ -44,6 +47,26 @@ export function SourcesTreePanel({
   const [tree, setTree] = useState<VaultFolder | null>(null)
   const [treeMenu, setTreeMenu] = useState<TreeMenuTarget | null>(null)
 
+  const moveNode = useCallback(
+    async (target: TreeMenuTarget, to: string) => {
+      const preview =
+        target.kind === 'note'
+          ? await window.atomik.relocatePreview(target.relPath, to)
+          : await window.atomik.relocateFolderPreview(target.relPath, to)
+      const links =
+        preview.totalLinks > 0
+          ? ` ${preview.totalLinks} link(s) update in ${preview.edits.length} note(s).`
+          : ' No links need updating.'
+      if (!window.confirm(`Move “${target.relPath}” → “${to}”?${links}`)) return
+      await (target.kind === 'note'
+        ? window.atomik.relocateApply(target.relPath, to)
+        : window.atomik.relocateFolderApply(target.relPath, to))
+      if (target.kind === 'folder') {
+        onOpenFoldersChange?.(prunedOpenFolders(openFolders, target.relPath))
+      }
+    },
+    [onOpenFoldersChange, openFolders]
+  )
   const refresh = useCallback(() => {
     window.atomik.getVault().then(
       async (vault) => {
@@ -62,6 +85,18 @@ export function SourcesTreePanel({
   // S05f: transcription lands files (transcript.md, scan.jpg) — refresh
   useEffect(() => window.atomik.onVaultFilesChanged(refresh), [refresh])
 
+  // S06: drops run the SAME previewed Move flow as the menu
+  const dropNode = useCallback(
+    (source: TreeDragSource, destFolder: string) => {
+      const to = dropMoveTarget(source, destFolder)
+      if (!to) return
+      void moveNode({ ...source, x: 0, y: 0 }, to)
+        .then(refresh)
+        .catch((reason) => window.alert(String(reason)))
+    },
+    [moveNode, refresh]
+  )
+
   return (
     <nav
       className="vault-tree"
@@ -75,6 +110,17 @@ export function SourcesTreePanel({
           x: event.clientX,
           y: event.clientY
         })
+      }}
+      onDragOver={(event) => {
+        if (!event.dataTransfer.types.includes(TREE_DRAG_MIME)) return
+        event.preventDefault()
+        event.dataTransfer.dropEffect = 'move'
+      }}
+      onDrop={(event) => {
+        if (!tree) return
+        event.preventDefault()
+        const source = parseTreeDrag(event.dataTransfer.getData(TREE_DRAG_MIME))
+        if (source) dropNode(source, tree.relPath)
       }}
     >
       {onTreeResize && <TreeResizeHandle onResize={onTreeResize} />}
@@ -143,6 +189,7 @@ export function SourcesTreePanel({
           onNoteMenu={(relPath, x, y) =>
             setTreeMenu({ kind: 'note', relPath, x, y })
           }
+          onDropNode={dropNode}
         />
       ) : (
         <p className="tree-empty-hint">no vault open</p>
@@ -176,21 +223,7 @@ export function SourcesTreePanel({
             refresh()
           }}
           onMove={async (target, to) => {
-            const preview =
-              target.kind === 'note'
-                ? await window.atomik.relocatePreview(target.relPath, to)
-                : await window.atomik.relocateFolderPreview(target.relPath, to)
-            const links =
-              preview.totalLinks > 0
-                ? ` ${preview.totalLinks} link(s) update in ${preview.edits.length} note(s).`
-                : ' No links need updating.'
-            if (!window.confirm(`Move “${target.relPath}” → “${to}”?${links}`)) return
-            await (target.kind === 'note'
-              ? window.atomik.relocateApply(target.relPath, to)
-              : window.atomik.relocateFolderApply(target.relPath, to))
-            if (target.kind === 'folder') {
-              onOpenFoldersChange?.(prunedOpenFolders(openFolders, target.relPath))
-            }
+            await moveNode(target, to)
             refresh()
           }}
           onDelete={async (target) => {

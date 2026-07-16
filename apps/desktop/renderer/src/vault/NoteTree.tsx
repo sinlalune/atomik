@@ -2,6 +2,23 @@ import { useState } from 'react'
 import type { VaultFolder } from '../../../shared/ipc-contract'
 import { EyeIcon, EyeOffIcon } from '../icons'
 import { noteDisplayName, splitPillNotes } from './scope'
+import { TREE_DRAG_MIME, type TreeDragSource } from './tree-menu'
+
+/** The payload riding a tree-node drag; null when it isn't ours. */
+export function parseTreeDrag(data: string): TreeDragSource | null {
+  try {
+    const parsed: unknown = JSON.parse(data)
+    if (typeof parsed !== 'object' || parsed === null) return null
+    const record = parsed as Record<string, unknown>
+    if (record['kind'] !== 'folder' && record['kind'] !== 'note') return null
+    if (typeof record['relPath'] !== 'string' || record['relPath'].length === 0) {
+      return null
+    }
+    return { kind: record['kind'], relPath: record['relPath'] }
+  } catch {
+    return null
+  }
+}
 
 /**
  * The one recursive folder tree for vault-backed views (VaultView,
@@ -32,10 +49,48 @@ export function NoteTree({
   onFolderMenu?: (relPath: string, x: number, y: number) => void
   /** Same for note nodes (S03: delete). */
   onNoteMenu?: (relPath: string, x: number, y: number) => void
+  /** Drop a dragged node onto a folder (S06) — the host runs the SAME
+   *  previewed Move flow as the menu; providing this enables dragging. */
+  onDropNode?: (source: TreeDragSource, destFolderRelPath: string) => void
 }): React.JSX.Element {
   const { pills, rest } = splitPillNotes(folder.notes)
   const [showPillFiles, setShowPillFiles] = useState(false)
+  const [dragOver, setDragOver] = useState<string | null>(null)
   const listed = showPillFiles ? folder.notes : rest
+
+  const dragProps = (source: TreeDragSource): React.HTMLAttributes<HTMLElement> =>
+    onDropNode
+      ? {
+          draggable: true,
+          onDragStart: (event: React.DragEvent) => {
+            event.stopPropagation()
+            event.dataTransfer.setData(TREE_DRAG_MIME, JSON.stringify(source))
+            event.dataTransfer.effectAllowed = 'move'
+          }
+        }
+      : {}
+
+  const dropProps = (destRelPath: string): React.HTMLAttributes<HTMLElement> =>
+    onDropNode
+      ? {
+          onDragOver: (event: React.DragEvent) => {
+            if (!event.dataTransfer.types.includes(TREE_DRAG_MIME)) return
+            event.preventDefault()
+            event.stopPropagation()
+            event.dataTransfer.dropEffect = 'move'
+            setDragOver(destRelPath)
+          },
+          onDragLeave: () =>
+            setDragOver((current) => (current === destRelPath ? null : current)),
+          onDrop: (event: React.DragEvent) => {
+            event.preventDefault()
+            event.stopPropagation()
+            setDragOver(null)
+            const source = parseTreeDrag(event.dataTransfer.getData(TREE_DRAG_MIME))
+            if (source) onDropNode(source, destRelPath)
+          }
+        }
+      : {}
 
   return (
     <>
@@ -76,6 +131,9 @@ export function NoteTree({
               }
             >
               <summary
+                className={dragOver === child.relPath ? 'drop-target' : undefined}
+                {...dragProps({ kind: 'folder', relPath: child.relPath })}
+                {...dropProps(child.relPath)}
                 onContextMenu={
                   onFolderMenu
                     ? (event) => {
@@ -110,6 +168,7 @@ export function NoteTree({
                 onFolderToggle={onFolderToggle}
                 onFolderMenu={onFolderMenu}
                 onNoteMenu={onNoteMenu}
+                onDropNode={onDropNode}
               />
             </details>
           </li>
@@ -120,6 +179,7 @@ export function NoteTree({
               type="button"
               className={note.relPath === activePath ? 'active' : ''}
               title={note.relPath}
+              {...dragProps({ kind: 'note', relPath: note.relPath })}
               onClick={() => onOpen(note.relPath)}
               onContextMenu={
                 onNoteMenu

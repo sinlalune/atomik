@@ -2614,3 +2614,10 @@ body[data-maximized] .tabstrip {
   color: light-dark(#a03030, #ff8080);
   background: light-dark(#f6e4e4, #3a2426);
 }
+
+/* DnD (CP-MVP-007 S06): a folder under a dragged node highlights. */
+.vault-tree summary.drop-target {
+  background: var(--code-bg);
+  color: var(--accent);
+  border-radius: 5px;
+}

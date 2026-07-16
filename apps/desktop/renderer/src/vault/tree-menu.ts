@@ -58,6 +58,33 @@ export function moveTargetRelPath(
   return `${segments.join('/')}/${base}`
 }
 
+/** DnD payload (S06): what a tree node drag carries. */
+export type TreeDragSource = { kind: 'folder' | 'note'; relPath: string }
+
+export const TREE_DRAG_MIME = 'application/x-atomik-tree-node'
+
+/**
+ * Destination path for a drop (S06): the S05 move, computed from the
+ * drop target. Null when the drop is a no-op (same parent) or illegal
+ * on its face (into itself/descendant) — the main verb re-checks.
+ */
+export function dropMoveTarget(
+  source: TreeDragSource,
+  destFolderRelPath: string
+): string | null {
+  const base = source.relPath.split('/').pop()
+  if (!base) return null
+  if (
+    destFolderRelPath === source.relPath ||
+    destFolderRelPath.startsWith(`${source.relPath}/`)
+  ) {
+    return null
+  }
+  const to =
+    destFolderRelPath.length > 0 ? `${destFolderRelPath}/${base}` : base
+  return to === source.relPath ? null : to
+}
+
 /** What a folder deletion takes with it — drives the confirm text. */
 export type DeleteSummary = {
   name: string

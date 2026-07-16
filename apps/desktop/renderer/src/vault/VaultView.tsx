@@ -13,12 +13,15 @@ import { useTreeSearch } from '../search/useTreeSearch'
 import { TreeResizeHandle } from '../TreeResizeHandle'
 import type { NoteViewMode, SaveMode } from '../workspace/model'
 import { hasMediaResource } from '../source/dossier'
-import { NoteTree } from './NoteTree'
+import { NoteTree, parseTreeDrag } from './NoteTree'
 import { TreeMenu } from './TreeMenu'
 import {
   deleteConfirmText,
+  dropMoveTarget,
   folderDeleteSummary,
   prunedOpenFolders,
+  TREE_DRAG_MIME,
+  type TreeDragSource,
   type TreeMenuTarget
 } from './tree-menu'
 import { useNavHistory } from './nav-history'
@@ -272,6 +275,18 @@ export function VaultView({
     },
     [editorDirty, note, onOpenFoldersChange, openFolders, openNote]
   )
+  // S06: DnD is an INPUT BINDING over the proven Move flow — same
+  // preview, same confirm, same verb.
+  const dropNode = useCallback(
+    (source: TreeDragSource, destFolder: string) => {
+      const to = dropMoveTarget(source, destFolder)
+      if (!to) return
+      void menuMove({ ...source, x: 0, y: 0 }, to).catch((reason) =>
+        setError(String(reason))
+      )
+    },
+    [menuMove, setError]
+  )
   // S03: confirm names the target (+ what rides along); cancel = resolve
   // without deleting. The open note clears when it leaves with the target.
   const menuDelete = useCallback(
@@ -334,6 +349,17 @@ export function VaultView({
           // stopPropagation before reaching here)
           event.preventDefault()
           setTreeMenu({ kind: 'folder', relPath: '', x: event.clientX, y: event.clientY })
+        }}
+        onDragOver={(event) => {
+          if (!event.dataTransfer.types.includes(TREE_DRAG_MIME)) return
+          event.preventDefault()
+          event.dataTransfer.dropEffect = 'move'
+        }}
+        onDrop={(event) => {
+          // background drop = the vault root (folder targets stop propagation)
+          event.preventDefault()
+          const source = parseTreeDrag(event.dataTransfer.getData(TREE_DRAG_MIME))
+          if (source) dropNode(source, '')
         }}
       >
         {onTreeResize && <TreeResizeHandle onResize={onTreeResize} />}
@@ -424,6 +450,7 @@ export function VaultView({
               onNoteMenu={(relPath, x, y) =>
                 setTreeMenu({ kind: 'note', relPath, x, y })
               }
+              onDropNode={dropNode}
             />
           )
         )}

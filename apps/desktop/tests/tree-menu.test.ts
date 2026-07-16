@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { childRelPath, moveTargetRelPath } from '../renderer/src/vault/tree-menu'
+import {
+  childRelPath,
+  dropMoveTarget,
+  moveTargetRelPath
+} from '../renderer/src/vault/tree-menu'
 
 describe('childRelPath — names typed into the tree menu (CP-MVP-007 S02)', () => {
   it('builds note paths, appending .md exactly once', () => {
@@ -40,5 +44,20 @@ describe('moveTargetRelPath — Move to… destinations (S05)', () => {
     expect(moveTargetRelPath('notes/idea.md', 'a//b')).toBeNull()
     expect(moveTargetRelPath('notes/idea.md', '.git')).toBeNull()
     expect(moveTargetRelPath('notes/idea.md', 'a\\b')).toBeNull()
+  })
+})
+
+describe('dropMoveTarget — DnD over the Move flow (S06)', () => {
+  it('drops into folders and the root; keeps the name', () => {
+    expect(dropMoveTarget({ kind: 'note', relPath: 'notes/idea.md' }, 'archive')).toBe(
+      'archive/idea.md'
+    )
+    expect(dropMoveTarget({ kind: 'folder', relPath: 'notes/deep' }, '')).toBe('deep')
+  })
+
+  it('same parent and own-subtree drops are no-ops', () => {
+    expect(dropMoveTarget({ kind: 'note', relPath: 'notes/idea.md' }, 'notes')).toBeNull()
+    expect(dropMoveTarget({ kind: 'folder', relPath: 'notes' }, 'notes')).toBeNull()
+    expect(dropMoveTarget({ kind: 'folder', relPath: 'notes' }, 'notes/deep')).toBeNull()
   })
 })

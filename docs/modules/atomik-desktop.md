@@ -759,6 +759,17 @@ vault (04: files are the durable source of record)
         moves always confirm. The note-relocated push covers folders:
         relocateTabPaths rewrites notePath AND treeOpen fold params
         prefix-wide across every pane.
+  drag-and-drop (S06): an INPUT BINDING over the proven Move flow —
+        native HTML5 drag on notes and folder summaries (payload =
+        TREE_DRAG_MIME JSON, parseTreeDrag validates), folder
+        summaries + the tree background (= scope root) are drop
+        targets (.drop-target highlight); dropMoveTarget computes the
+        S05 destination (same-parent and own-subtree drops are
+        no-ops); the drop runs the SAME preview + confirm + verb as
+        Move to… — never a shortcut around the gate. Keyboard path =
+        the context menu (unchanged). UI gesture not exercisable from
+        the node suite — helpers unit-tested, chain = the proven Move
+        flow; owner bench covers the gesture itself (S07).
 
 pdf extraction (10: renderer fidelity and extraction fidelity separate)
   Extract text button -> extract-pdf-source(dossierPath) -> main
@@ -881,7 +892,8 @@ scan incl. no-descend + malformed fallback, idempotent ensure,
 byte-identical adoption, createFolder D-convention incl. adoption /
 sacred-index refusal / traversal matrix), `tree-menu.test.ts`
 (childRelPath segment gate: .md once, root paths, separators/hidden/
-oversize refused), `file-manage.test.ts` (trash seam: note/folder
+oversize refused; moveTargetRelPath destinations; dropMoveTarget
+no-ops on same-parent/own-subtree), `file-manage.test.ts` (trash seam: note/folder
 round trips, bundle-internal refusal incl. source.md itself, vault-
 root/traversal/missing rejections, failed-trash-never-hard-deletes;
 relocate: preview-writes-nothing, inbound updates with hash/angle

@@ -10,12 +10,15 @@ import { CollapseAllIcon, ExpandAllIcon, SidebarToggleIcon } from '../icons'
 import { SearchResultsList } from '../search/SearchResultsList'
 import { useTreeSearch } from '../search/useTreeSearch'
 import { TreeResizeHandle } from '../TreeResizeHandle'
-import { NoteTree } from '../vault/NoteTree'
+import { NoteTree, parseTreeDrag } from '../vault/NoteTree'
 import { TreeMenu } from '../vault/TreeMenu'
 import {
   deleteConfirmText,
+  dropMoveTarget,
   folderDeleteSummary,
   prunedOpenFolders,
+  TREE_DRAG_MIME,
+  type TreeDragSource,
   type TreeMenuTarget
 } from '../vault/tree-menu'
 import { useNavHistory } from '../vault/nav-history'
@@ -305,6 +308,16 @@ export function ProjectView({
     },
     [editorDirty, note, onOpenFoldersChange, openFolders, openNote, refresh]
   )
+  const dropNode = useCallback(
+    (source: TreeDragSource, destFolder: string) => {
+      const to = dropMoveTarget(source, destFolder)
+      if (!to) return
+      void menuMove({ ...source, x: 0, y: 0 }, to).catch((reason) =>
+        setError(String(reason))
+      )
+    },
+    [menuMove, setError]
+  )
   const menuDelete = useCallback(
     async (target: TreeMenuTarget) => {
       const scoped = tree && projectPath ? findSubtree(tree, projectPath) : null
@@ -418,6 +431,17 @@ export function ProjectView({
             y: event.clientY
           })
         }}
+        onDragOver={(event) => {
+          if (!event.dataTransfer.types.includes(TREE_DRAG_MIME)) return
+          event.preventDefault()
+          event.dataTransfer.dropEffect = 'move'
+        }}
+        onDrop={(event) => {
+          if (!projectPath) return
+          event.preventDefault()
+          const source = parseTreeDrag(event.dataTransfer.getData(TREE_DRAG_MIME))
+          if (source) dropNode(source, projectPath)
+        }}
       >
         {onTreeResize && <TreeResizeHandle onResize={onTreeResize} />}
         <div className="tree-bar">
@@ -499,6 +523,7 @@ export function ProjectView({
               onNoteMenu={(relPath, x, y) =>
                 setTreeMenu({ kind: 'note', relPath, x, y })
               }
+              onDropNode={dropNode}
             />
           )
         )}
