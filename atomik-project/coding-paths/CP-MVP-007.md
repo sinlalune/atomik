@@ -226,7 +226,7 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       E2E PROVEN ON WSL: vaultWrite=ok+folder+trash — the file landed
       in ~/.local/share/Trash/files/ (the named WSL-trash risk closes
       with on-machine evidence). Typecheck/build/smoke green.
-- [ ] S04 The refactor verb: `relocateNote` (rename AND move share
+- [x] S04 The refactor verb: `relocateNote` (rename AND move share
       it) — inbound-link scan (relative-link resolution against the
       old path), preview payload (files + counts), atomic multi-file
       apply with rollback, targeted replacement only (byte-fidelity
@@ -235,6 +235,25 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
       guards live here; tests (links intact across folders, no
       unrelated byte changes, rollback on injected failure, params
       follow).
+      DONE 2026-07-16: relocatePreview/relocateApply over ONE
+      computeRelocate (preview writes NOTHING; apply = rename → link
+      writes → rollback of both on midway failure). Inline links
+      [t](x) / [t](<x>), schemes and #-only skipped, #hash preserved;
+      the moved note's own outgoing links re-point EXCEPT on a
+      same-folder rename (zero cosmetic bytes — 27 fidelity). Guards:
+      convention files, bundle files, bundle-folder targets,
+      collisions, same-path. Push note-relocated → relocateTabPaths
+      in the workspace model (every pane follows; prefix form ready
+      for S05 folder moves); dirty open editor blocks its own rename;
+      Rename… in TreeMenu (prefilled). Preview surfaced as the
+      confirm list (files + counts) — the diff modal deferred to 20's
+      link-index work, recorded. treeOpen rewrite deferred to S05
+      (folder moves are S05 scope). Known gaps recorded: reference-
+      style/wikilinks not scanned (the app produces neither). Tests
+      364→371/40 (relocate matrix incl. rollback via chmod).
+      E2E PROVEN: rung → vaultWrite=…+reloc (preview counted the
+      link; the citing note follows on disk).
+      Typecheck/build/smoke green.
 - [ ] S05 Move to… (menu): folder picker over the same verb + preview;
       folder moves (recursive param + link handling); tests.
 - [ ] S06 Drag-and-drop: native HTML5 drag on tree nodes, folder drop
@@ -258,9 +277,10 @@ changed     : path PROPOSED and ACCEPTED 2026-07-16 (owner:
               rename=refactor+preview, move+DnD in). Survey recorded:
               zero existing rename/move/delete verbs or UI; no
               watcher; push-refresh only after main-side landings.
-tests       : 364 passing / 40 suites — green at S03 close;
+tests       : 371 passing / 40 suites — green at S04 close;
               typecheck/build/smoke green; e2e
-              vaultWrite=ok+folder+trash (real OS trash on WSL).
+              vaultWrite=ok+folder+trash+reloc (real OS trash on WSL;
+              rename refactor updates the citing note on disk).
               S01 done 2026-07-16 (same session as acceptance):
               doctrine pinned (04/27/20/13 — see step), decisions
               addendum in brainstorm/2026-07-16-tree-file-management-
@@ -269,11 +289,10 @@ tests       : 364 passing / 40 suites — green at S03 close;
               S02 done 2026-07-16 (see step): createFolder D end to
               end, creating handlers push vaultFilesChanged, TreeMenu
               on all three trees (creation half).
-next action : S04 — the refactor verb relocateNote (rename AND move):
-              inbound-link scan, preview payload, atomic multi-file
-              apply with rollback, targeted replacement only, tab-
-              param rewrite; Rename… UI + preview modal; bundle/
-              convention guards; tests.
+next action : S05 — Move to… (menu): folder picker over the same
+              verb + preview; FOLDER relocates (prefix rewrite of
+              inbound targets, treeOpen params follow, bundle roots
+              move as units); tests.
 blockers    : none recorded.
 ```
 

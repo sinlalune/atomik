@@ -724,6 +724,28 @@ vault (04: files are the durable source of record)
         their folder. PROVEN ON THIS WSL MACHINE: smoke rung
         vaultWrite=ok+folder+trash, file recovered from
         ~/.local/share/Trash/files/ (the WSL-trash risk is closed).
+  rename/move = ONE refactor verb (CP-MVP-007 S04; 27 §rename refactor,
+        20 §link integrity): relocatePreview/relocateApply in
+        file-manage.ts share computeRelocate — walk every scannable
+        .md (symlinks skipped), match inline links [t](x) and [t](<x>)
+        (schemes/#-only skipped, #hash preserved), resolve against the
+        note's own location, rewrite ONLY targets that resolve to the
+        moved note; the MOVED note's outgoing links re-point from its
+        new home — except on a same-folder rename (resolution basis
+        unchanged → zero cosmetic bytes, 27). Preview = the acceptance
+        gate (files + counts, nothing written); apply = rename first,
+        then link writes, ROLLBACK of both on partial failure. Guards:
+        convention files (index/log) refuse, bundle files refuse, a
+        bundle folder as target refuses, collisions refuse. Channels
+        relocate-preview/relocate-apply + push note-relocated →
+        Workspace rewrites EVERY tab's notePath (relocateTabPaths in
+        model.ts — prefix form ready for folder moves); the initiating
+        view re-opens the note at its new path; a dirty open editor
+        blocks its own rename. TreeMenu grows Rename… on notes
+        (prefilled, .md re-appended). Known gaps recorded: reference-
+        style links and wikilinks not scanned (none produced by the
+        app; 20's link index will subsume), preview is a confirm list
+        (a diff modal can come with 20).
 
 pdf extraction (10: renderer fidelity and extraction fidelity separate)
   Extract text button -> extract-pdf-source(dossierPath) -> main
@@ -848,7 +870,11 @@ sacred-index refusal / traversal matrix), `tree-menu.test.ts`
 (childRelPath segment gate: .md once, root paths, separators/hidden/
 oversize refused), `file-manage.test.ts` (trash seam: note/folder
 round trips, bundle-internal refusal incl. source.md itself, vault-
-root/traversal/missing rejections, failed-trash-never-hard-deletes),
+root/traversal/missing rejections, failed-trash-never-hard-deletes;
+relocate: preview-writes-nothing, inbound updates with hash/angle
+forms, scheme links untouched, moved-note outgoing re-pointing,
+same-folder-rename byte fidelity, guard matrix, midway-failure
+rollback),
 `vault-scope.test.ts` (findSubtree),
 `ai-mock.test.ts` (operation validation matrix, 06 bundle shape with
 truth arrays, destination→file-change mapping, content determinism,

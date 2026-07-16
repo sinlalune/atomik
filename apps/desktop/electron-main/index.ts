@@ -38,7 +38,7 @@ import { listDevDocs, readDevDoc, resolveDocsRoot } from './dev-docs'
 import { searchVault } from './search'
 import { buildMainWindowOptions } from './security'
 import { createFolder, createProject, listProjects } from './project'
-import { deleteFolder, deleteNote } from './file-manage'
+import { deleteFolder, deleteNote, relocateApply, relocatePreview } from './file-manage'
 import {
   createNote,
   listVaultFiles,
@@ -252,6 +252,25 @@ function registerVaultHandlers(stateDir: string): void {
     event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
     return result
   })
+  // CP-MVP-007 S04: rename/move as the previewed refactor (27); the
+  // preview channel is read-only, apply pushes both refresh signals.
+  ipcMain.handle(
+    ATOMIK_CHANNELS.relocatePreview,
+    (_event, from: unknown, to: unknown) =>
+      relocatePreview(requireVault(), from, to)
+  )
+  ipcMain.handle(
+    ATOMIK_CHANNELS.relocateApply,
+    (event, from: unknown, to: unknown) => {
+      const result = relocateApply(requireVault(), from, to)
+      event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
+      event.sender.send(ATOMIK_CHANNELS.noteRelocated, {
+        from: result.from,
+        to: result.to
+      })
+      return result
+    }
+  )
   ipcMain.handle(ATOMIK_CHANNELS.listProjects, () =>
     listProjects(requireVault())
   )
@@ -1135,7 +1154,19 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
               try { await window.atomik.readNote('smoke/to-delete.md'); trash = '+trash-STALE' }
               catch { trash = '+trash' }
             } catch (e) { trash = '+trash-fail:' + String(e).slice(0, 80) }
-            return 'ok+folder' + trash
+            // S04: rename refactor round trip — preview counts the link,
+            // apply moves the note AND updates the citing note.
+            let reloc = ''
+            try {
+              await window.atomik.createNote('smoke/target.md')
+              await window.atomik.createNote('smoke/citer.md', 'see [t](target.md)\\n')
+              const prev = await window.atomik.relocatePreview('smoke/target.md', 'smoke/target-renamed.md')
+              await window.atomik.relocateApply('smoke/target.md', 'smoke/target-renamed.md')
+              const citer = await window.atomik.readNote('smoke/citer.md')
+              reloc = prev.totalLinks === 1 && citer.content.includes('(target-renamed.md)')
+                ? '+reloc' : '+reloc-FAIL:' + prev.totalLinks + '/' + citer.content
+            } catch (e) { reloc = '+reloc-fail:' + String(e).slice(0, 80) }
+            return 'ok+folder' + trash + reloc
           } catch (e) { return 'fail:' + String(e) }
         })()`
       )) as string

@@ -163,6 +163,18 @@ export function SourcesTreePanel({
             onOpenFoldersChange?.(new Set([...openFolders, created.relPath]))
             onOpen(created.indexRelPath)
           }}
+          onRename={async (from, to) => {
+            const preview = await window.atomik.relocatePreview(from, to)
+            if (preview.totalLinks > 0) {
+              const others = preview.edits.filter((edit) => edit.relPath !== from)
+              const ok = window.confirm(
+                `Renaming updates ${preview.totalLinks} link(s) in ${others.length} note(s). Apply the rename refactor?`
+              )
+              if (!ok) return
+            }
+            await window.atomik.relocateApply(from, to)
+            refresh()
+          }}
           onDelete={async (target) => {
             const summary =
               target.kind === 'folder' && tree

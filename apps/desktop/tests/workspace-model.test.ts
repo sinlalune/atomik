@@ -12,6 +12,7 @@ import {
   migrateRetiredViews,
   noteModeOf,
   pdfPageOf,
+  relocateTabPaths,
   saveModeOf,
   setFocus,
   setFraction,
@@ -303,5 +304,32 @@ describe('setFraction', () => {
     expect((setFraction(state, splitId, 0).root as never as { fraction: number }).fraction).toBe(0.1)
     expect((setFraction(state, splitId, 1).root as never as { fraction: number }).fraction).toBe(0.9)
     expect((setFraction(state, splitId, 0.42).root as never as { fraction: number }).fraction).toBe(0.42)
+  })
+})
+
+describe('relocateTabPaths — tabs follow a renamed/moved note (CP-MVP-007 S04)', () => {
+  it('rewrites exact matches and folder prefixes; untouched state keeps identity', () => {
+    const base = createDefaultState('h')
+    const leafId = base.root.kind === 'leaf' ? base.root.id : ''
+    let state = addTab(base, leafId, makeTab('vault', { notePath: 'notes/idea.md' }))
+    state = addTab(state, leafId, makeTab('vault', { notePath: 'notes/deep/leaf.md' }))
+    state = addTab(state, leafId, makeTab('vault', { notePath: 'other.md' }))
+
+    const renamed = relocateTabPaths(state, 'notes/idea.md', 'essays/idea.md')
+    const params = (renamed.root as { tabs: Array<{ params?: Record<string, string> }> }).tabs.map(
+      (tab) => tab.params?.['notePath']
+    )
+    expect(params).toContain('essays/idea.md')
+    expect(params).toContain('notes/deep/leaf.md')
+
+    const folderMove = relocateTabPaths(state, 'notes', 'archive/notes')
+    const moved = (folderMove.root as { tabs: Array<{ params?: Record<string, string> }> }).tabs.map(
+      (tab) => tab.params?.['notePath']
+    )
+    expect(moved).toContain('archive/notes/idea.md')
+    expect(moved).toContain('archive/notes/deep/leaf.md')
+    expect(moved).toContain('other.md')
+
+    expect(relocateTabPaths(state, 'ghost.md', 'x.md')).toBe(state)
   })
 })

@@ -36,6 +36,10 @@ export const ATOMIK_CHANNELS = {
   createFolder: 'atomik:create-folder',
   deleteNote: 'atomik:delete-note',
   deleteFolder: 'atomik:delete-folder',
+  relocatePreview: 'atomik:relocate-preview',
+  relocateApply: 'atomik:relocate-apply',
+  /** Push (main -> renderer): a note moved; tabs re-point their params. */
+  noteRelocated: 'atomik:note-relocated',
   listProjects: 'atomik:list-projects',
   createProject: 'atomik:create-project',
   startCaptureSession: 'atomik:start-capture-session',
@@ -258,6 +262,22 @@ export type ProjectInfo = {
   id: string
   title: string
 }
+
+/** Relocate = rename AND move (CP-MVP-007 S04): the 27-sanctioned
+ *  refactor — the note moves and inbound links update in one atomic,
+ *  previewed operation. */
+export type RelocateEdit = {
+  relPath: string
+  /** Link targets rewritten in this note. */
+  count: number
+}
+export type RelocatePreview = {
+  from: string
+  to: string
+  edits: RelocateEdit[]
+  totalLinks: number
+}
+export type RelocateResult = { from: string; to: string; filesChanged: number }
 
 /** Plain-folder creation result (CP-MVP-007, option D: a folder is
  *  born with its index.md map). */
@@ -531,6 +551,13 @@ export type AtomikApi = {
    *  are refused main-side; a bundle deletes as its whole folder. */
   deleteNote: (relPath: string) => Promise<{ relPath: string }>
   deleteFolder: (relPath: string) => Promise<{ relPath: string }>
+  /** The preview is the acceptance gate (20/27): apply only after the
+   *  user saw what changes. */
+  relocatePreview: (from: string, to: string) => Promise<RelocatePreview>
+  relocateApply: (from: string, to: string) => Promise<RelocateResult>
+  onNoteRelocated: (
+    listener: (move: { from: string; to: string }) => void
+  ) => () => void
   /** Project bundles found in the open vault (manifest-detected). */
   listProjects: () => Promise<ProjectInfo[]>
   /** Creates or adopts a bundle: writes only the missing pieces. */
@@ -663,6 +690,9 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'createFolder',
   'deleteNote',
   'deleteFolder',
+  'relocatePreview',
+  'relocateApply',
+  'onNoteRelocated',
   'listProjects',
   'createProject',
   'startCaptureSession',

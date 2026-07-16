@@ -81,6 +81,18 @@ const api: AtomikApi = {
     ipcRenderer.invoke(ATOMIK_CHANNELS.deleteNote, relPath),
   deleteFolder: (relPath: string) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.deleteFolder, relPath),
+  relocatePreview: (from: string, to: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.relocatePreview, from, to),
+  relocateApply: (from: string, to: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.relocateApply, from, to),
+  onNoteRelocated: (listener: (move: { from: string; to: string }) => void) => {
+    const wrapped = (_event: unknown, move: { from: string; to: string }): void =>
+      listener(move)
+    ipcRenderer.on(ATOMIK_CHANNELS.noteRelocated, wrapped)
+    return () => {
+      ipcRenderer.removeListener(ATOMIK_CHANNELS.noteRelocated, wrapped)
+    }
+  },
   listProjects: () => ipcRenderer.invoke(ATOMIK_CHANNELS.listProjects),
   createProject: (relPath: string, title: string) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.createProject, relPath, title),

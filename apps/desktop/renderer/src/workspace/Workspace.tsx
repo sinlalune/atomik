@@ -18,6 +18,7 @@ import {
   makeTab,
   noteModeOf,
   pdfPageOf,
+  relocateTabPaths,
   saveModeOf,
   setFocus,
   setFraction,
@@ -500,6 +501,16 @@ export function Workspace(): React.JSX.Element {
   useEffect(() => {
     void load()
   }, [load])
+
+  // CP-MVP-007 S04: open tabs FOLLOW a renamed/moved note — every pane,
+  // not just the one that triggered the refactor.
+  useEffect(
+    () =>
+      window.atomik.onNoteRelocated(({ from, to }) =>
+        dispatch((state) => relocateTabPaths(state, from, to))
+      ),
+    [dispatch]
+  )
 
   // Theme lands on <html data-theme>; 'system' removes it so the
   // light-dark() tokens follow the OS again.

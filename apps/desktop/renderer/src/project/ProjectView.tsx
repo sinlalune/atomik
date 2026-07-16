@@ -252,6 +252,29 @@ export function ProjectView({
     },
     [guardedOpen, onOpenFoldersChange, openFolders]
   )
+  const menuRename = useCallback(
+    async (from: string, to: string) => {
+      if (editorDirty && note?.relPath === from) {
+        throw new Error('save or discard the open changes first')
+      }
+      const preview = await window.atomik.relocatePreview(from, to)
+      if (preview.totalLinks > 0) {
+        const others = preview.edits.filter((edit) => edit.relPath !== from)
+        const lines = others
+          .slice(0, 8)
+          .map((edit) => `  ${edit.relPath} (${edit.count})`)
+        const more = others.length > 8 ? `\n  … +${others.length - 8} more` : ''
+        const ok = window.confirm(
+          `Renaming updates ${preview.totalLinks} link${preview.totalLinks === 1 ? '' : 's'} in ${others.length} note${others.length === 1 ? '' : 's'}:\n\n${lines.join('\n')}${more}\n\nApply the rename refactor?`
+        )
+        if (!ok) return
+      }
+      await window.atomik.relocateApply(from, to)
+      if (note?.relPath === from) openNote(to)
+      await refresh()
+    },
+    [editorDirty, note, openNote, refresh]
+  )
   const menuDelete = useCallback(
     async (target: TreeMenuTarget) => {
       const scoped = tree && projectPath ? findSubtree(tree, projectPath) : null
@@ -457,6 +480,7 @@ export function ProjectView({
             onNewNote={menuNewNote}
             onNewFolder={menuNewFolder}
             onDelete={menuDelete}
+            onRename={menuRename}
           />
         )}
       </nav>

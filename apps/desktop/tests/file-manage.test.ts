@@ -1,8 +1,14 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { beforeEach, afterEach, describe, expect, it } from 'vitest'
-import { deleteFolder, deleteNote, type TrashFn } from '../electron-main/file-manage'
+import {
+  deleteFolder,
+  deleteNote,
+  relocateApply,
+  relocatePreview,
+  type TrashFn
+} from '../electron-main/file-manage'
 
 let vault: string
 let trashed: string[]
@@ -87,5 +93,90 @@ describe('deleteFolder — whole folders, bundles as units', () => {
     await expect(deleteFolder(vault, 'ghost', fakeTrash)).rejects.toThrow(/not found/)
     await expect(deleteFolder(vault, 'notes/idea.md', fakeTrash)).rejects.toThrow(/not found/)
     expect(trashed).toEqual([])
+  })
+})
+
+describe('relocate — rename/move as the previewed refactor (CP-MVP-007 S04)', () => {
+  beforeEach(() => {
+    writeFileSync(
+      join(vault, 'notes/citing.md'),
+      '# citing\n\nSee [idea](idea.md) and [again](<./idea.md#part>).\n'
+    )
+    mkdirSync(join(vault, 'essays'), { recursive: true })
+    writeFileSync(
+      join(vault, 'essays/far.md'),
+      'Linked from afar: [idea](../notes/idea.md). Web link stays: [w](https://example.org/idea.md).\n'
+    )
+    writeFileSync(
+      join(vault, 'notes/idea-with-links.md'),
+      'Points at [leaf](deep/leaf.md) and [far](../essays/far.md).\n'
+    )
+  })
+
+  it('preview lists every touched note without writing anything', () => {
+    const before = readFileSync(join(vault, 'notes/citing.md'), 'utf8')
+    const preview = relocatePreview(vault, 'notes/idea.md', 'notes/renamed.md')
+    expect(preview.totalLinks).toBe(3)
+    expect(preview.edits.map((edit) => edit.relPath).sort()).toEqual([
+      'essays/far.md',
+      'notes/citing.md'
+    ])
+    expect(readFileSync(join(vault, 'notes/citing.md'), 'utf8')).toBe(before)
+    expect(existsSync(join(vault, 'notes/idea.md'))).toBe(true)
+  })
+
+  it('apply = move + inbound updates in one operation; hash and scheme untouched', () => {
+    relocateApply(vault, 'notes/idea.md', 'essays/idea.md')
+    expect(existsSync(join(vault, 'notes/idea.md'))).toBe(false)
+    const citing = readFileSync(join(vault, 'notes/citing.md'), 'utf8')
+    expect(citing).toContain('[idea](../essays/idea.md)')
+    expect(citing).toContain('[again](<../essays/idea.md#part>)')
+    const far = readFileSync(join(vault, 'essays/far.md'), 'utf8')
+    expect(far).toContain('[idea](idea.md)')
+    expect(far).toContain('https://example.org/idea.md')
+  })
+
+  it("a MOVED note's own outgoing links re-point from its new home", () => {
+    relocateApply(vault, 'notes/idea-with-links.md', 'essays/idea-with-links.md')
+    const moved = readFileSync(join(vault, 'essays/idea-with-links.md'), 'utf8')
+    expect(moved).toContain('[leaf](../notes/deep/leaf.md)')
+    expect(moved).toContain('[far](far.md)')
+  })
+
+  it('a same-folder rename never rewrites the moved note itself', () => {
+    const before = readFileSync(join(vault, 'notes/idea-with-links.md'), 'utf8')
+    relocateApply(vault, 'notes/idea-with-links.md', 'notes/idea-links-2.md')
+    expect(readFileSync(join(vault, 'notes/idea-links-2.md'), 'utf8')).toBe(before)
+  })
+
+  it('refuses convention files, bundle files, bundle targets, collisions', () => {
+    writeFileSync(join(vault, 'notes/index.md'), '# map\n')
+    expect(() => relocatePreview(vault, 'notes/index.md', 'notes/map.md')).toThrow(/convention/)
+    expect(() => relocatePreview(vault, 'notes/idea.md', 'notes/log.md')).toThrow(/convention/)
+    expect(() =>
+      relocatePreview(vault, 'sources/web/guide/reader.md', 'notes/reader.md')
+    ).toThrow(/bundle/)
+    expect(() =>
+      relocatePreview(vault, 'notes/idea.md', 'sources/web/guide/idea.md')
+    ).toThrow(/inside a source bundle/)
+    expect(() => relocatePreview(vault, 'notes/idea.md', 'notes/citing.md')).toThrow(/already exists/)
+    expect(() => relocatePreview(vault, 'notes/idea.md', 'notes/idea.md')).toThrow(/same path/)
+  })
+
+  it('rolls back the move when a link rewrite fails midway', () => {
+    const citingAbs = join(vault, 'notes/citing.md')
+    const before = readFileSync(citingAbs, 'utf8')
+    // a directory squatting the citing note's temp-free write path is
+    // hard to fake; instead make the citing note unwritable
+    const { chmodSync } = require('node:fs') as typeof import('node:fs')
+    chmodSync(citingAbs, 0o444)
+    try {
+      expect(() => relocateApply(vault, 'notes/idea.md', 'notes/renamed.md')).toThrow()
+      expect(existsSync(join(vault, 'notes/idea.md'))).toBe(true)
+      expect(existsSync(join(vault, 'notes/renamed.md'))).toBe(false)
+      expect(readFileSync(citingAbs, 'utf8')).toBe(before)
+    } finally {
+      chmodSync(citingAbs, 0o644)
+    }
   })
 })

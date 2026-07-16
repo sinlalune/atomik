@@ -376,3 +376,35 @@ export function updateTabParams(
   if (root === state.root) return state
   return { ...state, root }
 }
+
+/**
+ * CP-MVP-007 S04: a relocated note drags every tab param that pointed
+ * at it. The prefix form covers folder moves (S05) for free. Identity-
+ * stable when nothing matches.
+ */
+export function relocateTabPaths(
+  state: WorkspaceState,
+  from: string,
+  to: string
+): WorkspaceState {
+  const rewrite = (value: string): string =>
+    value === from
+      ? to
+      : value.startsWith(`${from}/`)
+        ? `${to}${value.slice(from.length)}`
+        : value
+  const root = mapNode(state.root, (node) => {
+    if (node.kind !== 'leaf') return node
+    let changed = false
+    const tabs = node.tabs.map((tab) => {
+      const notePath = tab.params?.['notePath']
+      if (!notePath) return tab
+      const next = rewrite(notePath)
+      if (next === notePath) return tab
+      changed = true
+      return { ...tab, params: { ...tab.params, notePath: next } }
+    })
+    return changed ? { ...node, tabs } : node
+  })
+  return root === state.root ? state : { ...state, root }
+}
