@@ -30,6 +30,7 @@ Late paths are better paths: they inherit module notes, friction records from th
 | M4 | PDF source + strong anchors | CP-MVP-003 | done (2026-07-13) |
 | M5 | web source tab + explicit imports | CP-MVP-006 | done (2026-07-16) |
 | M1 (friction pass) | tree file management — create/rename/move/delete + DnD | CP-MVP-007 | active (accepted 2026-07-16) |
+| M2 (completion) | real generation (Mistral Small) + AI interaction pass | [CP-MVP-008](./CP-MVP-008.md) | proposed 2026-07-20 (draft; awaits owner acceptance + CP-MVP-007 close) |
 | M6 | minimal Truth Lens + challenge/repair | — | not opened |
 | M7 | live verification provider | — | not opened |
 | M8 | hybrid retrieval + agent context basics | — | not opened |
@@ -38,3 +39,5 @@ Late paths are better paths: they inherit module notes, friction records from th
 | M11 | truth maintenance + cost dashboard | — | not opened |
 | M12 | Atomik DSL | — | not opened |
 | M13 | canvas | — | not opened |
+
+Reserved follow-up (not a row yet, 33/34 discipline): a LOCAL llama.cpp generation seat opens as its own evaluated tier after CP-MVP-008's cloud engine lands — capability-gated like speech was, dated evidence in 34, never a release-wide promise. Decision trail: [../sessions/2026-07-20-generation-swap-decisions.md](../sessions/2026-07-20-generation-swap-decisions.md).
