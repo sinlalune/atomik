@@ -370,7 +370,42 @@ bench fixes : S06b white app (props typed, never destructured — the
               webUrlImport=ok + snapshotPreview=ok probes; the painted
               preview pixels stay an owner-bench item (capturePage
               cannot see native views).
-tests       : 405 passing / 41 suites — green after the bench fixes
+              S07e-d/e (reconcile: landed same day, ledger lagged):
+              rotate tools off web previews (!isWeb joins the guard);
+              bundle delete-guard rescoped to CONTRACT files — ordinary
+              notes in bundles delete/move normally (tests 405→407).
+              S07f owner report (2026-07-20): caps lock + ctrl combos —
+              ROOT-CAUSED OFF-APP: WSLg RDP lock-state sync defect,
+              measured on the machine (one-way caps propagation,
+              inverted base state imposed at focus-in, sync overrides
+              XTEST; Ctrl chords PROVEN WORKING in a fresh instance —
+              buffer duplicated via injected Ctrl+A/C/V). No app change;
+              evidence + owner recovery (wsl --shutdown; in-app caps
+              press realigns relative state) in
+              sessions/2026-07-20-wslg-capslock-probe.md.
+              S07g owner directive (2026-07-20): note content CENTERED
+              horizontally — margin-inline:auto on the two
+              --note-column consumers (.markdown-body, live
+              .cm-content); read <-> live keep identical geometry by
+              construction; source mode stays IDE-left (recorded).
+              Screenshot-verified on the live layout (column centered
+              in a 963px pane, balanced margins).
+              S07h owner directive + clarification (2026-07-20): the @
+              menu opens beyond sources — note-link entries join
+              (linkableNotesOf: bundle CONTRACT files excluded, the
+              S07e-e rule; edited note excluded), ordered by INVERSE
+              tree hierarchy (current folder first, then up to the
+              root); row format = kind pill (note/source, completion
+              icon slot) + doc title (displayLabel) + action label
+              (detail); selected-row action label made readable
+              (inherit over muted — the "barely viewable" report).
+              Deviation recorded: pill rendering + menu feel = owner
+              bench (unit tests cover order/format/exclusions; the
+              gesture itself is not exercisable from the node suite).
+tests       : 411 passing / 41 suites — green after the bench fixes
+              (S07h: note links, proximity order, pill row format,
+              contract-file exclusions; S07e-e: 407)
+              — earlier detail: 405/41 after the S07d/e wave
               (S07d pane-tree matrix + S07e: docs scope, closePane,
               chooser-morph params, untyped splits, docs migration +
               S07e-c snapshot gates); typecheck/build/smoke green; e2e
@@ -398,7 +433,11 @@ next action : S07 — acceptance: 18 §M1 intents (one op = one
               unit, a note dragged between folders, a delete
               recovered from the OS trash. S06 bench extras: DnD
               gesture feel, hover-expand need, typed-destination vs
-              picker.
+              picker. S07f-h bench extras: @ pill row look/feel +
+              proximity order on the real vault; centered column
+              feel; caps-lock recovery awareness (wsl --shutdown —
+              parity was left MISMATCHED on 2026-07-20, X-side caps
+              stuck ON).
 blockers    : none recorded.
 ```
 

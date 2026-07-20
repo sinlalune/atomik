@@ -32,6 +32,89 @@ export type SourceBundle = {
   dossierPath: string
 }
 
+/** A plain vault note the "@" menu can link to (S07h, owner request:
+ *  "add link note action" — the reserved notes provider joins). */
+export type NoteLink = {
+  /** Filename without `.md` — the human handle in the menu. */
+  name: string
+  relPath: string
+}
+
+/** Bundle CONTRACT files — they already surface through their bundle's
+ *  own entries (dossier link, citations, derived quotes), so the notes
+ *  provider skips them; ordinary notes LIVING in a bundle folder stay
+ *  linkable (the S07e-e rule: the contract is protected, not the
+ *  location). */
+const BUNDLE_CONTRACT_FILES = new Set([
+  'source.md',
+  'index.md',
+  'extracted.md',
+  'transcript.md',
+  'reader.md'
+])
+
+/** Shared leading path segments between a note's folder and the
+ *  editing note's folder — the proximity key for menu ordering. */
+function sharedFolderDepth(relPath: string, editingDir: string[]): number {
+  const dir = relPath.split('/').slice(0, -1)
+  let shared = 0
+  while (
+    shared < dir.length &&
+    shared < editingDir.length &&
+    dir[shared] === editingDir[shared]
+  ) {
+    shared += 1
+  }
+  return shared
+}
+
+/** Every linkable note: all `.md` files except the note being edited
+ *  and except contract files inside a bundle folder. Ordered by the
+ *  INVERSE tree hierarchy (owner, 2026-07-20): the current folder
+ *  first, then each level up toward the vault root — nearest notes are
+ *  the likeliest link targets. Within a level: shallower paths first,
+ *  then name. Pure. */
+export function linkableNotesOf(
+  tree: VaultFolder,
+  editingRelPath: string
+): NoteLink[] {
+  const editingDir = editingRelPath.split('/').slice(0, -1)
+  const notes: NoteLink[] = []
+  const walk = (folder: VaultFolder): void => {
+    const isBundle = folder.notes.some((note) => note.name === 'source.md')
+    for (const note of folder.notes) {
+      if (note.relPath === editingRelPath) continue
+      if (isBundle && BUNDLE_CONTRACT_FILES.has(note.name)) continue
+      notes.push({ name: note.name.replace(/\.md$/i, ''), relPath: note.relPath })
+    }
+    for (const child of folder.folders) walk(child)
+  }
+  walk(tree)
+  return notes.sort((a, b) => {
+    const proximity =
+      sharedFolderDepth(b.relPath, editingDir) -
+      sharedFolderDepth(a.relPath, editingDir)
+    if (proximity !== 0) return proximity
+    const depth = a.relPath.split('/').length - b.relPath.split('/').length
+    if (depth !== 0) return depth
+    return a.name.localeCompare(b.name)
+  })
+}
+
+/** The menu entry for a linkable note: inserts a relative markdown
+ *  link, angle-bracketed like every other insertion. */
+export function noteLinkEntry(notePath: string, note: NoteLink): BundleEntry {
+  return {
+    kind: 'note',
+    title: note.name,
+    label: `@${note.name}`,
+    detail: 'link',
+    insertion: {
+      text: `[${note.name}](<${relativePathBetween(notePath, note.relPath)}>)`
+    }
+  }
+}
+
 /** Every folder holding a `source.md` is a source bundle (07). Pure. */
 export function sourceBundlesOf(tree: VaultFolder): SourceBundle[] {
   const bundles: SourceBundle[] = []
@@ -164,7 +247,14 @@ export function quoteBlockFor(
 }
 
 export type BundleEntry = {
+  /** Which pill the row leads with (owner format, 2026-07-20: kind
+   *  pill, then doc title, then action label). */
+  kind: 'source' | 'note'
+  /** The doc title shown as the row's main text. */
+  title: string
+  /** Filter string (matched as typed; includes the action words). */
   label: string
+  /** The action label after the title. */
   detail: string
   insertion?: Insertion
   /** Deferred body (derived files are read at APPLY time, not menu time). */
@@ -183,11 +273,15 @@ export function bundleCompletions(
   if (resource?.kind === 'image') {
     return [
       {
+        kind: 'source',
+        title: bundle.name,
         label: `@${bundle.name}`,
         detail: 'capture — image embed',
         insertion: insertionFor(notePath, bundle, resource)
       },
       {
+        kind: 'source',
+        title: bundle.name,
         label: `@${bundle.name} dossier`,
         detail: 'link to source.md',
         insertion: insertionFor(notePath, bundle, null)
@@ -198,16 +292,24 @@ export function bundleCompletions(
     const anchors = dossierContent ? pageAnchorsOf(dossierContent) : []
     return [
       {
+        kind: 'source',
+        title: bundle.name,
         label: `@${bundle.name} page…`,
         detail: 'PDF citation — type the page',
         insertion: insertionFor(notePath, bundle, resource)
       },
-      ...anchors.map((anchor) => ({
-        label: `@${bundle.name} ${anchor.anchor}`,
-        detail: `anchor — ${anchor.meaning}`,
-        insertion: anchorInsertionFor(notePath, bundle, resource.vaultRel, anchor)
-      })),
+      ...anchors.map(
+        (anchor): BundleEntry => ({
+          kind: 'source',
+          title: bundle.name,
+          label: `@${bundle.name} ${anchor.anchor}`,
+          detail: `anchor — ${anchor.meaning}`,
+          insertion: anchorInsertionFor(notePath, bundle, resource.vaultRel, anchor)
+        })
+      ),
       {
+        kind: 'source',
+        title: bundle.name,
         label: `@${bundle.name} dossier`,
         detail: 'link to source.md',
         insertion: insertionFor(notePath, bundle, null)
@@ -217,11 +319,15 @@ export function bundleCompletions(
   if (resource?.kind === 'web') {
     return [
       {
+        kind: 'source',
+        title: bundle.name,
         label: `@${bundle.name} url`,
         detail: 'web citation — the live page',
         insertion: insertionFor(notePath, bundle, resource)
       },
       {
+        kind: 'source',
+        title: bundle.name,
         label: `@${bundle.name} dossier`,
         detail: 'link to source.md',
         insertion: insertionFor(notePath, bundle, null)
@@ -230,6 +336,8 @@ export function bundleCompletions(
   }
   return [
     {
+      kind: 'source',
+      title: bundle.name,
       label: `@${bundle.name}`,
       detail: 'link to source.md',
       insertion: insertionFor(notePath, bundle, null)
@@ -262,6 +370,8 @@ export function derivedTextEntries(
     if (!dossierContent.includes(`./${file}`)) continue
     const derivedPath = `${bundleDir}${file}`
     entries.push({
+      kind: 'source',
+      title: bundle.name,
       label: `@${bundle.name} ${label}`,
       detail: `insert ${kind} as a quote block`,
       loadInsertion: async () => {
@@ -282,32 +392,42 @@ export function derivedTextEntries(
 }
 
 /** Completion source: `@` + filter over EVERY entry each bundle offers
- *  (dossier link, page citation, recorded anchors). Dossiers are read
- *  at menu time through the injected reader. */
+ *  (dossier link, page citation, recorded anchors) PLUS a link entry
+ *  per plain vault note (S07h). Dossiers are read at menu time through
+ *  the injected reader; the tree is listed once per menu opening. */
 export function quickActionsSource(
   notePath: string,
-  listBundles: () => Promise<SourceBundle[]>,
+  listTree: () => Promise<VaultFolder>,
   readDossier: DossierReader
 ) {
   return async (context: CompletionContext): Promise<CompletionResult | null> => {
     const match = context.matchBefore(/@[^@]*/)
     if (!match && !context.explicit) return null
     const from = match ? match.from : context.pos
-    const bundles = await listBundles()
+    const tree = await listTree()
+    const bundles = sourceBundlesOf(tree)
+    const noteEntries = linkableNotesOf(tree, notePath).map((note) =>
+      noteLinkEntry(notePath, note)
+    )
     const contents = await Promise.all(
       bundles.map((bundle) => readDossier(bundle.dossierPath))
     )
-    const options: Completion[] = bundles.flatMap((bundle, index) => {
-      const content = contents[index] ?? null
-      const entries = [
-        ...bundleCompletions(notePath, bundle, content),
-        ...derivedTextEntries(notePath, bundle, content, readDossier)
-      ]
-      return entries.map((entry) => ({
+    const options: Completion[] = [
+      ...bundles.flatMap((bundle, index) => {
+        const content = contents[index] ?? null
+        return [
+          ...bundleCompletions(notePath, bundle, content),
+          ...derivedTextEntries(notePath, bundle, content, readDossier)
+        ]
+      }),
+      ...noteEntries
+    ].map((entry) => ({
         label: entry.label,
-        displayLabel: entry.label.slice(1),
+        // The row reads: [kind pill] title — action label (owner format;
+        // the pill renders from `type` via the completion icon slot).
+        displayLabel: entry.title,
         detail: entry.detail,
-        type: 'variable',
+        type: entry.kind,
         apply: (view: EditorView, _completion, applyFrom, applyTo) => {
           const dispatch = (insertion: Insertion): void =>
             view.dispatch({
@@ -326,7 +446,6 @@ export function quickActionsSource(
           else if (entry.loadInsertion) void entry.loadInsertion().then(dispatch)
         }
       }))
-    })
     return { from, options, validFor: /^@[^@]*$/ }
   }
 }
@@ -348,11 +467,13 @@ const readDossierCached: DossierReader = async (dossierPath) => {
 
 export function quickActions(
   notePath: string,
-  listBundles: () => Promise<SourceBundle[]>
+  listTree: () => Promise<VaultFolder>
 ): Extension {
   return autocompletion({
-    override: [quickActionsSource(notePath, listBundles, readDossierCached)],
+    override: [quickActionsSource(notePath, listTree, readDossierCached)],
     activateOnTyping: true,
-    icons: false
+    // The icon slot renders the kind PILL (note/source) — styled in
+    // styles.css from the cm-completionIcon-<type> class.
+    icons: true
   })
 }

@@ -32,14 +32,14 @@ import {
   lineNumbers
 } from '@codemirror/view'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { VaultNoteFile } from '../../../shared/ipc-contract'
+import type { VaultFolder, VaultNoteFile } from '../../../shared/ipc-contract'
 import { resolveRelativePath } from '../dev-docs/markdown'
 import { themeOf, type NoteViewMode, type SaveMode } from '../workspace/model'
 import { useWorkspace } from '../workspace/store'
 import { AiPanel, type BufferChange } from './AiPanel'
 import { frontmatterEnd, livePreview } from './live-preview'
 import { ModeSwitch } from './ModeSwitch'
-import { quickActions, sourceBundlesOf, type SourceBundle } from './quick-actions'
+import { quickActions } from './quick-actions'
 import { hasMediaResource } from '../source/dossier'
 
 /** Auto mode saves this long after the last keystroke. */
@@ -84,9 +84,9 @@ const modeExtensions = (
 ): Extension =>
   mode === 'live' ? livePreview({ onFollowLink, notePath }) : SOURCE_CHROME
 
-/** Source bundles for the "@" menu, freshly listed per menu opening. */
-const listSourceBundles = (): Promise<SourceBundle[]> =>
-  window.atomik.listVaultFiles().then(sourceBundlesOf)
+/** Vault tree for the "@" menu (bundles + linkable notes), freshly
+ *  listed per menu opening. */
+const listVaultTree = (): Promise<VaultFolder> => window.atomik.listVaultFiles()
 
 /** Fenced-code languages for the installed packs; anything else stays
  *  plain mono. A registry (language-data) is a later dependency call. */
@@ -341,8 +341,8 @@ export function EditorPane({
           modeExtensions(modeRef.current, followHandler, note.relPath)
         ),
         darkCompartment.of(editorDarkRef.current ? [oneDark] : []),
-        // "@" quick actions: captures menu, inserts ready embeds.
-        quickActions(note.relPath, listSourceBundles),
+        // "@" quick actions: citations menu + note links (S07h).
+        quickActions(note.relPath, listVaultTree),
         EditorView.lineWrapping,
         keymap.of([
           {

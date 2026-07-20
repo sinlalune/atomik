@@ -7,6 +7,8 @@ import {
   bundleCompletions,
   derivedTextEntries,
   insertionFor,
+  linkableNotesOf,
+  noteLinkEntry,
   quickActionsSource,
   quoteBlockFor,
   relativePathBetween,
@@ -57,6 +59,93 @@ describe('sourceBundlesOf', () => {
       { name: 'Pascal', dossierPath: 'sources/captures/Pascal/source.md' },
       { name: 'Zebra', dossierPath: 'sources/captures/Zebra/source.md' }
     ])
+  })
+})
+
+describe('linkableNotesOf', () => {
+  const bundleTree: VaultFolder = {
+    name: 'vault',
+    relPath: '',
+    notes: [{ name: 'me.md', relPath: 'me.md' }],
+    folders: [
+      {
+        name: 'gaul',
+        relPath: 'sources/web/gaul',
+        notes: [
+          { name: 'source.md', relPath: 'sources/web/gaul/source.md' },
+          { name: 'reader.md', relPath: 'sources/web/gaul/reader.md' },
+          { name: 'ai-summary.md', relPath: 'sources/web/gaul/ai-summary.md' }
+        ],
+        folders: []
+      }
+    ]
+  }
+
+  it('excludes the edited note and bundle CONTRACT files, keeps ordinary bundle residents (S07e-e rule)', () => {
+    expect(linkableNotesOf(bundleTree, 'me.md')).toEqual([
+      { name: 'ai-summary', relPath: 'sources/web/gaul/ai-summary.md' }
+    ])
+  })
+
+  it('keeps convention files outside bundles linkable', () => {
+    const plain: VaultFolder = {
+      name: 'vault',
+      relPath: '',
+      notes: [{ name: 'index.md', relPath: 'index.md' }],
+      folders: []
+    }
+    expect(linkableNotesOf(plain, 'other.md')).toEqual([
+      { name: 'index', relPath: 'index.md' }
+    ])
+  })
+
+  it('orders by the inverse tree hierarchy: current folder first, then up to the root', () => {
+    const deep: VaultFolder = {
+      name: 'vault',
+      relPath: '',
+      notes: [{ name: 'root.md', relPath: 'root.md' }],
+      folders: [
+        {
+          name: 'projects',
+          relPath: 'projects',
+          notes: [{ name: 'parent.md', relPath: 'projects/parent.md' }],
+          folders: [
+            {
+              name: 'crud',
+              relPath: 'projects/crud',
+              notes: [
+                { name: 'sibling.md', relPath: 'projects/crud/sibling.md' },
+                { name: 'edited.md', relPath: 'projects/crud/edited.md' }
+              ],
+              folders: []
+            },
+            {
+              name: 'other',
+              relPath: 'projects/other',
+              notes: [{ name: 'cousin.md', relPath: 'projects/other/cousin.md' }],
+              folders: []
+            }
+          ]
+        }
+      ]
+    }
+    expect(
+      linkableNotesOf(deep, 'projects/crud/edited.md').map((note) => note.name)
+    ).toEqual(['sibling', 'parent', 'cousin', 'root'])
+  })
+})
+
+describe('noteLinkEntry', () => {
+  it('builds the note pill row and inserts a relative angle-bracket link', () => {
+    const entry = noteLinkEntry('notes/idea.md', {
+      name: 'plain',
+      relPath: 'notes/deep/plain.md'
+    })
+    expect(entry.kind).toBe('note')
+    expect(entry.title).toBe('plain')
+    expect(entry.label).toBe('@plain')
+    expect(entry.detail).toBe('link')
+    expect(entry.insertion!.text).toBe('[plain](<deep/plain.md>)')
   })
 })
 
@@ -133,7 +222,7 @@ describe('quickActionsSource', () => {
     )
   const source = quickActionsSource(
     'notes/idea.md',
-    () => Promise.resolve(sourceBundlesOf(tree)),
+    () => Promise.resolve(tree),
     readDossier
   )
 
@@ -145,15 +234,25 @@ describe('quickActionsSource', () => {
     return source(new CompletionContext(state, pos, explicit))
   }
 
-  it('offers the capture bundles after "@"', async () => {
+  it('offers the capture bundles after "@", then linkable notes (S07h)', async () => {
     const result = await complete('see @Pa', 7)
     expect(result).not.toBeNull()
     expect(result!.from).toBe(4)
     expect(result!.options.map((option) => option.label)).toEqual([
       '@Pascal',
-      '@Zebra'
+      '@Zebra',
+      '@plain',
+      '@top'
     ])
     expect(result!.options[0]!.detail).toBe('link to source.md')
+    // Row format: kind pill (type) + doc title (displayLabel) + action
+    // label (detail) — the pill renders from `type` in the icon slot.
+    expect(result!.options[0]!.type).toBe('source')
+    expect(result!.options[0]!.displayLabel).toBe('Pascal')
+    expect(result!.options[2]!.type).toBe('note')
+    expect(result!.options[2]!.displayLabel).toBe('plain')
+    expect(result!.options[2]!.detail).toBe('link')
+    expect(result!.options[3]!.displayLabel).toBe('top')
   })
 
   it('offers the full choice set for a PDF bundle: citation, anchors, dossier', () => {
