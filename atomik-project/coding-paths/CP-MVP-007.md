@@ -402,6 +402,14 @@ bench fixes : S06b white app (props typed, never destructured — the
               Deviation recorded: pill rendering + menu feel = owner
               bench (unit tests cover order/format/exclusions; the
               gesture itself is not exercisable from the node suite).
+              S07h-b (owner screenshot, same day): the pill painted
+              OVER the title — CM's injected `.ͼ… .cm-completionIcon
+              {width:.8em}` outranked the bare class; selector now
+              rides .cm-tooltip.cm-tooltip-autocomplete. Selected
+              pill keeps dark text (var(--fg)) on its light chip —
+              inherit vanished into it. Screenshot also CONFIRMS the
+              S07h contrast half (detail readable on the blue row)
+              and note-first proximity order on the real vault.
 tests       : 411 passing / 41 suites — green after the bench fixes
               (S07h: note links, proximity order, pill row format,
               contract-file exclusions; S07e-e: 407)

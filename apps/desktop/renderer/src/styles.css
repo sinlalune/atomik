@@ -2476,8 +2476,12 @@ body[data-maximized] .tabstrip {
 }
 
 /* Kind pills (owner row format: pill, then title, then action label).
-   The completion icon slot carries them; the default glyphs are off. */
-.cm-completionIcon {
+   The completion icon slot carries them; the default glyphs are off.
+   The selector rides .cm-tooltip.cm-tooltip-autocomplete to OUTRANK
+   CodeMirror's injected `.ͼ… .cm-completionIcon { width: .8em }` —
+   with the bare class the fixed width won and the pill painted OVER
+   the title's first letters (owner screenshot, 2026-07-20). */
+.cm-tooltip.cm-tooltip-autocomplete .cm-completionIcon {
   box-sizing: content-box;
   width: auto;
   padding-right: 0;
@@ -2505,10 +2509,13 @@ body[data-maximized] .tabstrip {
   content: 'note';
 }
 
+/* Selected row: the pill keeps DARK text on its light chip — inherit
+   would take the row's highlight color and vanish into the chip. */
 .cm-tooltip-autocomplete ul li[aria-selected] .cm-completionIcon-source::after,
 .cm-tooltip-autocomplete ul li[aria-selected] .cm-completionIcon-note::after {
   background: var(--surface);
-  color: inherit;
+  color: var(--fg);
+  border-color: var(--surface);
 }
 
 /* rotate tools on the image tab — the correction lands in the dossier,
