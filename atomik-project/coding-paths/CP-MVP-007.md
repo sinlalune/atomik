@@ -573,7 +573,26 @@ bench fixes : S06b white app (props typed, never destructured — the
               connected shouldered shape, so hovering an inactive tab
               can never read as connected (the owner's second point).
               432/43, build/smoke green, screenshot flush.
-tests       : 432 passing / 43 suites — S07j added frame-coalesce (5),
+              S07q (owner report: "weird white band around the app
+              window" + "old rectangular look, no shadow, unlike
+              Obsidian"): TWO causes separated. The band = OURS —
+              Electron's native window backgroundColor defaulted to
+              WHITE and framed the dark app at the edges (pre-paint
+              + fractional-DPI seams under WSLg); fixed:
+              windowBackgroundFor(state, prefersDark) in
+              workspace-state.ts maps EVERY theme to its --bg hex
+              (hand-coupled to styles.css, noted both sides),
+              buildMainWindowOptions carries it, html gains the
+              var(--bg) floor web-side; tests 432→435 (theme map,
+              system/unknown fallback, options carry/absence). Known
+              edge: a mid-session theme switch recolors the band at
+              NEXT launch. The rectangular/no-shadow look = OFF-APP:
+              the WSLg X11 window rides RDP and gets no Windows 11
+              DWM rounding/shadow — Obsidian compares from NATIVE
+              Windows; the packaged native build gets DWM corners +
+              shadow for free (same recommendation as the 240 Hz
+              test; transparent-window CSS-rounding under WSLg
+              rejected: software-GL cost + fragile ARGB).
               S07k added folder-index (17: block matrix, adoption
               idempotence, no-cosmetic-writes, verb round-trips incl.
               nested-create chain); e2e rung re-proven on a scratch

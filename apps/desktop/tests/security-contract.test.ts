@@ -67,3 +67,14 @@ describe('contract file linkage', () => {
     }
   })
 })
+
+describe('window background (S07q)', () => {
+  it('carries the theme background so the native window never frames the app in white', () => {
+    expect(
+      buildMainWindowOptions('/fixture/preload.js', '#101418').backgroundColor
+    ).toBe('#101418')
+    expect(
+      buildMainWindowOptions('/fixture/preload.js').backgroundColor
+    ).toBeUndefined()
+  })
+})

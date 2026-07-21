@@ -116,3 +116,34 @@ export function writeWorkspaceState(stateDir: string, state: unknown): void {
     throw error
   }
 }
+
+/* S07q (owner report: a WHITE band framing the dark app): the native
+ * window's OWN background — visible at the edges before first paint
+ * and at fractional-DPI seams under WSLg — must match the theme's
+ * chrome color. One map, coupled BY HAND to the --bg values in
+ * renderer/src/styles.css (:root + theme blocks): a theme added there
+ * lands here in the same work unit (36's token contract, main side).
+ */
+const THEME_WINDOW_BG: Record<string, string> = {
+  light: '#ecece6',
+  dark: '#141418',
+  'sage-stone': '#e7e9e2',
+  eucalyptus: '#e3eae8',
+  moss: '#171915',
+  biolum: '#101418',
+  green: '#e2eadd',
+  blue: '#dfe8f0',
+  orange: '#efe6d4',
+  grey: '#e0e2e5',
+  pink: '#eddfe6'
+}
+
+/** The window backgroundColor for the persisted theme; 'system' and
+ * unknown values follow the OS scheme. */
+export function windowBackgroundFor(
+  state: WorkspaceState | null,
+  prefersDark: boolean
+): string {
+  const theme = state?.settings?.['theme'] ?? 'system'
+  return THEME_WINDOW_BG[theme] ?? (prefersDark ? '#141418' : '#ecece6')
+}

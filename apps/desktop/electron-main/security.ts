@@ -35,7 +35,8 @@ export const SECURE_WEB_PREFERENCES = {
  * mapping under WSLg, so the shadow costs nothing there anymore.
  */
 export function buildMainWindowOptions(
-  preloadPath: string
+  preloadPath: string,
+  backgroundColor?: string
 ): BrowserWindowConstructorOptions {
   return {
     width: 1200,
@@ -43,6 +44,10 @@ export function buildMainWindowOptions(
     show: false,
     frame: false,
     autoHideMenuBar: true,
+    // S07q: the native window's own background matches the theme's
+    // chrome — Electron's default WHITE otherwise frames a dark app
+    // at the edges (pre-paint and fractional-DPI seams under WSLg)
+    ...(backgroundColor ? { backgroundColor } : {}),
     webPreferences: {
       ...SECURE_WEB_PREFERENCES,
       preload: preloadPath

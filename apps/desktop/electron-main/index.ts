@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, screen, session, shell, utilityProcess, WebContentsView } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, nativeTheme, screen, session, shell, utilityProcess, WebContentsView } from 'electron'
 import { execFile } from 'node:child_process'
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
@@ -62,6 +62,7 @@ import {
 import {
   readWorkspaceState,
   resolveStateDir,
+  windowBackgroundFor,
   writeWorkspaceState
 } from './workspace-state'
 import {
@@ -1203,9 +1204,9 @@ function registerWebViewHandlers(getWindow: () => BrowserWindow | null): void {
   })
 }
 
-function createMainWindow(hash?: string): BrowserWindow {
+function createMainWindow(hash?: string, backgroundColor?: string): BrowserWindow {
   const window = new BrowserWindow(
-    buildMainWindowOptions(join(__dirname, '../preload/index.js'))
+    buildMainWindowOptions(join(__dirname, '../preload/index.js'), backgroundColor)
   )
 
   // The trusted UI window never hosts remote content (13). Until a dedicated
@@ -1722,8 +1723,13 @@ app.whenReady().then(() => {
 
   const smoke = process.env['ATOMIK_SMOKE'] === '1'
   const smokeDoc = process.env['ATOMIK_SMOKE_DOC']
+  const windowBg = windowBackgroundFor(
+    readWorkspaceState(stateDir),
+    nativeTheme.shouldUseDarkColors
+  )
   const window = createMainWindow(
-    smoke ? (smokeDoc ? `dev-docs:${smokeDoc}` : 'dev-docs') : undefined
+    smoke ? (smokeDoc ? `dev-docs:${smokeDoc}` : 'dev-docs') : undefined,
+    windowBg
   )
   if (smoke) {
     window.webContents.once('did-finish-load', () => {
@@ -1732,7 +1738,15 @@ app.whenReady().then(() => {
   }
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createMainWindow()
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createMainWindow(
+        undefined,
+        windowBackgroundFor(
+          readWorkspaceState(stateDir),
+          nativeTheme.shouldUseDarkColors
+        )
+      )
+    }
   })
 })
 

@@ -8,6 +8,7 @@ import {
   isValidWorkspaceState,
   readWorkspaceState,
   resolveStateDir,
+  windowBackgroundFor,
   writeWorkspaceState
 } from '../electron-main/workspace-state'
 
@@ -180,5 +181,27 @@ describe('pane tree (S07d — optional string map on leaves)', () => {
     const badValue = validState()
     ;(badValue.root as { first: { tree?: unknown } }).first.tree = { w: 300 }
     expect(isValidWorkspaceState(badValue)).toBe(false)
+  })
+})
+
+describe('windowBackgroundFor (S07q — the native band color)', () => {
+  const withTheme = (theme: string): WorkspaceState => ({
+    ...validState(),
+    settings: { theme }
+  })
+
+  it('maps every named theme to its chrome --bg', () => {
+    expect(windowBackgroundFor(withTheme('moss'), false)).toBe('#171915')
+    expect(windowBackgroundFor(withTheme('biolum'), false)).toBe('#101418')
+    expect(windowBackgroundFor(withTheme('sage-stone'), true)).toBe('#e7e9e2')
+    expect(windowBackgroundFor(withTheme('light'), true)).toBe('#ecece6')
+    expect(windowBackgroundFor(withTheme('dark'), false)).toBe('#141418')
+  })
+
+  it('system and unknown themes follow the OS scheme; no state too', () => {
+    expect(windowBackgroundFor(withTheme('system'), true)).toBe('#141418')
+    expect(windowBackgroundFor(withTheme('system'), false)).toBe('#ecece6')
+    expect(windowBackgroundFor(withTheme('someday-theme'), true)).toBe('#141418')
+    expect(windowBackgroundFor(null, false)).toBe('#ecece6')
   })
 })

@@ -198,6 +198,12 @@
   --fg: #dfe6ea;
 }
 
+html {
+  /* S07q: the web-side floor under everything — never lets the native
+     window color read as a band inside the viewport either */
+  background: var(--bg);
+}
+
 body {
   margin: 0;
   height: 100vh;
