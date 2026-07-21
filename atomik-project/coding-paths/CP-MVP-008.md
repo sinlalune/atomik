@@ -113,8 +113,10 @@ HOW the loop is reached — this path ships them with the engine:
   mapping/errors on fixtures; an env-gated `ATOMIK_SMOKE_*` rung
   proves the live chain); tests round-trip every surface per the
   standing lifecycle rule; tests/typecheck/build/smoke green per
-  unit; module notes + ledger + log.md in the same work unit as
-  EVERY step.
+  unit; module notes + learning notes (first-use rule, 17 — the real
+  provider adapter and the inline/chat AI surfaces qualify; clause
+  restored 2026-07-21 after the CP-003→007 learning-layer stall) +
+  ledger + log.md in the same work unit as EVERY step.
 
 # Documentation coverage
 
@@ -242,14 +244,23 @@ changed     : nothing; docs-only proposal unit (this file, register
 tests       : n/a — no execution yet (repo at 407/41 green from
               CP-MVP-007)
 next action : owner review of this proposal; activation is gated on
-              (1) owner acceptance and (2) CP-MVP-007 S07 closing
+              (1) owner acceptance, (2) CP-MVP-007 S07 closing
               (owner bench — still the vault's immediate next
-              action). Then ACTIVE.md flips here, base_commit pins,
-              execution starts at S01.
-blockers    : CP-MVP-007 still active (one-active-parent-path rule).
+              action), and (3) the vision-alignment review closing
+              with owner answers — the standing pre-path gate (22),
+              first instance:
+              ../sessions/2026-07-21-vision-alignment-before-cp-mvp-008.md.
+              Then ACTIVE.md flips here, base_commit pins, execution
+              starts at S01.
+blockers    : CP-MVP-007 still active (one-active-parent-path rule);
+              alignment review open.
 ```
 
 # Blockers
 
 - CP-MVP-007 is the active parent path until its S07 acceptance
   closes; this path must not begin execution before then (35).
+- The vision-alignment review
+  (`../sessions/2026-07-21-vision-alignment-before-cp-mvp-008.md`)
+  must close with owner answers before acceptance — the standing
+  pre-path gate added 2026-07-21 (22 §If no active path exists).

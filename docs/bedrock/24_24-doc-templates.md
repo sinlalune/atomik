@@ -515,6 +515,9 @@ atomik:
 
 # Definition of done
 
+- Module notes, learning notes (first-use rule, 17), log.md, and this
+  ledger updated at every step.
+
 # Documentation coverage
 
 ## Required

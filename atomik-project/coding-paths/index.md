@@ -12,6 +12,7 @@ The bedrock carries the whole vision; the roadmap (18) sequences it; a coding pa
 
 Paths are opened just-in-time, when their milestone becomes next:
 
+- vision-alignment review with the owner BEFORE acceptance: walk the main expected features (the milestones of 18 + this register) against the owner's CURRENT vision; record confirmations and deltas as a session note (22 §If no active path exists); accepting a path with no recorded review for its opening is invalid (owner directive, 2026-07-21)
 - seed from the milestone section of 18 and the coding path template in 24
 - pass the coverage audit: every bedrock page accounted for at least once
 - one active parent path at a time; `ACTIVE.md` points to it
@@ -30,7 +31,7 @@ Late paths are better paths: they inherit module notes, friction records from th
 | M4 | PDF source + strong anchors | CP-MVP-003 | done (2026-07-13) |
 | M5 | web source tab + explicit imports | CP-MVP-006 | done (2026-07-16) |
 | M1 (friction pass) | tree file management — create/rename/move/delete + DnD | CP-MVP-007 | active (accepted 2026-07-16) |
-| M2 (completion) | real generation (Mistral Small) + AI interaction pass | [CP-MVP-008](./CP-MVP-008.md) | proposed 2026-07-20 (draft; awaits owner acceptance + CP-MVP-007 close) |
+| M2 (completion) | real generation (Mistral Small) + AI interaction pass | [CP-MVP-008](./CP-MVP-008.md) | proposed 2026-07-20 (draft; awaits owner acceptance + CP-MVP-007 close + the [2026-07-21 vision-alignment review](../sessions/2026-07-21-vision-alignment-before-cp-mvp-008.md)) |
 | M6 | minimal Truth Lens + challenge/repair | — | not opened |
 | M7 | live verification provider | — | not opened |
 | M8 | hybrid retrieval + agent context basics | — | not opened |

@@ -57,3 +57,34 @@ when the shape changes, not on every diff.
   node:http without a framework, capability tokens and constant-time
   compare, magic-byte validation, the inbox/vault boundary, testing a real
   server. Covers CP-MVP-002 S02.
+- [12 — PDF as a source: engines, extraction, and anchors that survive](./12-pdf-source-and-anchors.md) —
+  the dated pdf.js decision, two builds of one engine in two processes,
+  rendering vs extraction as separate trusts, derived text with
+  provenance, page anchors and citation return. Covers CP-MVP-003
+  (backfilled 2026-07-21).
+- [13 — Local speech and OCR seats: capability tiers, not promises](./13-local-speech-and-ocr-seats.md) —
+  whisper.cpp and llama.cpp as bounded sidecars, the adapter seam,
+  measured tiers with sticky demotion, the explicit Mistral cloud rung,
+  provider keys behind main. Covers CP-MVP-004/005 (backfilled
+  2026-07-21).
+- [14 — The web source tab: isolation, reader extraction, and snapshots as evidence](./14-web-source-tab-isolation-and-snapshots.md) —
+  the hostile guest behind deny-by-default gates, MHTML snapshots as
+  hashed evidence, structure-first reader extraction off the main
+  process, explicit import and the truth/provider boundary. Covers
+  CP-MVP-006 and the S07e wave (backfilled 2026-07-21).
+- [15 — File management as refactor: trash seams, relocate previews, and DnD over a proven verb](./15-file-management-as-refactor.md) —
+  OS trash behind a test seam, rename/move as a previewed backlink
+  refactor with rollback, bundle-as-unit guards, DnD as an input binding,
+  pane-chrome trees. Covers CP-MVP-007 (backfilled 2026-07-21).
+
+## Coverage stall (2026-07-07 → 2026-07-21) — repaid
+
+The just-in-time rule stalled silently after note 11: the "learning notes"
+line fell out of the definition-of-done boilerplate from CP-MVP-003 onward
+(kept in 001/002/004, dropped in 003/005/006/007), and five shipped paths
+went uncovered. The clause is restored in the coding-path template (24),
+in bootstrap protocol step 9 (22), and in CP-MVP-008's definition of done;
+notes 12–15 above repaid the debt as one docs-only unit on 2026-07-21
+(owner decision, Q6 of the pre-CP-MVP-008 vision-alignment review). The
+lesson stands: a recurring obligation lives in the per-step protocol, not
+only in a checklist line that path-seeding can drop.

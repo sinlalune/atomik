@@ -86,14 +86,20 @@ Coding Path    = what this task will change, in what order, and where it stands
 8. Execute ONE path step at a time.
 9. After each step, in the same work unit:
    update tests, update the Work Ledger checkpoint,
-   update module notes / affected docs, append to log.md.
+   update module notes / affected docs, append to log.md,
+   and when the step first mobilizes a technology or pattern,
+   add or extend the matching docs/learning/ note (17 first-use rule).
 10. Generate a brief into atomik-project/briefs/ ONLY when handing work
     to another session, agent, or person.
 ```
 
 ## If no active path exists
 
-Do not start coding. Propose a new coding path from the relevant roadmap milestone using the template in `24_24-doc-templates.md`, including its documentation coverage and definition of done. The path is reviewed and accepted like any other patch; then execution begins at step 1.
+Do not start coding.
+
+1. **Vision-alignment review first** (owner directive, 2026-07-21). Walk the main expected features — the milestones of `18_18-roadmap.md` and the register in `atomik-project/coding-paths/index.md` — with the owner against their CURRENT vision: what shipped, what the next path proposes, what the queue behind it promises. Record confirmations, deltas, and re-prioritizations as a session note in `atomik-project/sessions/`. Roadmap amendments remain owner-gated; the review may propose them, never apply them silently.
+2. Then propose a new coding path from the relevant roadmap milestone using the template in `24_24-doc-templates.md`, including its documentation coverage and definition of done.
+3. The path is reviewed and accepted like any other patch — accepting a path with no recorded alignment review for this opening is invalid — then execution begins at step 1.
 
 ## Standing prohibitions
 
