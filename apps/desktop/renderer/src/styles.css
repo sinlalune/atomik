@@ -2749,7 +2749,8 @@ button svg {
 }
 
 .cm-completionIcon-source::after,
-.cm-completionIcon-note::after {
+.cm-completionIcon-note::after,
+.cm-completionIcon-prompt::after {
   display: inline-block;
   padding: 0.05rem 0.4rem;
   border: 1px solid var(--border);
@@ -2767,10 +2768,16 @@ button svg {
   content: 'note';
 }
 
+.cm-completionIcon-prompt::after {
+  content: 'prompt';
+  color: var(--accent);
+}
+
 /* Selected row: the pill keeps DARK text on its light chip — inherit
    would take the row's highlight color and vanish into the chip. */
 .cm-tooltip-autocomplete ul li[aria-selected] .cm-completionIcon-source::after,
-.cm-tooltip-autocomplete ul li[aria-selected] .cm-completionIcon-note::after {
+.cm-tooltip-autocomplete ul li[aria-selected] .cm-completionIcon-note::after,
+.cm-tooltip-autocomplete ul li[aria-selected] .cm-completionIcon-prompt::after {
   background: var(--surface);
   color: var(--fg);
   border-color: var(--surface);

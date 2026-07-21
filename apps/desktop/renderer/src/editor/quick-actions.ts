@@ -14,6 +14,13 @@ const atomik = (): AtomikApi =>
   (globalThis as unknown as { atomik: AtomikApi }).atomik
 import { resolveRelativePath } from '../dev-docs/markdown'
 import { pageAnchorsOf, resourceOf, type PageAnchor } from '../source/dossier'
+import {
+  collectPromptRefs,
+  isPromptsFolder,
+  layerDirectiveFor,
+  parsePromptFile,
+  scopeLabel as promptScopeLabel
+} from './prompts'
 
 /**
  * "@" quick actions (owner request): typing `@` in the editor opens a
@@ -249,7 +256,7 @@ export function quoteBlockFor(
 export type BundleEntry = {
   /** Which pill the row leads with (owner format, 2026-07-20: kind
    *  pill, then doc title, then action label). */
-  kind: 'source' | 'note'
+  kind: 'source' | 'note' | 'prompt'
   /** The doc title shown as the row's main text. */
   title: string
   /** Filter string (matched as typed; includes the action words). */
@@ -259,6 +266,44 @@ export type BundleEntry = {
   insertion?: Insertion
   /** Deferred body (derived files are read at APPLY time, not menu time). */
   loadInsertion?: () => Promise<Insertion>
+  /** Ranking nudge (CodeMirror boost, -99..99) — prompts outrank
+   *  links inside a prompts/ folder (S03e). */
+  boost?: number
+}
+
+/**
+ * Prompt-layer entries (S03e, owner bench): when the note being edited
+ * LIVES in a prompts/ folder, the @ menu leads with the note's
+ * resolved prompts — chipped `prompt`, ordered nearest-first
+ * (folder → root, the boost encodes the chain position), inserting
+ * the LAYER DIRECTIVE `{{prompt: name}}`, never a link. Outside
+ * prompts/ folders the menu is unchanged — a directive is inert in an
+ * ordinary note. Pure over injected readers.
+ */
+export async function promptLayerEntries(
+  notePath: string,
+  tree: VaultFolder,
+  readNote: DossierReader
+): Promise<BundleEntry[]> {
+  if (!isPromptsFolder(notePath.split('/').slice(0, -1).join('/'))) return []
+  const refs = collectPromptRefs(tree, notePath).filter(
+    (ref) => ref.relPath !== notePath
+  )
+  const entries: BundleEntry[] = []
+  for (const [index, ref] of refs.entries()) {
+    const content = await readNote(ref.relPath)
+    const parsed = content ? parsePromptFile(content) : null
+    if (!parsed) continue
+    entries.push({
+      kind: 'prompt',
+      title: parsed.title ?? ref.name,
+      label: `@${ref.name} prompt layer`,
+      detail: `${parsed.kind} — insert layer · ${promptScopeLabel(ref.scopeFolder, notePath)}`,
+      insertion: { text: layerDirectiveFor(ref.name) },
+      boost: Math.max(1, 99 - index)
+    })
+  }
+  return entries
 }
 
 /** All menu entries for one bundle (S06c, owner feedback: the menu must
@@ -412,7 +457,10 @@ export function quickActionsSource(
     const contents = await Promise.all(
       bundles.map((bundle) => readDossier(bundle.dossierPath))
     )
+    // S03e: inside a prompts/ folder the menu leads with prompt layers
+    const promptEntries = await promptLayerEntries(notePath, tree, readDossier)
     const options: Completion[] = [
+      ...promptEntries,
       ...bundles.flatMap((bundle, index) => {
         const content = contents[index] ?? null
         return [
@@ -428,6 +476,7 @@ export function quickActionsSource(
         displayLabel: entry.title,
         detail: entry.detail,
         type: entry.kind,
+        ...(entry.boost !== undefined ? { boost: entry.boost } : {}),
         apply: (view: EditorView, _completion, applyFrom, applyTo) => {
           const dispatch = (insertion: Insertion): void =>
             view.dispatch({

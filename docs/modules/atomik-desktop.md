@@ -216,7 +216,14 @@ timestamp: 2026-07-06T00:00:00Z
   a Windows-edited prompt must not vanish from the menus. Pure
   helpers `atPromptToken`/`applyAtInsertion`/`insertDirectiveAt`/
   `expandInstruction`/`filterPrompts` (nearest-first order pinned
-  through the filter).
+  through the filter). S03e (owner bench screenshots): the EDITOR's
+  own @ citation menu leads with PROMPTS when the edited note lives
+  in a prompts/ folder — `promptLayerEntries` in quick-actions.ts:
+  chipped `prompt` (accent pill beside note/source), nearest-first
+  via CodeMirror boost (chain position encoded), inserting the layer
+  directive `{{prompt: name}}`, never a link; the file never offers
+  itself; outside prompts/ folders the menu is unchanged (a
+  directive is inert in an ordinary note).
   `renderer/src/editor/AiPanel.tsx` docks the loop in the editor:
   selection (or whole note) → instruction/preset → destination
   (replace-selection / append / new-note, path prefilled beside the

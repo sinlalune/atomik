@@ -9,6 +9,7 @@ import {
   insertionFor,
   linkableNotesOf,
   noteLinkEntry,
+  promptLayerEntries,
   quickActionsSource,
   quoteBlockFor,
   relativePathBetween,
@@ -52,6 +53,98 @@ const tree: VaultFolder = {
     }
   ]
 }
+
+describe('promptLayerEntries (S03e — prompts lead the @ menu in prompts/ folders)', () => {
+  const promptTree: VaultFolder = {
+    name: 'vault',
+    relPath: '',
+    notes: [{ name: 'welcome.md', relPath: 'welcome.md' }],
+    folders: [
+      {
+        name: 'prompts',
+        relPath: 'prompts',
+        notes: [
+          { name: 'tone.md', relPath: 'prompts/tone.md' },
+          { name: 'personality.md', relPath: 'prompts/personality.md' },
+          { name: 'index.md', relPath: 'prompts/index.md' }
+        ],
+        folders: []
+      }
+    ]
+  }
+  const files: Record<string, string> = {
+    'prompts/tone.md': '---\nkind: system\ntitle: Tone\n---\n\nStay terse.',
+    'prompts/personality.md':
+      '---\nkind: message\ntitle: Personality\n---\n\nBe playful.'
+  }
+  const readNote = (relPath: string): Promise<string | null> =>
+    Promise.resolve(files[relPath] ?? null)
+
+  it('offers sibling prompts as layer insertions, chipped prompt, never itself', async () => {
+    const entries = await promptLayerEntries('prompts/tone.md', promptTree, readNote)
+    expect(entries).toHaveLength(1)
+    expect(entries[0]).toMatchObject({
+      kind: 'prompt',
+      title: 'Personality',
+      insertion: { text: '{{prompt: personality}}' }
+    })
+    expect(entries[0]!.detail).toContain('message')
+    expect(entries[0]!.detail).toContain('insert layer')
+    expect(entries[0]!.boost).toBeGreaterThan(0)
+  })
+
+  it('offers nothing outside a prompts/ folder — a directive is inert there', async () => {
+    expect(await promptLayerEntries('welcome.md', promptTree, readNote)).toEqual([])
+  })
+
+  it('boosts nearest scopes above root ones (folder → root order)', async () => {
+    const nested: VaultFolder = {
+      ...promptTree,
+      folders: [
+        ...promptTree.folders,
+        {
+          name: 'projects',
+          relPath: 'projects',
+          notes: [],
+          folders: [
+            {
+              name: 'x',
+              relPath: 'projects/x',
+              notes: [],
+              folders: [
+                {
+                  name: 'prompts',
+                  relPath: 'projects/x/prompts',
+                  notes: [
+                    { name: 'local.md', relPath: 'projects/x/prompts/local.md' },
+                    { name: 'draft.md', relPath: 'projects/x/prompts/draft.md' }
+                  ],
+                  folders: []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    const nestedFiles: Record<string, string> = {
+      ...files,
+      'projects/x/prompts/local.md': '---\nkind: message\n---\n\nLocal body.'
+    }
+    const entries = await promptLayerEntries(
+      'projects/x/prompts/draft.md',
+      nested,
+      (relPath) => Promise.resolve(nestedFiles[relPath] ?? null)
+    )
+    // nearest (own folder) first, then root; the boost encodes it
+    expect(entries.map((entry) => entry.insertion?.text)).toEqual([
+      '{{prompt: local}}',
+      '{{prompt: tone}}',
+      '{{prompt: personality}}'
+    ])
+    expect(entries[0]!.boost!).toBeGreaterThan(entries[1]!.boost!)
+  })
+})
 
 describe('sourceBundlesOf', () => {
   it('collects every folder holding a source.md, sorted by name', () => {

@@ -273,6 +273,18 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       failed the fence match and the file vanished silently;
       nearest-first (folder → root) order verified and PINNED by
       test through the filter. Tests 477→481/45; gates green.
+- [x] S03e (owner bench screenshots, same day) — done 2026-07-21:
+      the owner's @ was the EDITOR's citation menu (authoring
+      prompts/tone.md), not the AI panel — prompts surfaced only as
+      generic note links, buried under sources. `promptLayerEntries`
+      joins quick-actions.ts: when the edited note lives in a
+      prompts/ folder the @ menu LEADS with the note's resolved
+      prompts — `prompt` chip (accent), kind + scope in the detail,
+      nearest-first folder→root via CodeMirror boost, picking
+      inserts the LAYER DIRECTIVE (never a link), the file never
+      offers itself; ordinary notes keep the unchanged citation
+      menu (a directive is inert there). Tests 481→484/45; gates
+      green.
 - [ ] S04 Selection context menu: right-click + keyboard on an editor
       selection → AI menu (TreeMenu machinery pattern): quick actions
       from prompt files + built-ins, custom input at the click
