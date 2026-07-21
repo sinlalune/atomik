@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ProjectInfo, VaultInfo } from '../../../shared/ipc-contract'
 import { EditorPane } from '../editor/EditorPane'
+import { HistoryNav } from '../HistoryNav'
 import { ModeSwitch } from '../editor/ModeSwitch'
 import { noteFollowTarget } from '../vault/note-follow'
 import { useNavHistory } from '../vault/nav-history'
@@ -241,13 +242,14 @@ export function ProjectView({
           <input
             value={draftTitle}
             placeholder="new project title…"
+            aria-label="New project title"
             onChange={(event) => setDraftTitle(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === 'Enter') void onCreateProject()
             }}
           />
           <button type="button" onClick={() => void onCreateProject()}>
-            create
+            Create
           </button>
         </div>
         {error && <p className="error">{error}</p>}
@@ -288,26 +290,12 @@ export function ProjectView({
         ) : (
           <>
             <div className="note-bar">
-              <span className="note-bar-nav">
-                <button
-                  type="button"
-                  className="note-bar-button"
-                  disabled={!nav.backOk}
-                  title="Back to the previously viewed note"
-                  onClick={nav.back}
-                >
-                  ‹
-                </button>
-                <button
-                  type="button"
-                  className="note-bar-button"
-                  disabled={!nav.forwardOk}
-                  title="Forward"
-                  onClick={nav.forward}
-                >
-                  ›
-                </button>
-              </span>
+              <HistoryNav
+                backOk={nav.backOk}
+                forwardOk={nav.forwardOk}
+                onBack={nav.back}
+                onForward={nav.forward}
+              />
               <span className="note-bar-path" title={note.relPath}>
                 {note.relPath}
               </span>

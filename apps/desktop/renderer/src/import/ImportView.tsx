@@ -1,6 +1,7 @@
 import fixWebmDuration from 'fix-webm-duration'
 import QRCode from 'qrcode'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { RecordIcon, StopIcon } from '../icons'
 import type {
   CaptureSessionInfo,
   CaptureUploadInfo
@@ -168,6 +169,7 @@ export function ImportView({
               <input
                 value={webDraft}
                 placeholder="https://…"
+                aria-label="Web page address"
                 disabled={webBusy}
                 onChange={(event) => setWebDraft(event.target.value)}
                 onKeyDown={(event) => {
@@ -399,6 +401,7 @@ function DesktopRecorder({
         <select
           className="capture-mic-select"
           title="Microphone used by Record here"
+          aria-label="Microphone"
           value={deviceId}
           onChange={(event) => setDeviceId(event.target.value)}
         >
@@ -418,14 +421,28 @@ function DesktopRecorder({
         title="Record audio with this device's microphone — it lands in the same inbox as phone uploads"
         onClick={recording ? stopRecording : startRecording}
       >
-        {recording
-          ? `■ Stop (${formatRemaining(nowMs, startedAtMs)})`
-          : '● Record here'}
+        {recording ? (
+          <>
+            <StopIcon /> Stop ({formatRemaining(nowMs, startedAtMs)})
+          </>
+        ) : (
+          <>
+            <RecordIcon /> Record here
+          </>
+        )}
       </button>
       {recording && (
         <div className="capture-recording-status">
           <span>recording from: {trackLabel}</span>
-          <div className="capture-level" title="Input level — a flat bar means a silent take">
+          <div
+            className="capture-level"
+            title="Input level — a flat bar means a silent take"
+            role="meter"
+            aria-label="Input level"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.min(100, Math.round(level * 140))}
+          >
             <div style={{ width: `${Math.min(100, Math.round(level * 140))}%` }} />
           </div>
         </div>

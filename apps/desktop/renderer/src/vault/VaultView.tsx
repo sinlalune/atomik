@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { VaultInfo } from '../../../shared/ipc-contract'
 import { EditorPane } from '../editor/EditorPane'
+import { HistoryNav } from '../HistoryNav'
 import { ModeSwitch } from '../editor/ModeSwitch'
 import type { NoteViewMode, PaneNoteGuard, SaveMode } from '../workspace/model'
 import { hasMediaResource } from '../source/dossier'
@@ -192,26 +193,12 @@ export function VaultView({
         ) : (
           <>
             <div className="note-bar">
-              <span className="note-bar-nav">
-                <button
-                  type="button"
-                  className="note-bar-button"
-                  disabled={!nav.backOk}
-                  title="Back to the previously viewed note"
-                  onClick={nav.back}
-                >
-                  ‹
-                </button>
-                <button
-                  type="button"
-                  className="note-bar-button"
-                  disabled={!nav.forwardOk}
-                  title="Forward"
-                  onClick={nav.forward}
-                >
-                  ›
-                </button>
-              </span>
+              <HistoryNav
+                backOk={nav.backOk}
+                forwardOk={nav.forwardOk}
+                onBack={nav.back}
+                onForward={nav.forward}
+              />
               <span className="note-bar-path" title={note.relPath}>
                 {note.relPath}
               </span>

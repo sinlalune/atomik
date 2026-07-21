@@ -99,6 +99,7 @@ export function AppMenu(): React.JSX.Element {
               type="password"
               value={draft}
               placeholder="paste a Mistral API key"
+              aria-label="Mistral API key"
               onChange={(event) => setDraft(event.target.value)}
               disabled={busy}
             />

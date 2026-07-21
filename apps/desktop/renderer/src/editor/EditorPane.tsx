@@ -520,7 +520,11 @@ export function EditorPane({
       <div className="note-bar">
         <span className="note-bar-path" title={note.relPath}>
           {note.relPath}
-          {dirty ? ' ●' : ''}
+          {dirty && (
+            <span className="dirty-dot" title="Unsaved changes" aria-label="Unsaved changes">
+              ●
+            </span>
+          )}
         </span>
         <span className="note-bar-actions">
           {error && <span className="error editor-msg">{error}</span>}

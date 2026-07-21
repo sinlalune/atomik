@@ -6,6 +6,12 @@ import type {
 } from '../../../shared/ipc-contract'
 import { DevDocs } from '../dev-docs/DevDocs'
 import { frameCoalesced } from './frame-coalesce'
+import {
+  CloseIcon,
+  PlusIcon,
+  SplitHorizontalIcon,
+  SplitVerticalIcon
+} from '../icons'
 import { ProjectView } from '../project/ProjectView'
 import { noteDisplayName } from '../vault/scope'
 import { VaultView } from '../vault/VaultView'
@@ -423,7 +429,13 @@ function LeafPane({
               <button
                 type="button"
                 className="tab-title"
-                title={tab.params?.['docPath'] ?? tab.params?.['url'] ?? tab.view}
+                title={
+                  tab.params?.['notePath'] ??
+                  tab.params?.['dossierPath'] ??
+                  tab.params?.['docPath'] ??
+                  tab.params?.['url'] ??
+                  tab.view
+                }
                 onClick={() => dispatch((state) => activateTab(state, node.id, tab.id))}
               >
                 {tabLabel(tab)}
@@ -432,12 +444,13 @@ function LeafPane({
                 type="button"
                 className="tab-close"
                 aria-label="Close tab"
+                title="Close tab"
                 onClick={() => {
                   destroyTabView(tab)
                   dispatch((state) => closeTab(state, node.id, tab.id))
                 }}
               >
-                ×
+                <CloseIcon />
               </button>
             </span>
           ))}
@@ -445,31 +458,34 @@ function LeafPane({
             type="button"
             className="tab-new"
             title="New tab"
+            aria-label="New tab"
             onClick={() =>
               dispatch((state) => addTab(state, node.id, makeTab('new')))
             }
           >
-            +
+            <PlusIcon />
           </button>
         </div>
         <span className="tabstrip-actions">
           <button
             type="button"
             title="Split side by side"
+            aria-label="Split side by side"
             onClick={() =>
               dispatch((state) => splitPane(state, node.id, 'horizontal'))
             }
           >
-            ◫
+            <SplitHorizontalIcon />
           </button>
           <button
             type="button"
             title="Split stacked"
+            aria-label="Split stacked"
             onClick={() =>
               dispatch((state) => splitPane(state, node.id, 'vertical'))
             }
           >
-            ⬓
+            <SplitVerticalIcon />
           </button>
           <button
             type="button"
@@ -478,9 +494,10 @@ function LeafPane({
                 ? 'Close pane (back to the New Pane chooser)'
                 : 'Close pane'
             }
+            aria-label="Close pane"
             onClick={closeThisPane}
           >
-            ✕
+            <CloseIcon />
           </button>
         </span>
       </header>

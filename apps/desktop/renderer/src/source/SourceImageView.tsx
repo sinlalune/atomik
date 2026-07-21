@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { resolveRelativePath } from '../dev-docs/markdown'
+import { HistoryNav } from '../HistoryNav'
+import { ExternalLinkIcon, RotateCcwIcon, RotateCwIcon } from '../icons'
 import { useVaultNote } from '../vault/useVaultNote'
 import { useNavHistory } from '../vault/nav-history'
 import { invalidateImage } from '../vault/image-cache'
@@ -302,16 +304,18 @@ export function SourceImageView({
             <button
               type="button"
               title="Rotate left (recorded in the dossier; the original file is untouched)"
+              aria-label="Rotate left"
               onClick={() => rotate(-90)}
             >
-              ⟲
+              <RotateCcwIcon />
             </button>
             <button
               type="button"
               title="Rotate right (recorded in the dossier; the original file is untouched)"
+              aria-label="Rotate right"
               onClick={() => rotate(90)}
             >
-              ⟳
+              <RotateCwIcon />
             </button>
           </div>
         )}
@@ -322,12 +326,12 @@ export function SourceImageView({
             <button
               type="button"
               className="note-bar-button"
-              title="Lecture via le lecteur système (contourne l'audio WSLg)"
+              title="Play in the system player (bypasses WSLg audio)"
               onClick={() => {
                 if (assetRel) void window.atomik.openSourceExternally(assetRel)
               }}
             >
-              Ouvrir en externe
+              <ExternalLinkIcon /> Open externally
             </button>
           </div>
         )}
@@ -353,7 +357,7 @@ export function SourceImageView({
                   title="Open the live page in a Web tab"
                   onClick={() => onOpenWebUrl?.(webUrl)}
                 >
-                  Live ↗
+                  Live <ExternalLinkIcon />
                 </button>
                 <button
                   type="button"
@@ -364,7 +368,7 @@ export function SourceImageView({
                     if (rel) void window.atomik.openSourceExternally(rel).catch(() => {})
                   }}
                 >
-                  External
+                  Snapshot <ExternalLinkIcon />
                 </button>
               </span>
             </div>
@@ -400,26 +404,12 @@ export function SourceImageView({
       </div>
       <div className="source-image-dossier">
         <div className="note-bar">
-          <span className="note-bar-nav">
-            <button
-              type="button"
-              className="note-bar-button"
-              disabled={!nav.backOk}
-              title="Back to the previously viewed note"
-              onClick={nav.back}
-            >
-              ‹
-            </button>
-            <button
-              type="button"
-              className="note-bar-button"
-              disabled={!nav.forwardOk}
-              title="Forward"
-              onClick={nav.forward}
-            >
-              ›
-            </button>
-          </span>
+          <HistoryNav
+            backOk={nav.backOk}
+            forwardOk={nav.forwardOk}
+            onBack={nav.back}
+            onForward={nav.forward}
+          />
           <span className="note-bar-path" title={note?.relPath ?? dossierPath}>
             {note?.relPath ?? dossierPath}
           </span>

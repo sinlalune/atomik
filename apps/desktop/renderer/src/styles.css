@@ -39,6 +39,21 @@
 
   /* one shared height for the panel header row and the note bar */
   --bar-h: 2.1rem;
+
+  /* Semantic state colors (S07m: one source for every error/warn/ok/info
+     use — literals had drifted into 3+ copies each, one flat red was
+     unreadable on dark). Themes may override the family, not the sites. */
+  --error: light-dark(#a03030, #ff8080);
+  --error-bg: light-dark(#f6e4e4, #3a2426);
+  --warn-fg: light-dark(#8a5a00, #f0c86e);
+  --warn-bg: light-dark(#fdf3e0, #3a3220);
+  --warn-border: light-dark(#e6cf9a, #6b5a2e);
+  --ok-fg: light-dark(#2f6b2f, #a5d6a5);
+  --ok-bg: light-dark(#e8f3e8, #223522);
+  --ok-border: light-dark(#bcd9bc, #3b5c3b);
+  --info-fg: light-dark(#3d4f7a, #aebde4);
+  --info-bg: light-dark(#e9edf8, #262c3f);
+  --info-border: light-dark(#c3cde8, #47547a);
 }
 
 /* Explicit themes (owner round 2: dark mode + soft pastels for bright
@@ -285,7 +300,7 @@ body[data-maximized] .app-header {
 }
 
 .error {
-  color: light-dark(#a03030, #ff8080);
+  color: var(--error);
 }
 
 /* workspace: panes and tabs ------------------------------------------------ */
@@ -503,6 +518,11 @@ body[data-maximized] .tabstrip {
 
 .tabstrip-tabs .tab-new {
   align-self: center;
+  display: inline-flex;
+  align-items: center;
+  /* optical: sits on the tabs' text line, not the strip center (tabs
+     carry a 4px top inset) */
+  margin-top: 2px;
 }
 
 .tab .tab-title {
@@ -543,118 +563,6 @@ body[data-maximized] .tabstrip {
   background: var(--code-bg);
 }
 
-.theme-picker {
-  flex: none;
-  font: inherit;
-  font-size: 0.72rem;
-  color: var(--muted);
-  background: none;
-  border: none;
-  border-radius: 6px;
-  padding: 0.2rem 0.1rem;
-  margin-left: 6px;
-  cursor: pointer;
-  -webkit-app-region: no-drag;
-}
-
-.theme-picker:hover {
-  color: var(--accent);
-  background: var(--code-bg);
-}
-
-/* Settings → AI (S05b): gear + popover panel in the top row. */
-.ai-settings {
-  position: relative;
-  flex: none;
-  -webkit-app-region: no-drag;
-}
-
-.ai-settings-toggle {
-  font: inherit;
-  font-size: 0.8rem;
-  color: var(--muted);
-  background: none;
-  border: none;
-  border-radius: 6px;
-  padding: 0.15rem 0.35rem;
-  cursor: pointer;
-}
-
-.ai-settings-toggle:hover {
-  color: var(--accent);
-  background: var(--code-bg);
-}
-
-.ai-settings-panel {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 40;
-  width: 320px;
-  padding: 0.75rem 0.9rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-  font-size: 0.8rem;
-}
-
-.ai-settings-panel h3 {
-  margin: 0 0 0.5rem;
-  font-size: 0.85rem;
-}
-
-.ai-settings-panel h4 {
-  margin: 0 0 0.25rem;
-  font-size: 0.78rem;
-  color: var(--muted);
-}
-
-.ai-settings-status {
-  margin: 0 0 0.5rem;
-}
-
-.ai-settings-row {
-  display: flex;
-  gap: 6px;
-}
-
-.ai-settings-row input {
-  flex: 1;
-  min-width: 0;
-  font: inherit;
-  color: inherit;
-  background: var(--code-bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.25rem 0.4rem;
-}
-
-.ai-settings-row button {
-  font: inherit;
-  color: var(--muted);
-  background: var(--code-bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.25rem 0.5rem;
-  cursor: pointer;
-}
-
-.ai-settings-row button:hover:not(:disabled) {
-  color: var(--accent);
-}
-
-.ai-settings-row button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.ai-settings-note {
-  margin: 0.5rem 0 0;
-  color: var(--muted);
-  font-size: 0.72rem;
-}
-
 /* PDF viewer (CP-MVP-003 S04) */
 .pdf-view {
   width: 100%;
@@ -664,7 +572,9 @@ body[data-maximized] .tabstrip {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 0 8px 8px;
+  /* the bar spans edge to edge like every sibling bar (S07m); the
+     canvas carries its own inset below */
+  padding: 0 0 8px;
 }
 
 /* exactly ONE scroller: when the pane hosts the PDF view, the parent
@@ -676,19 +586,23 @@ body[data-maximized] .tabstrip {
   justify-content: stretch;
 }
 
+/* S07m bar parity: same height, gutter, surface, and start alignment
+   as .note-bar — the PDF header was the last thick centered bar. */
 .pdf-nav {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
+  gap: 6px;
   flex: none;
   position: sticky;
   top: 0;
   z-index: 5;
   width: 100%;
-  padding: 8px 0;
-  background: var(--bg);
+  min-height: var(--bar-h);
+  box-sizing: border-box;
+  padding: 0.15rem 0.9rem;
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
+  font-size: 0.78rem;
 }
 
 .pdf-nav-status {
@@ -697,9 +611,10 @@ body[data-maximized] .tabstrip {
 }
 
 .pdf-canvas {
-  max-width: 100%;
+  max-width: calc(100% - 16px);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
-  border-radius: 3px;
+  border-radius: 4px;
+  /* paper: the rendered page is a white artifact by nature */
   background: white;
 }
 
@@ -750,8 +665,8 @@ body[data-maximized] .tabstrip {
 
 .web-hint {
   margin: 0;
-  padding: 2px 12px 6px;
-  font-size: 12px;
+  padding: 0.25rem 0.9rem;
+  font-size: 0.75rem;
   flex: none;
 }
 
@@ -809,7 +724,8 @@ body[data-maximized] .tabstrip {
   gap: 8px;
   min-height: var(--bar-h);
   box-sizing: border-box;
-  padding: 0.15rem 0.6rem;
+  padding: 0.15rem 0.9rem;
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
 
@@ -828,8 +744,8 @@ body[data-maximized] .tabstrip {
 .web-source-actions {
   display: flex;
   gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
+  flex: none;
+  margin-left: auto;
 }
 
 .web-source-note {
@@ -981,17 +897,6 @@ body[data-maximized] .tabstrip {
 .tree-resize:hover,
 .tree-resize:active {
   background: var(--accent);
-}
-
-/* Collapsed state: the same quiet icon, floating — no pill background;
-   hover matches the expanded toggle. Vertically centered on the shared
-   bar height so it aligns with the note-bar content (owner round 3). */
-.tree-show {
-  position: absolute;
-  top: calc((var(--bar-h) - 1.5rem) / 2);
-  left: 0.45rem;
-  padding: 0.28rem 0.35rem;
-  z-index: 2;
 }
 
 /* dev docs --------------------------------------------------------------- */
@@ -1157,7 +1062,7 @@ body[data-maximized] .tabstrip {
 
 .search-result li {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.35rem;
   padding: 0.05rem 0.3rem;
   color: var(--muted);
@@ -1194,7 +1099,9 @@ body[data-maximized] .tabstrip {
 
 .vault-tree summary {
   cursor: pointer;
-  padding: 0.15rem 0.3rem;
+  /* same row box as note buttons below — folder and note text share
+     one left edge and one row height (S07m) */
+  padding: 0.22rem 0.5rem;
   color: var(--muted);
   user-select: none;
 }
@@ -1251,16 +1158,15 @@ body[data-maximized] .tabstrip {
   font-size: 0.78rem;
 }
 
-.no-tree .note-bar {
-  padding-left: 2.6rem;
-}
+/* (S07m: the 2.6rem `.no-tree` indent died with the floating tree
+   toggle it once cleared — it was permanently indenting every note bar
+   vs the web bar.) */
 
 .note-bar-nav {
   flex: none;
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  margin-right: 0.4rem;
 }
 
 .note-bar-path {
@@ -1340,9 +1246,11 @@ body[data-maximized] .tabstrip {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 0.35rem 0.9rem;
+  min-height: var(--bar-h);
+  box-sizing: border-box;
+  padding: 0.15rem 0.9rem;
   border-bottom: 1px solid var(--border);
-  background: light-dark(#fdf3e0, #3a3220);
+  background: var(--warn-bg);
   font-size: 0.78rem;
 }
 
@@ -1373,7 +1281,6 @@ body[data-maximized] .tabstrip {
 .note-bar-actions .save-mode {
   border-color: transparent;
   color: var(--muted);
-  font-size: 0.72rem;
 }
 
 .note-bar-actions .save-mode:hover {
@@ -1702,7 +1609,9 @@ body[data-maximized] .tabstrip {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.25rem 0.9rem;
+  min-height: var(--bar-h);
+  box-sizing: border-box;
+  padding: 0.15rem 0.9rem;
   border-bottom: 1px solid var(--border);
 }
 
@@ -1713,18 +1622,18 @@ body[data-maximized] .tabstrip {
   color: var(--muted);
 }
 
-.ai-panel-bar .tab-close {
+.ai-panel-bar .icon-button {
   font: inherit;
   color: inherit;
   background: none;
   border: none;
-  border-radius: 4px;
-  padding: 0 0.4rem;
+  border-radius: 6px;
+  padding: 0.2rem 0.45rem;
   cursor: pointer;
   opacity: 0.6;
 }
 
-.ai-panel-bar .tab-close:hover {
+.ai-panel-bar .icon-button:hover {
   opacity: 1;
 }
 
@@ -1866,7 +1775,7 @@ body[data-maximized] .tabstrip {
 }
 
 .ai-claim.challenged {
-  background: light-dark(#fdf3e0, #3a3220);
+  background: var(--warn-bg);
 }
 
 .ai-claim-text {
@@ -1910,9 +1819,9 @@ body[data-maximized] .tabstrip {
 }
 
 .truth-chip.label-source-backed {
-  color: light-dark(#2f6b2f, #a5d6a5);
-  background: light-dark(#e8f3e8, #223522);
-  border-color: light-dark(#bcd9bc, #3b5c3b);
+  color: var(--ok-fg);
+  background: var(--ok-bg);
+  border-color: var(--ok-border);
 }
 
 .truth-chip.label-model-only {
@@ -1922,15 +1831,15 @@ body[data-maximized] .tabstrip {
 }
 
 .truth-chip.label-needs-citation {
-  color: light-dark(#8a5a00, #f0c86e);
-  background: light-dark(#fdf3e0, #3a3220);
-  border-color: light-dark(#e6cf9a, #6b5a2e);
+  color: var(--warn-fg);
+  background: var(--warn-bg);
+  border-color: var(--warn-border);
 }
 
 .truth-chip.label-interpretive {
-  color: light-dark(#3d4f7a, #aebde4);
-  background: light-dark(#e9edf8, #262c3f);
-  border-color: light-dark(#c3cde8, #47547a);
+  color: var(--info-fg);
+  background: var(--info-bg);
+  border-color: var(--info-border);
 }
 
 .ai-trace-badge {
@@ -2224,7 +2133,7 @@ body[data-maximized] .tabstrip {
   min-width: 12rem;
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 0.8rem 1rem 0.95rem;
+  padding: 0.85rem 1rem;
   background: var(--bg);
 }
 
@@ -2295,7 +2204,7 @@ body[data-maximized] .tabstrip {
 }
 
 .capture-error {
-  color: #c0392b;
+  color: var(--error);
   font-size: 0.85rem;
 }
 
@@ -2346,7 +2255,7 @@ body[data-maximized] .tabstrip {
 
 .capture-upload-row {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.6rem;
   flex-wrap: wrap;
 }
@@ -2412,7 +2321,8 @@ body[data-maximized] .tabstrip {
   font: inherit;
   font-size: 0.85rem;
   color: inherit;
-  background: var(--code-bg);
+  /* the form card is code-bg — a code-bg field was invisible in it */
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 0.3rem 0.5rem;
@@ -2472,8 +2382,12 @@ body[data-maximized] .tabstrip {
   overflow-y: auto;
 }
 
-/* .note-bar-actions button (above) styles the icon verbs; the pill needs
-   the heavier selector to win that generic rule */
+/* The pill verb, EVERYWHERE it appears (S07m scoping fix: the old
+   `.note-bar-actions .note-bar-button` ancestor selector left the 18
+   uses in web/pdf/nav/source bars as raw UA buttons). The doubled
+   selector keeps beating the generic `.note-bar-actions button` rule
+   inside action clusters. */
+.note-bar-button,
 .note-bar-actions .note-bar-button,
 .capture-upload-view {
   font: inherit;
@@ -2486,6 +2400,7 @@ body[data-maximized] .tabstrip {
   cursor: pointer;
 }
 
+.note-bar-button:hover,
 .note-bar-actions .note-bar-button:hover,
 .capture-upload-view:hover {
   color: var(--accent);
@@ -2494,6 +2409,23 @@ body[data-maximized] .tabstrip {
 
 .capture-upload-view {
   margin-left: 0.5rem;
+}
+
+/* Ghost icon buttons (S07m): one box for every SVG-verb button — the
+   icon centers in a flex box instead of riding the text baseline. */
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+}
+
+/* Unsaved-changes dot beside the note path (was a bare text char). */
+.dirty-dot {
+  margin-left: 0.35rem;
+  color: var(--accent);
+  font-size: 0.6em;
+  vertical-align: middle;
 }
 
 /* live-mode image embeds — the rendered photo stands in for ![](…);
@@ -2612,8 +2544,9 @@ body[data-maximized] .tabstrip {
 
 .source-image-tools button {
   font: inherit;
-  font-size: 1rem;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: var(--muted);
   /* the stage is --bg now — the pill needs the surface tone to stand
      on it (it vanished when both wore --bg) */
@@ -2713,7 +2646,7 @@ body[data-maximized] .tabstrip {
 }
 
 .tree-menu-head {
-  padding: 0.2rem 0.5rem 0.3rem;
+  padding: 0.25rem 0.5rem;
   font-size: 0.72rem;
   color: var(--muted);
   border-bottom: 1px solid var(--border);
@@ -2772,7 +2705,7 @@ body[data-maximized] .tabstrip {
 .tree-menu-error {
   padding: 0.25rem 0.5rem;
   font-size: 0.72rem;
-  color: light-dark(#a03030, #ff8080);
+  color: var(--error);
   max-width: 240px;
   white-space: normal;
   overflow-wrap: anywhere;
@@ -2780,8 +2713,8 @@ body[data-maximized] .tabstrip {
 
 .tree-menu > button.tree-menu-danger:hover,
 .tree-menu > button.tree-menu-danger:focus-visible {
-  color: light-dark(#a03030, #ff8080);
-  background: light-dark(#f6e4e4, #3a2426);
+  color: var(--error);
+  background: var(--error-bg);
 }
 
 /* DnD (CP-MVP-007 S06): a folder under a dragged node highlights. */

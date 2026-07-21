@@ -1,6 +1,13 @@
 import MarkdownIt from 'markdown-it'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { WebViewState } from '../../../shared/ipc-contract'
+import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  CloseIcon,
+  ReaderIcon,
+  ReloadIcon
+} from '../icons'
 import { onWebOverlayChange, webOverlayCovered } from './overlay'
 import { normalizeInputUrl } from './urls'
 
@@ -228,30 +235,33 @@ export function WebView({
       <div className="web-nav">
         <button
           type="button"
-          className="note-bar-button"
+          className="note-bar-button icon-button"
           disabled={!state?.canGoBack}
           title="Back"
+          aria-label="Back"
           onClick={() => control('back')}
         >
-          ‹
+          <ArrowLeftIcon />
         </button>
         <button
           type="button"
-          className="note-bar-button"
+          className="note-bar-button icon-button"
           disabled={!state?.canGoForward}
           title="Forward"
+          aria-label="Forward"
           onClick={() => control('forward')}
         >
-          ›
+          <ArrowRightIcon />
         </button>
         <button
           type="button"
-          className="note-bar-button"
+          className="note-bar-button icon-button"
           disabled={!ready}
           title={state?.loading ? 'Stop' : 'Reload'}
+          aria-label={state?.loading ? 'Stop loading' : 'Reload page'}
           onClick={() => control(state?.loading ? 'stop' : 'reload')}
         >
-          {state?.loading ? '✕' : '⟳'}
+          {state?.loading ? <CloseIcon /> : <ReloadIcon />}
         </button>
         <form
           className="web-url"
@@ -282,9 +292,11 @@ export function WebView({
           // finished load (some pages never report load-complete)
           disabled={(!ready || readerBusy) && !reader}
           title="Reader mode — read this page as clean text in place (no file). Toggle off to return to the live page."
+          aria-label="Reader mode"
+          aria-pressed={reader !== null}
           onClick={toggleReader}
         >
-          {readerBusy ? 'reading…' : reader ? '✕ reader' : 'Aa reader'}
+          <ReaderIcon /> {readerBusy ? 'reading…' : 'Reader'}
         </button>
         <button
           type="button"
@@ -310,7 +322,7 @@ export function WebView({
             className="note-bar-button"
             onClick={() => control('reload')}
           >
-            retry
+            Retry
           </button>
         </p>
       )}

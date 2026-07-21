@@ -7,6 +7,7 @@ import type {
 import {
   CollapseAllIcon,
   ExpandAllIcon,
+  PlusIcon,
   SidebarToggleIcon,
   VaultSwitchIcon
 } from '../icons'
@@ -130,6 +131,7 @@ function DocsTreePanel({
       <div className="vault-search">
         <input
           placeholder="search docs…"
+          aria-label="Search docs"
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
           onKeyDown={(event) => {
@@ -550,19 +552,28 @@ export function PaneTreePanel({
               placeholder={
                 scope.kind === 'project' ? 'new note in project…' : 'new note name…'
               }
+              aria-label="New note name"
               onChange={(event) => setDraftName(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') void onCreate()
               }}
             />
-            <button type="button" onClick={() => void onCreate()}>
-              +
+            <button
+              type="button"
+              title="Create note"
+              aria-label="Create note"
+              onClick={() => void onCreate()}
+            >
+              <PlusIcon />
             </button>
           </div>
           <div className="vault-search">
             <input
               placeholder={
                 scope.kind === 'project' ? 'search project…' : 'search vault…'
+              }
+              aria-label={
+                scope.kind === 'project' ? 'Search project' : 'Search vault'
               }
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}

@@ -478,13 +478,45 @@ bench fixes : S06b white app (props typed, never destructured — the
               parity begun on the named example: .web-nav adopts
               --bar-h + note-bar rhythm (input compacted to fit).
               Screenshot-verified: shoulders arc into the surface,
-              border rings the curve. UI AUDIT running (two parallel
+              border rings the curve. UI AUDIT run (two parallel
               inspectors: styles.css scales/alignment/parity; markup
-              icon-vs-text/a11y/divergences) feeding S07m fixes and
-              the S07n design system (owner tastes recorded:
-              macOS-glass, ALL FOUR organic palettes as themes,
-              balanced density, translucency on chrome+overlays,
-              content opaque).
+              icon-vs-text/a11y/divergences) — reports in scratchpad
+              audit-styles.md / audit-markup.md (~95 + ~80 findings).
+              S07m executed the correctness/parity wave from both:
+              17 SVG icons added to icons.tsx (house grid) and EVERY
+              chrome glyph swapped (× ✕ + ◫ ⬓ ‹ › ⟲ ⟳ ⚓ ● ■ ↗ Aa →
+              Close/Plus/Split/Arrow/Chevron/Reload/Rotate/Anchor/
+              Record/Stop/Reader/ExternalLink icons) with aria-labels
+              riding along; shared <HistoryNav> replaces three
+              identical ‹ › pairs; THE scoping bug fixed
+              (.note-bar-button was styled only under
+              .note-bar-actions — 18 buttons across web/pdf/nav/
+              source bars rendered as raw UA buttons); the vestigial
+              2.6rem .no-tree note-bar indent DELETED (every note bar
+              sat indented vs the web bar since S07d); ~120 lines of
+              dead CSS removed (.theme-picker, .ai-settings*,
+              .tree-show); bar parity finished (.pdf-nav de-centered
+              onto --bar-h/surface/gutter, .ai-panel-bar +
+              .editor-conflict on --bar-h, .web-source-bar surfaced);
+              semantic tokens (--error/-bg, --warn-fg/bg/border,
+              --ok-*, --info-*) replace 20+ drifted literals incl.
+              the flat #c0392b unreadable on dark; alignment
+              micro-pass (baseline→center rows, symmetric paddings,
+              tree folder/note rows on one left edge, + on the tab
+              text line, code-bg-on-code-bg input, three focus
+              regimes → accent outline); French labels translated;
+              12 unnamed inputs given aria-labels; tab tooltips carry
+              notePath/dossierPath; meter role on the record level.
+              432/43 green, build/smoke green, screenshot-verified.
+              S07n feed (recorded, next unit): token architecture
+              (--fs/-space/-radius/-control-h/-gutter scales,
+              z-tiers), shared .pill/.btn/.input/.popover classes,
+              NoteBar/InlineCreateForm/ConfirmDialog components,
+              editor-bar nav parity, TreeMenu web-overlay
+              registration, AI/save-mode icon treatment, the FOUR
+              organic-future themes + macOS-glass identity
+              (chrome+overlays translucent, content opaque) + the
+              design-system bedrock doc wired into AGENTS.
 tests       : 432 passing / 43 suites — S07j added frame-coalesce (5),
               S07k added folder-index (17: block matrix, adoption
               idempotence, no-cosmetic-writes, verb round-trips incl.

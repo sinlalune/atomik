@@ -9,7 +9,12 @@ import type {
   TraceSummary,
   VaultNoteFile
 } from '../../../shared/ipc-contract'
-import { DockBottomIcon, DockRightIcon } from '../icons'
+import {
+  CloseIcon,
+  DockBottomIcon,
+  DockRightIcon,
+  ExternalLinkIcon
+} from '../icons'
 import { defaultNewNotePath, ensureMdExtension } from './ai-helpers'
 
 export type BufferChange =
@@ -267,19 +272,21 @@ export function AiPanel({
         <span className="ai-panel-controls">
           <button
             type="button"
-            className="tab-close"
+            className="icon-button"
             title={dock === 'bottom' ? 'Dock right' : 'Dock bottom'}
+            aria-label={dock === 'bottom' ? 'Dock right' : 'Dock bottom'}
             onClick={onToggleDock}
           >
             {dock === 'bottom' ? <DockRightIcon /> : <DockBottomIcon />}
           </button>
           <button
             type="button"
-            className="tab-close"
+            className="icon-button"
             aria-label="Close AI panel"
+            title="Close AI panel"
             onClick={onClose}
           >
-            ×
+            <CloseIcon />
           </button>
         </span>
       </header>
@@ -301,6 +308,7 @@ export function AiPanel({
             <textarea
               rows={2}
               placeholder="Ask about the selection (or the whole note)…"
+              aria-label="AI instruction"
               value={instruction}
               onChange={(event) => setInstruction(event.target.value)}
             />
@@ -405,7 +413,7 @@ export function AiPanel({
                             title={`Open the live page — ${evidenceUrl(claim)}`}
                             onClick={() => onOpenWebUrl(evidenceUrl(claim)!)}
                           >
-                            page ↗
+                            page <ExternalLinkIcon />
                           </button>
                         )}
                       {!applied && !challengedIds.includes(claim.id) && (
@@ -437,6 +445,7 @@ export function AiPanel({
               </div>
               <textarea
                 rows={6}
+                aria-label="Proposed patch (editable)"
                 value={editedText}
                 onChange={(event) => setEditedText(event.target.value)}
               />

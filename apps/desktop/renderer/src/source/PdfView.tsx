@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as pdfjs from 'pdfjs-dist'
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+import { AnchorIcon, ChevronLeftIcon, ChevronRightIcon } from '../icons'
 import { base64ToBytes } from './bytes'
 
 /**
@@ -165,22 +166,26 @@ export function PdfView({
       <div className="pdf-nav">
         <button
           type="button"
-          className="note-bar-button"
+          className="note-bar-button icon-button"
           disabled={page <= 1}
+          title="Previous page"
+          aria-label="Previous page"
           onClick={() => setPage((p) => Math.max(1, p - 1))}
         >
-          ‹
+          <ChevronLeftIcon />
         </button>
         <span className="pdf-nav-status">
           page {page} / {numPages || '…'}
         </span>
         <button
           type="button"
-          className="note-bar-button"
+          className="note-bar-button icon-button"
           disabled={numPages === 0 || page >= numPages}
+          title="Next page"
+          aria-label="Next page"
           onClick={() => setPage((p) => Math.min(numPages, p + 1))}
         >
-          ›
+          <ChevronRightIcon />
         </button>
         {onAnchorPage && numPages > 0 && (
           <button
@@ -189,7 +194,7 @@ export function PdfView({
             title={`Record a durable anchor to page ${page} in the dossier`}
             onClick={() => onAnchorPage(page)}
           >
-            ⚓ anchor page {page}
+            <AnchorIcon /> Anchor page {page}
           </button>
         )}
       </div>

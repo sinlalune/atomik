@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { CheckIcon } from '../icons'
 import { childRelPath, moveTargetRelPath, type TreeMenuTarget } from './tree-menu'
 
 /**
@@ -138,7 +139,7 @@ export function TreeMenu({
         className="tree-menu"
         style={{ left: target.x, top: target.y }}
         role="menu"
-        aria-label={`Folder actions — ${folderLabel}`}
+        aria-label={`${target.kind === 'note' ? 'Note' : 'Folder'} actions — ${folderLabel}`}
       >
         <div className="tree-menu-head" title={target.relPath || scopeLabel}>
           {folderLabel}
@@ -211,13 +212,36 @@ export function TreeMenu({
                       ? 'note name…'
                       : 'folder name…'
               }
+              aria-label={
+                mode === 'rename'
+                  ? 'New name'
+                  : mode === 'move'
+                    ? 'Destination folder'
+                    : mode === 'note'
+                      ? 'Note name'
+                      : 'Folder name'
+              }
               onChange={(event) => setName(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') void submit()
               }}
             />
-            <button type="button" disabled={busy} onClick={() => void submit()}>
-              {busy ? '…' : '+'}
+            <button
+              type="button"
+              disabled={busy}
+              title="Confirm"
+              aria-label={
+                mode === 'rename'
+                  ? 'Rename'
+                  : mode === 'move'
+                    ? 'Move'
+                    : mode === 'note'
+                      ? 'Create note'
+                      : 'Create folder'
+              }
+              onClick={() => void submit()}
+            >
+              <CheckIcon />
             </button>
           </div>
         )}
