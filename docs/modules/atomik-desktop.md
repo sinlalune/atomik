@@ -223,7 +223,19 @@ timestamp: 2026-07-06T00:00:00Z
   via CodeMirror boost (chain position encoded), inserting the layer
   directive `{{prompt: name}}`, never a link; the file never offers
   itself; outside prompts/ folders the menu is unchanged (a
-  directive is inert in an ordinary note).
+  directive is inert in an ordinary note). S03f (owner brainstorm,
+  prompted exchange: drag-and-drop + save-now): the system side is a
+  STACK — ordered composable blocks (`personality › tone ›
+  objectives`) built in the panel: @ picker appends (duplicates
+  no-op), pills drag to reorder (`reorderStack`), × removes; the run
+  composes bodies in order (`composeSystemStack`, already
+  layer-expanded; deleted blocks drop silently) into ONE
+  `systemPrompt` — grounding rules still compose main-side on top.
+  "save" writes the stack as a prompt FILE of directive lines
+  (`stackFileContent`, root prompts/) — round-trip tested: expanding
+  the saved file reproduces the composition, which is what makes
+  stacks reusable, shareable, and AGENT-AUTHORABLE (a future agent
+  with vault access writes sub-agent behaviors as these same files).
   `renderer/src/editor/AiPanel.tsx` docks the loop in the editor:
   selection (or whole note) → instruction/preset → destination
   (replace-selection / append / new-note, path prefilled beside the

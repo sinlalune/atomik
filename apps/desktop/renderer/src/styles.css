@@ -1843,26 +1843,98 @@ body[data-maximized] .tabstrip {
   color: var(--muted);
 }
 
-/* S03: system-prompt scope selector — destination-row idiom */
+/* S03f: system STACK — ordered composable blocks, drag to reorder */
 .ai-system {
-  display: inline-flex;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem;
   font-size: 0.78rem;
   color: var(--muted);
 }
 
-.ai-system select {
+.ai-system-hint {
+  font-style: italic;
+}
+
+.ai-system-block {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: inherit;
+  background: var(--code-bg);
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+  padding: 0.12rem 0.3rem 0.12rem 0.55rem;
+  cursor: grab;
+}
+
+.ai-system-block:active {
+  cursor: grabbing;
+}
+
+.ai-system-sep {
+  color: var(--muted);
+  margin-right: 0.15rem;
+}
+
+.ai-system-block button,
+.ai-system-tools > button,
+.ai-system-save button {
   font: inherit;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  background: none;
+  border: none;
+  padding: 0 0.2rem;
+  cursor: pointer;
+}
+
+.ai-system-block button:hover,
+.ai-system-tools > button:hover,
+.ai-system-save button:hover {
+  color: var(--accent);
+}
+
+.ai-system-tools {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.ai-system-tools > button {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0 0.45rem;
+}
+
+.ai-system-add {
+  top: 100%;
+  left: 0;
+  right: auto;
+  min-width: 200px;
+}
+
+.ai-system-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.ai-system-save input {
+  font: inherit;
+  font-size: 0.75rem;
   color: inherit;
   background: var(--code-bg);
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 0.15rem 0.5rem;
+  padding: 0.12rem 0.45rem;
+  width: 9rem;
 }
 
-.ai-system select:focus {
+.ai-system-save input:focus {
   outline: 1px solid var(--accent);
   border-color: var(--accent);
 }

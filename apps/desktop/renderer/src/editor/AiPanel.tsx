@@ -20,12 +20,15 @@ import {
 import { defaultNewNotePath, ensureMdExtension } from './ai-helpers'
 import {
   atPromptToken,
+  composeSystemStack,
   expandInstruction,
   filterPrompts,
   insertDirectiveAt,
   layerDirectiveFor,
   loadPromptsFor,
+  reorderStack,
   scopeLabel,
+  stackFileContent,
   type PromptFile
 } from './prompts'
 
@@ -107,7 +110,36 @@ export function AiPanel({
   // Scoped prompt files (S03): resolved nearest-first for THIS note,
   // reloaded when vault files land — a prompt edit is a note edit.
   const [vaultPrompts, setVaultPrompts] = useState<PromptFile[]>([])
-  const [systemPromptPath, setSystemPromptPath] = useState('')
+  // System STACK (S03f): ordered block relPaths — personality > tone >
+  // objectives — composed into ONE system prompt at run.
+  const [systemStack, setSystemStack] = useState<string[]>([])
+  const [stackAddOpen, setStackAddOpen] = useState(false)
+  const [stackSaveName, setStackSaveName] = useState<string | null>(null)
+  const dragIndex = useRef<number | null>(null)
+
+  const appendToStack = useCallback((relPath: string) => {
+    setSystemStack((current) =>
+      current.includes(relPath) ? current : [...current, relPath]
+    )
+  }, [])
+
+  const saveStack = useCallback(async () => {
+    const name = stackSaveName?.trim().replace(/\.md$/i, '')
+    if (!name || systemStack.length === 0) return
+    const byPath = new Map(vaultPrompts.map((prompt) => [prompt.relPath, prompt]))
+    const blockNames = systemStack
+      .map((relPath) => byPath.get(relPath)?.name)
+      .filter((blockName): blockName is string => blockName !== undefined)
+    try {
+      await window.atomik.createNote(
+        `prompts/${name}.md`,
+        stackFileContent(name, blockNames)
+      )
+      setStackSaveName(null)
+    } catch (reason) {
+      setError(String(reason))
+    }
+  }, [stackSaveName, systemStack, vaultPrompts])
   // @ quick-action menu in the instruction field (S03c): token state +
   // keyboard highlight; items derive from the token's query.
   const [atMenu, setAtMenu] = useState<{ start: number; query: string; index: number } | null>(null)
@@ -148,7 +180,7 @@ export function AiPanel({
               element.selectionStart,
               prompt.name
             )
-      if (prompt.kind === 'system') setSystemPromptPath(prompt.relPath)
+      if (prompt.kind === 'system') appendToStack(prompt.relPath)
       setInstruction(next.text)
       setAtMenu(null)
       requestAnimationFrame(() => {
@@ -156,7 +188,7 @@ export function AiPanel({
         element.setSelectionRange(next.caret, next.caret)
       })
     },
-    [atMenu]
+    [atMenu, appendToStack]
   )
 
   useEffect(() => {
@@ -230,9 +262,7 @@ export function AiPanel({
     setApplied(null)
     const operationId = crypto.randomUUID()
     runningOperationId.current = operationId
-    const systemPrompt = vaultPrompts.find(
-      (candidate) => candidate.relPath === systemPromptPath
-    )?.body
+    const systemPrompt = composeSystemStack(systemStack, vaultPrompts)
     try {
       const result = await window.atomik.runAiOperation({
         id: operationId,
@@ -260,7 +290,7 @@ export function AiPanel({
     } finally {
       runningOperationId.current = null
     }
-  }, [destination, getDoc, getSelection, instruction, newNotePath, note.relPath, preset, systemPromptPath, vaultPrompts])
+  }, [destination, getDoc, getSelection, instruction, newNotePath, note.relPath, preset, systemStack, vaultPrompts])
 
   // Cancel rides the operation id (S02): main aborts the provider call
   // mid-flight; the run above rejects with ai(cancelled).
@@ -430,23 +460,125 @@ export function AiPanel({
                 ))}
             </div>
             {vaultPrompts.some((prompt) => prompt.kind === 'system') && (
-              <label className="ai-system">
-                system
-                <select
-                  aria-label="System prompt"
-                  value={systemPromptPath}
-                  onChange={(event) => setSystemPromptPath(event.target.value)}
-                >
-                  <option value="">built-in</option>
-                  {vaultPrompts
-                    .filter((prompt) => prompt.kind === 'system')
-                    .map((prompt) => (
-                      <option key={prompt.relPath} value={prompt.relPath}>
-                        {prompt.title} · {scopeLabel(prompt.scopeFolder, note.relPath)}
-                      </option>
-                    ))}
-                </select>
-              </label>
+              <div className="ai-system">
+                <span>system</span>
+                {systemStack.length === 0 && (
+                  <span className="ai-system-hint">built-in — add blocks to compose</span>
+                )}
+                {systemStack.map((relPath, index) => {
+                  const block = vaultPrompts.find(
+                    (candidate) => candidate.relPath === relPath
+                  )
+                  if (!block) return null
+                  return (
+                    <span
+                      key={relPath}
+                      className="ai-system-block"
+                      draggable
+                      title={`${block.description ?? block.title} · ${scopeLabel(block.scopeFolder, note.relPath)} — drag to reorder`}
+                      onDragStart={(event) => {
+                        dragIndex.current = index
+                        event.dataTransfer.effectAllowed = 'move'
+                      }}
+                      onDragOver={(event) => event.preventDefault()}
+                      onDrop={(event) => {
+                        event.preventDefault()
+                        const from = dragIndex.current
+                        dragIndex.current = null
+                        if (from !== null && from !== index) {
+                          setSystemStack((current) => reorderStack(current, from, index))
+                        }
+                      }}
+                    >
+                      {index > 0 && <span className="ai-system-sep">›</span>}
+                      {block.title}
+                      <button
+                        type="button"
+                        title={`Remove ${block.title} from the stack`}
+                        aria-label={`Remove ${block.title}`}
+                        onClick={() =>
+                          setSystemStack((current) =>
+                            current.filter((candidate) => candidate !== relPath)
+                          )
+                        }
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )
+                })}
+                <span className="ai-system-tools">
+                  <button
+                    type="button"
+                    title="Add a system block"
+                    aria-label="Add a system block"
+                    aria-expanded={stackAddOpen}
+                    onClick={() => setStackAddOpen((open) => !open)}
+                  >
+                    @
+                  </button>
+                  {systemStack.length > 0 && stackSaveName === null && (
+                    <button
+                      type="button"
+                      title="Save this stack as a prompt file in prompts/"
+                      aria-label="Save stack as prompt"
+                      onClick={() => setStackSaveName('')}
+                    >
+                      save
+                    </button>
+                  )}
+                  {stackAddOpen && (
+                    <div className="ai-at-menu ai-system-add" role="listbox" aria-label="System blocks">
+                      {vaultPrompts
+                        .filter(
+                          (prompt) =>
+                            prompt.kind === 'system' &&
+                            !systemStack.includes(prompt.relPath)
+                        )
+                        .map((prompt) => (
+                          <button
+                            key={prompt.relPath}
+                            type="button"
+                            role="option"
+                            aria-selected={false}
+                            title={prompt.description ?? prompt.relPath}
+                            onClick={() => {
+                              appendToStack(prompt.relPath)
+                              setStackAddOpen(false)
+                            }}
+                          >
+                            {prompt.title}
+                            <span className="ai-at-scope">
+                              {scopeLabel(prompt.scopeFolder, note.relPath)}
+                            </span>
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </span>
+                {stackSaveName !== null && (
+                  <span className="ai-system-save">
+                    <input
+                      value={stackSaveName}
+                      placeholder="stack name…"
+                      aria-label="Stack name"
+                      onChange={(event) => setStackSaveName(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') void saveStack()
+                        if (event.key === 'Escape') setStackSaveName(null)
+                      }}
+                    />
+                    <button
+                      type="button"
+                      title="Create the prompt file"
+                      aria-label="Create the prompt file"
+                      onClick={() => void saveStack()}
+                    >
+                      <CheckIcon />
+                    </button>
+                  </span>
+                )}
+              </div>
             )}
             <div className="ai-instruction">
               <textarea

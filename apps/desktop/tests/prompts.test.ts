@@ -4,12 +4,15 @@ import {
   applyAtInsertion,
   atPromptToken,
   buildPromptFileContent,
+  composeSystemStack,
   expandInstruction,
+  expandPromptLayers,
   filterPrompts,
   insertDirectiveAt,
   layerDirectiveFor,
+  reorderStack,
+  stackFileContent,
   collectPromptRefs,
-  expandPromptLayers,
   isPromptsFolder,
   loadPromptsFor,
   materializeStarterPrompts,
@@ -299,6 +302,54 @@ describe('@ quick-action token in AI inputs (S03c)', () => {
       'tone'
     ])
     expect(filterPrompts(prompts, 'ghost')).toEqual([])
+  })
+})
+
+describe('system stack (S03f — ordered composable blocks)', () => {
+  const stackPrompts = [
+    { relPath: 'prompts/personality.md', name: 'personality', body: 'Be playful.' },
+    { relPath: 'prompts/tone.md', name: 'tone', body: 'Stay terse.' },
+    { relPath: 'prompts/objectives.md', name: 'objectives', body: 'Aim for clarity.' }
+  ] as Parameters<typeof composeSystemStack>[1]
+
+  it('reorders blocks; out-of-range moves are no-ops', () => {
+    expect(reorderStack(['a', 'b', 'c'], 0, 2)).toEqual(['b', 'c', 'a'])
+    expect(reorderStack(['a', 'b', 'c'], 2, 0)).toEqual(['c', 'a', 'b'])
+    expect(reorderStack(['a', 'b'], 1, 1)).toEqual(['a', 'b'])
+    expect(reorderStack(['a', 'b'], 5, 0)).toEqual(['a', 'b'])
+  })
+
+  it('composes bodies in stack order; a deleted block drops silently', () => {
+    expect(
+      composeSystemStack(
+        ['prompts/personality.md', 'prompts/tone.md', 'prompts/objectives.md'],
+        stackPrompts
+      )
+    ).toBe('Be playful.\n\nStay terse.\n\nAim for clarity.')
+    expect(
+      composeSystemStack(
+        ['prompts/tone.md', 'prompts/ghost.md', 'prompts/personality.md'],
+        stackPrompts
+      )
+    ).toBe('Stay terse.\n\nBe playful.')
+  })
+
+  it('a saved stack is a prompt file whose expansion reproduces the composition', () => {
+    const content = stackFileContent('research-agent', [
+      'personality',
+      'tone',
+      'objectives'
+    ])
+    const parsed = parsePromptFile(content)
+    expect(parsed?.kind).toBe('system')
+    expect(parsed?.title).toBe('Research agent')
+    // round-trip: expanding the saved file = the stack's composition
+    const byName = new Map(
+      stackPrompts.map((prompt) => [prompt.name, { body: prompt.body }])
+    )
+    expect(expandPromptLayers(parsed!.body, byName)).toBe(
+      'Be playful.\nStay terse.\nAim for clarity.'
+    )
   })
 })
 

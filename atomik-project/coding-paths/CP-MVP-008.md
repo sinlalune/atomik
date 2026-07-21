@@ -285,6 +285,22 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       offers itself; ordinary notes keep the unchanged citation
       menu (a directive is inert there). Tests 481→484/45; gates
       green.
+- [x] S03f (owner brainstorm: "nesting system prompts was choosing
+      multiple prompts and order them … personality > tone >
+      objectives … modularity and/or interconnection … in the future
+      agent behavior"; prompted exchange chose drag-and-drop +
+      save-now) — done 2026-07-21: the system side becomes an
+      ordered STACK of blocks in the AI panel — @ picker appends,
+      pills drag to reorder, × removes; run composes bodies in stack
+      order into ONE systemPrompt (blocks pre-expanded; deleted
+      blocks drop silently; grounding rules still main-side on top);
+      "save" persists the stack as a prompt FILE of directive lines
+      in root prompts/ — round-trip PROVEN (expanding the saved file
+      reproduces the composition). The same convention is the
+      FORWARD PATH for agent behavior: a future vault-writing agent
+      authors sub-agent prompts as these exact files (recorded for
+      the roadmap conversation at the closing ceremony). Tests
+      484→487/45; gates green.
 - [ ] S04 Selection context menu: right-click + keyboard on an editor
       selection → AI menu (TreeMenu machinery pattern): quick actions
       from prompt files + built-ins, custom input at the click

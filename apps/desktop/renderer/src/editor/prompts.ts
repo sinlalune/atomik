@@ -274,6 +274,52 @@ export function expandInstruction(
   return expandPromptLayers(instruction, byName)
 }
 
+/**
+ * The system STACK (S03f, owner brainstorm): multiple system prompts
+ * chosen and ORDERED — `personality > tone > objectives` — composing
+ * top-down into one system prompt. A saved stack IS a prompt file
+ * whose body is directive lines, so agents can author sub-agent
+ * behaviors by writing the same files the UI builds.
+ */
+
+/** Moves one element; out-of-range indices return the list unchanged. */
+export function reorderStack<T>(list: T[], from: number, to: number): T[] {
+  if (from === to) return list
+  if (from < 0 || from >= list.length || to < 0 || to >= list.length) return list
+  const next = [...list]
+  const [moved] = next.splice(from, 1)
+  next.splice(to, 0, moved!)
+  return next
+}
+
+/** The stack's composed system prompt: bodies (already layer-expanded
+ *  at load) joined in stack order; missing entries drop silently —
+ *  a deleted block must not wedge the run. */
+export function composeSystemStack(
+  stackRelPaths: string[],
+  prompts: PromptFile[]
+): string {
+  const byPath = new Map(prompts.map((prompt) => [prompt.relPath, prompt]))
+  return stackRelPaths
+    .map((relPath) => byPath.get(relPath)?.body ?? '')
+    .filter((body) => body.length > 0)
+    .join('\n\n')
+}
+
+/** A saved stack as a prompt FILE: kind system, body = one directive
+ *  line per block in order — reusable, shareable, agent-authorable. */
+export function stackFileContent(name: string, blockNames: string[]): string {
+  return [
+    '---',
+    'kind: system',
+    `title: ${promptTitleFor(name)}`,
+    'description: A composed system stack — each line is one block.',
+    '---',
+    '',
+    ...blockNames.map((blockName) => layerDirectiveFor(blockName))
+  ].join('\n')
+}
+
 /** Case-insensitive filter over name/title for the @ menu. */
 export function filterPrompts(
   prompts: PromptFile[],
