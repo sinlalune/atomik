@@ -93,13 +93,15 @@ Coding Path    = what this task will change, in what order, and where it stands
     to another session, agent, or person.
 ```
 
-## If no active path exists
+## Between paths: the two ceremonies
 
-Do not start coding.
+Do not start coding without an active path. The gap between paths is governed by two ceremonies (owner directives, 2026-07-21, refining the earlier single review). Both are INTERACTIVE — short prompted questions with options, never essay forms — and both persist their answers verbatim into files.
 
-1. **Vision-alignment review first** (owner directive, 2026-07-21). Walk the main expected features — the milestones of `18_18-roadmap.md` and the register in `atomik-project/coding-paths/index.md` — with the owner against their CURRENT vision: what shipped, what the next path proposes, what the queue behind it promises. Record confirmations, deltas, and re-prioritizations as a session note in `atomik-project/sessions/`. Roadmap amendments remain owner-gated; the review may propose them, never apply them silently.
-2. Then propose a new coding path from the relevant roadmap milestone using the template in `24_24-doc-templates.md`, including its documentation coverage and definition of done.
-3. The path is reviewed and accepted like any other patch — accepting a path with no recorded alignment review for this opening is invalid — then execution begins at step 1.
+1. **CLOSING ceremony**, run when the active path closes (with its acceptance): present the owner a compact RECALL derived from repo metadata (register, ledgers, acceptance records, log — never from conversation memory): everything done, the backlog as it stands, what comes next, and what the agent believes needs challenging or completing. Then manage the roadmap backlog through prompted exchange. Answers are promoted into a session note; roadmap (18) amendments stay owner-gated — propose, never apply silently.
+2. **OPENING check**, run when the next path is about to activate: walk the FEATURES INSIDE that path with the owner — one quick prompted confirmation per major feature ("this is what I am about to implement, this way — still your vision?"). Deltas amend the path BEFORE its base commit pins; answers are recorded in the path file and its session note. Activation still requires the owner's explicit acceptance.
+3. Then propose/adjust the path from the roadmap milestone using the template in `24_24-doc-templates.md` and begin at S01. Activating a path with no recorded ceremonies for its gap is invalid.
+
+An in-app "ceremony tab" (path state as an interactive projection, 35) is a recorded candidate (`atomik-project/brainstorm/2026-07-21-ceremony-tab.md`); until it exists, the ceremonies live in prompted exchange + session notes.
 
 ## Standing prohibitions
 

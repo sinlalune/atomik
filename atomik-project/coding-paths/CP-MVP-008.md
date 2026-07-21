@@ -103,9 +103,12 @@ HOW the loop is reached — this path ships them with the engine:
   travel through the operation contract with thread context validated
   main-side; responses are insertable into the note through the SAME
   patch flow; the old docked AiPanel retires into the two new
-  surfaces; chat history is EPHEMERAL disposable workspace state with
-  an explicit save-transcript-to-note action — no hidden database
-  (04), workspace state stays deletable without losing content.
+  surfaces; chat history PERSISTS as ordinary vault FILES (owner
+  revision at the 2026-07-21 opening check — supersedes the
+  ephemeral-default proposal): a transcript IS a note, editable and
+  linkable; the exact convention (a `chats/` vault folder beside
+  `prompts/`, frontmatter shape, when a file is born) is pinned at
+  S01; no hidden database (04) holds.
 - Every new channel obeys 13 §IPC (typed, main-validated, preload
   surface test extended in the same change); zero new dependencies
   (menus/chat hand-rolled; if one becomes tempting, a dated 15
@@ -188,10 +191,11 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       pin the adapter contract (request/bundle mapping, error
       taxonomy, dated price snapshot), the prompt-file shape
       (frontmatter `kind: system | message`), and the open design
-      decisions: chat persistence (default ephemeral disposable
-      workspace state + explicit save-to-note), inline claim-label
-      surfacing (compact strip in the preview widget), default engine
-      when a key is present (owner bench decision, recorded open).
+      decisions: chat persistence DECIDED at the 2026-07-21 opening
+      check — vault FILES (S01 pins the `chats/` convention: folder,
+      frontmatter, file-birth moment); inline claim-label surfacing
+      (compact strip in the preview widget); default engine when a
+      key is present (owner bench decision, recorded open).
 - [ ] S02 Mistral adapter in main, end to end: typed
       `GenerationAdapter` seam; Mistral Small chat-completions impl
       (key via `readMistralKey`, AbortController timeout, token/size

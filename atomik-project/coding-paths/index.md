@@ -12,7 +12,7 @@ The bedrock carries the whole vision; the roadmap (18) sequences it; a coding pa
 
 Paths are opened just-in-time, when their milestone becomes next:
 
-- vision-alignment review with the owner BEFORE acceptance: walk the main expected features (the milestones of 18 + this register) against the owner's CURRENT vision; record confirmations and deltas as a session note (22 §If no active path exists); accepting a path with no recorded review for its opening is invalid (owner directive, 2026-07-21)
+- the TWO ceremonies gate every gap (22 §Between paths, owner directives 2026-07-21): a CLOSING ceremony at path close (metadata recall + backlog management + prompted exchange) and an OPENING check at activation (feature-by-feature prompted confirmation inside the new path, deltas amending it before the base commit pins); activating a path with no recorded ceremonies is invalid
 - seed from the milestone section of 18 and the coding path template in 24
 - pass the coverage audit: every bedrock page accounted for at least once
 - one active parent path at a time; `ACTIVE.md` points to it
@@ -42,5 +42,7 @@ Late paths are better paths: they inherit module notes, friction records from th
 | M13 | canvas | — | not opened |
 
 Reserved follow-up (not a row yet, 33/34 discipline): a LOCAL llama.cpp generation seat opens as its own evaluated tier after CP-MVP-008's cloud engine lands — capability-gated like speech was, dated evidence in 34, never a release-wide promise. Decision trail: [../sessions/2026-07-20-generation-swap-decisions.md](../sessions/2026-07-20-generation-swap-decisions.md).
+
+Leading candidate for the post-008 path (owner vision at the 2026-07-21 closing ceremony, to CONFIRM at 008's closing ceremony): **Wikidata-backed generation grounding** — an M8 retrieval slice (lexical-first, 33's ladder) + an M10 Wikidata slice serving as LOCAL RAG for generation ("strengthen the generation through local rag architecture"); Truth Lens (M6) then runs over grounded output; M7's slot is decided at the M6 close. Pulled from deferred into the near-term backlog: Git status/diff view (M8 optional item).
 
 Reserved follow-up (owner decision 2026-07-21, "after the next coding path"): the PACKAGED NATIVE WINDOWS BUILD opens after CP-MVP-008 — one bounded unit (electron-builder config, Windows target, launch path) that closes the three named WSLg gaps at once: real 240 Hz presentation (S07j attribution), DWM rounded corners + shadow (S07q), and hardware-composited glass depth (36 §glass budget). Until then the dev app under WSLg is the daily driver and those three limits are known, recorded, and not app defects.

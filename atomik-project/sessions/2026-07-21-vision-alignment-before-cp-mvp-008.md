@@ -108,5 +108,33 @@ S01, or interleave one per session alongside 008 execution?
   records, the French log entries, and the real code (anchors
   spot-verified against source); `docs/learning/index.md` §Coverage
   stall records the repayment.
-- **Q1–Q5 — open.** The review closes when each carries an answer; then
-  CP-MVP-008 acceptance can proceed once CP-MVP-007 S07 closes.
+- **Q1 — answered 2026-07-21 via the OPENING CHECK** (prompted
+  exchange, the format the owner clarified he wanted): all four
+  CP-MVP-008 features confirmed — Mistral Small cloud-first with the
+  mock as fallback ✓; AI entry = the selection context menu, button
+  leaves the note-bar ✓; quick actions preview INLINE ✓; chat = right
+  lateral pane-chrome column ✓ with ONE revision: *"Persist chats as
+  files"* — chat history becomes ordinary vault FILES, not ephemeral
+  workspace state (the path's DoD and S01 pins are amended).
+- **Q2 — answered 2026-07-21** (owner, verbatim): *"I think what come
+  to me a need after the AI generation is the integration of wikidata
+  as the backbone of ai generation, we will implement truth lens etc,
+  but strenghten the generation through local rag architecture could
+  be the best move."* → Leading candidate for the post-008 path: an
+  M8 retrieval slice (lexical-first, 33) + M10 Wikidata slice as
+  LOCAL RAG GROUNDING for generation; Truth Lens (M6) follows on
+  grounded output. To confirm at 008's closing ceremony; registered.
+- **Q3 — answered 2026-07-21**: M7's slot is decided at the M6 close.
+- **Q4 — answered 2026-07-21**: roadmap 18 stays untouched; vision
+  events keep living as ADR + register notes.
+- **Q5 — answered 2026-07-21**: Git status/diff view pulled from the
+  deferred list into the near-term backlog.
+- **Process revision (owner, same session)**: this review's format is
+  superseded by TWO ceremonies — a CLOSING ceremony at path close
+  (metadata recall + backlog management + prompted exchange) and a
+  quick OPENING check at path activation (feature-by-feature prompted
+  confirmation). Codified in 22 §Between paths; an in-app "ceremony
+  tab" is a recorded candidate (brainstorm 2026-07-21).
+
+**REVIEW CLOSED 2026-07-21.** CP-MVP-008 awaits only the owner's
+explicit acceptance to activate.
