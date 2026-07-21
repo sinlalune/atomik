@@ -18,7 +18,14 @@ import {
   PlayIcon
 } from '../icons'
 import { defaultNewNotePath, ensureMdExtension } from './ai-helpers'
-import { loadPromptsFor, scopeLabel, type PromptFile } from './prompts'
+import {
+  applyAtInsertion,
+  atPromptToken,
+  filterPrompts,
+  loadPromptsFor,
+  scopeLabel,
+  type PromptFile
+} from './prompts'
 
 export type BufferChange =
   | { kind: 'replace-range'; range: { from: number; to: number }; newText: string }
@@ -99,6 +106,47 @@ export function AiPanel({
   // reloaded when vault files land — a prompt edit is a note edit.
   const [vaultPrompts, setVaultPrompts] = useState<PromptFile[]>([])
   const [systemPromptPath, setSystemPromptPath] = useState('')
+  // @ quick-action menu in the instruction field (S03c): token state +
+  // keyboard highlight; items derive from the token's query.
+  const [atMenu, setAtMenu] = useState<{ start: number; query: string; index: number } | null>(null)
+  const instructionRef = useRef<HTMLTextAreaElement | null>(null)
+
+  const atItems = atMenu ? filterPrompts(vaultPrompts, atMenu.query) : []
+
+  const syncAtMenu = useCallback((element: HTMLTextAreaElement) => {
+    const token =
+      element.selectionStart === element.selectionEnd
+        ? atPromptToken(element.value, element.selectionStart)
+        : null
+    setAtMenu((current) =>
+      token
+        ? { ...token, index: current?.start === token.start ? current.index : 0 }
+        : null
+    )
+  }, [])
+
+  const pickAtPrompt = useCallback(
+    (prompt: PromptFile) => {
+      const element = instructionRef.current
+      if (!element || !atMenu) return
+      // system → the selector; message → the composed body, in place
+      const replacement = prompt.kind === 'system' ? '' : prompt.body
+      const next = applyAtInsertion(
+        element.value,
+        atMenu.start,
+        element.selectionStart,
+        replacement
+      )
+      if (prompt.kind === 'system') setSystemPromptPath(prompt.relPath)
+      setInstruction(next.text)
+      setAtMenu(null)
+      requestAnimationFrame(() => {
+        element.focus()
+        element.setSelectionRange(next.caret, next.caret)
+      })
+    },
+    [atMenu]
+  )
 
   useEffect(() => {
     let live = true
@@ -380,13 +428,64 @@ export function AiPanel({
                 </select>
               </label>
             )}
-            <textarea
-              rows={2}
-              placeholder="Ask about the selection (or the whole note)…"
-              aria-label="AI instruction"
-              value={instruction}
-              onChange={(event) => setInstruction(event.target.value)}
-            />
+            <div className="ai-instruction">
+              <textarea
+                ref={instructionRef}
+                rows={2}
+                placeholder="Ask about the selection (or the whole note)… @ inserts a prompt"
+                aria-label="AI instruction"
+                value={instruction}
+                onChange={(event) => {
+                  setInstruction(event.target.value)
+                  syncAtMenu(event.target)
+                }}
+                onClick={(event) => syncAtMenu(event.currentTarget)}
+                onBlur={() => setAtMenu(null)}
+                onKeyDown={(event) => {
+                  if (!atMenu || atItems.length === 0) return
+                  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                    event.preventDefault()
+                    const delta = event.key === 'ArrowDown' ? 1 : -1
+                    setAtMenu({
+                      ...atMenu,
+                      index:
+                        (atMenu.index + delta + atItems.length) % atItems.length
+                    })
+                  } else if (event.key === 'Enter' || event.key === 'Tab') {
+                    event.preventDefault()
+                    pickAtPrompt(atItems[atMenu.index] ?? atItems[0]!)
+                  } else if (event.key === 'Escape') {
+                    event.stopPropagation()
+                    setAtMenu(null)
+                  }
+                }}
+              />
+              {atMenu && atItems.length > 0 && (
+                <div className="ai-at-menu" role="listbox" aria-label="Prompts">
+                  {atItems.map((prompt, index) => (
+                    <button
+                      key={prompt.relPath}
+                      type="button"
+                      role="option"
+                      aria-selected={index === atMenu.index}
+                      className={index === atMenu.index ? 'active' : ''}
+                      title={prompt.description ?? prompt.relPath}
+                      // mousedown: fire before the textarea blur closes us
+                      onMouseDown={(event) => {
+                        event.preventDefault()
+                        pickAtPrompt(prompt)
+                      }}
+                    >
+                      <span className="ai-at-kind">{prompt.kind}</span>
+                      {prompt.title}
+                      <span className="ai-at-scope">
+                        {scopeLabel(prompt.scopeFolder, note.relPath)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="ai-destination">
               <label>
                 <input

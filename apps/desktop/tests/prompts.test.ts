@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { VaultFolder } from '../shared/ipc-contract'
 import {
+  applyAtInsertion,
+  atPromptToken,
   buildPromptFileContent,
+  filterPrompts,
   collectPromptRefs,
   expandPromptLayers,
   isPromptsFolder,
@@ -207,6 +210,46 @@ describe('expandPromptLayers ({{prompt: name}} — buildable layers, S03b)', () 
     expect(atRoot.find((prompt) => prompt.name === 'main')?.body).toBe(
       'Do the thing.\nRoot tone.'
     )
+  })
+})
+
+describe('@ quick-action token in AI inputs (S03c)', () => {
+  it('opens at @ that starts the text or follows whitespace, up to the caret', () => {
+    expect(atPromptToken('@', 1)).toEqual({ start: 0, query: '' })
+    expect(atPromptToken('sum @ke', 7)).toEqual({ start: 4, query: 'ke' })
+    expect(atPromptToken('line\n@to', 8)).toEqual({ start: 5, query: 'to' })
+  })
+
+  it('stays inert mid-word, after whitespace inside the token, or before the @', () => {
+    expect(atPromptToken('mail@example', 12)).toBeNull()
+    expect(atPromptToken('@key done', 9)).toBeNull() // whitespace ended it
+    expect(atPromptToken('no token here', 7)).toBeNull()
+    // caret before the @: not this token
+    expect(atPromptToken('ab @ke', 2)).toBeNull()
+  })
+
+  it('replaces the token and lands the caret after the insertion', () => {
+    expect(applyAtInsertion('sum @ke tail', 4, 7, 'Key points body')).toEqual({
+      text: 'sum Key points body tail',
+      caret: 19
+    })
+    // system pick removes the token: empty replacement
+    expect(applyAtInsertion('sum @sys', 4, 8, '')).toEqual({ text: 'sum ', caret: 4 })
+  })
+
+  it('filters by name and title, case-insensitive; empty query keeps all', () => {
+    const prompts = [
+      { name: 'key-points', title: 'Key points' },
+      { name: 'tone', title: 'House style' }
+    ] as Parameters<typeof filterPrompts>[0]
+    expect(filterPrompts(prompts, '').length).toBe(2)
+    expect(filterPrompts(prompts, 'KEY').map((prompt) => prompt.name)).toEqual([
+      'key-points'
+    ])
+    expect(filterPrompts(prompts, 'style').map((prompt) => prompt.name)).toEqual([
+      'tone'
+    ])
+    expect(filterPrompts(prompts, 'ghost')).toEqual([])
   })
 })
 

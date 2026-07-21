@@ -196,6 +196,55 @@ export function scopeLabel(scopeFolder: string, noteRelPath: string): string {
   return scopeFolder === noteDir ? 'this folder' : scopeFolder
 }
 
+/**
+ * The @ quick-action token (S03c, owner directive): typing `@` in an
+ * AI input summons the prompt menu — the editor's @ citation menu
+ * precedent, hand-rolled for a plain textarea. A token starts at an
+ * `@` that opens the text or follows whitespace and runs to the
+ * caret with no whitespace inside; anything else (emails, mid-word
+ * @) stays inert.
+ */
+export function atPromptToken(
+  text: string,
+  caret: number
+): { start: number; query: string } | null {
+  const upToCaret = text.slice(0, caret)
+  const at = upToCaret.lastIndexOf('@')
+  if (at === -1) return null
+  if (at > 0 && !/\s/.test(upToCaret[at - 1]!)) return null
+  const query = upToCaret.slice(at + 1)
+  if (/\s/.test(query)) return null
+  return { start: at, query }
+}
+
+/** Replaces the @token with `replacement`; returns the new text and
+ *  caret (right after what was inserted). */
+export function applyAtInsertion(
+  text: string,
+  tokenStart: number,
+  caret: number,
+  replacement: string
+): { text: string; caret: number } {
+  return {
+    text: text.slice(0, tokenStart) + replacement + text.slice(caret),
+    caret: tokenStart + replacement.length
+  }
+}
+
+/** Case-insensitive filter over name/title for the @ menu. */
+export function filterPrompts(
+  prompts: PromptFile[],
+  query: string
+): PromptFile[] {
+  const needle = query.trim().toLowerCase()
+  if (needle.length === 0) return prompts
+  return prompts.filter(
+    (prompt) =>
+      prompt.name.toLowerCase().includes(needle) ||
+      prompt.title.toLowerCase().includes(needle)
+  )
+}
+
 /** Title autofill for a new prompt file: dashes to spaces, first
  *  letter up — the frontmatter stays an ordinary edit afterwards. */
 export function promptTitleFor(name: string): string {

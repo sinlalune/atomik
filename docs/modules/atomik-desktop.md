@@ -197,6 +197,15 @@ timestamp: 2026-07-06T00:00:00Z
   overrides a prompt; nesting capped at 8; unknown names, cycles, and
   inline mentions stay LITERAL — a broken reference is visible, never
   silently dropped; expansion runs at load, after shadowing.
+  S03c (owner directive 2026-07-21): `@` in the AI instruction field
+  summons the prompt menu (the editor's @ citation-menu precedent,
+  hand-rolled for the textarea): a token opens at an `@` that starts
+  the text or follows whitespace (emails/mid-word @ inert), filters
+  name+title as you type, arrows/Enter/Tab/Escape + click; picking a
+  MESSAGE prompt inserts its composed body at the caret, picking a
+  SYSTEM prompt sets the system selector and removes the token; rows
+  wear kind + scope tags (36 popover idiom, glass + opaque fallback).
+  Pure helpers `atPromptToken`/`applyAtInsertion`/`filterPrompts`.
   `renderer/src/editor/AiPanel.tsx` docks the loop in the editor:
   selection (or whole note) → instruction/preset → destination
   (replace-selection / append / new-note, path prefilled beside the

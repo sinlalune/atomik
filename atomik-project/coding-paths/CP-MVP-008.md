@@ -250,6 +250,15 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       layer), depth 8, unknown/cycle/inline stay LITERAL (broken
       references visible, never dropped), expansion at load after
       shadowing. Tests 467→473/45; typecheck/build/smoke green.
+- [x] S03c (owner directive, same day) — done 2026-07-21: `@` in the
+      AI instruction field opens the prompt quick-action menu (the @
+      citation-menu precedent, hand-rolled textarea popup, zero
+      deps): token at start-or-after-whitespace `@` (emails inert),
+      live name+title filter, full keyboard (arrows/Enter/Tab/
+      Escape) + click; message → composed body inserted at the
+      caret, system → selector set + token removed; kind + scope
+      tags on every row (36 popover idiom). Pure helpers tested.
+      Tests 473→477/45; typecheck/build/smoke green.
 - [ ] S04 Selection context menu: right-click + keyboard on an editor
       selection → AI menu (TreeMenu machinery pattern): quick actions
       from prompt files + built-ins, custom input at the click
