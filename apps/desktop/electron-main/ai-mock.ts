@@ -171,8 +171,9 @@ function relativeLink(fromRelPath: string, toRelPath: string): string {
 }
 
 /** The provenance line a note carries when the selection lives in a web
- *  reader (09: "create note with URL/provenance"). */
-function provenanceLine(
+ *  reader (09: "create note with URL/provenance"). Shared with the real
+ *  adapters (S02) — one citation shape across engines. */
+export function provenanceLine(
   webSource: WebEvidenceProvenance,
   targetRelPath: string
 ): string {

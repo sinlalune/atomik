@@ -29,7 +29,7 @@ type ActionTraceLine = {
   timestamp: string
   action: 'generate'
   execution: {
-    location: 'deterministic'
+    location: 'deterministic' | 'cloud-model'
     provider: string
     model: string
     modelVersion: string
@@ -37,11 +37,49 @@ type ActionTraceLine = {
   usage: {
     estimatedInputTokens: number
     estimatedOutputTokens: number
+    /** Provider-reported counts when the provider returned them (S02);
+     *  `basis` names which pair is authoritative — each labeled (06). */
+    reportedInputTokens?: number
+    reportedOutputTokens?: number
+    basis?: 'provider-reported' | 'estimated'
   }
   performance: { wallMs: number }
-  billing: { currency: 'EUR'; estimatedAmount: 0; basis: 'estimated' }
+  billing: {
+    currency: 'EUR' | 'USD'
+    estimatedAmount: number
+    basis: 'estimated'
+    /** The dated price snapshot behind the estimate (33). */
+    priceSnapshotId?: string
+  }
   outcome: { status: 'completed' | 'failed'; decision?: AiTraceDecision }
-  privacy: { mode: 'offline'; contentRecorded: false }
+  privacy: { mode: 'offline' | 'cloud'; contentRecorded: false }
+}
+
+/** Engine identity + labeled usage/billing a real adapter reports
+ *  (CP-MVP-008 S02); absent → the S08 mock identity. */
+export type GenerationTraceMeta = {
+  location: 'deterministic' | 'cloud-model'
+  provider: string
+  model: string
+  modelVersion: string
+  usage?: {
+    inputTokens: number
+    outputTokens: number
+    basis: 'provider-reported' | 'estimated'
+  }
+  billing?: {
+    currency: 'USD'
+    estimatedAmount: number
+    basis: 'estimated'
+    priceSnapshotId: string
+  }
+}
+
+const MOCK_META: GenerationTraceMeta = {
+  location: 'deterministic',
+  provider: 'atomik',
+  model: 'mock',
+  modelVersion: 's08'
 }
 
 /**
@@ -141,11 +179,15 @@ export class ActionTraceLedger {
     return record.id
   }
 
-  /** Called when the mock completes; the line waits for the decision. */
+  /** Called when an engine completes; the line waits for the decision.
+   *  `meta` is the answering adapter's identity + labeled usage/billing
+   *  (S02) — provider-reported counts preferred over estimates, the
+   *  external cost estimated from a dated price snapshot (33). */
   draftFor(
     operation: AiOperation,
     bundle: AiResponseBundle,
-    wallMs: number
+    wallMs: number,
+    meta: GenerationTraceMeta = MOCK_META
   ): string {
     const inputChars =
       operation.instruction.length +
@@ -157,25 +199,40 @@ export class ActionTraceLedger {
           total + proposal.files.reduce((sum, file) => sum + file.newText.length, 0),
         0
       )
+    const reported = meta.usage?.basis === 'provider-reported' ? meta.usage : undefined
     const line: ActionTraceLine = {
       id: `trace_${randomUUID()}`,
       operationId: operation.id,
       timestamp: new Date().toISOString(),
       action: 'generate',
       execution: {
-        location: 'deterministic',
-        provider: 'atomik',
-        model: 'mock',
-        modelVersion: 's08'
+        location: meta.location,
+        provider: meta.provider,
+        model: meta.model,
+        modelVersion: meta.modelVersion
       },
       usage: {
         estimatedInputTokens: estimateTokens(inputChars),
-        estimatedOutputTokens: estimateTokens(outputChars)
+        estimatedOutputTokens: estimateTokens(outputChars),
+        ...(reported
+          ? {
+              reportedInputTokens: reported.inputTokens,
+              reportedOutputTokens: reported.outputTokens
+            }
+          : {}),
+        ...(meta.usage ? { basis: meta.usage.basis } : {})
       },
       performance: { wallMs },
-      billing: { currency: 'EUR', estimatedAmount: 0, basis: 'estimated' },
+      billing: meta.billing ?? {
+        currency: 'EUR',
+        estimatedAmount: 0,
+        basis: 'estimated'
+      },
       outcome: { status: 'completed' },
-      privacy: { mode: 'offline', contentRecorded: false }
+      privacy: {
+        mode: meta.location === 'cloud-model' ? 'cloud' : 'offline',
+        contentRecorded: false
+      }
     }
     this.drafts.set(bundle.id, line)
     return line.id
@@ -191,8 +248,12 @@ export class ActionTraceLedger {
       provider: draft.execution.provider,
       model: draft.execution.model,
       wallMs: draft.performance.wallMs,
-      estimatedInputTokens: draft.usage.estimatedInputTokens,
-      estimatedOutputTokens: draft.usage.estimatedOutputTokens,
+      // best-known counts for the badge: provider-reported when present
+      // (the LINE keeps both pairs, each labeled)
+      estimatedInputTokens:
+        draft.usage.reportedInputTokens ?? draft.usage.estimatedInputTokens,
+      estimatedOutputTokens:
+        draft.usage.reportedOutputTokens ?? draft.usage.estimatedOutputTokens,
       estimatedExternalCost: {
         currency: draft.billing.currency,
         amount: draft.billing.estimatedAmount
@@ -214,24 +275,32 @@ export class ActionTraceLedger {
     })
   }
 
-  /** A failed run is appended immediately; there is no decision to wait for. */
-  recordFailure(operationId: string, wallMs: number): void {
+  /** A failed run is appended immediately; there is no decision to wait
+   *  for. `meta` names the engine that failed (S02). */
+  recordFailure(
+    operationId: string,
+    wallMs: number,
+    meta: GenerationTraceMeta = MOCK_META
+  ): void {
     this.append({
       id: `trace_${randomUUID()}`,
       operationId,
       timestamp: new Date().toISOString(),
       action: 'generate',
       execution: {
-        location: 'deterministic',
-        provider: 'atomik',
-        model: 'mock',
-        modelVersion: 's08'
+        location: meta.location,
+        provider: meta.provider,
+        model: meta.model,
+        modelVersion: meta.modelVersion
       },
       usage: { estimatedInputTokens: 0, estimatedOutputTokens: 0 },
       performance: { wallMs },
       billing: { currency: 'EUR', estimatedAmount: 0, basis: 'estimated' },
       outcome: { status: 'failed' },
-      privacy: { mode: 'offline', contentRecorded: false }
+      privacy: {
+        mode: meta.location === 'cloud-model' ? 'cloud' : 'offline',
+        contentRecorded: false
+      }
     })
   }
 

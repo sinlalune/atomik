@@ -5,7 +5,16 @@ import { writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { isValidAiOperation, runAiOperation } from './ai-mock'
+import { isValidAiOperation } from './ai-mock'
+import {
+  GenerationError,
+  mockGenerationAdapter,
+  type GenerationAdapter
+} from './generation'
+import {
+  createMistralGenerationAdapter,
+  MISTRAL_SMALL_MODEL
+} from './mistral-generation-adapter'
 import { webProvenanceFor } from './web-provenance'
 import { ActionTraceLedger } from './action-trace'
 import { importCaptureUpload } from './capture-import'
@@ -21,7 +30,13 @@ import {
 import { createWhisperCppAdapter, whisperSeatReady } from './whisper-adapter'
 import { createQwenVlOcrAdapter, ocrSeatReady, type ImageResizer } from './ocr-adapter'
 import { createMistralOcrAdapter, createVoxtralTranscribeAdapter } from './mistral-ocr-adapter'
-import { publicAiSettings, readMistralKey, writeMistralKey } from './ai-settings'
+import {
+  publicAiSettings,
+  readMistralKey,
+  resolveGenerationEngine,
+  writeAiEngine,
+  writeMistralKey
+} from './ai-settings'
 import { importPdfFromPath } from './pdf-import'
 import { importWebSource, type WebPageMeta } from './web-import'
 import {
@@ -89,7 +104,6 @@ import {
 } from './web-view'
 import {
   ATOMIK_CHANNELS,
-  type AiOperation,
   type VaultInfo,
   type WebViewState
 } from '../shared/ipc-contract'
@@ -319,30 +333,63 @@ function registerVaultHandlers(stateDir: string): void {
       return info
     }
   )
-  ipcMain.handle(ATOMIK_CHANNELS.runAiOperation, (_event, operation: unknown) => {
+  ipcMain.handle(ATOMIK_CHANNELS.runAiOperation, async (_event, operation: unknown) => {
     const started = Date.now()
+    // Engine resolution per call (S02): explicit choice or the
+    // key-present default; a failed cloud call SURFACES — it never
+    // silently falls back to the mock (13 explicit-policy rule).
+    const engine = resolveGenerationEngine(stateDir)
+    const failureMeta =
+      engine === 'mistral'
+        ? {
+            location: 'cloud-model' as const,
+            provider: 'mistral',
+            model: 'mistral-small',
+            modelVersion: MISTRAL_SMALL_MODEL
+          }
+        : undefined
     try {
+      if (!isValidAiOperation(operation)) {
+        throw new Error('ai: rejected operation')
+      }
+      let adapter: GenerationAdapter = mockGenerationAdapter
+      if (engine === 'mistral') {
+        const key = readMistralKey(stateDir)
+        if (!key) {
+          throw new GenerationError(
+            'auth',
+            'no Mistral key configured — add one in ☰ → AI, or switch the engine to mock'
+          )
+        }
+        adapter = createMistralGenerationAdapter(key)
+      }
       // S06 URL provenance: web-reader selections trace back to their
-      // dossier BEFORE the pure-compute call — ai-mock/truth never read
+      // dossier BEFORE the pure-compute call — adapters/truth never read
       // files. Best-effort: a failed resolve degrades to no-URL evidence.
       let provenance
-      if (isValidAiOperation(operation)) {
-        try {
-          provenance = webProvenanceFor(
-            requireVault(),
-            operation.input.map((selection) => selection.relPath)
-          )
-        } catch {
-          provenance = undefined
-        }
+      try {
+        provenance = webProvenanceFor(
+          requireVault(),
+          operation.input.map((selection) => selection.relPath)
+        )
+      } catch {
+        provenance = undefined
       }
-      const bundle = runAiOperation(operation, provenance)
-      const traceId = traces.draftFor(
-        operation as AiOperation,
-        bundle,
-        Date.now() - started
-      )
-      return { ...bundle, actionTraceIds: [traceId] }
+      const controller = new AbortController()
+      activeAiOperations.set(operation.id, controller)
+      try {
+        const result = await adapter.generate(operation, {
+          signal: controller.signal,
+          provenance
+        })
+        const traceId = traces.draftFor(operation, result.bundle, Date.now() - started, {
+          ...result.providerMeta,
+          ...(result.usage ? { usage: result.usage } : {})
+        })
+        return { ...result.bundle, actionTraceIds: [traceId] }
+      } finally {
+        activeAiOperations.delete(operation.id)
+      }
     } catch (error) {
       const operationId =
         typeof operation === 'object' &&
@@ -350,9 +397,16 @@ function registerVaultHandlers(stateDir: string): void {
         typeof (operation as Record<string, unknown>)['id'] === 'string'
           ? ((operation as Record<string, unknown>)['id'] as string)
           : 'unknown'
-      traces.recordFailure(operationId, Date.now() - started)
+      traces.recordFailure(operationId, Date.now() - started, failureMeta)
       throw error
     }
+  })
+  ipcMain.handle(ATOMIK_CHANNELS.cancelAiOperation, (_event, operationId: unknown) => {
+    if (typeof operationId !== 'string' || operationId.length === 0) {
+      throw new Error('ai: rejected cancel')
+    }
+    // unknown/settled ids are a no-op: cancel races completion by design
+    activeAiOperations.get(operationId)?.abort()
   })
   ipcMain.handle(
     ATOMIK_CHANNELS.resolveAiTrace,
@@ -366,6 +420,10 @@ function registerVaultHandlers(stateDir: string): void {
 
 /** S09 ledger; constructed at startup with the resolved state dir. */
 let traces: ActionTraceLedger
+
+/** In-flight generation calls by operation id (S02) — the cancel
+ *  channel aborts the adapter's fetch mid-flight. */
+const activeAiOperations = new Map<string, AbortController>()
 
 /** Capture session server (S02); inbox lives under the state dir, never
  *  the vault — the inbox→vault import is S04's explicitly confirmed step. */
@@ -551,6 +609,11 @@ function registerCaptureHandlers(stateDir: string): void {
       throw new Error('ai settings: key must be a string or null')
     }
     writeMistralKey(stateDir, key)
+    return publicAiSettings(stateDir)
+  })
+  // S02: the engine choice is explicit and persists beside the key.
+  ipcMain.handle(ATOMIK_CHANNELS.setAiEngine, (_event, engine: unknown) => {
+    writeAiEngine(stateDir, engine)
     return publicAiSettings(stateDir)
   })
   // Desktop mic (owner request): same inbox, same gates, no endpoint.
@@ -1393,6 +1456,48 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
         })()`
       )) as string
       vaultReport += ` ai=${outcome}`
+    }
+    // Opt-in LIVE rung (CP-MVP-008 S02): proves the real Mistral chain
+    // end to end — engine switch, one tiny real completion, the trace
+    // wearing cloud-model identity + provider-reported usage, and a
+    // mid-flight cancel. Needs a configured key; never runs in CI.
+    if (process.env['ATOMIK_SMOKE_AI_LIVE'] === '1') {
+      const outcome = (await window.webContents.executeJavaScript(
+        `(async () => {
+          try {
+            const before = await window.atomik.getAiSettings()
+            if (!before.mistralKeyPresent) return 'skip:no-key'
+            await window.atomik.setAiEngine('mistral')
+            try {
+              const bundle = await window.atomik.runAiOperation({
+                id: crypto.randomUUID(),
+                input: [{ relPath: 'welcome.md', kind: 'text', content: 'Attention compares queries with keys.', range: { from: 0, to: 37 } }],
+                instruction: 'Summarize the selection in one short sentence.',
+                target: { relPath: 'welcome.md', destination: { kind: 'append' } }
+              })
+              const summary = await window.atomik.getAiTraceSummary(bundle.id)
+              await window.atomik.resolveAiTrace(bundle.id, 'rejected')
+              const cancelId = crypto.randomUUID()
+              const racing = window.atomik.runAiOperation({
+                id: cancelId,
+                input: [{ relPath: 'welcome.md', kind: 'text', content: 'Attention compares queries with keys.', range: { from: 0, to: 37 } }],
+                instruction: 'Write three paragraphs about attention.',
+                target: { relPath: 'welcome.md', destination: { kind: 'append' } }
+              })
+              await new Promise((resolve) => setTimeout(resolve, 150))
+              await window.atomik.cancelAiOperation(cancelId)
+              const cancelled = await racing.then(
+                () => 'raced-to-completion',
+                (e) => (String(e).includes('ai(cancelled)') ? 'cancelled' : 'wrong-error:' + String(e).slice(0, 80))
+              )
+              return 'ok:' + (summary ? summary.location + '/' + summary.model + '/' + summary.estimatedInputTokens + '+' + summary.estimatedOutputTokens + 'tok/' + summary.estimatedExternalCost.amount + summary.estimatedExternalCost.currency : 'no-trace') + ':cancel=' + cancelled
+            } finally {
+              await window.atomik.setAiEngine(before.generationEngine)
+            }
+          } catch (e) { return 'fail:' + String(e).slice(0, 160) }
+        })()`
+      )) as string
+      vaultReport += ` aiLive=${outcome}`
     }
     // Opt-in rung (S06): seed a fixture web bundle and prove URL
     // provenance end to end — reader.md selection → main resolves the

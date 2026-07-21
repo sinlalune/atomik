@@ -81,6 +81,12 @@ when the shape changes, not on every diff.
   glass tints with a backdrop-filter budget, semantic state colors,
   same-role-same-box parity, accessible names. Covers CP-MVP-007
   S07m/S07n and bedrock 36.
+- [17 — The first real generation adapter: cloud LLM behind a seam](./17-cloud-generation-adapter.md) —
+  chat completions onto the unchanged bundle contract, the typed
+  adapter seam, timeout-vs-cancel via two abort sources, the
+  eight-kind error taxonomy with no silent mock fallback, labeled
+  usage + dated price snapshots, mechanical truth over real output,
+  pinned model ids. Covers CP-MVP-008 S02.
 
 ## Coverage stall (2026-07-07 → 2026-07-21) — repaid
 

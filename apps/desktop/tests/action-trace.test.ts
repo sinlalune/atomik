@@ -127,6 +127,65 @@ describe('ActionTraceLedger (S09 minimum, nothing more)', () => {
     expect(readLines()).toHaveLength(count)
   })
 
+  it('wears cloud identity + labeled usage/billing when a real adapter reports them (S02)', () => {
+    const bundle = runOne('op-cloud')
+    ledger.draftFor(operation('op-cloud'), bundle, 900, {
+      location: 'cloud-model',
+      provider: 'mistral',
+      model: 'mistral-small',
+      modelVersion: 'mistral-small-2603',
+      usage: { inputTokens: 120, outputTokens: 40, basis: 'provider-reported' },
+      billing: {
+        currency: 'USD',
+        estimatedAmount: 0.000042,
+        basis: 'estimated',
+        priceSnapshotId: 'docs/research/model-research.md@2026-07-20'
+      }
+    })
+    // the badge prefers provider-reported counts and carries the cost
+    const summary = ledger.summary(bundle.id)!
+    expect(summary.location).toBe('cloud-model')
+    expect(summary.model).toBe('mistral-small')
+    expect(summary.estimatedInputTokens).toBe(120)
+    expect(summary.estimatedOutputTokens).toBe(40)
+    expect(summary.estimatedExternalCost).toEqual({ currency: 'USD', amount: 0.000042 })
+
+    ledger.resolve(bundle.id, 'accepted')
+    const line = readLines().at(-1)!
+    expect(line['execution']).toEqual({
+      location: 'cloud-model',
+      provider: 'mistral',
+      model: 'mistral-small',
+      modelVersion: 'mistral-small-2603'
+    })
+    // the LINE keeps both pairs, each labeled — reported is authoritative
+    expect(line['usage']).toMatchObject({
+      reportedInputTokens: 120,
+      reportedOutputTokens: 40,
+      basis: 'provider-reported'
+    })
+    expect((line['usage'] as Record<string, number>)['estimatedInputTokens']).toBeGreaterThan(0)
+    expect(line['billing']).toMatchObject({
+      currency: 'USD',
+      basis: 'estimated',
+      priceSnapshotId: 'docs/research/model-research.md@2026-07-20'
+    })
+    expect(line['privacy']).toEqual({ mode: 'cloud', contentRecorded: false })
+  })
+
+  it('names the failed engine on a cloud failure', () => {
+    ledger.recordFailure('op-cloud-fail', 12, {
+      location: 'cloud-model',
+      provider: 'mistral',
+      model: 'mistral-small',
+      modelVersion: 'mistral-small-2603'
+    })
+    const last = readLines().at(-1)!
+    expect(last['outcome']).toEqual({ status: 'failed' })
+    expect(last['execution']).toMatchObject({ provider: 'mistral' })
+    expect(last['privacy']).toEqual({ mode: 'cloud', contentRecorded: false })
+  })
+
   it('summary exposes badge data for pending drafts only', () => {
     const bundle = runOne('op-6')
     ledger.draftFor(operation('op-6'), bundle, 5)

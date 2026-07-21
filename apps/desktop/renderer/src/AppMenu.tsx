@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { AiSettingsPublic } from '../../shared/ipc-contract'
+import type { AiEngine, AiSettingsPublic } from '../../shared/ipc-contract'
 import { MenuIcon } from './icons'
 import { acquireWebOverlay } from './web/overlay'
 import { setTheme, themeOf, THEMES, type Theme } from './workspace/model'
@@ -48,6 +48,21 @@ export function AppMenu(): React.JSX.Element {
         setBusy(false)
         setSettings(next)
         setDraft('')
+      },
+      (cause) => {
+        setBusy(false)
+        setError(String(cause))
+      }
+    )
+  }
+
+  const pickEngine = (engine: AiEngine): void => {
+    setBusy(true)
+    setError(null)
+    window.atomik.setAiEngine(engine).then(
+      (next) => {
+        setBusy(false)
+        setSettings(next)
       },
       (cause) => {
         setBusy(false)
@@ -121,6 +136,26 @@ export function AppMenu(): React.JSX.Element {
               Clear key
             </button>
           )}
+          <h4>AI · Engine</h4>
+          <div className="app-menu-themes">
+            {(['mock', 'mistral'] as const).map((candidate) => (
+              <button
+                key={candidate}
+                type="button"
+                className={`app-menu-theme${settings?.generationEngine === candidate ? ' active' : ''}`}
+                disabled={busy || settings === null}
+                onClick={() => pickEngine(candidate)}
+              >
+                {candidate}
+              </button>
+            ))}
+          </div>
+          {settings?.generationEngine === 'mistral' &&
+            !settings.mistralKeyPresent && (
+              <p className="app-menu-status">
+                mistral needs a key — runs will fail until one is set
+              </p>
+            )}
           {error && <p className="app-menu-error error">{error}</p>}
           <p className="app-menu-note">
             The key stays in the main process; it never returns to this

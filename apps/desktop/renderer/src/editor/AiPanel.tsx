@@ -1,5 +1,5 @@
 import MarkdownIt from 'markdown-it'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import type {
   AiDestination,
   AiResponseBundle,
@@ -93,6 +93,7 @@ export function AiPanel({
   const [applied, setApplied] = useState<string | null>(null)
   const [challengedIds, setChallengedIds] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
+  const runningOperationId = useRef<string | null>(null)
 
   const md = useMemo(
     () => new MarkdownIt({ html: false, linkify: false, breaks: true }),
@@ -144,9 +145,11 @@ export function AiPanel({
     setPhase('running')
     setError(null)
     setApplied(null)
+    const operationId = crypto.randomUUID()
+    runningOperationId.current = operationId
     try {
       const result = await window.atomik.runAiOperation({
-        id: crypto.randomUUID(),
+        id: operationId,
         input: [selection],
         instruction: text,
         ...(preset ? { preset } : {}),
@@ -167,8 +170,17 @@ export function AiPanel({
     } catch (reason) {
       setError(String(reason))
       setPhase('compose')
+    } finally {
+      runningOperationId.current = null
     }
   }, [destination, getDoc, getSelection, instruction, newNotePath, note.relPath, preset])
+
+  // Cancel rides the operation id (S02): main aborts the provider call
+  // mid-flight; the run above rejects with ai(cancelled).
+  const cancelRun = useCallback(() => {
+    const id = runningOperationId.current
+    if (id) window.atomik.cancelAiOperation(id).catch(() => undefined)
+  }, [])
 
   const proposalFile: ProposedFileChange | undefined =
     bundle?.patchProposals[0]?.files[0]
@@ -354,6 +366,17 @@ export function AiPanel({
             </div>
             <div className="ai-actions">
               {error && <span className="error editor-msg">{error}</span>}
+              {phase === 'running' && (
+                <button
+                  type="button"
+                  className="icon-button"
+                  title="Cancel this request"
+                  aria-label="Cancel"
+                  onClick={cancelRun}
+                >
+                  Cancel
+                </button>
+              )}
               <button
                 type="button"
                 className="icon-button"

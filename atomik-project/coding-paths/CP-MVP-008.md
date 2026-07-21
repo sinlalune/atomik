@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-008
   status: active
   accepted: 2026-07-21
-  current_step: S02
+  current_step: S03
   base_commit: 6cacfa2
 ---
 
@@ -192,16 +192,24 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       files); full reads done (06, 05, 28, 33, 26; 13 §IPC/keys/
       cloud/local-worker; 14 §ai-core/dependencies). PINS in the
       checkpoint below.
-- [ ] S02 Mistral adapter in main, end to end: typed
-      `GenerationAdapter` seam; Mistral Small chat-completions impl
-      (key via `readMistralKey`, AbortController timeout, token/size
-      budgets from ai-mock's constants); ActionTrace with
-      provider-reported usage + dated-snapshot estimated cost; engine
-      selection (mock | mistral) in settings via typed channel +
-      preload surface test; network/auth/quota failures surfaced;
-      offline → mock selectable. Tests: request building, response →
-      bundle mapping, error taxonomy — fixtures only; env-gated live
-      smoke rung.
+- [x] S02 Mistral adapter in main, end to end — done 2026-07-21:
+      `generation.ts` (typed GenerationAdapter seam + mock behind it +
+      the eight-kind GenerationError taxonomy) and
+      `mistral-generation-adapter.ts` (chat completions, model id
+      pinned LIVE `mistral-small-2603` from provider docs 2026-07-21;
+      budgets 2k out / 60s wall / input pre-check; deterministic claim
+      candidates → unchanged labelClaims; provider-reported usage
+      labeled, USD cost from the dated snapshot). Engine selection
+      persisted (`setAiEngine` channel; resolution explicit → key →
+      mock) + `cancelAiOperation` mid-flight; AppMenu engine picker;
+      AiPanel Cancel. Trace lines wear cloud identity + labeled
+      usage/billing + snapshot id + privacy.mode cloud. Tests
+      455/44 (was 435/43): generation-adapter.test.ts fixture-only,
+      ai-settings + action-trace extended, preload surface holds;
+      typecheck/build green; smoke `ai=ok` through the new async
+      handler; live rung `ATOMIK_SMOKE_AI_LIVE=1` wired (honest
+      `skip:no-key` — full live proof lands with the owner key at the
+      S07 bench).
 - [ ] S03 Prompts folder: `prompts/` convention + scanner over the
       existing vault verbs (zero new IPC; pattern: the
       `sourceBundlesOf` walk); prompts feed quick actions, pills, and
@@ -306,15 +314,39 @@ changed     : S01 docs-only (this ledger + log). S01 PINS:
               — OPEN (owner bench at S07): default engine when a key
                 is configured — proposed default 'mistral', mock
                 stays selectable.
-tests       : 435 passing / 43 suites (unchanged — docs-only step).
-next action : S02 — Mistral adapter in main, end to end (typed
-              GenerationAdapter seam; chat-completions impl via
-              readMistralKey; budgets + AbortController; ActionTrace
-              with provider-reported usage + snapshot-estimated
-              cost; engine selection via typed settings channel +
-              preload surface test; fixture-only tests + env-gated
-              live smoke rung).
-blockers    : none.
+tests       : 455 passing / 44 suites (S02: +generation-adapter suite,
+              ai-settings + action-trace extended). Typecheck + build
+              green; smoke `ai=ok:2/1/4/1 … labels=source-backed,
+              model-only,needs-citation,interpretive` through the new
+              async handler; `aiLive=skip:no-key` (rung wired; live
+              proof needs the owner key — S07 bench).
+changed(S02): generation.ts + mistral-generation-adapter.ts NEW;
+              ai-mock.ts (provenanceLine exported); ai-settings.ts
+              (engine field + resolution); action-trace.ts (engine
+              meta, labeled usage, USD billing + priceSnapshotId,
+              privacy cloud); index.ts (async handler, engine
+              resolution, cancel + setAiEngine channels, live smoke
+              rung); ipc-contract + preload (+cancelAiOperation,
+              +setAiEngine, AiEngine, AiSettingsPublic.
+              generationEngine); AppMenu engine picker; AiPanel
+              Cancel; learning note 17 + index; module note.
+              S02 FACTS: model id `mistral-small-2603` pinned live
+              2026-07-21 (docs.mistral.ai models overview — Mistral
+              Small 4); cost snapshot upper bound $0.15/$0.60 per
+              MTok, id docs/research/model-research.md@2026-07-20;
+              error kinds ride messages as `ai(<kind>): …`; smoke
+              engine restore writes the resolved engine explicitly
+              (accepted quirk of the rung).
+next action : S03 — prompts/ folder: vault-root convention + scanner
+              over the existing vault verbs (zero new IPC; pattern:
+              the sourceBundlesOf walk); prompts feed quick actions,
+              pills, and chat system prompts (S02's
+              defaultSystemPrompt is the built-in fallback seam);
+              explicit starter materialization; tests scan/parse/
+              fallback/round-trip.
+blockers    : none. OPEN (S07 bench): default engine when a key is
+              configured — 'mistral' proposed, implemented as the
+              key-present resolution default, mock stays selectable.
 ```
 
 # Blockers

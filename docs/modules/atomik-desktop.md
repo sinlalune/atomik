@@ -21,7 +21,8 @@ timestamp: 2026-07-06T00:00:00Z
   (`electron-main/security.ts`) pins 13's required settings; the renderer's
   CSP lives in `renderer/index.html`. The window is chromeless
   (`frame: false`): a GLOBAL app header (`AppHeader` — brand "atomik",
-  the `AppMenu` ☰ dropdown holding theme + Mistral key, and
+  the `AppMenu` ☰ dropdown holding theme + Mistral key + the S02
+  generation-engine choice (mock | mistral), and
   `WindowControls`) is the top row and the drag surface
   (`-webkit-app-region`); the per-pane tabstrips sit on the row below
   and no longer carry the window controls (owner request 2026-07-14,
@@ -132,11 +133,38 @@ timestamp: 2026-07-06T00:00:00Z
   content ever leaks. Badge in the AI panel via `get-ai-trace-summary`;
   decision reported via `resolve-ai-trace` (fire-and-forget: telemetry
   never blocks UX).
-- The AI patch loop (06, S08): `electron-main/ai-mock.ts` (the ai-core
-  seat, 14) behind `atomik:run-ai-operation` — PURE COMPUTE, validated
-  input (instruction/selection caps, range sanity), content-deterministic
-  06-shaped bundles with the truth/trace arrays present-but-empty (S09/S10
-  seats). `renderer/src/editor/AiPanel.tsx` docks the loop in the editor:
+- The AI patch loop (06, S08; REAL engines CP-MVP-008 S02): the typed
+  `GenerationAdapter` seam in `electron-main/generation.ts` (the ai-core
+  seat, 14) behind `atomik:run-ai-operation` — engines are PURE COMPUTE;
+  identity travels in the answering adapter's output, so the renderer
+  contract is unchanged from the mock era. Two engines:
+  `ai-mock.ts` (S08, the deterministic offline path, still a selectable
+  engine) and `mistral-generation-adapter.ts` — Mistral Small chat
+  completions (model id PINNED `mistral-small-2603`, confirmed live
+  2026-07-21; upgrades are a new dated decision), key via
+  `readMistralKey` attached in MAIN only (13), budgets below renderer
+  state (2k output tokens, 60s wall via AbortController, input token
+  pre-check), and the eight-kind typed error taxonomy carried as
+  `ai(<kind>): …` — offline / timeout / auth / rate-limit /
+  provider-request / provider-server / cancelled / budget-exceeded —
+  with NO silent fallback to the mock (13 explicit-policy rule).
+  Engine selection persists in `ai-settings.json` beside the key
+  (`atomik:set-ai-engine`; resolution: explicit choice, else 'mistral'
+  when a key exists — the PROPOSED default until the S07 owner bench —
+  else 'mock'). `atomik:cancel-ai-operation` aborts the in-flight call
+  by operation id (the AiPanel shows Cancel while running). Claim
+  candidates over real output are extracted deterministically
+  (sentences, fences dropped, capped) and `labelClaims` runs unchanged
+  — exact containment stays the only road to source-backed (28).
+  Traces (33): provider-reported usage preferred over estimates, each
+  labeled; external cost estimated in USD from the dated snapshot
+  `docs/research/model-research.md@2026-07-20` (upper bound), snapshot
+  id in the line; cloud lines wear `location: 'cloud-model'` +
+  `privacy.mode: 'cloud'`, `contentRecorded` stays false. The
+  env-gated `ATOMIK_SMOKE_AI_LIVE=1` rung proves the live chain
+  (engine switch, one real completion, cloud trace, mid-flight cancel;
+  honest `skip:no-key` without a key).
+  `renderer/src/editor/AiPanel.tsx` docks the loop in the editor:
   selection (or whole note) → instruction/preset → destination
   (replace-selection / append / new-note, path prefilled beside the
   note) → bundle review → EDITABLE proposal → accept = apply to the
@@ -935,8 +963,17 @@ web-reader provenance into note text + evidence and its absence),
 `web-provenance.test.ts` (dossier→provenance parse incl. quoted-title
 unquote and null on no-URL, fs resolve best-effort, strict relPath),
 `action-trace.test.ts` (one complete line per decision, append-only
-accumulation, failure/flush paths, summary lifecycle, and the
-content-leak grep), `ai-helpers.test.ts` (default note paths),
+accumulation, failure/flush paths, summary lifecycle, the
+content-leak grep, and the S02 cloud lines: reported-vs-estimated
+labeling, USD billing with snapshot id, cloud privacy mode, failed
+engine identity), `generation-adapter.test.ts` (CP-MVP-008 S02,
+fixtures only: operation→messages building, response→bundle mapping
+per destination, deterministic claim-candidate extraction,
+provider-reported and estimated usage with snapshot cost, truncation
+uncertainty, the full error taxonomy incl. retry-after surfaced
+without auto-retry, timeout-vs-cancel, the main-side input budget
+pre-check, and the mock behind the seam),
+`ai-helpers.test.ts` (default note paths),
 `truth.test.ts` (containment + hash evidence, the no-paraphrase rule,
 form honoring with evidence outranking, the smuggled-label adversarial
 case, reproducibility, provenance riding matched evidence and the

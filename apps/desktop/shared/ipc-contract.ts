@@ -59,10 +59,12 @@ export const ATOMIK_CHANNELS = {
   getCaptureUploadData: 'atomik:get-capture-upload-data',
   openSourceExternally: 'atomik:open-source-externally',
   runAiOperation: 'atomik:run-ai-operation',
+  cancelAiOperation: 'atomik:cancel-ai-operation',
   resolveAiTrace: 'atomik:resolve-ai-trace',
   getAiTraceSummary: 'atomik:get-ai-trace-summary',
   getAiSettings: 'atomik:get-ai-settings',
   setMistralApiKey: 'atomik:set-mistral-api-key',
+  setAiEngine: 'atomik:set-ai-engine',
   webViewEnsure: 'atomik:web-view-ensure',
   webViewNavigate: 'atomik:web-view-navigate',
   webViewControl: 'atomik:web-view-control',
@@ -83,11 +85,21 @@ export const ATOMIK_CHANNELS = {
   webViewState: 'atomik:web-view-state'
 } as const
 
+/**
+ * The selectable generation engines (CP-MVP-008 S02): the deterministic
+ * mock stays a first-class engine (test/fallback; the offline path) —
+ * an engine choice is EXPLICIT, never a silent fallback (13).
+ */
+export type AiEngine = 'mock' | 'mistral'
+
 /** What the renderer may know about AI settings (13): presence and a
  *  recognition hint — the raw key never crosses back. */
 export type AiSettingsPublic = {
   mistralKeyPresent: boolean
   mistralKeyHint: string | null
+  /** Resolved engine: the explicit choice, else 'mistral' when a key is
+   *  configured (proposed default — owner confirms at S07), else 'mock'. */
+  generationEngine: AiEngine
 }
 
 /**
@@ -639,8 +651,13 @@ export type AtomikApi = {
   /** Opens a source ORIGINAL in the OS default player (WSLg audio
    *  escape hatch); same validation as readSourceAsset. */
   openSourceExternally: (relPath: string) => Promise<void>
-  /** Mocked AI operation (S08): pure compute, never writes. */
+  /** AI operation (S08 mock; CP-MVP-008 S02 real engines): pure
+   *  compute in main, never writes — rejects with a typed-taxonomy
+   *  message (`ai(<kind>): …`) on provider failure. */
   runAiOperation: (operation: AiOperation) => Promise<AiResponseBundle>
+  /** Aborts an in-flight operation by its id (S02): the provider call
+   *  is cancelled main-side; the run rejects with ai(cancelled). */
+  cancelAiOperation: (operationId: string) => Promise<void>
   /** Reports the user's decision; main appends the one trace line. */
   resolveAiTrace: (bundleId: string, decision: AiTraceDecision) => Promise<void>
   /** Badge data for a pending operation; null when unknown. */
@@ -650,6 +667,9 @@ export type AtomikApi = {
   /** Stores (or clears, with null) the Mistral API key MAIN-SIDE; the
    *  response is the new public view, never the key. */
   setMistralApiKey: (key: string | null) => Promise<AiSettingsPublic>
+  /** Chooses the generation engine (S02): explicit, persisted main-side
+   *  beside the key; validated against the engine union. */
+  setAiEngine: (engine: AiEngine) => Promise<AiSettingsPublic>
   /** Ensures a tab's isolated web view exists (created on first call,
    *  loading `url`); idempotent — an existing view ignores `url`. */
   webViewEnsure: (
@@ -738,10 +758,12 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'getCaptureUploadData',
   'openSourceExternally',
   'runAiOperation',
+  'cancelAiOperation',
   'resolveAiTrace',
   'getAiTraceSummary',
   'getAiSettings',
   'setMistralApiKey',
+  'setAiEngine',
   'webViewEnsure',
   'webViewNavigate',
   'webViewControl',

@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import {
   ATOMIK_API_KEY,
   ATOMIK_CHANNELS,
+  type AiEngine,
   type AiOperation,
   type AiTraceDecision,
   type AtomikApi,
@@ -129,6 +130,8 @@ const api: AtomikApi = {
     ipcRenderer.invoke(ATOMIK_CHANNELS.openSourceExternally, relPath),
   runAiOperation: (operation: AiOperation) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.runAiOperation, operation),
+  cancelAiOperation: (operationId: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.cancelAiOperation, operationId),
   resolveAiTrace: (bundleId: string, decision: AiTraceDecision) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.resolveAiTrace, bundleId, decision),
   getAiTraceSummary: (bundleId: string) =>
@@ -136,6 +139,8 @@ const api: AtomikApi = {
   getAiSettings: () => ipcRenderer.invoke(ATOMIK_CHANNELS.getAiSettings),
   setMistralApiKey: (key: string | null) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.setMistralApiKey, key),
+  setAiEngine: (engine: AiEngine) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.setAiEngine, engine),
   webViewEnsure: (id: string, url?: string) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.webViewEnsure, id, url),
   webViewNavigate: (id: string, url: string) =>
