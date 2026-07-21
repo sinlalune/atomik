@@ -30,7 +30,7 @@ Late paths are better paths: they inherit module notes, friction records from th
 | M3 (seats) | CUDA tiers + OCR seat + opt-in cloud rung | CP-MVP-005 | done (2026-07-08) |
 | M4 | PDF source + strong anchors | CP-MVP-003 | done (2026-07-13) |
 | M5 | web source tab + explicit imports | CP-MVP-006 | done (2026-07-16) |
-| M1 (friction pass) | tree file management — create/rename/move/delete + DnD | CP-MVP-007 | active (accepted 2026-07-16) |
+| M1 (friction pass) | tree file management — create/rename/move/delete + DnD | CP-MVP-007 | done (2026-07-21) |
 | M2 (completion) | real generation (Mistral Small) + AI interaction pass | [CP-MVP-008](./CP-MVP-008.md) | proposed 2026-07-20 (draft; awaits owner acceptance + CP-MVP-007 close + the [2026-07-21 vision-alignment review](../sessions/2026-07-21-vision-alignment-before-cp-mvp-008.md)) |
 | M6 | minimal Truth Lens + challenge/repair | — | not opened |
 | M7 | live verification provider | — | not opened |

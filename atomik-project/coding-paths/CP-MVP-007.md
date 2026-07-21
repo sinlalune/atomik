@@ -6,9 +6,10 @@ tags: [coding-path, m1, vault, tree, file-management, rename, refactor, dnd, tra
 timestamp: 2026-07-16T00:00:00Z
 atomik:
   id: CP-MVP-007
-  status: active
+  status: done
   accepted: 2026-07-16
-  current_step: S01
+  done: 2026-07-21
+  current_step: S07
   base_commit: 9de5f01
 ---
 
