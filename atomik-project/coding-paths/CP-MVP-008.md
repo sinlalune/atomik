@@ -6,9 +6,10 @@ tags: [coding-path, m2, ai, generation, provider, mistral, prompts, context-menu
 timestamp: 2026-07-20T00:00:00Z
 atomik:
   id: CP-MVP-008
-  status: draft
+  status: active
+  accepted: 2026-07-21
   current_step: S01
-  base_commit: null
+  base_commit: 6cacfa2
 ---
 
 # Goal
@@ -246,29 +247,25 @@ Completeness rule (35): every bedrock page 00–36 accounted for
 # Current checkpoint
 
 ```text
-base commit : not pinned — path PROPOSED 2026-07-20, not yet accepted
-changed     : nothing; docs-only proposal unit (this file, register
-              row, decisions record, log entry)
-tests       : n/a — no execution yet (repo at 407/41 green from
-              CP-MVP-007)
-next action : owner review of this proposal; activation is gated on
-              (1) owner acceptance, (2) CP-MVP-007 S07 closing
-              (owner bench — still the vault's immediate next
-              action), and (3) the vision-alignment review closing
-              with owner answers — the standing pre-path gate (22),
-              first instance:
-              ../sessions/2026-07-21-vision-alignment-before-cp-mvp-008.md.
-              Then ACTIVE.md flips here, base_commit pins, execution
-              starts at S01.
-blockers    : CP-MVP-007 still active (one-active-parent-path rule);
-              alignment review open.
+base commit : 6cacfa2 — ACTIVATED 2026-07-21 (owner: "ok lets go"
+              after both ceremonies: CP-MVP-007 closed and swept;
+              opening check confirmed all four features with ONE
+              amendment — chats persist as vault FILES).
+changed     : activation unit only (this file, ACTIVE.md, register,
+              log).
+tests       : 435 passing / 43 suites at activation; typecheck/
+              build/smoke green.
+next action : S01 bootstrap — full reads of 06, 13 §IPC+keys,
+              14 §ai-core, 33, 28, 05, 26; pin the adapter contract
+              (request/bundle mapping, error taxonomy, dated price
+              snapshot from docs/research/model-research.md), the
+              prompt-file shape, and the chats/ convention (owner
+              decision: files); record the pins here.
+blockers    : none.
 ```
 
 # Blockers
 
-- CP-MVP-007 is the active parent path until its S07 acceptance
-  closes; this path must not begin execution before then (35).
-- The vision-alignment review
-  (`../sessions/2026-07-21-vision-alignment-before-cp-mvp-008.md`)
-  must close with owner answers before acceptance — the standing
-  pre-path gate added 2026-07-21 (22 §If no active path exists).
+- None. (Both 2026-07-21 ceremonies recorded: closing ceremony in the
+  vision-alignment session note; opening check answers there and in
+  this file's DoD/S01 amendments.)
