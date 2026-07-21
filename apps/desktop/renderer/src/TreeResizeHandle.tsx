@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { clampTreeWidth } from './workspace/model'
+import { frameCoalesced } from './workspace/frame-coalesce'
 
 /**
  * Drag handle on a tree panel's right edge (owner feedback on MVP-001:
@@ -20,8 +21,10 @@ export function TreeResizeHandle({
       if (!panel) return
       const left = panel.getBoundingClientRect().left
       handle.setPointerCapture(event.pointerId)
+      // reports at paint rate, not event rate (S07j — see frame-coalesce)
+      const applyWidth = frameCoalesced(onResize)
       const onMove = (move: PointerEvent): void => {
-        onResize(clampTreeWidth(move.clientX - left))
+        applyWidth(clampTreeWidth(move.clientX - left))
       }
       const onUp = (): void => {
         handle.removeEventListener('pointermove', onMove)

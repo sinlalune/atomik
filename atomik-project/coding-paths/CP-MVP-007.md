@@ -426,6 +426,21 @@ bench fixes : S06b white app (props typed, never destructured — the
               recentred; the :root two-surface doctrine comment
               updated. Screenshot-verified: tab fused with content,
               line broken beneath it, resuming at its right.
+              S07j owner bench report (2026-07-21): "anything visual
+              is laggy vs Obsidian, 240 Hz monitor". Attributed
+              against the 07-15 perf audit (addendum written): window
+              moves/global feel = the measured WSLg software-GL tax
+              (Obsidian compares from native Windows; no code here
+              ever sees 240 Hz on WSLg — packaged native build is the
+              honest test); pane/tree RESIZE had the real app half
+              (audit RS2): drags dispatched a full workspace render
+              per EVENT while software frames lagged. Fix = audit
+              action 6's drag half: frameCoalesced (scheduler-seam
+              helper, 5 tests) — split-divider drag measures and
+              dispatches once per painted frame; tree-width drag
+              likewise; WebView bounds reporting dedupes already and
+              follows render rate. Deferred levers recorded (CSS-var
+              drag preview, RS1 memoization, RS3 caches).
 tests       : 411 passing / 41 suites — green after the bench fixes
               (S07h: note links, proximity order, pill row format,
               contract-file exclusions; S07e-e: 407)

@@ -316,3 +316,27 @@ media transport), 5 (lazy read pipeline — largely mitigated by the
 cache), 6's drag-commit restructure, 7 (OCR worker), 9 (workspace
 memoization), and the M8 search rework. Tests 324 → 337/37 across the
 four units; every unit shipped with typecheck/build/smoke green.
+
+## Addendum — S07j (2026-07-21)
+
+Owner bench report on CP-MVP-007: "rendering feels laggy, not snappy
+like Obsidian — moving the window, resizing panes, anything visual;
+I have a 240 Hz monitor." Attribution against this audit:
+
+- Window moves and the general repaint feel on the DEV machine are the
+  WSLg tax above (all-software GL presented through RDP): the
+  comparison target (Obsidian) runs native-Windows with hardware
+  compositing and real 240 Hz presentation — no app code here ever
+  sees that refresh rate. The honest test for "snappy" is a packaged
+  native build; nothing on WSLg can fake it.
+- Pane/tree RESIZE lag had a real app-side half: RS2, per-pointermove
+  full-workspace dispatches — under software raster, events outpace
+  paints and every queued event dispatched a full re-render. Executed
+  now as action 6's drag half: `frameCoalesced`
+  (renderer/src/workspace/frame-coalesce.ts, scheduler seam, tested)
+  wraps the split-divider drag (measure + dispatch once per painted
+  frame) and the tree-width drag; WebView bounds reporting already
+  dedupes and rides the render cycle, so it drops to frame rate with
+  them. Deferred and unchanged: the CSS-var drag-preview restructure
+  (commit-on-release), RS1 memoization, RS3 tab-switch caches — the
+  next levers if the bench still feels drag lag at vault scale.

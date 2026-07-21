@@ -5,6 +5,7 @@ import type {
   WorkspaceTab
 } from '../../../shared/ipc-contract'
 import { DevDocs } from '../dev-docs/DevDocs'
+import { frameCoalesced } from './frame-coalesce'
 import { ProjectView } from '../project/ProjectView'
 import { noteDisplayName } from '../vault/scope'
 import { VaultView } from '../vault/VaultView'
@@ -582,12 +583,19 @@ function SplitPaneView({
       const divider = event.currentTarget
       divider.setPointerCapture(event.pointerId)
       const horizontal = node.direction === 'horizontal'
+      // Both the measure (reflow) and the dispatch (full workspace
+      // render) run once per painted frame, not once per event (S07j).
+      const applyPoint = frameCoalesced<{ x: number; y: number }>(
+        ({ x, y }) => {
+          const rect = container.getBoundingClientRect()
+          const fraction = horizontal
+            ? (x - rect.left) / rect.width
+            : (y - rect.top) / rect.height
+          dispatch((state) => setFraction(state, node.id, fraction))
+        }
+      )
       const onMove = (move: PointerEvent): void => {
-        const rect = container.getBoundingClientRect()
-        const fraction = horizontal
-          ? (move.clientX - rect.left) / rect.width
-          : (move.clientY - rect.top) / rect.height
-        dispatch((state) => setFraction(state, node.id, fraction))
+        applyPoint({ x: move.clientX, y: move.clientY })
       }
       const onUp = (): void => {
         divider.removeEventListener('pointermove', onMove)
