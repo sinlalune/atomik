@@ -76,6 +76,11 @@ when the shape changes, not on every diff.
   OS trash behind a test seam, rename/move as a previewed backlink
   refactor with rollback, bundle-as-unit guards, DnD as an input binding,
   pane-chrome trees. Covers CP-MVP-007 (backfilled 2026-07-21).
+- [16 — Design tokens, themes, and budgeted glass](./16-design-tokens-themes-and-glass.md) —
+  the token contract, light-dark()/color-scheme theme blocks, color-mix
+  glass tints with a backdrop-filter budget, semantic state colors,
+  same-role-same-box parity, accessible names. Covers CP-MVP-007
+  S07m/S07n and bedrock 36.
 
 ## Coverage stall (2026-07-07 → 2026-07-21) — repaid
 

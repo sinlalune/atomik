@@ -54,6 +54,36 @@
   --info-fg: light-dark(#3d4f7a, #aebde4);
   --info-bg: light-dark(#e9edf8, #262c3f);
   --info-border: light-dark(#c3cde8, #47547a);
+
+  /* S07n design system (bedrock 36) — the scales chrome speaks.
+     New chrome styling consumes THESE, never raw values. */
+  --fs-xs: 0.7rem;
+  --fs-sm: 0.75rem;
+  --fs-md: 0.8rem;
+  --fs-lg: 0.85rem;
+  --space-1: 0.15rem;
+  --space-2: 0.3rem;
+  --space-3: 0.5rem;
+  --space-4: 0.75rem;
+  --space-5: 1rem;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-pill: 999px;
+  --tab-r: 9px;
+  --control-h: 1.5rem;
+  --gutter: 0.9rem;
+  --z-bar: 1;
+  --z-float: 5;
+  --z-pop: 40;
+  --z-menu: 60;
+  --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.22);
+
+  /* Glass (36 §glass): standing chrome = alpha tint only (software-GL
+     budget under WSLg); real backdrop blur is overlay-only. Content
+     stays opaque — reading is sacred. */
+  --glass-chrome: color-mix(in srgb, var(--bg) 88%, transparent);
+  --glass-pop: color-mix(in srgb, var(--surface) 82%, transparent);
 }
 
 /* Explicit themes (owner round 2: dark mode + soft pastels for bright
@@ -118,11 +148,66 @@
   --muted: #6f5a63;
 }
 
+/* S07n — the ORGANIC-FUTURE family (bedrock 36, owner: "can we have
+   all?"). Four canonical themes over one token contract; the pastels
+   above are legacy until the owner prunes them at a bench. Ladder
+   holds per scheme: light chrome < code-bg < surface; dark chrome <
+   surface < code-bg. */
+:root[data-theme='sage-stone'] {
+  color-scheme: light;
+  --bg: #e7e9e2;
+  --surface: #f9faf6;
+  --code-bg: #dfe3d8;
+  --border: #c9cfc0;
+  --accent: #4a6b4f;
+  --muted: #61685c;
+}
+
+:root[data-theme='eucalyptus'] {
+  color-scheme: light;
+  --bg: #e3eae8;
+  --surface: #f5f9f8;
+  --code-bg: #d9e3e0;
+  --border: #c2d0cc;
+  --accent: #3f7268;
+  --muted: #5d6b68;
+}
+
+:root[data-theme='moss'] {
+  color-scheme: dark;
+  --bg: #171915;
+  --surface: #20231d;
+  --code-bg: #262a23;
+  --border: #363b31;
+  --accent: #8fae7e;
+  --muted: #8e948a;
+  --fg: #e6e8e1;
+}
+
+:root[data-theme='biolum'] {
+  color-scheme: dark;
+  --bg: #101418;
+  --surface: #171c22;
+  --code-bg: #1d242c;
+  --border: #2a333d;
+  --accent: #5fd4b0;
+  --muted: #7f8b94;
+  --fg: #dfe6ea;
+}
+
 body {
   margin: 0;
   height: 100vh;
   overflow: hidden;
-  background: var(--bg);
+  /* the wash the glass chrome tints against (36 §glass): a whisper of
+     accent light in the corner — visible only through alpha chrome */
+  background:
+    radial-gradient(
+      120% 90% at 15% 0%,
+      color-mix(in srgb, var(--accent) 6%, transparent),
+      transparent 60%
+    ),
+    var(--bg);
   color: var(--fg);
 }
 
@@ -143,7 +228,8 @@ body {
   gap: 0.5rem;
   height: 2.2rem;
   padding: 0 0.5rem 0 0.85rem;
-  background: var(--bg);
+  /* standing chrome wears the glass tint over the body wash (36) */
+  background: var(--glass-chrome);
   border-bottom: 1px solid var(--border);
   -webkit-app-region: drag;
 }
@@ -199,14 +285,18 @@ body[data-maximized] .app-header {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  z-index: 40;
+  z-index: var(--z-pop);
   width: 300px;
-  padding: 0.75rem 0.9rem;
-  background: var(--surface);
+  padding: 0.75rem var(--gutter);
+  /* overlay glass (36): frosted, small area — the one sanctioned
+     backdrop-filter use */
+  background: var(--glass-pop);
+  backdrop-filter: blur(14px) saturate(1.15);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-  font-size: 0.8rem;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop);
+  font-size: var(--fs-md);
 }
 
 .app-menu-panel h4 {
@@ -396,14 +486,14 @@ body[data-maximized] .app-header {
   grid-row: 1;
   grid-column: 2;
   position: relative;
-  z-index: 1;
+  z-index: var(--z-bar);
   height: var(--bar-h);
   box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 2px;
   padding: 0 0.4rem;
-  background: var(--bg);
+  background: var(--glass-chrome);
   font-size: 0.8rem;
   -webkit-app-region: drag;
 }
@@ -426,14 +516,14 @@ body[data-maximized] .app-header {
   min-width: 0;
   align-self: stretch;
   position: relative;
-  z-index: 1;
+  z-index: var(--z-bar);
   display: flex;
   align-items: stretch;
   gap: 2px;
   overflow-x: auto;
   scrollbar-width: none;
   /* room for the first/last active tab's shoulder inside the clip */
-  padding-inline: 9px;
+  padding-inline: var(--tab-r);
 }
 
 .tabstrip-tabs::-webkit-scrollbar {
@@ -462,7 +552,7 @@ body[data-maximized] .tabstrip {
   margin-top: 4px;
   border: 1px solid transparent;
   border-bottom: none;
-  border-radius: 9px 9px 0 0;
+  border-radius: var(--tab-r) var(--tab-r) 0 0;
   white-space: nowrap;
   color: var(--muted);
 }
@@ -489,15 +579,15 @@ body[data-maximized] .tabstrip {
   content: '';
   position: absolute;
   bottom: 0;
-  width: 9px;
-  height: 9px;
+  width: var(--tab-r);
+  height: var(--tab-r);
   pointer-events: none;
 }
 
 .tab.active::before {
-  left: -9px;
+  left: calc(-1 * var(--tab-r));
   background: radial-gradient(
-    circle 9px at 0 0,
+    circle var(--tab-r) at 0 0,
     transparent 7px,
     var(--border) 7.5px,
     var(--border) 8px,
@@ -506,9 +596,9 @@ body[data-maximized] .tabstrip {
 }
 
 .tab.active::after {
-  right: -9px;
+  right: calc(-1 * var(--tab-r));
   background: radial-gradient(
-    circle 9px at 100% 0,
+    circle var(--tab-r) at 100% 0,
     transparent 7px,
     var(--border) 7.5px,
     var(--border) 8px,
@@ -595,11 +685,11 @@ body[data-maximized] .tabstrip {
   flex: none;
   position: sticky;
   top: 0;
-  z-index: 5;
+  z-index: var(--z-float);
   width: 100%;
   min-height: var(--bar-h);
   box-sizing: border-box;
-  padding: 0.15rem 0.9rem;
+  padding: var(--space-1) var(--gutter);
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   font-size: 0.78rem;
@@ -724,7 +814,7 @@ body[data-maximized] .tabstrip {
   gap: 8px;
   min-height: var(--bar-h);
   box-sizing: border-box;
-  padding: 0.15rem 0.9rem;
+  padding: var(--space-1) var(--gutter);
   background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
@@ -891,7 +981,7 @@ body[data-maximized] .tabstrip {
   width: 5px;
   height: 100%;
   cursor: col-resize;
-  z-index: 3;
+  z-index: var(--z-float);
 }
 
 .tree-resize:hover,
@@ -1152,7 +1242,7 @@ body[data-maximized] .tabstrip {
   gap: 0.75rem;
   min-height: var(--bar-h);
   box-sizing: border-box;
-  padding: 0.15rem 0.9rem;
+  padding: var(--space-1) var(--gutter);
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   font-size: 0.78rem;
@@ -1185,13 +1275,19 @@ body[data-maximized] .tabstrip {
   gap: 4px;
 }
 
+/* One control box for every in-bar control (36): --control-h, centered
+   content — "Save", the mode switch, and the pills sit on one line. */
 .note-bar-actions button {
   font: inherit;
   color: inherit;
   background: none;
   border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.15rem 0.65rem;
+  border-radius: var(--radius-md);
+  height: var(--control-h);
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.65rem;
   cursor: pointer;
 }
 
@@ -1248,7 +1344,7 @@ body[data-maximized] .tabstrip {
   gap: 0.6rem;
   min-height: var(--bar-h);
   box-sizing: border-box;
-  padding: 0.15rem 0.9rem;
+  padding: var(--space-1) var(--gutter);
   border-bottom: 1px solid var(--border);
   background: var(--warn-bg);
   font-size: 0.78rem;
@@ -1301,7 +1397,11 @@ body[data-maximized] .tabstrip {
   color: var(--muted);
   background: none;
   border: none;
-  padding: 0.18rem 0.55rem;
+  height: calc(var(--control-h) - 2px);
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.55rem;
   cursor: pointer;
 }
 
@@ -1611,7 +1711,7 @@ body[data-maximized] .tabstrip {
   justify-content: space-between;
   min-height: var(--bar-h);
   box-sizing: border-box;
-  padding: 0.15rem 0.9rem;
+  padding: var(--space-1) var(--gutter);
   border-bottom: 1px solid var(--border);
 }
 
@@ -2391,12 +2491,17 @@ body[data-maximized] .tabstrip {
 .note-bar-actions .note-bar-button,
 .capture-upload-view {
   font: inherit;
-  font-size: 0.75rem;
+  font-size: var(--fs-sm);
   color: var(--muted);
   background: var(--code-bg);
   border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 0.1rem 0.6rem;
+  border-radius: var(--radius-pill);
+  height: var(--control-h);
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0 0.6rem;
   cursor: pointer;
 }
 
@@ -2539,7 +2644,7 @@ body[data-maximized] .tabstrip {
   right: 0.6rem;
   display: flex;
   gap: 0.3rem;
-  z-index: 1;
+  z-index: var(--z-bar);
 }
 
 .source-image-tools button {
@@ -2633,16 +2738,41 @@ body[data-maximized] .tabstrip {
 
 .tree-menu {
   position: fixed;
-  z-index: 61;
+  z-index: var(--z-menu);
   min-width: 180px;
   max-width: 260px;
   padding: 0.25rem;
-  background: var(--surface);
+  background: var(--glass-pop);
+  backdrop-filter: blur(14px) saturate(1.15);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop);
   display: flex;
   flex-direction: column;
+}
+
+/* Glass fallbacks (36): no backdrop support → opaque surface; user
+   asked for reduced transparency → opaque everywhere. */
+@supports not (backdrop-filter: blur(1px)) {
+  .app-menu-panel,
+  .tree-menu {
+    background: var(--surface);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .app-menu-panel,
+  .tree-menu {
+    background: var(--surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .app-header,
+  .tabstrip {
+    background: var(--bg);
+  }
 }
 
 .tree-menu-head {
@@ -2737,6 +2867,8 @@ body[data-maximized] .tabstrip {
   flex-direction: column;
   overflow: hidden;
   padding-bottom: 0;
+  /* standing chrome glass tint over the body wash (36) */
+  background: var(--glass-chrome);
 }
 
 .pane-tree-scroll {
@@ -2771,7 +2903,7 @@ body[data-maximized] .tabstrip {
   position: absolute;
   left: 0.45rem;
   bottom: 0.45rem;
-  z-index: 5;
+  z-index: var(--z-float);
   padding: 0.28rem 0.35rem;
   background: var(--bg);
   border: 1px solid var(--border);

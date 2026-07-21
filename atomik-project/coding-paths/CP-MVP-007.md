@@ -508,15 +508,33 @@ bench fixes : S06b white app (props typed, never destructured — the
               12 unnamed inputs given aria-labels; tab tooltips carry
               notePath/dossierPath; meter role on the record level.
               432/43 green, build/smoke green, screenshot-verified.
-              S07n feed (recorded, next unit): token architecture
-              (--fs/-space/-radius/-control-h/-gutter scales,
-              z-tiers), shared .pill/.btn/.input/.popover classes,
-              NoteBar/InlineCreateForm/ConfirmDialog components,
-              editor-bar nav parity, TreeMenu web-overlay
-              registration, AI/save-mode icon treatment, the FOUR
-              organic-future themes + macOS-glass identity
-              (chrome+overlays translucent, content opaque) + the
-              design-system bedrock doc wired into AGENTS.
+              S07n SHIPPED (same day): bedrock 36 (the design system
+              — identity from the owner interview, token vocabulary,
+              component rules, glass budget, a11y floors, the
+              automatic contract) + AGENTS.md line ("UI work obeys
+              36"); tokens LIVE in :root (--fs/-space/-radius scales,
+              --control-h, --gutter, --tab-r, z-tiers, --shadow-pop,
+              --glass-chrome/-pop) and applied (all five bars on
+              space-1/gutter, three in-bar control kinds on one
+              --control-h box, tab geometry on --tab-r, z sites on
+              tiers); the FOUR organic-future themes (sage-stone,
+              eucalyptus light; moss, biolum dark — ladder-checked)
+              join THEMES with legacy pastels kept for a bench prune;
+              glass live: body accent wash, alpha chrome tints
+              (header/tabstrip/tree — no backdrop-filter, the WSLg
+              budget), frosted overlays (app menu, tree menu) with
+              @supports + prefers-reduced-transparency fallbacks;
+              learning note 16 (first-use rule honored same day) +
+              index; CP-MVP-008 coverage gains 36 as Required
+              (completeness now 00–36). 432/43 green, build/smoke
+              green (dev-docs corpus auto-grew to 93 files = 36
+              served in-app), screenshot-verified. Remaining
+              consolidation feed (unchanged, for a later unit):
+              shared .pill/.btn/.input/.popover classes,
+              NoteBar/InlineCreateForm/ConfirmDialog extractions,
+              editor-bar nav parity, TreeMenu overlay-guard
+              registration, full literal→token migration, AI/
+              save-mode icon treatment.
 tests       : 432 passing / 43 suites — S07j added frame-coalesce (5),
               S07k added folder-index (17: block matrix, adoption
               idempotence, no-cosmetic-writes, verb round-trips incl.

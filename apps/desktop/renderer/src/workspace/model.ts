@@ -461,13 +461,19 @@ export function setSaveMode(
 
 /**
  * App-wide theme (owner feedback round 2: an explicit dark mode plus
- * soft pastel palettes for bright screens). 'system' follows the OS;
- * pastels are tinted light palettes. Unknown values read as 'system'.
+ * soft pastel palettes for bright screens; S07n: the ORGANIC-FUTURE
+ * family from bedrock 36 — sage-stone/eucalyptus light, moss/biolum
+ * dark). 'system' follows the OS; the pre-36 pastels are legacy until
+ * the owner prunes them at a bench. Unknown values read as 'system'.
  */
 export const THEMES = [
   'system',
   'light',
   'dark',
+  'sage-stone',
+  'eucalyptus',
+  'moss',
+  'biolum',
   'green',
   'blue',
   'orange',

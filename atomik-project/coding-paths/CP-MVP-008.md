@@ -120,7 +120,8 @@ HOW the loop is reached — this path ships them with the engine:
 
 # Documentation coverage
 
-Completeness rule (35): every bedrock page 00–35 accounted for.
+Completeness rule (35): every bedrock page 00–36 accounted for
+(36 added 2026-07-21).
 
 ## Required
 
@@ -151,6 +152,9 @@ Completeness rule (35): every bedrock page 00–35 accounted for.
 - `docs/bedrock/33_33-retrieval-local-execution-cost.md` (THE cost
   page — budgets, traces, cloud rung posture)
 - `docs/bedrock/35_35-coding-path-execution-state.md`
+- `docs/bedrock/36_36-ui-design-system.md` (every new AI surface —
+  context menu, inline preview, chat column — is born conformant:
+  tokens, control boxes, accessible names, glass rules)
 - `docs/agents/agent_documentation_contract.md`
 
 ## Conditional

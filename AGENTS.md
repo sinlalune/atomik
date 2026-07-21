@@ -15,6 +15,7 @@ Durable knowledge lives in `docs/`; durable execution state lives in `atomik-pro
 - Never invent architecture outside `docs/bedrock/`; decisions live in `docs/adr/`.
 - Every executed step updates code, tests, docs, the work ledger, and `log.md` in the same work unit.
 - Electron/IPC work obeys `docs/bedrock/13_13-electron-security.md`; provider keys never enter the renderer.
+- UI work obeys `docs/bedrock/36_36-ui-design-system.md`: tokens, themes, glass rules, and accessibility floors — read it before touching renderer markup or styles.
 - AI writes are proposed patches with preview; no silent file mutation; no mass rewrites.
 - Progress persists in files, never in this conversation.
 
