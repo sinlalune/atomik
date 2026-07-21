@@ -42,3 +42,5 @@ Late paths are better paths: they inherit module notes, friction records from th
 | M13 | canvas | — | not opened |
 
 Reserved follow-up (not a row yet, 33/34 discipline): a LOCAL llama.cpp generation seat opens as its own evaluated tier after CP-MVP-008's cloud engine lands — capability-gated like speech was, dated evidence in 34, never a release-wide promise. Decision trail: [../sessions/2026-07-20-generation-swap-decisions.md](../sessions/2026-07-20-generation-swap-decisions.md).
+
+Reserved follow-up (owner decision 2026-07-21, "after the next coding path"): the PACKAGED NATIVE WINDOWS BUILD opens after CP-MVP-008 — one bounded unit (electron-builder config, Windows target, launch path) that closes the three named WSLg gaps at once: real 240 Hz presentation (S07j attribution), DWM rounded corners + shadow (S07q), and hardware-composited glass depth (36 §glass budget). Until then the dev app under WSLg is the daily driver and those three limits are known, recorded, and not app defects.
