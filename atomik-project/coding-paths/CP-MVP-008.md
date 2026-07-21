@@ -78,12 +78,20 @@ HOW the loop is reached — this path ships them with the engine:
   output unchanged; source-backed remains a deterministic check; the
   model never self-grades; uncited factual detail defaults model-only
   (18 §M2 guardrails).
-- **Prompts folder**: `prompts/` vault-root convention; a prompt file
-  is markdown + frontmatter `kind: system | message`; scanned through
-  the EXISTING vault verbs (`listVaultFiles`/`readNote` — prompts are
-  vault files, zero new IPC); built-in defaults serve when the folder
-  is absent; starter prompts materialize only on an EXPLICIT action
-  (no writes on open); editing a prompt is an ordinary note edit.
+- **Prompts folders, SCOPED** (owner amendment 2026-07-21, prompted
+  exchange — supersedes the root-only S01 pin): a `prompts/` folder
+  may live at the vault root, inside any folder, and inside a project
+  bundle; resolution is NEAREST-WINS from the note outward — the
+  note's own folder chain upward → project bundle → vault root →
+  built-ins; a same-named prompt closer to the note SHADOWS the
+  distant one (a project can override a root prompt, not just add);
+  the AI menu groups prompts by scope so shadowing stays visible.
+  A prompt file is markdown + frontmatter `kind: system | message`;
+  scanned through the EXISTING vault verbs (`listVaultFiles`/
+  `readNote` — prompts are vault files, zero new IPC); built-in
+  defaults serve when no folder provides one; starter prompts
+  materialize only on an EXPLICIT action, PER SCOPE (no writes on
+  open); editing a prompt is an ordinary note edit.
 - **Selection context menu**: right-click (and a keyboard equivalent)
   on an editor selection opens the AI menu — quick actions (prompt
   files + built-ins), custom instruction input spawning at the click
@@ -213,12 +221,16 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       150+11tok/0.000029USD:cancel=cancelled` — real completion,
       cloud trace with provider-reported usage + snapshot cost,
       mid-flight cancel over real latency.
-- [ ] S03 Prompts folder: `prompts/` convention + scanner over the
-      existing vault verbs (zero new IPC; pattern: the
-      `sourceBundlesOf` walk); prompts feed quick actions, pills, and
-      chat system prompts; built-in defaults when absent; explicit
-      starter materialization (no writes on open); tests (scan,
-      frontmatter parse, fallback, round-trip create→use→edit→use).
+- [ ] S03 Prompts folders (scoped — owner amendment 2026-07-21):
+      `prompts/` convention at root + any folder + project bundle;
+      scanner over the existing vault verbs (zero new IPC; pattern:
+      the `sourceBundlesOf` walk) resolving NEAREST-WINS from the
+      note outward with name shadowing; prompts feed quick actions,
+      pills, and chat system prompts, grouped by scope in the menu;
+      built-in defaults when no scope provides one; explicit starter
+      materialization per scope (no writes on open); tests (scan
+      across scopes, shadowing order, frontmatter parse, fallback,
+      round-trip create→use→edit→use).
 - [ ] S04 Selection context menu: right-click + keyboard on an editor
       selection → AI menu (TreeMenu machinery pattern): quick actions
       from prompt files + built-ins, custom input at the click
@@ -296,11 +308,15 @@ changed     : S01 docs-only (this ledger + log). S01 PINS:
                 default maxOutputTokens 2k, maxWallMs 60s via
                 AbortController, input bounded by the mock's
                 constants; cancel mid-flight required.
-              — prompts/ pin: vault-root folder; file = markdown +
-                frontmatter `kind: system | message` (optional
-                title/description); scanned via EXISTING vault verbs
-                (zero new IPC); built-ins when absent; starter
-                materialization only on explicit action.
+              — prompts/ pin (AMENDED 2026-07-21, owner prompted
+                exchange: root + ANY folder + project, nearest-wins
+                from the note outward, same-name shadowing, menu
+                grouped by scope — supersedes root-only): file =
+                markdown + frontmatter `kind: system | message`
+                (optional title/description); scanned via EXISTING
+                vault verbs (zero new IPC); built-ins when no scope
+                provides one; starter materialization only on
+                explicit action, per scope.
               — chats/ pin (owner: files): vault-root `chats/`
                 beside prompts/; one chat = one markdown note
                 `chats/YYYY-MM-DD-<slug>.md`, frontmatter
