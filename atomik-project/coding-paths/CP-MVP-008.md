@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-008
   status: active
   accepted: 2026-07-21
-  current_step: S01
+  current_step: S02
   base_commit: 6cacfa2
 ---
 
@@ -187,16 +187,11 @@ Completeness rule (35): every bedrock page 00–36 accounted for
 
 # Execution
 
-- [ ] S01 Bootstrap (22): reconcile ledger vs repo; pin `base_commit`;
-      read 06 + 13 §IPC + 14 §ai-core + 33 + 28 + 05 + 26 in full;
-      pin the adapter contract (request/bundle mapping, error
-      taxonomy, dated price snapshot), the prompt-file shape
-      (frontmatter `kind: system | message`), and the open design
-      decisions: chat persistence DECIDED at the 2026-07-21 opening
-      check — vault FILES (S01 pins the `chats/` convention: folder,
-      frontmatter, file-birth moment); inline claim-label surfacing
-      (compact strip in the preview widget); default engine when a
-      key is present (owner bench decision, recorded open).
+- [x] S01 Bootstrap (22) — done 2026-07-21: reconciled (base 6cacfa2,
+      435/43 green, working tree carries only pre-existing owner
+      files); full reads done (06, 05, 28, 33, 26; 13 §IPC/keys/
+      cloud/local-worker; 14 §ai-core/dependencies). PINS in the
+      checkpoint below.
 - [ ] S02 Mistral adapter in main, end to end: typed
       `GenerationAdapter` seam; Mistral Small chat-completions impl
       (key via `readMistralKey`, AbortController timeout, token/size
@@ -248,19 +243,77 @@ Completeness rule (35): every bedrock page 00–36 accounted for
 
 ```text
 base commit : 6cacfa2 — ACTIVATED 2026-07-21 (owner: "ok lets go"
-              after both ceremonies: CP-MVP-007 closed and swept;
-              opening check confirmed all four features with ONE
-              amendment — chats persist as vault FILES).
-changed     : activation unit only (this file, ACTIVE.md, register,
-              log).
-tests       : 435 passing / 43 suites at activation; typecheck/
-              build/smoke green.
-next action : S01 bootstrap — full reads of 06, 13 §IPC+keys,
-              14 §ai-core, 33, 28, 05, 26; pin the adapter contract
-              (request/bundle mapping, error taxonomy, dated price
-              snapshot from docs/research/model-research.md), the
-              prompt-file shape, and the chats/ convention (owner
-              decision: files); record the pins here.
+              after both ceremonies; chats-persist-as-files
+              amendment from the opening check).
+changed     : S01 docs-only (this ledger + log). S01 PINS:
+              — GenerationAdapter (ai-core seat, 14): main-only
+                module, PURE COMPUTE like ai-mock (never touches the
+                fs; accepted patches ride the editor buffer + vault
+                verbs). `{ id: 'mock' | 'mistral'; generate(op,
+                signal) -> { bundle: AiResponseBundle;
+                usage?: provider-reported tokens; providerMeta } }`.
+                The ai-mock header's promise IS the bar: renderer
+                contract unchanged; identity travels in the
+                answering adapter's output (transcription-seat
+                precedent). Mapping: instruction + selection(s) →
+                chat-completions messages (system prompt from
+                prompts/ or built-in; selection bounded by ai-mock's
+                MAX_INSTRUCTION=4000 / MAX_SELECTION=100k); response
+                → answer block + one PatchProposal for op.target
+                (replace-range | append | create — the mock's
+                destinations); labelClaims runs MECHANICALLY over
+                real output (28: the model never self-grades).
+              — Error taxonomy (typed, surfaced, NEVER silent
+                fallback to mock — 13 explicit-policy rule):
+                offline/network, timeout (AbortController),
+                auth (401/403 → "Settings → AI"), rate/quota (429,
+                retry-after surfaced, no auto-retry loops),
+                provider-4xx (request bug), provider-5xx, cancelled,
+                budget-exceeded (main-side pre/post check).
+              — Model id: EXACT pinned string constant (precedent
+                mistral-ocr-4-0 / voxtral-mini-2602); S02 confirms
+                the current Mistral Small id against provider docs
+                and records it dated; upgrades = new dated decision.
+              — Price snapshot (dated, 33): docs/research/
+                model-research.md — Mistral Small $0.10–0.15 in /
+                $0.30–0.60 out per MTok, 128K ctx, EU residency, no
+                caching, batch −50%. Trace billing: basis
+                'estimated' from this snapshot (priceSnapshotId →
+                the research file), tokens provider-reported when
+                present, estimated otherwise, each labeled (06).
+              — Budgets in MAIN below renderer state (06/33):
+                default maxOutputTokens 2k, maxWallMs 60s via
+                AbortController, input bounded by the mock's
+                constants; cancel mid-flight required.
+              — prompts/ pin: vault-root folder; file = markdown +
+                frontmatter `kind: system | message` (optional
+                title/description); scanned via EXISTING vault verbs
+                (zero new IPC); built-ins when absent; starter
+                materialization only on explicit action.
+              — chats/ pin (owner: files): vault-root `chats/`
+                beside prompts/; one chat = one markdown note
+                `chats/YYYY-MM-DD-<slug>.md`, frontmatter
+                `type: Atomik Chat` + engine + timestamp; the file
+                is BORN at the first message (never on panel open —
+                no writes on open), turns append as `## you` /
+                `## atomik` sections through the ordinary write
+                path; a transcript is an editable, linkable note;
+                appears in Contents like any note (S07k conventions
+                apply to its folder like any other).
+              — Inline claim strip: compact chips reusing the
+                existing truth-chip language (31 joins Required only
+                if more is needed).
+              — OPEN (owner bench at S07): default engine when a key
+                is configured — proposed default 'mistral', mock
+                stays selectable.
+tests       : 435 passing / 43 suites (unchanged — docs-only step).
+next action : S02 — Mistral adapter in main, end to end (typed
+              GenerationAdapter seam; chat-completions impl via
+              readMistralKey; budgets + AbortController; ActionTrace
+              with provider-reported usage + snapshot-estimated
+              cost; engine selection via typed settings channel +
+              preload surface test; fixture-only tests + env-gated
+              live smoke rung).
 blockers    : none.
 ```
 
