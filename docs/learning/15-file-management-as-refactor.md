@@ -120,6 +120,21 @@ off/w/open) validated main-side in `electron-main/workspace-state.ts`;
 older layouts from the active tab, `PaneTreePanel.tsx` consolidates the
 three view-owned trees — full verb set + dirty-editor guard at the door.
 
+**Convention sync (S07k, 2026-07-21).** The verbs above also keep the
+PARENT folder's convention files current — `electron-main/folder-index.ts`.
+The owner revised the option-D scoping to FULL conventions: every folder
+owns `index.md` + `log.md`, and the vault root seeds both once, at the
+explicit open-vault dialog (never on launch restore — no writes on open).
+The index carries one managed Contents block between
+`<!-- atomik:contents -->` markers: your prose around it is never
+touched, an unchanged block writes nothing, and a marker-less index
+adopts the block on the folder's next operation. The log gains one dated
+line per verb — both parents on a cross-folder move. Because the sync
+lives in the verbs, the menu, DnD, and future AI file management all
+leave identical records; `tests/folder-index.test.ts` is the round-trip
+matrix, and the smoke rung asserts a rename repairs the parent-index
+link too.
+
 ## How it was built (methodology)
 
 **Decisions before code.** The owner took four scoping decisions on
@@ -206,6 +221,8 @@ contract file    source/index/extracted/transcript/reader.md in a bundle
 input binding    a new gesture routed into an existing proven verb flow
 pane chrome      UI owned by the pane (its tree), never by a tab
 state migration  deriving the new persisted shape from the old at load
+managed block    the marker-bounded Contents span a verb may rewrite;
+                 everything outside it is yours, forever untouched
 ```
 
 ## What arrives next

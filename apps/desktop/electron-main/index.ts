@@ -39,6 +39,7 @@ import { listDevDocs, readDevDoc, resolveDocsRoot } from './dev-docs'
 import { searchVault } from './search'
 import { buildMainWindowOptions } from './security'
 import { createFolder, createProject, listProjects } from './project'
+import { adoptVaultRoot } from './folder-index'
 import {
   deleteFolder,
   deleteNote,
@@ -153,6 +154,11 @@ function registerVaultHandlers(stateDir: string): void {
     if (result.canceled || !chosen) return null
     vaultRoot = chosen
     persistLastVaultRoot(stateDir, chosen)
+    // S07k (owner decision 2026-07-21): ADOPTION is the one explicit
+    // moment that may seed the root conventions (index.md + log.md,
+    // when absent). Launch-restore never writes; re-adopting an
+    // already-seeded vault writes nothing.
+    adoptVaultRoot(chosen)
     // Every mounted vault-backed view must drop previous-vault state
     // (stale writes stay safe regardless: the mtime handshake refuses
     // them against same-named files in the new vault).
@@ -1318,8 +1324,10 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
               try { await window.atomik.readNote('smoke/to-delete.md'); trash = '+trash-STALE' }
               catch { trash = '+trash' }
             } catch (e) { trash = '+trash-fail:' + String(e).slice(0, 80) }
-            // S04: rename refactor round trip — preview counts the link,
-            // apply moves the note AND updates the citing note.
+            // S04: rename refactor round trip — preview counts the citer
+            // AND the parent index's Contents link (S07k conventions),
+            // apply updates both and the re-derived index lists the new
+            // name.
             let reloc = ''
             try {
               await window.atomik.createNote('smoke/target.md')
@@ -1327,7 +1335,8 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
               const prev = await window.atomik.relocatePreview('smoke/target.md', 'smoke/target-renamed.md')
               await window.atomik.relocateApply('smoke/target.md', 'smoke/target-renamed.md')
               const citer = await window.atomik.readNote('smoke/citer.md')
-              reloc = prev.totalLinks === 1 && citer.content.includes('(target-renamed.md)')
+              const smokeIndex = await window.atomik.readNote('smoke/index.md')
+              reloc = prev.totalLinks === 2 && citer.content.includes('(target-renamed.md)') && smokeIndex.content.includes('(./target-renamed.md)')
                 ? '+reloc' : '+reloc-FAIL:' + prev.totalLinks + '/' + citer.content
             } catch (e) { reloc = '+reloc-fail:' + String(e).slice(0, 80) }
             // S05: folder move — inbound links follow prefix-wide.

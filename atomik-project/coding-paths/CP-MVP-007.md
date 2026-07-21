@@ -441,7 +441,38 @@ bench fixes : S06b white app (props typed, never destructured — the
               likewise; WebView bounds reporting dedupes already and
               follows render rate. Deferred levers recorded (CSS-var
               drag preview, RS1 memoization, RS3 caches).
-tests       : 411 passing / 41 suites — green after the bench fixes
+              S07k owner decisions (2026-07-21, bench Q&A): option D
+              REVISED to FULL conventions + deterministic sync —
+              "index and log automatically updated, deterministically
+              after manual file mgmt or later by agent". Revision
+              recorded in the 07-16 decisions addendum; doctrine in
+              04 §Vault and folder conventions. folder-index.ts:
+              every folder = index.md + log.md (createFolder born
+              with both; adoption on first op elsewhere); vault ROOT
+              seeded ONCE at the explicit openVault dialog
+              (adoptVaultRoot — launch restore never writes); managed
+              Contents block between <!-- atomik:contents --> markers
+              (owner text never touched, unchanged bytes write
+              nothing, folders-first + bundles-as-unit + notes);
+              one dated log line per verb, both parents on a
+              cross-folder move; nested createNote records every
+              materialized folder innermost-first so parent links
+              resolve; ensure-style createProject records only when
+              NEW; relocate/delete record POST-success (rollback =
+              zero bookkeeping). Sync lives IN the main verbs — tree
+              UI, DnD, and future AI file management produce
+              identical records; import landings keep dossier
+              conventions. The relocate scanner now counts parent-
+              index Contents links (rung asserts totalLinks 2 and
+              the re-derived index lists the new name). Docs: 04,
+              module note, learning note 15, addendum revision.
+tests       : 432 passing / 43 suites — S07j added frame-coalesce (5),
+              S07k added folder-index (17: block matrix, adoption
+              idempotence, no-cosmetic-writes, verb round-trips incl.
+              nested-create chain); e2e rung re-proven on a scratch
+              vault: vaultWrite=ok+folder+trash+reloc+fmove with the
+              NEW conventions (living Contents, dated log lines, OS
+              trash real). Earlier: 411/41 after the bench fixes
               (S07h: note links, proximity order, pill row format,
               contract-file exclusions; S07e-e: 407)
               — earlier detail: 405/41 after the S07d/e wave
@@ -478,7 +509,15 @@ next action : S07 — acceptance: 18 §M1 intents (one op = one
               parity was left MISMATCHED on 2026-07-20, X-side caps
               stuck ON). S07i bench extra: connected-tab look across
               a real SPLIT — the unfocused pane's displayed tab must
-              read active (connected, no accent line).
+              read active (connected, no accent line). S07j bench
+              extra: divider/tree drag feel (app half fixed; the
+              WSLg software-raster tax remains until a packaged
+              native build). S07k bench extras: living conventions on
+              the REAL vault (create/rename/move/delete and watch the
+              parent index Contents + log follow; hand-edit an index
+              outside the markers and verify it survives ops); NOTE —
+              the real vault root seeds index/log at the NEXT
+              explicit open-vault dialog, not before.
 blockers    : none recorded.
 ```
 

@@ -255,6 +255,32 @@ vault/
     embeddings/
 ```
 
+### Vault and folder conventions (2026-07-21)
+
+The project conventions generalize downward (owner decision
+2026-07-21, revising the 2026-07-16 "option D" folder scoping):
+
+```text
+vault root    index.md + log.md, seeded ONCE at explicit adoption
+              (the open-vault dialog); opening or restoring never writes
+every folder  born with index.md + log.md; an existing folder adopts
+              them on its first management operation
+index.md      the folder's map: owner prose plus ONE managed Contents
+              block between <!-- atomik:contents --> markers, derived
+              from the folder's direct children (folders first, source
+              bundles as one unit line, then notes), rewritten only
+              when its bytes change, never touching text outside the
+              markers
+log.md        the folder's chronological history: management verbs
+              append one dated line (create / delete-to-trash /
+              rename / move — both parents of a cross-folder move)
+```
+
+The sync lives in the main-process verbs, not in the UI: any caller —
+tree menu, drag-and-drop, or a future AI file-management operation —
+produces the same bookkeeping. Source-import landings keep their own
+dossier conventions.
+
 ## Project manifest
 
 The project manifest should not replace Markdown. It should bind the folder together and support fast app loading.

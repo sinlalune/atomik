@@ -1,6 +1,12 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { basename, isAbsolute, join, normalize, relative, resolve } from 'node:path'
 import { assertInsideVault } from './vault'
+import {
+  folderLogSkeleton,
+  parentRelOf,
+  recordFileOp,
+  updateFolderIndex
+} from './folder-index'
 import type { FolderInfo, ProjectInfo } from '../shared/ipc-contract'
 
 /**
@@ -140,11 +146,13 @@ const yamlQuote = (text: string): string =>
 
 /**
  * Plain-folder creation, option D (CP-MVP-007 owner decision
- * 2026-07-16): a folder is born WITH its `index.md` map — the project
- * convention generalized, minus the manifest. Dividend: a D-folder is
- * never empty, so listVaultFiles' prune-empty invariant stands.
- * Adoption-friendly like createProject: an existing folder WITHOUT an
- * index gains one; an existing index refuses (content is sacred).
+ * 2026-07-16), grown to FULL conventions (owner revision 2026-07-21,
+ * S07k): a folder is born with its `index.md` map AND its `log.md`
+ * history — the project convention generalized, minus the manifest.
+ * Dividend: a folder is never empty, so listVaultFiles' prune-empty
+ * invariant stands. Adoption-friendly like createProject: an existing
+ * folder WITHOUT an index gains the conventions; an existing index
+ * refuses (content is sacred); an existing log is kept and appended.
  */
 export function createFolder(vaultRoot: string, relPath: unknown): FolderInfo {
   const absDir = resolveProjectDirPath(vaultRoot, relPath)
@@ -176,6 +184,14 @@ export function createFolder(vaultRoot: string, relPath: unknown): FolderInfo {
     ].join('\n'),
     { encoding: 'utf8', flag: 'wx' }
   )
+  // S07k full conventions: the log rides along (kept when adopted), the
+  // fresh index adopts its Contents block, and the PARENT's convention
+  // files record the landing — in the verb, so every caller syncs.
+  ensureFile(join(absDir, 'log.md'), folderLogSkeleton(name, iso, 'folder'))
+  updateFolderIndex(vaultRoot, rel)
+  recordFileOp(vaultRoot, [
+    { folderRel: parentRelOf(rel), text: `created folder ${name}/` }
+  ])
   return { relPath: rel, indexRelPath: `${rel}/index.md` }
 }
 
@@ -190,6 +206,9 @@ export function createProject(
 
   mkdirSync(absDir, { recursive: true })
   assertInsideVault(vaultRoot, absDir)
+  // ensure semantics: only a genuinely NEW project records in the
+  // parent's conventions (re-ensuring an existing bundle stays silent)
+  const isNew = !existsSync(join(absDir, PROJECT_MANIFEST))
 
   const now = new Date()
   const iso = now.toISOString()
@@ -244,5 +263,14 @@ export function createProject(
     ].join('\n')
   )
 
-  return projectInfo(relative(vaultRoot, absDir).split('\\').join('/'), absDir)
+  const relPosix = relative(vaultRoot, absDir).split('\\').join('/')
+  if (isNew) {
+    recordFileOp(vaultRoot, [
+      {
+        folderRel: parentRelOf(relPosix),
+        text: `created project ${cleanTitle} (${basename(absDir)}/)`
+      }
+    ])
+  }
+  return projectInfo(relPosix, absDir)
 }

@@ -10,6 +10,7 @@ import {
 import { basename, dirname, join, relative } from 'node:path'
 import { assertInsideVault, resolveNotePath } from './vault'
 import { resolveProjectDirPath } from './project'
+import { parentRelOf, recordFileOp } from './folder-index'
 
 /**
  * Tree file management verbs (CP-MVP-007 S03). Deletion of USER files
@@ -25,6 +26,36 @@ export type TrashFn = (absPath: string) => Promise<void>
 
 const rel = (vaultRoot: string, abs: string): string =>
   relative(vaultRoot, abs).split(/[\\/]/).join('/')
+
+/** S07k bookkeeping for a landed relocate: one renamed line in a shared
+ * parent, or a departure + arrival line across two parents. */
+function recordRelocate(
+  vaultRoot: string,
+  kind: 'note' | 'folder',
+  from: string,
+  to: string
+): void {
+  const suffix = kind === 'folder' ? '/' : ''
+  const fromParent = parentRelOf(from)
+  const toParent = parentRelOf(to)
+  recordFileOp(
+    vaultRoot,
+    fromParent === toParent
+      ? [
+          {
+            folderRel: fromParent,
+            text: `renamed ${kind} ${basename(from)}${suffix} → ${basename(to)}${suffix}`
+          }
+        ]
+      : [
+          {
+            folderRel: fromParent,
+            text: `moved ${kind} ${basename(from)}${suffix} → ${to}${suffix}`
+          },
+          { folderRel: toParent, text: `moved ${kind} in ← ${from}${suffix}` }
+        ]
+  )
+}
 
 /**
  * Bundle-internal rule (S01 pin): a folder that directly contains
@@ -73,7 +104,16 @@ export async function deleteNote(
     )
   }
   await trash(abs)
-  return { relPath: rel(vaultRoot, abs) }
+  const trashedRel = rel(vaultRoot, abs)
+  // S07k: the parent's conventions record the departure (in the verb —
+  // every caller syncs)
+  recordFileOp(vaultRoot, [
+    {
+      folderRel: parentRelOf(trashedRel),
+      text: `deleted note ${basename(abs)} (OS trash)`
+    }
+  ])
+  return { relPath: trashedRel }
 }
 
 /* ------------------------------------------------------------------ *
@@ -297,6 +337,9 @@ export function relocateApply(
     renameSync(toAbs, fromAbs)
     throw error
   }
+  // S07k: both parents' conventions record the refactor (post-success —
+  // a rolled-back apply leaves zero bookkeeping)
+  recordRelocate(vaultRoot, 'note', from, to)
   return { from, to, filesChanged: edits.length + 1 }
 }
 
@@ -418,6 +461,7 @@ export function relocateFolderApply(
     renameSync(toAbs, fromAbs)
     throw error
   }
+  recordRelocate(vaultRoot, 'folder', from, to)
   return { from, to, filesChanged: edits.length + 1 }
 }
 
@@ -433,5 +477,12 @@ export async function deleteFolder(
   }
   assertInsideVault(vaultRoot, abs)
   await trash(abs)
-  return { relPath: rel(vaultRoot, abs) }
+  const trashedRel = rel(vaultRoot, abs)
+  recordFileOp(vaultRoot, [
+    {
+      folderRel: parentRelOf(trashedRel),
+      text: `deleted folder ${basename(abs)}/ (OS trash)`
+    }
+  ])
+  return { relPath: trashedRel }
 }

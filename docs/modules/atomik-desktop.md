@@ -700,6 +700,34 @@ vault (04: files are the durable source of record)
         (createNote/createFolder/createProject) now pushes
         vaultFilesChanged — before S02 only main-side landings pushed
         and OTHER open trees went stale after a plain creation.
+  folder conventions sync (CP-MVP-007 S07k, owner decisions 2026-07-21
+        revising option D to FULL conventions): folder-index.ts owns
+        the bookkeeping — every folder carries index.md AND log.md;
+        the vault ROOT seeds both ONCE at explicit adoption
+        (adoptVaultRoot in the openVault dialog handler; launch
+        restore never writes); createFolder is born with both; a
+        createNote that materializes new intermediate folders records
+        each level in ITS parent (innermost first, so parent Contents
+        links resolve). index.md carries ONE managed Contents block
+        between <!-- atomik:contents --> markers (folders first,
+        bundles as one unit line to source.md, then notes; owner text
+        outside the markers is NEVER touched; a marker-less index
+        adopts the block on the folder's next operation; unchanged
+        bytes write NOTHING — 27). log.md gains one dated line per
+        verb (created/deleted/renamed/moved — BOTH parents on a
+        cross-folder move: departure + arrival). The sync lives IN
+        the verbs (vault.ts createNote; project.ts createFolder +
+        createProject, ensure records only when genuinely NEW;
+        file-manage.ts deletes/relocates POST-success — a rolled-back
+        apply leaves zero bookkeeping), so every caller (tree UI,
+        DnD, future AI file management) produces identical records;
+        import landings keep dossier conventions. The relocate
+        scanner treats index/log as ordinary scannable notes — a
+        rename's preview counts the parent-index link too (the smoke
+        rung asserts 2) and the post-op re-derivation converges on
+        the same bytes. Tests: folder-index.test.ts (block/entries
+        matrix, adoption idempotence, no-cosmetic-writes, verb
+        round-trips incl. the nested-create chain).
   tree context menu (CP-MVP-007 S02): right-click / Shift+F10 on a
         folder node or the tree background (= scope root) in ALL THREE
         trees (vault, project, sources) -> TreeMenu popup (New note

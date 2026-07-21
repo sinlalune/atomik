@@ -20,6 +20,7 @@ import {
   resolve
 } from 'node:path'
 import type { SourceAsset, VaultFolder, VaultNoteFile } from '../shared/ipc-contract'
+import { recordFileOp } from './folder-index'
 
 /**
  * Vault IO — the incubating vault-core kernel (14): file tree, note
@@ -294,9 +295,34 @@ export function createNote(
       ? `# ${basename(abs, '.md').replace(/[-_]/g, ' ')}\n`
       : content
   )
+  // S07k: folders this path will MATERIALIZE record too — walk to the
+  // deepest pre-existing ancestor BEFORE mkdir so each new level lands
+  // in ITS parent's conventions (a nested slash-path create keeps the
+  // root index honest, not just the immediate parent)
+  const newDirs: string[] = []
+  {
+    let dir = dirname(abs)
+    while (!existsSync(dir)) {
+      newDirs.unshift(dir)
+      dir = dirname(dir)
+    }
+  }
   mkdirSync(dirname(abs), { recursive: true })
   assertInsideVault(vaultRoot, dirname(abs))
   writeFileSync(abs, body, { encoding: 'utf8', flag: 'wx' })
+  // the parent's convention files record the landing (full conventions —
+  // the sync lives in the verb so EVERY caller gets it)
+  const relOf = (dirAbs: string): string =>
+    relative(vaultRoot, dirAbs).split(/[\\/]/).join('/')
+  // innermost first: a parent's Contents derives AFTER its child's
+  // index exists, so folder links resolve on first write
+  recordFileOp(vaultRoot, [
+    { folderRel: relOf(dirname(abs)), text: `created note ${basename(abs)}` },
+    ...[...newDirs].reverse().map((dirAbs) => ({
+      folderRel: relOf(dirname(dirAbs)),
+      text: `created folder ${basename(dirAbs)}/`
+    }))
+  ])
 }
 
 /* ------------------------------------------------------------------ */

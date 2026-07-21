@@ -64,3 +64,28 @@ provisional anymore; the deviations are deliberate.
   ordinary folders + conventions); the project manifest scan adopts
   by structure, not by registry, so a renamed project is re-adopted
   on next scan — verify in S04 tests.
+
+## Revision — 2026-07-21 (owner, S07 bench): FULL conventions
+
+Owner, challenged on the option-D reference during the S07 bench:
+*"where do you get that option D assumptions? I would prefer full
+conventions"*, plus *"I just want the index and log files to be
+automatically updated, either deterministically after manual file
+mgmt or later by agent if they do file mgmt."* Decision 1 above is
+REVISED; executed as CP-MVP-007 S07k:
+
+- Every folder is born with `index.md` AND `log.md`; an existing
+  folder adopts the pair on its first management operation.
+- The vault ROOT gets both ONCE, at the explicit adoption moment
+  (the open-vault dialog). Opening the app or restoring the last
+  vault never writes — the no-writes-on-open invariant stands.
+- The sync is DETERMINISTIC and lives in the main-side verbs
+  (`electron-main/folder-index.ts`): index.md carries one managed
+  Contents block between `<!-- atomik:contents -->` markers (owner
+  text around it is never touched; a marker-less index adopts the
+  block on the folder's next operation; unchanged bytes write
+  nothing), and log.md appends one dated line per operation — both
+  parents on a cross-folder move.
+- "Or later by agent" is the SAME mechanism: the sync sits in the
+  verbs, so any caller — tree menu, DnD, or AI file management —
+  produces identical bookkeeping.
