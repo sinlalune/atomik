@@ -552,17 +552,18 @@ body[data-maximized] .tabstrip {
   -webkit-app-region: no-drag;
 }
 
-/* Tabs are full-height segments with a top inset: the inactive ones are
-   quiet labels sitting ON the separator line; the active one is a
-   surface-colored connected tab whose sides rise from the content. */
+/* S07p (owner): TWO tab shapes. Inactive tabs are floating PILLS —
+   lifted off the separator line, fully rounded, quiet hover — only
+   the ACTIVE tab drops onto the line as the connected, shouldered
+   shape. Hovering an inactive tab must never look connected. */
 .tab {
   position: relative;
   display: inline-flex;
   align-items: center;
   margin-top: 4px;
+  margin-bottom: 5px;
   border: 1px solid transparent;
-  border-bottom: none;
-  border-radius: var(--tab-r) var(--tab-r) 0 0;
+  border-radius: var(--radius-pill);
   white-space: nowrap;
   color: var(--muted);
 }
@@ -573,6 +574,9 @@ body[data-maximized] .tabstrip {
 }
 
 .tab.active {
+  margin-bottom: 0;
+  border-bottom: none;
+  border-radius: var(--tab-r) var(--tab-r) 0 0;
   background: var(--surface);
   border-color: var(--border);
   color: var(--fg);
@@ -594,14 +598,17 @@ body[data-maximized] .tabstrip {
   pointer-events: none;
 }
 
+/* Ring radius = the box size EXACTLY (S07p): the arc's endpoints land
+   on the tab's side border and on the line — a ring drawn 1px short
+   left a visible step at the attachment (owner screenshot). */
 .tab.active::before {
   left: calc(-1 * var(--tab-r));
   background: radial-gradient(
     circle var(--tab-r) at 0 0,
-    transparent 7px,
-    var(--border) 7.5px,
-    var(--border) 8px,
-    var(--surface) 8.5px
+    transparent calc(var(--tab-r) - 1px),
+    var(--border) calc(var(--tab-r) - 1px),
+    var(--border) var(--tab-r),
+    var(--surface) var(--tab-r)
   );
 }
 
@@ -609,10 +616,10 @@ body[data-maximized] .tabstrip {
   right: calc(-1 * var(--tab-r));
   background: radial-gradient(
     circle var(--tab-r) at 100% 0,
-    transparent 7px,
-    var(--border) 7.5px,
-    var(--border) 8px,
-    var(--surface) 8.5px
+    transparent calc(var(--tab-r) - 1px),
+    var(--border) calc(var(--tab-r) - 1px),
+    var(--border) var(--tab-r),
+    var(--surface) var(--tab-r)
   );
 }
 

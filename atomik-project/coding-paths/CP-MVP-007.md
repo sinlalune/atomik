@@ -561,6 +561,18 @@ bench fixes : S06b white app (props typed, never destructured — the
               screenshot: the wash visibly bleeds through the tree
               glass. Final feel (hovers, tooltips, themes) = owner
               bench.
+              S07p (owner screenshot, dark theme): the shoulder curve
+              sat OFFSET — geometry bug: the gradient ring was drawn
+              at radius ~8 inside the 9px shoulder box, so the arc
+              ended 1px short of the tab side AND the line (a visible
+              step, worse at display scaling); the ring now spans
+              (tab-r − 1px)→tab-r exactly — the arc endpoints land ON
+              the borders. And inactive tabs are now floating PILLS
+              (radius-pill, lifted 5px off the line, hover = quiet
+              pill) — only the ACTIVE tab drops onto the line as the
+              connected shouldered shape, so hovering an inactive tab
+              can never read as connected (the owner's second point).
+              432/43, build/smoke green, screenshot flush.
 tests       : 432 passing / 43 suites — S07j added frame-coalesce (5),
               S07k added folder-index (17: block matrix, adoption
               idempotence, no-cosmetic-writes, verb round-trips incl.
