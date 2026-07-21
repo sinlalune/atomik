@@ -19,9 +19,11 @@ import {
 } from '../icons'
 import { defaultNewNotePath, ensureMdExtension } from './ai-helpers'
 import {
-  applyAtInsertion,
   atPromptToken,
+  expandInstruction,
   filterPrompts,
+  insertDirectiveAt,
+  layerDirectiveFor,
   loadPromptsFor,
   scopeLabel,
   type PromptFile
@@ -129,14 +131,23 @@ export function AiPanel({
     (prompt: PromptFile) => {
       const element = instructionRef.current
       if (!element || !atMenu) return
-      // system → the selector; message → the composed body, in place
-      const replacement = prompt.kind === 'system' ? '' : prompt.body
-      const next = applyAtInsertion(
-        element.value,
-        atMenu.start,
-        element.selectionStart,
-        replacement
-      )
+      // system → the selector; message → its LAYER DIRECTIVE in place
+      // (S03d: the instruction stays buildable; composition happens
+      // at run time through the same scoped resolution)
+      const next =
+        prompt.kind === 'system'
+          ? {
+              text:
+                element.value.slice(0, atMenu.start) +
+                element.value.slice(element.selectionStart),
+              caret: atMenu.start
+            }
+          : insertDirectiveAt(
+              element.value,
+              atMenu.start,
+              element.selectionStart,
+              prompt.name
+            )
       if (prompt.kind === 'system') setSystemPromptPath(prompt.relPath)
       setInstruction(next.text)
       setAtMenu(null)
@@ -181,7 +192,10 @@ export function AiPanel({
   )
 
   const run = useCallback(async () => {
-    const text = instruction.trim()
+    // S03d: the instruction is a buildable prompt — its layer
+    // directives compose HERE, against this note's resolved scopes;
+    // the box keeps the layered form.
+    const text = expandInstruction(instruction, vaultPrompts).trim()
     if (text.length === 0) return
     const raw = getSelection()
     const doc = getDoc()
@@ -398,11 +412,17 @@ export function AiPanel({
                   <button
                     key={prompt.relPath}
                     type="button"
-                    className={preset === `file:${prompt.name}` ? 'active' : ''}
-                    title={`${prompt.description ?? prompt.title} · ${scopeLabel(prompt.scopeFolder, note.relPath)} (${prompt.relPath})`}
+                    className={`ai-preset-file${preset === `file:${prompt.name}` ? ' active' : ''}`}
+                    title={`prompt · ${scopeLabel(prompt.scopeFolder, note.relPath)} — ${prompt.description ?? prompt.relPath}`}
                     onClick={() => {
+                      // a pill click ADDS the layer (S03d), never
+                      // overwrites what you typed
                       setPreset(`file:${prompt.name}`)
-                      setInstruction(prompt.body)
+                      setInstruction((current) =>
+                        current.trim().length === 0
+                          ? layerDirectiveFor(prompt.name)
+                          : `${current.replace(/\n?$/, '\n')}${layerDirectiveFor(prompt.name)}`
+                      )
                     }}
                   >
                     {prompt.title}
@@ -432,7 +452,7 @@ export function AiPanel({
               <textarea
                 ref={instructionRef}
                 rows={2}
-                placeholder="Ask about the selection (or the whole note)… @ inserts a prompt"
+                placeholder="Ask about the selection (or the whole note)… @ inserts a prompt layer"
                 aria-label="AI instruction"
                 value={instruction}
                 onChange={(event) => {

@@ -1884,6 +1884,17 @@ body[data-maximized] .tabstrip {
   border-color: var(--accent);
 }
 
+/* S03d: pills backed by a prompt FILE read as prompts — dashed ring +
+   the layer glyph; built-ins stay plain */
+.ai-presets button.ai-preset-file {
+  border-style: dashed;
+}
+
+.ai-presets button.ai-preset-file::before {
+  content: '@ ';
+  color: var(--muted);
+}
+
 .ai-compose textarea,
 .ai-proposal textarea {
   font: inherit;

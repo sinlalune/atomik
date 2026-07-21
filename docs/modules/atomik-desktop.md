@@ -202,10 +202,21 @@ timestamp: 2026-07-06T00:00:00Z
   hand-rolled for the textarea): a token opens at an `@` that starts
   the text or follows whitespace (emails/mid-word @ inert), filters
   name+title as you type, arrows/Enter/Tab/Escape + click; picking a
-  MESSAGE prompt inserts its composed body at the caret, picking a
-  SYSTEM prompt sets the system selector and removes the token; rows
-  wear kind + scope tags (36 popover idiom, glass + opaque fallback).
-  Pure helpers `atPromptToken`/`applyAtInsertion`/`filterPrompts`.
+  MESSAGE prompt inserts its LAYER DIRECTIVE `{{prompt: name}}` at
+  the caret (padded onto its own line mid-text so the full-line rule
+  holds — S03d owner correction: never the flattened body; the
+  instruction IS a buildable custom prompt), picking a SYSTEM prompt
+  sets the system selector and removes the token; rows wear kind +
+  scope tags (36 popover idiom, glass + opaque fallback). Prompt
+  PILLS wear a dashed ring + @ glyph (visibly file-backed) and a
+  click APPENDS the directive — never overwrites typed text. The
+  instruction composes at RUN TIME (`expandInstruction`) against the
+  note's resolved scopes; the box keeps the layered form; unknown
+  layers travel visibly literal. `parsePromptFile` tolerates CRLF —
+  a Windows-edited prompt must not vanish from the menus. Pure
+  helpers `atPromptToken`/`applyAtInsertion`/`insertDirectiveAt`/
+  `expandInstruction`/`filterPrompts` (nearest-first order pinned
+  through the filter).
   `renderer/src/editor/AiPanel.tsx` docks the loop in the editor:
   selection (or whole note) → instruction/preset → destination
   (replace-selection / append / new-note, path prefilled beside the

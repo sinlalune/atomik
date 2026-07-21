@@ -4,7 +4,10 @@ import {
   applyAtInsertion,
   atPromptToken,
   buildPromptFileContent,
+  expandInstruction,
   filterPrompts,
+  insertDirectiveAt,
+  layerDirectiveFor,
   collectPromptRefs,
   expandPromptLayers,
   isPromptsFolder,
@@ -105,6 +108,15 @@ describe('parsePromptFile', () => {
     expect(parsePromptFile('just a note')).toBeNull()
     expect(parsePromptFile('---\nkind: wizard\n---\nbody')).toBeNull()
     expect(parsePromptFile('---\nkind: message\n---\n\n  \n')).toBeNull()
+  })
+
+  it('tolerates CRLF endings — a Windows-edited prompt must not vanish', () => {
+    const parsed = parsePromptFile(
+      '---\r\nkind: message\r\ntitle: Crlf\r\n---\r\n\r\nBody here.\r\n'
+    )
+    expect(parsed?.kind).toBe('message')
+    expect(parsed?.title).toBe('Crlf')
+    expect(parsed?.body).toBe('Body here.')
   })
 })
 
@@ -235,6 +247,43 @@ describe('@ quick-action token in AI inputs (S03c)', () => {
     })
     // system pick removes the token: empty replacement
     expect(applyAtInsertion('sum @sys', 4, 8, '')).toEqual({ text: 'sum ', caret: 4 })
+  })
+
+  it('inserts the LAYER DIRECTIVE, padded onto its own line mid-text (S03d)', () => {
+    // mid-line token: newlines added so the full-line rule holds
+    expect(insertDirectiveAt('sum @ke tail', 4, 7, 'key-points')).toEqual({
+      text: 'sum \n{{prompt: key-points}}\n tail',
+      caret: 28
+    })
+    // clean line start and end: no padding
+    expect(insertDirectiveAt('@ke', 0, 3, 'key-points')).toEqual({
+      text: '{{prompt: key-points}}',
+      caret: 22
+    })
+    expect(layerDirectiveFor('tone')).toBe('{{prompt: tone}}')
+  })
+
+  it('expandInstruction composes the instruction at run time via note scopes', () => {
+    const prompts = [
+      { name: 'tone', body: 'Stay terse.' },
+      { name: 'cite', body: 'Quote exactly.\n{{prompt: tone}}' }
+    ] as Parameters<typeof expandInstruction>[1]
+    expect(
+      expandInstruction('Do the thing.\n{{prompt: cite}}', prompts)
+    ).toBe('Do the thing.\nQuote exactly.\nStay terse.')
+    // unknown layer stays visible in what is sent — never dropped
+    expect(expandInstruction('{{prompt: ghost}}', prompts)).toBe('{{prompt: ghost}}')
+  })
+
+  it('keeps the nearest-first order through the filter (folder → root)', () => {
+    const prompts = [
+      { name: 'alpha', title: 'Alpha', scopeFolder: 'a/b' },
+      { name: 'alpha-root', title: 'Alpha root', scopeFolder: '' }
+    ] as Parameters<typeof filterPrompts>[0]
+    expect(filterPrompts(prompts, 'alpha').map((prompt) => prompt.scopeFolder)).toEqual([
+      'a/b',
+      ''
+    ])
   })
 
   it('filters by name and title, case-insensitive; empty query keeps all', () => {

@@ -87,8 +87,11 @@ export function collectPromptRefs(
  *  (missing fence or kind — an ordinary note in prompts/ is skipped,
  *  never an error). */
 export function parsePromptFile(
-  content: string
+  rawContent: string
 ): { kind: PromptKind; title?: string; description?: string; body: string } | null {
+  // CRLF tolerance: an owner-edited file from a Windows-side editor
+  // must not silently vanish from the menus.
+  const content = rawContent.replace(/\r\n/g, '\n')
   const fence = /^---\n([\s\S]*?)\n---\n?/.exec(content)
   if (!fence) return null
   const frontmatter = fence[1]!
@@ -135,7 +138,7 @@ export function expandPromptLayers(
 ): string {
   if (stack.size >= MAX_LAYER_DEPTH) return body
   return body
-    .split('\n')
+    .split(/\r?\n/)
     .map((line) => {
       const match = LAYER_DIRECTIVE.exec(line)
       if (!match) return line
@@ -229,6 +232,46 @@ export function applyAtInsertion(
     text: text.slice(0, tokenStart) + replacement + text.slice(caret),
     caret: tokenStart + replacement.length
   }
+}
+
+/** The directive text for a prompt — what the @ menu inserts (S03d):
+ *  the LAYER REFERENCE, never the flattened body, so an instruction
+ *  stays a buildable custom prompt until run time. */
+export const layerDirectiveFor = (name: string): string => `{{prompt: ${name}}}`
+
+/**
+ * Inserts a layer directive over the @token, padded onto its OWN LINE
+ * when the token sits mid-line — the full-line rule is what keeps
+ * prose mentions inert, so the inserter must respect it.
+ */
+export function insertDirectiveAt(
+  text: string,
+  tokenStart: number,
+  caret: number,
+  name: string
+): { text: string; caret: number } {
+  const before = text.slice(0, tokenStart)
+  const after = text.slice(caret)
+  const prefix = before.length > 0 && !before.endsWith('\n') ? '\n' : ''
+  const suffix = after.length > 0 && !after.startsWith('\n') ? '\n' : ''
+  return applyAtInsertion(
+    text,
+    tokenStart,
+    caret,
+    prefix + layerDirectiveFor(name) + suffix
+  )
+}
+
+/** Run-time composition of the INSTRUCTION (S03d): the instruction is
+ *  itself a buildable prompt — its layer directives expand against
+ *  the note's resolved prompts the moment it is sent, so what
+ *  travels is composed while what you edit stays layered. */
+export function expandInstruction(
+  instruction: string,
+  prompts: PromptFile[]
+): string {
+  const byName = new Map(prompts.map((prompt) => [prompt.name, prompt]))
+  return expandPromptLayers(instruction, byName)
 }
 
 /** Case-insensitive filter over name/title for the @ menu. */

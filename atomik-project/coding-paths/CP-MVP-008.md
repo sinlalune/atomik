@@ -259,6 +259,20 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       caret, system → selector set + token removed; kind + scope
       tags on every row (36 popover idiom). Pure helpers tested.
       Tests 473→477/45; typecheck/build/smoke green.
+- [x] S03d (owner bench corrections, same day) — done 2026-07-21:
+      (1) @ pick inserts the LAYER DIRECTIVE, not the flattened body
+      (`insertDirectiveAt`, own-line padding preserves the full-line
+      rule) — the instruction IS a buildable custom prompt; it
+      composes at RUN TIME (`expandInstruction`) through the note's
+      resolved scopes, the box keeps the layered form, unknown
+      layers stay visibly literal; pills APPEND the directive
+      (never overwrite typed text). (2) prompt pills visibly
+      file-backed (dashed ring + @ glyph, scope in the tooltip).
+      (3) CRLF tolerance in `parsePromptFile` — the likely cause of
+      a prompt not showing: a Windows-side edit's line endings
+      failed the fence match and the file vanished silently;
+      nearest-first (folder → root) order verified and PINNED by
+      test through the filter. Tests 477→481/45; gates green.
 - [ ] S04 Selection context menu: right-click + keyboard on an editor
       selection → AI menu (TreeMenu machinery pattern): quick actions
       from prompt files + built-ins, custom input at the click
