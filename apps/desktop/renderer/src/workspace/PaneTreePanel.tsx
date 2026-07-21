@@ -302,6 +302,14 @@ export function PaneTreePanel({
     },
     [guardedOpen]
   )
+  // S03b: same create verb, content autofilled from the menu's choices.
+  const menuNewPrompt = useCallback(
+    async (relPath: string, content: string) => {
+      await window.atomik.createNote(relPath, content)
+      guardedOpen(relPath)
+    },
+    [guardedOpen]
+  )
   const menuNewFolder = useCallback(
     async (relPath: string) => {
       const created = await window.atomik.createFolder(relPath)
@@ -621,6 +629,7 @@ export function PaneTreePanel({
           onClose={() => setTreeMenu(null)}
           onNewNote={menuNewNote}
           onNewFolder={menuNewFolder}
+          onNewPrompt={menuNewPrompt}
           onDelete={menuDelete}
           onRename={menuRename}
           onMove={menuMove}

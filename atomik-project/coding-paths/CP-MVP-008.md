@@ -238,6 +238,18 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       learning note: convention + scanner over proven patterns (S07k
       folder conventions, injected-verb testing) — no first
       mobilization; the S02 note covers the adapter seam.
+- [x] S03b (owner directives, same day) — done 2026-07-21: (1) the
+      tree context menu shows "New prompt…" inside any prompts/
+      folder — kind radio (message | system) + name autofill the
+      frontmatter (`buildPromptFileContent`; TreeMenu morph pattern,
+      same createNote verb, file opens for editing); (2) BUILDABLE
+      LAYERS: a full-line `{{prompt: name}}` inserts the named prompt
+      as a layer (`expandPromptLayers`), system and message composing
+      freely with the OUTER kind governing; layer names resolve
+      through the SAME nearest-wins scoping (a project overrides a
+      layer), depth 8, unknown/cycle/inline stay LITERAL (broken
+      references visible, never dropped), expansion at load after
+      shadowing. Tests 467→473/45; typecheck/build/smoke green.
 - [ ] S04 Selection context menu: right-click + keyboard on an editor
       selection → AI menu (TreeMenu machinery pattern): quick actions
       from prompt files + built-ins, custom input at the click

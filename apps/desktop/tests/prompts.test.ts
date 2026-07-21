@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import type { VaultFolder } from '../shared/ipc-contract'
 import {
+  buildPromptFileContent,
   collectPromptRefs,
+  expandPromptLayers,
+  isPromptsFolder,
   loadPromptsFor,
   materializeStarterPrompts,
   parsePromptFile,
   promptFolderChainFor,
+  promptTitleFor,
   scopeLabel,
   STARTER_PROMPTS
 } from '../renderer/src/editor/prompts'
@@ -147,6 +151,86 @@ describe('loadPromptsFor (existing verbs only, injected)', () => {
     files['a/prompts/near.md'] = promptContent('message', 'Edited body.', 'Near')
     const prompts = await loadPromptsFor('a/note.md', verbs)
     expect(prompts[0]!.body).toBe('Edited body.')
+  })
+})
+
+describe('expandPromptLayers ({{prompt: name}} — buildable layers, S03b)', () => {
+  const byName = (entries: Record<string, string>): Map<string, { body: string }> =>
+    new Map(Object.entries(entries).map(([name, body]) => [name, { body }]))
+
+  it('expands full-line directives, nested, system and message alike', () => {
+    const map = byName({
+      tone: 'Stay terse.',
+      cite: 'Quote exactly.\n{{prompt: tone}}'
+    })
+    expect(
+      expandPromptLayers('Intro.\n{{prompt: cite}}\nOutro.', map)
+    ).toBe('Intro.\nQuote exactly.\nStay terse.\nOutro.')
+  })
+
+  it('inline mentions stay inert; unknown names and cycles stay literal', () => {
+    const map = byName({
+      a: 'A says:\n{{prompt: b}}',
+      b: 'B says:\n{{prompt: a}}'
+    })
+    expect(expandPromptLayers('see {{prompt: a}} inline', map)).toBe(
+      'see {{prompt: a}} inline'
+    )
+    expect(expandPromptLayers('{{prompt: ghost}}', map)).toBe('{{prompt: ghost}}')
+    // a → b → a: the second hop stays literal instead of recursing
+    expect(expandPromptLayers('{{prompt: a}}', map)).toBe(
+      'A says:\nB says:\n{{prompt: a}}'
+    )
+  })
+
+  it('resolves layers through the note scopes: a project override wins', async () => {
+    const tree = treeOf([
+      'prompts/tone.md',
+      'prompts/main.md',
+      'projects/x/prompts/tone.md',
+      'projects/x/notes/note.md'
+    ])
+    const files: Record<string, string> = {
+      'prompts/tone.md': promptContent('message', 'Root tone.'),
+      'prompts/main.md': promptContent('message', 'Do the thing.\n{{prompt: tone}}'),
+      'projects/x/prompts/tone.md': promptContent('message', 'Project tone.')
+    }
+    const verbs = {
+      listVaultFiles: () => Promise.resolve(tree),
+      readNote: (relPath: string) => Promise.resolve({ content: files[relPath]! })
+    }
+    const inProject = await loadPromptsFor('projects/x/notes/note.md', verbs)
+    expect(inProject.find((prompt) => prompt.name === 'main')?.body).toBe(
+      'Do the thing.\nProject tone.'
+    )
+    const atRoot = await loadPromptsFor('welcome.md', verbs)
+    expect(atRoot.find((prompt) => prompt.name === 'main')?.body).toBe(
+      'Do the thing.\nRoot tone.'
+    )
+  })
+})
+
+describe('prompt creation autofill (S03b tree menu)', () => {
+  it('recognizes prompts/ folders at any depth', () => {
+    expect(isPromptsFolder('prompts')).toBe(true)
+    expect(isPromptsFolder('projects/x/prompts')).toBe(true)
+    expect(isPromptsFolder('prompts/nested')).toBe(false)
+    expect(isPromptsFolder('my-prompts')).toBe(false)
+  })
+
+  it('titles from names', () => {
+    expect(promptTitleFor('key-points')).toBe('Key points')
+    expect(promptTitleFor('tone_of_voice')).toBe('Tone of voice')
+  })
+
+  it('builds content that parses back as the chosen kind, layer hint in the description', () => {
+    for (const kind of ['system', 'message'] as const) {
+      const parsed = parsePromptFile(buildPromptFileContent(kind, 'my-prompt'))
+      expect(parsed?.kind).toBe(kind)
+      expect(parsed?.title).toBe('My prompt')
+      expect(parsed?.description).toContain('{{prompt: name}}')
+      expect(parsed?.body.length).toBeGreaterThan(0)
+    }
   })
 })
 

@@ -107,6 +107,46 @@ export function parsePromptFile(
   }
 }
 
+/** True for the folders the prompt conventions own: `prompts` at any
+ *  depth (root, folder, project bundle alike). */
+export function isPromptsFolder(relPath: string): boolean {
+  return relPath === 'prompts' || relPath.endsWith('/prompts')
+}
+
+/**
+ * Layer directive (S03b, owner directive): a line of the form
+ * `{{prompt: name}}` inside a prompt body inserts the named prompt as
+ * a LAYER — system and message prompts both compose (the OUTER
+ * prompt's kind governs how the result is used). The name resolves
+ * through the SAME nearest-wins scope resolution as the menu, so a
+ * project can override a layer the way it overrides a prompt.
+ * Full-line only: an inline mention stays inert text.
+ */
+const LAYER_DIRECTIVE = /^\{\{\s*prompt:\s*([^{}\n]+?)\s*\}\}\s*$/
+const MAX_LAYER_DEPTH = 8
+
+/** Expands layer directives against the resolved prompt set. Unknown
+ *  names, cycles, and beyond-depth includes stay LITERAL — a broken
+ *  reference must be visible, never silently dropped. */
+export function expandPromptLayers(
+  body: string,
+  byName: Map<string, { body: string }>,
+  stack: ReadonlySet<string> = new Set()
+): string {
+  if (stack.size >= MAX_LAYER_DEPTH) return body
+  return body
+    .split('\n')
+    .map((line) => {
+      const match = LAYER_DIRECTIVE.exec(line)
+      if (!match) return line
+      const name = match[1]!
+      const layer = byName.get(name)
+      if (!layer || stack.has(name)) return line
+      return expandPromptLayers(layer.body, byName, new Set([...stack, name]))
+    })
+    .join('\n')
+}
+
 export type PromptVerbs = {
   listVaultFiles: () => Promise<VaultFolder>
   readNote: (relPath: string) => Promise<{ content: string }>
@@ -140,7 +180,13 @@ export async function loadPromptsFor(
       scopeFolder: ref.scopeFolder
     })
   }
-  return prompts
+  // Layers expand LAST, against the shadow-resolved set — an included
+  // name lands on whatever this note's scopes resolved it to.
+  const byName = new Map(prompts.map((prompt) => [prompt.name, prompt]))
+  return prompts.map((prompt) => ({
+    ...prompt,
+    body: expandPromptLayers(prompt.body, byName, new Set([prompt.name]))
+  }))
 }
 
 /** Scope tag for menus — shadowing stays VISIBLE, never magic. */
@@ -148,6 +194,33 @@ export function scopeLabel(scopeFolder: string, noteRelPath: string): string {
   if (scopeFolder.length === 0) return 'vault'
   const noteDir = noteRelPath.split('/').slice(0, -1).join('/')
   return scopeFolder === noteDir ? 'this folder' : scopeFolder
+}
+
+/** Title autofill for a new prompt file: dashes to spaces, first
+ *  letter up — the frontmatter stays an ordinary edit afterwards. */
+export function promptTitleFor(name: string): string {
+  const spaced = name.replace(/[-_]+/g, ' ').trim()
+  return spaced.length > 0 ? spaced[0]!.toUpperCase() + spaced.slice(1) : name
+}
+
+/** The autofilled content behind "New prompt…" (S03b): frontmatter
+ *  from the UI choices (kind + name→title), a layer hint in the
+ *  DESCRIPTION (tooltips, never sent to a model), a minimal body. */
+export function buildPromptFileContent(
+  kind: PromptKind,
+  name: string
+): string {
+  return [
+    '---',
+    `kind: ${kind}`,
+    `title: ${promptTitleFor(name)}`,
+    'description: A line {{prompt: name}} inserts another prompt as a layer.',
+    '---',
+    '',
+    kind === 'system'
+      ? 'Describe who the assistant is and how it should answer.'
+      : 'Write the instruction the AI runs on the selection.'
+  ].join('\n')
 }
 
 /** Starter prompts (root scope) — materialized ONLY by the explicit

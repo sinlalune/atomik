@@ -2881,6 +2881,30 @@ button svg {
   padding: 0.25rem;
 }
 
+/* S03b: prompt-kind radio row above the name input */
+.tree-menu-kinds {
+  display: flex;
+  gap: 4px;
+  padding: 0.25rem 0.25rem 0;
+}
+
+.tree-menu-kinds button {
+  font: inherit;
+  font-size: 0.75rem;
+  color: var(--muted);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.12rem 0.65rem;
+  cursor: pointer;
+}
+
+.tree-menu-kinds button.active,
+.tree-menu-kinds button:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 .tree-menu-form input {
   flex: 1;
   min-width: 0;

@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { CheckIcon } from '../icons'
+import {
+  buildPromptFileContent,
+  isPromptsFolder,
+  type PromptKind
+} from '../editor/prompts'
 import { childRelPath, moveTargetRelPath, type TreeMenuTarget } from './tree-menu'
 
 /**
@@ -20,6 +25,7 @@ export function TreeMenu({
   onClose,
   onNewNote,
   onNewFolder,
+  onNewPrompt,
   onDelete,
   onRename,
   onMove
@@ -30,6 +36,10 @@ export function TreeMenu({
   onClose: () => void
   onNewNote: (relPath: string) => Promise<void>
   onNewFolder: (relPath: string) => Promise<void>
+  /** Create a prompt file with autofilled frontmatter (S03b) — shown
+   *  only inside a prompts/ folder; content is built from the UI
+   *  choices (kind toggle + name). */
+  onNewPrompt?: (relPath: string, content: string) => Promise<void>
   /** Trash the target (S03). The host owns the confirm (it holds the
    *  tree for the summary); resolving without deleting is a cancel. */
   onDelete?: (target: TreeMenuTarget) => Promise<void>
@@ -40,10 +50,11 @@ export function TreeMenu({
    *  refactor, note or folder form chosen by the host. */
   onMove?: (target: TreeMenuTarget, to: string) => Promise<void>
 }): React.JSX.Element {
-  const [mode, setMode] = useState<'menu' | 'note' | 'folder' | 'rename' | 'move'>(
-    'menu'
-  )
+  const [mode, setMode] = useState<
+    'menu' | 'note' | 'folder' | 'rename' | 'move' | 'prompt'
+  >('menu')
   const [name, setName] = useState('')
+  const [promptKind, setPromptKind] = useState<PromptKind>('message')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -111,6 +122,11 @@ export function TreeMenu({
     try {
       if (mode === 'rename') await onRename?.(target.relPath, relPath)
       else if (mode === 'move') await onMove?.(target, relPath)
+      else if (mode === 'prompt')
+        await onNewPrompt?.(
+          relPath,
+          buildPromptFileContent(promptKind, name.trim().replace(/\.md$/i, ''))
+        )
       else if (mode === 'note') await onNewNote(relPath)
       else await onNewFolder(relPath)
       onClose()
@@ -148,6 +164,15 @@ export function TreeMenu({
           <>
             {target.kind === 'folder' && (
               <>
+                {onNewPrompt && isPromptsFolder(target.relPath) && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => setMode('prompt')}
+                  >
+                    New prompt…
+                  </button>
+                )}
                 <button type="button" role="menuitem" onClick={() => setMode('note')}>
                   New note here
                 </button>
@@ -198,52 +223,81 @@ export function TreeMenu({
             )}
           </>
         ) : (
-          <div className="tree-menu-form">
-            <input
-              ref={inputRef}
-              value={name}
-              disabled={busy}
-              placeholder={
-                mode === 'rename'
-                  ? 'new name…'
-                  : mode === 'move'
-                    ? 'destination folder (empty = root)…'
-                    : mode === 'note'
-                      ? 'note name…'
-                      : 'folder name…'
-              }
-              aria-label={
-                mode === 'rename'
-                  ? 'New name'
-                  : mode === 'move'
-                    ? 'Destination folder'
-                    : mode === 'note'
-                      ? 'Note name'
-                      : 'Folder name'
-              }
-              onChange={(event) => setName(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') void submit()
-              }}
-            />
-            <button
-              type="button"
-              disabled={busy}
-              title="Confirm"
-              aria-label={
-                mode === 'rename'
-                  ? 'Rename'
-                  : mode === 'move'
-                    ? 'Move'
-                    : mode === 'note'
-                      ? 'Create note'
-                      : 'Create folder'
-              }
-              onClick={() => void submit()}
-            >
-              <CheckIcon />
-            </button>
-          </div>
+          <>
+            {mode === 'prompt' && (
+              <div
+                className="tree-menu-kinds"
+                role="radiogroup"
+                aria-label="Prompt kind"
+              >
+                {(['message', 'system'] as const).map((candidate) => (
+                  <button
+                    key={candidate}
+                    type="button"
+                    role="radio"
+                    aria-checked={promptKind === candidate}
+                    className={promptKind === candidate ? 'active' : ''}
+                    disabled={busy}
+                    onClick={() => setPromptKind(candidate)}
+                  >
+                    {candidate}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="tree-menu-form">
+              <input
+                ref={inputRef}
+                value={name}
+                disabled={busy}
+                placeholder={
+                  mode === 'rename'
+                    ? 'new name…'
+                    : mode === 'move'
+                      ? 'destination folder (empty = root)…'
+                      : mode === 'note'
+                        ? 'note name…'
+                        : mode === 'prompt'
+                          ? 'prompt name…'
+                          : 'folder name…'
+                }
+                aria-label={
+                  mode === 'rename'
+                    ? 'New name'
+                    : mode === 'move'
+                      ? 'Destination folder'
+                      : mode === 'note'
+                        ? 'Note name'
+                        : mode === 'prompt'
+                          ? 'Prompt name'
+                          : 'Folder name'
+                }
+                onChange={(event) => setName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') void submit()
+                }}
+              />
+              <button
+                type="button"
+                disabled={busy}
+                title="Confirm"
+                aria-label={
+                  mode === 'rename'
+                    ? 'Rename'
+                    : mode === 'move'
+                      ? 'Move'
+                      : mode === 'note'
+                        ? 'Create note'
+                        : mode === 'prompt'
+                          ? 'Create prompt'
+                          : 'Create folder'
+                }
+                onClick={() => void submit()}
+              >
+                <CheckIcon />
+              </button>
+            </div>
+          </>
         )}
         {error && <div className="tree-menu-error">{error}</div>}
       </div>

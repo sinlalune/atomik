@@ -184,6 +184,19 @@ timestamp: 2026-07-06T00:00:00Z
   explicit ☰ → "Create starter prompts" action
   (`materializeStarterPrompts` — idempotent, missing-only, createNote
   births the folder with its S07k conventions; no writes on open).
+  S03b (owner directive 2026-07-21): the TREE context menu shows
+  "New prompt…" inside any prompts/ folder (`isPromptsFolder`) — a
+  kind radio (message | system) + name input autofill the frontmatter
+  (`buildPromptFileContent`: kind, name→title, a layer hint in the
+  description) through the same createNote verb, and the file opens
+  for editing. LAYERS: a full-line `{{prompt: name}}` directive
+  inside a prompt body inserts the named prompt as a buildable layer
+  (`expandPromptLayers` — system and message compose freely, the
+  OUTER prompt's kind governs use); names resolve through the SAME
+  nearest-wins scoping, so a project overrides a layer like it
+  overrides a prompt; nesting capped at 8; unknown names, cycles, and
+  inline mentions stay LITERAL — a broken reference is visible, never
+  silently dropped; expansion runs at load, after shadowing.
   `renderer/src/editor/AiPanel.tsx` docks the loop in the editor:
   selection (or whole note) → instruction/preset → destination
   (replace-selection / append / new-note, path prefilled beside the
@@ -998,7 +1011,10 @@ scope-chain walk, nearest-first collection with shadowing and
 convention-file exclusion, frontmatter parse with honest rejects,
 injected-verb loading incl. edit→use round-trip, scope labels,
 starter materialization idempotent/missing-only with starters
-self-validated as prompts),
+self-validated as prompts; S03b: layer expansion incl. nesting,
+cycle/unknown/inline literals, scope-resolved override of a layer,
+prompts-folder recognition, creation autofill parsing back as the
+chosen kind),
 `truth.test.ts` (containment + hash evidence, the no-paraphrase rule,
 form honoring with evidence outranking, the smuggled-label adversarial
 case, reproducibility, provenance riding matched evidence and the
