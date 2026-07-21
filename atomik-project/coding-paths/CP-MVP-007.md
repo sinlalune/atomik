@@ -410,6 +410,22 @@ bench fixes : S06b white app (props typed, never destructured — the
               inherit vanished into it. Screenshot also CONFIRMS the
               S07h contrast half (detail readable on the blue row)
               and note-first proximity order on the real vault.
+              S07i owner bench directive (2026-07-21): tab design —
+              professional/modern continuity; active = the pane's
+              DISPLAYED tab, not the last-clicked one. Root cause:
+              the surface-fused treatment was gated on .pane.focused
+              (other panes' displayed tabs stayed chrome pills) and
+              the strip's border-bottom ran UNDER the active tab,
+              cutting it from its content. CSS-only redesign: the
+              separator became an ::after LAYER the active tab sits
+              on and BREAKS; the displayed tab of EVERY pane is a
+              connected tab (surface bg, top-rounded, 1px outline
+              opening into the pane below); pane focus keeps the
+              accent top line as its own signal; inactive tabs are
+              quiet full-height segments with a hover pill; + button
+              recentred; the :root two-surface doctrine comment
+              updated. Screenshot-verified: tab fused with content,
+              line broken beneath it, resuming at its right.
 tests       : 411 passing / 41 suites — green after the bench fixes
               (S07h: note links, proximity order, pill row format,
               contract-file exclusions; S07e-e: 407)
@@ -445,7 +461,9 @@ next action : S07 — acceptance: 18 §M1 intents (one op = one
               proximity order on the real vault; centered column
               feel; caps-lock recovery awareness (wsl --shutdown —
               parity was left MISMATCHED on 2026-07-20, X-side caps
-              stuck ON).
+              stuck ON). S07i bench extra: connected-tab look across
+              a real SPLIT — the unfocused pane's displayed tab must
+              read active (connected, no accent line).
 blockers    : none recorded.
 ```
 

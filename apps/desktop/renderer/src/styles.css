@@ -8,11 +8,12 @@
   /* Two-surface layering (owner request, dogfooding round: "segment the
      zones"): --bg is the CHROME — window shell, tabstrips, bars, tree
      panels, media stage; --surface is the CONTENT — editors, rendered
-     notes, viewers, popovers. The active tab of the focused pane wears
-     --surface so it fuses with the content below it; everything
-     chrome-side sits one step back. Keep the ladder ordered in both
-     schemes: light chrome < code-bg < surface; dark chrome < surface
-     < code-bg. */
+     notes, viewers, popovers. The DISPLAYED tab of every pane wears
+     --surface so it fuses with the content below it (S07i: active =
+     what the pane shows, not where focus is); the focused pane adds
+     the accent top line as its own signal. Everything chrome-side sits
+     one step back. Keep the ladder ordered in both schemes: light
+     chrome < code-bg < surface; dark chrome < surface < code-bg. */
   --bg: light-dark(#ecece6, #141418);
   --surface: light-dark(#fbfbf9, #1e1e23);
   --fg: light-dark(#26261f, #e8e8e3);
@@ -359,13 +360,13 @@ body[data-maximized] .app-header {
   grid-template-columns: 0px minmax(0, 1fr);
 }
 
-/* Focus lives on the ACTIVE TAB, not the whole strip: in the focused
-   pane it wears the content surface (fusing with the pane below) plus
-   an accent top line; in unfocused panes it stays a quiet chrome pill.
-   One glance answers both "which tab" and "which pane". */
+/* S07i (owner bench): the DISPLAYED tab of EVERY pane reads as active —
+   a connected tab: content surface, top-rounded shape, a 1px outline
+   that OPENS at the bottom into the pane below. Pane focus keeps its
+   own signal (the accent top line) instead of demoting other panes'
+   displayed tabs to chrome pills. One glance still answers both
+   "which tab" (per pane) and "which pane" (accent line). */
 .pane.focused > .tabstrip .tab.active {
-  background: var(--surface);
-  color: var(--fg);
   box-shadow: inset 0 2px 0 var(--accent);
 }
 
@@ -386,16 +387,31 @@ body[data-maximized] .app-header {
   gap: 2px;
   padding: 0 0.4rem;
   background: var(--bg);
-  border-bottom: 1px solid var(--border);
   font-size: 0.8rem;
   -webkit-app-region: drag;
+}
+
+/* The strip's separator is a LAYER, not a border, so the active tab can
+   sit on it and break it (the connected-tab opening). Same 1px inside
+   the same --bar-h box the old border-bottom occupied. */
+.tabstrip::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--border);
 }
 
 .tabstrip-tabs {
   flex: 1;
   min-width: 0;
+  align-self: stretch;
+  position: relative;
+  z-index: 1;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 2px;
   overflow-x: auto;
   scrollbar-width: none;
@@ -417,22 +433,35 @@ body[data-maximized] .tabstrip {
   -webkit-app-region: no-drag;
 }
 
+/* Tabs are full-height segments with a top inset: the inactive ones are
+   quiet labels sitting ON the separator line; the active one is a
+   surface-colored connected tab whose sides rise from the content. */
 .tab {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  border-radius: 6px;
+  margin-top: 5px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 7px 7px 0 0;
   white-space: nowrap;
   color: var(--muted);
 }
 
 .tab:hover {
   color: var(--fg);
+  background: var(--code-bg);
 }
 
 .tab.active {
-  background: var(--code-bg);
+  background: var(--surface);
+  border-color: var(--border);
   color: var(--fg);
   font-weight: 600;
+}
+
+.tabstrip-tabs .tab-new {
+  align-self: center;
 }
 
 .tab .tab-title {
