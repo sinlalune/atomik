@@ -6,14 +6,16 @@
   --accent: light-dark(#3d5a3d, #9ec49e);
   --code-bg: light-dark(#f1f1ec, #26262c);
   /* Two-surface layering (owner request, dogfooding round: "segment the
-     zones"): --bg is the CHROME — window shell, tabstrips, bars, tree
-     panels, media stage; --surface is the CONTENT — editors, rendered
-     notes, viewers, popovers. The DISPLAYED tab of every pane wears
-     --surface so it fuses with the content below it (S07i: active =
-     what the pane shows, not where focus is); the focused pane adds
-     the accent top line as its own signal. Everything chrome-side sits
-     one step back. Keep the ladder ordered in both schemes: light
-     chrome < code-bg < surface; dark chrome < surface < code-bg. */
+     zones"): --bg is the CHROME — window shell, tabstrips, tree
+     panels, media stage; --surface is the CONTENT COLUMN — editors,
+     rendered notes, viewers, popovers, AND the column's own header
+     bars (note-bar, web-nav — S07l: the fused tab lands on its own
+     color). The DISPLAYED tab of every pane wears --surface with
+     curved shoulders into it (S07i/l: active = what the pane shows,
+     not where focus is); the focused pane adds the accent top line as
+     its own signal. Everything chrome-side sits one step back. Keep
+     the ladder ordered in both schemes: light chrome < code-bg <
+     surface; dark chrome < surface < code-bg. */
   --bg: light-dark(#ecece6, #141418);
   --surface: light-dark(#fbfbf9, #1e1e23);
   --fg: light-dark(#26261f, #e8e8e3);
@@ -415,6 +417,8 @@ body[data-maximized] .app-header {
   gap: 2px;
   overflow-x: auto;
   scrollbar-width: none;
+  /* room for the first/last active tab's shoulder inside the clip */
+  padding-inline: 9px;
 }
 
 .tabstrip-tabs::-webkit-scrollbar {
@@ -440,10 +444,10 @@ body[data-maximized] .tabstrip {
   position: relative;
   display: inline-flex;
   align-items: center;
-  margin-top: 5px;
+  margin-top: 4px;
   border: 1px solid transparent;
   border-bottom: none;
-  border-radius: 7px 7px 0 0;
+  border-radius: 9px 9px 0 0;
   white-space: nowrap;
   color: var(--muted);
 }
@@ -458,6 +462,43 @@ body[data-maximized] .tabstrip {
   border-color: var(--border);
   color: var(--fg);
   font-weight: 600;
+}
+
+/* S07l (owner bench): curved ATTACHMENT — concave shoulders where the
+   active tab meets the surface below, the browser-tab curve. Each
+   shoulder is a small square outside the tab whose radial gradient
+   shows the strip through the arc, rings the border, and fills the
+   corner with the content surface. */
+.tab.active::before,
+.tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  width: 9px;
+  height: 9px;
+  pointer-events: none;
+}
+
+.tab.active::before {
+  left: -9px;
+  background: radial-gradient(
+    circle 9px at 0 0,
+    transparent 7px,
+    var(--border) 7.5px,
+    var(--border) 8px,
+    var(--surface) 8.5px
+  );
+}
+
+.tab.active::after {
+  right: -9px;
+  background: radial-gradient(
+    circle 9px at 100% 0,
+    transparent 7px,
+    var(--border) 7.5px,
+    var(--border) 8px,
+    var(--surface) 8.5px
+  );
 }
 
 .tabstrip-tabs .tab-new {
@@ -675,13 +716,17 @@ body[data-maximized] .tabstrip {
   min-width: 0;
 }
 
+/* S07l: same role, same rhythm as .note-bar — surface bg, --bar-h (the
+   owner's "note header thinner than webpage header" report). */
 .web-nav {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 8px;
+  min-height: var(--bar-h);
+  box-sizing: border-box;
+  padding: 0.15rem 0.5rem;
   flex: none;
-  background: var(--bg);
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
 
@@ -694,13 +739,13 @@ body[data-maximized] .tabstrip {
 .web-url input {
   flex: 1;
   min-width: 0;
-  padding: 4px 10px;
+  padding: 2px 10px;
   border-radius: 6px;
   border: 1px solid var(--border);
-  background: var(--surface);
+  background: var(--bg);
   color: inherit;
   font: inherit;
-  font-size: 13px;
+  font-size: 0.78rem;
 }
 
 .web-hint {
@@ -1189,6 +1234,9 @@ body[data-maximized] .tabstrip {
   padding: 0;
 }
 
+/* S07l (owner bench): the content column's HEADER BARS wear the content
+   surface — the fused active tab lands on its own color, not on chrome.
+   Same height discipline for every such bar: --bar-h, hairline below. */
 .note-bar {
   flex: none;
   display: flex;
@@ -1198,7 +1246,7 @@ body[data-maximized] .tabstrip {
   min-height: var(--bar-h);
   box-sizing: border-box;
   padding: 0.15rem 0.9rem;
-  background: var(--bg);
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
   font-size: 0.78rem;
 }

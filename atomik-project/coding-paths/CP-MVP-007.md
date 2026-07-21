@@ -466,6 +466,25 @@ bench fixes : S06b white app (props typed, never destructured — the
               index Contents links (rung asserts totalLinks 2 and
               the re-derived index lists the new name). Docs: 04,
               module note, learning note 15, addendum revision.
+              S07l owner screenshot on S07i: "more curve on the
+              attachment" + "the header of the page is a different
+              color". Curved SHOULDERS added (radial-gradient pseudo
+              squares outside the active tab: strip through the arc,
+              border ring, surface fill; radius 7→9px; scroller gains
+              shoulder padding so the first tab never clips) and the
+              content column's header bars now wear the SURFACE
+              (.note-bar, .web-nav — the fused tab lands on its own
+              color; two-surface doctrine comment updated). Same-role
+              parity begun on the named example: .web-nav adopts
+              --bar-h + note-bar rhythm (input compacted to fit).
+              Screenshot-verified: shoulders arc into the surface,
+              border rings the curve. UI AUDIT running (two parallel
+              inspectors: styles.css scales/alignment/parity; markup
+              icon-vs-text/a11y/divergences) feeding S07m fixes and
+              the S07n design system (owner tastes recorded:
+              macOS-glass, ALL FOUR organic palettes as themes,
+              balanced density, translucency on chrome+overlays,
+              content opaque).
 tests       : 432 passing / 43 suites — S07j added frame-coalesce (5),
               S07k added folder-index (17: block matrix, adoption
               idempotence, no-cosmetic-writes, verb round-trips incl.
