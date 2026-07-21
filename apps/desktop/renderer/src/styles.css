@@ -1777,7 +1777,32 @@ body[data-maximized] .tabstrip {
 
 .ai-presets {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
+}
+
+/* S03: system-prompt scope selector — destination-row idiom */
+.ai-system {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.ai-system select {
+  font: inherit;
+  font-size: 0.78rem;
+  color: inherit;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.15rem 0.5rem;
+}
+
+.ai-system select:focus {
+  outline: 1px solid var(--accent);
+  border-color: var(--accent);
 }
 
 .ai-presets button {

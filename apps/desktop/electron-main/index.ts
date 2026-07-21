@@ -1450,6 +1450,7 @@ async function runSmoke(
               input: [{ relPath: 'welcome.md', kind: 'text', content: 'First note of this vault.', range: { from: 11, to: 36 } }],
               instruction: 'Explain this simply.',
               preset: 'explain',
+              systemPrompt: 'Smoke system prompt (S03): rides the operation through validation.',
               target: { relPath: 'welcome.md', destination: { kind: 'append' } }
             })
             const summary = await window.atomik.getAiTraceSummary(bundle.id)

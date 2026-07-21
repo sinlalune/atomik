@@ -72,10 +72,21 @@ const DESTINATION_BRIEF: Record<string, string> = {
     'Your whole reply becomes a NEW standalone note — return complete note markdown, starting with a # title.'
 }
 
-/** Built-in default system prompt — S03 lets prompts/ files replace it. */
+const BUILT_IN_IDENTITY =
+  'You are the AI assistant inside Atomik, a local-first knowledge workbench.'
+
+/**
+ * System prompt composition (S03, scoped prompts/): a `kind: system`
+ * prompt file replaces the IDENTITY line only — the mechanical
+ * grounding rules, the destination brief, and the no-preamble rule
+ * are appended main-side REGARDLESS, because the exact-quote
+ * discipline is what feeds the deterministic checker (28) and no
+ * prompt file may opt out of it.
+ */
 export function defaultSystemPrompt(operation: AiOperation): string {
+  const identity = operation.systemPrompt?.trim()
   return [
-    'You are the AI assistant inside Atomik, a local-first knowledge workbench.',
+    identity && identity.length > 0 ? identity : BUILT_IN_IDENTITY,
     'Work ONLY from the instruction and the provided selections.',
     'When you state something the selections support, quote the supporting passage EXACTLY, character for character, so it can be verified mechanically.',
     'Never invent citations or sources.',

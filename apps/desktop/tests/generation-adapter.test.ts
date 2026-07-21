@@ -74,6 +74,17 @@ describe('buildMessages (operation → chat completions)', () => {
     expect(messages[1]!.content).toContain(SELECTION_TEXT)
   })
 
+  it('a prompt-file system prompt replaces the identity, never the grounding rules (S03)', () => {
+    const custom = operation()
+    custom.systemPrompt = 'You are a terse research assistant.'
+    const system = buildMessages(custom)[0]!.content
+    expect(system).toContain('You are a terse research assistant.')
+    expect(system).not.toContain('AI assistant inside Atomik')
+    // the mechanical contract survives any prompt file
+    expect(system).toContain('EXACTLY')
+    expect(system).toContain('APPENDED')
+  })
+
   it('phrases the destination brief per kind', () => {
     expect(
       buildMessages(operation({ kind: 'replace-selection' }))[0]!.content

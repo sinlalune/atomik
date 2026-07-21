@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { AiEngine, AiSettingsPublic } from '../../shared/ipc-contract'
+import { materializeStarterPrompts } from './editor/prompts'
 import { MenuIcon } from './icons'
 import { acquireWebOverlay } from './web/overlay'
 import { setTheme, themeOf, THEMES, type Theme } from './workspace/model'
@@ -52,6 +53,29 @@ export function AppMenu(): React.JSX.Element {
       (cause) => {
         setBusy(false)
         setError(String(cause))
+      }
+    )
+  }
+
+  const [starterStatus, setStarterStatus] = useState<string | null>(null)
+
+  // S03: the EXPLICIT starter action — the only path that ever writes
+  // prompt files; opening the app or the menu never does.
+  const createStarters = (): void => {
+    setBusy(true)
+    setStarterStatus(null)
+    materializeStarterPrompts(window.atomik).then(
+      (created) => {
+        setBusy(false)
+        setStarterStatus(
+          created.length > 0
+            ? `created ${created.join(', ')} in prompts/`
+            : 'all starter prompts already present'
+        )
+      },
+      (cause) => {
+        setBusy(false)
+        setStarterStatus(String(cause))
       }
     )
   }
@@ -156,6 +180,17 @@ export function AppMenu(): React.JSX.Element {
                 mistral needs a key — runs will fail until one is set
               </p>
             )}
+          <h4>AI · Prompts</h4>
+          <button
+            type="button"
+            className="app-menu-clear"
+            disabled={busy}
+            title="Creates the missing starter prompt files in prompts/ at the vault root — existing files are never touched"
+            onClick={createStarters}
+          >
+            Create starter prompts
+          </button>
+          {starterStatus && <p className="app-menu-status">{starterStatus}</p>}
           {error && <p className="app-menu-error error">{error}</p>}
           <p className="app-menu-note">
             The key stays in the main process; it never returns to this

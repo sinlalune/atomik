@@ -164,6 +164,26 @@ timestamp: 2026-07-06T00:00:00Z
   env-gated `ATOMIK_SMOKE_AI_LIVE=1` rung proves the live chain
   (engine switch, one real completion, cloud trace, mid-flight cancel;
   honest `skip:no-key` without a key).
+  SCOPED PROMPT FOLDERS (S03, owner amendment 2026-07-21):
+  `renderer/src/editor/prompts.ts` — a `prompts/` folder may live at
+  the vault root, in ANY folder, and in a project bundle (a project IS
+  a folder, so ONE walk covers all scopes); resolution NEAREST-WINS
+  from the note outward with same-name shadowing (a project overrides
+  a root prompt), scope tags keep shadowing visible; a prompt file is
+  markdown + frontmatter `kind: system | message` (+optional
+  title/description), non-prompts in prompts/ are skipped (never an
+  error), index/log convention files excluded; scanned through the
+  EXISTING verbs (`listVaultFiles`/`readNote` injected — zero new
+  IPC). Message prompts join the AiPanel preset row (click loads the
+  body); system prompts feed a selector whose body rides
+  `AiOperation.systemPrompt` (bounded 8k in `isValidAiOperation`) —
+  it replaces the built-in IDENTITY line only; the exact-quote
+  grounding rules, destination brief, and no-preamble rule are
+  composed main-side REGARDLESS (no prompt file opts out of the
+  mechanical contract, 28). Starters materialize ONLY via the
+  explicit ☰ → "Create starter prompts" action
+  (`materializeStarterPrompts` — idempotent, missing-only, createNote
+  births the folder with its S07k conventions; no writes on open).
   `renderer/src/editor/AiPanel.tsx` docks the loop in the editor:
   selection (or whole note) → instruction/preset → destination
   (replace-selection / append / new-note, path prefilled beside the
@@ -973,7 +993,12 @@ provider-reported and estimated usage with snapshot cost, truncation
 uncertainty, the full error taxonomy incl. retry-after surfaced
 without auto-retry, timeout-vs-cancel, the main-side input budget
 pre-check, and the mock behind the seam),
-`ai-helpers.test.ts` (default note paths),
+`ai-helpers.test.ts` (default note paths), `prompts.test.ts` (S03:
+scope-chain walk, nearest-first collection with shadowing and
+convention-file exclusion, frontmatter parse with honest rejects,
+injected-verb loading incl. edit→use round-trip, scope labels,
+starter materialization idempotent/missing-only with starters
+self-validated as prompts),
 `truth.test.ts` (containment + hash evidence, the no-paraphrase rule,
 form honoring with evidence outranking, the smuggled-label adversarial
 case, reproducibility, provenance riding matched evidence and the

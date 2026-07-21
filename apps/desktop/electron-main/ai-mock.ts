@@ -25,6 +25,9 @@ import type {
 const MAX_INSTRUCTION = 4000
 const MAX_SELECTION = 100_000
 const MAX_ID = 128
+/** System prompts are prompt-FILE bodies (S03) — roomier than an
+ *  instruction, still bounded below renderer state. */
+const MAX_SYSTEM_PROMPT = 8000
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -64,6 +67,10 @@ export function isValidAiOperation(value: unknown): value is AiOperation {
   if (typeof value['id'] !== 'string' || value['id'].length === 0 || value['id'].length > MAX_ID) return false
   if (typeof value['instruction'] !== 'string' || value['instruction'].length === 0 || value['instruction'].length > MAX_INSTRUCTION) return false
   if (value['preset'] !== undefined && typeof value['preset'] !== 'string') return false
+  const systemPrompt = value['systemPrompt']
+  if (systemPrompt !== undefined) {
+    if (typeof systemPrompt !== 'string' || systemPrompt.length === 0 || systemPrompt.length > MAX_SYSTEM_PROMPT) return false
+  }
   const input = value['input']
   if (!Array.isArray(input) || input.length === 0 || input.length > 8) return false
   if (!input.every(isValidSelection)) return false

@@ -1,5 +1,5 @@
 import MarkdownIt from 'markdown-it'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   AiDestination,
   AiResponseBundle,
@@ -18,6 +18,7 @@ import {
   PlayIcon
 } from '../icons'
 import { defaultNewNotePath, ensureMdExtension } from './ai-helpers'
+import { loadPromptsFor, scopeLabel, type PromptFile } from './prompts'
 
 export type BufferChange =
   | { kind: 'replace-range'; range: { from: number; to: number }; newText: string }
@@ -94,6 +95,26 @@ export function AiPanel({
   const [challengedIds, setChallengedIds] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const runningOperationId = useRef<string | null>(null)
+  // Scoped prompt files (S03): resolved nearest-first for THIS note,
+  // reloaded when vault files land — a prompt edit is a note edit.
+  const [vaultPrompts, setVaultPrompts] = useState<PromptFile[]>([])
+  const [systemPromptPath, setSystemPromptPath] = useState('')
+
+  useEffect(() => {
+    let live = true
+    const reload = (): void => {
+      loadPromptsFor(note.relPath, window.atomik).then(
+        (prompts) => { if (live) setVaultPrompts(prompts) },
+        () => { if (live) setVaultPrompts([]) }
+      )
+    }
+    reload()
+    const unsubscribe = window.atomik.onVaultFilesChanged(reload)
+    return () => {
+      live = false
+      unsubscribe()
+    }
+  }, [note.relPath])
 
   const md = useMemo(
     () => new MarkdownIt({ html: false, linkify: false, breaks: true }),
@@ -147,12 +168,16 @@ export function AiPanel({
     setApplied(null)
     const operationId = crypto.randomUUID()
     runningOperationId.current = operationId
+    const systemPrompt = vaultPrompts.find(
+      (candidate) => candidate.relPath === systemPromptPath
+    )?.body
     try {
       const result = await window.atomik.runAiOperation({
         id: operationId,
         input: [selection],
         instruction: text,
         ...(preset ? { preset } : {}),
+        ...(systemPrompt ? { systemPrompt } : {}),
         target
       })
       setBundle(result)
@@ -173,7 +198,7 @@ export function AiPanel({
     } finally {
       runningOperationId.current = null
     }
-  }, [destination, getDoc, getSelection, instruction, newNotePath, note.relPath, preset])
+  }, [destination, getDoc, getSelection, instruction, newNotePath, note.relPath, preset, systemPromptPath, vaultPrompts])
 
   // Cancel rides the operation id (S02): main aborts the provider call
   // mid-flight; the run above rejects with ai(cancelled).
@@ -313,12 +338,48 @@ export function AiPanel({
                   key={spec.id}
                   type="button"
                   className={preset === spec.id ? 'active' : ''}
+                  title="built-in"
                   onClick={() => pickPreset(spec.id)}
                 >
                   {spec.label}
                 </button>
               ))}
+              {vaultPrompts
+                .filter((prompt) => prompt.kind === 'message')
+                .map((prompt) => (
+                  <button
+                    key={prompt.relPath}
+                    type="button"
+                    className={preset === `file:${prompt.name}` ? 'active' : ''}
+                    title={`${prompt.description ?? prompt.title} · ${scopeLabel(prompt.scopeFolder, note.relPath)} (${prompt.relPath})`}
+                    onClick={() => {
+                      setPreset(`file:${prompt.name}`)
+                      setInstruction(prompt.body)
+                    }}
+                  >
+                    {prompt.title}
+                  </button>
+                ))}
             </div>
+            {vaultPrompts.some((prompt) => prompt.kind === 'system') && (
+              <label className="ai-system">
+                system
+                <select
+                  aria-label="System prompt"
+                  value={systemPromptPath}
+                  onChange={(event) => setSystemPromptPath(event.target.value)}
+                >
+                  <option value="">built-in</option>
+                  {vaultPrompts
+                    .filter((prompt) => prompt.kind === 'system')
+                    .map((prompt) => (
+                      <option key={prompt.relPath} value={prompt.relPath}>
+                        {prompt.title} · {scopeLabel(prompt.scopeFolder, note.relPath)}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            )}
             <textarea
               rows={2}
               placeholder="Ask about the selection (or the whole note)…"

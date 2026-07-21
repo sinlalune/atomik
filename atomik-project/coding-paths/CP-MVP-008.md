@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-008
   status: active
   accepted: 2026-07-21
-  current_step: S03
+  current_step: S04
   base_commit: 6cacfa2
 ---
 
@@ -221,16 +221,23 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       150+11tok/0.000029USD:cancel=cancelled` — real completion,
       cloud trace with provider-reported usage + snapshot cost,
       mid-flight cancel over real latency.
-- [ ] S03 Prompts folders (scoped — owner amendment 2026-07-21):
-      `prompts/` convention at root + any folder + project bundle;
-      scanner over the existing vault verbs (zero new IPC; pattern:
-      the `sourceBundlesOf` walk) resolving NEAREST-WINS from the
-      note outward with name shadowing; prompts feed quick actions,
-      pills, and chat system prompts, grouped by scope in the menu;
-      built-in defaults when no scope provides one; explicit starter
-      materialization per scope (no writes on open); tests (scan
-      across scopes, shadowing order, frontmatter parse, fallback,
-      round-trip create→use→edit→use).
+- [x] S03 Prompts folders (scoped — owner amendment 2026-07-21) —
+      done 2026-07-21: `renderer/src/editor/prompts.ts` (chain walk
+      root + any folder + project — a project IS a folder, one rule
+      covers all scopes; nearest-wins shadowing; frontmatter
+      `kind: system | message`; injected `listVaultFiles`/`readNote`,
+      zero new IPC); AiPanel: message prompts join the preset row
+      scope-tagged, system selector → `AiOperation.systemPrompt`
+      (bounded 8k main-side; replaces the IDENTITY line only — the
+      grounding rules/destination brief compose main-side regardless,
+      28); starters via explicit ☰ action, idempotent missing-only;
+      prompts reload on vaultFilesChanged (edit→use). Tests 455→467/45
+      (prompts.test.ts + validation/composition cases); typecheck/
+      build/smoke green (smoke op now rides a systemPrompt). Pills +
+      chat consumption land with their surfaces (S04/S06). No
+      learning note: convention + scanner over proven patterns (S07k
+      folder conventions, injected-verb testing) — no first
+      mobilization; the S02 note covers the adapter seam.
 - [ ] S04 Selection context menu: right-click + keyboard on an editor
       selection → AI menu (TreeMenu machinery pattern): quick actions
       from prompt files + built-ins, custom input at the click
@@ -363,13 +370,15 @@ changed(S02): generation.ts + mistral-generation-adapter.ts NEW;
               error kinds ride messages as `ai(<kind>): …`; smoke
               engine restore writes the resolved engine explicitly
               (accepted quirk of the rung).
-next action : S03 — prompts/ folder: vault-root convention + scanner
-              over the existing vault verbs (zero new IPC; pattern:
-              the sourceBundlesOf walk); prompts feed quick actions,
-              pills, and chat system prompts (S02's
-              defaultSystemPrompt is the built-in fallback seam);
-              explicit starter materialization; tests scan/parse/
-              fallback/round-trip.
+tests(S03)  : 467 passing / 45 suites; typecheck/build green; smoke
+              `ai=ok` with systemPrompt riding the operation.
+next action : S04 — selection context menu: right-click + keyboard on
+              an editor selection → AI menu (TreeMenu machinery
+              pattern): quick actions from prompt files (S03 loader,
+              scope-grouped) + built-ins, custom input at the click
+              location with system-prompt pills (S03 system prompts),
+              "Open chat"; the AI button leaves the note-bar; tests
+              where the DOM seam allows + pure helpers.
 blockers    : none. OPEN (S07 bench): default engine when a key is
               configured — 'mistral' proposed, implemented as the
               key-present resolution default, mock stays selectable.

@@ -409,6 +409,10 @@ export type AiOperation = {
   /** Free text stays first-class (06); presets only scaffold it. */
   instruction: string
   preset?: string
+  /** Body of a `kind: system` prompt file (S03, scoped prompts/) —
+   *  replaces the built-in identity; the mechanical grounding rules
+   *  are appended main-side regardless. Size-capped in validation. */
+  systemPrompt?: string
   target: { relPath: string; destination: AiDestination }
 }
 

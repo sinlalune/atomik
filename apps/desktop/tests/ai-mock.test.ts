@@ -40,6 +40,13 @@ describe('isValidAiOperation (channel input is untrusted)', () => {
     expect(isValidAiOperation(validOp({ input: [] }))).toBe(false)
   })
 
+  it('bounds the optional system prompt (S03 prompt files)', () => {
+    expect(isValidAiOperation(validOp({ systemPrompt: 'Stay grounded.' }))).toBe(true)
+    expect(isValidAiOperation(validOp({ systemPrompt: '' }))).toBe(false)
+    expect(isValidAiOperation({ ...validOp(), systemPrompt: 42 })).toBe(false)
+    expect(isValidAiOperation(validOp({ systemPrompt: 'x'.repeat(8001) }))).toBe(false)
+  })
+
   it('rejects malformed selections and destinations', () => {
     const badRange = validOp()
     badRange.input[0]!.range = { from: 20, to: 10 }
