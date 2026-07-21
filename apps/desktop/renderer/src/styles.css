@@ -81,9 +81,12 @@
 
   /* Glass (36 §glass): standing chrome = alpha tint only (software-GL
      budget under WSLg); real backdrop blur is overlay-only. Content
-     stays opaque — reading is sacred. */
-  --glass-chrome: color-mix(in srgb, var(--bg) 88%, transparent);
-  --glass-pop: color-mix(in srgb, var(--surface) 82%, transparent);
+     stays opaque — reading is sacred. S07o (owner: "no translucid
+     effect nowhere"): tints deepened to VISIBLE — chrome 72%, pops
+     66% — with the stronger body wash carrying the light through. */
+  --glass-chrome: color-mix(in srgb, var(--bg) 72%, transparent);
+  --glass-pop: color-mix(in srgb, var(--surface) 66%, transparent);
+  --glass-edge: light-dark(rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.07));
 }
 
 /* Explicit themes (owner round 2: dark mode + soft pastels for bright
@@ -199,13 +202,18 @@ body {
   margin: 0;
   height: 100vh;
   overflow: hidden;
-  /* the wash the glass chrome tints against (36 §glass): a whisper of
-     accent light in the corner — visible only through alpha chrome */
+  /* the wash the glass chrome tints against (36 §glass; S07o deepened):
+     two soft accent blobs — the light the translucency lets through */
   background:
     radial-gradient(
-      120% 90% at 15% 0%,
-      color-mix(in srgb, var(--accent) 6%, transparent),
-      transparent 60%
+      110% 80% at 12% 0%,
+      color-mix(in srgb, var(--accent) 14%, transparent),
+      transparent 55%
+    ),
+    radial-gradient(
+      90% 70% at 100% 100%,
+      color-mix(in srgb, var(--accent) 9%, transparent),
+      transparent 55%
     ),
     var(--bg);
   color: var(--fg);
@@ -228,8 +236,10 @@ body {
   gap: 0.5rem;
   height: 2.2rem;
   padding: 0 0.5rem 0 0.85rem;
-  /* standing chrome wears the glass tint over the body wash (36) */
+  /* standing chrome wears the glass tint over the body wash (36),
+     with the 1px glass-edge highlight that sells the material */
   background: var(--glass-chrome);
+  box-shadow: inset 0 1px 0 var(--glass-edge);
   border-bottom: 1px solid var(--border);
   -webkit-app-region: drag;
 }
@@ -291,11 +301,11 @@ body[data-maximized] .app-header {
   /* overlay glass (36): frosted, small area — the one sanctioned
      backdrop-filter use */
   background: var(--glass-pop);
-  backdrop-filter: blur(14px) saturate(1.15);
-  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-pop);
+  box-shadow: var(--shadow-pop), inset 0 1px 0 var(--glass-edge);
   font-size: var(--fs-md);
 }
 
@@ -2525,6 +2535,29 @@ body[data-maximized] .tabstrip {
   gap: 0.3rem;
 }
 
+/* S07o centering sweep (owner: "icons/buttons still not centered in
+   their rows"): every svg inside ANY button is a block — no baseline
+   ride anywhere — and every chrome button family is a centered flex
+   box, whatever class it carries. */
+button svg {
+  display: block;
+}
+
+.tabstrip button,
+.tree-bar button,
+.vault-new button,
+.tree-menu-form button,
+.window-controls button,
+.app-menu-toggle,
+.source-image-tools button,
+.ai-actions button,
+.editor-conflict button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+}
+
 /* Unsaved-changes dot beside the note path (was a bare text char). */
 .dirty-dot {
   margin-left: 0.35rem;
@@ -2743,11 +2776,11 @@ body[data-maximized] .tabstrip {
   max-width: 260px;
   padding: 0.25rem;
   background: var(--glass-pop);
-  backdrop-filter: blur(14px) saturate(1.15);
-  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-pop);
+  box-shadow: var(--shadow-pop), inset 0 1px 0 var(--glass-edge);
   display: flex;
   flex-direction: column;
 }
@@ -2869,6 +2902,7 @@ body[data-maximized] .tabstrip {
   padding-bottom: 0;
   /* standing chrome glass tint over the body wash (36) */
   background: var(--glass-chrome);
+  box-shadow: inset 0 1px 0 var(--glass-edge);
 }
 
 .pane-tree-scroll {

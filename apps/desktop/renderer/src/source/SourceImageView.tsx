@@ -1,7 +1,17 @@
 import { useEffect, useState } from 'react'
 import { resolveRelativePath } from '../dev-docs/markdown'
 import { HistoryNav } from '../HistoryNav'
-import { ExternalLinkIcon, RotateCcwIcon, RotateCwIcon } from '../icons'
+import {
+  CloudIcon,
+  ExternalLinkIcon,
+  ImageIcon,
+  MicIcon,
+  ReaderIcon,
+  RotateCcwIcon,
+  RotateCwIcon,
+  ScanTextIcon,
+  TrashIcon
+} from '../icons'
 import { useVaultNote } from '../vault/useVaultNote'
 import { useNavHistory } from '../vault/nav-history'
 import { invalidateImage } from '../vault/image-cache'
@@ -419,12 +429,13 @@ export function SourceImageView({
                 type="button"
                 className="note-bar-button"
                 title="Extract the page's main content from the snapshot — text and images (incl. math figures) land in reader.md, derived and traced"
+                  aria-label="Extract reader text"
                 disabled={transcribing}
                 onClick={() =>
                   runTranscription(window.atomik.extractWebReader, setTranscribing)
                 }
               >
-                {transcribing ? 'Extracting…' : 'Extract reader text'}
+                <ReaderIcon />
               </button>
             )}
             {note && isWeb && hasReader && (
@@ -432,6 +443,7 @@ export function SourceImageView({
                 type="button"
                 className="note-bar-button"
                 title="Delete reader.md and its media/ after confirmation — corrections in it are lost; enables a fresh extraction"
+                  aria-label="Delete reader extraction"
                 disabled={transcribing}
                 onClick={() => {
                   const confirmed = window.confirm(
@@ -443,7 +455,7 @@ export function SourceImageView({
                     runTranscription(window.atomik.resetWebReader, setTranscribing)
                 }}
               >
-                {transcribing ? 'Deleting…' : 'Delete reader…'}
+                  <TrashIcon />
               </button>
             )}
             {note &&
@@ -454,12 +466,13 @@ export function SourceImageView({
                   type="button"
                   className="note-bar-button"
                   title="Extract the text layer locally (image-only pages use the OCR seat when a rasterizer is installed) — lands extracted.md, derived and traced"
+                  aria-label="Extract text"
                   disabled={transcribing}
                   onClick={() =>
                     runTranscription(window.atomik.extractPdfSource, setTranscribing)
                   }
                 >
-                  {transcribing ? 'Extracting…' : 'Extract text'}
+                  <ScanTextIcon />
                 </button>
               )}
             {note &&
@@ -470,6 +483,7 @@ export function SourceImageView({
                   type="button"
                   className="note-bar-button"
                   title="Delete extracted.md after confirmation — corrections in it are lost; enables a fresh extraction"
+                  aria-label="Delete extraction"
                   disabled={transcribing}
                   onClick={() => {
                     const confirmed = window.confirm(
@@ -481,7 +495,7 @@ export function SourceImageView({
                       runTranscription(window.atomik.resetExtraction, setTranscribing)
                   }}
                 >
-                  {transcribing ? 'Deleting…' : 'Delete extraction…'}
+                  <TrashIcon />
                 </button>
               )}
             {note && hasScan && !isAudio && (
@@ -493,9 +507,10 @@ export function SourceImageView({
                     ? 'Show the cleaned scan the model read (scan.jpg)'
                     : 'Show the original photo — the evidence'
                 }
+                aria-label={shown === 'original' ? 'View scan' : 'View original'}
                 onClick={() => setShown(shown === 'original' ? 'scan' : 'original')}
               >
-                {shown === 'original' ? 'View scan' : 'View original'}
+                <ImageIcon />
               </button>
             )}
             {note &&
@@ -505,10 +520,11 @@ export function SourceImageView({
                   type="button"
                   className="note-bar-button"
                   title="Delete transcript.md (and scan/segments) after confirmation — corrections are lost; enables a fresh Transcribe or Cloud OCR run"
+                  aria-label="Delete transcript"
                   disabled={transcribing || cloudBusy}
                   onClick={deleteTranscript}
                 >
-                  {transcribing ? 'Deleting…' : 'Delete transcript…'}
+                  <TrashIcon />
                 </button>
               )}
             {note &&
@@ -521,10 +537,11 @@ export function SourceImageView({
                   type="button"
                   className="note-bar-button"
                   title="Run the LOCAL seat (images: Qwen3-VL 4B sidecar; audio: whisper.cpp) — nothing leaves this machine"
+                  aria-label="Transcribe locally"
                   disabled={transcribing || cloudBusy}
                   onClick={transcribe}
                 >
-                  {transcribing ? 'Transcribing…' : 'Transcribe'}
+                  {isAudio ? <MicIcon /> : <ScanTextIcon />}
                 </button>
                 <button
                   type="button"
@@ -534,12 +551,11 @@ export function SourceImageView({
                       ? 'SENDS this audio to Mistral Voxtral (cloud) — explicit action, result marked cloud-derived; requires a configured key'
                       : 'SENDS this image to the Mistral OCR API (cloud) — explicit action, result marked cloud-derived; requires a configured key'
                   }
+                  aria-label={isAudio ? 'Cloud transcribe' : 'Cloud OCR'}
                   disabled={transcribing || cloudBusy}
                   onClick={transcribeCloud}
                 >
-                  {cloudBusy
-                    ? isAudio ? 'Cloud transcribe…' : 'Cloud OCR…'
-                    : isAudio ? 'Cloud transcribe' : 'Cloud OCR'}
+                  <CloudIcon />
                 </button>
               </>
             )}

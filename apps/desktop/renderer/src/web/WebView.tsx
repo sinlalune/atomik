@@ -5,6 +5,7 @@ import {
   ArrowLeftIcon,
   ArrowRightIcon,
   CloseIcon,
+  ImportIcon,
   ReaderIcon,
   ReloadIcon
 } from '../icons'
@@ -303,9 +304,10 @@ export function WebView({
           className="note-bar-button web-import"
           disabled={!importable}
           title="Import this page as a source — snapshot + dossier into sources/web/"
+          aria-label="Import as source"
           onClick={importSource}
         >
-          {importing ? 'importing…' : 'Import as source'}
+          <ImportIcon /> {importing ? 'importing…' : 'Import'}
         </button>
       </div>
       {inputError && <p className="web-hint error">{inputError}</p>}

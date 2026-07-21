@@ -10,10 +10,12 @@ import type {
   VaultNoteFile
 } from '../../../shared/ipc-contract'
 import {
+  CheckIcon,
   CloseIcon,
   DockBottomIcon,
   DockRightIcon,
-  ExternalLinkIcon
+  ExternalLinkIcon,
+  PlayIcon
 } from '../icons'
 import { defaultNewNotePath, ensureMdExtension } from './ai-helpers'
 
@@ -354,10 +356,13 @@ export function AiPanel({
               {error && <span className="error editor-msg">{error}</span>}
               <button
                 type="button"
+                className="icon-button"
                 disabled={phase === 'running' || instruction.trim().length === 0}
+                title={phase === 'running' ? 'Running…' : 'Run'}
+                aria-label="Run"
                 onClick={() => void run()}
               >
-                {phase === 'running' ? 'running…' : 'Run'}
+                <PlayIcon /> {phase === 'running' ? 'running…' : 'Run'}
               </button>
             </div>
           </div>
@@ -453,11 +458,28 @@ export function AiPanel({
             <div className="ai-actions">
               {error && <span className="error editor-msg">{error}</span>}
               {applied && <span className="ai-applied">{applied}</span>}
-              <button type="button" onClick={() => void accept()} disabled={!!applied}>
-                Accept
+              <button
+                type="button"
+                className="icon-button"
+                onClick={() => void accept()}
+                disabled={!!applied}
+                title="Accept — the one moment the note changes"
+                aria-label="Accept"
+              >
+                <CheckIcon /> Accept
               </button>
-              <button type="button" onClick={reject}>
-                {applied ? 'New operation' : 'Reject'}
+              <button
+                type="button"
+                className="icon-button"
+                onClick={reject}
+                title={applied ? 'Start a new operation' : 'Reject the proposal'}
+                aria-label={applied ? 'New operation' : 'Reject'}
+              >
+                {applied ? 'New operation' : (
+                  <>
+                    <CloseIcon /> Reject
+                  </>
+                )}
               </button>
             </div>
           </div>

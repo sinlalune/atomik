@@ -1,4 +1,5 @@
 import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
+import { AutosaveIcon, ImageIcon, SaveIcon, SparkleIcon } from '../icons'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { cssLanguage } from '@codemirror/lang-css'
 import { htmlLanguage } from '@codemirror/lang-html'
@@ -530,42 +531,55 @@ export function EditorPane({
           {error && <span className="error editor-msg">{error}</span>}
           <button
             type="button"
-            className={showAi ? 'active' : ''}
+            className={`icon-button${showAi ? ' active' : ''}`}
             onClick={() => setShowAi((current) => !current)}
             title="Ask AI about the selection"
+            aria-label="Ask AI"
+            aria-pressed={showAi}
           >
-            AI
+            <SparkleIcon />
           </button>
           {onSaveModeToggle && (
             <button
               type="button"
-              className="save-mode"
+              className={`icon-button save-mode${saveMode === 'auto' ? ' active' : ''}`}
               title={
                 saveMode === 'auto'
                   ? 'Auto-save is on — switch to manual save'
                   : 'Manual save — switch to auto-save'
               }
+              aria-label="Toggle auto-save"
+              aria-pressed={saveMode === 'auto'}
               onClick={onSaveModeToggle}
             >
-              {saveMode === 'auto' ? 'auto' : 'manual'}
+              <AutosaveIcon />
             </button>
           )}
           <button
             type="button"
+            className="icon-button"
             disabled={saving || !dirty}
             onClick={() => void save()}
-            title="Save now (Ctrl+S)"
+            title={
+              saving
+                ? 'Saving…'
+                : saveMode === 'auto' && !dirty
+                  ? 'Saved'
+                  : 'Save now (Ctrl+S)'
+            }
+            aria-label="Save"
           >
-            {saving ? 'saving…' : saveMode === 'auto' && !dirty ? 'Saved' : 'Save'}
+            <SaveIcon />
           </button>
           {onOpenSourceImage && hasMediaResource(note.content) && (
             <button
               type="button"
-              className="note-bar-button"
+              className="note-bar-button icon-button"
               title="View the original beside the dossier"
+              aria-label="View original"
               onClick={() => onOpenSourceImage(note.relPath)}
             >
-              View original
+              <ImageIcon />
             </button>
           )}
           {onModeChange && <ModeSwitch mode={mode} onSelect={selectMode} />}

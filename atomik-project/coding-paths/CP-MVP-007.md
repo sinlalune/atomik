@@ -533,8 +533,34 @@ bench fixes : S06b white app (props typed, never destructured — the
               shared .pill/.btn/.input/.popover classes,
               NoteBar/InlineCreateForm/ConfirmDialog extractions,
               editor-bar nav parity, TreeMenu overlay-guard
-              registration, full literal→token migration, AI/
-              save-mode icon treatment.
+              registration, full literal→token migration.
+              S07o owner bench on S07n ("no translucid effect
+              nowhere; most buttons still text — I need icons with
+              label in hover; icons/buttons still not centered"):
+              all three verdicts held up. (1) GLASS made visible:
+              tints deepened 88→72% chrome / 82→66% pops, blur 18px,
+              body wash doubled (two accent blobs 14%/9%), 1px
+              --glass-edge inset highlight on header/tree/popovers —
+              root cause: 88% alpha over a 6% wash ≈ invisible, and
+              frosting a popover over a SAME-color surface shows
+              nothing; 36 §glass revised (values + contrast-recheck
+              rule). (2) ICON-FIRST enforced (36 §buttons rewritten):
+              13 content-verb icons added (Sparkle/Save/Autosave/
+              Book/Pen/Code/Trash/ScanText/Mic/Cloud/Image/Import/
+              Play); AI · auto · Save · View original · the
+              read/live/source segmented control · every source-
+              dossier verb (extract/delete/transcribe/cloud/view) ·
+              web Import · AI Run/Accept/Reject now carry icons with
+              the label in the hover title + aria-label; morphing
+              busy labels gone (disabled signals busy). (3) CENTERING
+              root-caused: the button families hosting the new SVGs
+              were never flex boxes — icons rode the text baseline;
+              fixed structurally (`button svg { display: block }`
+              global + one centered-flex rule over every chrome
+              button family). 432/43 green, build/smoke green,
+              screenshot: the wash visibly bleeds through the tree
+              glass. Final feel (hovers, tooltips, themes) = owner
+              bench.
 tests       : 432 passing / 43 suites — S07j added frame-coalesce (5),
               S07k added folder-index (17: block matrix, adoption
               idempotence, no-cosmetic-writes, verb round-trips incl.

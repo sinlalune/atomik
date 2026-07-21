@@ -110,11 +110,15 @@ bars        min-height --bar-h, box-sizing border-box, padding
 controls    every in-bar control sits in a --control-h box, centered
             with inline-flex; one hover language (code-bg wash or
             accent border), one focus language (1px accent outline)
-buttons     chrome VERBS are SVG icons from icons.tsx (16 viewBox,
-            stroke 1.3, aria-hidden) inside .icon-button, with
-            aria-label + title; PRIMARY/destructive actions keep
-            sentence-case text labels ("Save", "Delete extraction…");
-            busy states keep a stable width, never a morphing label
+buttons     ICON-FIRST everywhere in chrome and bars (S07o owner
+            revision): the verb is an SVG icon from icons.tsx
+            (16 viewBox, stroke 1.3, aria-hidden) inside .icon-button,
+            the LABEL lives in the hover title + aria-label;
+            destructive verbs keep their confirm dialogs as the guard;
+            text labels remain only inside menus/list rows, content
+            prose, and the rare compound (icon + short text) where a
+            state or count must stay visible; busy = disabled state,
+            never a morphing label
 pills       one .note-bar-button/.pill recipe (radius-pill, --fs-sm);
             no new pill forks — extend with modifiers
 tabs        connected-tab shape: --tab-r top radius, curved shoulders
@@ -134,17 +138,21 @@ trees       folder and note rows share one row box and one left edge;
 ## Glass (the macOS identity, budgeted)
 
 ```text
-standing chrome   alpha tint ONLY (--glass-chrome over the body wash):
-                  no backdrop-filter — WSLg renders software GL and
-                  the perf audit made large blurs a named cost
-overlays          real frosted glass: --glass-pop + backdrop-filter
-                  blur(14px) saturate(1.15) — small areas only
-                  (menus, popovers, dialogs)
+standing chrome   alpha tint ONLY (--glass-chrome = 72% of --bg over
+                  the two-blob accent body wash) + the 1px
+                  --glass-edge inset highlight: no backdrop-filter —
+                  WSLg renders software GL and the perf audit made
+                  large blurs a named cost
+overlays          real frosted glass: --glass-pop (66% of --surface)
+                  + backdrop-filter blur(18px) saturate(1.2) — small
+                  areas only (menus, popovers, dialogs)
 content           100% opaque, always (reading is sacred)
 fallbacks         @supports not (backdrop-filter) → opaque --surface;
                   prefers-reduced-transparency → opaque everywhere
-floors            text containers keep ≥ 86% opacity tints; body text
-                  never sits on less
+floors            the wash under text-bearing chrome stays a tint of
+                  --bg (≤14% accent) so contrast holds; re-check 4.5:1
+                  whenever tint percentages move (S07o revision:
+                  88→72 / 82→66 — the owner could not SEE the glass)
 ```
 
 ## Theme family (organic future)
