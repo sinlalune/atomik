@@ -207,9 +207,12 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       455/44 (was 435/43): generation-adapter.test.ts fixture-only,
       ai-settings + action-trace extended, preload surface holds;
       typecheck/build green; smoke `ai=ok` through the new async
-      handler; live rung `ATOMIK_SMOKE_AI_LIVE=1` wired (honest
-      `skip:no-key` — full live proof lands with the owner key at the
-      S07 bench).
+      handler; live rung PROVEN with the owner key (.env.local dev
+      override, the CP-MVP-005 precedent, now honored by the
+      generation handler too): `aiLive=ok:cloud-model/mistral-small/
+      150+11tok/0.000029USD:cancel=cancelled` — real completion,
+      cloud trace with provider-reported usage + snapshot cost,
+      mid-flight cancel over real latency.
 - [ ] S03 Prompts folder: `prompts/` convention + scanner over the
       existing vault verbs (zero new IPC; pattern: the
       `sourceBundlesOf` walk); prompts feed quick actions, pills, and
@@ -318,8 +321,15 @@ tests       : 455 passing / 44 suites (S02: +generation-adapter suite,
               ai-settings + action-trace extended). Typecheck + build
               green; smoke `ai=ok:2/1/4/1 … labels=source-backed,
               model-only,needs-citation,interpretive` through the new
-              async handler; `aiLive=skip:no-key` (rung wired; live
-              proof needs the owner key — S07 bench).
+              async handler; LIVE rung proven (owner pointer to
+              .env.local): `aiLive=ok:cloud-model/mistral-small/
+              150+11tok/0.000029USD:cancel=cancelled`. Generation
+              handler + live rung honor the MISTRAL_API_KEY dev
+              override (CP-MVP-005 precedent, index.ts transcription
+              site); settings-file key still wins when present; the
+              override is invisible to publicAiSettings (same as the
+              OCR rung) — engine 'mistral' must be chosen explicitly
+              when only the override exists.
 changed(S02): generation.ts + mistral-generation-adapter.ts NEW;
               ai-mock.ts (provenanceLine exported); ai-settings.ts
               (engine field + resolution); action-trace.ts (engine

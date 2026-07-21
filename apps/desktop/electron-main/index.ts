@@ -354,7 +354,8 @@ function registerVaultHandlers(stateDir: string): void {
       }
       let adapter: GenerationAdapter = mockGenerationAdapter
       if (engine === 'mistral') {
-        const key = readMistralKey(stateDir)
+        // same dev override as the cloud transcription rung (CP-MVP-005)
+        const key = readMistralKey(stateDir) ?? process.env['MISTRAL_API_KEY']?.trim() ?? null
         if (!key) {
           throw new GenerationError(
             'auth',
@@ -1357,7 +1358,11 @@ async function waitForDevDocsRender(
  * render, optionally captures ATOMIK_SMOKE_SHOT as PNG, prints a marker,
  * exits 0 (or 1 on timeout).
  */
-async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> {
+async function runSmoke(
+  window: BrowserWindow,
+  docsRoot: string,
+  stateDir: string
+): Promise<void> {
   const rendered = await waitForDevDocsRender(window, 15000)
   if (rendered) {
     const groups = listDevDocs(docsRoot)
@@ -1462,11 +1467,13 @@ async function runSmoke(window: BrowserWindow, docsRoot: string): Promise<void> 
     // wearing cloud-model identity + provider-reported usage, and a
     // mid-flight cancel. Needs a configured key; never runs in CI.
     if (process.env['ATOMIK_SMOKE_AI_LIVE'] === '1') {
-      const outcome = (await window.webContents.executeJavaScript(
+      // key presence decided MAIN-SIDE so the dev override counts too
+      const liveKey =
+        readMistralKey(stateDir) ?? process.env['MISTRAL_API_KEY']?.trim() ?? null
+      const outcome = liveKey === null ? 'skip:no-key' : (await window.webContents.executeJavaScript(
         `(async () => {
           try {
             const before = await window.atomik.getAiSettings()
-            if (!before.mistralKeyPresent) return 'skip:no-key'
             await window.atomik.setAiEngine('mistral')
             try {
               const bundle = await window.atomik.runAiOperation({
@@ -1838,7 +1845,7 @@ app.whenReady().then(() => {
   )
   if (smoke) {
     window.webContents.once('did-finish-load', () => {
-      void runSmoke(window, docsRoot)
+      void runSmoke(window, docsRoot, stateDir)
     })
   }
 
