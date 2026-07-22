@@ -368,6 +368,20 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       traveling through AiMenuRequest → AiPanelRequest to the panel
       BEFORE the auto-run fires. Tests 492/45 unchanged (UI wiring);
       gates green.
+- [x] S04f (owner report: "answers are very short" + capture) —
+      done 2026-07-22: the request RECONSTRUCTED verbatim from the
+      owner's vault (evergreen system block + built-in explain +
+      10-char subject, new-note): NOT a bug — every stacked layer
+      asked for short (atomic evergreen style × "explain simply" ×
+      one-word subject × selection-only rule; 22 output tokens, no
+      truncation flag, budget 2000) — the model OBEYED the
+      composition; guidance to the owner: richness belongs in the
+      prompt file body (the stack carries it). Two real fixes from
+      the capture: the panel header now shows the RESOLVED ENGINE
+      (was hardcoded "mock provider" since S08 while traces said
+      cloud-model — 28 honest identity) and the new-note brief no
+      longer invites the `# #` doubled-hash title. Tests 492/45;
+      gates green.
 - [ ] S05 Inline live preview: proposal rendered over the target
       range as a CM widget (live-preview WidgetType pattern) with
       accept / edit / reject + compact claim strip + trace badge;

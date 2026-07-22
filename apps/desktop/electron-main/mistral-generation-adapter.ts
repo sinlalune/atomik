@@ -69,7 +69,7 @@ const DESTINATION_BRIEF: Record<string, string> = {
   append:
     'Your whole reply is APPENDED to the note as a new section — return that section as markdown, starting with a heading when one fits.',
   'new-note':
-    'Your whole reply becomes a NEW standalone note — return complete note markdown, starting with a # title.'
+    'Your whole reply becomes a NEW standalone note — return complete note markdown, opening with a level-1 heading line for the title (do not repeat the # character inside the title text).'
 }
 
 const BUILT_IN_IDENTITY =

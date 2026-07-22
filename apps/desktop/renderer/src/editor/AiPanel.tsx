@@ -126,6 +126,15 @@ export function AiPanel({
   // Scoped prompt files (S03): resolved nearest-first for THIS note,
   // reloaded when vault files land — a prompt edit is a note edit.
   const [vaultPrompts, setVaultPrompts] = useState<PromptFile[]>([])
+  // Honest identity in the header (28; the "MOCK PROVIDER" label had
+  // outlived the S02 engine swap — owner capture 2026-07-22).
+  const [engineLabel, setEngineLabel] = useState('…')
+  useEffect(() => {
+    window.atomik.getAiSettings().then(
+      (settings) => setEngineLabel(settings.generationEngine),
+      () => setEngineLabel('mock')
+    )
+  }, [])
   /** The COMPOSED request of the last run — inspectable (26): what
    *  actually traveled to main, layers expanded, stack composed. */
   const [sentRequest, setSentRequest] = useState<{
@@ -484,7 +493,7 @@ export function AiPanel({
   return (
     <section className="ai-panel" aria-label="AI operation panel" style={style}>
       <header className="ai-panel-bar">
-        <span className="ai-panel-title">AI · mock provider</span>
+        <span className="ai-panel-title">AI · {engineLabel}</span>
         <span className="ai-panel-controls">
           <button
             type="button"
