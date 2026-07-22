@@ -40,23 +40,32 @@ function taskLists(md: MarkdownIt): void {
  * Source-true block spacing (S05o, owner: read showed a gap after
  * `### Key Ideas` where the source has NO blank line — fixed CSS
  * margins can never track the author's blank lines). markdown-it
- * records each block's source lines (`token.map`); this rule marks
+ * records each block's start line (`token.map`); this rule marks
  * every top-level block with its ACTUAL preceding blank-line count:
  * 0 → `md-tight` (no gap, like the editor), 1 → the default
  * one-line gap, N → an explicit N-line margin. Read spacing IS the
  * source, byte for byte.
+ *
+ * S05p: the count comes from the SOURCE lines above the block, not
+ * from the previous token's map end — list maps swallow their
+ * trailing blank line ([start, blank+1]), which made every block
+ * after a list read as tight.
  */
 const BLOCK_TOKENS = new Set(['fence', 'hr', 'code_block', 'html_block'])
 
 function sourceGaps(md: MarkdownIt): void {
   md.core.ruler.push('atomik-source-gaps', (state) => {
-    let previousEnd: number | null = null
+    const lines = state.src.split('\n')
+    let seenFirst = false
     for (const token of state.tokens) {
       if (token.level !== 0 || !token.map) continue
       if (!token.type.endsWith('_open') && !BLOCK_TOKENS.has(token.type)) continue
-      if (previousEnd !== null) {
-        const blankLines = token.map[0] - previousEnd
-        if (blankLines <= 0) {
+      if (seenFirst) {
+        let blankLines = 0
+        for (let line = token.map[0] - 1; line >= 0 && lines[line]!.trim() === ''; line -= 1) {
+          blankLines += 1
+        }
+        if (blankLines === 0) {
           token.attrJoin('class', 'md-tight')
         } else if (blankLines > 1) {
           token.attrSet(
@@ -65,7 +74,7 @@ function sourceGaps(md: MarkdownIt): void {
           )
         }
       }
-      previousEnd = token.map[1]
+      seenFirst = true
     }
     return true
   })

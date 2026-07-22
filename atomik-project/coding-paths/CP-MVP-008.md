@@ -717,6 +717,22 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       the owner preferred, now genuinely shared. Read spacing IS the
       source, byte for byte (loose-list interiors recorded as the
       remaining known drift). Tests 514→515/47; gates green.
+      S05p (owner screenshots: read mode collapsed to ZERO gaps
+      everywhere — S05o shipped broken) — DONE 2026-07-22, two
+      defects in S05o itself: (1) the default-gap rule wrapped BOTH
+      halves in :where — specificity (0,1,0) LOST to the (0,1,1)
+      zeroing rules, so margin-top never applied and every block sat
+      tight; the :not(:first-child) half is now bare, (0,2,0), which
+      beats the zero rules while `.md-tight` (equal, later) and the
+      inline style still win. (2) blankLines came from the previous
+      token's map END, but markdown-it list maps swallow their
+      trailing blank line — every block after a list read as tight;
+      the count now comes from the SOURCE lines above each block's
+      start. Verified pixel-level WITHOUT the owner's desktop: app
+      launched headless-ish with --remote-debugging-port, CDP
+      Page.captureScreenshot + DOM probes (exactly one md-tight — the
+      Key Ideas list; one inline 2-gap style; computed h2 margin-top
+      = one --note-block-gap). Tests 515→516/47; gates green.
 - [ ] S06 Chat lateral panel: right pane-chrome column (pane grid
       gains the column; pane state gains a validated chat field,
       migration derives absent as hidden); multi-turn over the

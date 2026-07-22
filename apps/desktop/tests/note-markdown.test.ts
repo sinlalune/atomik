@@ -36,6 +36,19 @@ describe('noteMarkdown — the ONE note renderer (S05g)', () => {
     expect(md.render('# Title\n\nbody')).not.toContain('md-tight')
   })
 
+  it('counts blank lines in the SOURCE, not the previous map end (S05p)', () => {
+    // list maps swallow their trailing blank line — the heading after
+    // this list must keep its one-gap default, not go tight
+    const afterList = md.render('## Ideas\n\n- a\n- b\n\n## Legacy')
+    expect(afterList).not.toContain('<h2 class="md-tight">')
+    // no blank line after the list -> the heading IS tight
+    const tightAfterList = md.render('- a\n- b\n## Legacy')
+    expect(tightAfterList).toContain('<h2 class="md-tight">')
+    // two blank lines after a list -> explicit margin, unswallowed
+    const twoAfterList = md.render('- a\n\n\n## Legacy')
+    expect(twoAfterList).toContain('margin-top: calc(2 * var(--note-block-gap))')
+  })
+
   it('keeps the note config: emphasis, tables, breaks', () => {
     expect(md.render('**b** *i* ~~s~~')).toContain('<strong>b</strong>')
     expect(md.render('a\nb')).toContain('a<br>')

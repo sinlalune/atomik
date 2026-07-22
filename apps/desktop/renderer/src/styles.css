@@ -2391,11 +2391,13 @@ body[data-maximized] .tabstrip {
    speaks in line-height multiples — read spacing IS the editor's
    blank-line spacing; headings drop their fixed extra margins and
    sit on the same grid, scaled by their own font size. */
-/* S05o: SOURCE-TRUE spacing — every block's gap comes from the
-   author's actual blank lines (note-markdown.ts reads the token line
-   map): default one gap above, `.md-tight` when the source has none,
-   an inline style when it has several. :where keeps specificity low
-   so the class and the style can win. */
+/* S05o/S05p: SOURCE-TRUE spacing — every block's gap comes from the
+   author's actual blank lines (note-markdown.ts counts them in the
+   source): default one gap above, `.md-tight` when the source has
+   none, an inline style when it has several. Cascade contract: the
+   zero rules below are (0,1,1); the default-gap rule must BEAT them
+   — :not(:first-child) keeps it at (0,2,0) — while `.md-tight`
+   (also (0,2,0), declared after) and the inline style win over it. */
 .markdown-body p,
 .markdown-body ul,
 .markdown-body ol,
@@ -2406,7 +2408,7 @@ body[data-maximized] .tabstrip {
   margin-block: 0;
 }
 
-.markdown-body > :where(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, table, hr):where(:not(:first-child)) {
+.markdown-body > :where(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, table, hr):not(:first-child) {
   margin-top: var(--note-block-gap);
 }
 
