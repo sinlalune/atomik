@@ -661,6 +661,21 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       as line padding (em-relative to each heading's own size) — the
       air is back AND the modes still match, tunable in one place.
       Tests 514/47; gates green.
+      S05k (owner screenshots: live still airier than read) — DONE
+      2026-07-22: the MECHANISM finally named — READ collapses blank
+      lines into margins (they render as nothing) while LIVE shows
+      every blank line as a real line box; S05j's padding then
+      STACKED on those boxes. Model fixed: ONE token
+      --note-block-gap = the height of one blank editor line
+      (rem-based, heading sizes don't scale it); read margins speak
+      ONLY in that unit (blocks: one gap below; headings: one gap
+      each side, margin collapse absorbing the neighbor's) and live
+      gets NO added padding — the author's blank lines ARE the air,
+      identical in both modes wherever the source has one blank
+      line between blocks (the normal note shape; multiple blank
+      lines drift only live-side — that is markdown, accepted and
+      recorded). S05j reverted live-side. Tests 514/47; gates
+      green; screenshot re-check = owner bench.
 - [ ] S06 Chat lateral panel: right pane-chrome column (pane grid
       gains the column; pane state gains a validated chat field,
       migration derives absent as hidden); multi-turn over the

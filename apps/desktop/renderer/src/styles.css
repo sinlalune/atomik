@@ -32,11 +32,11 @@
   --note-h2-size: 1.25rem;
   --note-h3-size: 1.05rem;
   --note-heading-weight: 650;
-  /* S05j: heading air, SHARED by read (margins) and live (line
-     padding) — em-relative to each heading's own size, so both modes
-     breathe identically. */
-  --note-h-above: 1.1em;
-  --note-h-below: 0.3em;
+  /* S05k: ONE token = the height of one blank editor line (rem-based
+     so heading sizes don't scale it). Read-mode margins speak in this
+     unit, so a rendered gap equals the blank line that produced it —
+     that IS read/edit parity, air included. */
+  --note-block-gap: calc(var(--note-line-height) * var(--note-font-size));
   --note-quote-inset: 1rem;
   --note-quote-border: 3px solid var(--accent);
   --note-code-size: 0.85em;
@@ -1549,18 +1549,6 @@ body[data-maximized] .tabstrip {
   font-weight: var(--note-heading-weight);
 }
 
-/* S05j: heading lines breathe like read headings — same tokens,
-   em-relative to the line's own heading size. */
-.editor-host.live .lp-h1,
-.editor-host.live .lp-h2,
-.editor-host.live .lp-h3,
-.editor-host.live .lp-h4,
-.editor-host.live .lp-h5,
-.editor-host.live .lp-h6 {
-  padding-top: var(--note-h-above);
-  padding-bottom: var(--note-h-below);
-}
-
 .editor-host .lp-strong {
   font-weight: 700;
 }
@@ -2401,7 +2389,7 @@ body[data-maximized] .tabstrip {
 .markdown-body pre,
 .markdown-body table,
 .markdown-body hr {
-  margin-block: 0 calc(var(--note-line-height) * 1em);
+  margin-block: 0 var(--note-block-gap);
 }
 
 .markdown-body li,
@@ -2415,10 +2403,11 @@ body[data-maximized] .tabstrip {
 .markdown-body h4,
 .markdown-body h5,
 .markdown-body h6 {
-  /* S05j (owner: flat headings were worse): shared-token air instead
-     of the S05i zero margins — live mode pads its heading LINES with
-     the same tokens, so the modes still match. */
-  margin-block: var(--note-h-above) var(--note-h-below);
+  /* S05k: read blank lines COLLAPSE into margins while live shows
+     them as real line boxes — so read margins must equal exactly one
+     blank line (collapsing absorbs the neighbor's). No extra padding
+     live-side: the author's blank lines ARE the air, identically. */
+  margin-block: var(--note-block-gap);
   line-height: var(--note-line-height);
 }
 
