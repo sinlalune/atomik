@@ -653,6 +653,14 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       spacing IS the editor's blank-line spacing, on every surface
       that renders notes (read view, widget, tab-sim). Tests
       514/47; gates green; rhythm check = owner bench.
+      S05j (owner: "worse than before, specially after md titles") —
+      DONE 2026-07-22: S05i's zero-margin headings were parity by
+      FLATTENING — wrong direction. New shared tokens
+      --note-h-above (1.1em) / --note-h-below (0.3em): read headings
+      take them as margins, LIVE heading lines take the SAME tokens
+      as line padding (em-relative to each heading's own size) — the
+      air is back AND the modes still match, tunable in one place.
+      Tests 514/47; gates green.
 - [ ] S06 Chat lateral panel: right pane-chrome column (pane grid
       gains the column; pane state gains a validated chat field,
       migration derives absent as hidden); multi-turn over the
