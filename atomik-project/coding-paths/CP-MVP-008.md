@@ -456,6 +456,16 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       content duplicated. COPY FIXED: navigator.clipboard rejection
       no longer swallowed — execCommand fallback + visible
       "copy failed" state. Tests 493→496/45; gates green.
+- [x] S04m (owner directive: "when creating new notes, name of the
+      files should be the selected text") — done 2026-07-22:
+      `newNotePathForSelection` — the selection names the file,
+      sanitized (fs/link-hostile chars dropped, whitespace
+      collapsed, 60-char cap, Windows-safe edges), beside the
+      source note; empty/unusable selection falls back to the old
+      `-ai` default. The path field PREFILLS live when new-note is
+      picked (panel radio + menu handoff) while untouched — the
+      destination stays visible, never a surprise; a customized
+      path always wins. Tests 496→499/45; gates green.
 - [ ] S05 Inline live preview: proposal rendered over the target
       range as a CM widget (live-preview WidgetType pattern) with
       accept / edit / reject + compact claim strip + trace badge;

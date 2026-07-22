@@ -24,7 +24,11 @@ import {
   type DestinationKind,
   type NoteContext
 } from '../../../shared/prompt-composition'
-import { defaultNewNotePath, ensureMdExtension } from './ai-helpers'
+import {
+  defaultNewNotePath,
+  ensureMdExtension,
+  newNotePathForSelection
+} from './ai-helpers'
 import {
   atPromptToken,
   composeSystemStack,
@@ -270,6 +274,20 @@ export function AiPanel({
 
   // Selection-menu handoff (S04): apply each request exactly once —
   // prefill, then run on the NEXT render so state has landed.
+  // Selection-named new notes (owner directive 2026-07-22): while the
+  // path field is UNTOUCHED, it prefills from the live selection —
+  // the destination stays visible, never a surprise.
+  const prefillNewNotePath = useCallback(() => {
+    setNewNotePath((current) => {
+      const untouched =
+        current.trim().length === 0 ||
+        current.trim() === defaultNewNotePath(note.relPath)
+      return untouched
+        ? newNotePathForSelection(note.relPath, getSelection().text)
+        : current
+    })
+  }, [getSelection, note.relPath])
+
   const appliedRequestId = useRef<string | null>(null)
   const [pendingRun, setPendingRun] = useState(false)
   useEffect(() => {
@@ -279,8 +297,9 @@ export function AiPanel({
     setPreset(request.preset)
     setSystemStack(request.stack)
     if (request.destination) setDestination(request.destination)
+    if (request.destination === 'new-note') prefillNewNotePath()
     if (request.autoRun) setPendingRun(true)
-  }, [request])
+  }, [request, prefillNewNotePath])
 
   const md = useMemo(
     () => new MarkdownIt({ html: false, linkify: false, breaks: true }),
@@ -326,9 +345,10 @@ export function AiPanel({
             destination: {
               kind: 'new-note' as const,
               newNotePath: ensureMdExtension(
-                newNotePath.trim().length > 0
+                newNotePath.trim().length > 0 &&
+                  newNotePath.trim() !== defaultNewNotePath(note.relPath)
                   ? newNotePath.trim()
-                  : defaultNewNotePath(note.relPath)
+                  : newNotePathForSelection(note.relPath, raw.text)
               )
             }
           }
@@ -783,7 +803,10 @@ export function AiPanel({
                   type="radio"
                   name="ai-dest"
                   checked={destination === 'new-note'}
-                  onChange={() => setDestination('new-note')}
+                  onChange={() => {
+                    setDestination('new-note')
+                    prefillNewNotePath()
+                  }}
                 />
                 new note
               </label>
