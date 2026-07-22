@@ -1457,7 +1457,11 @@ body[data-maximized] .tabstrip {
   max-width: var(--note-column);
   /* Same centered column as .markdown-body — auto margins absorb the
      scroller's flex free space, so read <-> live still never shifts.
-     Source mode keeps its IDE layout (left-pinned, gutters). */
+     Source mode keeps its IDE layout (left-pinned, gutters).
+     content-box (S05h, owner: "width of editing and read mode are not
+     the same"): read puts --note-pad on the SCROLLER and 46rem on the
+     text; border-box here made the pad eat ~5rem of text width. */
+  box-sizing: content-box;
   margin-inline: auto;
   padding: var(--note-pad);
 }
@@ -3220,6 +3224,14 @@ button svg {
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-size: var(--note-font-size);
   line-height: var(--note-line-height);
+}
+
+/* S05h (owner): the block's TEXT aligns with the note text — the
+   inner markdown-body must fill the frame, never re-center its own
+   narrower column inside it. */
+.cm-inline-ai .markdown-body {
+  max-width: none;
+  margin-inline: 0;
 }
 
 .cm-inline-ai-body {

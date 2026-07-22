@@ -37,6 +37,7 @@ import type { VaultFolder, VaultNoteFile } from '../../../shared/ipc-contract'
 import { resolveRelativePath } from '../dev-docs/markdown'
 import { themeOf, type NoteViewMode, type SaveMode } from '../workspace/model'
 import { useWorkspace } from '../workspace/store'
+import { HistoryNav } from '../HistoryNav'
 import { selectionLinkReplacement } from './ai-helpers'
 import { prepareAiRun, type SentRequest } from './ai-run'
 import { AiNotePreview } from './AiNotePreview'
@@ -143,6 +144,14 @@ export type EditorPaneProps = {
   /** 'auto' (default): debounced saves + flush on leave; 'manual': S07. */
   saveMode?: SaveMode
   onSaveModeToggle?: () => void
+  /** History navigation (S05h: the ‹ › buttons live in EVERY mode's
+   *  bar, not just read) — routed through the guarded open pipeline. */
+  nav?: {
+    backOk: boolean
+    forwardOk: boolean
+    onBack: () => void
+    onForward: () => void
+  }
   /** Shown when the note declares an image resource (dossier or
    *  transcript): the original stays one click away while editing. */
   onOpenSourceImage?: (dossierPath: string) => void
@@ -174,6 +183,7 @@ export function EditorPane({
   onFollowLink,
   saveMode = 'auto',
   onSaveModeToggle,
+  nav,
   onOpenSourceImage,
   onOpenWebUrl
 }: EditorPaneProps): React.JSX.Element {
@@ -881,6 +891,14 @@ export function EditorPane({
   return (
     <div className="editor" data-editor-ready="1">
       <div className="note-bar">
+        {nav && (
+          <HistoryNav
+            backOk={nav.backOk}
+            forwardOk={nav.forwardOk}
+            onBack={nav.onBack}
+            onForward={nav.onForward}
+          />
+        )}
         <span className="note-bar-path" title={note.relPath}>
           {note.relPath}
           {dirty && (

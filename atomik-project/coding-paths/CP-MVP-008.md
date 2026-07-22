@@ -625,6 +625,22 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       (read-only; toggling stays an edit in the editor); prose
       brackets untouched, checked state kept, quoted tasks convert.
       Tests 511→514/47 (note-markdown.test.ts); gates green.
+      S05h (owner bench, three reports) DONE 2026-07-22: (1) the
+      ‹ › history nav joins the EDITOR's note-bar (VaultView AND
+      ProjectView pass their guarded nav into EditorPane — it was
+      read-mode-only); (2) read/edit column parity: live's
+      `.cm-content` was border-box, so --note-pad ate ~5rem of the
+      46rem text column vs read (pad on the scroller) — now
+      content-box, text width identical across modes; (3) new-note
+      preview is a NATIVE note simulation: the tab strip over a
+      regular `.note-scroll` + `.markdown-body` column holding ONE
+      inline-AI framed block — the same visual as append/replace —
+      with trace/claims/copy/edit/accept INSIDE the frame; plus the
+      block-alignment fix everywhere: the widget's inner
+      markdown-body fills the frame (max-width none) instead of
+      re-centering a narrower column, so the AI text lines up with
+      the note text and the outline hugs the same width. Tests
+      514/47; gates green; visual confirmation = owner bench.
 - [ ] S06 Chat lateral panel: right pane-chrome column (pane grid
       gains the column; pane state gains a validated chat field,
       migration derives absent as hidden); multi-turn over the

@@ -177,6 +177,12 @@ export function VaultView({
           <p className="pane-placeholder">select a note to read or edit</p>
         ) : mode !== 'read' ? (
           <EditorPane
+            nav={{
+              backOk: nav.backOk,
+              forwardOk: nav.forwardOk,
+              onBack: nav.back,
+              onForward: nav.forward
+            }}
             key={note.relPath}
             note={note}
             onOpenSourceImage={onOpenSourceImage}
