@@ -93,6 +93,32 @@ describe('buildMessages (operation → chat completions)', () => {
     expect(user).toContain('## Steps')
   })
 
+  it('extra selections render as linked notes — subject stays first (S04o)', () => {
+    const linkedOp = operation()
+    linkedOp.input = [
+      linkedOp.input[0]!,
+      {
+        relPath: 'philosophy/Ethymology.md',
+        kind: 'text',
+        content: 'Etymology traces word origins.',
+        range: { from: 0, to: 30 }
+      }
+    ]
+    const user = buildMessages(linkedOp)[1]!.content
+    expect(user).toContain('## Subject')
+    expect(user).toContain('### Selection 1')
+    expect(user).toContain('## Linked notes — read-only reference material (quotable)')
+    expect(user).toContain('### Linked note 1 — `philosophy/Ethymology.md`')
+    expect(user).toContain('Etymology traces word origins.')
+    expect(user).toContain('Draw on the linked notes')
+    // subject comes before the linked material
+    expect(user.indexOf('## Subject')).toBeLessThan(user.indexOf('## Linked notes'))
+    // and without linked notes, no such section or step
+    const plain = buildMessages(operation())[1]!.content
+    expect(plain).not.toContain('## Linked notes')
+    expect(plain).not.toContain('Draw on the linked notes')
+  })
+
   it('append/replace carry the note context with a landing point (S04l)', () => {
     const appendOp = operation()
     appendOp.noteContext = { kind: 'append', tail: '## Existing section\nOld text.' }

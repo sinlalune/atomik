@@ -33,9 +33,11 @@ import {
   atPromptToken,
   composeSystemStack,
   expandInstruction,
+  extractNoteLinks,
   filterPrompts,
   insertDirectiveAt,
   layerDirectiveFor,
+  linkedNoteCandidates,
   loadPromptsFor,
   reorderStack,
   scopeLabel,
@@ -163,6 +165,9 @@ export function AiPanel({
       /** Full captured text, for the faithful copy (memory only). */
       content: string
     }
+    /** Linked notes the instruction referenced (S04o) — rode as
+     *  extra selections, quotable and checker-verifiable. */
+    linkedNotes: Array<{ relPath: string; content: string }>
     noteContext?: NoteContext
     destination: DestinationKind
   } | null>(null)
@@ -325,6 +330,34 @@ export function AiPanel({
     const prompts = await promptsReady.current
     const text = expandInstruction(instruction, prompts).trim()
     if (text.length === 0) return
+    // S04o: note links in the composed instruction (typed, from the
+    // menu input, or inside prompt files) become LINKED-NOTE
+    // insertions — read via the existing verb, riding as extra
+    // selections so quotes from them earn source-backed labels.
+    const linkedSelections: AiSelection[] = []
+    for (const link of extractNoteLinks(text)) {
+      for (const candidate of linkedNoteCandidates(link.target, note.relPath)) {
+        if (
+          candidate === note.relPath ||
+          linkedSelections.some((existing) => existing.relPath === candidate)
+        ) {
+          break
+        }
+        try {
+          const file = await window.atomik.readNote(candidate)
+          const content = file.content.slice(0, 6000)
+          linkedSelections.push({
+            relPath: candidate,
+            kind: 'text',
+            content,
+            range: { from: 0, to: content.length }
+          })
+          break
+        } catch {
+          /* try the next candidate path */
+        }
+      }
+    }
     const raw = getSelection()
     const doc = getDoc()
     // no selection -> the whole note is the selection (05: scope shrinks
@@ -391,13 +424,17 @@ export function AiPanel({
             : `${selection.content.slice(0, 200)}…`,
         content: selection.content
       },
+      linkedNotes: linkedSelections.map((linked) => ({
+        relPath: linked.relPath,
+        content: linked.content
+      })),
       ...(noteContext ? { noteContext } : {}),
       destination: target.destination.kind
     })
     try {
       const result = await window.atomik.runAiOperation({
         id: operationId,
-        input: [selection],
+        input: [selection, ...linkedSelections],
         instruction: text,
         ...(preset ? { preset } : {}),
         ...(systemPrompt ? { systemPrompt } : {}),
@@ -991,7 +1028,8 @@ export function AiPanel({
                         {
                           content: sentRequest.selection.content,
                           relPath: sentRequest.selection.relPath
-                        }
+                        },
+                        ...sentRequest.linkedNotes
                       ],
                       sentRequest.noteContext
                     )
@@ -1060,7 +1098,8 @@ export function AiPanel({
                       {
                         content: sentRequest.selection.content,
                         relPath: sentRequest.selection.relPath
-                      }
+                      },
+                      ...sentRequest.linkedNotes
                     ],
                     sentRequest.noteContext
                   )}

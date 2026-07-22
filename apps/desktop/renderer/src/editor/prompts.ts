@@ -388,6 +388,68 @@ export function visibleMenuPrompts(
   return shown
 }
 
+/**
+ * Note links inside a composed instruction (S04o, owner directive:
+ * "use note link in prompts as an insertion of it") — markdown links
+ * targeting `.md` files, e.g. `[Ethymology](<../philosophy/
+ * Ethymology.md>)`, become LINKED-NOTE insertions: the linked note's
+ * content rides the request as reference material the model can
+ * quote (and the checker can verify). Deduped by target, capped.
+ */
+export const MAX_LINKED_NOTES = 4
+
+const NOTE_LINK = /\[([^\]]+)\]\(<?([^)>#]+?\.md)(?:#[^)>]*)?>?\)/gi
+
+export function extractNoteLinks(
+  text: string
+): Array<{ label: string; target: string }> {
+  const seen = new Set<string>()
+  const links: Array<{ label: string; target: string }> = []
+  for (const match of text.matchAll(NOTE_LINK)) {
+    const target = match[2]!.trim()
+    if (seen.has(target)) continue
+    seen.add(target)
+    links.push({ label: match[1]!.trim(), target })
+    if (links.length >= MAX_LINKED_NOTES) break
+  }
+  return links
+}
+
+/**
+ * Candidate vault-relative paths for a link target, tried in order —
+ * a link may have been written relative to the CURRENT note or inside
+ * a prompt file (its own folder), so: (1) resolved against the note's
+ * folder, (2) the target with leading ./ and ../ stripped, read as
+ * vault-root-relative, (3) the raw target. First readable wins.
+ */
+export function linkedNoteCandidates(
+  target: string,
+  noteRelPath: string
+): string[] {
+  const candidates: string[] = []
+  const noteDir = noteRelPath.split('/').slice(0, -1)
+  const parts = target.split('/')
+  const stack = [...noteDir]
+  let resolvable = true
+  for (const part of parts) {
+    if (part === '.' || part === '') continue
+    if (part === '..') {
+      if (stack.length === 0) {
+        resolvable = false
+        break
+      }
+      stack.pop()
+    } else {
+      stack.push(part)
+    }
+  }
+  if (resolvable) candidates.push(stack.join('/'))
+  const rootRelative = target.replace(/^(\.\.?\/)+/, '')
+  if (!candidates.includes(rootRelative)) candidates.push(rootRelative)
+  if (!candidates.includes(target)) candidates.push(target)
+  return candidates
+}
+
 /** Case-insensitive filter over name/title for the @ menu. */
 export function filterPrompts(
   prompts: PromptFile[],

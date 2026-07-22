@@ -13,7 +13,9 @@ import {
   reorderStack,
   stackFileContent,
   composeMenuInstruction,
+  extractNoteLinks,
   groupPromptsByScope,
+  linkedNoteCandidates,
   toggleStackBlock,
   visibleMenuPrompts,
   collectPromptRefs,
@@ -354,6 +356,42 @@ describe('system stack (S03f — ordered composable blocks)', () => {
     expect(expandPromptLayers(parsed!.body, byName)).toBe(
       'Be playful.\nStay terse.\nAim for clarity.'
     )
+  })
+})
+
+describe('note links as insertions (S04o)', () => {
+  it('extracts .md links (angle-bracketed or plain, anchors stripped), deduped, capped', () => {
+    const text = [
+      'Add a [Ethymology](<../philosophy/Ethymology.md>) block',
+      'plus [same](<../philosophy/Ethymology.md>) again,',
+      'a [plain](notes/plain.md) one, an anchored [a](notes/a.md#sec),',
+      'a [web link](https://example.com) and an [image](pic.png).'
+    ].join('\n')
+    expect(extractNoteLinks(text)).toEqual([
+      { label: 'Ethymology', target: '../philosophy/Ethymology.md' },
+      { label: 'plain', target: 'notes/plain.md' },
+      { label: 'a', target: 'notes/a.md' }
+    ])
+    const many = Array.from(
+      { length: 6 },
+      (_, index) => `[n${index}](notes/n${index}.md)`
+    ).join(' ')
+    expect(extractNoteLinks(many)).toHaveLength(4)
+  })
+
+  it('resolves targets against the note folder, then vault root, then raw', () => {
+    expect(
+      linkedNoteCandidates('../philosophy/Ethymology.md', 'philosophy/philosophy.md')
+    ).toEqual(['philosophy/Ethymology.md', '../philosophy/Ethymology.md'])
+    expect(linkedNoteCandidates('sub/note.md', 'a/base.md')).toEqual([
+      'a/sub/note.md',
+      'sub/note.md'
+    ])
+    // over-escaping the root: no folder-resolved candidate survives
+    expect(linkedNoteCandidates('../../x.md', 'a/base.md')).toEqual([
+      'x.md',
+      '../../x.md'
+    ])
   })
 })
 

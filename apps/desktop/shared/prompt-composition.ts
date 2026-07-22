@@ -21,7 +21,7 @@ export const BUILT_IN_IDENTITY =
 
 export const GROUNDING_RULES: readonly string[] = [
   'Work ONLY from the instruction, the subject selections, and the note context provided in this request.',
-  'The selected text IS the subject of the request — answer about it. File paths are provenance only; never infer the topic from a path or filename.',
+  'The subject selection IS the subject of the request — answer about it. Linked notes are supporting reference material, NOT the subject. File paths are provenance only; never infer the topic from a path or filename.',
   "Any headings or titles inside the instruction are STYLE/BEHAVIOR guidance only — the note's topic and title come from the subject selection, never from the instruction text.",
   'When you state something the selections or note context support, quote the supporting passage EXACTLY, character for character, so it can be verified mechanically.',
   'Quote ONLY text that appears in the subject selections or the note context. NEVER quote your own sentences back as if they were sources; when nothing supports a statement, state it plainly without any quote block.',
@@ -139,19 +139,29 @@ export function composeUserMessage(
   selections: PromptSelection[],
   noteContext?: NoteContext
 ): string {
+  // Convention (S04o): the FIRST selection is the subject; any
+  // further selections are LINKED NOTES the instruction referenced —
+  // quotable reference material the checker can verify.
+  const [subject, ...linked] = selections
   const quoted = instruction
     .split('\n')
     .map((line) => (line.trim().length > 0 ? `> ${line}` : '>'))
     .join('\n')
+  let step = 2
   const steps = [
     '1. Identify the subject from the Subject section — it alone sets the topic.',
-    '2. Apply the style and behavior from the quoted instruction.',
+    `${(step += 1) - 1}. Apply the style and behavior from the quoted instruction.`,
+    ...(linked.length > 0
+      ? [
+          `${(step += 1) - 1}. Draw on the linked notes where the instruction refers to them, quoting them exactly when used.`
+        ]
+      : []),
     ...(noteContext
       ? [
-          '3. Check the note context: integrate with the existing structure and never duplicate it.',
-          '4. Write the output following the Output rules — nothing else.'
+          `${(step += 1) - 1}. Check the note context: integrate with the existing structure and never duplicate it.`
         ]
-      : ['3. Write the output following the Output rules — nothing else.'])
+      : []),
+    `${step}. Write the output following the Output rules — nothing else.`
   ]
   return [
     '# Request',
@@ -162,10 +172,19 @@ export function composeUserMessage(
     '',
     '## Subject',
     '',
-    ...selections.flatMap((selection, index) => [
-      ...selectionSection(selection, index),
-      ''
-    ]),
+    ...(subject ? [...selectionSection(subject, 0), ''] : []),
+    ...(linked.length > 0
+      ? [
+          '## Linked notes — read-only reference material (quotable)',
+          '',
+          ...linked.flatMap((note, index) => [
+            `### Linked note ${index + 1} — \`${note.relPath}\``,
+            '',
+            ...fenced('markdown', note.content),
+            ''
+          ])
+        ]
+      : []),
     ...(noteContext ? [...noteContextSection(noteContext), ''] : []),
     '## Steps',
     '',

@@ -481,6 +481,25 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       quote blocks. Option recorded (not implemented): Mistral's
       random_seed could make app runs repeatable if the owner wants
       it at the bench. Tests 499/45; gates green.
+- [x] S04o (owner: "use note link in prompts as an insertion of it"
+      + mid-turn "same in custom input field on contextual menu") —
+      done 2026-07-22: markdown `.md` links in the COMPOSED
+      instruction (typed in the panel, typed in the menu's custom
+      input — one run() path covers both — or living inside prompt
+      files) become LINKED-NOTE insertions: `extractNoteLinks`
+      (angle-bracketed or plain, anchors stripped, deduped, cap 4) +
+      `linkedNoteCandidates` (resolve vs the note's folder → vault
+      root → raw; first readable wins — links written in prompt
+      files resolve too); read via the EXISTING readNote verb,
+      capped 6k chars each, riding as EXTRA SELECTIONS (input[0]
+      stays the subject) — so quotes from a linked note earn
+      source-backed with evidence anchored to that note, zero new
+      truth machinery. Template: `## Linked notes — read-only
+      reference material (quotable)` + a dedicated step; grounding
+      rule amended (linked notes are reference, NOT the subject).
+      Inspector/copy carry them. LIVE BENCH 2/2: the model added
+      the block using the linked note's exact text. Tests
+      499→502/45; gates green.
 - [ ] S05 Inline live preview: proposal rendered over the target
       range as a CM widget (live-preview WidgetType pattern) with
       accept / edit / reject + compact claim strip + trace badge;
