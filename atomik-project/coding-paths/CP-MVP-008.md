@@ -689,6 +689,19 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       token as a hanging indent (padding-left + negative
       text-indent, children reset) — one bullet column in both
       modes, tuned in one place. Tests 514/47; gates green.
+      S05n (owner: "lists still not the same, ## ### titles
+      neither") — DONE 2026-07-22, three concrete defects: (1) my
+      S05m hanging indent MISALIGNED the first line (negative
+      text-indent pulled it to column 0 while wraps sat at 1.6em) —
+      replaced by the GUTTER model: the bullet widget is
+      inline-block, its own width, pulled left into the indent; text
+      starts at the same column on every line, read-identical. (2)
+      read h1 wears border-bottom + 0.3rem padding that live h1
+      lines never got — live lp-h1 now wears the same. (3) a stale
+      `.markdown-body h2 { margin-top: 2rem }` was still in the read
+      rules (masked by cascade order, a specificity accident away
+      from breaking the grid) — removed; the token grid owns heading
+      spacing. Tests 514/47; gates green; owner re-check.
 - [ ] S06 Chat lateral panel: right pane-chrome column (pane grid
       gains the column; pane state gains a validated chat field,
       migration derives absent as hidden); multi-turn over the

@@ -1540,6 +1540,13 @@ body[data-maximized] .tabstrip {
   letter-spacing: -0.01em;
 }
 
+/* S05n: read's h1 wears a border + 0.3rem padding below — live h1
+   LINES wear the same, or titles never measure equal. */
+.editor-host.live .lp-h1 {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.3rem;
+}
+
 .editor-host .lp-h2 {
   font-size: var(--note-h2-size);
   font-weight: var(--note-heading-weight);
@@ -2374,7 +2381,6 @@ body[data-maximized] .tabstrip {
 .markdown-body h2 {
   font-size: var(--note-h2-size);
   font-weight: var(--note-heading-weight);
-  margin-top: 2rem;
 }
 
 .markdown-body h3 {
@@ -2409,16 +2415,17 @@ body[data-maximized] .tabstrip {
   padding-inline-start: var(--note-list-indent);
 }
 
-/* S05m: live list lines hang-indent to the same column as read —
-   wrapped text aligns under the text, the bullet sits in the gutter
-   the indent creates. */
+/* S05n: live list lines indent to the read column; the bullet widget
+   occupies the GUTTER (inline-block pulled left by its own width), so
+   first line and wraps start at the same column — read-identical. */
 .editor-host.live .lp-li {
   padding-left: var(--note-list-indent);
-  text-indent: calc(-1 * var(--note-list-indent));
 }
 
-.editor-host.live .lp-li > * {
-  text-indent: 0;
+.editor-host.live .lp-li .lp-bullet {
+  display: inline-block;
+  width: var(--note-list-indent);
+  margin-left: calc(-1 * var(--note-list-indent));
 }
 
 .markdown-body h1,
