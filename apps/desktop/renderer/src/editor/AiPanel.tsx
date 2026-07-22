@@ -43,6 +43,9 @@ export type AiPanelRequest = {
   instruction: string
   preset?: string
   stack: string[]
+  /** The menu's destination choice (S04e); the panel default holds
+   *  when absent. */
+  destination?: AiDestination['kind']
   autoRun?: boolean
 }
 
@@ -255,6 +258,7 @@ export function AiPanel({
     setInstruction(request.instruction)
     setPreset(request.preset)
     setSystemStack(request.stack)
+    if (request.destination) setDestination(request.destination)
     if (request.autoRun) setPendingRun(true)
   }, [request])
 

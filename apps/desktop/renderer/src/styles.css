@@ -3079,7 +3079,8 @@ button svg {
 
 /* S04: selection AI menu — TreeMenu skin + scope groups + pill row */
 .ai-selection-menu {
-  min-width: 220px;
+  width: 330px;
+  box-sizing: border-box;
 }
 
 .ai-menu-scope {
@@ -3127,9 +3128,10 @@ button svg {
   border: 1px solid var(--border);
   border-radius: 5px;
   padding: 0.3rem 0.45rem;
-  width: 300px;
+  width: 100%;
   box-sizing: border-box;
   resize: vertical;
+  display: block;
 }
 
 .ai-menu-custom textarea:focus {
@@ -3146,9 +3148,10 @@ button svg {
   border: 1px solid var(--border);
   border-radius: 5px;
   padding: 0.2rem 0.45rem;
-  margin: 0.25rem 0.25rem 0;
-  width: 300px;
+  margin: 0.25rem;
+  width: calc(100% - 0.5rem);
   box-sizing: border-box;
+  display: block;
 }
 
 .ai-menu-search:focus {

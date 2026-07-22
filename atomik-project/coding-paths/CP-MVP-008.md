@@ -359,6 +359,15 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       before provenance, no path in the header). The inspector now
       shows the captured selection TEXT (200-char excerpt) beside
       its bounds. Tests 491→492/45; gates green.
+- [x] S04e (owner capture: "input field is off and also we cant
+      chose the way it will integrate") — done 2026-07-22: the menu
+      gets a fixed width (330px) with full-width search/input
+      (box-sizing; the textarea no longer overflows the popup), and
+      a DESTINATION section — replace / append / new note radio
+      pills (replace disabled without a selection, default append) —
+      traveling through AiMenuRequest → AiPanelRequest to the panel
+      BEFORE the auto-run fires. Tests 492/45 unchanged (UI wiring);
+      gates green.
 - [ ] S05 Inline live preview: proposal rendered over the target
       range as a CM widget (live-preview WidgetType pattern) with
       accept / edit / reject + compact claim strip + trace badge;

@@ -26,6 +26,9 @@ export type AiMenuRequest = {
   instruction: string
   preset?: string
   stack: string[]
+  /** How the proposal integrates (owner, S04e): replace the
+   *  selection, append to the note, or a new note. */
+  destination: 'replace-selection' | 'append' | 'new-note'
 }
 
 /** Search appears when the vault offers more labels than this. */
@@ -57,8 +60,10 @@ export function AiSelectionMenu({
   const [messageOrder, setMessageOrder] = useState<string[]>([])
   const [systemOrder, setSystemOrder] = useState<string[]>([])
   const [input, setInput] = useState('')
+  const [destination, setDestination] = useState<AiMenuRequest['destination']>('append')
   const panelRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const hasSelection = selectionText.trim().length > 0
 
   useEffect(() => {
     loadPromptsFor(notePath, window.atomik).then(setPrompts, () => setPrompts([]))
@@ -106,7 +111,8 @@ export function AiSelectionMenu({
               : `file:${prompts.find((prompt) => prompt.relPath === single)?.name ?? single}`
           }
         : {}),
-      stack: systemOrder
+      stack: systemOrder,
+      destination
     })
   }
 
@@ -226,6 +232,35 @@ export function AiSelectionMenu({
                 spec.instruction
               )
             )}
+          </div>
+        </div>
+        <div className="ai-menu-group">
+          <div className="ai-menu-scope">destination</div>
+          <div className="ai-menu-pills" role="radiogroup" aria-label="Destination">
+            {(
+              [
+                { kind: 'replace-selection', label: 'replace' },
+                { kind: 'append', label: 'append' },
+                { kind: 'new-note', label: 'new note' }
+              ] as const
+            ).map((option) => (
+              <button
+                key={option.kind}
+                type="button"
+                role="radio"
+                aria-checked={destination === option.kind}
+                className={destination === option.kind ? 'active' : ''}
+                disabled={option.kind === 'replace-selection' && !hasSelection}
+                title={
+                  option.kind === 'replace-selection' && !hasSelection
+                    ? 'Needs a selection'
+                    : undefined
+                }
+                onClick={() => setDestination(option.kind)}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
         </div>
         <div className="ai-menu-custom">

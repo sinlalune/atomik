@@ -508,6 +508,8 @@ export function EditorPane({
    *  right (the conversational surface until S06's lateral column). */
   const runFromMenu = useCallback((menuRequest: AiMenuRequest) => {
     setAiMenu(null)
+    // destination included (S04e): the menu's replace/append/new-note
+    // choice reaches the panel before the auto-run fires
     setAiRequest({ id: crypto.randomUUID(), ...menuRequest, autoRun: true })
     setShowAi(true)
   }, [])
