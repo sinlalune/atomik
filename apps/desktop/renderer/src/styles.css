@@ -2331,6 +2331,18 @@ body[data-maximized] .tabstrip {
   font-weight: 700;
 }
 
+/* S05g: task lists (hand-rolled rule in note-markdown.ts) */
+.markdown-body .task-item {
+  list-style: none;
+  margin-left: -1.2em;
+}
+
+.markdown-body .task-checkbox {
+  accent-color: var(--accent);
+  margin-right: 0.35em;
+  vertical-align: -0.1em;
+}
+
 .markdown-body em {
   font-style: italic;
 }

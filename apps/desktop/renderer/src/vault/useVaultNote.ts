@@ -1,4 +1,4 @@
-import MarkdownIt from 'markdown-it'
+import { noteMarkdown } from '../editor/note-markdown'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { VaultNoteFile } from '../../../shared/ipc-contract'
 import { resolveRelativePath, stripFrontmatter } from '../dev-docs/markdown'
@@ -46,7 +46,7 @@ export function useVaultNote(
   // CommonMark: the corpus is hard-wrapped for editing comfort and soft
   // breaks there must keep joining into paragraphs.
   const md = useMemo(
-    () => new MarkdownIt({ html: false, linkify: false, breaks: true }),
+    () => noteMarkdown(),
     []
   )
 

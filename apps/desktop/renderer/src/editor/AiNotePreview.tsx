@@ -1,4 +1,3 @@
-import MarkdownIt from 'markdown-it'
 import { useMemo, useState } from 'react'
 import type { ClaimRecord, TraceSummary } from '../../../shared/ipc-contract'
 import {
@@ -8,6 +7,7 @@ import {
 } from '../../../shared/prompt-composition'
 import type { SentRequest } from './ai-run'
 import { copyText } from './clipboard'
+import { noteMarkdown } from './note-markdown'
 
 /**
  * New-note preview as a TAB SIMULATION (S05c, owner directive: "the
@@ -43,7 +43,7 @@ export function AiNotePreview({
   const [editing, setEditing] = useState(false)
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle')
   const md = useMemo(
-    () => new MarkdownIt({ html: false, linkify: false, breaks: true }),
+    () => noteMarkdown(),
     []
   )
   const text = edited ?? proposal

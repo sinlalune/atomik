@@ -1,4 +1,3 @@
-import MarkdownIt from 'markdown-it'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   AiDestination,
@@ -28,6 +27,7 @@ import {
   selectionLinkReplacement
 } from './ai-helpers'
 import { prepareAiRun, type SentRequest } from './ai-run'
+import { noteMarkdown } from './note-markdown'
 import { copyText } from './clipboard'
 import {
   atPromptToken,
@@ -283,7 +283,7 @@ export function AiPanel({
   }, [request, prefillNewNotePath])
 
   const md = useMemo(
-    () => new MarkdownIt({ html: false, linkify: false, breaks: true }),
+    () => noteMarkdown(),
     []
   )
 

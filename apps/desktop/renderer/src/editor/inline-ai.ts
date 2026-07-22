@@ -1,4 +1,3 @@
-import MarkdownIt from 'markdown-it'
 import { StateEffect, StateField, type Extension } from '@codemirror/state'
 import {
   Decoration,
@@ -15,6 +14,7 @@ import {
 } from '../../../shared/prompt-composition'
 import type { SentRequest } from './ai-run'
 import { copyText } from './clipboard'
+import { noteMarkdown } from './note-markdown'
 
 /**
  * The inline AI preview (CP-MVP-008 S05b) — a quick request's proposal
@@ -213,11 +213,7 @@ class InlineAiWidget extends WidgetType {
       } else {
         const rendered = document.createElement('div')
         rendered.className = 'markdown-body cm-inline-ai-rendered'
-        rendered.innerHTML = new MarkdownIt({
-          html: false,
-          linkify: false,
-          breaks: true
-        }).render(editedValue)
+        rendered.innerHTML = noteMarkdown().render(editedValue)
         body.appendChild(rendered)
       }
     }

@@ -614,6 +614,17 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       explicitly so NO ancestor chain (CM scroller, widget frames,
       theme spans) can flatten note formatting on any AI surface.
       Tests 511/46; gates green; visual confirmation = owner bench.
+      S05g (owner: "task list doesnt [render] anywhere") DONE
+      2026-07-22: confirmed — no HTML surface rendered `- [ ]`.
+      NEW `note-markdown.ts`: the ONE note renderer — every
+      HTML-rendering surface (read view, AI panel blocks, inline
+      widget, tab simulation) now builds its MarkdownIt from this
+      factory, so rendering conventions cannot drift per surface;
+      it carries a HAND-ROLLED GFM task-list rule (15: zero deps) —
+      `- [ ]`/`- [x]` render as disabled accent checkboxes
+      (read-only; toggling stays an edit in the editor); prose
+      brackets untouched, checked state kept, quoted tasks convert.
+      Tests 511→514/47 (note-markdown.test.ts); gates green.
 - [ ] S06 Chat lateral panel: right pane-chrome column (pane grid
       gains the column; pane state gains a validated chat field,
       migration derives absent as hidden); multi-turn over the
