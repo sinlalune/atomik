@@ -112,7 +112,17 @@ describe('live preview decorations (MVP-001: seamless editing)', () => {
   it('replaces list dashes with bullets and marks quote lines', () => {
     const doc = '- item one\n- item two\n\n> quoted\n\nelsewhere\n'
     const decos = decorate(doc, doc.indexOf('elsewhere'))
-    expect(decos.filter((deco) => deco.kind === 'bullet')).toHaveLength(2)
+    const bullets = decos.filter((deco) => deco.kind === 'bullet')
+    expect(bullets).toHaveLength(2)
+    // S05q: the replaced range swallows the marker's following space —
+    // otherwise it renders as a leading space on the first line,
+    // offsetting it from the wraps (read starts text at the padding
+    // edge, no space).
+    expect(bullets[0]).toMatchObject({ from: 0, to: 2 })
+    expect(bullets[1]).toMatchObject({
+      from: doc.indexOf('- item two'),
+      to: doc.indexOf('- item two') + 2
+    })
     expect(
       decos.some((deco) => deco.kind === 'line' && deco.cls === 'lp-quote')
     ).toBe(true)

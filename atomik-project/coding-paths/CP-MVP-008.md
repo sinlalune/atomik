@@ -733,6 +733,17 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       Page.captureScreenshot + DOM probes (exactly one md-tight — the
       Key Ideas list; one inline 2-gap style; computed h2 margin-top
       = one --note-block-gap). Tests 515→516/47; gates green.
+      S05q (owner screenshots: "slight offset after bullet point on
+      editing mode") — DONE 2026-07-22: the bullet decoration
+      replaced ONLY the dash; the marker's following space stayed as
+      text after the widget, pushing the FIRST line one space right
+      of its wraps (read has no such space — text starts at the
+      padding edge). The replaced range now swallows that single
+      space (guarded: only when the next char IS a space). CDP
+      verification: bullet widget sits exactly one --note-list-indent
+      (24.32px) left of the pad edge; screenshot shows first line and
+      wraps on one column. Tests 516/47 (bullet ranges pinned
+      dash+space); gates green.
 - [ ] S06 Chat lateral panel: right pane-chrome column (pane grid
       gains the column; pane state gains a validated chat field,
       migration derives absent as hidden); multi-turn over the

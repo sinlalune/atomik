@@ -538,7 +538,16 @@ export function computeLivePreviewDecorations(
           }
           const text = state.doc.sliceString(node.from, node.to)
           if (/^[-*+]$/.test(text)) {
-            decorations.push(bullet.range(node.from, node.to))
+            // S05q (owner): the marker's following space stayed as
+            // TEXT after the bullet widget, offsetting the first
+            // line one space right of its wraps (read has no such
+            // space — text starts at the padding edge). Swallow it
+            // into the replaced range.
+            const markEnd =
+              state.doc.sliceString(node.to, node.to + 1) === ' '
+                ? node.to + 1
+                : node.to
+            decorations.push(bullet.range(node.from, markEnd))
           }
           // S05m: the ITEM LINE gets a class so live can hang-indent
           // like the read view (wrapped text aligns under the text,
