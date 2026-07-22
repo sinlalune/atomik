@@ -641,6 +641,18 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       re-centering a narrower column, so the AI text lines up with
       the note text and the outline hugs the same width. Tests
       514/47; gates green; visual confirmation = owner bench.
+      S05i (owner: "line height space in read and edit mode are
+      different") DONE 2026-07-22: base line-height already matched
+      (1.6 both modes) — the delta was BLOCK MARGINS: the read view
+      stacked browser defaults (p 1em, h2 2rem top…) on top of the
+      grid while the editor's rhythm is pure line arithmetic (blank
+      line = one line box). markdown-body blocks (p/ul/ol/quote/
+      pre/table/hr) now speak line-height multiples
+      (margin-block 0 → 1.6em), list items 0, headings drop fixed
+      margins and take line-height 1.6 at their own size — read
+      spacing IS the editor's blank-line spacing, on every surface
+      that renders notes (read view, widget, tab-sim). Tests
+      514/47; gates green; rhythm check = owner bench.
 - [ ] S06 Chat lateral panel: right pane-chrome column (pane grid
       gains the column; pane state gains a validated chat field,
       migration derives absent as hidden); multi-turn over the
