@@ -21,6 +21,21 @@ describe('noteMarkdown — the ONE note renderer (S05g)', () => {
     expect(html).toContain('checked> quoted task')
   })
 
+  it('spaces blocks from the SOURCE blank lines (S05o)', () => {
+    // no blank line after the heading -> the list is tight
+    const tight = md.render('### Key Ideas\n- **a**: b')
+    expect(tight).toContain('<ul class="md-tight">')
+    // one blank line -> default gap (no class, no style)
+    const one = md.render('### Key Ideas\n\n- **a**: b')
+    expect(one).not.toContain('md-tight')
+    expect(one).not.toContain('margin-top')
+    // two blank lines -> explicit two-gap margin
+    const two = md.render('para\n\n\nnext')
+    expect(two).toContain('margin-top: calc(2 * var(--note-block-gap))')
+    // first block never gets a marker
+    expect(md.render('# Title\n\nbody')).not.toContain('md-tight')
+  })
+
   it('keeps the note config: emphasis, tables, breaks', () => {
     expect(md.render('**b** *i* ~~s~~')).toContain('<strong>b</strong>')
     expect(md.render('a\nb')).toContain('a<br>')

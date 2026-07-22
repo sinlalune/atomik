@@ -25,7 +25,7 @@
      a value changed here moves both modes together, so read <-> live
      stays a seamless transition by construction. */
   --note-column: 46rem;
-  --note-pad: 1.5rem 2.5rem 4rem;
+  --note-pad: 3rem 2.5rem 4rem; /* S05o: the opening both modes share */
   --note-font-size: 0.95rem;
   --note-line-height: 1.6;
   --note-h1-size: 1.7rem;
@@ -1472,10 +1472,6 @@ body[data-maximized] .tabstrip {
   box-sizing: content-box;
   margin-inline: auto;
   padding: var(--note-pad);
-  /* S05l (owner): read shows pad + the first heading's block-gap
-     margin on top; live's first line sat one gap higher. Match the
-     BIGGER (read) opening. */
-  padding-top: calc(1.5rem + var(--note-block-gap));
 }
 
 /* ...and the READING surface: live sits on the CONTENT surface like
@@ -2395,6 +2391,11 @@ body[data-maximized] .tabstrip {
    speaks in line-height multiples — read spacing IS the editor's
    blank-line spacing; headings drop their fixed extra margins and
    sit on the same grid, scaled by their own font size. */
+/* S05o: SOURCE-TRUE spacing — every block's gap comes from the
+   author's actual blank lines (note-markdown.ts reads the token line
+   map): default one gap above, `.md-tight` when the source has none,
+   an inline style when it has several. :where keeps specificity low
+   so the class and the style can win. */
 .markdown-body p,
 .markdown-body ul,
 .markdown-body ol,
@@ -2402,7 +2403,15 @@ body[data-maximized] .tabstrip {
 .markdown-body pre,
 .markdown-body table,
 .markdown-body hr {
-  margin-block: 0 var(--note-block-gap);
+  margin-block: 0;
+}
+
+.markdown-body > :where(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, table, hr):where(:not(:first-child)) {
+  margin-top: var(--note-block-gap);
+}
+
+.markdown-body > .md-tight {
+  margin-top: 0;
 }
 
 .markdown-body li,
@@ -2434,11 +2443,9 @@ body[data-maximized] .tabstrip {
 .markdown-body h4,
 .markdown-body h5,
 .markdown-body h6 {
-  /* S05k: read blank lines COLLAPSE into margins while live shows
-     them as real line boxes — so read margins must equal exactly one
-     blank line (collapsing absorbs the neighbor's). No extra padding
-     live-side: the author's blank lines ARE the air, identically. */
-  margin-block: var(--note-block-gap);
+  /* S05o: margins zeroed — the source-gap rule spaces headings from
+     the author's actual blank lines, like every block. */
+  margin-block: 0;
   line-height: var(--note-line-height);
 }
 

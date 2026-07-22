@@ -702,6 +702,21 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       rules (masked by cascade order, a specificity accident away
       from breaking the grid) — removed; the token grid owns heading
       spacing. Tests 514/47; gates green; owner re-check.
+      S05o (owner screenshots: gap after `### Key Ideas` in read,
+      none in edit — the source has NO blank line there) — DONE
+      2026-07-22: the whole fixed-margin approach was structurally
+      unable to track the author's blank lines; REPLACED with
+      SOURCE-TRUE spacing — note-markdown.ts reads markdown-it's
+      token line map and marks every top-level block with its ACTUAL
+      preceding blank-line count: 0 → `md-tight` (no gap, exactly
+      like the editor), 1 → the default one-gap margin, N → an
+      inline calc(N × --note-block-gap). CSS: block/heading margins
+      zeroed; one low-specificity :where rule gives the default gap;
+      the class and the style win over it. The S05l live-only
+      padding reverted; --note-pad top becomes 3rem — the opening
+      the owner preferred, now genuinely shared. Read spacing IS the
+      source, byte for byte (loose-list interiors recorded as the
+      remaining known drift). Tests 514→515/47; gates green.
 - [ ] S06 Chat lateral panel: right pane-chrome column (pane grid
       gains the column; pane state gains a validated chat field,
       migration derives absent as hidden); multi-turn over the
