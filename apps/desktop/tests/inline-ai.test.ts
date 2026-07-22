@@ -41,6 +41,7 @@ const review = (overrides: Partial<InlineAiState> = {}): InlineAiState => ({
   trace: null,
   selectedText: 'The subject phrase sits here.',
   bundleId: 'b1',
+  sent: null,
   version: 1,
   ...overrides
 })

@@ -38,7 +38,8 @@ import { resolveRelativePath } from '../dev-docs/markdown'
 import { themeOf, type NoteViewMode, type SaveMode } from '../workspace/model'
 import { useWorkspace } from '../workspace/store'
 import { selectionLinkReplacement } from './ai-helpers'
-import { prepareAiRun } from './ai-run'
+import { prepareAiRun, type SentRequest } from './ai-run'
+import { AiNotePreview } from './AiNotePreview'
 import { AiPanel, type BufferChange } from './AiPanel'
 import { AiSelectionMenu, type AiMenuRequest } from './AiSelectionMenu'
 import {
@@ -192,6 +193,29 @@ export function EditorPane({
   // S04: the AI entry point is the SELECTION — right-click/Shift+F10
   // opens the menu at the click location; the note-bar stays editing-only.
   const [aiMenu, setAiMenu] = useState<{ x: number; y: number } | null>(null)
+  // S05c: new-note runs preview as a SIMULATED TAB (owner directive)
+  // instead of an in-note widget; nothing exists until "Create note".
+  const [notePreview, setNotePreview] = useState<{
+    phase: 'running' | 'review' | 'error'
+    path: string
+    proposal: string
+    claims: import('../../../shared/ipc-contract').ClaimRecord[]
+    trace: import('../../../shared/ipc-contract').TraceSummary | null
+    sent: SentRequest | null
+    error?: string
+  } | null>(null)
+  const notePreviewRef = useRef<typeof notePreview>(null)
+  useEffect(() => {
+    notePreviewRef.current = notePreview
+  }, [notePreview])
+  const previewMetaRef = useRef<{
+    operationId: string | null
+    bundleId: string | null
+    filePath: string | null
+    range: { from: number; to: number }
+    selectedText: string
+    docAtRun: string
+  } | null>(null)
   const [aiDock, setAiDock] = useState<'bottom' | 'right'>('bottom')
   const [aiSize, setAiSize] = useState(0.44)
   const bodyRef = useRef<HTMLDivElement>(null)
@@ -540,8 +564,143 @@ export function EditorPane({
    * shared pipeline (ai-run) prepares the request; the widget's
    * handlers close over an inflight record.
    */
+  /** S05c: the new-note run drives the TAB SIMULATION — proposal
+   *  rendered as the note will look; created only on accept. */
+  const startNotePreviewRun = useCallback(
+    async (menuRequest: AiMenuRequest) => {
+      const view = viewRef.current
+      if (!view) return
+      const sel = view.state.selection.main
+      const selectedText = view.state.sliceDoc(sel.from, sel.to)
+      const doc = view.state.doc.toString()
+      previewMetaRef.current = {
+        operationId: null,
+        bundleId: null,
+        filePath: null,
+        range: { from: sel.from, to: sel.to },
+        selectedText,
+        docAtRun: doc
+      }
+      setNotePreview({
+        phase: 'running',
+        path: '…',
+        proposal: '',
+        claims: [],
+        trace: null,
+        sent: null
+      })
+      try {
+        const prompts = await loadPromptsFor(note.relPath, window.atomik).catch(
+          () => []
+        )
+        const prepared = await prepareAiRun(
+          {
+            noteRelPath: note.relPath,
+            doc,
+            selection: { from: sel.from, to: sel.to, text: selectedText },
+            instruction: menuRequest.instruction,
+            ...(menuRequest.preset ? { preset: menuRequest.preset } : {}),
+            systemStack: menuRequest.stack,
+            prompts,
+            destination: 'new-note',
+            newNotePath: ''
+          },
+          window.atomik.readNote
+        )
+        if (!prepared) {
+          setNotePreview(null)
+          return
+        }
+        const meta = previewMetaRef.current
+        meta.operationId = prepared.operation.id
+        const plannedPath =
+          prepared.operation.target.destination.kind === 'new-note'
+            ? prepared.operation.target.destination.newNotePath
+            : ''
+        setNotePreview((current) =>
+          current ? { ...current, path: plannedPath, sent: prepared.sent } : current
+        )
+        const result = await window.atomik.runAiOperation(prepared.operation)
+        meta.bundleId = result.id
+        const file = result.patchProposals[0]?.files[0] ?? null
+        meta.filePath = file?.relPath ?? plannedPath
+        const trace = await window.atomik
+          .getAiTraceSummary(result.id)
+          .catch(() => null)
+        setNotePreview({
+          phase: 'review',
+          path: meta.filePath,
+          proposal: file?.newText ?? '',
+          claims: result.claims,
+          trace,
+          sent: prepared.sent
+        })
+      } catch (reason) {
+        setNotePreview((current) =>
+          current ? { ...current, phase: 'error', error: String(reason) } : null
+        )
+      }
+    },
+    [note.relPath]
+  )
+
+  const previewAccept = useCallback(
+    async (edited: string) => {
+      const meta = previewMetaRef.current
+      const data = notePreviewRef.current
+      if (!meta?.filePath || !data) return
+      const decision = edited === data.proposal ? 'accepted' : 'edited'
+      try {
+        await window.atomik.createNote(meta.filePath, edited)
+        // S05 auto-link — drift-guarded: no CM mapping outside the
+        // widget, so the link applies only on an unchanged buffer.
+        if (meta.selectedText.trim().length > 0 && getDoc() === meta.docAtRun) {
+          applyChange({
+            kind: 'replace-range',
+            range: meta.range,
+            newText: selectionLinkReplacement(
+              note.relPath,
+              meta.selectedText,
+              meta.filePath
+            )
+          })
+          await saveRef.current()
+        }
+        if (meta.bundleId) {
+          window.atomik.resolveAiTrace(meta.bundleId, decision).catch(() => undefined)
+        }
+        onNoteCreated?.(meta.filePath)
+        setNotePreview(null)
+      } catch (reason) {
+        setNotePreview((current) =>
+          current ? { ...current, phase: 'error', error: String(reason) } : null
+        )
+      }
+    },
+    [applyChange, getDoc, note.relPath, onNoteCreated]
+  )
+
+  const previewReject = useCallback(() => {
+    const meta = previewMetaRef.current
+    if (meta?.bundleId) {
+      window.atomik.resolveAiTrace(meta.bundleId, 'rejected').catch(() => undefined)
+    }
+    setNotePreview(null)
+  }, [])
+
+  const previewCancel = useCallback(() => {
+    const meta = previewMetaRef.current
+    if (meta?.operationId) {
+      void window.atomik.cancelAiOperation(meta.operationId).catch(() => undefined)
+    }
+  }, [])
+
   const startInlineRun = useCallback(
     async (menuRequest: AiMenuRequest) => {
+      // new-note previews as a simulated tab, not an in-note widget
+      if (menuRequest.destination === 'new-note') {
+        return startNotePreviewRun(menuRequest)
+      }
       const view = viewRef.current
       if (!view) return
       const sel = view.state.selection.main
@@ -566,6 +725,7 @@ export function EditorPane({
         trace: null,
         selectedText,
         bundleId: null,
+        sent: null,
         version: 0
       }
       const push = (patch: Partial<InlineAiState>): void => {
@@ -683,6 +843,7 @@ export function EditorPane({
           claims: result.claims,
           trace,
           bundleId: result.id,
+          sent: prepared.sent,
           ...(inflight.proposalFile?.kind === 'create'
             ? { newNotePath: inflight.proposalFile.relPath }
             : {})
@@ -691,7 +852,7 @@ export function EditorPane({
         push({ phase: 'error', error: String(reason) })
       }
     },
-    [applyChange, note.relPath, onNoteCreated]
+    [applyChange, note.relPath, onNoteCreated, startNotePreviewRun]
   )
 
   /** S04→S05b: a quick action or custom run previews INLINE (the DoD:
@@ -806,6 +967,20 @@ export function EditorPane({
             }
           }}
         />
+        {notePreview && (
+          <AiNotePreview
+            path={notePreview.path}
+            phase={notePreview.phase}
+            proposal={notePreview.proposal}
+            claims={notePreview.claims}
+            trace={notePreview.trace}
+            sent={notePreview.sent}
+            {...(notePreview.error ? { error: notePreview.error } : {})}
+            onAccept={(edited) => void previewAccept(edited)}
+            onReject={previewReject}
+            onCancel={previewCancel}
+          />
+        )}
         {aiMenu && (
           <AiSelectionMenu
             x={aiMenu.x}

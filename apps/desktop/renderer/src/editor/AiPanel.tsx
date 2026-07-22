@@ -28,6 +28,7 @@ import {
   selectionLinkReplacement
 } from './ai-helpers'
 import { prepareAiRun, type SentRequest } from './ai-run'
+import { copyText } from './clipboard'
 import {
   atPromptToken,
   filterPrompts,
@@ -946,34 +947,10 @@ export function AiPanel({
                       sentRequest.noteContext
                     )
                   )
-                  // navigator.clipboard can reject silently in the
-                  // Electron renderer (owner report) — fall back to
-                  // the selection+execCommand path, and SAY so on
-                  // failure instead of swallowing it.
-                  const finish = (ok: boolean): void => {
+                  void copyText(text).then((ok) => {
                     setCopyState(ok ? 'copied' : 'failed')
                     setTimeout(() => setCopyState('idle'), 1500)
-                  }
-                  const fallback = (): void => {
-                    try {
-                      const area = document.createElement('textarea')
-                      area.value = text
-                      area.style.position = 'fixed'
-                      area.style.opacity = '0'
-                      document.body.appendChild(area)
-                      area.select()
-                      const ok = document.execCommand('copy')
-                      area.remove()
-                      finish(ok)
-                    } catch {
-                      finish(false)
-                    }
-                  }
-                  if (navigator.clipboard?.writeText) {
-                    navigator.clipboard.writeText(text).then(() => finish(true), fallback)
-                  } else {
-                    fallback()
-                  }
+                  })
                 }}
               >
                 {copyState === 'copied'

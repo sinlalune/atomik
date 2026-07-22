@@ -6,7 +6,14 @@ import {
   type DecorationSet
 } from '@codemirror/view'
 import type { ClaimRecord, TraceSummary } from '../../../shared/ipc-contract'
-import type { DestinationKind } from '../../../shared/prompt-composition'
+import {
+  composeSystemPrompt,
+  composeUserMessage,
+  requestAsText,
+  type DestinationKind
+} from '../../../shared/prompt-composition'
+import type { SentRequest } from './ai-run'
+import { copyText } from './clipboard'
 
 /**
  * The inline AI preview (CP-MVP-008 S05b) — a quick request's proposal
@@ -38,6 +45,9 @@ export type InlineAiState = {
   /** Selection text captured at run time (auto-link label). */
   selectedText: string
   bundleId: string | null
+  /** The composed request (S05c: inline runs keep the inspector —
+   *  losing it when the panel stopped opening was a regression). */
+  sent: SentRequest | null
   error?: string
   /** Bumped on every transition so the widget re-renders. */
   version: number
@@ -205,6 +215,34 @@ class InlineAiWidget extends WidgetType {
 
     const actions = document.createElement('div')
     actions.className = 'cm-inline-ai-actions'
+    if (state.sent) {
+      const sent = state.sent
+      const copy = document.createElement('button')
+      copy.type = 'button'
+      copy.textContent = 'copy request'
+      copy.title = 'Copy the full request (system + user) for testing elsewhere'
+      copy.setAttribute('aria-label', 'Copy the full request')
+      copy.addEventListener('click', () => {
+        const text = requestAsText(
+          composeSystemPrompt(sent.systemPrompt, sent.destination),
+          composeUserMessage(
+            sent.instruction,
+            [
+              { content: sent.selection.content, relPath: sent.selection.relPath },
+              ...sent.linkedNotes
+            ],
+            sent.noteContext
+          )
+        )
+        void copyText(text).then((ok) => {
+          copy.textContent = ok ? 'copied ✓' : 'copy failed'
+          setTimeout(() => {
+            copy.textContent = 'copy request'
+          }, 1500)
+        })
+      })
+      actions.appendChild(copy)
+    }
     const accept = document.createElement('button')
     accept.type = 'button'
     accept.textContent = '✓ Accept'

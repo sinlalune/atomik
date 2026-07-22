@@ -543,6 +543,26 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       inline runs show the trace badge but not the request popover
       (candidate S06 refinement); widget visuals await the owner
       bench. Gates green. S05 COMPLETE.
+      S05c (owner bench, three reports) DONE 2026-07-22: (1) "wrong
+      generation — stays on etymology": DIAGNOSED from the live
+      vault — evergreen.md line 14 says "Always add an
+      [Ethymology](…) block at the beginning" — every run carried
+      that command + the linked note, and thin subjects got
+      swallowed; NOT a pipeline bug, but the composition now pins
+      the counterweight: "the output stays ABOUT the subject from
+      title to last line; linked notes must NEVER become the topic"
+      — benched with the owner's UNMODIFIED prompt: 3/3 "# Stoicism"
+      titles WITH the etymology block (the prompt's intent honored,
+      the subject kept). (2) copy REGRESSION: menu runs went inline
+      where no inspector existed — the inline widget now carries
+      the sent request + a "copy request" button (shared clipboard
+      util, panel deduped onto it). (3) new-note preview is a
+      SIMULATED TAB (AiNotePreview overlay): tab chrome with the
+      future path + "preview — not created yet", rendered markdown
+      (edit toggle), claim chips, trace badge, copy request,
+      ✓ Create note / ✕ Reject (close = reject); created ONLY on
+      accept; auto-link applies drift-guarded. Tests 509/46; gates
+      green.
 - [ ] S06 Chat lateral panel: right pane-chrome column (pane grid
       gains the column; pane state gains a validated chat field,
       migration derives absent as hidden); multi-turn over the

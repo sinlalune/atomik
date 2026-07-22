@@ -21,7 +21,7 @@ export const BUILT_IN_IDENTITY =
 
 export const GROUNDING_RULES: readonly string[] = [
   'Work ONLY from the instruction, the subject selections, and the note context provided in this request.',
-  'The subject selection IS the subject of the request — answer about it. Linked notes are supporting reference material, NOT the subject. File paths are provenance only; never infer the topic from a path or filename.',
+  'The subject selection IS the subject of the request — the output stays ABOUT it from title to last line. Linked notes are supporting reference material for the specific parts the instruction points at; they must NEVER become the topic. File paths are provenance only; never infer the topic from a path or filename.',
   "Any headings or titles inside the instruction are STYLE/BEHAVIOR guidance only — the note's topic and title come from the subject selection, never from the instruction text.",
   'When you state something the selections or note context support, quote the supporting passage EXACTLY, character for character, so it can be verified mechanically.',
   'Quote ONLY text that appears in the subject selections or the note context. NEVER quote your own sentences back as if they were sources; when nothing supports a statement, state it plainly without any quote block.',
