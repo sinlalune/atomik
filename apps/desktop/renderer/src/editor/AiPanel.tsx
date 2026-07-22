@@ -17,6 +17,12 @@ import {
   ExternalLinkIcon,
   PlayIcon
 } from '../icons'
+import {
+  composeSystemPrompt,
+  composeUserMessage,
+  requestAsText,
+  type DestinationKind
+} from '../../../shared/prompt-composition'
 import { defaultNewNotePath, ensureMdExtension } from './ai-helpers'
 import {
   atPromptToken,
@@ -149,9 +155,12 @@ export function AiPanel({
       wholeNote: boolean
       /** What was actually captured — seeing beats trusting offsets. */
       excerpt: string
+      /** Full captured text, for the faithful copy (memory only). */
+      content: string
     }
-    destination: string
+    destination: DestinationKind
   } | null>(null)
+  const [requestCopied, setRequestCopied] = useState(false)
   // System STACK (S03f): ordered block relPaths — personality > tone >
   // objectives — composed into ONE system prompt at run.
   const [systemStack, setSystemStack] = useState<string[]>([])
@@ -345,7 +354,8 @@ export function AiPanel({
         excerpt:
           selection.content.length <= 200
             ? selection.content
-            : `${selection.content.slice(0, 200)}…`
+            : `${selection.content.slice(0, 200)}…`,
+        content: selection.content
       },
       destination: target.destination.kind
     })
@@ -926,11 +936,45 @@ export function AiPanel({
               {` · ${sentRequest.selection.chars} chars`}
             </span>
             <div className="ai-req-pop" role="tooltip">
+              <button
+                type="button"
+                className="ai-req-copy"
+                title="Copy the full request (system + user) for testing elsewhere"
+                onClick={() => {
+                  const text = requestAsText(
+                    composeSystemPrompt(
+                      sentRequest.systemPrompt,
+                      sentRequest.destination
+                    ),
+                    composeUserMessage(sentRequest.instruction, [
+                      {
+                        content: sentRequest.selection.content,
+                        relPath: sentRequest.selection.relPath
+                      }
+                    ])
+                  )
+                  navigator.clipboard.writeText(text).then(
+                    () => {
+                      setRequestCopied(true)
+                      setTimeout(() => setRequestCopied(false), 1500)
+                    },
+                    () => undefined
+                  )
+                }}
+              >
+                {requestCopied ? 'copied ✓' : 'copy full request'}
+              </button>
               <div className="ai-sent-block">
                 <span className="ai-sent-label">
-                  system {sentRequest.systemPrompt === null ? '(built-in)' : '(stack)'}
+                  system — final, {sentRequest.systemPrompt === null ? 'built-in' : 'stack'}{' '}
+                  + grounding rules + destination brief
                 </span>
-                <pre>{sentRequest.systemPrompt ?? 'main-side default + grounding rules'}</pre>
+                <pre>
+                  {composeSystemPrompt(
+                    sentRequest.systemPrompt,
+                    sentRequest.destination
+                  )}
+                </pre>
               </div>
               <div className="ai-sent-block">
                 <span className="ai-sent-label">

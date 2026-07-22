@@ -391,6 +391,20 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       focus shows it too): summary on the chip (destination · bounds
       · chars), full composed system/instruction/selection in the
       popover. Tests 492/45 unchanged (presentation); gates green.
+- [x] S04h+i (owner: "you didn't expose the main side default and
+      grounding rules" + "I need the full request copiable") — done
+      2026-07-22: composition moved to shared/prompt-composition.ts
+      — ONE source of truth for the adapter AND the inspector
+      (identity/rules/briefs/closing + subject-first user message);
+      the popover now shows the FINAL system prompt verbatim (stack
+      or built-in + grounding rules + destination brief + closing)
+      and the exact user message shape; "copy full request" button
+      (hover/focus-within safe, copied feedback) yields
+      `=== SYSTEM === / === USER ===` portable text with the FULL
+      selection content (stored renderer-memory only). Pinned by
+      test: buildMessages halves === the shared composer outputs;
+      the portable text carries both verbatim. Tests 492→493/45;
+      gates green.
 - [ ] S05 Inline live preview: proposal rendered over the target
       range as a CM widget (live-preview WidgetType pattern) with
       accept / edit / reject + compact claim strip + trace badge;

@@ -3085,8 +3085,25 @@ button svg {
 }
 
 .ai-req:hover .ai-req-pop,
-.ai-req-chip:focus + .ai-req-pop {
+.ai-req-chip:focus + .ai-req-pop,
+.ai-req:focus-within .ai-req-pop {
   display: block;
+}
+
+.ai-req-copy {
+  font: inherit;
+  font-size: 0.7rem;
+  color: var(--accent);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.08rem 0.55rem;
+  cursor: pointer;
+  margin-bottom: 0.35rem;
+}
+
+.ai-req-copy:hover {
+  border-color: var(--accent);
 }
 
 .ai-sent-block {

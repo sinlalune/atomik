@@ -88,6 +88,29 @@ describe('buildMessages (operation → chat completions)', () => {
     expect(messages[0]!.content).toContain('never infer the topic from a path')
   })
 
+  it('the shared composer IS the wire — display/copy equal what travels (S04h/i)', async () => {
+    const { composeSystemPrompt, composeUserMessage, requestAsText } = await import(
+      '../shared/prompt-composition'
+    )
+    const messages = buildMessages(operation())
+    expect(messages[0]!.content).toBe(composeSystemPrompt(undefined, 'append'))
+    expect(messages[1]!.content).toBe(
+      composeUserMessage('Explain this simply.', [
+        { content: SELECTION_TEXT, relPath: 'notes/attention.md' }
+      ])
+    )
+    const custom = operation()
+    custom.systemPrompt = 'Custom identity.'
+    expect(buildMessages(custom)[0]!.content).toBe(
+      composeSystemPrompt('Custom identity.', 'append')
+    )
+    // the portable copy carries both halves verbatim
+    const portable = requestAsText(messages[0]!.content, messages[1]!.content)
+    expect(portable).toContain('=== SYSTEM ===')
+    expect(portable).toContain('=== USER ===')
+    expect(portable).toContain(SELECTION_TEXT)
+  })
+
   it('a prompt-file system prompt replaces the identity, never the grounding rules (S03)', () => {
     const custom = operation()
     custom.systemPrompt = 'You are a terse research assistant.'

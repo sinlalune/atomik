@@ -7,6 +7,7 @@ import {
   type GenerationUsage
 } from './generation'
 import { labelClaims, type ClaimCandidate } from './truth'
+import { composeSystemPrompt, composeUserMessage } from '../shared/prompt-composition'
 import type {
   AiOperation,
   AiOutputBlock,
@@ -63,69 +64,29 @@ export function estimateCostUsd(usage: {
   return Number(amount.toFixed(6))
 }
 
-const DESTINATION_BRIEF: Record<string, string> = {
-  'replace-selection':
-    'Your whole reply REPLACES the selected passage in the note — return the replacement markdown only.',
-  append:
-    'Your whole reply is APPENDED to the note as a new section — return that section as markdown, starting with a heading when one fits.',
-  'new-note':
-    'Your whole reply becomes a NEW standalone note — return complete note markdown, opening with a level-1 heading line for the title (do not repeat the # character inside the title text).'
-}
-
-const BUILT_IN_IDENTITY =
-  'You are the AI assistant inside Atomik, a local-first knowledge workbench.'
-
-/**
- * System prompt composition (S03, scoped prompts/): a `kind: system`
- * prompt file replaces the IDENTITY line only — the mechanical
- * grounding rules, the destination brief, and the no-preamble rule
- * are appended main-side REGARDLESS, because the exact-quote
- * discipline is what feeds the deterministic checker (28) and no
- * prompt file may opt out of it.
- */
+/** S04h: composition moved to shared/prompt-composition.ts — ONE
+ *  source of truth with the renderer's sent-request inspector; what
+ *  the popover shows IS what travels, by construction. */
 export function defaultSystemPrompt(operation: AiOperation): string {
-  const identity = operation.systemPrompt?.trim()
-  return [
-    identity && identity.length > 0 ? identity : BUILT_IN_IDENTITY,
-    'Work ONLY from the instruction and the provided selections.',
-    'The selected text IS the subject of the request — answer about it. File paths are provenance only; never infer the topic from a path or filename.',
-    'When you state something the selections support, quote the supporting passage EXACTLY, character for character, so it can be verified mechanically.',
-    'Never invent citations or sources.',
-    DESTINATION_BRIEF[operation.target.destination.kind] ?? '',
-    'Return plain markdown — no preamble, no meta commentary about these instructions.'
-  ]
-    .filter((line) => line.length > 0)
-    .join('\n')
+  return composeSystemPrompt(
+    operation.systemPrompt,
+    operation.target.destination.kind
+  )
 }
-
-/** Subject first, provenance last (owner report 2026-07-22: a short
- *  selection inside philosophy.md drew an answer about philosophy —
- *  the path led the header and outweighed the 10-char subject). */
-const selectionBlock = (selection: AiSelection, index: number): string =>
-  [
-    `### Subject selection ${index + 1}`,
-    '',
-    '```',
-    selection.content,
-    '```',
-    `(provenance: \`${selection.relPath}\`)`
-  ].join('\n')
 
 export type ChatMessage = { role: 'system' | 'user'; content: string }
 
 /** instruction + selection(s) → chat-completions messages (S01 pin);
- *  input bounds are ai-mock's own validation constants, enforced by
+ *  both halves come from shared/prompt-composition — the renderer's
+ *  inspector shows and copies the SAME text by construction (S04h/i).
+ *  Input bounds are ai-mock's validation constants, enforced by
  *  `isValidAiOperation` before any adapter runs. */
 export function buildMessages(operation: AiOperation): ChatMessage[] {
   return [
     { role: 'system', content: defaultSystemPrompt(operation) },
     {
       role: 'user',
-      content: [
-        `Instruction: ${operation.instruction}`,
-        '',
-        ...operation.input.map(selectionBlock)
-      ].join('\n')
+      content: composeUserMessage(operation.instruction, operation.input)
     }
   ]
 }
