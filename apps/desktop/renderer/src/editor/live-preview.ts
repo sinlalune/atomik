@@ -540,6 +540,12 @@ export function computeLivePreviewDecorations(
           if (/^[-*+]$/.test(text)) {
             decorations.push(bullet.range(node.from, node.to))
           }
+          // S05m: the ITEM LINE gets a class so live can hang-indent
+          // like the read view (wrapped text aligns under the text,
+          // not under the bullet).
+          decorations.push(
+            lineDeco('lp-li').range(state.doc.lineAt(node.from).from)
+          )
           return
         }
         case 'TaskMarker': {

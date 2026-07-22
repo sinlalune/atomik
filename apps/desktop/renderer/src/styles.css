@@ -37,6 +37,9 @@
      unit, so a rendered gap equals the blank line that produced it —
      that IS read/edit parity, air included. */
   --note-block-gap: calc(var(--note-line-height) * var(--note-font-size));
+  /* S05m: ONE list indent for read (ul/ol padding) and live
+     (hanging line indent) — same bullet column in both modes. */
+  --note-list-indent: 1.6em;
   --note-quote-inset: 1rem;
   --note-quote-border: 3px solid var(--accent);
   --note-code-size: 0.85em;
@@ -2399,6 +2402,23 @@ body[data-maximized] .tabstrip {
 .markdown-body li,
 .markdown-body li > p {
   margin-block: 0;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding-inline-start: var(--note-list-indent);
+}
+
+/* S05m: live list lines hang-indent to the same column as read —
+   wrapped text aligns under the text, the bullet sits in the gutter
+   the indent creates. */
+.editor-host.live .lp-li {
+  padding-left: var(--note-list-indent);
+  text-indent: calc(-1 * var(--note-list-indent));
+}
+
+.editor-host.live .lp-li > * {
+  text-indent: 0;
 }
 
 .markdown-body h1,

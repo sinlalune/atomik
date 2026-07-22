@@ -680,6 +680,15 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       live's .cm-content padding-top gains one --note-block-gap —
       matching read's opening (pad + the first heading's collapsed
       margin). OWNER VALIDATED the rhythm ("ok looks good now").
+      S05m (owner screenshot pair, Socrates note): the remaining
+      visible delta was LISTS — read hang-indents wrapped bullet
+      text, live wrapped flush-left. New shared token
+      --note-list-indent (1.6em): read ul/ol take it as
+      padding-inline-start, live list LINES gain an `lp-li` line
+      class (live-preview.ts, ListMark branch) carrying the same
+      token as a hanging indent (padding-left + negative
+      text-indent, children reset) — one bullet column in both
+      modes, tuned in one place. Tests 514/47; gates green.
 - [ ] S06 Chat lateral panel: right pane-chrome column (pane grid
       gains the column; pane state gains a validated chat field,
       migration derives absent as hidden); multi-turn over the
