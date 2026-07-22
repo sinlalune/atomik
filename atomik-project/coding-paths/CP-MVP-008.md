@@ -382,6 +382,15 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       cloud-model — 28 honest identity) and the new-note brief no
       longer invites the `# #` doubled-hash title. Tests 492/45;
       gates green.
+- [x] S04g (owner directive: "store request content sent and make it
+      displayable on hover somewhere") — done 2026-07-22: the sent
+      request persists per run (renderer memory only — the trace
+      ledger stays content-free, contentRecorded=false untouched)
+      and the click-to-expand details became a CHIP + hover/focus
+      POPOVER (36 popover idiom, glass + opaque fallback, keyboard
+      focus shows it too): summary on the chip (destination · bounds
+      · chars), full composed system/instruction/selection in the
+      popover. Tests 492/45 unchanged (presentation); gates green.
 - [ ] S05 Inline live preview: proposal rendered over the target
       range as a CM widget (live-preview WidgetType pattern) with
       accept / edit / reject + compact claim strip + trace badge;

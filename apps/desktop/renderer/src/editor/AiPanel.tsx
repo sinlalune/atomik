@@ -914,37 +914,42 @@ export function AiPanel({
           </div>
         )}
         {sentRequest && phase !== 'running' && (
-          <details className="ai-sent">
-            <summary>
+          // Stored per run, shown on HOVER or keyboard focus (owner
+          // directive 2026-07-22) — the popover carries the composed
+          // request exactly as sent (26).
+          <div className="ai-req">
+            <span className="ai-req-chip" tabIndex={0}>
               sent request — {sentRequest.destination}
               {sentRequest.selection.wholeNote
                 ? ' · whole note'
-                : ` · selection ${sentRequest.selection.from}–${sentRequest.selection.to}`}
+                : ` · ${sentRequest.selection.from}–${sentRequest.selection.to}`}
               {` · ${sentRequest.selection.chars} chars`}
-            </summary>
-            <div className="ai-sent-block">
-              <span className="ai-sent-label">
-                system {sentRequest.systemPrompt === null ? '(built-in)' : '(stack)'}
-              </span>
-              <pre>{sentRequest.systemPrompt ?? 'main-side default + grounding rules'}</pre>
+            </span>
+            <div className="ai-req-pop" role="tooltip">
+              <div className="ai-sent-block">
+                <span className="ai-sent-label">
+                  system {sentRequest.systemPrompt === null ? '(built-in)' : '(stack)'}
+                </span>
+                <pre>{sentRequest.systemPrompt ?? 'main-side default + grounding rules'}</pre>
+              </div>
+              <div className="ai-sent-block">
+                <span className="ai-sent-label">
+                  instruction{sentRequest.preset ? ` (${sentRequest.preset})` : ''}
+                </span>
+                <pre>{sentRequest.instruction}</pre>
+              </div>
+              <div className="ai-sent-block">
+                <span className="ai-sent-label">
+                  selection sent{sentRequest.selection.wholeNote ? ' (whole note)' : ''}
+                </span>
+                <pre>{sentRequest.selection.excerpt}</pre>
+              </div>
+              <p className="ai-sent-note">
+                Composed exactly as sent — layers expanded, stack joined. Main
+                adds the grounding rules and the destination brief on top.
+              </p>
             </div>
-            <div className="ai-sent-block">
-              <span className="ai-sent-label">
-                instruction{sentRequest.preset ? ` (${sentRequest.preset})` : ''}
-              </span>
-              <pre>{sentRequest.instruction}</pre>
-            </div>
-            <div className="ai-sent-block">
-              <span className="ai-sent-label">
-                selection sent{sentRequest.selection.wholeNote ? ' (whole note)' : ''}
-              </span>
-              <pre>{sentRequest.selection.excerpt}</pre>
-            </div>
-            <p className="ai-sent-note">
-              Composed exactly as sent — layers expanded, stack joined. Main
-              adds the grounding rules and the destination brief on top.
-            </p>
-          </details>
+          </div>
         )}
       </div>
     </section>
