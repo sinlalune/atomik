@@ -344,6 +344,50 @@ export function toggleStackBlock(stack: string[], relPath: string): string[] {
     : [...stack, relPath]
 }
 
+/**
+ * The one-screen menu composer (S04c, owner directive): message picks
+ * and built-ins share ONE ordered sequence — entries are prompt
+ * relPaths or `builtin:<id>` — composing into the instruction: layer
+ * directives for prompt files, raw instruction lines for built-ins,
+ * the optional typed input last. Empty result = nothing runnable.
+ */
+export function composeMenuInstruction(
+  order: string[],
+  prompts: PromptFile[],
+  builtins: ReadonlyArray<{ id: string; instruction: string }>,
+  input: string
+): string {
+  const byPath = new Map(prompts.map((prompt) => [prompt.relPath, prompt]))
+  const lines = order
+    .map((entry) => {
+      if (entry.startsWith('builtin:')) {
+        return builtins.find((builtin) => builtin.id === entry.slice(8))?.instruction ?? ''
+      }
+      const prompt = byPath.get(entry)
+      return prompt ? layerDirectiveFor(prompt.name) : ''
+    })
+    .filter((line) => line.length > 0)
+  const typed = input.trim()
+  if (typed.length > 0) lines.push(typed)
+  return lines.join('\n')
+}
+
+/** When the vault holds more prompts than the menu can label, a search
+ *  bar appears; the display stays capped but PICKED prompts are never
+ *  dropped — their numbers must stay visible. */
+export function visibleMenuPrompts(
+  prompts: PromptFile[],
+  picked: ReadonlySet<string>,
+  query: string,
+  max: number
+): PromptFile[] {
+  const shown = filterPrompts(prompts, query).slice(0, max)
+  for (const prompt of prompts) {
+    if (picked.has(prompt.relPath) && !shown.includes(prompt)) shown.push(prompt)
+  }
+  return shown
+}
+
 /** Case-insensitive filter over name/title for the @ menu. */
 export function filterPrompts(
   prompts: PromptFile[],

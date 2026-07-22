@@ -1,28 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
-import { CheckIcon } from '../icons'
+import { PlayIcon } from '../icons'
 import { PRESETS } from './AiPanel'
 import {
-  groupPromptsByScope,
-  layerDirectiveFor,
+  composeMenuInstruction,
   loadPromptsFor,
   scopeLabel,
   toggleStackBlock,
+  visibleMenuPrompts,
   type PromptFile
 } from './prompts'
 
 /**
- * The selection AI menu (CP-MVP-008 S04, owner directive): highlight
- * note text → right-click (or Shift+F10) → the contextual AI request
- * menu at the click location. TreeMenu machinery: hand-rolled popup,
- * on-screen clamping, action → input morph in place. The AI trigger
- * LIVES here now — the note-bar top row keeps editing concerns only.
- *
- * Quick actions are the note's resolved MESSAGE prompts (scope-grouped,
- * nearest first) plus the built-ins; a quick action runs the prompt's
- * LAYER DIRECTIVE (composed at run time, S03d). "Custom…" morphs into
- * an instruction input with system-prompt PILLS — click order builds
- * the system stack (S03f). "Open chat" opens the conversational
- * surface (the docked panel until S06's lateral column).
+ * The selection AI menu (CP-MVP-008 S04; S04c owner redesign: "first
+ * and only contextual display"): ONE screen, no morph — orderable
+ * MESSAGE picks, orderable SYSTEM stack, built-ins, an OPTIONAL input,
+ * one Run. Click order numbers the pills on BOTH sides (the S03f
+ * nesting direction at a click); message picks + built-ins share one
+ * sequence composing into the instruction (directives for files, raw
+ * lines for built-ins, typed input last); the system sequence is the
+ * stack. Enter runs and closes. Past the display cap a search bar
+ * appears; picked pills never drop out of view.
  */
 
 export type AiMenuRequest = {
@@ -30,6 +27,11 @@ export type AiMenuRequest = {
   preset?: string
   stack: string[]
 }
+
+/** Search appears when the vault offers more labels than this. */
+export const MENU_SEARCH_THRESHOLD = 10
+/** Per-section display cap (picked pills always shown on top of it). */
+export const MENU_SECTION_MAX = 6
 
 export function AiSelectionMenu({
   x,
@@ -49,10 +51,12 @@ export function AiSelectionMenu({
   onRun: (request: AiMenuRequest) => void
   onOpenChat: () => void
 }): React.JSX.Element {
-  const [mode, setMode] = useState<'menu' | 'custom'>('menu')
   const [prompts, setPrompts] = useState<PromptFile[]>([])
-  const [custom, setCustom] = useState('')
-  const [stack, setStack] = useState<string[]>([])
+  const [query, setQuery] = useState('')
+  /** Prompt relPaths and `builtin:<id>` in click order. */
+  const [messageOrder, setMessageOrder] = useState<string[]>([])
+  const [systemOrder, setSystemOrder] = useState<string[]>([])
+  const [input, setInput] = useState('')
   const panelRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -61,11 +65,10 @@ export function AiSelectionMenu({
   }, [notePath])
 
   useEffect(() => {
-    if (mode === 'custom') inputRef.current?.focus()
-  }, [mode])
+    inputRef.current?.focus()
+  }, [])
 
-  // On-screen clamping (TreeMenu pattern): a right-click near an edge
-  // must not push the menu out of view.
+  // On-screen clamping (TreeMenu pattern).
   useEffect(() => {
     const panel = panelRef.current
     if (!panel) return
@@ -73,23 +76,62 @@ export function AiSelectionMenu({
     const dx = Math.min(0, window.innerWidth - 8 - rect.right)
     const dy = Math.min(0, window.innerHeight - 8 - rect.bottom)
     panel.style.transform = `translate(${dx}px, ${dy}px)`
-  }, [mode, prompts.length])
+  }, [prompts.length, query])
 
   const excerpt =
     selectionText.trim().length > 0
       ? `“${selectionText.trim().replace(/\s+/g, ' ').slice(0, 60)}${selectionText.trim().length > 60 ? '…' : ''}”`
       : 'whole note'
 
-  const runCustom = (): void => {
-    if (custom.trim().length === 0) return
-    onRun({ instruction: custom, stack })
+  const messagePrompts = prompts.filter((prompt) => prompt.kind === 'message')
+  const systemPrompts = prompts.filter((prompt) => prompt.kind === 'system')
+  const showSearch = prompts.length > MENU_SEARCH_THRESHOLD
+
+  const runnable =
+    messageOrder.length > 0 || input.trim().length > 0
+  const runNow = (): void => {
+    if (!runnable) return
+    const instruction = composeMenuInstruction(messageOrder, prompts, PRESETS, input)
+    if (instruction.length === 0) return
+    const single =
+      messageOrder.length === 1 && input.trim().length === 0
+        ? messageOrder[0]!
+        : null
+    onRun({
+      instruction,
+      ...(single
+        ? {
+            preset: single.startsWith('builtin:')
+              ? single.slice(8)
+              : `file:${prompts.find((prompt) => prompt.relPath === single)?.name ?? single}`
+          }
+        : {}),
+      stack: systemOrder
+    })
   }
 
-  const messageGroups = groupPromptsByScope(
-    prompts.filter((prompt) => prompt.kind === 'message'),
-    notePath
-  )
-  const systemPrompts = prompts.filter((prompt) => prompt.kind === 'system')
+  const orderedPill = (
+    entry: string,
+    order: string[],
+    setOrder: (next: string[]) => void,
+    label: string,
+    title: string
+  ): React.JSX.Element => {
+    const position = order.indexOf(entry)
+    return (
+      <button
+        key={entry}
+        type="button"
+        className={position >= 0 ? 'active' : ''}
+        aria-pressed={position >= 0}
+        title={`${title} — click order composes`}
+        onClick={() => setOrder(toggleStackBlock(order, entry))}
+      >
+        {position >= 0 ? `${position + 1} · ` : ''}
+        {label}
+      </button>
+    )
+  }
 
   return (
     <div
@@ -115,103 +157,108 @@ export function AiSelectionMenu({
         <div className="tree-menu-head" title={notePath}>
           {excerpt}
         </div>
-        {mode === 'menu' ? (
-          <>
-            {messageGroups.map((group) => (
-              <div key={group.scope} className="ai-menu-group">
-                <div className="ai-menu-scope">{group.scope}</div>
-                {group.prompts.map((prompt) => (
-                  <button
-                    key={prompt.relPath}
-                    type="button"
-                    role="menuitem"
-                    title={prompt.description ?? prompt.relPath}
-                    onClick={() =>
-                      onRun({
-                        instruction: layerDirectiveFor(prompt.name),
-                        preset: `file:${prompt.name}`,
-                        stack: []
-                      })
-                    }
-                  >
-                    {prompt.title}
-                  </button>
-                ))}
-              </div>
-            ))}
-            <div className="ai-menu-group">
-              <div className="ai-menu-scope">built-in</div>
-              {PRESETS.map((spec) => (
-                <button
-                  key={spec.id}
-                  type="button"
-                  role="menuitem"
-                  onClick={() =>
-                    onRun({ instruction: spec.instruction, preset: spec.id, stack: [] })
-                  }
-                >
-                  {spec.label}
-                </button>
-              ))}
-            </div>
-            <button type="button" role="menuitem" onClick={() => setMode('custom')}>
-              Custom…
-            </button>
-            <button type="button" role="menuitem" onClick={onOpenChat}>
-              Open chat
-            </button>
-          </>
-        ) : (
-          <div className="ai-menu-custom">
-            {systemPrompts.length > 0 && (
-              <div className="ai-menu-pills" role="group" aria-label="System blocks">
-                {systemPrompts.map((prompt) => {
-                  const position = stack.indexOf(prompt.relPath)
-                  return (
-                    <button
-                      key={prompt.relPath}
-                      type="button"
-                      className={position >= 0 ? 'active' : ''}
-                      aria-pressed={position >= 0}
-                      title={`${prompt.description ?? prompt.title} · ${scopeLabel(prompt.scopeFolder, notePath)} — click order builds the stack`}
-                      onClick={() =>
-                        setStack((current) => toggleStackBlock(current, prompt.relPath))
-                      }
-                    >
-                      {position >= 0 ? `${position + 1} · ` : ''}
-                      {prompt.title}
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-            <div className="tree-menu-form">
-              <textarea
-                ref={inputRef}
-                rows={3}
-                value={custom}
-                placeholder="Ask about the selection… Ctrl+Enter runs"
-                aria-label="Custom AI instruction"
-                onChange={(event) => setCustom(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
-                    event.preventDefault()
-                    runCustom()
-                  }
-                }}
-              />
-              <button
-                type="button"
-                disabled={custom.trim().length === 0}
-                title="Run"
-                aria-label="Run"
-                onClick={runCustom}
-              >
-                <CheckIcon />
-              </button>
+        {showSearch && (
+          <input
+            className="ai-menu-search"
+            value={query}
+            placeholder="filter prompts…"
+            aria-label="Filter prompts"
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                runNow()
+              }
+            }}
+          />
+        )}
+        {messagePrompts.length > 0 && (
+          <div className="ai-menu-group">
+            <div className="ai-menu-scope">message</div>
+            <div className="ai-menu-pills">
+              {visibleMenuPrompts(
+                messagePrompts,
+                new Set(messageOrder),
+                query,
+                MENU_SECTION_MAX
+              ).map((prompt) =>
+                orderedPill(
+                  prompt.relPath,
+                  messageOrder,
+                  setMessageOrder,
+                  prompt.title,
+                  `${prompt.description ?? prompt.title} · ${scopeLabel(prompt.scopeFolder, notePath)}`
+                )
+              )}
             </div>
           </div>
         )}
+        {systemPrompts.length > 0 && (
+          <div className="ai-menu-group">
+            <div className="ai-menu-scope">system</div>
+            <div className="ai-menu-pills">
+              {visibleMenuPrompts(
+                systemPrompts,
+                new Set(systemOrder),
+                query,
+                MENU_SECTION_MAX
+              ).map((prompt) =>
+                orderedPill(
+                  prompt.relPath,
+                  systemOrder,
+                  setSystemOrder,
+                  prompt.title,
+                  `${prompt.description ?? prompt.title} · ${scopeLabel(prompt.scopeFolder, notePath)}`
+                )
+              )}
+            </div>
+          </div>
+        )}
+        <div className="ai-menu-group">
+          <div className="ai-menu-scope">built-in</div>
+          <div className="ai-menu-pills">
+            {PRESETS.map((spec) =>
+              orderedPill(
+                `builtin:${spec.id}`,
+                messageOrder,
+                setMessageOrder,
+                spec.label,
+                spec.instruction
+              )
+            )}
+          </div>
+        </div>
+        <div className="ai-menu-custom">
+          <textarea
+            ref={inputRef}
+            rows={2}
+            value={input}
+            placeholder="add your own ask (optional) — Enter runs"
+            aria-label="Custom AI instruction"
+            onChange={(event) => setInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault()
+                runNow()
+              }
+            }}
+          />
+        </div>
+        <div className="ai-menu-footer">
+          <button type="button" className="ai-menu-chat" onClick={onOpenChat}>
+            Open chat
+          </button>
+          <button
+            type="button"
+            className="ai-menu-run"
+            disabled={!runnable}
+            title={runnable ? 'Run (Enter)' : 'Pick a prompt or type an ask'}
+            aria-label="Run"
+            onClick={runNow}
+          >
+            <PlayIcon /> Run
+          </button>
+        </div>
       </div>
     </div>
   )

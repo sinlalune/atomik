@@ -3115,6 +3115,10 @@ button svg {
   border-style: solid;
 }
 
+.ai-menu-custom {
+  padding: 0.25rem;
+}
+
 .ai-menu-custom textarea {
   font: inherit;
   font-size: 0.8rem;
@@ -3123,13 +3127,76 @@ button svg {
   border: 1px solid var(--border);
   border-radius: 5px;
   padding: 0.3rem 0.45rem;
-  width: 260px;
+  width: 300px;
+  box-sizing: border-box;
   resize: vertical;
 }
 
 .ai-menu-custom textarea:focus {
   outline: 1px solid var(--accent);
   border-color: var(--accent);
+}
+
+/* S04c: one-screen composer — search, footer run */
+.ai-menu-search {
+  font: inherit;
+  font-size: 0.78rem;
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.2rem 0.45rem;
+  margin: 0.25rem 0.25rem 0;
+  width: 300px;
+  box-sizing: border-box;
+}
+
+.ai-menu-search:focus {
+  outline: 1px solid var(--accent);
+  border-color: var(--accent);
+}
+
+.ai-menu-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.ai-menu-chat {
+  font: inherit;
+  font-size: 0.75rem;
+  color: var(--muted);
+  background: none;
+  border: none;
+  padding: 0.15rem 0.3rem;
+  cursor: pointer;
+}
+
+.ai-menu-chat:hover {
+  color: var(--accent);
+}
+
+.ai-menu-run {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font: inherit;
+  font-size: 0.78rem;
+  color: var(--accent);
+  background: var(--code-bg);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 0.15rem 0.7rem;
+  cursor: pointer;
+}
+
+.ai-menu-run:disabled {
+  color: var(--muted);
+  border-color: var(--border);
+  cursor: default;
 }
 
 /* S03b: prompt-kind radio row above the name input */

@@ -333,6 +333,19 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       the hook-level race has no unit seam in this harness (no React
       DOM tests); empty-list literalness already pinned by test.
       Tests 489/45 unchanged; gates green.
+- [x] S04c (owner redesign: "first and only contextual display …
+      expand 1,2,3 to message prompts as well") — done 2026-07-22:
+      the menu is ONE flat composer, no morph — orderable MESSAGE
+      section and BUILT-IN section sharing one numbered click
+      sequence (`composeMenuInstruction`: directives for files, raw
+      lines for built-ins, optional typed input LAST), orderable
+      SYSTEM section (the stack), optional input, one Run; Enter
+      runs and closes (Shift+Enter = newline); display capped per
+      section (`visibleMenuPrompts`, MENU_SECTION_MAX 6) with a
+      search bar past MENU_SEARCH_THRESHOLD 10 total — picked pills
+      never drop out of view; preset recorded only for a single
+      untyped pick; "Open chat" survives in the footer. Tests
+      489→491/45; gates green.
 - [ ] S05 Inline live preview: proposal rendered over the target
       range as a CM widget (live-preview WidgetType pattern) with
       accept / edit / reject + compact claim strip + trace badge;

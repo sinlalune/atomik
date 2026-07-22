@@ -12,8 +12,10 @@ import {
   layerDirectiveFor,
   reorderStack,
   stackFileContent,
+  composeMenuInstruction,
   groupPromptsByScope,
   toggleStackBlock,
+  visibleMenuPrompts,
   collectPromptRefs,
   isPromptsFolder,
   loadPromptsFor,
@@ -374,6 +376,37 @@ describe('selection-menu helpers (S04)', () => {
     expect(stack).toEqual(['p/tone.md', 'p/personality.md'])
     stack = toggleStackBlock(stack, 'p/tone.md')
     expect(stack).toEqual(['p/personality.md'])
+  })
+
+  it('composes the menu instruction: directives + built-ins in click order, input last (S04c)', () => {
+    const prompts = [
+      { relPath: 'prompts/key-points.md', name: 'key-points' }
+    ] as Parameters<typeof composeMenuInstruction>[1]
+    const builtins = [{ id: 'explain', instruction: 'Explain this simply.' }]
+    expect(
+      composeMenuInstruction(
+        ['builtin:explain', 'prompts/key-points.md'],
+        prompts,
+        builtins,
+        '  focus on dates  '
+      )
+    ).toBe('Explain this simply.\n{{prompt: key-points}}\nfocus on dates')
+    // unknown entries drop; input alone is runnable; nothing = empty
+    expect(composeMenuInstruction(['prompts/ghost.md'], prompts, builtins, 'ask')).toBe('ask')
+    expect(composeMenuInstruction([], prompts, builtins, '')).toBe('')
+  })
+
+  it('caps the visible labels but never drops a picked prompt (S04c)', () => {
+    const prompts = Array.from({ length: 9 }, (_, index) => ({
+      relPath: `prompts/p${index}.md`,
+      name: `p${index}`,
+      title: `P${index}`
+    })) as Parameters<typeof visibleMenuPrompts>[0]
+    const shown = visibleMenuPrompts(prompts, new Set(['prompts/p8.md']), '', 4)
+    expect(shown.map((prompt) => prompt.name)).toEqual(['p0', 'p1', 'p2', 'p3', 'p8'])
+    // the query narrows; picked stays even when it does not match
+    const searched = visibleMenuPrompts(prompts, new Set(['prompts/p8.md']), 'p1', 4)
+    expect(searched.map((prompt) => prompt.name)).toEqual(['p1', 'p8'])
   })
 })
 

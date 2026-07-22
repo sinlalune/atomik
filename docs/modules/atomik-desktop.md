@@ -241,15 +241,18 @@ timestamp: 2026-07-06T00:00:00Z
   editor (or Shift+F10 at the caret) opens
   `renderer/src/editor/AiSelectionMenu.tsx` at the click location
   (TreeMenu machinery: overlay, on-screen clamping, morph in place):
-  quick actions = the note's resolved MESSAGE prompts scope-grouped
-  nearest-first (`groupPromptsByScope`) + built-ins — a pick runs the
-  prompt's LAYER DIRECTIVE; "Custom…" morphs to an instruction input
-  with system-prompt PILLS whose click order builds the stack
-  (`toggleStackBlock`, numbered pills); "Open chat" opens the docked
-  panel right (the conversational surface until S06's lateral
-  column). The menu hands an `AiPanelRequest` to the panel — prefill
-  + auto-run, each request id applied exactly once, the run deferred
-  one render so prefilled state has landed.
+  S04c (owner redesign): ONE flat composer, no morph — an orderable
+  MESSAGE section and the BUILT-IN section share one numbered click
+  sequence, the SYSTEM section numbers its own (the stack); the
+  sequence composes via `composeMenuInstruction` (layer directives
+  for files, raw lines for built-ins, the OPTIONAL typed input
+  last); Enter runs and closes (Shift+Enter newline); display capped
+  per section (`visibleMenuPrompts`) with a search bar past the
+  threshold — picked pills never leave view; "Open chat" in the
+  footer (interim dock-right until S06). The menu hands an
+  `AiPanelRequest` to the panel — prefill + auto-run, each request
+  id applied exactly once, the run deferred one render so prefilled
+  state has landed.
   `renderer/src/editor/AiPanel.tsx` docks the loop in the editor:
   selection (or whole note) → instruction/preset → destination
   (replace-selection / append / new-note, path prefilled beside the
