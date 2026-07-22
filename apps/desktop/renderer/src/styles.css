@@ -3033,6 +3033,61 @@ button svg {
   padding: 0.25rem;
 }
 
+/* S04: selection AI menu — TreeMenu skin + scope groups + pill row */
+.ai-selection-menu {
+  min-width: 220px;
+}
+
+.ai-menu-scope {
+  padding: 0.2rem 0.5rem 0.05rem;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.ai-menu-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0.25rem 0.25rem 0;
+  max-width: 320px;
+}
+
+.ai-menu-pills button {
+  font: inherit;
+  font-size: 0.72rem;
+  color: var(--muted);
+  background: var(--code-bg);
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  cursor: pointer;
+}
+
+.ai-menu-pills button.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  border-style: solid;
+}
+
+.ai-menu-custom textarea {
+  font: inherit;
+  font-size: 0.8rem;
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.3rem 0.45rem;
+  width: 260px;
+  resize: vertical;
+}
+
+.ai-menu-custom textarea:focus {
+  outline: 1px solid var(--accent);
+  border-color: var(--accent);
+}
+
 /* S03b: prompt-kind radio row above the name input */
 .tree-menu-kinds {
   display: flex;

@@ -12,6 +12,8 @@ import {
   layerDirectiveFor,
   reorderStack,
   stackFileContent,
+  groupPromptsByScope,
+  toggleStackBlock,
   collectPromptRefs,
   isPromptsFolder,
   loadPromptsFor,
@@ -350,6 +352,28 @@ describe('system stack (S03f — ordered composable blocks)', () => {
     expect(expandPromptLayers(parsed!.body, byName)).toBe(
       'Be playful.\nStay terse.\nAim for clarity.'
     )
+  })
+})
+
+describe('selection-menu helpers (S04)', () => {
+  it('groups by scope label preserving nearest-first order', () => {
+    const prompts = [
+      { name: 'a', title: 'A', scopeFolder: 'projects/x' },
+      { name: 'b', title: 'B', scopeFolder: 'projects/x' },
+      { name: 'c', title: 'C', scopeFolder: '' }
+    ] as Parameters<typeof groupPromptsByScope>[0]
+    const groups = groupPromptsByScope(prompts, 'projects/x/note.md')
+    expect(groups.map((group) => group.scope)).toEqual(['this folder', 'vault'])
+    expect(groups[0]!.prompts.map((prompt) => prompt.name)).toEqual(['a', 'b'])
+  })
+
+  it('pill toggling: click order builds the stack, second click removes', () => {
+    let stack: string[] = []
+    stack = toggleStackBlock(stack, 'p/tone.md')
+    stack = toggleStackBlock(stack, 'p/personality.md')
+    expect(stack).toEqual(['p/tone.md', 'p/personality.md'])
+    stack = toggleStackBlock(stack, 'p/tone.md')
+    expect(stack).toEqual(['p/personality.md'])
   })
 })
 

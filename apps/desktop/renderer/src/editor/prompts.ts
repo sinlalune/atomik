@@ -320,6 +320,30 @@ export function stackFileContent(name: string, blockNames: string[]): string {
   ].join('\n')
 }
 
+/** Prompts grouped by scope label, preserving nearest-first order —
+ *  the selection menu shows WHERE each quick action comes from (S04). */
+export function groupPromptsByScope(
+  prompts: PromptFile[],
+  notePath: string
+): Array<{ scope: string; prompts: PromptFile[] }> {
+  const groups: Array<{ scope: string; prompts: PromptFile[] }> = []
+  for (const prompt of prompts) {
+    const scope = scopeLabel(prompt.scopeFolder, notePath)
+    const existing = groups.find((group) => group.scope === scope)
+    if (existing) existing.prompts.push(prompt)
+    else groups.push({ scope, prompts: [prompt] })
+  }
+  return groups
+}
+
+/** Pill toggle for the custom-input stack (S04): click order IS the
+ *  stack order; a second click removes the block. */
+export function toggleStackBlock(stack: string[], relPath: string): string[] {
+  return stack.includes(relPath)
+    ? stack.filter((candidate) => candidate !== relPath)
+    : [...stack, relPath]
+}
+
 /** Case-insensitive filter over name/title for the @ menu. */
 export function filterPrompts(
   prompts: PromptFile[],

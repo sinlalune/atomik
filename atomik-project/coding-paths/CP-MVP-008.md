@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-008
   status: active
   accepted: 2026-07-21
-  current_step: S04
+  current_step: S05
   base_commit: 6cacfa2
 ---
 
@@ -301,12 +301,21 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       authors sub-agent prompts as these exact files (recorded for
       the roadmap conversation at the closing ceremony). Tests
       484→487/45; gates green.
-- [ ] S04 Selection context menu: right-click + keyboard on an editor
-      selection → AI menu (TreeMenu machinery pattern): quick actions
-      from prompt files + built-ins, custom input at the click
-      location with system-prompt pills, "Open chat"; the AI button
-      leaves the note-bar (top row = editing concerns only); tests
-      where the DOM seam allows + pure helpers tested.
+- [x] S04 Selection context menu — done 2026-07-21:
+      `AiSelectionMenu.tsx` (TreeMenu machinery: overlay, clamping,
+      morph in place) on editor right-click + Shift+F10 at the caret;
+      quick actions = resolved message prompts scope-grouped
+      nearest-first (`groupPromptsByScope`) + built-ins, a pick runs
+      the LAYER DIRECTIVE; "Custom…" = instruction input at the
+      click location + system pills whose CLICK ORDER builds the
+      stack (`toggleStackBlock`, numbered); "Open chat" opens the
+      panel docked right (interim surface until S06). Menu → panel
+      handoff via `AiPanelRequest` (id applied once, auto-run
+      deferred one render past prefill). The Sparkle button LEFT the
+      note-bar. Tests 487→489/45 (grouping order, pill toggling);
+      gates green. Honest gaps: the popup's custom input has no @
+      menu (the panel's does — iteration continues there); menu
+      visuals await the owner bench (no screenshot rung for popups).
 - [ ] S05 Inline live preview: proposal rendered over the target
       range as a CM widget (live-preview WidgetType pattern) with
       accept / edit / reject + compact claim strip + trace badge;
@@ -433,15 +442,17 @@ changed(S02): generation.ts + mistral-generation-adapter.ts NEW;
               error kinds ride messages as `ai(<kind>): …`; smoke
               engine restore writes the resolved engine explicitly
               (accepted quirk of the rung).
-tests(S03)  : 467 passing / 45 suites; typecheck/build green; smoke
-              `ai=ok` with systemPrompt riding the operation.
-next action : S04 — selection context menu: right-click + keyboard on
-              an editor selection → AI menu (TreeMenu machinery
-              pattern): quick actions from prompt files (S03 loader,
-              scope-grouped) + built-ins, custom input at the click
-              location with system-prompt pills (S03 system prompts),
-              "Open chat"; the AI button leaves the note-bar; tests
-              where the DOM seam allows + pure helpers.
+tests(S04)  : 489 passing / 45 suites; typecheck/build green; smoke
+              `ai=ok` (panel loop unchanged through the S04 handoff).
+next action : S05 — inline live preview: proposal rendered over the
+              target range as a CM widget (live-preview WidgetType
+              pattern) with accept / edit / reject + compact claim
+              strip + trace badge; buffer untouched until accept →
+              existing applyChange + save; AiPanel loop logic
+              (run/accept/reject/challenge/trace) extracted into
+              shared hooks consumed by both new surfaces; cancel
+              mid-flight; tests (widget lifecycle, accept byte
+              fidelity, reject leaves zero trace).
 blockers    : none. OPEN (S07 bench): default engine when a key is
               configured — 'mistral' proposed, implemented as the
               key-present resolution default, mock stays selectable.

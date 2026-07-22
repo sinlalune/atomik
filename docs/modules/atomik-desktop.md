@@ -236,6 +236,20 @@ timestamp: 2026-07-06T00:00:00Z
   the saved file reproduces the composition, which is what makes
   stacks reusable, shareable, and AGENT-AUTHORABLE (a future agent
   with vault access writes sub-agent behaviors as these same files).
+  S04 (the selection is the entry point, 05): the AI trigger LEFT the
+  note-bar (top row = editing concerns only) — right-click in the
+  editor (or Shift+F10 at the caret) opens
+  `renderer/src/editor/AiSelectionMenu.tsx` at the click location
+  (TreeMenu machinery: overlay, on-screen clamping, morph in place):
+  quick actions = the note's resolved MESSAGE prompts scope-grouped
+  nearest-first (`groupPromptsByScope`) + built-ins — a pick runs the
+  prompt's LAYER DIRECTIVE; "Custom…" morphs to an instruction input
+  with system-prompt PILLS whose click order builds the stack
+  (`toggleStackBlock`, numbered pills); "Open chat" opens the docked
+  panel right (the conversational surface until S06's lateral
+  column). The menu hands an `AiPanelRequest` to the panel — prefill
+  + auto-run, each request id applied exactly once, the run deferred
+  one render so prefilled state has landed.
   `renderer/src/editor/AiPanel.tsx` docks the loop in the editor:
   selection (or whole note) → instruction/preset → destination
   (replace-selection / append / new-note, path prefilled beside the

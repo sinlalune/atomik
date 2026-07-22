@@ -36,8 +36,20 @@ export type BufferChange =
   | { kind: 'replace-range'; range: { from: number; to: number }; newText: string }
   | { kind: 'append'; newText: string }
 
+/** A request handed in from the selection menu (S04): prefills the
+ *  panel and optionally runs immediately. `id` dedupes re-renders. */
+export type AiPanelRequest = {
+  id: string
+  instruction: string
+  preset?: string
+  stack: string[]
+  autoRun?: boolean
+}
+
 export type AiPanelProps = {
   note: VaultNoteFile
+  /** Latest selection-menu request; the panel applies each id once. */
+  request?: AiPanelRequest | null
   /** Current editor selection (offsets + text) at call time. */
   getSelection: () => { from: number; to: number; text: string }
   /** Full buffer text at call time. */
@@ -62,7 +74,7 @@ export type AiPanelProps = {
 
 type Phase = 'compose' | 'running' | 'review'
 
-const PRESETS: Array<{ id: string; label: string; instruction: string }> = [
+export const PRESETS: Array<{ id: string; label: string; instruction: string }> = [
   { id: 'explain', label: 'explain', instruction: 'Explain this simply.' },
   { id: 'summarize', label: 'summarize', instruction: 'Summarize the selection.' },
   { id: 'rewrite', label: 'rewrite', instruction: 'Rewrite this more clearly.' }
@@ -77,6 +89,7 @@ const PRESETS: Array<{ id: string; label: string; instruction: string }> = [
  */
 export function AiPanel({
   note,
+  request,
   getSelection,
   getDoc,
   applyChange,
@@ -207,6 +220,19 @@ export function AiPanel({
     }
   }, [note.relPath])
 
+  // Selection-menu handoff (S04): apply each request exactly once —
+  // prefill, then run on the NEXT render so state has landed.
+  const appliedRequestId = useRef<string | null>(null)
+  const [pendingRun, setPendingRun] = useState(false)
+  useEffect(() => {
+    if (!request || request.id === appliedRequestId.current) return
+    appliedRequestId.current = request.id
+    setInstruction(request.instruction)
+    setPreset(request.preset)
+    setSystemStack(request.stack)
+    if (request.autoRun) setPendingRun(true)
+  }, [request])
+
   const md = useMemo(
     () => new MarkdownIt({ html: false, linkify: false, breaks: true }),
     []
@@ -291,6 +317,14 @@ export function AiPanel({
       runningOperationId.current = null
     }
   }, [destination, getDoc, getSelection, instruction, newNotePath, note.relPath, preset, systemStack, vaultPrompts])
+
+  // The deferred half of the S04 handoff: run fires once the prefilled
+  // instruction is in state (never with the stale pre-request value).
+  useEffect(() => {
+    if (!pendingRun || instruction.trim().length === 0) return
+    setPendingRun(false)
+    void run()
+  }, [pendingRun, instruction, run])
 
   // Cancel rides the operation id (S02): main aborts the provider call
   // mid-flight; the run above rejects with ai(cancelled).

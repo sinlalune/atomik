@@ -1,5 +1,5 @@
 import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
-import { AutosaveIcon, ImageIcon, SaveIcon, SparkleIcon } from '../icons'
+import { AutosaveIcon, ImageIcon, SaveIcon } from '../icons'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { cssLanguage } from '@codemirror/lang-css'
 import { htmlLanguage } from '@codemirror/lang-html'
@@ -37,7 +37,8 @@ import type { VaultFolder, VaultNoteFile } from '../../../shared/ipc-contract'
 import { resolveRelativePath } from '../dev-docs/markdown'
 import { themeOf, type NoteViewMode, type SaveMode } from '../workspace/model'
 import { useWorkspace } from '../workspace/store'
-import { AiPanel, type BufferChange } from './AiPanel'
+import { AiPanel, type AiPanelRequest, type BufferChange } from './AiPanel'
+import { AiSelectionMenu, type AiMenuRequest } from './AiSelectionMenu'
 import { frontmatterEnd, livePreview } from './live-preview'
 import { ModeSwitch } from './ModeSwitch'
 import { quickActions } from './quick-actions'
@@ -178,6 +179,10 @@ export function EditorPane({
   const [conflict, setConflict] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showAi, setShowAi] = useState(false)
+  // S04: the AI entry point is the SELECTION — right-click/Shift+F10
+  // opens the menu at the click location; the note-bar stays editing-only.
+  const [aiMenu, setAiMenu] = useState<{ x: number; y: number } | null>(null)
+  const [aiRequest, setAiRequest] = useState<AiPanelRequest | null>(null)
   const [aiDock, setAiDock] = useState<'bottom' | 'right'>('bottom')
   const [aiSize, setAiSize] = useState(0.44)
   const bodyRef = useRef<HTMLDivElement>(null)
@@ -498,6 +503,25 @@ export function EditorPane({
     view.focus()
   }, [])
 
+  /** S04: menu → panel handoff. A quick action or custom run opens the
+   *  panel prefilled and auto-runs; "Open chat" just opens it docked
+   *  right (the conversational surface until S06's lateral column). */
+  const runFromMenu = useCallback((menuRequest: AiMenuRequest) => {
+    setAiMenu(null)
+    setAiRequest({ id: crypto.randomUUID(), ...menuRequest, autoRun: true })
+    setShowAi(true)
+  }, [])
+
+  const openChatFromMenu = useCallback(() => {
+    setAiMenu(null)
+    setAiDock('right')
+    setShowAi(true)
+  }, [])
+
+  const openAiMenu = useCallback((x: number, y: number) => {
+    setAiMenu({ x, y })
+  }, [])
+
   /** Accepted AI changes land in the BUFFER — visible, undoable; the
    *  explicit save stays the single moment a file diff is born (06). */
   const applyChange = useCallback((change: BufferChange) => {
@@ -529,16 +553,6 @@ export function EditorPane({
         </span>
         <span className="note-bar-actions">
           {error && <span className="error editor-msg">{error}</span>}
-          <button
-            type="button"
-            className={`icon-button${showAi ? ' active' : ''}`}
-            onClick={() => setShowAi((current) => !current)}
-            title="Ask AI about the selection"
-            aria-label="Ask AI"
-            aria-pressed={showAi}
-          >
-            <SparkleIcon />
-          </button>
           {onSaveModeToggle && (
             <button
               type="button"
@@ -600,7 +614,34 @@ export function EditorPane({
         <div
           ref={hostRef}
           className={`editor-host${mode === 'live' ? ' live' : ''}`}
+          // S04: the selection is the AI entry point — right-click (or
+          // Shift+F10 at the caret) opens the contextual AI menu.
+          onContextMenu={(event) => {
+            event.preventDefault()
+            openAiMenu(event.clientX, event.clientY)
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'F10' && event.shiftKey) {
+              event.preventDefault()
+              const view = viewRef.current
+              const coords = view
+                ? view.coordsAtPos(view.state.selection.main.head)
+                : null
+              openAiMenu(coords?.left ?? 80, coords?.bottom ?? 80)
+            }
+          }}
         />
+        {aiMenu && (
+          <AiSelectionMenu
+            x={aiMenu.x}
+            y={aiMenu.y}
+            notePath={note.relPath}
+            selectionText={getSelection().text}
+            onClose={() => setAiMenu(null)}
+            onRun={runFromMenu}
+            onOpenChat={openChatFromMenu}
+          />
+        )}
         {showAi && (
           <>
             <div
@@ -611,6 +652,7 @@ export function EditorPane({
             />
             <AiPanel
               note={note}
+              request={aiRequest}
               getSelection={getSelection}
               getDoc={getDoc}
               applyChange={applyChange}
