@@ -1469,6 +1469,10 @@ body[data-maximized] .tabstrip {
   box-sizing: content-box;
   margin-inline: auto;
   padding: var(--note-pad);
+  /* S05l (owner): read shows pad + the first heading's block-gap
+     margin on top; live's first line sat one gap higher. Match the
+     BIGGER (read) opening. */
+  padding-top: calc(1.5rem + var(--note-block-gap));
 }
 
 /* ...and the READING surface: live sits on the CONTENT surface like

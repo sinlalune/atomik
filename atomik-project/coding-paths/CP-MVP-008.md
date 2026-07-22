@@ -675,7 +675,11 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       line between blocks (the normal note shape; multiple blank
       lines drift only live-side — that is markdown, accepted and
       recorded). S05j reverted live-side. Tests 514/47; gates
-      green; screenshot re-check = owner bench.
+      green; screenshot re-check = owner bench. S05l (owner: "top
+      padding looks smaller in editing mode, bigger preferred"):
+      live's .cm-content padding-top gains one --note-block-gap —
+      matching read's opening (pad + the first heading's collapsed
+      margin). OWNER VALIDATED the rhythm ("ok looks good now").
 - [ ] S06 Chat lateral panel: right pane-chrome column (pane grid
       gains the column; pane state gains a validated chat field,
       migration derives absent as hidden); multi-turn over the
