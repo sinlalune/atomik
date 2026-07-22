@@ -1,3 +1,4 @@
+import MarkdownIt from 'markdown-it'
 import { StateEffect, StateField, type Extension } from '@codemirror/state'
 import {
   Decoration,
@@ -186,13 +187,42 @@ class InlineAiWidget extends WidgetType {
       return root
     }
 
-    // review: editable proposal + claim strip + accept/reject
-    const editor = document.createElement('textarea')
-    editor.className = 'cm-inline-ai-proposal'
-    editor.value = state.proposal
-    editor.rows = Math.min(12, Math.max(3, state.proposal.split('\n').length))
-    editor.setAttribute('aria-label', 'Proposed text — editable before accepting')
-    root.appendChild(editor)
+    // review (S05d transparency, owner: "a continuity of the rest of
+    // note content … framing an already existing text"): the proposal
+    // renders as regular note markdown; edit toggles the raw textarea.
+    let editedValue = state.proposal
+    let editing = false
+    const body = document.createElement('div')
+    body.className = 'cm-inline-ai-body'
+    const renderBody = (): void => {
+      body.textContent = ''
+      if (editing) {
+        const editor = document.createElement('textarea')
+        editor.className = 'cm-inline-ai-proposal'
+        editor.value = editedValue
+        editor.rows = Math.min(14, Math.max(3, editedValue.split('\n').length))
+        editor.setAttribute(
+          'aria-label',
+          'Proposed text — editable before accepting'
+        )
+        editor.addEventListener('input', () => {
+          editedValue = editor.value
+        })
+        body.appendChild(editor)
+        editor.focus()
+      } else {
+        const rendered = document.createElement('div')
+        rendered.className = 'markdown-body cm-inline-ai-rendered'
+        rendered.innerHTML = new MarkdownIt({
+          html: false,
+          linkify: false,
+          breaks: true
+        }).render(editedValue)
+        body.appendChild(rendered)
+      }
+    }
+    renderBody()
+    root.appendChild(body)
 
     if (state.claims.length > 0) {
       const strip = document.createElement('div')
@@ -243,11 +273,21 @@ class InlineAiWidget extends WidgetType {
       })
       actions.appendChild(copy)
     }
+    const edit = document.createElement('button')
+    edit.type = 'button'
+    edit.textContent = 'edit'
+    edit.setAttribute('aria-label', 'Toggle raw editing')
+    edit.addEventListener('click', () => {
+      editing = !editing
+      edit.textContent = editing ? 'preview' : 'edit'
+      renderBody()
+    })
+    actions.appendChild(edit)
     const accept = document.createElement('button')
     accept.type = 'button'
     accept.textContent = '✓ Accept'
     accept.setAttribute('aria-label', 'Accept the proposal')
-    accept.addEventListener('click', () => handlers.onAccept(editor.value))
+    accept.addEventListener('click', () => handlers.onAccept(editedValue))
     const reject = document.createElement('button')
     reject.type = 'button'
     reject.textContent = '✕ Reject'

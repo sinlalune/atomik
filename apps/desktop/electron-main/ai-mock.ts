@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { isValidGenerationParams } from '../shared/generation-params'
 import { labelClaims, type ClaimCandidate } from './truth'
 import type {
   AiDestination,
@@ -73,6 +74,8 @@ export function isValidAiOperation(value: unknown): value is AiOperation {
   if (systemPrompt !== undefined) {
     if (typeof systemPrompt !== 'string' || systemPrompt.length === 0 || systemPrompt.length > MAX_SYSTEM_PROMPT) return false
   }
+  const params = value['params']
+  if (params !== undefined && !isValidGenerationParams(params)) return false
   const noteContext = value['noteContext']
   if (noteContext !== undefined) {
     if (!isRecord(noteContext)) return false

@@ -563,6 +563,28 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       ✓ Create note / ✕ Reject (close = reject); created ONLY on
       accept; auto-link applies drift-guarded. Tests 509/46; gates
       green.
+      S05d (owner feedback wave) DONE 2026-07-22: (1) linked notes
+      moved to the TOP of the user message as the PRIOR-KNOWLEDGE
+      context bundle (`## Prior knowledge — linked notes (context
+      bundle…)` before Instruction/Subject); (2) Steps follow the
+      owner's canon exactly: subject → draw on linked notes → style
+      → (note context) → output, numbering pinned by test;
+      re-benched 3/3 `# Stoicism` on the reordered template. (3)
+      `mistral-medium-2604` joins the allowlist (Medium 3.5 v26.04,
+      docs.mistral.ai; prices FETCHED from mistral.ai/pricing/api
+      2026-07-22: medium $1.5/$7.5, small $0.15/$0.6 — snapshot id
+      updated, per-model billing); shared/generation-params.ts owns
+      models/limits/validation; `AiOperation.params` (model,
+      temperature, topP, maxTokens — bounded, validated main-side,
+      top_p sent ONLY when set) rides the menu's new FOLDABLE
+      options section through prepareAiRun into the adapter;
+      params recorded in the sent request. (4) TRANSPARENCY restyle
+      (owner: "framing an already existing text"): the inline
+      widget renders the proposal as `markdown-body` note content —
+      transparent ground, subtle accent outline, thin head, ghost
+      bottom actions with an edit↔preview toggle; the tab-sim
+      body uses `markdown-body` too (regular note rendering).
+      Tests 509→511/46; gates green.
 - [ ] S06 Chat lateral panel: right pane-chrome column (pane grid
       gains the column; pane state gains a validated chat field,
       migration derives absent as hidden); multi-turn over the

@@ -93,7 +93,7 @@ export function AiNotePreview({
             />
           ) : (
             <div
-              className="ai-note-preview-rendered"
+              className="markdown-body ai-note-preview-rendered"
               dangerouslySetInnerHTML={{ __html: md.render(text) }}
             />
           ))}

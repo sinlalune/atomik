@@ -603,7 +603,8 @@ export function EditorPane({
             systemStack: menuRequest.stack,
             prompts,
             destination: 'new-note',
-            newNotePath: ''
+            newNotePath: '',
+            ...(menuRequest.params ? { params: menuRequest.params } : {})
           },
           window.atomik.readNote
         )
@@ -822,7 +823,8 @@ export function EditorPane({
             systemStack: menuRequest.stack,
             prompts,
             destination: menuRequest.destination,
-            newNotePath: ''
+            newNotePath: '',
+            ...(menuRequest.params ? { params: menuRequest.params } : {})
           },
           window.atomik.readNote
         )

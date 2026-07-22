@@ -40,6 +40,26 @@ describe('isValidAiOperation (channel input is untrusted)', () => {
     expect(isValidAiOperation(validOp({ input: [] }))).toBe(false)
   })
 
+  it('bounds the optional params (S05d): model allowlist + ranges', () => {
+    expect(
+      isValidAiOperation(
+        validOp({
+          params: {
+            model: 'mistral-medium-2604',
+            temperature: 0.7,
+            topP: 0.9,
+            maxTokens: 1000
+          }
+        })
+      )
+    ).toBe(true)
+    expect(isValidAiOperation(validOp({ params: {} }))).toBe(true)
+    expect(isValidAiOperation({ ...validOp(), params: { model: 'gpt-4' } })).toBe(false)
+    expect(isValidAiOperation({ ...validOp(), params: { temperature: 9 } })).toBe(false)
+    expect(isValidAiOperation({ ...validOp(), params: { topP: -1 } })).toBe(false)
+    expect(isValidAiOperation({ ...validOp(), params: { maxTokens: 999999 } })).toBe(false)
+  })
+
   it('bounds the optional note context (S04l landing excerpts)', () => {
     expect(
       isValidAiOperation(validOp({ noteContext: { kind: 'append', tail: 'end of note' } }))

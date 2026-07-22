@@ -1,3 +1,4 @@
+import type { GenerationParams } from '../../../shared/generation-params'
 import type {
   AiOperation,
   AiSelection
@@ -44,6 +45,8 @@ export type SentRequest = {
   }
   linkedNotes: Array<{ relPath: string; content: string }>
   noteContext?: NoteContext
+  /** Sampling overrides that rode the run (S05d); absent = defaults. */
+  params?: GenerationParams
   destination: DestinationKind
 }
 
@@ -63,6 +66,8 @@ export type AiRunInputs = {
   destination: DestinationKind
   /** The path field's current value ('' or the -ai default = untouched). */
   newNotePath: string
+  /** Sampling overrides from the options menu (S05d). */
+  params?: GenerationParams
 }
 
 export type PreparedRun = {
@@ -164,6 +169,9 @@ export async function prepareAiRun(
     ...(inputs.preset ? { preset: inputs.preset } : {}),
     ...(systemPrompt ? { systemPrompt } : {}),
     ...(noteContext ? { noteContext } : {}),
+    ...(inputs.params && Object.keys(inputs.params).length > 0
+      ? { params: inputs.params }
+      : {}),
     target
   }
 
@@ -190,6 +198,7 @@ export async function prepareAiRun(
         content: linked.content
       })),
       ...(noteContext ? { noteContext } : {}),
+      ...(operation.params ? { params: operation.params } : {}),
       destination: target.destination.kind
     }
   }

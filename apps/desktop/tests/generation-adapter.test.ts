@@ -93,7 +93,7 @@ describe('buildMessages (operation → chat completions)', () => {
     expect(user).toContain('## Steps')
   })
 
-  it('extra selections render as linked notes — subject stays first (S04o)', () => {
+  it('linked notes lead the request as the prior-knowledge bundle (S04o/S05d)', () => {
     const linkedOp = operation()
     linkedOp.input = [
       linkedOp.input[0]!,
@@ -105,18 +105,63 @@ describe('buildMessages (operation → chat completions)', () => {
       }
     ]
     const user = buildMessages(linkedOp)[1]!.content
-    expect(user).toContain('## Subject')
-    expect(user).toContain('### Selection 1')
-    expect(user).toContain('## Linked notes — read-only reference material (quotable)')
+    expect(user).toContain(
+      '## Prior knowledge — linked notes (context bundle, read-only, quotable)'
+    )
     expect(user).toContain('### Linked note 1 — `philosophy/Ethymology.md`')
     expect(user).toContain('Etymology traces word origins.')
-    expect(user).toContain('Draw on the linked notes')
-    // subject comes before the linked material
-    expect(user.indexOf('## Subject')).toBeLessThan(user.indexOf('## Linked notes'))
-    // and without linked notes, no such section or step
+    // the bundle is encoded BEFORE the task (owner: prior knowledge first)
+    expect(user.indexOf('## Prior knowledge')).toBeLessThan(
+      user.indexOf('## Instruction')
+    )
+    expect(user.indexOf('## Instruction')).toBeLessThan(user.indexOf('## Subject'))
+    // the steps follow the owner's canon, numbered exactly
+    expect(user).toContain(
+      '1. Identify the subject from the Subject section — it alone sets the topic.'
+    )
+    expect(user).toContain(
+      '2. Draw on the linked notes where the instruction refers to them, quoting them exactly when used.'
+    )
+    expect(user).toContain('3. Apply the style and behavior from the quoted instruction.')
+    expect(user).toContain('4. Write the output following the Output rules — nothing else.')
+    // and without linked notes, no bundle and no linked step
     const plain = buildMessages(operation())[1]!.content
-    expect(plain).not.toContain('## Linked notes')
+    expect(plain).not.toContain('## Prior knowledge')
     expect(plain).not.toContain('Draw on the linked notes')
+    expect(plain).toContain('2. Apply the style and behavior from the quoted instruction.')
+  })
+
+  it('params override model/temperature/top_p/max_tokens; price follows the model (S05d)', async () => {
+    let captured: Record<string, unknown> = {}
+    const capture: FetchStub = (_url, init) => {
+      captured = JSON.parse(init!.body as string) as Record<string, unknown>
+      return Promise.resolve(okResponse(completion('Fine answer here today.')))
+    }
+    const op = operation()
+    op.params = {
+      model: 'mistral-medium-2604',
+      temperature: 0.9,
+      topP: 0.85,
+      maxTokens: 512
+    }
+    const result = await createMistralGenerationAdapter('sk-test', capture).generate(op, {
+      signal: signal()
+    })
+    expect(captured['model']).toBe('mistral-medium-2604')
+    expect(captured['temperature']).toBe(0.9)
+    expect(captured['top_p']).toBe(0.85)
+    expect(captured['max_tokens']).toBe(512)
+    expect(result.providerMeta.model).toBe('mistral-medium')
+    expect(result.providerMeta.billing?.estimatedAmount).toBe(
+      estimateCostUsd({ inputTokens: 120, outputTokens: 40 }, 'mistral-medium-2604')
+    )
+    // defaults: pinned small, temp 0.2, top_p omitted entirely
+    await createMistralGenerationAdapter('sk-test', capture).generate(operation(), {
+      signal: signal()
+    })
+    expect(captured['model']).toBe('mistral-small-2603')
+    expect(captured['temperature']).toBe(0.2)
+    expect('top_p' in captured).toBe(false)
   })
 
   it('append/replace carry the note context with a landing point (S04l)', () => {
@@ -302,9 +347,10 @@ describe('mistral adapter — response → bundle mapping', () => {
       basis: 'estimated',
       priceSnapshotId: GENERATION_PRICE_SNAPSHOT.id
     })
+    const { GENERATION_MODELS } = await import('../shared/generation-params')
     expect(estimateCostUsd({ inputTokens: 1_000_000, outputTokens: 1_000_000 })).toBe(
-      GENERATION_PRICE_SNAPSHOT.inputUsdPerMTok +
-        GENERATION_PRICE_SNAPSHOT.outputUsdPerMTok
+      GENERATION_MODELS['mistral-small-2603'].inputUsdPerMTok +
+        GENERATION_MODELS['mistral-small-2603'].outputUsdPerMTok
     )
   })
 

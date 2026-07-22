@@ -8,6 +8,12 @@ import {
 } from './generation'
 import { labelClaims, type ClaimCandidate } from './truth'
 import { composeSystemPrompt, composeUserMessage } from '../shared/prompt-composition'
+import {
+  DEFAULT_GENERATION_MODEL,
+  GENERATION_MODELS,
+  PARAM_LIMITS,
+  type GenerationModelId
+} from '../shared/generation-params'
 import type {
   AiOperation,
   AiOutputBlock,
@@ -34,14 +40,12 @@ export const MISTRAL_SMALL_MODEL = 'mistral-small-2603'
 const CHAT_URL = 'https://api.mistral.ai/v1/chat/completions'
 
 /**
- * The dated price snapshot behind every cost estimate (33): upper bound
- * of the range recorded in docs/research/model-research.md (2026-07-20)
- * — estimates must not flatter. Billing basis stays 'estimated'.
+ * The dated price snapshot behind every cost estimate (33): per-model
+ * prices from mistral.ai/pricing/api, fetched 2026-07-22 (S05d — the
+ * medium tier joined). Billing basis stays 'estimated'.
  */
 export const GENERATION_PRICE_SNAPSHOT = {
-  id: 'docs/research/model-research.md@2026-07-20',
-  inputUsdPerMTok: 0.15,
-  outputUsdPerMTok: 0.6
+  id: 'mistral.ai/pricing/api@2026-07-22'
 } as const
 
 /** Budgets in MAIN below renderer state (S01 pin; 06/33). */
@@ -54,13 +58,14 @@ const MAX_INPUT_TOKENS_ESTIMATE = 120_000
 const estimateTokens = (chars: number): number =>
   Math.max(1, Math.ceil(chars / 4))
 
-export function estimateCostUsd(usage: {
-  inputTokens: number
-  outputTokens: number
-}): number {
+export function estimateCostUsd(
+  usage: { inputTokens: number; outputTokens: number },
+  model: GenerationModelId = DEFAULT_GENERATION_MODEL
+): number {
+  const price = GENERATION_MODELS[model]
   const amount =
-    (usage.inputTokens / 1e6) * GENERATION_PRICE_SNAPSHOT.inputUsdPerMTok +
-    (usage.outputTokens / 1e6) * GENERATION_PRICE_SNAPSHOT.outputUsdPerMTok
+    (usage.inputTokens / 1e6) * price.inputUsdPerMTok +
+    (usage.outputTokens / 1e6) * price.outputUsdPerMTok
   return Number(amount.toFixed(6))
 }
 
@@ -190,6 +195,11 @@ export function createMistralGenerationAdapter(
       const relayCancel = (): void => fetchController.abort()
       context.signal.addEventListener('abort', relayCancel, { once: true })
 
+      // S05d: bounded overrides ride the operation (validated main-side)
+      const model: GenerationModelId = operation.params?.model ?? DEFAULT_GENERATION_MODEL
+      const temperature =
+        operation.params?.temperature ?? PARAM_LIMITS.temperature.default
+      const maxTokens = operation.params?.maxTokens ?? maxOutputTokens
       let response: Response
       try {
         response = await fetchImpl(CHAT_URL, {
@@ -199,10 +209,13 @@ export function createMistralGenerationAdapter(
             'content-type': 'application/json'
           },
           body: JSON.stringify({
-            model: MISTRAL_SMALL_MODEL,
+            model,
             messages,
-            max_tokens: maxOutputTokens,
-            temperature: 0.2
+            max_tokens: maxTokens,
+            temperature,
+            ...(operation.params?.topP !== undefined
+              ? { top_p: operation.params.topP }
+              : {})
           }),
           signal: fetchController.signal
         })
@@ -333,7 +346,7 @@ export function createMistralGenerationAdapter(
             choice?.finish_reason === 'length'
               ? [
                   {
-                    message: `Response hit the ${maxOutputTokens}-token output budget and may be truncated.`,
+                    message: `Response hit the ${maxTokens}-token output budget and may be truncated.`,
                     severity: 'warning'
                   }
                 ]
@@ -344,11 +357,11 @@ export function createMistralGenerationAdapter(
         providerMeta: {
           location: 'cloud-model',
           provider: 'mistral',
-          model: 'mistral-small',
-          modelVersion: parsed.model ?? MISTRAL_SMALL_MODEL,
+          model: `mistral-${GENERATION_MODELS[model].label}`,
+          modelVersion: parsed.model ?? model,
           billing: {
             currency: 'USD',
-            estimatedAmount: estimateCostUsd(usage),
+            estimatedAmount: estimateCostUsd(usage, model),
             basis: 'estimated',
             priceSnapshotId: GENERATION_PRICE_SNAPSHOT.id
           }

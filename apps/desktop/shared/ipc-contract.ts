@@ -419,6 +419,9 @@ export type AiOperation = {
   noteContext?:
     | { kind: 'append'; tail: string }
     | { kind: 'replace'; before: string; after: string }
+  /** Sampling overrides (S05d): pinned-model allowlist + bounded
+   *  temperature / top_p / max_tokens; absent = the defaults. */
+  params?: import('./generation-params').GenerationParams
   target: { relPath: string; destination: AiDestination }
 }
 

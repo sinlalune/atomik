@@ -3173,15 +3173,27 @@ button svg {
   border-radius: 3px;
 }
 
+/* S05d transparency (owner): the widget FRAMES text that reads as
+   part of the note — subtle outline, transparent ground, note
+   typography via markdown-body; chrome shrinks to a thin head and a
+   bottom action row. */
 .cm-inline-ai {
   margin: 0.35rem 0;
-  padding: 0.45rem 0.6rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--accent);
+  padding: 0.3rem 0.55rem 0.35rem;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
   border-radius: var(--radius-md);
   font-size: 0.78rem;
   color: var(--muted);
+}
+
+.cm-inline-ai-rendered {
+  color: var(--fg, inherit);
+  font-size: inherit;
+}
+
+.cm-inline-ai-body {
+  margin: 0.2rem 0;
 }
 
 .cm-inline-ai-head {
@@ -3249,18 +3261,23 @@ button svg {
 
 .cm-inline-ai button {
   font: inherit;
-  font-size: 0.75rem;
-  color: inherit;
-  background: var(--code-bg);
-  border: 1px solid var(--border);
+  font-size: 0.72rem;
+  color: var(--muted);
+  background: transparent;
+  border: none;
   border-radius: 999px;
-  padding: 0.12rem 0.65rem;
+  padding: 0.1rem 0.5rem;
   cursor: pointer;
 }
 
 .cm-inline-ai button:hover {
   color: var(--accent);
-  border-color: var(--accent);
+  background: var(--code-bg);
+}
+
+.cm-inline-ai-head {
+  opacity: 0.85;
+  font-size: 0.7rem;
 }
 
 /* S04b/S04g: the sent-request inspector — stored per run, shown on
@@ -3422,6 +3439,51 @@ button svg {
 }
 
 .ai-menu-custom textarea:focus {
+  outline: 1px solid var(--accent);
+  border-color: var(--accent);
+}
+
+/* S05d: foldable sampling options */
+.ai-menu-options {
+  padding: 0 0.25rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.ai-menu-options summary {
+  cursor: pointer;
+  padding: 0.15rem 0.25rem;
+}
+
+.ai-menu-options summary:hover {
+  color: var(--accent);
+}
+
+.ai-menu-options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.3rem 0.6rem;
+  padding: 0.25rem;
+}
+
+.ai-menu-options-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.ai-menu-options-grid input,
+.ai-menu-options-grid select {
+  font: inherit;
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.15rem 0.35rem;
+}
+
+.ai-menu-options-grid input:focus,
+.ai-menu-options-grid select:focus {
   outline: 1px solid var(--accent);
   border-color: var(--accent);
 }

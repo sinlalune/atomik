@@ -140,42 +140,37 @@ export function composeUserMessage(
   noteContext?: NoteContext
 ): string {
   // Convention (S04o): the FIRST selection is the subject; any
-  // further selections are LINKED NOTES the instruction referenced —
-  // quotable reference material the checker can verify.
+  // further selections are LINKED NOTES the instruction referenced.
+  // S05d (owner): linked notes lead the request as a PRIOR-KNOWLEDGE
+  // context bundle — reference is encoded before the task; and the
+  // steps follow the owner's canon: subject → linked notes → style →
+  // (note context) → output.
   const [subject, ...linked] = selections
   const quoted = instruction
     .split('\n')
     .map((line) => (line.trim().length > 0 ? `> ${line}` : '>'))
     .join('\n')
-  let step = 2
-  const steps = [
-    '1. Identify the subject from the Subject section — it alone sets the topic.',
-    `${(step += 1) - 1}. Apply the style and behavior from the quoted instruction.`,
+  const stepLines = [
+    'Identify the subject from the Subject section — it alone sets the topic.',
     ...(linked.length > 0
       ? [
-          `${(step += 1) - 1}. Draw on the linked notes where the instruction refers to them, quoting them exactly when used.`
+          'Draw on the linked notes where the instruction refers to them, quoting them exactly when used.'
         ]
       : []),
+    'Apply the style and behavior from the quoted instruction.',
     ...(noteContext
       ? [
-          `${(step += 1) - 1}. Check the note context: integrate with the existing structure and never duplicate it.`
+          'Check the note context: integrate with the existing structure and never duplicate it.'
         ]
       : []),
-    `${step}. Write the output following the Output rules — nothing else.`
+    'Write the output following the Output rules — nothing else.'
   ]
   return [
     '# Request',
     '',
-    '## Instruction — style and behavior guidance (quoted)',
-    '',
-    quoted,
-    '',
-    '## Subject',
-    '',
-    ...(subject ? [...selectionSection(subject, 0), ''] : []),
     ...(linked.length > 0
       ? [
-          '## Linked notes — read-only reference material (quotable)',
+          '## Prior knowledge — linked notes (context bundle, read-only, quotable)',
           '',
           ...linked.flatMap((note, index) => [
             `### Linked note ${index + 1} — \`${note.relPath}\``,
@@ -185,10 +180,17 @@ export function composeUserMessage(
           ])
         ]
       : []),
+    '## Instruction — style and behavior guidance (quoted)',
+    '',
+    quoted,
+    '',
+    '## Subject',
+    '',
+    ...(subject ? [...selectionSection(subject, 0), ''] : []),
     ...(noteContext ? [...noteContextSection(noteContext), ''] : []),
     '## Steps',
     '',
-    ...steps
+    ...stepLines.map((line, index) => `${index + 1}. ${line}`)
   ].join('\n')
 }
 

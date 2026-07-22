@@ -1,4 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
+import {
+  DEFAULT_GENERATION_MODEL,
+  GENERATION_MODELS,
+  PARAM_LIMITS,
+  type GenerationModelId,
+  type GenerationParams
+} from '../../../shared/generation-params'
 import { PlayIcon } from '../icons'
 import { PRESETS } from './AiPanel'
 import {
@@ -29,6 +36,8 @@ export type AiMenuRequest = {
   /** How the proposal integrates (owner, S04e): replace the
    *  selection, append to the note, or a new note. */
   destination: 'replace-selection' | 'append' | 'new-note'
+  /** Sampling overrides from the foldable options (S05d). */
+  params?: GenerationParams
 }
 
 /** Search appears when the vault offers more labels than this. */
@@ -61,6 +70,11 @@ export function AiSelectionMenu({
   const [systemOrder, setSystemOrder] = useState<string[]>([])
   const [input, setInput] = useState('')
   const [destination, setDestination] = useState<AiMenuRequest['destination']>('append')
+  // S05d foldable options — empty string = provider/default value
+  const [model, setModel] = useState<GenerationModelId>(DEFAULT_GENERATION_MODEL)
+  const [temperature, setTemperature] = useState('')
+  const [topP, setTopP] = useState('')
+  const [maxTokens, setMaxTokens] = useState('')
   const panelRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const hasSelection = selectionText.trim().length > 0
@@ -102,6 +116,27 @@ export function AiSelectionMenu({
       messageOrder.length === 1 && input.trim().length === 0
         ? messageOrder[0]!
         : null
+    const clamp = (
+      raw: string,
+      limits: { min: number; max: number }
+    ): number | undefined => {
+      if (raw.trim().length === 0) return undefined
+      const parsed = Number(raw)
+      if (!Number.isFinite(parsed)) return undefined
+      return Math.min(limits.max, Math.max(limits.min, parsed))
+    }
+    const params: GenerationParams = {
+      ...(model !== DEFAULT_GENERATION_MODEL ? { model } : {}),
+      ...(clamp(temperature, PARAM_LIMITS.temperature) !== undefined
+        ? { temperature: clamp(temperature, PARAM_LIMITS.temperature) }
+        : {}),
+      ...(clamp(topP, PARAM_LIMITS.topP) !== undefined
+        ? { topP: clamp(topP, PARAM_LIMITS.topP) }
+        : {}),
+      ...(clamp(maxTokens, PARAM_LIMITS.maxTokens) !== undefined
+        ? { maxTokens: clamp(maxTokens, PARAM_LIMITS.maxTokens) }
+        : {})
+    }
     onRun({
       instruction,
       ...(single
@@ -112,7 +147,8 @@ export function AiSelectionMenu({
           }
         : {}),
       stack: systemOrder,
-      destination
+      destination,
+      ...(Object.keys(params).length > 0 ? { params } : {})
     })
   }
 
@@ -263,6 +299,66 @@ export function AiSelectionMenu({
             ))}
           </div>
         </div>
+        <details className="ai-menu-options">
+          <summary>options</summary>
+          <div className="ai-menu-options-grid">
+            <label>
+              model
+              <select
+                aria-label="Model"
+                value={model}
+                onChange={(event) => setModel(event.target.value as GenerationModelId)}
+              >
+                {(Object.keys(GENERATION_MODELS) as GenerationModelId[]).map(
+                  (id) => (
+                    <option key={id} value={id}>
+                      {GENERATION_MODELS[id].label} ({id})
+                    </option>
+                  )
+                )}
+              </select>
+            </label>
+            <label>
+              temperature
+              <input
+                type="number"
+                step="0.1"
+                min={PARAM_LIMITS.temperature.min}
+                max={PARAM_LIMITS.temperature.max}
+                placeholder={String(PARAM_LIMITS.temperature.default)}
+                aria-label="Temperature"
+                value={temperature}
+                onChange={(event) => setTemperature(event.target.value)}
+              />
+            </label>
+            <label>
+              top p
+              <input
+                type="number"
+                step="0.05"
+                min={PARAM_LIMITS.topP.min}
+                max={PARAM_LIMITS.topP.max}
+                placeholder={`${PARAM_LIMITS.topP.default} (default)`}
+                aria-label="Top p"
+                value={topP}
+                onChange={(event) => setTopP(event.target.value)}
+              />
+            </label>
+            <label>
+              max tokens
+              <input
+                type="number"
+                step="50"
+                min={PARAM_LIMITS.maxTokens.min}
+                max={PARAM_LIMITS.maxTokens.max}
+                placeholder={String(PARAM_LIMITS.maxTokens.default)}
+                aria-label="Max tokens"
+                value={maxTokens}
+                onChange={(event) => setMaxTokens(event.target.value)}
+              />
+            </label>
+          </div>
+        </details>
         <div className="ai-menu-custom">
           <textarea
             ref={inputRef}
