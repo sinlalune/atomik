@@ -74,6 +74,20 @@ describe('buildMessages (operation → chat completions)', () => {
     expect(messages[1]!.content).toContain(SELECTION_TEXT)
   })
 
+  it('the selection is the SUBJECT; the path is trailing provenance (S04d)', () => {
+    const messages = buildMessages(operation())
+    const user = messages[1]!.content
+    // subject-first block: the header carries no path; the path rides
+    // a trailing provenance line AFTER the content
+    expect(user).toContain('### Subject selection 1')
+    expect(user).not.toContain('Selection 1 — from')
+    expect(user.indexOf(SELECTION_TEXT)).toBeLessThan(
+      user.indexOf('provenance: `notes/attention.md`')
+    )
+    // and the system prompt pins the rule
+    expect(messages[0]!.content).toContain('never infer the topic from a path')
+  })
+
   it('a prompt-file system prompt replaces the identity, never the grounding rules (S03)', () => {
     const custom = operation()
     custom.systemPrompt = 'You are a terse research assistant.'

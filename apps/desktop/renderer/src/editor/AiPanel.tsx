@@ -135,6 +135,8 @@ export function AiPanel({
       to: number
       chars: number
       wholeNote: boolean
+      /** What was actually captured — seeing beats trusting offsets. */
+      excerpt: string
     }
     destination: string
   } | null>(null)
@@ -326,7 +328,11 @@ export function AiPanel({
         from: selection.range.from,
         to: selection.range.to,
         chars: selection.content.length,
-        wholeNote: raw.text.length === 0
+        wholeNote: raw.text.length === 0,
+        excerpt:
+          selection.content.length <= 200
+            ? selection.content
+            : `${selection.content.slice(0, 200)}…`
       },
       destination: target.destination.kind
     })
@@ -914,6 +920,12 @@ export function AiPanel({
                 instruction{sentRequest.preset ? ` (${sentRequest.preset})` : ''}
               </span>
               <pre>{sentRequest.instruction}</pre>
+            </div>
+            <div className="ai-sent-block">
+              <span className="ai-sent-label">
+                selection sent{sentRequest.selection.wholeNote ? ' (whole note)' : ''}
+              </span>
+              <pre>{sentRequest.selection.excerpt}</pre>
             </div>
             <p className="ai-sent-note">
               Composed exactly as sent — layers expanded, stack joined. Main

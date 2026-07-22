@@ -88,6 +88,7 @@ export function defaultSystemPrompt(operation: AiOperation): string {
   return [
     identity && identity.length > 0 ? identity : BUILT_IN_IDENTITY,
     'Work ONLY from the instruction and the provided selections.',
+    'The selected text IS the subject of the request — answer about it. File paths are provenance only; never infer the topic from a path or filename.',
     'When you state something the selections support, quote the supporting passage EXACTLY, character for character, so it can be verified mechanically.',
     'Never invent citations or sources.',
     DESTINATION_BRIEF[operation.target.destination.kind] ?? '',
@@ -97,13 +98,17 @@ export function defaultSystemPrompt(operation: AiOperation): string {
     .join('\n')
 }
 
+/** Subject first, provenance last (owner report 2026-07-22: a short
+ *  selection inside philosophy.md drew an answer about philosophy —
+ *  the path led the header and outweighed the 10-char subject). */
 const selectionBlock = (selection: AiSelection, index: number): string =>
   [
-    `### Selection ${index + 1} — from \`${selection.relPath}\``,
+    `### Subject selection ${index + 1}`,
     '',
     '```',
     selection.content,
-    '```'
+    '```',
+    `(provenance: \`${selection.relPath}\`)`
   ].join('\n')
 
 export type ChatMessage = { role: 'system' | 'user'; content: string }

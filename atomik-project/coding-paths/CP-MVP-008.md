@@ -346,6 +346,19 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       never drop out of view; preset recorded only for a single
       untyped pick; "Open chat" survives in the footer. Tests
       489→491/45; gates green.
+- [x] S04d (owner report: highlighted "ethymology" in philosophy.md,
+      answer was about philosophy) — done 2026-07-22: VERIFIED the
+      right variable travels (the capture's inspector: selection
+      110–120 · 10 chars = the highlighted word) — the leak was the
+      MESSAGE SHAPE: the selection header led with the file path, so
+      a 10-char subject sat under a loud "philosophy". Fix in
+      buildMessages: subject-first block (`### Subject selection N`,
+      content fenced, path demoted to a trailing provenance line) +
+      a system rule ("the selected text IS the subject; never infer
+      the topic from a path or filename") — pinned by test (subject
+      before provenance, no path in the header). The inspector now
+      shows the captured selection TEXT (200-char excerpt) beside
+      its bounds. Tests 491→492/45; gates green.
 - [ ] S05 Inline live preview: proposal rendered over the target
       range as a CM widget (live-preview WidgetType pattern) with
       accept / edit / reject + compact claim strip + trace badge;
