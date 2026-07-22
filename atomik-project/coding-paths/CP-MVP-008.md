@@ -804,6 +804,21 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       show in read exactly as the editor shows them (source-true).
       Tests 518→519/47 (break rules pinned newline-free); gates
       green.
+      S05u (owner mid-session: "add a width config in the menu to
+      adjust note text width") — DONE 2026-07-22: noteWidth setting
+      (px string, clamped 480–1200, absent = the 46rem stylesheet
+      default) with noteWidthOf/setNoteWidth (font-size contract);
+      Workspace.tsx overrides --note-column on :root — both modes'
+      reading column rides the same token, capped by the pane as
+      before (max-width). AppMenu: the S05s row generalized into ONE
+      NotePxRow component (slider commits direct, number field
+      commits a draft on blur/Enter, reset only while overridden) —
+      two uses: Size (12–24, step 0.5) and Width (480–1200, step
+      10); row class renamed app-menu-fontsize → app-menu-px. CDP
+      e2e: width→900 sets the root var, the live column widens to
+      the pane cap in a 1200px window (max-width correct), number
+      field syncs, noteWidth:"900" persists. Tests 519→520/47; gates
+      green.
 - [ ] S06 Chat lateral panel: right pane-chrome column (pane grid
       gains the column; pane state gains a validated chat field,
       migration derives absent as hidden); multi-turn over the

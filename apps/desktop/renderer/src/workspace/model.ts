@@ -534,6 +534,47 @@ export function setNoteFontSize(
   }
 }
 
+/**
+ * Note column width (owner request, S05u): same contract as the font
+ * size — ONE setting overrides --note-column on :root, both modes'
+ * reading column follows. Px in the settings map; absent = the
+ * stylesheet default (46rem). The band keeps the column readable:
+ * narrower than 30rem cramps notes, wider than the default padding
+ * allows stops mattering on most panes.
+ */
+export const NOTE_WIDTH_MIN = 480
+export const NOTE_WIDTH_MAX = 1200
+export const NOTE_WIDTH_DEFAULT = 736
+
+function clampNoteWidth(px: number): number {
+  return Math.min(NOTE_WIDTH_MAX, Math.max(NOTE_WIDTH_MIN, px))
+}
+
+export function noteWidthOf(state: WorkspaceState | null): number | null {
+  const raw = state?.settings?.['noteWidth']
+  if (raw === undefined) return null
+  const parsed = Number(raw)
+  return Number.isFinite(parsed) ? clampNoteWidth(parsed) : null
+}
+
+export function setNoteWidth(
+  state: WorkspaceState,
+  px: number | null
+): WorkspaceState {
+  if (px === null || !Number.isFinite(px)) {
+    if (state.settings?.['noteWidth'] === undefined) return state
+    const settings = { ...state.settings }
+    delete settings['noteWidth']
+    return { ...state, settings }
+  }
+  const clamped = clampNoteWidth(px)
+  if (noteWidthOf(state) === clamped) return state
+  return {
+    ...state,
+    settings: { ...state.settings, noteWidth: String(clamped) }
+  }
+}
+
 /** Replaces a tab's VIEW — the new-tab chooser morphing into its pick.
  *  Params reset to the given ones (S07e: a note tab in a project pane
  *  needs its projectPath); they described the previous view otherwise. */

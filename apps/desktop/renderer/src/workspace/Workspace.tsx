@@ -33,6 +33,7 @@ import {
   relocateTabPaths,
   saveModeOf,
   noteFontSizeOf,
+  noteWidthOf,
   setFocus,
   setFraction,
   setPaneTreeScope,
@@ -738,6 +739,19 @@ export function Workspace(): React.JSX.Element {
       )
     }
   }, [noteFontSize])
+
+  // S05u: the note column width — same contract, --note-column.
+  const noteWidth = noteWidthOf(state)
+  useEffect(() => {
+    if (noteWidth === null) {
+      document.documentElement.style.removeProperty('--note-column')
+    } else {
+      document.documentElement.style.setProperty(
+        '--note-column',
+        `${noteWidth}px`
+      )
+    }
+  }, [noteWidth])
 
   if (!state) return <p className="workspace-loading">loading workspace…</p>
 

@@ -15,8 +15,11 @@ import {
   migrateRetiredViews,
   NOTE_FONT_SIZE_MAX,
   NOTE_FONT_SIZE_MIN,
+  NOTE_WIDTH_MAX,
+  NOTE_WIDTH_MIN,
   noteFontSizeOf,
   noteModeOf,
+  noteWidthOf,
   paneTreeHidden,
   paneTreeOf,
   paneTreeOpenFolders,
@@ -28,6 +31,7 @@ import {
   setFocus,
   setFraction,
   setNoteFontSize,
+  setNoteWidth,
   setPaneTreeScope,
   setSaveMode,
   setTabView,
@@ -164,6 +168,30 @@ describe('note font size (workspace settings, S05s)', () => {
     expect(noteFontSizeOf(reset)).toBeNull()
     expect(reset.settings?.['noteFontSize']).toBeUndefined()
     expect(setNoteFontSize(reset, null)).toBe(reset)
+  })
+})
+
+describe('note width (workspace settings, S05u)', () => {
+  it('same contract as font size: null default, clamped band, string round-trip, reset', () => {
+    expect(noteWidthOf(null)).toBeNull()
+    const base = createDefaultState('')
+    expect(noteWidthOf(base)).toBeNull()
+    expect(noteWidthOf({ ...base, settings: { noteWidth: 'wide' } })).toBeNull()
+    expect(noteWidthOf({ ...base, settings: { noteWidth: '100' } })).toBe(
+      NOTE_WIDTH_MIN
+    )
+    expect(noteWidthOf({ ...base, settings: { noteWidth: '5000' } })).toBe(
+      NOTE_WIDTH_MAX
+    )
+    const sized = setNoteWidth(setNoteFontSize(base, 18), 900)
+    expect(noteWidthOf(sized)).toBe(900)
+    expect(sized.settings?.['noteWidth']).toBe('900')
+    expect(noteFontSizeOf(sized)).toBe(18)
+    expect(setNoteWidth(sized, 900)).toBe(sized)
+    const reset = setNoteWidth(sized, null)
+    expect(noteWidthOf(reset)).toBeNull()
+    expect(reset.settings?.['noteWidth']).toBeUndefined()
+    expect(noteFontSizeOf(reset)).toBe(18)
   })
 })
 

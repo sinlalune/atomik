@@ -415,11 +415,11 @@ body[data-maximized] .app-header {
    stays a compact box, the unit reads as a quiet suffix. The range
    input drops the text-input skin (its track IS the control) and
    speaks the accent like every other stateful control. */
-.app-menu-fontsize {
+.app-menu-px {
   align-items: center;
 }
 
-.app-menu-fontsize input[type='range'] {
+.app-menu-px input[type='range'] {
   flex: 1;
   background: none;
   border: none;
@@ -427,11 +427,11 @@ body[data-maximized] .app-header {
   accent-color: var(--accent);
 }
 
-.app-menu-fontsize input[type='number'] {
+.app-menu-px input[type='number'] {
   flex: 0 0 4.2em;
 }
 
-.app-menu-fontsize .app-menu-clear {
+.app-menu-px .app-menu-clear {
   margin-top: 0;
 }
 

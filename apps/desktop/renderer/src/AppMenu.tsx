@@ -7,14 +7,91 @@ import {
   NOTE_FONT_SIZE_DEFAULT,
   NOTE_FONT_SIZE_MAX,
   NOTE_FONT_SIZE_MIN,
+  NOTE_WIDTH_DEFAULT,
+  NOTE_WIDTH_MAX,
+  NOTE_WIDTH_MIN,
   noteFontSizeOf,
+  noteWidthOf,
   setNoteFontSize,
+  setNoteWidth,
   setTheme,
   themeOf,
   THEMES,
   type Theme
 } from './workspace/model'
 import { useWorkspace } from './workspace/store'
+
+/**
+ * One slider + number + reset row for a px-valued note setting (S05s
+ * size, S05u width). The number field edits a DRAFT and commits on
+ * blur/Enter — committing per keystroke would clamp "1" to the band
+ * minimum before the user can finish typing "16". The slider commits
+ * directly (its values are always in band). Reset appears only while
+ * the setting overrides the stylesheet default.
+ */
+function NotePxRow(props: {
+  label: string
+  min: number
+  max: number
+  step: number
+  value: number | null
+  fallback: number
+  onCommit: (px: number | null) => void
+}): React.JSX.Element {
+  const { label, min, max, step, value, fallback, onCommit } = props
+  const [draft, setDraft] = useState<string | null>(null)
+  const shown = value ?? fallback
+  const commitDraft = (): void => {
+    if (draft !== null) {
+      const parsed = Number(draft)
+      if (draft.trim() !== '' && Number.isFinite(parsed)) onCommit(parsed)
+      setDraft(null)
+    }
+  }
+  return (
+    <div className="app-menu-row app-menu-px">
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={shown}
+        aria-label={label}
+        onChange={(event) => {
+          setDraft(null)
+          onCommit(Number(event.target.value))
+        }}
+      />
+      <input
+        type="number"
+        min={min}
+        max={max}
+        step={step}
+        value={draft ?? String(shown)}
+        aria-label={`${label} in pixels`}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={commitDraft}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') commitDraft()
+        }}
+      />
+      <span className="app-menu-unit">px</span>
+      {value !== null && (
+        <button
+          type="button"
+          className="app-menu-clear"
+          title={`Back to the default ${label.toLowerCase()}`}
+          onClick={() => {
+            setDraft(null)
+            onCommit(null)
+          }}
+        >
+          reset
+        </button>
+      )}
+    </div>
+  )
+}
 
 /**
  * The app menu (owner request: one menu button in the header holding the
@@ -28,23 +105,8 @@ export function AppMenu(): React.JSX.Element {
   // re-rendering on every workspace dispatch (divider drags included)
   const theme = useWorkspace((store) => themeOf(store.state))
   const noteFontSize = useWorkspace((store) => noteFontSizeOf(store.state))
+  const noteWidth = useWorkspace((store) => noteWidthOf(store.state))
   const dispatch = useWorkspace((store) => store.dispatch)
-
-  // S05s: the number field edits a DRAFT and commits on blur/Enter —
-  // committing per keystroke would clamp "1" to 12 before the user
-  // can type "16". The slider commits directly (its values are
-  // always in band).
-  const [sizeDraft, setSizeDraft] = useState<string | null>(null)
-  const fontSizeValue = noteFontSize ?? NOTE_FONT_SIZE_DEFAULT
-  const commitSizeDraft = (): void => {
-    if (sizeDraft !== null) {
-      const parsed = Number(sizeDraft)
-      if (sizeDraft.trim() !== '' && Number.isFinite(parsed)) {
-        dispatch((current) => setNoteFontSize(current, parsed))
-      }
-      setSizeDraft(null)
-    }
-  }
 
   const [open, setOpen] = useState(false)
   const [settings, setSettings] = useState<AiSettingsPublic | null>(null)
@@ -152,49 +214,26 @@ export function AppMenu(): React.JSX.Element {
             ))}
           </div>
 
-          <h4>Note text</h4>
-          <div className="app-menu-row app-menu-fontsize">
-            <input
-              type="range"
-              min={NOTE_FONT_SIZE_MIN}
-              max={NOTE_FONT_SIZE_MAX}
-              step={0.5}
-              value={fontSizeValue}
-              aria-label="Note font size"
-              onChange={(event) => {
-                setSizeDraft(null)
-                const next = Number(event.target.value)
-                dispatch((current) => setNoteFontSize(current, next))
-              }}
-            />
-            <input
-              type="number"
-              min={NOTE_FONT_SIZE_MIN}
-              max={NOTE_FONT_SIZE_MAX}
-              step={0.5}
-              value={sizeDraft ?? String(fontSizeValue)}
-              aria-label="Note font size in pixels"
-              onChange={(event) => setSizeDraft(event.target.value)}
-              onBlur={commitSizeDraft}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') commitSizeDraft()
-              }}
-            />
-            <span className="app-menu-unit">px</span>
-            {noteFontSize !== null && (
-              <button
-                type="button"
-                className="app-menu-clear"
-                title="Back to the default note size"
-                onClick={() => {
-                  setSizeDraft(null)
-                  dispatch((current) => setNoteFontSize(current, null))
-                }}
-              >
-                reset
-              </button>
-            )}
-          </div>
+          <h4>Note text · Size</h4>
+          <NotePxRow
+            label="Note font size"
+            min={NOTE_FONT_SIZE_MIN}
+            max={NOTE_FONT_SIZE_MAX}
+            step={0.5}
+            value={noteFontSize}
+            fallback={NOTE_FONT_SIZE_DEFAULT}
+            onCommit={(px) => dispatch((current) => setNoteFontSize(current, px))}
+          />
+          <h4>Note text · Width</h4>
+          <NotePxRow
+            label="Note text width"
+            min={NOTE_WIDTH_MIN}
+            max={NOTE_WIDTH_MAX}
+            step={10}
+            value={noteWidth}
+            fallback={NOTE_WIDTH_DEFAULT}
+            onCommit={(px) => dispatch((current) => setNoteWidth(current, px))}
+          />
 
           <h4>AI · Mistral key</h4>
           <p className="app-menu-status">
