@@ -2382,6 +2382,21 @@ body[data-maximized] .tabstrip {
   tab-size: 4;
 }
 
+/* S05t (owner: "it is justifying differently"): CM lays text out
+   under white-space: break-spaces, where the space at a wrap point
+   TAKES WIDTH — near-full lines then wrap one word earlier than
+   read's `normal`, which lets that space hang. Read's leaf text
+   blocks adopt the same value so both modes break lines at the SAME
+   word, and runs of spaces stay visible like the editor shows them.
+   Scope: blocks whose children are inline-only — the renderer emits
+   no raw newlines there (note-markdown.ts break rules). Container
+   li (loose items, nested lists) are excluded: their inter-block
+   newline text nodes would render as phantom lines. */
+.markdown-body :is(p, h1, h2, h3, h4, h5, h6, th, td),
+.markdown-body li:not(:has(> p, > ul, > ol, > blockquote, > pre, > table)) {
+  white-space: break-spaces;
+}
+
 /* Inline emphasis GUARANTEED (S05f): browser defaults normally cover
    these, but AI surfaces render markdown inside hosts with their own
    font/weight chains (CM scroller, widget frames) — assert them so no

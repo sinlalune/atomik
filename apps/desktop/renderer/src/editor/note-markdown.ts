@@ -84,5 +84,13 @@ export function noteMarkdown(): MarkdownIt {
   const md = new MarkdownIt({ html: false, linkify: false, breaks: true })
   taskLists(md)
   sourceGaps(md)
+  // S05t (owner: "it is justifying differently"): read's leaf text
+  // blocks wrap under white-space: break-spaces so a space at the
+  // wrap point takes width exactly like the editor. That only works
+  // if no RAW newline reaches those blocks — the default break rules
+  // emit '<br>\n', and break-spaces would render that '\n' as a
+  // second, phantom line break.
+  md.renderer.rules.softbreak = () => '<br>'
+  md.renderer.rules.hardbreak = () => '<br>'
   return md
 }

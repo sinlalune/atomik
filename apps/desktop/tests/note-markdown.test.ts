@@ -54,4 +54,11 @@ describe('noteMarkdown — the ONE note renderer (S05g)', () => {
     expect(md.render('a\nb')).toContain('a<br>')
     expect(md.render('| h |\n| - |\n| c |')).toContain('<table>')
   })
+
+  it('emits breaks WITHOUT raw newlines — break-spaces blocks would render them (S05t)', () => {
+    // soft break: exactly <br>, no trailing \n inside the paragraph
+    expect(md.render('a\nb')).toBe('<p>a<br>b</p>\n')
+    // hard break (two trailing spaces) — same contract
+    expect(md.render('a  \nb')).toBe('<p>a<br>b</p>\n')
+  })
 })

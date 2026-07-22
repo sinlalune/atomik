@@ -784,6 +784,26 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       kept), number field synced, reset back to 15.2px, state file
       carries noteFontSize:"20" across restart. Tests 516→518/47
       (noteFontSizeOf clamps/garbage/round-trip/reset); gates green.
+      S05t (owner screenshots: "i dont know why it is justifying
+      differently" — wrap points diverged one word on near-full
+      lines) — DONE 2026-07-22. Cause CONFIRMED by CDP toggle: CM
+      lays text under white-space: break-spaces (the space AT the
+      wrap point takes width); read's `normal` lets it hang — lines
+      that end within a space-width of the column wrap one word
+      apart (fixture bullet: read "…does" vs live "…knowingly";
+      injecting break-spaces into read reproduced live's wrap
+      exactly). FIX: read's leaf text blocks (p, h1–h6, th, td, and
+      inline-only li via :not(:has(> block))) adopt break-spaces;
+      the renderer's soft/hard break rules emit '<br>' WITHOUT the
+      default trailing '\n' (break-spaces would render it as a
+      phantom second break); container li stay excluded — their
+      inter-block newline text nodes would become phantom lines.
+      Wrap fingerprints (first word of every rendered line, Range
+      walk) now IDENTICAL read/live on the owner's Socrates text,
+      link paragraph and bullets included. Bonus: runs of spaces now
+      show in read exactly as the editor shows them (source-true).
+      Tests 518→519/47 (break rules pinned newline-free); gates
+      green.
 - [ ] S06 Chat lateral panel: right pane-chrome column (pane grid
       gains the column; pane state gains a validated chat field,
       migration derives absent as hidden); multi-turn over the
