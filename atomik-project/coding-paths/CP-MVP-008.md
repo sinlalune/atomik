@@ -466,6 +466,21 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       picked (panel radio + menu handoff) while untouched — the
       destination stays visible, never a surprise; a customized
       path always wins. Tests 496→499/45; gates green.
+- [x] S04n (owner: playground and app outputs still differ) — done
+      2026-07-22: EXPECTATION PINNED — the remaining delta is
+      SAMPLING (t=0.2 is low, not zero; neither side sets a seed;
+      byte-identical cross-tool outputs are not a real target;
+      topic/structure now agree, which is what the S04d/k/l chain
+      fixed). One REAL artifact from the owner's paste fixed: the
+      model quoted ITS OWN sentences as blockquote "citations" (the
+      exact-quote rule misfiring on a one-word selection — citation
+      theater; the checker labeled them model-only but the note
+      carried noise). New grounding rule: quote ONLY selection/note-
+      context text, NEVER your own sentences, no quote block when
+      nothing supports. Benched 3/3: on-topic, zero fabricated
+      quote blocks. Option recorded (not implemented): Mistral's
+      random_seed could make app runs repeatable if the owner wants
+      it at the bench. Tests 499/45; gates green.
 - [ ] S05 Inline live preview: proposal rendered over the target
       range as a CM widget (live-preview WidgetType pattern) with
       accept / edit / reject + compact claim strip + trace badge;
