@@ -3033,6 +3033,103 @@ button svg {
   padding: 0.25rem;
 }
 
+/* S05b: the inline AI preview widget — proposal in the note, buffer
+   untouched until accept */
+.cm-inline-ai-target {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-radius: 3px;
+}
+
+.cm-inline-ai {
+  margin: 0.35rem 0;
+  padding: 0.45rem 0.6rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-md);
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.cm-inline-ai-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.3rem;
+}
+
+.cm-inline-ai-title {
+  font-weight: 600;
+  color: inherit;
+}
+
+.cm-inline-ai-trace {
+  font-size: 0.68rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.05rem 0.5rem;
+  background: var(--code-bg);
+}
+
+.cm-inline-ai-proposal {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  font-size: 0.76rem;
+  line-height: 1.5;
+  color: inherit;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+  resize: vertical;
+}
+
+.cm-inline-ai-proposal:focus {
+  outline: 1px solid var(--accent);
+  border-color: var(--accent);
+}
+
+.cm-inline-ai-claims {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0.3rem 0;
+}
+
+.cm-inline-ai-more {
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+.cm-inline-ai-error {
+  color: var(--error);
+  margin-bottom: 0.3rem;
+}
+
+.cm-inline-ai-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+}
+
+.cm-inline-ai button {
+  font: inherit;
+  font-size: 0.75rem;
+  color: inherit;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.12rem 0.65rem;
+  cursor: pointer;
+}
+
+.cm-inline-ai button:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 /* S04b/S04g: the sent-request inspector — stored per run, shown on
    hover/focus (26: context packets inspectable) */
 .ai-req {

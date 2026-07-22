@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-008
   status: active
   accepted: 2026-07-21
-  current_step: S05
+  current_step: S06
   base_commit: 6cacfa2
 ---
 
@@ -500,7 +500,7 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       Inspector/copy carry them. LIVE BENCH 2/2: the model added
       the block using the linked note's exact text. Tests
       499→502/45; gates green.
-- [ ] S05 Inline live preview: proposal rendered over the target
+- [x] S05 Inline live preview: proposal rendered over the target
       range as a CM widget (live-preview WidgetType pattern) with
       accept / edit / reject + compact claim strip + trace badge;
       buffer untouched until accept → existing `applyChange` + save;
@@ -522,8 +522,27 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       buffer path + save (whole-note runs and drifted buffers skip;
       applied message says "selection linked to it");
       `selectionLinkReplacement` tested (relative walk, label
-      whitespace collapse). Tests 502→504/45; gates green. REMAINS
-      for S05b: the CM widget + menu routing off the panel.
+      whitespace collapse). Tests 502→504/45; gates green.
+      S05b DONE 2026-07-22: `inline-ai.ts` — StateField + effects
+      (live-preview pattern, headless-computable): block widget
+      after the anchor (+ accent highlight over the replace range),
+      phases running (Cancel) / review (editable proposal textarea,
+      truth-chip claim strip capped at 8, trace badge with
+      tokens/cost tooltip, ✓ Accept / ✕ Reject) / error (message +
+      dismiss); the ANCHOR MAPS through document edits — never
+      stale offsets; buffer untouched until accept → the same
+      applyChange + save path (create → createNote + S05 AUTO-LINK
+      at the mapped anchor); menu quick/custom runs now render
+      INLINE (DoD: quick requests do NOT open the panel; the S04
+      panel-handoff wiring retired), "Open chat" still opens the
+      docked panel until S06. Tests 505→509/46 (widget lifecycle,
+      append anchoring, anchor mapping, reject-zero-trace, accept
+      byte fidelity). Honest notes: accept logic lives in the
+      inline controller AND the panel (unify when the panel retires
+      at S06); the sent-request hover inspector is panel-only —
+      inline runs show the trace badge but not the request popover
+      (candidate S06 refinement); widget visuals await the owner
+      bench. Gates green. S05 COMPLETE.
 - [ ] S06 Chat lateral panel: right pane-chrome column (pane grid
       gains the column; pane state gains a validated chat field,
       migration derives absent as hidden); multi-turn over the

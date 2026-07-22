@@ -37,8 +37,18 @@ import type { VaultFolder, VaultNoteFile } from '../../../shared/ipc-contract'
 import { resolveRelativePath } from '../dev-docs/markdown'
 import { themeOf, type NoteViewMode, type SaveMode } from '../workspace/model'
 import { useWorkspace } from '../workspace/store'
-import { AiPanel, type AiPanelRequest, type BufferChange } from './AiPanel'
+import { selectionLinkReplacement } from './ai-helpers'
+import { prepareAiRun } from './ai-run'
+import { AiPanel, type BufferChange } from './AiPanel'
 import { AiSelectionMenu, type AiMenuRequest } from './AiSelectionMenu'
+import {
+  inlineAi,
+  inlineAiField,
+  setInlineAi,
+  type InlineAiHandlers,
+  type InlineAiState
+} from './inline-ai'
+import { loadPromptsFor } from './prompts'
 import { frontmatterEnd, livePreview } from './live-preview'
 import { ModeSwitch } from './ModeSwitch'
 import { quickActions } from './quick-actions'
@@ -182,7 +192,6 @@ export function EditorPane({
   // S04: the AI entry point is the SELECTION — right-click/Shift+F10
   // opens the menu at the click location; the note-bar stays editing-only.
   const [aiMenu, setAiMenu] = useState<{ x: number; y: number } | null>(null)
-  const [aiRequest, setAiRequest] = useState<AiPanelRequest | null>(null)
   const [aiDock, setAiDock] = useState<'bottom' | 'right'>('bottom')
   const [aiSize, setAiSize] = useState(0.44)
   const bodyRef = useRef<HTMLDivElement>(null)
@@ -349,6 +358,9 @@ export function EditorPane({
         darkCompartment.of(editorDarkRef.current ? [oneDark] : []),
         // "@" quick actions: citations menu + note links (S07h).
         quickActions(note.relPath, listVaultTree),
+        // S05b: the inline AI preview field (quick requests render
+        // their proposal in the note; buffer untouched until accept).
+        inlineAi(),
         EditorView.lineWrapping,
         keymap.of([
           {
@@ -503,27 +515,6 @@ export function EditorPane({
     view.focus()
   }, [])
 
-  /** S04: menu → panel handoff. A quick action or custom run opens the
-   *  panel prefilled and auto-runs; "Open chat" just opens it docked
-   *  right (the conversational surface until S06's lateral column). */
-  const runFromMenu = useCallback((menuRequest: AiMenuRequest) => {
-    setAiMenu(null)
-    // destination included (S04e): the menu's replace/append/new-note
-    // choice reaches the panel before the auto-run fires
-    setAiRequest({ id: crypto.randomUUID(), ...menuRequest, autoRun: true })
-    setShowAi(true)
-  }, [])
-
-  const openChatFromMenu = useCallback(() => {
-    setAiMenu(null)
-    setAiDock('right')
-    setShowAi(true)
-  }, [])
-
-  const openAiMenu = useCallback((x: number, y: number) => {
-    setAiMenu({ x, y })
-  }, [])
-
   /** Accepted AI changes land in the BUFFER — visible, undoable; the
    *  explicit save stays the single moment a file diff is born (06). */
   const applyChange = useCallback((change: BufferChange) => {
@@ -540,6 +531,188 @@ export function EditorPane({
       })
     }
     view.focus()
+  }, [])
+
+  /**
+   * S05b: a menu run previews INLINE — the proposal renders in the
+   * note over the target range; the buffer changes only on accept,
+   * through the same applyChange + save path the panel uses. The
+   * shared pipeline (ai-run) prepares the request; the widget's
+   * handlers close over an inflight record.
+   */
+  const startInlineRun = useCallback(
+    async (menuRequest: AiMenuRequest) => {
+      const view = viewRef.current
+      if (!view) return
+      const sel = view.state.selection.main
+      const selectedText = view.state.sliceDoc(sel.from, sel.to)
+      const docLength = view.state.doc.length
+      const anchor =
+        menuRequest.destination === 'append'
+          ? { from: docLength, to: docLength }
+          : { from: sel.from, to: sel.to }
+      const inflight: {
+        operationId: string | null
+        bundleId: string | null
+        proposalFile: { kind: string; relPath: string; newText: string } | null
+      } = { operationId: null, bundleId: null, proposalFile: null }
+      let version = 0
+      const base: InlineAiState = {
+        phase: 'running',
+        anchor,
+        destination: menuRequest.destination,
+        proposal: '',
+        claims: [],
+        trace: null,
+        selectedText,
+        bundleId: null,
+        version: 0
+      }
+      const push = (patch: Partial<InlineAiState>): void => {
+        const current = view.state.field(inlineAiField, false)
+        const nextState = {
+          ...(current?.state ?? base),
+          ...patch,
+          version: ++version
+        }
+        view.dispatch({
+          effects: setInlineAi.of({ state: nextState, handlers })
+        })
+      }
+      const clear = (): void => {
+        view.dispatch({ effects: setInlineAi.of(null) })
+      }
+      const acceptInline = async (edited: string): Promise<void> => {
+        const current = view.state.field(inlineAiField, false)
+        const file = inflight.proposalFile
+        if (!current || !file) return
+        const decision = edited === current.state.proposal ? 'accepted' : 'edited'
+        const anchorNow = current.state.anchor
+        try {
+          if (file.kind === 'create') {
+            await window.atomik.createNote(file.relPath, edited)
+            // S05 auto-link: the selection becomes a link to the
+            // created note (anchor mapped through any edits since)
+            if (current.state.selectedText.trim().length > 0) {
+              applyChange({
+                kind: 'replace-range',
+                range: anchorNow,
+                newText: selectionLinkReplacement(
+                  note.relPath,
+                  current.state.selectedText,
+                  file.relPath
+                )
+              })
+              await saveRef.current()
+            }
+            onNoteCreated?.(file.relPath)
+          } else if (file.kind === 'replace-range') {
+            applyChange({
+              kind: 'replace-range',
+              range: anchorNow,
+              newText: edited
+            })
+            await saveRef.current()
+          } else {
+            applyChange({ kind: 'append', newText: edited })
+            await saveRef.current()
+          }
+          if (inflight.bundleId) {
+            window.atomik
+              .resolveAiTrace(inflight.bundleId, decision)
+              .catch(() => undefined)
+          }
+          clear()
+        } catch (reason) {
+          push({ phase: 'error', error: String(reason) })
+        }
+      }
+      const handlers: InlineAiHandlers = {
+        onCancel: () => {
+          if (inflight.operationId) {
+            void window.atomik
+              .cancelAiOperation(inflight.operationId)
+              .catch(() => undefined)
+          }
+        },
+        onReject: () => {
+          if (inflight.bundleId) {
+            window.atomik
+              .resolveAiTrace(inflight.bundleId, 'rejected')
+              .catch(() => undefined)
+          }
+          clear()
+        },
+        onAccept: (edited) => {
+          void acceptInline(edited)
+        }
+      }
+      push({})
+      try {
+        const prompts = await loadPromptsFor(note.relPath, window.atomik).catch(
+          () => []
+        )
+        const prepared = await prepareAiRun(
+          {
+            noteRelPath: note.relPath,
+            doc: view.state.doc.toString(),
+            selection: { from: sel.from, to: sel.to, text: selectedText },
+            instruction: menuRequest.instruction,
+            ...(menuRequest.preset ? { preset: menuRequest.preset } : {}),
+            systemStack: menuRequest.stack,
+            prompts,
+            destination: menuRequest.destination,
+            newNotePath: ''
+          },
+          window.atomik.readNote
+        )
+        if (!prepared) {
+          clear()
+          return
+        }
+        inflight.operationId = prepared.operation.id
+        const result = await window.atomik.runAiOperation(prepared.operation)
+        inflight.bundleId = result.id
+        inflight.proposalFile = result.patchProposals[0]?.files[0] ?? null
+        const trace = await window.atomik
+          .getAiTraceSummary(result.id)
+          .catch(() => null)
+        push({
+          phase: 'review',
+          proposal: inflight.proposalFile?.newText ?? '',
+          claims: result.claims,
+          trace,
+          bundleId: result.id,
+          ...(inflight.proposalFile?.kind === 'create'
+            ? { newNotePath: inflight.proposalFile.relPath }
+            : {})
+        })
+      } catch (reason) {
+        push({ phase: 'error', error: String(reason) })
+      }
+    },
+    [applyChange, note.relPath, onNoteCreated]
+  )
+
+  /** S04→S05b: a quick action or custom run previews INLINE (the DoD:
+   *  quick requests do NOT open the panel); "Open chat" opens the
+   *  docked panel (the conversational surface until S06). */
+  const runFromMenu = useCallback(
+    (menuRequest: AiMenuRequest) => {
+      setAiMenu(null)
+      void startInlineRun(menuRequest)
+    },
+    [startInlineRun]
+  )
+
+  const openChatFromMenu = useCallback(() => {
+    setAiMenu(null)
+    setAiDock('right')
+    setShowAi(true)
+  }, [])
+
+  const openAiMenu = useCallback((x: number, y: number) => {
+    setAiMenu({ x, y })
   }, [])
 
   return (
@@ -654,7 +827,6 @@ export function EditorPane({
             />
             <AiPanel
               note={note}
-              request={aiRequest}
               getSelection={getSelection}
               getDoc={getDoc}
               applyChange={applyChange}
