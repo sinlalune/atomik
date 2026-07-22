@@ -316,6 +316,23 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       gates green. Honest gaps: the popup's custom input has no @
       menu (the panel's does — iteration continues there); menu
       visuals await the owner bench (no screenshot rung for popups).
+- [x] S04b (owner bug report: "generated doesnt correspond to prompt
+      sent") — done 2026-07-21: ROOT CAUSE a race in the S04
+      auto-run — it fired against the STATE snapshot of prompts,
+      empty right after panel mount, so `{{prompt: name}}` resolved
+      nothing, stayed LITERAL, and traveled verbatim to the model
+      (the system stack emptied the same way). FIX: run() awaits the
+      load PROMISE (`promptsReady` ref), never the snapshot —
+      composition always sees real prompts, auto-run or manual.
+      EXPOSED (26, owner ask): the collapsible "sent request"
+      inspector in the panel — the COMPOSED instruction and system
+      stack exactly as they traveled (layers expanded), preset,
+      selection bounds/chars/whole-note, destination; set before the
+      await so failed runs stay inspectable; notes that main adds
+      grounding rules + destination brief on top. Limit recorded:
+      the hook-level race has no unit seam in this harness (no React
+      DOM tests); empty-list literalness already pinned by test.
+      Tests 489/45 unchanged; gates green.
 - [ ] S05 Inline live preview: proposal rendered over the target
       range as a CM widget (live-preview WidgetType pattern) with
       accept / edit / reject + compact claim strip + trace badge;

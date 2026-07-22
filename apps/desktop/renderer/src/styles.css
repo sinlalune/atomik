@@ -3033,6 +3033,50 @@ button svg {
   padding: 0.25rem;
 }
 
+/* S04b: the sent-request inspector — 26: context packets inspectable */
+.ai-sent {
+  font-size: 0.72rem;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  padding-top: 0.35rem;
+}
+
+.ai-sent summary {
+  cursor: pointer;
+}
+
+.ai-sent summary:hover {
+  color: var(--accent);
+}
+
+.ai-sent-block {
+  margin: 0.35rem 0;
+}
+
+.ai-sent-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ai-sent pre {
+  margin: 0.15rem 0 0;
+  padding: 0.35rem 0.5rem;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 160px;
+  overflow-y: auto;
+  font-size: 0.72rem;
+}
+
+.ai-sent-note {
+  margin: 0.25rem 0 0;
+  font-style: italic;
+}
+
 /* S04: selection AI menu — TreeMenu skin + scope groups + pill row */
 .ai-selection-menu {
   min-width: 220px;

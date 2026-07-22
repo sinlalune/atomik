@@ -123,6 +123,21 @@ export function AiPanel({
   // Scoped prompt files (S03): resolved nearest-first for THIS note,
   // reloaded when vault files land — a prompt edit is a note edit.
   const [vaultPrompts, setVaultPrompts] = useState<PromptFile[]>([])
+  /** The COMPOSED request of the last run — inspectable (26): what
+   *  actually traveled to main, layers expanded, stack composed. */
+  const [sentRequest, setSentRequest] = useState<{
+    instruction: string
+    systemPrompt: string | null
+    preset: string | null
+    selection: {
+      relPath: string
+      from: number
+      to: number
+      chars: number
+      wholeNote: boolean
+    }
+    destination: string
+  } | null>(null)
   // System STACK (S03f): ordered block relPaths — personality > tone >
   // objectives — composed into ONE system prompt at run.
   const [systemStack, setSystemStack] = useState<string[]>([])
@@ -204,13 +219,21 @@ export function AiPanel({
     [atMenu, appendToStack]
   )
 
+  // The latest load as a PROMISE: run() awaits this instead of the
+  // state snapshot — an auto-run right after mount must not compose
+  // against a not-yet-loaded prompt list (the directive would travel
+  // LITERALLY to the model; owner bug report 2026-07-21).
+  const promptsReady = useRef<Promise<PromptFile[]>>(Promise.resolve([]))
   useEffect(() => {
     let live = true
     const reload = (): void => {
-      loadPromptsFor(note.relPath, window.atomik).then(
-        (prompts) => { if (live) setVaultPrompts(prompts) },
-        () => { if (live) setVaultPrompts([]) }
+      const loading = loadPromptsFor(note.relPath, window.atomik).catch(
+        () => [] as PromptFile[]
       )
+      promptsReady.current = loading
+      void loading.then((prompts) => {
+        if (live) setVaultPrompts(prompts)
+      })
     }
     reload()
     const unsubscribe = window.atomik.onVaultFilesChanged(reload)
@@ -251,9 +274,11 @@ export function AiPanel({
 
   const run = useCallback(async () => {
     // S03d: the instruction is a buildable prompt — its layer
-    // directives compose HERE, against this note's resolved scopes;
-    // the box keeps the layered form.
-    const text = expandInstruction(instruction, vaultPrompts).trim()
+    // directives compose HERE, against this note's resolved scopes.
+    // AWAIT the load, never the state snapshot: an auto-run straight
+    // from the selection menu must compose against real prompts.
+    const prompts = await promptsReady.current
+    const text = expandInstruction(instruction, prompts).trim()
     if (text.length === 0) return
     const raw = getSelection()
     const doc = getDoc()
@@ -288,7 +313,23 @@ export function AiPanel({
     setApplied(null)
     const operationId = crypto.randomUUID()
     runningOperationId.current = operationId
-    const systemPrompt = composeSystemStack(systemStack, vaultPrompts)
+    const systemPrompt = composeSystemStack(systemStack, prompts)
+    // The inspectable request (26): EXACTLY what travels to main —
+    // composed, not the layered editing form. Set before the await so
+    // a failed run stays inspectable.
+    setSentRequest({
+      instruction: text,
+      systemPrompt: systemPrompt.length > 0 ? systemPrompt : null,
+      preset: preset ?? null,
+      selection: {
+        relPath: selection.relPath,
+        from: selection.range.from,
+        to: selection.range.to,
+        chars: selection.content.length,
+        wholeNote: raw.text.length === 0
+      },
+      destination: target.destination.kind
+    })
     try {
       const result = await window.atomik.runAiOperation({
         id: operationId,
@@ -316,7 +357,7 @@ export function AiPanel({
     } finally {
       runningOperationId.current = null
     }
-  }, [destination, getDoc, getSelection, instruction, newNotePath, note.relPath, preset, systemStack, vaultPrompts])
+  }, [destination, getDoc, getSelection, instruction, newNotePath, note.relPath, preset, systemStack])
 
   // The deferred half of the S04 handoff: run fires once the prefilled
   // instruction is in state (never with the stale pre-request value).
@@ -852,6 +893,33 @@ export function AiPanel({
               </button>
             </div>
           </div>
+        )}
+        {sentRequest && phase !== 'running' && (
+          <details className="ai-sent">
+            <summary>
+              sent request — {sentRequest.destination}
+              {sentRequest.selection.wholeNote
+                ? ' · whole note'
+                : ` · selection ${sentRequest.selection.from}–${sentRequest.selection.to}`}
+              {` · ${sentRequest.selection.chars} chars`}
+            </summary>
+            <div className="ai-sent-block">
+              <span className="ai-sent-label">
+                system {sentRequest.systemPrompt === null ? '(built-in)' : '(stack)'}
+              </span>
+              <pre>{sentRequest.systemPrompt ?? 'main-side default + grounding rules'}</pre>
+            </div>
+            <div className="ai-sent-block">
+              <span className="ai-sent-label">
+                instruction{sentRequest.preset ? ` (${sentRequest.preset})` : ''}
+              </span>
+              <pre>{sentRequest.instruction}</pre>
+            </div>
+            <p className="ai-sent-note">
+              Composed exactly as sent — layers expanded, stack joined. Main
+              adds the grounding rules and the destination brief on top.
+            </p>
+          </details>
         )}
       </div>
     </section>
