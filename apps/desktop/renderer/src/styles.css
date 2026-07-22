@@ -40,6 +40,10 @@
   /* S05m: ONE list indent for read (ul/ol padding) and live
      (hanging line indent) — same bullet column in both modes. */
   --note-list-indent: 1.6em;
+  /* S05r: distance from the bullet glyph's right edge to the text —
+     one token because BOTH modes now draw the same '•' in the same
+     gutter box (read dropped the UA ::marker for it). */
+  --note-bullet-gap: 0.5em;
   --note-quote-inset: 1rem;
   --note-quote-border: 3px solid var(--accent);
   --note-code-size: 0.85em;
@@ -2433,10 +2437,39 @@ body[data-maximized] .tabstrip {
   padding-left: var(--note-list-indent);
 }
 
+/* S05r (owner: bullets sat at different x — read's UA ::marker hugs
+   the text, live's widget sat at the gutter's LEFT edge): both modes
+   now draw the same '•' in the same gutter box — width is the
+   indent, glyph right-aligned a shared --note-bullet-gap before the
+   text. Read drops the UA marker for an absolutely-positioned
+   ::before (absolute, not inline: a loose item's first child is a
+   <p>, an in-flow bullet would take its own line); task items keep
+   none — their checkbox is the marker. */
+.markdown-body ul > li:not(.task-item)::before,
+.editor-host.live .lp-li .lp-bullet {
+  width: var(--note-list-indent);
+  box-sizing: border-box;
+  text-align: right;
+  padding-right: var(--note-bullet-gap);
+}
+
 .editor-host.live .lp-li .lp-bullet {
   display: inline-block;
-  width: var(--note-list-indent);
   margin-left: calc(-1 * var(--note-list-indent));
+}
+
+.markdown-body ul {
+  list-style: none;
+}
+
+.markdown-body ul > li {
+  position: relative;
+}
+
+.markdown-body ul > li:not(.task-item)::before {
+  content: '•';
+  position: absolute;
+  left: calc(-1 * var(--note-list-indent));
 }
 
 .markdown-body h1,

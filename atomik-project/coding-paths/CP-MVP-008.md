@@ -744,6 +744,22 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       (24.32px) left of the pad edge; screenshot shows first line and
       wraps on one column. Tests 516/47 (bullet ranges pinned
       dash+space); gates green.
+      S05r (owner: "bullet point is not at the same location — more
+      on the left in editing mode") — DONE 2026-07-22: read used the
+      UA ::marker (glyph hugging the text) while live's widget
+      left-aligned its '•' at the gutter's far edge. Both modes now
+      draw the SAME '•' in the SAME gutter box: shared rule (width =
+      --note-list-indent, right-aligned, new --note-bullet-gap 0.5em
+      before the text); read drops the UA marker for an
+      absolutely-positioned li::before (absolute, not in-flow — a
+      loose item's first child is a <p>, an inline bullet would take
+      its own line); task items excluded (checkbox is their marker).
+      CDP-measured: glyph right edge read 361.20px / live 361.21px,
+      text 368.81px in both — same column to a hundredth of a pixel.
+      Probe harness hardened: spawn detached + kill(-pid) (app.kill
+      on the npx wrapper orphaned electron — a stale instance held
+      the CDP port and answered for the wrong mode). Tests 516/47;
+      gates green.
 - [ ] S06 Chat lateral panel: right pane-chrome column (pane grid
       gains the column; pane state gains a validated chat field,
       migration derives absent as hidden); multi-turn over the
