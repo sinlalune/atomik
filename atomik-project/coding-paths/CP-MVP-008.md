@@ -603,6 +603,17 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       the selection menu but not yet one component — extraction
       candidate when S06 settles the surfaces. Tests 511/46
       unchanged (all logic reused is already pinned); gates green.
+      S05f (owner: "is it normal that we don't have strong/italic
+      rendering?") DONE 2026-07-22: NO — the inline widget's rendered
+      markdown inherited the EDITOR's monospace stack (it lives in
+      .cm-scroller), which under WSLg's font resolution can drop the
+      bold/italic faces and in any case broke the S05d "same font as
+      the note" transparency goal. Fixed: `.cm-inline-ai-rendered`
+      pins read-view typography (system-ui stack, --note-font-size/
+      line-height, --fg) and `.markdown-body strong/em` are asserted
+      explicitly so NO ancestor chain (CM scroller, widget frames,
+      theme spans) can flatten note formatting on any AI surface.
+      Tests 511/46; gates green; visual confirmation = owner bench.
 - [ ] S06 Chat lateral panel: right pane-chrome column (pane grid
       gains the column; pane state gains a validated chat field,
       migration derives absent as hidden); multi-turn over the

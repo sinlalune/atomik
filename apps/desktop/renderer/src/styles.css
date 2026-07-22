@@ -2323,6 +2323,18 @@ body[data-maximized] .tabstrip {
   font-size: var(--note-font-size);
 }
 
+/* Inline emphasis GUARANTEED (S05f): browser defaults normally cover
+   these, but AI surfaces render markdown inside hosts with their own
+   font/weight chains (CM scroller, widget frames) — assert them so no
+   ancestor can flatten note formatting. */
+.markdown-body strong {
+  font-weight: 700;
+}
+
+.markdown-body em {
+  font-style: italic;
+}
+
 .markdown-body h1 {
   font-size: var(--note-h1-size);
   font-weight: var(--note-heading-weight);
@@ -3187,9 +3199,15 @@ button svg {
   color: var(--muted);
 }
 
+/* The widget renders NOTE typography, not the editor's monospace —
+   it sits inside .cm-scroller, whose mono stack it must escape (the
+   S05f owner report: bold/italic faces vanished with the inherited
+   monospace under WSLg). */
 .cm-inline-ai-rendered {
-  color: var(--fg, inherit);
-  font-size: inherit;
+  color: var(--fg);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: var(--note-font-size);
+  line-height: var(--note-line-height);
 }
 
 .cm-inline-ai-body {
