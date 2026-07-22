@@ -1,3 +1,6 @@
+import { useState } from 'react'
+import { GeneratedNoteScreen } from './GeneratedNoteScreen'
+
 /**
  * The two chooser surfaces (S07e, owner directive).
  *
@@ -55,6 +58,49 @@ export function NewPaneChooser({
 }
 
 export type TabPick = 'note' | 'import' | 'web'
+
+/**
+ * S05e (owner directive): the 'note' pick opens a STAGE — the blank
+ * "New note" button plus the full generation composer — instead of
+ * routing straight to the tree. The stage is transient UI; the tab
+ * stays view 'new' until a real pick lands.
+ */
+export function NewTabFlow({
+  basePath,
+  onPick,
+  onCreated,
+  onClose,
+  closeLabel
+}: {
+  /** Prompt-scoping/naming anchor ('generated.md', or inside a project). */
+  basePath: string
+  onPick: (pick: TabPick) => void
+  onCreated: (relPath: string) => void
+  onClose?: (() => void) | undefined
+  closeLabel?: string
+}): React.JSX.Element {
+  const [stage, setStage] = useState<'chooser' | 'note'>('chooser')
+  if (stage === 'note') {
+    return (
+      <GeneratedNoteScreen
+        basePath={basePath}
+        onPlainNewNote={() => onPick('note')}
+        onBack={() => setStage('chooser')}
+        onCreated={onCreated}
+      />
+    )
+  }
+  return (
+    <NewTabChooser
+      onPick={(pick) => {
+        if (pick === 'note') setStage('note')
+        else onPick(pick)
+      }}
+      onClose={onClose}
+      closeLabel={closeLabel}
+    />
+  )
+}
 
 const TAB_OPTIONS: ReadonlyArray<{ pick: TabPick; label: string; hint: string }> = [
   { pick: 'note', label: 'Note', hint: 'a note from this pane’s tree' },

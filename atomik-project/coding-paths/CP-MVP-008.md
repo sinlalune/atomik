@@ -585,6 +585,24 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       bottom actions with an edit↔preview toggle; the tab-sim
       body uses `markdown-body` too (regular note rendering).
       Tests 509→511/46; gates green.
+      S05e (owner directive: new-tab "new note" → chooser screen +
+      from-scratch generation) DONE 2026-07-22: the + tab's 'note'
+      pick now opens a STAGE (`NewTabFlow` — transient UI, the tab
+      stays view 'new') with the blank "New note" button on top and
+      the FULL composer beneath (`GeneratedNoteScreen`): topic input
+      (names the note AND is the subject), scoped message/system
+      pills with click-order numbering, built-ins, search past the
+      cap, the S05d foldable options, an optional ask — Generate
+      runs the SAME prepareAiRun pipeline from scratch (empty doc;
+      topic = subject selection; composed instruction falls back to
+      "Write this note about the subject."), previews as the S05c
+      simulated tab, and on accept the created note OPENS IN THIS
+      TAB (vault or project pane alike; project panes scope prompts
+      and land the file via `<project>/generated.md` anchoring).
+      Honest note: the composer markup is shared-by-helpers with
+      the selection menu but not yet one component — extraction
+      candidate when S06 settles the surfaces. Tests 511/46
+      unchanged (all logic reused is already pinned); gates green.
 - [ ] S06 Chat lateral panel: right pane-chrome column (pane grid
       gains the column; pane state gains a validated chat field,
       migration derives absent as hidden); multi-turn over the

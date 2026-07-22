@@ -48,6 +48,7 @@ import {
 import {
   NewPaneChooser,
   NewTabChooser,
+  NewTabFlow,
   type PaneKindPick,
   type TabPick
 } from './NewTabChooser'
@@ -175,10 +176,25 @@ function TabContent({
 
   if (tab.view === 'new') {
     return (
-      <NewTabChooser
+      <NewTabFlow
+        basePath={
+          paneScope.kind === 'project'
+            ? `${paneScope.projectPath}/generated.md`
+            : 'generated.md'
+        }
         onPick={(pick) => {
           const next = tabForPick(pick, paneScope)
           dispatch((state) => setTabView(state, tab.id, next.view, next.params))
+        }}
+        onCreated={(relPath) => {
+          // the generated note opens IN this tab (S05e)
+          const base = tabForPick('note', paneScope)
+          dispatch((state) =>
+            setTabView(state, tab.id, base.view, {
+              ...(base.params ?? {}),
+              notePath: relPath
+            })
+          )
         }}
         onClose={closeThisTab}
         closeLabel="Close tab"
