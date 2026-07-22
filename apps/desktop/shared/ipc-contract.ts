@@ -413,6 +413,12 @@ export type AiOperation = {
    *  replaces the built-in identity; the mechanical grounding rules
    *  are appended main-side regardless. Size-capped in validation. */
   systemPrompt?: string
+  /** Bounded note-state excerpts around the landing point (S04l) —
+   *  read-only context so append/replace output integrates without
+   *  duplicating existing content. Size-capped in validation. */
+  noteContext?:
+    | { kind: 'append'; tail: string }
+    | { kind: 'replace'; before: string; after: string }
   target: { relPath: string; destination: AiDestination }
 }
 

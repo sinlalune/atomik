@@ -69,14 +69,54 @@ describe('buildMessages (operation → chat completions)', () => {
     expect(messages[0]!.role).toBe('system')
     expect(messages[0]!.content).toContain('APPENDED')
     expect(messages[1]!.role).toBe('user')
-    // S04k: the instruction travels BLOCKQUOTED — its markdown must
-    // read as quoted guidance, never as document structure
+    // S04k/S04l: the instruction travels BLOCKQUOTED inside the
+    // layered template — its markdown reads as quoted guidance
+    expect(messages[1]!.content).toContain('# Request')
     expect(messages[1]!.content).toContain(
-      'Instruction (style/behavior guidance, quoted):'
+      '## Instruction — style and behavior guidance (quoted)'
     )
     expect(messages[1]!.content).toContain('> Explain this simply.')
     expect(messages[1]!.content).toContain('notes/attention.md')
     expect(messages[1]!.content).toContain(SELECTION_TEXT)
+  })
+
+  it('both messages follow the layered template (S04l): # sections, ## subsections', () => {
+    const messages = buildMessages(operation())
+    const system = messages[0]!.content
+    expect(system).toContain('# Role')
+    expect(system).toContain('# Rules')
+    expect(system).toContain('## Grounding')
+    expect(system).toContain('## Output')
+    const user = messages[1]!.content
+    expect(user).toContain('## Subject')
+    expect(user).toContain('### Selection 1')
+    expect(user).toContain('## Steps')
+  })
+
+  it('append/replace carry the note context with a landing point (S04l)', () => {
+    const appendOp = operation()
+    appendOp.noteContext = { kind: 'append', tail: '## Existing section\nOld text.' }
+    const appendUser = buildMessages(appendOp)[1]!.content
+    expect(appendUser).toContain('## Note context — read-only')
+    expect(appendUser).toContain('### The note currently ends with')
+    expect(appendUser).toContain('## Existing section')
+    expect(appendUser).toContain('APPENDED right after the ending shown above')
+    expect(appendUser).toContain('do NOT duplicate')
+
+    const replaceOp = operation({ kind: 'replace-selection' })
+    replaceOp.noteContext = {
+      kind: 'replace',
+      before: 'Text before.',
+      after: 'Text after.'
+    }
+    const replaceUser = buildMessages(replaceOp)[1]!.content
+    expect(replaceUser).toContain('### Content immediately BEFORE the replaced passage')
+    expect(replaceUser).toContain('Text before.')
+    expect(replaceUser).toContain('### Content immediately AFTER the replaced passage')
+    expect(replaceUser).toContain('read seamlessly')
+    // integration step appears only when context travels
+    expect(replaceUser).toContain('3. Check the note context')
+    expect(buildMessages(operation())[1]!.content).not.toContain('3. Check the note context')
   })
 
   it('the selection is the SUBJECT; the path is trailing provenance (S04d)', () => {
@@ -84,7 +124,7 @@ describe('buildMessages (operation → chat completions)', () => {
     const user = messages[1]!.content
     // subject-first block: the header carries no path; the path rides
     // a trailing provenance line AFTER the content
-    expect(user).toContain('### Subject selection 1')
+    expect(user).toContain('### Selection 1')
     expect(user).not.toContain('Selection 1 — from')
     expect(user.indexOf(SELECTION_TEXT)).toBeLessThan(
       user.indexOf('provenance: `notes/attention.md`')

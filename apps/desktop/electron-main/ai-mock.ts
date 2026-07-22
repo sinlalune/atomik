@@ -28,6 +28,8 @@ const MAX_ID = 128
 /** System prompts are prompt-FILE bodies (S03) — roomier than an
  *  instruction, still bounded below renderer state. */
 const MAX_SYSTEM_PROMPT = 8000
+/** Per-part cap on landing-point excerpts (S04l). */
+const MAX_NOTE_CONTEXT = 8000
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -70,6 +72,18 @@ export function isValidAiOperation(value: unknown): value is AiOperation {
   const systemPrompt = value['systemPrompt']
   if (systemPrompt !== undefined) {
     if (typeof systemPrompt !== 'string' || systemPrompt.length === 0 || systemPrompt.length > MAX_SYSTEM_PROMPT) return false
+  }
+  const noteContext = value['noteContext']
+  if (noteContext !== undefined) {
+    if (!isRecord(noteContext)) return false
+    if (noteContext['kind'] === 'append') {
+      if (typeof noteContext['tail'] !== 'string' || noteContext['tail'].length > MAX_NOTE_CONTEXT) return false
+    } else if (noteContext['kind'] === 'replace') {
+      if (typeof noteContext['before'] !== 'string' || noteContext['before'].length > MAX_NOTE_CONTEXT) return false
+      if (typeof noteContext['after'] !== 'string' || noteContext['after'].length > MAX_NOTE_CONTEXT) return false
+    } else {
+      return false
+    }
   }
   const input = value['input']
   if (!Array.isArray(input) || input.length === 0 || input.length > 8) return false

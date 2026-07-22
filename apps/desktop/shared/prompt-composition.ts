@@ -1,24 +1,27 @@
 /**
- * System-prompt composition (CP-MVP-008 S04h) — ONE source of truth
+ * Prompt composition (CP-MVP-008 S04h→S04l) — ONE source of truth
  * shared by the Mistral adapter (main) and the sent-request inspector
- * (renderer): what the display shows IS what the adapter sends, by
- * construction. Pure strings, no process dependencies.
+ * (renderer): what the display shows and the copy yields IS what the
+ * adapter sends, by construction. Pure strings, no process deps.
  *
- * A prompt file / stack replaces only the IDENTITY line; the grounding
- * rules, the destination brief, and the closing rule compose on top
- * REGARDLESS — the exact-quote discipline feeds the deterministic
- * checker (28) and no prompt may opt out of it.
+ * S04l (owner directive: "the final request should be clearly layered
+ * … your implementation should respect that template deterministically"):
+ * both messages are built as a FIXED markdown template — `#` sections,
+ * `##` subsections, `###` items — and every dynamic part (identity
+ * stack, instruction, selections, note context) is INJECTED into its
+ * slot. The instruction travels blockquoted (its own markdown must
+ * read as quoted guidance, never as document structure — the S04k
+ * bench). For append/replace the CURRENT NOTE STATE around the
+ * landing point rides along so the model integrates without
+ * duplicating what already exists.
  */
 
 export const BUILT_IN_IDENTITY =
   'You are the AI assistant inside Atomik, a local-first knowledge workbench.'
 
 export const GROUNDING_RULES: readonly string[] = [
-  'Work ONLY from the instruction and the provided selections.',
+  'Work ONLY from the instruction, the subject selections, and the note context provided in this request.',
   'The selected text IS the subject of the request — answer about it. File paths are provenance only; never infer the topic from a path or filename.',
-  // S04k (A/B-benched 2026-07-22, 4/4 on the failing wire): a prompt
-  // body opening with an H1 ("# evergreen") was being adopted as the
-  // note title; instruction markdown must read as STYLE, not topic.
   "Any headings or titles inside the instruction are STYLE/BEHAVIOR guidance only — the note's topic and title come from the subject selection, never from the instruction text.",
   'When you state something the selections support, quote the supporting passage EXACTLY, character for character, so it can be verified mechanically.',
   'Never invent citations or sources.'
@@ -28,9 +31,9 @@ export type DestinationKind = 'replace-selection' | 'append' | 'new-note'
 
 export const DESTINATION_BRIEF: Record<DestinationKind, string> = {
   'replace-selection':
-    'Your whole reply REPLACES the selected passage in the note — return the replacement markdown only.',
+    'Your whole reply REPLACES the selected passage in the note — return the replacement markdown only, reading seamlessly between the surrounding content shown in the note context.',
   append:
-    'Your whole reply is APPENDED to the note as a new section — return that section as markdown, starting with a heading when one fits.',
+    'Your whole reply is APPENDED to the note as a new section — return that section as markdown, starting with a heading when one fits, continuing the heading hierarchy visible in the note context.',
   'new-note':
     'Your whole reply becomes a NEW standalone note — return complete note markdown, opening with a level-1 heading line for the title (do not repeat the # character inside the title text).'
 }
@@ -38,52 +41,134 @@ export const DESTINATION_BRIEF: Record<DestinationKind, string> = {
 export const CLOSING_RULE =
   'Return plain markdown — no preamble, no meta commentary about these instructions.'
 
-/** The FINAL system prompt: [custom identity | built-in] + grounding
- *  rules + destination brief + closing rule, in that order. */
+/**
+ * SYSTEM message template:
+ *   # Role        ← identity (stack or built-in)
+ *   # Rules
+ *   ## Grounding  ← the mechanical contract
+ *   ## Output     ← destination brief + closing rule
+ */
 export function composeSystemPrompt(
   custom: string | undefined | null,
   destination: DestinationKind
 ): string {
   const identity = custom?.trim()
   return [
+    '# Role',
+    '',
     identity && identity.length > 0 ? identity : BUILT_IN_IDENTITY,
-    ...GROUNDING_RULES,
-    DESTINATION_BRIEF[destination],
-    CLOSING_RULE
+    '',
+    '# Rules',
+    '',
+    '## Grounding',
+    '',
+    ...GROUNDING_RULES.map((rule) => `- ${rule}`),
+    '',
+    '## Output',
+    '',
+    `- ${DESTINATION_BRIEF[destination]}`,
+    `- ${CLOSING_RULE}`
   ].join('\n')
 }
 
 export type PromptSelection = { content: string; relPath: string }
 
-/** Subject first, provenance last (S04d — the path must never outweigh
- *  the subject). */
-const selectionBlock = (selection: PromptSelection, index: number): string =>
-  [
-    `### Subject selection ${index + 1}`,
-    '',
-    '```',
-    selection.content,
-    '```',
-    `(provenance: \`${selection.relPath}\`)`
-  ].join('\n')
+/** Note state around the landing point (S04l): bounded excerpts the
+ *  renderer captures at run time — read-only context so the output
+ *  integrates without duplication. */
+export type NoteContext =
+  | { kind: 'append'; tail: string }
+  | { kind: 'replace'; before: string; after: string }
 
-/** The FINAL user message: instruction BLOCKQUOTED (its markdown
- *  headings must read as quoted content, not document structure —
- *  the S04k bench flipped 3/3 wrong-topic to 4/4 right-topic), then
- *  the subject blocks. */
+const fenced = (language: string, content: string): string[] => [
+  '```' + language,
+  content,
+  '```'
+]
+
+const selectionSection = (selection: PromptSelection, index: number): string[] => [
+  `### Selection ${index + 1}`,
+  '',
+  ...fenced('text', selection.content),
+  '',
+  `(provenance: \`${selection.relPath}\` — location only, not the topic)`
+]
+
+function noteContextSection(context: NoteContext): string[] {
+  if (context.kind === 'append') {
+    return [
+      '## Note context — read-only, never repeat it in the output',
+      '',
+      '### The note currently ends with',
+      '',
+      ...fenced('markdown', context.tail),
+      '',
+      '### Landing point',
+      '',
+      'Your reply will be APPENDED right after the ending shown above. Continue its heading hierarchy and do NOT duplicate sections, headings, or content that already exist.'
+    ]
+  }
+  return [
+    '## Note context — read-only, never repeat it in the output',
+    '',
+    '### Content immediately BEFORE the replaced passage',
+    '',
+    ...fenced('markdown', context.before),
+    '',
+    '### Content immediately AFTER the replaced passage',
+    '',
+    ...fenced('markdown', context.after),
+    '',
+    '### Landing point',
+    '',
+    'Your reply REPLACES the subject selection between the two excerpts above. It must read seamlessly from the BEFORE text into your reply and on into the AFTER text — no duplicated phrases, no broken sentences.'
+  ]
+}
+
+/**
+ * USER message template:
+ *   # Request
+ *   ## Instruction — quoted style/behavior guidance
+ *   ## Subject          ← the selections (the topic lives here)
+ *   ## Note context     ← current state + landing point (append/replace)
+ *   ## Steps            ← explicit integration order
+ */
 export function composeUserMessage(
   instruction: string,
-  selections: PromptSelection[]
+  selections: PromptSelection[],
+  noteContext?: NoteContext
 ): string {
   const quoted = instruction
     .split('\n')
     .map((line) => (line.trim().length > 0 ? `> ${line}` : '>'))
     .join('\n')
+  const steps = [
+    '1. Identify the subject from the Subject section — it alone sets the topic.',
+    '2. Apply the style and behavior from the quoted instruction.',
+    ...(noteContext
+      ? [
+          '3. Check the note context: integrate with the existing structure and never duplicate it.',
+          '4. Write the output following the Output rules — nothing else.'
+        ]
+      : ['3. Write the output following the Output rules — nothing else.'])
+  ]
   return [
-    'Instruction (style/behavior guidance, quoted):',
+    '# Request',
+    '',
+    '## Instruction — style and behavior guidance (quoted)',
+    '',
     quoted,
     '',
-    ...selections.map(selectionBlock)
+    '## Subject',
+    '',
+    ...selections.flatMap((selection, index) => [
+      ...selectionSection(selection, index),
+      ''
+    ]),
+    ...(noteContext ? [...noteContextSection(noteContext), ''] : []),
+    '## Steps',
+    '',
+    ...steps
   ].join('\n')
 }
 

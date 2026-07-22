@@ -21,7 +21,8 @@ import {
   composeSystemPrompt,
   composeUserMessage,
   requestAsText,
-  type DestinationKind
+  type DestinationKind,
+  type NoteContext
 } from '../../../shared/prompt-composition'
 import { defaultNewNotePath, ensureMdExtension } from './ai-helpers'
 import {
@@ -158,9 +159,10 @@ export function AiPanel({
       /** Full captured text, for the faithful copy (memory only). */
       content: string
     }
+    noteContext?: NoteContext
     destination: DestinationKind
   } | null>(null)
-  const [requestCopied, setRequestCopied] = useState(false)
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle')
   // System STACK (S03f): ordered block relPaths — personality > tone >
   // objectives — composed into ONE system prompt at run.
   const [systemStack, setSystemStack] = useState<string[]>([])
@@ -338,6 +340,18 @@ export function AiPanel({
     const operationId = crypto.randomUUID()
     runningOperationId.current = operationId
     const systemPrompt = composeSystemStack(systemStack, prompts)
+    // S04l: bounded note state around the landing point — the model
+    // sees where its output lands and what already exists there.
+    const noteContext: NoteContext | undefined =
+      target.destination.kind === 'append'
+        ? { kind: 'append', tail: doc.slice(-3000) }
+        : target.destination.kind === 'replace-selection'
+          ? {
+              kind: 'replace',
+              before: doc.slice(Math.max(0, selection.range.from - 1500), selection.range.from),
+              after: doc.slice(selection.range.to, selection.range.to + 1500)
+            }
+          : undefined
     // The inspectable request (26): EXACTLY what travels to main —
     // composed, not the layered editing form. Set before the await so
     // a failed run stays inspectable.
@@ -357,6 +371,7 @@ export function AiPanel({
             : `${selection.content.slice(0, 200)}…`,
         content: selection.content
       },
+      ...(noteContext ? { noteContext } : {}),
       destination: target.destination.kind
     })
     try {
@@ -366,6 +381,7 @@ export function AiPanel({
         instruction: text,
         ...(preset ? { preset } : {}),
         ...(systemPrompt ? { systemPrompt } : {}),
+        ...(noteContext ? { noteContext } : {}),
         target
       })
       setBundle(result)
@@ -946,23 +962,52 @@ export function AiPanel({
                       sentRequest.systemPrompt,
                       sentRequest.destination
                     ),
-                    composeUserMessage(sentRequest.instruction, [
-                      {
-                        content: sentRequest.selection.content,
-                        relPath: sentRequest.selection.relPath
-                      }
-                    ])
+                    composeUserMessage(
+                      sentRequest.instruction,
+                      [
+                        {
+                          content: sentRequest.selection.content,
+                          relPath: sentRequest.selection.relPath
+                        }
+                      ],
+                      sentRequest.noteContext
+                    )
                   )
-                  navigator.clipboard.writeText(text).then(
-                    () => {
-                      setRequestCopied(true)
-                      setTimeout(() => setRequestCopied(false), 1500)
-                    },
-                    () => undefined
-                  )
+                  // navigator.clipboard can reject silently in the
+                  // Electron renderer (owner report) — fall back to
+                  // the selection+execCommand path, and SAY so on
+                  // failure instead of swallowing it.
+                  const finish = (ok: boolean): void => {
+                    setCopyState(ok ? 'copied' : 'failed')
+                    setTimeout(() => setCopyState('idle'), 1500)
+                  }
+                  const fallback = (): void => {
+                    try {
+                      const area = document.createElement('textarea')
+                      area.value = text
+                      area.style.position = 'fixed'
+                      area.style.opacity = '0'
+                      document.body.appendChild(area)
+                      area.select()
+                      const ok = document.execCommand('copy')
+                      area.remove()
+                      finish(ok)
+                    } catch {
+                      finish(false)
+                    }
+                  }
+                  if (navigator.clipboard?.writeText) {
+                    navigator.clipboard.writeText(text).then(() => finish(true), fallback)
+                  } else {
+                    fallback()
+                  }
                 }}
               >
-                {requestCopied ? 'copied ✓' : 'copy full request'}
+                {copyState === 'copied'
+                  ? 'copied ✓'
+                  : copyState === 'failed'
+                    ? 'copy failed — select the text below'
+                    : 'copy full request'}
               </button>
               {/* VERBATIM wire view (S04j, owner reconstruction went
                   astray on the labeled-blocks layout): the two pres ARE
@@ -986,12 +1031,16 @@ export function AiPanel({
                   {sentRequest.selection.wholeNote ? ' (whole note)' : ''}
                 </span>
                 <pre>
-                  {composeUserMessage(sentRequest.instruction, [
-                    {
-                      content: sentRequest.selection.content,
-                      relPath: sentRequest.selection.relPath
-                    }
-                  ])}
+                  {composeUserMessage(
+                    sentRequest.instruction,
+                    [
+                      {
+                        content: sentRequest.selection.content,
+                        relPath: sentRequest.selection.relPath
+                      }
+                    ],
+                    sentRequest.noteContext
+                  )}
                 </pre>
               </div>
               <p className="ai-sent-note">

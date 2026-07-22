@@ -40,6 +40,28 @@ describe('isValidAiOperation (channel input is untrusted)', () => {
     expect(isValidAiOperation(validOp({ input: [] }))).toBe(false)
   })
 
+  it('bounds the optional note context (S04l landing excerpts)', () => {
+    expect(
+      isValidAiOperation(validOp({ noteContext: { kind: 'append', tail: 'end of note' } }))
+    ).toBe(true)
+    expect(
+      isValidAiOperation(
+        validOp({ noteContext: { kind: 'replace', before: 'a', after: 'b' } })
+      )
+    ).toBe(true)
+    expect(
+      isValidAiOperation(validOp({ noteContext: { kind: 'whole', tail: 'x' } as never }))
+    ).toBe(false)
+    expect(
+      isValidAiOperation(
+        validOp({ noteContext: { kind: 'append', tail: 'x'.repeat(8001) } })
+      )
+    ).toBe(false)
+    expect(
+      isValidAiOperation(validOp({ noteContext: { kind: 'replace', before: 'a' } as never }))
+    ).toBe(false)
+  })
+
   it('bounds the optional system prompt (S03 prompt files)', () => {
     expect(isValidAiOperation(validOp({ systemPrompt: 'Stay grounded.' }))).toBe(true)
     expect(isValidAiOperation(validOp({ systemPrompt: '' }))).toBe(false)

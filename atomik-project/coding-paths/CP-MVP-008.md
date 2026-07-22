@@ -436,6 +436,26 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       BLOCKQUOTED in the user message (4/4 with both). Shared
       composer updated — wire, popover, and copy moved together;
       test updated to the quoted form. Tests 493/45; gates green.
+- [x] S04l (owner: copy broken + "reforge the composition — clearly
+      layered template, deterministic injection, note state for
+      append/replace, step-by-step") — done 2026-07-22: the shared
+      composer is REFORGED as a fixed layered markdown template —
+      SYSTEM: `# Role / # Rules (## Grounding, ## Output)`; USER:
+      `# Request / ## Instruction (quoted) / ## Subject (###
+      Selection N) / ## Note context / ## Steps` — every dynamic
+      part injected into its slot deterministically. NEW
+      `AiOperation.noteContext` (validated, 8k/part): append sends
+      the note's TAIL + "appended right after the ending shown —
+      do NOT duplicate"; replace sends BEFORE/AFTER excerpts +
+      "must read seamlessly"; captured renderer-side at run
+      (3000/1500-char windows), rides wire+popover+copy identically.
+      Explicit `## Steps` gives the integration order (subject →
+      style → context check → output). LIVE BENCH on the pinned
+      model: etymology case 3/3 on-topic; append probe produced a
+      distinct sibling section at the right heading level, no
+      content duplicated. COPY FIXED: navigator.clipboard rejection
+      no longer swallowed — execCommand fallback + visible
+      "copy failed" state. Tests 493→496/45; gates green.
 - [ ] S05 Inline live preview: proposal rendered over the target
       range as a CM widget (live-preview WidgetType pattern) with
       accept / edit / reject + compact claim strip + trace badge;

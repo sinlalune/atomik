@@ -86,7 +86,11 @@ export function buildMessages(operation: AiOperation): ChatMessage[] {
     { role: 'system', content: defaultSystemPrompt(operation) },
     {
       role: 'user',
-      content: composeUserMessage(operation.instruction, operation.input)
+      content: composeUserMessage(
+        operation.instruction,
+        operation.input,
+        operation.noteContext
+      )
     }
   ]
 }
