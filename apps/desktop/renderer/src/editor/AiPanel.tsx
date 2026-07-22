@@ -964,10 +964,13 @@ export function AiPanel({
               >
                 {requestCopied ? 'copied ✓' : 'copy full request'}
               </button>
+              {/* VERBATIM wire view (S04j, owner reconstruction went
+                  astray on the labeled-blocks layout): the two pres ARE
+                  the two API messages, character for character. */}
               <div className="ai-sent-block">
                 <span className="ai-sent-label">
-                  system — final, {sentRequest.systemPrompt === null ? 'built-in' : 'stack'}{' '}
-                  + grounding rules + destination brief
+                  SYSTEM message — verbatim (
+                  {sentRequest.systemPrompt === null ? 'built-in' : 'stack'} + rules)
                 </span>
                 <pre>
                   {composeSystemPrompt(
@@ -978,19 +981,23 @@ export function AiPanel({
               </div>
               <div className="ai-sent-block">
                 <span className="ai-sent-label">
-                  instruction{sentRequest.preset ? ` (${sentRequest.preset})` : ''}
+                  USER message — verbatim
+                  {sentRequest.preset ? ` (via ${sentRequest.preset})` : ''}
+                  {sentRequest.selection.wholeNote ? ' (whole note)' : ''}
                 </span>
-                <pre>{sentRequest.instruction}</pre>
-              </div>
-              <div className="ai-sent-block">
-                <span className="ai-sent-label">
-                  selection sent{sentRequest.selection.wholeNote ? ' (whole note)' : ''}
-                </span>
-                <pre>{sentRequest.selection.excerpt}</pre>
+                <pre>
+                  {composeUserMessage(sentRequest.instruction, [
+                    {
+                      content: sentRequest.selection.content,
+                      relPath: sentRequest.selection.relPath
+                    }
+                  ])}
+                </pre>
               </div>
               <p className="ai-sent-note">
-                Composed exactly as sent — layers expanded, stack joined. Main
-                adds the grounding rules and the destination brief on top.
+                These two blocks are the exact API messages. Params:
+                temperature 0.2 · max_tokens 2000 · pinned model — match
+                them when testing elsewhere.
               </p>
             </div>
           </div>

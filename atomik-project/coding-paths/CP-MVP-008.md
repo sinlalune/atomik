@@ -405,6 +405,21 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       test: buildMessages halves === the shared composer outputs;
       the portable text carries both verbatim. Tests 492→493/45;
       gates green.
+- [x] S04j (owner playground comparison) — done 2026-07-22:
+      DIAGNOSIS of "different result in the playground": (1)
+      sampling, not composition — playground ran
+      mistral-small-latest at temp 0.7 vs the app's pinned
+      mistral-small-2603 at 0.2 (single samples not comparable);
+      (2) structural: evergreen rode as the INSTRUCTION (its
+      frontmatter now kind: message → message section → preset
+      file:evergreen; system was built-in) — an instruction ABOUT
+      evergreen style + a 10-char subject = two competing topics;
+      guidance: behavior prompts belong kind: system, picked in the
+      SYSTEM section; (3) my popover's labeled-blocks layout invited
+      a wrong manual reconstruction — the popover now shows the TWO
+      API MESSAGES VERBATIM (composeUserMessage view) + a params
+      line (temp/max_tokens/pinned model) for fair external tests.
+      Tests 493/45; gates green.
 - [ ] S05 Inline live preview: proposal rendered over the target
       range as a CM widget (live-preview WidgetType pattern) with
       accept / edit / reject + compact claim strip + trace badge;
