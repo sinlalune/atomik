@@ -28,9 +28,13 @@
   --note-pad: 3rem 2.5rem 4rem; /* S05o: the opening both modes share */
   --note-font-size: 0.95rem;
   --note-line-height: 1.6;
-  --note-h1-size: 1.7rem;
-  --note-h2-size: 1.25rem;
-  --note-h3-size: 1.05rem;
+  /* S05s: heading sizes RIDE the body size (same px as the old
+     1.7/1.25/1.05rem at the 0.95rem default) — the menu's font-size
+     setting overrides --note-font-size on :root and the whole scale
+     follows, both modes at once. */
+  --note-h1-size: calc(var(--note-font-size) * 1.7 / 0.95);
+  --note-h2-size: calc(var(--note-font-size) * 1.25 / 0.95);
+  --note-h3-size: calc(var(--note-font-size) * 1.05 / 0.95);
   --note-heading-weight: 650;
   /* S05k: ONE token = the height of one blank editor line (rem-based
      so heading sizes don't scale it). Read-mode margins speak in this
@@ -405,6 +409,35 @@ body[data-maximized] .app-header {
 
 .app-menu-clear {
   margin-top: 6px;
+}
+
+/* S05s: note font-size row — slider takes the width, the number field
+   stays a compact box, the unit reads as a quiet suffix. The range
+   input drops the text-input skin (its track IS the control) and
+   speaks the accent like every other stateful control. */
+.app-menu-fontsize {
+  align-items: center;
+}
+
+.app-menu-fontsize input[type='range'] {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 0;
+  accent-color: var(--accent);
+}
+
+.app-menu-fontsize input[type='number'] {
+  flex: 0 0 4.2em;
+}
+
+.app-menu-fontsize .app-menu-clear {
+  margin-top: 0;
+}
+
+.app-menu-unit {
+  color: var(--muted);
+  font-size: var(--fs-sm);
 }
 
 .app-menu-note {
@@ -2344,6 +2377,9 @@ body[data-maximized] .tabstrip {
   margin-inline: auto;
   line-height: var(--note-line-height);
   font-size: var(--note-font-size);
+  /* S05s parity sweep: CodeMirror's tab-size is 4 — a literal tab in
+     a note must measure the same in both modes. */
+  tab-size: 4;
 }
 
 /* Inline emphasis GUARANTEED (S05f): browser defaults normally cover

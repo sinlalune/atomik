@@ -13,6 +13,9 @@ import {
   makeTab,
   migratePaneTrees,
   migrateRetiredViews,
+  NOTE_FONT_SIZE_MAX,
+  NOTE_FONT_SIZE_MIN,
+  noteFontSizeOf,
   noteModeOf,
   paneTreeHidden,
   paneTreeOf,
@@ -24,6 +27,7 @@ import {
   saveModeOf,
   setFocus,
   setFraction,
+  setNoteFontSize,
   setPaneTreeScope,
   setSaveMode,
   setTabView,
@@ -129,6 +133,37 @@ describe('theme (workspace settings)', () => {
     expect(saveModeOf(green)).toBe('manual')
     expect(setTheme(green, 'green')).toBe(green)
     expect(themeOf(setTheme(green, 'system'))).toBe('system')
+  })
+})
+
+describe('note font size (workspace settings, S05s)', () => {
+  it('reads absent/garbage as null (stylesheet default), clamps stored values', () => {
+    expect(noteFontSizeOf(null)).toBeNull()
+    expect(noteFontSizeOf(createDefaultState(''))).toBeNull()
+    const base = createDefaultState('')
+    expect(
+      noteFontSizeOf({ ...base, settings: { noteFontSize: 'huge' } })
+    ).toBeNull()
+    expect(noteFontSizeOf({ ...base, settings: { noteFontSize: '8' } })).toBe(
+      NOTE_FONT_SIZE_MIN
+    )
+    expect(noteFontSizeOf({ ...base, settings: { noteFontSize: '99' } })).toBe(
+      NOTE_FONT_SIZE_MAX
+    )
+  })
+
+  it('setNoteFontSize round-trips as a string setting, clamps, no-ops, resets', () => {
+    const state = setTheme(createDefaultState(''), 'dark')
+    const sized = setNoteFontSize(state, 18)
+    expect(noteFontSizeOf(sized)).toBe(18)
+    expect(sized.settings?.['noteFontSize']).toBe('18')
+    expect(themeOf(sized)).toBe('dark')
+    expect(setNoteFontSize(sized, 18)).toBe(sized)
+    expect(noteFontSizeOf(setNoteFontSize(sized, 5))).toBe(NOTE_FONT_SIZE_MIN)
+    const reset = setNoteFontSize(sized, null)
+    expect(noteFontSizeOf(reset)).toBeNull()
+    expect(reset.settings?.['noteFontSize']).toBeUndefined()
+    expect(setNoteFontSize(reset, null)).toBe(reset)
   })
 })
 

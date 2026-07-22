@@ -493,6 +493,47 @@ export function setTheme(state: WorkspaceState, theme: Theme): WorkspaceState {
   return { ...state, settings: { ...state.settings, theme } }
 }
 
+/**
+ * Note font size (owner request, S05s): ONE setting drives
+ * --note-font-size on :root — both modes and every derived token
+ * (heading scale, block gap, list indent) follow, so read/live parity
+ * survives any size. Stored in px in the settings string map; absent
+ * means "the stylesheet default" (0.95rem). Unparsable values read as
+ * absent; out-of-band values clamp to the readable band.
+ */
+export const NOTE_FONT_SIZE_MIN = 12
+export const NOTE_FONT_SIZE_MAX = 24
+export const NOTE_FONT_SIZE_DEFAULT = 15.2
+
+function clampNoteFontSize(px: number): number {
+  return Math.min(NOTE_FONT_SIZE_MAX, Math.max(NOTE_FONT_SIZE_MIN, px))
+}
+
+export function noteFontSizeOf(state: WorkspaceState | null): number | null {
+  const raw = state?.settings?.['noteFontSize']
+  if (raw === undefined) return null
+  const parsed = Number(raw)
+  return Number.isFinite(parsed) ? clampNoteFontSize(parsed) : null
+}
+
+export function setNoteFontSize(
+  state: WorkspaceState,
+  px: number | null
+): WorkspaceState {
+  if (px === null || !Number.isFinite(px)) {
+    if (state.settings?.['noteFontSize'] === undefined) return state
+    const settings = { ...state.settings }
+    delete settings['noteFontSize']
+    return { ...state, settings }
+  }
+  const clamped = clampNoteFontSize(px)
+  if (noteFontSizeOf(state) === clamped) return state
+  return {
+    ...state,
+    settings: { ...state.settings, noteFontSize: String(clamped) }
+  }
+}
+
 /** Replaces a tab's VIEW — the new-tab chooser morphing into its pick.
  *  Params reset to the given ones (S07e: a note tab in a project pane
  *  needs its projectPath); they described the previous view otherwise. */

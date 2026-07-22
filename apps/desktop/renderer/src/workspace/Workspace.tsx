@@ -32,6 +32,7 @@ import {
   pdfPageOf,
   relocateTabPaths,
   saveModeOf,
+  noteFontSizeOf,
   setFocus,
   setFraction,
   setPaneTreeScope,
@@ -722,6 +723,21 @@ export function Workspace(): React.JSX.Element {
     if (theme === 'system') delete document.documentElement.dataset['theme']
     else document.documentElement.dataset['theme'] = theme
   }, [theme])
+
+  // S05s: the note font size overrides --note-font-size on :root —
+  // every derived note token (headings, block gap, indents) follows
+  // in BOTH modes; absent = the stylesheet default.
+  const noteFontSize = noteFontSizeOf(state)
+  useEffect(() => {
+    if (noteFontSize === null) {
+      document.documentElement.style.removeProperty('--note-font-size')
+    } else {
+      document.documentElement.style.setProperty(
+        '--note-font-size',
+        `${noteFontSize}px`
+      )
+    }
+  }, [noteFontSize])
 
   if (!state) return <p className="workspace-loading">loading workspace…</p>
 

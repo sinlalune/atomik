@@ -760,6 +760,30 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       on the npx wrapper orphaned electron — a stale instance held
       the CDP port and answered for the wrong mode). Tests 516/47;
       gates green.
+      S05s (owner: "verify justify + text width are the same; add a
+      font size slider and input in the menu") — DONE 2026-07-22.
+      VERIFIED via CDP body-line probes, read vs live: text-align
+      start/start, text-justify auto/auto (neither justifies),
+      font-size 15.2/15.2, line-height 24.32/24.32, letter+word
+      spacing identical, column left 344.5/344.5, content width
+      736/736 — full match. Two editor-inherent deltas: white-space
+      (break-spaces in live so consecutive spaces stay visible —
+      source-true, not drift) and tab-size 8 vs 4 — FIXED: read
+      .markdown-body now tab-size: 4, matching CM. FONT SIZE
+      CONTROL: new settings entry noteFontSize (px string, clamped
+      12–24, absent = stylesheet default) with noteFontSizeOf /
+      setNoteFontSize in model.ts (theme-setting pattern);
+      Workspace.tsx sets --note-font-size on :root — BOTH modes and
+      every derived token follow, because --note-h1/h2/h3-size
+      became calc(--note-font-size × old-ratio) (same px at the
+      0.95rem default); AppMenu gains a "Note text" row: range
+      slider (direct commit) + number field (draft, commits on
+      blur/Enter — per-keystroke commit would clamp "1" before "16"
+      is typed) + px unit + reset (shown only when overridden).
+      CDP end-to-end: slider→20 gives body 20px, h2 26.32px (ratio
+      kept), number field synced, reset back to 15.2px, state file
+      carries noteFontSize:"20" across restart. Tests 516→518/47
+      (noteFontSizeOf clamps/garbage/round-trip/reset); gates green.
 - [ ] S06 Chat lateral panel: right pane-chrome column (pane grid
       gains the column; pane state gains a validated chat field,
       migration derives absent as hidden); multi-turn over the

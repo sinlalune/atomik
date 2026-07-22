@@ -3,7 +3,17 @@ import type { AiEngine, AiSettingsPublic } from '../../shared/ipc-contract'
 import { materializeStarterPrompts } from './editor/prompts'
 import { MenuIcon } from './icons'
 import { acquireWebOverlay } from './web/overlay'
-import { setTheme, themeOf, THEMES, type Theme } from './workspace/model'
+import {
+  NOTE_FONT_SIZE_DEFAULT,
+  NOTE_FONT_SIZE_MAX,
+  NOTE_FONT_SIZE_MIN,
+  noteFontSizeOf,
+  setNoteFontSize,
+  setTheme,
+  themeOf,
+  THEMES,
+  type Theme
+} from './workspace/model'
 import { useWorkspace } from './workspace/store'
 
 /**
@@ -17,7 +27,24 @@ export function AppMenu(): React.JSX.Element {
   // subscribe to the THEME string, not the whole store — the menu was
   // re-rendering on every workspace dispatch (divider drags included)
   const theme = useWorkspace((store) => themeOf(store.state))
+  const noteFontSize = useWorkspace((store) => noteFontSizeOf(store.state))
   const dispatch = useWorkspace((store) => store.dispatch)
+
+  // S05s: the number field edits a DRAFT and commits on blur/Enter —
+  // committing per keystroke would clamp "1" to 12 before the user
+  // can type "16". The slider commits directly (its values are
+  // always in band).
+  const [sizeDraft, setSizeDraft] = useState<string | null>(null)
+  const fontSizeValue = noteFontSize ?? NOTE_FONT_SIZE_DEFAULT
+  const commitSizeDraft = (): void => {
+    if (sizeDraft !== null) {
+      const parsed = Number(sizeDraft)
+      if (sizeDraft.trim() !== '' && Number.isFinite(parsed)) {
+        dispatch((current) => setNoteFontSize(current, parsed))
+      }
+      setSizeDraft(null)
+    }
+  }
 
   const [open, setOpen] = useState(false)
   const [settings, setSettings] = useState<AiSettingsPublic | null>(null)
@@ -123,6 +150,50 @@ export function AppMenu(): React.JSX.Element {
                 {candidate}
               </button>
             ))}
+          </div>
+
+          <h4>Note text</h4>
+          <div className="app-menu-row app-menu-fontsize">
+            <input
+              type="range"
+              min={NOTE_FONT_SIZE_MIN}
+              max={NOTE_FONT_SIZE_MAX}
+              step={0.5}
+              value={fontSizeValue}
+              aria-label="Note font size"
+              onChange={(event) => {
+                setSizeDraft(null)
+                const next = Number(event.target.value)
+                dispatch((current) => setNoteFontSize(current, next))
+              }}
+            />
+            <input
+              type="number"
+              min={NOTE_FONT_SIZE_MIN}
+              max={NOTE_FONT_SIZE_MAX}
+              step={0.5}
+              value={sizeDraft ?? String(fontSizeValue)}
+              aria-label="Note font size in pixels"
+              onChange={(event) => setSizeDraft(event.target.value)}
+              onBlur={commitSizeDraft}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') commitSizeDraft()
+              }}
+            />
+            <span className="app-menu-unit">px</span>
+            {noteFontSize !== null && (
+              <button
+                type="button"
+                className="app-menu-clear"
+                title="Back to the default note size"
+                onClick={() => {
+                  setSizeDraft(null)
+                  dispatch((current) => setNoteFontSize(current, null))
+                }}
+              >
+                reset
+              </button>
+            )}
           </div>
 
           <h4>AI · Mistral key</h4>
