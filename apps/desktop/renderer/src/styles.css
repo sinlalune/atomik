@@ -99,10 +99,19 @@
      budget under WSLg); real backdrop blur is overlay-only. Content
      stays opaque — reading is sacred. S07o (owner: "no translucid
      effect nowhere"): tints deepened to VISIBLE — chrome 72%, pops
-     66% — with the stronger body wash carrying the light through. */
+     66% — with the stronger body wash carrying the light through.
+     S05v (owner: "still don't feel any glassy transparency"): pops
+     deepened again 66→54 and the wash brightened below — glass only
+     READS when light and detail live behind it. */
   --glass-chrome: color-mix(in srgb, var(--bg) 72%, transparent);
-  --glass-pop: color-mix(in srgb, var(--surface) 66%, transparent);
+  --glass-pop: color-mix(in srgb, var(--surface) 54%, transparent);
   --glass-edge: light-dark(rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.07));
+
+  /* S05v: the wash hues the body gradient shines through the glass.
+     Single-color themes leave both on the accent; MULTICOLOR themes
+     override each blob with its own hue. */
+  --wash-a: var(--accent);
+  --wash-b: var(--accent);
 }
 
 /* Explicit themes (owner round 2: dark mode + soft pastels for bright
@@ -214,6 +223,56 @@
   --fg: #dfe6ea;
 }
 
+/* S05v — the WARM family (owner: "add up some other warm colors theme
+   single and multicolor"). Same token contract and surface ladder as
+   the organic four. The multicolor pair overrides the wash hues so
+   the body light behind the glass carries TWO colors. */
+:root[data-theme='terracotta'] {
+  color-scheme: light;
+  --bg: #ecdfd5;
+  --surface: #faf4ed;
+  --code-bg: #e9d9cb;
+  --border: #d9c2ae;
+  --accent: #a8532f;
+  --muted: #786257;
+}
+
+:root[data-theme='ember'] {
+  color-scheme: dark;
+  --bg: #1b1512;
+  --surface: #251d17;
+  --code-bg: #2c231c;
+  --border: #40342a;
+  --accent: #d99a57;
+  --muted: #9a8a7b;
+  --fg: #ece3d9;
+}
+
+:root[data-theme='sunset'] {
+  color-scheme: light;
+  --bg: #f0e5d8;
+  --surface: #fcf6ee;
+  --code-bg: #eeddca;
+  --border: #ddc5a9;
+  --accent: #bb5c33;
+  --muted: #7a6558;
+  --wash-a: #d4682f;
+  --wash-b: #b8446a;
+}
+
+:root[data-theme='hearth'] {
+  color-scheme: dark;
+  --bg: #191214;
+  --surface: #231a1b;
+  --code-bg: #2a2021;
+  --border: #3e3030;
+  --accent: #e08a54;
+  --muted: #9c8a85;
+  --fg: #ece2df;
+  --wash-a: #e0763a;
+  --wash-b: #a84a5e;
+}
+
 html {
   /* S07q: the web-side floor under everything — never lets the native
      window color read as a band inside the viewport either */
@@ -224,17 +283,18 @@ body {
   margin: 0;
   height: 100vh;
   overflow: hidden;
-  /* the wash the glass chrome tints against (36 §glass; S07o deepened):
-     two soft accent blobs — the light the translucency lets through */
+  /* the wash the glass chrome tints against (36 §glass; S07o deepened;
+     S05v brightened 14/9 → 20/14 and split into two wash hues):
+     two soft blobs — the light the translucency lets through */
   background:
     radial-gradient(
       110% 80% at 12% 0%,
-      color-mix(in srgb, var(--accent) 14%, transparent),
+      color-mix(in srgb, var(--wash-a) 20%, transparent),
       transparent 55%
     ),
     radial-gradient(
       90% 70% at 100% 100%,
-      color-mix(in srgb, var(--accent) 9%, transparent),
+      color-mix(in srgb, var(--wash-b) 14%, transparent),
       transparent 55%
     ),
     var(--bg);

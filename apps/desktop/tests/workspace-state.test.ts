@@ -196,6 +196,11 @@ describe('windowBackgroundFor (S07q — the native band color)', () => {
     expect(windowBackgroundFor(withTheme('sage-stone'), true)).toBe('#e7e9e2')
     expect(windowBackgroundFor(withTheme('light'), true)).toBe('#ecece6')
     expect(windowBackgroundFor(withTheme('dark'), false)).toBe('#141418')
+    // S05v warm family — coupled by hand to the styles.css --bg values
+    expect(windowBackgroundFor(withTheme('terracotta'), false)).toBe('#ecdfd5')
+    expect(windowBackgroundFor(withTheme('ember'), false)).toBe('#1b1512')
+    expect(windowBackgroundFor(withTheme('sunset'), false)).toBe('#f0e5d8')
+    expect(windowBackgroundFor(withTheme('hearth'), false)).toBe('#191214')
   })
 
   it('system and unknown themes follow the OS scheme; no state too', () => {

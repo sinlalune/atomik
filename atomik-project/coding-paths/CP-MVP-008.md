@@ -819,6 +819,25 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       the pane cap in a 1200px window (max-width correct), number
       field syncs, noteWidth:"900" persists. Tests 519→520/47; gates
       green.
+      S05v (owner: "add warm colors themes single and multicolor; I
+      still don't feel any glassy transparency in the panel — is
+      that normal?") — DONE 2026-07-22. WARM FAMILY, same token
+      contract + surface ladder: terracotta (light single),
+      ember (dark single), sunset (light MULTI), hearth (dark
+      MULTI). Multicolor = new --wash-a/--wash-b tokens (default:
+      accent) feeding the body's two gradient blobs — sunset washes
+      orange+rose, hearth ember+wine; window-bg map + tests extended
+      (values coupled by hand per the S07q rule). GLASS ANSWER:
+      standing chrome is tint-only WITHOUT blur by design (36 §glass
+      — WSLg software-GL budget), so bars/sidebar never frost — that
+      part IS normal; the menu popover DOES carry the sanctioned
+      blur but 66% opacity over a flat wash read as opaque. Tints
+      moved: --glass-pop 66→54, wash blobs 14/9→20/14 (36 floor
+      note honored: both schemes re-checked on screenshots — text
+      through the panel now visible, menu text still clearly
+      legible). Verified: all 4 themes screenshot via CDP (menu open
+      over note text), 15-theme picker renders, contrast holds
+      light+dark. Tests 520/47 (4 new window-bg pins); gates green.
 - [ ] S06 Chat lateral panel: right pane-chrome column (pane grid
       gains the column; pane state gains a validated chat field,
       migration derives absent as hidden); multi-turn over the

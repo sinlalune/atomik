@@ -474,6 +474,12 @@ export const THEMES = [
   'eucalyptus',
   'moss',
   'biolum',
+  // S05v warm family (owner request): single-hue terracotta/ember,
+  // multicolor-wash sunset/hearth.
+  'terracotta',
+  'ember',
+  'sunset',
+  'hearth',
   'green',
   'blue',
   'orange',
