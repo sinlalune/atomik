@@ -20,24 +20,19 @@ import {
 import {
   composeSystemPrompt,
   composeUserMessage,
-  requestAsText,
-  type DestinationKind,
-  type NoteContext
+  requestAsText
 } from '../../../shared/prompt-composition'
 import {
   defaultNewNotePath,
-  ensureMdExtension,
-  newNotePathForSelection
+  newNotePathForSelection,
+  selectionLinkReplacement
 } from './ai-helpers'
+import { prepareAiRun, type SentRequest } from './ai-run'
 import {
   atPromptToken,
-  composeSystemStack,
-  expandInstruction,
-  extractNoteLinks,
   filterPrompts,
   insertDirectiveAt,
   layerDirectiveFor,
-  linkedNoteCandidates,
   loadPromptsFor,
   reorderStack,
   scopeLabel,
@@ -149,28 +144,8 @@ export function AiPanel({
     )
   }, [])
   /** The COMPOSED request of the last run — inspectable (26): what
-   *  actually traveled to main, layers expanded, stack composed. */
-  const [sentRequest, setSentRequest] = useState<{
-    instruction: string
-    systemPrompt: string | null
-    preset: string | null
-    selection: {
-      relPath: string
-      from: number
-      to: number
-      chars: number
-      wholeNote: boolean
-      /** What was actually captured — seeing beats trusting offsets. */
-      excerpt: string
-      /** Full captured text, for the faithful copy (memory only). */
-      content: string
-    }
-    /** Linked notes the instruction referenced (S04o) — rode as
-     *  extra selections, quotable and checker-verifiable. */
-    linkedNotes: Array<{ relPath: string; content: string }>
-    noteContext?: NoteContext
-    destination: DestinationKind
-  } | null>(null)
+   *  actually traveled to main (built by the shared pipeline). */
+  const [sentRequest, setSentRequest] = useState<SentRequest | null>(null)
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle')
   // System STACK (S03f): ordered block relPaths — personality > tone >
   // objectives — composed into ONE system prompt at run.
@@ -327,120 +302,38 @@ export function AiPanel({
     // directives compose HERE, against this note's resolved scopes.
     // AWAIT the load, never the state snapshot: an auto-run straight
     // from the selection menu must compose against real prompts.
+    // S05a: the WHOLE preparation lives in the shared pipeline
+    // (ai-run.ts) — the inline preview and the chat column run the
+    // same code; the panel is just one consumer.
     const prompts = await promptsReady.current
-    const text = expandInstruction(instruction, prompts).trim()
-    if (text.length === 0) return
-    // S04o: note links in the composed instruction (typed, from the
-    // menu input, or inside prompt files) become LINKED-NOTE
-    // insertions — read via the existing verb, riding as extra
-    // selections so quotes from them earn source-backed labels.
-    const linkedSelections: AiSelection[] = []
-    for (const link of extractNoteLinks(text)) {
-      for (const candidate of linkedNoteCandidates(link.target, note.relPath)) {
-        if (
-          candidate === note.relPath ||
-          linkedSelections.some((existing) => existing.relPath === candidate)
-        ) {
-          break
-        }
-        try {
-          const file = await window.atomik.readNote(candidate)
-          const content = file.content.slice(0, 6000)
-          linkedSelections.push({
-            relPath: candidate,
-            kind: 'text',
-            content,
-            range: { from: 0, to: content.length }
-          })
-          break
-        } catch {
-          /* try the next candidate path */
-        }
-      }
-    }
     const raw = getSelection()
     const doc = getDoc()
-    // no selection -> the whole note is the selection (05: scope shrinks
-    // to the note; replace-selection is disabled below in that case)
-    const selection: AiSelection = {
-      relPath: note.relPath,
-      kind: 'text',
-      content: raw.text.length > 0 ? raw.text : doc,
-      range:
-        raw.text.length > 0
-          ? { from: raw.from, to: raw.to }
-          : { from: 0, to: doc.length }
-    }
-    const target =
-      destination === 'new-note'
-        ? {
-            relPath: note.relPath,
-            destination: {
-              kind: 'new-note' as const,
-              newNotePath: ensureMdExtension(
-                newNotePath.trim().length > 0 &&
-                  newNotePath.trim() !== defaultNewNotePath(note.relPath)
-                  ? newNotePath.trim()
-                  : newNotePathForSelection(note.relPath, raw.text)
-              )
-            }
-          }
-        : { relPath: note.relPath, destination: { kind: destination } }
+    const prepared = await prepareAiRun(
+      {
+        noteRelPath: note.relPath,
+        doc,
+        selection: raw,
+        instruction,
+        ...(preset ? { preset } : {}),
+        systemStack,
+        prompts,
+        destination,
+        newNotePath
+      },
+      window.atomik.readNote
+    )
+    if (!prepared) return
+    const selection = prepared.operation.input[0]!
 
     setPhase('running')
     setError(null)
     setApplied(null)
-    const operationId = crypto.randomUUID()
-    runningOperationId.current = operationId
-    const systemPrompt = composeSystemStack(systemStack, prompts)
-    // S04l: bounded note state around the landing point — the model
-    // sees where its output lands and what already exists there.
-    const noteContext: NoteContext | undefined =
-      target.destination.kind === 'append'
-        ? { kind: 'append', tail: doc.slice(-3000) }
-        : target.destination.kind === 'replace-selection'
-          ? {
-              kind: 'replace',
-              before: doc.slice(Math.max(0, selection.range.from - 1500), selection.range.from),
-              after: doc.slice(selection.range.to, selection.range.to + 1500)
-            }
-          : undefined
-    // The inspectable request (26): EXACTLY what travels to main —
-    // composed, not the layered editing form. Set before the await so
-    // a failed run stays inspectable.
-    setSentRequest({
-      instruction: text,
-      systemPrompt: systemPrompt.length > 0 ? systemPrompt : null,
-      preset: preset ?? null,
-      selection: {
-        relPath: selection.relPath,
-        from: selection.range.from,
-        to: selection.range.to,
-        chars: selection.content.length,
-        wholeNote: raw.text.length === 0,
-        excerpt:
-          selection.content.length <= 200
-            ? selection.content
-            : `${selection.content.slice(0, 200)}…`,
-        content: selection.content
-      },
-      linkedNotes: linkedSelections.map((linked) => ({
-        relPath: linked.relPath,
-        content: linked.content
-      })),
-      ...(noteContext ? { noteContext } : {}),
-      destination: target.destination.kind
-    })
+    runningOperationId.current = prepared.operation.id
+    // The inspectable request (26) — set before the await so a
+    // failed run stays inspectable.
+    setSentRequest(prepared.sent)
     try {
-      const result = await window.atomik.runAiOperation({
-        id: operationId,
-        input: [selection, ...linkedSelections],
-        instruction: text,
-        ...(preset ? { preset } : {}),
-        ...(systemPrompt ? { systemPrompt } : {}),
-        ...(noteContext ? { noteContext } : {}),
-        target
-      })
+      const result = await window.atomik.runAiOperation(prepared.operation)
       setBundle(result)
       setRanSelection(selection)
       setDocAtRun(doc)
@@ -495,7 +388,26 @@ export function AiPanel({
     try {
       if (proposalFile.kind === 'create') {
         await window.atomik.createNote(proposalFile.relPath, editedText)
-        setApplied(`created ${proposalFile.relPath}`)
+        // S05 auto-link (owner amendment): the source selection
+        // becomes a link to the created note — undoable, through the
+        // same buffer path; whole-note runs have nothing to replace.
+        if (sentRequest && !sentRequest.selection.wholeNote && getDoc() === docAtRun) {
+          applyChange({
+            kind: 'replace-range',
+            range: ranSelection.range,
+            newText: selectionLinkReplacement(
+              note.relPath,
+              ranSelection.content,
+              proposalFile.relPath
+            )
+          })
+          await requestSave()
+          setApplied(
+            `created ${proposalFile.relPath} — selection linked to it`
+          )
+        } else {
+          setApplied(`created ${proposalFile.relPath}`)
+        }
         reportDecision(decision)
         onNoteCreated?.(proposalFile.relPath)
       } else {
@@ -526,7 +438,7 @@ export function AiPanel({
     } catch (reason) {
       setError(String(reason))
     }
-  }, [applyChange, bundle, docAtRun, editedText, getDoc, proposalFile, proposedText, ranSelection, requestSave, onNoteCreated, reportDecision])
+  }, [applyChange, bundle, docAtRun, editedText, getDoc, note.relPath, proposalFile, proposedText, ranSelection, requestSave, sentRequest, onNoteCreated, reportDecision])
 
   const reject = useCallback(() => {
     if (!applied) reportDecision('rejected')

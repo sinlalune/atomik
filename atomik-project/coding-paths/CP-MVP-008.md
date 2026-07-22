@@ -506,8 +506,24 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       buffer untouched until accept → existing `applyChange` + save;
       AiPanel's loop logic (run/accept/reject/challenge/trace)
       extracted into shared hooks consumed by both new surfaces;
-      cancel mid-flight; tests (widget lifecycle, accept path byte
-      fidelity, reject leaves zero trace in the buffer).
+      cancel mid-flight; AUTO-LINKING (owner amendment 2026-07-22):
+      accepting a new-note run replaces the source selection with a
+      relative link to the created note (label = the selected text;
+      whole-note runs skip; same undoable buffer path); tests
+      (widget lifecycle, accept path byte fidelity, reject leaves
+      zero trace in the buffer, link replacement).
+      S05a DONE 2026-07-22: the run pipeline extracted to
+      `ai-run.ts` (`prepareAiRun` — layers, note links, landing
+      context, stack, operation + sent-request built in ONE place,
+      pure over injected readNote; the panel is now one consumer,
+      the widget and chat will be the others) + AUTO-LINK live:
+      accepting a new-note run replaces the source selection with
+      `[selected text](<relative path>)` via the same undoable
+      buffer path + save (whole-note runs and drifted buffers skip;
+      applied message says "selection linked to it");
+      `selectionLinkReplacement` tested (relative walk, label
+      whitespace collapse). Tests 502→504/45; gates green. REMAINS
+      for S05b: the CM widget + menu routing off the panel.
 - [ ] S06 Chat lateral panel: right pane-chrome column (pane grid
       gains the column; pane state gains a validated chat field,
       migration derives absent as hidden); multi-turn over the

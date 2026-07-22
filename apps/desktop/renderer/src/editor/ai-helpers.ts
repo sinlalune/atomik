@@ -18,6 +18,34 @@ export function ensureMdExtension(path: string): string {
 }
 
 /**
+ * The auto-link replacement (S05, owner amendment): after a new-note
+ * run is ACCEPTED, the source selection becomes a relative link to
+ * the created note — label = the selected text (whitespace
+ * collapsed; a multi-line label would break the link), path relative
+ * to the source note, angle-bracketed like every vault insertion.
+ */
+export function selectionLinkReplacement(
+  sourceRelPath: string,
+  selectedText: string,
+  newNoteRelPath: string
+): string {
+  const label = selectedText.replace(/\s+/g, ' ').trim()
+  const fromDir = sourceRelPath.split('/').slice(0, -1)
+  const targetParts = newNoteRelPath.split('/')
+  let common = 0
+  while (
+    common < fromDir.length &&
+    common < targetParts.length - 1 &&
+    fromDir[common] === targetParts[common]
+  ) {
+    common += 1
+  }
+  const ups = fromDir.length - common
+  const rel = [...Array<string>(ups).fill('..'), ...targetParts.slice(common)].join('/')
+  return `[${label}](<${rel}>)`
+}
+
+/**
  * New-note path named after the SELECTION (owner directive
  * 2026-07-22): the selected text is the subject, so it names the
  * file — sanitized for the filesystem (separators and fs/link-hostile

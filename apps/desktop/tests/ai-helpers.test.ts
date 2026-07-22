@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   defaultNewNotePath,
   ensureMdExtension,
-  newNotePathForSelection
+  newNotePathForSelection,
+  selectionLinkReplacement
 } from '../renderer/src/editor/ai-helpers'
 
 describe('defaultNewNotePath', () => {
@@ -37,6 +38,27 @@ describe('newNotePathForSelection (S04m — the selection names the file)', () =
   it('falls back to the -ai default when the selection yields nothing', () => {
     expect(newNotePathForSelection('a/n.md', '')).toBe('a/n-ai.md')
     expect(newNotePathForSelection('a/n.md', '  /:*?  ')).toBe('a/n-ai.md')
+  })
+})
+
+describe('selectionLinkReplacement (S05 — accept links the selection)', () => {
+  it('links the selection to the created note, relative, angle-bracketed', () => {
+    expect(
+      selectionLinkReplacement(
+        'philosophy/philosophy.md',
+        'Ethymology',
+        'philosophy/Ethymology.md'
+      )
+    ).toBe('[Ethymology](<Ethymology.md>)')
+    expect(
+      selectionLinkReplacement('a/b/note.md', 'topic', 'c/topic.md')
+    ).toBe('[topic](<../../c/topic.md>)')
+  })
+
+  it('collapses whitespace in the label — a multi-line label breaks the link', () => {
+    expect(
+      selectionLinkReplacement('n.md', 'love\nof   wisdom', 'love of wisdom.md')
+    ).toBe('[love of wisdom](<love of wisdom.md>)')
   })
 })
 
