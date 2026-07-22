@@ -69,7 +69,12 @@ describe('buildMessages (operation → chat completions)', () => {
     expect(messages[0]!.role).toBe('system')
     expect(messages[0]!.content).toContain('APPENDED')
     expect(messages[1]!.role).toBe('user')
-    expect(messages[1]!.content).toContain('Instruction: Explain this simply.')
+    // S04k: the instruction travels BLOCKQUOTED — its markdown must
+    // read as quoted guidance, never as document structure
+    expect(messages[1]!.content).toContain(
+      'Instruction (style/behavior guidance, quoted):'
+    )
+    expect(messages[1]!.content).toContain('> Explain this simply.')
     expect(messages[1]!.content).toContain('notes/attention.md')
     expect(messages[1]!.content).toContain(SELECTION_TEXT)
   })

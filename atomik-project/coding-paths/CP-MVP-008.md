@@ -420,6 +420,22 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       API MESSAGES VERBATIM (composeUserMessage view) + a params
       line (temp/max_tokens/pinned model) for fair external tests.
       Tests 493/45; gates green.
+- [x] S04k (owner pushback: evergreen was in the MESSAGE in BOTH
+      runs — the S04j structural point could not explain the delta)
+      — done 2026-07-22: A/B-BENCHED the EXACT app wire against the
+      owner's paste on the pinned model via API (owner key, ~21
+      calls): app wire → "# Evergreen" 3/3 at t0.2; owner paste →
+      "# Etymology" 2/2 — the DELTA was WIRE FRAMING, not params and
+      not message-vs-system: the prompt body's opening H1
+      ("# evergreen") behind "Instruction:" was being ADOPTED as the
+      note title (the new-note brief asks for an H1 title; the
+      instruction handed one over). Fix benched then shipped:
+      grounding rule "headings inside the instruction are
+      STYLE/BEHAVIOR guidance only — topic and title come from the
+      subject selection" (3/4 alone) + the instruction travels
+      BLOCKQUOTED in the user message (4/4 with both). Shared
+      composer updated — wire, popover, and copy moved together;
+      test updated to the quoted form. Tests 493/45; gates green.
 - [ ] S05 Inline live preview: proposal rendered over the target
       range as a CM widget (live-preview WidgetType pattern) with
       accept / edit / reject + compact claim strip + trace badge;

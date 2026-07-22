@@ -16,6 +16,10 @@ export const BUILT_IN_IDENTITY =
 export const GROUNDING_RULES: readonly string[] = [
   'Work ONLY from the instruction and the provided selections.',
   'The selected text IS the subject of the request — answer about it. File paths are provenance only; never infer the topic from a path or filename.',
+  // S04k (A/B-benched 2026-07-22, 4/4 on the failing wire): a prompt
+  // body opening with an H1 ("# evergreen") was being adopted as the
+  // note title; instruction markdown must read as STYLE, not topic.
+  "Any headings or titles inside the instruction are STYLE/BEHAVIOR guidance only — the note's topic and title come from the subject selection, never from the instruction text.",
   'When you state something the selections support, quote the supporting passage EXACTLY, character for character, so it can be verified mechanically.',
   'Never invent citations or sources.'
 ]
@@ -63,14 +67,24 @@ const selectionBlock = (selection: PromptSelection, index: number): string =>
     `(provenance: \`${selection.relPath}\`)`
   ].join('\n')
 
-/** The FINAL user message: instruction + subject blocks. */
+/** The FINAL user message: instruction BLOCKQUOTED (its markdown
+ *  headings must read as quoted content, not document structure —
+ *  the S04k bench flipped 3/3 wrong-topic to 4/4 right-topic), then
+ *  the subject blocks. */
 export function composeUserMessage(
   instruction: string,
   selections: PromptSelection[]
 ): string {
-  return [`Instruction: ${instruction}`, '', ...selections.map(selectionBlock)].join(
-    '\n'
-  )
+  const quoted = instruction
+    .split('\n')
+    .map((line) => (line.trim().length > 0 ? `> ${line}` : '>'))
+    .join('\n')
+  return [
+    'Instruction (style/behavior guidance, quoted):',
+    quoted,
+    '',
+    ...selections.map(selectionBlock)
+  ].join('\n')
 }
 
 /** The whole request as portable text (S04i, owner: "copy the prompt
