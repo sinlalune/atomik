@@ -1193,8 +1193,23 @@ body[data-maximized] .tabstrip {
   background: var(--surface);
 }
 
+/* S06b (owner): orientation tells the speakers apart at a glance —
+   your turns hang right as tinted bubbles, atomik's hang left */
 .chat-turn.role-you {
+  align-self: flex-end;
+  max-width: 85%;
   background: var(--code-bg);
+}
+
+.chat-turn.role-atomik {
+  align-self: flex-start;
+  max-width: 95%;
+  min-width: 60%;
+}
+
+.chat-turn-actions {
+  display: inline-flex;
+  gap: var(--space-1);
 }
 
 .chat-turn-head {
@@ -1262,13 +1277,105 @@ body[data-maximized] .tabstrip {
   font-size: var(--fs-sm);
 }
 
-.chat-input {
+.chat-compose {
   flex: none;
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-1);
+}
+
+.chat-input {
   display: flex;
   align-items: flex-end;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3) var(--space-3);
-  border-top: 1px solid var(--border);
+  padding: var(--space-1) var(--space-3) var(--space-3);
+}
+
+.chat-input-host {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+
+/* popovers (history, @ quote) — the 36 overlay idiom: glass +
+   opaque fallback, one shadow, --z-pop */
+.chat-history {
+  position: relative;
+}
+
+.chat-pop {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: var(--z-pop);
+  min-width: 200px;
+  max-width: 280px;
+  max-height: 260px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-1);
+  background: var(--glass-pop);
+  backdrop-filter: blur(18px) saturate(1.2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .chat-pop {
+    background: var(--surface);
+  }
+}
+
+.chat-pop button {
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.chat-pop button:hover,
+.chat-pop button.active {
+  background: var(--code-bg);
+  color: var(--accent);
+}
+
+.chat-pop-empty {
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+
+.chat-at {
+  top: auto;
+  bottom: calc(100% + 4px);
+  left: 0;
+  right: auto;
+  min-width: 240px;
+}
+
+.chat-at-kind {
+  flex: none;
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 0 var(--space-2);
 }
 
 .chat-input textarea {

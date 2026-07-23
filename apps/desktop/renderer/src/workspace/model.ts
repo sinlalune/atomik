@@ -309,6 +309,39 @@ export function migratePaneTrees(state: WorkspaceState): WorkspaceState {
   return root === state.root ? state : { ...state, root }
 }
 
+/**
+ * S06b (owner: a chat answer becomes a note that opens BESIDE the
+ * chat): split the pane side by side, TYPE the fresh right pane with
+ * the given scope (it must not sit on the New Pane chooser), and open
+ * the note in it — one dispatch, built from the existing primitives.
+ */
+export function openNoteInNewPane(
+  state: WorkspaceState,
+  paneId: string,
+  relPath: string,
+  scope: PaneTreeScope
+): WorkspaceState {
+  const split = splitPane(state, paneId, 'horizontal')
+  if (split === state) return state
+  const newPaneId = split.focusedPaneId
+  // the new pane exists to SHOW the note — its tree starts hidden
+  // (one toggle away), so the note keeps the width the split gave it
+  const typed = updatePaneTree(
+    setPaneTreeScope(split, newPaneId, scope),
+    newPaneId,
+    { off: '1' }
+  )
+  const tab =
+    scope.kind === 'project'
+      ? makeTab('project', {
+          projectPath: scope.projectPath,
+          ...(scope.projectTitle ? { projectTitle: scope.projectTitle } : {}),
+          notePath: relPath
+        })
+      : makeTab('vault', { notePath: relPath })
+  return addTab(typed, newPaneId, tab)
+}
+
 /** Splits a leaf: it keeps its tabs as the first child; the second child
  *  is a fresh empty UNTYPED leaf, which takes focus and presents the
  *  New Pane chooser (S07e — the owner picks the pane's tree type). */
@@ -779,7 +812,25 @@ export function relocateTabPaths(
         changed = true
       }
     }
-    return changed ? { ...node, tabs, ...(tree ? { tree } : {}) } : node
+    // the chat column (S06b): a renamed/moved transcript follows too —
+    // a dangling pointer here read as "my chat disappeared"
+    let chat = node.chat
+    const chatFile = chat?.['file']
+    if (chat && chatFile) {
+      const next = rewrite(chatFile)
+      if (next !== chatFile) {
+        chat = { ...chat, file: next }
+        changed = true
+      }
+    }
+    return changed
+      ? {
+          ...node,
+          tabs,
+          ...(tree ? { tree } : {}),
+          ...(chat ? { chat } : {})
+        }
+      : node
   })
   return root === state.root ? state : { ...state, root }
 }

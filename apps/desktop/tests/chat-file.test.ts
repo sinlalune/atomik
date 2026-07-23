@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import type { VaultFolder } from '../shared/ipc-contract'
 import {
   appendChatTurn,
   CHAT_THREAD_MAX_TURNS,
+  chatHistoryOf,
+  chatNotePathForMessage,
   chatRelPath,
   chatSlug,
   insertionChange,
@@ -18,6 +21,10 @@ describe('chat file naming (S01 pin: chats/YYYY-MM-DD-<slug>.md)', () => {
     expect(chatSlug('a/b\\c:d.md #x')).toBe('a-b-c-d-md-x')
     expect(chatSlug('   ')).toBe('chat')
     expect(chatSlug('x'.repeat(120)).length).toBeLessThanOrEqual(40)
+    // an @-quoted link collapses to its label (S06b)
+    expect(chatSlug('Compare with [plato](<plato.md>)')).toBe(
+      'compare-with-plato'
+    )
   })
 
   it('builds dated paths; collisions retry with a numeric suffix', () => {
@@ -109,6 +116,54 @@ describe('threadFromTurns (wire thread from file turns)', () => {
     expect(thread[thread.length - 1]!.content).toBe('turn 39')
     const big = threadFromTurns([{ role: 'you', text: 'x'.repeat(9000) }])
     expect(big[0]!.content.length).toBe(8000)
+  })
+})
+
+describe('chatNotePathForMessage (S06b: an answer becomes its own note)', () => {
+  it('the first heading names the file, beside the source note', () => {
+    const message = "Intro line.\n\n## Discovering Plato's Work\n\nBody."
+    expect(chatNotePathForMessage('notes/plato.md', message)).toBe(
+      "notes/Discovering Plato's Work.md"
+    )
+  })
+
+  it('no heading falls back to the first words of the prose', () => {
+    const message = '```js\ncode()\n```\nThe most effective way to discover his work is through dialogues.'
+    expect(chatNotePathForMessage('notes/plato.md', message)).toBe(
+      'notes/The most effective way to discover his work.md'
+    )
+  })
+})
+
+describe('chatHistoryOf (S06b history menu)', () => {
+  const tree: VaultFolder = {
+    name: '',
+    relPath: '',
+    notes: [],
+    folders: [
+      {
+        name: 'chats',
+        relPath: 'chats',
+        folders: [],
+        notes: [
+          { name: '2026-07-21-old.md', relPath: 'chats/2026-07-21-old.md' },
+          { name: 'index.md', relPath: 'chats/index.md' },
+          { name: '2026-07-23-new.md', relPath: 'chats/2026-07-23-new.md' },
+          { name: 'log.md', relPath: 'chats/log.md' }
+        ]
+      }
+    ]
+  }
+
+  it('lists transcripts newest first, convention files excluded', () => {
+    expect(chatHistoryOf(tree)).toEqual([
+      { name: '2026-07-23-new', relPath: 'chats/2026-07-23-new.md' },
+      { name: '2026-07-21-old', relPath: 'chats/2026-07-21-old.md' }
+    ])
+  })
+
+  it('no chats/ folder reads as an empty history', () => {
+    expect(chatHistoryOf({ name: '', relPath: '', notes: [], folders: [] })).toEqual([])
   })
 })
 

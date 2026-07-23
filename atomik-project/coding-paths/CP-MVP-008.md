@@ -871,6 +871,50 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       Tests 520→538/48 (chat-file suite NEW; thread validation +
       buildMessages replay + mock turn stamp + chat map validation +
       paneChat helpers); typecheck/build/smoke green.
+- [x] S06b (owner bench on the REAL provider, six directives + one
+      bug report) — DONE 2026-07-23. (1) ORIENTATION: you-turns hang
+      right as tinted bubbles, atomik left (align-self on the
+      column's flex; capped widths). (2) HISTORY: header menu lists
+      chats/ newest-first (chatHistoryOf — date-prefixed names make
+      reverse name order chronological; index/log excluded), click
+      reopens any transcript; 36 popover idiom (.chat-pop, glass +
+      opaque fallback). (3) BUG "closed a different pane and the
+      chat on the active pane disappeared": NOT reproducible at the
+      model layer (CDP repro attempts: pane-✕ on sibling, last-tab
+      ✕, both orderings — chat map survives every collapse; now
+      regression-PINNED in workspace-model tests). Two real paths
+      hardened instead: a failed transcript read no longer WIPES the
+      file pointer (transient failure showed as an empty new chat —
+      the likely sighting; it now keeps the pointer and says what
+      happened), and relocateTabPaths drags chat.file so a renamed/
+      moved transcript follows instead of dangling. (4) GENERATION
+      OPTIONS: the S05d block extracted into shared modules —
+      gen-params.ts (pure drafts→clamped params; plain .ts so the
+      node tsconfig tests it) + gen-options.tsx (fields UI) — the
+      selection menu refactored onto them, the chat compose area
+      gained the same foldable (model/temperature/top-p/max-tokens
+      ride the operation's validated params). (5) PROMOTE TO NOTE:
+      each answer's second action creates a note from the message
+      (chatNotePathForMessage — first heading names it, else first
+      words, links stripped) and opens it BESIDE the chat via
+      openNoteInNewPane (split right from existing primitives, pane
+      typed like its parent, tree born hidden — the note is the
+      point; trace resolved accepted). Side columns now cap at a
+      pane fraction (tree 35% / chat 45% via CSS min()) so the
+      split can't crush the note column. (6) @ QUOTES: the chat
+      input's @ token (atPromptToken precedent) offers prompts /
+      notes / sources from the SAME providers as the editor @ menu
+      (chat-at.ts pure: chatAtItems merge+filter+cap,
+      applyChatAtPick — message prompts insert their layer
+      directive, notes/sources a note-relative markdown link; the
+      S04o linked-note pipeline quotes them with zero new plumbing;
+      slugs/note names strip link syntax). CDP-verified end to end
+      (@ pick → link → send; orientation computed styles; promote →
+      2 panes + file on disk + right pane carries the note; history
+      new-chat→reopen restores turns; options present). Tests
+      538→557/50 (chat-at + gen-options suites NEW; close-path
+      regression pins, relocate-follows-chat, openNoteInNewPane,
+      history/naming); typecheck/build/smoke green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
@@ -1003,6 +1047,16 @@ changed(S06): ipc-contract (AiThreadTurn + AiOperation.thread; leaf
               (s06-cdp.mjs), both themes screenshot.
 tests(S06)  : 538 passing / 48 suites; typecheck/build green; smoke
               `ai=ok:2/1/4/1` with a thread riding the smoke op.
+changed(S06b): ChatPanel (orientation, history, options, promote,
+              @ quotes, hardened transcript load); chat-file.ts
+              (chatHistoryOf, chatNotePathForMessage, stripLinks);
+              chat-at.ts NEW; gen-params.ts NEW + gen-options.tsx
+              NEW (S05d block extracted; AiSelectionMenu refactored
+              onto them); model.ts (openNoteInNewPane, relocate
+              drags chat.file); Workspace.tsx (side-column caps,
+              onNoteCreated wiring); icons (History/NoteAdd);
+              styles.css (bubbles, .chat-pop, compose); module note.
+tests(S06b) : 557 passing / 50 suites; typecheck/build/smoke green.
 next action : S07 — acceptance: 18 §M2 intents re-run on the REAL
               provider + owner bench on the live vault (real
               question over a real selection via the context menu,

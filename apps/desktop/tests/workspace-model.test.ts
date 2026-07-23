@@ -22,6 +22,7 @@ import {
   noteFontSizeOf,
   noteModeOf,
   noteWidthOf,
+  openNoteInNewPane,
   paneChatFile,
   paneChatOf,
   paneChatOpen,
@@ -327,6 +328,98 @@ describe('pane chat column (S06)', () => {
     expect(clampChatWidth(9000)).toBe(560)
     expect(clampChatWidth(Number('x'))).toBe(CHAT_WIDTH_DEFAULT)
     expect(paneChatWidth({ w: 'garbled' })).toBe(CHAT_WIDTH_DEFAULT)
+  })
+
+  it('closing ANOTHER pane preserves this pane\'s chat — pane ✕ and last-tab ✕ (S06b owner report pin)', () => {
+    let state = createDefaultState('')
+    const chatPaneId = firstLeafId(state.root)
+    state = updatePaneChat(state, chatPaneId, {
+      on: '1',
+      file: 'chats/2026-07-23-q.md'
+    })
+    state = splitPane(state, chatPaneId, 'horizontal')
+    const other = leaves(state.root)[1]!
+    state = addTab(state, other.id, makeTab('vault', { notePath: 'a.md' }))
+
+    const viaPaneClose = closePane(state, other.id)
+    const survivorA = leaves(viaPaneClose.root)[0]!
+    expect(paneChatOf(survivorA)).toEqual({
+      on: '1',
+      file: 'chats/2026-07-23-q.md'
+    })
+
+    const tabId = leaves(state.root)[1]!.tabs[0]!.id
+    const viaTabClose = closeTab(state, other.id, tabId)
+    const survivorB = leaves(viaTabClose.root)[0]!
+    expect(paneChatOf(survivorB)).toEqual({
+      on: '1',
+      file: 'chats/2026-07-23-q.md'
+    })
+  })
+
+  it('relocateTabPaths — a renamed/moved transcript follows in the chat map (S06b)', () => {
+    let state = createDefaultState('')
+    const paneId = firstLeafId(state.root)
+    state = updatePaneChat(state, paneId, {
+      on: '1',
+      file: 'chats/2026-07-23-q.md'
+    })
+    const renamed = relocateTabPaths(
+      state,
+      'chats/2026-07-23-q.md',
+      'chats/renamed.md'
+    )
+    expect(paneChatOf(leaves(renamed.root)[0]!)['file']).toBe('chats/renamed.md')
+    const folderMove = relocateTabPaths(state, 'chats', 'archive/chats')
+    expect(paneChatOf(leaves(folderMove.root)[0]!)['file']).toBe(
+      'archive/chats/2026-07-23-q.md'
+    )
+    expect(relocateTabPaths(state, 'notes/x.md', 'notes/y.md')).toBe(state)
+  })
+})
+
+describe('openNoteInNewPane — a chat answer\'s note opens beside the chat (S06b)', () => {
+  it('splits right, TYPES the new pane, and opens the note in it', () => {
+    const state = createDefaultState('')
+    const paneId = firstLeafId(state.root)
+    const next = openNoteInNewPane(state, paneId, 'notes/plato.md', {
+      kind: 'vault'
+    })
+    expect(next.root.kind).toBe('split')
+    const split = next.root as Extract<PaneNode, { kind: 'split' }>
+    expect(split.direction).toBe('horizontal')
+    const [left, right] = leaves(next.root)
+    expect(left!.id).toBe(paneId)
+    // the note pane opens with its tree HIDDEN — the note is the point
+    expect(right!.tree).toEqual({ kind: 'vault', off: '1' })
+    expect(right!.tabs).toHaveLength(1)
+    expect(right!.tabs[0]!.view).toBe('vault')
+    expect(right!.tabs[0]!.params?.['notePath']).toBe('notes/plato.md')
+    expect(next.focusedPaneId).toBe(right!.id)
+  })
+
+  it('a project pane opens a project note tab carrying the bundle scope', () => {
+    const state = createDefaultState('')
+    const paneId = firstLeafId(state.root)
+    const next = openNoteInNewPane(state, paneId, 'projects/x/plato.md', {
+      kind: 'project',
+      projectPath: 'projects/x',
+      projectTitle: 'X'
+    })
+    const right = leaves(next.root)[1]!
+    expect(right.tabs[0]!.view).toBe('project')
+    expect(right.tabs[0]!.params).toEqual({
+      projectPath: 'projects/x',
+      projectTitle: 'X',
+      notePath: 'projects/x/plato.md'
+    })
+  })
+
+  it('is identity on an unknown pane', () => {
+    const state = createDefaultState('')
+    expect(openNoteInNewPane(state, 'ghost', 'a.md', { kind: 'vault' })).toBe(
+      state
+    )
   })
 })
 

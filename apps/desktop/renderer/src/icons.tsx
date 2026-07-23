@@ -728,6 +728,27 @@ export function SendIcon(): React.JSX.Element {
   )
 }
 
+/** Chat history — clock face with a rewind arrow. */
+export function HistoryIcon(): React.JSX.Element {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2.5 8a5.5 5.5 0 1 0 1.6-3.9M2.5 2.5v2.6h2.6" />
+      <path d="M8 5.5V8l2 1.5" />
+    </svg>
+  )
+}
+
+/** New note from a message — document with a plus. */
+export function NoteAddIcon(): React.JSX.Element {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9.5 2.5h-6v11h9v-8l-3-3Z" />
+      <path d="M9.5 2.5v3h3" />
+      <path d="M8 8v3.4M6.3 9.7h3.4" />
+    </svg>
+  )
+}
+
 /** Insert into note — arrow dropping between document lines. */
 export function InsertIcon(): React.JSX.Element {
   return (

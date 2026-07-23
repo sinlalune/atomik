@@ -1,5 +1,5 @@
-import type { AiThreadTurn } from '../../../shared/ipc-contract'
-import type { BufferChange } from './ai-helpers'
+import type { AiThreadTurn, VaultFolder } from '../../../shared/ipc-contract'
+import { newNotePathForSelection, type BufferChange } from './ai-helpers'
 
 /**
  * The chats/ convention (CP-MVP-008 S01 pin, owner: files): one chat =
@@ -23,12 +23,17 @@ export const CHATS_FOLDER = 'chats'
 export const CHAT_THREAD_MAX_TURNS = 24
 export const CHAT_THREAD_MAX_TURN_CHARS = 8000
 
+/** Markdown links collapse to their label before naming anything —
+ *  an @-quoted message must not carry `(<path.md>)` into a name. */
+const stripLinks = (text: string): string =>
+  text.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+
 /** File-name slug from the first message (the subject names the chat,
  *  the S05 selection-names-the-note precedent): fs/link-hostile
  *  characters dropped, lowercased, dashed, capped. */
 export function chatSlug(firstMessage: string): string {
-  const slug = firstMessage
-    .replace(/[\\/:*?"<>|#^[\]{}\n\r\t.]/g, ' ')
+  const slug = stripLinks(firstMessage)
+    .replace(/[\\/:*?"<>|#^[\]{}()\n\r\t.]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
     .toLowerCase()
@@ -119,6 +124,54 @@ export function threadFromTurns(turns: ChatTurn[]): AiThreadTurn[] {
     role: turn.role === 'you' ? ('user' as const) : ('assistant' as const),
     content: turn.text.slice(0, CHAT_THREAD_MAX_TURN_CHARS)
   }))
+}
+
+/** Folder-convention files that are not transcripts. */
+const CHATS_CONVENTION_FILES = new Set(['index.md', 'log.md'])
+
+/**
+ * Past chats for the history menu (S06b): the vault-root chats/
+ * folder's notes, newest first — the YYYY-MM-DD name prefix makes
+ * reverse name order chronological. Convention files (index/log)
+ * are the folder's, not transcripts.
+ */
+export function chatHistoryOf(
+  tree: VaultFolder
+): Array<{ name: string; relPath: string }> {
+  const folder = tree.folders.find(
+    (candidate) => candidate.relPath === CHATS_FOLDER
+  )
+  if (!folder) return []
+  return folder.notes
+    .filter((note) => !CHATS_CONVENTION_FILES.has(note.name))
+    .map((note) => ({
+      name: note.name.replace(/\.md$/i, ''),
+      relPath: note.relPath
+    }))
+    .sort((a, b) => b.name.localeCompare(a.name))
+}
+
+/**
+ * Note path for a chat answer promoted to its OWN note (S06b): the
+ * answer's first heading is its subject and names the file (the
+ * selection-names-the-note precedent); no heading falls back to the
+ * first words of the prose. Placed beside the source note through the
+ * same sanitizer the context-menu flow uses.
+ */
+export function chatNotePathForMessage(
+  sourceRelPath: string,
+  message: string
+): string {
+  const heading = /^#{1,6}[ \t]+(.+?)[ \t]*$/m.exec(message)?.[1]
+  const firstWords = stripLinks(message)
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/[#>*_`[\]()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .slice(0, 8)
+    .join(' ')
+  return newNotePathForSelection(sourceRelPath, heading ?? firstWords)
 }
 
 /**

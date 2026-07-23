@@ -284,7 +284,27 @@ timestamp: 2026-07-06T00:00:00Z
   round-trip tested. "Insert into note" lands an answer AT THE
   CURSOR through the same buffer + save path as any accepted patch
   (`insertionChange` pads it into its own block) and resolves the
-  turn's trace as accepted.
+  turn's trace as accepted. S06b (owner bench on the REAL provider,
+  six directives): turns wear chat ORIENTATION (you right as tinted
+  bubbles, atomik left); a header HISTORY menu lists `chats/`
+  newest-first (`chatHistoryOf`; the 36 popover idiom `.chat-pop`)
+  and reopens any transcript; the S05d GENERATION OPTIONS became
+  shared — pure drafts→params in `editor/gen-params.ts`, fields UI
+  in `gen-options.tsx`, consumed by the selection menu AND the chat
+  compose area; an answer PROMOTES to its own note
+  (`chatNotePathForMessage`: first heading names it, first words the
+  fallback, links stripped) opening BESIDE the chat via
+  `openNoteInNewPane` (split right, pane typed, tree born hidden —
+  the note is the point); `@` in the input QUOTES prompts/notes/
+  sources (`editor/chat-at.ts` over the same providers as the editor
+  @ menu: message prompts insert their layer directive, notes and
+  source dossiers a relative markdown link that the S04o
+  linked-note pipeline quotes automatically). Robustness from the
+  owner's disappeared-chat report: a failed transcript read KEEPS
+  the file pointer (transient failures no longer wipe the chat),
+  `relocateTabPaths` drags `chat.file` on rename/move, close paths
+  are regression-pinned, and both side columns cap at a pane
+  fraction (tree 35%, chat 45%) so a split never crushes the note.
 - The editor (S07 + MVP-001 feedback): `renderer/src/editor/EditorPane.tsx`
   — CodeMirror 6 over the RAW note (frontmatter included, no template, no
   normalization; 11/27) with optimistic conflict detection: saves carry

@@ -25,6 +25,7 @@ import {
   closeTabsWithin,
   makeTab,
   noteModeOf,
+  openNoteInNewPane,
   paneChatOf,
   paneChatOpen,
   paneChatWidth,
@@ -458,7 +459,10 @@ function LeafPane({
     <section
       className={`pane${focused ? ' focused' : ''}`}
       style={{
-        gridTemplateColumns: `${treeWidth}px minmax(0, 1fr) ${chatWidth}px`
+        // side columns never eat a narrow pane (S06b: the split for a
+        // promoted note squeezed the note to a sliver): stored widths
+        // cap at a fraction of the pane
+        gridTemplateColumns: `min(${treeWidth}px, ${treeWidth === 0 ? '0%' : '35%'}) minmax(0, 1fr) min(${chatWidth}px, ${chatWidth === 0 ? '0%' : '45%'})`
       }}
       onPointerDownCapture={() => dispatch((state) => setFocus(state, node.id))}
     >
@@ -644,7 +648,24 @@ function LeafPane({
         )}
       </div>
       {chatOpen && (
-        <ChatPanel chat={chat} onPatch={patchChat} getAiSurface={getAiSurface} />
+        <ChatPanel
+          chat={chat}
+          onPatch={patchChat}
+          getAiSurface={getAiSurface}
+          onNoteCreated={(relPath) =>
+            // S06b: the promoted answer opens BESIDE the chat — the
+            // pane splits right, typed like this pane (docs panes
+            // fall back to a vault note pane).
+            dispatch((state) =>
+              openNoteInNewPane(
+                state,
+                node.id,
+                relPath,
+                scope.kind === 'docs' ? { kind: 'vault' } : scope
+              )
+            )
+          }
+        />
       )}
     </section>
   )
