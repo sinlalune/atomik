@@ -61,6 +61,8 @@ function isValidPane(value: unknown, depth: number): value is PaneNode {
     if (!tabs.every(isValidTab)) return false
     const tree = value['tree']
     if (tree !== undefined && !isValidStringMap(tree)) return false
+    const chat = value['chat']
+    if (chat !== undefined && !isValidStringMap(chat)) return false
     const active = value['activeTabId']
     if (active === null) return true
     if (typeof active !== 'string') return false

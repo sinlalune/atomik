@@ -1451,6 +1451,10 @@ async function runSmoke(
               instruction: 'Explain this simply.',
               preset: 'explain',
               systemPrompt: 'Smoke system prompt (S03): rides the operation through validation.',
+              thread: [
+                { role: 'user', content: 'Smoke question (S06): does the thread validate?' },
+                { role: 'assistant', content: 'Smoke answer.' }
+              ],
               target: { relPath: 'welcome.md', destination: { kind: 'append' } }
             })
             const summary = await window.atomik.getAiTraceSummary(bundle.id)

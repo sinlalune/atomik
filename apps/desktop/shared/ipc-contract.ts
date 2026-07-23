@@ -193,6 +193,12 @@ export type PaneNode =
        *  kind = 'vault' (default) | 'project'; projectPath/projectTitle
        *  (project kind); off = '1' hidden; w = width px; open = fold state. */
       tree?: Record<string, string>
+      /** The pane's chat column (CP-MVP-008 S06): right pane chrome,
+       *  same flat string map contract as `tree`. Known keys:
+       *  on = '1' visible (absent/anything else = hidden — the
+       *  migration for pre-S06 layouts is exactly this default);
+       *  w = width px; file = vault relPath of the transcript note. */
+      chat?: Record<string, string>
     }
   | {
       kind: 'split'
@@ -403,12 +409,24 @@ export type AiDestination =
   | { kind: 'append' }
   | { kind: 'new-note'; newNotePath: string }
 
+/** One prior exchange turn riding a chat operation (S06). Roles are
+ *  the wire vocabulary; the transcript FILE spells them `## you` /
+ *  `## atomik` (S01 chats/ pin). */
+export type AiThreadTurn = {
+  role: 'user' | 'assistant'
+  content: string
+}
+
 export type AiOperation = {
   id: string
   input: AiSelection[]
   /** Free text stays first-class (06); presets only scaffold it. */
   instruction: string
   preset?: string
+  /** Prior conversation turns (S06 chat, oldest first) — validated
+   *  main-side (count + per-turn size caps) like every other field;
+   *  adapters replay them as chat-completions history. */
+  thread?: AiThreadTurn[]
   /** Body of a `kind: system` prompt file (S03, scoped prompts/) —
    *  replaces the built-in identity; the mechanical grounding rules
    *  are appended main-side regardless. Size-capped in validation. */

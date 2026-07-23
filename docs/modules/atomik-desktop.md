@@ -249,18 +249,42 @@ timestamp: 2026-07-06T00:00:00Z
   last); Enter runs and closes (Shift+Enter newline); display capped
   per section (`visibleMenuPrompts`) with a search bar past the
   threshold — picked pills never leave view; "Open chat" in the
-  footer (interim dock-right until S06). The menu hands an
-  `AiPanelRequest` to the panel — prefill + auto-run, each request
-  id applied exactly once, the run deferred one render so prefilled
-  state has landed.
-  `renderer/src/editor/AiPanel.tsx` docks the loop in the editor:
-  selection (or whole note) → instruction/preset → destination
-  (replace-selection / append / new-note, path prefilled beside the
-  note) → bundle review → EDITABLE proposal → accept = apply to the
-  buffer AND save immediately (the preview is the review; Ctrl+Z + save
-  reverts) or createNote for new notes (tree refreshes, note opens);
-  buffer-drift guard before apply. The AI channel has no filesystem
-  path — "AI wrote my file" is structurally impossible.
+  footer opens the PANE's chat column (S06). A menu run previews
+  INLINE (S05b): `editor/inline-ai.ts` renders the proposal over the
+  target range as a CM block widget (accept / edit / reject + claim
+  strip + trace badge, cancel while running; the anchor maps through
+  edits), new-note runs preview as a simulated tab
+  (`AiNotePreview.tsx`); either way the buffer changes exactly ONCE,
+  on accept, through applyChange + save. The docked
+  `AiPanel.tsx` RETIRED at S06 into the two surfaces (inline +
+  chat); its `BufferChange`/`PRESETS` live in `editor/ai-helpers.ts`.
+  The AI channel has no filesystem path — "AI wrote my file" is
+  structurally impossible.
+- The chat column (CP-MVP-008 S06, 26/06):
+  `renderer/src/workspace/ChatPanel.tsx` is RIGHT pane chrome on the
+  pane-tree contract — the pane grid gained a third column, the leaf
+  a validated `chat` string map (`on`/`w`/`file`; ABSENT reads
+  hidden, which IS the migration for pre-S06 layouts), toggled from
+  the tabstrip or the selection menu. Multi-turn rides the SAME
+  operation contract: prior turns travel as `operation.thread`
+  (`{role: user|assistant, content}`, validated in main — ≤24 turns,
+  ≤8k chars each; `buildMessages` replays them verbatim between
+  system and the live composed turn; the mock stamps `(turn N)` so
+  multi-turn is provable offline). Each send runs `prepareAiRun`
+  over the pane's ACTIVE editor (registered as `PaneAiSurface` via
+  the S07d guard pattern: notePath + getSelection/getDoc/insert), so
+  selection, prompt layers, and note context behave exactly like any
+  AI run. Transcripts are vault FILES (S01 pin):
+  `chats/YYYY-MM-DD-<slug>.md`, frontmatter `type: Atomik Chat` +
+  engine + timestamp, BORN at the first message (never on open;
+  createNote is exclusive — collisions retry `-2`, `-3`…), each turn
+  appended as `## you` / `## atomik` through readNote/writeNote with
+  the mtime handshake; `editor/chat-file.ts` holds the pure
+  convention (slug/birth/append/lenient parse/thread mapping) —
+  round-trip tested. "Insert into note" lands an answer AT THE
+  CURSOR through the same buffer + save path as any accepted patch
+  (`insertionChange` pads it into its own block) and resolves the
+  turn's trace as accepted.
 - The editor (S07 + MVP-001 feedback): `renderer/src/editor/EditorPane.tsx`
   — CodeMirror 6 over the RAW note (frontmatter included, no template, no
   normalization; 11/27) with optimistic conflict detection: saves carry
@@ -1129,7 +1153,8 @@ fixture mounts one (start button → `img.capture-qr` rendered;
 `qr-rendered` in the marker). The S11
 acceptance run and its per-line evidence live in
 `atomik-project/sessions/2026-07-06-s11-acceptance-run.md`. The
-CodeMirror typing/save flow and the AiPanel interaction flow are
+CodeMirror typing/save flow and the AI surfaces (inline preview +
+chat column since the S06 AiPanel retirement) are
 validated by owner dogfooding and the learning-note exercises; the
 channels and logic beneath them are unit-covered, and the smoke drives
 the AI channel e2e through the renderer world (ATOMIK_SMOKE_AI=1) and
@@ -1166,9 +1191,10 @@ ATOMIK_SMOKE=1 ATOMIK_SMOKE_DOC=bedrock/22_22-agent-handoff.md \
 - Real provider adapters (M7+) behind the same `run-ai-operation` channel;
   their claim candidates flow through the same `labelClaims` checker —
   labels beyond the MVP four (web-checked, disputed, stale) require
-  reading 28 first (path trigger);
-  a dedicated ai-panel tab kind when context grows beyond selection-first
-  (26 trigger).
+  reading 28 first (path trigger). The 26 "context beyond
+  selection-first" trigger landed as the S06 chat COLUMN (pane
+  chrome, not a tab kind); richer context assembly still reads 26
+  first.
 - Autosave SHIPPED as the default policy (MVP-001 feedback) on top of the
   unchanged mtime handshake; remaining seam: observing OS-level window
   close mid-debounce (quit flush) if it ever bites in practice.

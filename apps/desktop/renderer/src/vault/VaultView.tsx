@@ -3,7 +3,12 @@ import type { VaultInfo } from '../../../shared/ipc-contract'
 import { EditorPane } from '../editor/EditorPane'
 import { HistoryNav } from '../HistoryNav'
 import { ModeSwitch } from '../editor/ModeSwitch'
-import type { NoteViewMode, PaneNoteGuard, SaveMode } from '../workspace/model'
+import type {
+  NoteViewMode,
+  PaneAiSurface,
+  PaneNoteGuard,
+  SaveMode
+} from '../workspace/model'
 import { hasMediaResource } from '../source/dossier'
 import { noteFollowTarget } from './note-follow'
 import { useNavHistory } from './nav-history'
@@ -30,6 +35,10 @@ export type VaultViewProps = {
   onOpenWebUrl?: (url: string) => void
   /** Keys this tab's ‹ › navigation trail (the tab id). */
   historyKey?: string
+  /** Opens the pane's chat column (S06 — from the AI selection menu). */
+  onOpenChat?: () => void
+  /** Registers the mounted editor as the pane's AI surface (S06). */
+  registerAiSurface?: (surface: PaneAiSurface | null) => void
 }
 
 /**
@@ -47,7 +56,9 @@ export function VaultView({
   onSaveModeToggle,
   onOpenSourceImage,
   onOpenWebUrl,
-  historyKey
+  historyKey,
+  onOpenChat,
+  registerAiSurface
 }: VaultViewProps): React.JSX.Element {
   const [info, setInfo] = useState<VaultInfo | null | 'loading'>('loading')
   const [editorDirty, setEditorDirty] = useState(false)
@@ -186,7 +197,8 @@ export function VaultView({
             key={note.relPath}
             note={note}
             onOpenSourceImage={onOpenSourceImage}
-            onOpenWebUrl={onOpenWebUrl}
+            onOpenChat={onOpenChat}
+            registerAiSurface={registerAiSurface}
             onSaved={applySaved}
             onDirtyChange={onDirtyChange}
             mode={mode}

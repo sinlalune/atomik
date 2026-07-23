@@ -92,6 +92,31 @@ describe('read is forgiving (disposable state)', () => {
   })
 })
 
+describe('pane chat column (S06: optional string map on the leaf)', () => {
+  it('accepts a leaf with a valid chat map — and without one (pre-S06 states)', () => {
+    const state = validState()
+    const leaf = state.root.kind === 'split' ? state.root.first : state.root
+    if (leaf.kind === 'leaf') {
+      leaf.chat = { on: '1', w: '320', file: 'chats/2026-07-23-question.md' }
+    }
+    expect(isValidWorkspaceState(state)).toBe(true)
+    expect(isValidWorkspaceState(validState())).toBe(true)
+  })
+
+  it('rejects non-map chat shapes and non-string values', () => {
+    const withChat = (chat: unknown): WorkspaceState => {
+      const state = validState()
+      const leaf = state.root.kind === 'split' ? state.root.first : state.root
+      ;(leaf as unknown as Record<string, unknown>)['chat'] = chat
+      return state
+    }
+    expect(isValidWorkspaceState(withChat('on'))).toBe(false)
+    expect(isValidWorkspaceState(withChat(['on']))).toBe(false)
+    expect(isValidWorkspaceState(withChat({ on: 1 }))).toBe(false)
+    expect(isValidWorkspaceState(withChat({ file: 'x'.repeat(5000) }))).toBe(false)
+  })
+})
+
 describe('app-wide settings (optional string map)', () => {
   it('round-trips settings and stays valid without them', () => {
     const withSettings = { ...validState(), settings: { saveMode: 'manual' } }

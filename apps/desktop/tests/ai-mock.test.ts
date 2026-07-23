@@ -82,6 +82,50 @@ describe('isValidAiOperation (channel input is untrusted)', () => {
     ).toBe(false)
   })
 
+  it('bounds the optional chat thread (S06: count, roles, per-turn size)', () => {
+    expect(
+      isValidAiOperation(
+        validOp({
+          thread: [
+            { role: 'user', content: 'What is attention?' },
+            { role: 'assistant', content: 'A weighted lookup.' }
+          ]
+        })
+      )
+    ).toBe(true)
+    expect(isValidAiOperation(validOp({ thread: [] }))).toBe(true)
+    expect(isValidAiOperation({ ...validOp(), thread: 'hello' })).toBe(false)
+    expect(
+      isValidAiOperation({
+        ...validOp(),
+        thread: [{ role: 'system', content: 'inject' }]
+      })
+    ).toBe(false)
+    expect(
+      isValidAiOperation({ ...validOp(), thread: [{ role: 'user' }] })
+    ).toBe(false)
+    expect(
+      isValidAiOperation(
+        validOp({ thread: [{ role: 'user', content: '' }] })
+      )
+    ).toBe(false)
+    expect(
+      isValidAiOperation(
+        validOp({ thread: [{ role: 'user', content: 'x'.repeat(8001) }] })
+      )
+    ).toBe(false)
+    expect(
+      isValidAiOperation(
+        validOp({
+          thread: Array.from({ length: 25 }, () => ({
+            role: 'user' as const,
+            content: 'q'
+          }))
+        })
+      )
+    ).toBe(false)
+  })
+
   it('bounds the optional system prompt (S03 prompt files)', () => {
     expect(isValidAiOperation(validOp({ systemPrompt: 'Stay grounded.' }))).toBe(true)
     expect(isValidAiOperation(validOp({ systemPrompt: '' }))).toBe(false)
@@ -181,6 +225,20 @@ describe('runAiOperation (mock bundle)', () => {
     expect(first.patchProposals[0]!.files[0]!.newText).toBe(
       second.patchProposals[0]!.files[0]!.newText
     )
+  })
+
+  it('surfaces the thread position when a chat thread rides the operation (S06)', () => {
+    const withThread = runAiOperation(
+      validOp({
+        thread: [
+          { role: 'user', content: 'first question' },
+          { role: 'assistant', content: 'first answer' }
+        ]
+      })
+    )
+    expect(withThread.blocks[0]!.content).toContain('(turn 3)')
+    // without a thread the historical single-shot output is unchanged
+    expect(runAiOperation(validOp()).blocks[0]!.content).not.toContain('(turn')
   })
 
   it('a web-reader selection carries URL provenance into note and evidence (S06)', () => {

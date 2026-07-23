@@ -79,16 +79,24 @@ export function defaultSystemPrompt(operation: AiOperation): string {
   )
 }
 
-export type ChatMessage = { role: 'system' | 'user'; content: string }
+export type ChatMessage = {
+  role: 'system' | 'user' | 'assistant'
+  content: string
+}
 
 /** instruction + selection(s) → chat-completions messages (S01 pin);
  *  both halves come from shared/prompt-composition — the renderer's
  *  inspector shows and copies the SAME text by construction (S04h/i).
+ *  A chat thread (S06) replays VERBATIM between system and the current
+ *  user message — history is history, only the live turn composes.
  *  Input bounds are ai-mock's validation constants, enforced by
  *  `isValidAiOperation` before any adapter runs. */
 export function buildMessages(operation: AiOperation): ChatMessage[] {
   return [
     { role: 'system', content: defaultSystemPrompt(operation) },
+    ...(operation.thread ?? []).map(
+      (turn): ChatMessage => ({ role: turn.role, content: turn.content })
+    ),
     {
       role: 'user',
       content: composeUserMessage(

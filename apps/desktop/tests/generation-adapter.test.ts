@@ -80,6 +80,29 @@ describe('buildMessages (operation → chat completions)', () => {
     expect(messages[1]!.content).toContain(SELECTION_TEXT)
   })
 
+  it('replays a chat thread verbatim between system and the live turn (S06)', () => {
+    const chatOp: AiOperation = {
+      ...operation(),
+      thread: [
+        { role: 'user', content: 'What is attention?' },
+        { role: 'assistant', content: 'A weighted lookup over keys.' }
+      ]
+    }
+    const messages = buildMessages(chatOp)
+    expect(messages.map((message) => message.role)).toEqual([
+      'system',
+      'user',
+      'assistant',
+      'user'
+    ])
+    // history is HISTORY: raw content, no template around prior turns
+    expect(messages[1]!.content).toBe('What is attention?')
+    expect(messages[2]!.content).toBe('A weighted lookup over keys.')
+    // only the live turn composes through the layered template
+    expect(messages[3]!.content).toContain('# Request')
+    expect(messages[3]!.content).toContain(SELECTION_TEXT)
+  })
+
   it('both messages follow the layered template (S04l): # sections, ## subsections', () => {
     const messages = buildMessages(operation())
     const system = messages[0]!.content

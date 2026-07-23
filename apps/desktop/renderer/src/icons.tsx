@@ -708,3 +708,32 @@ export function PlayIcon(): React.JSX.Element {
     </svg>
   )
 }
+
+/** Chat — speech bubble (the S06 pane chat column). */
+export function ChatIcon(): React.JSX.Element {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2Z" />
+    </svg>
+  )
+}
+
+/** Send — paper plane (chat input). */
+export function SendIcon(): React.JSX.Element {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 8 14 2.5 10.5 14 7.8 9.2 2 8Z" />
+      <path d="M7.8 9.2 14 2.5" />
+    </svg>
+  )
+}
+
+/** Insert into note — arrow dropping between document lines. */
+export function InsertIcon(): React.JSX.Element {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 2.5h10M3 13.5h10" />
+      <path d="M8 4.5v6M8 10.5 5.5 8M8 10.5 10.5 8" />
+    </svg>
+  )
+}

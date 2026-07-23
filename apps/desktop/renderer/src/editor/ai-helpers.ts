@@ -1,4 +1,20 @@
-/** Pure helpers for the AI panel. */
+/** Pure helpers for the AI surfaces (inline preview + chat column). */
+
+/** A buffer edit an accepted AI change applies (06: the buffer changes
+ *  exactly once, on accept, through the editor's applyChange + save).
+ *  Lived in AiPanel until the S06 retirement. */
+export type BufferChange =
+  | { kind: 'replace-range'; range: { from: number; to: number }; newText: string }
+  | { kind: 'append'; newText: string }
+
+/** Built-in quick actions (S08): scaffolding only — free text stays
+ *  first-class. Shared by the selection menu and the generated-note
+ *  screen since the AiPanel retired (S06). */
+export const PRESETS: Array<{ id: string; label: string; instruction: string }> = [
+  { id: 'explain', label: 'explain', instruction: 'Explain this simply.' },
+  { id: 'summarize', label: 'summarize', instruction: 'Summarize the selection.' },
+  { id: 'rewrite', label: 'rewrite', instruction: 'Rewrite this more clearly.' }
+]
 
 /**
  * Default path for an AI-created note: beside the source note, named

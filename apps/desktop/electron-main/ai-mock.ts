@@ -31,6 +31,11 @@ const MAX_ID = 128
 const MAX_SYSTEM_PROMPT = 8000
 /** Per-part cap on landing-point excerpts (S04l). */
 const MAX_NOTE_CONTEXT = 8000
+/** Chat thread bounds (S06): turns are transcript sections, bounded
+ *  like system prompts; the count cap keeps the replayed history an
+ *  order of magnitude below the adapter's input-token budget. */
+const MAX_THREAD_TURNS = 24
+const MAX_THREAD_TURN = 8000
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -76,6 +81,16 @@ export function isValidAiOperation(value: unknown): value is AiOperation {
   }
   const params = value['params']
   if (params !== undefined && !isValidGenerationParams(params)) return false
+  const thread = value['thread']
+  if (thread !== undefined) {
+    if (!Array.isArray(thread) || thread.length > MAX_THREAD_TURNS) return false
+    for (const turn of thread) {
+      if (!isRecord(turn)) return false
+      if (turn['role'] !== 'user' && turn['role'] !== 'assistant') return false
+      const content = turn['content']
+      if (typeof content !== 'string' || content.length === 0 || content.length > MAX_THREAD_TURN) return false
+    }
+  }
   const noteContext = value['noteContext']
   if (noteContext !== undefined) {
     if (!isRecord(noteContext)) return false
@@ -136,8 +151,11 @@ function quoteBlock(text: string, max: number): string {
  *  the other statements exist to exercise the remaining labels. */
 function mockAnswer(operation: AiOperation, selection: AiSelection): string {
   const preset = operation.preset ?? 'free'
+  // Thread turns surface in the header (S06) so multi-turn chat is
+  // provable offline; absent thread keeps the historical output.
+  const turns = operation.thread?.length ?? 0
   return [
-    `**[mock · ${preset}]** Response to: *${excerpt(operation.instruction)}*`,
+    `**[mock · ${preset}]**${turns > 0 ? ` (turn ${turns + 1})` : ''} Response to: *${excerpt(operation.instruction)}*`,
     '',
     `Your selection says:`,
     '',

@@ -35,14 +35,19 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { VaultFolder, VaultNoteFile } from '../../../shared/ipc-contract'
 import { resolveRelativePath } from '../dev-docs/markdown'
-import { themeOf, type NoteViewMode, type SaveMode } from '../workspace/model'
+import {
+  themeOf,
+  type NoteViewMode,
+  type PaneAiSurface,
+  type SaveMode
+} from '../workspace/model'
 import { useWorkspace } from '../workspace/store'
 import { HistoryNav } from '../HistoryNav'
-import { selectionLinkReplacement } from './ai-helpers'
+import { selectionLinkReplacement, type BufferChange } from './ai-helpers'
 import { prepareAiRun, type SentRequest } from './ai-run'
 import { AiNotePreview } from './AiNotePreview'
-import { AiPanel, type BufferChange } from './AiPanel'
 import { AiSelectionMenu, type AiMenuRequest } from './AiSelectionMenu'
+import { insertionChange } from './chat-file'
 import {
   inlineAi,
   inlineAiField,
@@ -155,8 +160,13 @@ export type EditorPaneProps = {
   /** Shown when the note declares an image resource (dossier or
    *  transcript): the original stays one click away while editing. */
   onOpenSourceImage?: (dossierPath: string) => void
-  /** Opens a URL in a web tab (S06: AI evidence from a web reader). */
-  onOpenWebUrl?: (url: string) => void
+  /** Opens the pane's chat column (S06) — the selection menu's
+   *  "Open chat" retired the docked panel. */
+  onOpenChat?: () => void
+  /** Registers this editor as the pane's AI surface (S06 bridge): the
+   *  chat column reads selection/doc at send time and inserts accepted
+   *  answers through this editor's buffer + save path. */
+  registerAiSurface?: (surface: PaneAiSurface | null) => void
 }
 
 /**
@@ -185,7 +195,8 @@ export function EditorPane({
   onSaveModeToggle,
   nav,
   onOpenSourceImage,
-  onOpenWebUrl
+  onOpenChat,
+  registerAiSurface
 }: EditorPaneProps): React.JSX.Element {
   const hostRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
@@ -199,7 +210,6 @@ export function EditorPane({
   const [saving, setSaving] = useState(false)
   const [conflict, setConflict] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [showAi, setShowAi] = useState(false)
   // S04: the AI entry point is the SELECTION — right-click/Shift+F10
   // opens the menu at the click location; the note-bar stays editing-only.
   const [aiMenu, setAiMenu] = useState<{ x: number; y: number } | null>(null)
@@ -226,10 +236,6 @@ export function EditorPane({
     selectedText: string
     docAtRun: string
   } | null>(null)
-  const [aiDock, setAiDock] = useState<'bottom' | 'right'>('bottom')
-  const [aiSize, setAiSize] = useState(0.44)
-  const bodyRef = useRef<HTMLDivElement>(null)
-
   const dirtyRef = useRef(false)
   const conflictRef = useRef(false)
   const saveModeRef = useRef(saveMode)
@@ -507,48 +513,6 @@ export function EditorPane({
     []
   )
 
-  /** Drag the divider between editor and AI panel (both docks). */
-  const onAiDividerPointerDown = useCallback(
-    (event: React.PointerEvent<HTMLDivElement>) => {
-      event.preventDefault()
-      const body = bodyRef.current
-      if (!body) return
-      const divider = event.currentTarget
-      divider.setPointerCapture(event.pointerId)
-      const dock = aiDock
-      const onMove = (move: PointerEvent): void => {
-        const rect = body.getBoundingClientRect()
-        const fraction =
-          dock === 'bottom'
-            ? (rect.bottom - move.clientY) / rect.height
-            : (rect.right - move.clientX) / rect.width
-        setAiSize(Math.min(0.75, Math.max(0.15, fraction)))
-      }
-      const onUp = (): void => {
-        divider.removeEventListener('pointermove', onMove)
-        divider.removeEventListener('pointerup', onUp)
-      }
-      divider.addEventListener('pointermove', onMove)
-      divider.addEventListener('pointerup', onUp)
-    },
-    [aiDock]
-  )
-
-  /** Selects and scrolls to a source anchor (S10: a mapped citation
-   *  opens its local source anchor). */
-  const revealRange = useCallback((range: { from: number; to: number }) => {
-    const view = viewRef.current
-    if (!view) return
-    const docLength = view.state.doc.length
-    const from = Math.max(0, Math.min(range.from, docLength))
-    const to = Math.max(from, Math.min(range.to, docLength))
-    view.dispatch({
-      selection: { anchor: from, head: to },
-      effects: EditorView.scrollIntoView(from, { y: 'center' })
-    })
-    view.focus()
-  }, [])
-
   /** Accepted AI changes land in the BUFFER — visible, undoable; the
    *  explicit save stays the single moment a file diff is born (06). */
   const applyChange = useCallback((change: BufferChange) => {
@@ -566,6 +530,27 @@ export function EditorPane({
     }
     view.focus()
   }, [])
+
+  // S06 pane bridge: this editor IS the pane's AI surface while
+  // mounted — the chat column reads selection/doc at send time, and
+  // an inserted answer lands at the cursor through the SAME
+  // applyChange + save path as any accepted patch (06).
+  useEffect(() => {
+    if (!registerAiSurface) return
+    registerAiSurface({
+      notePath: note.relPath,
+      getSelection,
+      getDoc,
+      insert: async (text: string) => {
+        const view = viewRef.current
+        if (!view) return
+        const at = view.state.selection.main.to
+        applyChange(insertionChange(view.state.doc.toString(), at, text))
+        await saveRef.current()
+      }
+    })
+    return () => registerAiSurface(null)
+  }, [applyChange, getDoc, getSelection, note.relPath, registerAiSurface])
 
   /**
    * S05b: a menu run previews INLINE — the proposal renders in the
@@ -869,7 +854,7 @@ export function EditorPane({
 
   /** S04→S05b: a quick action or custom run previews INLINE (the DoD:
    *  quick requests do NOT open the panel); "Open chat" opens the
-   *  docked panel (the conversational surface until S06). */
+   *  pane's chat column (S06 — the docked panel retired). */
   const runFromMenu = useCallback(
     (menuRequest: AiMenuRequest) => {
       setAiMenu(null)
@@ -880,9 +865,8 @@ export function EditorPane({
 
   const openChatFromMenu = useCallback(() => {
     setAiMenu(null)
-    setAiDock('right')
-    setShowAi(true)
-  }, [])
+    onOpenChat?.()
+  }, [onOpenChat])
 
   const openAiMenu = useCallback((x: number, y: number) => {
     setAiMenu({ x, y })
@@ -966,7 +950,7 @@ export function EditorPane({
           </button>
         </div>
       )}
-      <div ref={bodyRef} className={`editor-body dock-${aiDock}`}>
+      <div className="editor-body">
         <div
           ref={hostRef}
           className={`editor-host${mode === 'live' ? ' live' : ''}`}
@@ -1011,34 +995,6 @@ export function EditorPane({
             onRun={runFromMenu}
             onOpenChat={openChatFromMenu}
           />
-        )}
-        {showAi && (
-          <>
-            <div
-              className="ai-divider"
-              role="separator"
-              aria-orientation={aiDock === 'bottom' ? 'horizontal' : 'vertical'}
-              onPointerDown={onAiDividerPointerDown}
-            />
-            <AiPanel
-              note={note}
-              getSelection={getSelection}
-              getDoc={getDoc}
-              applyChange={applyChange}
-              requestSave={async () => {
-                await saveRef.current()
-              }}
-              openAnchor={revealRange}
-              onOpenWebUrl={onOpenWebUrl}
-              onNoteCreated={onNoteCreated}
-              onClose={() => setShowAi(false)}
-              dock={aiDock}
-              onToggleDock={() =>
-                setAiDock((current) => (current === 'bottom' ? 'right' : 'bottom'))
-              }
-              style={{ flexBasis: `${aiSize * 100}%` }}
-            />
-          </>
         )}
       </div>
     </div>

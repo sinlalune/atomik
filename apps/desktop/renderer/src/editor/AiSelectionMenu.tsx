@@ -7,7 +7,7 @@ import {
   type GenerationParams
 } from '../../../shared/generation-params'
 import { PlayIcon } from '../icons'
-import { PRESETS } from './AiPanel'
+import { PRESETS } from './ai-helpers'
 import {
   composeMenuInstruction,
   loadPromptsFor,

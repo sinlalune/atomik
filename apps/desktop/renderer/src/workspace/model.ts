@@ -138,6 +138,18 @@ export type PaneTreeScope =
  *  navigation guard and the rename/move/delete dirty block use it. */
 export type PaneNoteGuard = { dirtyPath: () => string | null }
 
+/** What an EDITABLE note view registers with its pane (S06 bridge):
+ *  the chat column reads it at send time — selection + doc feed the
+ *  operation contract, and `insert` lands an answer in the buffer
+ *  through the SAME applyChange + save path every accepted patch
+ *  takes (06: accept is the single moment a diff is born). */
+export type PaneAiSurface = {
+  notePath: string
+  getSelection: () => { from: number; to: number; text: string }
+  getDoc: () => string
+  insert: (text: string) => Promise<void>
+}
+
 /** Absent tree reads as the vault tree — the default pane type. */
 export function paneTreeOf(node: LeafNode): PaneTree {
   return node.tree ?? { kind: 'vault' }
@@ -164,6 +176,52 @@ export function paneTreeWidth(tree: PaneTree): number {
 
 export function paneTreeOpenFolders(tree: PaneTree): ReadonlySet<string> {
   return parseOpenFolders(tree['open'])
+}
+
+/**
+ * The pane's chat column (CP-MVP-008 S06): right pane chrome on the
+ * exact contract of the tree panel — a flat validated string map on
+ * the leaf. Keys: on = '1' visible, w = width px, file = vault
+ * relPath of the transcript note. An ABSENT map reads hidden: that
+ * default IS the migration for every pre-S06 saved layout.
+ */
+export type PaneChat = Record<string, string>
+
+export const CHAT_WIDTH_DEFAULT = 320
+
+export function clampChatWidth(px: number): number {
+  if (!Number.isFinite(px)) return CHAT_WIDTH_DEFAULT
+  return Math.round(Math.min(560, Math.max(220, px)))
+}
+
+export function paneChatOf(node: LeafNode): PaneChat {
+  return node.chat ?? {}
+}
+
+export const paneChatOpen = (chat: PaneChat): boolean => chat['on'] === '1'
+
+export function paneChatWidth(chat: PaneChat): number {
+  const raw = chat['w']
+  return raw === undefined ? CHAT_WIDTH_DEFAULT : clampChatWidth(Number(raw))
+}
+
+/** The transcript note backing the column; empty/absent = no chat born
+ *  yet (the file appears at the FIRST message, never on open). */
+export function paneChatFile(chat: PaneChat): string | null {
+  const file = chat['file']
+  return file !== undefined && file.length > 0 ? file : null
+}
+
+/** Merges chat-column preferences (on/w/file) into the pane's chat map. */
+export function updatePaneChat(
+  state: WorkspaceState,
+  paneId: string,
+  patch: Record<string, string>
+): WorkspaceState {
+  return mapLeaf(state, paneId, (node) => ({
+    ...node,
+    chat: { ...paneChatOf(node), ...patch }
+  }))
 }
 
 function mapLeaf(

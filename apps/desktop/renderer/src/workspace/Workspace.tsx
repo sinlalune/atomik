@@ -25,6 +25,9 @@ import {
   closeTabsWithin,
   makeTab,
   noteModeOf,
+  paneChatOf,
+  paneChatOpen,
+  paneChatWidth,
   paneTreeHidden,
   paneTreeOf,
   paneTreeScopeOf,
@@ -41,9 +44,11 @@ import {
   setTabView,
   splitPane,
   themeOf,
+  updatePaneChat,
   updatePaneTree,
   updateTabParams,
   type NoteViewMode,
+  type PaneAiSurface,
   type PaneNoteGuard,
   type PaneTreeScope
 } from './model'
@@ -54,8 +59,9 @@ import {
   type PaneKindPick,
   type TabPick
 } from './NewTabChooser'
+import { ChatPanel } from './ChatPanel'
 import { PaneTreePanel } from './PaneTreePanel'
-import { SidebarToggleIcon } from '../icons'
+import { ChatIcon, SidebarToggleIcon } from '../icons'
 import { useWorkspace } from './store'
 
 // Code-split the two heavy views (perf audit 2026-07-15: zero dynamic
@@ -140,6 +146,8 @@ function TabContent({
   paneId,
   paneScope,
   registerGuard,
+  registerAiSurface,
+  onOpenChat,
   dispatch
 }: {
   tab: WorkspaceTab
@@ -149,6 +157,11 @@ function TabContent({
   /** Note views register their dirty state with the pane (S07d) so the
    *  pane tree can guard navigation and the refactor verbs. */
   registerGuard: (guard: PaneNoteGuard | null) => void
+  /** Editable note views register the pane's AI surface (S06) — the
+   *  chat column reads it at send/insert time. */
+  registerAiSurface: (surface: PaneAiSurface | null) => void
+  /** Opens the pane's chat column (S06 — the AI selection menu). */
+  onOpenChat: () => void
   dispatch: Dispatch
 }): React.JSX.Element {
   const closeThisTab = (): void => {
@@ -224,6 +237,8 @@ function TabContent({
           dispatch((state) => updateTabParams(state, tab.id, { notePath: relPath }))
         }
         registerGuard={registerGuard}
+        registerAiSurface={registerAiSurface}
+        onOpenChat={onOpenChat}
         mode={mode}
         onModeChange={onModeChange}
         saveMode={saveMode}
@@ -308,6 +323,8 @@ function TabContent({
           dispatch((state) => updateTabParams(state, tab.id, { notePath: relPath }))
         }
         registerGuard={registerGuard}
+        registerAiSurface={registerAiSurface}
+        onOpenChat={onOpenChat}
         mode={mode}
         onModeChange={onModeChange}
         saveMode={saveMode}
@@ -345,6 +362,12 @@ function LeafPane({
   const treeHidden = paneTreeHidden(tree)
   const treeWidth = untyped || treeHidden ? 0 : paneTreeWidth(tree)
 
+  // S06: the pane's chat column — right chrome on the tree-panel
+  // contract. Absent state reads hidden (the pre-S06 migration).
+  const chat = paneChatOf(node)
+  const chatOpen = !untyped && paneChatOpen(chat)
+  const chatWidth = chatOpen ? paneChatWidth(chat) : 0
+
   // Note views register their dirty editor here (cleared on unmount);
   // the pane tree reads it at decision time.
   const guardRef = useRef<PaneNoteGuard | null>(null)
@@ -355,6 +378,18 @@ function LeafPane({
     () => guardRef.current?.dirtyPath() ?? null,
     []
   )
+  // The pane's AI surface (S06): the mounted editor, read at send time.
+  const aiSurfaceRef = useRef<PaneAiSurface | null>(null)
+  const registerAiSurface = useCallback((surface: PaneAiSurface | null) => {
+    aiSurfaceRef.current = surface
+  }, [])
+  const getAiSurface = useCallback(() => aiSurfaceRef.current, [])
+  const patchChat = useCallback(
+    (patch: Record<string, string>) =>
+      dispatch((state) => updatePaneChat(state, node.id, patch)),
+    [dispatch, node.id]
+  )
+  const openChat = useCallback(() => patchChat({ on: '1' }), [patchChat])
   const saveMode = useWorkspace((store) => saveModeOf(store.state))
 
   // Tree → tabs routing: a note lands in the active note view (it
@@ -422,7 +457,9 @@ function LeafPane({
   return (
     <section
       className={`pane${focused ? ' focused' : ''}`}
-      style={{ gridTemplateColumns: `${treeWidth}px minmax(0, 1fr)` }}
+      style={{
+        gridTemplateColumns: `${treeWidth}px minmax(0, 1fr) ${chatWidth}px`
+      }}
       onPointerDownCapture={() => dispatch((state) => setFocus(state, node.id))}
     >
       <header className="tabstrip">
@@ -485,6 +522,17 @@ function LeafPane({
           </button>
         </div>
         <span className="tabstrip-actions">
+          {!untyped && (
+            <button
+              type="button"
+              title={chatOpen ? 'Hide chat panel' : 'Open chat panel'}
+              aria-label={chatOpen ? 'Hide chat panel' : 'Open chat panel'}
+              aria-pressed={chatOpen}
+              onClick={() => patchChat({ on: chatOpen ? '0' : '1' })}
+            >
+              <ChatIcon />
+            </button>
+          )}
           <button
             type="button"
             title="Split side by side"
@@ -564,6 +612,8 @@ function LeafPane({
             paneId={node.id}
             paneScope={scope}
             registerGuard={registerGuard}
+            registerAiSurface={registerAiSurface}
+            onOpenChat={openChat}
             dispatch={dispatch}
           />
         ) : untyped ? (
@@ -593,6 +643,9 @@ function LeafPane({
           />
         )}
       </div>
+      {chatOpen && (
+        <ChatPanel chat={chat} onPatch={patchChat} getAiSurface={getAiSurface} />
+      )}
     </section>
   )
 }

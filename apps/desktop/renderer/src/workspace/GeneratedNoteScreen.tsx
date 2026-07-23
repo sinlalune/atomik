@@ -9,7 +9,7 @@ import {
 import type { ClaimRecord, TraceSummary } from '../../../shared/ipc-contract'
 import { prepareAiRun, type SentRequest } from '../editor/ai-run'
 import { AiNotePreview } from '../editor/AiNotePreview'
-import { PRESETS } from '../editor/AiPanel'
+import { PRESETS } from '../editor/ai-helpers'
 import {
   composeMenuInstruction,
   loadPromptsFor,

@@ -6,7 +6,12 @@ import { ModeSwitch } from '../editor/ModeSwitch'
 import { noteFollowTarget } from '../vault/note-follow'
 import { useNavHistory } from '../vault/nav-history'
 import { useVaultNote } from '../vault/useVaultNote'
-import type { NoteViewMode, PaneNoteGuard, SaveMode } from '../workspace/model'
+import type {
+  NoteViewMode,
+  PaneAiSurface,
+  PaneNoteGuard,
+  SaveMode
+} from '../workspace/model'
 
 export type ProjectViewProps = {
   /** Vault-relative folder of the opened bundle. */
@@ -30,6 +35,10 @@ export type ProjectViewProps = {
   onOpenWebUrl?: (url: string) => void
   /** Keys this tab's ‹ › navigation trail (the tab id). */
   historyKey?: string
+  /** Opens the pane's chat column (S06 — from the AI selection menu). */
+  onOpenChat?: () => void
+  /** Registers the mounted editor as the pane's AI surface (S06). */
+  registerAiSurface?: (surface: PaneAiSurface | null) => void
 }
 
 function slugifyLite(title: string): string {
@@ -60,7 +69,9 @@ export function ProjectView({
   saveMode = 'auto',
   onSaveModeToggle,
   onOpenWebUrl,
-  historyKey
+  historyKey,
+  onOpenChat,
+  registerAiSurface
 }: ProjectViewProps): React.JSX.Element {
   const [vault, setVault] = useState<VaultInfo | null | 'loading'>('loading')
   const [projects, setProjects] = useState<ProjectInfo[]>([])
@@ -283,7 +294,8 @@ export function ProjectView({
             }}
             key={note.relPath}
             note={note}
-            onOpenWebUrl={onOpenWebUrl}
+            onOpenChat={onOpenChat}
+            registerAiSurface={registerAiSurface}
             onSaved={applySaved}
             onDirtyChange={onDirtyChange}
             mode={mode}

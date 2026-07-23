@@ -87,6 +87,12 @@ when the shape changes, not on every diff.
   eight-kind error taxonomy with no silent mock fallback, labeled
   usage + dated price snapshots, mechanical truth over real output,
   pinned model ids. Covers CP-MVP-008 S02.
+- [18 — A chat surface without a chat backend](./18-chat-thread-and-transcript-files.md) —
+  multi-turn as a validated `thread` on the unchanged operation
+  contract, transcripts as vault notes born at the first message
+  (lenient parse, exclusive create), absent-means-hidden pane-state
+  migration, and the registered pane surface that gives chat the
+  editor's own insert path. Covers CP-MVP-008 S06.
 
 ## Coverage stall (2026-07-07 → 2026-07-21) — repaid
 

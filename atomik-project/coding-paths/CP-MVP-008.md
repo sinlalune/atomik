@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-008
   status: active
   accepted: 2026-07-21
-  current_step: S06
+  current_step: S07
   base_commit: 6cacfa2
 ---
 
@@ -838,13 +838,39 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       legible). Verified: all 4 themes screenshot via CDP (menu open
       over note text), 15-theme picker renders, contrast holds
       light+dark. Tests 520/47 (4 new window-bg pins); gates green.
-- [ ] S06 Chat lateral panel: right pane-chrome column (pane grid
-      gains the column; pane state gains a validated chat field,
-      migration derives absent as hidden); multi-turn over the
-      operation contract (thread context main-validated); responses
-      insertable through the patch flow; docked AiPanel retired;
-      persistence per the S01 pin; tests (state migration, thread
-      validation, insert path).
+- [x] S06 Chat lateral panel — DONE 2026-07-23. RIGHT pane-chrome
+      column on the pane-tree contract: the leaf gained a validated
+      `chat` string map (on/w/file; workspace-state validates it like
+      `tree`), the pane grid a third column, ChatPanel.tsx the
+      component — toggled from the tabstrip (ChatIcon, aria-pressed)
+      or the selection menu's "Open chat"; ABSENT map reads hidden =
+      the whole pre-S06 migration. MULTI-TURN over the unchanged
+      operation contract: `AiOperation.thread` ({role user|assistant,
+      content}, main-validated ≤24 turns / ≤8k chars, system role
+      REFUSED — history can't smuggle behavior), buildMessages
+      replays it verbatim between system and the live composed turn;
+      the mock stamps `(turn N)` so multi-turn proves offline; the
+      smoke op now rides a thread. PERSISTENCE per the S01 pin:
+      chats/YYYY-MM-DD-<slug>.md born at the FIRST message (never on
+      open; exclusive create, collision retry -2/-3), turns append as
+      `## you`/`## atomik` via readNote/writeNote + mtime handshake;
+      chat-file.ts holds the pure convention (slug/birth/append/
+      LENIENT parse/thread mapping), round-trip tested. INSERT
+      through the SAME patch flow: the mounted editor registers a
+      PaneAiSurface (S07d guard pattern: notePath + getSelection/
+      getDoc/insert); insert lands at the cursor via applyChange +
+      save (insertionChange pads an own-block) and resolves the trace
+      accepted. AiPanel RETIRED into the two surfaces (file deleted;
+      BufferChange/PRESETS moved to ai-helpers; its S10 evidence-
+      anchor/"page" buttons + sent-request popover retired with it —
+      inline keeps claim chips + copy-request; ~500 lines of dead CSS
+      pruned). Verified via CDP both themes (light + moss): column
+      opens from hidden default, two exchanges (turn 3 stamp), file
+      on disk with 2×you/2×atomik + frontmatter, insert saved into
+      the note, pane state carries the file; screenshots green.
+      Tests 520→538/48 (chat-file suite NEW; thread validation +
+      buildMessages replay + mock turn stamp + chat map validation +
+      paneChat helpers); typecheck/build/smoke green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
@@ -958,18 +984,40 @@ changed(S02): generation.ts + mistral-generation-adapter.ts NEW;
               (accepted quirk of the rung).
 tests(S04)  : 489 passing / 45 suites; typecheck/build green; smoke
               `ai=ok` (panel loop unchanged through the S04 handoff).
-next action : S05 — inline live preview: proposal rendered over the
-              target range as a CM widget (live-preview WidgetType
-              pattern) with accept / edit / reject + compact claim
-              strip + trace badge; buffer untouched until accept →
-              existing applyChange + save; AiPanel loop logic
-              (run/accept/reject/challenge/trace) extracted into
-              shared hooks consumed by both new surfaces; cancel
-              mid-flight; tests (widget lifecycle, accept byte
-              fidelity, reject leaves zero trace).
+changed(S06): ipc-contract (AiThreadTurn + AiOperation.thread; leaf
+              chat map); ai-mock (thread validation + turn stamp);
+              mistral-generation-adapter (buildMessages replays the
+              thread; ChatMessage +assistant); workspace-state (chat
+              map validated); model.ts (paneChat* helpers +
+              updatePaneChat + PaneAiSurface); chat-file.ts NEW;
+              ChatPanel.tsx NEW; Workspace.tsx (third grid column,
+              chat toggle, surface ref, prop threading); EditorPane
+              (registerAiSurface + onOpenChat; AiPanel dock/divider
+              state removed; revealRange retired with its only
+              consumer); VaultView/ProjectView (prop threading);
+              AiPanel.tsx DELETED (BufferChange/PRESETS →
+              ai-helpers.ts); icons (Chat/Send/Insert); styles.css
+              (chat column tokens-only; retired panel CSS pruned);
+              index.ts (smoke op rides a thread); learning note 18 +
+              index; module note. CDP driver in session scratchpad
+              (s06-cdp.mjs), both themes screenshot.
+tests(S06)  : 538 passing / 48 suites; typecheck/build green; smoke
+              `ai=ok:2/1/4/1` with a thread riding the smoke op.
+next action : S07 — acceptance: 18 §M2 intents re-run on the REAL
+              provider + owner bench on the live vault (real
+              question over a real selection via the context menu,
+              inline accept, a CHAT exchange, prompt file edited and
+              re-used, cancel mid-flight, receipt inspected); decide
+              the open default-engine question at the bench; review
+              and close.
 blockers    : none. OPEN (S07 bench): default engine when a key is
               configured — 'mistral' proposed, implemented as the
               key-present resolution default, mock stays selectable.
+              NOTE for the S07 bench: the AiPanel retirement dropped
+              the evidence-anchor "source"/"page" buttons and the
+              challenge-to-repair affordance (panel-only features) —
+              raise at the bench whether either returns on the two
+              new surfaces or waits for M6/M7.
 ```
 
 # Blockers

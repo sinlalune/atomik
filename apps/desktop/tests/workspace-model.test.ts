@@ -3,6 +3,8 @@ import type { PaneNode, WorkspaceState } from '../shared/ipc-contract'
 import {
   activateTab,
   addTab,
+  CHAT_WIDTH_DEFAULT,
+  clampChatWidth,
   clampTreeWidth,
   closeEmptyPane,
   closePane,
@@ -20,6 +22,10 @@ import {
   noteFontSizeOf,
   noteModeOf,
   noteWidthOf,
+  paneChatFile,
+  paneChatOf,
+  paneChatOpen,
+  paneChatWidth,
   paneTreeHidden,
   paneTreeOf,
   paneTreeOpenFolders,
@@ -40,6 +46,7 @@ import {
   themeOf,
   topRightLeafId,
   TREE_WIDTH_DEFAULT,
+  updatePaneChat,
   updatePaneTree,
   updateTabParams
 } from '../renderer/src/workspace/model'
@@ -282,6 +289,44 @@ describe('clampTreeWidth', () => {
   it('falls back to the default on non-finite input (garbled param)', () => {
     expect(clampTreeWidth(Number('not-a-width'))).toBe(TREE_WIDTH_DEFAULT)
     expect(clampTreeWidth(Infinity)).toBe(TREE_WIDTH_DEFAULT)
+  })
+})
+
+describe('pane chat column (S06)', () => {
+  it('an absent chat map reads HIDDEN — the pre-S06 migration is the default', () => {
+    const state = createDefaultState('')
+    const leaf = leaves(state.root)[0]!
+    expect(leaf.chat).toBeUndefined()
+    const chat = paneChatOf(leaf)
+    expect(paneChatOpen(chat)).toBe(false)
+    expect(paneChatFile(chat)).toBeNull()
+    expect(paneChatWidth(chat)).toBe(CHAT_WIDTH_DEFAULT)
+  })
+
+  it('updatePaneChat merges preferences; on/file round-trip through the map', () => {
+    const state = createDefaultState('')
+    const paneId = firstLeafId(state.root)
+    let next = updatePaneChat(state, paneId, { on: '1' })
+    next = updatePaneChat(next, paneId, {
+      file: 'chats/2026-07-23-question.md',
+      w: '400'
+    })
+    const chat = paneChatOf(leaves(next.root)[0]!)
+    expect(paneChatOpen(chat)).toBe(true)
+    expect(paneChatFile(chat)).toBe('chats/2026-07-23-question.md')
+    expect(paneChatWidth(chat)).toBe(400)
+    const off = paneChatOf(
+      leaves(updatePaneChat(next, paneId, { on: '0', file: '' }).root)[0]!
+    )
+    expect(paneChatOpen(off)).toBe(false)
+    expect(paneChatFile(off)).toBeNull()
+  })
+
+  it('clampChatWidth bounds the column and defaults on garbage', () => {
+    expect(clampChatWidth(100)).toBe(220)
+    expect(clampChatWidth(9000)).toBe(560)
+    expect(clampChatWidth(Number('x'))).toBe(CHAT_WIDTH_DEFAULT)
+    expect(paneChatWidth({ w: 'garbled' })).toBe(CHAT_WIDTH_DEFAULT)
   })
 })
 
