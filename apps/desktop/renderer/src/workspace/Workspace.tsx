@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import type {
   PaneNode,
   WorkspaceState,
@@ -56,6 +56,7 @@ import {
   type TabPick
 } from './NewTabChooser'
 import { ChatView } from './ChatView'
+import { chatRenameTarget } from '../editor/chat-file'
 import { PaneTreePanel } from './PaneTreePanel'
 import { ChatIcon, SidebarToggleIcon } from '../icons'
 import { useWorkspace } from './store'
@@ -374,6 +375,27 @@ function LeafPane({
     () => guardRef.current?.dirtyPath() ?? null,
     []
   )
+  // S06c3: double-clicking a chat tab renames its TRANSCRIPT — the
+  // relocate verb rewrites links and broadcasts, and the tab's file
+  // param follows through the ordinary relocation path.
+  const [renamingTab, setRenamingTab] = useState<{
+    tabId: string
+    value: string
+  } | null>(null)
+  const commitRename = useCallback(
+    (tab: WorkspaceTab, draft: string): void => {
+      setRenamingTab(null)
+      const from = tab.params?.['file']
+      if (!from) return
+      const to = chatRenameTarget(from, draft)
+      if (!to) return
+      window.atomik.relocateApply(from, to).catch((reason: unknown) => {
+        window.alert(`rename failed — ${String(reason)}`)
+      })
+    },
+    []
+  )
+
   // S06c: the chat is its OWN pane — open (or focus) it from here.
   const openChat = useCallback(
     () => dispatch((state) => openChatPane(state, node.id)),
@@ -483,20 +505,46 @@ function LeafPane({
               key={tab.id}
               className={`tab${tab.id === node.activeTabId ? ' active' : ''}`}
             >
-              <button
-                type="button"
-                className="tab-title"
-                title={
-                  tab.params?.['notePath'] ??
-                  tab.params?.['dossierPath'] ??
-                  tab.params?.['docPath'] ??
-                  tab.params?.['url'] ??
-                  tab.view
-                }
-                onClick={() => dispatch((state) => activateTab(state, node.id, tab.id))}
-              >
-                {tabLabel(tab)}
-              </button>
+              {renamingTab?.tabId === tab.id ? (
+                <input
+                  className="tab-rename"
+                  value={renamingTab.value}
+                  aria-label="Rename chat"
+                  autoFocus
+                  onChange={(event) =>
+                    setRenamingTab({ tabId: tab.id, value: event.target.value })
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') commitRename(tab, renamingTab.value)
+                    if (event.key === 'Escape') setRenamingTab(null)
+                  }}
+                  onBlur={() => commitRename(tab, renamingTab.value)}
+                />
+              ) : (
+                <button
+                  type="button"
+                  className="tab-title"
+                  title={
+                    tab.view === 'chat' && tab.params?.['file']
+                      ? `${tab.params['file']} — double-click renames`
+                      : (tab.params?.['notePath'] ??
+                        tab.params?.['dossierPath'] ??
+                        tab.params?.['docPath'] ??
+                        tab.params?.['url'] ??
+                        tab.view)
+                  }
+                  onClick={() => dispatch((state) => activateTab(state, node.id, tab.id))}
+                  onDoubleClick={() => {
+                    // chat transcripts rename in place (S06c3); a chat
+                    // with no file yet has nothing to rename
+                    if (tab.view === 'chat' && tab.params?.['file']) {
+                      setRenamingTab({ tabId: tab.id, value: tabLabel(tab) })
+                    }
+                  }}
+                >
+                  {tabLabel(tab)}
+                </button>
+              )}
               <button
                 type="button"
                 className="tab-close"

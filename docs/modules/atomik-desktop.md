@@ -281,7 +281,19 @@ timestamp: 2026-07-06T00:00:00Z
   `openNoteTabPaths` (model) adds open-but-INACTIVE note and source
   tabs from workspace state — picked while unmounted, the note is
   read on demand as a read-only whole-note context (options wear a
-  "— read-only" marker; insert needs an editor). The S06 pane-chrome
+  "— read-only" marker; insert needs an editor). S06c3 (owner):
+  contexts are MULTIPLE — ordered pills in the `ctx` tab param (JSON
+  list, legacy single-path reads as one; capped at 6 — the operation
+  input cap is 8), the FIRST is the primary insert/append target
+  (◉), the rest ride the operation as additional bounded selections;
+  the candidate select + "+" adds, each pill's × removes, and the
+  tree's existing drag payload DROPS into the chat as context (a
+  note adds itself, a folder its notes recursively, capped);
+  `relocateTabPaths` rewrites paths inside the ctx list too.
+  Double-clicking a chat TAB renames its transcript in place
+  (`chatRenameTarget` sanitizes; `relocateApply` rewrites links and
+  broadcasts, so the tab's file param follows through the ordinary
+  relocation path). The S06 pane-chrome
   column and its leaf `chat` map are RETIRED — the validator still
   accepts the map (saved states stay loadable), nothing renders it. Multi-turn rides the SAME
   operation contract: prior turns travel as `operation.thread`

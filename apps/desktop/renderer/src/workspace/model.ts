@@ -181,6 +181,39 @@ export function chatFileOf(params?: Record<string, string>): string | null {
   return file !== undefined && file.length > 0 ? file : null
 }
 
+/** Context cap per chat (S06c3): the operation contract caps input
+ *  selections at 8 — one primary + linked notes need room too. */
+export const CHAT_CONTEXTS_MAX = 6
+
+/**
+ * The chat tab's PICKED contexts (S06c3: multiple, ordered — the
+ *  first is the primary target for insert/append). Serialized as a
+ *  JSON array in the `ctx` param; a legacy single-path value (the
+ *  S06c shape) reads as a one-element list.
+ */
+export function chatContextsOf(params?: Record<string, string>): string[] {
+  const raw = params?.['ctx']
+  if (raw === undefined || raw.length === 0) return []
+  if (raw.startsWith('[')) {
+    try {
+      const parsed: unknown = JSON.parse(raw)
+      if (
+        Array.isArray(parsed) &&
+        parsed.every((entry): entry is string => typeof entry === 'string')
+      ) {
+        return parsed.slice(0, CHAT_CONTEXTS_MAX)
+      }
+    } catch {
+      /* garbled — fall through to the legacy read */
+    }
+  }
+  return [raw]
+}
+
+export function serializeChatContexts(paths: string[]): string {
+  return JSON.stringify(paths.slice(0, CHAT_CONTEXTS_MAX))
+}
+
 /**
  * Every note-bearing OPEN TAB (S06c2): the chat's context picklist
  * covers what the owner calls "open panes" — including tabs that are
@@ -817,6 +850,17 @@ export function relocateTabPaths(
         const folds = rewriteFolds(treeOpen)
         if (folds !== null) {
           params['treeOpen'] = folds
+          touched = true
+        }
+      }
+      // a chat tab's picked contexts follow too (S06c3: 'ctx' is a
+      // JSON list of note paths)
+      const ctx = params['ctx']
+      if (ctx) {
+        const contexts = chatContextsOf({ ctx })
+        const rewritten = contexts.map(rewrite)
+        if (rewritten.some((value, index) => value !== contexts[index])) {
+          params['ctx'] = serializeChatContexts(rewritten)
           touched = true
         }
       }

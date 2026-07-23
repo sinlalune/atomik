@@ -126,6 +126,31 @@ export function threadFromTurns(turns: ChatTurn[]): AiThreadTurn[] {
   }))
 }
 
+/**
+ * Rename target for a transcript (S06c3: double-click the chat tab):
+ * the typed name, filesystem-sanitized, lands BESIDE the current file
+ * (a rename, not a move); null when the draft is empty, unusable, or
+ * a no-op — the caller then leaves the file alone.
+ */
+export function chatRenameTarget(
+  currentRelPath: string,
+  draft: string
+): string | null {
+  const name = draft
+    .replace(/\.md$/i, '')
+    .replace(/[\\/:*?"<>|#^[\]{}\n\r\t]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80)
+    .replace(/^\.+/, '')
+    .replace(/[. ]+$/, '')
+  if (name.length === 0) return null
+  const slash = currentRelPath.lastIndexOf('/')
+  const folder = slash === -1 ? '' : currentRelPath.slice(0, slash + 1)
+  const target = `${folder}${name}.md`
+  return target === currentRelPath ? null : target
+}
+
 /** Folder-convention files that are not transcripts. */
 const CHATS_CONVENTION_FILES = new Set(['index.md', 'log.md'])
 

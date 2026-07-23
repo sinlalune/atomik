@@ -3,6 +3,8 @@ import type { PaneNode, WorkspaceState } from '../shared/ipc-contract'
 import {
   activateTab,
   addTab,
+  CHAT_CONTEXTS_MAX,
+  chatContextsOf,
   chatFileOf,
   clampTreeWidth,
   closeEmptyPane,
@@ -39,6 +41,7 @@ import {
   setPaneTreeScope,
   setSaveMode,
   setTabView,
+  serializeChatContexts,
   setTheme,
   splitPane,
   themeOf,
@@ -334,6 +337,33 @@ describe('chat pane state (S06c: tab params, not pane chrome)', () => {
     expect(survivors.length).toBe(1)
     expect(survivors[0]!.id).toBe(chatPane.id)
     expect(survivors[0]!.tabs[0]!.view).toBe('chat')
+  })
+
+  it('chatContextsOf round-trips a JSON list, reads legacy single paths, caps (S06c3)', () => {
+    expect(chatContextsOf(undefined)).toEqual([])
+    expect(chatContextsOf({ ctx: '' })).toEqual([])
+    expect(chatContextsOf({ ctx: 'notes/a.md' })).toEqual(['notes/a.md'])
+    const list = ['notes/a.md', 'sources/x/source.md']
+    expect(chatContextsOf({ ctx: serializeChatContexts(list) })).toEqual(list)
+    expect(chatContextsOf({ ctx: '[broken' })).toEqual(['[broken'])
+    const many = Array.from({ length: 10 }, (_, i) => `n/${i}.md`)
+    expect(
+      chatContextsOf({ ctx: JSON.stringify(many) }).length
+    ).toBe(CHAT_CONTEXTS_MAX)
+  })
+
+  it('relocateTabPaths rewrites paths INSIDE the ctx list (S06c3)', () => {
+    const state = createDefaultState('')
+    const paneId = firstLeafId(state.root)
+    const withChat = openChatPane(state, paneId)
+    const chatTabId = leaves(withChat.root)[1]!.tabs[0]!.id
+    const withCtx = updateTabParams(withChat, chatTabId, {
+      ctx: serializeChatContexts(['notes/a.md', 'notes/deep/b.md'])
+    })
+    const moved = relocateTabPaths(withCtx, 'notes', 'archive/notes')
+    expect(
+      chatContextsOf(leaves(moved.root)[1]!.tabs[0]!.params)
+    ).toEqual(['archive/notes/a.md', 'archive/notes/deep/b.md'])
   })
 
   it('openNoteTabPaths lists every open note-bearing tab — inactive tabs included, deduped (S06c2)', () => {

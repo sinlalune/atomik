@@ -976,6 +976,33 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       render (the chat TAB view works in any pane); not migrated.
       Tests 557→558/50 (openNoteTabPaths; openChatPane retyped);
       typecheck/build/smoke green.
+- [x] S06c3 (owner: multi-context +/×, tree drag-drop as context,
+      bigger input, tab-rename) — DONE 2026-07-23. MULTI-CONTEXT:
+      the `ctx` tab param became a JSON LIST (legacy single-path
+      reads as one; chatContextsOf/serializeChatContexts, capped 6 —
+      the operation input cap is 8): ordered pills under the context
+      row, FIRST = primary insert/append target (◉ marker), the rest
+      ride the send as additional bounded selections (6k cap each,
+      mounted doc preferred, readNote fallback, stale pills skipped;
+      total input sliced to 8); the candidate select + "+" adds,
+      each pill's ×  removes, an empty list shows the AUTO pill;
+      relocateTabPaths rewrites paths INSIDE the ctx list.
+      DRAG-DROP: the tree's existing drag payload (TREE_DRAG_MIME)
+      drops onto the chat pane as context — a note/source/prompt
+      adds itself, a FOLDER adds its notes recursively (capped);
+      accent-dashed drop highlight. INPUT: rows 2→4 + min-height,
+      vertical resize enabled. RENAME: double-click a chat tab →
+      in-place input (Enter commits, Escape cancels, blur commits);
+      chatRenameTarget sanitizes and renames BESIDE the current file;
+      relocateApply rewrites links + broadcasts, so the tab's file
+      param (and any ctx references) follow through the ordinary
+      relocation path; unborn chats (no file) ignore the
+      double-click. CDP-verified: bigger input computed, auto pill,
+      + adds, tree drop adds, two-context send answers from the
+      primary, × removes, rename lands on disk (Plato deep dive.md)
+      with tab title + turns following. Tests 558→562/50
+      (chatContextsOf round-trip/cap, ctx relocation,
+      chatRenameTarget); typecheck/build/smoke green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
@@ -1138,6 +1165,15 @@ changed(S06c2): model.ts (PaneTreeScope +chat, openChatPane types
               resolveTarget at send time, read-only options marked);
               module note; tests (openNoteTabPaths + retyped spawn).
 tests(S06c2): 558 passing / 50 suites; typecheck/build/smoke green.
+changed(S06c3): model.ts (chatContextsOf/serializeChatContexts +
+              CHAT_CONTEXTS_MAX; relocate rewrites ctx lists);
+              chat-file.ts (chatRenameTarget); ChatView (pills +
+              candidate select + "+", extra selections on send,
+              tree-drop handler, rows 4); Workspace.tsx (chat tab
+              double-click rename via relocateApply); styles.css
+              (pills, drop highlight, tab-rename, input height);
+              module note; tests (ctx round-trip/relocate/rename).
+tests(S06c3): 562 passing / 50 suites; typecheck/build/smoke green.
 next action : S07 — acceptance: 18 §M2 intents re-run on the REAL
               provider + owner bench on the live vault (real
               question over a real selection via the context menu,

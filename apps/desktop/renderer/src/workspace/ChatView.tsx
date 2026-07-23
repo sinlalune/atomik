@@ -6,6 +6,8 @@ import type {
   WorkspaceTab
 } from '../../../shared/ipc-contract'
 import { applyChatAtPick, chatAtItems, type ChatAtItem } from '../editor/chat-at'
+import { parseTreeDrag } from '../vault/NoteTree'
+import { TREE_DRAG_MIME } from '../vault/tree-menu'
 import {
   appendChatTurn,
   chatHistoryOf,
@@ -38,9 +40,12 @@ import {
   type AiContextEntry
 } from './ai-context'
 import {
+  CHAT_CONTEXTS_MAX,
+  chatContextsOf,
   chatFileOf,
   openNoteInNewPane,
   openNoteTabPaths,
+  serializeChatContexts,
   updateTabParams
 } from './model'
 import { useWorkspace } from './store'
@@ -92,7 +97,9 @@ export function ChatView({
   dispatch
 }: ChatViewProps): React.JSX.Element {
   const file = chatFileOf(tab.params)
-  const pickedCtx = tab.params?.['ctx'] ?? null
+  // S06c3: MULTIPLE picked contexts — ordered pills, the FIRST is the
+  // primary (insert/append target); empty = auto (best open note).
+  const ctxList = chatContextsOf(tab.params)
   const contexts = useAiContexts()
   const workspaceState = useWorkspace((store) => store.state)
   // ALL open note-bearing tabs (notes + sources), mounted or not; a
@@ -104,15 +111,13 @@ export function ChatView({
       ...openTabs.map((entry) => entry.notePath)
     ])
   ]
-  const context = resolveAiContext(contexts, pickedCtx)
-  /** The path a send will read: the explicit pick wins even when its
-   *  view is not mounted; otherwise the best mounted entry; otherwise
-   *  the first open tab. */
+  const autoContext = resolveAiContext(contexts, null)
+  /** The primary path a send targets: the first pill, else the best
+   *  mounted entry, else the first open tab. */
   const targetPath =
-    (pickedCtx && optionPaths.includes(pickedCtx) ? pickedCtx : null) ??
-    context?.notePath ??
-    optionPaths[0] ??
-    null
+    ctxList[0] ?? autoContext?.notePath ?? optionPaths[0] ?? null
+  /** Additional context paths (pills past the first). */
+  const extraPaths = ctxList.slice(1)
   const targetEditable = contexts.some(
     (entry) => entry.notePath === targetPath && entry.editable
   )
@@ -264,6 +269,10 @@ export function ChatView({
   contextsRef.current = contexts
   const targetPathRef = useRef<string | null>(targetPath)
   targetPathRef.current = targetPath
+  const extraPathsRef = useRef<string[]>(extraPaths)
+  extraPathsRef.current = extraPaths
+  const ctxListRef = useRef<string[]>(ctxList)
+  ctxListRef.current = ctxList
 
   /** Resolves the send target NOW: a mounted surface for the picked
    *  path (editable mount wins), else the note read from disk as a
@@ -337,11 +346,36 @@ export function ChatView({
         window.atomik.readNote
       )
       if (!prepared) return
+      // extra context pills ride as additional selections (S06c3) —
+      // quotable by the checker like linked notes; the operation's
+      // 8-selection cap holds
+      const EXTRA_CAP = 6000
+      const extraSelections = []
+      for (const path of extraPathsRef.current) {
+        try {
+          const mounted = contextsRef.current
+            .filter((entry) => entry.notePath === path)
+            .at(-1)
+          const content = (
+            mounted ? mounted.getDoc() : (await window.atomik.readNote(path)).content
+          ).slice(0, EXTRA_CAP)
+          extraSelections.push({
+            relPath: path,
+            kind: 'text' as const,
+            content,
+            range: { from: 0, to: content.length }
+          })
+        } catch {
+          /* a stale pill must not block the send */
+        }
+      }
+      const input = [...prepared.operation.input, ...extraSelections].slice(0, 8)
       const thread = threadFromTurns(turns)
-      const operation =
-        thread.length > 0
-          ? { ...prepared.operation, thread }
-          : prepared.operation
+      const operation = {
+        ...prepared.operation,
+        input,
+        ...(thread.length > 0 ? { thread } : {})
+      }
 
       // The user's turn lands in the file BEFORE the call — a
       // cancelled or failed run keeps what was asked.
@@ -446,6 +480,81 @@ export function ChatView({
     [patchParams]
   )
 
+  /** Adds paths as context pills (dedup, capped) — the "+" button and
+   *  tree drops share this door. */
+  const addContexts = useCallback(
+    (paths: string[]): void => {
+      const current = ctxListRef.current
+      const fresh = paths.filter(
+        (path) => path.length > 0 && !current.includes(path)
+      )
+      if (fresh.length === 0) return
+      const next = [...current, ...fresh]
+      if (next.length > CHAT_CONTEXTS_MAX) {
+        setError(`context is capped at ${CHAT_CONTEXTS_MAX} notes — remove one first`)
+      }
+      patchParams({ ctx: serializeChatContexts(next) })
+    },
+    [patchParams]
+  )
+
+  const removeContext = useCallback(
+    (path: string): void => {
+      patchParams({
+        ctx: serializeChatContexts(
+          ctxListRef.current.filter((candidate) => candidate !== path)
+        )
+      })
+    },
+    [patchParams]
+  )
+
+  // S06c3: the tree's existing drag payload drops INTO the chat as
+  // context — a note/source/prompt adds itself, a folder adds its
+  // notes (recursive, up to the cap).
+  const [dropHover, setDropHover] = useState(false)
+  const onTreeDrop = useCallback(
+    (event: React.DragEvent): void => {
+      if (!event.dataTransfer.types.includes(TREE_DRAG_MIME)) return
+      event.preventDefault()
+      setDropHover(false)
+      const source = parseTreeDrag(event.dataTransfer.getData(TREE_DRAG_MIME))
+      if (!source) return
+      if (source.kind === 'note') {
+        addContexts([source.relPath])
+        return
+      }
+      // folder: every note under it, tree order
+      const collected: string[] = []
+      const walk = (folder: VaultFolder): void => {
+        for (const note of folder.notes) collected.push(note.relPath)
+        for (const child of folder.folders) walk(child)
+      }
+      const find = (folder: VaultFolder): VaultFolder | null => {
+        if (folder.relPath === source.relPath) return folder
+        for (const child of folder.folders) {
+          const found = find(child)
+          if (found) return found
+        }
+        return null
+      }
+      const folder = tree ? find(tree) : null
+      if (folder) {
+        walk(folder)
+        addContexts(collected)
+      }
+    },
+    [addContexts, tree]
+  )
+
+  /** The "+" picker's current candidate (local draft until added). */
+  const [candidate, setCandidate] = useState('')
+  const candidatePaths = optionPaths.filter((path) => !ctxList.includes(path))
+  const candidateValue =
+    candidate && candidatePaths.includes(candidate)
+      ? candidate
+      : (candidatePaths[0] ?? '')
+
   // ----- @ quick actions in the input ---------------------------------
 
   const [atPrompts, setAtPrompts] = useState<PromptFile[]>([])
@@ -506,7 +615,21 @@ export function ChatView({
     : 'New chat'
 
   return (
-    <div className="chat-view" aria-label="Chat pane">
+    <div
+      className={`chat-view${dropHover ? ' drop-target' : ''}`}
+      aria-label="Chat pane"
+      onDragOver={(event) => {
+        if (event.dataTransfer.types.includes(TREE_DRAG_MIME)) {
+          event.preventDefault()
+          event.dataTransfer.dropEffect = 'link'
+          setDropHover(true)
+        }
+      }}
+      onDragLeave={(event) => {
+        if (event.currentTarget === event.target) setDropHover(false)
+      }}
+      onDrop={onTreeDrop}
+    >
       <div className="tree-bar">
         <span className="tree-bar-label" title={file ?? 'no transcript yet — born at the first message'}>
           chat · {engine}
@@ -564,12 +687,14 @@ export function ChatView({
         <label>
           context
           <select
-            aria-label="Chat context"
-            value={targetPath ?? ''}
-            onChange={(event) => patchParams({ ctx: event.target.value })}
+            aria-label="Context candidates"
+            value={candidateValue}
+            onChange={(event) => setCandidate(event.target.value)}
           >
-            {optionPaths.length === 0 && <option value="">no open note</option>}
-            {optionPaths.map((notePath) => (
+            {candidatePaths.length === 0 && (
+              <option value="">{optionPaths.length === 0 ? 'no open note' : 'all open notes added'}</option>
+            )}
+            {candidatePaths.map((notePath) => (
               <option key={notePath} value={notePath}>
                 {notePath}
                 {contexts.some(
@@ -581,8 +706,44 @@ export function ChatView({
             ))}
           </select>
         </label>
-        {targetPath !== null && !targetEditable && (
-          <span className="chat-context-hint">read-only — insert needs an editor</span>
+        <button
+          type="button"
+          className="tree-toggle chat-context-add"
+          title="Add to context"
+          aria-label="Add to context"
+          disabled={candidateValue.length === 0}
+          onClick={() => addContexts([candidateValue])}
+        >
+          <PlusIcon />
+        </button>
+      </div>
+      <div className="chat-context-pills">
+        {ctxList.length === 0 && targetPath !== null && (
+          <span className="chat-context-pill auto" title="No pick — the best open note serves as context">
+            auto · {targetPath}
+            {targetEditable ? '' : ' (read-only)'}
+          </span>
+        )}
+        {ctxList.map((path, index) => (
+          <span
+            key={path}
+            className="chat-context-pill"
+            title={index === 0 ? `${path} — primary (insert/append target)` : path}
+          >
+            {index === 0 ? '◉ ' : ''}
+            {path.split('/').pop()?.replace(/\.md$/i, '') ?? path}
+            <button
+              type="button"
+              title={`Remove ${path} from the context`}
+              aria-label={`Remove ${path} from the context`}
+              onClick={() => removeContext(path)}
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        {targetPath !== null && !targetEditable && ctxList.length > 0 && (
+          <span className="chat-context-hint">primary read-only — insert needs an editor</span>
         )}
       </div>
       <div className="chat-scroll" ref={scrollRef}>
@@ -667,7 +828,7 @@ export function ChatView({
           <span className="chat-input-host">
             <textarea
               ref={inputRef}
-              rows={2}
+              rows={4}
               value={input}
               placeholder="Ask about the context note… @ quotes, Enter sends, Shift+Enter breaks"
               aria-label="Chat message"

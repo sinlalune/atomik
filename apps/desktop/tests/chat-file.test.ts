@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { VaultFolder } from '../shared/ipc-contract'
 import {
   appendChatTurn,
+  chatRenameTarget,
   CHAT_THREAD_MAX_TURNS,
   chatHistoryOf,
   chatNotePathForMessage,
@@ -132,6 +133,21 @@ describe('chatNotePathForMessage (S06b: an answer becomes its own note)', () => 
     expect(chatNotePathForMessage('notes/plato.md', message)).toBe(
       'notes/The most effective way to discover his work.md'
     )
+  })
+})
+
+describe('chatRenameTarget (S06c3: double-click tab rename)', () => {
+  it('sanitizes the draft and renames in place (same folder)', () => {
+    expect(chatRenameTarget('chats/2026-07-23-q.md', 'Plato deep dive')).toBe(
+      'chats/Plato deep dive.md'
+    )
+    expect(chatRenameTarget('chats/q.md', 'a/b:c.md')).toBe('chats/a b c.md')
+  })
+
+  it('returns null for empty, unusable, or unchanged drafts', () => {
+    expect(chatRenameTarget('chats/q.md', '   ')).toBeNull()
+    expect(chatRenameTarget('chats/q.md', '...')).toBeNull()
+    expect(chatRenameTarget('chats/q.md', 'q')).toBeNull()
   })
 })
 
