@@ -630,10 +630,39 @@ export function ChatView({
       }}
       onDrop={onTreeDrop}
     >
-      <div className="tree-bar">
-        <span className="tree-bar-label" title={file ?? 'no transcript yet — born at the first message'}>
-          chat · {engine}
-        </span>
+      <div className="tree-bar chat-bar">
+        <label className="chat-context">
+          context
+          <select
+            aria-label="Context candidates"
+            value={candidateValue}
+            onChange={(event) => setCandidate(event.target.value)}
+          >
+            {candidatePaths.length === 0 && (
+              <option value="">{optionPaths.length === 0 ? 'no open note' : 'all open notes added'}</option>
+            )}
+            {candidatePaths.map((notePath) => (
+              <option key={notePath} value={notePath}>
+                {notePath}
+                {contexts.some(
+                  (entry) => entry.notePath === notePath && entry.editable
+                )
+                  ? ''
+                  : ' — read-only'}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          className="tree-toggle chat-context-add"
+          title="Add to context"
+          aria-label="Add to context"
+          disabled={candidateValue.length === 0}
+          onClick={() => addContexts([candidateValue])}
+        >
+          <PlusIcon />
+        </button>
         <span className="chat-history">
           <button
             type="button"
@@ -679,40 +708,6 @@ export function ChatView({
           title="New chat (the current transcript stays in chats/)"
           aria-label="New chat"
           onClick={newChat}
-        >
-          <PlusIcon />
-        </button>
-      </div>
-      <div className="chat-context">
-        <label>
-          context
-          <select
-            aria-label="Context candidates"
-            value={candidateValue}
-            onChange={(event) => setCandidate(event.target.value)}
-          >
-            {candidatePaths.length === 0 && (
-              <option value="">{optionPaths.length === 0 ? 'no open note' : 'all open notes added'}</option>
-            )}
-            {candidatePaths.map((notePath) => (
-              <option key={notePath} value={notePath}>
-                {notePath}
-                {contexts.some(
-                  (entry) => entry.notePath === notePath && entry.editable
-                )
-                  ? ''
-                  : ' — read-only'}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          className="tree-toggle chat-context-add"
-          title="Add to context"
-          aria-label="Add to context"
-          disabled={candidateValue.length === 0}
-          onClick={() => addContexts([candidateValue])}
         >
           <PlusIcon />
         </button>

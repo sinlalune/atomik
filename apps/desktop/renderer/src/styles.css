@@ -1150,24 +1150,16 @@ body[data-maximized] .tabstrip {
   padding: var(--space-1) var(--space-3);
 }
 
-/* the context picklist (S06c): which open note the chat reads */
+/* the context picklist (S06c4: lives IN the header row beside
+   history/new-chat — the engine label retired) */
 .chat-context {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-1) var(--space-3);
-  font-size: var(--fs-sm);
-  color: var(--muted);
-  border-bottom: 1px solid var(--border);
-}
-
-.chat-context label {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   min-width: 0;
   flex: 1;
+  font-size: var(--fs-sm);
+  color: var(--muted);
 }
 
 .chat-context select {

@@ -1003,6 +1003,15 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       with tab title + turns following. Tests 558→562/50
       (chatContextsOf round-trip/cap, ctx relocation,
       chatRenameTarget); typecheck/build/smoke green.
+- [x] S06c4 (owner: drop the "chat · <engine>" label; context picker
+      joins the history/new-chat row) — DONE 2026-07-23. The chat
+      header is ONE bar: context select + "+" (flex-filling) ·
+      history · new chat; the engine label retired (the engine still
+      stamps transcript frontmatter at birth; the ☰ AI menu remains
+      the engine surface). CSS: .chat-context became an in-bar label.
+      All S06c3 flows re-verified via CDP on the new header
+      (pills/drop/two-context send/×/rename). Tests 562/50;
+      typecheck/build/smoke green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
