@@ -23,6 +23,7 @@ import {
   noteWidthOf,
   openChatPane,
   openNoteInNewPane,
+  openNoteTabPaths,
   paneTreeHidden,
   paneTreeOf,
   paneTreeOpenFolders,
@@ -297,14 +298,14 @@ describe('chat pane state (S06c: tab params, not pane chrome)', () => {
     expect(chatFileOf(undefined)).toBeNull()
   })
 
-  it('openChatPane spawns a chat pane beside the current one — vault-typed, tree hidden', () => {
+  it('openChatPane spawns a CHAT-TYPED pane beside the current one (S06c2)', () => {
     const state = createDefaultState('')
     const paneId = firstLeafId(state.root)
     const next = openChatPane(state, paneId)
     expect(next.root.kind).toBe('split')
     const [left, right] = leaves(next.root)
     expect(left!.id).toBe(paneId)
-    expect(right!.tree).toEqual({ kind: 'vault', off: '1' })
+    expect(right!.tree).toEqual({ kind: 'chat' })
     expect(right!.tabs[0]!.view).toBe('chat')
     expect(next.focusedPaneId).toBe(right!.id)
   })
@@ -333,6 +334,30 @@ describe('chat pane state (S06c: tab params, not pane chrome)', () => {
     expect(survivors.length).toBe(1)
     expect(survivors[0]!.id).toBe(chatPane.id)
     expect(survivors[0]!.tabs[0]!.view).toBe('chat')
+  })
+
+  it('openNoteTabPaths lists every open note-bearing tab — inactive tabs included, deduped (S06c2)', () => {
+    let state = createDefaultState('')
+    const paneId = firstLeafId(state.root)
+    const noteTab = makeTab('vault', { notePath: 'notes/a.md' })
+    const otherTab = makeTab('vault', { notePath: 'notes/b.md' })
+    const dupTab = makeTab('project', {
+      projectPath: 'p',
+      notePath: 'notes/a.md'
+    })
+    const sourceTab = makeTab('source-image', {
+      dossierPath: 'sources/scan/source.md'
+    })
+    const webTab = makeTab('source-web', { url: 'https://x.test' })
+    for (const tab of [noteTab, otherTab, dupTab, sourceTab, webTab]) {
+      state = addTab(state, paneId, tab)
+    }
+    // only ONE tab is active — the others must still be listed
+    expect(openNoteTabPaths(state)).toEqual([
+      { notePath: 'notes/a.md', kind: 'note' },
+      { notePath: 'notes/b.md', kind: 'note' },
+      { notePath: 'sources/scan/source.md', kind: 'source' }
+    ])
   })
 
   it('relocateTabPaths — a renamed/moved transcript follows in the chat tab params (S06c)', () => {

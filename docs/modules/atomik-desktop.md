@@ -260,26 +260,30 @@ timestamp: 2026-07-06T00:00:00Z
   chat); its `BufferChange`/`PRESETS` live in `editor/ai-helpers.ts`.
   The AI channel has no filesystem path — "AI wrote my file" is
   structurally impossible.
-- The chat pane (CP-MVP-008 S06 column → S06c first-class pane,
-  26/06; owner redirect: "it should live in its own pane and survive
-  after the origin pane disappears"):
-  `renderer/src/workspace/ChatView.tsx` is a TAB VIEW (`view:
-  'chat'`) — its transcript pointer (`file`) and context pick
-  (`ctx`) ride ordinary validated tab params, relocated like every
-  other view's (`relocateTabPaths` includes `file`), so no other
-  pane's lifecycle can touch it. `openChatPane` (model) spawns it —
+- The chat pane (CP-MVP-008 S06 column → S06c own pane → S06c2 pane
+  TYPE, 26/06; owner: "a specific pane, not a tab — but tabs handle
+  multiple chats in the chat pane"): 'chat' is a PANE TYPE beside
+  vault/project/docs (`tree.kind === 'chat'`; no tree panel at all)
+  whose tabs are CONVERSATIONS — `ChatView.tsx` renders each
+  (`view: 'chat'`), the pane's `+` opens another chat tab, and the
+  transcript pointer (`file`) + context pick (`ctx`) ride ordinary
+  validated tab params, relocated like every other view's
+  (`relocateTabPaths` includes `file`), so no other pane's lifecycle
+  can touch a conversation. `openChatPane` (model) spawns the pane —
   focus an existing chat tab anywhere, else split right into a
-  vault-typed tree-hidden pane — from the tabstrip ChatIcon, the
-  selection menu's "Open chat", or pane birth (the New Pane chooser
-  gained Chat). The CONTEXT comes from a workspace-wide registry
-  (`workspace/ai-context.ts`, useSyncExternalStore module store):
-  every mounted editor registers an EDITABLE entry
-  (selection/doc/insert through its buffer + save), read-mode
-  notes register READ-ONLY (whole-note content; insert disabled);
-  the chat's picklist chooses among them, defaulting to the most
-  recent editable entry. The S06 pane-chrome column and its leaf
-  `chat` map are RETIRED — the validator still accepts the map
-  (saved states stay loadable), nothing renders it. Multi-turn rides the SAME
+  chat-typed pane — from the tabstrip ChatIcon, the selection menu's
+  "Open chat", or pane birth (the New Pane chooser gained Chat). The
+  CONTEXT picklist covers EVERY open note-bearing tab: mounted views
+  register in a workspace-wide registry
+  (`workspace/ai-context.ts`, useSyncExternalStore module store —
+  editors as EDITABLE entries with selection/doc/insert through
+  their buffer + save, read-mode notes as READ-ONLY), and
+  `openNoteTabPaths` (model) adds open-but-INACTIVE note and source
+  tabs from workspace state — picked while unmounted, the note is
+  read on demand as a read-only whole-note context (options wear a
+  "— read-only" marker; insert needs an editor). The S06 pane-chrome
+  column and its leaf `chat` map are RETIRED — the validator still
+  accepts the map (saved states stay loadable), nothing renders it. Multi-turn rides the SAME
   operation contract: prior turns travel as `operation.thread`
   (`{role: user|assistant, content}`, validated in main — ≤24 turns,
   ≤8k chars each; `buildMessages` replays them verbatim between

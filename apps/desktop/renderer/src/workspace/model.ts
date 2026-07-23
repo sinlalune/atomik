@@ -132,23 +132,15 @@ export type PaneTreeScope =
   | { kind: 'vault' }
   | { kind: 'project'; projectPath: string; projectTitle?: string }
   | { kind: 'docs' }
+  /** S06c2 (owner): the chat is a pane TYPE — its tabs are
+   *  conversations, and it has no tree panel at all. */
+  | { kind: 'chat' }
 
 /** What a note view registers with its pane (S07d bridge): the dirty
  *  editor's note path, read at decision time — the pane tree's
  *  navigation guard and the rename/move/delete dirty block use it. */
 export type PaneNoteGuard = { dirtyPath: () => string | null }
 
-/** What an EDITABLE note view registers with its pane (S06 bridge):
- *  the chat column reads it at send time — selection + doc feed the
- *  operation contract, and `insert` lands an answer in the buffer
- *  through the SAME applyChange + save path every accepted patch
- *  takes (06: accept is the single moment a diff is born). */
-export type PaneAiSurface = {
-  notePath: string
-  getSelection: () => { from: number; to: number; text: string }
-  getDoc: () => string
-  insert: (text: string) => Promise<void>
-}
 
 /** Absent tree reads as the vault tree — the default pane type. */
 export function paneTreeOf(node: LeafNode): PaneTree {
@@ -164,6 +156,7 @@ export function paneTreeScopeOf(tree: PaneTree): PaneTreeScope {
       : { kind: 'project', projectPath }
   }
   if (tree['kind'] === 'docs') return { kind: 'docs' }
+  if (tree['kind'] === 'chat') return { kind: 'chat' }
   return { kind: 'vault' }
 }
 
@@ -186,6 +179,44 @@ export function paneTreeOpenFolders(tree: PaneTree): ReadonlySet<string> {
 export function chatFileOf(params?: Record<string, string>): string | null {
   const file = params?.['file']
   return file !== undefined && file.length > 0 ? file : null
+}
+
+/**
+ * Every note-bearing OPEN TAB (S06c2): the chat's context picklist
+ * covers what the owner calls "open panes" — including tabs that are
+ * not the active tab of their pane (only active tabs mount views, so
+ * the registry alone misses them). Note tabs contribute their note,
+ * source tabs their dossier note. Order = tree order; duplicates
+ * collapse to the first occurrence.
+ */
+export function openNoteTabPaths(
+  state: WorkspaceState
+): Array<{ notePath: string; kind: 'note' | 'source' }> {
+  const seen = new Set<string>()
+  const found: Array<{ notePath: string; kind: 'note' | 'source' }> = []
+  const walk = (node: PaneNode): void => {
+    if (node.kind === 'split') {
+      walk(node.first)
+      walk(node.second)
+      return
+    }
+    for (const tab of node.tabs) {
+      const notePath =
+        tab.view === 'vault' || tab.view === 'project'
+          ? tab.params?.['notePath']
+          : tab.view === 'source-image'
+            ? tab.params?.['dossierPath']
+            : undefined
+      if (!notePath || seen.has(notePath)) continue
+      seen.add(notePath)
+      found.push({
+        notePath,
+        kind: tab.view === 'source-image' ? 'source' : 'note'
+      })
+    }
+  }
+  walk(state.root)
+  return found
 }
 
 function mapLeaf(
@@ -334,12 +365,11 @@ export function openChatPane(
   const split = splitPane(state, paneId, 'horizontal')
   if (split === state) return state
   const newPaneId = split.focusedPaneId
-  const typed = updatePaneTree(
-    setPaneTreeScope(split, newPaneId, { kind: 'vault' }),
+  return addTab(
+    setPaneTreeScope(split, newPaneId, { kind: 'chat' }),
     newPaneId,
-    { off: '1' }
+    makeTab('chat')
   )
-  return addTab(typed, newPaneId, makeTab('chat'))
 }
 
 /** Splits a leaf: it keeps its tabs as the first child; the second child

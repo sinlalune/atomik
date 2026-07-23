@@ -109,6 +109,7 @@ function tabForPick(
     }
   }
   if (scope.kind === 'docs') return { view: 'dev-docs' }
+  if (scope.kind === 'chat') return { view: 'chat' }
   return { view: 'vault' }
 }
 
@@ -357,7 +358,10 @@ function LeafPane({
   const untyped = node.tree === undefined
   const tree = paneTreeOf(node)
   const scope = paneTreeScopeOf(tree)
-  const treeHidden = paneTreeHidden(tree)
+  // a CHAT pane (S06c2) has no tree panel at all — its tabs ARE the
+  // conversations
+  const isChatPane = scope.kind === 'chat'
+  const treeHidden = paneTreeHidden(tree) || isChatPane
   const treeWidth = untyped || treeHidden ? 0 : paneTreeWidth(tree)
 
   // Note views register their dirty editor here (cleared on unmount);
@@ -427,15 +431,10 @@ function LeafPane({
       return
     }
     if (kind === 'chat') {
-      // S06c: a chat pane is vault-typed with its tree born hidden —
-      // the conversation is the point, the tree one toggle away
+      // S06c2: chat is a pane TYPE — its tabs are conversations
       dispatch((state) =>
         addTab(
-          updatePaneTree(
-            setPaneTreeScope(state, node.id, { kind: 'vault' }),
-            node.id,
-            { off: '1' }
-          ),
+          setPaneTreeScope(state, node.id, { kind: 'chat' }),
           node.id,
           makeTab('chat')
         )
@@ -515,17 +514,19 @@ function LeafPane({
           <button
             type="button"
             className="tab-new"
-            title="New tab"
-            aria-label="New tab"
+            title={isChatPane ? 'New chat tab' : 'New tab'}
+            aria-label={isChatPane ? 'New chat tab' : 'New tab'}
             onClick={() =>
-              dispatch((state) => addTab(state, node.id, makeTab('new')))
+              dispatch((state) =>
+                addTab(state, node.id, makeTab(isChatPane ? 'chat' : 'new'))
+              )
             }
           >
             <PlusIcon />
           </button>
         </div>
         <span className="tabstrip-actions">
-          {!untyped && (
+          {!untyped && !isChatPane && (
             <button
               type="button"
               title="Open chat pane"
@@ -595,7 +596,7 @@ function LeafPane({
         />
       )}
       <div className="pane-content">
-        {!untyped && treeHidden && (
+        {!untyped && treeHidden && !isChatPane && (
           <button
             type="button"
             className="tree-toggle pane-tree-show"

@@ -37,7 +37,13 @@ import {
   useAiContexts,
   type AiContextEntry
 } from './ai-context'
-import { chatFileOf, openNoteInNewPane, updateTabParams } from './model'
+import {
+  chatFileOf,
+  openNoteInNewPane,
+  openNoteTabPaths,
+  updateTabParams
+} from './model'
+import { useWorkspace } from './store'
 
 /**
  * The chat PANE (CP-MVP-008 S06c, owner redirect: "it should live in
@@ -69,6 +75,17 @@ type TurnMeta = { bundleId: string; claims: ClaimRecord[] }
 
 const md = noteMarkdown()
 
+/** What a send reads: a mounted surface (editable editors first) or a
+ *  read-only note loaded on demand — the picklist covers every open
+ *  note-bearing TAB, mounted or not (S06c2: only active tabs mount). */
+type ChatTarget = {
+  notePath: string
+  editable: boolean
+  getSelection: () => { from: number; to: number; text: string }
+  getDoc: () => string
+  insert?: ((text: string) => Promise<void>) | undefined
+}
+
 export function ChatView({
   tab,
   paneId,
@@ -77,7 +94,28 @@ export function ChatView({
   const file = chatFileOf(tab.params)
   const pickedCtx = tab.params?.['ctx'] ?? null
   const contexts = useAiContexts()
+  const workspaceState = useWorkspace((store) => store.state)
+  // ALL open note-bearing tabs (notes + sources), mounted or not; a
+  // mounted editable entry upgrades its path to full capability.
+  const openTabs = workspaceState ? openNoteTabPaths(workspaceState) : []
+  const optionPaths = [
+    ...new Set([
+      ...contexts.map((entry) => entry.notePath),
+      ...openTabs.map((entry) => entry.notePath)
+    ])
+  ]
   const context = resolveAiContext(contexts, pickedCtx)
+  /** The path a send will read: the explicit pick wins even when its
+   *  view is not mounted; otherwise the best mounted entry; otherwise
+   *  the first open tab. */
+  const targetPath =
+    (pickedCtx && optionPaths.includes(pickedCtx) ? pickedCtx : null) ??
+    context?.notePath ??
+    optionPaths[0] ??
+    null
+  const targetEditable = contexts.some(
+    (entry) => entry.notePath === targetPath && entry.editable
+  )
 
   const [turns, setTurns] = useState<ChatTurn[]>([])
   const [input, setInput] = useState('')
@@ -220,16 +258,51 @@ export function ChatView({
     [engine, patchParams]
   )
 
+  /** Live snapshots for the async send path (render values go stale
+   *  inside awaited closures). */
+  const contextsRef = useRef<readonly AiContextEntry[]>(contexts)
+  contextsRef.current = contexts
+  const targetPathRef = useRef<string | null>(targetPath)
+  targetPathRef.current = targetPath
+
+  /** Resolves the send target NOW: a mounted surface for the picked
+   *  path (editable mount wins), else the note read from disk as a
+   *  read-only whole-note context. */
+  const resolveTarget = useCallback(async (): Promise<ChatTarget | null> => {
+    const path = targetPathRef.current
+    if (!path) return null
+    const mounted = contextsRef.current.filter(
+      (entry) => entry.notePath === path
+    )
+    const best = mounted.filter((entry) => entry.editable).at(-1) ?? mounted.at(-1)
+    if (best) {
+      return {
+        notePath: best.notePath,
+        editable: best.editable,
+        getSelection: best.getSelection,
+        getDoc: best.getDoc,
+        insert: best.insert
+      }
+    }
+    try {
+      const note = await window.atomik.readNote(path)
+      return {
+        notePath: path,
+        editable: false,
+        getSelection: () => ({ from: 0, to: 0, text: '' }),
+        getDoc: () => note.content
+      }
+    } catch {
+      return null
+    }
+  }, [])
+
   /** The context note's resolved prompts, cached until the vault
    *  changes — the @ menu and every send expand against the same
    *  scopes. */
-  const contextRef = useRef<AiContextEntry | null>(context)
-  useEffect(() => {
-    contextRef.current = context
-  }, [context])
   const loadPrompts = useCallback(async (): Promise<PromptFile[]> => {
     if (promptsRef.current) return promptsRef.current
-    const notePath = contextRef.current?.notePath ?? ''
+    const notePath = targetPathRef.current ?? ''
     const loaded = await loadPromptsFor(notePath, window.atomik).catch(
       () => [] as PromptFile[]
     )
@@ -240,7 +313,7 @@ export function ChatView({
   const send = useCallback(async (): Promise<void> => {
     const text = input.trim()
     if (text.length === 0 || running) return
-    const target = contextRef.current
+    const target = await resolveTarget()
     if (!target) {
       setError('Open a note somewhere to chat over it — the context list is empty.')
       return
@@ -298,7 +371,7 @@ export function ChatView({
       setRunning(false)
       runningOperationId.current = null
     }
-  }, [genDrafts, input, loadPrompts, persistTurn, running, turns])
+  }, [genDrafts, input, loadPrompts, persistTurn, resolveTarget, running, turns])
 
   const cancel = useCallback(() => {
     const id = runningOperationId.current
@@ -309,7 +382,7 @@ export function ChatView({
    *  its editor applies + saves; inserting IS the accept decision. */
   const insert = useCallback(
     async (index: number, text: string): Promise<void> => {
-      const target = contextRef.current
+      const target = await resolveTarget()
       if (!target?.insert) {
         setError('The picked context is not an open editor — switch it to live or source mode to insert.')
         return
@@ -327,13 +400,13 @@ export function ChatView({
         setError(String(reason))
       }
     },
-    []
+    [resolveTarget]
   )
 
   /** S06b: an answer becomes its OWN note and opens BESIDE this pane. */
   const createNote = useCallback(
     async (index: number, text: string): Promise<void> => {
-      const basePath = contextRef.current?.notePath ?? 'note.md'
+      const basePath = targetPathRef.current ?? 'note.md'
       setError(null)
       try {
         const relPath = chatNotePathForMessage(basePath, text)
@@ -396,7 +469,7 @@ export function ChatView({
     [loadPrompts]
   )
 
-  const contextNotePath = context?.notePath ?? null
+  const contextNotePath = targetPath
   const atItems: ChatAtItem[] = atMenu
     ? chatAtItems(
         atPrompts,
@@ -492,20 +565,23 @@ export function ChatView({
           context
           <select
             aria-label="Chat context"
-            value={context?.notePath ?? ''}
+            value={targetPath ?? ''}
             onChange={(event) => patchParams({ ctx: event.target.value })}
           >
-            {contexts.length === 0 && <option value="">no open note</option>}
-            {[...new Set(contexts.map((entry) => entry.notePath))].map(
-              (notePath) => (
-                <option key={notePath} value={notePath}>
-                  {notePath}
-                </option>
-              )
-            )}
+            {optionPaths.length === 0 && <option value="">no open note</option>}
+            {optionPaths.map((notePath) => (
+              <option key={notePath} value={notePath}>
+                {notePath}
+                {contexts.some(
+                  (entry) => entry.notePath === notePath && entry.editable
+                )
+                  ? ''
+                  : ' — read-only'}
+              </option>
+            ))}
           </select>
         </label>
-        {context && !context.insert && (
+        {targetPath !== null && !targetEditable && (
           <span className="chat-context-hint">read-only — insert needs an editor</span>
         )}
       </div>

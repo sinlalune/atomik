@@ -951,6 +951,31 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       (workspace-model: chat-pane suite replaces the column suite —
       spawn/focus/survive/relocate-file/chatFileOf); typecheck/
       build/smoke green.
+- [x] S06c2 (owner: "chat a SPECIFIC pane, not a tab — but keep tabs
+      for multiple chats in the chat pane; context on open note
+      doesn't seem to work") — DONE 2026-07-23. PANE TYPE: 'chat'
+      joins vault/project/docs as a tree kind ({kind:'chat'} scope;
+      NO tree panel at all); the pane's tabs are CONVERSATIONS —
+      its `+` opens another chat tab (tab title = transcript name),
+      each with its own file/ctx params. openChatPane types the
+      spawned pane 'chat'; the New Pane chooser's Chat pick types
+      in place; the in-pane chat button hides inside chat panes.
+      CONTEXT FIX: the picklist now covers EVERY open note-bearing
+      TAB, not just mounted views — the likely "doesn't work" (only
+      ACTIVE tabs mount, so an open-but-inactive note never
+      registered): openNoteTabPaths (model, tested) walks workspace
+      state for note + source tabs; a pick without a mounted view is
+      read ON DEMAND via readNote as a read-only whole-note context;
+      options wear a "— read-only" marker; editable mounts win for
+      the same path; send resolves the target at send time
+      (resolveTarget) so staleness is out. CDP-verified: restored
+      chat-typed pane (no tree), options list active-editable +
+      inactive-read-only, picking the INACTIVE note answers from ITS
+      content (mock echo pinned), '+' adds a second chat tab.
+      Legacy note: yesterday's S06c vault-typed chat panes still
+      render (the chat TAB view works in any pane); not migrated.
+      Tests 557→558/50 (openNoteTabPaths; openChatPane retyped);
+      typecheck/build/smoke green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
@@ -1105,6 +1130,14 @@ changed(S06c): ChatView.tsx NEW (ChatPanel.tsx deleted); ai-context.ts
               row; column/resize CSS gone); module note; tests
               (chat-pane model suite).
 tests(S06c) : 557 passing / 50 suites; typecheck/build/smoke green.
+changed(S06c2): model.ts (PaneTreeScope +chat, openChatPane types
+              'chat', openNoteTabPaths NEW, PaneAiSurface type
+              pruned); Workspace.tsx (chat pane: no tree, '+' = new
+              chat tab, chooser/tabForPick); NewTabChooser (Chat
+              hint); ChatView (context = registry ∪ open tabs,
+              resolveTarget at send time, read-only options marked);
+              module note; tests (openNoteTabPaths + retyped spawn).
+tests(S06c2): 558 passing / 50 suites; typecheck/build/smoke green.
 next action : S07 — acceptance: 18 §M2 intents re-run on the REAL
               provider + owner bench on the live vault (real
               question over a real selection via the context menu,
