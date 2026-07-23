@@ -35,12 +35,8 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { VaultFolder, VaultNoteFile } from '../../../shared/ipc-contract'
 import { resolveRelativePath } from '../dev-docs/markdown'
-import {
-  themeOf,
-  type NoteViewMode,
-  type PaneAiSurface,
-  type SaveMode
-} from '../workspace/model'
+import { themeOf, type NoteViewMode, type SaveMode } from '../workspace/model'
+import { registerAiContext } from '../workspace/ai-context'
 import { useWorkspace } from '../workspace/store'
 import { HistoryNav } from '../HistoryNav'
 import { selectionLinkReplacement, type BufferChange } from './ai-helpers'
@@ -160,13 +156,9 @@ export type EditorPaneProps = {
   /** Shown when the note declares an image resource (dossier or
    *  transcript): the original stays one click away while editing. */
   onOpenSourceImage?: (dossierPath: string) => void
-  /** Opens the pane's chat column (S06) — the selection menu's
+  /** Opens (or focuses) the CHAT PANE (S06c) — the selection menu's
    *  "Open chat" retired the docked panel. */
   onOpenChat?: () => void
-  /** Registers this editor as the pane's AI surface (S06 bridge): the
-   *  chat column reads selection/doc at send time and inserts accepted
-   *  answers through this editor's buffer + save path. */
-  registerAiSurface?: (surface: PaneAiSurface | null) => void
 }
 
 /**
@@ -195,8 +187,7 @@ export function EditorPane({
   onSaveModeToggle,
   nav,
   onOpenSourceImage,
-  onOpenChat,
-  registerAiSurface
+  onOpenChat
 }: EditorPaneProps): React.JSX.Element {
   const hostRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
@@ -531,14 +522,16 @@ export function EditorPane({
     view.focus()
   }, [])
 
-  // S06 pane bridge: this editor IS the pane's AI surface while
-  // mounted — the chat column reads selection/doc at send time, and
-  // an inserted answer lands at the cursor through the SAME
+  // S06c: this editor registers as a workspace-wide AI CONTEXT while
+  // mounted — the chat pane's picklist offers it, reads selection/doc
+  // at send time, and inserts answers at the cursor through the SAME
   // applyChange + save path as any accepted patch (06).
+  const aiContextId = useRef(crypto.randomUUID())
   useEffect(() => {
-    if (!registerAiSurface) return
-    registerAiSurface({
+    return registerAiContext({
+      id: aiContextId.current,
       notePath: note.relPath,
+      editable: true,
       getSelection,
       getDoc,
       insert: async (text: string) => {
@@ -549,8 +542,7 @@ export function EditorPane({
         await saveRef.current()
       }
     })
-    return () => registerAiSurface(null)
-  }, [applyChange, getDoc, getSelection, note.relPath, registerAiSurface])
+  }, [applyChange, getDoc, getSelection, note.relPath])
 
   /**
    * S05b: a menu run previews INLINE — the proposal renders in the

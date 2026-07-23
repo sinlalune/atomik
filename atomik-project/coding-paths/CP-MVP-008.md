@@ -915,6 +915,42 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       538→557/50 (chat-at + gen-options suites NEW; close-path
       regression pins, relocate-follows-chat, openNoteInNewPane,
       history/naming); typecheck/build/smoke green.
+- [x] S06c (owner bench: two bugs + a pane-architecture redirect) —
+      DONE 2026-07-23. REDIRECT ("chat should live in its own pane,
+      spawn when needed, survive its origin; context via a picklist
+      of open panes; a New Pane choice"): the chat COLUMN retired
+      after one day — ChatView is now a TAB VIEW (`view: 'chat'`);
+      transcript pointer (`file`) + context pick (`ctx`) ride
+      ordinary validated tab params (relocateTabPaths includes
+      `file`), so no other pane's lifecycle can touch it.
+      `openChatPane` (model): focus an existing chat tab anywhere,
+      else split right into a vault-typed tree-hidden pane — wired
+      from the tabstrip ChatIcon, the selection menu's "Open chat",
+      and the New Pane chooser (Chat joined Vault/Projects/Docs).
+      CONTEXT PICKLIST: a workspace-wide registry
+      (workspace/ai-context.ts, useSyncExternalStore module store) —
+      every mounted editor registers an EDITABLE entry (selection/
+      doc/insert through its buffer+save), read-mode notes register
+      READ-ONLY (whole-note content, insert disabled with a visible
+      hint); resolveAiContext prefers the picked path (editable
+      mount wins), else the most recent editable, else the most
+      recent. Promote-to-note opens beside the CHAT pane. The S06
+      leaf `chat` map: validator still accepts it (saved states
+      load), nothing renders it. BUG "can't open chat from history":
+      not reproducible programmatically NOR with real mouse events
+      after the rework (Input.dispatchMouseEvent drive: menu → row
+      click → turns restored) — the column-era report is moot with
+      the column gone; the flow is CDP-pinned with real clicks. BUG
+      "create note erased chat messages": structurally fixed — the
+      chat no longer lives inside the pane that splits; CDP-verified
+      turns SURVIVE promote (3 panes, 2 turns intact) AND surviving
+      the ORIGIN pane's close (the S06c point, also a model test).
+      Verified further: context auto-pick, picklist re-pointing
+      after the origin editor unmounts, New Pane chooser offers
+      Chat, transcript on disk, state persists. Tests 557/50
+      (workspace-model: chat-pane suite replaces the column suite —
+      spawn/focus/survive/relocate-file/chatFileOf); typecheck/
+      build/smoke green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
@@ -1057,6 +1093,18 @@ changed(S06b): ChatPanel (orientation, history, options, promote,
               onNoteCreated wiring); icons (History/NoteAdd);
               styles.css (bubbles, .chat-pop, compose); module note.
 tests(S06b) : 557 passing / 50 suites; typecheck/build/smoke green.
+changed(S06c): ChatView.tsx NEW (ChatPanel.tsx deleted); ai-context.ts
+              NEW (workspace registry + resolveAiContext); model.ts
+              (openChatPane, chatFileOf, relocate includes 'file',
+              paneChat* helpers removed); Workspace.tsx (chat tab
+              view, chooser wiring, column render/grid removed);
+              NewTabChooser (Chat pane pick); EditorPane (registers
+              the global editable context; registerAiSurface prop
+              gone); VaultView/ProjectView (read-mode notes register
+              read-only contexts); styles.css (.chat-view + context
+              row; column/resize CSS gone); module note; tests
+              (chat-pane model suite).
+tests(S06c) : 557 passing / 50 suites; typecheck/build/smoke green.
 next action : S07 — acceptance: 18 §M2 intents re-run on the REAL
               provider + owner bench on the live vault (real
               question over a real selection via the context menu,

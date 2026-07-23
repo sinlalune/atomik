@@ -178,50 +178,14 @@ export function paneTreeOpenFolders(tree: PaneTree): ReadonlySet<string> {
   return parseOpenFolders(tree['open'])
 }
 
-/**
- * The pane's chat column (CP-MVP-008 S06): right pane chrome on the
- * exact contract of the tree panel — a flat validated string map on
- * the leaf. Keys: on = '1' visible, w = width px, file = vault
- * relPath of the transcript note. An ABSENT map reads hidden: that
- * default IS the migration for every pre-S06 saved layout.
- */
-export type PaneChat = Record<string, string>
-
-export const CHAT_WIDTH_DEFAULT = 320
-
-export function clampChatWidth(px: number): number {
-  if (!Number.isFinite(px)) return CHAT_WIDTH_DEFAULT
-  return Math.round(Math.min(560, Math.max(220, px)))
-}
-
-export function paneChatOf(node: LeafNode): PaneChat {
-  return node.chat ?? {}
-}
-
-export const paneChatOpen = (chat: PaneChat): boolean => chat['on'] === '1'
-
-export function paneChatWidth(chat: PaneChat): number {
-  const raw = chat['w']
-  return raw === undefined ? CHAT_WIDTH_DEFAULT : clampChatWidth(Number(raw))
-}
-
-/** The transcript note backing the column; empty/absent = no chat born
- *  yet (the file appears at the FIRST message, never on open). */
-export function paneChatFile(chat: PaneChat): string | null {
-  const file = chat['file']
+/** The transcript note behind a CHAT TAB's `file` param (S06c: the
+ *  chat is its own pane; state rides ordinary tab params); empty or
+ *  absent = no chat born yet (the file appears at the FIRST message,
+ *  never on open). The S06 pane-chrome `chat` leaf map is RETIRED —
+ *  still accepted by the state validator, no longer rendered. */
+export function chatFileOf(params?: Record<string, string>): string | null {
+  const file = params?.['file']
   return file !== undefined && file.length > 0 ? file : null
-}
-
-/** Merges chat-column preferences (on/w/file) into the pane's chat map. */
-export function updatePaneChat(
-  state: WorkspaceState,
-  paneId: string,
-  patch: Record<string, string>
-): WorkspaceState {
-  return mapLeaf(state, paneId, (node) => ({
-    ...node,
-    chat: { ...paneChatOf(node), ...patch }
-  }))
 }
 
 function mapLeaf(
@@ -340,6 +304,42 @@ export function openNoteInNewPane(
         })
       : makeTab('vault', { notePath: relPath })
   return addTab(typed, newPaneId, tab)
+}
+
+/**
+ * S06c (owner redirect: the chat lives in its OWN pane): opens the
+ * chat as a first-class pane. An existing chat tab anywhere gets
+ * FOCUSED (one conversation surface, not one per trigger); otherwise
+ * the given pane splits side by side and the fresh right pane —
+ * vault-typed, tree hidden (the chat is the point) — opens a chat
+ * tab. Built from the existing primitives; the chat survives its
+ * spawning pane exactly because it is a sibling, not chrome.
+ */
+export function openChatPane(
+  state: WorkspaceState,
+  paneId: string
+): WorkspaceState {
+  let existing: { paneId: string; tabId: string } | null = null
+  mapNode(state.root, (node) => {
+    if (!existing && node.kind === 'leaf') {
+      const tab = node.tabs.find((candidate) => candidate.view === 'chat')
+      if (tab) existing = { paneId: node.id, tabId: tab.id }
+    }
+    return node
+  })
+  if (existing !== null) {
+    const found: { paneId: string; tabId: string } = existing
+    return activateTab(state, found.paneId, found.tabId)
+  }
+  const split = splitPane(state, paneId, 'horizontal')
+  if (split === state) return state
+  const newPaneId = split.focusedPaneId
+  const typed = updatePaneTree(
+    setPaneTreeScope(split, newPaneId, { kind: 'vault' }),
+    newPaneId,
+    { off: '1' }
+  )
+  return addTab(typed, newPaneId, makeTab('chat'))
 }
 
 /** Splits a leaf: it keeps its tabs as the first child; the second child
@@ -771,7 +771,8 @@ export function relocateTabPaths(
     const tabs = node.tabs.map((tab) => {
       const params: Record<string, string> = { ...tab.params }
       let touched = false
-      for (const key of ['notePath', 'dossierPath', 'projectPath']) {
+      // 'file' = a chat tab's transcript (S06c): renames/moves follow
+      for (const key of ['notePath', 'dossierPath', 'projectPath', 'file']) {
         const value = params[key]
         if (!value) continue
         const next = rewrite(value)
@@ -812,25 +813,7 @@ export function relocateTabPaths(
         changed = true
       }
     }
-    // the chat column (S06b): a renamed/moved transcript follows too —
-    // a dangling pointer here read as "my chat disappeared"
-    let chat = node.chat
-    const chatFile = chat?.['file']
-    if (chat && chatFile) {
-      const next = rewrite(chatFile)
-      if (next !== chatFile) {
-        chat = { ...chat, file: next }
-        changed = true
-      }
-    }
-    return changed
-      ? {
-          ...node,
-          tabs,
-          ...(tree ? { tree } : {}),
-          ...(chat ? { chat } : {})
-        }
-      : node
+    return changed ? { ...node, tabs, ...(tree ? { tree } : {}) } : node
   })
   return root === state.root ? state : { ...state, root }
 }

@@ -6,12 +6,8 @@ import { ModeSwitch } from '../editor/ModeSwitch'
 import { noteFollowTarget } from '../vault/note-follow'
 import { useNavHistory } from '../vault/nav-history'
 import { useVaultNote } from '../vault/useVaultNote'
-import type {
-  NoteViewMode,
-  PaneAiSurface,
-  PaneNoteGuard,
-  SaveMode
-} from '../workspace/model'
+import type { NoteViewMode, PaneNoteGuard, SaveMode } from '../workspace/model'
+import { registerAiContext } from '../workspace/ai-context'
 
 export type ProjectViewProps = {
   /** Vault-relative folder of the opened bundle. */
@@ -35,10 +31,8 @@ export type ProjectViewProps = {
   onOpenWebUrl?: (url: string) => void
   /** Keys this tab's ‹ › navigation trail (the tab id). */
   historyKey?: string
-  /** Opens the pane's chat column (S06 — from the AI selection menu). */
+  /** Opens (or focuses) the chat pane (S06c — the AI selection menu). */
   onOpenChat?: () => void
-  /** Registers the mounted editor as the pane's AI surface (S06). */
-  registerAiSurface?: (surface: PaneAiSurface | null) => void
 }
 
 function slugifyLite(title: string): string {
@@ -70,8 +64,7 @@ export function ProjectView({
   onSaveModeToggle,
   onOpenWebUrl,
   historyKey,
-  onOpenChat,
-  registerAiSurface
+  onOpenChat
 }: ProjectViewProps): React.JSX.Element {
   const [vault, setVault] = useState<VaultInfo | null | 'loading'>('loading')
   const [projects, setProjects] = useState<ProjectInfo[]>([])
@@ -106,6 +99,22 @@ export function ProjectView({
     })
     return () => registerGuard?.(null)
   }, [registerGuard])
+
+  // S06c: a READ-mode note is still a chat context — registered
+  // read-only (whole-note content; insert needs the editor, which
+  // registers itself in live/source mode).
+  const readCtxId = useRef<string>(crypto.randomUUID())
+  useEffect(() => {
+    if (mode !== 'read' || !note) return
+    const content = note.content
+    return registerAiContext({
+      id: readCtxId.current,
+      notePath: note.relPath,
+      editable: false,
+      getSelection: () => ({ from: 0, to: 0, text: '' }),
+      getDoc: () => content
+    })
+  }, [mode, note])
 
   /** Note navigation in edit mode must not silently discard a buffer.
    *  Auto-save mode navigates freely: the unmounting editor flushes. */
@@ -295,7 +304,6 @@ export function ProjectView({
             key={note.relPath}
             note={note}
             onOpenChat={onOpenChat}
-            registerAiSurface={registerAiSurface}
             onSaved={applySaved}
             onDirtyChange={onDirtyChange}
             mode={mode}

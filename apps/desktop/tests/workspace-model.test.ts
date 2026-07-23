@@ -3,8 +3,7 @@ import type { PaneNode, WorkspaceState } from '../shared/ipc-contract'
 import {
   activateTab,
   addTab,
-  CHAT_WIDTH_DEFAULT,
-  clampChatWidth,
+  chatFileOf,
   clampTreeWidth,
   closeEmptyPane,
   closePane,
@@ -22,11 +21,8 @@ import {
   noteFontSizeOf,
   noteModeOf,
   noteWidthOf,
+  openChatPane,
   openNoteInNewPane,
-  paneChatFile,
-  paneChatOf,
-  paneChatOpen,
-  paneChatWidth,
   paneTreeHidden,
   paneTreeOf,
   paneTreeOpenFolders,
@@ -47,7 +43,6 @@ import {
   themeOf,
   topRightLeafId,
   TREE_WIDTH_DEFAULT,
-  updatePaneChat,
   updatePaneTree,
   updateTabParams
 } from '../renderer/src/workspace/model'
@@ -293,88 +288,70 @@ describe('clampTreeWidth', () => {
   })
 })
 
-describe('pane chat column (S06)', () => {
-  it('an absent chat map reads HIDDEN — the pre-S06 migration is the default', () => {
-    const state = createDefaultState('')
-    const leaf = leaves(state.root)[0]!
-    expect(leaf.chat).toBeUndefined()
-    const chat = paneChatOf(leaf)
-    expect(paneChatOpen(chat)).toBe(false)
-    expect(paneChatFile(chat)).toBeNull()
-    expect(paneChatWidth(chat)).toBe(CHAT_WIDTH_DEFAULT)
-  })
-
-  it('updatePaneChat merges preferences; on/file round-trip through the map', () => {
-    const state = createDefaultState('')
-    const paneId = firstLeafId(state.root)
-    let next = updatePaneChat(state, paneId, { on: '1' })
-    next = updatePaneChat(next, paneId, {
-      file: 'chats/2026-07-23-question.md',
-      w: '400'
-    })
-    const chat = paneChatOf(leaves(next.root)[0]!)
-    expect(paneChatOpen(chat)).toBe(true)
-    expect(paneChatFile(chat)).toBe('chats/2026-07-23-question.md')
-    expect(paneChatWidth(chat)).toBe(400)
-    const off = paneChatOf(
-      leaves(updatePaneChat(next, paneId, { on: '0', file: '' }).root)[0]!
+describe('chat pane state (S06c: tab params, not pane chrome)', () => {
+  it('chatFileOf reads the transcript param; empty/absent = unborn', () => {
+    expect(chatFileOf({ file: 'chats/2026-07-23-q.md' })).toBe(
+      'chats/2026-07-23-q.md'
     )
-    expect(paneChatOpen(off)).toBe(false)
-    expect(paneChatFile(off)).toBeNull()
+    expect(chatFileOf({ file: '' })).toBeNull()
+    expect(chatFileOf(undefined)).toBeNull()
   })
 
-  it('clampChatWidth bounds the column and defaults on garbage', () => {
-    expect(clampChatWidth(100)).toBe(220)
-    expect(clampChatWidth(9000)).toBe(560)
-    expect(clampChatWidth(Number('x'))).toBe(CHAT_WIDTH_DEFAULT)
-    expect(paneChatWidth({ w: 'garbled' })).toBe(CHAT_WIDTH_DEFAULT)
-  })
-
-  it('closing ANOTHER pane preserves this pane\'s chat — pane ✕ and last-tab ✕ (S06b owner report pin)', () => {
-    let state = createDefaultState('')
-    const chatPaneId = firstLeafId(state.root)
-    state = updatePaneChat(state, chatPaneId, {
-      on: '1',
-      file: 'chats/2026-07-23-q.md'
-    })
-    state = splitPane(state, chatPaneId, 'horizontal')
-    const other = leaves(state.root)[1]!
-    state = addTab(state, other.id, makeTab('vault', { notePath: 'a.md' }))
-
-    const viaPaneClose = closePane(state, other.id)
-    const survivorA = leaves(viaPaneClose.root)[0]!
-    expect(paneChatOf(survivorA)).toEqual({
-      on: '1',
-      file: 'chats/2026-07-23-q.md'
-    })
-
-    const tabId = leaves(state.root)[1]!.tabs[0]!.id
-    const viaTabClose = closeTab(state, other.id, tabId)
-    const survivorB = leaves(viaTabClose.root)[0]!
-    expect(paneChatOf(survivorB)).toEqual({
-      on: '1',
-      file: 'chats/2026-07-23-q.md'
-    })
-  })
-
-  it('relocateTabPaths — a renamed/moved transcript follows in the chat map (S06b)', () => {
-    let state = createDefaultState('')
+  it('openChatPane spawns a chat pane beside the current one — vault-typed, tree hidden', () => {
+    const state = createDefaultState('')
     const paneId = firstLeafId(state.root)
-    state = updatePaneChat(state, paneId, {
-      on: '1',
+    const next = openChatPane(state, paneId)
+    expect(next.root.kind).toBe('split')
+    const [left, right] = leaves(next.root)
+    expect(left!.id).toBe(paneId)
+    expect(right!.tree).toEqual({ kind: 'vault', off: '1' })
+    expect(right!.tabs[0]!.view).toBe('chat')
+    expect(next.focusedPaneId).toBe(right!.id)
+  })
+
+  it('openChatPane FOCUSES an existing chat tab instead of spawning another', () => {
+    const state = createDefaultState('')
+    const paneId = firstLeafId(state.root)
+    const withChat = openChatPane(state, paneId)
+    const chatPane = leaves(withChat.root)[1]!
+    // trigger from the ORIGINAL pane again: no new split, focus moves
+    const again = openChatPane(
+      setFocus(withChat, paneId),
+      paneId
+    )
+    expect(leaves(again.root).length).toBe(2)
+    expect(again.focusedPaneId).toBe(chatPane.id)
+  })
+
+  it('the chat pane SURVIVES its origin pane closing (the S06c point)', () => {
+    const state = createDefaultState('')
+    const originId = firstLeafId(state.root)
+    const withChat = openChatPane(state, originId)
+    const chatPane = leaves(withChat.root)[1]!
+    const closed = closePane(withChat, originId)
+    const survivors = leaves(closed.root)
+    expect(survivors.length).toBe(1)
+    expect(survivors[0]!.id).toBe(chatPane.id)
+    expect(survivors[0]!.tabs[0]!.view).toBe('chat')
+  })
+
+  it('relocateTabPaths — a renamed/moved transcript follows in the chat tab params (S06c)', () => {
+    const state = createDefaultState('')
+    const paneId = firstLeafId(state.root)
+    const withChat = openChatPane(state, paneId)
+    const chatPane = leaves(withChat.root)[1]!
+    const chatTabId = chatPane.tabs[0]!.id
+    const withFile = updateTabParams(withChat, chatTabId, {
       file: 'chats/2026-07-23-q.md'
     })
     const renamed = relocateTabPaths(
-      state,
+      withFile,
       'chats/2026-07-23-q.md',
-      'chats/renamed.md'
+      'archive/renamed.md'
     )
-    expect(paneChatOf(leaves(renamed.root)[0]!)['file']).toBe('chats/renamed.md')
-    const folderMove = relocateTabPaths(state, 'chats', 'archive/chats')
-    expect(paneChatOf(leaves(folderMove.root)[0]!)['file']).toBe(
-      'archive/chats/2026-07-23-q.md'
-    )
-    expect(relocateTabPaths(state, 'notes/x.md', 'notes/y.md')).toBe(state)
+    expect(
+      leaves(renamed.root)[1]!.tabs[0]!.params?.['file']
+    ).toBe('archive/renamed.md')
   })
 })
 

@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ClaimRecord, VaultFolder } from '../../../shared/ipc-contract'
+import type {
+  ClaimRecord,
+  VaultFolder,
+  WorkspaceState,
+  WorkspaceTab
+} from '../../../shared/ipc-contract'
 import { applyChatAtPick, chatAtItems, type ChatAtItem } from '../editor/chat-at'
 import {
   appendChatTurn,
@@ -21,46 +26,41 @@ import { atPromptToken, loadPromptsFor, type PromptFile } from '../editor/prompt
 import { linkableNotesOf, sourceBundlesOf } from '../editor/quick-actions'
 import { noteMarkdown } from '../editor/note-markdown'
 import {
-  CloseIcon,
   HistoryIcon,
   InsertIcon,
   NoteAddIcon,
   PlusIcon,
   SendIcon
 } from '../icons'
-import { frameCoalesced } from './frame-coalesce'
 import {
-  clampChatWidth,
-  paneChatFile,
-  type PaneAiSurface,
-  type PaneChat
-} from './model'
+  resolveAiContext,
+  useAiContexts,
+  type AiContextEntry
+} from './ai-context'
+import { chatFileOf, openNoteInNewPane, updateTabParams } from './model'
 
 /**
- * The pane's chat column (CP-MVP-008 S06, S06b owner feedback) — right
- * pane chrome on the pane-tree pattern: it stands beside the tabs, not
- * inside them, and survives tab switches. Multi-turn requests travel
- * the SAME operation contract as every AI run (prior turns as
- * `thread`, validated in main); answers are insertable into the pane's
- * open note through the SAME buffer + save path as any accepted patch,
- * or promoted to their OWN note opening in a new pane beside the chat;
- * and the transcript persists as an ordinary vault note under chats/ —
- * born at the FIRST message, never on open (S01 pin: no writes on
- * open). The header's history menu reopens any past transcript; `@` in
- * the input quotes prompts, notes, and sources through the run
- * pipeline's existing link/layer machinery.
+ * The chat PANE (CP-MVP-008 S06c, owner redirect: "it should live in
+ * its own pane and spawn when needed but survive after the origin pane
+ * disappears"). A first-class tab view: its transcript pointer and
+ * context pick ride ordinary TAB PARAMS (validated, persisted,
+ * relocated like every other view's), so closing any other pane
+ * cannot touch it. The CONTEXT is chosen from a picklist of the open
+ * note surfaces (the workspace-wide ai-context registry) instead of
+ * binding to a pane-mate. Everything else carries over from the
+ * column era: multi-turn as `thread` on the operation contract,
+ * transcripts as chats/ vault notes born at the first message,
+ * insert through the picked editor's buffer + save path, promote to
+ * a note opening beside this pane, `@` quoting, shared generation
+ * options, and the history menu.
  */
 
-export type ChatPanelProps = {
-  chat: PaneChat
-  /** Merges column preferences (on/w/file) into the pane state. */
-  onPatch: (patch: Record<string, string>) => void
-  /** The pane's mounted editor at call time (S06 bridge); null when no
-   *  editable note view is active. */
-  getAiSurface: () => PaneAiSurface | null
-  /** A promoted answer's note opens BESIDE the chat (S06b): the pane
-   *  splits right and the note opens there. */
-  onNoteCreated: (relPath: string) => void
+type Dispatch = (operation: (state: WorkspaceState) => WorkspaceState) => void
+
+export type ChatViewProps = {
+  tab: WorkspaceTab
+  paneId: string
+  dispatch: Dispatch
 }
 
 /** Session-only metadata of a freshly answered turn (trace decision +
@@ -69,13 +69,16 @@ type TurnMeta = { bundleId: string; claims: ClaimRecord[] }
 
 const md = noteMarkdown()
 
-export function ChatPanel({
-  chat,
-  onPatch,
-  getAiSurface,
-  onNoteCreated
-}: ChatPanelProps): React.JSX.Element {
-  const file = paneChatFile(chat)
+export function ChatView({
+  tab,
+  paneId,
+  dispatch
+}: ChatViewProps): React.JSX.Element {
+  const file = chatFileOf(tab.params)
+  const pickedCtx = tab.params?.['ctx'] ?? null
+  const contexts = useAiContexts()
+  const context = resolveAiContext(contexts, pickedCtx)
+
   const [turns, setTurns] = useState<ChatTurn[]>([])
   const [input, setInput] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -84,8 +87,6 @@ export function ChatPanel({
   const [genDrafts, setGenDrafts] = useState(defaultGenOptionDrafts)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [tree, setTree] = useState<VaultFolder | null>(null)
-  // `@` quick actions in the input (S06b): token state + keyboard
-  // highlight, the AiPanel textarea-menu precedent.
   const [atMenu, setAtMenu] = useState<{
     start: number
     query: string
@@ -96,6 +97,13 @@ export function ChatPanel({
   const runningOperationId = useRef<string | null>(null)
   const metaByTurn = useRef(new Map<number, TurnMeta>())
   const scrollRef = useRef<HTMLDivElement | null>(null)
+
+  const patchParams = useCallback(
+    (patch: Record<string, string>) =>
+      dispatch((state) => updateTabParams(state, tab.id, patch)),
+    [dispatch, tab.id]
+  )
+
   // The live file path: the answer's append must see the file the
   // question just created — the prop only catches up on re-render.
   const fileRef = useRef<string | null>(file)
@@ -131,8 +139,8 @@ export function ChatPanel({
     }
   }, [])
 
-  // The transcript is a NOTE: (re)opening the column loads whatever
-  // the file says now — hand edits included. A file THIS session just
+  // The transcript is a NOTE: (re)opening the pane loads whatever the
+  // file says now — hand edits included. A file THIS session just
   // created is already in local state — the guard keeps the prop echo
   // from racing the in-flight answer. A failed read KEEPS the pointer
   // (S06b: a transient failure must not wipe the chat) and says so.
@@ -201,7 +209,7 @@ export function ChatPanel({
           )
           fileRef.current = relPath
           loadedRef.current = relPath
-          onPatch({ file: relPath })
+          patchParams({ file: relPath })
           return relPath
         } catch (reason) {
           lastError = reason // taken name — try the next suffix
@@ -209,27 +217,32 @@ export function ChatPanel({
       }
       throw lastError
     },
-    [engine, onPatch]
+    [engine, patchParams]
   )
 
-  /** The note's resolved prompts, cached until the vault changes —
-   *  the @ menu and every send expand against the same scopes. */
+  /** The context note's resolved prompts, cached until the vault
+   *  changes — the @ menu and every send expand against the same
+   *  scopes. */
+  const contextRef = useRef<AiContextEntry | null>(context)
+  useEffect(() => {
+    contextRef.current = context
+  }, [context])
   const loadPrompts = useCallback(async (): Promise<PromptFile[]> => {
     if (promptsRef.current) return promptsRef.current
-    const notePath = getAiSurface()?.notePath ?? ''
+    const notePath = contextRef.current?.notePath ?? ''
     const loaded = await loadPromptsFor(notePath, window.atomik).catch(
       () => [] as PromptFile[]
     )
     promptsRef.current = loaded
     return loaded
-  }, [getAiSurface])
+  }, [])
 
   const send = useCallback(async (): Promise<void> => {
     const text = input.trim()
     if (text.length === 0 || running) return
-    const surface = getAiSurface()
-    if (!surface) {
-      setError('Open a note in this pane (live or source mode) to chat over it.')
+    const target = contextRef.current
+    if (!target) {
+      setError('Open a note somewhere to chat over it — the context list is empty.')
       return
     }
     setError(null)
@@ -238,9 +251,9 @@ export function ChatPanel({
       const params = composeGenerationParams(genDrafts)
       const prepared = await prepareAiRun(
         {
-          noteRelPath: surface.notePath,
-          doc: surface.getDoc(),
-          selection: surface.getSelection(),
+          noteRelPath: target.notePath,
+          doc: target.getDoc(),
+          selection: target.getSelection(),
           instruction: text,
           systemStack: [],
           prompts,
@@ -285,25 +298,25 @@ export function ChatPanel({
       setRunning(false)
       runningOperationId.current = null
     }
-  }, [genDrafts, getAiSurface, input, loadPrompts, persistTurn, running, turns])
+  }, [genDrafts, input, loadPrompts, persistTurn, running, turns])
 
   const cancel = useCallback(() => {
     const id = runningOperationId.current
     if (id) void window.atomik.cancelAiOperation(id).catch(() => undefined)
   }, [])
 
-  /** Into the note through the SAME patch flow (06): the pane's editor
-   *  applies + saves; inserting IS the accept decision for the trace. */
+  /** Into the picked context's note through the SAME patch flow (06):
+   *  its editor applies + saves; inserting IS the accept decision. */
   const insert = useCallback(
     async (index: number, text: string): Promise<void> => {
-      const surface = getAiSurface()
-      if (!surface) {
-        setError('Open a note in this pane (live or source mode) to insert into it.')
+      const target = contextRef.current
+      if (!target?.insert) {
+        setError('The picked context is not an open editor — switch it to live or source mode to insert.')
         return
       }
       setError(null)
       try {
-        await surface.insert(text)
+        await target.insert(text)
         const meta = metaByTurn.current.get(index)
         if (meta) {
           window.atomik
@@ -314,21 +327,16 @@ export function ChatPanel({
         setError(String(reason))
       }
     },
-    [getAiSurface]
+    []
   )
 
-  /** S06b: an answer becomes its OWN note (the context-menu new-note
-   *  flow's create path) and opens BESIDE the chat in a new pane. */
+  /** S06b: an answer becomes its OWN note and opens BESIDE this pane. */
   const createNote = useCallback(
     async (index: number, text: string): Promise<void> => {
-      const surface = getAiSurface()
-      if (!surface) {
-        setError('Open a note in this pane so the new note has a home beside it.')
-        return
-      }
+      const basePath = contextRef.current?.notePath ?? 'note.md'
       setError(null)
       try {
-        const relPath = chatNotePathForMessage(surface.notePath, text)
+        const relPath = chatNotePathForMessage(basePath, text)
         await window.atomik.createNote(relPath, `${text.trim()}\n`)
         const meta = metaByTurn.current.get(index)
         if (meta) {
@@ -336,12 +344,14 @@ export function ChatPanel({
             .resolveAiTrace(meta.bundleId, 'accepted')
             .catch(() => undefined)
         }
-        onNoteCreated(relPath)
+        dispatch((state) =>
+          openNoteInNewPane(state, paneId, relPath, { kind: 'vault' })
+        )
       } catch (reason) {
         setError(String(reason))
       }
     },
-    [getAiSurface, onNoteCreated]
+    [dispatch, paneId]
   )
 
   const newChat = useCallback(() => {
@@ -350,18 +360,17 @@ export function ChatPanel({
     loadedRef.current = null
     setTurns([])
     setError(null)
-    onPatch({ file: '' })
-  }, [onPatch])
+    patchParams({ file: '' })
+  }, [patchParams])
 
   const openFromHistory = useCallback(
     (relPath: string) => {
       setHistoryOpen(false)
-      if (relPath === fileRef.current) return
       metaByTurn.current.clear()
       setError(null)
-      onPatch({ file: relPath })
+      patchParams({ file: relPath })
     },
-    [onPatch]
+    [patchParams]
   )
 
   // ----- @ quick actions in the input ---------------------------------
@@ -387,11 +396,11 @@ export function ChatPanel({
     [loadPrompts]
   )
 
-  const notePath = getAiSurface()?.notePath ?? null
+  const contextNotePath = context?.notePath ?? null
   const atItems: ChatAtItem[] = atMenu
     ? chatAtItems(
         atPrompts,
-        tree ? linkableNotesOf(tree, notePath ?? '') : [],
+        tree ? linkableNotesOf(tree, contextNotePath ?? '') : [],
         tree ? sourceBundlesOf(tree) : [],
         atMenu.query
       )
@@ -406,7 +415,7 @@ export function ChatPanel({
         atMenu.start,
         element.selectionStart,
         item,
-        notePath
+        contextNotePath
       )
       setInput(next.text)
       setAtMenu(null)
@@ -415,31 +424,7 @@ export function ChatPanel({
         element.setSelectionRange(next.caret, next.caret)
       })
     },
-    [atMenu, notePath]
-  )
-
-  const onResizePointerDown = useCallback(
-    (event: React.PointerEvent<HTMLDivElement>) => {
-      event.preventDefault()
-      const handle = event.currentTarget
-      const panel = handle.parentElement
-      if (!panel) return
-      const right = panel.getBoundingClientRect().right
-      handle.setPointerCapture(event.pointerId)
-      const applyWidth = frameCoalesced((px: number) =>
-        onPatch({ w: String(px) })
-      )
-      const onMove = (move: PointerEvent): void => {
-        applyWidth(clampChatWidth(right - move.clientX))
-      }
-      const onUp = (): void => {
-        handle.removeEventListener('pointermove', onMove)
-        handle.removeEventListener('pointerup', onUp)
-      }
-      handle.addEventListener('pointermove', onMove)
-      handle.addEventListener('pointerup', onUp)
-    },
-    [onPatch]
+    [atMenu, contextNotePath]
   )
 
   const history = tree ? chatHistoryOf(tree) : []
@@ -448,13 +433,7 @@ export function ChatPanel({
     : 'New chat'
 
   return (
-    <aside className="pane-chat" aria-label="Chat panel">
-      <div
-        className="chat-resize"
-        role="separator"
-        aria-orientation="vertical"
-        onPointerDown={onResizePointerDown}
-      />
+    <div className="chat-view" aria-label="Chat pane">
       <div className="tree-bar">
         <span className="tree-bar-label" title={file ?? 'no transcript yet — born at the first message'}>
           chat · {engine}
@@ -507,15 +486,28 @@ export function ChatPanel({
         >
           <PlusIcon />
         </button>
-        <button
-          type="button"
-          className="tree-toggle"
-          title="Hide chat panel"
-          aria-label="Hide chat panel"
-          onClick={() => onPatch({ on: '0' })}
-        >
-          <CloseIcon />
-        </button>
+      </div>
+      <div className="chat-context">
+        <label>
+          context
+          <select
+            aria-label="Chat context"
+            value={context?.notePath ?? ''}
+            onChange={(event) => patchParams({ ctx: event.target.value })}
+          >
+            {contexts.length === 0 && <option value="">no open note</option>}
+            {[...new Set(contexts.map((entry) => entry.notePath))].map(
+              (notePath) => (
+                <option key={notePath} value={notePath}>
+                  {notePath}
+                </option>
+              )
+            )}
+          </select>
+        </label>
+        {context && !context.insert && (
+          <span className="chat-context-hint">read-only — insert needs an editor</span>
+        )}
       </div>
       <div className="chat-scroll" ref={scrollRef}>
         <p className="chat-title" title={file ?? undefined}>
@@ -523,9 +515,9 @@ export function ChatPanel({
         </p>
         {turns.length === 0 && !running && !error && (
           <p className="chat-hint">
-            Ask about the note (or its selection) open in this pane —
-            @ quotes prompts, notes, and sources. The transcript becomes
-            an ordinary note in chats/ at your first message.
+            Ask about the picked context note — @ quotes prompts, notes,
+            and sources. The transcript becomes an ordinary note in
+            chats/ at your first message.
           </p>
         )}
         {turns.map((turn, index) => {
@@ -539,7 +531,7 @@ export function ChatPanel({
                     <button
                       type="button"
                       className="icon-button chat-insert"
-                      title="Insert this answer into the note at the cursor"
+                      title="Insert this answer into the context note at the cursor"
                       aria-label="Insert into note"
                       onClick={() => void insert(index, turn.text)}
                     >
@@ -548,7 +540,7 @@ export function ChatPanel({
                     <button
                       type="button"
                       className="icon-button chat-note"
-                      title="Create a note from this answer — opens beside the chat"
+                      title="Create a note from this answer — opens beside this pane"
                       aria-label="Create a note from this answer"
                       onClick={() => void createNote(index, turn.text)}
                     >
@@ -601,7 +593,7 @@ export function ChatPanel({
               ref={inputRef}
               rows={2}
               value={input}
-              placeholder="Ask about this note… @ quotes, Enter sends, Shift+Enter breaks"
+              placeholder="Ask about the context note… @ quotes, Enter sends, Shift+Enter breaks"
               aria-label="Chat message"
               onChange={(event) => {
                 setInput(event.target.value)
@@ -673,6 +665,6 @@ export function ChatPanel({
           </button>
         </div>
       </div>
-    </aside>
+    </div>
   )
 }

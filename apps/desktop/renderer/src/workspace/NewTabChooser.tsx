@@ -14,7 +14,7 @@ import { GeneratedNoteScreen } from './GeneratedNoteScreen'
  * type, chosen at pane birth.
  */
 
-export type PaneKindPick = 'vault' | 'project' | 'docs'
+export type PaneKindPick = 'vault' | 'project' | 'docs' | 'chat'
 
 const PANE_OPTIONS: ReadonlyArray<{
   kind: PaneKindPick
@@ -23,7 +23,9 @@ const PANE_OPTIONS: ReadonlyArray<{
 }> = [
   { kind: 'vault', label: 'Vault', hint: 'the whole vault tree — browse, manage, edit' },
   { kind: 'project', label: 'Projects', hint: 'work inside a project bundle' },
-  { kind: 'docs', label: 'Docs', hint: 'read the documentation corpus' }
+  { kind: 'docs', label: 'Docs', hint: 'read the documentation corpus' },
+  // S06c (owner): the chat is a first-class pane, spawnable from birth
+  { kind: 'chat', label: 'Chat', hint: 'converse with the AI over any open note' }
 ]
 
 export function NewPaneChooser({

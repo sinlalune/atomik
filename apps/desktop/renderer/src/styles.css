@@ -1117,44 +1117,67 @@ body[data-maximized] .tabstrip {
   background: var(--accent);
 }
 
-/* chat column (S06) -------------------------------------------------------- */
+/* chat pane (S06 column → S06c first-class pane) --------------------------- */
 
-/* The pane's RIGHT chrome column, the tree panel's mirror: full pane
-   height, recessed --bg behind the content surface, width from the
-   pane's chat state. Turn bodies are CONTENT (opaque surface); the
-   column itself is chrome. */
-.pane-chat {
-  grid-row: 1 / 3;
-  grid-column: 3;
+/* A TAB VIEW: the chat fills its pane's content area like any view.
+   Turn bodies are CONTENT (opaque surface); the frame is quiet. */
+.chat-view {
+  flex: 1;
   position: relative;
   display: flex;
   flex-direction: column;
   min-height: 0;
   min-width: 0;
-  background: var(--bg);
-  border-left: 1px solid var(--border);
+  background: var(--surface);
   font-size: var(--fs-md);
 }
 
-.pane-chat > .tree-bar {
+.chat-view > .tree-bar {
   flex: none;
   margin: 0;
   padding: var(--space-1) var(--space-3);
 }
 
-.chat-resize {
-  position: absolute;
-  top: 0;
-  left: -2px;
-  width: 5px;
-  height: 100%;
-  cursor: col-resize;
-  z-index: var(--z-float);
+/* the context picklist (S06c): which open note the chat reads */
+.chat-context {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
 }
 
-.chat-resize:hover,
-.chat-resize:active {
-  background: var(--accent);
+.chat-context label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  flex: 1;
+}
+
+.chat-context select {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.1rem var(--space-2);
+}
+
+.chat-context select:focus {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.chat-context-hint {
+  flex: none;
+  opacity: 0.8;
 }
 
 .chat-scroll {

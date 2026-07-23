@@ -260,12 +260,26 @@ timestamp: 2026-07-06T00:00:00Z
   chat); its `BufferChange`/`PRESETS` live in `editor/ai-helpers.ts`.
   The AI channel has no filesystem path — "AI wrote my file" is
   structurally impossible.
-- The chat column (CP-MVP-008 S06, 26/06):
-  `renderer/src/workspace/ChatPanel.tsx` is RIGHT pane chrome on the
-  pane-tree contract — the pane grid gained a third column, the leaf
-  a validated `chat` string map (`on`/`w`/`file`; ABSENT reads
-  hidden, which IS the migration for pre-S06 layouts), toggled from
-  the tabstrip or the selection menu. Multi-turn rides the SAME
+- The chat pane (CP-MVP-008 S06 column → S06c first-class pane,
+  26/06; owner redirect: "it should live in its own pane and survive
+  after the origin pane disappears"):
+  `renderer/src/workspace/ChatView.tsx` is a TAB VIEW (`view:
+  'chat'`) — its transcript pointer (`file`) and context pick
+  (`ctx`) ride ordinary validated tab params, relocated like every
+  other view's (`relocateTabPaths` includes `file`), so no other
+  pane's lifecycle can touch it. `openChatPane` (model) spawns it —
+  focus an existing chat tab anywhere, else split right into a
+  vault-typed tree-hidden pane — from the tabstrip ChatIcon, the
+  selection menu's "Open chat", or pane birth (the New Pane chooser
+  gained Chat). The CONTEXT comes from a workspace-wide registry
+  (`workspace/ai-context.ts`, useSyncExternalStore module store):
+  every mounted editor registers an EDITABLE entry
+  (selection/doc/insert through its buffer + save), read-mode
+  notes register READ-ONLY (whole-note content; insert disabled);
+  the chat's picklist chooses among them, defaulting to the most
+  recent editable entry. The S06 pane-chrome column and its leaf
+  `chat` map are RETIRED — the validator still accepts the map
+  (saved states stay loadable), nothing renders it. Multi-turn rides the SAME
   operation contract: prior turns travel as `operation.thread`
   (`{role: user|assistant, content}`, validated in main — ≤24 turns,
   ≤8k chars each; `buildMessages` replays them verbatim between

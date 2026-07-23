@@ -3,12 +3,8 @@ import type { VaultInfo } from '../../../shared/ipc-contract'
 import { EditorPane } from '../editor/EditorPane'
 import { HistoryNav } from '../HistoryNav'
 import { ModeSwitch } from '../editor/ModeSwitch'
-import type {
-  NoteViewMode,
-  PaneAiSurface,
-  PaneNoteGuard,
-  SaveMode
-} from '../workspace/model'
+import type { NoteViewMode, PaneNoteGuard, SaveMode } from '../workspace/model'
+import { registerAiContext } from '../workspace/ai-context'
 import { hasMediaResource } from '../source/dossier'
 import { noteFollowTarget } from './note-follow'
 import { useNavHistory } from './nav-history'
@@ -35,10 +31,8 @@ export type VaultViewProps = {
   onOpenWebUrl?: (url: string) => void
   /** Keys this tab's ‹ › navigation trail (the tab id). */
   historyKey?: string
-  /** Opens the pane's chat column (S06 — from the AI selection menu). */
+  /** Opens (or focuses) the chat pane (S06c — the AI selection menu). */
   onOpenChat?: () => void
-  /** Registers the mounted editor as the pane's AI surface (S06). */
-  registerAiSurface?: (surface: PaneAiSurface | null) => void
 }
 
 /**
@@ -57,8 +51,7 @@ export function VaultView({
   onOpenSourceImage,
   onOpenWebUrl,
   historyKey,
-  onOpenChat,
-  registerAiSurface
+  onOpenChat
 }: VaultViewProps): React.JSX.Element {
   const [info, setInfo] = useState<VaultInfo | null | 'loading'>('loading')
   const [editorDirty, setEditorDirty] = useState(false)
@@ -90,6 +83,22 @@ export function VaultView({
     })
     return () => registerGuard?.(null)
   }, [registerGuard])
+
+  // S06c: a READ-mode note is still a chat context — registered
+  // read-only (whole-note content; insert needs the editor, which
+  // registers itself in live/source mode).
+  const readCtxId = useRef<string>(crypto.randomUUID())
+  useEffect(() => {
+    if (mode !== 'read' || !note) return
+    const content = note.content
+    return registerAiContext({
+      id: readCtxId.current,
+      notePath: note.relPath,
+      editable: false,
+      getSelection: () => ({ from: 0, to: 0, text: '' }),
+      getDoc: () => content
+    })
+  }, [mode, note])
 
   /** Note navigation in edit mode must not silently discard a buffer.
    *  Auto-save mode navigates freely: the unmounting editor flushes. */
@@ -198,7 +207,6 @@ export function VaultView({
             note={note}
             onOpenSourceImage={onOpenSourceImage}
             onOpenChat={onOpenChat}
-            registerAiSurface={registerAiSurface}
             onSaved={applySaved}
             onDirtyChange={onDirtyChange}
             mode={mode}
