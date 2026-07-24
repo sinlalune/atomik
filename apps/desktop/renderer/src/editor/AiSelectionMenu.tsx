@@ -51,7 +51,8 @@ export function AiSelectionMenu({
   selectionText,
   onClose,
   onRun,
-  onOpenChat
+  onOpenChat,
+  onAddContext
 }: {
   x: number
   y: number
@@ -61,6 +62,9 @@ export function AiSelectionMenu({
   onClose: () => void
   onRun: (request: AiMenuRequest) => void
   onOpenChat: () => void
+  /** Adds the SELECTION to the chat's context as a ranged pill
+   *  (S06c5b — the visible door beside the drag gesture). */
+  onAddContext?: (() => void) | undefined
 }): React.JSX.Element {
   const [prompts, setPrompts] = useState<PromptFile[]>([])
   const [query, setQuery] = useState('')
@@ -298,6 +302,16 @@ export function AiSelectionMenu({
           <button type="button" className="ai-menu-chat" onClick={onOpenChat}>
             Open chat
           </button>
+          {onAddContext && hasSelection && (
+            <button
+              type="button"
+              className="ai-menu-chat"
+              title="Add this selection to the chat context (a ranged pill — dragging the selection onto the chat does the same)"
+              onClick={onAddContext}
+            >
+              + chat context
+            </button>
+          )}
           <button
             type="button"
             className="ai-menu-run"

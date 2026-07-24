@@ -18,6 +18,7 @@ import { VaultView } from '../vault/VaultView'
 import { WebView } from '../web/WebView'
 import {
   activateTab,
+  addChatContext,
   addTab,
   closeEmptyPane,
   closePane,
@@ -152,6 +153,7 @@ function TabContent({
   paneScope,
   registerGuard,
   onOpenChat,
+  onAddChatContext,
   dispatch
 }: {
   tab: WorkspaceTab
@@ -163,6 +165,8 @@ function TabContent({
   registerGuard: (guard: PaneNoteGuard | null) => void
   /** Opens (or focuses) the CHAT PANE (S06c — the AI selection menu). */
   onOpenChat: () => void
+  /** Adds a context entry to the chat pane (S06c5b). */
+  onAddChatContext: (entry: string) => void
   dispatch: Dispatch
 }): React.JSX.Element {
   const closeThisTab = (): void => {
@@ -239,6 +243,7 @@ function TabContent({
         }
         registerGuard={registerGuard}
         onOpenChat={onOpenChat}
+        onAddChatContext={onAddChatContext}
         mode={mode}
         onModeChange={onModeChange}
         saveMode={saveMode}
@@ -327,6 +332,7 @@ function TabContent({
         }
         registerGuard={registerGuard}
         onOpenChat={onOpenChat}
+        onAddChatContext={onAddChatContext}
         mode={mode}
         onModeChange={onModeChange}
         saveMode={saveMode}
@@ -401,6 +407,12 @@ function LeafPane({
   // S06c: the chat is its OWN pane — open (or focus) it from here.
   const openChat = useCallback(
     () => dispatch((state) => openChatPane(state, node.id)),
+    [dispatch, node.id]
+  )
+  // S06c5b: the selection menu's "+ chat context" lands here.
+  const addChatCtx = useCallback(
+    (entry: string) =>
+      dispatch((state) => addChatContext(state, node.id, entry)),
     [dispatch, node.id]
   )
   const saveMode = useWorkspace((store) => saveModeOf(store.state))
@@ -681,6 +693,7 @@ function LeafPane({
             paneScope={scope}
             registerGuard={registerGuard}
             onOpenChat={openChat}
+            onAddChatContext={addChatCtx}
             dispatch={dispatch}
           />
         ) : untyped ? (

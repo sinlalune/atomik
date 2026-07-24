@@ -33,6 +33,8 @@ export type VaultViewProps = {
   historyKey?: string
   /** Opens (or focuses) the chat pane (S06c — the AI selection menu). */
   onOpenChat?: () => void
+  /** Adds a context entry to the chat pane (S06c5b). */
+  onAddChatContext?: (entry: string) => void
 }
 
 /**
@@ -51,7 +53,8 @@ export function VaultView({
   onOpenSourceImage,
   onOpenWebUrl,
   historyKey,
-  onOpenChat
+  onOpenChat,
+  onAddChatContext
 }: VaultViewProps): React.JSX.Element {
   const [info, setInfo] = useState<VaultInfo | null | 'loading'>('loading')
   const [editorDirty, setEditorDirty] = useState(false)
@@ -207,6 +210,7 @@ export function VaultView({
             note={note}
             onOpenSourceImage={onOpenSourceImage}
             onOpenChat={onOpenChat}
+            onAddChatContext={onAddChatContext}
             onSaved={applySaved}
             onDirtyChange={onDirtyChange}
             mode={mode}

@@ -35,7 +35,12 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { VaultFolder, VaultNoteFile } from '../../../shared/ipc-contract'
 import { resolveRelativePath } from '../dev-docs/markdown'
-import { themeOf, type NoteViewMode, type SaveMode } from '../workspace/model'
+import {
+  chatContextEntryForSelection,
+  themeOf,
+  type NoteViewMode,
+  type SaveMode
+} from '../workspace/model'
 import { registerAiContext } from '../workspace/ai-context'
 import { useWorkspace } from '../workspace/store'
 import { HistoryNav } from '../HistoryNav'
@@ -160,6 +165,9 @@ export type EditorPaneProps = {
   /** Opens (or focuses) the CHAT PANE (S06c) — the selection menu's
    *  "Open chat" retired the docked panel. */
   onOpenChat?: () => void
+  /** Adds a context ENTRY (path or path#from-to) to the chat pane
+   *  (S06c5b — the selection menu's visible door). */
+  onAddChatContext?: (entry: string) => void
 }
 
 /**
@@ -188,7 +196,8 @@ export function EditorPane({
   onSaveModeToggle,
   nav,
   onOpenSourceImage,
-  onOpenChat
+  onOpenChat,
+  onAddChatContext
 }: EditorPaneProps): React.JSX.Element {
   const hostRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
@@ -861,6 +870,17 @@ export function EditorPane({
     onOpenChat?.()
   }, [onOpenChat])
 
+  const addContextFromMenu = useCallback(() => {
+    setAiMenu(null)
+    const view = viewRef.current
+    if (!view || !onAddChatContext) return
+    const range = view.state.selection.main
+    if (range.empty) return
+    onAddChatContext(
+      chatContextEntryForSelection(note.relPath, range.from, range.to)
+    )
+  }, [note.relPath, onAddChatContext])
+
   const openAiMenu = useCallback((x: number, y: number) => {
     setAiMenu({ x, y })
   }, [])
@@ -1005,6 +1025,7 @@ export function EditorPane({
             onClose={() => setAiMenu(null)}
             onRun={runFromMenu}
             onOpenChat={openChatFromMenu}
+            onAddContext={onAddChatContext ? addContextFromMenu : undefined}
           />
         )}
       </div>

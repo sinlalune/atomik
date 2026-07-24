@@ -33,6 +33,8 @@ export type ProjectViewProps = {
   historyKey?: string
   /** Opens (or focuses) the chat pane (S06c — the AI selection menu). */
   onOpenChat?: () => void
+  /** Adds a context entry to the chat pane (S06c5b). */
+  onAddChatContext?: (entry: string) => void
 }
 
 function slugifyLite(title: string): string {
@@ -64,7 +66,8 @@ export function ProjectView({
   onSaveModeToggle,
   onOpenWebUrl,
   historyKey,
-  onOpenChat
+  onOpenChat,
+  onAddChatContext
 }: ProjectViewProps): React.JSX.Element {
   const [vault, setVault] = useState<VaultInfo | null | 'loading'>('loading')
   const [projects, setProjects] = useState<ProjectInfo[]>([])
@@ -304,6 +307,7 @@ export function ProjectView({
             key={note.relPath}
             note={note}
             onOpenChat={onOpenChat}
+            onAddChatContext={onAddChatContext}
             onSaved={applySaved}
             onDirtyChange={onDirtyChange}
             mode={mode}

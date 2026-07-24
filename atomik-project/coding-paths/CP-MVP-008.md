@@ -1045,6 +1045,20 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       source-backed chip. Tests 562→569/51 (drag-context suite NEW:
       effect matrix + payload round-trip; ranged entries, relocation
       suffix, tabDragSource); typecheck/build/smoke green.
+- [x] S06c5b (owner: "selection as context — I don't know what you
+      implemented as a solution for the drag and drop") — DONE
+      2026-07-24. The drag gesture existed but was INVISIBLE (select
+      text, press ON the highlighted selection, drag into the chat —
+      CodeMirror's native text-drag, enriched with the range
+      payload). A VISIBLE door joins it: the right-click AI menu
+      gains "+ chat context" beside "Open chat" (selection present
+      only) — `addChatContext` (model, tested) opens/focuses the
+      chat pane then merges the ranged entry into the active chat
+      tab's ctx list (dedup + cap respected). Wired EditorPane →
+      views → LeafPane like onOpenChat. CDP-verified: right-click
+      on a DOM selection → menu shows both buttons → "+ chat
+      context" → chat pane spawns with `◉ socrates · 37–52`.
+      Tests 569→570/51; typecheck/build/smoke green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
@@ -1225,6 +1239,11 @@ changed(S06c5): drag-context.ts NEW (SELECTION_DRAG_MIME +
               compatible dropEffect, ranged pills/primary/extras);
               module note; tests (drag-context suite + model cases).
 tests(S06c5): 569 passing / 51 suites; typecheck/build/smoke green.
+changed(S06c5b): model.ts (addChatContext); AiSelectionMenu
+              ("+ chat context"); EditorPane (addContextFromMenu) +
+              prop threading through VaultView/ProjectView/
+              Workspace; tests (addChatContext).
+tests(S06c5b): 570 passing / 51 suites; typecheck/build/smoke green.
 next action : S07 — acceptance: 18 §M2 intents re-run on the REAL
               provider + owner bench on the live vault (real
               question over a real selection via the context menu,

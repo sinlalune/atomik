@@ -450,6 +450,35 @@ export function openChatPane(
   )
 }
 
+/**
+ * S06c5b (owner: the selection-drag needed a visible door): adds a
+ * context entry to the chat — opening/focusing the chat pane first
+ * (openChatPane semantics), then merging the entry into the ACTIVE
+ * chat tab's ctx list. Duplicate entries no-op past the focus.
+ */
+export function addChatContext(
+  state: WorkspaceState,
+  paneId: string,
+  entry: string
+): WorkspaceState {
+  const opened = openChatPane(state, paneId)
+  let chatTab: WorkspaceTab | null = null
+  mapNode(opened.root, (node) => {
+    if (!chatTab && node.kind === 'leaf' && node.id === opened.focusedPaneId) {
+      const active = node.tabs.find((tab) => tab.id === node.activeTabId)
+      if (active?.view === 'chat') chatTab = active
+    }
+    return node
+  })
+  if (chatTab === null) return opened
+  const found: WorkspaceTab = chatTab
+  const list = chatContextsOf(found.params)
+  if (list.includes(entry) || list.length >= CHAT_CONTEXTS_MAX) return opened
+  return updateTabParams(opened, found.id, {
+    ctx: serializeChatContexts([...list, entry])
+  })
+}
+
 /** Splits a leaf: it keeps its tabs as the first child; the second child
  *  is a fresh empty UNTYPED leaf, which takes focus and presents the
  *  New Pane chooser (S07e — the owner picks the pane's tree type). */

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { PaneNode, WorkspaceState } from '../shared/ipc-contract'
 import {
   activateTab,
+  addChatContext,
   addTab,
   CHAT_CONTEXTS_MAX,
   chatContextEntryForSelection,
@@ -419,6 +420,28 @@ describe('chat pane state (S06c: tab params, not pane chrome)', () => {
     expect(tabDragSource(makeTab('chat'))).toBeNull()
     expect(tabDragSource(makeTab('source-web', { url: 'https://x' }))).toBeNull()
     expect(tabDragSource(makeTab('capture'))).toBeNull()
+  })
+
+  it('addChatContext opens/focuses the chat pane and merges the entry (S06c5b)', () => {
+    const state = createDefaultState('')
+    const paneId = firstLeafId(state.root)
+    // no chat pane yet: spawns one and lands the entry
+    const first = addChatContext(state, paneId, 'notes/a.md#12-96')
+    const chatLeaf = leaves(first.root)[1]!
+    expect(chatLeaf.tabs[0]!.view).toBe('chat')
+    expect(chatContextsOf(chatLeaf.tabs[0]!.params)).toEqual(['notes/a.md#12-96'])
+    // existing chat pane: focuses it and appends; duplicates no-op
+    const second = addChatContext(first, paneId, 'notes/b.md')
+    expect(leaves(second.root).length).toBe(2)
+    expect(chatContextsOf(leaves(second.root)[1]!.tabs[0]!.params)).toEqual([
+      'notes/a.md#12-96',
+      'notes/b.md'
+    ])
+    const third = addChatContext(second, paneId, 'notes/b.md')
+    expect(chatContextsOf(leaves(third.root)[1]!.tabs[0]!.params)).toEqual([
+      'notes/a.md#12-96',
+      'notes/b.md'
+    ])
   })
 
   it('openNoteTabPaths lists every open note-bearing tab — inactive tabs included, deduped (S06c2)', () => {
