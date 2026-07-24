@@ -1059,6 +1059,36 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       on a DOM selection → menu shows both buttons → "+ chat
       context" → chat pane spawns with `◉ socrates · 37–52`.
       Tests 569→570/51; typecheck/build/smoke green.
+- [x] S06c6 (owner: Mistral 503 surfaced + "when I switch between
+      tabs the content of the chats disappears") — DONE 2026-07-24.
+      The 503 itself is the taxonomy WORKING (provider-server,
+      surfaced, no silent fallback — Mistral was down; the main-
+      process console line is Electron logging the rejected IPC
+      promise, the renderer shows the typed message). What the
+      outage EXPOSED: tab switching remounts the chat view
+      (TabContent is keyed), and two session things died with it —
+      the DRAFT input (retyping after every switch, worst exactly
+      when 503s force retries; plausibly the owner's "content
+      disappears") and the IN-FLIGHT RUN (with real provider
+      latency, switch-away-and-back landed the answer invisibly in
+      the transcript: no indicator, no refresh, no error). Chat-tab
+      switching itself is NOT the bug — CDP repro: two chats, both
+      restore across switches, note-pane tab changes untouched.
+      FIX (chat-run.ts, session-only, keyed by TAB id, tested):
+      drafts survive remounts (typed → roundtrip → intact; send
+      clears); every exchange is a REGISTERED RUN that finishes into
+      the transcript whether or not the view stays mounted, and a
+      remounting view ADOPTS it (thinking indicator + cancel id
+      restored, transcript re-read on settle, the closure's error
+      surfaced). RETRY: a failed exchange leaves the question in
+      the transcript — the error row gains a retry button
+      (re-runs the trailing you-turn as the live turn, thread =
+      prior turns, nothing re-appended, nothing retyped).
+      CDP-verified: draft roundtrip intact, send clears the draft,
+      mid-flight switch roundtrip shows both turns. Tests
+      570→574/52 (chat-run suite NEW: adopt/settle-clear/
+      newer-run-wins/error visibility, draft round-trip);
+      typecheck/build/smoke green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
@@ -1244,6 +1274,11 @@ changed(S06c5b): model.ts (addChatContext); AiSelectionMenu
               prop threading through VaultView/ProjectView/
               Workspace; tests (addChatContext).
 tests(S06c5b): 570 passing / 51 suites; typecheck/build/smoke green.
+changed(S06c6): chat-run.ts NEW (session run registry + drafts);
+              ChatView (draft-backed input, runExchange extraction,
+              run registration + mount adoption, retry button);
+              styles.css (.chat-retry); tests (chat-run suite).
+tests(S06c6): 574 passing / 52 suites; typecheck/build/smoke green.
 next action : S07 — acceptance: 18 §M2 intents re-run on the REAL
               provider + owner bench on the live vault (real
               question over a real selection via the context menu,

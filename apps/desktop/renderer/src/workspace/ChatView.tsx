@@ -56,6 +56,13 @@ import {
   updateTabParams
 } from './model'
 import { useWorkspace } from './store'
+import {
+  chatDraftFor,
+  chatRunFor,
+  registerChatRun,
+  setChatDraft,
+  type ChatRun
+} from './chat-run'
 
 /**
  * The chat PANE (CP-MVP-008 S06c, owner redirect: "it should live in
@@ -135,7 +142,16 @@ export function ChatView({
   )
 
   const [turns, setTurns] = useState<ChatTurn[]>([])
-  const [input, setInput] = useState('')
+  // the DRAFT survives remounts (S06c6): tab switches must not eat
+  // a half-typed question
+  const [input, setInputState] = useState(() => chatDraftFor(tab.id))
+  const setInput = useCallback(
+    (value: string): void => {
+      setChatDraft(tab.id, value)
+      setInputState(value)
+    },
+    [tab.id]
+  )
   const [error, setError] = useState<string | null>(null)
   const [running, setRunning] = useState(false)
   const [engine, setEngine] = useState('…')
@@ -231,6 +247,35 @@ export function ChatView({
     // reload on file change only — sends update local state themselves
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file])
+
+  // S06c6: ADOPT an in-flight run on mount — with real provider
+  // latency a tab switch used to orphan it (answer landing invisibly
+  // in the file: no indicator, no refresh, no error surfaced).
+  useEffect(() => {
+    const inflight = chatRunFor(tab.id)
+    if (!inflight) return
+    setRunning(true)
+    runningOperationId.current = inflight.operationId
+    let live = true
+    void inflight.done.then(() => {
+      if (!live) return
+      setRunning(false)
+      runningOperationId.current = null
+      if (inflight.error) setError(inflight.error)
+      const current = fileRef.current
+      if (current) {
+        window.atomik.readNote(current).then(
+          (note) => {
+            if (live) setTurns(parseChatTurns(note.content))
+          },
+          () => undefined
+        )
+      }
+    })
+    return () => {
+      live = false
+    }
+  }, [tab.id])
 
   // keep the latest exchange in view
   useEffect(() => {
@@ -349,100 +394,140 @@ export function ChatView({
     return loaded
   }, [])
 
-  const send = useCallback(async (): Promise<void> => {
-    const text = input.trim()
-    if (text.length === 0 || running) return
-    const target = await resolveTarget()
-    if (!target) {
-      setError('Open a note somewhere to chat over it — the context list is empty.')
-      return
-    }
-    setError(null)
-    try {
-      const prompts = await loadPrompts()
-      const params = composeGenerationParams(genDrafts)
-      const prepared = await prepareAiRun(
-        {
-          noteRelPath: target.notePath,
-          doc: target.getDoc(),
-          selection: target.getSelection(),
-          instruction: text,
-          systemStack: [],
-          prompts,
-          destination: 'append',
-          newNotePath: '',
-          ...(params ? { params } : {})
-        },
-        window.atomik.readNote
-      )
-      if (!prepared) return
-      // extra context pills ride as additional selections (S06c3) —
-      // quotable by the checker like linked notes; the operation's
-      // 8-selection cap holds
-      const EXTRA_CAP = 6000
-      const extraSelections = []
-      for (const entry of extraPathsRef.current) {
-        try {
-          const parsed = parseChatContextEntry(entry)
-          const mounted = contextsRef.current
-            .filter((candidate) => candidate.notePath === parsed.path)
-            .at(-1)
-          const doc = mounted
-            ? mounted.getDoc()
-            : (await window.atomik.readNote(parsed.path)).content
-          // ranged entries quote their slice; plain ones the note head
-          const start =
-            parsed.from !== undefined ? Math.min(parsed.from, doc.length) : 0
-          const end =
-            parsed.to !== undefined ? Math.min(parsed.to, doc.length) : doc.length
-          const content = doc.slice(start, end).slice(0, EXTRA_CAP)
-          extraSelections.push({
-            relPath: parsed.path,
-            kind: 'text' as const,
-            content,
-            range: { from: start, to: start + content.length }
-          })
-        } catch {
-          /* a stale pill must not block the send */
+  /** One exchange, registered in the session run map so a remounting
+   *  view can ADOPT it (S06c6). `alreadyPersisted` = retry of a
+   *  you-turn that is already in the transcript (503 and friends —
+   *  the question is never retyped, never re-appended). */
+  const runExchange = useCallback(
+    async (text: string, alreadyPersisted: boolean): Promise<void> => {
+      if (text.length === 0 || running) return
+      const target = await resolveTarget()
+      if (!target) {
+        setError('Open a note somewhere to chat over it — the context list is empty.')
+        return
+      }
+      setError(null)
+      try {
+        const prompts = await loadPrompts()
+        const params = composeGenerationParams(genDrafts)
+        const prepared = await prepareAiRun(
+          {
+            noteRelPath: target.notePath,
+            doc: target.getDoc(),
+            selection: target.getSelection(),
+            instruction: text,
+            systemStack: [],
+            prompts,
+            destination: 'append',
+            newNotePath: '',
+            ...(params ? { params } : {})
+          },
+          window.atomik.readNote
+        )
+        if (!prepared) return
+        // extra context pills ride as additional selections (S06c3) —
+        // quotable by the checker like linked notes; the operation's
+        // 8-selection cap holds
+        const EXTRA_CAP = 6000
+        const extraSelections = []
+        for (const entry of extraPathsRef.current) {
+          try {
+            const parsed = parseChatContextEntry(entry)
+            const mounted = contextsRef.current
+              .filter((candidate) => candidate.notePath === parsed.path)
+              .at(-1)
+            const doc = mounted
+              ? mounted.getDoc()
+              : (await window.atomik.readNote(parsed.path)).content
+            // ranged entries quote their slice; plain ones the note head
+            const start =
+              parsed.from !== undefined ? Math.min(parsed.from, doc.length) : 0
+            const end =
+              parsed.to !== undefined ? Math.min(parsed.to, doc.length) : doc.length
+            const content = doc.slice(start, end).slice(0, EXTRA_CAP)
+            extraSelections.push({
+              relPath: parsed.path,
+              kind: 'text' as const,
+              content,
+              range: { from: start, to: start + content.length }
+            })
+          } catch {
+            /* a stale pill must not block the send */
+          }
         }
-      }
-      const input = [...prepared.operation.input, ...extraSelections].slice(0, 8)
-      const thread = threadFromTurns(turns)
-      const operation = {
-        ...prepared.operation,
-        input,
-        ...(thread.length > 0 ? { thread } : {})
-      }
+        const input = [...prepared.operation.input, ...extraSelections].slice(0, 8)
+        // a retry replays the trailing you-turn as the LIVE turn, not history
+        const priorTurns = alreadyPersisted ? turns.slice(0, -1) : turns
+        const thread = threadFromTurns(priorTurns)
+        const operation = {
+          ...prepared.operation,
+          input,
+          ...(thread.length > 0 ? { thread } : {})
+        }
 
-      // The user's turn lands in the file BEFORE the call — a
-      // cancelled or failed run keeps what was asked.
-      await persistTurn('you', text)
-      setTurns((current) => [...current, { role: 'you', text }])
-      setInput('')
-      setAtMenu(null)
+        if (!alreadyPersisted) {
+          // The user's turn lands in the file BEFORE the call — a
+          // cancelled or failed run keeps what was asked.
+          await persistTurn('you', text)
+          setTurns((current) => [...current, { role: 'you', text }])
+          setInput('')
+          setAtMenu(null)
+        }
 
-      setRunning(true)
-      runningOperationId.current = operation.id
-      const result = await window.atomik.runAiOperation(operation)
-      const answer =
-        result.blocks.find((block) => block.role === 'answer')?.content ??
-        result.blocks[0]?.content ??
-        ''
-      await persistTurn('atomik', answer)
-      setTurns((current) => {
-        metaByTurn.current.set(current.length, {
-          bundleId: result.id,
-          claims: result.claims
-        })
-        return [...current, { role: 'atomik', text: answer }]
-      })
-    } catch (reason) {
-      setError(String(reason))
-    } finally {
-      setRunning(false)
-      runningOperationId.current = null
-    }
-  }, [genDrafts, input, loadPrompts, persistTurn, resolveTarget, running, turns])
+        setRunning(true)
+        runningOperationId.current = operation.id
+        // the exchange itself is a REGISTERED run: it finishes into the
+        // transcript whether or not this view stays mounted
+        const run: ChatRun = {
+          operationId: operation.id,
+          error: null,
+          done: Promise.resolve()
+        }
+        run.done = (async () => {
+          try {
+            const result = await window.atomik.runAiOperation(operation)
+            const answer =
+              result.blocks.find((block) => block.role === 'answer')?.content ??
+              result.blocks[0]?.content ??
+              ''
+            await persistTurn('atomik', answer)
+            setTurns((current) => {
+              metaByTurn.current.set(current.length, {
+                bundleId: result.id,
+                claims: result.claims
+              })
+              return [...current, { role: 'atomik', text: answer }]
+            })
+          } catch (reason) {
+            run.error = String(reason)
+            setError(String(reason))
+          }
+        })()
+        registerChatRun(tab.id, run)
+        await run.done
+      } catch (reason) {
+        setError(String(reason))
+      } finally {
+        setRunning(false)
+        runningOperationId.current = null
+      }
+    },
+    [genDrafts, loadPrompts, persistTurn, resolveTarget, running, setInput, tab.id, turns]
+  )
+
+  const send = useCallback(
+    (): Promise<void> => runExchange(input.trim(), false),
+    [input, runExchange]
+  )
+
+  /** 503 and friends: the question is already in the transcript — one
+   *  click asks again, nothing retyped, nothing duplicated. */
+  const lastTurnIsYou = turns.at(-1)?.role === 'you'
+  const retry = useCallback((): Promise<void> => {
+    const last = turns.at(-1)
+    if (!last || last.role !== 'you') return Promise.resolve()
+    return runExchange(last.text, true)
+  }, [runExchange, turns])
 
   const cancel = useCallback(() => {
     const id = runningOperationId.current
@@ -894,7 +979,21 @@ export function ChatView({
           </article>
         )}
       </div>
-      {error && <p className="error chat-error">{error}</p>}
+      {error && (
+        <p className="error chat-error">
+          {error}
+          {lastTurnIsYou && !running && (
+            <button
+              type="button"
+              className="chat-retry"
+              title="Ask again — the question is already in the transcript"
+              onClick={() => void retry()}
+            >
+              retry
+            </button>
+          )}
+        </p>
+      )}
       <div className="chat-compose">
         <GenOptionsFields drafts={genDrafts} onChange={setGenDrafts} />
         <div className="chat-input">

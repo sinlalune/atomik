@@ -1369,6 +1369,22 @@ body[data-maximized] .tabstrip {
   font-size: var(--fs-sm);
 }
 
+.chat-retry {
+  margin-left: var(--space-2);
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 0 var(--space-2);
+  cursor: pointer;
+}
+
+.chat-retry:hover {
+  border-color: var(--accent);
+}
+
 .chat-compose {
   flex: none;
   border-top: 1px solid var(--border);
