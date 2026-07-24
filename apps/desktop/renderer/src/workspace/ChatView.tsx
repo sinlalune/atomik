@@ -9,6 +9,11 @@ import { applyChatAtPick, chatAtItems, type ChatAtItem } from '../editor/chat-at
 import { parseTreeDrag } from '../vault/NoteTree'
 import { TREE_DRAG_MIME } from '../vault/tree-menu'
 import {
+  compatibleDropEffect,
+  parseSelectionDrag,
+  SELECTION_DRAG_MIME
+} from '../editor/drag-context'
+import {
   appendChatTurn,
   chatHistoryOf,
   chatNotePathForMessage,
@@ -41,8 +46,10 @@ import {
 } from './ai-context'
 import {
   CHAT_CONTEXTS_MAX,
+  chatContextEntryForSelection,
   chatContextsOf,
   chatFileOf,
+  parseChatContextEntry,
   openNoteInNewPane,
   openNoteTabPaths,
   serializeChatContexts,
@@ -112,11 +119,16 @@ export function ChatView({
     ])
   ]
   const autoContext = resolveAiContext(contexts, null)
-  /** The primary path a send targets: the first pill, else the best
-   *  mounted entry, else the first open tab. */
+  /** The primary entry a send targets (S06c5: possibly RANGED): the
+   *  first pill, else the best mounted entry, else the first open tab. */
+  const primary = ctxList[0] ? parseChatContextEntry(ctxList[0]) : null
   const targetPath =
-    ctxList[0] ?? autoContext?.notePath ?? optionPaths[0] ?? null
-  /** Additional context paths (pills past the first). */
+    primary?.path ?? autoContext?.notePath ?? optionPaths[0] ?? null
+  const primaryRange =
+    primary && primary.from !== undefined && primary.to !== undefined
+      ? { from: primary.from, to: primary.to }
+      : null
+  /** Additional context entries (pills past the first, ranges kept). */
   const extraPaths = ctxList.slice(1)
   const targetEditable = contexts.some(
     (entry) => entry.notePath === targetPath && entry.editable
@@ -269,6 +281,8 @@ export function ChatView({
   contextsRef.current = contexts
   const targetPathRef = useRef<string | null>(targetPath)
   targetPathRef.current = targetPath
+  const primaryRangeRef = useRef<{ from: number; to: number } | null>(primaryRange)
+  primaryRangeRef.current = primaryRange
   const extraPathsRef = useRef<string[]>(extraPaths)
   extraPathsRef.current = extraPaths
   const ctxListRef = useRef<string[]>(ctxList)
@@ -280,6 +294,20 @@ export function ChatView({
   const resolveTarget = useCallback(async (): Promise<ChatTarget | null> => {
     const path = targetPathRef.current
     if (!path) return null
+    // a RANGED primary (dragged selection) pins the selection to its
+    // slice of the doc — range-anchored, source-backed checkable
+    const rangedSelection = (
+      getDoc: () => string
+    ): (() => { from: number; to: number; text: string }) | null => {
+      const range = primaryRangeRef.current
+      if (!range) return null
+      return () => {
+        const doc = getDoc()
+        const from = Math.min(range.from, doc.length)
+        const to = Math.min(range.to, doc.length)
+        return { from, to, text: doc.slice(from, to) }
+      }
+    }
     const mounted = contextsRef.current.filter(
       (entry) => entry.notePath === path
     )
@@ -288,18 +316,20 @@ export function ChatView({
       return {
         notePath: best.notePath,
         editable: best.editable,
-        getSelection: best.getSelection,
+        getSelection: rangedSelection(best.getDoc) ?? best.getSelection,
         getDoc: best.getDoc,
         insert: best.insert
       }
     }
     try {
       const note = await window.atomik.readNote(path)
+      const getDoc = (): string => note.content
       return {
         notePath: path,
         editable: false,
-        getSelection: () => ({ from: 0, to: 0, text: '' }),
-        getDoc: () => note.content
+        getSelection:
+          rangedSelection(getDoc) ?? (() => ({ from: 0, to: 0, text: '' })),
+        getDoc
       }
     } catch {
       return null
@@ -351,19 +381,26 @@ export function ChatView({
       // 8-selection cap holds
       const EXTRA_CAP = 6000
       const extraSelections = []
-      for (const path of extraPathsRef.current) {
+      for (const entry of extraPathsRef.current) {
         try {
+          const parsed = parseChatContextEntry(entry)
           const mounted = contextsRef.current
-            .filter((entry) => entry.notePath === path)
+            .filter((candidate) => candidate.notePath === parsed.path)
             .at(-1)
-          const content = (
-            mounted ? mounted.getDoc() : (await window.atomik.readNote(path)).content
-          ).slice(0, EXTRA_CAP)
+          const doc = mounted
+            ? mounted.getDoc()
+            : (await window.atomik.readNote(parsed.path)).content
+          // ranged entries quote their slice; plain ones the note head
+          const start =
+            parsed.from !== undefined ? Math.min(parsed.from, doc.length) : 0
+          const end =
+            parsed.to !== undefined ? Math.min(parsed.to, doc.length) : doc.length
+          const content = doc.slice(start, end).slice(0, EXTRA_CAP)
           extraSelections.push({
-            relPath: path,
+            relPath: parsed.path,
             kind: 'text' as const,
             content,
-            range: { from: 0, to: content.length }
+            range: { from: start, to: start + content.length }
           })
         } catch {
           /* a stale pill must not block the send */
@@ -515,9 +552,29 @@ export function ChatView({
   const [dropHover, setDropHover] = useState(false)
   const onTreeDrop = useCallback(
     (event: React.DragEvent): void => {
-      if (!event.dataTransfer.types.includes(TREE_DRAG_MIME)) return
+      const types = event.dataTransfer.types
+      if (
+        !types.includes(TREE_DRAG_MIME) &&
+        !types.includes(SELECTION_DRAG_MIME)
+      ) {
+        return
+      }
       event.preventDefault()
       setDropHover(false)
+      // a dragged EDITOR SELECTION lands as a RANGED pill (S06c5)
+      const selection = parseSelectionDrag(
+        event.dataTransfer.getData(SELECTION_DRAG_MIME)
+      )
+      if (selection) {
+        addContexts([
+          chatContextEntryForSelection(
+            selection.relPath,
+            selection.from,
+            selection.to
+          )
+        ])
+        return
+      }
       const source = parseTreeDrag(event.dataTransfer.getData(TREE_DRAG_MIME))
       if (!source) return
       if (source.kind === 'note') {
@@ -619,9 +676,18 @@ export function ChatView({
       className={`chat-view${dropHover ? ' drop-target' : ''}`}
       aria-label="Chat pane"
       onDragOver={(event) => {
-        if (event.dataTransfer.types.includes(TREE_DRAG_MIME)) {
+        const types = event.dataTransfer.types
+        if (
+          types.includes(TREE_DRAG_MIME) ||
+          types.includes(SELECTION_DRAG_MIME)
+        ) {
           event.preventDefault()
-          event.dataTransfer.dropEffect = 'link'
+          // the S06c5 land fix: the answered dropEffect must be one
+          // the SOURCE allows (tree = 'move', tabs = 'copy', CM
+          // selections = 'copyMove') or Chromium refuses the drop
+          event.dataTransfer.dropEffect = compatibleDropEffect(
+            event.dataTransfer.effectAllowed
+          )
           setDropHover(true)
         }
       }}
@@ -719,24 +785,36 @@ export function ChatView({
             {targetEditable ? '' : ' (read-only)'}
           </span>
         )}
-        {ctxList.map((path, index) => (
-          <span
-            key={path}
-            className="chat-context-pill"
-            title={index === 0 ? `${path} — primary (insert/append target)` : path}
-          >
-            {index === 0 ? '◉ ' : ''}
-            {path.split('/').pop()?.replace(/\.md$/i, '') ?? path}
-            <button
-              type="button"
-              title={`Remove ${path} from the context`}
-              aria-label={`Remove ${path} from the context`}
-              onClick={() => removeContext(path)}
+        {ctxList.map((entry, index) => {
+          const parsed = parseChatContextEntry(entry)
+          const name =
+            parsed.path.split('/').pop()?.replace(/\.md$/i, '') ?? parsed.path
+          const rangeLabel =
+            parsed.from !== undefined ? ` · ${parsed.from}–${parsed.to}` : ''
+          return (
+            <span
+              key={entry}
+              className="chat-context-pill"
+              title={
+                index === 0
+                  ? `${entry} — primary (insert/append target)`
+                  : entry
+              }
             >
-              ×
-            </button>
-          </span>
-        ))}
+              {index === 0 ? '◉ ' : ''}
+              {name}
+              {rangeLabel}
+              <button
+                type="button"
+                title={`Remove ${entry} from the context`}
+                aria-label={`Remove ${entry} from the context`}
+                onClick={() => removeContext(entry)}
+              >
+                ×
+              </button>
+            </span>
+          )
+        })}
         {targetPath !== null && !targetEditable && ctxList.length > 0 && (
           <span className="chat-context-hint">primary read-only — insert needs an editor</span>
         )}

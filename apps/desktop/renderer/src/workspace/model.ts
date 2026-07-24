@@ -215,6 +215,51 @@ export function serializeChatContexts(paths: string[]): string {
 }
 
 /**
+ * A context entry is a note path, optionally RANGED (S06c5: a dragged
+ * editor selection lands as `path#from-to`) — the chat then quotes
+ * exactly that slice, range-anchored for the truth checker. Parsing
+ * is lenient: a malformed suffix reads as part of the path.
+ */
+export function parseChatContextEntry(entry: string): {
+  path: string
+  from?: number
+  to?: number
+} {
+  const match = /^(.*)#(\d+)-(\d+)$/.exec(entry)
+  if (match) {
+    const from = Number(match[2])
+    const to = Number(match[3])
+    if (to >= from) return { path: match[1]!, from, to }
+  }
+  return { path: entry }
+}
+
+export function chatContextEntryForSelection(
+  relPath: string,
+  from: number,
+  to: number
+): string {
+  return `${relPath}#${from}-${to}`
+}
+
+/** What a TAB contributes when dragged (S06c5): its note — vault and
+ *  project tabs their notePath, source tabs their dossier note, chat
+ *  tabs their transcript. Null for path-less views (web, import…). */
+export function tabDragSource(
+  tab: WorkspaceTab
+): { kind: 'note'; relPath: string } | null {
+  const relPath =
+    tab.view === 'vault' || tab.view === 'project'
+      ? tab.params?.['notePath']
+      : tab.view === 'source-image'
+        ? tab.params?.['dossierPath']
+        : tab.view === 'chat'
+          ? tab.params?.['file']
+          : undefined
+  return relPath ? { kind: 'note', relPath } : null
+}
+
+/**
  * Every note-bearing OPEN TAB (S06c2): the chat's context picklist
  * covers what the owner calls "open panes" — including tabs that are
  * not the active tab of their pane (only active tabs mount views, so
@@ -854,11 +899,19 @@ export function relocateTabPaths(
         }
       }
       // a chat tab's picked contexts follow too (S06c3: 'ctx' is a
-      // JSON list of note paths)
+      // JSON list of note paths; S06c5: entries may carry a #from-to
+      // selection suffix — only the PATH half rewrites)
       const ctx = params['ctx']
       if (ctx) {
         const contexts = chatContextsOf({ ctx })
-        const rewritten = contexts.map(rewrite)
+        const rewritten = contexts.map((entry) => {
+          const parsed = parseChatContextEntry(entry)
+          const next = rewrite(parsed.path)
+          if (next === parsed.path) return entry
+          return parsed.from !== undefined && parsed.to !== undefined
+            ? chatContextEntryForSelection(next, parsed.from, parsed.to)
+            : next
+        })
         if (rewritten.some((value, index) => value !== contexts[index])) {
           params['ctx'] = serializeChatContexts(rewritten)
           touched = true

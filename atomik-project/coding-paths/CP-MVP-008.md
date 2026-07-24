@@ -1012,6 +1012,39 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       All S06c3 flows re-verified via CDP on the new header
       (pills/drop/two-context send/×/rename). Tests 562/50;
       typecheck/build/smoke green.
+- [x] S06c5 (owner: "drag from tree initiates but doesn't land; do
+      the same with tabs; and with a selection in a note" — flagged
+      game-changer UX, time deliberately spent) — DONE 2026-07-24.
+      LAND FIX (the reported bug): Chromium REFUSES a drop whose
+      answered dropEffect is outside the source's effectAllowed —
+      the chat answered 'link' while the tree drags with 'move', so
+      every real drop died after the drag initiated (synthetic CDP
+      events had masked it: they skip the browser's effect
+      matching). `compatibleDropEffect` (editor/drag-context.ts,
+      unit-pinned) now answers within the source's set, preferring
+      'copy' — a context ADD never consumes its source, and a 'move'
+      answer would make CodeMirror DELETE a dragged selection. TWO
+      NEW DRAG SOURCES: (1) note-bearing TABS drag like tree rows
+      (`tabDragSource`, tested: vault/project notePath, source
+      dossier, a chat tab its transcript; effectAllowed 'copy';
+      same TREE_DRAG_MIME so the chat handler is unchanged);
+      (2) an EDITOR SELECTION drags with its note + character range
+      (EditorPane onDragStartCapture enriches CodeMirror's own drag
+      with SELECTION_DRAG_MIME {relPath, from, to}) and lands as a
+      RANGED context pill `path#from-to` (parseChatContextEntry /
+      chatContextEntryForSelection, lenient + tested): as PRIMARY it
+      pins the operation's selection to exactly that slice
+      (range-anchored — the checker marks the echo source-backed),
+      as an extra it quotes the slice; ranges clamp to the live doc,
+      survive relocation (path half rewrites, suffix kept), and
+      display as `name · from–to` on the pill. CDP-verified:
+      tree payload with real 'move' semantics lands; a real tab
+      dragstart emits the payload; a real editor dragstart emits
+      {socrates, 37–52} for the DOM selection; the ranged pill
+      renders; the send echoes EXACTLY the dragged slice with a
+      source-backed chip. Tests 562→569/51 (drag-context suite NEW:
+      effect matrix + payload round-trip; ranged entries, relocation
+      suffix, tabDragSource); typecheck/build/smoke green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
@@ -1183,6 +1216,15 @@ changed(S06c3): model.ts (chatContextsOf/serializeChatContexts +
               (pills, drop highlight, tab-rename, input height);
               module note; tests (ctx round-trip/relocate/rename).
 tests(S06c3): 562 passing / 50 suites; typecheck/build/smoke green.
+changed(S06c5): drag-context.ts NEW (SELECTION_DRAG_MIME +
+              compatibleDropEffect — the land fix); model.ts
+              (parseChatContextEntry/chatContextEntryForSelection,
+              tabDragSource, relocate keeps range suffixes);
+              EditorPane (dragstart enrichment); Workspace.tsx
+              (draggable tabs); ChatView (both MIMEs accepted,
+              compatible dropEffect, ranged pills/primary/extras);
+              module note; tests (drag-context suite + model cases).
+tests(S06c5): 569 passing / 51 suites; typecheck/build/smoke green.
 next action : S07 — acceptance: 18 §M2 intents re-run on the REAL
               provider + owner bench on the live vault (real
               question over a real selection via the context menu,

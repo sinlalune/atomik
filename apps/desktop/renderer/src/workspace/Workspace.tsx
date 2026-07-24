@@ -41,6 +41,7 @@ import {
   setSaveMode,
   setTabView,
   splitPane,
+  tabDragSource,
   themeOf,
   updatePaneTree,
   updateTabParams,
@@ -57,6 +58,7 @@ import {
 } from './NewTabChooser'
 import { ChatView } from './ChatView'
 import { chatRenameTarget } from '../editor/chat-file'
+import { TREE_DRAG_MIME } from '../vault/tree-menu'
 import { PaneTreePanel } from './PaneTreePanel'
 import { ChatIcon, SidebarToggleIcon } from '../icons'
 import { useWorkspace } from './store'
@@ -504,6 +506,21 @@ function LeafPane({
             <span
               key={tab.id}
               className={`tab${tab.id === node.activeTabId ? ' active' : ''}`}
+              // S06c5: a note-bearing TAB drags like a tree row — its
+              // note drops into the chat as context ('copy': adding a
+              // context never consumes its source)
+              {...(tabDragSource(tab)
+                ? {
+                    draggable: true,
+                    onDragStart: (event: React.DragEvent) => {
+                      event.dataTransfer.setData(
+                        TREE_DRAG_MIME,
+                        JSON.stringify(tabDragSource(tab))
+                      )
+                      event.dataTransfer.effectAllowed = 'copy'
+                    }
+                  }
+                : {})}
             >
               {renamingTab?.tabId === tab.id ? (
                 <input

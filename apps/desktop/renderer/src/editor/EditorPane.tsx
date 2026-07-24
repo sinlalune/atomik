@@ -44,6 +44,7 @@ import { prepareAiRun, type SentRequest } from './ai-run'
 import { AiNotePreview } from './AiNotePreview'
 import { AiSelectionMenu, type AiMenuRequest } from './AiSelectionMenu'
 import { insertionChange } from './chat-file'
+import { SELECTION_DRAG_MIME, serializeSelectionDrag } from './drag-context'
 import {
   inlineAi,
   inlineAiField,
@@ -946,6 +947,24 @@ export function EditorPane({
         <div
           ref={hostRef}
           className={`editor-host${mode === 'live' ? ' live' : ''}`}
+          // S06c5: a DRAGGED selection carries its note + range beside
+          // CodeMirror's own text payload — dropped on the chat pane it
+          // becomes a ranged context pill (the chat answers 'copy', so
+          // CM never deletes the source text).
+          onDragStartCapture={(event) => {
+            const view = viewRef.current
+            if (!view) return
+            const range = view.state.selection.main
+            if (range.empty) return
+            event.dataTransfer.setData(
+              SELECTION_DRAG_MIME,
+              serializeSelectionDrag({
+                relPath: note.relPath,
+                from: range.from,
+                to: range.to
+              })
+            )
+          }}
           // S04: the selection is the AI entry point — right-click (or
           // Shift+F10 at the caret) opens the contextual AI menu.
           onContextMenu={(event) => {

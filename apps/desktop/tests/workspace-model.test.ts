@@ -4,6 +4,7 @@ import {
   activateTab,
   addTab,
   CHAT_CONTEXTS_MAX,
+  chatContextEntryForSelection,
   chatContextsOf,
   chatFileOf,
   clampTreeWidth,
@@ -26,6 +27,7 @@ import {
   openChatPane,
   openNoteInNewPane,
   openNoteTabPaths,
+  parseChatContextEntry,
   paneTreeHidden,
   paneTreeOf,
   paneTreeOpenFolders,
@@ -44,6 +46,7 @@ import {
   serializeChatContexts,
   setTheme,
   splitPane,
+  tabDragSource,
   themeOf,
   topRightLeafId,
   TREE_WIDTH_DEFAULT,
@@ -364,6 +367,58 @@ describe('chat pane state (S06c: tab params, not pane chrome)', () => {
     expect(
       chatContextsOf(leaves(moved.root)[1]!.tabs[0]!.params)
     ).toEqual(['archive/notes/a.md', 'archive/notes/deep/b.md'])
+  })
+
+  it('context entries encode an optional selection range (S06c5)', () => {
+    expect(chatContextEntryForSelection('notes/a.md', 12, 96)).toBe(
+      'notes/a.md#12-96'
+    )
+    expect(parseChatContextEntry('notes/a.md#12-96')).toEqual({
+      path: 'notes/a.md',
+      from: 12,
+      to: 96
+    })
+    expect(parseChatContextEntry('notes/a.md')).toEqual({ path: 'notes/a.md' })
+    // lenient: a malformed suffix stays part of the path
+    expect(parseChatContextEntry('notes/a#b.md')).toEqual({ path: 'notes/a#b.md' })
+    expect(parseChatContextEntry('notes/a.md#9-3')).toEqual({
+      path: 'notes/a.md#9-3'
+    })
+  })
+
+  it('relocateTabPaths keeps the range suffix while rewriting the path (S06c5)', () => {
+    const state = createDefaultState('')
+    const paneId = firstLeafId(state.root)
+    const withChat = openChatPane(state, paneId)
+    const chatTabId = leaves(withChat.root)[1]!.tabs[0]!.id
+    const withCtx = updateTabParams(withChat, chatTabId, {
+      ctx: serializeChatContexts(['notes/a.md#12-96', 'notes/b.md'])
+    })
+    const moved = relocateTabPaths(withCtx, 'notes/a.md', 'archive/a.md')
+    expect(chatContextsOf(leaves(moved.root)[1]!.tabs[0]!.params)).toEqual([
+      'archive/a.md#12-96',
+      'notes/b.md'
+    ])
+  })
+
+  it('tabDragSource: note-bearing tabs drag their note; path-less views do not (S06c5)', () => {
+    expect(tabDragSource(makeTab('vault', { notePath: 'a.md' }))).toEqual({
+      kind: 'note',
+      relPath: 'a.md'
+    })
+    expect(
+      tabDragSource(makeTab('project', { projectPath: 'p', notePath: 'p/a.md' }))
+    ).toEqual({ kind: 'note', relPath: 'p/a.md' })
+    expect(
+      tabDragSource(makeTab('source-image', { dossierPath: 's/source.md' }))
+    ).toEqual({ kind: 'note', relPath: 's/source.md' })
+    expect(tabDragSource(makeTab('chat', { file: 'chats/q.md' }))).toEqual({
+      kind: 'note',
+      relPath: 'chats/q.md'
+    })
+    expect(tabDragSource(makeTab('chat'))).toBeNull()
+    expect(tabDragSource(makeTab('source-web', { url: 'https://x' }))).toBeNull()
+    expect(tabDragSource(makeTab('capture'))).toBeNull()
   })
 
   it('openNoteTabPaths lists every open note-bearing tab — inactive tabs included, deduped (S06c2)', () => {

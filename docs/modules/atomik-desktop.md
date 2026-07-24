@@ -288,8 +288,21 @@ timestamp: 2026-07-06T00:00:00Z
   (◉), the rest ride the operation as additional bounded selections;
   the candidate select + "+" adds, each pill's × removes, and the
   tree's existing drag payload DROPS into the chat as context (a
-  note adds itself, a folder its notes recursively, capped);
-  `relocateTabPaths` rewrites paths inside the ctx list too.
+  note adds itself, a folder its notes recursively, capped). The
+  S06c5 LAND FIX: the answered dropEffect must sit inside the
+  source's effectAllowed (`compatibleDropEffect`,
+  editor/drag-context.ts — the old 'link' answer under the tree's
+  'move' made Chromium refuse every real drop), and two more drag
+  SOURCES join: note-bearing TABS drag their note (`tabDragSource`:
+  vault/project notePath, source dossier, a chat tab its transcript;
+  effectAllowed 'copy'), and an EDITOR SELECTION drags with its path
+  + range (EditorPane enriches dragstart with SELECTION_DRAG_MIME;
+  the chat answers 'copy' so CodeMirror never deletes the source),
+  landing as a RANGED pill `path#from-to` (`parseChatContextEntry`) —
+  the send quotes exactly that slice, range-anchored so the checker
+  can mark it source-backed.
+  `relocateTabPaths` rewrites paths inside the ctx list too (ranged
+  entries keep their suffix).
   Double-clicking a chat TAB renames its transcript in place
   (`chatRenameTarget` sanitizes; `relocateApply` rewrites links and
   broadcasts, so the tab's file param follows through the ordinary
