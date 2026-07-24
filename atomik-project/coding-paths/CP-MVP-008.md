@@ -1089,6 +1089,25 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       570→574/52 (chat-run suite NEW: adopt/settle-clear/
       newer-run-wins/error visibility, draft round-trip);
       typecheck/build/smoke green.
+- [x] S06c7 (owner, precise repro: "load old chat from history,
+      switch to another tab, come back — wiped") — DONE 2026-07-24.
+      Diagnosed ON THE OWNER'S OWN STATE (copied vault +
+      local-workspace.json, CDP-driven): the history pick REPLACED
+      the invoking tab's conversation pointer — picking platro while
+      'intersting-exemples' was active left TWO tabs titled platro
+      plus the unborn 'Chat' tab; titles shuffled underneath, so
+      "coming back to the loaded chat" landed on the wrong (often
+      unborn) tab = NEW CHAT empty = the wipe. Same class: the
+      header "+" CLEARED the current tab in place. FIX
+      (openChatTranscript, model, tested — 3 branches): a history
+      pick ROUTES — a chat tab already holding that transcript
+      (anywhere) is ACTIVATED (one conversation = one tab, never
+      duplicated), an unborn invoking tab loads it in place, a
+      living conversation gets a NEW tab beside it; the header "+"
+      now opens a NEW chat tab (tabs are conversations — clear-in-
+      place retired). Re-driven on the owner state: pick platro →
+      the existing platro tab focuses, every title stays put, all
+      turns intact. Tests 574→575/52; typecheck/build/smoke green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
@@ -1279,6 +1298,9 @@ changed(S06c6): chat-run.ts NEW (session run registry + drafts);
               run registration + mount adoption, retry button);
               styles.css (.chat-retry); tests (chat-run suite).
 tests(S06c6): 574 passing / 52 suites; typecheck/build/smoke green.
+changed(S06c7): model.ts (openChatTranscript); ChatView (history
+              pick routes via dispatch; header + = new tab); tests.
+tests(S06c7): 575 passing / 52 suites; typecheck/build/smoke green.
 next action : S07 — acceptance: 18 §M2 intents re-run on the REAL
               provider + owner bench on the live vault (real
               question over a real selection via the context menu,

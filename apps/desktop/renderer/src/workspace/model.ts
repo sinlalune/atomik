@@ -479,6 +479,47 @@ export function addChatContext(
   })
 }
 
+/**
+ * S06c7 (owner: "load old chat, switch tab, come back — wiped"): the
+ * history pick used to REPLACE the invoking tab's conversation,
+ * duplicating titles and shuffling which tab held what — "coming
+ * back" then landed on the wrong (often unborn) tab. A transcript
+ * pick now ROUTES: a chat tab already holding that file anywhere is
+ * ACTIVATED (one conversation, one tab — never duplicated); an
+ * unborn invoking tab loads it in place; otherwise a NEW chat tab
+ * opens beside the others.
+ */
+export function openChatTranscript(
+  state: WorkspaceState,
+  paneId: string,
+  invokingTabId: string,
+  relPath: string
+): WorkspaceState {
+  let existing: { paneId: string; tabId: string } | null = null
+  let invokingUnborn = false
+  mapNode(state.root, (node) => {
+    if (node.kind !== 'leaf') return node
+    for (const tab of node.tabs) {
+      if (tab.view !== 'chat') continue
+      if (!existing && chatFileOf(tab.params) === relPath) {
+        existing = { paneId: node.id, tabId: tab.id }
+      }
+      if (tab.id === invokingTabId && chatFileOf(tab.params) === null) {
+        invokingUnborn = true
+      }
+    }
+    return node
+  })
+  if (existing !== null) {
+    const found: { paneId: string; tabId: string } = existing
+    return activateTab(state, found.paneId, found.tabId)
+  }
+  if (invokingUnborn) {
+    return updateTabParams(state, invokingTabId, { file: relPath })
+  }
+  return addTab(state, paneId, makeTab('chat', { file: relPath }))
+}
+
 /** Splits a leaf: it keeps its tabs as the first child; the second child
  *  is a fresh empty UNTYPED leaf, which takes focus and presents the
  *  New Pane chooser (S07e — the owner picks the pane's tree type). */

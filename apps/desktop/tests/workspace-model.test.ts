@@ -26,6 +26,7 @@ import {
   noteModeOf,
   noteWidthOf,
   openChatPane,
+  openChatTranscript,
   openNoteInNewPane,
   openNoteTabPaths,
   parseChatContextEntry,
@@ -442,6 +443,44 @@ describe('chat pane state (S06c: tab params, not pane chrome)', () => {
       'notes/a.md#12-96',
       'notes/b.md'
     ])
+  })
+
+  it('openChatTranscript ROUTES (S06c7): existing tab focused, unborn loads in place, living chat gets a new tab', () => {
+    let state = createDefaultState('')
+    const paneId = firstLeafId(state.root)
+    state = openChatPane(state, paneId)
+    const chatPaneId = leaves(state.root)[1]!.id
+    const unbornTabId = leaves(state.root)[1]!.tabs[0]!.id
+
+    // unborn invoking tab: loads in place
+    const inPlace = openChatTranscript(state, chatPaneId, unbornTabId, 'chats/a.md')
+    const afterInPlace = leaves(inPlace.root)[1]!
+    expect(afterInPlace.tabs).toHaveLength(1)
+    expect(afterInPlace.tabs[0]!.params?.['file']).toBe('chats/a.md')
+
+    // living conversation invoking: a NEW tab opens, the old one keeps its chat
+    const newTabbed = openChatTranscript(
+      inPlace,
+      chatPaneId,
+      unbornTabId,
+      'chats/b.md'
+    )
+    const afterNew = leaves(newTabbed.root)[1]!
+    expect(afterNew.tabs).toHaveLength(2)
+    expect(afterNew.tabs[0]!.params?.['file']).toBe('chats/a.md')
+    expect(afterNew.tabs[1]!.params?.['file']).toBe('chats/b.md')
+    expect(afterNew.activeTabId).toBe(afterNew.tabs[1]!.id)
+
+    // an existing tab for the file anywhere: ACTIVATED, never duplicated
+    const routed = openChatTranscript(
+      newTabbed,
+      chatPaneId,
+      afterNew.tabs[1]!.id,
+      'chats/a.md'
+    )
+    const afterRoute = leaves(routed.root)[1]!
+    expect(afterRoute.tabs).toHaveLength(2)
+    expect(afterRoute.activeTabId).toBe(afterRoute.tabs[0]!.id)
   })
 
   it('openNoteTabPaths lists every open note-bearing tab — inactive tabs included, deduped (S06c2)', () => {

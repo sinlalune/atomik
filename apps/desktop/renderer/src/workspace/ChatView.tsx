@@ -45,13 +45,16 @@ import {
   type AiContextEntry
 } from './ai-context'
 import {
+  addTab,
   CHAT_CONTEXTS_MAX,
   chatContextEntryForSelection,
   chatContextsOf,
   chatFileOf,
-  parseChatContextEntry,
+  makeTab,
+  openChatTranscript,
   openNoteInNewPane,
   openNoteTabPaths,
+  parseChatContextEntry,
   serializeChatContexts,
   updateTabParams
 } from './model'
@@ -583,23 +586,22 @@ export function ChatView({
     [dispatch, paneId]
   )
 
+  // S06c7: a NEW chat is a NEW TAB (tabs are conversations) — the old
+  // clear-in-place read as "my chat got wiped".
   const newChat = useCallback(() => {
-    metaByTurn.current.clear()
-    fileRef.current = null
-    loadedRef.current = null
-    setTurns([])
-    setError(null)
-    patchParams({ file: '' })
-  }, [patchParams])
+    dispatch((state) => addTab(state, paneId, makeTab('chat')))
+  }, [dispatch, paneId])
 
   const openFromHistory = useCallback(
     (relPath: string) => {
       setHistoryOpen(false)
-      metaByTurn.current.clear()
       setError(null)
-      patchParams({ file: relPath })
+      // S06c7: ROUTE, never replace — an existing tab for this
+      // transcript is focused, an unborn tab loads in place, a
+      // living conversation gets a NEW tab beside it
+      dispatch((state) => openChatTranscript(state, paneId, tab.id, relPath))
     },
-    [patchParams]
+    [dispatch, paneId, tab.id]
   )
 
   /** Adds paths as context pills (dedup, capped) — the "+" button and
@@ -856,8 +858,8 @@ export function ChatView({
         <button
           type="button"
           className="tree-toggle"
-          title="New chat (the current transcript stays in chats/)"
-          aria-label="New chat"
+          title="New chat tab"
+          aria-label="New chat tab"
           onClick={newChat}
         >
           <PlusIcon />
