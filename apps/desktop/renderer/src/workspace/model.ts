@@ -433,6 +433,55 @@ export function openNoteInNewPane(
 }
 
 /**
+ * S06c19 (owner: "thread/chat level input/output + current
+ * incrementable cost"): per-CONVERSATION running totals ride the chat
+ * tab's params (tokIn / tokOut / cost) — validated, persisted,
+ * relocated like every other param, so they survive remounts and
+ * restarts and travel with the conversation. Garbage reads as zero.
+ */
+export type ChatTotals = {
+  inputTokens: number
+  outputTokens: number
+  costUsd: number
+}
+
+export function chatTotalsOf(params?: Record<string, string>): ChatTotals {
+  const read = (key: string): number => {
+    const value = Number(params?.[key])
+    return Number.isFinite(value) && value >= 0 ? value : 0
+  }
+  return {
+    inputTokens: read('tokIn'),
+    outputTokens: read('tokOut'),
+    costUsd: read('cost')
+  }
+}
+
+export function addChatTotals(
+  state: WorkspaceState,
+  tabId: string,
+  delta: ChatTotals
+): WorkspaceState {
+  let current: ChatTotals | null = null
+  mapNode(state.root, (node) => {
+    if (current === null && node.kind === 'leaf') {
+      const tab = node.tabs.find((candidate) => candidate.id === tabId)
+      if (tab) current = chatTotalsOf(tab.params)
+    }
+    return node
+  })
+  if (current === null) return state
+  const base: ChatTotals = current
+  return updateTabParams(state, tabId, {
+    tokIn: String(base.inputTokens + delta.inputTokens),
+    tokOut: String(base.outputTokens + delta.outputTokens),
+    // token prices are ~1e-7 USD — 6 decimals keep cents honest
+    // without float dust accumulating in the param
+    cost: (base.costUsd + delta.costUsd).toFixed(6)
+  })
+}
+
+/**
  * S06c17: clicking a sourced claim REVEALS its source — a tab already
  * viewing that note (note or dossier param) is activated wherever it
  * lives; otherwise the note opens in a fresh pane beside the caller.

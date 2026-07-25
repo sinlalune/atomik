@@ -541,6 +541,14 @@ export type AiResponseBundle = {
   }
   /** Wall time of the exchange as measured in MAIN (S06c16). */
   durationMs?: number
+  /** The exchange's cost estimate (S06c19) — from the dated price
+   *  snapshot, always labeled 'estimated'; absent for free engines. */
+  billing?: {
+    currency: 'USD'
+    estimatedAmount: number
+    basis: 'estimated'
+    priceSnapshotId: string
+  }
 }
 
 /**

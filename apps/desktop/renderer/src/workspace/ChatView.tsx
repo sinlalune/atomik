@@ -51,11 +51,13 @@ import {
   type AiContextEntry
 } from './ai-context'
 import {
+  addChatTotals,
   CHAT_CONTEXTS_MAX,
   chatContextEntryForSelection,
   chatContextsExplicitNone,
   chatContextsOf,
   chatFileOf,
+  chatTotalsOf,
   openChatTranscript,
   openNoteInNewPane,
   openNoteTabPaths,
@@ -108,6 +110,8 @@ type TurnMeta = {
   /** S06c16 (owner): tokens in/out + latency, per exchange. */
   usage?: { inputTokens: number; outputTokens: number; basis: string }
   durationMs?: number
+  /** S06c19 (owner): the exchange's estimated cost. */
+  costUsd?: number
 }
 
 /**
@@ -603,10 +607,24 @@ export function ChatView({
                 ...(result.usage ? { usage: result.usage } : {}),
                 ...(result.durationMs !== undefined
                   ? { durationMs: result.durationMs }
+                  : {}),
+                ...(result.billing
+                  ? { costUsd: result.billing.estimatedAmount }
                   : {})
               })
               return [...current, { role: 'atomik', text: answer }]
             })
+            // S06c19: the conversation's RUNNING totals ride the tab
+            // params — incremented per exchange, persisted with it
+            if (result.usage || result.billing) {
+              dispatch((state) =>
+                addChatTotals(state, tab.id, {
+                  inputTokens: result.usage?.inputTokens ?? 0,
+                  outputTokens: result.usage?.outputTokens ?? 0,
+                  costUsd: result.billing?.estimatedAmount ?? 0
+                })
+              )
+            }
           } catch (reason) {
             run.error = String(reason)
             setError(String(reason))
@@ -853,6 +871,11 @@ export function ChatView({
     [atMenu, contextNotePath]
   )
 
+  // S06c19: the conversation's running totals (persisted tab params)
+  const totals = chatTotalsOf(tab.params)
+  const hasTotals =
+    totals.inputTokens > 0 || totals.outputTokens > 0 || totals.costUsd > 0
+
   const history = tree ? chatHistoryOf(tree) : []
   const title = file
     ? (file.split('/').pop() ?? file).replace(/\.md$/i, '')
@@ -955,6 +978,15 @@ export function ChatView({
             </div>
           )}
         </span>
+        {hasTotals && (
+          <span
+            className="chat-totals"
+            title={`this conversation so far: input ${totals.inputTokens} tokens · output ${totals.outputTokens} tokens · estimated $${totals.costUsd.toFixed(6)}`}
+          >
+            Σ ↑{totals.inputTokens} ↓{totals.outputTokens} · ~$
+            {totals.costUsd.toFixed(4)}
+          </span>
+        )}
       </div>
       <div className="chat-context-pills">
         {ctxList.length === 0 && !noContext && targetPath !== null && (
@@ -1045,7 +1077,7 @@ export function ChatView({
                     className="chat-turn-metrics"
                     title={
                       meta.usage
-                        ? `input ${meta.usage.inputTokens} tokens · output ${meta.usage.outputTokens} tokens (${meta.usage.basis}) · ${((meta.durationMs ?? 0) / 1000).toFixed(1)}s wall time`
+                        ? `input ${meta.usage.inputTokens} tokens · output ${meta.usage.outputTokens} tokens (${meta.usage.basis}) · ${((meta.durationMs ?? 0) / 1000).toFixed(1)}s wall time${meta.costUsd !== undefined ? ` · estimated $${meta.costUsd.toFixed(6)}` : ''}`
                         : `${((meta.durationMs ?? 0) / 1000).toFixed(1)}s wall time — this engine reports no token usage`
                     }
                   >
@@ -1054,6 +1086,9 @@ export function ChatView({
                       : ''}
                     {meta.usage
                       ? ` · ↑${meta.usage.inputTokens} ↓${meta.usage.outputTokens} tok${meta.usage.basis === 'estimated' ? '~' : ''}`
+                      : ''}
+                    {meta.costUsd !== undefined
+                      ? ` · ~$${meta.costUsd.toFixed(4)}`
                       : ''}
                   </span>
                 )}

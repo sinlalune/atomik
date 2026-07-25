@@ -1340,6 +1340,15 @@ body[data-maximized] .tabstrip {
   text-align: left;
 }
 
+/* S06c19: the conversation's running totals in the chat bar */
+.chat-totals {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  margin-left: auto;
+  white-space: nowrap;
+  padding-right: var(--space-1);
+}
+
 /* S06c16: per-exchange run metrics — latency + tokens in/out */
 .chat-turn-metrics {
   font-size: var(--fs-xs);

@@ -1341,6 +1341,22 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       Dev-mode CDP pin: save "philosophy" → open chat pane → load →
       exact original layout back. Tests 593→598/53 (snapshot suite);
       typecheck/build/smoke green.
+- [x] S06c19 (owner: "I need message cost and also thread/chat level
+      input/output + current incrementable cost") — DONE 2026-07-25.
+      (1) PER-MESSAGE COST: the adapter's billing estimate (dated
+      price snapshot, always labeled 'estimated') now rides the
+      response bundle beside usage/durationMs; the answer's metrics
+      line appends `· ~$0.0004` (hover spells the 6-decimal figure).
+      (2) CONVERSATION TOTALS: running input/output tokens + cost
+      ride the chat TAB's params (tokIn/tokOut/cost —
+      chatTotalsOf/addChatTotals, model, tested; garbage reads as
+      zero, unknown tab no-ops) — incremented per exchange by the
+      run closure, so they persist through remounts, restarts, and
+      workspace snapshots, and travel with the conversation. The
+      chat bar shows `Σ ↑12310 ↓4102 · ~$0.0234` once nonzero.
+      Mock caveat: it reports neither usage nor billing — totals
+      appear on the real provider. Tests 598→599/53;
+      typecheck/build/smoke green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
@@ -1589,6 +1605,11 @@ changed(S06c18): workspace-state.ts (snapshot verbs); ipc-contract +
               section); styles.css; tests.
 tests(S06c18): 598 passing / 53 suites; typecheck/build/smoke
               green; dev-mode CDP pin (save→mutate→load).
+changed(S06c19): ipc-contract + index.ts (bundle.billing); model.ts
+              (chatTotalsOf/addChatTotals); ChatView (per-message
+              cost, totals increment + chat-bar Σ); styles.css;
+              tests.
+tests(S06c19): 599 passing / 53 suites; typecheck/build/smoke green.
 next action : S07 — acceptance: 18 §M2 intents re-run on the REAL
               provider + owner bench on the live vault (real
               question over a real selection via the context menu,

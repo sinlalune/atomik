@@ -397,6 +397,9 @@ function registerVaultHandlers(stateDir: string): void {
           ...result.bundle,
           actionTraceIds: [traceId],
           ...(result.usage ? { usage: result.usage } : {}),
+          ...(result.providerMeta.billing
+            ? { billing: result.providerMeta.billing }
+            : {}),
           durationMs: Date.now() - started
         }
       } finally {

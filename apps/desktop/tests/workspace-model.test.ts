@@ -3,12 +3,14 @@ import type { PaneNode, WorkspaceState } from '../shared/ipc-contract'
 import {
   activateTab,
   addChatContext,
+  addChatTotals,
   addTab,
   CHAT_CONTEXTS_MAX,
   chatContextEntryForSelection,
   chatContextsExplicitNone,
   chatContextsOf,
   chatFileOf,
+  chatTotalsOf,
   clampTreeWidth,
   closeEmptyPane,
   closePane,
@@ -397,6 +399,43 @@ describe('chat pane state (S06c: tab params, not pane chrome)', () => {
     expect(
       chatContextsOf(leaves(moved.root)[1]!.tabs[0]!.params)
     ).toEqual(['archive/notes/a.md', 'archive/notes/deep/b.md'])
+  })
+
+  it('chat totals ride tab params: zero default, garbage-safe, incrementable (S06c19)', () => {
+    expect(chatTotalsOf(undefined)).toEqual({
+      inputTokens: 0,
+      outputTokens: 0,
+      costUsd: 0
+    })
+    expect(chatTotalsOf({ tokIn: 'garbage', tokOut: '-5', cost: 'x' })).toEqual({
+      inputTokens: 0,
+      outputTokens: 0,
+      costUsd: 0
+    })
+    let state = createDefaultState('')
+    const paneId = firstLeafId(state.root)
+    const chatTab = makeTab('chat')
+    state = addTab(state, paneId, chatTab)
+    state = addChatTotals(state, chatTab.id, {
+      inputTokens: 1200,
+      outputTokens: 480,
+      costUsd: 0.000264
+    })
+    state = addChatTotals(state, chatTab.id, {
+      inputTokens: 800,
+      outputTokens: 300,
+      costUsd: 0.00017
+    })
+    const params = leaves(state.root)[0]!.tabs.find(
+      (tab) => tab.id === chatTab.id
+    )!.params
+    expect(chatTotalsOf(params)).toEqual({
+      inputTokens: 2000,
+      outputTokens: 780,
+      costUsd: 0.000434
+    })
+    // unknown tab: identity no-op
+    expect(addChatTotals(state, 'ghost', { inputTokens: 1, outputTokens: 1, costUsd: 1 })).toBe(state)
   })
 
   it('revealNote activates an existing tab for the note, else opens beside (S06c17)', () => {
