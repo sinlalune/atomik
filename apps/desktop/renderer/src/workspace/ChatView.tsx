@@ -45,13 +45,11 @@ import {
   type AiContextEntry
 } from './ai-context'
 import {
-  addTab,
   CHAT_CONTEXTS_MAX,
   chatContextEntryForSelection,
   chatContextsExplicitNone,
   chatContextsOf,
   chatFileOf,
-  makeTab,
   openChatTranscript,
   openNoteInNewPane,
   openNoteTabPaths,
@@ -620,12 +618,6 @@ export function ChatView({
     [dispatch, paneId]
   )
 
-  // S06c7: a NEW chat is a NEW TAB (tabs are conversations) — the old
-  // clear-in-place read as "my chat got wiped".
-  const newChat = useCallback(() => {
-    dispatch((state) => addTab(state, paneId, makeTab('chat')))
-  }, [dispatch, paneId])
-
   const openFromHistory = useCallback(
     (relPath: string) => {
       setHistoryOpen(false)
@@ -889,15 +881,6 @@ export function ChatView({
             </div>
           )}
         </span>
-        <button
-          type="button"
-          className="tree-toggle"
-          title="New chat tab"
-          aria-label="New chat tab"
-          onClick={newChat}
-        >
-          <PlusIcon />
-        </button>
       </div>
       <div className="chat-context-pills">
         {ctxList.length === 0 && !noContext && targetPath !== null && (

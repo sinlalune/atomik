@@ -26,6 +26,7 @@ import {
   closeTabsWithin,
   makeTab,
   noteModeOf,
+  hasChatTab,
   openChatPane,
   paneTreeHidden,
   paneTreeOf,
@@ -411,6 +412,11 @@ function LeafPane({
     () => dispatch((state) => openChatPane(state, node.id)),
     [dispatch, node.id]
   )
+  // S06c15: once a chat pane exists its TAB is the door — the button
+  // would only duplicate it
+  const chatOpen = useWorkspace((store) =>
+    store.state ? hasChatTab(store.state) : false
+  )
   // S06c5b: the selection menu's "+ chat context" lands here.
   const addChatCtx = useCallback(
     (entry: string) =>
@@ -622,7 +628,7 @@ function LeafPane({
           </button>
         </div>
         <span className="tabstrip-actions">
-          {!untyped && !isChatPane && (
+          {!untyped && !isChatPane && !chatOpen && (
             <button
               type="button"
               title="Open chat pane"

@@ -432,6 +432,20 @@ export function openNoteInNewPane(
   return addTab(typed, newPaneId, tab)
 }
 
+/** True when any leaf holds a chat tab — the tabstrip's chat-door
+ *  button hides then (S06c15, owner: "the button is still here"):
+ *  with a chat pane open, its tab IS the door. */
+export function hasChatTab(state: WorkspaceState): boolean {
+  let found = false
+  mapNode(state.root, (node) => {
+    if (!found && node.kind === 'leaf') {
+      found = node.tabs.some((tab) => tab.view === 'chat')
+    }
+    return node
+  })
+  return found
+}
+
 /**
  * S06c (owner redirect: the chat lives in its OWN pane): opens the
  * chat as a first-class pane. An existing chat tab anywhere gets

@@ -1265,6 +1265,18 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       open; auto → × → none → send → ↺ auto, note staying open
       throughout). Tests 583→584/52 (chatContextsExplicitNone);
       typecheck/build/smoke green.
+- [x] S06c15 (owner: "get rid of the add chat button next to history —
+      duplicate with the add tab one" + "chat pane is active but the
+      [open chat] button is still here") — DONE 2026-07-25. Two
+      redundant doors removed: (1) the chat bar's "+" (S06c7-era new
+      chat tab) deleted — the chat pane's TABSTRIP + already makes
+      chat tabs (chat-typed pane); (2) the tabstrip's "Open chat pane"
+      button now hides whenever ANY chat tab exists (hasChatTab,
+      model) — with a chat open, its tab IS the door (S06c9 keeps the
+      right conversation); the button returns when the last chat tab
+      closes. Dev-mode CDP pin both ways. Tests 584/52 unchanged
+      (hasChatTab exercised via the pin; pure walk);
+      typecheck/build/smoke green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
@@ -1494,6 +1506,11 @@ changed(S06c14): model.ts (chatContextsExplicitNone); ChatView
               pill ×; no-context pill with ↺); tests.
 tests(S06c14): 584 passing / 52 suites; typecheck/build/smoke
               green; dev-mode CDP pin.
+changed(S06c15): ChatView (chat-bar + removed); model.ts
+              (hasChatTab); Workspace.tsx (chat door hides while a
+              chat tab exists).
+tests(S06c15): 584/52 unchanged; typecheck/build/smoke green;
+              dev-mode CDP pin.
 next action : S07 — acceptance: 18 §M2 intents re-run on the REAL
               provider + owner bench on the live vault (real
               question over a real selection via the context menu,
