@@ -1108,6 +1108,21 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       place retired). Re-driven on the owner state: pick platro →
       the existing platro tab focuses, every title stays put, all
       turns intact. Tests 574→575/52; typecheck/build/smoke green.
+- [x] S06c8 housekeeping (owner audit: stale worktree? ledger
+      logged? learning docs?) — DONE 2026-07-25, docs-only.
+      (1) The `.claude/worktrees/s07d-pane-tree` git-worktree
+      REGISTRATION was a CP-MVP-007-era leftover (directory already
+      deleted; branch fully contained in master) — pruned, branch
+      deleted, only master remains. (2) Ledger/log audit: every
+      S06–S06c7 step carries its ledger entry + log.md entry in the
+      same unit as its commit — confirmed complete. (3) Learning
+      debt REPAID: notes 17 (S02 adapter) and 18 (S06 chat surface)
+      existed, but the c-series first-mobilized two patterns never
+      written up — note 19 NEW (module registries: validated params
+      vs remount-surviving session stores vs useSyncExternalStore
+      subscription registries; the effectAllowed/dropEffect matching
+      rule; native-drag payload enrichment; open-as-routing) +
+      index entry. Tests unchanged 575/52.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel

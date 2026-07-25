@@ -93,6 +93,13 @@ when the shape changes, not on every diff.
   (lenient parse, exclusive create), absent-means-hidden pane-state
   migration, and the registered pane surface that gives chat the
   editor's own insert path. Covers CP-MVP-008 S06.
+- [19 — Module registries and the native drag contract](./19-registries-and-native-drag.md) —
+  three homes for cross-pane state (validated tab params, remount-
+  surviving module stores, useSyncExternalStore registries), the
+  effectAllowed/dropEffect matching rule behind "drag initiates but
+  never lands", payload enrichment of browser-native text drags,
+  and open-as-routing (one conversation = one tab). Covers
+  CP-MVP-008 S06c–S06c7.
 
 ## Coverage stall (2026-07-07 → 2026-07-21) — repaid
 
