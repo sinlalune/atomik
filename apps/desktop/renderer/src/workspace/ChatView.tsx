@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type {
   ClaimRecord,
+  EvidenceRecord,
   VaultFolder,
   WorkspaceState,
   WorkspaceTab
@@ -29,6 +30,11 @@ import {
 } from '../editor/gen-params'
 import { GenOptionsFields } from '../editor/gen-options'
 import { prepareAiRun } from '../editor/ai-run'
+import {
+  applyClaimMarks,
+  claimTitle,
+  findClaimRanges
+} from '../editor/claim-highlight'
 import { atPromptToken, loadPromptsFor, type PromptFile } from '../editor/prompts'
 import { linkableNotesOf, sourceBundlesOf } from '../editor/quick-actions'
 import { noteMarkdown } from '../editor/note-markdown'
@@ -54,6 +60,7 @@ import {
   openNoteInNewPane,
   openNoteTabPaths,
   parseChatContextEntry,
+  revealNote,
   serializeChatContexts,
   updateTabParams
 } from './model'
@@ -91,14 +98,69 @@ export type ChatViewProps = {
 }
 
 /** Session-only metadata of a freshly answered turn (trace decision +
- *  claim chips + run metrics); restored transcripts are plain text
- *  again. */
+ *  inline claim marks + run metrics); restored transcripts are plain
+ *  text again. */
 type TurnMeta = {
   bundleId: string
   claims: ClaimRecord[]
+  /** S06c17: sourced claims link to their evidence source. */
+  evidence: EvidenceRecord[]
   /** S06c16 (owner): tokens in/out + latency, per exchange. */
   usage?: { inputTokens: number; outputTokens: number; basis: string }
   durationMs?: number
+}
+
+/**
+ * S06c17 (owner: "generated text highlighted in different color code
+ * for the different epistemological status, label status on hover,
+ * sourced claims clickable"): the answer renders as markdown, then
+ * every located claim wraps in a labeled <mark> — colors carry the
+ * label, hover spells it out, source-backed marks open their source.
+ */
+function ClaimBody({
+  text,
+  meta,
+  onOpenSource
+}: {
+  text: string
+  meta: TurnMeta | undefined
+  onOpenSource: (relPath: string) => void
+}): React.JSX.Element {
+  const ref = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    const container = ref.current
+    if (!container) return
+    container.innerHTML = md.render(text)
+    if (!meta || meta.claims.length === 0) return
+    const sourceOf = (claim: ClaimRecord): string | null =>
+      meta.evidence.find((record) => claim.evidenceIds.includes(record.id))
+        ?.source.relPath ?? null
+    applyClaimMarks(
+      container,
+      findClaimRanges(container.textContent ?? '', meta.claims),
+      (claim) => claimTitle(claim, sourceOf(claim))
+    )
+  }, [text, meta])
+  return (
+    <div
+      ref={ref}
+      className="markdown-body chat-turn-body"
+      onClick={(event) => {
+        const mark = (event.target as HTMLElement).closest<HTMLElement>(
+          'mark[data-claim-id]'
+        )
+        if (!mark || !meta) return
+        const claim = meta.claims.find(
+          (candidate) => candidate.id === mark.dataset['claimId']
+        )
+        if (!claim || claim.label !== 'source-backed') return
+        const source = meta.evidence.find((record) =>
+          claim.evidenceIds.includes(record.id)
+        )
+        if (source) onOpenSource(source.source.relPath)
+      }}
+    />
+  )
 }
 
 const md = noteMarkdown()
@@ -537,6 +599,7 @@ export function ChatView({
               metaByTurn.current.set(current.length, {
                 bundleId: result.id,
                 claims: result.claims,
+                evidence: result.evidence,
                 ...(result.usage ? { usage: result.usage } : {}),
                 ...(result.durationMs !== undefined
                   ? { durationMs: result.durationMs }
@@ -1017,23 +1080,13 @@ export function ChatView({
                   </span>
                 )}
               </header>
-              <div
-                className="markdown-body chat-turn-body"
-                dangerouslySetInnerHTML={{ __html: md.render(turn.text) }}
+              <ClaimBody
+                text={turn.text}
+                meta={meta}
+                onOpenSource={(relPath) =>
+                  dispatch((state) => revealNote(state, paneId, relPath))
+                }
               />
-              {meta && meta.claims.length > 0 && (
-                <div className="chat-claims">
-                  {meta.claims.slice(0, 8).map((claim) => (
-                    <span
-                      key={claim.id}
-                      className={`truth-chip label-${claim.label}`}
-                      title={claim.text}
-                    >
-                      {claim.label}
-                    </span>
-                  ))}
-                </div>
-              )}
             </article>
           )
         })}

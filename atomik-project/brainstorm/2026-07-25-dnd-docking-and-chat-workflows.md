@@ -61,6 +61,13 @@ CDP-drivable end to end (S06c5 precedent for real dragstarts).
 
 ## Also recorded
 
+- Claim VERIFICATION tools (owner, decision-B exchange 2026-07-25):
+  "if not sourced I imagine in the future I would be able to trigger
+  the verification of the claim with different tools" — unverified
+  claims (model-only / needs-citation marks, S06c17) get per-claim
+  verification actions (search the vault, the web, a stronger model…).
+  Relates to M6/M7 verification milestones.
+
 - "Manage folders from future agent harness" — the chat/agent as a
   vault-management surface; relates to the roadmap's agent milestones
   (M7+), not this block.

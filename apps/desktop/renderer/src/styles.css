@@ -2229,6 +2229,40 @@ body[data-maximized] .tabstrip {
   border: 1px solid transparent;
 }
 
+/* S06c17: inline epistemic marks — the generated text itself carries
+   its label as a tint + underline; hover spells it out (title). The
+   truth-chip palette reuses, so themes stay coupled in one place. */
+.claim-mark {
+  color: inherit;
+  background: transparent;
+  border-radius: 3px;
+  padding: 0 0.08em;
+}
+
+.claim-mark.label-source-backed {
+  background: var(--ok-bg);
+  box-shadow: inset 0 -2px 0 var(--ok-border);
+  cursor: pointer;
+}
+
+.claim-mark.label-source-backed:hover {
+  background: var(--ok-border);
+}
+
+.claim-mark.label-model-only {
+  box-shadow: inset 0 -2px 0 var(--border);
+}
+
+.claim-mark.label-needs-citation {
+  background: var(--warn-bg);
+  box-shadow: inset 0 -2px 0 var(--warn-border);
+}
+
+.claim-mark.label-interpretive {
+  background: var(--info-bg);
+  box-shadow: inset 0 -2px 0 var(--info-border);
+}
+
 .truth-chip.label-source-backed {
   color: var(--ok-fg);
   background: var(--ok-bg);

@@ -432,6 +432,35 @@ export function openNoteInNewPane(
   return addTab(typed, newPaneId, tab)
 }
 
+/**
+ * S06c17: clicking a sourced claim REVEALS its source — a tab already
+ * viewing that note (note or dossier param) is activated wherever it
+ * lives; otherwise the note opens in a fresh pane beside the caller.
+ */
+export function revealNote(
+  state: WorkspaceState,
+  paneId: string,
+  relPath: string
+): WorkspaceState {
+  let found: { paneId: string; tabId: string } | null = null
+  mapNode(state.root, (node) => {
+    if (!found && node.kind === 'leaf') {
+      const tab = node.tabs.find(
+        (candidate) =>
+          candidate.params?.['notePath'] === relPath ||
+          candidate.params?.['dossierPath'] === relPath
+      )
+      if (tab) found = { paneId: node.id, tabId: tab.id }
+    }
+    return node
+  })
+  if (found !== null) {
+    const target: { paneId: string; tabId: string } = found
+    return activateTab(state, target.paneId, target.tabId)
+  }
+  return openNoteInNewPane(state, paneId, relPath, { kind: 'vault' })
+}
+
 /** True when any leaf holds a chat tab — the tabstrip's chat-door
  *  button hides then (S06c15, owner: "the button is still here"):
  *  with a chat pane open, its tab IS the door. */

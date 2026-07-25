@@ -1292,6 +1292,34 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       mistral CONFIRMED ("there is only one model seat right now, of
       course it is default") — the S07-bench OPEN question closes.
       Tests 584/52; typecheck/build/smoke green.
+- [x] S06c17 (owner, decision B redirect: "the generated text
+      highlighted in different color code for the different
+      epistemological status, label status on hover, sourced claims
+      clickable — never been in a good UI state") — DONE 2026-07-25.
+      The truth-chip ROW retires from the chat; the ANSWER TEXT now
+      carries its labels inline: claim-highlight.ts NEW (pure,
+      tested) locates each claim — a sentence of the RAW markdown —
+      inside the RENDERED text (inline markdown stripped, matching
+      whitespace-flexible with \s* because breaks:true renders
+      hard-wrapped lines as <br>, which contributes NOTHING to
+      textContent and fuses the words around it — found via live HTML
+      dump after the pure functions matched and the DOM didn't);
+      applyClaimMarks wraps located ranges in labeled <mark>s
+      (multi-text-node spans wrap per slice, back-to-front so offsets
+      hold). Colors ride the truth-chip palette (ok/warn/info tokens
+      — themes stay coupled in one place); hover spells the label out
+      (claimTitle); SOURCE-BACKED marks are clickable → revealNote
+      (model, tested): an existing tab viewing the source activates
+      anywhere, else the note opens beside. Claims/evidence are
+      session meta (restored transcripts stay plain — documented
+      S06c). Mock caveat: its quote candidate is the WHOLE selection
+      (not an answer substring), so source-backed marks appear only on
+      the real provider — mistral extracts candidates FROM the answer.
+      FUTURE (owner): triggering claim VERIFICATION with tools —
+      recorded in the brainstorm note. Dev-mode CDP pin (model-only /
+      needs-citation / interpretive marks + titles + <br>-fused spans).
+      Tests 584→593/53 (claim-highlight suite NEW + revealNote);
+      typecheck/build/smoke green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
@@ -1530,6 +1558,11 @@ changed(S06c16): ipc-contract (bundle usage/durationMs); index.ts
               (returned on the bundle); ChatView (turn meta +
               metrics line); styles.css (.chat-turn-metrics).
 tests(S06c16): 584/52; typecheck/build/smoke green.
+changed(S06c17): claim-highlight.ts NEW; ChatView (ClaimBody, chips
+              row retired); model.ts (revealNote); styles.css
+              (.claim-mark tints); tests (2 suites).
+tests(S06c17): 593 passing / 53 suites; typecheck/build/smoke
+              green; dev-mode CDP pin.
 next action : S07 — acceptance: 18 §M2 intents re-run on the REAL
               provider + owner bench on the live vault (real
               question over a real selection via the context menu,
@@ -1540,11 +1573,11 @@ next action : S07 — acceptance: 18 §M2 intents re-run on the REAL
 blockers    : none. DECIDED 2026-07-25 (owner, S06c16): default
               engine when a key is configured = mistral (key-present
               resolution default, mock stays selectable).
-              NOTE for the S07 bench: the AiPanel retirement dropped
-              the evidence-anchor "source"/"page" buttons and the
-              challenge-to-repair affordance (panel-only features) —
-              raise at the bench whether either returns on the two
-              new surfaces or waits for M6/M7.
+              NOTE: the AiPanel-retirement question RESOLVED by the
+              owner's S06c17 redirect — evidence anchors returned as
+              clickable source-backed marks; challenge-to-repair
+              supersededs into "trigger claim verification with
+              tools" (future, brainstorm note).
 ```
 
 # Blockers

@@ -38,6 +38,7 @@ import {
   paneTreeWidth,
   pdfPageOf,
   relocateTabPaths,
+  revealNote,
   saveModeOf,
   setFocus,
   setFraction,
@@ -396,6 +397,23 @@ describe('chat pane state (S06c: tab params, not pane chrome)', () => {
     expect(
       chatContextsOf(leaves(moved.root)[1]!.tabs[0]!.params)
     ).toEqual(['archive/notes/a.md', 'archive/notes/deep/b.md'])
+  })
+
+  it('revealNote activates an existing tab for the note, else opens beside (S06c17)', () => {
+    let state = createDefaultState('')
+    const paneId = firstLeafId(state.root)
+    const noteTab = makeTab('vault', { notePath: 'notes/socrates.md' })
+    state = addTab(state, paneId, noteTab)
+    state = activateTab(state, paneId, leaves(state.root)[0]!.tabs[0]!.id)
+    // already open: the tab activates, no new pane
+    const revealed = revealNote(state, paneId, 'notes/socrates.md')
+    expect(leaves(revealed.root)).toHaveLength(1)
+    expect(leaves(revealed.root)[0]!.activeTabId).toBe(noteTab.id)
+    // not open anywhere: a fresh pane opens beside with the note
+    const opened = revealNote(state, paneId, 'notes/elsewhere.md')
+    const panes = leaves(opened.root)
+    expect(panes).toHaveLength(2)
+    expect(panes[1]!.tabs[0]!.params?.['notePath']).toBe('notes/elsewhere.md')
   })
 
   it('the empty ctx list is the explicit NO-CONTEXT pick (S06c14)', () => {
