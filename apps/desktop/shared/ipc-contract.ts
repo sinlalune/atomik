@@ -527,6 +527,16 @@ export type AiResponseBundle = {
   verification: unknown[]
   uncertainties: Array<{ message: string; severity?: string }>
   actionTraceIds: string[]
+  /** Token usage of the answering call (S06c16, owner: chat needs
+   *  input/output monitoring) — absent when the engine reports none
+   *  (mock); the basis labels estimates apart (06/33). */
+  usage?: {
+    inputTokens: number
+    outputTokens: number
+    basis: 'provider-reported' | 'estimated'
+  }
+  /** Wall time of the exchange as measured in MAIN (S06c16). */
+  durationMs?: number
 }
 
 /**

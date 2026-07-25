@@ -91,8 +91,15 @@ export type ChatViewProps = {
 }
 
 /** Session-only metadata of a freshly answered turn (trace decision +
- *  claim chips); restored transcripts are plain text again. */
-type TurnMeta = { bundleId: string; claims: ClaimRecord[] }
+ *  claim chips + run metrics); restored transcripts are plain text
+ *  again. */
+type TurnMeta = {
+  bundleId: string
+  claims: ClaimRecord[]
+  /** S06c16 (owner): tokens in/out + latency, per exchange. */
+  usage?: { inputTokens: number; outputTokens: number; basis: string }
+  durationMs?: number
+}
 
 const md = noteMarkdown()
 
@@ -529,7 +536,11 @@ export function ChatView({
             setTurns((current) => {
               metaByTurn.current.set(current.length, {
                 bundleId: result.id,
-                claims: result.claims
+                claims: result.claims,
+                ...(result.usage ? { usage: result.usage } : {}),
+                ...(result.durationMs !== undefined
+                  ? { durationMs: result.durationMs }
+                  : {})
               })
               return [...current, { role: 'atomik', text: answer }]
             })
@@ -966,6 +977,23 @@ export function ChatView({
             <article key={index} className={`chat-turn role-${turn.role}`}>
               <header className="chat-turn-head">
                 <span className="chat-turn-role">{turn.role}</span>
+                {meta && (meta.durationMs !== undefined || meta.usage) && (
+                  <span
+                    className="chat-turn-metrics"
+                    title={
+                      meta.usage
+                        ? `input ${meta.usage.inputTokens} tokens · output ${meta.usage.outputTokens} tokens (${meta.usage.basis}) · ${((meta.durationMs ?? 0) / 1000).toFixed(1)}s wall time`
+                        : `${((meta.durationMs ?? 0) / 1000).toFixed(1)}s wall time — this engine reports no token usage`
+                    }
+                  >
+                    {meta.durationMs !== undefined
+                      ? `${(meta.durationMs / 1000).toFixed(1)}s`
+                      : ''}
+                    {meta.usage
+                      ? ` · ↑${meta.usage.inputTokens} ↓${meta.usage.outputTokens} tok${meta.usage.basis === 'estimated' ? '~' : ''}`
+                      : ''}
+                  </span>
+                )}
                 {turn.role === 'atomik' && (
                   <span className="chat-turn-actions">
                     <button

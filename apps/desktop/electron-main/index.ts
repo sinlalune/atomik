@@ -387,7 +387,14 @@ function registerVaultHandlers(stateDir: string): void {
           ...result.providerMeta,
           ...(result.usage ? { usage: result.usage } : {})
         })
-        return { ...result.bundle, actionTraceIds: [traceId] }
+        // S06c16: the chat monitors tokens + latency per exchange —
+        // the same numbers the trace records, surfaced on the bundle
+        return {
+          ...result.bundle,
+          actionTraceIds: [traceId],
+          ...(result.usage ? { usage: result.usage } : {}),
+          durationMs: Date.now() - started
+        }
       } finally {
         activeAiOperations.delete(operation.id)
       }

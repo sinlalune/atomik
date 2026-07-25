@@ -1277,6 +1277,21 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       closes. Dev-mode CDP pin both ways. Tests 584/52 unchanged
       (hasChatTab exercised via the pin; pure walk);
       typecheck/build/smoke green.
+- [x] S06c16 (owner: "I don't have token monitoring in the chat — I
+      need input output and latency") — DONE 2026-07-25. The
+      runAiOperation handler already measured wall time and received
+      provider usage (both trace-bound since S09/S02) — they now ride
+      the RESPONSE too: AiResponseBundle gains optional `usage`
+      {inputTokens, outputTokens, basis} and `durationMs`; the chat
+      stores them in the turn's session meta and each answer's header
+      shows `2.4s · ↑123 ↓456 tok` (~ marks estimated bases; the mock
+      shows latency alone — it reports no usage; hover spells the
+      numbers out). Same figures the trace records — no new
+      measurement, no telemetry widening. ALSO DECIDED at this
+      exchange (owner): default engine when a key is configured =
+      mistral CONFIRMED ("there is only one model seat right now, of
+      course it is default") — the S07-bench OPEN question closes.
+      Tests 584/52; typecheck/build/smoke green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
@@ -1511,6 +1526,10 @@ changed(S06c15): ChatView (chat-bar + removed); model.ts
               chat tab exists).
 tests(S06c15): 584/52 unchanged; typecheck/build/smoke green;
               dev-mode CDP pin.
+changed(S06c16): ipc-contract (bundle usage/durationMs); index.ts
+              (returned on the bundle); ChatView (turn meta +
+              metrics line); styles.css (.chat-turn-metrics).
+tests(S06c16): 584/52; typecheck/build/smoke green.
 next action : S07 — acceptance: 18 §M2 intents re-run on the REAL
               provider + owner bench on the live vault (real
               question over a real selection via the context menu,
@@ -1518,9 +1537,9 @@ next action : S07 — acceptance: 18 §M2 intents re-run on the REAL
               re-used, cancel mid-flight, receipt inspected); decide
               the open default-engine question at the bench; review
               and close.
-blockers    : none. OPEN (S07 bench): default engine when a key is
-              configured — 'mistral' proposed, implemented as the
-              key-present resolution default, mock stays selectable.
+blockers    : none. DECIDED 2026-07-25 (owner, S06c16): default
+              engine when a key is configured = mistral (key-present
+              resolution default, mock stays selectable).
               NOTE for the S07 bench: the AiPanel retirement dropped
               the evidence-anchor "source"/"page" buttons and the
               challenge-to-repair affordance (panel-only features) —
