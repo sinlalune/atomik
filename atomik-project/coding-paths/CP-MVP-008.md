@@ -1212,6 +1212,38 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       visible tree; vault-pane close beside chat → both panes). Tests
       577→582/52 (5 new + S06c survival test amended);
       typecheck/build/smoke green.
+- [x] S06c13 (owner correction of S06c12: "there only the tree panel
+      and two panes, 1 vault 1 chat — I need to be able to close the
+      last vault pane and have only tree panel and chat pane open";
+      plus: sessions may START as tree + chat) — DONE 2026-07-25.
+      The S06c12 landing kept an empty vault PANE beside the chat —
+      not what the owner meant: the PANE should go, the TREE PANEL
+      should live on. Mechanism: chat panes now CARRY the vault tree
+      panel like every pane (S06c2's "no tree at all" amended) —
+      OPT-IN hidden by default (paneTreeHidden: absent 'off' reads
+      hidden for kind chat, so a chat beside a note pane never
+      doubles the tree; existing layouts unchanged) — and a close
+      that REMOVES a pane runs ensureVisibleTree: if no survivor
+      shows a tree, the first pane that has one shows its
+      (closePane/closeTab/closeEmptyPane). Result: closing the last
+      vault pane beside the chat collapses it away and the chat pane
+      presents the vault tree — "tree panel + chat pane", which then
+      persists as a session-start arrangement. The S06c12 in-place
+      landing remains only for a pane with NO tree-bearing sibling
+      (lone web pane closing its last tab still lands on the visible
+      tree). PaneTreePanel needed no change (unknown scopes fall
+      through to vault rendering); notes opened from a chat pane's
+      tree join it as ordinary note tabs (mixed tabs per the owner).
+      Chat-left/artifact-right confirmed already working
+      (openNoteInNewPane splits beside the chat wherever it sits).
+      The DnD/docking directive (tree→tab/pane drops, tab tear-out,
+      smart drop-zone previews, drag docking) recorded VERBATIM in
+      brainstorm/2026-07-25-dnd-docking-and-chat-workflows.md as the
+      candidate path after this one — too large for a c-series
+      sub-step. Dev-mode CDP pin + screenshot (vault+chat → close
+      vault → 1 pane: tree with notes + chat compose). Tests
+      582→583/52 (S06c12/13 block rewritten to the corrected
+      semantics); typecheck/build/smoke green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
@@ -1428,6 +1460,14 @@ changed(S06c12): NewTabChooser (Web pane option); Workspace
               closeEmptyPane); tests (5 new, 1 amended).
 tests(S06c12): 582 passing / 52 suites; typecheck/build/smoke
               green; dev-mode CDP pin (5 checkpoints).
+changed(S06c13): model.ts (paneTreeHidden chat opt-in default;
+              isTreeBearingLeaf includes chat; ensureVisibleTree on
+              pane-removing closes); Workspace.tsx (chat panes render
+              the tree panel + reopen toggle); brainstorm note NEW
+              (dnd-docking directive verbatim); tests (block
+              rewritten).
+tests(S06c13): 583 passing / 52 suites; typecheck/build/smoke
+              green; dev-mode CDP pin + screenshot.
 next action : S07 — acceptance: 18 §M2 intents re-run on the REAL
               provider + owner bench on the live vault (real
               question over a real selection via the context menu,

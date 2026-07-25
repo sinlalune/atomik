@@ -160,7 +160,12 @@ export function paneTreeScopeOf(tree: PaneTree): PaneTreeScope {
   return { kind: 'vault' }
 }
 
-export const paneTreeHidden = (tree: PaneTree): boolean => tree['off'] === '1'
+/** S06c13 (owner: "close the last vault pane and have only tree panel
+ *  and chat pane"): chat panes CAN carry the vault tree panel — but
+ *  opt-in (absent 'off' reads hidden), so a chat beside a note pane
+ *  never doubles the tree. Every other kind keeps opt-out. */
+export const paneTreeHidden = (tree: PaneTree): boolean =>
+  tree['kind'] === 'chat' ? tree['off'] !== '0' : tree['off'] === '1'
 
 export function paneTreeWidth(tree: PaneTree): number {
   const raw = tree['w']
@@ -554,15 +559,11 @@ export function splitPane(
   return { ...state, root, focusedPaneId: empty.id }
 }
 
-/** A leaf whose panel can show a tree (vault/project/docs — hidden
- *  still counts, the toggle is one click). Chat panes bear none by
- *  design (S06c2); untyped leaves present the New Pane chooser. */
+/** A leaf whose panel can show a tree (hidden still counts, the
+ *  toggle is one click). Since S06c13 chat panes carry the vault tree
+ *  too; only untyped leaves (New Pane chooser) bear none. */
 function isTreeBearingLeaf(node: PaneNode): node is LeafNode {
-  return (
-    node.kind === 'leaf' &&
-    node.tree !== undefined &&
-    paneTreeScopeOf(node.tree).kind !== 'chat'
-  )
+  return node.kind === 'leaf' && node.tree !== undefined
 }
 
 function treeBearingCount(node: PaneNode): number {
@@ -602,6 +603,31 @@ function isVaultLanding(node: LeafNode): boolean {
 function findLeaf(node: PaneNode, paneId: string): LeafNode | null {
   if (node.kind === 'leaf') return node.id === paneId ? node : null
   return findLeaf(node.first, paneId) ?? findLeaf(node.second, paneId)
+}
+
+function leafCount(node: PaneNode): number {
+  return node.kind === 'leaf' ? 1 : leafCount(node.first) + leafCount(node.second)
+}
+
+/**
+ * S06c13 (owner: closing the last vault pane must leave "tree panel +
+ * chat pane"): a close that REMOVED a pane must never leave the
+ * workspace without a visible tree panel — if every survivor's tree is
+ * hidden (chat panes default hidden) or absent, the first pane that
+ * has one shows it.
+ */
+function ensureVisibleTree(state: WorkspaceState): WorkspaceState {
+  let visible = false
+  let firstTreed: string | null = null
+  mapNode(state.root, (node) => {
+    if (node.kind === 'leaf' && node.tree !== undefined) {
+      if (firstTreed === null) firstTreed = node.id
+      if (!paneTreeHidden(node.tree)) visible = true
+    }
+    return node
+  })
+  if (visible || firstTreed === null) return state
+  return updatePaneTree(state, firstTreed, { off: '0' })
 }
 
 /**
@@ -648,7 +674,7 @@ export function closePane(state: WorkspaceState, paneId: string): WorkspaceState
   const focusedPaneId = paneExists(removed, state.focusedPaneId)
     ? state.focusedPaneId
     : firstLeafId(removed)
-  return { ...state, root: removed, focusedPaneId }
+  return ensureVisibleTree({ ...state, root: removed, focusedPaneId })
 }
 
 export function addTab(
@@ -731,7 +757,11 @@ export function closeTab(
   const focusedPaneId = paneExists(root, state.focusedPaneId)
     ? state.focusedPaneId
     : firstLeafId(root)
-  return { ...state, root, focusedPaneId }
+  const next = { ...state, root, focusedPaneId }
+  // a removed leaf may have carried the only visible tree (S06c13)
+  return leafCount(root) < leafCount(state.root)
+    ? ensureVisibleTree(next)
+    : next
 }
 
 function paneExists(node: PaneNode, paneId: string): boolean {
@@ -986,7 +1016,7 @@ export function closeEmptyPane(
   const focusedPaneId = paneExists(removed, state.focusedPaneId)
     ? state.focusedPaneId
     : firstLeafId(removed)
-  return { ...state, root: removed, focusedPaneId }
+  return ensureVisibleTree({ ...state, root: removed, focusedPaneId })
 }
 
 /** Merges params into the tab, wherever it lives (tab ids are unique). */

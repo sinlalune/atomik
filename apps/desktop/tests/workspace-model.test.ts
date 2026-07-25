@@ -362,15 +362,12 @@ describe('chat pane state (S06c: tab params, not pane chrome)', () => {
     const chatPane = leaves(withChat.root)[1]!
     const closed = closePane(withChat, originId)
     const survivors = leaves(closed.root)
-    // S06c12 amends the collapse: the chat pane survives untouched,
-    // and the origin — the last tree-bearing pane — stays as the
-    // empty vault-tree pane instead of vanishing
-    expect(survivors.length).toBe(2)
-    expect(survivors[0]!.id).toBe(originId)
-    expect(survivors[0]!.tabs).toEqual([])
-    expect(survivors[0]!.tree?.['kind']).toBe('vault')
-    expect(survivors[1]!.id).toBe(chatPane.id)
-    expect(survivors[1]!.tabs[0]!.view).toBe('chat')
+    // S06c13: the chat pane survives ALONE and carries the visible
+    // vault tree — "tree panel + chat pane" (owner)
+    expect(survivors.length).toBe(1)
+    expect(survivors[0]!.id).toBe(chatPane.id)
+    expect(survivors[0]!.tabs[0]!.view).toBe('chat')
+    expect(paneTreeHidden(survivors[0]!.tree!)).toBe(false)
   })
 
   it('chatContextsOf round-trips a JSON list, reads legacy single paths, caps (S06c3)', () => {
@@ -869,46 +866,52 @@ describe('closePane — the tabstrip ✕ (S07e)', () => {
     expect(leaf.tree).toEqual({ kind: 'vault', w: '320', open: 'notes' })
   })
 
-  it('the LAST tree-bearing pane empties in place beside a chat pane (S06c12)', () => {
-    // vault pane + chat pane: closing the vault pane must not leave a
-    // treeless workspace — it lands on the empty vault tree instead
+  it('closing the last vault pane leaves tree panel + chat pane (S06c13)', () => {
+    // the owner's exact arrangement: vault pane + chat pane — closing
+    // the vault pane collapses it away and the chat pane SHOWS the
+    // vault tree (chat trees are hidden by default, opt-in 'off: 0')
     let state = createDefaultState('')
     const vaultId = firstLeafId(state.root)
     state = openChatPane(state, vaultId)
     const closed = closePane(state, vaultId)
-    const [vaultLeaf, chatLeaf] = leaves(closed.root)
-    expect(leaves(closed.root).length).toBe(2)
-    expect(vaultLeaf!.id).toBe(vaultId)
-    expect(vaultLeaf!.tabs).toEqual([])
-    expect(vaultLeaf!.tree?.['kind']).toBe('vault')
-    expect(chatLeaf!.tree).toEqual({ kind: 'chat' })
-    expect(chatLeaf!.tabs).toHaveLength(1)
+    expect(closed.root.kind).toBe('leaf')
+    const chat = closed.root as Extract<PaneNode, { kind: 'leaf' }>
+    expect(chat.tree?.['kind']).toBe('chat')
+    expect(chat.tabs[0]!.view).toBe('chat')
+    expect(paneTreeHidden(chat.tree!)).toBe(false)
   })
 
-  it('closing the last TAB of the last tree-bearing pane lands the same way (S06c12)', () => {
+  it('closing the vault pane\'s last TAB lands the same way (S06c13)', () => {
     let state = createDefaultState('')
     const vaultId = firstLeafId(state.root)
     state = openChatPane(state, vaultId)
     const vaultLeaf = leaves(state.root)[0]!
     const closed = closeTab(state, vaultId, vaultLeaf.tabs[0]!.id)
-    const after = leaves(closed.root)[0]!
-    expect(leaves(closed.root).length).toBe(2)
-    expect(after.id).toBe(vaultId)
-    expect(after.tabs).toEqual([])
-    expect(after.tree?.['kind']).toBe('vault')
+    expect(closed.root.kind).toBe('leaf')
+    const chat = closed.root as Extract<PaneNode, { kind: 'leaf' }>
+    expect(chat.tree?.['kind']).toBe('chat')
+    expect(paneTreeHidden(chat.tree!)).toBe(false)
   })
 
-  it('a web pane (vault-typed, tree hidden) landing SHOWS the tree (S06c12)', () => {
+  it('chat trees are hidden by default, shown on opt-in (S06c13)', () => {
+    expect(paneTreeHidden({ kind: 'chat' })).toBe(true)
+    expect(paneTreeHidden({ kind: 'chat', off: '0' })).toBe(false)
+    expect(paneTreeHidden({ kind: 'chat', off: '1' })).toBe(true)
+    // other kinds keep opt-out
+    expect(paneTreeHidden({ kind: 'vault' })).toBe(false)
+  })
+
+  it('a LONE web pane closing its last web tab shows the vault tree (S06c12)', () => {
+    // single web pane (vault-typed, tree hidden): the last tree-bearing
+    // pane empties in place onto the VISIBLE tree
     let state = createDefaultState('')
-    const vaultId = firstLeafId(state.root)
-    state = openChatPane(state, vaultId)
-    // retype the left pane as a web pane: vault tree hidden, web tab
-    state = updatePaneTree(state, vaultId, { off: '1', w: '300' })
+    const paneId = firstLeafId(state.root)
+    state = updatePaneTree(state, paneId, { off: '1', w: '300' })
     const webTab = makeTab('source-web')
-    state = addTab(state, vaultId, webTab)
+    state = addTab(state, paneId, webTab)
     const vaultLeaf = leaves(state.root)[0]!
-    let closed = closeTab(state, vaultId, vaultLeaf.tabs[0]!.id)
-    closed = closeTab(closed, vaultId, webTab.id)
+    let closed = closeTab(state, paneId, vaultLeaf.tabs[0]!.id)
+    closed = closeTab(closed, paneId, webTab.id)
     const after = leaves(closed.root)[0]!
     expect(after.tabs).toEqual([])
     // 'off' dropped — the landing exists to show the tree; width kept
@@ -925,14 +928,21 @@ describe('closePane — the tabstrip ✕ (S07e)', () => {
     expect((closed.root as { id: string }).id).toBe(vaultId)
   })
 
-  it('closeEmptyPane cannot remove the last tree-bearing pane (S06c12)', () => {
+  it('closeEmptyPane on the emptied vault pane beside a chat also lands tree+chat (S06c13)', () => {
     let state = createDefaultState('')
     const vaultId = firstLeafId(state.root)
     state = openChatPane(state, vaultId)
+    // empty the vault pane without collapsing it (extra tab first)
+    state = addTab(state, vaultId, makeTab('vault'))
     const vaultLeaf = leaves(state.root)[0]!
     state = closeTab(state, vaultId, vaultLeaf.tabs[0]!.id)
-    // now empty + vault-typed beside the chat pane: ✕ is a no-op
-    expect(closeEmptyPane(state, vaultId)).toBe(state)
+    const remaining = leaves(state.root)[0]!
+    state = closeTab(state, vaultId, remaining.tabs[0]!.id)
+    // the vault pane is gone; the chat pane carries the visible tree
+    expect(state.root.kind).toBe('leaf')
+    const chat = state.root as Extract<PaneNode, { kind: 'leaf' }>
+    expect(chat.tree?.['kind']).toBe('chat')
+    expect(paneTreeHidden(chat.tree!)).toBe(false)
   })
 })
 

@@ -367,10 +367,12 @@ function LeafPane({
   const untyped = node.tree === undefined
   const tree = paneTreeOf(node)
   const scope = paneTreeScopeOf(tree)
-  // a CHAT pane (S06c2) has no tree panel at all — its tabs ARE the
-  // conversations
+  // a CHAT pane's tabs ARE the conversations (S06c2); since S06c13 it
+  // CAN carry the vault tree panel — hidden by default (paneTreeHidden
+  // reads absent 'off' as hidden for chat), shown when it is the
+  // workspace's only tree or the owner toggles it
   const isChatPane = scope.kind === 'chat'
-  const treeHidden = paneTreeHidden(tree) || isChatPane
+  const treeHidden = paneTreeHidden(tree)
   const treeWidth = untyped || treeHidden ? 0 : paneTreeWidth(tree)
 
   // Note views register their dirty editor here (cleared on unmount);
@@ -690,7 +692,7 @@ function LeafPane({
         />
       )}
       <div className="pane-content">
-        {!untyped && treeHidden && !isChatPane && (
+        {!untyped && treeHidden && (
           <button
             type="button"
             className="tree-toggle pane-tree-show"
