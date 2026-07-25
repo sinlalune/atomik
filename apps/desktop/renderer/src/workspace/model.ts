@@ -423,6 +423,13 @@ export function openNoteInNewPane(
  * vault-typed, tree hidden (the chat is the point) — opens a chat
  * tab. Built from the existing primitives; the chat survives its
  * spawning pane exactly because it is a sibling, not chrome.
+ *
+ * S06c9 (owner: "chat content disappears after switching tabs", the
+ * residual door): with several conversations open, this used to
+ * activate the strip's FIRST chat tab — coming back through "Open
+ * chat" then showed an old (or unborn) conversation instead of the
+ * one the owner was on. The pane's ACTIVE chat tab now wins; the
+ * first chat tab is only the fallback when none is active.
  */
 export function openChatPane(
   state: WorkspaceState,
@@ -431,7 +438,9 @@ export function openChatPane(
   let existing: { paneId: string; tabId: string } | null = null
   mapNode(state.root, (node) => {
     if (!existing && node.kind === 'leaf') {
-      const tab = node.tabs.find((candidate) => candidate.view === 'chat')
+      const chats = node.tabs.filter((candidate) => candidate.view === 'chat')
+      const tab =
+        chats.find((candidate) => candidate.id === node.activeTabId) ?? chats[0]
       if (tab) existing = { paneId: node.id, tabId: tab.id }
     }
     return node

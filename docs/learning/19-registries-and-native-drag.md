@@ -81,6 +81,16 @@ duplicated titles and shuffled identity under the owner — reported,
 reasonably, as data loss. The invariant that fixed it: one
 conversation = one tab, everywhere, always.
 
+The corollary (S06c9): every DOOR to a multi-holder surface must
+respect the holder the user was last in. `openChatPane` still picked
+the strip's FIRST chat tab (`tabs.find`) — correct in the one-tab
+world it was written in, wrong the day tabs multiplied: coming back
+through "Open chat" landed on the oldest conversation, read again as
+"my chat disappeared". When a first-match pick is written, it
+silently encodes "there is only one" — recheck every such pick when
+the one becomes many. The fix shape: active-holder wins, first-match
+is only the no-active fallback.
+
 ## Exercises
 
 1. Add a third drag source (a search-result row) that drops into the

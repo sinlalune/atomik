@@ -1123,6 +1123,27 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       subscription registries; the effectAllowed/dropEffect matching
       rule; native-drag payload enrichment; open-as-routing) +
       index entry. Tests unchanged 575/52.
+- [x] S06c9 (owner: "we still have the problem where chat content
+      disappears after switching from tabs") — DONE 2026-07-25.
+      Code inspection (owner directive: inspect, don't re-drive the
+      documented repros; the S06c6/c7 paths re-verified green once —
+      remount reload, draft survival, restart restore all held). The
+      RESIDUAL DOOR was openChatPane: every "Open chat" entry (note
+      pane's chat button, editor right-click, "+ chat context")
+      activated the strip's FIRST chat tab (`tabs.find`) — with
+      several conversations open (exactly the post-S06c7 world: "+"
+      and history picks multiply chat tabs), leaving a note tab
+      through the chat door landed on the OLDEST or unborn
+      conversation instead of the one the owner was on = "my chat
+      content disappeared" (same wrong-tab class S06c7 fixed for
+      history picks; this door was left on first-match). FIX
+      (openChatPane, model, tested): the pane's ACTIVE chat tab wins;
+      first chat tab only when none is active — addChatContext
+      inherits the fix (it reads the active tab after the focus).
+      CDP-pinned on the rebuilt app: two born conversations, second
+      active → note pane → chat door → SECOND conversation focused,
+      turns intact (first-match would have shown the first). Tests
+      575→576/52; typecheck/build/smoke green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
@@ -1316,6 +1337,10 @@ tests(S06c6): 574 passing / 52 suites; typecheck/build/smoke green.
 changed(S06c7): model.ts (openChatTranscript); ChatView (history
               pick routes via dispatch; header + = new tab); tests.
 tests(S06c7): 575 passing / 52 suites; typecheck/build/smoke green.
+changed(S06c9): model.ts (openChatPane prefers the pane's ACTIVE
+              chat tab; first tab = fallback only); tests
+              (multi-conversation regression pin).
+tests(S06c9): 576 passing / 52 suites; typecheck/build/smoke green.
 next action : S07 — acceptance: 18 §M2 intents re-run on the REAL
               provider + owner bench on the live vault (real
               question over a real selection via the context menu,

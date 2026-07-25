@@ -332,6 +332,29 @@ describe('chat pane state (S06c: tab params, not pane chrome)', () => {
     expect(again.focusedPaneId).toBe(chatPane.id)
   })
 
+  it('openChatPane returns to the ACTIVE conversation, not the strip\'s first chat tab (S06c9)', () => {
+    let state = createDefaultState('')
+    const paneId = firstLeafId(state.root)
+    state = openChatPane(state, paneId)
+    const chatPaneId = leaves(state.root)[1]!.id
+    // three conversations; the owner is on the LAST one
+    state = updateTabParams(state, leaves(state.root)[1]!.tabs[0]!.id, {
+      file: 'chats/a.md'
+    })
+    state = addTab(state, chatPaneId, makeTab('chat', { file: 'chats/b.md' }))
+    state = addTab(state, chatPaneId, makeTab('chat', { file: 'chats/c.md' }))
+    const activeId = leaves(state.root)[1]!.activeTabId
+    expect(
+      leaves(state.root)[1]!.tabs.find((tab) => tab.id === activeId)!
+        .params?.['file']
+    ).toBe('chats/c.md')
+    // back in the note pane, the chat door must land on chats/c.md again
+    const back = openChatPane(setFocus(state, paneId), paneId)
+    expect(leaves(back.root).length).toBe(2)
+    expect(back.focusedPaneId).toBe(chatPaneId)
+    expect(leaves(back.root)[1]!.activeTabId).toBe(activeId)
+  })
+
   it('the chat pane SURVIVES its origin pane closing (the S06c point)', () => {
     const state = createDefaultState('')
     const originId = firstLeafId(state.root)
