@@ -556,21 +556,33 @@ export function splitPane(
 
 /**
  * S07e: the tabstrip's ✕ closes the whole PANE — a non-root leaf
- * collapses into its sibling; the root leaf instead empties and loses
- * its type, returning to the New Pane chooser (the workspace never
- * disappears). The caller destroys native views of the closed tabs.
+ * collapses into its sibling; the root leaf instead empties (the
+ * workspace never disappears). S06c11 (owner: "if we close everything
+ * we should always have a current vault tree panel available"): the
+ * emptied root lands VAULT-TYPED — tree panel present, panel prefs
+ * (off/w/open) kept — instead of the untyped New Pane chooser. The
+ * caller destroys native views of the closed tabs.
  */
 export function closePane(state: WorkspaceState, paneId: string): WorkspaceState {
   if (state.root.kind === 'leaf') {
     if (state.root.id !== paneId) return state
-    if (state.root.tabs.length === 0 && state.root.tree === undefined) {
+    if (
+      state.root.tabs.length === 0 &&
+      state.root.tree?.['kind'] === 'vault'
+    ) {
       return state
+    }
+    const kept: PaneTree = {}
+    for (const key of ['off', 'w', 'open']) {
+      const value = state.root.tree?.[key]
+      if (value !== undefined) kept[key] = value
     }
     const root: LeafNode = {
       kind: 'leaf',
       id: state.root.id,
       tabs: [],
-      activeTabId: null
+      activeTabId: null,
+      tree: { ...kept, kind: 'vault' }
     }
     return { ...state, root }
   }
@@ -657,7 +669,9 @@ export function closeTab(
   }
 
   const removed = remove(state.root)
-  const root = removed ?? makeLeaf([])
+  // total collapse (last tab anywhere): the workspace lands on an
+  // empty VAULT-TYPED pane — the tree stays available (S06c11)
+  const root = removed ?? { ...makeLeaf([]), tree: { kind: 'vault' } }
   if (root === state.root) return state
   const focusedPaneId = paneExists(root, state.focusedPaneId)
     ? state.focusedPaneId

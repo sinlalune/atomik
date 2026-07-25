@@ -1169,6 +1169,22 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       unchanged (StrictMode effect semantics live outside the node
       suite — the dev-mode pin is the verification);
       typecheck/build/smoke green.
+- [x] S06c11 (owner: "if we close everything we should always have a
+      current vault tree panel available") — DONE 2026-07-25. The
+      S07e root-✕ behavior (empty root loses its type → New Pane
+      chooser, no tree) is SUPERSEDED by this directive: every close
+      that collapses the workspace to empty now lands on a
+      VAULT-TYPED pane — tree panel present, panel prefs (off/w/open)
+      kept on the closePane path — so the vault is always one click
+      away. Two doors changed (model): closePane's root branch and
+      closeTab's total-collapse fallback (last tab anywhere); ✕
+      tooltip follows ("back to the vault tree"). Split-born empty
+      panes STAY untyped (the New Pane chooser at pane birth is
+      S07e's point and remains). Dev-mode CDP pin: fresh state →
+      Close pane → 0 tabs, vault tree present with notes, New Tab
+      chooser offered. Tests 576→577/52 (S07e root test rewritten to
+      the new contract + prefs-kept case + closeTab collapse typed);
+      typecheck/build/smoke green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
@@ -1372,6 +1388,12 @@ changed(S06c10): ChatView (transcript-load effect StrictMode-safe:
               guard existed).
 tests(S06c10): 576/52 unchanged; typecheck/build/smoke green;
               dev-mode CDP pin (the failing runtime).
+changed(S06c11): model.ts (closePane root branch vault-typed +
+              prefs kept; closeTab total-collapse fallback
+              vault-typed); Workspace.tsx (✕ tooltip); tests
+              (S07e root contract rewritten + 2 new).
+tests(S06c11): 577 passing / 52 suites; typecheck/build/smoke
+              green; dev-mode CDP pin.
 next action : S07 — acceptance: 18 §M2 intents re-run on the REAL
               provider + owner bench on the live vault (real
               question over a real selection via the context menu,

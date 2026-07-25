@@ -637,7 +637,7 @@ function LeafPane({
             type="button"
             title={
               node.id === rootLeafId
-                ? 'Close pane (back to the New Pane chooser)'
+                ? 'Close pane (back to the vault tree)'
                 : 'Close pane'
             }
             aria-label="Close pane"

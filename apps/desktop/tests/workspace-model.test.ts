@@ -642,12 +642,14 @@ describe('closeTab', () => {
     expect(state.focusedPaneId).toBe(original.id)
   })
 
-  it('keeps an empty root leaf instead of deleting the tree', () => {
+  it('keeps an empty VAULT-TYPED root leaf instead of deleting the tree (S06c11)', () => {
     let state = createDefaultState('#dev-docs')
     const leaf = leaves(state.root)[0]!
     state = closeTab(state, leaf.id, leaf.tabs[0]!.id)
     expect(state.root.kind).toBe('leaf')
-    expect((state.root as Extract<PaneNode, { kind: 'leaf' }>).tabs).toEqual([])
+    const root = state.root as Extract<PaneNode, { kind: 'leaf' }>
+    expect(root.tabs).toEqual([])
+    expect(root.tree).toEqual({ kind: 'vault' })
     expect(state.focusedPaneId).toBe(firstLeafId(state.root))
   })
 })
@@ -842,14 +844,23 @@ describe('closePane — the tabstrip ✕ (S07e)', () => {
     expect(closed.focusedPaneId).toBe(rootId)
   })
 
-  it('the root pane empties and loses its type — back to the New Pane chooser', () => {
+  it('the root pane empties onto the VAULT TREE — never a tree-less workspace (S06c11)', () => {
     const state = createDefaultState('h')
     const rootId = (state.root as { id: string }).id
     const closed = closePane(state, rootId)
     const leaf = closed.root as Extract<PaneNode, { kind: 'leaf' }>
     expect(leaf.tabs).toEqual([])
-    expect(leaf.tree).toBeUndefined()
+    expect(leaf.tree).toEqual({ kind: 'vault' })
     expect(closePane(closed, rootId)).toBe(closed)
+  })
+
+  it('the emptied root keeps its panel prefs while landing on the vault tree (S06c11)', () => {
+    let state = createDefaultState('h')
+    const rootId = (state.root as { id: string }).id
+    state = updatePaneTree(state, rootId, { w: '320', open: 'notes' })
+    const closed = closePane(state, rootId)
+    const leaf = closed.root as Extract<PaneNode, { kind: 'leaf' }>
+    expect(leaf.tree).toEqual({ kind: 'vault', w: '320', open: 'notes' })
   })
 })
 
