@@ -220,6 +220,18 @@ export function serializeChatContexts(paths: string[]): string {
 }
 
 /**
+ * S06c14 (owner: "get rid of the autoloaded context to launch a new
+ * subject"): the serialized EMPTY list is the explicit "no context"
+ * pick — distinct from an ABSENT ctx param, which means AUTO (best
+ * open note). Removing the last pill lands here naturally.
+ */
+export function chatContextsExplicitNone(
+  params?: Record<string, string>
+): boolean {
+  return params?.['ctx'] === serializeChatContexts([])
+}
+
+/**
  * A context entry is a note path, optionally RANGED (S06c5: a dragged
  * editor selection lands as `path#from-to`) — the chat then quotes
  * exactly that slice, range-anchored for the truth checker. Parsing

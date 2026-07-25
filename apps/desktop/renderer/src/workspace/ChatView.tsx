@@ -48,6 +48,7 @@ import {
   addTab,
   CHAT_CONTEXTS_MAX,
   chatContextEntryForSelection,
+  chatContextsExplicitNone,
   chatContextsOf,
   chatFileOf,
   makeTab,
@@ -129,11 +130,16 @@ export function ChatView({
     ])
   ]
   const autoContext = resolveAiContext(contexts, null)
+  // S06c14: '[]' is the explicit NO-CONTEXT pick — auto stays off and
+  // the chat answers from the conversation alone
+  const noContext = chatContextsExplicitNone(tab.params)
   /** The primary entry a send targets (S06c5: possibly RANGED): the
-   *  first pill, else the best mounted entry, else the first open tab. */
+   *  first pill, else the best mounted entry, else the first open tab
+   *  — or nothing at all when the owner dismissed the context. */
   const primary = ctxList[0] ? parseChatContextEntry(ctxList[0]) : null
-  const targetPath =
-    primary?.path ?? autoContext?.notePath ?? optionPaths[0] ?? null
+  const targetPath = noContext
+    ? null
+    : (primary?.path ?? autoContext?.notePath ?? optionPaths[0] ?? null)
   const primaryRange =
     primary && primary.from !== undefined && primary.to !== undefined
       ? { from: primary.from, to: primary.to }
@@ -414,20 +420,38 @@ export function ChatView({
   const runExchange = useCallback(
     async (text: string, alreadyPersisted: boolean): Promise<void> => {
       if (text.length === 0 || running) return
-      const target = await resolveTarget()
-      if (!target) {
-        setError('Open a note somewhere to chat over it — the context list is empty.')
-        return
-      }
       setError(null)
       try {
+        // S06c14: no picked/auto context = a CONTEXTLESS chat — the
+        // transcript note anchors the operation (it exists by send
+        // time: the you-turn persists before the call) and the thread
+        // alone carries the conversation. A PICKED context that fails
+        // to resolve still errors instead of silently dropping.
+        const wantsContext = targetPathRef.current !== null
+        const target = await resolveTarget()
+        if (wantsContext && !target) {
+          setError('The picked context could not be read — it may have been moved or deleted.')
+          return
+        }
+        let persisted = alreadyPersisted
+        if (!target && !persisted) {
+          await persistTurn('you', text)
+          setTurns((current) => [...current, { role: 'you', text }])
+          setInput('')
+          setAtMenu(null)
+          persisted = true
+        }
+        const anchorPath = target?.notePath ?? fileRef.current
+        if (!anchorPath) return
         const prompts = await loadPrompts()
         const params = composeGenerationParams(genDrafts)
         const prepared = await prepareAiRun(
           {
-            noteRelPath: target.notePath,
-            doc: target.getDoc(),
-            selection: target.getSelection(),
+            noteRelPath: anchorPath,
+            doc: target ? target.getDoc() : '',
+            selection: target
+              ? target.getSelection()
+              : { from: 0, to: 0, text: '' },
             instruction: text,
             systemStack: [],
             prompts,
@@ -478,7 +502,7 @@ export function ChatView({
           ...(thread.length > 0 ? { thread } : {})
         }
 
-        if (!alreadyPersisted) {
+        if (!persisted) {
           // The user's turn lands in the file BEFORE the call — a
           // cancelled or failed run keeps what was asked.
           await persistTurn('you', text)
@@ -876,10 +900,36 @@ export function ChatView({
         </button>
       </div>
       <div className="chat-context-pills">
-        {ctxList.length === 0 && targetPath !== null && (
+        {ctxList.length === 0 && !noContext && targetPath !== null && (
           <span className="chat-context-pill auto" title="No pick — the best open note serves as context">
             auto · {targetPath}
             {targetEditable ? '' : ' (read-only)'}
+            <button
+              type="button"
+              title="Chat without context — keep the workspace, drop the auto-loaded note"
+              aria-label="Remove the auto context"
+              onClick={() =>
+                patchParams({ ctx: serializeChatContexts([]) })
+              }
+            >
+              ×
+            </button>
+          </span>
+        )}
+        {noContext && (
+          <span
+            className="chat-context-pill auto"
+            title="No context — the chat answers from the conversation alone"
+          >
+            no context
+            <button
+              type="button"
+              title="Back to auto — the best open note serves as context again"
+              aria-label="Restore the auto context"
+              onClick={() => patchParams({ ctx: '' })}
+            >
+              ↺
+            </button>
           </span>
         )}
         {ctxList.map((entry, index) => {

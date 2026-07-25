@@ -6,6 +6,7 @@ import {
   addTab,
   CHAT_CONTEXTS_MAX,
   chatContextEntryForSelection,
+  chatContextsExplicitNone,
   chatContextsOf,
   chatFileOf,
   clampTreeWidth,
@@ -395,6 +396,17 @@ describe('chat pane state (S06c: tab params, not pane chrome)', () => {
     expect(
       chatContextsOf(leaves(moved.root)[1]!.tabs[0]!.params)
     ).toEqual(['archive/notes/a.md', 'archive/notes/deep/b.md'])
+  })
+
+  it('the empty ctx list is the explicit NO-CONTEXT pick (S06c14)', () => {
+    // absent/empty param = AUTO; serialized empty list = deliberately none
+    expect(chatContextsExplicitNone(undefined)).toBe(false)
+    expect(chatContextsExplicitNone({ ctx: '' })).toBe(false)
+    expect(chatContextsExplicitNone({ ctx: serializeChatContexts([]) })).toBe(true)
+    expect(
+      chatContextsExplicitNone({ ctx: serializeChatContexts(['a.md']) })
+    ).toBe(false)
+    expect(chatContextsOf({ ctx: serializeChatContexts([]) })).toEqual([])
   })
 
   it('context entries encode an optional selection range (S06c5)', () => {

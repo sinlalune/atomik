@@ -1244,6 +1244,27 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       vault → 1 pane: tree with notes + chat compose). Tests
       582→583/52 (S06c12/13 block rewritten to the corrected
       semantics); typecheck/build/smoke green.
+- [x] S06c14 (owner: "I need to be able to start a chat without prior
+      context" + "get rid of the autoloaded context … in case I like
+      the current workspace state but need to launch a new subject")
+      — DONE 2026-07-25. (1) CONTEXTLESS CHAT: the send path no
+      longer errors when no context resolves — the TRANSCRIPT note
+      anchors the operation (it exists by send time: for a fresh
+      contextless exchange the you-turn persists FIRST), the
+      selection is empty, and the thread alone carries the
+      conversation; a PICKED context that fails to READ still errors
+      instead of silently degrading. Works from the S06c13 tree+chat
+      session with zero notes open. (2) DISMISSABLE AUTO: the auto
+      pill gains × — patching ctx to the serialized EMPTY list, the
+      new EXPLICIT no-context pick (chatContextsExplicitNone; absent
+      ctx still means auto) — a "no context ↺" pill shows the state
+      and restores auto; removing the last picked pill now lands on
+      explicit none too (it used to silently fall back to auto). The
+      pick rides ordinary tab params: survives remounts, restarts,
+      relocation. Dev-mode CDP pin (contextless send with no note
+      open; auto → × → none → send → ↺ auto, note staying open
+      throughout). Tests 583→584/52 (chatContextsExplicitNone);
+      typecheck/build/smoke green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
@@ -1468,6 +1489,11 @@ changed(S06c13): model.ts (paneTreeHidden chat opt-in default;
               rewritten).
 tests(S06c13): 583 passing / 52 suites; typecheck/build/smoke
               green; dev-mode CDP pin + screenshot.
+changed(S06c14): model.ts (chatContextsExplicitNone); ChatView
+              (contextless send anchored on the transcript; auto
+              pill ×; no-context pill with ↺); tests.
+tests(S06c14): 584 passing / 52 suites; typecheck/build/smoke
+              green; dev-mode CDP pin.
 next action : S07 — acceptance: 18 §M2 intents re-run on the REAL
               provider + owner bench on the live vault (real
               question over a real selection via the context menu,
