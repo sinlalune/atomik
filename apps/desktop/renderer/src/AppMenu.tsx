@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import type { AiEngine, AiSettingsPublic } from '../../shared/ipc-contract'
+import type {
+  AiEngine,
+  AiSettingsPublic,
+  PaneNode,
+  WorkspaceTab
+} from '../../shared/ipc-contract'
 import { materializeStarterPrompts } from './editor/prompts'
 import { MenuIcon } from './icons'
 import { acquireWebOverlay } from './web/overlay'
@@ -10,6 +15,8 @@ import {
   NOTE_WIDTH_DEFAULT,
   NOTE_WIDTH_MAX,
   NOTE_WIDTH_MIN,
+  migratePaneTrees,
+  migrateRetiredViews,
   noteFontSizeOf,
   noteWidthOf,
   setNoteFontSize,
@@ -169,6 +176,72 @@ export function AppMenu(): React.JSX.Element {
     )
   }
 
+  // S06c18 (owner): NAMED WORKSPACES — save the current layout under a
+  // name, load one back later, delete it. Snapshots live in
+  // .atomik/workspaces/ (validated, disposable). The current state is
+  // read LAZILY (useWorkspace.getState) so the menu keeps its narrow
+  // subscriptions.
+  const [wsName, setWsName] = useState('')
+  const [snapshots, setSnapshots] = useState<
+    Array<{ name: string; savedAt: number }>
+  >([])
+  const refreshSnapshots = (): void => {
+    window.atomik.listWorkspaceSnapshots().then(setSnapshots, () =>
+      setSnapshots([])
+    )
+  }
+  useEffect(() => {
+    if (open) refreshSnapshots()
+  }, [open])
+
+  const saveSnapshot = (): void => {
+    const current = useWorkspace.getState().state
+    const name = wsName.trim()
+    if (!current || name.length === 0) return
+    setBusy(true)
+    setError(null)
+    window.atomik.saveWorkspaceSnapshot(name, current).then(
+      () => {
+        setBusy(false)
+        setWsName('')
+        refreshSnapshots()
+      },
+      (cause) => {
+        setBusy(false)
+        setError(String(cause))
+      }
+    )
+  }
+
+  const loadSnapshot = async (name: string): Promise<void> => {
+    const snapshot = await window.atomik
+      .readWorkspaceSnapshot(name)
+      .catch(() => null)
+    if (!snapshot) {
+      setError(`couldn't load workspace "${name}" — it may be corrupt`)
+      return
+    }
+    // the current layout's native web views die with their tabs
+    const current = useWorkspace.getState().state
+    if (current) {
+      const walk = (node: PaneNode): WorkspaceTab[] =>
+        node.kind === 'leaf'
+          ? node.tabs
+          : [...walk(node.first), ...walk(node.second)]
+      for (const tab of walk(current.root)) {
+        if (tab.view === 'source-web') void window.atomik.webViewDestroy(tab.id)
+      }
+    }
+    dispatch(() => migratePaneTrees(migrateRetiredViews(snapshot)))
+    setOpen(false)
+  }
+
+  const deleteSnapshot = (name: string): void => {
+    window.atomik.deleteWorkspaceSnapshot(name).then(refreshSnapshots, (cause) =>
+      setError(String(cause))
+    )
+  }
+
   const pickEngine = (engine: AiEngine): void => {
     setBusy(true)
     setError(null)
@@ -213,6 +286,51 @@ export function AppMenu(): React.JSX.Element {
               </button>
             ))}
           </div>
+
+          <h4>Workspaces</h4>
+          <div className="app-menu-row app-menu-workspace-save">
+            <input
+              type="text"
+              value={wsName}
+              placeholder="save current layout as…"
+              aria-label="Workspace name"
+              onChange={(event) => setWsName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') saveSnapshot()
+              }}
+            />
+            <button
+              type="button"
+              disabled={busy || wsName.trim().length === 0}
+              onClick={saveSnapshot}
+            >
+              Save
+            </button>
+          </div>
+          {snapshots.length > 0 && (
+            <div className="app-menu-workspaces">
+              {snapshots.map((snapshot) => (
+                <div key={snapshot.name} className="app-menu-workspace-row">
+                  <button
+                    type="button"
+                    title={`Load workspace "${snapshot.name}" — replaces the current layout`}
+                    onClick={() => void loadSnapshot(snapshot.name)}
+                  >
+                    {snapshot.name}
+                  </button>
+                  <button
+                    type="button"
+                    className="app-menu-clear"
+                    title={`Delete workspace "${snapshot.name}"`}
+                    aria-label={`Delete workspace ${snapshot.name}`}
+                    onClick={() => deleteSnapshot(snapshot.name)}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
           <h4>Note text · Size</h4>
           <NotePxRow

@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import type { PaneNode, WorkspaceState, WorkspaceTab } from '../shared/ipc-contract'
 
@@ -117,6 +117,106 @@ export function writeWorkspaceState(stateDir: string, state: unknown): void {
     rmSync(temp, { force: true })
     throw error
   }
+}
+
+/**
+ * NAMED WORKSPACES (CP-MVP-008 S06c18, owner: "save layout as
+ * 'workspaces' that we can load when we want to work on a specific
+ * subject and get it back to the same state we left it"). Snapshots
+ * are ordinary validated WorkspaceState files under
+ * `.atomik/workspaces/<name>.json` — same trust boundary, same atomic
+ * write, same caps as the live layout. Disposable machine-local UI
+ * state (03): never knowledge, safe to delete.
+ */
+
+export const WORKSPACE_SNAPSHOT_DIR = 'workspaces'
+const MAX_SNAPSHOT_NAME = 60
+
+/** Snapshot names become file names: fs/link-hostile characters drop,
+ *  whitespace collapses; null = unusable. */
+export function sanitizeSnapshotName(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null
+  const name = raw
+    .replace(/[\\/:*?"<>|#^[\]{}\n\r\t]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, MAX_SNAPSHOT_NAME)
+    .replace(/^[. ]+/, '')
+    .replace(/[. ]+$/, '')
+  return name.length > 0 ? name : null
+}
+
+function snapshotAbs(stateDir: string, name: string): string {
+  return join(stateDir, WORKSPACE_SNAPSHOT_DIR, `${name}.json`)
+}
+
+export function saveWorkspaceSnapshot(
+  stateDir: string,
+  rawName: unknown,
+  state: unknown
+): void {
+  const name = sanitizeSnapshotName(rawName)
+  if (!name) throw new Error('workspace-snapshot: rejected name')
+  if (!isValidWorkspaceState(state)) {
+    throw new Error('workspace-snapshot: rejected payload')
+  }
+  const json = `${JSON.stringify(state, null, 2)}\n`
+  if (Buffer.byteLength(json, 'utf8') > MAX_BYTES) {
+    throw new Error('workspace-snapshot: payload too large')
+  }
+  mkdirSync(join(stateDir, WORKSPACE_SNAPSHOT_DIR), { recursive: true })
+  const target = snapshotAbs(stateDir, name)
+  const temp = `${target}.tmp-${process.pid}`
+  writeFileSync(temp, json, 'utf8')
+  try {
+    renameSync(temp, target)
+  } catch (error) {
+    rmSync(temp, { force: true })
+    throw error
+  }
+}
+
+export function listWorkspaceSnapshots(
+  stateDir: string
+): Array<{ name: string; savedAt: number }> {
+  try {
+    const dir = join(stateDir, WORKSPACE_SNAPSHOT_DIR)
+    return readdirSync(dir)
+      .filter((file) => file.endsWith('.json'))
+      .map((file) => ({
+        name: file.slice(0, -'.json'.length),
+        savedAt: statSync(join(dir, file)).mtimeMs
+      }))
+      .sort((a, b) => b.savedAt - a.savedAt)
+  } catch {
+    return []
+  }
+}
+
+/** Missing, corrupt, or invalid snapshots read as null (03). */
+export function readWorkspaceSnapshot(
+  stateDir: string,
+  rawName: unknown
+): WorkspaceState | null {
+  const name = sanitizeSnapshotName(rawName)
+  if (!name) return null
+  try {
+    const raw = readFileSync(snapshotAbs(stateDir, name), 'utf8')
+    if (Buffer.byteLength(raw, 'utf8') > MAX_BYTES) return null
+    const parsed: unknown = JSON.parse(raw)
+    return isValidWorkspaceState(parsed) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+export function deleteWorkspaceSnapshot(
+  stateDir: string,
+  rawName: unknown
+): void {
+  const name = sanitizeSnapshotName(rawName)
+  if (!name) throw new Error('workspace-snapshot: rejected name')
+  rmSync(snapshotAbs(stateDir, name), { force: true })
 }
 
 /* S07q (owner report: a WHITE band framing the dark app): the native

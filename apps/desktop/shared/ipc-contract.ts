@@ -20,6 +20,10 @@ export const ATOMIK_CHANNELS = {
   readDevDoc: 'atomik:read-dev-doc',
   readWorkspaceState: 'atomik:read-workspace-state',
   writeWorkspaceState: 'atomik:write-workspace-state',
+  saveWorkspaceSnapshot: 'atomik:save-workspace-snapshot',
+  listWorkspaceSnapshots: 'atomik:list-workspace-snapshots',
+  readWorkspaceSnapshot: 'atomik:read-workspace-snapshot',
+  deleteWorkspaceSnapshot: 'atomik:delete-workspace-snapshot',
   openVault: 'atomik:open-vault',
   /** Push (main -> renderer): the open vault changed. Every mounted
    *  vault-backed view must drop state from the previous vault. */
@@ -572,6 +576,11 @@ export type AtomikApi = {
   readDevDoc: (relPath: string) => Promise<DevDocFile>
   /** Restores the saved workspace layout; null when absent or invalid. */
   readWorkspaceState: () => Promise<WorkspaceState | null>
+  /** Named layout snapshots (S06c18): save/list/load/delete. */
+  saveWorkspaceSnapshot: (name: string, state: WorkspaceState) => Promise<void>
+  listWorkspaceSnapshots: () => Promise<Array<{ name: string; savedAt: number }>>
+  readWorkspaceSnapshot: (name: string) => Promise<WorkspaceState | null>
+  deleteWorkspaceSnapshot: (name: string) => Promise<void>
   /** Persists the layout; the main process validates shape and size. */
   writeWorkspaceState: (state: WorkspaceState) => Promise<void>
   /** Native folder picker in main; null when cancelled. Remembered.
@@ -763,6 +772,10 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'readDevDoc',
   'readWorkspaceState',
   'writeWorkspaceState',
+  'saveWorkspaceSnapshot',
+  'listWorkspaceSnapshots',
+  'readWorkspaceSnapshot',
+  'deleteWorkspaceSnapshot',
   'openVault',
   'onVaultChanged',
   'onVaultFilesChanged',

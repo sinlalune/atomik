@@ -1312,6 +1312,34 @@ body[data-maximized] .tabstrip {
   min-height: 1.2rem;
 }
 
+/* S06c18: named workspaces in the app menu */
+.app-menu-workspace-save {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.app-menu-workspace-save input {
+  flex: 1;
+  min-width: 0;
+}
+
+.app-menu-workspaces {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.app-menu-workspace-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.app-menu-workspace-row > button:first-child {
+  flex: 1;
+  text-align: left;
+}
+
 /* S06c16: per-exchange run metrics — latency + tokens in/out */
 .chat-turn-metrics {
   font-size: var(--fs-xs);

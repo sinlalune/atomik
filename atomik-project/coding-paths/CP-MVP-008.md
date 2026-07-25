@@ -1320,6 +1320,27 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       needs-citation / interpretive marks + titles + <br>-fused spans).
       Tests 584→593/53 (claim-highlight suite NEW + revealNote);
       typecheck/build/smoke green.
+- [x] S06c18 (owner: "we should be able to save layout as
+      'workspaces' that we can load when we want to work on a
+      specific subject and get it back to the same state we left
+      it") — DONE 2026-07-25. NAMED WORKSPACES: snapshots are
+      ordinary validated WorkspaceState files under
+      `.atomik/workspaces/<name>.json` — same trust boundary, atomic
+      write, and caps as the live layout; disposable, never
+      knowledge (03). workspace-state.ts grows
+      sanitize/save/list/read/delete (create AND delete in one unit —
+      the lifecycle rule); four narrow channels ride the
+      contract/preload/main pattern (preload-surface drift test
+      covers them). UI: ☰ menu "Workspaces" section — name a save of
+      the CURRENT layout (read lazily via useWorkspace.getState, the
+      menu keeps its narrow subscriptions), click a listed snapshot
+      to LOAD (current native web views destroyed first; snapshot
+      passes the same load-time migrations as startup), × deletes.
+      Because chat tabs carry conversation pointers and context
+      picks in params, a loaded workspace restores its chats too.
+      Dev-mode CDP pin: save "philosophy" → open chat pane → load →
+      exact original layout back. Tests 593→598/53 (snapshot suite);
+      typecheck/build/smoke green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
@@ -1563,6 +1584,11 @@ changed(S06c17): claim-highlight.ts NEW; ChatView (ClaimBody, chips
               (.claim-mark tints); tests (2 suites).
 tests(S06c17): 593 passing / 53 suites; typecheck/build/smoke
               green; dev-mode CDP pin.
+changed(S06c18): workspace-state.ts (snapshot verbs); ipc-contract +
+              preload + index.ts (4 channels); AppMenu (Workspaces
+              section); styles.css; tests.
+tests(S06c18): 598 passing / 53 suites; typecheck/build/smoke
+              green; dev-mode CDP pin (save→mutate→load).
 next action : S07 — acceptance: 18 §M2 intents re-run on the REAL
               provider + owner bench on the live vault (real
               question over a real selection via the context menu,

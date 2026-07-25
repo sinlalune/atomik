@@ -75,7 +75,11 @@ import {
   writeNote
 } from './vault'
 import {
+  deleteWorkspaceSnapshot,
+  listWorkspaceSnapshots,
+  readWorkspaceSnapshot,
   readWorkspaceState,
+  saveWorkspaceSnapshot,
   resolveStateDir,
   windowBackgroundFor,
   writeWorkspaceState
@@ -869,6 +873,24 @@ function registerIpcHandlers(docsRoot: string, stateDir: string): void {
   ipcMain.handle(
     ATOMIK_CHANNELS.writeWorkspaceState,
     (_event, state: unknown) => writeWorkspaceState(stateDir, state)
+  )
+  // Named workspaces (S06c18): validated snapshots beside the live
+  // layout — same trust boundary and caps.
+  ipcMain.handle(
+    ATOMIK_CHANNELS.saveWorkspaceSnapshot,
+    (_event, name: unknown, state: unknown) =>
+      saveWorkspaceSnapshot(stateDir, name, state)
+  )
+  ipcMain.handle(ATOMIK_CHANNELS.listWorkspaceSnapshots, () =>
+    listWorkspaceSnapshots(stateDir)
+  )
+  ipcMain.handle(
+    ATOMIK_CHANNELS.readWorkspaceSnapshot,
+    (_event, name: unknown) => readWorkspaceSnapshot(stateDir, name)
+  )
+  ipcMain.handle(
+    ATOMIK_CHANNELS.deleteWorkspaceSnapshot,
+    (_event, name: unknown) => deleteWorkspaceSnapshot(stateDir, name)
   )
 }
 

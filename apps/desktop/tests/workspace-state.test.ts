@@ -5,9 +5,14 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { WorkspaceState } from '../shared/ipc-contract'
 import {
   WORKSPACE_STATE_FILE,
+  deleteWorkspaceSnapshot,
   isValidWorkspaceState,
+  listWorkspaceSnapshots,
+  readWorkspaceSnapshot,
   readWorkspaceState,
   resolveStateDir,
+  sanitizeSnapshotName,
+  saveWorkspaceSnapshot,
   windowBackgroundFor,
   writeWorkspaceState
 } from '../electron-main/workspace-state'
@@ -233,5 +238,50 @@ describe('windowBackgroundFor (S07q — the native band color)', () => {
     expect(windowBackgroundFor(withTheme('system'), false)).toBe('#ecece6')
     expect(windowBackgroundFor(withTheme('someday-theme'), true)).toBe('#141418')
     expect(windowBackgroundFor(null, false)).toBe('#ecece6')
+  })
+})
+
+describe('named workspace snapshots (S06c18)', () => {
+  it('sanitizeSnapshotName drops fs-hostile characters and caps length', () => {
+    expect(sanitizeSnapshotName('  my research / stoicism  ')).toBe(
+      'my research stoicism'
+    )
+    expect(sanitizeSnapshotName('..\\evil')).toBe('evil')
+    expect(sanitizeSnapshotName('')).toBeNull()
+    expect(sanitizeSnapshotName('///')).toBeNull()
+    expect(sanitizeSnapshotName(42)).toBeNull()
+    expect(sanitizeSnapshotName('x'.repeat(200))!.length).toBeLessThanOrEqual(60)
+  })
+
+  it('save → list → read round-trips a validated snapshot', () => {
+    const state = validState()
+    saveWorkspaceSnapshot(dir, 'stoicism', state)
+    const listed = listWorkspaceSnapshots(dir)
+    expect(listed.map((entry) => entry.name)).toContain('stoicism')
+    expect(readWorkspaceSnapshot(dir, 'stoicism')).toEqual(state)
+  })
+
+  it('rejects invalid names and payloads; unknown reads are null', () => {
+    expect(() => saveWorkspaceSnapshot(dir, '', validState())).toThrow()
+    expect(() => saveWorkspaceSnapshot(dir, 'ok', { junk: true })).toThrow()
+    expect(readWorkspaceSnapshot(dir, 'never-saved')).toBeNull()
+    expect(readWorkspaceSnapshot(dir, '')).toBeNull()
+  })
+
+  it('delete removes the snapshot; deleting twice is a no-op', () => {
+    saveWorkspaceSnapshot(dir, 'ephemeral', validState())
+    expect(readWorkspaceSnapshot(dir, 'ephemeral')).not.toBeNull()
+    deleteWorkspaceSnapshot(dir, 'ephemeral')
+    expect(readWorkspaceSnapshot(dir, 'ephemeral')).toBeNull()
+    deleteWorkspaceSnapshot(dir, 'ephemeral')
+    expect(
+      listWorkspaceSnapshots(dir).map((entry) => entry.name)
+    ).not.toContain('ephemeral')
+  })
+
+  it('a corrupt snapshot file reads as null instead of crashing', () => {
+    saveWorkspaceSnapshot(dir, 'corrupt-me', validState())
+    writeFileSync(join(dir, 'workspaces', 'corrupt-me.json'), 'not json')
+    expect(readWorkspaceSnapshot(dir, 'corrupt-me')).toBeNull()
   })
 })

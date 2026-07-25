@@ -41,6 +41,14 @@ const api: AtomikApi = {
     ipcRenderer.invoke(ATOMIK_CHANNELS.readWorkspaceState),
   writeWorkspaceState: (state: WorkspaceState) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.writeWorkspaceState, state),
+  saveWorkspaceSnapshot: (name: string, state: WorkspaceState) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.saveWorkspaceSnapshot, name, state),
+  listWorkspaceSnapshots: () =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.listWorkspaceSnapshots),
+  readWorkspaceSnapshot: (name: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.readWorkspaceSnapshot, name),
+  deleteWorkspaceSnapshot: (name: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.deleteWorkspaceSnapshot, name),
   openVault: () => ipcRenderer.invoke(ATOMIK_CHANNELS.openVault),
   onVaultChanged: (listener: (vault: VaultInfo | null) => void) => {
     const wrapped = (_event: unknown, vault: VaultInfo | null): void =>
