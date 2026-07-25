@@ -1144,6 +1144,31 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       active → note pane → chat door → SECOND conversation focused,
       turns intact (first-match would have shown the first). Tests
       575→576/52; typecheck/build/smoke green.
+- [x] S06c10 (owner: "the bug is still active" + 4 screenshots: both
+      conversations empty after switching between chat tabs) — DONE
+      2026-07-25. THE ACTUAL MECHANISM, dev-mode only, present since
+      the loadedRef guard was born: main.tsx wraps the app in
+      React.StrictMode, and dev builds run every effect
+      setup→cleanup→setup on mount. ChatView's transcript-load
+      effect: setup #1 claimed `loadedRef.current = file` and started
+      the read; cleanup #1 set `live = false` (discarding that read's
+      setTurns); setup #2 hit `file === loadedRef.current` and
+      early-returned — NO read ever landed, so EVERY remount (= every
+      tab switch) rendered an empty chat. Invisible to all prior
+      verification because production builds (npm run build + smoke,
+      every CDP pin) run effects once — the owner runs electron-vite
+      dev (confirmed: their instance is `electron-vite dev`, started
+      11:05). During a conversation turns append to local state, so
+      the chat LOOKS fine until the next switch — exactly the
+      screenshots. FIX (ChatView): the effect's cleanup surrenders
+      the claim (`loadedRef.current = null`) so the next setup
+      re-reads; the persistTurn prop-echo protection survives (its
+      claim is set outside the effect and the null-file run arms no
+      cleanup). Pinned in DEV MODE over CDP: restored state mounts
+      with turns, switch away and back both reload. Tests 576/52
+      unchanged (StrictMode effect semantics live outside the node
+      suite — the dev-mode pin is the verification);
+      typecheck/build/smoke green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
@@ -1341,6 +1366,12 @@ changed(S06c9): model.ts (openChatPane prefers the pane's ACTIVE
               chat tab; first tab = fallback only); tests
               (multi-conversation regression pin).
 tests(S06c9): 576 passing / 52 suites; typecheck/build/smoke green.
+changed(S06c10): ChatView (transcript-load effect StrictMode-safe:
+              cleanup surrenders the loadedRef claim) — the owner's
+              actual "chat wiped on tab switch" (dev-only, since the
+              guard existed).
+tests(S06c10): 576/52 unchanged; typecheck/build/smoke green;
+              dev-mode CDP pin (the failing runtime).
 next action : S07 — acceptance: 18 §M2 intents re-run on the REAL
               provider + owner bench on the live vault (real
               question over a real selection via the context menu,

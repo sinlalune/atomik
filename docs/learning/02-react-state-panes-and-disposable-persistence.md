@@ -147,6 +147,18 @@ them into one disk write after the movement settles.
   press the divider, it keeps receiving move events even when the cursor
   leaves it. Fraction updates flow through the same dispatch as everything
   else — no special path for drags.
+- **StrictMode is part of the effect contract** (S06c10, found the hard
+  way): dev builds run every effect setup→cleanup→setup on mount. An
+  effect that (a) claims a ref BEFORE its async work commits and (b)
+  cancels that work in cleanup starves its own second run: setup #1
+  claims and starts, cleanup #1 cancels, setup #2 sees the claim and
+  skips — nothing ever lands. ChatView's transcript load did exactly
+  this, so in dev every tab switch remounted into an empty chat, while
+  production (single setup) was fine — which is why every
+  production-build verification pin missed it for four fix rounds. Two
+  rules: **a cleanup must surrender whatever its setup claimed**, and
+  **lifecycle fixes get verified in the runtime the owner actually
+  uses** (electron-vite dev = development React = StrictMode).
 
 ## 7. Try it yourself
 

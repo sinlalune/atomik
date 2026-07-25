@@ -216,8 +216,11 @@ export function ChatView({
   // The transcript is a NOTE: (re)opening the pane loads whatever the
   // file says now — hand edits included. A file THIS session just
   // created is already in local state — the guard keeps the prop echo
-  // from racing the in-flight answer. A failed read KEEPS the pointer
-  // (S06b: a transient failure must not wipe the chat) and says so.
+  // from racing the in-flight answer (persistTurn claims loadedRef
+  // BEFORE patching the param, and that run early-returns here without
+  // arming a cleanup, so the claim sticks). A failed read KEEPS the
+  // pointer (S06b: a transient failure must not wipe the chat) and
+  // says so.
   const loadedRef = useRef<string | null>(null)
   useEffect(() => {
     if (file === loadedRef.current) return
@@ -246,6 +249,13 @@ export function ChatView({
     )
     return () => {
       live = false
+      // S06c10: dev StrictMode runs setup→cleanup→setup on every
+      // mount. Cleanup killed this read via `live`, and the ref then
+      // told setup #2 the file was already loaded — so NO read ever
+      // landed and every tab switch remounted into an empty chat
+      // (dev-only: production ran setup once and never saw it).
+      // Surrendering the claim makes the next setup read again.
+      loadedRef.current = null
     }
     // reload on file change only — sends update local state themselves
     // eslint-disable-next-line react-hooks/exhaustive-deps
