@@ -14,7 +14,7 @@ import { GeneratedNoteScreen } from './GeneratedNoteScreen'
  * type, chosen at pane birth.
  */
 
-export type PaneKindPick = 'vault' | 'project' | 'docs' | 'chat'
+export type PaneKindPick = 'vault' | 'project' | 'docs' | 'chat' | 'web'
 
 const PANE_OPTIONS: ReadonlyArray<{
   kind: PaneKindPick
@@ -25,7 +25,11 @@ const PANE_OPTIONS: ReadonlyArray<{
   { kind: 'project', label: 'Projects', hint: 'work inside a project bundle' },
   { kind: 'docs', label: 'Docs', hint: 'read the documentation corpus' },
   // S06c (owner): the chat is a first-class pane, spawnable from birth
-  { kind: 'chat', label: 'Chat', hint: 'converse with the AI over any open note' }
+  { kind: 'chat', label: 'Chat', hint: 'converse with the AI over any open note' },
+  // S06c12 (owner): the web is a pane choice too — a vault-typed pane
+  // (tree hidden, one toggle away) born with a web tab; its + still
+  // serves notes and imports like any vault pane
+  { kind: 'web', label: 'Web', hint: 'browse the web, isolated; import pages as sources' }
 ]
 
 export function NewPaneChooser({

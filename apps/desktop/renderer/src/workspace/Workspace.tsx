@@ -477,6 +477,23 @@ function LeafPane({
       )
       return
     }
+    if (kind === 'web') {
+      // S06c12: a web pane is a vault pane born with a web tab — the
+      // tree starts hidden (the web is the point; openNoteInNewPane
+      // precedent), and the + serves any tab type as usual
+      dispatch((state) =>
+        addTab(
+          updatePaneTree(
+            setPaneTreeScope(state, node.id, { kind: 'vault' }),
+            node.id,
+            { off: '1' }
+          ),
+          node.id,
+          makeTab('source-web')
+        )
+      )
+      return
+    }
     dispatch((state) =>
       addTab(
         setPaneTreeScope(state, node.id, { kind }),

@@ -554,37 +554,83 @@ export function splitPane(
   return { ...state, root, focusedPaneId: empty.id }
 }
 
+/** A leaf whose panel can show a tree (vault/project/docs — hidden
+ *  still counts, the toggle is one click). Chat panes bear none by
+ *  design (S06c2); untyped leaves present the New Pane chooser. */
+function isTreeBearingLeaf(node: PaneNode): node is LeafNode {
+  return (
+    node.kind === 'leaf' &&
+    node.tree !== undefined &&
+    paneTreeScopeOf(node.tree).kind !== 'chat'
+  )
+}
+
+function treeBearingCount(node: PaneNode): number {
+  if (node.kind === 'split') {
+    return treeBearingCount(node.first) + treeBearingCount(node.second)
+  }
+  return isTreeBearingLeaf(node) ? 1 : 0
+}
+
+/** S06c11/12 landing state: tabs closed, VAULT tree SHOWN (a kept
+ *  'off' would hide the very panel the landing exists for), width and
+ *  fold prefs kept. */
+function emptiedOntoVault(node: LeafNode): LeafNode {
+  const kept: PaneTree = {}
+  for (const key of ['w', 'open']) {
+    const value = node.tree?.[key]
+    if (value !== undefined) kept[key] = value
+  }
+  return {
+    kind: 'leaf',
+    id: node.id,
+    tabs: [],
+    activeTabId: null,
+    tree: { ...kept, kind: 'vault' }
+  }
+}
+
+/** Already the S06c11 landing state — closing it again is a no-op. */
+function isVaultLanding(node: LeafNode): boolean {
+  return (
+    node.tabs.length === 0 &&
+    node.tree?.['kind'] === 'vault' &&
+    node.tree?.['off'] === undefined
+  )
+}
+
+function findLeaf(node: PaneNode, paneId: string): LeafNode | null {
+  if (node.kind === 'leaf') return node.id === paneId ? node : null
+  return findLeaf(node.first, paneId) ?? findLeaf(node.second, paneId)
+}
+
 /**
  * S07e: the tabstrip's ✕ closes the whole PANE — a non-root leaf
  * collapses into its sibling; the root leaf instead empties (the
  * workspace never disappears). S06c11 (owner: "if we close everything
  * we should always have a current vault tree panel available"): the
- * emptied root lands VAULT-TYPED — tree panel present, panel prefs
- * (off/w/open) kept — instead of the untyped New Pane chooser. The
+ * emptied root lands VAULT-TYPED — tree panel shown, width/fold prefs
+ * kept — instead of the untyped New Pane chooser. S06c12 (owner: "if
+ * chat pane is open and it is the last tab the left vault tree pane
+ * disappears"): the same landing applies to the workspace's LAST
+ * tree-bearing pane wherever it sits — closing it empties it in place
+ * rather than collapsing it into a treeless (chat) sibling. The
  * caller destroys native views of the closed tabs.
  */
 export function closePane(state: WorkspaceState, paneId: string): WorkspaceState {
   if (state.root.kind === 'leaf') {
     if (state.root.id !== paneId) return state
-    if (
-      state.root.tabs.length === 0 &&
-      state.root.tree?.['kind'] === 'vault'
-    ) {
-      return state
-    }
-    const kept: PaneTree = {}
-    for (const key of ['off', 'w', 'open']) {
-      const value = state.root.tree?.[key]
-      if (value !== undefined) kept[key] = value
-    }
-    const root: LeafNode = {
-      kind: 'leaf',
-      id: state.root.id,
-      tabs: [],
-      activeTabId: null,
-      tree: { ...kept, kind: 'vault' }
-    }
-    return { ...state, root }
+    if (isVaultLanding(state.root)) return state
+    return { ...state, root: emptiedOntoVault(state.root) }
+  }
+  const target = findLeaf(state.root, paneId)
+  if (
+    target &&
+    isTreeBearingLeaf(target) &&
+    treeBearingCount(state.root) === 1
+  ) {
+    if (isVaultLanding(target)) return state
+    return mapLeaf(state, paneId, emptiedOntoVault)
   }
   const remove = (node: PaneNode): PaneNode | null => {
     if (node.kind === 'leaf') return node.id === paneId ? null : node
@@ -645,13 +691,22 @@ export function closeTab(
   paneId: string,
   tabId: string
 ): WorkspaceState {
+  // S06c12: the last tree-bearing pane never collapses away — its
+  // last tab closing lands it on the vault tree instead
+  const closing = findLeaf(state.root, paneId)
+  const keepInPlace =
+    closing !== null &&
+    isTreeBearingLeaf(closing) &&
+    treeBearingCount(state.root) === 1
   const remove = (node: PaneNode): PaneNode | null => {
     if (node.kind === 'leaf') {
       if (node.id !== paneId) return node
       const index = node.tabs.findIndex((tab) => tab.id === tabId)
       if (index === -1) return node
       const tabs = node.tabs.filter((tab) => tab.id !== tabId)
-      if (tabs.length === 0) return null
+      if (tabs.length === 0) {
+        return keepInPlace ? emptiedOntoVault(node) : null
+      }
       const activeTabId =
         node.activeTabId === tabId
           ? (tabs[Math.min(index, tabs.length - 1)]?.id ?? null)
@@ -901,6 +956,18 @@ export function closeEmptyPane(
   state: WorkspaceState,
   paneId: string
 ): WorkspaceState {
+  // S06c12: even an explicit ✕ cannot remove the last tree-bearing
+  // pane — it re-lands on the visible vault tree instead
+  const target = findLeaf(state.root, paneId)
+  if (
+    target &&
+    target.tabs.length === 0 &&
+    isTreeBearingLeaf(target) &&
+    treeBearingCount(state.root) === 1
+  ) {
+    if (isVaultLanding(target)) return state
+    return mapLeaf(state, paneId, emptiedOntoVault)
+  }
   const remove = (node: PaneNode): PaneNode | null => {
     if (node.kind === 'leaf') {
       return node.id === paneId && node.tabs.length === 0 ? null : node

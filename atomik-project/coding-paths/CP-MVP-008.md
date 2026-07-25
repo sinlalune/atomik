@@ -1185,6 +1185,33 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       chooser offered. Tests 576→577/52 (S07e root test rewritten to
       the new contract + prefs-kept case + closeTab collapse typed);
       typecheck/build/smoke green.
+- [x] S06c12 (owner, two directives: "web tab should be a pane choice
+      and tab choice" + "if chat pane is open and it is the last tab
+      the left vault tree pane disappears — will the same happen with
+      a web pane?") — DONE 2026-07-25. (1) WEB PANE CHOICE: the New
+      Pane chooser gains Web — a vault-typed pane born with a
+      source-web tab, tree hidden at birth (the web is the point;
+      openNoteInNewPane precedent), so its + serves notes/imports/web
+      like any vault pane ("can contain other tab types also"). (2)
+      THE LAST-TREE INVARIANT (S06c11 generalized): closePane's
+      non-root collapse could still fold the only tree-bearing pane
+      into a treeless CHAT sibling — the workspace's LAST tree-bearing
+      pane (vault/project/docs typed; hidden tree still counts, chat
+      panes bear none by design) now never disappears: closePane and
+      closeTab-collapse land it EMPTY ONTO THE VISIBLE vault tree in
+      place ('off' dropped — the landing exists to show the tree;
+      w/open kept), closeEmptyPane no-ops on it; chat panes themselves
+      still collapse away normally. ANSWER to the web wondering: a web
+      pane IS tree-bearing (vault-typed, tree one toggle away), so a
+      lone web pane keeps the tree reachable, and closing its last web
+      tab lands on the visible tree. S06c amendment: the origin pane
+      closing beside the chat now leaves TWO panes (empty vault tree +
+      untouched chat) — the chat still survives, the tree does too.
+      Dev-mode CDP pin, 5 checkpoints (chooser lists Web; web pane
+      spawns; lone web pane tree hidden-toggleable; web-tab close →
+      visible tree; vault-pane close beside chat → both panes). Tests
+      577→582/52 (5 new + S06c survival test amended);
+      typecheck/build/smoke green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
@@ -1394,6 +1421,13 @@ changed(S06c11): model.ts (closePane root branch vault-typed +
               (S07e root contract rewritten + 2 new).
 tests(S06c11): 577 passing / 52 suites; typecheck/build/smoke
               green; dev-mode CDP pin.
+changed(S06c12): NewTabChooser (Web pane option); Workspace
+              (pickPaneKind web spawn); model.ts (last-tree-bearing
+              invariant: isTreeBearingLeaf/treeBearingCount/
+              emptiedOntoVault across closePane, closeTab,
+              closeEmptyPane); tests (5 new, 1 amended).
+tests(S06c12): 582 passing / 52 suites; typecheck/build/smoke
+              green; dev-mode CDP pin (5 checkpoints).
 next action : S07 — acceptance: 18 §M2 intents re-run on the REAL
               provider + owner bench on the live vault (real
               question over a real selection via the context menu,

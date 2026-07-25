@@ -362,9 +362,15 @@ describe('chat pane state (S06c: tab params, not pane chrome)', () => {
     const chatPane = leaves(withChat.root)[1]!
     const closed = closePane(withChat, originId)
     const survivors = leaves(closed.root)
-    expect(survivors.length).toBe(1)
-    expect(survivors[0]!.id).toBe(chatPane.id)
-    expect(survivors[0]!.tabs[0]!.view).toBe('chat')
+    // S06c12 amends the collapse: the chat pane survives untouched,
+    // and the origin — the last tree-bearing pane — stays as the
+    // empty vault-tree pane instead of vanishing
+    expect(survivors.length).toBe(2)
+    expect(survivors[0]!.id).toBe(originId)
+    expect(survivors[0]!.tabs).toEqual([])
+    expect(survivors[0]!.tree?.['kind']).toBe('vault')
+    expect(survivors[1]!.id).toBe(chatPane.id)
+    expect(survivors[1]!.tabs[0]!.view).toBe('chat')
   })
 
   it('chatContextsOf round-trips a JSON list, reads legacy single paths, caps (S06c3)', () => {
@@ -861,6 +867,72 @@ describe('closePane — the tabstrip ✕ (S07e)', () => {
     const closed = closePane(state, rootId)
     const leaf = closed.root as Extract<PaneNode, { kind: 'leaf' }>
     expect(leaf.tree).toEqual({ kind: 'vault', w: '320', open: 'notes' })
+  })
+
+  it('the LAST tree-bearing pane empties in place beside a chat pane (S06c12)', () => {
+    // vault pane + chat pane: closing the vault pane must not leave a
+    // treeless workspace — it lands on the empty vault tree instead
+    let state = createDefaultState('')
+    const vaultId = firstLeafId(state.root)
+    state = openChatPane(state, vaultId)
+    const closed = closePane(state, vaultId)
+    const [vaultLeaf, chatLeaf] = leaves(closed.root)
+    expect(leaves(closed.root).length).toBe(2)
+    expect(vaultLeaf!.id).toBe(vaultId)
+    expect(vaultLeaf!.tabs).toEqual([])
+    expect(vaultLeaf!.tree?.['kind']).toBe('vault')
+    expect(chatLeaf!.tree).toEqual({ kind: 'chat' })
+    expect(chatLeaf!.tabs).toHaveLength(1)
+  })
+
+  it('closing the last TAB of the last tree-bearing pane lands the same way (S06c12)', () => {
+    let state = createDefaultState('')
+    const vaultId = firstLeafId(state.root)
+    state = openChatPane(state, vaultId)
+    const vaultLeaf = leaves(state.root)[0]!
+    const closed = closeTab(state, vaultId, vaultLeaf.tabs[0]!.id)
+    const after = leaves(closed.root)[0]!
+    expect(leaves(closed.root).length).toBe(2)
+    expect(after.id).toBe(vaultId)
+    expect(after.tabs).toEqual([])
+    expect(after.tree?.['kind']).toBe('vault')
+  })
+
+  it('a web pane (vault-typed, tree hidden) landing SHOWS the tree (S06c12)', () => {
+    let state = createDefaultState('')
+    const vaultId = firstLeafId(state.root)
+    state = openChatPane(state, vaultId)
+    // retype the left pane as a web pane: vault tree hidden, web tab
+    state = updatePaneTree(state, vaultId, { off: '1', w: '300' })
+    const webTab = makeTab('source-web')
+    state = addTab(state, vaultId, webTab)
+    const vaultLeaf = leaves(state.root)[0]!
+    let closed = closeTab(state, vaultId, vaultLeaf.tabs[0]!.id)
+    closed = closeTab(closed, vaultId, webTab.id)
+    const after = leaves(closed.root)[0]!
+    expect(after.tabs).toEqual([])
+    // 'off' dropped — the landing exists to show the tree; width kept
+    expect(after.tree).toEqual({ kind: 'vault', w: '300' })
+  })
+
+  it('a chat pane itself still collapses away normally (S06c12)', () => {
+    let state = createDefaultState('')
+    const vaultId = firstLeafId(state.root)
+    state = openChatPane(state, vaultId)
+    const chatId = leaves(state.root)[1]!.id
+    const closed = closePane(state, chatId)
+    expect(closed.root.kind).toBe('leaf')
+    expect((closed.root as { id: string }).id).toBe(vaultId)
+  })
+
+  it('closeEmptyPane cannot remove the last tree-bearing pane (S06c12)', () => {
+    let state = createDefaultState('')
+    const vaultId = firstLeafId(state.root)
+    state = openChatPane(state, vaultId)
+    const vaultLeaf = leaves(state.root)[0]!
+    state = closeTab(state, vaultId, vaultLeaf.tabs[0]!.id)
+    // now empty + vault-typed beside the chat pane: ✕ is a no-op
+    expect(closeEmptyPane(state, vaultId)).toBe(state)
   })
 })
 
