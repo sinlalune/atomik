@@ -103,10 +103,12 @@ export function wireSystemPlan(
 const BLOCK_LABELS: Record<SystemPlanBlockId, string> = {
   identity: 'identity',
   'grounding-rules': 'grounding rules',
+  'grounding-rules-chat': 'grounding · chat',
   output: 'output brief',
   'output-replace-selection': 'output · replace',
   'output-append': 'output · append',
   'output-new-note': 'output · new note',
+  'output-chat': 'output · chat',
   'closing-rule': 'closing rule'
 }
 
@@ -126,29 +128,47 @@ const outputIdFor: Record<DestinationKind, BuiltinBlockId> = {
   'new-note': 'output-new-note'
 }
 
-/** The entry's CURRENT body — override-aware, destination-resolved —
- *  for hover previews and token figures (display = sent). */
+/** The entry's CURRENT body — override-aware, destination- AND
+ *  mode-resolved — for hover previews and token figures (display =
+ *  sent; the resolution mirrors composeSystemFromPlan). */
 export function systemPlanEntryBody(
   entry: SystemPlanEntry,
   destination: DestinationKind,
   builtins: BuiltinOverrides,
-  prompts: PromptFile[]
+  prompts: PromptFile[],
+  mode?: 'chat'
 ): string {
   if (entry.kind === 'prompt') {
     return prompts.find((prompt) => prompt.relPath === entry.relPath)?.body ?? ''
   }
-  const id = entry.id === 'output' ? outputIdFor[destination] : entry.id
+  const id =
+    entry.id === 'output'
+      ? mode === 'chat'
+        ? 'output-chat'
+        : outputIdFor[destination]
+      : entry.id === 'grounding-rules' && mode === 'chat'
+        ? 'grounding-rules-chat'
+        : entry.id
   return builtins[id]?.trim() || BUILTIN_BLOCK_DEFAULTS[id]
 }
 
 /** The vault file behind an entry, when one exists to edit: a prompt's
- *  own file, or a built-in's materialized override (root scope). */
+ *  own file, or a built-in's materialized override (root scope) —
+ *  mode-resolved like the body. */
 export function systemPlanEntryFile(
   entry: SystemPlanEntry,
-  destination: DestinationKind
+  destination: DestinationKind,
+  mode?: 'chat'
 ): string | null {
   if (entry.kind === 'prompt') return entry.relPath
-  const id = entry.id === 'output' ? outputIdFor[destination] : entry.id
+  const id =
+    entry.id === 'output'
+      ? mode === 'chat'
+        ? 'output-chat'
+        : outputIdFor[destination]
+      : entry.id === 'grounding-rules' && mode === 'chat'
+        ? 'grounding-rules-chat'
+        : entry.id
   return `prompts/${BUILTIN_SUBFOLDER}/${id}.md`
 }
 

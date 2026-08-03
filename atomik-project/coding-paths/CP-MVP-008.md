@@ -1656,6 +1656,38 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       spelled out likewise; restored pills get the same hovers.
       Live pin on the owner's exact message: header ↑~560 = 354+6+
       200, hovers verified. Tests 628/55; typecheck/build green.
+- [x] S07b12 (owner bench round 8, 2026-08-03, with the pasted
+      copy-request as evidence: "what worries me the most is that we
+      are using note generation prompt structure and content for a
+      chat interface" + "yes trim it" on the note-state redundancy) —
+      DONE 2026-08-03. THE CHAT GETS ITS OWN CONTRACT. (1) Request
+      MODE on the operation (`mode: 'chat'`, validated; absent = the
+      note contract, byte-untouched — tested): the system plan's
+      blocks resolve to chat variants — grounding-rules →
+      grounding-rules-chat (answer the QUESTION; the notes are
+      reference material, never the forced topic; the exact-quote
+      contract kept word-for-word so the claim checker still labels
+      chat answers), output → output-chat (conversational plain
+      markdown, concise; note-shaped only when asked to draft) —
+      two NEW registry blocks with defaults + materialized files
+      (menu action created both in the owner's vault). (2) The chat
+      USER message is question-first (composeChatUserMessage:
+      ## Question verbatim — never demoted to "style guidance" —
+      + ## Reference notes, quotable; no Steps, no Landing point;
+      empty anchors skipped); userTextOf joins systemTextOf as the
+      shared mode-aware resolver (adapter, breakdown, copy — one
+      set of bytes). (3) NOTE-STATE TRIM (the round-7 confirm):
+      chat never sends it; whole-note scopes drop it everywhere —
+      the excerpts repeated bytes the request already carried
+      (~750 tok observed). (4) system section preview + click-to-
+      edit resolve mode-aware (chat's 'output brief' chip previews
+      and opens output-chat.md). Live pin after a main restart
+      (HMR pitfall: the renderer sent mode before main knew the
+      field — 'ai: rejected operation'; the memory rule about dev-
+      mode pins earning their keep): "quelle est la différence
+      entre ethos et logos ?" → one direct conversational French
+      sentence, no heading, no topic hijack. Tests 628→631/55;
+      typecheck/build green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel

@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
   BUILTIN_BLOCK_DEFAULTS,
+  composeChatUserMessage,
   composeSystemFromPlan,
   composeSystemPrompt,
   DEFAULT_SYSTEM_PLAN,
-  systemTextOf
+  systemTextOf,
+  userTextOf
 } from '../shared/prompt-composition'
 import {
   defaultSystemPlan,
@@ -62,6 +64,52 @@ describe('composeSystemFromPlan (S07b8 — the system message as an ordered plan
     expect(composed).toContain('You are Juju.')
     expect(composed).toContain('You answer in French.')
     expect(composed).not.toContain('AI assistant inside Atomik')
+  })
+
+  it("chat mode resolves the CONVERSATION blocks — the note contract never leaks into chat (S07b12, owner: 'we are using the note generation prompt for a chat')", () => {
+    const chat = composeSystemFromPlan(DEFAULT_SYSTEM_PLAN, 'append', undefined, 'chat')
+    expect(chat).toContain("Answer the user's QUESTION directly")
+    expect(chat).toContain('Answer the question conversationally')
+    expect(chat).not.toContain('APPENDED to the note')
+    expect(chat).not.toContain('The subject selection IS the subject')
+    // the mechanical quote contract survives — the claim checker
+    // labels chat answers the same way
+    expect(chat).toContain('character for character')
+    // note mode is byte-for-byte untouched
+    expect(composeSystemFromPlan(DEFAULT_SYSTEM_PLAN, 'append')).toBe(
+      composeSystemPrompt(undefined, 'append')
+    )
+  })
+
+  it('the chat USER message is question-first with quotable references (S07b12)', () => {
+    const text = composeChatUserMessage('parle moi du logos', [
+      { content: "## L'ethos\n\nL'ethos est…", relPath: "philosophy/L'ethos.md" },
+      { content: '', relPath: 'empty-anchor.md' }
+    ])
+    expect(text).toContain('## Question\n\nparle moi du logos')
+    expect(text).toContain('## Reference notes — read-only, quotable')
+    expect(text).toContain("### `philosophy/L'ethos.md`")
+    // empty anchors (contextless transcripts) never appear
+    expect(text).not.toContain('empty-anchor')
+    // nothing note-shaped travels
+    expect(text).not.toContain('style and behavior guidance')
+    expect(text).not.toContain('## Steps')
+    expect(text).not.toContain('Landing point')
+    // no references = just the question
+    expect(composeChatUserMessage('hi', [])).not.toContain('## Reference')
+  })
+
+  it('userTextOf switches on mode; systemTextOf carries it (S07b12)', () => {
+    const base = {
+      instruction: 'parle moi du logos',
+      input: [{ content: 'Ethos text.', relPath: 'ethos.md' }],
+      target: { destination: { kind: 'append' as const } }
+    }
+    expect(userTextOf({ ...base, mode: 'chat' })).toContain('## Question')
+    expect(userTextOf(base)).toContain('## Instruction — style and behavior')
+    expect(
+      systemTextOf({ ...base, systemPlan: [...DEFAULT_SYSTEM_PLAN], mode: 'chat' })
+    ).toContain("Answer the user's QUESTION")
   })
 
   it('systemTextOf: a plan outranks the legacy stack path', () => {

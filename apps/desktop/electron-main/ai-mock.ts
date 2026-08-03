@@ -97,6 +97,8 @@ export function isValidAiOperation(value: unknown): value is AiOperation {
       if (typeof content !== 'string' || content.length === 0 || content.length > MAX_THREAD_TURN) return false
     }
   }
+  const mode = value['mode']
+  if (mode !== undefined && mode !== 'chat') return false
   const systemPlan = value['systemPlan']
   if (systemPlan !== undefined) {
     if (!Array.isArray(systemPlan) || systemPlan.length > MAX_PLAN_ENTRIES) return false

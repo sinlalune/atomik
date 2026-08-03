@@ -649,6 +649,8 @@ export function ChatView({
             systemStack: [],
             // S07b8: the conversation's arranged system rides every send
             systemPlan: wireSystemPlan(sysPlanRef.current, prompts),
+            // S07b12: a chat composes the CONVERSATION contract
+            mode: 'chat',
             prompts,
             builtins,
             destination: 'append',
@@ -1302,6 +1304,7 @@ export function ChatView({
               destination="append"
               builtins={sysBuiltins}
               prompts={sysPrompts ?? []}
+              mode="chat"
               onOpenFile={(relPath) =>
                 dispatch((state) => revealNote(state, paneId, relPath))
               }

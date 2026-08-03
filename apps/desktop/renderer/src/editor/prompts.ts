@@ -607,9 +607,12 @@ export async function loadBuiltinOverridesFor(
 const BUILTIN_BLOCK_DESCRIPTIONS: Record<BuiltinBlockId, string> = {
   identity: 'The Role section when no system stack is picked.',
   'grounding-rules': 'The Rules > Grounding section — the mechanical contract.',
+  'grounding-rules-chat':
+    'The Rules > Grounding section of CHAT sends — conversation-first, same quote contract.',
   'output-replace-selection': 'The Rules > Output brief for replace-selection runs.',
   'output-append': 'The Rules > Output brief for append runs.',
   'output-new-note': 'The Rules > Output brief for new-note runs.',
+  'output-chat': 'The Rules > Output brief for CHAT sends.',
   'closing-rule': 'The closing line of Rules > Output.'
 }
 

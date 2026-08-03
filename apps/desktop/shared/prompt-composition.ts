@@ -54,9 +54,11 @@ export const CLOSING_RULE =
 export const BUILTIN_BLOCK_IDS = [
   'identity',
   'grounding-rules',
+  'grounding-rules-chat',
   'output-replace-selection',
   'output-append',
   'output-new-note',
+  'output-chat',
   'closing-rule'
 ] as const
 
@@ -64,13 +66,36 @@ export type BuiltinBlockId = (typeof BUILTIN_BLOCK_IDS)[number]
 
 export type BuiltinOverrides = Partial<Record<BuiltinBlockId, string>>
 
+/**
+ * CHAT grounding (S07b12, owner: "we are using the note generation
+ * prompt structure and content for a chat interface"): a conversation
+ * answers the QUESTION — the reference notes are material to draw on
+ * and quote, never the forced topic. The mechanical quote contract
+ * stays word-for-word compatible with the note rules, so the claim
+ * checker labels chat answers the same way.
+ */
+export const CHAT_GROUNDING_RULES: readonly string[] = [
+  "Answer the user's QUESTION directly — the conversation sets the topic.",
+  'The reference notes and the conversation are your primary material; prefer them over general knowledge for anything they cover, and say so plainly when they do not cover the question.',
+  'When you state something a reference note supports, quote the supporting passage EXACTLY, character for character, so it can be verified mechanically.',
+  'Quote ONLY text that appears in the reference notes. NEVER quote your own sentences back as if they were sources; when nothing supports a statement, state it plainly without any quote block.',
+  'Never invent citations or sources.'
+]
+
+export const CHAT_OUTPUT_BRIEF =
+  'Answer the question conversationally in plain markdown — direct and concise, structured only as much as the answer needs; when asked to draft note content, shape it to drop cleanly into the note.'
+
 /** Each block's default = EXACTLY what composes without an override. */
 export const BUILTIN_BLOCK_DEFAULTS: Record<BuiltinBlockId, string> = {
   identity: BUILT_IN_IDENTITY,
   'grounding-rules': GROUNDING_RULES.map((rule) => `- ${rule}`).join('\n'),
+  'grounding-rules-chat': CHAT_GROUNDING_RULES.map((rule) => `- ${rule}`).join(
+    '\n'
+  ),
   'output-replace-selection': `- ${DESTINATION_BRIEF['replace-selection']}`,
   'output-append': `- ${DESTINATION_BRIEF.append}`,
   'output-new-note': `- ${DESTINATION_BRIEF['new-note']}`,
+  'output-chat': `- ${CHAT_OUTPUT_BRIEF}`,
   'closing-rule': `- ${CLOSING_RULE}`
 }
 
@@ -112,13 +137,26 @@ const blockHeadingFor: Partial<Record<SystemPlanBlockId, string[]>> = {
   output: ['## Output', '']
 }
 
+/** Request mode (S07b12): 'chat' composes the CONVERSATION contract —
+ *  the same plan blocks resolve to their chat variants. Absent = the
+ *  note-generation contract, unchanged. */
+export type RequestMode = 'chat'
+
 export function composeSystemFromPlan(
   plan: ReadonlyArray<WireSystemPlanEntry>,
   destination: DestinationKind,
-  builtins?: BuiltinOverrides
+  builtins?: BuiltinOverrides,
+  mode?: RequestMode
 ): string {
   const resolve = (id: SystemPlanBlockId): { id: BuiltinBlockId; body: string } => {
-    const real = id === 'output' ? outputBlockIdFor[destination] : id
+    const real =
+      id === 'output'
+        ? mode === 'chat'
+          ? 'output-chat'
+          : outputBlockIdFor[destination]
+        : id === 'grounding-rules' && mode === 'chat'
+          ? 'grounding-rules-chat'
+          : id
     return { id: real, body: builtins?.[real]?.trim() || BUILTIN_BLOCK_DEFAULTS[real] }
   }
   const sections: string[] = []
@@ -148,19 +186,76 @@ export function composeSystemFromPlan(
   return sections.join('\n\n')
 }
 
-/** The system text an operation actually sends — plan-aware: a plan
- *  outranks the legacy stack/identity path. ONE resolver for the
- *  adapter, the inspector, and the breakdown pills (display = sent). */
+/** The system text an operation actually sends — plan- and MODE-aware:
+ *  a plan outranks the legacy stack/identity path. ONE resolver for
+ *  the adapter, the inspector, and the breakdown pills (display =
+ *  sent). */
 export function systemTextOf(operation: {
   systemPlan?: ReadonlyArray<WireSystemPlanEntry>
   systemPrompt?: string
   builtins?: BuiltinOverrides
+  mode?: RequestMode
   target: { destination: { kind: DestinationKind } }
 }): string {
   const destination = operation.target.destination.kind
   return operation.systemPlan !== undefined
-    ? composeSystemFromPlan(operation.systemPlan, destination, operation.builtins)
+    ? composeSystemFromPlan(
+        operation.systemPlan,
+        destination,
+        operation.builtins,
+        operation.mode
+      )
     : composeSystemPrompt(operation.systemPrompt, destination, operation.builtins)
+}
+
+/**
+ * CHAT user message (S07b12): the question IS the question — never
+ * demoted to "style guidance"; the notes ride as quotable REFERENCE,
+ * never the forced subject. No steps, no landing point — a
+ * conversation needs neither.
+ */
+export function composeChatUserMessage(
+  question: string,
+  references: PromptSelection[]
+): string {
+  const cited = references.filter((entry) => entry.content.trim().length > 0)
+  return [
+    '# Request',
+    '',
+    '## Question',
+    '',
+    question,
+    ...(cited.length > 0
+      ? [
+          '',
+          '## Reference notes — read-only, quotable',
+          '',
+          ...cited.flatMap((entry) => [
+            `### \`${entry.relPath}\``,
+            '',
+            ...fenced('markdown', entry.content),
+            ''
+          ])
+        ]
+      : [''])
+  ].join('\n')
+}
+
+/** The user text an operation actually sends — the mode switch lives
+ *  beside systemTextOf so every surface renders the same bytes. */
+export function userTextOf(operation: {
+  instruction: string
+  input: ReadonlyArray<{ content: string; relPath: string }>
+  noteContext?: NoteContext
+  mode?: RequestMode
+}): string {
+  const selections = operation.input.map((selection) => ({
+    content: selection.content,
+    relPath: selection.relPath
+  }))
+  return operation.mode === 'chat'
+    ? composeChatUserMessage(operation.instruction, selections)
+    : composeUserMessage(operation.instruction, selections, operation.noteContext)
 }
 
 /**

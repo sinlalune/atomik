@@ -33,6 +33,7 @@ export function SystemPlanSection({
   destination,
   builtins,
   prompts,
+  mode,
   onOpenFile
 }: {
   plan: SystemPlanEntry[]
@@ -40,6 +41,8 @@ export function SystemPlanSection({
   destination: DestinationKind
   builtins: BuiltinOverrides
   prompts: PromptFile[]
+  /** 'chat' previews the conversation-mode resolution (S07b12). */
+  mode?: 'chat'
   /** Opens an entry's backing file for editing (revealNote-style). */
   onOpenFile?: (relPath: string) => void
 }): React.JSX.Element {
@@ -54,7 +57,7 @@ export function SystemPlanSection({
     (sum, entry) =>
       sum +
       estimateTokens(
-        systemPlanEntryBody(entry, destination, builtins, prompts).length
+        systemPlanEntryBody(entry, destination, builtins, prompts, mode).length
       ),
     0
   )
@@ -85,8 +88,8 @@ export function SystemPlanSection({
           <span className="sys-plan-empty">empty — nothing rides as system</span>
         )}
         {plan.map((entry, index) => {
-          const body = systemPlanEntryBody(entry, destination, builtins, prompts)
-          const file = systemPlanEntryFile(entry, destination)
+          const body = systemPlanEntryBody(entry, destination, builtins, prompts, mode)
+          const file = systemPlanEntryFile(entry, destination, mode)
           const label = systemPlanEntryLabel(entry, prompts)
           return (
             <span

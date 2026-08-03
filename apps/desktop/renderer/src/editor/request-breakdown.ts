@@ -1,8 +1,8 @@
 import type { AiOperation } from '../../../shared/ipc-contract'
 import {
-  composeUserMessage,
   requestAsText,
-  systemTextOf
+  systemTextOf,
+  userTextOf
 } from '../../../shared/prompt-composition'
 
 /**
@@ -68,14 +68,7 @@ const baseName = (relPath: string): string =>
 /** Re-composes the operation and attributes every char of it. */
 export function requestBreakdown(operation: AiOperation): RequestBreakdown {
   const systemText = systemTextOf(operation)
-  const userText = composeUserMessage(
-    operation.instruction,
-    operation.input.map((selection) => ({
-      content: selection.content,
-      relPath: selection.relPath
-    })),
-    operation.noteContext
-  )
+  const userText = userTextOf(operation)
   const thread = operation.thread ?? []
   const threadChars = thread.reduce((sum, turn) => sum + turn.content.length, 0)
 

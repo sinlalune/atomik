@@ -7,7 +7,7 @@ import {
   type GenerationUsage
 } from './generation'
 import { labelClaims, type ClaimCandidate } from './truth'
-import { composeUserMessage, systemTextOf } from '../shared/prompt-composition'
+import { systemTextOf, userTextOf } from '../shared/prompt-composition'
 import {
   DEFAULT_GENERATION_MODEL,
   GENERATION_MODELS,
@@ -97,11 +97,8 @@ export function buildMessages(operation: AiOperation): ChatMessage[] {
     ),
     {
       role: 'user',
-      content: composeUserMessage(
-        operation.instruction,
-        operation.input,
-        operation.noteContext
-      )
+      // S07b12: mode-aware — a chat sends the CONVERSATION contract
+      content: userTextOf(operation)
     }
   ]
 }

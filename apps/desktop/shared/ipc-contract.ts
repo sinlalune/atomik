@@ -446,6 +446,10 @@ export type AiOperation = {
    *  present it outranks systemPrompt. Entry count and body sizes
    *  capped in validation. */
   systemPlan?: import('./prompt-composition').WireSystemPlanEntry[]
+  /** Request mode (S07b12): 'chat' composes the CONVERSATION
+   *  contract — question-first user message, chat grounding/output
+   *  blocks. Absent = the note-generation contract. */
+  mode?: import('./prompt-composition').RequestMode
   /** Bounded note-state excerpts around the landing point (S04l) —
    *  read-only context so append/replace output integrates without
    *  duplicating existing content. Size-capped in validation. */

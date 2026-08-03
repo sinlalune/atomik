@@ -7,6 +7,7 @@ import {
   type BuiltinOverrides,
   type DestinationKind,
   type NoteContext,
+  type RequestMode,
   type WireSystemPlanEntry
 } from '../../../shared/prompt-composition'
 import {
@@ -54,6 +55,8 @@ export type SentRequest = {
   builtins?: BuiltinOverrides
   /** The system plan that rode the run (S07b8) — inspector parity. */
   systemPlan?: WireSystemPlanEntry[]
+  /** The request mode that rode the run (S07b12). */
+  mode?: RequestMode
   destination: DestinationKind
 }
 
@@ -80,6 +83,8 @@ export type AiRunInputs = {
   /** The arranged system section, wire form (S07b8) — when present
    *  it outranks systemStack. */
   systemPlan?: WireSystemPlanEntry[]
+  /** 'chat' composes the conversation contract (S07b12). */
+  mode?: RequestMode
 }
 
 export type PreparedRun = {
@@ -157,20 +162,27 @@ export async function prepareAiRun(
         }
 
   // Landing-point context (S04l): bounded note state so the output
-  // integrates without duplicating what already exists.
+  // integrates without duplicating what already exists. S07b12 trims
+  // it when it explains nothing: chat mode never sends it (the chat
+  // template has no landing point), and a WHOLE-NOTE scope already
+  // carries every byte the excerpts would repeat (owner: ~750 tokens
+  // of duplication riding along).
+  const wholeNote = raw.text.length === 0
   const noteContext: NoteContext | undefined =
-    target.destination.kind === 'append'
-      ? { kind: 'append', tail: doc.slice(-3000) }
-      : target.destination.kind === 'replace-selection'
-        ? {
-            kind: 'replace',
-            before: doc.slice(
-              Math.max(0, selection.range.from - 1500),
-              selection.range.from
-            ),
-            after: doc.slice(selection.range.to, selection.range.to + 1500)
-          }
-        : undefined
+    inputs.mode === 'chat' || wholeNote
+      ? undefined
+      : target.destination.kind === 'append'
+        ? { kind: 'append', tail: doc.slice(-3000) }
+        : target.destination.kind === 'replace-selection'
+          ? {
+              kind: 'replace',
+              before: doc.slice(
+                Math.max(0, selection.range.from - 1500),
+                selection.range.from
+              ),
+              after: doc.slice(selection.range.to, selection.range.to + 1500)
+            }
+          : undefined
 
   const systemPrompt = composeSystemStack(inputs.systemStack, inputs.prompts)
 
@@ -188,6 +200,7 @@ export async function prepareAiRun(
       ? { builtins: inputs.builtins }
       : {}),
     ...(inputs.systemPlan ? { systemPlan: inputs.systemPlan } : {}),
+    ...(inputs.mode ? { mode: inputs.mode } : {}),
     target
   }
 
@@ -217,6 +230,7 @@ export async function prepareAiRun(
       ...(operation.params ? { params: operation.params } : {}),
       ...(operation.builtins ? { builtins: operation.builtins } : {}),
       ...(operation.systemPlan ? { systemPlan: operation.systemPlan } : {}),
+      ...(operation.mode ? { mode: operation.mode } : {}),
       destination: target.destination.kind
     }
   }
