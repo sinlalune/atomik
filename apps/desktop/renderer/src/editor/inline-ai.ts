@@ -7,9 +7,9 @@ import {
 } from '@codemirror/view'
 import type { ClaimRecord, TraceSummary } from '../../../shared/ipc-contract'
 import {
-  composeSystemPrompt,
   composeUserMessage,
   requestAsText,
+  systemTextOf,
   type DestinationKind
 } from '../../../shared/prompt-composition'
 import type { SentRequest } from './ai-run'
@@ -250,7 +250,12 @@ class InlineAiWidget extends WidgetType {
       copy.setAttribute('aria-label', 'Copy the full request')
       copy.addEventListener('click', () => {
         const text = requestAsText(
-          composeSystemPrompt(sent.systemPrompt, sent.destination, sent.builtins),
+          systemTextOf({
+            ...(sent.systemPlan ? { systemPlan: sent.systemPlan } : {}),
+            ...(sent.systemPrompt ? { systemPrompt: sent.systemPrompt } : {}),
+            ...(sent.builtins ? { builtins: sent.builtins } : {}),
+            target: { destination: { kind: sent.destination } }
+          }),
           composeUserMessage(
             sent.instruction,
             [

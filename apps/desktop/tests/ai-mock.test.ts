@@ -78,6 +78,38 @@ describe('isValidAiOperation (channel input is untrusted)', () => {
     expect(isValidAiOperation(validOp({ builtins: 'terse' as never }))).toBe(false)
   })
 
+  it('bounds the optional system plan (S07b8): known blocks, sized bodies, capped count', () => {
+    expect(
+      isValidAiOperation(
+        validOp({
+          systemPlan: [
+            { block: 'identity' },
+            { block: 'output' },
+            { body: 'You answer in French.', label: 'Tone' }
+          ]
+        })
+      )
+    ).toBe(true)
+    expect(
+      isValidAiOperation(validOp({ systemPlan: [{ block: 'bogus' }] as never }))
+    ).toBe(false)
+    expect(
+      isValidAiOperation(validOp({ systemPlan: [{ body: '' }] as never }))
+    ).toBe(false)
+    expect(
+      isValidAiOperation(
+        validOp({ systemPlan: [{ body: 'x'.repeat(9000) }] as never })
+      )
+    ).toBe(false)
+    expect(
+      isValidAiOperation(
+        validOp({
+          systemPlan: Array.from({ length: 17 }, () => ({ block: 'identity' }))
+        } as never)
+      )
+    ).toBe(false)
+  })
+
   it('bounds the optional note context (S04l landing excerpts)', () => {
     expect(
       isValidAiOperation(validOp({ noteContext: { kind: 'append', tail: 'end of note' } }))

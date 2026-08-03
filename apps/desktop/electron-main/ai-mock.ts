@@ -40,6 +40,8 @@ const MAX_THREAD_TURN = 8000
 /** Built-in block overrides (S07b3): each replaces ONE template
  *  section — bounded like a system prompt body, per block. */
 const MAX_BUILTIN_BLOCK = 8000
+/** System plan (S07b8): blocks + prompt bodies, bounded. */
+const MAX_PLAN_ENTRIES = 16
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -93,6 +95,27 @@ export function isValidAiOperation(value: unknown): value is AiOperation {
       if (turn['role'] !== 'user' && turn['role'] !== 'assistant') return false
       const content = turn['content']
       if (typeof content !== 'string' || content.length === 0 || content.length > MAX_THREAD_TURN) return false
+    }
+  }
+  const systemPlan = value['systemPlan']
+  if (systemPlan !== undefined) {
+    if (!Array.isArray(systemPlan) || systemPlan.length > MAX_PLAN_ENTRIES) return false
+    for (const entry of systemPlan) {
+      if (!isRecord(entry)) return false
+      if ('block' in entry) {
+        const block = entry['block']
+        if (
+          block !== 'output' &&
+          !(BUILTIN_BLOCK_IDS as readonly string[]).includes(String(block))
+        ) {
+          return false
+        }
+      } else {
+        const body = entry['body']
+        if (typeof body !== 'string' || body.length === 0 || body.length > MAX_SYSTEM_PROMPT) return false
+        const label = entry['label']
+        if (label !== undefined && (typeof label !== 'string' || label.length > 200)) return false
+      }
     }
   }
   const builtins = value['builtins']

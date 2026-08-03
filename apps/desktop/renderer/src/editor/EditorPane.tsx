@@ -58,6 +58,7 @@ import {
   type InlineAiState
 } from './inline-ai'
 import { loadBuiltinOverridesFor, loadPromptsFor } from './prompts'
+import { wireSystemPlan } from './system-plan'
 import { frontmatterEnd, livePreview } from './live-preview'
 import { ModeSwitch } from './ModeSwitch'
 import { quickActions } from './quick-actions'
@@ -601,7 +602,8 @@ export function EditorPane({
             selection: { from: sel.from, to: sel.to, text: selectedText },
             instruction: menuRequest.instruction,
             ...(menuRequest.preset ? { preset: menuRequest.preset } : {}),
-            systemStack: menuRequest.stack,
+            systemStack: [],
+            systemPlan: wireSystemPlan(menuRequest.systemPlan, prompts),
             prompts,
             builtins,
             destination: 'new-note',
@@ -826,7 +828,8 @@ export function EditorPane({
             selection: { from: sel.from, to: sel.to, text: selectedText },
             instruction: menuRequest.instruction,
             ...(menuRequest.preset ? { preset: menuRequest.preset } : {}),
-            systemStack: menuRequest.stack,
+            systemStack: [],
+            systemPlan: wireSystemPlan(menuRequest.systemPlan, prompts),
             prompts,
             builtins,
             destination: menuRequest.destination,

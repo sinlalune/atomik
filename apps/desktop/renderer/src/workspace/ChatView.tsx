@@ -35,6 +35,14 @@ import {
   requestBreakdown,
   type RequestBreakdown
 } from '../editor/request-breakdown'
+import { SystemPlanSection } from '../editor/SystemPlanSection'
+import {
+  isDefaultSystemPlan,
+  parseSystemPlan,
+  serializeSystemPlan,
+  wireSystemPlan
+} from '../editor/system-plan'
+import type { BuiltinOverrides } from '../../../shared/prompt-composition'
 import {
   applyClaimMarks,
   claimTitle,
@@ -260,6 +268,16 @@ export function ChatView({
   /** S07b4: sent-request breakdown per YOU-turn (session meta). */
   const breakdownByTurn = useRef(new Map<number, RequestBreakdown>())
   const scrollRef = useRef<HTMLDivElement | null>(null)
+
+  // S07b8: the conversation's arranged SYSTEM — a tab param, so it
+  // stays armed for every next message and survives remounts and
+  // restarts. Default plan = absent param = the pre-plan bytes.
+  const sysPlan = parseSystemPlan(tab.params?.['sys'])
+  const sysPlanRef = useRef(sysPlan)
+  sysPlanRef.current = sysPlan
+  const [sysOpen, setSysOpen] = useState(false)
+  const [sysPrompts, setSysPrompts] = useState<PromptFile[] | null>(null)
+  const [sysBuiltins, setSysBuiltins] = useState<BuiltinOverrides>({})
 
   const patchParams = useCallback(
     (patch: Record<string, string>) =>
@@ -542,6 +560,8 @@ export function ChatView({
               : { from: 0, to: 0, text: '' },
             instruction: text,
             systemStack: [],
+            // S07b8: the conversation's arranged system rides every send
+            systemPlan: wireSystemPlan(sysPlanRef.current, prompts),
             prompts,
             builtins,
             destination: 'append',
@@ -1212,6 +1232,45 @@ export function ChatView({
         </p>
       )}
       <div className="chat-compose">
+        <details
+          className="chat-sys"
+          open={sysOpen}
+          onToggle={(event) => {
+            const open = (event.target as HTMLDetailsElement).open
+            setSysOpen(open)
+            if (open && sysPrompts === null) {
+              loadPromptsFor(targetPathRef.current ?? '', window.atomik).then(
+                setSysPrompts,
+                () => setSysPrompts([])
+              )
+              loadBuiltinOverridesFor(
+                targetPathRef.current ?? '',
+                window.atomik
+              ).then(setSysBuiltins, () => setSysBuiltins({}))
+            }
+          }}
+        >
+          <summary title="What rides as the SYSTEM message of every next send — arrange, remove, add">
+            system
+            {!isDefaultSystemPlan(sysPlan) && (
+              <span className="chat-sys-badge">custom · {sysPlan.length}</span>
+            )}
+          </summary>
+          <SystemPlanSection
+            plan={sysPlan}
+            onChange={(next) =>
+              patchParams({
+                sys: isDefaultSystemPlan(next) ? '' : serializeSystemPlan(next)
+              })
+            }
+            destination="append"
+            builtins={sysBuiltins}
+            prompts={sysPrompts ?? []}
+            onOpenFile={(relPath) =>
+              dispatch((state) => revealNote(state, paneId, relPath))
+            }
+          />
+        </details>
         <GenOptionsFields drafts={genDrafts} onChange={setGenDrafts} />
         <div className="chat-input">
           <span className="chat-input-host">

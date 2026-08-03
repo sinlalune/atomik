@@ -6,7 +6,8 @@ import type {
 import {
   type BuiltinOverrides,
   type DestinationKind,
-  type NoteContext
+  type NoteContext,
+  type WireSystemPlanEntry
 } from '../../../shared/prompt-composition'
 import {
   defaultNewNotePath,
@@ -51,6 +52,8 @@ export type SentRequest = {
   /** Built-in block overrides that rode the run (S07b3) — the
    *  inspector composes with them, so display = sent. */
   builtins?: BuiltinOverrides
+  /** The system plan that rode the run (S07b8) — inspector parity. */
+  systemPlan?: WireSystemPlanEntry[]
   destination: DestinationKind
 }
 
@@ -74,6 +77,9 @@ export type AiRunInputs = {
   params?: GenerationParams
   /** Resolved built-in block overrides (S07b3, prompts/built-in/). */
   builtins?: BuiltinOverrides
+  /** The arranged system section, wire form (S07b8) — when present
+   *  it outranks systemStack. */
+  systemPlan?: WireSystemPlanEntry[]
 }
 
 export type PreparedRun = {
@@ -181,6 +187,7 @@ export async function prepareAiRun(
     ...(inputs.builtins && Object.keys(inputs.builtins).length > 0
       ? { builtins: inputs.builtins }
       : {}),
+    ...(inputs.systemPlan ? { systemPlan: inputs.systemPlan } : {}),
     target
   }
 
@@ -209,6 +216,7 @@ export async function prepareAiRun(
       ...(noteContext ? { noteContext } : {}),
       ...(operation.params ? { params: operation.params } : {}),
       ...(operation.builtins ? { builtins: operation.builtins } : {}),
+      ...(operation.systemPlan ? { systemPlan: operation.systemPlan } : {}),
       destination: target.destination.kind
     }
   }

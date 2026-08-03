@@ -81,6 +81,89 @@ const outputBlockIdFor: Record<DestinationKind, BuiltinBlockId> = {
 }
 
 /**
+ * The SYSTEM PLAN (S07b8, owner: "a simple system section with its
+ * preload builtin module with possibility to rearrange delete and add
+ * prompts"): the system message as an ORDERED, EDITABLE list. Block
+ * entries name a built-in ('output' is the destination-resolved
+ * pseudo-block — one chip, three files); prompt entries carry a
+ * system-prompt file's composed body (the renderer resolves files —
+ * main stays vault-blind). The default plan composes byte-identically
+ * to the pre-plan template, so a session that never touches the
+ * section sends exactly what it always sent.
+ */
+export type SystemPlanBlockId = BuiltinBlockId | 'output'
+
+export type WireSystemPlanEntry =
+  | { block: SystemPlanBlockId }
+  | { body: string; label?: string }
+
+export const DEFAULT_SYSTEM_PLAN: ReadonlyArray<WireSystemPlanEntry> = [
+  { block: 'identity' },
+  { block: 'grounding-rules' },
+  { block: 'output' },
+  { block: 'closing-rule' }
+]
+
+/** Section scaffolding per block — the headings are structural, they
+ *  travel with their block wherever the owner puts it. */
+const blockHeadingFor: Partial<Record<SystemPlanBlockId, string[]>> = {
+  identity: ['# Role', ''],
+  'grounding-rules': ['# Rules', '', '## Grounding', ''],
+  output: ['## Output', '']
+}
+
+export function composeSystemFromPlan(
+  plan: ReadonlyArray<WireSystemPlanEntry>,
+  destination: DestinationKind,
+  builtins?: BuiltinOverrides
+): string {
+  const resolve = (id: SystemPlanBlockId): { id: BuiltinBlockId; body: string } => {
+    const real = id === 'output' ? outputBlockIdFor[destination] : id
+    return { id: real, body: builtins?.[real]?.trim() || BUILTIN_BLOCK_DEFAULTS[real] }
+  }
+  const sections: string[] = []
+  plan.forEach((entry, index) => {
+    if ('block' in entry) {
+      const { body } = resolve(entry.block)
+      // closing-rule directly after output joins ITS bullet list —
+      // the byte-parity join of the pre-plan template
+      const previous = plan[index - 1]
+      if (
+        entry.block === 'closing-rule' &&
+        previous !== undefined &&
+        'block' in previous &&
+        previous.block === 'output' &&
+        sections.length > 0
+      ) {
+        sections[sections.length - 1] += `\n${body}`
+        return
+      }
+      const heading = blockHeadingFor[entry.block] ?? []
+      sections.push([...heading, body].join('\n'))
+    } else {
+      const body = entry.body.trim()
+      if (body.length > 0) sections.push(body)
+    }
+  })
+  return sections.join('\n\n')
+}
+
+/** The system text an operation actually sends — plan-aware: a plan
+ *  outranks the legacy stack/identity path. ONE resolver for the
+ *  adapter, the inspector, and the breakdown pills (display = sent). */
+export function systemTextOf(operation: {
+  systemPlan?: ReadonlyArray<WireSystemPlanEntry>
+  systemPrompt?: string
+  builtins?: BuiltinOverrides
+  target: { destination: { kind: DestinationKind } }
+}): string {
+  const destination = operation.target.destination.kind
+  return operation.systemPlan !== undefined
+    ? composeSystemFromPlan(operation.systemPlan, destination, operation.builtins)
+    : composeSystemPrompt(operation.systemPrompt, destination, operation.builtins)
+}
+
+/**
  * SYSTEM message template:
  *   # Role        ← identity (stack, else the identity block)
  *   # Rules

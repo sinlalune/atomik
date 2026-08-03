@@ -9,12 +9,16 @@ import {
 import { GenOptionsFields } from './gen-options'
 import {
   composeMenuInstruction,
+  loadBuiltinOverridesFor,
   loadPromptsFor,
   scopeLabel,
   toggleStackBlock,
   visibleMenuPrompts,
   type PromptFile
 } from './prompts'
+import { SystemPlanSection } from './SystemPlanSection'
+import { defaultSystemPlan, type SystemPlanEntry } from './system-plan'
+import type { BuiltinOverrides } from '../../../shared/prompt-composition'
 
 /**
  * The selection AI menu (CP-MVP-008 S04; S04c owner redesign: "first
@@ -31,7 +35,8 @@ import {
 export type AiMenuRequest = {
   instruction: string
   preset?: string
-  stack: string[]
+  /** The arranged SYSTEM section (S07b8) — supersedes the S04 stack. */
+  systemPlan: SystemPlanEntry[]
   /** How the proposal integrates (owner, S04e): replace the
    *  selection, append to the note, or a new note. */
   destination: 'replace-selection' | 'append' | 'new-note'
@@ -67,10 +72,15 @@ export function AiSelectionMenu({
   onAddContext?: (() => void) | undefined
 }): React.JSX.Element {
   const [prompts, setPrompts] = useState<PromptFile[]>([])
+  const [builtins, setBuiltins] = useState<BuiltinOverrides>({})
   const [query, setQuery] = useState('')
   /** Prompt relPaths and `builtin:<id>` in click order. */
   const [messageOrder, setMessageOrder] = useState<string[]>([])
-  const [systemOrder, setSystemOrder] = useState<string[]>([])
+  /** S07b8: the arranged system section — preloaded with the
+   *  built-in blocks, per invocation. */
+  const [systemPlan, setSystemPlan] = useState<SystemPlanEntry[]>(
+    defaultSystemPlan
+  )
   const [input, setInput] = useState('')
   const [destination, setDestination] = useState<AiMenuRequest['destination']>('append')
   // S05d foldable options (shared block since S06b) — empty draft =
@@ -82,6 +92,9 @@ export function AiSelectionMenu({
 
   useEffect(() => {
     loadPromptsFor(notePath, window.atomik).then(setPrompts, () => setPrompts([]))
+    loadBuiltinOverridesFor(notePath, window.atomik).then(setBuiltins, () =>
+      setBuiltins({})
+    )
   }, [notePath])
 
   useEffect(() => {
@@ -104,7 +117,6 @@ export function AiSelectionMenu({
       : 'whole note'
 
   const messagePrompts = prompts.filter((prompt) => prompt.kind === 'message')
-  const systemPrompts = prompts.filter((prompt) => prompt.kind === 'system')
   const showSearch = prompts.length > MENU_SEARCH_THRESHOLD
 
   const runnable =
@@ -128,7 +140,7 @@ export function AiSelectionMenu({
               : `file:${prompts.find((prompt) => prompt.relPath === single)?.name ?? single}`
           }
         : {}),
-      stack: systemOrder,
+      systemPlan,
       destination,
       ...(params ? { params } : {})
     })
@@ -196,6 +208,15 @@ export function AiSelectionMenu({
             }}
           />
         )}
+        <div className="ai-menu-group">
+          <SystemPlanSection
+            plan={systemPlan}
+            onChange={setSystemPlan}
+            destination={destination}
+            builtins={builtins}
+            prompts={prompts}
+          />
+        </div>
         {messagePrompts.length > 0 && (
           <div className="ai-menu-group">
             <div className="ai-menu-scope">message</div>
@@ -210,27 +231,6 @@ export function AiSelectionMenu({
                   prompt.relPath,
                   messageOrder,
                   setMessageOrder,
-                  prompt.title,
-                  `${prompt.description ?? prompt.title} · ${scopeLabel(prompt.scopeFolder, notePath)}`
-                )
-              )}
-            </div>
-          </div>
-        )}
-        {systemPrompts.length > 0 && (
-          <div className="ai-menu-group">
-            <div className="ai-menu-scope">system</div>
-            <div className="ai-menu-pills">
-              {visibleMenuPrompts(
-                systemPrompts,
-                new Set(systemOrder),
-                query,
-                MENU_SECTION_MAX
-              ).map((prompt) =>
-                orderedPill(
-                  prompt.relPath,
-                  systemOrder,
-                  setSystemOrder,
                   prompt.title,
                   `${prompt.description ?? prompt.title} · ${scopeLabel(prompt.scopeFolder, notePath)}`
                 )

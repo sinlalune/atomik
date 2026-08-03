@@ -3185,6 +3185,166 @@ button svg {
   color: var(--accent);
 }
 
+/* S07b8: the SYSTEM section — the system message as visible, editable
+   chips (both the selection menu and the chat composer host it).
+   Reorder handles fade in on hover; kinds carry the palette. */
+.sys-plan-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sys-plan-total {
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.sys-plan-reset {
+  font: inherit;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 var(--space-1);
+}
+
+.sys-plan-reset:hover {
+  color: var(--accent);
+}
+
+.sys-plan-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+.sys-plan-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 16rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  font-size: var(--fs-sm);
+  overflow: hidden;
+}
+
+.sys-plan-chip.kind-builtin {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+
+.sys-plan-chip.kind-prompt {
+  border-color: var(--info-border);
+}
+
+.sys-plan-chip button {
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0 var(--space-1);
+  cursor: pointer;
+}
+
+.sys-plan-open {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sys-plan-move {
+  opacity: 0;
+  transition: opacity 120ms;
+}
+
+.sys-plan-chip:hover .sys-plan-move:not(:disabled) {
+  opacity: 0.7;
+}
+
+.sys-plan-move:disabled {
+  cursor: default;
+}
+
+.sys-plan-remove {
+  color: var(--muted);
+}
+
+.sys-plan-remove:hover {
+  color: var(--accent);
+}
+
+.sys-plan-empty {
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+
+.sys-plan-add {
+  position: relative;
+}
+
+.sys-plan-add-toggle {
+  font: inherit;
+  color: var(--muted);
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-pill);
+  padding: 0 var(--space-2);
+  cursor: pointer;
+}
+
+.sys-plan-add-toggle:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.sys-plan-pop {
+  left: 0;
+  right: auto;
+}
+
+/* The chat composer hosts the section behind a slim disclosure —
+   first thing above the options row. */
+.chat-sys {
+  font-size: var(--fs-sm);
+}
+
+.chat-sys > summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  list-style-position: inside;
+}
+
+.chat-sys[open] > summary,
+.chat-sys > summary:hover {
+  color: inherit;
+}
+
+.chat-sys-badge {
+  margin-left: var(--space-2);
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--accent);
+}
+
+.chat-sys .sys-plan {
+  padding: var(--space-1) 0 var(--space-2);
+}
+
+/* the disclosure summary already names the section */
+.chat-sys .sys-plan-title {
+  display: none;
+}
+
 /* Unsaved-changes dot beside the note path (was a bare text char). */
 .dirty-dot {
   margin-left: 0.35rem;

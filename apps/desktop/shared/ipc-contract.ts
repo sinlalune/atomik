@@ -441,6 +441,11 @@ export type AiOperation = {
    *  token sent is a file the owner edits. Keys restricted to the
    *  block registry and size-capped in validation. */
   builtins?: import('./prompt-composition').BuiltinOverrides
+  /** The system PLAN (S07b8): the system message as an ordered,
+   *  owner-edited list — block refs + system-prompt bodies. When
+   *  present it outranks systemPrompt. Entry count and body sizes
+   *  capped in validation. */
+  systemPlan?: import('./prompt-composition').WireSystemPlanEntry[]
   /** Bounded note-state excerpts around the landing point (S04l) —
    *  read-only context so append/replace output integrates without
    *  duplicating existing content. Size-capped in validation. */

@@ -7,7 +7,7 @@ import {
   type GenerationUsage
 } from './generation'
 import { labelClaims, type ClaimCandidate } from './truth'
-import { composeSystemPrompt, composeUserMessage } from '../shared/prompt-composition'
+import { composeUserMessage, systemTextOf } from '../shared/prompt-composition'
 import {
   DEFAULT_GENERATION_MODEL,
   GENERATION_MODELS,
@@ -73,11 +73,8 @@ export function estimateCostUsd(
  *  source of truth with the renderer's sent-request inspector; what
  *  the popover shows IS what travels, by construction. */
 export function defaultSystemPrompt(operation: AiOperation): string {
-  return composeSystemPrompt(
-    operation.systemPrompt,
-    operation.target.destination.kind,
-    operation.builtins
-  )
+  // S07b8: plan-aware — the ONE resolver display and wire both use
+  return systemTextOf(operation)
 }
 
 export type ChatMessage = {

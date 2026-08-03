@@ -1499,6 +1499,48 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       chat intact, note in the new pane — and the chat's auto
       context follows the newly opened note. Tests 613→614/54;
       typecheck/build green.
+- [x] S07b8 (owner bench round 3, 2026-08-03, verbatim in the round-1
+      session note: "we need an easy way to select and visualize what
+      is included in by default request and change it if needed … a
+      simple system section with its preload builtin module with
+      possibility to rearrange delete and add prompts, first section
+      in both UI … put the context menu element in the chat message
+      ui as it active for next message interaction … apply best
+      practices in ai chat ui for prompt and context engineering") —
+      DONE 2026-08-03. The SYSTEM MESSAGE becomes an ordered,
+      visible, editable PLAN: (1) prompt-composition gains
+      WireSystemPlanEntry ({block} refs incl. the
+      destination-resolved 'output' pseudo-block; {body,label} for
+      system-prompt files) + composeSystemFromPlan — the DEFAULT
+      plan composes BYTE-IDENTICALLY to the pre-plan template
+      (tested for all three destinations) — + systemTextOf, the ONE
+      plan-aware resolver the adapter, both inspectors, and the
+      breakdown pills now share (display = sent everywhere);
+      (2) operation.systemPlan (contract + strict validation: known
+      blocks, sized bodies, ≤16 entries) outranks the legacy stack;
+      (3) SystemPlanSection NEW — chips preloaded with the built-in
+      blocks: hover = live body preview + ~tokens (override-aware),
+      ‹ › reorder on hover, × remove, + adds the vault's system
+      prompts, ↺ restores defaults, chip click opens the backing
+      file (chat: revealNote); (4) FIRST section of the contextual
+      AI menu (the S04 system-stack pills fold into +) and of the
+      chat composer — a slim SYSTEM disclosure above options whose
+      badge shows `custom · N`, the plan riding the tab params
+      (sys), so a conversation KEEPS its arranged system for every
+      next message, across remounts/restarts/snapshots (garbage
+      params read as default); chat keeps @/typed input as its
+      message-prompt door (owner: "prompt input only for now").
+      Practices applied: chips-with-preview, progressive
+      disclosure, live token accounting, persistent per-conversation
+      state, one-click restore. Dev CDP pin both surfaces: chat —
+      open section (4 chips ~343 tok) → +Tone → ×closing-rule →
+      badge `custom · 4` → ‹ reorder → ↺ default; menu on a real
+      note — SYSTEM section first, then message/built-in/
+      destination. Tests 614→624/55 (composeSystemFromPlan parity +
+      plan semantics; serialize/parse/wire; validation);
+      typecheck/build green. NOTE: GeneratedNoteScreen (new-tab
+      Note stage) still runs the legacy stack path — fold-in
+      recorded for the ceremony backlog.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
@@ -1809,6 +1851,19 @@ changed(S07b7): model.ts (revealSource NEW); Workspace
               routing); workspace-model.test.ts.
 tests(S07b7): 614/54; typecheck/build green; dev CDP pin on the
               owner's exact repro state.
+changed(S07b8): prompt-composition (WireSystemPlanEntry,
+              composeSystemFromPlan, systemTextOf); ipc-contract
+              (systemPlan); ai-mock (validation); mistral adapter
+              (systemTextOf); system-plan.ts NEW; SystemPlanSection
+              NEW; AiSelectionMenu (section first, stack retired
+              from AiMenuRequest); EditorPane ×2 (wire plan);
+              ChatView (SYSTEM disclosure, sys param, send path);
+              ai-run (systemPlan on inputs/operation/sent);
+              inline-ai + AiNotePreview (systemTextOf);
+              request-breakdown (systemTextOf); styles.css;
+              system-plan.test.ts NEW; ai-mock.test.ts.
+tests(S07b8): 624/55; typecheck/build green; dev CDP pin (both
+              surfaces, full edit cycle).
 next action : S07 ACCEPTANCE — bench round 1 fixes S07b1–S07b6 ALL
               DONE 2026-08-03 (session note
               2026-08-03-s07-bench-round1.md). Agent half: 18 §M2

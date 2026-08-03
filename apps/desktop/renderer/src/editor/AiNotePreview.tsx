@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
 import type { ClaimRecord, TraceSummary } from '../../../shared/ipc-contract'
 import {
-  composeSystemPrompt,
   composeUserMessage,
-  requestAsText
+  requestAsText,
+  systemTextOf
 } from '../../../shared/prompt-composition'
 import type { SentRequest } from './ai-run'
 import { copyText } from './clipboard'
@@ -138,7 +138,12 @@ export function AiNotePreview({
                     title="Copy the full request (system + user) for testing elsewhere"
                     onClick={() => {
                       const request = requestAsText(
-                        composeSystemPrompt(sent.systemPrompt, sent.destination, sent.builtins),
+                        systemTextOf({
+                          ...(sent.systemPlan ? { systemPlan: sent.systemPlan } : {}),
+                          ...(sent.systemPrompt ? { systemPrompt: sent.systemPrompt } : {}),
+                          ...(sent.builtins ? { builtins: sent.builtins } : {}),
+                          target: { destination: { kind: sent.destination } }
+                        }),
                         composeUserMessage(
                           sent.instruction,
                           [
