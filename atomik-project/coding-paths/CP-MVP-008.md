@@ -1419,11 +1419,28 @@ Completeness rule (35): every bedrock page 00–36 accounted for
             action created the 6 block files + conventions in the
             owner's vault. Tests 599→608/53;
             typecheck/build green.
-      - [ ] S07b4 (owner: "I need pills that retrace the context
+      - [x] S07b4 (owner: "I need pills that retrace the context
             (system, prompts, notes, other text document, medias)
             with the associated amount of token in each pills") —
-            sent-message context pills, one per contributing block,
-            each with its token share.
+            DONE 2026-08-03. request-breakdown.ts NEW (pure, tested):
+            re-composes the operation through the SAME shared
+            composers the adapter uses and attributes EVERY char of
+            the wire request to a part — system (built-ins/prompt
+            stack), history (thread), instruction, context (primary
+            selection), document (further selections), note state,
+            and TEMPLATE (the user-message scaffolding gets its own
+            pill instead of hiding in the total). Tokens = the
+            adapter's chars/4 heuristic, labeled estimated (~)
+            everywhere; hover spells chars + basis. The you-turn
+            header shows `↑~N tok sent`; the pill row rides the
+            you-turn as SESSION meta (like claims — restored
+            transcripts stay plain) + a `copy request` action
+            (requestAsText, built-in overrides included — display =
+            sent; closes the "no access in chat" half of the S07b3
+            report). Live pin: real send showed system ~354 ·
+            instruction ~10 · context ~981 · note state ~750 ·
+            template ~195 = ~2289 est vs 2128 provider-counted.
+            Tests 608→612/54; typecheck/build green.
       - [ ] S07b5 (owner: "source dossier tab not collapsable to get
             full pdf view (better if source are on the first panel
             and source dossier on the right no?)") — source content
@@ -1709,7 +1726,13 @@ changed(S07b3): prompt-composition.ts (block registry + defaults +
               AppMenu (explicit materialize action); tests ×3 files.
 tests(S07b3): 608/53; typecheck/build green; live pin (menu action
               → 6 files in the owner's vault).
-next action : S07b4–S07b6 (bench round 1 fixes, 2026-08-03 —
+changed(S07b4): request-breakdown.ts NEW; ChatView (breakdownByTurn
+              session meta, you-turn pills + total + copy request);
+              styles.css (pill row, kind colors from the existing
+              palette tokens); request-breakdown.test.ts NEW.
+tests(S07b4): 612/54; typecheck/build green; live pin (real send,
+              pills vs provider count).
+next action : S07b5–S07b6 (bench round 1 fixes, 2026-08-03 —
               session note 2026-08-03-s07-bench-round1.md): chat
               picklist alignment; chats per-date folders; built-in
               request blocks as prompts/built-in/ tree; sent-message

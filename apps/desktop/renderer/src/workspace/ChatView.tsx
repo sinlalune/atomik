@@ -30,6 +30,11 @@ import {
 } from '../editor/gen-params'
 import { GenOptionsFields } from '../editor/gen-options'
 import { prepareAiRun } from '../editor/ai-run'
+import { copyText } from '../editor/clipboard'
+import {
+  requestBreakdown,
+  type RequestBreakdown
+} from '../editor/request-breakdown'
 import {
   applyClaimMarks,
   claimTitle,
@@ -252,6 +257,8 @@ export function ChatView({
   const promptsRef = useRef<PromptFile[] | null>(null)
   const runningOperationId = useRef<string | null>(null)
   const metaByTurn = useRef(new Map<number, TurnMeta>())
+  /** S07b4: sent-request breakdown per YOU-turn (session meta). */
+  const breakdownByTurn = useRef(new Map<number, RequestBreakdown>())
   const scrollRef = useRef<HTMLDivElement | null>(null)
 
   const patchParams = useCallback(
@@ -308,6 +315,7 @@ export function ChatView({
     if (file === loadedRef.current) return
     loadedRef.current = file
     metaByTurn.current.clear()
+    breakdownByTurn.current.clear()
     if (!file) {
       setTurns([])
       return
@@ -582,6 +590,10 @@ export function ChatView({
           input,
           ...(thread.length > 0 ? { thread } : {})
         }
+        // S07b4 (owner): the sent request, RETRACED — per-part pills
+        // with token estimates ride the you-turn (session meta, like
+        // claims; a restored transcript is plain text again)
+        breakdownByTurn.current.set(priorTurns.length, requestBreakdown(operation))
 
         if (!persisted) {
           // The user's turn lands in the file BEFORE the call — a
@@ -1078,10 +1090,20 @@ export function ChatView({
         )}
         {turns.map((turn, index) => {
           const meta = metaByTurn.current.get(index)
+          const breakdown =
+            turn.role === 'you' ? breakdownByTurn.current.get(index) : undefined
           return (
             <article key={index} className={`chat-turn role-${turn.role}`}>
               <header className="chat-turn-head">
                 <span className="chat-turn-role">{turn.role}</span>
+                {breakdown && (
+                  <span
+                    className="chat-turn-metrics"
+                    title="what this exchange sent, estimated at chars/4 — the pills below retrace it"
+                  >
+                    ↑~{breakdown.totalTokensEst} tok sent
+                  </span>
+                )}
                 {meta && (meta.durationMs !== undefined || meta.usage) && (
                   <span
                     className="chat-turn-metrics"
@@ -1132,6 +1154,30 @@ export function ChatView({
                   dispatch((state) => revealNote(state, paneId, relPath))
                 }
               />
+              {breakdown && (
+                <div className="chat-request-pills">
+                  {breakdown.parts.map((part, partIndex) => (
+                    <span
+                      key={partIndex}
+                      className={`chat-request-pill kind-${part.kind}`}
+                      title={`${part.kind} · ${part.chars} chars · ~${part.tokensEst} tokens (estimated)`}
+                    >
+                      {part.label} <b>~{part.tokensEst}</b>
+                    </span>
+                  ))}
+                  <button
+                    type="button"
+                    className="chat-request-copy"
+                    title="Copy the full request (system + user) exactly as sent"
+                    aria-label="Copy the full request"
+                    onClick={() => {
+                      void copyText(breakdown.requestText)
+                    }}
+                  >
+                    copy request
+                  </button>
+                </div>
+              )}
             </article>
           )
         })}

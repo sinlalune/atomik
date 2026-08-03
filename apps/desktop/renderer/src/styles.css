@@ -3040,6 +3040,73 @@ button svg {
   justify-content: flex-start;
 }
 
+/* S07b4: sent-request breakdown — one pill per part of the request,
+   each carrying its estimated token share; the row rides the you-turn
+   as session meta (restored transcripts stay plain). */
+.chat-request-pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+.chat-request-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 14rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 0 var(--space-2);
+  background: var(--bg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-request-pill b {
+  font-weight: 600;
+}
+
+.chat-request-pill.kind-system {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+.chat-request-pill.kind-context {
+  border-color: var(--ok-border);
+}
+
+.chat-request-pill.kind-document {
+  border-color: var(--info-border);
+}
+
+.chat-request-pill.kind-note-context {
+  border-color: var(--warn-border);
+}
+
+.chat-request-pill.kind-history,
+.chat-request-pill.kind-template {
+  border-style: dashed;
+  opacity: 0.85;
+}
+
+.chat-request-copy {
+  font: inherit;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  background: none;
+  border: none;
+  padding: 0 var(--space-1);
+  cursor: pointer;
+}
+
+.chat-request-copy:hover {
+  color: var(--accent);
+}
+
 /* Unsaved-changes dot beside the note path (was a bare text char). */
 .dirty-dot {
   margin-left: 0.35rem;
