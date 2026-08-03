@@ -1491,6 +1491,21 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       inline accept, a chat exchange, a prompt file edited and
       re-used, a cancel mid-flight, the receipt inspected; review
       and close.
+      AGENT HALF DONE 2026-08-03 (post-S07b, real mistral, live
+      vault, CDP-driven): (1) real question over a real context →
+      answer; (2) the answer's EXACT quote of the source labeled
+      source-backed and its uncited explanation labeled model-only —
+      the deterministic checker reproduced on REAL output; (3)
+      answer promoted → ONE clean source-linked note file
+      (`Quote and Explanation.md`); (4) cancel mid-flight → typed
+      `ai(cancelled)` taxonomy error surfaced with retry, transcript
+      kept the you-turn, no partial answer; (5) usage + billing on
+      every real run (↑2140 ↓58 · ~$0.0004; estimate ~2305 vs 2140
+      provider-counted); budget ceilings main-side (S02, unit-
+      tested — not re-driven live). REMAINING: the owner bench +
+      review/close (closing ceremony; bench artifacts left in the
+      vault for inspection: chats/2026-08-03/*, `Quote and
+      Explanation.md`, dossier anchor `p1q1` — delete at will).
 
 # Current checkpoint
 
