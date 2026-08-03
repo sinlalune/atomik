@@ -20,6 +20,7 @@ import {
   chatRelPath,
   newChatFileContent,
   parseChatTurns,
+  serializeRunMeta,
   serializeSentMeta,
   threadFromTurns,
   withSentMetaOnLastYou,
@@ -487,19 +488,21 @@ export function ChatView({
     async (
       role: 'you' | 'atomik',
       text: string,
-      youMeta?: string
+      youMeta?: string,
+      ownMeta?: string
     ): Promise<string> => {
       const existing = fileRef.current
       if (existing) {
         const note = await window.atomik.readNote(existing)
         // S07b10: the answer's write also stamps the you-turn's sent
-        // breakdown onto its heading — one write persists both
+        // breakdown onto its heading — one write persists both;
+        // S07b16: the answer's OWN metrics ride its own heading
         const base = youMeta
           ? withSentMetaOnLastYou(note.content, youMeta)
           : note.content
         await window.atomik.writeNote(
           existing,
-          appendChatTurn(base, role, text),
+          appendChatTurn(base, role, text, ownMeta),
           note.mtimeMs
         )
         return existing
@@ -727,12 +730,29 @@ export function ChatView({
               result.blocks.find((block) => block.role === 'answer')?.content ??
               result.blocks[0]?.content ??
               ''
-            // S07b10: the you-turn's breakdown persists with the answer
+            // S07b10: the you-turn's breakdown persists with the answer;
+            // S07b16: so do the answer's own measured metrics
             const sentParts = breakdownByTurn.current.get(priorTurns.length)?.parts
+            const runMeta = serializeRunMeta({
+              ...(result.usage
+                ? {
+                    inputTokens: result.usage.inputTokens,
+                    outputTokens: result.usage.outputTokens,
+                    basis: result.usage.basis
+                  }
+                : {}),
+              ...(result.durationMs !== undefined
+                ? { durationMs: result.durationMs }
+                : {}),
+              ...(result.billing
+                ? { costUsd: result.billing.estimatedAmount }
+                : {})
+            })
             await persistTurn(
               'atomik',
               answer,
-              sentParts ? serializeSentMeta(sentParts) : undefined
+              sentParts ? serializeSentMeta(sentParts) : undefined,
+              runMeta ?? undefined
             )
             setTurns((current) => {
               metaByTurn.current.set(current.length, {
@@ -1079,26 +1099,47 @@ export function ChatView({
                     ↑~{sentTotal} tok sent
                   </span>
                 )}
-                {meta && (meta.durationMs !== undefined || meta.usage) && (
-                  <span
-                    className="chat-turn-metrics"
-                    title={
-                      meta.usage
-                        ? `input ${meta.usage.inputTokens} tokens · output ${meta.usage.outputTokens} tokens (${meta.usage.basis}) · ${((meta.durationMs ?? 0) / 1000).toFixed(1)}s wall time${meta.costUsd !== undefined ? ` · estimated $${meta.costUsd.toFixed(6)}` : ''}`
-                        : `${((meta.durationMs ?? 0) / 1000).toFixed(1)}s wall time — this engine reports no token usage`
-                    }
-                  >
-                    {meta.durationMs !== undefined
-                      ? `${(meta.durationMs / 1000).toFixed(1)}s`
-                      : ''}
-                    {meta.usage
-                      ? ` · ↑${meta.usage.inputTokens} ↓${meta.usage.outputTokens} tok${meta.usage.basis === 'estimated' ? '~' : ''}`
-                      : ''}
-                    {meta.costUsd !== undefined
-                      ? ` · ~$${meta.costUsd.toFixed(4)}`
-                      : ''}
-                  </span>
-                )}
+                {(() => {
+                  // S07b16: live meta first, else the transcript's
+                  // persisted run figures — reloads keep the counters
+                  const run = meta
+                    ? {
+                        inputTokens: meta.usage?.inputTokens,
+                        outputTokens: meta.usage?.outputTokens,
+                        basis: meta.usage?.basis,
+                        durationMs: meta.durationMs,
+                        costUsd: meta.costUsd
+                      }
+                    : turn.run
+                  if (
+                    !run ||
+                    (run.durationMs === undefined &&
+                      run.inputTokens === undefined)
+                  ) {
+                    return null
+                  }
+                  const hasTok = run.inputTokens !== undefined
+                  return (
+                    <span
+                      className="chat-turn-metrics"
+                      title={
+                        hasTok
+                          ? `input ${run.inputTokens} tokens · output ${run.outputTokens} tokens (${run.basis ?? 'reported'}) · ${((run.durationMs ?? 0) / 1000).toFixed(1)}s wall time${run.costUsd !== undefined ? ` · estimated $${run.costUsd.toFixed(6)}` : ''}`
+                          : `${((run.durationMs ?? 0) / 1000).toFixed(1)}s wall time — this engine reports no token usage`
+                      }
+                    >
+                      {run.durationMs !== undefined
+                        ? `${(run.durationMs / 1000).toFixed(1)}s`
+                        : ''}
+                      {hasTok
+                        ? ` · ↑${run.inputTokens} ↓${run.outputTokens} tok${run.basis === 'estimated' ? '~' : ''}`
+                        : ''}
+                      {run.costUsd !== undefined
+                        ? ` · ~$${run.costUsd.toFixed(4)}`
+                        : ''}
+                    </span>
+                  )
+                })()}
                 {turn.role === 'atomik' && (
                   <span className="chat-turn-actions">
                     <button

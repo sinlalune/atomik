@@ -1769,6 +1769,23 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       .chat-error: border-box + width + max 44rem + centered) —
       padding and border live INSIDE the shared width. Verified
       live: 458.75px and identical left for card and sheet.
+- [x] S07b16 (owner bench round 12, 2026-08-03: "token counters on
+      response messages don't persist") — DONE 2026-08-03. The
+      answer's measured metrics (tokens in/out + basis, wall time,
+      estimated cost) now persist in the transcript the S07b10 way:
+      a `run:` comment on the `## atomik` heading
+      (`<!-- run: in=2128|out=31|basis=provider|ms=1834|
+      usd=0.000341 -->`), written WITH the answer (turnSection/
+      appendChatTurn gain the comment slot); parseChatTurns reads it
+      back (sent: and run: comments dispatch per heading, unknown
+      comments still ignored); the metrics line renders from live
+      TurnMeta first, else the transcript's persisted figures — tab
+      switches and reloads keep the counters. Serialization partial-
+      friendly (mock = latency alone), garbage degrades to none.
+      App closed at land time — no live pin this unit; the idiom is
+      S07b10's, and the append→parse round trip + coexistence of
+      sent/run stamps are unit-tested. Tests 632→635/55;
+      typecheck/build green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel

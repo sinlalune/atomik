@@ -11,7 +11,9 @@ import {
   insertionChange,
   newChatFileContent,
   parseChatTurns,
+  parseRunMeta,
   parseSentMeta,
+  serializeRunMeta,
   serializeSentMeta,
   threadFromTurns,
   withSentMetaOnLastYou
@@ -211,6 +213,50 @@ describe('sent-breakdown persistence (S07b10 — pills survive reload in the fil
     const mangled = parseChatTurns('## you <!-- sent: ??? -->\n\nHello\n')
     expect(mangled[0]!.text).toBe('Hello')
     expect(mangled[0]!.sent).toBeUndefined()
+  })
+})
+
+describe('run-metrics persistence (S07b16 — answer counters survive reload)', () => {
+  it('serialize → parse round-trips; partial figures allowed; garbage is null', () => {
+    const full = {
+      inputTokens: 2128,
+      outputTokens: 31,
+      basis: 'provider',
+      durationMs: 1834,
+      costUsd: 0.000341
+    }
+    expect(parseRunMeta(serializeRunMeta(full)!)).toEqual(full)
+    // mock reports latency alone
+    expect(serializeRunMeta({ durationMs: 12.6 })).toBe('ms=13')
+    expect(parseRunMeta('ms=13')).toEqual({ durationMs: 13 })
+    expect(serializeRunMeta({})).toBeNull()
+    expect(parseRunMeta('what|ever')).toBeNull()
+  })
+
+  it('the answer appends WITH its metrics comment; the parser reads it back', () => {
+    let content = newChatFileContent('mistral', DAY, 'Question?')
+    content = appendChatTurn(
+      content,
+      'atomik',
+      'Answer.',
+      `run: ${serializeRunMeta({ inputTokens: 100, outputTokens: 20, durationMs: 900 })}`
+    )
+    expect(content).toContain('## atomik <!-- run: in=100|out=20|ms=900 -->')
+    const turns = parseChatTurns(content)
+    expect(turns[1]!.run).toEqual({
+      inputTokens: 100,
+      outputTokens: 20,
+      durationMs: 900
+    })
+    expect(turns[0]!.run).toBeUndefined()
+    // sent + run coexist across the two headings
+    const both = parseChatTurns(
+      withSentMetaOnLastYou(content, 'system=100')
+    )
+    expect(both[0]!.sent).toEqual([
+      { kind: 'system', label: 'system', chars: 100 }
+    ])
+    expect(both[1]!.run?.inputTokens).toBe(100)
   })
 })
 

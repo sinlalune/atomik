@@ -22,12 +22,24 @@ export type ChatRole = 'you' | 'atomik'
  *  exact chars — token figures re-derive (chars/4) at display. */
 export type SentPart = { kind: string; label: string; chars: number }
 
+/** Persisted answer metrics (S07b16): what the run reported —
+ *  re-displayed after reloads exactly as recorded. */
+export type RunMeta = {
+  inputTokens?: number
+  outputTokens?: number
+  basis?: string
+  durationMs?: number
+  costUsd?: number
+}
+
 export type ChatTurn = {
   role: ChatRole
   text: string
   /** S07b10: the you-turn's persisted request breakdown, when the
    *  answering write recorded one. */
   sent?: SentPart[]
+  /** S07b16: the atomik-turn's persisted run metrics. */
+  run?: RunMeta
 }
 
 export const CHATS_FOLDER = 'chats'
@@ -71,8 +83,43 @@ export function chatRelPath(
   return `${CHATS_FOLDER}/${day}/${chatSlug(firstMessage)}${suffix}.md`
 }
 
-const turnSection = (role: ChatRole, text: string): string =>
-  `## ${role}\n\n${text.replace(/\s+$/, '')}\n`
+const turnSection = (role: ChatRole, text: string, comment?: string): string =>
+  `## ${role}${comment ? ` <!-- ${comment} -->` : ''}\n\n${text.replace(/\s+$/, '')}\n`
+
+/**
+ * Run-metrics persistence (S07b16, owner: "token counters on response
+ * messages don't persist"): the answer's measured figures ride ITS
+ * heading the way the sent breakdown rides the you-turn's — same
+ * comment idiom, figures only.
+ */
+export function serializeRunMeta(meta: RunMeta): string | null {
+  const pieces = [
+    ...(meta.inputTokens !== undefined ? [`in=${meta.inputTokens}`] : []),
+    ...(meta.outputTokens !== undefined ? [`out=${meta.outputTokens}`] : []),
+    ...(meta.basis ? [`basis=${meta.basis.replace(/[|=\s]/g, '')}`] : []),
+    ...(meta.durationMs !== undefined
+      ? [`ms=${Math.round(meta.durationMs)}`]
+      : []),
+    ...(meta.costUsd !== undefined ? [`usd=${meta.costUsd.toFixed(6)}`] : [])
+  ]
+  return pieces.length > 0 ? pieces.join('|') : null
+}
+
+/** Lenient inverse — unknown keys skip, garbage reads as no meta. */
+export function parseRunMeta(raw: string): RunMeta | null {
+  const meta: RunMeta = {}
+  for (const piece of raw.split('|')) {
+    const match = /^\s*([a-z]+)=([\d.]+|[a-z-]+)\s*$/.exec(piece)
+    if (!match) return null
+    const value = match[2]!
+    if (match[1] === 'in') meta.inputTokens = Number(value)
+    else if (match[1] === 'out') meta.outputTokens = Number(value)
+    else if (match[1] === 'basis') meta.basis = value
+    else if (match[1] === 'ms') meta.durationMs = Number(value)
+    else if (match[1] === 'usd') meta.costUsd = Number(value)
+  }
+  return Object.keys(meta).length > 0 ? meta : null
+}
 
 /**
  * Sent-breakdown persistence (S07b10, owner: "the token count split
@@ -148,9 +195,10 @@ export function newChatFileContent(
 export function appendChatTurn(
   content: string,
   role: ChatRole,
-  text: string
+  text: string,
+  comment?: string
 ): string {
-  return `${content.replace(/\s+$/, '')}\n\n${turnSection(role, text)}`
+  return `${content.replace(/\s+$/, '')}\n\n${turnSection(role, text, comment)}`
 }
 
 /**
@@ -169,6 +217,7 @@ export function parseChatTurns(content: string): ChatTurn[] {
     role: ChatRole
     lines: string[]
     sent?: SentPart[]
+    run?: RunMeta
   } | null = null
   const flush = (): void => {
     if (!current) return
@@ -177,7 +226,8 @@ export function parseChatTurns(content: string): ChatTurn[] {
       turns.push({
         role: current.role,
         text,
-        ...(current.sent ? { sent: current.sent } : {})
+        ...(current.sent ? { sent: current.sent } : {}),
+        ...(current.run ? { run: current.run } : {})
       })
     current = null
   }
@@ -193,10 +243,15 @@ export function parseChatTurns(content: string): ChatTurn[] {
         comment?.startsWith('sent:') === true
           ? parseSentMeta(comment.slice(5))
           : null
+      const run =
+        comment?.startsWith('run:') === true
+          ? parseRunMeta(comment.slice(4))
+          : null
       current = {
         role: heading[1] as ChatRole,
         lines: [],
-        ...(sent ? { sent } : {})
+        ...(sent ? { sent } : {}),
+        ...(run ? { run } : {})
       }
     } else if (current) {
       current.lines.push(line)
