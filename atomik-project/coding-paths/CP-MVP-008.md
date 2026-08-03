@@ -1640,6 +1640,22 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       the pin's test exchange rode the owner's focused Marc-Aurèle
       chat — two stray turns, ordinary note text, owner deletes at
       will. Tests 625→628/55; typecheck/build green.
+- [x] S07b11 (owner bench round 7, 2026-08-03, screenshot: "un
+      problème de math dans les token counts — 354+6+200 vs ~559 —
+      et je comprends system mais pas instruction ni template") —
+      DONE 2026-08-03. (1) MATH: the header estimated the total
+      chars in one ceil while pills ceil per part — the header
+      disagreed with its own pills by a rounding step; now ONE
+      arithmetic: totalTokensEst IS the pill sum (tested). (2)
+      SEMANTICS: the instruction pill labels itself "your message"
+      (kind unchanged — old stamps still parse) and every pill kind
+      carries a hover DESCRIPTION (PART_DESCRIPTIONS, tested
+      exhaustive): system = the composed system message, template =
+      the fixed request scaffolding (headings/steps/quoting rules)
+      the app always sends, context/document/history/note-state
+      spelled out likewise; restored pills get the same hovers.
+      Live pin on the owner's exact message: header ↑~560 = 354+6+
+      200, hovers verified. Tests 628/55; typecheck/build green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel

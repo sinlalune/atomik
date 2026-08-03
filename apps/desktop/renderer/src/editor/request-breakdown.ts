@@ -37,10 +37,26 @@ export type RequestPart = {
 
 export type RequestBreakdown = {
   parts: RequestPart[]
-  /** Estimate over the WHOLE wire request (system + history + user). */
+  /** EXACTLY the sum of the parts' estimates (S07b11: the header and
+   *  its pills must always agree — per-part rounding is the one
+   *  arithmetic). */
   totalTokensEst: number
   /** Portable copy — system + user, the inline inspector's format. */
   requestText: string
+}
+
+/** What each pill IS — hover copy (S07b11, owner: "I understand
+ *  system but not instruction nor template"). */
+export const PART_DESCRIPTIONS: Record<RequestPartKind, string> = {
+  system:
+    'the system message — identity, grounding rules, output brief (arrange it via the system pill; edit the files in prompts/built-in/)',
+  history: 'the prior turns of this conversation, replayed to the model',
+  instruction: 'your message, exactly as you typed it',
+  context: 'the context note’s content, riding along so the model can quote it',
+  document: 'an added document/selection, quotable reference material',
+  'note-context': 'note excerpts around the landing point, so an insert integrates',
+  template:
+    'the fixed request scaffolding around your message and context — section headings, steps, and quoting rules the app always sends'
 }
 
 const estimateTokens = (chars: number): number =>
@@ -76,7 +92,7 @@ export function requestBreakdown(operation: AiOperation): RequestBreakdown {
       threadChars
     )
   }
-  push('instruction', 'instruction', operation.instruction.length)
+  push('instruction', 'your message', operation.instruction.length)
   operation.input.forEach((selection, index) => {
     // a contextless chat anchors on its own transcript with an EMPTY
     // selection — a 0-token pill explains nothing, skip it (S07b10)
@@ -108,9 +124,9 @@ export function requestBreakdown(operation: AiOperation): RequestBreakdown {
 
   return {
     parts,
-    totalTokensEst: estimateTokens(
-      systemText.length + threadChars + userText.length
-    ),
+    // one arithmetic: the total IS the pill sum (owner S07b11 — the
+    // header disagreed with its own pills by a rounding step)
+    totalTokensEst: parts.reduce((sum, part) => sum + part.tokensEst, 0),
     requestText: requestAsText(systemText, userText)
   }
 }

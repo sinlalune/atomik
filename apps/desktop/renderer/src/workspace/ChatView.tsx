@@ -35,8 +35,10 @@ import { DEFAULT_GENERATION_MODEL } from '../../../shared/generation-params'
 import { prepareAiRun } from '../editor/ai-run'
 import { copyText } from '../editor/clipboard'
 import {
+  PART_DESCRIPTIONS,
   requestBreakdown,
-  type RequestBreakdown
+  type RequestBreakdown,
+  type RequestPartKind
 } from '../editor/request-breakdown'
 import { SystemPlanSection } from '../editor/SystemPlanSection'
 import {
@@ -1185,7 +1187,7 @@ export function ChatView({
                     <span
                       key={partIndex}
                       className={`chat-request-pill kind-${part.kind}`}
-                      title={`${part.kind} · ${part.chars} chars · ~${part.tokensEst} tokens (estimated)`}
+                      title={`${PART_DESCRIPTIONS[part.kind as RequestPartKind] ?? part.kind} · ${part.chars} chars · ~${part.tokensEst} tokens (estimated)`}
                     >
                       {part.label} <b>~{part.tokensEst}</b>
                     </span>
