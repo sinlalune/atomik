@@ -20,7 +20,8 @@ export function PdfView({
   requestedPage,
   initialPage,
   onPageChange,
-  onAnchorPage
+  onAnchorPage,
+  onAnchorPassage
 }: {
   dataUrl: string
   /** Citation return (S06): a jump request; a NEW object each time (even
@@ -33,13 +34,19 @@ export function PdfView({
   onPageChange?: (page: number) => void
   /** "Anchor this page" — records a durable page anchor in the dossier. */
   onAnchorPage?: (page: number) => void
+  /** S07b6 (owner): "Anchor selection" — records a durable PASSAGE
+   *  anchor (page + exact quote) in the dossier. */
+  onAnchorPassage?: (page: number, quote: string) => void
 }): React.JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const textLayerRef = useRef<HTMLDivElement | null>(null)
   const hostRef = useRef<HTMLDivElement | null>(null)
   const docRef = useRef<pdfjs.PDFDocumentProxy | null>(null)
   const [numPages, setNumPages] = useState(0)
   const [page, setPage] = useState(requestedPage?.page ?? initialPage ?? 1)
   const [error, setError] = useState<string | null>(null)
+  /** The live selection inside OUR text layer ('' = none). */
+  const [selectedText, setSelectedText] = useState('')
 
   // page turns persist as the tab's page param — reopening the tab (or
   // the app) returns to this page
@@ -122,6 +129,7 @@ export function PdfView({
   // calls on the same canvas, so the previous task is CANCELLED first
   // (the owner hit the race by flipping pages during a resize).
   const renderTaskRef = useRef<{ cancel: () => void } | null>(null)
+  const textLayerTaskRef = useRef<{ cancel: () => void } | null>(null)
   useEffect(() => {
     if (numPages === 0 || hostWidth < 40) return
     let cancelled = false
@@ -146,6 +154,26 @@ export function PdfView({
         const task = pdfPage.render({ canvas, canvasContext: context, viewport })
         renderTaskRef.current = task
         await task.promise
+        // S07b6: the TEXT LAYER over the raster — pdf.js positions
+        // transparent spans over the painted glyphs, so the page text
+        // selects like any text (the anchor + quote flows read the
+        // selection). CSS-pixel viewport: spans live in layout space,
+        // the devicePixelRatio belongs to the raster alone.
+        const layer = textLayerRef.current
+        if (layer && !cancelled) {
+          textLayerTaskRef.current?.cancel()
+          layer.replaceChildren()
+          layer.style.width = canvas.style.width
+          layer.style.height = canvas.style.height
+          layer.style.setProperty('--total-scale-factor', String(scale))
+          const textLayer = new pdfjs.TextLayer({
+            textContentSource: pdfPage.streamTextContent(),
+            container: layer,
+            viewport: pdfPage.getViewport({ scale })
+          })
+          textLayerTaskRef.current = textLayer
+          await textLayer.render()
+        }
       } catch (cause) {
         // a cancelled render is the mechanism working, not an error
         const name = (cause as { name?: string } | null)?.name
@@ -157,8 +185,28 @@ export function PdfView({
     return () => {
       cancelled = true
       renderTaskRef.current?.cancel()
+      textLayerTaskRef.current?.cancel()
     }
   }, [page, numPages, hostWidth])
+
+  // S07b6: track the document selection; only a selection that lives
+  // inside OUR text layer arms the anchor-selection button.
+  useEffect(() => {
+    const onSelectionChange = (): void => {
+      const layer = textLayerRef.current
+      const selection = document.getSelection()
+      const text = selection?.toString().trim() ?? ''
+      const inLayer =
+        !!layer &&
+        !!selection &&
+        selection.rangeCount > 0 &&
+        layer.contains(selection.getRangeAt(0).commonAncestorContainer)
+      setSelectedText(inLayer ? text : '')
+    }
+    document.addEventListener('selectionchange', onSelectionChange)
+    return () =>
+      document.removeEventListener('selectionchange', onSelectionChange)
+  }, [])
 
   if (error) return <p className="error">{error}</p>
   return (
@@ -197,8 +245,21 @@ export function PdfView({
             <AnchorIcon /> Anchor page {page}
           </button>
         )}
+        {onAnchorPassage && selectedText.length > 0 && (
+          <button
+            type="button"
+            className="note-bar-button"
+            title="Record a durable anchor to the highlighted passage (page + exact quote) in the dossier"
+            onClick={() => onAnchorPassage(page, selectedText)}
+          >
+            <AnchorIcon /> Anchor selection
+          </button>
+        )}
       </div>
-      <canvas ref={canvasRef} className="pdf-canvas" />
+      <div className="pdf-page">
+        <canvas ref={canvasRef} className="pdf-canvas" />
+        <div ref={textLayerRef} className="textLayer" />
+      </div>
     </div>
   )
 }

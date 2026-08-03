@@ -21,6 +21,7 @@ import {
   rotationOf,
   withDossierRotation,
   withPageAnchor,
+  withPassageAnchor,
   type Rotation
 } from './dossier'
 import { pdfPageTarget, takePendingPdfPage } from './pdf-open'
@@ -162,6 +163,18 @@ export function SourceImageView({
   const anchorPage = (page: number): void => {
     if (!note) return
     const next = withPageAnchor(note.content, page)
+    if (next === note.content) return
+    window.atomik.writeNote(note.relPath, next, note.mtimeMs).then(
+      ({ mtimeMs }) => applySaved(next, mtimeMs),
+      (cause) => setImageError(String(cause))
+    )
+  }
+
+  // S07b6: "anchor selection" pins a highlighted passage — page +
+  // exact quote — through the same dossier write path.
+  const anchorPassage = (page: number, quote: string): void => {
+    if (!note) return
+    const next = withPassageAnchor(note.content, page, quote)
     if (next === note.content) return
     window.atomik.writeNote(note.relPath, next, note.mtimeMs).then(
       ({ mtimeMs }) => applySaved(next, mtimeMs),
@@ -360,6 +373,7 @@ export function SourceImageView({
             initialPage={initialPdfPage}
             onPageChange={onPdfPageChange}
             onAnchorPage={isDossier ? anchorPage : undefined}
+            onAnchorPassage={isDossier ? anchorPassage : undefined}
           />
         )}
         {isWeb && webUrl && (

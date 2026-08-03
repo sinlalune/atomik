@@ -108,3 +108,37 @@ export function withPageAnchor(dossierContent: string, page: number): string {
   const insertAt = header.index + header[0].length
   return `${dossierContent.slice(0, insertAt)}${row}\n${dossierContent.slice(insertAt)}`
 }
+
+/**
+ * A PASSAGE anchor (S07b6, owner: anchor a highlighted PDF passage):
+ * page + exact quote in the Meaning column — the quote is the anchor's
+ * identity, so several passages of one page coexist (`p4q1`, `p4q2`…)
+ * while re-anchoring the same quote stays a no-op. The Target remains
+ * the page link — the finest destination the PDF link format offers;
+ * the quote pins WHERE on the page. Table-hostile characters in the
+ * quote collapse; overlong quotes cap with an ellipsis.
+ */
+export function withPassageAnchor(
+  dossierContent: string,
+  page: number,
+  quote: string
+): string {
+  const excerpt = quote
+    .replace(/\s+/g, ' ')
+    .replace(/\|/g, '/')
+    .trim()
+    .slice(0, 120)
+    .trim()
+  if (excerpt.length === 0) return dossierContent
+  if (dossierContent.includes(`“${excerpt}`)) return dossierContent
+  const onPage = new RegExp(`^\\| \`p${page}q(\\d+)\``, 'gm')
+  let next = 0
+  for (const match of dossierContent.matchAll(onPage)) {
+    next = Math.max(next, Number(match[1]))
+  }
+  const row = `| \`p${page}q${next + 1}\` | “${excerpt}” | [page ${page}](./original.pdf#page=${page}) |`
+  const header = /^\| Anchor \| Meaning \| Target \|\n\|[-| ]+\|\n/m.exec(dossierContent)
+  if (!header) return dossierContent
+  const insertAt = header.index + header[0].length
+  return `${dossierContent.slice(0, insertAt)}${row}\n${dossierContent.slice(insertAt)}`
+}

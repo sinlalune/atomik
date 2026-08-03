@@ -1457,15 +1457,31 @@ Completeness rule (35): every bedrock page 00–36 accounted for
             Dev CDP pin: order verified by geometry (source left of
             dossier), collapse → full-width PDF + show door, expand →
             restored. Tests 612/54 unchanged; typecheck/build green.
-      - [ ] S07b6 (owner: "I can't interact with the pdf text, as I
+      - [x] S07b6 (owner: "I can't interact with the pdf text, as I
             would be needing to do if I want to anchor highlighted
             passage (maybe in need of a proper pdf viewer with basic
-            tooling)") — SPLIT proposed: minimal pdf.js TEXT LAYER
-            (selectable text → AI context menu + passage anchors) in
-            this path (S07's "real selection over a real source" needs
-            it on PDFs); full viewer tooling (search, zoom presets,
-            thumbnails…) = post-008 backlog candidate. Split CONFIRMED
-            by the owner 2026-08-03 ("i confirm the split").
+            tooling)") — DONE 2026-08-03 (split confirmed: text layer
+            now, full viewer tooling — search, zoom presets,
+            thumbnails — post-008 backlog for the closing ceremony).
+            PdfView gains the pdf.js TextLayer over the raster:
+            transparent spans positioned over the painted glyphs
+            (CSS-pixel viewport — spans live in layout space, the
+            devicePixelRatio belongs to the raster alone;
+            --total-scale-factor set per render; the essential subset
+            of upstream pdf_viewer.css inlined under .pdf-page
+            .textLayer) — page text SELECTS and copies. A
+            selectionchange listener arms "Anchor selection" in the
+            pdf bar only while the selection lives INSIDE our layer →
+            onAnchorPassage(page, quote) → withPassageAnchor (dossier,
+            pure, tested): quote-identified rows `p<page>q<n>` —
+            Meaning carries the exact excerpt (whitespace collapsed,
+            pipes neutralized, 120-char cap), Target stays the page
+            link (the finest the PDF format offers), same-quote
+            re-anchor is a no-op, several passages per page coexist
+            with page anchors. Live pin on the owner's dossier: cold
+            mount renders 292 spans (StrictMode-safe), select →
+            anchor → `p1q1 | “Devis normalisé…”` row written. Tests
+            612→613/54; typecheck/build green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
@@ -1749,17 +1765,28 @@ changed(S07b5): SourceImageView (dossierHidden/onDossierToggle props,
               border, door positions).
 tests(S07b5): 612/54 unchanged; typecheck/build green; dev CDP pin
               (geometry + collapse/expand round-trip).
-next action : S07b6 (bench round 1 fixes, 2026-08-03 —
-              session note 2026-08-03-s07-bench-round1.md): chat
-              picklist alignment; chats per-date folders; built-in
-              request blocks as prompts/built-in/ tree; sent-message
-              context pills with per-block token counts; source
-              layout swap + collapsible dossier (owner confirm
-              pending); minimal PDF text layer (split confirm
-              pending). THEN the S07 acceptance re-run (deferred
-              behind S07b3/b4 — request shape changes; one real
-              provider run, not two). Mistral key CONFIRMED by the
-              owner 2026-08-03.
+changed(S07b6): PdfView (TextLayer render + selection tracking +
+              Anchor selection button); dossier.ts
+              (withPassageAnchor); SourceImageView (anchorPassage
+              wiring); styles.css (textLayer subset);
+              pdf-anchors.test.ts.
+tests(S07b6): 613/54; typecheck/build green; live pin (cold-mount
+              spans, select → p1q1 row in the owner's dossier).
+next action : S07 ACCEPTANCE — bench round 1 fixes S07b1–S07b6 ALL
+              DONE 2026-08-03 (session note
+              2026-08-03-s07-bench-round1.md). Agent half: 18 §M2
+              intents re-run on the REAL provider (key confirmed by
+              the owner 2026-08-03) — selected passage →
+              source-linked note; uncited detail labeled; one
+              accepted patch = one meaningful diff; budget/cancel
+              below the renderer; source-backed reproducible by the
+              deterministic check. Owner half: resume the live-vault
+              bench (question over a real selection — now possible
+              on PDFs; inline accept; chat exchange; prompt file
+              edited + re-used; cancel mid-flight; receipt
+              inspected); then review and close (closing ceremony;
+              post-008 backlog candidates: full PDF viewer tooling,
+              DnD/docking path).
 blockers    : none. DECIDED 2026-07-25 (owner, S06c16): default
               engine when a key is configured = mistral (key-present
               resolution default, mock stays selectable).
