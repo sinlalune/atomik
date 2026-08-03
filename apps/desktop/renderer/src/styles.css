@@ -1268,7 +1268,12 @@ body[data-maximized] .tabstrip {
   display: none;
 }
 
-.chat-context-pill {
+/* S07b8b — ONE pill recipe (36: "no new pill forks"): context pills,
+   request-breakdown pills, and system chips share this box; kinds
+   differ by border color modifiers only. */
+.chat-context-pill,
+.chat-request-pill,
+.sys-plan-chip {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
@@ -1280,6 +1285,7 @@ body[data-maximized] .tabstrip {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-height: 1.2rem;
 }
 
 .chat-context-pill.auto {
@@ -1357,9 +1363,18 @@ body[data-maximized] .tabstrip {
   min-width: 60%;
 }
 
+/* S07b8b (researched anatomy): per-message actions reveal on hover or
+   keyboard focus — the stream stays calm, the verbs stay reachable. */
 .chat-turn-actions {
   display: inline-flex;
   gap: var(--space-1);
+  opacity: 0;
+  transition: opacity 120ms;
+}
+
+.chat-turn:hover .chat-turn-actions,
+.chat-turn:focus-within .chat-turn-actions {
+  opacity: 1;
 }
 
 .chat-turn-head {
@@ -1439,9 +1454,13 @@ body[data-maximized] .tabstrip {
   background: var(--code-bg);
 }
 
-/* transcript markdown at chrome scale, not note scale */
+/* transcript markdown at chrome scale, not note scale; S07b8b —
+   reading comfort per the researched floors: ~1.6 line-height and a
+   bounded measure for sustained answers. */
 .chat-turn-body {
   font-size: var(--fs-md);
+  line-height: 1.6;
+  max-width: 72ch;
 }
 
 .chat-turn-body > :first-child {
@@ -1489,17 +1508,108 @@ body[data-maximized] .tabstrip {
   border-color: var(--accent);
 }
 
+/* S07b8b: the composer anatomy of the reference open-source
+   implementations (Vercel ai-chatbot's PromptInput / shadcn
+   InputGroup): ONE rounded, bordered card — textarea borderless
+   inside, a footer row with ghost tools left and send right, the
+   FOCUS RING on the card (:focus-within), never on the textarea. */
 .chat-compose {
   flex: none;
   border-top: 1px solid var(--border);
   padding-top: var(--space-1);
+  background: var(--surface);
 }
 
-.chat-input {
+.chat-compose > details > summary {
+  padding: 0 var(--space-3);
+}
+
+.chat-sys-sheet {
+  padding: 0 var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.chat-card {
   display: flex;
-  align-items: flex-end;
-  gap: var(--space-2);
-  padding: var(--space-1) var(--space-3) var(--space-3);
+  flex-direction: column;
+  margin: var(--space-1) var(--space-3) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  transition: border-color 120ms;
+}
+
+.chat-card:focus-within {
+  border-color: var(--accent);
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.chat-card .chat-input-host {
+  position: relative;
+  display: flex;
+}
+
+.chat-card textarea {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: var(--fs-md);
+  color: inherit;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: var(--space-2) var(--space-3) var(--space-1);
+  field-sizing: content;
+  min-height: 3.2rem;
+  max-height: 12rem;
+}
+
+.chat-card-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2) var(--space-2);
+}
+
+/* ghost tool toggles (the reference's toolbar buttons) */
+.chat-tool {
+  font: inherit;
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-2);
+  min-height: 1.4rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.chat-tool:hover {
+  color: inherit;
+  background: var(--code-bg);
+}
+
+.chat-tool[aria-expanded='true'] {
+  color: var(--accent);
+}
+
+/* Intent preview (researched: show what will be sent, ambient enough
+   to ignore): a live estimate of the NEXT send's payload, pinned
+   before the send verb. */
+.chat-send-preview {
+  margin-left: auto;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .chat-input-host {
@@ -1590,26 +1700,9 @@ body[data-maximized] .tabstrip {
   padding: 0 var(--space-2);
 }
 
-.chat-input textarea {
-  flex: 1;
-  min-width: 0;
-  min-height: 4.6rem;
-  resize: vertical;
-  font: inherit;
-  font-size: var(--fs-md);
-  color: inherit;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
-}
-
-.chat-input textarea:focus {
-  outline: 1px solid var(--accent);
-  outline-offset: -1px;
-}
-
-.chat-input .chat-send {
+/* the send verb — accent-voiced on hover, quiet otherwise (S07b8b:
+   the card owns the border/focus language, the button stays compact) */
+.chat-send {
   flex: none;
   display: inline-flex;
   align-items: center;
@@ -1624,12 +1717,12 @@ body[data-maximized] .tabstrip {
   cursor: pointer;
 }
 
-.chat-input .chat-send:hover:not(:disabled) {
+.chat-send:hover:not(:disabled) {
   color: var(--accent);
   border-color: var(--accent);
 }
 
-.chat-input .chat-send:disabled {
+.chat-send:disabled {
   opacity: 0.45;
   cursor: default;
 }
@@ -3132,17 +3225,7 @@ button svg {
 }
 
 .chat-request-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
   max-width: 14rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  padding: 0 var(--space-2);
-  background: var(--bg);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .chat-request-pill b {
@@ -3225,14 +3308,9 @@ button svg {
 }
 
 .sys-plan-chip {
-  display: inline-flex;
-  align-items: center;
   max-width: 16rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  background: var(--bg);
   font-size: var(--fs-sm);
-  overflow: hidden;
+  gap: 0;
 }
 
 .sys-plan-chip.kind-builtin {

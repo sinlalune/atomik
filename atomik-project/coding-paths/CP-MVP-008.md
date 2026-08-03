@@ -1541,6 +1541,38 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       typecheck/build green. NOTE: GeneratedNoteScreen (new-tab
       Note stage) still runs the legacy stack path — fold-in
       recorded for the ceremony backlog.
+- [x] S07b8b (owner, same day: the S07b8 directive's research half —
+      "research and apply best practices … make it modern, clean,
+      visual and intuitive", refined: "use well established designers
+      or coders as shadcn or t3 ideas (not the library) or respected
+      opensource projects for their modernity") — DONE 2026-08-03.
+      RESEARCH RECORDED: docs/research/ai-chat-ui-practices.md —
+      primary source read from CODE: Vercel ai-chatbot's PromptInput
+      + shadcn InputGroup (the canonical composer: ONE rounded
+      bordered card, chips row + borderless auto-sizing textarea +
+      block-end toolbar ghost-tools-left/submit-right, focus ring on
+      the CARD); secondary pattern survey (intent preview, ambient
+      optional token detail, one chip language, reading comfort,
+      hover-revealed actions) with applied/held/deferred marks.
+      APPLIED (36 tokens throughout, no raw literals): chat composer
+      rebuilt as `.chat-card` — field-sizing:content textarea
+      (borderless, min 3.2rem/max 12rem), card-level accent focus
+      (border + 1px outline), footer = SYSTEM ghost toggle (badge
+      `custom · N`, aria-expanded) · INTENT PREVIEW (`→ ~N tok
+      + context`, live from plan bodies + visible turns + draft,
+      hover spells parts; the context note stays a named unknown
+      read at send time) · send; the system section opens as a SHEET
+      above the card; ONE pill recipe now shared by context pills,
+      request pills, and system chips (36 "no new pill forks" made
+      real); answer bodies get line-height 1.6 + 72ch measure;
+      per-turn actions reveal on hover/focus-within. Deviations
+      recorded: options row stays its own disclosure (popover
+      fold-in = follow-up); GeneratedNoteScreen untouched. Dev CDP
+      pin: card + sheet + preview live in the owner's terracotta
+      theme AND the moss dark probe (muted-on-card ≈7:1); pin script
+      hardened to target the renderer page (a web tab had hijacked
+      the first-page pick). Tests 624/55 unchanged;
+      typecheck/build green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
@@ -1864,6 +1896,13 @@ changed(S07b8): prompt-composition (WireSystemPlanEntry,
               system-plan.test.ts NEW; ai-mock.test.ts.
 tests(S07b8): 624/55; typecheck/build green; dev CDP pin (both
               surfaces, full edit cycle).
+changed(S07b8b): docs/research/ai-chat-ui-practices.md NEW;
+              ChatView (chat-card composer, sys sheet + ghost
+              toggle, intent preview, mount-loaded sys data);
+              styles.css (card anatomy, one pill recipe, turn
+              polish, ghost tools).
+tests(S07b8b): 624/55 unchanged; typecheck/build green; CDP pin
+              light + dark.
 next action : S07 ACCEPTANCE — bench round 1 fixes S07b1–S07b6 ALL
               DONE 2026-08-03 (session note
               2026-08-03-s07-bench-round1.md). Agent half: 18 §M2

@@ -40,6 +40,7 @@ import {
   isDefaultSystemPlan,
   parseSystemPlan,
   serializeSystemPlan,
+  systemPlanEntryBody,
   wireSystemPlan
 } from '../editor/system-plan'
 import type { BuiltinOverrides } from '../../../shared/prompt-composition'
@@ -278,6 +279,28 @@ export function ChatView({
   const [sysOpen, setSysOpen] = useState(false)
   const [sysPrompts, setSysPrompts] = useState<PromptFile[] | null>(null)
   const [sysBuiltins, setSysBuiltins] = useState<BuiltinOverrides>({})
+  // S07b8b: the section AND the pre-send preview need the live bodies —
+  // loaded once at mount (the @ menu's lazy tree covers reloads).
+  useEffect(() => {
+    let live = true
+    loadPromptsFor(targetPathRef.current ?? '', window.atomik).then(
+      (loaded) => {
+        if (live) setSysPrompts(loaded)
+      },
+      () => {
+        if (live) setSysPrompts([])
+      }
+    )
+    loadBuiltinOverridesFor(targetPathRef.current ?? '', window.atomik).then(
+      (loaded) => {
+        if (live) setSysBuiltins(loaded)
+      },
+      () => undefined
+    )
+    return () => {
+      live = false
+    }
+  }, [])
 
   const patchParams = useCallback(
     (patch: Record<string, string>) =>
@@ -1232,47 +1255,26 @@ export function ChatView({
         </p>
       )}
       <div className="chat-compose">
-        <details
-          className="chat-sys"
-          open={sysOpen}
-          onToggle={(event) => {
-            const open = (event.target as HTMLDetailsElement).open
-            setSysOpen(open)
-            if (open && sysPrompts === null) {
-              loadPromptsFor(targetPathRef.current ?? '', window.atomik).then(
-                setSysPrompts,
-                () => setSysPrompts([])
-              )
-              loadBuiltinOverridesFor(
-                targetPathRef.current ?? '',
-                window.atomik
-              ).then(setSysBuiltins, () => setSysBuiltins({}))
-            }
-          }}
-        >
-          <summary title="What rides as the SYSTEM message of every next send — arrange, remove, add">
-            system
-            {!isDefaultSystemPlan(sysPlan) && (
-              <span className="chat-sys-badge">custom · {sysPlan.length}</span>
-            )}
-          </summary>
-          <SystemPlanSection
-            plan={sysPlan}
-            onChange={(next) =>
-              patchParams({
-                sys: isDefaultSystemPlan(next) ? '' : serializeSystemPlan(next)
-              })
-            }
-            destination="append"
-            builtins={sysBuiltins}
-            prompts={sysPrompts ?? []}
-            onOpenFile={(relPath) =>
-              dispatch((state) => revealNote(state, paneId, relPath))
-            }
-          />
-        </details>
+        {sysOpen && (
+          <div className="chat-sys-sheet">
+            <SystemPlanSection
+              plan={sysPlan}
+              onChange={(next) =>
+                patchParams({
+                  sys: isDefaultSystemPlan(next) ? '' : serializeSystemPlan(next)
+                })
+              }
+              destination="append"
+              builtins={sysBuiltins}
+              prompts={sysPrompts ?? []}
+              onOpenFile={(relPath) =>
+                dispatch((state) => revealNote(state, paneId, relPath))
+              }
+            />
+          </div>
+        )}
         <GenOptionsFields drafts={genDrafts} onChange={setGenDrafts} />
-        <div className="chat-input">
+        <div className="chat-card">
           <span className="chat-input-host">
             <textarea
               ref={inputRef}
@@ -1338,16 +1340,75 @@ export function ChatView({
               </div>
             )}
           </span>
-          <button
-            type="button"
-            className="icon-button chat-send"
-            disabled={running || input.trim().length === 0}
-            title={running ? 'Running…' : 'Send'}
-            aria-label="Send"
-            onClick={() => void send()}
-          >
-            <SendIcon />
-          </button>
+          <div className="chat-card-foot">
+            <button
+              type="button"
+              className="chat-tool"
+              title="What rides as the SYSTEM message of every next send — arrange, remove, add"
+              aria-expanded={sysOpen}
+              aria-label="System message composition"
+              onClick={() => setSysOpen((open) => !open)}
+            >
+              system
+              {!isDefaultSystemPlan(sysPlan) && (
+                <span className="chat-sys-badge">custom · {sysPlan.length}</span>
+              )}
+            </button>
+            {(() => {
+              // S07b8b intent preview (the researched pattern: show
+              // what will be sent, ambiently): system from the
+              // arranged plan, history from the visible turns, the
+              // draft as typed — chars/4, labeled estimated; the
+              // context note reads at send time, so it stays a named
+              // unknown rather than a fake number.
+              const est = (chars: number): number =>
+                chars === 0 ? 0 : Math.max(1, Math.ceil(chars / 4))
+              const sysTok =
+                sysPrompts === null
+                  ? null
+                  : est(
+                      sysPlan.reduce(
+                        (sum, entry) =>
+                          sum +
+                          systemPlanEntryBody(
+                            entry,
+                            'append',
+                            sysBuiltins,
+                            sysPrompts
+                          ).length,
+                        0
+                      )
+                    )
+              const histTok = est(
+                turns.reduce((sum, turn) => sum + turn.text.length, 0)
+              )
+              const draftTok = est(input.length)
+              const known = (sysTok ?? 0) + histTok + draftTok
+              const parts = [
+                `system ${sysTok === null ? '…' : `~${sysTok}`}`,
+                ...(histTok > 0 ? [`history ~${histTok}`] : []),
+                ...(draftTok > 0 ? [`draft ~${draftTok}`] : [])
+              ].join(' · ')
+              return (
+                <span
+                  className="chat-send-preview"
+                  title={`next send, estimated at chars/4: ${parts}${targetPath !== null ? ' — plus the context note, read at send time' : ''}`}
+                >
+                  → ~{known} tok{targetPath !== null ? ' + context' : ''}
+                </span>
+              )
+            })()}
+            <button
+              type="button"
+              className="icon-button chat-send"
+              disabled={running || input.trim().length === 0}
+              title={running ? 'Running…' : 'Send'}
+              aria-label="Send"
+              onClick={() => void send()}
+            >
+              <SendIcon />
+            </button>
+          </div>
         </div>
       </div>
     </div>
