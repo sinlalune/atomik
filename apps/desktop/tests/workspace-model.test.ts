@@ -52,6 +52,7 @@ import {
   setTabView,
   serializeChatContexts,
   setTheme,
+  paneCount,
   splitPane,
   tabDragSource,
   themeOf,
@@ -454,6 +455,13 @@ describe('chat pane state (S06c: tab params, not pane chrome)', () => {
     const panes = leaves(opened.root)
     expect(panes).toHaveLength(2)
     expect(panes[1]!.tabs[0]!.params?.['notePath']).toBe('notes/elsewhere.md')
+  })
+
+  it('paneCount counts panes (S07b9: the chat tree door is sole-survivor-only)', () => {
+    let state = createDefaultState('')
+    expect(paneCount(state)).toBe(1)
+    state = splitPane(state, firstLeafId(state.root), 'horizontal')
+    expect(paneCount(state)).toBe(2)
   })
 
   it('revealSource activates an existing dossier tab, else opens a source pane beside (S07b7)', () => {

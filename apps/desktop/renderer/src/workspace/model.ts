@@ -751,6 +751,13 @@ function leafCount(node: PaneNode): number {
   return node.kind === 'leaf' ? 1 : leafCount(node.first) + leafCount(node.second)
 }
 
+/** Pane count over the whole workspace (S07b9): a chat pane offers
+ *  its tree door ONLY as the sole survivor — the owner's rule: "chat
+ *  pane doesn't need a tree panel; only when it stays last active,
+ *  keep one alive". */
+export const paneCount = (state: WorkspaceState): number =>
+  leafCount(state.root)
+
 /**
  * S06c13 (owner: closing the last vault pane must leave "tree panel +
  * chat pane"): a close that REMOVED a pane must never leave the

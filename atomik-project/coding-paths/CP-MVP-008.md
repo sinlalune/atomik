@@ -1601,6 +1601,22 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       sheets opened (context rows incl. read-only marks, sampling
       grid with the owner's tuned values). Tests 624/55 unchanged;
       typecheck/build green.
+- [x] S07b9 (owner bench round 5, 2026-08-03: "chat pane doesn't need
+      a tree panel, I just said one time that if only chat pane stays
+      last active, keep a tree panel alive — but now I have a
+      collapsed tree panel each time I open a chat pane") — DONE
+      2026-08-03. The S06c13 landing gave EVERY chat pane a hidden
+      tree panel, so its floating show-tree door appeared on every
+      chat pane. Scoped to the owner's actual rule: a chat pane
+      renders NO tree door at all — EXCEPT as the SOLE surviving
+      pane, where the tree must stay reachable (paneCount(state)
+      === 1; the private node-level leafCount exposed as a
+      state-level paneCount, tested). ensureVisibleTree (S06c13's
+      close-time flip) untouched — closing the last vault pane still
+      lands on tree + chat. Dev CDP pin, all three states: chat
+      beside a note → 0 tree doors; other pane closed → sole chat
+      PRESENTS the tree; sole chat hides its tree → the door
+      appears; restored. Tests 624→625/55; typecheck/build green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel

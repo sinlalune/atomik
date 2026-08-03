@@ -27,6 +27,7 @@ import {
   makeTab,
   noteModeOf,
   hasChatTab,
+  paneCount,
   openChatPane,
   paneTreeHidden,
   paneTreeOf,
@@ -432,6 +433,10 @@ function LeafPane({
     [dispatch, node.id]
   )
   const saveMode = useWorkspace((store) => saveModeOf(store.state))
+  // S07b9: a chat pane's tree door exists only for the sole survivor
+  const soleLeaf = useWorkspace((store) =>
+    store.state ? paneCount(store.state) === 1 : false
+  )
 
   // Tree → tabs routing: a note lands in the active note view (it
   // follows its notePath param) or opens a new note tab of the pane's
@@ -718,7 +723,12 @@ function LeafPane({
         />
       )}
       <div className="pane-content">
-        {!untyped && treeHidden && (
+        {/* S07b9 (owner): a CHAT pane offers no tree door — except as
+            the SOLE survivor, where the tree must stay reachable
+            (the S06c13 last-pane rule, now scoped to exactly that). */}
+        {!untyped &&
+          treeHidden &&
+          (scope.kind !== 'chat' || soleLeaf) && (
           <button
             type="button"
             className="tree-toggle pane-tree-show"
