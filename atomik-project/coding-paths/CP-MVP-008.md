@@ -1761,6 +1761,14 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       footer pill still toggles). Live pin: card blur + 44rem
       measured, history in the tabstrip, compact model row with ×.
       Tests 632/55 unchanged; typecheck/build green.
+      S07b15b (owner: "message card and menu cards are not same
+      width") — cause: no global border-box reset in styles.css;
+      same CSS width, but the sheet's padding+border widened its box
+      (content-box; 470 vs 461 measured, left edges offset). Fix:
+      ONE shared measure rule (.chat-card / .chat-sheet /
+      .chat-error: border-box + width + max 44rem + centered) —
+      padding and border live INSIDE the shared width. Verified
+      live: 458.75px and identical left for card and sheet.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel

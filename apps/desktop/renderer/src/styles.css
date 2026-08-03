@@ -1522,6 +1522,19 @@ body[data-maximized] .tabstrip {
   pointer-events: auto;
 }
 
+/* ONE measure for every floating piece (S07b15b, owner: "message card
+   and menu cards are not same width") — border-box, so padding and
+   border live INSIDE the shared width instead of widening it. */
+.chat-card,
+.chat-sheet,
+.chat-error {
+  box-sizing: border-box;
+  width: calc(100% - 2 * var(--space-5));
+  max-width: 44rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 /* S07b14: the dynamic upper part (system / model / context) is its
    OWN floating glass card — the 36 overlay idiom: frosted, small,
    with the opaque fallback. */
