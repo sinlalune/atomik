@@ -1441,11 +1441,22 @@ Completeness rule (35): every bedrock page 00–36 accounted for
             instruction ~10 · context ~981 · note state ~750 ·
             template ~195 = ~2289 est vs 2128 provider-counted.
             Tests 608→612/54; typecheck/build green.
-      - [ ] S07b5 (owner: "source dossier tab not collapsable to get
+      - [x] S07b5 (owner: "source dossier tab not collapsable to get
             full pdf view (better if source are on the first panel
-            and source dossier on the right no?)") — source content
-            primary/left, dossier right + collapsible. Layout
-            CONFIRMED by the owner 2026-08-03 ("source left").
+            and source dossier on the right no?)") — DONE 2026-08-03
+            (layout confirmed: "source left"). The earlier
+            dossier-first flex-order swap RETIRED (this directive
+            supersedes it): DOM order is visual order again — media
+            stage first/left, dossier right with the separator
+            border. Collapse: a SidebarToggleIcon door at the end of
+            the dossier bar hides the column (full media view); a
+            floating door at the media stage's BOTTOM-right (top-right
+            belongs to rotate tools/pdf nav) brings it back; the
+            state rides the tab params (dossierOff) like the PDF
+            page — survives remounts, restarts, workspace snapshots.
+            Dev CDP pin: order verified by geometry (source left of
+            dossier), collapse → full-width PDF + show door, expand →
+            restored. Tests 612/54 unchanged; typecheck/build green.
       - [ ] S07b6 (owner: "I can't interact with the pdf text, as I
             would be needing to do if I want to anchor highlighted
             passage (maybe in need of a proper pdf viewer with basic
@@ -1732,7 +1743,13 @@ changed(S07b4): request-breakdown.ts NEW; ChatView (breakdownByTurn
               palette tokens); request-breakdown.test.ts NEW.
 tests(S07b4): 612/54; typecheck/build green; live pin (real send,
               pills vs provider count).
-next action : S07b5–S07b6 (bench round 1 fixes, 2026-08-03 —
+changed(S07b5): SourceImageView (dossierHidden/onDossierToggle props,
+              hide/show doors); Workspace (dossierOff param
+              plumbing); styles.css (order swap retired, dossier
+              border, door positions).
+tests(S07b5): 612/54 unchanged; typecheck/build green; dev CDP pin
+              (geometry + collapse/expand round-trip).
+next action : S07b6 (bench round 1 fixes, 2026-08-03 —
               session note 2026-08-03-s07-bench-round1.md): chat
               picklist alignment; chats per-date folders; built-in
               request blocks as prompts/built-in/ tree; sent-message

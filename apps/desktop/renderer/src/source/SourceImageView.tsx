@@ -10,6 +10,7 @@ import {
   RotateCcwIcon,
   RotateCwIcon,
   ScanTextIcon,
+  SidebarToggleIcon,
   TrashIcon
 } from '../icons'
 import { useVaultNote } from '../vault/useVaultNote'
@@ -44,7 +45,9 @@ export function SourceImageView({
   initialPdfPage,
   onPdfPageChange,
   onOpenWebUrl,
-  historyKey
+  historyKey,
+  dossierHidden,
+  onDossierToggle
 }: {
   dossierPath: string | undefined
   /** Reports every opened dossier so the tab param follows. */
@@ -58,6 +61,11 @@ export function SourceImageView({
   onOpenWebUrl?: (url: string) => void
   /** Keys this tab's ‹ › navigation trail (the tab id). */
   historyKey?: string
+  /** S07b5 (owner): the dossier column collapses for a full media
+   *  view — the state rides the tab params like the PDF page. */
+  dossierHidden?: boolean
+  /** Reports collapse/expand so the tab param follows. */
+  onDossierToggle?: (hidden: boolean) => void
 }): React.JSX.Element {
   // Every open reports (S07d): with the tree at the pane, the tab param
   // is the only trail — internal .md navigation must persist too.
@@ -411,7 +419,21 @@ export function SourceImageView({
             {imageError ?? 'loading original…'}
           </p>
         )}
+        {dossierHidden && (
+          // the way back — the dossier is gone, so its door floats on
+          // the media stage (S07b5)
+          <button
+            type="button"
+            className="tree-toggle dossier-show"
+            title="Show the source dossier"
+            aria-label="Show the source dossier"
+            onClick={() => onDossierToggle?.(false)}
+          >
+            <SidebarToggleIcon />
+          </button>
+        )}
       </div>
+      {!dossierHidden && (
       <div className="source-image-dossier">
         <div className="note-bar">
           <HistoryNav
@@ -420,6 +442,15 @@ export function SourceImageView({
             onBack={nav.back}
             onForward={nav.forward}
           />
+          <button
+            type="button"
+            className="tree-toggle dossier-hide"
+            title="Hide the dossier — full view of the original"
+            aria-label="Hide the dossier"
+            onClick={() => onDossierToggle?.(true)}
+          >
+            <SidebarToggleIcon />
+          </button>
           <span className="note-bar-path" title={note?.relPath ?? dossierPath}>
             {note?.relPath ?? dossierPath}
           </span>
@@ -569,6 +600,7 @@ export function SourceImageView({
           />
         </div>
       </div>
+      )}
     </div>
     )
   }

@@ -2927,6 +2927,9 @@ body[data-maximized] .tabstrip {
   height: 100%;
   display: flex;
   min-height: 0;
+  /* anchors the floating dossier-show door OUTSIDE the media stage's
+     scroll (S07b5) */
+  position: relative;
 }
 
 .source-image-original {
@@ -2938,16 +2941,33 @@ body[data-maximized] .tabstrip {
   /* the media STAGE is chrome — the original stands apart from the
      dossier's content surface beside it */
   background: var(--bg);
-  border-left: 1px solid var(--border);
   overflow: auto;
-  /* owner request: reading order is tree → DOSSIER → preview — the
-     knowledge text sits next to the tree, the media stage after it
-     (flex order; the DOM keeps original-first for the existing code) */
-  order: 2;
+  /* S07b5 (owner, supersedes the earlier dossier-first order): the
+     SOURCE is the first panel, the dossier reads beside it on the
+     right — DOM order is visual order again */
 }
 
 .source-image-dossier {
-  order: 1;
+  border-left: 1px solid var(--border);
+}
+
+/* S07b5: dossier collapse — the hide door sits at the end of the
+   dossier bar; the show door floats on the media stage when the
+   dossier is gone. */
+.dossier-hide {
+  margin-left: auto;
+}
+
+.dossier-show {
+  position: absolute;
+  /* bottom corner: the top-right belongs to the rotate tools (photo
+     dossiers) and the pdf nav */
+  bottom: var(--space-2);
+  right: var(--space-2);
+  z-index: var(--z-bar);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
 }
 
 .source-image-original img {

@@ -298,6 +298,12 @@ function TabContent({
               updateTabParams(state, tab.id, { page: String(page) })
             )
           }
+          dossierHidden={tab.params?.['dossierOff'] === '1'}
+          onDossierToggle={(hidden) =>
+            dispatch((state) =>
+              updateTabParams(state, tab.id, { dossierOff: hidden ? '1' : '' })
+            )
+          }
         />
       </Suspense>
     )
