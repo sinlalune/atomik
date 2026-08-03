@@ -1719,6 +1719,30 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       produced a note-not-found on reveal — punctuation in
       chatNotePathForMessage vs createNote sanitization suspected;
       not yet triaged.
+- [x] S07b14 (owner bench round 10, 2026-08-03: "make the input card
+      FLOAT above the chat history, no white bg; harmonize font
+      sizing/format throughout the message card; a separate floating
+      card with glass/translucent effect for the dynamic upper part
+      (system and model for now); prompt icon for system, brain icon
+      for model") — DONE 2026-08-03. (1) FLOAT: .chat-compose is
+      absolute over the history (z-float, transparent, pointer-events
+      pass-through outside its children); the history scrolls beneath
+      (10rem clearance); the card carries the pop shadow; the error
+      floats with the composer as its own card. (2) GLASS: the
+      dynamic sheets are a SEPARATE floating card — --glass-pop +
+      blur(18px) saturate(1.2) + shadow (the 36 overlay idiom, small
+      area, @supports fallback to opaque surface) — history text
+      visibly frosts beneath it. (3) TYPE: one scale inside the card
+      (textarea --fs-md, everything else --fs-sm, uppercase/tracking
+      dropped from the tools). (4) ICONS: PromptIcon (terminal
+      chevron + input line) on the system pill, BrainIcon (two
+      hemispheres over a stem) on the model pill — NEW in icons.tsx
+      (16 viewBox, stroke 1.3, aria-hidden). Live pin in the owner's
+      session: absolute/transparent compose measured, blur measured
+      on the sheet, both icons rendered; dark probe fine for this
+      unit's surfaces (the probe's light turn-cards are a
+      direct-attribute artifact — turn styles untouched here).
+      Tests 632/55 unchanged; typecheck/build green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel

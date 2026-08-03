@@ -1305,7 +1305,9 @@ body[data-maximized] .tabstrip {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  padding: var(--space-3);
+  /* the floating composer overlays the bottom (S07b14) — the last
+     message must scroll clear of it */
+  padding: var(--space-3) var(--space-3) 10rem;
 }
 
 .chat-title {
@@ -1469,11 +1471,16 @@ body[data-maximized] .tabstrip {
   color: var(--muted);
 }
 
+/* the error floats WITH the composer (S07b14) — its own readable card */
 .chat-error {
   flex: none;
-  margin: 0;
-  padding: var(--space-1) var(--space-3);
+  margin: 0 var(--space-3) var(--space-2);
+  padding: var(--space-1) var(--space-2);
   font-size: var(--fs-sm);
+  background: var(--surface);
+  border: 1px solid var(--error);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-pop);
 }
 
 .chat-retry {
@@ -1497,28 +1504,33 @@ body[data-maximized] .tabstrip {
    InputGroup): ONE rounded, bordered card — textarea borderless
    inside, a footer row with ghost tools left and send right, the
    FOCUS RING on the card (:focus-within), never on the textarea. */
+/* S07b14 (owner): the composer FLOATS over the history — no surface
+   strip; the history scrolls beneath it. .chat-view anchors. */
 .chat-compose {
-  flex: none;
-  border-top: 1px solid var(--border);
-  padding-top: var(--space-1);
-  background: var(--surface);
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-float);
+  background: none;
+  pointer-events: none;
 }
 
-.chat-compose > details > summary {
-  padding: 0 var(--space-3);
+.chat-compose > * {
+  pointer-events: auto;
 }
 
-/* S07b8c/S07b13: ONE sheet idiom — every footer pill (context /
-   system / model) opens its dynamic section ATTACHED above the card:
-   same margins and border family, rounded top, flowing into the
-   card below as one composer block. */
+/* S07b14: the dynamic upper part (system / model / context) is its
+   OWN floating glass card — the 36 overlay idiom: frosted, small,
+   with the opaque fallback. */
 .chat-sheet {
-  margin: var(--space-1) var(--space-3) 0;
+  margin: 0 var(--space-3) var(--space-2);
   padding: var(--space-2) var(--space-2);
   border: 1px solid var(--border);
-  border-bottom: none;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  background: var(--bg);
+  border-radius: var(--radius-lg);
+  background: var(--glass-pop);
+  backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: var(--shadow-pop);
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -1526,11 +1538,10 @@ body[data-maximized] .tabstrip {
   overflow-y: auto;
 }
 
-/* a sheet and the card read as one block: the card flattens its top */
-.chat-sheet + .chat-card {
-  margin-top: 0;
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
+@supports not (backdrop-filter: blur(1px)) {
+  .chat-sheet {
+    background: var(--surface);
+  }
 }
 
 .chat-sheet-row {
@@ -1587,11 +1598,15 @@ body[data-maximized] .tabstrip {
 .chat-card {
   display: flex;
   flex-direction: column;
-  margin: var(--space-1) var(--space-3) var(--space-3);
+  margin: 0 var(--space-3) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--bg);
+  box-shadow: var(--shadow-pop);
   transition: border-color 120ms;
+  /* S07b14: ONE type scale inside the card — the textarea alone
+     reads at --fs-md, everything else at --fs-sm, no uppercase */
+  font-size: var(--fs-sm);
 }
 
 .chat-card:focus-within {
@@ -1628,12 +1643,11 @@ body[data-maximized] .tabstrip {
   padding: var(--space-1) var(--space-2) var(--space-2);
 }
 
-/* ghost tool toggles (the reference's toolbar buttons) */
+/* ghost tool toggles (the reference's toolbar buttons) — S07b14:
+   the card's one type scale, lowercase vocabulary, icon + label */
 .chat-tool {
   font: inherit;
-  font-size: var(--fs-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: var(--fs-sm);
   color: var(--muted);
   background: none;
   border: none;
@@ -1668,7 +1682,7 @@ body[data-maximized] .tabstrip {
    before the send verb. */
 .chat-send-preview {
   margin-left: auto;
-  font-size: var(--fs-xs);
+  font-size: var(--fs-sm);
   color: var(--muted);
   white-space: nowrap;
   overflow: hidden;

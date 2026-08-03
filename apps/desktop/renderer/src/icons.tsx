@@ -573,6 +573,27 @@ export function CheckIcon(): React.JSX.Element {
  * vocabulary: every chrome verb becomes an icon; the label moves into
  * title/aria-label. */
 
+/** Prompt — a terminal chevron with its input line (the SYSTEM
+ *  pill, S07b14). */
+export function PromptIcon(): React.JSX.Element {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="3 5 6.8 8 3 11" />
+      <line x1="8.8" y1="11" x2="13" y2="11" />
+    </svg>
+  )
+}
+
+/** Brain — two hemispheres over a stem (the MODEL pill, S07b14). */
+export function BrainIcon(): React.JSX.Element {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M8 13.5V4.6A2.1 2.1 0 0 0 4 3.8a1.9 1.9 0 0 0-1.2 2.9A1.9 1.9 0 0 0 3.4 10a2 2 0 0 0 3.2 2.2" />
+      <path d="M8 13.5V4.6A2.1 2.1 0 0 1 12 3.8a1.9 1.9 0 0 1 1.2 2.9A1.9 1.9 0 0 1 12.6 10a2 2 0 0 1-3.2 2.2" />
+    </svg>
+  )
+}
+
 /** AI — the spark. */
 export function SparkleIcon(): React.JSX.Element {
   return (

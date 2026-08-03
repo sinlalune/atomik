@@ -63,10 +63,12 @@ import {
 import { linkableNotesOf, sourceBundlesOf } from '../editor/quick-actions'
 import { noteMarkdown } from '../editor/note-markdown'
 import {
+  BrainIcon,
   HistoryIcon,
   InsertIcon,
   NoteAddIcon,
   PlusIcon,
+  PromptIcon,
   SendIcon
 } from '../icons'
 import {
@@ -1229,22 +1231,22 @@ export function ChatView({
           </article>
         )}
       </div>
-      {error && (
-        <p className="error chat-error">
-          {error}
-          {lastTurnIsYou && !running && (
-            <button
-              type="button"
-              className="chat-retry"
-              title="Ask again — the question is already in the transcript"
-              onClick={() => void retry()}
-            >
-              retry
-            </button>
-          )}
-        </p>
-      )}
       <div className="chat-compose">
+        {error && (
+          <p className="error chat-error">
+            {error}
+            {lastTurnIsYou && !running && (
+              <button
+                type="button"
+                className="chat-retry"
+                title="Ask again — the question is already in the transcript"
+                onClick={() => void retry()}
+              >
+                retry
+              </button>
+            )}
+          </p>
+        )}
         {openPanel === 'context' && (
           <div className="chat-sheet" role="group" aria-label="Context of the next message">
             {candidatePaths.length === 0 && (
@@ -1478,7 +1480,7 @@ export function ChatView({
                 setOpenPanel((open) => (open === 'system' ? null : 'system'))
               }
             >
-              system
+              <PromptIcon /> system
               {!isDefaultSystemPlan(sysPlan, 'chat') && (
                 <span className="chat-sys-badge">custom · {sysPlan.length}</span>
               )}
@@ -1493,6 +1495,7 @@ export function ChatView({
                 setOpenPanel((open) => (open === 'model' ? null : 'model'))
               }
             >
+              <BrainIcon />{' '}
               {engine === 'mock'
                 ? 'mock'
                 : genDrafts.model || DEFAULT_GENERATION_MODEL}
