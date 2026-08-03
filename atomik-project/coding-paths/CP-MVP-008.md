@@ -1357,6 +1357,57 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       Mock caveat: it reports neither usage nor billing — totals
       appear on the real provider. Tests 598→599/53;
       typecheck/build/smoke green.
+- [ ] S07 bench round 1 (2026-08-03, owner live-vault pass on a PDF
+      import; verbatim feedback + triage:
+      `../sessions/2026-08-03-s07-bench-round1.md`) — six findings,
+      fixes S07b1–S07b6 gate the acceptance re-run (the intents re-run
+      waits for S07b3/S07b4: they change the request shape — one real
+      run after, not two):
+      - [x] S07b1 (owner: "chat history picklist layout should be
+            aligned on the left not vertically centered") — DONE
+            2026-08-03. Cause: the S07o centering sweep
+            (`.tabstrip button` et al., late in styles.css) reaches
+            the history popup's list rows because the chat bar lives
+            inside the tabstrip — its `justify-content: center` beats
+            `.chat-pop button`'s `text-align: left` (flex row: only
+            justify-content matters). Fix: corrective rule AFTER the
+            sweep — popup list rows are content rows, not chrome
+            verbs — `justify-content: flex-start`. Dev-mode CDP pin
+            (before/after screenshots: rows centered → left). Tests
+            599/53 unchanged; typecheck/build green.
+      - [ ] S07b2 (owner: "Chats files should be stored in per current
+            date folder and without current date timestamp in the
+            title") — chats/ pin AMENDED: `chats/YYYY-MM-DD/<slug>.md`;
+            existing flat files keep working (read path tolerant, no
+            mass rewrite on open).
+      - [ ] S07b3 (owner: "I still don't have access to all the
+            request content sent … it misses hidden built-in blocks
+            (chat system, rules, guardrails etc) … create a tree
+            hierarchy in /prompts/built-in with all of that but I need
+            to be able to manage easily and completely every bit of
+            token sent") — built-in blocks materialize under
+            `prompts/built-in/` as editable prompt files (nearest-wins
+            scope model extends; 28 no-hidden-source applied to our
+            OWN request assembly).
+      - [ ] S07b4 (owner: "I need pills that retrace the context
+            (system, prompts, notes, other text document, medias)
+            with the associated amount of token in each pills") —
+            sent-message context pills, one per contributing block,
+            each with its token share.
+      - [ ] S07b5 (owner: "source dossier tab not collapsable to get
+            full pdf view (better if source are on the first panel
+            and source dossier on the right no?)") — source content
+            primary/left, dossier right + collapsible. Layout
+            CONFIRMED by the owner 2026-08-03 ("source left").
+      - [ ] S07b6 (owner: "I can't interact with the pdf text, as I
+            would be needing to do if I want to anchor highlighted
+            passage (maybe in need of a proper pdf viewer with basic
+            tooling)") — SPLIT proposed: minimal pdf.js TEXT LAYER
+            (selectable text → AI context menu + passage anchors) in
+            this path (S07's "real selection over a real source" needs
+            it on PDFs); full viewer tooling (search, zoom presets,
+            thumbnails…) = post-008 backlog candidate. Split CONFIRMED
+            by the owner 2026-08-03 ("i confirm the split").
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
@@ -1610,13 +1661,20 @@ changed(S06c19): ipc-contract + index.ts (bundle.billing); model.ts
               cost, totals increment + chat-bar Σ); styles.css;
               tests.
 tests(S06c19): 599 passing / 53 suites; typecheck/build/smoke green.
-next action : S07 — acceptance: 18 §M2 intents re-run on the REAL
-              provider + owner bench on the live vault (real
-              question over a real selection via the context menu,
-              inline accept, a CHAT exchange, prompt file edited and
-              re-used, cancel mid-flight, receipt inspected); decide
-              the open default-engine question at the bench; review
-              and close.
+changed(S07b1): styles.css (post-sweep corrective rule: .chat-pop
+              button justify-content flex-start).
+tests(S07b1): 599/53 unchanged; typecheck/build green; dev CDP pin.
+next action : S07b2–S07b6 (bench round 1 fixes, 2026-08-03 —
+              session note 2026-08-03-s07-bench-round1.md): chat
+              picklist alignment; chats per-date folders; built-in
+              request blocks as prompts/built-in/ tree; sent-message
+              context pills with per-block token counts; source
+              layout swap + collapsible dossier (owner confirm
+              pending); minimal PDF text layer (split confirm
+              pending). THEN the S07 acceptance re-run (deferred
+              behind S07b3/b4 — request shape changes; one real
+              provider run, not two). Mistral key CONFIRMED by the
+              owner 2026-08-03.
 blockers    : none. DECIDED 2026-07-25 (owner, S06c16): default
               engine when a key is configured = mistral (key-present
               resolution default, mock stays selectable).

@@ -3034,6 +3034,12 @@ button svg {
   gap: 0.3rem;
 }
 
+/* Popup list rows (history picklist) are content rows, not chrome
+   verbs — the sweep's centering must not reach them (S07b1). */
+.chat-pop button {
+  justify-content: flex-start;
+}
+
 /* Unsaved-changes dot beside the note path (was a bare text char). */
 .dirty-dot {
   margin-left: 0.35rem;
