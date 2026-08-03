@@ -510,6 +510,44 @@ export function revealNote(
   return openNoteInNewPane(state, paneId, relPath, { kind: 'vault' })
 }
 
+/**
+ * S07b7 (owner: closing the last note tab beside a chat then clicking
+ * the tree opened the note INSIDE the chat pane): the source twin of
+ * revealNote — a tab already viewing the dossier activates wherever it
+ * lives; otherwise a fresh vault-typed pane opens beside the caller
+ * with a source tab (tree hidden, one toggle away — the
+ * openNoteInNewPane convention).
+ */
+export function revealSource(
+  state: WorkspaceState,
+  paneId: string,
+  dossierPath: string
+): WorkspaceState {
+  let found: { paneId: string; tabId: string } | null = null
+  mapNode(state.root, (node) => {
+    if (!found && node.kind === 'leaf') {
+      const tab = node.tabs.find(
+        (candidate) => candidate.params?.['dossierPath'] === dossierPath
+      )
+      if (tab) found = { paneId: node.id, tabId: tab.id }
+    }
+    return node
+  })
+  if (found !== null) {
+    const target: { paneId: string; tabId: string } = found
+    return activateTab(state, target.paneId, target.tabId)
+  }
+  const split = splitPane(state, paneId, 'horizontal')
+  if (split === state) return state
+  const newPaneId = split.focusedPaneId
+  const typed = updatePaneTree(
+    setPaneTreeScope(split, newPaneId, { kind: 'vault' }),
+    newPaneId,
+    { off: '1' }
+  )
+  return addTab(typed, newPaneId, makeTab('source-image', { dossierPath }))
+}
+
 /** True when any leaf holds a chat tab — the tabstrip's chat-door
  *  button hides then (S06c15, owner: "the button is still here"):
  *  with a chat pane open, its tab IS the door. */

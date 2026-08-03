@@ -34,6 +34,8 @@ import {
   paneTreeWidth,
   pdfPageOf,
   relocateTabPaths,
+  revealNote,
+  revealSource,
   saveModeOf,
   noteFontSizeOf,
   noteWidthOf,
@@ -436,6 +438,13 @@ function LeafPane({
   // kind; a dossier lands in the active source tab or a new one; a doc
   // (docs panes) in the active dev-docs tab or a new one.
   const openNoteFromTree = (relPath: string): void => {
+    // S07b7 (owner): a CHAT pane's tree is a browser, never a tab
+    // feeder — the conversation keeps its pane; the note activates
+    // where it is already open, else opens in a fresh pane beside.
+    if (scope.kind === 'chat') {
+      dispatch((state) => revealNote(state, node.id, relPath))
+      return
+    }
     if (active && (active.view === 'vault' || active.view === 'project')) {
       dispatch((state) => updateTabParams(state, active.id, { notePath: relPath }))
       return
@@ -455,6 +464,11 @@ function LeafPane({
     )
   }
   const openSourceFromTree = (dossierPath: string): void => {
+    // S07b7: same rule for sources — the chat pane never adopts them
+    if (scope.kind === 'chat') {
+      dispatch((state) => revealSource(state, node.id, dossierPath))
+      return
+    }
     if (active && active.view === 'source-image') {
       dispatch((state) => updateTabParams(state, active.id, { dossierPath }))
       return

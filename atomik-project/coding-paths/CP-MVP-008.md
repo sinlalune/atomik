@@ -1482,6 +1482,23 @@ Completeness rule (35): every bedrock page 00–36 accounted for
             mount renders 292 spans (StrictMode-safe), select →
             anchor → `p1q1 | “Devis normalisé…”` row written. Tests
             612→613/54; typecheck/build green.
+- [x] S07b7 (owner bench round 2, 2026-08-03: "if I close the last
+      note tab beside a chat pane and then click on a note in the
+      tree panel, it opens a tab in the chat pane instead of a note
+      tab in a new panel") — DONE 2026-08-03. The S06c13 landing let
+      a chat pane's tree ADOPT notes as its own tabs
+      (openNoteFromTree added to node.id whatever the pane kind).
+      Amended: a CHAT pane's tree is a browser, never a tab feeder —
+      note clicks route through revealNote (a tab already viewing
+      the note activates wherever it lives, else a vault-typed pane
+      opens beside, tree hidden); source clicks through revealSource
+      NEW (model, tested — same activate-or-open-beside contract,
+      source-image tab; the doors audit: notes AND sources were both
+      leaking into the chat pane). Dev CDP pin on the owner's exact
+      repro state (tree + lone chat pane): tree click → 2 panes,
+      chat intact, note in the new pane — and the chat's auto
+      context follows the newly opened note. Tests 613→614/54;
+      typecheck/build green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
@@ -1787,6 +1804,11 @@ changed(S07b6): PdfView (TextLayer render + selection tracking +
               pdf-anchors.test.ts.
 tests(S07b6): 613/54; typecheck/build green; live pin (cold-mount
               spans, select → p1q1 row in the owner's dossier).
+changed(S07b7): model.ts (revealSource NEW); Workspace
+              (openNoteFromTree/openSourceFromTree chat-scope
+              routing); workspace-model.test.ts.
+tests(S07b7): 614/54; typecheck/build green; dev CDP pin on the
+              owner's exact repro state.
 next action : S07 ACCEPTANCE — bench round 1 fixes S07b1–S07b6 ALL
               DONE 2026-08-03 (session note
               2026-08-03-s07-bench-round1.md). Agent half: 18 §M2

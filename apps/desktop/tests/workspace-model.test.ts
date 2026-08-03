@@ -41,6 +41,7 @@ import {
   pdfPageOf,
   relocateTabPaths,
   revealNote,
+  revealSource,
   saveModeOf,
   setFocus,
   setFraction,
@@ -453,6 +454,30 @@ describe('chat pane state (S06c: tab params, not pane chrome)', () => {
     const panes = leaves(opened.root)
     expect(panes).toHaveLength(2)
     expect(panes[1]!.tabs[0]!.params?.['notePath']).toBe('notes/elsewhere.md')
+  })
+
+  it('revealSource activates an existing dossier tab, else opens a source pane beside (S07b7)', () => {
+    let state = createDefaultState('')
+    const paneId = firstLeafId(state.root)
+    const sourceTab = makeTab('source-image', {
+      dossierPath: 'sources/pdf/quote/source.md'
+    })
+    state = addTab(state, paneId, sourceTab)
+    // already open: activates in place, no new pane
+    const revealed = revealSource(state, paneId, 'sources/pdf/quote/source.md')
+    expect(leaves(revealed.root)).toHaveLength(1)
+    expect(leaves(revealed.root)[0]!.activeTabId).toBe(sourceTab.id)
+    // not open: a fresh vault-typed pane opens beside with a SOURCE tab
+    const opened = revealSource(state, paneId, 'sources/pdf/other/source.md')
+    const panes = leaves(opened.root)
+    expect(panes).toHaveLength(2)
+    const landed = panes[1]!.tabs[0]!
+    expect(landed.view).toBe('source-image')
+    expect(landed.params?.['dossierPath']).toBe('sources/pdf/other/source.md')
+    // the pane that shows it is vault-typed with its tree hidden (the
+    // openNoteInNewPane convention) — never a chat pane
+    expect(paneTreeScopeOf(panes[1]!.tree!).kind).toBe('vault')
+    expect(paneTreeHidden(panes[1]!.tree!)).toBe(true)
   })
 
   it('the empty ctx list is the explicit NO-CONTEXT pick (S06c14)', () => {
