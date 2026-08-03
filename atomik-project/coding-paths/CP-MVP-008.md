@@ -1375,11 +1375,22 @@ Completeness rule (35): every bedrock page 00–36 accounted for
             verbs — `justify-content: flex-start`. Dev-mode CDP pin
             (before/after screenshots: rows centered → left). Tests
             599/53 unchanged; typecheck/build green.
-      - [ ] S07b2 (owner: "Chats files should be stored in per current
+      - [x] S07b2 (owner: "Chats files should be stored in per current
             date folder and without current date timestamp in the
-            title") — chats/ pin AMENDED: `chats/YYYY-MM-DD/<slug>.md`;
-            existing flat files keep working (read path tolerant, no
-            mass rewrite on open).
+            title") — DONE 2026-08-03. chats/ pin AMENDED:
+            `chats/YYYY-MM-DD/<slug>.md` — the day is the FOLDER
+            (createNote materializes it + S07k conventions per
+            level), the title stays date-free. chatHistoryOf walks
+            BOTH eras — day folders and pre-amendment flat files —
+            interleaved chronologically by a shared `<day>-<name>`
+            sort key (a flat file's name IS that key); convention
+            files excluded at both levels; NO rewrite of old files.
+            Dev CDP pin on the LIVE vault: real mistral send → born
+            at chats/2026-08-03/reply-with-one-short-sentence…md,
+            day-folder index/log written, history lists the date-free
+            title first above the flat era. Tests 599/53 (chatRelPath
+            + chatHistoryOf cases rewritten to the new convention);
+            typecheck/build green.
       - [ ] S07b3 (owner: "I still don't have access to all the
             request content sent … it misses hidden built-in blocks
             (chat system, rules, guardrails etc) … create a tree
@@ -1664,7 +1675,11 @@ tests(S06c19): 599 passing / 53 suites; typecheck/build/smoke green.
 changed(S07b1): styles.css (post-sweep corrective rule: .chat-pop
               button justify-content flex-start).
 tests(S07b1): 599/53 unchanged; typecheck/build green; dev CDP pin.
-next action : S07b2–S07b6 (bench round 1 fixes, 2026-08-03 —
+changed(S07b2): chat-file.ts (chatRelPath day-folder paths;
+              chatHistoryOf two-era walk); chat-file.test.ts.
+tests(S07b2): 599/53; typecheck/build green; live-vault CDP pin
+              (real mistral send, day folder + conventions born).
+next action : S07b3–S07b6 (bench round 1 fixes, 2026-08-03 —
               session note 2026-08-03-s07-bench-round1.md): chat
               picklist alignment; chats per-date folders; built-in
               request blocks as prompts/built-in/ tree; sent-message

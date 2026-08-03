@@ -28,12 +28,12 @@ describe('chat file naming (S01 pin: chats/YYYY-MM-DD-<slug>.md)', () => {
     )
   })
 
-  it('builds dated paths; collisions retry with a numeric suffix', () => {
+  it('builds per-date folder paths (S07b2: day = folder, title date-free); collisions retry with a numeric suffix', () => {
     expect(chatRelPath(DAY, 'What is attention?')).toBe(
-      'chats/2026-07-23-what-is-attention.md'
+      'chats/2026-07-23/what-is-attention.md'
     )
     expect(chatRelPath(DAY, 'What is attention?', 3)).toBe(
-      'chats/2026-07-23-what-is-attention-3.md'
+      'chats/2026-07-23/what-is-attention-3.md'
     )
   })
 })
@@ -151,7 +151,7 @@ describe('chatRenameTarget (S06c3: double-click tab rename)', () => {
   })
 })
 
-describe('chatHistoryOf (S06b history menu)', () => {
+describe('chatHistoryOf (S06b history menu; S07b2 per-date folders)', () => {
   const tree: VaultFolder = {
     name: '',
     relPath: '',
@@ -160,7 +160,25 @@ describe('chatHistoryOf (S06b history menu)', () => {
       {
         name: 'chats',
         relPath: 'chats',
-        folders: [],
+        folders: [
+          {
+            name: '2026-07-22',
+            relPath: 'chats/2026-07-22',
+            folders: [],
+            notes: [
+              { name: 'mid.md', relPath: 'chats/2026-07-22/mid.md' },
+              { name: 'index.md', relPath: 'chats/2026-07-22/index.md' }
+            ]
+          },
+          {
+            name: '2026-07-24',
+            relPath: 'chats/2026-07-24',
+            folders: [],
+            notes: [
+              { name: 'newest.md', relPath: 'chats/2026-07-24/newest.md' }
+            ]
+          }
+        ],
         notes: [
           { name: '2026-07-21-old.md', relPath: 'chats/2026-07-21-old.md' },
           { name: 'index.md', relPath: 'chats/index.md' },
@@ -171,9 +189,11 @@ describe('chatHistoryOf (S06b history menu)', () => {
     ]
   }
 
-  it('lists transcripts newest first, convention files excluded', () => {
+  it('interleaves flat-era and per-date transcripts newest first, convention files excluded at both levels', () => {
     expect(chatHistoryOf(tree)).toEqual([
+      { name: 'newest', relPath: 'chats/2026-07-24/newest.md' },
       { name: '2026-07-23-new', relPath: 'chats/2026-07-23-new.md' },
+      { name: 'mid', relPath: 'chats/2026-07-22/mid.md' },
       { name: '2026-07-21-old', relPath: 'chats/2026-07-21-old.md' }
     ])
   })

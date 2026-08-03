@@ -2,14 +2,18 @@ import type { AiThreadTurn, VaultFolder } from '../../../shared/ipc-contract'
 import { newNotePathForSelection, type BufferChange } from './ai-helpers'
 
 /**
- * The chats/ convention (CP-MVP-008 S01 pin, owner: files): one chat =
- * one markdown note `chats/YYYY-MM-DD-<slug>.md`, frontmatter
- * `type: Atomik Chat` + engine + timestamp; the file is BORN at the
- * first message (never on panel open), and every turn appends as a
- * `## you` / `## atomik` section through the ordinary write path. A
- * transcript IS a note — editable, linkable, listed like any other —
- * so this module is pure text shaping over that convention; all IO
- * stays with the existing vault verbs.
+ * The chats/ convention (CP-MVP-008 S01 pin, owner: files; S07b2
+ * amendment, owner: per-date folders): one chat = one markdown note
+ * `chats/YYYY-MM-DD/<slug>.md` — the DAY is the folder, the title
+ * carries no date — frontmatter `type: Atomik Chat` + engine +
+ * timestamp; the file is BORN at the first message (never on panel
+ * open), and every turn appends as a `## you` / `## atomik` section
+ * through the ordinary write path. Pre-amendment flat files
+ * (`chats/YYYY-MM-DD-<slug>.md`) stay readable — the history walk
+ * lists both, no rewrite on open. A transcript IS a note — editable,
+ * linkable, listed like any other — so this module is pure text
+ * shaping over that convention; all IO stays with the existing vault
+ * verbs.
  */
 
 export type ChatRole = 'you' | 'atomik'
@@ -43,8 +47,10 @@ export function chatSlug(firstMessage: string): string {
   return slug.length > 0 ? slug : 'chat'
 }
 
-/** `chats/YYYY-MM-DD-<slug>.md`; attempt > 1 suffixes `-2`, `-3`, … —
- *  createNote is exclusive, so collisions retry instead of clobbering. */
+/** `chats/YYYY-MM-DD/<slug>.md` (S07b2: the day is the FOLDER, the
+ *  title stays date-free); attempt > 1 suffixes `-2`, `-3`, … —
+ *  createNote is exclusive, so collisions retry instead of
+ *  clobbering; parents are made by the verb. */
 export function chatRelPath(
   date: Date,
   firstMessage: string,
@@ -52,7 +58,7 @@ export function chatRelPath(
 ): string {
   const day = date.toISOString().slice(0, 10)
   const suffix = attempt > 1 ? `-${attempt}` : ''
-  return `${CHATS_FOLDER}/${day}-${chatSlug(firstMessage)}${suffix}.md`
+  return `${CHATS_FOLDER}/${day}/${chatSlug(firstMessage)}${suffix}.md`
 }
 
 const turnSection = (role: ChatRole, text: string): string =>
@@ -155,10 +161,13 @@ export function chatRenameTarget(
 const CHATS_CONVENTION_FILES = new Set(['index.md', 'log.md'])
 
 /**
- * Past chats for the history menu (S06b): the vault-root chats/
- * folder's notes, newest first — the YYYY-MM-DD name prefix makes
- * reverse name order chronological. Convention files (index/log)
- * are the folder's, not transcripts.
+ * Past chats for the history menu (S06b; S07b2 per-date folders):
+ * transcripts live in `chats/<YYYY-MM-DD>/` day folders — and, from
+ * before the amendment, flat in `chats/` with the date as a name
+ * prefix. Both list, newest first: the sort key is `<day>-<name>`
+ * either way (a flat file's name IS that key), so the two eras
+ * interleave chronologically. Convention files (index/log) are the
+ * folders', not transcripts.
  */
 export function chatHistoryOf(
   tree: VaultFolder
@@ -167,13 +176,27 @@ export function chatHistoryOf(
     (candidate) => candidate.relPath === CHATS_FOLDER
   )
   if (!folder) return []
-  return folder.notes
-    .filter((note) => !CHATS_CONVENTION_FILES.has(note.name))
-    .map((note) => ({
-      name: note.name.replace(/\.md$/i, ''),
-      relPath: note.relPath
-    }))
-    .sort((a, b) => b.name.localeCompare(a.name))
+  const transcriptsOf = (
+    host: VaultFolder
+  ): Array<{ name: string; relPath: string }> =>
+    host.notes
+      .filter((note) => !CHATS_CONVENTION_FILES.has(note.name))
+      .map((note) => ({
+        name: note.name.replace(/\.md$/i, ''),
+        relPath: note.relPath
+      }))
+  const keyed = [
+    ...transcriptsOf(folder).map((entry) => ({ entry, key: entry.name })),
+    ...folder.folders.flatMap((day) =>
+      transcriptsOf(day).map((entry) => ({
+        entry,
+        key: `${day.name}-${entry.name}`
+      }))
+    )
+  ]
+  return keyed
+    .sort((a, b) => b.key.localeCompare(a.key))
+    .map(({ entry }) => entry)
 }
 
 /**
