@@ -57,7 +57,7 @@ import {
   type InlineAiHandlers,
   type InlineAiState
 } from './inline-ai'
-import { loadPromptsFor } from './prompts'
+import { loadBuiltinOverridesFor, loadPromptsFor } from './prompts'
 import { frontmatterEnd, livePreview } from './live-preview'
 import { ModeSwitch } from './ModeSwitch'
 import { quickActions } from './quick-actions'
@@ -590,6 +590,10 @@ export function EditorPane({
         const prompts = await loadPromptsFor(note.relPath, window.atomik).catch(
           () => []
         )
+        const builtins = await loadBuiltinOverridesFor(
+          note.relPath,
+          window.atomik
+        ).catch(() => ({}))
         const prepared = await prepareAiRun(
           {
             noteRelPath: note.relPath,
@@ -599,6 +603,7 @@ export function EditorPane({
             ...(menuRequest.preset ? { preset: menuRequest.preset } : {}),
             systemStack: menuRequest.stack,
             prompts,
+            builtins,
             destination: 'new-note',
             newNotePath: '',
             ...(menuRequest.params ? { params: menuRequest.params } : {})
@@ -810,6 +815,10 @@ export function EditorPane({
         const prompts = await loadPromptsFor(note.relPath, window.atomik).catch(
           () => []
         )
+        const builtins = await loadBuiltinOverridesFor(
+          note.relPath,
+          window.atomik
+        ).catch(() => ({}))
         const prepared = await prepareAiRun(
           {
             noteRelPath: note.relPath,
@@ -819,6 +828,7 @@ export function EditorPane({
             ...(menuRequest.preset ? { preset: menuRequest.preset } : {}),
             systemStack: menuRequest.stack,
             prompts,
+            builtins,
             destination: menuRequest.destination,
             newNotePath: '',
             ...(menuRequest.params ? { params: menuRequest.params } : {})

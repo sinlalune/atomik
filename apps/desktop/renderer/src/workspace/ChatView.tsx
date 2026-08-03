@@ -35,7 +35,12 @@ import {
   claimTitle,
   findClaimRanges
 } from '../editor/claim-highlight'
-import { atPromptToken, loadPromptsFor, type PromptFile } from '../editor/prompts'
+import {
+  atPromptToken,
+  loadBuiltinOverridesFor,
+  loadPromptsFor,
+  type PromptFile
+} from '../editor/prompts'
 import { linkableNotesOf, sourceBundlesOf } from '../editor/quick-actions'
 import { noteMarkdown } from '../editor/note-markdown'
 import {
@@ -515,6 +520,10 @@ export function ChatView({
         const anchorPath = target?.notePath ?? fileRef.current
         if (!anchorPath) return
         const prompts = await loadPrompts()
+        const builtins = await loadBuiltinOverridesFor(
+          anchorPath,
+          window.atomik
+        ).catch(() => ({}))
         const params = composeGenerationParams(genDrafts)
         const prepared = await prepareAiRun(
           {
@@ -526,6 +535,7 @@ export function ChatView({
             instruction: text,
             systemStack: [],
             prompts,
+            builtins,
             destination: 'append',
             newNotePath: '',
             ...(params ? { params } : {})

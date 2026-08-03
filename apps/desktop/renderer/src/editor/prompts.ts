@@ -1,4 +1,10 @@
 import type { VaultFolder } from '../../../shared/ipc-contract'
+import {
+  BUILTIN_BLOCK_DEFAULTS,
+  BUILTIN_BLOCK_IDS,
+  type BuiltinBlockId,
+  type BuiltinOverrides
+} from '../../../shared/prompt-composition'
 
 /**
  * Scoped prompt folders (CP-MVP-008 S03; owner amendment 2026-07-21):
@@ -536,9 +542,122 @@ export const STARTER_PROMPTS: ReadonlyArray<{ name: string; content: string }> =
   }
 ]
 
+/**
+ * Built-in block overrides (S07b3, owner: "create a tree hierarchy in
+ * prompts/built-in with all of that — I need to manage every bit of
+ * token sent"): a `built-in/` subfolder of any prompts/ scope holds
+ * one file per template block (`<block-id>.md`). The file's body
+ * (below an optional frontmatter fence) replaces that block VERBATIM
+ * in the composed system message. Resolution walks the SAME chain as
+ * prompts — nearest scope wins per block. Being a subfolder, these
+ * files never join the prompt menus (collectPromptRefs reads direct
+ * children only).
+ */
+export const BUILTIN_SUBFOLDER = 'built-in'
+
+/** Body below an optional frontmatter fence; null when empty. */
+export function parseBuiltinBlockFile(rawContent: string): string | null {
+  const content = rawContent.replace(/\r\n/g, '\n')
+  const fence = /^---\n[\s\S]*?\n---\n?/.exec(content)
+  const body = (fence ? content.slice(fence[0].length) : content).trim()
+  return body.length > 0 ? body : null
+}
+
+/** Nearest-wins refs for every overridden block along the chain. */
+export function collectBuiltinRefs(
+  tree: VaultFolder,
+  noteRelPath: string
+): Partial<Record<BuiltinBlockId, string>> {
+  const refs: Partial<Record<BuiltinBlockId, string>> = {}
+  for (const promptsPath of promptFolderChainFor(noteRelPath)) {
+    const folder = findFolder(tree, `${promptsPath}/${BUILTIN_SUBFOLDER}`)
+    if (!folder) continue
+    for (const note of folder.notes) {
+      const name = note.name.replace(/\.md$/i, '') as BuiltinBlockId
+      if (!(BUILTIN_BLOCK_IDS as readonly string[]).includes(name)) continue
+      if (refs[name]) continue
+      refs[name] = note.relPath
+    }
+  }
+  return refs
+}
+
+/** The note's resolved built-in overrides; a failed read or an empty
+ *  body degrades to that block's default (absent from the map). */
+export async function loadBuiltinOverridesFor(
+  noteRelPath: string,
+  verbs: PromptVerbs
+): Promise<BuiltinOverrides> {
+  const tree = await verbs.listVaultFiles()
+  const refs = collectBuiltinRefs(tree, noteRelPath)
+  const overrides: BuiltinOverrides = {}
+  for (const [id, relPath] of Object.entries(refs) as Array<
+    [BuiltinBlockId, string]
+  >) {
+    try {
+      const body = parseBuiltinBlockFile((await verbs.readNote(relPath)).content)
+      if (body) overrides[id] = body
+    } catch {
+      /* unreadable override = default block */
+    }
+  }
+  return overrides
+}
+
+const BUILTIN_BLOCK_DESCRIPTIONS: Record<BuiltinBlockId, string> = {
+  identity: 'The Role section when no system stack is picked.',
+  'grounding-rules': 'The Rules > Grounding section — the mechanical contract.',
+  'output-replace-selection': 'The Rules > Output brief for replace-selection runs.',
+  'output-append': 'The Rules > Output brief for append runs.',
+  'output-new-note': 'The Rules > Output brief for new-note runs.',
+  'closing-rule': 'The closing line of Rules > Output.'
+}
+
+/** One materialized block file: frontmatter documents the contract,
+ *  the body IS the block — byte-identical to its default, so a fresh
+ *  materialization never changes a request. */
+export function builtinBlockFileContent(id: BuiltinBlockId): string {
+  return [
+    '---',
+    'kind: builtin',
+    `title: ${promptTitleFor(id)}`,
+    `description: ${BUILTIN_BLOCK_DESCRIPTIONS[id]} Edit the body — it replaces this block verbatim in every request.`,
+    '---',
+    '',
+    BUILTIN_BLOCK_DEFAULTS[id]
+  ].join('\n')
+}
+
 export type MaterializeVerbs = {
   listVaultFiles: () => Promise<VaultFolder>
   createNote: (relPath: string, content?: string) => Promise<unknown>
+}
+
+/**
+ * The explicit built-in materialize action (root scope, mirroring the
+ * starter action): creates the MISSING `prompts/built-in/<id>.md`
+ * files. Idempotent — an edited block is never touched, a deleted one
+ * can be re-materialized. Returns the created ids.
+ */
+export async function materializeBuiltinBlocks(
+  verbs: MaterializeVerbs
+): Promise<string[]> {
+  const tree = await verbs.listVaultFiles()
+  const existing = new Set(
+    (findFolder(tree, `prompts/${BUILTIN_SUBFOLDER}`)?.notes ?? []).map((note) =>
+      note.name.replace(/\.md$/i, '')
+    )
+  )
+  const created: string[] = []
+  for (const id of BUILTIN_BLOCK_IDS) {
+    if (existing.has(id)) continue
+    await verbs.createNote(
+      `prompts/${BUILTIN_SUBFOLDER}/${id}.md`,
+      builtinBlockFileContent(id)
+    )
+    created.push(id)
+  }
+  return created
 }
 
 /**

@@ -18,16 +18,26 @@ import {
   linkedNoteCandidates,
   toggleStackBlock,
   visibleMenuPrompts,
+  builtinBlockFileContent,
+  collectBuiltinRefs,
   collectPromptRefs,
   isPromptsFolder,
+  loadBuiltinOverridesFor,
   loadPromptsFor,
+  materializeBuiltinBlocks,
   materializeStarterPrompts,
+  parseBuiltinBlockFile,
   parsePromptFile,
   promptFolderChainFor,
   promptTitleFor,
   scopeLabel,
   STARTER_PROMPTS
 } from '../renderer/src/editor/prompts'
+import {
+  BUILTIN_BLOCK_DEFAULTS,
+  BUILTIN_BLOCK_IDS,
+  composeSystemPrompt
+} from '../shared/prompt-composition'
 
 /** VaultFolder tree from note paths — the shape listVaultFiles returns. */
 function treeOf(paths: string[]): VaultFolder {
@@ -516,5 +526,122 @@ describe('materializeStarterPrompts (explicit, idempotent, lifecycle)', () => {
     }
     expect(await materializeStarterPrompts(verbs)).toEqual([])
     expect(calls).toEqual([])
+  })
+})
+
+describe('built-in block overrides (S07b3 — every token sent is a file)', () => {
+  it('parseBuiltinBlockFile: body below optional frontmatter; empty = null', () => {
+    expect(parseBuiltinBlockFile('---\nkind: builtin\n---\n\nBe terse.\n')).toBe(
+      'Be terse.'
+    )
+    expect(parseBuiltinBlockFile('Raw body, no fence.')).toBe(
+      'Raw body, no fence.'
+    )
+    expect(parseBuiltinBlockFile('---\nkind: builtin\n---\n\n   \n')).toBeNull()
+    // CRLF from a Windows-side editor still parses
+    expect(
+      parseBuiltinBlockFile('---\r\nkind: builtin\r\n---\r\n\r\nRule.\r\n')
+    ).toBe('Rule.')
+  })
+
+  it('collectBuiltinRefs: nearest scope wins per block; unknown names skipped', () => {
+    const tree = treeOf([
+      'prompts/built-in/identity.md',
+      'prompts/built-in/closing-rule.md',
+      'prompts/built-in/not-a-block.md',
+      'philosophy/prompts/built-in/identity.md',
+      'philosophy/note.md'
+    ])
+    const refs = collectBuiltinRefs(tree, 'philosophy/note.md')
+    expect(refs).toEqual({
+      identity: 'philosophy/prompts/built-in/identity.md',
+      'closing-rule': 'prompts/built-in/closing-rule.md'
+    })
+  })
+
+  it('loadBuiltinOverridesFor: reads bodies; unreadable or empty degrades to the default (absent)', async () => {
+    const tree = treeOf([
+      'prompts/built-in/identity.md',
+      'prompts/built-in/grounding-rules.md',
+      'prompts/built-in/closing-rule.md'
+    ])
+    const files: Record<string, string> = {
+      'prompts/built-in/identity.md': '---\nkind: builtin\n---\n\nYou are Juju.',
+      'prompts/built-in/grounding-rules.md': '---\nkind: builtin\n---\n\n'
+    }
+    const verbs = {
+      listVaultFiles: () => Promise.resolve(tree),
+      readNote: (relPath: string) => {
+        const content = files[relPath]
+        return content !== undefined
+          ? Promise.resolve({ content })
+          : Promise.reject(new Error('gone'))
+      }
+    }
+    expect(await loadBuiltinOverridesFor('note.md', verbs)).toEqual({
+      identity: 'You are Juju.'
+    })
+  })
+
+  it('an override replaces exactly its section of the composed system prompt', () => {
+    const overridden = composeSystemPrompt(undefined, 'append', {
+      identity: 'You are Juju.',
+      'closing-rule': '- Answer in French.'
+    })
+    expect(overridden).toContain('You are Juju.')
+    expect(overridden).toContain('- Answer in French.')
+    expect(overridden).not.toContain(
+      'You are the AI assistant inside Atomik'
+    )
+    expect(overridden).not.toContain('no meta commentary')
+    // untouched sections stay byte-identical
+    expect(overridden).toContain(BUILTIN_BLOCK_DEFAULTS['grounding-rules'])
+    expect(overridden).toContain(BUILTIN_BLOCK_DEFAULTS['output-append'])
+  })
+
+  it('materialized defaults are inert: fresh files compose byte-identically to no overrides', async () => {
+    const bodies: Record<string, string> = {}
+    for (const id of BUILTIN_BLOCK_IDS) {
+      bodies[id] = parseBuiltinBlockFile(builtinBlockFileContent(id))!
+    }
+    for (const destination of ['append', 'replace-selection', 'new-note'] as const) {
+      expect(composeSystemPrompt(undefined, destination, bodies)).toBe(
+        composeSystemPrompt(undefined, destination)
+      )
+    }
+  })
+
+  it('built-in block files never join the prompt menus (subfolder is not a direct child)', () => {
+    const tree = treeOf(['prompts/built-in/identity.md', 'prompts/real.md'])
+    const refs = collectPromptRefs(tree, 'note.md')
+    expect(refs.map((ref) => ref.name)).toEqual(['real'])
+  })
+
+  it('materializeBuiltinBlocks: creates only the missing files, delete→re-run recreates the gap', async () => {
+    const created: string[] = []
+    const verbs = {
+      listVaultFiles: () =>
+        Promise.resolve(treeOf(['prompts/built-in/identity.md'])),
+      createNote: (relPath: string) => {
+        created.push(relPath)
+        return Promise.resolve()
+      }
+    }
+    const names = await materializeBuiltinBlocks(verbs)
+    expect(names).toEqual(
+      BUILTIN_BLOCK_IDS.filter((id) => id !== 'identity')
+    )
+    expect(
+      created.every((relPath) => relPath.startsWith('prompts/built-in/'))
+    ).toBe(true)
+    const full = treeOf(
+      BUILTIN_BLOCK_IDS.map((id) => `prompts/built-in/${id}.md`)
+    )
+    expect(
+      await materializeBuiltinBlocks({
+        listVaultFiles: () => Promise.resolve(full),
+        createNote: () => Promise.reject(new Error('must not be called'))
+      })
+    ).toEqual([])
   })
 })

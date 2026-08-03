@@ -138,7 +138,7 @@ export function AiNotePreview({
                     title="Copy the full request (system + user) for testing elsewhere"
                     onClick={() => {
                       const request = requestAsText(
-                        composeSystemPrompt(sent.systemPrompt, sent.destination),
+                        composeSystemPrompt(sent.systemPrompt, sent.destination, sent.builtins),
                         composeUserMessage(
                           sent.instruction,
                           [

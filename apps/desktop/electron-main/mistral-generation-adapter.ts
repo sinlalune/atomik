@@ -75,7 +75,8 @@ export function estimateCostUsd(
 export function defaultSystemPrompt(operation: AiOperation): string {
   return composeSystemPrompt(
     operation.systemPrompt,
-    operation.target.destination.kind
+    operation.target.destination.kind,
+    operation.builtins
   )
 }
 

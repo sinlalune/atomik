@@ -435,6 +435,12 @@ export type AiOperation = {
    *  replaces the built-in identity; the mechanical grounding rules
    *  are appended main-side regardless. Size-capped in validation. */
   systemPrompt?: string
+  /** Owner-managed built-in block overrides (S07b3): bodies of
+   *  `prompts/built-in/<id>.md` files, nearest scope wins — each
+   *  replaces ONE section of the system template verbatim, so every
+   *  token sent is a file the owner edits. Keys restricted to the
+   *  block registry and size-capped in validation. */
+  builtins?: import('./prompt-composition').BuiltinOverrides
   /** Bounded note-state excerpts around the landing point (S04l) —
    *  read-only context so append/replace output integrates without
    *  duplicating existing content. Size-capped in validation. */

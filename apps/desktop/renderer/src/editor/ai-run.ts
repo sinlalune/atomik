@@ -4,6 +4,7 @@ import type {
   AiSelection
 } from '../../../shared/ipc-contract'
 import {
+  type BuiltinOverrides,
   type DestinationKind,
   type NoteContext
 } from '../../../shared/prompt-composition'
@@ -47,6 +48,9 @@ export type SentRequest = {
   noteContext?: NoteContext
   /** Sampling overrides that rode the run (S05d); absent = defaults. */
   params?: GenerationParams
+  /** Built-in block overrides that rode the run (S07b3) — the
+   *  inspector composes with them, so display = sent. */
+  builtins?: BuiltinOverrides
   destination: DestinationKind
 }
 
@@ -68,6 +72,8 @@ export type AiRunInputs = {
   newNotePath: string
   /** Sampling overrides from the options menu (S05d). */
   params?: GenerationParams
+  /** Resolved built-in block overrides (S07b3, prompts/built-in/). */
+  builtins?: BuiltinOverrides
 }
 
 export type PreparedRun = {
@@ -172,6 +178,9 @@ export async function prepareAiRun(
     ...(inputs.params && Object.keys(inputs.params).length > 0
       ? { params: inputs.params }
       : {}),
+    ...(inputs.builtins && Object.keys(inputs.builtins).length > 0
+      ? { builtins: inputs.builtins }
+      : {}),
     target
   }
 
@@ -199,6 +208,7 @@ export async function prepareAiRun(
       })),
       ...(noteContext ? { noteContext } : {}),
       ...(operation.params ? { params: operation.params } : {}),
+      ...(operation.builtins ? { builtins: operation.builtins } : {}),
       destination: target.destination.kind
     }
   }

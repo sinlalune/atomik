@@ -60,6 +60,24 @@ describe('isValidAiOperation (channel input is untrusted)', () => {
     expect(isValidAiOperation({ ...validOp(), params: { maxTokens: 999999 } })).toBe(false)
   })
 
+  it('bounds the optional built-in block overrides (S07b3): registry keys only, sized', () => {
+    expect(
+      isValidAiOperation(
+        validOp({ builtins: { identity: 'You are Juju.', 'closing-rule': '- Short.' } })
+      )
+    ).toBe(true)
+    expect(
+      isValidAiOperation(validOp({ builtins: { 'not-a-block': 'x' } as never }))
+    ).toBe(false)
+    expect(
+      isValidAiOperation(validOp({ builtins: { identity: '' } }))
+    ).toBe(false)
+    expect(
+      isValidAiOperation(validOp({ builtins: { identity: 'x'.repeat(9000) } }))
+    ).toBe(false)
+    expect(isValidAiOperation(validOp({ builtins: 'terse' as never }))).toBe(false)
+  })
+
   it('bounds the optional note context (S04l landing excerpts)', () => {
     expect(
       isValidAiOperation(validOp({ noteContext: { kind: 'append', tail: 'end of note' } }))

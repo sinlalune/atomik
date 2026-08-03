@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { isValidGenerationParams } from '../shared/generation-params'
+import { BUILTIN_BLOCK_IDS } from '../shared/prompt-composition'
 import { labelClaims, type ClaimCandidate } from './truth'
 import type {
   AiDestination,
@@ -36,6 +37,9 @@ const MAX_NOTE_CONTEXT = 8000
  *  order of magnitude below the adapter's input-token budget. */
 const MAX_THREAD_TURNS = 24
 const MAX_THREAD_TURN = 8000
+/** Built-in block overrides (S07b3): each replaces ONE template
+ *  section — bounded like a system prompt body, per block. */
+const MAX_BUILTIN_BLOCK = 8000
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -89,6 +93,14 @@ export function isValidAiOperation(value: unknown): value is AiOperation {
       if (turn['role'] !== 'user' && turn['role'] !== 'assistant') return false
       const content = turn['content']
       if (typeof content !== 'string' || content.length === 0 || content.length > MAX_THREAD_TURN) return false
+    }
+  }
+  const builtins = value['builtins']
+  if (builtins !== undefined) {
+    if (!isRecord(builtins)) return false
+    for (const [key, body] of Object.entries(builtins)) {
+      if (!(BUILTIN_BLOCK_IDS as readonly string[]).includes(key)) return false
+      if (typeof body !== 'string' || body.length === 0 || body.length > MAX_BUILTIN_BLOCK) return false
     }
   }
   const noteContext = value['noteContext']

@@ -250,7 +250,7 @@ class InlineAiWidget extends WidgetType {
       copy.setAttribute('aria-label', 'Copy the full request')
       copy.addEventListener('click', () => {
         const text = requestAsText(
-          composeSystemPrompt(sent.systemPrompt, sent.destination),
+          composeSystemPrompt(sent.systemPrompt, sent.destination, sent.builtins),
           composeUserMessage(
             sent.instruction,
             [

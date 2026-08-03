@@ -271,6 +271,26 @@ describe('buildMessages (operation → chat completions)', () => {
       )[0]!.content
     ).toContain('NEW standalone note')
   })
+
+  it('built-in block overrides ride the operation into the system message (S07b3)', () => {
+    const custom = operation()
+    custom.builtins = {
+      identity: 'You are Juju.',
+      'grounding-rules': '- Quote sources verbatim.'
+    }
+    const system = buildMessages(custom)[0]!.content
+    expect(system).toContain('You are Juju.')
+    expect(system).toContain('- Quote sources verbatim.')
+    expect(system).not.toContain('AI assistant inside Atomik')
+    expect(system).not.toContain('character for character')
+    // untouched blocks keep their defaults (output brief + closing)
+    expect(system).toContain('APPENDED')
+    expect(system).toContain('no meta commentary')
+    // a system STACK still outranks the identity block
+    custom.systemPrompt = 'Stack identity.'
+    expect(buildMessages(custom)[0]!.content).toContain('Stack identity.')
+    expect(buildMessages(custom)[0]!.content).not.toContain('You are Juju.')
+  })
 })
 
 describe('extractClaimCandidates (deterministic, form-only)', () => {

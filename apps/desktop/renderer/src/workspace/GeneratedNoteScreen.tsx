@@ -12,6 +12,7 @@ import { AiNotePreview } from '../editor/AiNotePreview'
 import { PRESETS } from '../editor/ai-helpers'
 import {
   composeMenuInstruction,
+  loadBuiltinOverridesFor,
   loadPromptsFor,
   scopeLabel,
   toggleStackBlock,
@@ -116,6 +117,10 @@ export function GeneratedNoteScreen({
       sent: null
     })
     try {
+      const builtins = await loadBuiltinOverridesFor(
+        basePath,
+        window.atomik
+      ).catch(() => ({}))
       const prepared = await prepareAiRun(
         {
           noteRelPath: basePath,
@@ -124,6 +129,7 @@ export function GeneratedNoteScreen({
           instruction,
           systemStack: systemOrder,
           prompts,
+          builtins,
           destination: 'new-note',
           newNotePath: '',
           ...(Object.keys(params).length > 0 ? { params } : {})

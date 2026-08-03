@@ -5,7 +5,10 @@ import type {
   PaneNode,
   WorkspaceTab
 } from '../../shared/ipc-contract'
-import { materializeStarterPrompts } from './editor/prompts'
+import {
+  materializeBuiltinBlocks,
+  materializeStarterPrompts
+} from './editor/prompts'
 import { MenuIcon } from './icons'
 import { acquireWebOverlay } from './web/overlay'
 import {
@@ -172,6 +175,31 @@ export function AppMenu(): React.JSX.Element {
       (cause) => {
         setBusy(false)
         setStarterStatus(String(cause))
+      }
+    )
+  }
+
+  const [builtinStatus, setBuiltinStatus] = useState<string | null>(null)
+
+  // S07b3 (owner): every built-in request block becomes an editable
+  // file under prompts/built-in/ — same explicit-action rule as the
+  // starters; a fresh materialization byte-matches the defaults, so
+  // creating the tree never changes a request until the owner edits.
+  const createBuiltins = (): void => {
+    setBusy(true)
+    setBuiltinStatus(null)
+    materializeBuiltinBlocks(window.atomik).then(
+      (created) => {
+        setBusy(false)
+        setBuiltinStatus(
+          created.length > 0
+            ? `created ${created.length} block file${created.length > 1 ? 's' : ''} in prompts/built-in/`
+            : 'all built-in block files already present'
+        )
+      },
+      (cause) => {
+        setBusy(false)
+        setBuiltinStatus(String(cause))
       }
     )
   }
@@ -419,6 +447,16 @@ export function AppMenu(): React.JSX.Element {
             Create starter prompts
           </button>
           {starterStatus && <p className="app-menu-status">{starterStatus}</p>}
+          <button
+            type="button"
+            className="app-menu-clear"
+            disabled={busy}
+            title="Creates the missing built-in block files in prompts/built-in/ — every fixed part of the request becomes an editable file; existing files are never touched"
+            onClick={createBuiltins}
+          >
+            Create built-in block files
+          </button>
+          {builtinStatus && <p className="app-menu-status">{builtinStatus}</p>}
           {error && <p className="app-menu-error error">{error}</p>}
           <p className="app-menu-note">
             The key stays in the main process; it never returns to this

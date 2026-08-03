@@ -1391,15 +1391,34 @@ Completeness rule (35): every bedrock page 00–36 accounted for
             title first above the flat era. Tests 599/53 (chatRelPath
             + chatHistoryOf cases rewritten to the new convention);
             typecheck/build green.
-      - [ ] S07b3 (owner: "I still don't have access to all the
+      - [x] S07b3 (owner: "I still don't have access to all the
             request content sent … it misses hidden built-in blocks
             (chat system, rules, guardrails etc) … create a tree
             hierarchy in /prompts/built-in with all of that but I need
             to be able to manage easily and completely every bit of
-            token sent") — built-in blocks materialize under
-            `prompts/built-in/` as editable prompt files (nearest-wins
-            scope model extends; 28 no-hidden-source applied to our
-            OWN request assembly).
+            token sent") — DONE 2026-08-03. Every fixed block of the
+            system template is now a NAMED block in a registry
+            (prompt-composition: identity, grounding-rules,
+            output-replace-selection/append/new-note, closing-rule)
+            with its default = EXACTLY what composed before — and a
+            vault overrides any of them with
+            `prompts/built-in/<id>.md` files: body below optional
+            frontmatter replaces the block VERBATIM; resolution walks
+            the SAME nearest-wins chain as prompts (a project can
+            override a block); being a subfolder, block files never
+            join the prompt menus. Overrides ride the operation as
+            `builtins` (contract + strict validation: registry keys
+            only, 8k/block) into composeSystemPrompt in the adapter;
+            the inspector's copy-request composes with the same
+            overrides — display = sent holds. ☰ menu gains "Create
+            built-in block files" beside the starters (same explicit
+            action + idempotence rules; fresh files byte-match the
+            defaults so materializing alone never changes a request —
+            tested for all three destinations). Chat + inline + both
+            editor flows load overrides per send. LIVE pin: menu
+            action created the 6 block files + conventions in the
+            owner's vault. Tests 599→608/53;
+            typecheck/build green.
       - [ ] S07b4 (owner: "I need pills that retrace the context
             (system, prompts, notes, other text document, medias)
             with the associated amount of token in each pills") —
@@ -1679,7 +1698,18 @@ changed(S07b2): chat-file.ts (chatRelPath day-folder paths;
               chatHistoryOf two-era walk); chat-file.test.ts.
 tests(S07b2): 599/53; typecheck/build green; live-vault CDP pin
               (real mistral send, day folder + conventions born).
-next action : S07b3–S07b6 (bench round 1 fixes, 2026-08-03 —
+changed(S07b3): prompt-composition.ts (block registry + defaults +
+              override-aware composeSystemPrompt); ipc-contract
+              (AiOperation.builtins); ai-mock (validation);
+              mistral adapter (passthrough); prompts.ts (parse/
+              collect/load/materialize built-in blocks); ai-run.ts
+              (builtins on inputs/operation/sent); ChatView,
+              EditorPane ×2, GeneratedNoteScreen (load per send);
+              inline-ai + AiNotePreview (inspector parity);
+              AppMenu (explicit materialize action); tests ×3 files.
+tests(S07b3): 608/53; typecheck/build green; live pin (menu action
+              → 6 files in the owner's vault).
+next action : S07b4–S07b6 (bench round 1 fixes, 2026-08-03 —
               session note 2026-08-03-s07-bench-round1.md): chat
               picklist alignment; chats per-date folders; built-in
               request blocks as prompts/built-in/ tree; sent-message

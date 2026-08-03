@@ -43,32 +43,74 @@ export const CLOSING_RULE =
   'Return plain markdown — no preamble, no meta commentary about these instructions.'
 
 /**
+ * Built-in block registry (S07b3, owner: "I need to be able to manage
+ * easily and completely every bit of token sent"): every fixed block
+ * of the system template is a NAMED block with a default. A vault may
+ * override any of them with `prompts/built-in/<id>.md` files (scoped,
+ * nearest wins like every prompt); the override body replaces the
+ * block VERBATIM. An untouched materialized file byte-matches its
+ * default, so materializing alone never changes a request.
+ */
+export const BUILTIN_BLOCK_IDS = [
+  'identity',
+  'grounding-rules',
+  'output-replace-selection',
+  'output-append',
+  'output-new-note',
+  'closing-rule'
+] as const
+
+export type BuiltinBlockId = (typeof BUILTIN_BLOCK_IDS)[number]
+
+export type BuiltinOverrides = Partial<Record<BuiltinBlockId, string>>
+
+/** Each block's default = EXACTLY what composes without an override. */
+export const BUILTIN_BLOCK_DEFAULTS: Record<BuiltinBlockId, string> = {
+  identity: BUILT_IN_IDENTITY,
+  'grounding-rules': GROUNDING_RULES.map((rule) => `- ${rule}`).join('\n'),
+  'output-replace-selection': `- ${DESTINATION_BRIEF['replace-selection']}`,
+  'output-append': `- ${DESTINATION_BRIEF.append}`,
+  'output-new-note': `- ${DESTINATION_BRIEF['new-note']}`,
+  'closing-rule': `- ${CLOSING_RULE}`
+}
+
+const outputBlockIdFor: Record<DestinationKind, BuiltinBlockId> = {
+  'replace-selection': 'output-replace-selection',
+  append: 'output-append',
+  'new-note': 'output-new-note'
+}
+
+/**
  * SYSTEM message template:
- *   # Role        ← identity (stack or built-in)
+ *   # Role        ← identity (stack, else the identity block)
  *   # Rules
- *   ## Grounding  ← the mechanical contract
- *   ## Output     ← destination brief + closing rule
+ *   ## Grounding  ← the grounding-rules block
+ *   ## Output     ← the destination's output block + closing block
+ * Every non-stack slot resolves override-first (S07b3).
  */
 export function composeSystemPrompt(
   custom: string | undefined | null,
-  destination: DestinationKind
+  destination: DestinationKind,
+  builtins?: BuiltinOverrides
 ): string {
+  const block = (id: BuiltinBlockId): string =>
+    builtins?.[id]?.trim() || BUILTIN_BLOCK_DEFAULTS[id]
   const identity = custom?.trim()
   return [
     '# Role',
     '',
-    identity && identity.length > 0 ? identity : BUILT_IN_IDENTITY,
+    identity && identity.length > 0 ? identity : block('identity'),
     '',
     '# Rules',
     '',
     '## Grounding',
     '',
-    ...GROUNDING_RULES.map((rule) => `- ${rule}`),
+    block('grounding-rules'),
     '',
     '## Output',
     '',
-    `- ${DESTINATION_BRIEF[destination]}`,
-    `- ${CLOSING_RULE}`
+    block(outputBlockIdFor[destination]),
+    block('closing-rule')
   ].join('\n')
 }
 
