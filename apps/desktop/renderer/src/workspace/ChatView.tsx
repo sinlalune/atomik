@@ -16,7 +16,6 @@ import {
 } from '../editor/drag-context'
 import {
   appendChatTurn,
-  chatHistoryOf,
   chatNotePathForMessage,
   chatRelPath,
   newChatFileContent,
@@ -64,7 +63,6 @@ import { linkableNotesOf, sourceBundlesOf } from '../editor/quick-actions'
 import { noteMarkdown } from '../editor/note-markdown'
 import {
   BrainIcon,
-  HistoryIcon,
   InsertIcon,
   NoteAddIcon,
   PlusIcon,
@@ -84,7 +82,6 @@ import {
   chatContextsOf,
   chatFileOf,
   chatTotalsOf,
-  openChatTranscript,
   openNoteInNewPane,
   openNoteTabPaths,
   parseChatContextEntry,
@@ -262,7 +259,6 @@ export function ChatView({
   const [running, setRunning] = useState(false)
   const [engine, setEngine] = useState('…')
   const [genDrafts, setGenDrafts] = useState(defaultGenOptionDrafts)
-  const [historyOpen, setHistoryOpen] = useState(false)
   const [tree, setTree] = useState<VaultFolder | null>(null)
   const [atMenu, setAtMenu] = useState<{
     start: number
@@ -849,18 +845,6 @@ export function ChatView({
     [dispatch, paneId]
   )
 
-  const openFromHistory = useCallback(
-    (relPath: string) => {
-      setHistoryOpen(false)
-      setError(null)
-      // S06c7: ROUTE, never replace — an existing tab for this
-      // transcript is focused, an unborn tab loads in place, a
-      // living conversation gets a NEW tab beside it
-      dispatch((state) => openChatTranscript(state, paneId, tab.id, relPath))
-    },
-    [dispatch, paneId, tab.id]
-  )
-
   /** Adds paths as context pills (dedup, capped) — the "+" button and
    *  tree drops share this door. */
   const addContexts = useCallback(
@@ -1010,7 +994,6 @@ export function ChatView({
   const hasTotals =
     totals.inputTokens > 0 || totals.outputTokens > 0 || totals.costUsd > 0
 
-  const history = tree ? chatHistoryOf(tree) : []
   const title = file
     ? (file.split('/').pop() ?? file).replace(/\.md$/i, '')
     : 'New chat'
@@ -1043,47 +1026,8 @@ export function ChatView({
       {/* S07b8c: the bar carries only CONVERSATION-level chrome —
           history and running totals; everything about the NEXT
           message lives in the composer card below. */}
-      <div className="tree-bar chat-bar">
-        <span className="chat-history">
-          <button
-            type="button"
-            className="tree-toggle"
-            title="Past chats (transcripts in chats/)"
-            aria-label="Past chats"
-            aria-expanded={historyOpen}
-            onClick={() => setHistoryOpen((open) => !open)}
-          >
-            <HistoryIcon />
-          </button>
-          {historyOpen && (
-            <div
-              className="chat-pop"
-              role="listbox"
-              aria-label="Past chats"
-              onKeyDown={(event) => {
-                if (event.key === 'Escape') setHistoryOpen(false)
-              }}
-            >
-              {history.length === 0 && (
-                <p className="chat-pop-empty">no transcripts in chats/ yet</p>
-              )}
-              {history.map((entry) => (
-                <button
-                  key={entry.relPath}
-                  type="button"
-                  role="option"
-                  aria-selected={entry.relPath === file}
-                  className={entry.relPath === file ? 'active' : ''}
-                  title={entry.relPath}
-                  onClick={() => openFromHistory(entry.relPath)}
-                >
-                  {entry.name}
-                </button>
-              ))}
-            </div>
-          )}
-        </span>
-        {hasTotals && (
+      {hasTotals && (
+        <div className="tree-bar chat-bar">
           <span
             className="chat-totals"
             title={`this conversation so far: input ${totals.inputTokens} tokens · output ${totals.outputTokens} tokens · estimated $${totals.costUsd.toFixed(6)}`}
@@ -1091,8 +1035,8 @@ export function ChatView({
             Σ ↑{totals.inputTokens} ↓{totals.outputTokens} · ~$
             {totals.costUsd.toFixed(4)}
           </span>
-        )}
-      </div>
+        </div>
+      )}
       <div className="chat-scroll" ref={scrollRef}>
         <p className="chat-title" title={file ?? undefined}>
           {title}
@@ -1249,6 +1193,15 @@ export function ChatView({
         )}
         {openPanel === 'context' && (
           <div className="chat-sheet" role="group" aria-label="Context of the next message">
+            <button
+              type="button"
+              className="chat-sheet-close"
+              title="Close"
+              aria-label="Close this panel"
+              onClick={() => setOpenPanel(null)}
+            >
+              ×
+            </button>
             {candidatePaths.length === 0 && (
               <p className="chat-pop-empty">
                 {optionPaths.length === 0
@@ -1296,6 +1249,15 @@ export function ChatView({
         )}
         {openPanel === 'system' && (
           <div className="chat-sheet">
+            <button
+              type="button"
+              className="chat-sheet-close"
+              title="Close"
+              aria-label="Close this panel"
+              onClick={() => setOpenPanel(null)}
+            >
+              ×
+            </button>
             <SystemPlanSection
               plan={sysPlan}
               onChange={(next) =>
@@ -1317,6 +1279,15 @@ export function ChatView({
         )}
         {openPanel === 'model' && (
           <div className="chat-sheet" role="group" aria-label="Model and sampling options">
+            <button
+              type="button"
+              className="chat-sheet-close"
+              title="Close"
+              aria-label="Close this panel"
+              onClick={() => setOpenPanel(null)}
+            >
+              ×
+            </button>
             <GenOptionFieldRows drafts={genDrafts} onChange={setGenDrafts} />
           </div>
         )}

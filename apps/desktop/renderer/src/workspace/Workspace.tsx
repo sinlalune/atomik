@@ -29,6 +29,7 @@ import {
   hasChatTab,
   paneCount,
   openChatPane,
+  openChatTranscript,
   paneTreeHidden,
   paneTreeOf,
   paneTreeScopeOf,
@@ -62,10 +63,10 @@ import {
   type TabPick
 } from './NewTabChooser'
 import { ChatView } from './ChatView'
-import { chatRenameTarget } from '../editor/chat-file'
+import { chatHistoryOf, chatRenameTarget } from '../editor/chat-file'
 import { TREE_DRAG_MIME } from '../vault/tree-menu'
 import { PaneTreePanel } from './PaneTreePanel'
-import { ChatIcon, SidebarToggleIcon } from '../icons'
+import { ChatIcon, HistoryIcon, SidebarToggleIcon } from '../icons'
 import { useWorkspace } from './store'
 
 // Code-split the two heavy views (perf audit 2026-07-15: zero dynamic
@@ -437,6 +438,13 @@ function LeafPane({
   const soleLeaf = useWorkspace((store) =>
     store.state ? paneCount(store.state) === 1 : false
   )
+  // S07b15 (owner): past chats live in the TAB NAVIGATION now — the
+  // list loads lazily on open (fresh each time, vault-verb only).
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [historyEntries, setHistoryEntries] = useState<Array<{
+    name: string
+    relPath: string
+  }> | null>(null)
 
   // Tree → tabs routing: a note lands in the active note view (it
   // follows its notePath param) or opens a new note tab of the pane's
@@ -653,6 +661,76 @@ function LeafPane({
           </button>
         </div>
         <span className="tabstrip-actions">
+          {isChatPane && (
+            <span className="chat-history">
+              <button
+                type="button"
+                title="Past chats (transcripts in chats/)"
+                aria-label="Past chats"
+                aria-expanded={historyOpen}
+                onClick={() => {
+                  setHistoryOpen((open) => !open)
+                  if (!historyOpen) {
+                    window.atomik.listVaultFiles().then(
+                      (loaded) => setHistoryEntries(chatHistoryOf(loaded)),
+                      () => setHistoryEntries([])
+                    )
+                  }
+                }}
+              >
+                <HistoryIcon />
+              </button>
+              {historyOpen && (
+                <div
+                  className="chat-pop"
+                  role="listbox"
+                  aria-label="Past chats"
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape') setHistoryOpen(false)
+                  }}
+                >
+                  {(historyEntries ?? []).length === 0 && (
+                    <p className="chat-pop-empty">
+                      {historyEntries === null
+                        ? 'loading…'
+                        : 'no transcripts in chats/ yet'}
+                    </p>
+                  )}
+                  {(historyEntries ?? []).map((entry) => (
+                    <button
+                      key={entry.relPath}
+                      type="button"
+                      role="option"
+                      aria-selected={entry.relPath === active?.params?.['file']}
+                      className={
+                        entry.relPath === active?.params?.['file'] ? 'active' : ''
+                      }
+                      title={entry.relPath}
+                      onClick={() => {
+                        setHistoryOpen(false)
+                        const chatTab =
+                          active?.view === 'chat'
+                            ? active
+                            : node.tabs.find((tab) => tab.view === 'chat')
+                        if (chatTab) {
+                          dispatch((state) =>
+                            openChatTranscript(
+                              state,
+                              node.id,
+                              chatTab.id,
+                              entry.relPath
+                            )
+                          )
+                        }
+                      }}
+                    >
+                      {entry.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </span>
+          )}
           {!untyped && !isChatPane && !chatOpen && (
             <button
               type="button"

@@ -1474,7 +1474,9 @@ body[data-maximized] .tabstrip {
 /* the error floats WITH the composer (S07b14) — its own readable card */
 .chat-error {
   flex: none;
-  margin: 0 var(--space-3) var(--space-2);
+  width: calc(100% - 2 * var(--space-5));
+  max-width: 44rem;
+  margin: 0 auto var(--space-2);
   padding: var(--space-1) var(--space-2);
   font-size: var(--fs-sm);
   background: var(--surface);
@@ -1524,8 +1526,11 @@ body[data-maximized] .tabstrip {
    OWN floating glass card — the 36 overlay idiom: frosted, small,
    with the opaque fallback. */
 .chat-sheet {
-  margin: 0 var(--space-3) var(--space-2);
+  width: calc(100% - 2 * var(--space-5));
+  max-width: 44rem;
+  margin: 0 auto var(--space-2);
   padding: var(--space-2) var(--space-2);
+  position: relative;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--glass-pop);
@@ -1542,6 +1547,47 @@ body[data-maximized] .tabstrip {
   .chat-sheet {
     background: var(--surface);
   }
+}
+
+/* every sheet closes from its corner (S07b15) */
+.chat-sheet-close {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  font: inherit;
+  font-size: var(--fs-md);
+  line-height: 1;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-1);
+  cursor: pointer;
+}
+
+.chat-sheet-close:hover {
+  color: var(--accent);
+  background: var(--code-bg);
+}
+
+/* S07b15: the model sheet at the card's scale — compact one-row
+   fields instead of the menu-sized grid */
+.chat-sheet .ai-menu-options-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-1) var(--space-2);
+  padding: 0 var(--space-4) 0 var(--space-1);
+  font-size: var(--fs-sm);
+}
+
+.chat-sheet .ai-menu-options-grid label {
+  color: var(--muted);
+}
+
+.chat-sheet .ai-menu-options-grid input,
+.chat-sheet .ai-menu-options-grid select {
+  font-size: var(--fs-sm);
+  padding: 0.1rem 0.3rem;
+  min-width: 0;
 }
 
 .chat-sheet-row {
@@ -1598,15 +1644,26 @@ body[data-maximized] .tabstrip {
 .chat-card {
   display: flex;
   flex-direction: column;
-  margin: 0 var(--space-3) var(--space-3);
+  /* S07b15: bounded and centered — clear of the history scrollbar */
+  width: calc(100% - 2 * var(--space-5));
+  max-width: 44rem;
+  margin: 0 auto var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: var(--bg);
+  /* S07b15: the input card frosts like the sheets */
+  background: var(--glass-pop);
+  backdrop-filter: blur(18px) saturate(1.2);
   box-shadow: var(--shadow-pop);
   transition: border-color 120ms;
   /* S07b14: ONE type scale inside the card — the textarea alone
      reads at --fs-md, everything else at --fs-sm, no uppercase */
   font-size: var(--fs-sm);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .chat-card {
+    background: var(--bg);
+  }
 }
 
 .chat-card:focus-within {

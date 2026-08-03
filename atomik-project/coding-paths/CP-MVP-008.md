@@ -1743,6 +1743,24 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       unit's surfaces (the probe's light turn-cards are a
       direct-attribute artifact — turn styles untouched here).
       Tests 632/55 unchanged; typecheck/build green.
+- [x] S07b15 (owner bench round 11, 2026-08-03, screenshot: input-card
+      transparency; narrower with a max width — it overlapped the
+      scrollbar; history button → the tab navigation before the split
+      button; the model menu "out of size scale, oversized"; a close
+      button on every over-card menu) — DONE 2026-08-03. (1) The
+      input card FROSTS like the sheets (--glass-pop + blur + the
+      opaque fallback). (2) Card, sheets, and floating error share
+      one measure: width 100%−2·space-5, max 44rem, centered — clear
+      of the history scrollbar. (3) PAST CHATS live in the chat
+      pane's TABSTRIP (before the split buttons): lazy vault-verb
+      load on open, same route-never-replace openChatTranscript; the
+      chat bar slims to the Σ totals alone and renders only when
+      nonzero. (4) The model sheet composes at the card's scale —
+      four compact fields in ONE row (measured 49px tall, was a
+      menu-sized grid). (5) Every sheet carries a corner × (and the
+      footer pill still toggles). Live pin: card blur + 44rem
+      measured, history in the tabstrip, compact model row with ×.
+      Tests 632/55 unchanged; typecheck/build green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
