@@ -11,7 +11,10 @@ import {
   insertionChange,
   newChatFileContent,
   parseChatTurns,
-  threadFromTurns
+  parseSentMeta,
+  serializeSentMeta,
+  threadFromTurns,
+  withSentMetaOnLastYou
 } from '../renderer/src/editor/chat-file'
 
 const DAY = new Date('2026-07-23T14:05:00Z')
@@ -148,6 +151,66 @@ describe('chatRenameTarget (S06c3: double-click tab rename)', () => {
     expect(chatRenameTarget('chats/q.md', '   ')).toBeNull()
     expect(chatRenameTarget('chats/q.md', '...')).toBeNull()
     expect(chatRenameTarget('chats/q.md', 'q')).toBeNull()
+  })
+})
+
+describe('sent-breakdown persistence (S07b10 — pills survive reload in the file)', () => {
+  const parts = [
+    { kind: 'system', label: 'system', chars: 1372 },
+    { kind: 'context', label: 'Braxton Hicks', chars: 2900 },
+    { kind: 'template', label: 'template', chars: 780 }
+  ]
+
+  it('serialize → parse round-trips; labels sanitize; garbage reads as null', () => {
+    const meta = serializeSentMeta(parts)
+    expect(meta).toBe('system=1372|context=2900:Braxton Hicks|template=780')
+    expect(parseSentMeta(meta)).toEqual(parts)
+    expect(
+      serializeSentMeta([{ kind: 'context', label: 'a|b=c:d', chars: 1 }])
+    ).toBe('context=1:a/b/c/d')
+    expect(parseSentMeta('not meta at all')).toBeNull()
+    expect(parseSentMeta('')).toBeNull()
+  })
+
+  it('the ANSWER write stamps the LAST you heading; earlier ones stay', () => {
+    let content = newChatFileContent('mistral', DAY, 'First question')
+    content = appendChatTurn(content, 'atomik', 'First answer.')
+    content = appendChatTurn(content, 'you', 'Second question')
+    const stamped = withSentMetaOnLastYou(content, serializeSentMeta(parts))
+    expect(stamped).toContain('## you <!-- sent: system=1372|')
+    // only the LAST you-turn carries it
+    expect(stamped.indexOf('<!-- sent:')).toBeGreaterThan(
+      stamped.indexOf('First answer.')
+    )
+    // re-stamping replaces, never duplicates
+    const restamped = withSentMetaOnLastYou(
+      stamped,
+      serializeSentMeta([{ kind: 'system', label: 'system', chars: 4 }])
+    )
+    expect(restamped.match(/<!-- sent:/g)).toHaveLength(1)
+    expect(restamped).toContain('sent: system=4')
+    // no you-turn = unchanged
+    expect(withSentMetaOnLastYou('# just prose', 'system=1')).toBe('# just prose')
+  })
+
+  it('parseChatTurns reads the meta back and stays lenient', () => {
+    let content = newChatFileContent('mistral', DAY, 'Question?')
+    content = withSentMetaOnLastYou(content, serializeSentMeta(parts))
+    content = appendChatTurn(content, 'atomik', 'Answer.')
+    const turns = parseChatTurns(content)
+    expect(turns).toHaveLength(2)
+    expect(turns[0]!.sent).toEqual(parts)
+    expect(turns[1]!.sent).toBeUndefined()
+    // an unknown heading comment is ignored but still starts the turn
+    const foreign = parseChatTurns(
+      '## you <!-- some note -->\n\nHello\n\n## atomik\n\nHi\n'
+    )
+    expect(foreign.map((turn) => turn.role)).toEqual(['you', 'atomik'])
+    expect(foreign[0]!.sent).toBeUndefined()
+    // a mangled sent comment degrades to no meta, turn intact
+    const mangled = parseChatTurns('## you <!-- sent: ??? -->\n\nHello\n')
+    expect(mangled[0]!.text).toBe('Hello')
+    expect(mangled[0]!.sent).toBeUndefined()
   })
 })
 

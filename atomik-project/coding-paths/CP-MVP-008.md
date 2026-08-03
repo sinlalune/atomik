@@ -1617,6 +1617,29 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       beside a note → 0 tree doors; other pane closed → sole chat
       PRESENTS the tree; sole chat hides its tree → the door
       appears; restored. Tests 624→625/55; typecheck/build green.
+- [x] S07b10 (owner bench round 6, 2026-08-03: "the token count split
+      pills in my message don't survive tab switch or app reload") —
+      DONE 2026-08-03. The breakdown now PERSISTS IN THE TRANSCRIPT
+      FILE — an HTML comment on the you-turn heading
+      (`## you <!-- sent: system=1415|context=2900:name|… -->`):
+      invisible in rendered markdown, visible and hand-editable in
+      source, diff-friendly, no hidden store — consistent with "a
+      chat IS a note". Only derived FIGURES persist (kind/label/
+      chars; ~tok re-derives at display) — request TEXT never does,
+      so the copy-request action exists only for THIS session's
+      sends. Mechanics: the ANSWER's write stamps the last you
+      heading (withSentMetaOnLastYou — one write persists both;
+      re-stamp replaces, never duplicates); parseChatTurns reads the
+      meta back leniently (unknown comments ignored, mangled meta
+      degrades to none, the heading still starts its turn; old flat
+      files unaffected). ALSO: a contextless chat's empty transcript
+      anchor no longer emits a noisy `context ~0` pill (filtered at
+      creation and at restore). Live pin: real send → the stamp in
+      the owner's live transcript; full window reload → the pill row
+      re-renders from the file, copy button rightly absent. NOTE:
+      the pin's test exchange rode the owner's focused Marc-Aurèle
+      chat — two stray turns, ordinary note text, owner deletes at
+      will. Tests 625→628/55; typecheck/build green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel

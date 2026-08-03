@@ -78,6 +78,9 @@ export function requestBreakdown(operation: AiOperation): RequestBreakdown {
   }
   push('instruction', 'instruction', operation.instruction.length)
   operation.input.forEach((selection, index) => {
+    // a contextless chat anchors on its own transcript with an EMPTY
+    // selection — a 0-token pill explains nothing, skip it (S07b10)
+    if (selection.content.length === 0) return
     push(
       index === 0 ? 'context' : 'document',
       baseName(selection.relPath),

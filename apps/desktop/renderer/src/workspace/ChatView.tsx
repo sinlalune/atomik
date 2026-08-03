@@ -21,7 +21,9 @@ import {
   chatRelPath,
   newChatFileContent,
   parseChatTurns,
+  serializeSentMeta,
   threadFromTurns,
+  withSentMetaOnLastYou,
   type ChatTurn
 } from '../editor/chat-file'
 import {
@@ -482,13 +484,22 @@ export function ChatView({
    *  verbs (fresh read → write with the mtime handshake); returns the
    *  file path, creating `chats/…` at the FIRST message. */
   const persistTurn = useCallback(
-    async (role: 'you' | 'atomik', text: string): Promise<string> => {
+    async (
+      role: 'you' | 'atomik',
+      text: string,
+      youMeta?: string
+    ): Promise<string> => {
       const existing = fileRef.current
       if (existing) {
         const note = await window.atomik.readNote(existing)
+        // S07b10: the answer's write also stamps the you-turn's sent
+        // breakdown onto its heading — one write persists both
+        const base = youMeta
+          ? withSentMetaOnLastYou(note.content, youMeta)
+          : note.content
         await window.atomik.writeNote(
           existing,
-          appendChatTurn(note.content, role, text),
+          appendChatTurn(base, role, text),
           note.mtimeMs
         )
         return existing
@@ -714,7 +725,13 @@ export function ChatView({
               result.blocks.find((block) => block.role === 'answer')?.content ??
               result.blocks[0]?.content ??
               ''
-            await persistTurn('atomik', answer)
+            // S07b10: the you-turn's breakdown persists with the answer
+            const sentParts = breakdownByTurn.current.get(priorTurns.length)?.parts
+            await persistTurn(
+              'atomik',
+              answer,
+              sentParts ? serializeSentMeta(sentParts) : undefined
+            )
             setTurns((current) => {
               metaByTurn.current.set(current.length, {
                 bundleId: result.id,
@@ -1083,18 +1100,33 @@ export function ChatView({
         )}
         {turns.map((turn, index) => {
           const meta = metaByTurn.current.get(index)
-          const breakdown =
+          // S07b10: this session's send has the LIVE record (incl. the
+          // copyable request text); a restored transcript rebuilds the
+          // pills from the heading's persisted figures.
+          const live =
             turn.role === 'you' ? breakdownByTurn.current.get(index) : undefined
+          const est = (chars: number): number =>
+            chars === 0 ? 0 : Math.max(1, Math.ceil(chars / 4))
+          const sentParts =
+            live?.parts ??
+            (turn.role === 'you' && turn.sent
+              ? turn.sent
+                  .filter((part) => part.chars > 0)
+                  .map((part) => ({ ...part, tokensEst: est(part.chars) }))
+              : undefined)
+          const sentTotal =
+            live?.totalTokensEst ??
+            sentParts?.reduce((sum, part) => sum + part.tokensEst, 0)
           return (
             <article key={index} className={`chat-turn role-${turn.role}`}>
               <header className="chat-turn-head">
                 <span className="chat-turn-role">{turn.role}</span>
-                {breakdown && (
+                {sentTotal !== undefined && (
                   <span
                     className="chat-turn-metrics"
                     title="what this exchange sent, estimated at chars/4 — the pills below retrace it"
                   >
-                    ↑~{breakdown.totalTokensEst} tok sent
+                    ↑~{sentTotal} tok sent
                   </span>
                 )}
                 {meta && (meta.durationMs !== undefined || meta.usage) && (
@@ -1147,9 +1179,9 @@ export function ChatView({
                   dispatch((state) => revealNote(state, paneId, relPath))
                 }
               />
-              {breakdown && (
+              {sentParts && (
                 <div className="chat-request-pills">
-                  {breakdown.parts.map((part, partIndex) => (
+                  {sentParts.map((part, partIndex) => (
                     <span
                       key={partIndex}
                       className={`chat-request-pill kind-${part.kind}`}
@@ -1158,17 +1190,21 @@ export function ChatView({
                       {part.label} <b>~{part.tokensEst}</b>
                     </span>
                   ))}
-                  <button
-                    type="button"
-                    className="chat-request-copy"
-                    title="Copy the full request (system + user) exactly as sent"
-                    aria-label="Copy the full request"
-                    onClick={() => {
-                      void copyText(breakdown.requestText)
-                    }}
-                  >
-                    copy request
-                  </button>
+                  {live && (
+                    // the full text exists only for THIS session's
+                    // sends — figures persist, prompts never do
+                    <button
+                      type="button"
+                      className="chat-request-copy"
+                      title="Copy the full request (system + user) exactly as sent"
+                      aria-label="Copy the full request"
+                      onClick={() => {
+                        void copyText(live.requestText)
+                      }}
+                    >
+                      copy request
+                    </button>
+                  )}
                 </div>
               )}
             </article>

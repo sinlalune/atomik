@@ -18,7 +18,17 @@ import { newNotePathForSelection, type BufferChange } from './ai-helpers'
 
 export type ChatRole = 'you' | 'atomik'
 
-export type ChatTurn = { role: ChatRole; text: string }
+/** One part of a persisted sent-breakdown (S07b10): kind + label +
+ *  exact chars — token figures re-derive (chars/4) at display. */
+export type SentPart = { kind: string; label: string; chars: number }
+
+export type ChatTurn = {
+  role: ChatRole
+  text: string
+  /** S07b10: the you-turn's persisted request breakdown, when the
+   *  answering write recorded one. */
+  sent?: SentPart[]
+}
 
 export const CHATS_FOLDER = 'chats'
 
@@ -64,6 +74,58 @@ export function chatRelPath(
 const turnSection = (role: ChatRole, text: string): string =>
   `## ${role}\n\n${text.replace(/\s+$/, '')}\n`
 
+/**
+ * Sent-breakdown persistence (S07b10, owner: "the token count split
+ * pills in my message don't survive tab switch or app reload"): the
+ * breakdown rides the TRANSCRIPT FILE as an HTML comment on the
+ * you-turn heading — invisible in rendered markdown, visible and
+ * hand-editable in source, diff-friendly, no hidden store. Only
+ * derived FIGURES persist (kind/label/chars), never request text.
+ */
+const sanitizeMetaLabel = (label: string): string =>
+  label.replace(/[|=:\n\r]/g, '/').trim()
+
+export function serializeSentMeta(
+  parts: ReadonlyArray<{ kind: string; label: string; chars: number }>
+): string {
+  return parts
+    .map((part) =>
+      part.label === part.kind
+        ? `${part.kind}=${part.chars}`
+        : `${part.kind}=${part.chars}:${sanitizeMetaLabel(part.label)}`
+    )
+    .join('|')
+}
+
+/** Lenient inverse — a hand-mangled comment reads as no meta. */
+export function parseSentMeta(raw: string): SentPart[] | null {
+  const parts: SentPart[] = []
+  for (const piece of raw.split('|')) {
+    const match = /^\s*([a-z-]+)=(\d+)(?::(.*))?\s*$/.exec(piece)
+    if (!match) return null
+    parts.push({
+      kind: match[1]!,
+      label: match[3]?.trim() || match[1]!,
+      chars: Number(match[2])
+    })
+  }
+  return parts.length > 0 ? parts : null
+}
+
+/** Sets (or replaces) the sent comment on the LAST `## you` heading —
+ *  called by the ANSWER's write, so one write persists both. */
+export function withSentMetaOnLastYou(content: string, meta: string): string {
+  const headings = [...content.matchAll(/^##[ \t]+you[ \t]*(?:<!--.*?-->)?[ \t]*$/gm)]
+  const last = headings.at(-1)
+  if (!last) return content
+  const start = last.index
+  return (
+    content.slice(0, start) +
+    `## you <!-- sent: ${meta} -->` +
+    content.slice(start + last[0].length)
+  )
+}
+
 /** The transcript at birth: frontmatter + the first `## you` turn. */
 export function newChatFileContent(
   engine: string,
@@ -103,18 +165,39 @@ export function parseChatTurns(content: string): ChatTurn[] {
   const fence = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/.exec(content)
   if (fence) body = content.slice(fence[0].length)
   const turns: ChatTurn[] = []
-  let current: { role: ChatRole; lines: string[] } | null = null
+  let current: {
+    role: ChatRole
+    lines: string[]
+    sent?: SentPart[]
+  } | null = null
   const flush = (): void => {
     if (!current) return
     const text = current.lines.join('\n').trim()
-    if (text.length > 0) turns.push({ role: current.role, text })
+    if (text.length > 0)
+      turns.push({
+        role: current.role,
+        text,
+        ...(current.sent ? { sent: current.sent } : {})
+      })
     current = null
   }
   for (const line of body.split(/\r?\n/)) {
-    const heading = /^##\s+(you|atomik)\s*$/.exec(line)
+    // S07b10: a heading may carry a comment — `sent:` comments parse
+    // into the turn's persisted breakdown, unknown ones are ignored;
+    // either way the line still STARTS a turn.
+    const heading = /^##\s+(you|atomik)\s*(?:<!--\s*(.*?)\s*-->)?\s*$/.exec(line)
     if (heading) {
       flush()
-      current = { role: heading[1] as ChatRole, lines: [] }
+      const comment = heading[2]
+      const sent =
+        comment?.startsWith('sent:') === true
+          ? parseSentMeta(comment.slice(5))
+          : null
+      current = {
+        role: heading[1] as ChatRole,
+        lines: [],
+        ...(sent ? { sent } : {})
+      }
     } else if (current) {
       current.lines.push(line)
     }
