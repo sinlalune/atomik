@@ -278,7 +278,7 @@ export function ChatView({
   // S07b8: the conversation's arranged SYSTEM — a tab param, so it
   // stays armed for every next message and survives remounts and
   // restarts. Default plan = absent param = the pre-plan bytes.
-  const sysPlan = parseSystemPlan(tab.params?.['sys'])
+  const sysPlan = parseSystemPlan(tab.params?.['sys'], 'chat')
   const sysPlanRef = useRef(sysPlan)
   sysPlanRef.current = sysPlan
   /** S07b8c: ONE dynamic panel above the card at a time — each footer
@@ -1298,13 +1298,15 @@ export function ChatView({
               plan={sysPlan}
               onChange={(next) =>
                 patchParams({
-                  sys: isDefaultSystemPlan(next) ? '' : serializeSystemPlan(next)
+                  sys: isDefaultSystemPlan(next, 'chat')
+                    ? ''
+                    : serializeSystemPlan(next)
                 })
               }
               destination="append"
               builtins={sysBuiltins}
               prompts={sysPrompts ?? []}
-              mode="chat"
+              variant="chat"
               onOpenFile={(relPath) =>
                 dispatch((state) => revealNote(state, paneId, relPath))
               }
@@ -1477,7 +1479,7 @@ export function ChatView({
               }
             >
               system
-              {!isDefaultSystemPlan(sysPlan) && (
+              {!isDefaultSystemPlan(sysPlan, 'chat') && (
                 <span className="chat-sys-badge">custom · {sysPlan.length}</span>
               )}
             </button>

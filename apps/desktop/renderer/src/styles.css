@@ -1508,16 +1508,29 @@ body[data-maximized] .tabstrip {
   padding: 0 var(--space-3);
 }
 
-/* S07b8c: ONE sheet idiom — every footer pill (context / system /
-   model) opens its dynamic section here, above the card. */
+/* S07b8c/S07b13: ONE sheet idiom — every footer pill (context /
+   system / model) opens its dynamic section ATTACHED above the card:
+   same margins and border family, rounded top, flowing into the
+   card below as one composer block. */
 .chat-sheet {
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--border);
+  margin: var(--space-1) var(--space-3) 0;
+  padding: var(--space-2) var(--space-2);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--bg);
   display: flex;
   flex-direction: column;
   gap: 2px;
-  max-height: 14rem;
+  max-height: 16rem;
   overflow-y: auto;
+}
+
+/* a sheet and the card read as one block: the card flattens its top */
+.chat-sheet + .chat-card {
+  margin-top: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 }
 
 .chat-sheet-row {
@@ -3432,9 +3445,41 @@ button svg {
   border-color: var(--accent);
 }
 
-.sys-plan-pop {
-  left: 0;
-  right: auto;
+/* S07b13: the add flow is INLINE rows (a popover inside a scrollable
+   sheet clipped into a scroll trap — owner report). */
+.sys-plan-add-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px dashed var(--border);
+}
+
+.sys-plan-add-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.sys-plan-add-label {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-right: var(--space-1);
+}
+
+.sys-plan-addable {
+  cursor: pointer;
+  border-style: dashed;
+  color: var(--muted);
+}
+
+.sys-plan-addable:hover {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 /* the footer pills' state badges (custom system, tuned model) */

@@ -1,6 +1,7 @@
 import {
   BUILTIN_BLOCK_DEFAULTS,
   BUILTIN_BLOCK_IDS,
+  DEFAULT_CHAT_SYSTEM_PLAN,
   DEFAULT_SYSTEM_PLAN,
   type BuiltinBlockId,
   type BuiltinOverrides,
@@ -23,15 +24,23 @@ export type SystemPlanEntry =
   | { kind: 'builtin'; id: SystemPlanBlockId }
   | { kind: 'prompt'; relPath: string }
 
-export const defaultSystemPlan = (): SystemPlanEntry[] =>
-  DEFAULT_SYSTEM_PLAN.map((entry) =>
-    'block' in entry
-      ? { kind: 'builtin', id: entry.block }
-      : { kind: 'prompt', relPath: '' }
+/** Surface variant (S07b13): the chat's DEFAULT plan carries the chat
+ *  blocks BY NAME — visible chips, no hidden resolution. */
+export type SystemPlanVariant = 'chat' | undefined
+
+export const defaultSystemPlan = (variant?: SystemPlanVariant): SystemPlanEntry[] =>
+  (variant === 'chat' ? DEFAULT_CHAT_SYSTEM_PLAN : DEFAULT_SYSTEM_PLAN).map(
+    (entry) =>
+      'block' in entry
+        ? { kind: 'builtin', id: entry.block }
+        : { kind: 'prompt', relPath: '' }
   )
 
-export function isDefaultSystemPlan(plan: SystemPlanEntry[]): boolean {
-  const fallback = defaultSystemPlan()
+export function isDefaultSystemPlan(
+  plan: SystemPlanEntry[],
+  variant?: SystemPlanVariant
+): boolean {
+  const fallback = defaultSystemPlan(variant)
   return (
     plan.length === fallback.length &&
     plan.every(
@@ -54,14 +63,17 @@ export function serializeSystemPlan(plan: SystemPlanEntry[]): string {
 
 /** Absent/garbage params read as the DEFAULT plan — a conversation
  *  never loses its system to a bad byte. */
-export function parseSystemPlan(raw: string | undefined): SystemPlanEntry[] {
-  if (raw === undefined || raw.length === 0) return defaultSystemPlan()
+export function parseSystemPlan(
+  raw: string | undefined,
+  variant?: SystemPlanVariant
+): SystemPlanEntry[] {
+  if (raw === undefined || raw.length === 0) return defaultSystemPlan(variant)
   try {
     const parsed: unknown = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return defaultSystemPlan()
+    if (!Array.isArray(parsed)) return defaultSystemPlan(variant)
     const plan: SystemPlanEntry[] = []
     for (const item of parsed.slice(0, 16)) {
-      if (typeof item !== 'string') return defaultSystemPlan()
+      if (typeof item !== 'string') return defaultSystemPlan(variant)
       if (item.startsWith('b:')) {
         const id = item.slice(2)
         if (id === 'output' || (BUILTIN_BLOCK_IDS as readonly string[]).includes(id)) {
@@ -70,12 +82,12 @@ export function parseSystemPlan(raw: string | undefined): SystemPlanEntry[] {
       } else if (item.startsWith('p:') && item.length > 2) {
         plan.push({ kind: 'prompt', relPath: item.slice(2) })
       } else {
-        return defaultSystemPlan()
+        return defaultSystemPlan(variant)
       }
     }
     return plan
   } catch {
-    return defaultSystemPlan()
+    return defaultSystemPlan(variant)
   }
 }
 
@@ -122,6 +134,19 @@ export const systemPlanEntryLabel = (
       entry.relPath.split('/').at(-1)?.replace(/\.md$/i, '') ??
       entry.relPath)
 
+export const systemBlockLabel = (id: SystemPlanBlockId): string =>
+  BLOCK_LABELS[id]
+
+/** Registry blocks not yet in the plan — the add row offers EVERY
+ *  concrete block (S07b13: full choice; note blocks in a chat and
+ *  vice versa are the owner's call, visibly). */
+export const addableBlocks = (plan: SystemPlanEntry[]): BuiltinBlockId[] => {
+  const present = new Set(
+    plan.map((entry) => (entry.kind === 'builtin' ? entry.id : ''))
+  )
+  return BUILTIN_BLOCK_IDS.filter((id) => !present.has(id))
+}
+
 const outputIdFor: Record<DestinationKind, BuiltinBlockId> = {
   'replace-selection': 'output-replace-selection',
   append: 'output-append',
@@ -135,20 +160,12 @@ export function systemPlanEntryBody(
   entry: SystemPlanEntry,
   destination: DestinationKind,
   builtins: BuiltinOverrides,
-  prompts: PromptFile[],
-  mode?: 'chat'
+  prompts: PromptFile[]
 ): string {
   if (entry.kind === 'prompt') {
     return prompts.find((prompt) => prompt.relPath === entry.relPath)?.body ?? ''
   }
-  const id =
-    entry.id === 'output'
-      ? mode === 'chat'
-        ? 'output-chat'
-        : outputIdFor[destination]
-      : entry.id === 'grounding-rules' && mode === 'chat'
-        ? 'grounding-rules-chat'
-        : entry.id
+  const id = entry.id === 'output' ? outputIdFor[destination] : entry.id
   return builtins[id]?.trim() || BUILTIN_BLOCK_DEFAULTS[id]
 }
 
@@ -157,18 +174,10 @@ export function systemPlanEntryBody(
  *  mode-resolved like the body. */
 export function systemPlanEntryFile(
   entry: SystemPlanEntry,
-  destination: DestinationKind,
-  mode?: 'chat'
+  destination: DestinationKind
 ): string | null {
   if (entry.kind === 'prompt') return entry.relPath
-  const id =
-    entry.id === 'output'
-      ? mode === 'chat'
-        ? 'output-chat'
-        : outputIdFor[destination]
-      : entry.id === 'grounding-rules' && mode === 'chat'
-        ? 'grounding-rules-chat'
-        : entry.id
+  const id = entry.id === 'output' ? outputIdFor[destination] : entry.id
   return `prompts/${BUILTIN_SUBFOLDER}/${id}.md`
 }
 

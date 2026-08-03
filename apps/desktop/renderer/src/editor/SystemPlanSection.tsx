@@ -1,17 +1,21 @@
 import { useState } from 'react'
-import type {
-  BuiltinOverrides,
-  DestinationKind
+import {
+  BUILTIN_BLOCK_DEFAULTS,
+  type BuiltinOverrides,
+  type DestinationKind
 } from '../../../shared/prompt-composition'
 import type { PromptFile } from './prompts'
 import {
+  addableBlocks,
   defaultSystemPlan,
   isDefaultSystemPlan,
   moveSystemPlanEntry,
+  systemBlockLabel,
   systemPlanEntryBody,
   systemPlanEntryFile,
   systemPlanEntryLabel,
-  type SystemPlanEntry
+  type SystemPlanEntry,
+  type SystemPlanVariant
 } from './system-plan'
 
 /**
@@ -33,7 +37,7 @@ export function SystemPlanSection({
   destination,
   builtins,
   prompts,
-  mode,
+  variant,
   onOpenFile
 }: {
   plan: SystemPlanEntry[]
@@ -41,8 +45,9 @@ export function SystemPlanSection({
   destination: DestinationKind
   builtins: BuiltinOverrides
   prompts: PromptFile[]
-  /** 'chat' previews the conversation-mode resolution (S07b12). */
-  mode?: 'chat'
+  /** 'chat' defaults/resets to the CHAT plan (S07b13) — the chips
+   *  themselves are always literal, never mode-resolved. */
+  variant?: SystemPlanVariant
   /** Opens an entry's backing file for editing (revealNote-style). */
   onOpenFile?: (relPath: string) => void
 }): React.JSX.Element {
@@ -53,11 +58,12 @@ export function SystemPlanSection({
   const addable = prompts.filter(
     (prompt) => prompt.kind === 'system' && !inPlan.has(prompt.relPath)
   )
+  const addableBlockIds = addableBlocks(plan)
   const totalTokens = plan.reduce(
     (sum, entry) =>
       sum +
       estimateTokens(
-        systemPlanEntryBody(entry, destination, builtins, prompts, mode).length
+        systemPlanEntryBody(entry, destination, builtins, prompts).length
       ),
     0
   )
@@ -71,13 +77,13 @@ export function SystemPlanSection({
         >
           ~{totalTokens} tok
         </span>
-        {!isDefaultSystemPlan(plan) && (
+        {!isDefaultSystemPlan(plan, variant) && (
           <button
             type="button"
             className="sys-plan-reset"
             title="Restore the default system composition"
             aria-label="Restore default system"
-            onClick={() => onChange(defaultSystemPlan())}
+            onClick={() => onChange(defaultSystemPlan(variant))}
           >
             ↺
           </button>
@@ -88,8 +94,8 @@ export function SystemPlanSection({
           <span className="sys-plan-empty">empty — nothing rides as system</span>
         )}
         {plan.map((entry, index) => {
-          const body = systemPlanEntryBody(entry, destination, builtins, prompts, mode)
-          const file = systemPlanEntryFile(entry, destination, mode)
+          const body = systemPlanEntryBody(entry, destination, builtins, prompts)
+          const file = systemPlanEntryFile(entry, destination)
           const label = systemPlanEntryLabel(entry, prompts)
           return (
             <span
@@ -136,42 +142,61 @@ export function SystemPlanSection({
             </span>
           )
         })}
-        <span className="sys-plan-add">
-          <button
-            type="button"
-            className="sys-plan-add-toggle"
-            title="Add a system prompt from the vault"
-            aria-expanded={adding}
-            onClick={() => setAdding((open) => !open)}
-          >
-            +
-          </button>
-          {adding && (
-            <div className="chat-pop sys-plan-pop" role="listbox" aria-label="Add system prompt">
-              {addable.length === 0 && (
-                <p className="chat-pop-empty">
-                  no further system prompts in scope — create one in prompts/
-                </p>
-              )}
-              {addable.map((prompt) => (
+        <button
+          type="button"
+          className="sys-plan-add-toggle"
+          title="Add a built-in block or a system prompt from the vault"
+          aria-expanded={adding}
+          onClick={() => setAdding((open) => !open)}
+        >
+          +
+        </button>
+      </div>
+      {adding && (
+        <div className="sys-plan-add-rows" role="group" aria-label="Add to the system message">
+          {addableBlockIds.length > 0 && (
+            <div className="sys-plan-add-group">
+              <span className="sys-plan-add-label">blocks</span>
+              {addableBlockIds.map((id) => (
                 <button
-                  key={prompt.relPath}
+                  key={id}
                   type="button"
-                  role="option"
-                  aria-selected={false}
-                  title={prompt.description ?? prompt.relPath}
+                  className="sys-plan-chip kind-builtin sys-plan-addable"
+                  title={`${BUILTIN_BLOCK_DEFAULTS[id].slice(0, 200)}`}
                   onClick={() => {
-                    onChange([...plan, { kind: 'prompt', relPath: prompt.relPath }])
+                    onChange([...plan, { kind: 'builtin', id }])
                     setAdding(false)
                   }}
                 >
-                  {prompt.title}
+                  + {systemBlockLabel(id)}
                 </button>
               ))}
             </div>
           )}
-        </span>
-      </div>
+          <div className="sys-plan-add-group">
+            <span className="sys-plan-add-label">prompts</span>
+            {addable.length === 0 && (
+              <span className="sys-plan-empty">
+                none in scope — create one in prompts/
+              </span>
+            )}
+            {addable.map((prompt) => (
+              <button
+                key={prompt.relPath}
+                type="button"
+                className="sys-plan-chip kind-prompt sys-plan-addable"
+                title={prompt.description ?? prompt.relPath}
+                onClick={() => {
+                  onChange([...plan, { kind: 'prompt', relPath: prompt.relPath }])
+                  setAdding(false)
+                }}
+              >
+                + {prompt.title}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

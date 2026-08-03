@@ -129,12 +129,27 @@ export const DEFAULT_SYSTEM_PLAN: ReadonlyArray<WireSystemPlanEntry> = [
   { block: 'closing-rule' }
 ]
 
+/** The CHAT default plan (S07b13, owner: "full transparency and
+ *  choice" — no silent mode resolution): the chat blocks appear BY
+ *  NAME in the plan, swappable like any other. */
+export const DEFAULT_CHAT_SYSTEM_PLAN: ReadonlyArray<WireSystemPlanEntry> = [
+  { block: 'identity' },
+  { block: 'grounding-rules-chat' },
+  { block: 'output-chat' },
+  { block: 'closing-rule' }
+]
+
 /** Section scaffolding per block — the headings are structural, they
  *  travel with their block wherever the owner puts it. */
 const blockHeadingFor: Partial<Record<SystemPlanBlockId, string[]>> = {
   identity: ['# Role', ''],
   'grounding-rules': ['# Rules', '', '## Grounding', ''],
-  output: ['## Output', '']
+  'grounding-rules-chat': ['# Rules', '', '## Grounding', ''],
+  output: ['## Output', ''],
+  'output-chat': ['## Output', ''],
+  'output-replace-selection': ['## Output', ''],
+  'output-append': ['## Output', ''],
+  'output-new-note': ['## Output', '']
 }
 
 /** Request mode (S07b12): 'chat' composes the CONVERSATION contract —
@@ -145,18 +160,13 @@ export type RequestMode = 'chat'
 export function composeSystemFromPlan(
   plan: ReadonlyArray<WireSystemPlanEntry>,
   destination: DestinationKind,
-  builtins?: BuiltinOverrides,
-  mode?: RequestMode
+  builtins?: BuiltinOverrides
 ): string {
+  // S07b13 (owner): NO silent mode resolution — the plan's chips ARE
+  // what travels. Only the 'output' pseudo-block stays dynamic (the
+  // menu's destination genuinely varies per run).
   const resolve = (id: SystemPlanBlockId): { id: BuiltinBlockId; body: string } => {
-    const real =
-      id === 'output'
-        ? mode === 'chat'
-          ? 'output-chat'
-          : outputBlockIdFor[destination]
-        : id === 'grounding-rules' && mode === 'chat'
-          ? 'grounding-rules-chat'
-          : id
+    const real = id === 'output' ? outputBlockIdFor[destination] : id
     return { id: real, body: builtins?.[real]?.trim() || BUILTIN_BLOCK_DEFAULTS[real] }
   }
   const sections: string[] = []
@@ -170,7 +180,7 @@ export function composeSystemFromPlan(
         entry.block === 'closing-rule' &&
         previous !== undefined &&
         'block' in previous &&
-        previous.block === 'output' &&
+        previous.block.startsWith('output') &&
         sections.length > 0
       ) {
         sections[sections.length - 1] += `\n${body}`
@@ -199,12 +209,7 @@ export function systemTextOf(operation: {
 }): string {
   const destination = operation.target.destination.kind
   return operation.systemPlan !== undefined
-    ? composeSystemFromPlan(
-        operation.systemPlan,
-        destination,
-        operation.builtins,
-        operation.mode
-      )
+    ? composeSystemFromPlan(operation.systemPlan, destination, operation.builtins)
     : composeSystemPrompt(operation.systemPrompt, destination, operation.builtins)
 }
 

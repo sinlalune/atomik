@@ -1688,6 +1688,37 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       entre ethos et logos ?" → one direct conversational French
       sentence, no heading, no topic hijack. Tests 628→631/55;
       typecheck/build green.
+- [x] S07b13 (owner bench round 9, 2026-08-03: "prompt transparency
+      is not respected as you introduce an abstract layer on chat
+      dedicated prompt — I want full transparency and choice; the
+      system section reacts badly to 'add a system prompt' (a
+      scrollable section); the separation of input / history /
+      options could be improved") — DONE 2026-08-03. (1)
+      TRANSPARENCY: the S07b12 mode-RESOLUTION retired — no chip
+      ever says one thing and sends another. The chat's DEFAULT plan
+      carries the chat blocks BY NAME (identity · grounding · chat ·
+      output · chat · closing rule — DEFAULT_CHAT_SYSTEM_PLAN;
+      variant-aware parse/default/reset); composeSystemFromPlan
+      composes exactly the chips (only the menu's 'output'
+      pseudo-block stays destination-dynamic); operation.mode now
+      shapes the USER template alone. (2) CHOICE: the + opens
+      INLINE add rows — BLOCKS (every registry block not in the
+      plan: note grounding in a chat, chat output in the menu —
+      the owner's call, visibly) and PROMPTS (vault system
+      prompts); the absolute popover retired — it clipped into a
+      scroll trap inside the sheet (the reported bug). (3)
+      SEPARATION: sheets ATTACH to the card — same margins/border
+      family, rounded top, card's top flattens under an open sheet:
+      one composer block. Live pin in the owner's session: chips
+      read `identity · grounding · chat · output · chat · closing
+      rule`, add rows inline (no scroll trap — measured), note
+      blocks offered as choices; the owner's own 5-turn Hume chat
+      running conversationally beside. Tests 631→632/55;
+      typecheck/build green. NOTED for round 10: a promoted chat
+      note titled "Bien sûr ! Voici une version en français"
+      produced a note-not-found on reveal — punctuation in
+      chatNotePathForMessage vs createNote sanitization suspected;
+      not yet triaged.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel

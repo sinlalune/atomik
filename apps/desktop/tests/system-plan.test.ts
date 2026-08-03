@@ -4,6 +4,7 @@ import {
   composeChatUserMessage,
   composeSystemFromPlan,
   composeSystemPrompt,
+  DEFAULT_CHAT_SYSTEM_PLAN,
   DEFAULT_SYSTEM_PLAN,
   systemTextOf,
   userTextOf
@@ -66,8 +67,8 @@ describe('composeSystemFromPlan (S07b8 — the system message as an ordered plan
     expect(composed).not.toContain('AI assistant inside Atomik')
   })
 
-  it("chat mode resolves the CONVERSATION blocks — the note contract never leaks into chat (S07b12, owner: 'we are using the note generation prompt for a chat')", () => {
-    const chat = composeSystemFromPlan(DEFAULT_SYSTEM_PLAN, 'append', undefined, 'chat')
+  it('the CHAT default plan carries the chat blocks BY NAME — no hidden resolution (S07b12/13)', () => {
+    const chat = composeSystemFromPlan(DEFAULT_CHAT_SYSTEM_PLAN, 'append')
     expect(chat).toContain("Answer the user's QUESTION directly")
     expect(chat).toContain('Answer the question conversationally')
     expect(chat).not.toContain('APPENDED to the note')
@@ -75,10 +76,20 @@ describe('composeSystemFromPlan (S07b8 — the system message as an ordered plan
     // the mechanical quote contract survives — the claim checker
     // labels chat answers the same way
     expect(chat).toContain('character for character')
-    // note mode is byte-for-byte untouched
+    // note default is byte-for-byte untouched
     expect(composeSystemFromPlan(DEFAULT_SYSTEM_PLAN, 'append')).toBe(
       composeSystemPrompt(undefined, 'append')
     )
+    // the chat plan is what the UI shows: literal chip ids
+    expect(defaultSystemPlan('chat')).toEqual([
+      { kind: 'builtin', id: 'identity' },
+      { kind: 'builtin', id: 'grounding-rules-chat' },
+      { kind: 'builtin', id: 'output-chat' },
+      { kind: 'builtin', id: 'closing-rule' }
+    ])
+    expect(parseSystemPlan(undefined, 'chat')).toEqual(defaultSystemPlan('chat'))
+    expect(isDefaultSystemPlan(defaultSystemPlan('chat'), 'chat')).toBe(true)
+    expect(isDefaultSystemPlan(defaultSystemPlan('chat'))).toBe(false)
   })
 
   it('the chat USER message is question-first with quotable references (S07b12)', () => {
@@ -99,7 +110,7 @@ describe('composeSystemFromPlan (S07b8 — the system message as an ordered plan
     expect(composeChatUserMessage('hi', [])).not.toContain('## Reference')
   })
 
-  it('userTextOf switches on mode; systemTextOf carries it (S07b12)', () => {
+  it('userTextOf switches on mode; the plan alone decides the system bytes (S07b12/13)', () => {
     const base = {
       instruction: 'parle moi du logos',
       input: [{ content: 'Ethos text.', relPath: 'ethos.md' }],
@@ -108,8 +119,12 @@ describe('composeSystemFromPlan (S07b8 — the system message as an ordered plan
     expect(userTextOf({ ...base, mode: 'chat' })).toContain('## Question')
     expect(userTextOf(base)).toContain('## Instruction — style and behavior')
     expect(
-      systemTextOf({ ...base, systemPlan: [...DEFAULT_SYSTEM_PLAN], mode: 'chat' })
+      systemTextOf({ ...base, systemPlan: [...DEFAULT_CHAT_SYSTEM_PLAN] })
     ).toContain("Answer the user's QUESTION")
+    // transparency: mode never rewrites a plan — what the chips say travels
+    expect(
+      systemTextOf({ ...base, systemPlan: [...DEFAULT_SYSTEM_PLAN], mode: 'chat' })
+    ).toBe(composeSystemPrompt(undefined, 'append'))
   })
 
   it('systemTextOf: a plan outranks the legacy stack path', () => {
