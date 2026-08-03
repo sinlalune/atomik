@@ -1573,6 +1573,34 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       hardened to target the renderer page (a web tab had hijacked
       the first-page pick). Tests 624/55 unchanged;
       typecheck/build green.
+- [x] S07b8c (owner bench round 4, 2026-08-03: "context section is
+      still on top it should be integrated to next message section …
+      the token counter … doesn't live estimate context as message
+      pills do, same for the model options — it should be floating
+      pills like system with for example the model used and a dynamic
+      section opening on click, same for context") — DONE 2026-08-03.
+      The COMPOSER CARD now owns everything about the NEXT message:
+      (1) the top bar keeps only CONVERSATION chrome (history + Σ
+      totals) — the context select/+ removed; (2) context chips moved
+      INTO the card's chips row (the reference's attachments slot)
+      WITH live token estimates — mounted surfaces measure free,
+      unmounted notes read once and cache (ctxSizes); ranged pills
+      count their slice; auto pill shows its note's ~tok; (3) THREE
+      floating pill-toggles in the footer, one dynamic sheet above
+      the card at a time: `+ context` (rows of open notes to add,
+      × no context, ↺ auto), `system` (the S07b8 plan section),
+      `model` (pill shows the LIVE model id + a `tuned` badge when
+      sampling is overridden; sheet = the sampling grid —
+      GenOptionFieldRows extracted from GenOptionsFields, menus keep
+      the disclosure); (4) the intent preview is now COMPLETE and
+      consistent — context counts like every part (`~N tok`, hover
+      spells system · context · history · draft) — and stays
+      ambient (fs-xs muted, one figure). Dev CDP pin in the owner's
+      live session: chips row `◉ orgasm ~725 ×` + `+ context`,
+      footer `system · mistral-small-2603 · ~1323 tok`, all three
+      sheets opened (context rows incl. read-only marks, sampling
+      grid with the owner's tuned values). Tests 624/55 unchanged;
+      typecheck/build green.
 - [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel

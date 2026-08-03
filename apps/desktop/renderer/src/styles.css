@@ -1252,22 +1252,6 @@ body[data-maximized] .tabstrip {
 }
 
 /* picked contexts as pills (S06c3): first = primary, × removes */
-.chat-context-pills {
-  flex: none;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-3);
-  font-size: var(--fs-sm);
-  color: var(--muted);
-  border-bottom: 1px solid var(--border);
-}
-
-.chat-context-pills:empty {
-  display: none;
-}
-
 /* S07b8b — ONE pill recipe (36: "no new pill forks"): context pills,
    request-breakdown pills, and system chips share this box; kinds
    differ by border color modifiers only. */
@@ -1524,9 +1508,67 @@ body[data-maximized] .tabstrip {
   padding: 0 var(--space-3);
 }
 
-.chat-sys-sheet {
-  padding: 0 var(--space-3);
+/* S07b8c: ONE sheet idiom — every footer pill (context / system /
+   model) opens its dynamic section here, above the card. */
+.chat-sheet {
+  padding: var(--space-2) var(--space-3);
   border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 14rem;
+  overflow-y: auto;
+}
+
+.chat-sheet-row {
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-sheet-row:hover {
+  background: var(--code-bg);
+  color: var(--accent);
+}
+
+/* the card's chips row — the reference's attachments slot: what the
+   next message carries, visible where it is written */
+.chat-card-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-2) 0;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+
+.chat-card-chips .chat-context-pill b {
+  font-weight: 600;
+}
+
+.chat-ctx-add {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-pill);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.chat-ctx-add:hover,
+.chat-ctx-add[aria-expanded='true'] {
+  border-color: var(--accent);
 }
 
 .chat-card {
@@ -1598,6 +1640,14 @@ body[data-maximized] .tabstrip {
 
 .chat-tool[aria-expanded='true'] {
   color: var(--accent);
+}
+
+/* the model pill shows a model ID — ids stay lowercase; the add-
+   context pill reads as prose */
+.chat-tool.chat-tool-model,
+.chat-tool.chat-ctx-add {
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 /* Intent preview (researched: show what will be sent, ambient enough
@@ -3387,39 +3437,16 @@ button svg {
   right: auto;
 }
 
-/* The chat composer hosts the section behind a slim disclosure —
-   first thing above the options row. */
-.chat-sys {
-  font-size: var(--fs-sm);
-}
-
-.chat-sys > summary {
-  cursor: pointer;
-  color: var(--muted);
-  font-size: var(--fs-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  list-style-position: inside;
-}
-
-.chat-sys[open] > summary,
-.chat-sys > summary:hover {
-  color: inherit;
-}
-
+/* the footer pills' state badges (custom system, tuned model) */
 .chat-sys-badge {
-  margin-left: var(--space-2);
+  margin-left: var(--space-1);
   text-transform: none;
   letter-spacing: normal;
   color: var(--accent);
 }
 
-.chat-sys .sys-plan {
-  padding: var(--space-1) 0 var(--space-2);
-}
-
-/* the disclosure summary already names the section */
-.chat-sys .sys-plan-title {
+/* the sheet already sits under a labeled pill */
+.chat-sheet .sys-plan-title {
   display: none;
 }
 

@@ -28,7 +28,8 @@ import {
   composeGenerationParams,
   defaultGenOptionDrafts
 } from '../editor/gen-params'
-import { GenOptionsFields } from '../editor/gen-options'
+import { GenOptionFieldRows } from '../editor/gen-options'
+import { DEFAULT_GENERATION_MODEL } from '../../../shared/generation-params'
 import { prepareAiRun } from '../editor/ai-run'
 import { copyText } from '../editor/clipboard'
 import {
@@ -276,9 +277,18 @@ export function ChatView({
   const sysPlan = parseSystemPlan(tab.params?.['sys'])
   const sysPlanRef = useRef(sysPlan)
   sysPlanRef.current = sysPlan
-  const [sysOpen, setSysOpen] = useState(false)
+  /** S07b8c: ONE dynamic panel above the card at a time — each footer
+   *  pill (context / system / model) toggles its own. */
+  const [openPanel, setOpenPanel] = useState<
+    'context' | 'system' | 'model' | null
+  >(null)
   const [sysPrompts, setSysPrompts] = useState<PromptFile[] | null>(null)
   const [sysBuiltins, setSysBuiltins] = useState<BuiltinOverrides>({})
+  /** S07b8c: live context sizes (chars) per path — mounted surfaces
+   *  read free, unmounted notes read once and cache; the chips and
+   *  the intent preview both consume this, so context counts like
+   *  every other part. */
+  const [ctxSizes, setCtxSizes] = useState<Record<string, number>>({})
   // S07b8b: the section AND the pre-send preview need the live bodies —
   // loaded once at mount (the @ menu's lazy tree covers reloads).
   useEffect(() => {
@@ -301,6 +311,47 @@ export function ChatView({
       live = false
     }
   }, [])
+
+  // Context sizes: mounted surfaces measure free every render;
+  // unmounted paths read once (cached until the path set changes).
+  const ctxPaths = [
+    ...new Set(
+      [
+        ...(targetPath !== null ? [targetPath] : []),
+        ...ctxList.map((entry) => parseChatContextEntry(entry).path)
+      ].filter(Boolean)
+    )
+  ]
+  const ctxPathsKey = ctxPaths.join('\n')
+  useEffect(() => {
+    let live = true
+    for (const path of ctxPathsKey.split('\n').filter(Boolean)) {
+      const mounted = contextsRef.current
+        .filter((candidate) => candidate.notePath === path)
+        .at(-1)
+      if (mounted) {
+        const size = mounted.getDoc().length
+        setCtxSizes((current) =>
+          current[path] === size ? current : { ...current, [path]: size }
+        )
+      } else {
+        window.atomik.readNote(path).then(
+          (note) => {
+            if (live)
+              setCtxSizes((current) =>
+                current[path] === note.content.length
+                  ? current
+                  : { ...current, [path]: note.content.length }
+              )
+          },
+          () => undefined
+        )
+      }
+    }
+    return () => {
+      live = false
+    }
+  }, [ctxPathsKey])
 
   const patchParams = useCallback(
     (patch: Record<string, string>) =>
@@ -874,13 +925,8 @@ export function ChatView({
     [addContexts, tree]
   )
 
-  /** The "+" picker's current candidate (local draft until added). */
-  const [candidate, setCandidate] = useState('')
+  /** Open notes not yet in the context — the context sheet's rows. */
   const candidatePaths = optionPaths.filter((path) => !ctxList.includes(path))
-  const candidateValue =
-    candidate && candidatePaths.includes(candidate)
-      ? candidate
-      : (candidatePaths[0] ?? '')
 
   // ----- @ quick actions in the input ---------------------------------
 
@@ -971,39 +1017,10 @@ export function ChatView({
       }}
       onDrop={onTreeDrop}
     >
+      {/* S07b8c: the bar carries only CONVERSATION-level chrome —
+          history and running totals; everything about the NEXT
+          message lives in the composer card below. */}
       <div className="tree-bar chat-bar">
-        <label className="chat-context">
-          context
-          <select
-            aria-label="Context candidates"
-            value={candidateValue}
-            onChange={(event) => setCandidate(event.target.value)}
-          >
-            {candidatePaths.length === 0 && (
-              <option value="">{optionPaths.length === 0 ? 'no open note' : 'all open notes added'}</option>
-            )}
-            {candidatePaths.map((notePath) => (
-              <option key={notePath} value={notePath}>
-                {notePath}
-                {contexts.some(
-                  (entry) => entry.notePath === notePath && entry.editable
-                )
-                  ? ''
-                  : ' — read-only'}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          className="tree-toggle chat-context-add"
-          title="Add to context"
-          aria-label="Add to context"
-          disabled={candidateValue.length === 0}
-          onClick={() => addContexts([candidateValue])}
-        >
-          <PlusIcon />
-        </button>
         <span className="chat-history">
           <button
             type="button"
@@ -1051,73 +1068,6 @@ export function ChatView({
             Σ ↑{totals.inputTokens} ↓{totals.outputTokens} · ~$
             {totals.costUsd.toFixed(4)}
           </span>
-        )}
-      </div>
-      <div className="chat-context-pills">
-        {ctxList.length === 0 && !noContext && targetPath !== null && (
-          <span className="chat-context-pill auto" title="No pick — the best open note serves as context">
-            auto · {targetPath}
-            {targetEditable ? '' : ' (read-only)'}
-            <button
-              type="button"
-              title="Chat without context — keep the workspace, drop the auto-loaded note"
-              aria-label="Remove the auto context"
-              onClick={() =>
-                patchParams({ ctx: serializeChatContexts([]) })
-              }
-            >
-              ×
-            </button>
-          </span>
-        )}
-        {noContext && (
-          <span
-            className="chat-context-pill auto"
-            title="No context — the chat answers from the conversation alone"
-          >
-            no context
-            <button
-              type="button"
-              title="Back to auto — the best open note serves as context again"
-              aria-label="Restore the auto context"
-              onClick={() => patchParams({ ctx: '' })}
-            >
-              ↺
-            </button>
-          </span>
-        )}
-        {ctxList.map((entry, index) => {
-          const parsed = parseChatContextEntry(entry)
-          const name =
-            parsed.path.split('/').pop()?.replace(/\.md$/i, '') ?? parsed.path
-          const rangeLabel =
-            parsed.from !== undefined ? ` · ${parsed.from}–${parsed.to}` : ''
-          return (
-            <span
-              key={entry}
-              className="chat-context-pill"
-              title={
-                index === 0
-                  ? `${entry} — primary (insert/append target)`
-                  : entry
-              }
-            >
-              {index === 0 ? '◉ ' : ''}
-              {name}
-              {rangeLabel}
-              <button
-                type="button"
-                title={`Remove ${entry} from the context`}
-                aria-label={`Remove ${entry} from the context`}
-                onClick={() => removeContext(entry)}
-              >
-                ×
-              </button>
-            </span>
-          )
-        })}
-        {targetPath !== null && !targetEditable && ctxList.length > 0 && (
-          <span className="chat-context-hint">primary read-only — insert needs an editor</span>
         )}
       </div>
       <div className="chat-scroll" ref={scrollRef}>
@@ -1255,8 +1205,55 @@ export function ChatView({
         </p>
       )}
       <div className="chat-compose">
-        {sysOpen && (
-          <div className="chat-sys-sheet">
+        {openPanel === 'context' && (
+          <div className="chat-sheet" role="group" aria-label="Context of the next message">
+            {candidatePaths.length === 0 && (
+              <p className="chat-pop-empty">
+                {optionPaths.length === 0
+                  ? 'no open note to add — open one from the tree'
+                  : 'every open note is already in the context'}
+              </p>
+            )}
+            {candidatePaths.map((notePath) => (
+              <button
+                key={notePath}
+                type="button"
+                className="chat-sheet-row"
+                title={`Add ${notePath} to the context`}
+                onClick={() => addContexts([notePath])}
+              >
+                <PlusIcon /> {notePath}
+                {contexts.some(
+                  (entry) => entry.notePath === notePath && entry.editable
+                )
+                  ? ''
+                  : ' — read-only'}
+              </button>
+            ))}
+            {!noContext && (
+              <button
+                type="button"
+                className="chat-sheet-row"
+                title="Chat without context — the conversation alone carries the exchange"
+                onClick={() => patchParams({ ctx: serializeChatContexts([]) })}
+              >
+                × no context
+              </button>
+            )}
+            {(noContext || ctxList.length > 0) && (
+              <button
+                type="button"
+                className="chat-sheet-row"
+                title="Back to auto — the best open note serves as context"
+                onClick={() => patchParams({ ctx: '' })}
+              >
+                ↺ auto context
+              </button>
+            )}
+          </div>
+        )}
+        {openPanel === 'system' && (
+          <div className="chat-sheet">
             <SystemPlanSection
               plan={sysPlan}
               onChange={(next) =>
@@ -1273,8 +1270,95 @@ export function ChatView({
             />
           </div>
         )}
-        <GenOptionsFields drafts={genDrafts} onChange={setGenDrafts} />
+        {openPanel === 'model' && (
+          <div className="chat-sheet" role="group" aria-label="Model and sampling options">
+            <GenOptionFieldRows drafts={genDrafts} onChange={setGenDrafts} />
+          </div>
+        )}
         <div className="chat-card">
+          <div className="chat-card-chips">
+            {ctxList.length === 0 && !noContext && targetPath !== null && (
+              <span
+                className="chat-context-pill auto"
+                title={`No pick — the best open note serves as context: ${targetPath}${targetEditable ? '' : ' (read-only)'}${ctxSizes[targetPath] !== undefined ? ` · ~${Math.ceil(ctxSizes[targetPath]! / 4)} tok` : ''}`}
+              >
+                auto · {targetPath.split('/').pop()?.replace(/\.md$/i, '')}
+                {ctxSizes[targetPath] !== undefined && (
+                  <b>~{Math.ceil(ctxSizes[targetPath]! / 4)}</b>
+                )}
+                <button
+                  type="button"
+                  title="Chat without context — keep the workspace, drop the auto-loaded note"
+                  aria-label="Remove the auto context"
+                  onClick={() => patchParams({ ctx: serializeChatContexts([]) })}
+                >
+                  ×
+                </button>
+              </span>
+            )}
+            {noContext && (
+              <span
+                className="chat-context-pill auto"
+                title="No context — the chat answers from the conversation alone"
+              >
+                no context
+                <button
+                  type="button"
+                  title="Back to auto — the best open note serves as context again"
+                  aria-label="Restore the auto context"
+                  onClick={() => patchParams({ ctx: '' })}
+                >
+                  ↺
+                </button>
+              </span>
+            )}
+            {ctxList.map((entry, index) => {
+              const parsed = parseChatContextEntry(entry)
+              const name =
+                parsed.path.split('/').pop()?.replace(/\.md$/i, '') ?? parsed.path
+              const chars =
+                parsed.from !== undefined && parsed.to !== undefined
+                  ? parsed.to - parsed.from
+                  : ctxSizes[parsed.path]
+              return (
+                <span
+                  key={entry}
+                  className="chat-context-pill"
+                  title={`${index === 0 ? `${entry} — primary (insert/append target)` : entry}${chars !== undefined ? ` · ~${Math.ceil(chars / 4)} tok` : ''}`}
+                >
+                  {index === 0 ? '◉ ' : ''}
+                  {name}
+                  {parsed.from !== undefined ? ` · ${parsed.from}–${parsed.to}` : ''}
+                  {chars !== undefined && <b>~{Math.ceil(chars / 4)}</b>}
+                  <button
+                    type="button"
+                    title={`Remove ${entry} from the context`}
+                    aria-label={`Remove ${entry} from the context`}
+                    onClick={() => removeContext(entry)}
+                  >
+                    ×
+                  </button>
+                </span>
+              )
+            })}
+            <button
+              type="button"
+              className="chat-tool chat-ctx-add"
+              title="Add open notes to the context of the next message"
+              aria-label="Add context"
+              aria-expanded={openPanel === 'context'}
+              onClick={() =>
+                setOpenPanel((open) => (open === 'context' ? null : 'context'))
+              }
+            >
+              + context
+            </button>
+            {targetPath !== null && !targetEditable && ctxList.length > 0 && (
+              <span className="chat-context-hint">
+                primary read-only — insert needs an editor
+              </span>
+            )}
+          </div>
           <span className="chat-input-host">
             <textarea
               ref={inputRef}
@@ -1345,22 +1429,40 @@ export function ChatView({
               type="button"
               className="chat-tool"
               title="What rides as the SYSTEM message of every next send — arrange, remove, add"
-              aria-expanded={sysOpen}
+              aria-expanded={openPanel === 'system'}
               aria-label="System message composition"
-              onClick={() => setSysOpen((open) => !open)}
+              onClick={() =>
+                setOpenPanel((open) => (open === 'system' ? null : 'system'))
+              }
             >
               system
               {!isDefaultSystemPlan(sysPlan) && (
                 <span className="chat-sys-badge">custom · {sysPlan.length}</span>
               )}
             </button>
+            <button
+              type="button"
+              className="chat-tool chat-tool-model"
+              title="Model and sampling of the next sends — click to change"
+              aria-expanded={openPanel === 'model'}
+              aria-label="Model and sampling options"
+              onClick={() =>
+                setOpenPanel((open) => (open === 'model' ? null : 'model'))
+              }
+            >
+              {engine === 'mock'
+                ? 'mock'
+                : genDrafts.model || DEFAULT_GENERATION_MODEL}
+              {(genDrafts.temperature || genDrafts.topP || genDrafts.maxTokens) && (
+                <span className="chat-sys-badge">tuned</span>
+              )}
+            </button>
             {(() => {
-              // S07b8b intent preview (the researched pattern: show
-              // what will be sent, ambiently): system from the
-              // arranged plan, history from the visible turns, the
-              // draft as typed — chars/4, labeled estimated; the
-              // context note reads at send time, so it stays a named
-              // unknown rather than a fake number.
+              // S07b8b/c intent preview (the researched pattern: show
+              // what will be sent, ambiently) — now COMPLETE: system
+              // from the arranged plan, context from the live sizes,
+              // history from the visible turns, the draft as typed;
+              // chars/4, estimated everywhere, detail on hover.
               const est = (chars: number): number =>
                 chars === 0 ? 0 : Math.max(1, Math.ceil(chars / 4))
               const sysTok =
@@ -1379,22 +1481,38 @@ export function ChatView({
                         0
                       )
                     )
+              const ctxChars =
+                ctxList.length > 0
+                  ? ctxList.reduce((sum, entry) => {
+                      const parsed = parseChatContextEntry(entry)
+                      return (
+                        sum +
+                        (parsed.from !== undefined && parsed.to !== undefined
+                          ? parsed.to - parsed.from
+                          : (ctxSizes[parsed.path] ?? 0))
+                      )
+                    }, 0)
+                  : targetPath !== null
+                    ? (ctxSizes[targetPath] ?? 0)
+                    : 0
+              const ctxTok = est(ctxChars)
               const histTok = est(
                 turns.reduce((sum, turn) => sum + turn.text.length, 0)
               )
               const draftTok = est(input.length)
-              const known = (sysTok ?? 0) + histTok + draftTok
+              const total = (sysTok ?? 0) + ctxTok + histTok + draftTok
               const parts = [
                 `system ${sysTok === null ? '…' : `~${sysTok}`}`,
+                ...(ctxTok > 0 ? [`context ~${ctxTok}`] : []),
                 ...(histTok > 0 ? [`history ~${histTok}`] : []),
                 ...(draftTok > 0 ? [`draft ~${draftTok}`] : [])
               ].join(' · ')
               return (
                 <span
                   className="chat-send-preview"
-                  title={`next send, estimated at chars/4: ${parts}${targetPath !== null ? ' — plus the context note, read at send time' : ''}`}
+                  title={`next send, estimated at chars/4: ${parts}`}
                 >
-                  → ~{known} tok{targetPath !== null ? ' + context' : ''}
+                  ~{total} tok
                 </span>
               )
             })()}

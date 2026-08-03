@@ -19,6 +19,21 @@ export function GenOptionsFields({
   return (
     <details className="ai-menu-options">
       <summary>options</summary>
+      <GenOptionFieldRows drafts={drafts} onChange={onChange} />
+    </details>
+  )
+}
+
+/** The bare field grid (S07b8c): the chat's model SHEET renders these
+ *  without the details wrapper; the menus keep the disclosure. */
+export function GenOptionFieldRows({
+  drafts,
+  onChange
+}: {
+  drafts: GenOptionDrafts
+  onChange: (next: GenOptionDrafts) => void
+}): React.JSX.Element {
+  return (
       <div className="ai-menu-options-grid">
         <label>
           model
@@ -83,6 +98,5 @@ export function GenOptionsFields({
           />
         </label>
       </div>
-    </details>
   )
 }
