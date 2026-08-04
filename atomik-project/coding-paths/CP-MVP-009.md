@@ -146,11 +146,19 @@ read contract as a clean projection, nothing more.
       cache, zero new dependency (15); SQLite arrives with the
       retrieval/Wikidata path and the index migrates then
       (rebuildable = free migration).
-- [ ] S02 Grammar core: one pure, dependency-free module parsing
-      wikilinks + adjacent `{label}`/`{^label}` + md-link decoration
-      into edge records, with serializer; the session-A collision
-      suite as unit tests; markdown-it rule + Lezer extension both
-      consume THIS module (grammar written once).
+- [x] S02 Grammar core (DONE 2026-08-04): `shared/edge-grammar.ts`
+      NEW — pure, dependency-free; matchWikilinkAt /
+      matchDecorationAt / matchMdLinkAt (position matchers shaped
+      for the markdown-it inline rule and the Lezer extension),
+      parseEdges document scan (fence/inline-code/image skipping,
+      offsets + line/col), serializeWikilink round-trip,
+      normalizeLabel (kebab + diacritics: "définit" → "definit" —
+      the owner writes French). Alias syntax inside `[[…]]`
+      deliberately NOT invented (header note; needs an ADR
+      amendment). Session-A collision suite = 17 unit tests
+      (adjacency strictness, {<label} escape trap, {.attr} pandoc
+      trap, non-kebab prose, nesting/newline/unclosed rejection,
+      image/fence/code skipping, two-per-line boundaries).
 - [ ] S03 Pills on every rendered surface: the note-markdown factory
       renders `[[target]]` as a resolved link pill (type color +
       icon, 36 recipes) and the label chip when typed; unresolved
@@ -234,11 +242,17 @@ changed     : S01 docs-only (this ledger + log). S01 PINS:
                 feeding passive link proposals" — the proposals
                 themselves stay 20 §How links are born territory
                 (Conditional 06/02 trigger, not scheduled).
-tests       : 635/55 at base (from CP-MVP-008 close); no code yet.
-next action : S02 grammar core — the pure module (parse wikilinks +
-              adjacent {label}/{^label} + md-link decoration into
-              edge records, serializer) with the session-A collision
-              suite as unit tests.
+changed(S02): shared/edge-grammar.ts NEW; tests/edge-grammar.test.ts
+              NEW. RECONCILIATION: base measured 633/55 bare — the
+              008 close figure "635/55" was off by two (recorded,
+              not hidden; no test is failing or missing today).
+tests       : 633→650/56; typecheck + build green (gates bare).
+next action : S03 pills on every rendered surface — the
+              note-markdown factory renders [[target]] as a resolved
+              link pill (kind from the resolved target, 36's single
+              .pill recipe + modifiers, label chip, broken
+              diagnostic style) consuming edge-grammar's matchers;
+              plain-click navigation via revealNote/revealSource.
 blockers    : none.
 ```
 
