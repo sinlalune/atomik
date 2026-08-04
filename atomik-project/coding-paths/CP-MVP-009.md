@@ -184,11 +184,40 @@ read contract as a clean projection, nothing more.
       broken dashed no-rel, [[hello]] → chat kind by stem, md pdf +
       web kinds, chip title "edge: normalizes", spaced brace stayed
       prose, radius 999px, mask icons on; screenshot verified.
-- [ ] S04 Editor layer: CM6/Lezer inline decoration in live editing
-      (S05d transparency: same typography as the note); `[[`
-      autocomplete over note titles; `{` autocomplete over the label
-      registry with kebab normalization; per-surface authoring
-      capability flag (chat = render-only).
+- [x] S04 Editor layer (DONE 2026-08-04): live-preview gains
+      semantic-edge decorations — parseEdges from the SHARED grammar
+      scans the raw doc (fences/inline-code/images already excluded;
+      frontmatter suppressed): wikilinks replace with WikiPillWidget
+      (the read pill + chip classes, .cm-content joins the shared
+      recipe selectors), a typed md link folds ONLY its brace group
+      into EdgeChipWidget (the Link node keeps its lp-link
+      treatment); active line reveals raw like every other mark.
+      edge-complete.ts NEW — pure context matchers (wikiQueryAt,
+      labelQueryAt with the adjacency rule, caret kept out of the
+      query) + labelsInDoc (most-used-first document vocabulary) +
+      applyClosed (closeBrackets-aware insert, cursor lands past the
+      closer); `[[` offers linkableNotesOf (nearest-wins, the @
+      menu's provider), `{` offers used labels + the
+      kebab-normalized free input as "new label".
+      INCIDENT (caught by the dev pin, fixed): a second
+      autocompletion() extension crashed EditorPane ("Config merge
+      conflict for field override") — CodeMirror allows ONE override
+      config; the edge source now composes into quick-actions' one
+      autocompletion (rule commented at the site).
+      DEVIATIONS (recorded): live wiki pills are neutral note-kind
+      (resolution/broken diagnostics stay read-view until S06 feeds
+      every surface); md links in live keep their existing lp-link
+      text treatment (read renders them as pills — full read↔live
+      pill parity deferred to owner bench); label vocabulary =
+      current document until the S06 registry. Authoring flag: the
+      completion sources mount only in the note editor (chat
+      renders pills, no authoring). Dev-mode CDP pin (isolated):
+      4 wiki pills + 2 chips in live, raw hidden away from cursor,
+      active line reveals `[[Attention]]{normalizes}` while other
+      lines keep widgets, `[[` popup lists Attention+hello, accept
+      writes `[[Attention]]` (auto-close aware), `{` popup lists
+      grounded-at+normalizes, accept writes `{grounded-at}`;
+      screenshots verified.
 - [ ] S05 Edge authoring on the pill: the "+" affordance (widening
       input, owner vision), edit label, ⇄ flip, delete — full
       lifecycle (03), each gesture one clean diff through the
@@ -274,13 +303,23 @@ changed(S03): note-markdown.ts (semanticEdges: wikilink rule,
               modifiers + mask icons, .edge-chip, ↗ scoped);
               tests/link-pills.test.ts NEW; note-markdown.test.ts
               (+9 semantic-edge tests).
-tests       : 650→668/57; typecheck + build green (gates bare);
+tests(S03)  : 650→668/57; typecheck + build green (gates bare);
               dev-mode CDP pin (isolated instance) probed + shot.
-next action : S04 editor layer — CM6/Lezer inline decoration in
-              live editing (S05d transparency), `[[` autocomplete
-              over note titles, `{` autocomplete over the label
-              registry with kebab normalization, per-surface
-              authoring flag (chat render-only).
+changed(S04): live-preview.ts (WikiPillWidget + EdgeChipWidget,
+              edge scan after the tree walk, 'edge' kind);
+              edge-complete.ts NEW; quick-actions.ts (edge source
+              composes into THE one autocompletion; incident rule
+              commented); EditorPane.tsx (comment only);
+              styles.css (.cm-content joins the pill/chip
+              selectors); tests/edge-complete.test.ts NEW;
+              live-preview.test.ts (+5 edge tests).
+tests       : 668→680/58; typecheck + build green (gates bare);
+              dev-mode CDP pin: widgets, active-line reveal, both
+              autocompletes driven end-to-end via Input events.
+next action : S05 edge authoring on the pill — the "+" affordance
+              (widening input, owner vision), edit label, ⇄ flip,
+              delete; full lifecycle (03), each gesture one clean
+              diff through the ordinary write path.
 blockers    : none.
 ```
 

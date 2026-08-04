@@ -398,7 +398,8 @@ export function EditorPane({
           modeExtensions(modeRef.current, followHandler, note.relPath)
         ),
         darkCompartment.of(editorDarkRef.current ? [oneDark] : []),
-        // "@" quick actions: citations menu + note links (S07h).
+        // "@" quick actions + edge autocompletes ([[ titles, { labels)
+        // — ONE autocompletion config composes both sources (S04).
         quickActions(note.relPath, listVaultTree),
         // S05b: the inline AI preview field (quick requests render
         // their proposal in the note; buffer untouched until accept).

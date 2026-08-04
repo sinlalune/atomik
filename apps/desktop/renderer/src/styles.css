@@ -2973,7 +2973,8 @@ body[data-maximized] .tabstrip {
    pill depending on its type and a little icon"; 20 recast: every
    rendered link IS a graph edge). ONE inline recipe — a kind is a
    token + a mask icon, extended by modifier, never forked (36). */
-.markdown-body a.link-pill {
+.markdown-body a.link-pill,
+.cm-content .link-pill {
   --pill-kind: var(--kind-note);
   display: inline-flex;
   align-items: center;
@@ -2994,7 +2995,8 @@ body[data-maximized] .tabstrip {
   background: color-mix(in srgb, var(--pill-kind) 18%, transparent);
 }
 
-.markdown-body a.link-pill::before {
+.markdown-body a.link-pill::before,
+.cm-content .link-pill::before {
   content: '';
   flex: none;
   width: 0.85em;
@@ -3036,7 +3038,8 @@ body[data-maximized] .tabstrip {
 
 /* Typed-edge label chip (ADR-011): the {label} rendered right after
    its link — quiet, hover spells the direction. */
-.markdown-body .edge-chip {
+.markdown-body .edge-chip,
+.cm-content .edge-chip {
   display: inline-block;
   margin-left: 0.2em;
   padding: 0 0.45em;
@@ -3049,7 +3052,8 @@ body[data-maximized] .tabstrip {
   vertical-align: middle;
 }
 
-.markdown-body .edge-chip--rev::before {
+.markdown-body .edge-chip--rev::before,
+.cm-content .edge-chip--rev::before {
   content: '⇄ ';
   opacity: 0.8;
 }

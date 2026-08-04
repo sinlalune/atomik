@@ -14,6 +14,7 @@ import {
   type DecorationSet
 } from '@codemirror/view'
 import type { SyntaxNode } from '@lezer/common'
+import { parseEdges } from '../../../shared/edge-grammar'
 import type { AtomikApi } from '../../../shared/ipc-contract'
 import { applyRotation } from '../source/rotate'
 import { getCachedImage, isCachedDataUrl, setCachedImage } from '../vault/image-cache'
@@ -46,6 +47,7 @@ export type LivePreviewKind =
   | 'metadata'
   | 'table'
   | 'image'
+  | 'edge'
 
 /**
  * The note's vault-relative path, needed to resolve image embeds. Views
@@ -327,6 +329,70 @@ class CheckboxWidget extends WidgetType {
 
   override eq(other: CheckboxWidget): boolean {
     return other.checked === this.checked
+  }
+}
+
+/**
+ * Semantic edges in live (CP-MVP-009 S04, ADR-011 through the SAME
+ * shared/edge-grammar module as read and the coming index — the
+ * grammar cannot fork). Away from the cursor a `[[target]]{label}`
+ * renders as the read view's pill + chip; the touched line reveals
+ * raw syntax like every other mark. Wikilink RESOLUTION (kind + broken
+ * diagnostics) stays a read-view/index concern — the live pill is
+ * neutral note-kind until S06 feeds every surface.
+ */
+class WikiPillWidget extends WidgetType {
+  constructor(
+    private readonly target: string,
+    private readonly label: string | null,
+    private readonly reverse: boolean
+  ) {
+    super()
+  }
+
+  override toDOM(): HTMLElement {
+    const wrap = document.createElement('span')
+    const pill = document.createElement('span')
+    pill.className = 'link-pill link-pill--note'
+    pill.textContent = this.target
+    wrap.appendChild(pill)
+    if (this.label !== null) {
+      const chip = document.createElement('span')
+      chip.className = `edge-chip${this.reverse ? ' edge-chip--rev' : ''}`
+      chip.title = `${this.reverse ? 'reverse edge: ' : 'edge: '}${this.label}`
+      chip.textContent = this.label
+      wrap.appendChild(chip)
+    }
+    return wrap
+  }
+
+  override eq(other: WikiPillWidget): boolean {
+    return (
+      other.target === this.target &&
+      other.label === this.label &&
+      other.reverse === this.reverse
+    )
+  }
+}
+
+class EdgeChipWidget extends WidgetType {
+  constructor(
+    private readonly label: string,
+    private readonly reverse: boolean
+  ) {
+    super()
+  }
+
+  override toDOM(): HTMLElement {
+    const chip = document.createElement('span')
+    chip.className = `edge-chip${this.reverse ? ' edge-chip--rev' : ''}`
+    chip.title = `${this.reverse ? 'reverse edge: ' : 'edge: '}${this.label}`
+    chip.textContent = this.label
+    return chip
+  }
+
+  override eq(other: EdgeChipWidget): boolean {
+    return other.label === this.label && other.reverse === this.reverse
   }
 }
 
@@ -635,6 +701,38 @@ export function computeLivePreviewDecorations(
       }
     }
   })
+
+  // Semantic edges (S04): the shared grammar scans the raw doc (it
+  // already skips fences, inline code, and images). Wikilinks replace
+  // with the read pill; a typed md link folds only its brace group
+  // into the chip (the Link node keeps its own lp-link treatment).
+  for (const edge of parseEdges(state.doc.toString())) {
+    if (edge.start < fmEnd) continue
+    if (isActiveAt(edge.start)) continue
+    if (edge.kind === 'wikilink') {
+      decorations.push(
+        Decoration.replace({
+          lp: 'edge' as LivePreviewKind,
+          widget: new WikiPillWidget(
+            edge.target,
+            edge.decoration?.label ?? null,
+            edge.decoration?.reverse ?? false
+          )
+        }).range(edge.start, edge.end)
+      )
+    } else if (edge.decoration) {
+      const brace = `{${edge.decoration.reverse ? '^' : ''}${edge.decoration.label}}`
+      decorations.push(
+        Decoration.replace({
+          lp: 'edge' as LivePreviewKind,
+          widget: new EdgeChipWidget(
+            edge.decoration.label,
+            edge.decoration.reverse
+          )
+        }).range(edge.end - brace.length, edge.end)
+      )
+    }
+  }
 
   return Decoration.set(decorations, true)
 }

@@ -12,6 +12,7 @@ import type { AtomikApi, VaultFolder } from '../../../shared/ipc-contract'
  *  imported by headless node tests, which never apply completions). */
 const atomik = (): AtomikApi =>
   (globalThis as unknown as { atomik: AtomikApi }).atomik
+import { edgeCompletionSource } from './edge-complete'
 import { resolveRelativePath } from '../dev-docs/markdown'
 import { pageAnchorsOf, resourceOf, type PageAnchor } from '../source/dossier'
 import {
@@ -518,8 +519,16 @@ export function quickActions(
   notePath: string,
   listTree: () => Promise<VaultFolder>
 ): Extension {
+  // ONE autocompletion config per editor — CodeMirror's `override` is
+  // a merge-conflict facet, so every completion source composes HERE
+  // (the S04 dev pin caught a second autocompletion() crashing
+  // EditorPane with "Config merge conflict for field override").
   return autocompletion({
-    override: [quickActionsSource(notePath, listTree, readDossierCached)],
+    override: [
+      quickActionsSource(notePath, listTree, readDossierCached),
+      // Edge autocompletes (CP-MVP-009 S04): [[ note titles, { labels.
+      edgeCompletionSource(notePath, listTree)
+    ],
     activateOnTyping: true,
     // The icon slot renders the kind PILL (note/source) — styled in
     // styles.css from the cm-completionIcon-<type> class.

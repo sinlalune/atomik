@@ -379,3 +379,48 @@ describe('image embeds in live mode (owner report: raw text shown)', () => {
     expect(resolveEmbedPath('top.md', 'not-an-image.txt')).toBeNull()
   })
 })
+
+describe('semantic edges in live (CP-MVP-009 S04, ADR-011)', () => {
+  const edges = (decos: Deco[]): Deco[] => decos.filter((d) => d.kind === 'edge')
+
+  it('replaces a wikilink with the pill widget away from the cursor', () => {
+    const doc = 'See [[attention]]{normalizes} here'
+    const decos = edges(decorate(doc, doc.length))
+    // cursor on the same line reveals raw — move it to another line
+    const twoLine = `${doc}\nnext`
+    const away = edges(decorate(twoLine, twoLine.length))
+    expect(decos).toHaveLength(0)
+    expect(away).toHaveLength(1)
+    expect(away[0]).toMatchObject({
+      from: 4,
+      to: '[[attention]]{normalizes}'.length + 4
+    })
+  })
+
+  it('folds only the brace group of a typed md link', () => {
+    const doc = '[paper](x.md){grounded-at}\nnext'
+    const away = edges(decorate(doc, doc.length))
+    expect(away).toHaveLength(1)
+    expect(away[0]).toMatchObject({
+      from: '[paper](x.md)'.length,
+      to: '[paper](x.md){grounded-at}'.length
+    })
+  })
+
+  it('reveals raw syntax on the active line, like every other mark', () => {
+    const doc = '[[attention]]{normalizes}'
+    expect(edges(decorate(doc, 3))).toHaveLength(0)
+  })
+
+  it('leaves untyped md links to the existing link treatment', () => {
+    const doc = '[paper](x.md)\nnext'
+    expect(edges(decorate(doc, doc.length))).toHaveLength(0)
+  })
+
+  it('never decorates edges inside fences or frontmatter', () => {
+    const fenced = '```\n[[a]]\n```\nnext'
+    expect(edges(decorate(fenced, fenced.length))).toHaveLength(0)
+    const fm = '---\ntitle: [[a]]\n---\n\nbody here\nnext'
+    expect(edges(decorate(fm, fm.length))).toHaveLength(0)
+  })
+})
