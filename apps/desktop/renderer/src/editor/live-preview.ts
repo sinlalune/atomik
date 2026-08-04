@@ -350,6 +350,21 @@ class CheckboxWidget extends WidgetType {
  * `wikiCandidatesField` by the host at mount — null = not loaded yet
  * (pills stay neutral, never a broken flash before the vault answers).
  */
+/** How pill clicks navigate (S04c owner bench round 2: "we can't
+ *  interact with link in live mode as in obsidian"): LEFT click on a
+ *  pill FOLLOWS the link (Obsidian's live-preview model), RIGHT click
+ *  reveals the raw syntax for editing. `href` follows a raw md href
+ *  (host resolves against the note, externals stay inert per 13);
+ *  `rel` opens an already-resolved vault path (wikilinks). */
+export type EdgeFollow = {
+  href: (raw: string) => void
+  rel: (relPath: string) => void
+}
+
+const edgeFollowFacet = Facet.define<EdgeFollow, EdgeFollow | null>({
+  combine: (values) => values[0] ?? null
+})
+
 export const setWikiCandidates = StateEffect.define<WikiCandidate[]>()
 
 export const wikiCandidatesField = StateField.define<WikiCandidate[] | null>({
@@ -362,24 +377,50 @@ export const wikiCandidatesField = StateField.define<WikiCandidate[] | null>({
   }
 })
 
+export type EdgeFollowTarget = { kind: 'href' | 'rel'; target: string } | null
+
 class LinkPillWidget extends WidgetType {
   constructor(
     private readonly text: string,
     private readonly kind: LinkKind,
     private readonly broken: boolean,
     private readonly label: string | null,
-    private readonly reverse: boolean
+    private readonly reverse: boolean,
+    private readonly follow: EdgeFollowTarget
   ) {
     super()
   }
 
-  override toDOM(): HTMLElement {
+  override toDOM(view: EditorView): HTMLElement {
     const wrap = document.createElement('span')
     const pill = document.createElement('span')
     pill.className = `link-pill link-pill--${this.kind}${
       this.broken ? ' link-pill--broken' : ''
     }`
     pill.textContent = this.text
+    pill.title = this.broken
+      ? `unresolved: ${this.text} — click to edit`
+      : `${this.follow?.target ?? this.text} — right-click to edit`
+    if (this.follow) {
+      const target = this.follow
+      pill.addEventListener('mousedown', (event) => {
+        if (event.button !== 0) return
+        const handlers = view.state.facet(edgeFollowFacet)
+        if (!handlers) return
+        event.preventDefault()
+        if (target.kind === 'rel') handlers.rel(target.target)
+        else handlers.href(target.target)
+      })
+    }
+    // Right click = edit: place the cursor at the pill so the active
+    // line reveals the raw syntax (broken pills get this on left
+    // click too, via CM's default cursor placement).
+    pill.addEventListener('contextmenu', (event) => {
+      event.preventDefault()
+      const pos = view.posAtDOM(pill)
+      view.dispatch({ selection: { anchor: pos } })
+      view.focus()
+    })
     wrap.appendChild(pill)
     if (this.label !== null) {
       const chip = document.createElement('span')
@@ -397,7 +438,9 @@ class LinkPillWidget extends WidgetType {
       other.kind === this.kind &&
       other.broken === this.broken &&
       other.label === this.label &&
-      other.reverse === this.reverse
+      other.reverse === this.reverse &&
+      other.follow?.kind === this.follow?.kind &&
+      other.follow?.target === this.follow?.target
     )
   }
 }
@@ -719,6 +762,7 @@ export function computeLivePreviewDecorations(
     if (isActiveAt(edge.start)) continue
     let kind: LinkKind | null
     let broken = false
+    let follow: EdgeFollowTarget = null
     if (edge.kind === 'wikilink') {
       if (candidates === null) {
         kind = 'note'
@@ -726,10 +770,12 @@ export function computeLivePreviewDecorations(
         const rel = resolveWikiTarget(candidates, edge.target)
         kind = rel === null ? 'note' : (classifyLinkKind(rel) ?? 'note')
         broken = rel === null
+        if (rel !== null) follow = { kind: 'rel', target: rel }
       }
     } else {
       // hash/mailto stay plain — read leaves them un-pilled too
       kind = classifyLinkKind(edge.target)
+      follow = { kind: 'href', target: edge.target }
     }
     if (kind === null) continue
     decorations.push(
@@ -737,12 +783,14 @@ export function computeLivePreviewDecorations(
         lp: 'edge' as LivePreviewKind,
         edgeKind: kind,
         edgeBroken: broken,
+        edgeFollow: follow,
         widget: new LinkPillWidget(
           edge.text,
           kind,
           broken,
           edge.decoration?.label ?? null,
-          edge.decoration?.reverse ?? false
+          edge.decoration?.reverse ?? false,
+          follow
         )
       }).range(edge.start, edge.end)
     )
@@ -789,11 +837,22 @@ export const livePreviewField = StateField.define<DecorationSet>({
  */
 export function livePreview(options?: {
   onFollowLink?: (href: string) => void
+  /** How an already-resolved vault path opens (wiki pill click, S04c);
+   *  falls back to onFollowLink when absent. */
+  onFollowRel?: (relPath: string) => void
   /** Vault-relative note path; enables image embeds. */
   notePath?: string
 }): Extension {
   const follow = options?.onFollowLink
   const extensions: Extension[] = [livePreviewField]
+  if (follow || options?.onFollowRel) {
+    extensions.push(
+      edgeFollowFacet.of({
+        href: follow ?? (() => {}),
+        rel: options?.onFollowRel ?? follow ?? (() => {})
+      })
+    )
+  }
   if (options?.notePath) {
     extensions.push(notePathFacet.of(options.notePath))
   }

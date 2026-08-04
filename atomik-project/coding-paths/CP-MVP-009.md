@@ -336,8 +336,34 @@ changed(S04b): owner bench round 1 ("I don't see the pills in live
               restart requested; parity pin: ghost broken-dashed,
               hello chat-kind, paper pdf, web web, icons masked, all
               in live StrictMode.
-tests       : 680→683/58; typecheck + build green (gates bare);
+tests(S04b) : 680→683/58; typecheck + build green (gates bare);
               fresh parity pin probed + shot.
+changed(S04c): owner bench round 2 ("in read i dont see different
+              colors" + "we can't interact with link in live mode as
+              in obsidian, maybe right click?"). (1) COLORS: real
+              bug, reproduced by the pin — the compound base rule
+              (.markdown-body a.link-pill / .cm-content .link-pill)
+              out-weighed the one-class kind modifiers, so
+              --pill-kind computed kind-note EVERYWHERE (read too);
+              fix = the kind default moved to bare .link-pill (same
+              specificity rung, modifiers win by source order);
+              mixes also strengthened (border 65%, bg 16%, text
+              82%). Measured after: chat violet, pdf red, web blue,
+              note accent — distinct. (2) INTERACTION (Obsidian
+              model, owner's right-click instinct adopted): LEFT
+              click on a live pill FOLLOWS — wiki pills hand their
+              RESOLVED vault path to the host (edgeFollowFacet +
+              onFollowRel, no note-relative re-resolution), md pills
+              route the raw href through the existing Ctrl+click
+              resolver (externals stay inert per 13, recorded);
+              RIGHT click places the cursor at the pill = the active
+              line reveals raw for editing; broken pills stay the
+              left-click edit affordance; hover title spells target
+              + the right-click hint; hand cursor on live pills.
+              Pin: left-click hello → note-bar switches to
+              chats/2026-08-04/hello.md; right-click → raw
+              [[hello]] revealed; colors measured distinct.
+tests       : 683→684/58; typecheck + build green (gates bare).
 next action : S05 edge authoring on the pill — the "+" affordance
               (widening input, owner vision), edit label, ⇄ flip,
               delete; full lifecycle (03), each gesture one clean

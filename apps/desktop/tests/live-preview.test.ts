@@ -465,6 +465,33 @@ describe('semantic edges in live (CP-MVP-009 S04 + S04b read parity)', () => {
     ])
   })
 
+  it('carries the follow target: resolved rel for wiki, raw href for md (S04c)', () => {
+    const doc = '[[hello]] [x](y.md) [t](#top)\nnext'
+    const state = EditorState.create({
+      doc,
+      selection: EditorSelection.cursor(doc.length),
+      extensions: [
+        markdown({ base: markdownLanguage }),
+        wikiCandidatesField.init(() => [
+          { name: 'hello', relPath: 'chats/2026-08-04/hello.md' }
+        ])
+      ]
+    })
+    ensureSyntaxTree(state, state.doc.length, 5000)
+    const set = computeLivePreviewDecorations(state)
+    const follows: unknown[] = []
+    const iter = set.iter()
+    while (iter.value) {
+      const spec = iter.value.spec as { lp: LivePreviewKind; edgeFollow?: unknown }
+      if (spec.lp === 'edge') follows.push(spec.edgeFollow)
+      iter.next()
+    }
+    expect(follows).toEqual([
+      { kind: 'rel', target: 'chats/2026-08-04/hello.md' },
+      { kind: 'href', target: 'y.md' }
+    ])
+  })
+
   it('stays neutral (never broken) while candidates are unloaded', () => {
     const doc = '[[anything]]\nnext'
     const away = edges(decorate(doc, doc.length))

@@ -107,9 +107,12 @@ const SOURCE_CHROME: Extension = [
 const modeExtensions = (
   mode: 'live' | 'source',
   onFollowLink: (href: string) => void,
+  onFollowRel: (relPath: string) => void,
   notePath: string
 ): Extension =>
-  mode === 'live' ? livePreview({ onFollowLink, notePath }) : SOURCE_CHROME
+  mode === 'live'
+    ? livePreview({ onFollowLink, onFollowRel, notePath })
+    : SOURCE_CHROME
 
 /** Vault tree for the "@" menu (bundles + linkable notes), freshly
  *  listed per menu opening. */
@@ -349,6 +352,11 @@ export function EditorPane({
   // Stable across compartment reconfigures; always calls the fresh closure.
   const followHandler = useRef((href: string) => followHrefRef.current(href))
     .current
+  // Wiki pills hand over an ALREADY-RESOLVED vault path (S04c) — no
+  // note-relative resolution, straight to the host.
+  const followRelHandler = useRef((relPath: string) => {
+    if (relPath.toLowerCase().endsWith('.md')) onFollowLinkRef.current?.(relPath)
+  }).current
 
   // The editor's dark theme follows the app theme (round-2 feedback:
   // explicit dark + pastels), not the mount-time OS query alone.
@@ -377,7 +385,7 @@ export function EditorPane({
     modeRef.current = mode
     viewRef.current?.dispatch({
       effects: previewCompartment.reconfigure(
-        modeExtensions(mode, followHandler, note.relPath)
+        modeExtensions(mode, followHandler, followRelHandler, note.relPath)
       )
     })
   }, [followHandler, mode, note.relPath, previewCompartment])
@@ -404,7 +412,7 @@ export function EditorPane({
         // switch keeps the loaded value.
         wikiCandidatesField,
         previewCompartment.of(
-          modeExtensions(modeRef.current, followHandler, note.relPath)
+          modeExtensions(modeRef.current, followHandler, followRelHandler, note.relPath)
         ),
         darkCompartment.of(editorDarkRef.current ? [oneDark] : []),
         // "@" quick actions + edge autocompletes ([[ titles, { labels)
