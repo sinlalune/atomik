@@ -62,3 +62,64 @@ describe('noteMarkdown — the ONE note renderer (S05g)', () => {
     expect(md.render('a  \nb')).toBe('<p>a<br>b</p>\n')
   })
 })
+
+describe('noteMarkdown — semantic edges (CP-MVP-009 S03, ADR-011)', () => {
+  const md = noteMarkdown()
+
+  it('renders a wikilink as a note pill with data-wiki', () => {
+    const html = md.render('See [[attention]] here')
+    expect(html).toContain('data-wiki="attention"')
+    expect(html).toContain('class="link-pill link-pill--note"')
+    expect(html).toContain('>attention</a>')
+  })
+
+  it('renders a typed wikilink with its label chip', () => {
+    const html = md.render('[[attention]]{normalizes}')
+    expect(html).toContain('<span class="edge-chip" title="edge: normalizes">normalizes</span>')
+    // the raw decoration never leaks as prose
+    expect(html).not.toContain('{normalizes}')
+  })
+
+  it('renders the reverse marker on {^label}', () => {
+    const html = md.render('[[attention]]{^part-of}')
+    expect(html).toContain('class="edge-chip edge-chip--rev"')
+    expect(html).toContain('title="reverse edge: part-of"')
+  })
+
+  it('adjacency is strict: a spaced brace group stays prose', () => {
+    const html = md.render('[[attention]] {normalizes}')
+    expect(html).not.toContain('edge-chip')
+    expect(html).toContain('{normalizes}')
+  })
+
+  it('decorates a standard md link with a chip and kind class', () => {
+    const html = md.render('[paper](sources/pdf/att/source.md){grounded-at}')
+    expect(html).toContain('link-pill--pdf')
+    expect(html).toContain('>grounded-at</span>')
+    expect(html).not.toContain('{grounded-at}')
+  })
+
+  it('classifies md link kinds from the href', () => {
+    expect(md.render('[c](chats/2026-08-03/a.md)')).toContain('link-pill--chat')
+    expect(md.render('[f](notes/index.md)')).toContain('link-pill--folder')
+    expect(md.render('[w](https://example.org)')).toContain('link-pill--web')
+    expect(md.render('[n](other.md)')).toContain('link-pill--note')
+  })
+
+  it('leaves hash and mailto links plain', () => {
+    expect(md.render('[top](#top)')).not.toContain('link-pill')
+    expect(md.render('[m](mailto:a@b.c)')).not.toContain('link-pill')
+  })
+
+  it('invalid decorations stay prose: {<x}, {Part Of}, {.attr}', () => {
+    for (const bad of ['{<x}', '{Part Of}', '{.attr}']) {
+      const html = md.render(`[[a]]${bad}`)
+      expect(html).not.toContain('edge-chip')
+    }
+  })
+
+  it('wikilinks inside code spans and fences stay literal', () => {
+    expect(md.render('`[[a]]`')).not.toContain('data-wiki')
+    expect(md.render('```\n[[a]]\n```')).not.toContain('data-wiki')
+  })
+})

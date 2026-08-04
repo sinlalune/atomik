@@ -159,12 +159,31 @@ read contract as a clean projection, nothing more.
       (adjacency strictness, {<label} escape trap, {.attr} pandoc
       trap, non-kebab prose, nesting/newline/unclosed rejection,
       image/fence/code skipping, two-per-line boundaries).
-- [ ] S03 Pills on every rendered surface: the note-markdown factory
-      renders `[[target]]` as a resolved link pill (type color +
-      icon, 36 recipes) and the label chip when typed; unresolved
-      target = diagnostic style; every HTML surface inherits via the
-      single factory (S05g precedent); plain-click navigation routes
-      revealNote/revealSource.
+- [x] S03 Pills on every rendered surface (DONE 2026-08-04): the
+      note-markdown factory gains semanticEdges — a wikilink inline
+      rule + md-link `{label}` chip rule + link_open pill classing,
+      ALL consuming shared/edge-grammar (the grammar cannot fork);
+      link-pills.ts NEW (classifyLinkKind pure kind-from-target,
+      resolveWikiTarget nearest-wins over the @ menu's proximity
+      order, decorateWikiLinks post-render swap); useVaultNote
+      resolves wikilinks via listVaultFiles (zero new IPC), effect
+      restructured so wiki + image passes compose over one `current`
+      (cleanup fixed for the imageless path), wiki clicks route by
+      data-rel BEFORE the hash guard, broken = inert diagnostic;
+      styles: --kind-* tokens, ONE .link-pill recipe + kind
+      modifiers with CSS-mask icons (16-viewBox family — resolution
+      swaps one class and the icon follows), edge-chip + ⇄ reverse,
+      broken dashed; the external-↗ rule scoped :not(.link-pill).
+      DEVIATIONS (recorded): wikilink RESOLUTION lives in the read
+      view for now — chat/AI-preview surfaces render wiki pills
+      unresolved until S06's index feeds every surface; wikilinks
+      resolve to notes only (index.md/source.md contract files stay
+      out of candidates, the @ menu rule). Dev-mode CDP pin
+      (StrictMode, isolated user-data-dir + state/vault fixtures):
+      6 pills probed — resolved note pill with data-rel, ghost
+      broken dashed no-rel, [[hello]] → chat kind by stem, md pdf +
+      web kinds, chip title "edge: normalizes", spaced brace stayed
+      prose, radius 999px, mask icons on; screenshot verified.
 - [ ] S04 Editor layer: CM6/Lezer inline decoration in live editing
       (S05d transparency: same typography as the note); `[[`
       autocomplete over note titles; `{` autocomplete over the label
@@ -246,13 +265,22 @@ changed(S02): shared/edge-grammar.ts NEW; tests/edge-grammar.test.ts
               NEW. RECONCILIATION: base measured 633/55 bare — the
               008 close figure "635/55" was off by two (recorded,
               not hidden; no test is failing or missing today).
-tests       : 633→650/56; typecheck + build green (gates bare).
-next action : S03 pills on every rendered surface — the
-              note-markdown factory renders [[target]] as a resolved
-              link pill (kind from the resolved target, 36's single
-              .pill recipe + modifiers, label chip, broken
-              diagnostic style) consuming edge-grammar's matchers;
-              plain-click navigation via revealNote/revealSource.
+tests(S02)  : 633→650/56; typecheck + build green (gates bare).
+changed(S03): note-markdown.ts (semanticEdges: wikilink rule,
+              edge-chip rule, link_open pill classing);
+              link-pills.ts NEW; useVaultNote.ts (wiki resolution
+              pass + composed effect + data-rel click routing);
+              styles.css (--kind-* tokens, .link-pill recipe + kind
+              modifiers + mask icons, .edge-chip, ↗ scoped);
+              tests/link-pills.test.ts NEW; note-markdown.test.ts
+              (+9 semantic-edge tests).
+tests       : 650→668/57; typecheck + build green (gates bare);
+              dev-mode CDP pin (isolated instance) probed + shot.
+next action : S04 editor layer — CM6/Lezer inline decoration in
+              live editing (S05d transparency), `[[` autocomplete
+              over note titles, `{` autocomplete over the label
+              registry with kebab normalization, per-surface
+              authoring flag (chat render-only).
 blockers    : none.
 ```
 

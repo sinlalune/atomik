@@ -7,6 +7,8 @@ import { applyRotation } from '../source/rotate'
 import { pdfPageTarget, setPendingPdfPage } from '../source/pdf-open'
 import { inlineImageSources, vaultImageSources } from './note-images'
 import { getCachedImage, isCachedDataUrl, setCachedImage } from './image-cache'
+import { decorateWikiLinks, resolveWikiTarget } from '../editor/link-pills'
+import { linkableNotesOf } from '../editor/quick-actions'
 
 /**
  * Shared note-reading logic for vault-backed views (VaultView,
@@ -95,9 +97,37 @@ export function useVaultNote(
   useEffect(() => {
     setHtml(rawHtml)
     if (!note) return
-    const sources = vaultImageSources(rawHtml, note.relPath)
-    if (sources.size === 0) return
     let cancelled = false
+    // Sequential decoration over one `current` so the async passes
+    // (wikilink resolution, image data URLs) compose instead of
+    // clobbering each other's setHtml.
+    let current = rawHtml
+    const apply = (next: string): void => {
+      current = next
+      if (!cancelled) setHtml(next)
+    }
+    // Wikilink resolution (CP-MVP-009 S03): nearest-wins over the
+    // same proximity order as the @ menu; unresolved stays the broken
+    // diagnostic pill (never auto-created).
+    if (rawHtml.includes('data-wiki')) {
+      window.atomik.listVaultFiles().then(
+        (tree) => {
+          if (cancelled) return
+          const candidates = linkableNotesOf(tree, note.relPath)
+          apply(
+            decorateWikiLinks(current, (target) =>
+              resolveWikiTarget(candidates, target)
+            )
+          )
+        },
+        () => {}
+      )
+    }
+    const cleanup = (): void => {
+      cancelled = true
+    }
+    const sources = vaultImageSources(rawHtml, note.relPath)
+    if (sources.size === 0) return cleanup
     void Promise.all(
       [...sources].map(async ([src, rel]) => {
         // the SHARED bounded cache (with live mode): an autosave used to
@@ -125,17 +155,25 @@ export function useVaultNote(
       for (const [src, dataUrl] of pairs) {
         if (dataUrl !== null) dataUrls.set(src, dataUrl)
       }
-      if (dataUrls.size > 0) setHtml(inlineImageSources(rawHtml, dataUrls))
+      if (dataUrls.size > 0) apply(inlineImageSources(current, dataUrls))
     })
-    return () => {
-      cancelled = true
-    }
+    return cleanup
   }, [rawHtml, note])
 
   const onContentClick = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
       const anchor = (event.target as HTMLElement).closest('a')
       if (!anchor) return
+      // Wikilink pills (S03) carry href="#" — route them by their
+      // resolved data-rel BEFORE the hash guard. Unresolved (broken
+      // pill) stays inert: a diagnostic, never an auto-create.
+      const wiki = anchor.getAttribute('data-wiki')
+      if (wiki !== null) {
+        event.preventDefault()
+        const rel = anchor.getAttribute('data-rel')
+        if (rel && rel.endsWith('.md')) openNote(rel)
+        return
+      }
       const href = anchor.getAttribute('href') ?? ''
       if (href.startsWith('#')) return
       event.preventDefault()

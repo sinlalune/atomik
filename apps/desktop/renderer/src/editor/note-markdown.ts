@@ -1,4 +1,6 @@
 import MarkdownIt from 'markdown-it'
+import { matchDecorationAt, matchWikilinkAt, type EdgeDecoration } from '../../../shared/edge-grammar'
+import { classifyLinkKind } from './link-pills'
 
 /**
  * The ONE note renderer (CP-MVP-008 S05g, owner: "task list doesnt
@@ -80,10 +82,83 @@ function sourceGaps(md: MarkdownIt): void {
   })
 }
 
+/**
+ * Semantic edges (CP-MVP-009 S03, bedrock 20 recast + ADR-011): every
+ * link is an edge of the knowledge graph and renders as a type pill;
+ * `[[target]]{label}` and `[text](href){label}` grow a label chip.
+ * The grammar comes from shared/edge-grammar — the ONE parser (the
+ * Lezer editor extension and the index scan consume the same module),
+ * so the rendering can never fork from the law.
+ *
+ * Wikilinks render with `data-wiki` and a default note pill; surfaces
+ * with vault knowledge resolve them post-render (link-pills'
+ * decorateWikiLinks: real kind class + `data-rel`, or the broken
+ * diagnostic modifier — never auto-created).
+ */
+function semanticEdges(md: MarkdownIt): void {
+  const pushChip = (
+    state: { push: (type: string, tag: string, nesting: 0 | 1 | -1) => { meta?: unknown } },
+    deco: EdgeDecoration
+  ): void => {
+    const chip = state.push('edge_chip', '', 0)
+    chip.meta = deco
+  }
+
+  md.inline.ruler.before('link', 'atomik-wikilink', (state, silent) => {
+    const match = matchWikilinkAt(state.src, state.pos)
+    if (!match) return false
+    if (!silent) {
+      const open = state.push('link_open', 'a', 1)
+      open.attrSet('href', '#')
+      open.attrSet('data-wiki', match.target)
+      const text = state.push('text', '', 0)
+      text.content = match.target
+      state.push('link_close', 'a', -1)
+      if (match.decoration) pushChip(state, match.decoration)
+    }
+    state.pos += match.length
+    return true
+  })
+
+  // `[text](href){label}` — the chip only when the brace group is a
+  // valid decoration IMMEDIATELY after a link (ADR-011 adjacency:
+  // pending text or any other predecessor leaves it prose).
+  md.inline.ruler.push('atomik-edge-chip', (state, silent) => {
+    if (state.src.charCodeAt(state.pos) !== 0x7b /* { */) return false
+    if (state.pending.length > 0) return false
+    const last = state.tokens[state.tokens.length - 1]
+    if (!last || last.type !== 'link_close') return false
+    const deco = matchDecorationAt(state.src, state.pos)
+    if (!deco) return false
+    if (!silent) pushChip(state, { label: deco.label, reverse: deco.reverse })
+    state.pos += deco.length
+    return true
+  })
+
+  md.renderer.rules['edge_chip'] = (tokens, idx) => {
+    const { label, reverse } = tokens[idx]!.meta as EdgeDecoration
+    const escaped = md.utils.escapeHtml(label)
+    return `<span class="edge-chip${reverse ? ' edge-chip--rev' : ''}" title="${
+      reverse ? 'reverse edge: ' : 'edge: '
+    }${escaped}">${escaped}</span>`
+  }
+
+  md.renderer.rules['link_open'] = (tokens, idx, options, _env, self) => {
+    const token = tokens[idx]!
+    const kind =
+      token.attrGet('data-wiki') !== null
+        ? 'note'
+        : classifyLinkKind(token.attrGet('href') ?? '')
+    if (kind !== null) token.attrJoin('class', `link-pill link-pill--${kind}`)
+    return self.renderToken(tokens, idx, options)
+  }
+}
+
 export function noteMarkdown(): MarkdownIt {
   const md = new MarkdownIt({ html: false, linkify: false, breaks: true })
   taskLists(md)
   sourceGaps(md)
+  semanticEdges(md)
   // S05t (owner: "it is justifying differently"): read's leaf text
   // blocks wrap under white-space: break-spaces so a space at the
   // wrap point takes width exactly like the editor. That only works
