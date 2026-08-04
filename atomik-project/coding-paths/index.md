@@ -34,7 +34,7 @@ Late paths are better paths: they inherit module notes, friction records from th
 | M2 (completion) | real generation (Mistral Small) + AI interaction pass | [CP-MVP-008](./CP-MVP-008.md) | done (2026-08-04, [acceptance](../sessions/2026-08-04-cp-mvp-008-acceptance.md)) |
 | M6 | minimal Truth Lens + challenge/repair | — | not opened |
 | M7 | live verification provider | — | not opened |
-| M8 (front half) | semantic graph foundation — ADR-011 grammar, pills everywhere, nodes/edges index, typed backlinks | [CP-MVP-009](./CP-MVP-009.md) | draft (opening check 2026-08-04) |
+| M8 (front half) | semantic graph foundation — ADR-011 grammar, pills everywhere, nodes/edges index, typed backlinks | [CP-MVP-009](./CP-MVP-009.md) | active (accepted 2026-08-04 after both [ceremonies](../sessions/2026-08-04-cp-mvp-009-opening-check.md)) |
 | M8 (retrieval) | graph retrieval — FTS5 + link expansion, context packets (+ the Wikidata slice joining the same tables) | — | next after CP-MVP-009 (ceremony-confirmed back half) |
 | M9 | measured local assistance + autocomplete | — | not opened |
 | M10 | public knowledge + dictionary MVP | — | not opened |

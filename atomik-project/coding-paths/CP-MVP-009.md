@@ -6,9 +6,10 @@ tags: [coding-path, m8, semantic-graph, wikilinks, typed-edges, pills, backlinks
 timestamp: 2026-08-04T00:00:00Z
 atomik:
   id: CP-MVP-009
-  status: draft
+  status: active
+  accepted: 2026-08-04
   current_step: S01
-  base_commit: null
+  base_commit: fba010d
 ---
 
 # Goal
@@ -52,6 +53,12 @@ The BACK half — retrieval over the graph (FTS5 + link expansion,
 context packets, M8 proper) and the Wikidata slice joining the same
 nodes/edges tables (M10 shape, verification layer B) — is the NEXT
 path, per the thinness rule. This path lays the tables they join.
+
+Consumers on record (no scope change here): the future STUDIO
+(brainstorm 2026-08-04, register note) reads the nodes/edges index as
+a projection for its graph layer and reuses the pill edge-lifecycle
+discipline and write path for canvas edge-drawing — design the index
+read contract as a clean projection, nothing more.
 
 # Definition of done
 
@@ -175,18 +182,19 @@ path, per the thinness rule. This path lays the tables they join.
 # Current checkpoint
 
 ```text
-base commit : null — DRAFT; pins at owner activation after the
-              opening check (22 §Between paths).
+base commit : fba010d — ACTIVATED 2026-08-04 (owner: "Activate —
+              lets go" after the opening check; both gap ceremonies
+              recorded: closing 2026-08-04-cp-mvp-008-closing-
+              ceremony.md, opening 2026-08-04-cp-mvp-009-opening-
+              check.md, all four features confirmed as drafted, no
+              deltas; concurrent studio brainstorm read at
+              activation — consumer note only, no scope change).
 changed     : nothing yet.
-tests       : n/a (draft).
-next action : OPENING CHECK RUN 2026-08-04 (session note
-              ../sessions/2026-08-04-cp-mvp-009-opening-check.md) —
-              all four features CONFIRMED AS DRAFTED: scope =
-              foundation only; grammar+pills as drafted;
-              authoring+vocabulary as drafted; index storage = JSON
-              sidecar (S01 pin recorded). No deltas. Awaiting the
-              owner's explicit activation to pin the base commit and
-              begin S01.
+tests       : 635/55 at base (from CP-MVP-008 close).
+next action : S01 bootstrap — read Required docs, record the S01
+              pins (node-type pill taxonomy, edge record shape,
+              index artifact shape; index storage already decided:
+              JSON sidecar), docs-only.
 blockers    : none.
 ```
 
