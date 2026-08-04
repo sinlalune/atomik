@@ -1289,6 +1289,12 @@ never give the web guest a preload, app-session access, or a non-http(s)
   URL — web-view.test.ts asserts the gates; a "quick devtools bridge"
   into remote content is the forbidden shortcut wearing a new hat
 run typecheck + test + build + smoke before committing shell changes
+run every gate BARE — the exit code IS the verdict; any `| grep`/`| tail`/
+  `| head` on a gate output is a red flag (2026-07-16: `typecheck | grep
+  "error TS" | head` swallowed a failing exit code and shipped a
+  white-screen app — two props typed but not destructured; tsc caught
+  both, the pipe ate the verdict). Run `npm run typecheck && echo OK`
+  first, prettify output only after the verdict is in.
 update this note in the same work unit as any boundary change
 ```
 
@@ -1411,6 +1417,51 @@ by clicking its own □ Windows-side: host rect lands exactly at
 content = work area (taskbar visible), restore returns the exact
 original rect, the ☰ menu opens where it is drawn. Owner eyeball = the
 final gate.
+
+Agent verification & coexisting with the owner's live instance (recorded
+2026-08-03 from session-tested practice; any agent working this repo
+should follow these, they were each paid for in lost hours):
+
+- RENDERER-CONTENT checks, first choice: launch the app with
+  `--remote-debugging-port=<port>` (Electron consumes the flag;
+  `ATOMIK_STATE_DIR`/`ATOMIK_VAULT_DIR` + a `local-workspace.json`
+  fixture open any tab/mode), then over CDP (`curl :port/json` → Node's
+  global WebSocket) call `Page.captureScreenshot` + `Runtime.evaluate`
+  DOM probes — pixel-true capture with ZERO owner-desktop interaction.
+  Prefer the app's own `ATOMIK_SMOKE_SHOT=<png> npm run smoke` rung when
+  only the atomik window's rendered layout is needed. Full-desktop
+  `powershell.exe CopyFromScreen` grabs the owner's LIVE screen (they
+  dogfood on this machine; a 2026-07-16 capture caught personal browsing)
+  — use it only when Windows-side pixel truth is the point (WSLg
+  presentation bugs, above), and delete the capture after.
+- THE RUNTIME-MODE BLIND SPOT: the owner runs `electron-vite dev` =
+  development React = StrictMode double effects (setup→cleanup→setup per
+  mount). CDP pins on `npm run build` + `electron .` are production
+  React (single setup) and missed a dev-only lifecycle bug for four fix
+  rounds (2026-07-25, chat wiped on tab switch: an effect ref-guard
+  claimed before its read committed while cleanup cancelled the read).
+  Rule: renderer lifecycle/effect fixes get at least one pin in DEV mode
+  (`electron-vite dev -- --remote-debugging-port=<port>`; vite auto-picks
+  a free HMR port beside the owner's instance). The owner's dev instance
+  hot-reloads renderer edits — a fix may reach their screen before any
+  restart; mid-edit intermediate states can also hot-reload and WEDGE
+  their session (Vite server dies; the zombie Electron shell then makes
+  fresh launches look dead). After a work unit, tell the owner it's a
+  good moment to restart the dev server; treat live bug reports arriving
+  mid-edit-batch as possibly half-applied HMR states — verify on a clean
+  launch before diagnosing code.
+- INSTANCE ISOLATION: agent test instances share
+  `~/.config/atomik-desktop` (Chromium SingletonLock) unless given an
+  isolated `--user-data-dir` — leaked instances silently block the
+  owner's launches. CDP harnesses always pass an isolated user-data-dir
+  and kill the process GROUP.
+- THE PRESENTATION WEDGE: heavy Electron churn (many CDP
+  launches/SIGKILLs in one session) can wedge WSLg's presentation
+  channel — processes run, Vite/React connect, taskbar entries appear,
+  but NO window ever renders. Definitive cheap test: `xmessage` also
+  fails to present. Fix: `wsl --shutdown` from WINDOWS (kills the whole
+  WSL session including agent processes — commit everything first); a PC
+  reboot is never needed. Prevention = the isolation rule above.
 
 ## One tree panel per pane (CP-MVP-007 S07d, owner directive)
 
