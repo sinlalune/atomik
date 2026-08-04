@@ -1,6 +1,6 @@
 # One surface, two layers — amendment pack (proposal)
 
-Status: **proposal for owner review — nothing below is applied.**
+Status: **APPLIED — historical record.** Every item landed: A–C in atomik-dsl (commit b3c53ee, "owner amendment — one surface, two layers"), D–F in this repo (ADR-010 accepted 2026-07-15 + bedrock 19 §One surface, two layers + bedrock 21). Kept as the drafting artifact; nothing awaits review. (Header corrected 2026-08-04 — the stale "nothing applied" line misled a session into flagging it for owner review.)
 Date: 2026-07-15
 Origin: design conversation 2026-07-15 (drawing ↔ DSL bidirectionality; owner challenge:
 "the free form of the mind is maybe more important than the structure of abstraction").
