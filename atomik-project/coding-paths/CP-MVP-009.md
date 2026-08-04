@@ -132,7 +132,12 @@ path, per the thinness rule. This path lays the tables they join.
       (note, folder, chat, prompt, pdf, pdf-anchor, web, transcript,
       built-in), index storage decision (opening-check Q4), edge
       record shape ({subject, label, object, direction, position})
-      — docs-only step.
+      — docs-only step. INDEX STORAGE DECIDED at the opening check
+      (2026-08-04, owner): JSON sidecar — main-side scan builds the
+      in-memory graph, persisted as a rebuildable `.atomik/` JSON
+      cache, zero new dependency (15); SQLite arrives with the
+      retrieval/Wikidata path and the index migrates then
+      (rebuildable = free migration).
 - [ ] S02 Grammar core: one pure, dependency-free module parsing
       wikilinks + adjacent `{label}`/`{^label}` + md-link decoration
       into edge records, with serializer; the session-A collision
@@ -174,11 +179,14 @@ base commit : null — DRAFT; pins at owner activation after the
               opening check (22 §Between paths).
 changed     : nothing yet.
 tests       : n/a (draft).
-next action : run the OPENING check with the owner — one prompted
-              confirmation per major feature (scope, grammar+pills,
-              authoring+vocabulary, index storage); record deltas
-              here BEFORE the base commit pins; then explicit owner
-              acceptance activates the path.
+next action : OPENING CHECK RUN 2026-08-04 (session note
+              ../sessions/2026-08-04-cp-mvp-009-opening-check.md) —
+              all four features CONFIRMED AS DRAFTED: scope =
+              foundation only; grammar+pills as drafted;
+              authoring+vocabulary as drafted; index storage = JSON
+              sidecar (S01 pin recorded). No deltas. Awaiting the
+              owner's explicit activation to pin the base commit and
+              begin S01.
 blockers    : none.
 ```
 
