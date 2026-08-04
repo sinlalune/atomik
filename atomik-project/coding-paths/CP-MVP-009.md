@@ -133,13 +133,14 @@ read contract as a clean projection, nothing more.
 
 # Execution
 
-- [ ] S01 Bootstrap: read Required docs; verify ledger vs repo reality;
+- [x] S01 Bootstrap: read Required docs; verify ledger vs repo reality;
       record the opening-check amendments (below) and the S01 pins —
       grammar constants from ADR-011, node-type → pill taxonomy
       (note, folder, chat, prompt, pdf, pdf-anchor, web, transcript,
       built-in), index storage decision (opening-check Q4), edge
       record shape ({subject, label, object, direction, position})
-      — docs-only step. INDEX STORAGE DECIDED at the opening check
+      — docs-only step, DONE 2026-08-04 (pins in the checkpoint).
+      INDEX STORAGE DECIDED at the opening check
       (2026-08-04, owner): JSON sidecar — main-side scan builds the
       in-memory graph, persisted as a rebuildable `.atomik/` JSON
       cache, zero new dependency (15); SQLite arrives with the
@@ -189,12 +190,55 @@ base commit : fba010d — ACTIVATED 2026-08-04 (owner: "Activate —
               check.md, all four features confirmed as drafted, no
               deltas; concurrent studio brainstorm read at
               activation — consumer note only, no scope change).
-changed     : nothing yet.
-tests       : 635/55 at base (from CP-MVP-008 close).
-next action : S01 bootstrap — read Required docs, record the S01
-              pins (node-type pill taxonomy, edge record shape,
-              index artifact shape; index storage already decided:
-              JSON sidecar), docs-only.
+changed     : S01 docs-only (this ledger + log). S01 PINS:
+              — Grammar (ADR-011, law): `[[target]]{label}`,
+                reverse `[[target]]{^label}`; labels ^[a-z0-9-]+$;
+                IMMEDIATE adjacency (any whitespace = prose); same
+                `{label}` decoration after standard md links; ONE
+                pure dependency-free grammar module (15) consumed by
+                BOTH the markdown-it rule and the Lezer extension;
+                session-A collision suite = its unit tests.
+              — Node-type → pill taxonomy (kind derived from the
+                resolved target, never stored in the note): note ·
+                folder (index) · chat (`type: Atomik Chat`) · prompt
+                (prompts/ kinds; built-in blocks distinct) · pdf
+                dossier · pdf anchor (#page= / p<n>q<m>) · web
+                dossier · capture/transcript dossier. Pills ride 36:
+                ONE .pill recipe extended with modifiers (NO new
+                fork), colors from theme tokens, icons in the
+                16-viewBox stroke-1.3 family (S07b14 precedent);
+                unresolved target = broken modifier (diagnostic,
+                never auto-create).
+              — Edge record shape: { subject (vault-rel path of the
+                authoring note), object (resolved vault-rel path) |
+                targetRaw (unresolved string), label (kebab | null =
+                untyped), reverse (bool), loc { line, col } } —
+                stored ONCE, directed, subject = authoring note;
+                inverse is a LABEL property rendered at the
+                backlink pane (session-A direction doctrine).
+              — Index artifact: `.atomik/graph.json` { version: 1,
+                nodes: [{ path, kind, title }], edges: [records],
+                labels: { label: count } } — JSON sidecar
+                (opening-check Q4), rebuildable from files alone,
+                main-side scan, incremental in the write verbs, NO
+                writes on app open (build reads only; artifact lives
+                in rebuildable-only .atomik/). Read contract = a
+                clean projection (studio consumer note). Conditional
+                13/12 fires when the query IPC channel lands.
+              — Rename refactor (27 §Rename refactor diffs):
+                wikilink rewrites join computeRelocate behind the
+                existing preview; a refactor diff is NEVER mixed
+                with content changes in the same commit.
+              — Roadmap fit verified (18 §M8): "wikilinks and
+                backlinks" + "note-title/alias/heading link index
+                feeding passive link proposals" — the proposals
+                themselves stay 20 §How links are born territory
+                (Conditional 06/02 trigger, not scheduled).
+tests       : 635/55 at base (from CP-MVP-008 close); no code yet.
+next action : S02 grammar core — the pure module (parse wikilinks +
+              adjacent {label}/{^label} + md-link decoration into
+              edge records, serializer) with the session-A collision
+              suite as unit tests.
 blockers    : none.
 ```
 
