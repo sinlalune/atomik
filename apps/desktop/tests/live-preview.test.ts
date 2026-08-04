@@ -9,10 +9,18 @@ import {
   linkHrefAt,
   notePathFacet,
   parseTable,
-  resolveEmbedPath
+  resolveEmbedPath,
+  wikiCandidatesField
 } from '../renderer/src/editor/live-preview'
 
-type Deco = { from: number; to: number; kind: LivePreviewKind; cls?: string }
+type Deco = {
+  from: number
+  to: number
+  kind: LivePreviewKind
+  cls?: string
+  edgeKind?: string
+  edgeBroken?: boolean
+}
 
 /** Fully parses the doc (GFM base, like the editor), lists decorations. */
 function decorate(doc: string, cursor = 0): Deco[] {
@@ -26,9 +34,16 @@ function decorate(doc: string, cursor = 0): Deco[] {
   const out: Deco[] = []
   const iter = set.iter()
   while (iter.value) {
-    const spec = iter.value.spec as { lp: LivePreviewKind; class?: string }
+    const spec = iter.value.spec as {
+      lp: LivePreviewKind
+      class?: string
+      edgeKind?: string
+      edgeBroken?: boolean
+    }
     const deco: Deco = { from: iter.from, to: iter.to, kind: spec.lp }
     if (spec.class !== undefined) deco.cls = spec.class
+    if (spec.edgeKind !== undefined) deco.edgeKind = spec.edgeKind
+    if (spec.edgeBroken !== undefined) deco.edgeBroken = spec.edgeBroken
     out.push(deco)
     iter.next()
   }
@@ -380,7 +395,7 @@ describe('image embeds in live mode (owner report: raw text shown)', () => {
   })
 })
 
-describe('semantic edges in live (CP-MVP-009 S04, ADR-011)', () => {
+describe('semantic edges in live (CP-MVP-009 S04 + S04b read parity)', () => {
   const edges = (decos: Deco[]): Deco[] => decos.filter((d) => d.kind === 'edge')
 
   it('replaces a wikilink with the pill widget away from the cursor', () => {
@@ -397,24 +412,68 @@ describe('semantic edges in live (CP-MVP-009 S04, ADR-011)', () => {
     })
   })
 
-  it('folds only the brace group of a typed md link', () => {
-    const doc = '[paper](x.md){grounded-at}\nnext'
+  it('replaces a typed md link WHOLE, kind from the href (S04b parity)', () => {
+    const doc = '[paper](sources/pdf/x/source.md){grounded-at}\nnext'
     const away = edges(decorate(doc, doc.length))
     expect(away).toHaveLength(1)
     expect(away[0]).toMatchObject({
-      from: '[paper](x.md)'.length,
-      to: '[paper](x.md){grounded-at}'.length
+      from: 0,
+      to: '[paper](sources/pdf/x/source.md){grounded-at}'.length,
+      edgeKind: 'pdf'
     })
+  })
+
+  it('pills untyped md links too — read parity (S04b owner ruling)', () => {
+    const doc = '[paper](x.md) and [w](https://a.b)\nnext'
+    const away = edges(decorate(doc, doc.length))
+    expect(away.map((d) => d.edgeKind)).toEqual(['note', 'web'])
+  })
+
+  it('leaves hash links un-pilled, like read', () => {
+    const doc = '[top](#top)\nnext'
+    expect(edges(decorate(doc, doc.length))).toHaveLength(0)
+  })
+
+  it('resolves wikilinks against host-fed candidates: kind + broken', () => {
+    const doc = '[[hello]] and [[ghost]]\nnext'
+    const state = EditorState.create({
+      doc,
+      selection: EditorSelection.cursor(doc.length),
+      extensions: [
+        markdown({ base: markdownLanguage }),
+        wikiCandidatesField.init(() => [
+          { name: 'hello', relPath: 'chats/2026-08-04/hello.md' }
+        ])
+      ]
+    })
+    ensureSyntaxTree(state, state.doc.length, 5000)
+    const set = computeLivePreviewDecorations(state)
+    const found: { kind?: string; broken?: boolean }[] = []
+    const iter = set.iter()
+    while (iter.value) {
+      const spec = iter.value.spec as {
+        lp: LivePreviewKind
+        edgeKind?: string
+        edgeBroken?: boolean
+      }
+      if (spec.lp === 'edge') found.push({ kind: spec.edgeKind, broken: spec.edgeBroken })
+      iter.next()
+    }
+    expect(found).toEqual([
+      { kind: 'chat', broken: false },
+      { kind: 'note', broken: true }
+    ])
+  })
+
+  it('stays neutral (never broken) while candidates are unloaded', () => {
+    const doc = '[[anything]]\nnext'
+    const away = edges(decorate(doc, doc.length))
+    expect(away[0]).toMatchObject({ edgeKind: 'note', edgeBroken: false })
   })
 
   it('reveals raw syntax on the active line, like every other mark', () => {
     const doc = '[[attention]]{normalizes}'
     expect(edges(decorate(doc, 3))).toHaveLength(0)
-  })
-
-  it('leaves untyped md links to the existing link treatment', () => {
-    const doc = '[paper](x.md)\nnext'
-    expect(edges(decorate(doc, doc.length))).toHaveLength(0)
   })
 
   it('never decorates edges inside fences or frontmatter', () => {

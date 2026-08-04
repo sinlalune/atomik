@@ -313,9 +313,31 @@ changed(S04): live-preview.ts (WikiPillWidget + EdgeChipWidget,
               styles.css (.cm-content joins the pill/chip
               selectors); tests/edge-complete.test.ts NEW;
               live-preview.test.ts (+5 edge tests).
-tests       : 668→680/58; typecheck + build green (gates bare);
+tests(S04)  : 668→680/58; typecheck + build green (gates bare);
               dev-mode CDP pin: widgets, active-line reveal, both
               autocompletes driven end-to-end via Input events.
+changed(S04b): owner bench round 1 ("I don't see the pills in live
+              mode and I don't understand why you didn't implement
+              the same rendering as read mode") — the S04 deviations
+              RETIRED, full read↔live parity: live-preview replaces
+              EVERY link away from the cursor with one
+              LinkPillWidget (kind pill + chip, hash/mailto stay
+              plain like read); wikilinks resolve against
+              wikiCandidatesField NEW (StateField + setWikiCandidates
+              effect, host-fed at mount from the same nearest-wins
+              provider as read; null = unloaded → neutral, never a
+              broken flash); livePreviewField recompute gate now
+              includes the candidates effect (the pin caught the
+              stale-decoration miss); EditorPane registers the field
+              OUTSIDE the mode compartment (live⇄source keeps the
+              value) and feeds it post-mount; broken style scoped to
+              .cm-content. Owner's "no pills at all" attributed to
+              their dev session running pre-S04/wedged HMR code —
+              restart requested; parity pin: ghost broken-dashed,
+              hello chat-kind, paper pdf, web web, icons masked, all
+              in live StrictMode.
+tests       : 680→683/58; typecheck + build green (gates bare);
+              fresh parity pin probed + shot.
 next action : S05 edge authoring on the pill — the "+" affordance
               (widening input, owner vision), edit label, ⇄ flip,
               delete; full lifecycle (03), each gesture one clean

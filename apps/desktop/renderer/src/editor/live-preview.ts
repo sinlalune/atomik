@@ -16,6 +16,12 @@ import {
 import type { SyntaxNode } from '@lezer/common'
 import { parseEdges } from '../../../shared/edge-grammar'
 import type { AtomikApi } from '../../../shared/ipc-contract'
+import {
+  classifyLinkKind,
+  resolveWikiTarget,
+  type LinkKind,
+  type WikiCandidate
+} from './link-pills'
 import { applyRotation } from '../source/rotate'
 import { getCachedImage, isCachedDataUrl, setCachedImage } from '../vault/image-cache'
 
@@ -333,17 +339,34 @@ class CheckboxWidget extends WidgetType {
 }
 
 /**
- * Semantic edges in live (CP-MVP-009 S04, ADR-011 through the SAME
- * shared/edge-grammar module as read and the coming index — the
- * grammar cannot fork). Away from the cursor a `[[target]]{label}`
- * renders as the read view's pill + chip; the touched line reveals
- * raw syntax like every other mark. Wikilink RESOLUTION (kind + broken
- * diagnostics) stays a read-view/index concern — the live pill is
- * neutral note-kind until S06 feeds every surface.
+ * Semantic edges in live (CP-MVP-009 S04; S04b owner bench round 1:
+ * "same rendering as read mode" — full parity, the earlier neutral
+ * version retired). ADR-011 through the SAME shared/edge-grammar
+ * module as read and the coming index — the grammar cannot fork.
+ * Away from the cursor every link (wikilink OR standard md link)
+ * renders as the read view's kind pill + label chip; the touched line
+ * reveals raw syntax like every other mark. Wikilink resolution uses
+ * the same nearest-wins candidates as read, fed into
+ * `wikiCandidatesField` by the host at mount — null = not loaded yet
+ * (pills stay neutral, never a broken flash before the vault answers).
  */
-class WikiPillWidget extends WidgetType {
+export const setWikiCandidates = StateEffect.define<WikiCandidate[]>()
+
+export const wikiCandidatesField = StateField.define<WikiCandidate[] | null>({
+  create: () => null,
+  update: (value, tr) => {
+    for (const effect of tr.effects) {
+      if (effect.is(setWikiCandidates)) return effect.value
+    }
+    return value
+  }
+})
+
+class LinkPillWidget extends WidgetType {
   constructor(
-    private readonly target: string,
+    private readonly text: string,
+    private readonly kind: LinkKind,
+    private readonly broken: boolean,
     private readonly label: string | null,
     private readonly reverse: boolean
   ) {
@@ -353,8 +376,10 @@ class WikiPillWidget extends WidgetType {
   override toDOM(): HTMLElement {
     const wrap = document.createElement('span')
     const pill = document.createElement('span')
-    pill.className = 'link-pill link-pill--note'
-    pill.textContent = this.target
+    pill.className = `link-pill link-pill--${this.kind}${
+      this.broken ? ' link-pill--broken' : ''
+    }`
+    pill.textContent = this.text
     wrap.appendChild(pill)
     if (this.label !== null) {
       const chip = document.createElement('span')
@@ -366,33 +391,14 @@ class WikiPillWidget extends WidgetType {
     return wrap
   }
 
-  override eq(other: WikiPillWidget): boolean {
+  override eq(other: LinkPillWidget): boolean {
     return (
-      other.target === this.target &&
+      other.text === this.text &&
+      other.kind === this.kind &&
+      other.broken === this.broken &&
       other.label === this.label &&
       other.reverse === this.reverse
     )
-  }
-}
-
-class EdgeChipWidget extends WidgetType {
-  constructor(
-    private readonly label: string,
-    private readonly reverse: boolean
-  ) {
-    super()
-  }
-
-  override toDOM(): HTMLElement {
-    const chip = document.createElement('span')
-    chip.className = `edge-chip${this.reverse ? ' edge-chip--rev' : ''}`
-    chip.title = `${this.reverse ? 'reverse edge: ' : 'edge: '}${this.label}`
-    chip.textContent = this.label
-    return chip
-  }
-
-  override eq(other: EdgeChipWidget): boolean {
-    return other.label === this.label && other.reverse === this.reverse
   }
 }
 
@@ -702,36 +708,44 @@ export function computeLivePreviewDecorations(
     }
   })
 
-  // Semantic edges (S04): the shared grammar scans the raw doc (it
-  // already skips fences, inline code, and images). Wikilinks replace
-  // with the read pill; a typed md link folds only its brace group
-  // into the chip (the Link node keeps its own lp-link treatment).
+  // Semantic edges (S04; S04b: full read parity). The shared grammar
+  // scans the raw doc (it already skips fences, inline code, and
+  // images); every link away from the cursor replaces with the read
+  // pill + chip. Wikilinks resolve against the host-fed candidates
+  // (null = not loaded → neutral note pill, never a broken flash).
+  const candidates = state.field(wikiCandidatesField, false) ?? null
   for (const edge of parseEdges(state.doc.toString())) {
     if (edge.start < fmEnd) continue
     if (isActiveAt(edge.start)) continue
+    let kind: LinkKind | null
+    let broken = false
     if (edge.kind === 'wikilink') {
-      decorations.push(
-        Decoration.replace({
-          lp: 'edge' as LivePreviewKind,
-          widget: new WikiPillWidget(
-            edge.target,
-            edge.decoration?.label ?? null,
-            edge.decoration?.reverse ?? false
-          )
-        }).range(edge.start, edge.end)
-      )
-    } else if (edge.decoration) {
-      const brace = `{${edge.decoration.reverse ? '^' : ''}${edge.decoration.label}}`
-      decorations.push(
-        Decoration.replace({
-          lp: 'edge' as LivePreviewKind,
-          widget: new EdgeChipWidget(
-            edge.decoration.label,
-            edge.decoration.reverse
-          )
-        }).range(edge.end - brace.length, edge.end)
-      )
+      if (candidates === null) {
+        kind = 'note'
+      } else {
+        const rel = resolveWikiTarget(candidates, edge.target)
+        kind = rel === null ? 'note' : (classifyLinkKind(rel) ?? 'note')
+        broken = rel === null
+      }
+    } else {
+      // hash/mailto stay plain — read leaves them un-pilled too
+      kind = classifyLinkKind(edge.target)
     }
+    if (kind === null) continue
+    decorations.push(
+      Decoration.replace({
+        lp: 'edge' as LivePreviewKind,
+        edgeKind: kind,
+        edgeBroken: broken,
+        widget: new LinkPillWidget(
+          edge.text,
+          kind,
+          broken,
+          edge.decoration?.label ?? null,
+          edge.decoration?.reverse ?? false
+        )
+      }).range(edge.start, edge.end)
+    )
   }
 
   return Decoration.set(decorations, true)
@@ -756,7 +770,9 @@ export const livePreviewField = StateField.define<DecorationSet>({
     if (
       transaction.docChanged ||
       transaction.selection ||
-      transaction.effects.some((effect) => effect.is(imageCacheBump)) ||
+      transaction.effects.some(
+        (effect) => effect.is(imageCacheBump) || effect.is(setWikiCandidates)
+      ) ||
       syntaxTree(transaction.state) !== syntaxTree(transaction.startState)
     ) {
       return computeLivePreviewDecorations(transaction.state)

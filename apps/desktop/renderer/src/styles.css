@@ -3019,7 +3019,8 @@ body[data-maximized] .tabstrip {
 
 /* Broken wikilink: the visible diagnostic (20 — never auto-created,
    never silently repaired). Dashed, muted, inert. */
-.markdown-body a.link-pill.link-pill--broken {
+.markdown-body a.link-pill.link-pill--broken,
+.cm-content .link-pill.link-pill--broken {
   --pill-kind: var(--muted);
   border-style: dashed;
   cursor: default;

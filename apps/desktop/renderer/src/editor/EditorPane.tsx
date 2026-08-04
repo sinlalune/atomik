@@ -59,9 +59,14 @@ import {
 } from './inline-ai'
 import { loadBuiltinOverridesFor, loadPromptsFor } from './prompts'
 import { wireSystemPlan } from './system-plan'
-import { frontmatterEnd, livePreview } from './live-preview'
+import {
+  frontmatterEnd,
+  livePreview,
+  setWikiCandidates,
+  wikiCandidatesField
+} from './live-preview'
 import { ModeSwitch } from './ModeSwitch'
-import { quickActions } from './quick-actions'
+import { linkableNotesOf, quickActions } from './quick-actions'
 import { hasMediaResource } from '../source/dossier'
 
 /** Auto mode saves this long after the last keystroke. */
@@ -394,6 +399,10 @@ export function EditorPane({
           base: markdownLanguage,
           codeLanguages: fencedCodeLanguage
         }),
+        // Wikilink resolution candidates for live pills (S04b: read
+        // parity) — OUTSIDE the mode compartment so a live⇄source
+        // switch keeps the loaded value.
+        wikiCandidatesField,
         previewCompartment.of(
           modeExtensions(modeRef.current, followHandler, note.relPath)
         ),
@@ -446,6 +455,17 @@ export function EditorPane({
       }
     }
     view.focus()
+    // Feed the wikilink resolution candidates (S04b: live pills carry
+    // the same kind/broken truth as read). Mount-time fetch; the S06
+    // index takes over live updates.
+    void listVaultTree()
+      .then((tree) => {
+        if (viewRef.current !== view) return
+        view.dispatch({
+          effects: setWikiCandidates.of(linkableNotesOf(tree, note.relPath))
+        })
+      })
+      .catch(() => {})
     return () => {
       viewRef.current = null
       view.destroy()
