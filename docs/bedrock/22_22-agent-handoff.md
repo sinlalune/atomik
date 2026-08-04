@@ -51,7 +51,8 @@
       "Every executed step updates code, tests, documentation, the ledger, and log.md in the same work unit.",
       "Do not hide canonical knowledge or execution state in caches, embeddings, or chat memory.",
       "Provider keys and private context stay behind typed secure boundaries.",
-      "Emit a minimal ActionTrace from the first AI mock; no raw prompt/output telemetry by default."
+      "Emit a minimal ActionTrace from the first AI mock; no raw prompt/output telemetry by default.",
+      "Stage explicit paths per work unit; never blind-add the live repository the owner is dogfooding."
     ]
   }
 }
@@ -102,6 +103,28 @@ Do not start coding without an active path. The gap between paths is governed by
 3. Then propose/adjust the path from the roadmap milestone using the template in `24_24-doc-templates.md` and begin at S01. Activating a path with no recorded ceremonies for its gap is invalid.
 
 An in-app "ceremony tab" (path state as an interactive projection, 35) is a recorded candidate (`atomik-project/brainstorm/2026-07-21-ceremony-tab.md`); until it exists, the ceremonies live in prompted exchange + session notes.
+
+## Working alongside the owner (session protocol)
+
+Recorded owner directives (2026-08-03 memory audit, sessions B/C; promoted into this page at the 2026-08-04 ceremony gate). The owner dogfoods the LIVE repository while agent sessions run; these rules keep the two from trampling each other:
+
+```text
+staging discipline
+  review git status --porcelain before every commit;
+  stage explicit paths per work unit — never a blind `git add -A`;
+  untracked owner files mid-session are normal and first-class:
+  surface them, commit or discard only with the owner's consent
+
+reporting form (owner directive 2026-08-03, "continuity in my focus workflow")
+  status and next-step reports to the owner = short THEMED sections,
+  each with its OWN `- [ ]` checklist of owner-side tasks —
+  never one global undifferentiated list
+
+owner experiments are bench inputs
+  an owner-reported external-tool experiment is a first-class bench
+  input: pin the exact artifact, version, and configuration before
+  comparing anything against it
+```
 
 ## Standing prohibitions
 

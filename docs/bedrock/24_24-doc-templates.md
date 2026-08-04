@@ -546,3 +546,7 @@ blockers    :
 ````
 
 The `Current checkpoint` section is the Work Ledger. An optional `CP-XXX.state.json` sidecar may mirror it for tooling under the standard sidecar rule.
+
+### Gate discipline
+
+Gates (typecheck, tests, build, smoke) run BARE: the exit code is the verdict. Piping gate output (`| grep`, `| head`, `| tail`) can swallow a failing exit status — the 2026-07-16 white-screen incident shipped exactly that way (`typecheck | grep "error TS" | head` ate tsc's failing verdict; two props typed but never destructured reached the app). Run the gate bare first (`npm run typecheck && echo OK`); prettify output only after the verdict is in. A ledger `tests :` line reports a verdict obtained bare. (Rule promoted from the module note's Agent checklist at the 2026-08-04 ceremony gate.)

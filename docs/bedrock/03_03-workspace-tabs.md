@@ -73,7 +73,8 @@
       "Every selectable view should eventually expose a Selection object.",
       "Truth Lens layout is recoverable UI state; accepted evidence and repairs remain durable files.",
       "Operation receipt layout is recoverable UI state; accepted patches and explicit aggregate reports are durable files.",
-      "Compact local/cloud/cost indicators must expand into inspectable traces without cluttering the writing surface."
+      "Compact local/cloud/cost indicators must expand into inspectable traces without cluttering the writing surface.",
+      "Every feature that lands a derived artifact ships create AND delete/re-run (confirmed, state-restoring, tree-refreshing), round-trip tested, in the same work unit."
     ]
   }
 }
@@ -194,6 +195,21 @@ Workspace layout should be saved as UI state:
 ```
 
 This file should be recoverable or disposable. The durable knowledge lives in project files, notes, source dossiers, logs, trails, and accepted AI patches.
+
+## Derived artifacts ship their lifecycle
+
+The house lifecycle rule (owner-stated twice on 2026-07-08 — transcripts, then PDF extractions; promoted into this page at the 2026-08-04 ceremony gate, long cited in commits as "disposable per 03"):
+
+```text
+every feature that lands a DERIVED artifact
+(transcript, extraction, dossier row, chat file, generated note …)
+ships its full day-to-day lifecycle IN THE SAME WORK UNIT:
+  create          AND
+  delete / re-run (confirmed, state-restoring, tree-refreshing)
+with a round-trip test — even at MVP
+```
+
+A derived artifact the user cannot cheaply delete and regenerate is not disposable, whatever the doctrine says; the delete/re-run half is what makes "recoverable or disposable" true in practice.
 
 ## Git rule for workspace files
 
