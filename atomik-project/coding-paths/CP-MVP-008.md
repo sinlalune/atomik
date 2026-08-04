@@ -6,8 +6,9 @@ tags: [coding-path, m2, ai, generation, provider, mistral, prompts, context-menu
 timestamp: 2026-07-20T00:00:00Z
 atomik:
   id: CP-MVP-008
-  status: active
+  status: done
   accepted: 2026-07-21
+  closed: 2026-08-04
   current_step: S07
   base_commit: 6cacfa2
 ---
@@ -1786,7 +1787,7 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       S07b10's, and the append→parse round trip + coexistence of
       sent/run stamps are unit-tested. Tests 632→635/55;
       typecheck/build green.
-- [ ] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
+- [x] S07 Acceptance: 18 §M2 intents re-run on the REAL provider
       (selected passage → source-linked note; uncited detail labeled;
       one accepted patch = one meaningful diff; budget/cancel
       enforced below renderer; source-backed reproducible by the
@@ -1806,10 +1807,16 @@ Completeness rule (35): every bedrock page 00–36 accounted for
       kept the you-turn, no partial answer; (5) usage + billing on
       every real run (↑2140 ↓58 · ~$0.0004; estimate ~2305 vs 2140
       provider-counted); budget ceilings main-side (S02, unit-
-      tested — not re-driven live). REMAINING: the owner bench +
-      review/close (closing ceremony; bench artifacts left in the
-      vault for inspection: chats/2026-08-03/*, `Quote and
-      Explanation.md`, dossier anchor `p1q1` — delete at will).
+      tested — not re-driven live).
+      OWNER HALF VALIDATED 2026-08-04 ("I validate all owner bench
+      task") after the twelve live bench rounds S07b1–S07b16 —
+      every bench item exercised in the rounds themselves (real
+      sends, inline accept, chat exchanges, prompt/system-plan
+      editing, cancel, receipts inspected). PATH CLOSED; acceptance
+      record: ../sessions/2026-08-04-cp-mvp-008-acceptance.md.
+      Bench artifacts left in the vault for inspection:
+      chats/2026-08-03/*, `Quote and Explanation.md`, dossier
+      anchor `p1q1` — delete at will.
 
 # Current checkpoint
 
@@ -2116,21 +2123,14 @@ changed(S07b8b): docs/research/ai-chat-ui-practices.md NEW;
               polish, ghost tools).
 tests(S07b8b): 624/55 unchanged; typecheck/build green; CDP pin
               light + dark.
-next action : S07 ACCEPTANCE — bench round 1 fixes S07b1–S07b6 ALL
-              DONE 2026-08-03 (session note
-              2026-08-03-s07-bench-round1.md). Agent half: 18 §M2
-              intents re-run on the REAL provider (key confirmed by
-              the owner 2026-08-03) — selected passage →
-              source-linked note; uncited detail labeled; one
-              accepted patch = one meaningful diff; budget/cancel
-              below the renderer; source-backed reproducible by the
-              deterministic check. Owner half: resume the live-vault
-              bench (question over a real selection — now possible
-              on PDFs; inline accept; chat exchange; prompt file
-              edited + re-used; cancel mid-flight; receipt
-              inspected); then review and close (closing ceremony;
-              post-008 backlog candidates: full PDF viewer tooling,
-              DnD/docking path).
+next action : NONE — PATH CLOSED 2026-08-04. Owner bench validated
+              ("I validate all owner bench task") after rounds
+              S07b1–S07b16; acceptance record
+              ../sessions/2026-08-04-cp-mvp-008-acceptance.md.
+              Post-008 backlog handled at the closing ceremony
+              (candidates carried: full PDF viewer tooling,
+              DnD/docking path, S07b12-retired mode chips, plus the
+              register's recorded inputs).
 blockers    : none. DECIDED 2026-07-25 (owner, S06c16): default
               engine when a key is configured = mistral (key-present
               resolution default, mock stays selectable).

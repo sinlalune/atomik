@@ -31,7 +31,7 @@ Late paths are better paths: they inherit module notes, friction records from th
 | M4 | PDF source + strong anchors | CP-MVP-003 | done (2026-07-13) |
 | M5 | web source tab + explicit imports | CP-MVP-006 | done (2026-07-16) |
 | M1 (friction pass) | tree file management — create/rename/move/delete + DnD | CP-MVP-007 | done (2026-07-21) |
-| M2 (completion) | real generation (Mistral Small) + AI interaction pass | [CP-MVP-008](./CP-MVP-008.md) | active (accepted 2026-07-21 after both [ceremonies](../sessions/2026-07-21-vision-alignment-before-cp-mvp-008.md)) |
+| M2 (completion) | real generation (Mistral Small) + AI interaction pass | [CP-MVP-008](./CP-MVP-008.md) | done (2026-08-04, [acceptance](../sessions/2026-08-04-cp-mvp-008-acceptance.md)) |
 | M6 | minimal Truth Lens + challenge/repair | — | not opened |
 | M7 | live verification provider | — | not opened |
 | M8 | hybrid retrieval + agent context basics | — | not opened |
