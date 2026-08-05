@@ -7,7 +7,7 @@ import { applyRotation } from '../source/rotate'
 import { pdfPageTarget, setPendingPdfPage } from '../source/pdf-open'
 import { inlineImageSources, vaultImageSources } from './note-images'
 import { getCachedImage, isCachedDataUrl, setCachedImage } from './image-cache'
-import { decorateWikiLinks, resolveWikiTarget } from '../editor/link-pills'
+import { decorateEdgeMarks, decorateWikiLinks, resolveWikiTarget } from '../editor/link-pills'
 import { linkableNotesOf } from '../editor/quick-actions'
 
 /**
@@ -84,10 +84,14 @@ export function useVaultNote(
     setError(null)
   }, [])
 
-  const rawHtml = useMemo(
-    () => (note ? md.render(stripFrontmatter(note.content)) : ''),
-    [note, md]
-  )
+  const rawHtml = useMemo(() => {
+    if (!note) return ''
+    const html = md.render(stripFrontmatter(note.content))
+    // The graph marks read as a sentence with THIS note as subject
+    // (S05d): "L'ethos repose sur fiabilité" on hover.
+    const subject = (note.relPath.split('/').pop() ?? '').replace(/\.md$/i, '')
+    return html.includes('edge-mark') ? decorateEdgeMarks(html, subject) : html
+  }, [note, md])
 
   // Vault images render as data URLs (the sandboxed renderer cannot load
   // files): paint the note immediately, swap the sources in when the

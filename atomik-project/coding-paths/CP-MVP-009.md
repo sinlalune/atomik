@@ -501,6 +501,29 @@ changed(S05c): owner bench round 7 ("no dropdown menu and enter
               all green; legacy S04 md-link test updated to the
               one-pill contract.
 tests(S05c) : 698→700/60; typecheck + build green (gates bare).
+changed(S05d): owner bench round 8 ("we lost the original need of
+              everything inside the same pill … we dont need to see
+              the edge next to the pill but more a labelized version
+              of the graph relation … on hovering an in-pills graph
+              link icon, if click, it opens the editing menu") —
+              BOTH honored, possible now that S05c killed the real
+              render bug: (1) IN-PILL editor restored — the "+"
+              lives inside the pill, editing is ONE pill that widens
+              with the borderless input + ⇄ inside it (124→249px
+              measured); (2) the label chip RETIRED on every
+              surface — typed edges carry a GRAPH MARK (masked
+              two-node glyph) inside the pill; hovering reads the
+              relation AS A SENTENCE — subject + humanized label +
+              target ("pin-note repose sur Attention"; reversed
+              order for ^edges); clicking it (live) opens the
+              editor prefilled; read shows the same mark + sentence
+              (edgeSentence/humanizeLabel + decorateEdgeMarks
+              post-pass injects the subject; read mark is hover-info
+              only — the disabled-checkbox precedent); tooltip
+              machinery removed; read↔live sentences verified
+              IDENTICAL by pin, full add/edit/esc cycle re-driven
+              with real keys on the deterministic fixture.
+tests(S05d) : 700/60 unchanged; typecheck + build green.
               OWNER VALIDATION (2026-08-05, verbatim): "YES I LOVE
               U IT WORKS perfectly" — bench rounds 1–5 closed; the
               S03/S04 rendering + interaction surface is

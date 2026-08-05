@@ -10,10 +10,8 @@ import {
 import {
   Decoration,
   EditorView,
-  showTooltip,
   WidgetType,
-  type DecorationSet,
-  type Tooltip
+  type DecorationSet
 } from '@codemirror/view'
 import type { SyntaxNode } from '@lezer/common'
 import { normalizeLabel, parseEdges } from '../../../shared/edge-grammar'
@@ -22,6 +20,7 @@ import { labelsInDoc } from './edge-complete'
 import type { AtomikApi } from '../../../shared/ipc-contract'
 import {
   classifyLinkKind,
+  edgeSentence,
   resolveWikiTarget,
   type LinkKind,
   type WikiCandidate
@@ -396,18 +395,28 @@ class LinkPillWidget extends WidgetType {
   }
 
   override toDOM(view: EditorView): HTMLElement {
-    // The widget DOM is BUILT ONCE and never mutated afterwards —
-    // the S05c lesson: live-mutating widget DOM desyncs CodeMirror's
-    // view (eq-reuse then preserves the corpse). The editing UI lives
-    // in a TOOLTIP (DOM outside the managed content), opened by
-    // dispatching openEdgeEditor.
     const wrap = document.createElement('span')
     wrap.className = 'edge-widget'
+    this.renderBaseline(view, wrap)
+    return wrap
+  }
+
+  private subjectOf(view: EditorView): string {
+    const notePath = view.state.facet(notePathFacet)
+    return (notePath?.split('/').pop() ?? '').replace(/\.md$/i, '') || 'this note'
+  }
+
+  private renderBaseline(view: EditorView, wrap: HTMLElement): void {
+    wrap.textContent = ''
+    wrap.classList.remove('edge-widget--editing')
     const pill = document.createElement('span')
     pill.className = `link-pill link-pill--${this.kind}${
       this.broken ? ' link-pill--broken' : ''
     }`
-    pill.textContent = this.text
+    const text = document.createElement('span')
+    text.className = 'pill-text'
+    text.textContent = this.text
+    pill.appendChild(text)
     pill.title = this.broken
       ? `unresolved: ${this.text} — click to edit`
       : `${this.follow?.target ?? this.text} — right-click to edit`
@@ -415,6 +424,7 @@ class LinkPillWidget extends WidgetType {
       const target = this.follow
       pill.addEventListener('mousedown', (event) => {
         if (event.button !== 0) return
+        if (event.target instanceof HTMLElement && event.target.closest('button')) return
         // hash/mailto have no follow action — leave the click to CM
         // (cursor placement = edit), never a consumed no-op (S04d)
         if (target.kind === 'href' && /^(mailto:|#)/.test(target.target)) return
@@ -434,20 +444,8 @@ class LinkPillWidget extends WidgetType {
       view.dispatch({ selection: { anchor: view.posAtDOM(wrap) } })
       view.focus()
     })
-    const openEditor = (event: Event): void => {
-      event.preventDefault()
-      event.stopPropagation()
-      // Resolve the edge at CLICK time from the DOM position — the
-      // widget instance may be REUSED across doc changes (CM maps
-      // decorations and keeps widget views; position must never be
-      // widget identity — the S05c lesson: putting start into eq
-      // forced rebuilds whose views CM then dropped, killing every
-      // shifted pill on each edit).
-      view.dispatch({ effects: openEdgeEditor.of({ start: view.posAtDOM(wrap) }) })
-    }
     if (this.label === null) {
-      // Untyped: the little "+" INSIDE the pill, after the label text
-      // (owner vision). Hover-revealed via CSS.
+      // Untyped: the "+" INSIDE the pill (owner vision), hover-revealed.
       const add = document.createElement('button')
       add.type = 'button'
       add.className = 'pill-add'
@@ -457,25 +455,152 @@ class LinkPillWidget extends WidgetType {
         event.preventDefault()
         event.stopPropagation()
       })
-      add.addEventListener('click', openEditor)
+      add.addEventListener('click', (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        this.openEditor(view, wrap)
+      })
       pill.appendChild(add)
-    }
-    wrap.appendChild(pill)
-    if (this.label !== null) {
-      // Typed: the chip IS the edit door.
-      const chip = document.createElement('button')
-      chip.type = 'button'
-      chip.className = `edge-chip edge-chip--editable${this.reverse ? ' edge-chip--rev' : ''}`
-      chip.title = `${this.reverse ? 'reverse edge: ' : 'edge: '}${this.label} — click to edit`
-      chip.textContent = this.label
-      chip.addEventListener('mousedown', (event) => {
+    } else {
+      // Typed: the GRAPH MARK inside the pill (S05d owner vision) —
+      // hover reads the relation as a sentence ("L'ethos repose sur
+      // fiabilité"), click opens the editor.
+      const mark = document.createElement('button')
+      mark.type = 'button'
+      mark.className = `edge-mark${this.reverse ? ' edge-mark--rev' : ''}`
+      mark.title = edgeSentence(
+        this.subjectOf(view),
+        this.label,
+        this.text,
+        this.reverse
+      )
+      mark.addEventListener('mousedown', (event) => {
         event.preventDefault()
         event.stopPropagation()
       })
-      chip.addEventListener('click', openEditor)
-      wrap.appendChild(chip)
+      mark.addEventListener('click', (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        this.openEditor(view, wrap)
+      })
+      pill.appendChild(mark)
     }
-    return wrap
+    wrap.appendChild(pill)
+  }
+
+  /** THE pill widens (owner vision): the input lives INSIDE the pill
+   *  after its text, borderless, with the document vocabulary as a
+   *  datalist; ⇄ flips a typed edge in place. Enter commits (empty =
+   *  remove, leading ^ = reverse; keyup backstop for the
+   *  datalist-popup-eats-keydown case); Esc or clicking away cancels.
+   *  In-widget DOM edits are safe again since S05c killed the real
+   *  render bug (nested replace decorations). */
+  private openEditor(view: EditorView, wrap: HTMLElement): void {
+    wrap.textContent = ''
+    wrap.classList.add('edge-widget--editing')
+    const pill = document.createElement('span')
+    pill.className = `link-pill link-pill--${this.kind} link-pill--editing`
+    const text = document.createElement('span')
+    text.className = 'pill-text'
+    text.textContent = this.text
+    pill.appendChild(text)
+
+    const listId = `edge-labels-${Math.floor(Math.random() * 1e9)}`
+    const datalist = document.createElement('datalist')
+    datalist.id = listId
+    for (const label of labelsInDoc(view.state.doc.toString())) {
+      const option = document.createElement('option')
+      option.value = label
+      datalist.appendChild(option)
+    }
+    pill.appendChild(datalist)
+
+    const input = document.createElement('input')
+    input.className = 'pill-input'
+    input.setAttribute('list', listId)
+    input.placeholder = 'label (^ = reverse)'
+    input.setAttribute('aria-label', 'edge label')
+    input.value = this.label === null ? '' : `${this.reverse ? '^' : ''}${this.label}`
+    let done = false
+    const cancel = (): void => {
+      if (done) return
+      done = true
+      this.renderBaseline(view, wrap)
+    }
+    const commit = (): void => {
+      if (done) return
+      done = true
+      const edge = findEdgeAt(view.state.doc.toString(), view.posAtDOM(wrap))
+      if (!edge) {
+        done = false
+        return cancel()
+      }
+      const raw = input.value.trim()
+      const reverse = raw.startsWith('^')
+      const label = normalizeLabel(reverse ? raw.slice(1) : raw)
+      let change = null
+      if (edge.decoration === null) {
+        change = addLabel(edge, label, reverse)
+      } else if (label.length > 0 && reverse !== edge.decoration.reverse) {
+        const brace = `{${edge.decoration.reverse ? '^' : ''}${edge.decoration.label}}`
+        change = {
+          from: edge.end - brace.length,
+          to: edge.end,
+          insert: `{${reverse ? '^' : ''}${label}}`
+        }
+      } else {
+        change = editLabel(edge, label)
+      }
+      view.focus()
+      if (change) view.dispatch({ changes: change })
+      else this.renderBaseline(view, wrap)
+    }
+    input.addEventListener('keydown', (event) => {
+      event.stopPropagation()
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        commit()
+      } else if (event.key === 'Escape') {
+        event.preventDefault()
+        cancel()
+        view.focus()
+      }
+    })
+    // Backstop: with the datalist popup open, Chrome delivers no Enter
+    // KEYDOWN — the keyup still arrives.
+    input.addEventListener('keyup', (event) => {
+      event.stopPropagation()
+      if (event.key === 'Enter') commit()
+    })
+    input.addEventListener('blur', () => cancel())
+    input.addEventListener('mousedown', (event) => event.stopPropagation())
+    pill.appendChild(input)
+
+    if (this.label !== null) {
+      const flip = document.createElement('button')
+      flip.type = 'button'
+      flip.className = 'pill-flip'
+      flip.textContent = '⇄'
+      flip.title = `flip direction (now: ${this.reverse ? 'reverse' : 'forward'})`
+      flip.addEventListener('mousedown', (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+      })
+      flip.addEventListener('click', (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        if (done) return
+        done = true
+        const edge = findEdgeAt(view.state.doc.toString(), view.posAtDOM(wrap))
+        const change = edge ? flipDirection(edge) : null
+        view.focus()
+        if (change) view.dispatch({ changes: change })
+      })
+      pill.appendChild(flip)
+    }
+    wrap.appendChild(pill)
+    input.focus()
+    input.select()
   }
 
   override eq(other: LinkPillWidget): boolean {
@@ -488,159 +613,6 @@ class LinkPillWidget extends WidgetType {
       other.follow?.kind === this.follow?.kind &&
       other.follow?.target === this.follow?.target
     )
-  }
-}
-
-/**
- * The edge editor (CP-MVP-009 S05; S05c rebuilt on CM's tooltip system
- * after in-widget DOM mutation proved unmanageable): clicking the "+"
- * or a label chip dispatches openEdgeEditor; the tooltip renders a
- * pill-styled input AT the edge with the document vocabulary as a
- * datalist and ⇄ for typed edges. Enter commits (empty = remove,
- * leading ^ = reverse, keyup backstop for the datalist-popup case);
- * Esc or clicking away cancels. The edited position maps through any
- * doc change and closes if its edge disappears.
- */
-export const openEdgeEditor = StateEffect.define<{ start: number } | null>()
-
-export const edgeEditorField = StateField.define<{ start: number } | null>({
-  create: () => null,
-  update(value, tr) {
-    let next = value
-    if (next && tr.docChanged) {
-      next = { start: tr.changes.mapPos(next.start, 1) }
-    }
-    for (const effect of tr.effects) {
-      if (effect.is(openEdgeEditor)) next = effect.value
-    }
-    return next
-  },
-  provide: (field) =>
-    showTooltip.from(field, (value) => (value ? edgeEditorTooltip(value.start) : null))
-})
-
-function edgeEditorTooltip(start: number): Tooltip {
-  return {
-    pos: start,
-    above: true,
-    arrow: false,
-    create(view) {
-      const edge = findEdgeAt(view.state.doc.toString(), start)
-      const dom = document.createElement('div')
-      dom.className = 'edge-editor'
-      const close = (): void => {
-        view.dispatch({ effects: openEdgeEditor.of(null) })
-        view.focus()
-      }
-      if (!edge) {
-        queueMicrotask(close)
-        return { dom }
-      }
-      const decoration = edge.decoration
-      const kind =
-        edge.kind === 'wikilink' ? 'note' : (classifyLinkKind(edge.target) ?? 'note')
-      dom.classList.add(`edge-editor--${kind}`)
-
-      const listId = `edge-labels-${start}`
-      const datalist = document.createElement('datalist')
-      datalist.id = listId
-      for (const label of labelsInDoc(view.state.doc.toString())) {
-        const option = document.createElement('option')
-        option.value = label
-        datalist.appendChild(option)
-      }
-      dom.appendChild(datalist)
-
-      const input = document.createElement('input')
-      input.className = 'pill-input'
-      input.setAttribute('list', listId)
-      input.placeholder = 'label (^ = reverse)'
-      input.setAttribute('aria-label', 'edge label')
-      input.value = decoration ? `${decoration.reverse ? '^' : ''}${decoration.label}` : ''
-      let done = false
-      const commit = (): void => {
-        if (done) return
-        done = true
-        const current = findEdgeAt(view.state.doc.toString(), start)
-        if (!current) return close()
-        const raw = input.value.trim()
-        const reverse = raw.startsWith('^')
-        const label = normalizeLabel(reverse ? raw.slice(1) : raw)
-        let change = null
-        if (current.decoration === null) {
-          change = addLabel(current, label, reverse)
-        } else if (label.length > 0 && reverse !== current.decoration.reverse) {
-          const brace = `{${current.decoration.reverse ? '^' : ''}${current.decoration.label}}`
-          change = {
-            from: current.end - brace.length,
-            to: current.end,
-            insert: `{${reverse ? '^' : ''}${label}}`
-          }
-        } else {
-          change = editLabel(current, label)
-        }
-        view.dispatch({ effects: openEdgeEditor.of(null) })
-        if (change) view.dispatch({ changes: change })
-        requestAnimationFrame(() => view.focus())
-      }
-      input.addEventListener('keydown', (event) => {
-        event.stopPropagation()
-        if (event.key === 'Enter') {
-          event.preventDefault()
-          commit()
-        } else if (event.key === 'Escape') {
-          event.preventDefault()
-          done = true
-          close()
-        }
-      })
-      // Backstop: with the datalist popup open, Chrome delivers no
-      // Enter KEYDOWN — the keyup still arrives.
-      input.addEventListener('keyup', (event) => {
-        event.stopPropagation()
-        if (event.key === 'Enter') commit()
-      })
-      input.addEventListener('blur', () => {
-        if (!done) {
-          done = true
-          // let a click on ⇄ land before closing
-          window.setTimeout(() => {
-            if (view.state.field(edgeEditorField, false)) close()
-          }, 150)
-        }
-      })
-      dom.appendChild(input)
-
-      if (decoration) {
-        const flip = document.createElement('button')
-        flip.type = 'button'
-        flip.className = 'pill-flip'
-        flip.textContent = '⇄'
-        flip.title = `flip direction (now: ${decoration.reverse ? 'reverse' : 'forward'})`
-        flip.addEventListener('mousedown', (event) => {
-          event.preventDefault()
-          event.stopPropagation()
-        })
-        flip.addEventListener('click', (event) => {
-          event.preventDefault()
-          event.stopPropagation()
-          done = true
-          const current = findEdgeAt(view.state.doc.toString(), start)
-          const change = current ? flipDirection(current) : null
-          view.dispatch({ effects: openEdgeEditor.of(null) })
-          if (change) view.dispatch({ changes: change })
-          requestAnimationFrame(() => view.focus())
-        })
-        dom.appendChild(flip)
-      }
-      return {
-        dom,
-        mount() {
-          input.focus()
-          input.select()
-        }
-      }
-    }
   }
 }
 
@@ -1062,7 +1034,7 @@ export function livePreview(options?: {
   notePath?: string
 }): Extension {
   const follow = options?.onFollowLink
-  const extensions: Extension[] = [livePreviewField, edgeEditorField]
+  const extensions: Extension[] = [livePreviewField]
   if (follow || options?.onFollowRel) {
     extensions.push(
       edgeFollowFacet.of({

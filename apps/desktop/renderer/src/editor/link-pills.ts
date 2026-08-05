@@ -111,3 +111,47 @@ export function decorateWikiLinks(
     )
   })
 }
+
+/** Kebab label → human words ("repose-sur" → "repose sur") for the
+ *  graph-relation sentence (S05d owner vision: hovering the in-pill
+ *  graph icon reads "L'ethos repose sur la fiabilité"). */
+export function humanizeLabel(label: string): string {
+  return label.replace(/-/g, ' ')
+}
+
+/** The relation as a sentence: subject → label → target, reversed for
+ *  `{^label}` edges. */
+export function edgeSentence(
+  subject: string,
+  label: string,
+  target: string,
+  reverse: boolean
+): string {
+  const human = humanizeLabel(label)
+  return reverse
+    ? `${target} ${human} ${subject}`
+    : `${subject} ${human} ${target}`
+}
+
+const EDGE_MARK_RE =
+  /(<a [^>]*class="link-pill[^>]*>)([^<]*)(<span class="edge-mark[^"]*" data-edge-label="([^"]*)"(?:( data-edge-rev="1"))? title=")[^"]*(")/g
+
+/** Post-render title upgrade for the in-pill graph marks: the factory
+ *  emits "⟶ label"; a surface that knows the SUBJECT (the note being
+ *  rendered) rewrites it into the full relation sentence
+ *  ("L'ethos repose sur fiabilité"). String-swap idiom like the
+ *  wikilink pass. */
+export function decorateEdgeMarks(html: string, subject: string): string {
+  return html.replace(
+    EDGE_MARK_RE,
+    (_whole, open: string, text: string, markOpen: string, label: string, rev: string | undefined, closeQuote: string) => {
+      const sentence = edgeSentence(
+        subject,
+        unescapeHtml(label),
+        unescapeHtml(text),
+        rev !== undefined
+      )
+      return `${open}${text}${markOpen}${escapeAttr(sentence)}${closeQuote}`
+    }
+  )
+}

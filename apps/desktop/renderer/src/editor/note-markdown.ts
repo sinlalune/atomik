@@ -113,8 +113,9 @@ function semanticEdges(md: MarkdownIt): void {
       open.attrSet('data-wiki', match.target)
       const text = state.push('text', '', 0)
       text.content = match.target
-      state.push('link_close', 'a', -1)
+      // the graph mark lives INSIDE the pill (S05d owner correction)
       if (match.decoration) pushChip(state, match.decoration)
+      state.push('link_close', 'a', -1)
     }
     state.pos += match.length
     return true
@@ -130,17 +131,31 @@ function semanticEdges(md: MarkdownIt): void {
     if (!last || last.type !== 'link_close') return false
     const deco = matchDecorationAt(state.src, state.pos)
     if (!deco) return false
-    if (!silent) pushChip(state, { label: deco.label, reverse: deco.reverse })
+    if (!silent) {
+      // re-open the just-closed anchor so the graph mark renders
+      // INSIDE the pill (S05d owner correction: nothing sits beside
+      // the pill — the mark is part of it)
+      const close = state.tokens.pop()!
+      pushChip(state, { label: deco.label, reverse: deco.reverse })
+      state.tokens.push(close)
+    }
     state.pos += deco.length
     return true
   })
 
+  // The typed-edge GRAPH MARK (S05d, owner vision: "a labelized
+  // version of the graph relation … on hovering an in-pills graph
+  // link icon"): a small icon inside the pill; its title reads the
+  // relation as a sentence. The factory only knows label + target —
+  // surfaces with the subject (useVaultNote, live) upgrade the title
+  // to "subject label target" via decorateEdgeMarks.
   md.renderer.rules['edge_chip'] = (tokens, idx) => {
     const { label, reverse } = tokens[idx]!.meta as EdgeDecoration
     const escaped = md.utils.escapeHtml(label)
-    return `<span class="edge-chip${reverse ? ' edge-chip--rev' : ''}" title="${
-      reverse ? 'reverse edge: ' : 'edge: '
-    }${escaped}">${escaped}</span>`
+    const human = md.utils.escapeHtml(label.replace(/-/g, ' '))
+    return `<span class="edge-mark${reverse ? ' edge-mark--rev' : ''}" data-edge-label="${escaped}"${
+      reverse ? ' data-edge-rev="1"' : ''
+    } title="${reverse ? '⟵' : '⟶'} ${human}"></span>`
   }
 
   md.renderer.rules['link_open'] = (tokens, idx, options, _env, self) => {

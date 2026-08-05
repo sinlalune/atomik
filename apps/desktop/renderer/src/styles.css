@@ -2530,7 +2530,7 @@ body[data-maximized] .tabstrip {
    view shows through the lp-* classes. */
 .editor-host.live
   .cm-line:not(.lp-fence)
-  :where(span:not(.link-pill):not(.edge-chip)) {
+  :where(span:not(.link-pill):not(.edge-mark)) {
   color: inherit;
   font-weight: inherit;
   font-style: inherit;
@@ -3052,26 +3052,34 @@ body[data-maximized] .tabstrip {
 .link-pill--media::before { mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%222.5%22%20y%3D%223.5%22%20width%3D%2211%22%20height%3D%229%22%20rx%3D%221%22%2F%3E%3Ccircle%20cx%3D%226%22%20cy%3D%226.8%22%20r%3D%221%22%2F%3E%3Cpath%20d%3D%22m4.2%2012%203-3%202%202%202.4-2.4%202%202%22%2F%3E%3C%2Fsvg%3E"); }
 .link-pill--source::before { mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M2.5%205V3.5a1%201%200%200%201%201-1H5%22%2F%3E%3Cpath%20d%3D%22M11%202.5h1.5a1%201%200%200%201%201%201V5%22%2F%3E%3Cpath%20d%3D%22M13.5%2011v1.5a1%201%200%200%201-1%201H11%22%2F%3E%3Cpath%20d%3D%22M5%2013.5H3.5a1%201%200%200%201-1-1V11%22%2F%3E%3Cline%20x1%3D%225%22%20y1%3D%228%22%20x2%3D%2211%22%20y2%3D%228%22%2F%3E%3C%2Fsvg%3E"); }
 
-/* Typed-edge label chip (ADR-011): the {label} rendered right after
-   its link — quiet, hover spells the direction. */
-.markdown-body .edge-chip,
-.cm-content .edge-chip {
+/* Typed-edge GRAPH MARK (S05d owner vision): a small graph glyph
+   INSIDE the pill; hovering it reads the relation as a sentence
+   ("L'ethos repose sur fiabilité"); in the editor, clicking it opens
+   the in-pill editor. */
+.markdown-body .edge-mark,
+.cm-content .edge-mark {
   display: inline-block;
-  margin-left: 0.2em;
-  padding: 0 0.45em;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  background: var(--code-bg);
-  color: var(--muted);
-  font-size: 0.72em;
-  line-height: 1.6;
-  vertical-align: middle;
+  flex: none;
+  width: 0.85em;
+  height: 0.85em;
+  margin-left: 0.3em;
+  padding: 0;
+  border: none;
+  background: currentColor;
+  opacity: 0.7;
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%3E%3Ccircle%20cx%3D%224%22%20cy%3D%2211.5%22%20r%3D%222.1%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%224.5%22%20r%3D%222.1%22%2F%3E%3Cline%20x1%3D%225.7%22%20y1%3D%2210%22%20x2%3D%2210.3%22%20y2%3D%226%22%2F%3E%3C%2Fsvg%3E");
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
 }
 
-.markdown-body .edge-chip--rev::before,
-.cm-content .edge-chip--rev::before {
-  content: '⇄ ';
-  opacity: 0.8;
+.cm-content .edge-mark {
+  cursor: pointer;
+}
+
+.markdown-body .edge-mark:hover,
+.cm-content .edge-mark:hover {
+  opacity: 1;
 }
 
 /* Edge authoring on the pill (CP-MVP-009 S05, live editor only — read
@@ -3079,17 +3087,6 @@ body[data-maximized] .tabstrip {
    happens in the editor). The chip is the edit door; untyped pills
    grow a hover "+"; the input WIDENS the pill temporarily (owner
    vision verbatim). */
-.cm-content .edge-chip--editable {
-  font: inherit;
-  font-size: 0.72em;
-  cursor: pointer;
-}
-
-.cm-content .edge-chip--editable:hover {
-  color: var(--fg);
-  border-color: var(--accent);
-}
-
 .cm-content .link-pill .pill-add {
   font: inherit;
   font-size: 0.85em;
@@ -3112,58 +3109,39 @@ body[data-maximized] .tabstrip {
   opacity: 1;
 }
 
-/* The edge editor tooltip (S05c: CM-native, rendered at the pill —
-   widget DOM is never mutated): a pill-shaped floating input in the
-   edge's kind color, ⇄ beside it for typed edges. */
-.cm-tooltip:has(> .edge-editor) {
-  border: none;
-  background: none;
+/* The pill WIDENS for editing (S05d: owner vision restored — the
+   input and ⇄ live INSIDE the pill; safe again since the S05c
+   nested-decoration fix). */
+.cm-content .link-pill.link-pill--editing {
+  border-color: var(--pill-kind);
 }
 
-.edge-editor {
-  --pill-kind: var(--kind-note);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2em;
-  padding: 0.1rem 0.55rem;
-  border: 1px solid var(--pill-kind);
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--pill-kind) 16%, var(--surface));
-  box-shadow: var(--shadow-pop, 0 4px 14px rgb(0 0 0 / 0.18));
-}
-
-.edge-editor--folder { --pill-kind: var(--kind-folder); }
-.edge-editor--chat { --pill-kind: var(--kind-chat); }
-.edge-editor--prompt { --pill-kind: var(--kind-prompt); }
-.edge-editor--pdf,
-.edge-editor--pdf-anchor { --pill-kind: var(--kind-pdf); }
-.edge-editor--web { --pill-kind: var(--kind-web); }
-.edge-editor--capture,
-.edge-editor--media { --pill-kind: var(--kind-capture); }
-.edge-editor--source { --pill-kind: var(--kind-source); }
-
-.edge-editor .pill-input {
+.cm-content .link-pill--editing .pill-input {
   font: inherit;
-  font-size: var(--fs-sm);
-  width: 11em;
+  font-size: 0.9em;
+  width: 10em;
+  margin-left: 0.3em;
+  padding: 0;
   border: none;
   background: transparent;
   color: var(--fg);
   outline: none;
 }
 
-.edge-editor .pill-flip {
+.cm-content .link-pill--editing .pill-flip {
   font: inherit;
-  font-size: var(--fs-sm);
-  padding: 0 0.2em;
+  font-size: 0.85em;
+  line-height: 1.1;
+  margin-left: 0.1em;
+  padding: 0 0.15em;
   border: none;
   background: none;
-  color: color-mix(in srgb, var(--pill-kind) 70%, var(--fg));
-  opacity: 0.85;
+  color: inherit;
+  opacity: 0.8;
   cursor: pointer;
 }
 
-.edge-editor .pill-flip:hover {
+.cm-content .link-pill--editing .pill-flip:hover {
   opacity: 1;
 }
 

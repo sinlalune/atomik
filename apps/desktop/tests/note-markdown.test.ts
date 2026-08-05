@@ -73,29 +73,33 @@ describe('noteMarkdown — semantic edges (CP-MVP-009 S03, ADR-011)', () => {
     expect(html).toContain('>attention</a>')
   })
 
-  it('renders a typed wikilink with its label chip', () => {
+  it('renders a typed wikilink with the graph mark INSIDE the pill', () => {
     const html = md.render('[[attention]]{normalizes}')
-    expect(html).toContain('<span class="edge-chip" title="edge: normalizes">normalizes</span>')
+    expect(html).toContain('data-edge-label="normalizes"')
+    expect(html).toContain('⟶ normalizes')
+    // inside the anchor, not beside it
+    expect(html).toMatch(/<a [^>]*>attention<span class="edge-mark"[^>]*><\/span><\/a>/)
     // the raw decoration never leaks as prose
     expect(html).not.toContain('{normalizes}')
   })
 
   it('renders the reverse marker on {^label}', () => {
     const html = md.render('[[attention]]{^part-of}')
-    expect(html).toContain('class="edge-chip edge-chip--rev"')
-    expect(html).toContain('title="reverse edge: part-of"')
+    expect(html).toContain('class="edge-mark edge-mark--rev"')
+    expect(html).toContain('data-edge-rev="1"')
+    expect(html).toContain('⟵ part of')
   })
 
   it('adjacency is strict: a spaced brace group stays prose', () => {
     const html = md.render('[[attention]] {normalizes}')
-    expect(html).not.toContain('edge-chip')
+    expect(html).not.toContain('edge-mark')
     expect(html).toContain('{normalizes}')
   })
 
-  it('decorates a standard md link with a chip and kind class', () => {
+  it('decorates a standard md link with an in-pill mark and kind class', () => {
     const html = md.render('[paper](sources/pdf/att/source.md){grounded-at}')
     expect(html).toContain('link-pill--pdf')
-    expect(html).toContain('>grounded-at</span>')
+    expect(html).toMatch(/<a [^>]*>paper<span class="edge-mark"[^>]*><\/span><\/a>/)
     expect(html).not.toContain('{grounded-at}')
   })
 
@@ -114,7 +118,7 @@ describe('noteMarkdown — semantic edges (CP-MVP-009 S03, ADR-011)', () => {
   it('invalid decorations stay prose: {<x}, {Part Of}, {.attr}', () => {
     for (const bad of ['{<x}', '{Part Of}', '{.attr}']) {
       const html = md.render(`[[a]]${bad}`)
-      expect(html).not.toContain('edge-chip')
+      expect(html).not.toContain('edge-mark')
     }
   })
 
