@@ -405,9 +405,13 @@ class LinkPillWidget extends WidgetType {
       const target = this.follow
       pill.addEventListener('mousedown', (event) => {
         if (event.button !== 0) return
+        // hash/mailto have no follow action — leave the click to CM
+        // (cursor placement = edit), never a consumed no-op (S04d)
+        if (target.kind === 'href' && /^(mailto:|#)/.test(target.target)) return
         const handlers = view.state.facet(edgeFollowFacet)
         if (!handlers) return
         event.preventDefault()
+        event.stopPropagation()
         if (target.kind === 'rel') handlers.rel(target.target)
         else handlers.href(target.target)
       })

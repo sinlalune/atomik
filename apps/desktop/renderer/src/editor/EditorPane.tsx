@@ -67,7 +67,7 @@ import {
 } from './live-preview'
 import { ModeSwitch } from './ModeSwitch'
 import { linkableNotesOf, quickActions } from './quick-actions'
-import { hasMediaResource } from '../source/dossier'
+import { hasMediaResource, isMediaFilePath } from '../source/dossier'
 
 /** Auto mode saves this long after the last keystroke. */
 const AUTOSAVE_DELAY_MS = 800
@@ -157,6 +157,9 @@ export type EditorPaneProps = {
   onNoteCreated?: (relPath: string) => void
   /** Ctrl/Cmd+click on an internal link in live mode opens it here. */
   onFollowLink?: (relPath: string) => void
+  /** How EXTERNAL http(s) links open (S04d: live pills follow like
+   *  read — the web is one tab away). Absent → the click stays inert. */
+  onOpenWebUrl?: (url: string) => void
   /** 'auto' (default): debounced saves + flush on leave; 'manual': S07. */
   saveMode?: SaveMode
   onSaveModeToggle?: () => void
@@ -201,6 +204,7 @@ export function EditorPane({
   onModeChange,
   onNoteCreated,
   onFollowLink,
+  onOpenWebUrl,
   saveMode = 'auto',
   onSaveModeToggle,
   nav,
@@ -327,21 +331,46 @@ export function EditorPane({
     }
   }, [applyConflict, markDirty, note.relPath, onSaved])
 
-  // Ctrl/Cmd+click follow: the extension reports the raw href; resolve
-  // it against this note and let the host open vault-internal targets.
-  // External schemes stay inert until a vetted opener exists (13).
+  // Link follow (Ctrl+click AND pill left-click, S04c/d): the raw href
+  // resolves against this note and routes like READ's click router —
+  // externals to the web tab, pdf/media originals to their dossier,
+  // notes to the host. The S04c version silently dropped everything
+  // but .md AFTER consuming the click ("nothing happens", owner bench
+  // round 3) — every pill target now either navigates or falls back.
   const onFollowLinkRef = useRef(onFollowLink)
   useEffect(() => {
     onFollowLinkRef.current = onFollowLink
   }, [onFollowLink])
+  const onOpenWebUrlRef = useRef(onOpenWebUrl)
+  useEffect(() => {
+    onOpenWebUrlRef.current = onOpenWebUrl
+  }, [onOpenWebUrl])
+  const onOpenSourceImageRef = useRef(onOpenSourceImage)
+  useEffect(() => {
+    onOpenSourceImageRef.current = onOpenSourceImage
+  }, [onOpenSourceImage])
   const followHref = useCallback(
     (href: string) => {
-      if (/^(https?:|mailto:|#)/.test(href)) return
+      if (/^https?:/i.test(href)) {
+        onOpenWebUrlRef.current?.(href)
+        return
+      }
+      if (/^(mailto:|#)/.test(href)) return
       const pathPart = decodeURIComponent(href.split('#')[0] ?? '')
       const rel = resolveRelativePath(note.relPath, pathPart)
-      if (rel && rel.toLowerCase().endsWith('.md')) {
-        onFollowLinkRef.current?.(rel)
+      if (!rel) return
+      const lower = rel.toLowerCase()
+      if (lower.endsWith('.pdf') || isMediaFilePath(rel)) {
+        const dossierRel = rel.replace(/[^/]+$/, 'source.md')
+        if (onOpenSourceImageRef.current) onOpenSourceImageRef.current(dossierRel)
+        else onFollowLinkRef.current?.(dossierRel)
+        return
       }
+      if (lower.endsWith('/source.md') && onOpenSourceImageRef.current) {
+        onOpenSourceImageRef.current(rel)
+        return
+      }
+      if (lower.endsWith('.md')) onFollowLinkRef.current?.(rel)
     },
     [note.relPath]
   )

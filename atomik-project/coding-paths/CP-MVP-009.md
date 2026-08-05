@@ -363,7 +363,32 @@ changed(S04c): owner bench round 2 ("in read i dont see different
               Pin: left-click hello → note-bar switches to
               chats/2026-08-04/hello.md; right-click → raw
               [[hello]] revealed; colors measured distinct.
-tests       : 683→684/58; typecheck + build green (gates bare).
+tests(S04c) : 683→684/58; typecheck + build green (gates bare).
+changed(S04d): owner bench round 3 ("still not the same colors
+              between two modes (pills bg and text)" + "when click
+              on during live mode nothing happen") — BOTH REAL, both
+              found by door audit + measured pin, both fixed:
+              (1) TEXT color: live's token neutralizer
+              (.cm-line :where(span) { color: inherit }, an 0-4-0
+              rule) beat the pill recipe — pills/chips now exempted
+              inside the :where (zero specificity kept); (2) BG:
+              pill background mixed against TRANSPARENT, so it
+              composited differently per host surface — now mixes
+              against --surface (opaque, identical everywhere);
+              PARITY MEASURED EXACT (color/bg/border byte-identical
+              read↔live, same pill); (3) CLICK: the S04c router
+              consumed the click then silently dropped every
+              non-.md target — external/web pills did literally
+              nothing; followHref now routes like READ's click
+              router: https → onOpenWebUrl NEW prop (both hosts
+              wire it — web pill click opens the web tab, probed
+              7→9 tabs with example.org), .pdf/media originals →
+              their dossier via onOpenSourceImage, source.md →
+              source view, .md → host open; hash/mailto skip
+              preventDefault (cursor placement, never a consumed
+              no-op); Ctrl+click inherits the same router.
+tests       : 684/58 unchanged; typecheck + build green (gates
+              bare); parity + web-click pins probed + shot.
 next action : S05 edge authoring on the pill — the "+" affordance
               (widening input, owner vision), edit label, ⇄ flip,
               delete; full lifecycle (03), each gesture one clean

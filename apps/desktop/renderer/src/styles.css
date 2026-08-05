@@ -2528,7 +2528,9 @@ body[data-maximized] .tabstrip {
    style, and decoration on every span outside fenced code (nested code
    keeps its real highlighting), then re-assert exactly what the READ
    view shows through the lp-* classes. */
-.editor-host.live .cm-line:not(.lp-fence) :where(span) {
+.editor-host.live
+  .cm-line:not(.lp-fence)
+  :where(span:not(.link-pill):not(.edge-chip)) {
   color: inherit;
   font-weight: inherit;
   font-style: inherit;
@@ -2990,7 +2992,7 @@ body[data-maximized] .tabstrip {
   padding: 0 0.45em;
   border: 1px solid color-mix(in srgb, var(--pill-kind) 65%, var(--border));
   border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--pill-kind) 16%, transparent);
+  background: color-mix(in srgb, var(--pill-kind) 16%, var(--surface));
   color: color-mix(in srgb, var(--pill-kind) 82%, var(--fg));
   text-decoration: none;
   line-height: 1.45;
@@ -2999,7 +3001,7 @@ body[data-maximized] .tabstrip {
 
 .markdown-body a.link-pill:hover {
   border-color: var(--pill-kind);
-  background: color-mix(in srgb, var(--pill-kind) 26%, transparent);
+  background: color-mix(in srgb, var(--pill-kind) 26%, var(--surface));
 }
 
 .markdown-body a.link-pill::before,

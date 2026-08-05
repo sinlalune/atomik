@@ -217,6 +217,7 @@ export function VaultView({
             onModeChange={onModeChange}
             onNoteCreated={guardedOpen}
             onFollowLink={guardedOpen}
+            onOpenWebUrl={onOpenWebUrl}
             saveMode={saveMode}
             onSaveModeToggle={onSaveModeToggle}
           />
