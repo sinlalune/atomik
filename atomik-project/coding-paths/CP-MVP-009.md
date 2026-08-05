@@ -403,7 +403,27 @@ changed(S04e): owner bench round 4 (screenshots: "still not the same
               .link-pill:hover (probed: bg changes on mouseover).
               Version probe for the owner: hover tooltip says
               "— right-click to edit" only on current code.
-tests       : 684/58 unchanged; typecheck + build green.
+tests(S04e) : 684/58 unchanged; typecheck + build green.
+changed(S04f): owner bench round 5 ("im not stupid, i restart server
+              everytime, the problems are still here") — the owner
+              was RIGHT: real bug found by finally reading their
+              actual note. Their links are ANGLE-BRACKETED
+              ([t](<path>)) — the form the app's own @ menu inserts;
+              markdown-it (read) unwraps <> per CommonMark, but
+              edge-grammar kept them raw, so LIVE misclassified
+              those pills (kind fell through to note — the owner's
+              "some links wrong bg") AND the click router got a
+              garbage path (resolveRelativePath null — the owner's
+              "click does nothing"). FIX in the ONE grammar module
+              (matchMdLinkAt unwraps wrapping <>), every consumer
+              inherits; +4 unit tests (angle path, accents, spaces,
+              decoration after). VERIFIED AGAINST THE OWNER'S REAL
+              VAULT (isolated state/user-data dirs, vault untouched):
+              L'ethos.md live pills = note/note/web/CHAT, click on
+              the hello pill navigates to the chat. LESSON recorded:
+              pin fixtures must include the @ menu's actual insert
+              form, not hand-typed ideals.
+tests       : 684→688/58; typecheck + build green (gates bare).
 next action : S05 edge authoring on the pill — the "+" affordance
               (widening input, owner vision), edit label, ⇄ flip,
               delete; full lifecycle (03), each gesture one clean

@@ -182,9 +182,13 @@ function scanLine(line: string, lineNo: number, lineOffset: number, out: ParsedE
 }
 
 /** Parse a standard md link `[text](href)` (with optional immediate
- *  decoration) starting exactly at `pos`. Nested brackets in the text
- *  are not supported (documented limitation, consistent with the
- *  grammar's no-newline rule). */
+ *  decoration) starting exactly at `pos`. Angle-bracketed destinations
+ *  (`[t](<path>)`— the form the app's own @ menu inserts) are unwrapped
+ *  exactly like markdown-it does, so every grammar consumer sees the
+ *  same target as the read renderer (owner bench round 5: kept-raw
+ *  brackets misclassified live pills and broke their clicks). Nested
+ *  brackets in the text are not supported (documented limitation,
+ *  consistent with the grammar's no-newline rule). */
 export function matchMdLinkAt(
   src: string,
   pos: number
@@ -196,8 +200,11 @@ export function matchMdLinkAt(
   if (text.includes('\n') || text.includes('[')) return null
   const closeHref = src.indexOf(')', closeText + 2)
   if (closeHref < 0) return null
-  const target = src.slice(closeText + 2, closeHref)
+  let target = src.slice(closeText + 2, closeHref)
   if (target.includes('\n') || target.includes('(')) return null
+  if (target.startsWith('<') && target.endsWith('>')) {
+    target = target.slice(1, -1)
+  }
   let length = closeHref + 1 - pos
   let decoration: EdgeDecoration | null = null
   const deco = matchDecorationAt(src, pos + length)

@@ -160,3 +160,27 @@ describe('parseEdges (document scan)', () => {
     })
   })
 })
+
+describe('angle-bracketed destinations (owner bench round 5 — the @ menu form)', () => {
+  it('unwraps <path> exactly like the read renderer', () => {
+    const m = matchMdLinkAt('[2026-07-24-hello](<chats/2026-07-24-hello.md>)', 0)
+    expect(m?.target).toBe('chats/2026-07-24-hello.md')
+    expect(m?.length).toBe('[2026-07-24-hello](<chats/2026-07-24-hello.md>)'.length)
+  })
+
+  it('unwraps accented and spaced destinations', () => {
+    expect(matchMdLinkAt('[c](<crédibilité.md>)', 0)?.target).toBe('crédibilité.md')
+    expect(matchMdLinkAt('[a](<my note.md>)', 0)?.target).toBe('my note.md')
+  })
+
+  it('keeps decorations working after an angle-bracketed link', () => {
+    const m = matchMdLinkAt('[c](<crédibilité.md>){definit}', 0)
+    expect(m?.target).toBe('crédibilité.md')
+    expect(m?.decoration).toEqual({ label: 'definit', reverse: false })
+  })
+
+  it('parseEdges carries the unwrapped target', () => {
+    const edges = parseEdges('[h](<chats/2026-07-24-hello.md>)\nnext')
+    expect(edges[0]?.target).toBe('chats/2026-07-24-hello.md')
+  })
+})
