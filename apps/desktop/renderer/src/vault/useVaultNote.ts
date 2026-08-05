@@ -7,7 +7,12 @@ import { applyRotation } from '../source/rotate'
 import { pdfPageTarget, setPendingPdfPage } from '../source/pdf-open'
 import { inlineImageSources, vaultImageSources } from './note-images'
 import { getCachedImage, isCachedDataUrl, setCachedImage } from './image-cache'
-import { decorateEdgeMarks, decorateWikiLinks, resolveWikiTarget } from '../editor/link-pills'
+import {
+  decorateEdgeMarks,
+  decorateWikiLinks,
+  firstHeadingOf,
+  resolveWikiTarget
+} from '../editor/link-pills'
 import { linkableNotesOf } from '../editor/quick-actions'
 
 /**
@@ -88,8 +93,12 @@ export function useVaultNote(
     if (!note) return ''
     const html = md.render(stripFrontmatter(note.content))
     // The graph marks read as a sentence with THIS note as subject
-    // (S05d): "L'ethos repose sur fiabilité" on hover.
-    const subject = (note.relPath.split('/').pop() ?? '').replace(/\.md$/i, '')
+    // (S05d): "L'ethos repose sur fiabilité" on hover. The subject is
+    // the note's H1 when it has one (S05e), else the filename stem.
+    const body = stripFrontmatter(note.content)
+    const subject =
+      firstHeadingOf(body) ??
+      (note.relPath.split('/').pop() ?? '').replace(/\.md$/i, '')
     return html.includes('edge-mark') ? decorateEdgeMarks(html, subject) : html
   }, [note, md])
 

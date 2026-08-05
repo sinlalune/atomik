@@ -21,6 +21,7 @@ import type { AtomikApi } from '../../../shared/ipc-contract'
 import {
   classifyLinkKind,
   edgeSentence,
+  firstHeadingOf,
   resolveWikiTarget,
   type LinkKind,
   type WikiCandidate
@@ -402,6 +403,11 @@ class LinkPillWidget extends WidgetType {
   }
 
   private subjectOf(view: EditorView): string {
+    // H1 first (S05e owner: the note's real name), filename fallback.
+    const text = view.state.doc.toString()
+    const body = text.slice(frontmatterEnd(view.state))
+    const heading = firstHeadingOf(body)
+    if (heading) return heading
     const notePath = view.state.facet(notePathFacet)
     return (notePath?.split('/').pop() ?? '').replace(/\.md$/i, '') || 'this note'
   }

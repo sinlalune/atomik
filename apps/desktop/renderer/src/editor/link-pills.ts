@@ -155,3 +155,13 @@ export function decorateEdgeMarks(html: string, subject: string): string {
     }
   )
 }
+
+/** The note's REAL name for graph sentences (S05e owner: "utiliser
+ *  les titres 1 de note (#) plutôt que le nom de fichier"): the first
+ *  H1 when the note has one, else null (caller falls back to the
+ *  filename stem). Target-side H1s ride the S06 index (its node
+ *  records carry `title`). */
+export function firstHeadingOf(content: string): string | null {
+  const match = /^#[ \t]+(.+?)[ \t]*$/m.exec(content)
+  return match ? match[1]! : null
+}

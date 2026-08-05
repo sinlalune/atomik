@@ -524,6 +524,15 @@ changed(S05d): owner bench round 8 ("we lost the original need of
               IDENTICAL by pin, full add/edit/esc cycle re-driven
               with real keys on the deterministic fixture.
 tests(S05d) : 700/60 unchanged; typecheck + build green.
+changed(S05e): owner bench round 9 ("peut être utilisé les titres 1
+              de note (#) plutôt que le nom de fichier pour les
+              labels ?") — the sentence SUBJECT is now the note's
+              FIRST H1 when present (firstHeadingOf, frontmatter
+              skipped), filename stem as fallback — both surfaces
+              ("Pin note repose sur Attention", pin-verified).
+              TARGET-side H1s need the other file's content — rides
+              the S06 index (node records already pin `title`).
+tests(S05e) : 700→702/60; typecheck + build green.
               OWNER VALIDATION (2026-08-05, verbatim): "YES I LOVE
               U IT WORKS perfectly" — bench rounds 1–5 closed; the
               S03/S04 rendering + interaction surface is

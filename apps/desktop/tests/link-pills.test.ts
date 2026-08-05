@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import {
   classifyLinkKind,
   decorateWikiLinks,
+  firstHeadingOf,
   resolveWikiTarget
 } from '../renderer/src/editor/link-pills'
 import { noteMarkdown } from '../renderer/src/editor/note-markdown'
@@ -92,5 +93,17 @@ describe('decorateWikiLinks', () => {
   it('leaves md-link pills untouched', () => {
     const html = md.render('[paper](x/source.md)')
     expect(decorateWikiLinks(html, () => null)).toBe(html)
+  })
+})
+
+describe('firstHeadingOf (S05e: H1 over filename in graph sentences)', () => {
+  it('finds the first H1', () => {
+    expect(firstHeadingOf("# L'ethos\n\nbody")).toBe("L'ethos")
+    expect(firstHeadingOf('intro\n\n# Real Title \nrest')).toBe('Real Title')
+  })
+
+  it('ignores deeper headings and missing H1s', () => {
+    expect(firstHeadingOf('## Only h2\nbody')).toBeNull()
+    expect(firstHeadingOf('no headings at all')).toBeNull()
   })
 })
