@@ -14,6 +14,7 @@ import {
   resolveWikiTarget,
   wikiCandidatesFor
 } from '../editor/link-pills'
+import { resolveRelativeTarget } from '../../../shared/graph-core'
 
 /**
  * Shared note-reading logic for vault-backed views (VaultView,
@@ -135,10 +136,13 @@ export function useVaultNote(
           const subject =
             firstHeadingOf(body) ??
             (note.relPath.split('/').pop() ?? '').replace(/\.md$/i, '')
-          next = decorateEdgeMarks(next, subject, (targetText) => {
-            const rel = resolveWikiTarget(candidates, targetText)
-            if (!rel) return null
-            return index.nodes.find((n) => n.path === rel)?.title ?? null
+          const titleAt = (path: string): string | null =>
+            index.nodes.find((n) => n.path === path)?.title ?? null
+          next = decorateEdgeMarks(next, subject, ({ rel, href }) => {
+            if (rel) return titleAt(rel)
+            if (!href || /^(https?:|mailto:)/i.test(href)) return null
+            const resolved = resolveRelativeTarget(note.relPath, href)
+            return resolved ? titleAt(resolved) : null
           })
           apply(next)
         },

@@ -78,12 +78,27 @@ export function resolveWikiTarget(
 }
 
 /** The note's REAL name for graph sentences (S05e owner: "utiliser
- *  les titres 1 de note (#) plutôt que le nom de fichier"): the first
- *  H1 when the note has one, else null (caller falls back to the
- *  filename stem). */
+ *  les titres 1 de note (#) plutôt que le nom de fichier"): the H1
+ *  when the note has one, else its FIRST heading of any level (S06b:
+ *  the owner's generated notes open on `## Title` — the intent is
+ *  "the note's title", not the hash count), else null (caller falls
+ *  back to the filename stem). Headings inside fenced code are not
+ *  titles. */
 export function firstHeadingOf(content: string): string | null {
-  const match = /^#[ \t]+(.+?)[ \t]*$/m.exec(content)
-  return match ? match[1]! : null
+  let inFence = false
+  let firstAny: string | null = null
+  for (const line of content.split('\n')) {
+    if (/^\s*(```|~~~)/.test(line)) {
+      inFence = !inFence
+      continue
+    }
+    if (inFence) continue
+    const match = /^(#{1,6})[ \t]+(.+?)[ \t]*$/.exec(line)
+    if (!match) continue
+    if (match[1]!.length === 1) return match[2]!
+    if (firstAny === null) firstAny = match[2]!
+  }
+  return firstAny
 }
 
 const stemOf = (path: string): string =>
@@ -210,7 +225,7 @@ export function buildGraphIndex(files: readonly VaultFileInput[]): GraphIndex {
       if (parsed.kind === 'wikilink') {
         object = resolveWikiTarget(candidates, parsed.target)
       } else if (!external && !/^mailto:/i.test(parsed.target)) {
-        object = resolveRelative(file.path, parsed.target)
+        object = resolveRelativeTarget(file.path, parsed.target)
       }
       edges.push({
         subject: file.path,
@@ -241,8 +256,13 @@ export function buildGraphIndex(files: readonly VaultFileInput[]): GraphIndex {
 }
 
 /** Vault-relative resolution of an md-link href against its note —
- *  the read pipeline's rules: relative only, `..` never escapes. */
-function resolveRelative(notePath: string, href: string): string | null {
+ *  the read pipeline's rules: relative only, `..` never escapes.
+ *  Exported since S06b: graph sentences resolve md-link targets to
+ *  their node title the same way the index does. */
+export function resolveRelativeTarget(
+  notePath: string,
+  href: string
+): string | null {
   const pathPart = href.split('#')[0] ?? ''
   let decoded = pathPart
   try {

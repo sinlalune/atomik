@@ -96,14 +96,23 @@ describe('decorateWikiLinks', () => {
   })
 })
 
-describe('firstHeadingOf (S05e: H1 over filename in graph sentences)', () => {
+describe('firstHeadingOf (S05e/S06b: the note TITLE, H1 preferred)', () => {
   it('finds the first H1', () => {
     expect(firstHeadingOf("# L'ethos\n\nbody")).toBe("L'ethos")
     expect(firstHeadingOf('intro\n\n# Real Title \nrest')).toBe('Real Title')
   })
 
-  it('ignores deeper headings and missing H1s', () => {
-    expect(firstHeadingOf('## Only h2\nbody')).toBeNull()
+  it('H1 wins over an earlier deeper heading', () => {
+    expect(firstHeadingOf('## Section\n\n# The Title\n')).toBe('The Title')
+  })
+
+  it('falls back to the first heading of any level (owner notes open on ##)', () => {
+    expect(firstHeadingOf("## L'ethos\n\nbody")).toBe("L'ethos")
+    expect(firstHeadingOf('### Deep\nbody')).toBe('Deep')
+  })
+
+  it('ignores headings inside fenced code, and reports none honestly', () => {
+    expect(firstHeadingOf('```\n# Not a title\n```\n\n## Real\n')).toBe('Real')
     expect(firstHeadingOf('no headings at all')).toBeNull()
   })
 })

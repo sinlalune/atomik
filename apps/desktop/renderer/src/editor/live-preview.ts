@@ -22,6 +22,7 @@ import {
   classifyLinkKind,
   edgeSentence,
   firstHeadingOf,
+  resolveRelativeTarget,
   resolveWikiTarget,
   type LinkKind,
   type WikiCandidate
@@ -406,7 +407,12 @@ class LinkPillWidget extends WidgetType {
     private readonly broken: boolean,
     private readonly label: string | null,
     private readonly reverse: boolean,
-    private readonly follow: EdgeFollowTarget
+    private readonly follow: EdgeFollowTarget,
+    /** The linked note's TITLE when the index resolved it (S06b) —
+     *  computed at DECORATION time and part of eq, so a widget whose
+     *  title changed (candidates arriving) is rebuilt instead of
+     *  reused with a stale sentence. */
+    private readonly targetTitle: string | null
   ) {
     super()
   }
@@ -492,15 +498,10 @@ class LinkPillWidget extends WidgetType {
       mark.className = `edge-mark${this.reverse ? ' edge-mark--rev' : ''}`
       // target side: the linked note's H1 when the index resolved it
       // (S06; candidates carry titles), else the typed text
-      const candidates = view.state.field(wikiCandidatesField, false)
-      const targetTitle =
-        (this.follow?.kind === 'rel'
-          ? candidates?.find((c) => c.relPath === this.follow?.target)?.title
-          : undefined) ?? this.text
       mark.title = edgeSentence(
         this.subjectOf(view),
         this.label,
-        targetTitle,
+        this.targetTitle ?? this.text,
         this.reverse
       )
       mark.addEventListener('mousedown', (event) => {
@@ -645,7 +646,8 @@ class LinkPillWidget extends WidgetType {
       other.label === this.label &&
       other.reverse === this.reverse &&
       other.follow?.kind === this.follow?.kind &&
-      other.follow?.target === this.follow?.target
+      other.follow?.target === this.follow?.target &&
+      other.targetTitle === this.targetTitle
     )
   }
 }
@@ -962,6 +964,7 @@ export function computeLivePreviewDecorations(
   // pill + chip. Wikilinks resolve against the host-fed candidates
   // (null = not loaded → neutral note pill, never a broken flash).
   const candidates = state.field(wikiCandidatesField, false) ?? null
+  const notePath = state.facet(notePathFacet)
   const edgeRanges: [number, number][] = []
   for (const edge of parseEdges(state.doc.toString())) {
     if (edge.start < fmEnd) continue
@@ -984,6 +987,20 @@ export function computeLivePreviewDecorations(
       follow = { kind: 'href', target: edge.target }
     }
     if (kind === null) continue
+    // The linked note's title for the relation sentence (S06b): wiki
+    // pills resolved above; md links resolve their href the way the
+    // index does. Computed HERE so it rides widget equality — a
+    // widget reused after candidates arrive kept a stale sentence.
+    let resolvedPath: string | null = null
+    if (edge.kind === 'wikilink') {
+      resolvedPath = follow?.kind === 'rel' ? follow.target : null
+    } else if (notePath && !/^(https?:|mailto:|#)/i.test(edge.target)) {
+      resolvedPath = resolveRelativeTarget(notePath, edge.target)
+    }
+    const targetTitle =
+      (resolvedPath
+        ? candidates?.find((c) => c.relPath === resolvedPath)?.title
+        : undefined) ?? null
     edgeRanges.push([edge.start, edge.end])
     decorations.push(
       Decoration.replace({
@@ -997,7 +1014,8 @@ export function computeLivePreviewDecorations(
           broken,
           edge.decoration?.label ?? null,
           edge.decoration?.reverse ?? false,
-          follow
+          follow,
+          targetTitle
         )
       }).range(edge.start, edge.end)
     )

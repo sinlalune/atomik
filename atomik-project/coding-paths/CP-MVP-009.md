@@ -573,6 +573,24 @@ tests       : 702→714/62; typecheck + build green (gates bare); dev
               written (101 nodes), read↔live sentences both
               "Pin note repose sur L'attention" (target H1), pill
               dropdown offering a label authored in ANOTHER note.
+changed(S06b): owner bench round 10 (screenshots: the sentence read
+              "L'ethos repose sur crédibilité" while the target note
+              is titled "La crédibilité") — TWO real gaps: (1) the
+              TITLE rule was H1-only, but the owner's generated notes
+              open on `## Titre` — firstHeadingOf now prefers H1 and
+              falls back to the FIRST heading of any level (fenced
+              code excluded); (2) target titles only resolved for
+              WIKI pills — md links (the owner's whole vault, @ menu
+              form) fell back to the pill text: decorateEdgeMarks now
+              reads the anchor's own data-rel/href and resolves it
+              through the index (resolveRelativeTarget exported from
+              the shared core), and live computes the title at
+              DECORATION time as part of widget equality (a widget
+              reused after candidates arrived kept a stale sentence —
+              caught by the pin, read was right while live was not).
+              Verified on a copy of the owner's real vault: both
+              surfaces read "L'ethos repose sur La crédibilité".
+tests(S06b) : 714→716/62; typecheck + build green.
 next action : S07 typed backlinks pane — per-note inbound edges from
               the index with inverse label rendering (pane state per
               03), counts, click navigates, honest empty state.

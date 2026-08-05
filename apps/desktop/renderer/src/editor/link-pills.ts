@@ -22,6 +22,7 @@ import { classifyLinkKind } from '../../../shared/graph-core'
 export {
   classifyLinkKind,
   firstHeadingOf,
+  resolveRelativeTarget,
   resolveWikiTarget,
   wikiCandidatesFor
 } from '../../../shared/graph-core'
@@ -85,31 +86,41 @@ export function edgeSentence(
 }
 
 const EDGE_MARK_RE =
-  /(<a [^>]*class="link-pill[^>]*>)([^<]*)(<span class="edge-mark[^"]*" data-edge-label="([^"]*)"(?:( data-edge-rev="1"))? title=")[^"]*(")/g
+  /(<a ([^>]*)class="link-pill[^>]*>)([^<]*)(<span class="edge-mark[^"]*" data-edge-label="([^"]*)"(?:( data-edge-rev="1"))? title=")[^"]*(")/g
+
+const attrOf = (tag: string, name: string): string | null => {
+  const match = new RegExp(`${name}="([^"]*)"`).exec(tag)
+  return match ? unescapeHtml(match[1]!) : null
+}
 
 /** Post-render title upgrade for the in-pill graph marks: the factory
  *  emits "⟶ label"; a surface that knows the SUBJECT (the note being
  *  rendered) rewrites it into the full relation sentence
- *  ("L'ethos repose sur fiabilité"). `titleOf` (S06) upgrades the
- *  TARGET side to the linked note's H1 when the index resolves it. */
+ *  ("L'ethos repose sur La crédibilité"). `titleOf` (S06/S06b) turns
+ *  the anchor's own target — `data-rel` for resolved wikilinks, the
+ *  raw `href` for md links — into the linked note's title through the
+ *  index; the visible pill text is only the last-resort fallback. */
 export function decorateEdgeMarks(
   html: string,
   subject: string,
-  titleOf?: (targetText: string) => string | null
+  titleOf?: (target: { rel: string | null; href: string | null }) => string | null
 ): string {
   return html.replace(
     EDGE_MARK_RE,
     (
       _whole,
       open: string,
+      attrs: string,
       text: string,
       markOpen: string,
       label: string,
       rev: string | undefined,
       closeQuote: string
     ) => {
-      const raw = unescapeHtml(text)
-      const target = titleOf?.(raw) ?? raw
+      const rel = attrOf(attrs, 'data-rel')
+      const href = attrOf(attrs, 'href')
+      const target =
+        titleOf?.({ rel, href: href === '#' ? null : href }) ?? unescapeHtml(text)
       const sentence = edgeSentence(
         subject,
         unescapeHtml(label),
