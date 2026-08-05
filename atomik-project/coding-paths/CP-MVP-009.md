@@ -423,7 +423,11 @@ changed(S04f): owner bench round 5 ("im not stupid, i restart server
               the hello pill navigates to the chat. LESSON recorded:
               pin fixtures must include the @ menu's actual insert
               form, not hand-typed ideals.
-tests       : 684→688/58; typecheck + build green (gates bare).
+tests(S04f) : 684→688/58; typecheck + build green (gates bare).
+              OWNER VALIDATION (2026-08-05, verbatim): "YES I LOVE
+              U IT WORKS perfectly" — bench rounds 1–5 closed; the
+              S03/S04 rendering + interaction surface is
+              owner-accepted on the live vault.
 next action : S05 edge authoring on the pill — the "+" affordance
               (widening input, owner vision), edit label, ⇄ flip,
               delete; full lifecycle (03), each gesture one clean
