@@ -14,7 +14,9 @@ import {
   type DecorationSet
 } from '@codemirror/view'
 import type { SyntaxNode } from '@lezer/common'
-import { parseEdges } from '../../../shared/edge-grammar'
+import { normalizeLabel, parseEdges } from '../../../shared/edge-grammar'
+import { addLabel, editLabel, findEdgeAt, flipDirection } from './edge-author'
+import { labelsInDoc } from './edge-complete'
 import type { AtomikApi } from '../../../shared/ipc-contract'
 import {
   classifyLinkKind,
@@ -393,6 +395,13 @@ class LinkPillWidget extends WidgetType {
 
   override toDOM(view: EditorView): HTMLElement {
     const wrap = document.createElement('span')
+    wrap.className = 'edge-widget'
+    this.renderBaseline(view, wrap)
+    return wrap
+  }
+
+  private renderBaseline(view: EditorView, wrap: HTMLElement): void {
+    wrap.textContent = ''
     const pill = document.createElement('span')
     pill.className = `link-pill link-pill--${this.kind}${
       this.broken ? ' link-pill--broken' : ''
@@ -421,19 +430,153 @@ class LinkPillWidget extends WidgetType {
     // click too, via CM's default cursor placement).
     pill.addEventListener('contextmenu', (event) => {
       event.preventDefault()
-      const pos = view.posAtDOM(pill)
+      const pos = view.posAtDOM(wrap)
       view.dispatch({ selection: { anchor: pos } })
       view.focus()
     })
     wrap.appendChild(pill)
     if (this.label !== null) {
-      const chip = document.createElement('span')
-      chip.className = `edge-chip${this.reverse ? ' edge-chip--rev' : ''}`
-      chip.title = `${this.reverse ? 'reverse edge: ' : 'edge: '}${this.label}`
+      // Typed: the chip IS the edit door (owner vision: "the label
+      // chip on the pill is the reverse gesture" family) — click
+      // widens into the input.
+      const chip = document.createElement('button')
+      chip.type = 'button'
+      chip.className = `edge-chip edge-chip--editable${this.reverse ? ' edge-chip--rev' : ''}`
+      chip.title = `${this.reverse ? 'reverse edge: ' : 'edge: '}${this.label} — click to edit`
       chip.textContent = this.label
+      chip.addEventListener('mousedown', (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+      })
+      chip.addEventListener('click', (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        this.openEditor(view, wrap)
+      })
       wrap.appendChild(chip)
+    } else {
+      // Untyped: the little "+" after the link (owner vision) — an
+      // edge is one click + one word away. Hover-revealed via CSS.
+      const add = document.createElement('button')
+      add.type = 'button'
+      add.className = 'pill-add'
+      add.textContent = '+'
+      add.title = 'add edge label'
+      add.addEventListener('mousedown', (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+      })
+      add.addEventListener('click', (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        this.openEditor(view, wrap)
+      })
+      wrap.appendChild(add)
     }
-    return wrap
+  }
+
+  /** The widened pill (owner vision: "an input field display by
+   *  widening temporarly the pills"): input prefilled with the label,
+   *  datalist of the document vocabulary, ⇄ flips a typed edge in
+   *  place. Enter commits (empty = remove), Esc/blur cancels; a
+   *  leading ^ in free input asserts the reverse direction. */
+  private openEditor(view: EditorView, wrap: HTMLElement): void {
+    wrap.textContent = ''
+    wrap.classList.add('edge-widget--editing')
+    const pill = document.createElement('span')
+    pill.className = `link-pill link-pill--${this.kind}`
+    pill.textContent = this.text
+    wrap.appendChild(pill)
+
+    const listId = `edge-labels-${Math.floor(Math.random() * 1e9)}`
+    const datalist = document.createElement('datalist')
+    datalist.id = listId
+    for (const label of labelsInDoc(view.state.doc.toString())) {
+      const option = document.createElement('option')
+      option.value = label
+      datalist.appendChild(option)
+    }
+    wrap.appendChild(datalist)
+
+    const input = document.createElement('input')
+    input.className = 'pill-input'
+    input.setAttribute('list', listId)
+    input.placeholder = 'label (^ = reverse)'
+    input.setAttribute('aria-label', 'edge label')
+    input.value = this.label === null ? '' : `${this.reverse ? '^' : ''}${this.label}`
+    let done = false
+    const cancel = (): void => {
+      if (done) return
+      done = true
+      wrap.classList.remove('edge-widget--editing')
+      this.renderBaseline(view, wrap)
+    }
+    const commit = (): void => {
+      if (done) return
+      done = true
+      const pos = view.posAtDOM(wrap)
+      const edge = findEdgeAt(view.state.doc.toString(), pos)
+      if (!edge) return cancel()
+      const raw = input.value.trim()
+      const reverse = raw.startsWith('^')
+      const label = normalizeLabel(reverse ? raw.slice(1) : raw)
+      const change =
+        edge.decoration === null
+          ? addLabel(edge, label, reverse)
+          : label.length > 0 && reverse !== edge.decoration.reverse
+            ? {
+                from: edge.end - `{${edge.decoration.reverse ? '^' : ''}${edge.decoration.label}}`.length,
+                to: edge.end,
+                insert: `{${reverse ? '^' : ''}${label}}`
+              }
+            : editLabel(edge, label)
+      if (change) view.dispatch({ changes: change })
+      else {
+        wrap.classList.remove('edge-widget--editing')
+        this.renderBaseline(view, wrap)
+      }
+      view.focus()
+    }
+    input.addEventListener('keydown', (event) => {
+      event.stopPropagation()
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        commit()
+      } else if (event.key === 'Escape') {
+        event.preventDefault()
+        cancel()
+        view.focus()
+      }
+    })
+    input.addEventListener('blur', () => cancel())
+    input.addEventListener('mousedown', (event) => event.stopPropagation())
+    wrap.appendChild(input)
+
+    if (this.label !== null) {
+      const flip = document.createElement('button')
+      flip.type = 'button'
+      flip.className = 'pill-flip'
+      flip.textContent = '⇄'
+      flip.title = `flip direction (now: ${this.reverse ? 'reverse' : 'forward'})`
+      flip.addEventListener('mousedown', (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+      })
+      flip.addEventListener('click', (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        if (done) return
+        done = true
+        const pos = view.posAtDOM(wrap)
+        const edge = findEdgeAt(view.state.doc.toString(), pos)
+        const change = edge ? flipDirection(edge) : null
+        if (change) view.dispatch({ changes: change })
+        view.focus()
+      })
+      wrap.appendChild(flip)
+    }
+    input.focus()
+    input.select()
   }
 
   override eq(other: LinkPillWidget): boolean {

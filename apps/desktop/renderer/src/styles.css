@@ -3074,6 +3074,76 @@ body[data-maximized] .tabstrip {
   opacity: 0.8;
 }
 
+/* Edge authoring on the pill (CP-MVP-009 S05, live editor only — read
+   renders its checkboxes disabled for the same reason: an edit
+   happens in the editor). The chip is the edit door; untyped pills
+   grow a hover "+"; the input WIDENS the pill temporarily (owner
+   vision verbatim). */
+.cm-content .edge-chip--editable {
+  font: inherit;
+  font-size: 0.72em;
+  cursor: pointer;
+}
+
+.cm-content .edge-chip--editable:hover {
+  color: var(--fg);
+  border-color: var(--accent);
+}
+
+.cm-content .pill-add {
+  font: inherit;
+  font-size: 0.8em;
+  line-height: 1.3;
+  margin-left: 0.15em;
+  padding: 0 0.35em;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms;
+}
+
+.cm-content .edge-widget:hover .pill-add {
+  opacity: 1;
+}
+
+.cm-content .pill-add:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.cm-content .edge-widget--editing .pill-input {
+  font: inherit;
+  font-size: 0.8em;
+  width: 11em;
+  margin-left: 0.2em;
+  padding: 0.05em 0.5em;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  color: var(--fg);
+  outline: none;
+}
+
+.cm-content .pill-flip {
+  font: inherit;
+  font-size: 0.8em;
+  margin-left: 0.15em;
+  padding: 0 0.35em;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--code-bg);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.cm-content .pill-flip:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 .markdown-body img {
   max-width: 100%;
 }

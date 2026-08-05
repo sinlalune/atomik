@@ -218,10 +218,27 @@ read contract as a clean projection, nothing more.
       writes `[[Attention]]` (auto-close aware), `{` popup lists
       grounded-at+normalizes, accept writes `{grounded-at}`;
       screenshots verified.
-- [ ] S05 Edge authoring on the pill: the "+" affordance (widening
-      input, owner vision), edit label, ⇄ flip, delete — full
-      lifecycle (03), each gesture one clean diff through the
-      ordinary write path.
+- [x] S05 Edge authoring on the pill (DONE 2026-08-05):
+      edge-author.ts NEW — PURE ops (addLabel/editLabel/
+      flipDirection/removeLabel + findEdgeAt), each gesture ONE
+      single-span change {from,to,insert} shared by the CM dispatch
+      and any future consumer (studio canvas, agents); free input
+      kebab-normalizes, empty input = remove, leading ^ = reverse
+      assertion; 10 unit tests incl. @ menu angle-bracket links and
+      add→remove byte-exact round trip. Widget UI (live editor
+      ONLY — read renders task checkboxes DISABLED for the same
+      reason, an edit happens in the editor; chat render-only per
+      the owner's Q5 ruling): untyped pills grow a hover "+"
+      (owner vision verbatim: input widens the pill temporarily),
+      the label CHIP is the edit door (click → widened input
+      prefilled, datalist of the document vocabulary, ⇄ button
+      flips in place), Enter commits / Esc-blur cancels; commits
+      re-find the edge at the CURRENT offset (posAtDOM +
+      findEdgeAt) so stale positions can't corrupt; the buffer
+      change rides the ordinary autosave path. Dev CDP pin drove
+      the FULL lifecycle: + → "Part of" → {part-of}; chip edit
+      "^unlocked-by" → reverse; ⇄ → forward; clear+Enter →
+      decoration gone; widened-pill screenshot verified.
 - [ ] S06 Nodes/edges index + label registry: rebuildable `.atomik/`
       artifact built from a main-side vault scan; incremental
       maintenance in the write verbs; delete→rebuild round-trip
@@ -424,14 +441,29 @@ changed(S04f): owner bench round 5 ("im not stupid, i restart server
               pin fixtures must include the @ menu's actual insert
               form, not hand-typed ideals.
 tests(S04f) : 684→688/58; typecheck + build green (gates bare).
+changed(S05): edge-author.ts NEW; live-preview.ts (LinkPillWidget
+              baseline/openEditor split, + affordance, editable
+              chip, widened input + datalist + ⇄); styles.css
+              (.pill-add hover-reveal, .pill-input, .pill-flip,
+              editable chip); tests/edge-author.test.ts NEW.
+tests(S05)  : 688→698/59; typecheck + build green (gates bare);
+              dev CDP pin drove add/edit+reverse/flip/delete
+              end-to-end.
               OWNER VALIDATION (2026-08-05, verbatim): "YES I LOVE
               U IT WORKS perfectly" — bench rounds 1–5 closed; the
               S03/S04 rendering + interaction surface is
               owner-accepted on the live vault.
-next action : S05 edge authoring on the pill — the "+" affordance
-              (widening input, owner vision), edit label, ⇄ flip,
-              delete; full lifecycle (03), each gesture one clean
-              diff through the ordinary write path.
+next action : S06 nodes/edges index + label registry — rebuildable
+              `.atomik/graph.json` from a main-side vault scan
+              (JSON sidecar per the opening-check pin), incremental
+              maintenance in the write verbs, delete→rebuild
+              round-trip test, broken-target diagnostics, wikilinks
+              join computeRelocate (27); the registry upgrades
+              label autocomplete from document-local to vault-wide
+              and feeds resolution to EVERY surface (chat/AI
+              previews included). Conditional 13/12 trigger FIRES
+              (new IPC for index read) — read those before the
+              channel lands.
 blockers    : none.
 ```
 
