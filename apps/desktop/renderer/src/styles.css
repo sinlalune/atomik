@@ -3090,58 +3090,61 @@ body[data-maximized] .tabstrip {
   border-color: var(--accent);
 }
 
-.cm-content .pill-add {
+.cm-content .link-pill .pill-add {
   font: inherit;
-  font-size: 0.8em;
-  line-height: 1.3;
-  margin-left: 0.15em;
-  padding: 0 0.35em;
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-pill);
+  font-size: 0.85em;
+  line-height: 1.1;
+  margin-left: 0.1em;
+  padding: 0 0.15em;
+  border: none;
   background: none;
-  color: var(--muted);
+  color: inherit;
   cursor: pointer;
   opacity: 0;
   transition: opacity 120ms;
 }
 
-.cm-content .edge-widget:hover .pill-add {
+.cm-content .link-pill:hover .pill-add {
+  opacity: 0.8;
+}
+
+.cm-content .link-pill .pill-add:hover {
   opacity: 1;
 }
 
-.cm-content .pill-add:hover {
-  color: var(--accent);
-  border-color: var(--accent);
+/* THE pill widens: the input lives INSIDE it, borderless — the pill's
+   own border and tint stretch around the growing content. */
+.cm-content .link-pill.link-pill--editing {
+  border-color: var(--pill-kind);
 }
 
-.cm-content .edge-widget--editing .pill-input {
+.cm-content .link-pill--editing .pill-input {
   font: inherit;
-  font-size: 0.8em;
-  width: 11em;
-  margin-left: 0.2em;
-  padding: 0.05em 0.5em;
-  border: 1px solid var(--accent);
-  border-radius: var(--radius-pill);
-  background: var(--bg);
+  font-size: 0.9em;
+  width: 10em;
+  margin-left: 0.3em;
+  padding: 0;
+  border: none;
+  background: transparent;
   color: var(--fg);
   outline: none;
 }
 
-.cm-content .pill-flip {
+.cm-content .link-pill--editing .pill-flip {
   font: inherit;
-  font-size: 0.8em;
-  margin-left: 0.15em;
-  padding: 0 0.35em;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  background: var(--code-bg);
-  color: var(--muted);
+  font-size: 0.85em;
+  line-height: 1.1;
+  margin-left: 0.1em;
+  padding: 0 0.15em;
+  border: none;
+  background: none;
+  color: inherit;
+  opacity: 0.8;
   cursor: pointer;
 }
 
-.cm-content .pill-flip:hover {
-  color: var(--accent);
-  border-color: var(--accent);
+.cm-content .link-pill--editing .pill-flip:hover {
+  opacity: 1;
 }
 
 .markdown-body img {

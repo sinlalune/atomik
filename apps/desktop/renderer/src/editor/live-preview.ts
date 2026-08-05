@@ -434,11 +434,30 @@ class LinkPillWidget extends WidgetType {
       view.dispatch({ selection: { anchor: pos } })
       view.focus()
     })
+    if (this.label === null) {
+      // Untyped: the little "+" INSIDE the pill, after the label text
+      // (owner vision + S05b correction: "the + not in the pills" —
+      // it belongs to the pill body). Hover-revealed via CSS.
+      const add = document.createElement('button')
+      add.type = 'button'
+      add.className = 'pill-add'
+      add.textContent = '+'
+      add.title = 'add edge label'
+      add.addEventListener('mousedown', (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+      })
+      add.addEventListener('click', (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        this.openEditor(view, wrap)
+      })
+      pill.appendChild(add)
+    }
     wrap.appendChild(pill)
     if (this.label !== null) {
-      // Typed: the chip IS the edit door (owner vision: "the label
-      // chip on the pill is the reverse gesture" family) — click
-      // widens into the input.
+      // Typed: the chip IS the edit door — click widens the pill
+      // into the input.
       const chip = document.createElement('button')
       chip.type = 'button'
       chip.className = `edge-chip edge-chip--editable${this.reverse ? ' edge-chip--rev' : ''}`
@@ -454,39 +473,25 @@ class LinkPillWidget extends WidgetType {
         this.openEditor(view, wrap)
       })
       wrap.appendChild(chip)
-    } else {
-      // Untyped: the little "+" after the link (owner vision) — an
-      // edge is one click + one word away. Hover-revealed via CSS.
-      const add = document.createElement('button')
-      add.type = 'button'
-      add.className = 'pill-add'
-      add.textContent = '+'
-      add.title = 'add edge label'
-      add.addEventListener('mousedown', (event) => {
-        event.preventDefault()
-        event.stopPropagation()
-      })
-      add.addEventListener('click', (event) => {
-        event.preventDefault()
-        event.stopPropagation()
-        this.openEditor(view, wrap)
-      })
-      wrap.appendChild(add)
     }
   }
 
-  /** The widened pill (owner vision: "an input field display by
-   *  widening temporarly the pills"): input prefilled with the label,
-   *  datalist of the document vocabulary, ⇄ flips a typed edge in
-   *  place. Enter commits (empty = remove), Esc/blur cancels; a
-   *  leading ^ in free input asserts the reverse direction. */
+  /** THE pill widens (owner vision verbatim, S05b correction: one
+   *  pill, growing — never a second pill-shaped element): the input
+   *  lives INSIDE the pill after its text, borderless, with the
+   *  document vocabulary as a datalist; ⇄ flips a typed edge in
+   *  place. Enter commits (empty = remove) — with a keyup backstop,
+   *  because Chrome swallows the Enter KEYDOWN while the datalist
+   *  popup is open (the owner's "doesn't save on enter"); Esc or
+   *  clicking away cancels; a leading ^ asserts reverse. */
   private openEditor(view: EditorView, wrap: HTMLElement): void {
     wrap.textContent = ''
     wrap.classList.add('edge-widget--editing')
     const pill = document.createElement('span')
-    pill.className = `link-pill link-pill--${this.kind}`
-    pill.textContent = this.text
-    wrap.appendChild(pill)
+    pill.className = `link-pill link-pill--${this.kind} link-pill--editing`
+    const text = document.createElement('span')
+    text.textContent = this.text
+    pill.appendChild(text)
 
     const listId = `edge-labels-${Math.floor(Math.random() * 1e9)}`
     const datalist = document.createElement('datalist')
@@ -496,7 +501,7 @@ class LinkPillWidget extends WidgetType {
       option.value = label
       datalist.appendChild(option)
     }
-    wrap.appendChild(datalist)
+    pill.appendChild(datalist)
 
     const input = document.createElement('input')
     input.className = 'pill-input'
@@ -516,7 +521,10 @@ class LinkPillWidget extends WidgetType {
       done = true
       const pos = view.posAtDOM(wrap)
       const edge = findEdgeAt(view.state.doc.toString(), pos)
-      if (!edge) return cancel()
+      if (!edge) {
+        done = false
+        return cancel()
+      }
       const raw = input.value.trim()
       const reverse = raw.startsWith('^')
       const label = normalizeLabel(reverse ? raw.slice(1) : raw)
@@ -525,7 +533,9 @@ class LinkPillWidget extends WidgetType {
           ? addLabel(edge, label, reverse)
           : label.length > 0 && reverse !== edge.decoration.reverse
             ? {
-                from: edge.end - `{${edge.decoration.reverse ? '^' : ''}${edge.decoration.label}}`.length,
+                from:
+                  edge.end -
+                  `{${edge.decoration.reverse ? '^' : ''}${edge.decoration.label}}`.length,
                 to: edge.end,
                 insert: `{${reverse ? '^' : ''}${label}}`
               }
@@ -537,9 +547,9 @@ class LinkPillWidget extends WidgetType {
       }
       view.focus()
     }
-    input.addEventListener('keydown', (event) => {
+    const onEnter = (event: KeyboardEvent): void => {
       event.stopPropagation()
-      if (event.key === 'Enter') {
+      if (event.key === 'Enter' || event.key === 'NumpadEnter') {
         event.preventDefault()
         commit()
       } else if (event.key === 'Escape') {
@@ -547,10 +557,17 @@ class LinkPillWidget extends WidgetType {
         cancel()
         view.focus()
       }
+    }
+    input.addEventListener('keydown', onEnter)
+    // Backstop: with the datalist popup open, Chrome delivers no Enter
+    // KEYDOWN — but the keyup still arrives.
+    input.addEventListener('keyup', (event) => {
+      event.stopPropagation()
+      if (event.key === 'Enter' || event.key === 'NumpadEnter') commit()
     })
     input.addEventListener('blur', () => cancel())
     input.addEventListener('mousedown', (event) => event.stopPropagation())
-    wrap.appendChild(input)
+    pill.appendChild(input)
 
     if (this.label !== null) {
       const flip = document.createElement('button')
@@ -573,8 +590,9 @@ class LinkPillWidget extends WidgetType {
         if (change) view.dispatch({ changes: change })
         view.focus()
       })
-      wrap.appendChild(flip)
+      pill.appendChild(flip)
     }
+    wrap.appendChild(pill)
     input.focus()
     input.select()
   }

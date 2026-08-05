@@ -449,6 +449,20 @@ changed(S05): edge-author.ts NEW; live-preview.ts (LinkPillWidget
 tests(S05)  : 688→698/59; typecheck + build green (gates bare);
               dev CDP pin drove add/edit+reverse/flip/delete
               end-to-end.
+changed(S05b): owner bench round 6 ("+ not in the pills, doesnt
+              widen its another pills appearing, doesnt save on
+              enter") — all three corrected to the vision verbatim:
+              the "+" lives INSIDE the pill after its text
+              (hover-revealed, borderless); the editor is ONE pill
+              that WIDENS (input + ⇄ borderless INSIDE the pill —
+              measured 124→249px, one .link-pill in the widget);
+              Enter now commits through a KEYUP backstop — Chrome
+              swallows the Enter KEYDOWN while the datalist popup
+              is open (the pin had typed via insertText and never
+              opened the popup, so it missed it); NumpadEnter
+              covered; pin re-driven incl. a keyup-ONLY Enter
+              commit.
+tests(S05b) : 698/59 unchanged; typecheck + build green.
               OWNER VALIDATION (2026-08-05, verbatim): "YES I LOVE
               U IT WORKS perfectly" — bench rounds 1–5 closed; the
               S03/S04 rendering + interaction surface is
