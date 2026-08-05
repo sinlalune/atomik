@@ -1,83 +1,31 @@
+import { classifyLinkKind } from '../../../shared/graph-core'
+
 /**
  * Link pills (CP-MVP-009 S03, owner UI vision: "every links notes or
  * other type of linked documents … has a color pill depending on its
- * type and a little icon"). Pure helpers shared by the note-markdown
- * factory (render-time kind classing + icons) and the read view
- * (wikilink resolution + broken diagnostics).
+ * type and a little icon"). Renderer-side helpers over the SHARED
+ * graph core (S06 moved classification/resolution/titles to
+ * shared/graph-core so the main-side index seat can never fork from
+ * the surfaces).
  *
  * Doctrine (20 recast + ADR-011): every rendered link is an edge of
  * the semantic graph. The pill shows the NODE KIND of the target,
  * derived from the resolved target string — never stored in the note.
  * Unresolved wikilinks are a visible diagnostic, never auto-created,
  * never silently repaired.
+ *
+ * Icons live in CSS as per-kind ::before masks (styles.css §Link
+ * pills) so resolution swaps ONE class and the icon follows — no SVG
+ * strings travel through the rendered HTML.
  */
 
-export type LinkKind =
-  | 'note'
-  | 'folder'
-  | 'chat'
-  | 'prompt'
-  | 'pdf'
-  | 'pdf-anchor'
-  | 'web'
-  | 'capture'
-  | 'source'
-  | 'media'
-
-const MEDIA_EXT_RE = /\.(png|jpe?g|gif|webp|avif|mp3|wav|m4a|ogg|mp4|webm)$/
-
-/** Node kind from a link target string (href or resolved vault path).
- *  Returns null for targets that are NOT graph edges and stay plain:
- *  same-document hashes, mailto, empty. */
-export function classifyLinkKind(href: string): LinkKind | null {
-  if (href === '' || href.startsWith('#') || /^mailto:/i.test(href)) return null
-  const raw = href.toLowerCase()
-  if (/^https?:/.test(raw)) return 'web'
-  const [path = '', hash = ''] = raw.split('#')
-  if (path.includes('sources/pdf/')) {
-    return hash.includes('page=') ? 'pdf-anchor' : 'pdf'
-  }
-  if (path.includes('sources/web/')) return 'web'
-  if (path.includes('sources/captures/')) return 'capture'
-  if (path.endsWith('source.md')) return 'source'
-  if (path.endsWith('.pdf')) return 'pdf'
-  if (MEDIA_EXT_RE.test(path)) return 'media'
-  if (path.endsWith('/index.md') || path === 'index.md') return 'folder'
-  if (path.startsWith('chats/') || path.includes('/chats/')) return 'chat'
-  if (path.startsWith('prompts/') || path.includes('/prompts/')) return 'prompt'
-  return 'note'
-}
-
-/* Icons live in CSS as per-kind ::before masks (styles.css §Link
- * pills) so resolution swaps ONE class and the icon follows — no SVG
- * strings travel through the rendered HTML. */
-
-/** A wikilink resolution candidate — quick-actions' NoteLink shape,
- *  proximity-ordered by the caller (nearest wins, the house rule). */
-export type WikiCandidate = { name: string; relPath: string }
-
-/** Resolve a `[[target]]` against proximity-ordered candidates:
- *  a target with `/` matches its vault-relative path (`.md` optional),
- *  a bare target matches the filename stem — both case-insensitive,
- *  first (= nearest) match wins. Null = broken (diagnostic). */
-export function resolveWikiTarget(
-  candidates: readonly WikiCandidate[],
-  target: string
-): string | null {
-  const needle = target.trim().toLowerCase()
-  if (needle.length === 0) return null
-  if (needle.includes('/')) {
-    const withMd = needle.endsWith('.md') ? needle : `${needle}.md`
-    for (const c of candidates) {
-      if (c.relPath.toLowerCase() === withMd) return c.relPath
-    }
-    return null
-  }
-  for (const c of candidates) {
-    if (c.name.toLowerCase() === needle) return c.relPath
-  }
-  return null
-}
+export {
+  classifyLinkKind,
+  firstHeadingOf,
+  resolveWikiTarget,
+  wikiCandidatesFor
+} from '../../../shared/graph-core'
+export type { LinkKind, WikiCandidate } from '../../../shared/graph-core'
 
 const WIKI_ANCHOR_RE = /<a ([^>]*?)data-wiki="([^"]*)"([^>]*)>/g
 
@@ -101,7 +49,10 @@ export function decorateWikiLinks(
   return html.replace(WIKI_ANCHOR_RE, (whole, _before: string, target: string) => {
     const rel = resolve(unescapeHtml(target))
     if (rel === null) {
-      return whole.replace('class="link-pill link-pill--note"', 'class="link-pill link-pill--note link-pill--broken"')
+      return whole.replace(
+        'class="link-pill link-pill--note"',
+        'class="link-pill link-pill--note link-pill--broken"'
+      )
     }
     const kind = classifyLinkKind(rel) ?? 'note'
     const reclassed = whole.replace('link-pill--note', `link-pill--${kind}`)
@@ -139,29 +90,33 @@ const EDGE_MARK_RE =
 /** Post-render title upgrade for the in-pill graph marks: the factory
  *  emits "⟶ label"; a surface that knows the SUBJECT (the note being
  *  rendered) rewrites it into the full relation sentence
- *  ("L'ethos repose sur fiabilité"). String-swap idiom like the
- *  wikilink pass. */
-export function decorateEdgeMarks(html: string, subject: string): string {
+ *  ("L'ethos repose sur fiabilité"). `titleOf` (S06) upgrades the
+ *  TARGET side to the linked note's H1 when the index resolves it. */
+export function decorateEdgeMarks(
+  html: string,
+  subject: string,
+  titleOf?: (targetText: string) => string | null
+): string {
   return html.replace(
     EDGE_MARK_RE,
-    (_whole, open: string, text: string, markOpen: string, label: string, rev: string | undefined, closeQuote: string) => {
+    (
+      _whole,
+      open: string,
+      text: string,
+      markOpen: string,
+      label: string,
+      rev: string | undefined,
+      closeQuote: string
+    ) => {
+      const raw = unescapeHtml(text)
+      const target = titleOf?.(raw) ?? raw
       const sentence = edgeSentence(
         subject,
         unescapeHtml(label),
-        unescapeHtml(text),
+        target,
         rev !== undefined
       )
       return `${open}${text}${markOpen}${escapeAttr(sentence)}${closeQuote}`
     }
   )
-}
-
-/** The note's REAL name for graph sentences (S05e owner: "utiliser
- *  les titres 1 de note (#) plutôt que le nom de fichier"): the first
- *  H1 when the note has one, else null (caller falls back to the
- *  filename stem). Target-side H1s ride the S06 index (its node
- *  records carry `title`). */
-export function firstHeadingOf(content: string): string | null {
-  const match = /^#[ \t]+(.+?)[ \t]*$/m.exec(content)
-  return match ? match[1]! : null
 }

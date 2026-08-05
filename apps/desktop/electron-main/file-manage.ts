@@ -8,6 +8,11 @@ import {
   writeFileSync
 } from 'node:fs'
 import { basename, dirname, join, relative } from 'node:path'
+import {
+  resolveWikiTarget,
+  wikiCandidatesFor,
+  type WikiCandidate
+} from '../shared/graph-core'
 import { assertInsideVault, resolveNotePath } from './vault'
 import { resolveProjectDirPath } from './project'
 import { parentRelOf, recordFileOp } from './folder-index'
@@ -184,6 +189,40 @@ function relativeLinkBetween(fromRelPath: string, toRelPath: string): string {
 const LINK_RE = /\]\((<([^>\n]+)>|([^)\s]+))\)/g
 const SCHEME_RE = /^[a-z][a-z0-9+.-]*:/i
 
+/** Wikilinks (ADR-011): `[[target]]`, the decoration left untouched
+ *  (it sits OUTSIDE the brackets, so a rewrite never disturbs it). */
+const WIKI_RE = /\[\[([^\][{}\n]+)\]\]/g
+
+/** Rewrites wikilinks whose resolved target maps (CP-MVP-009 S06):
+ *  a RENAME changes the stem every `[[stem]]` resolves by, so the
+ *  refactor must carry them or the rename silently breaks the graph
+ *  (27: one deliberate, previewed, multi-file diff). Path-form
+ *  targets keep their path shape; bare stems stay bare. */
+function rewriteWikilinks(
+  content: string,
+  noteRelForResolve: string,
+  candidates: readonly WikiCandidate[],
+  mapTarget: (resolvedRel: string) => string | null
+): { after: string; count: number } {
+  void noteRelForResolve
+  let count = 0
+  const after = content.replace(WIKI_RE, (whole, target: string) => {
+    const resolved = resolveWikiTarget(candidates, target)
+    if (!resolved) return whole
+    const mapped = mapTarget(resolved)
+    if (mapped === null) return whole
+    count += 1
+    const usedPath = target.includes('/')
+    const emitted = usedPath
+      ? target.toLowerCase().endsWith('.md')
+        ? mapped
+        : mapped.replace(/\.md$/i, '')
+      : (mapped.split('/').pop() ?? mapped).replace(/\.md$/i, '')
+    return `[[${emitted}]]`
+  })
+  return { after, count }
+}
+
 /** Rewrites matched link targets in one note. `mapTarget` returns the
  *  new vault-relative target (path only) or null to leave it alone. */
 function rewriteLinks(
@@ -275,8 +314,19 @@ function computeRelocate(
   // untouched — rewriting its outgoing links would be a cosmetic byte
   // change (27: targeted replacement ONLY).
   const sameDir = dirname(fromAbs) === dirname(toAbs)
+  // Wikilinks resolve by STEM, so only a rename (stem change) moves
+  // them; a pure folder move leaves every `[[stem]]` valid.
+  const stemOf = (path: string): string =>
+    (path.split('/').pop() ?? path).replace(/\.md$/i, '')
+  const stemChanged = stemOf(from) !== stemOf(to)
+  const allNotes = walkNotes(vaultRoot)
+  const nodesForWiki = allNotes.map((path) => ({
+    path,
+    kind: 'note' as const,
+    title: stemOf(path)
+  }))
   const edits: ComputedRelocate['edits'] = []
-  for (const noteRel of walkNotes(vaultRoot)) {
+  for (const noteRel of allNotes) {
     const abs = join(vaultRoot, noteRel)
     const before = readFileSync(abs, 'utf8')
     const isMovedNote = noteRel === from
@@ -290,8 +340,20 @@ function computeRelocate(
         rewriteLinks(before, noteRel, noteRel, (resolved) =>
           resolved === from ? to : null
         )
-    if (count > 0 && after !== before) {
-      edits.push({ relPath: noteRel, count, abs, before, after })
+    let text = after
+    let total = count
+    if (stemChanged && !isMovedNote) {
+      const wiki = rewriteWikilinks(
+        text,
+        noteRel,
+        wikiCandidatesFor(noteRel, nodesForWiki),
+        (resolved) => (resolved === from ? to : null)
+      )
+      text = wiki.after
+      total += wiki.count
+    }
+    if (total > 0 && text !== before) {
+      edits.push({ relPath: noteRel, count: total, abs, before, after: text })
     }
   }
   return { from, to, fromAbs, toAbs, edits }

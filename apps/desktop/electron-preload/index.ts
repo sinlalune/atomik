@@ -67,6 +67,7 @@ const api: AtomikApi = {
   },
   getVault: () => ipcRenderer.invoke(ATOMIK_CHANNELS.getVault),
   listVaultFiles: () => ipcRenderer.invoke(ATOMIK_CHANNELS.listVaultFiles),
+  readGraphIndex: () => ipcRenderer.invoke(ATOMIK_CHANNELS.readGraphIndex),
   searchVault: (query: string, scope?: string) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.searchVault, query, scope),
   searchDevDocs: (query: string) =>

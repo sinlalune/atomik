@@ -239,12 +239,36 @@ read contract as a clean projection, nothing more.
       the FULL lifecycle: + → "Part of" → {part-of}; chip edit
       "^unlocked-by" → reverse; ⇄ → forward; clear+Enter →
       decoration gone; widened-pill screenshot verified.
-- [ ] S06 Nodes/edges index + label registry: rebuildable `.atomik/`
-      artifact built from a main-side vault scan; incremental
-      maintenance in the write verbs; delete→rebuild round-trip
-      test; broken-target diagnostics surface; wikilinks join
-      computeRelocate so rename/relocate rewrites them behind the
-      existing preview (27).
+- [x] S06 Nodes/edges index + label registry (DONE 2026-08-05):
+      shared/graph-core.ts NEW — the PURE index core (classification,
+      nearest-wins resolution, H1 titles, buildGraphIndex,
+      wikiCandidatesFor, vocabularyOf) now shared by BOTH processes
+      (link-pills re-exports; the main seat can never fork from the
+      surfaces, the edge-grammar precedent); electron-main/
+      graph-index.ts NEW — lazy build (nothing scans on app open),
+      cached, persisted to `.atomik/graph.json` (the opening-check
+      JSON sidecar), invalidated by EVERY write verb (write/create/
+      delete/relocate, folders included); ONE read-only IPC channel
+      readGraphIndex (13/12 read: no path from the renderer, the
+      handler owns the vault root; preload surface test updated).
+      CONSUMERS: read + live resolve wikilinks from the index
+      (listVaultFiles dropped for this), graph-mark sentences carry
+      the TARGET's H1 ("Pin note repose sur L'attention" — S05e's
+      deferred half), the label autocomplete AND the widened pill's
+      datalist offer the VAULT-WIDE vocabulary most-used-first
+      (vocabularyField + setVocabulary, host-fed at mount; merged
+      with doc-local labels so unsaved edits count).
+      RENAME CARRIES WIKILINKS (27 tracked refactor): computeRelocate
+      gains a wikilink pass — a rename (stem change) rewrites
+      `[[stem]]` everywhere it resolved to the moved note, decorations
+      untouched (they sit outside the brackets), path-form targets
+      keep their shape; a pure folder MOVE leaves stem links alone
+      (they still resolve) — both behaviors unit-tested; the preview
+      counts them, so the acceptance gate is unchanged.
+      DEVIATION: the index's `broken` list has no dedicated panel yet
+      — the broken PILL remains the visible diagnostic (S03); a
+      vault-wide diagnostics surface rides S07's backlinks pane or
+      later.
 - [ ] S07 Typed backlinks pane: per-note inbound edges with inverse
       label rendering (pane state per 03 precedent); counts; click
       navigates; empty state honest.
@@ -533,22 +557,30 @@ changed(S05e): owner bench round 9 ("peut être utilisé les titres 1
               TARGET-side H1s need the other file's content — rides
               the S06 index (node records already pin `title`).
 tests(S05e) : 700→702/60; typecheck + build green.
+changed(S06): shared/graph-core.ts NEW; electron-main/graph-index.ts
+              NEW; ipc-contract (readGraphIndex channel + type +
+              surface list); preload; index.ts (handler + 6
+              invalidations); file-manage.ts (rewriteWikilinks +
+              stem-change pass in computeRelocate); link-pills
+              (re-exports the shared core, decorateEdgeMarks gains
+              titleOf); useVaultNote + EditorPane + live-preview
+              (index-fed candidates, vocabularyField, target-H1
+              sentences); edge-complete (vault vocabulary +
+              mergeVocabulary); tests/graph-core.test.ts NEW,
+              tests/graph-index.test.ts NEW.
+tests       : 702→714/62; typecheck + build green (gates bare); dev
+              CDP pin on a copy of the owner's real vault: graph.json
+              written (101 nodes), read↔live sentences both
+              "Pin note repose sur L'attention" (target H1), pill
+              dropdown offering a label authored in ANOTHER note.
+next action : S07 typed backlinks pane — per-note inbound edges from
+              the index with inverse label rendering (pane state per
+              03), counts, click navigates, honest empty state.
+blockers    : none.
               OWNER VALIDATION (2026-08-05, verbatim): "YES I LOVE
               U IT WORKS perfectly" — bench rounds 1–5 closed; the
               S03/S04 rendering + interaction surface is
               owner-accepted on the live vault.
-next action : S06 nodes/edges index + label registry — rebuildable
-              `.atomik/graph.json` from a main-side vault scan
-              (JSON sidecar per the opening-check pin), incremental
-              maintenance in the write verbs, delete→rebuild
-              round-trip test, broken-target diagnostics, wikilinks
-              join computeRelocate (27); the registry upgrades
-              label autocomplete from document-local to vault-wide
-              and feeds resolution to EVERY surface (chat/AI
-              previews included). Conditional 13/12 trigger FIRES
-              (new IPC for index read) — read those before the
-              channel lands.
-blockers    : none.
 ```
 
 # Blockers

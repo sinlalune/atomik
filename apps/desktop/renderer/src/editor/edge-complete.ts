@@ -5,6 +5,8 @@ import type {
 } from '@codemirror/autocomplete'
 import type { EditorView } from '@codemirror/view'
 import { normalizeLabel, parseEdges } from '../../../shared/edge-grammar'
+import { vocabularyOf } from '../../../shared/graph-core'
+import type { AtomikApi } from '../../../shared/ipc-contract'
 import type { VaultFolder } from '../../../shared/ipc-contract'
 import { linkableNotesOf } from './quick-actions'
 
@@ -15,13 +17,23 @@ import { linkableNotesOf } from './quick-actions'
  * imposed ontology — plus the kebab-normalized form of free input as
  * a "new label" option ("Part of" → `part-of`, ADR-011 alphabet).
  *
- * The vault-wide label registry (with counts) arrives with S06's
- * index; until then the vocabulary source is the open document
- * (recorded deviation). This SOURCE composes into quick-actions' one
+ * The vocabulary is VAULT-WIDE since S06: the index's label registry
+ * (usage counts) merges with the open document's labels (unsaved
+ * edits included). This SOURCE composes into quick-actions' one
  * autocompletion config (CodeMirror allows a single `override`
  * facet) and mounts only in the NOTE editor — chat surfaces render
  * pills without authoring (per-surface capability, owner ruling).
  */
+
+const atomik = (): AtomikApi | undefined =>
+  (globalThis as unknown as { atomik?: AtomikApi }).atomik
+
+/** Vault vocabulary first (most-used), then any document-local labels
+ *  the index has not seen yet (unsaved edits). */
+export function mergeVocabulary(vault: string[], doc: string[]): string[] {
+  const seen = new Set(vault)
+  return [...vault, ...doc.filter((label) => !seen.has(label))]
+}
 
 export type QueryAt = { start: number; query: string }
 
@@ -99,7 +111,14 @@ export function edgeCompletionSource(
     }
     const label = labelQueryAt(before)
     if (label) {
-      const known = labelsInDoc(context.state.doc.toString())
+      const vault = await atomik()
+        ?.readGraphIndex()
+        .then((index) => vocabularyOf(index))
+        .catch(() => [] as string[])
+      const known = mergeVocabulary(
+        vault ?? [],
+        labelsInDoc(context.state.doc.toString())
+      )
       const options: Completion[] = known.map(
         (l): Completion => ({ label: l, type: 'keyword', apply: applyClosed(l, '}') })
       )

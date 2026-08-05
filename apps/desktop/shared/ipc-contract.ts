@@ -1,3 +1,7 @@
+import type { GraphIndex } from './graph-core'
+
+export type { GraphIndex } from './graph-core'
+
 /**
  * The single source of truth for the renderer-facing API surface.
  *
@@ -31,6 +35,7 @@ export const ATOMIK_CHANNELS = {
   vaultFilesChanged: 'atomik:vault-files-changed',
   getVault: 'atomik:get-vault',
   listVaultFiles: 'atomik:list-vault-files',
+  readGraphIndex: 'atomik:read-graph-index',
   searchVault: 'atomik:search-vault',
   searchDevDocs: 'atomik:search-dev-docs',
   readNote: 'atomik:read-note',
@@ -619,6 +624,9 @@ export type AtomikApi = {
   getVault: () => Promise<VaultInfo | null>
   /** Markdown tree of the open vault (dot-dirs and node_modules skipped). */
   listVaultFiles: () => Promise<VaultFolder>
+  /** The nodes/edges index (CP-MVP-009 S06): a rebuildable projection
+   *  of the vault's semantic graph — read-only, built lazily main-side. */
+  readGraphIndex: () => Promise<GraphIndex>
   /**
    * Lexical search (filename/heading/full-text, no index). `scope` narrows
    * the perimeter to one root-relative folder (a project bundle);
@@ -806,6 +814,7 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'listVaultFiles',
   'searchVault',
   'searchDevDocs',
+  'readGraphIndex',
   'readNote',
   'readSourceAsset',
   'writeNote',

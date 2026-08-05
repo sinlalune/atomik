@@ -11,9 +11,9 @@ import {
   decorateEdgeMarks,
   decorateWikiLinks,
   firstHeadingOf,
-  resolveWikiTarget
+  resolveWikiTarget,
+  wikiCandidatesFor
 } from '../editor/link-pills'
-import { linkableNotesOf } from '../editor/quick-actions'
 
 /**
  * Shared note-reading logic for vault-backed views (VaultView,
@@ -119,19 +119,28 @@ export function useVaultNote(
       current = next
       if (!cancelled) setHtml(next)
     }
-    // Wikilink resolution (CP-MVP-009 S03): nearest-wins over the
-    // same proximity order as the @ menu; unresolved stays the broken
-    // diagnostic pill (never auto-created).
-    if (rawHtml.includes('data-wiki')) {
-      window.atomik.listVaultFiles().then(
-        (tree) => {
+    // Wikilink resolution (S03; S06: from the nodes/edges index —
+    // candidates carry the target notes' H1s, so the graph-mark
+    // sentences upgrade to real titles in the same pass). Unresolved
+    // stays the broken diagnostic pill (never auto-created).
+    if (rawHtml.includes('data-wiki') || rawHtml.includes('edge-mark')) {
+      window.atomik.readGraphIndex().then(
+        (index) => {
           if (cancelled) return
-          const candidates = linkableNotesOf(tree, note.relPath)
-          apply(
-            decorateWikiLinks(current, (target) =>
-              resolveWikiTarget(candidates, target)
-            )
+          const candidates = wikiCandidatesFor(note.relPath, index.nodes)
+          let next = decorateWikiLinks(current, (target) =>
+            resolveWikiTarget(candidates, target)
           )
+          const body = stripFrontmatter(note.content)
+          const subject =
+            firstHeadingOf(body) ??
+            (note.relPath.split('/').pop() ?? '').replace(/\.md$/i, '')
+          next = decorateEdgeMarks(next, subject, (targetText) => {
+            const rel = resolveWikiTarget(candidates, targetText)
+            if (!rel) return null
+            return index.nodes.find((n) => n.path === rel)?.title ?? null
+          })
+          apply(next)
         },
         () => {}
       )

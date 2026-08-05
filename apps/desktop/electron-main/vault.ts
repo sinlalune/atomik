@@ -234,7 +234,7 @@ export function readSourceAsset(vaultRoot: string, relPath: unknown): SourceAsse
   }
 }
 
-function atomicWrite(abs: string, content: string): void {
+export function atomicWrite(abs: string, content: string): void {
   const temp = `${abs}.tmp-${process.pid}`
   writeFileSync(temp, content, 'utf8')
   try {

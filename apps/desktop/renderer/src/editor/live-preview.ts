@@ -16,7 +16,7 @@ import {
 import type { SyntaxNode } from '@lezer/common'
 import { normalizeLabel, parseEdges } from '../../../shared/edge-grammar'
 import { addLabel, editLabel, findEdgeAt, flipDirection } from './edge-author'
-import { labelsInDoc } from './edge-complete'
+import { labelsInDoc, mergeVocabulary } from './edge-complete'
 import type { AtomikApi } from '../../../shared/ipc-contract'
 import {
   classifyLinkKind,
@@ -371,6 +371,22 @@ const edgeFollowFacet = Facet.define<EdgeFollow, EdgeFollow | null>({
 
 export const setWikiCandidates = StateEffect.define<WikiCandidate[]>()
 
+/** The VAULT-WIDE label vocabulary (S06): host-fed from the index so
+ *  the widened pill's datalist offers every label the owner has used,
+ *  not just this document's (merged with doc-local labels at open
+ *  time, which covers unsaved edits). */
+export const setVocabulary = StateEffect.define<string[]>()
+
+export const vocabularyField = StateField.define<string[]>({
+  create: () => [],
+  update: (value, tr) => {
+    for (const effect of tr.effects) {
+      if (effect.is(setVocabulary)) return effect.value
+    }
+    return value
+  }
+})
+
 export const wikiCandidatesField = StateField.define<WikiCandidate[] | null>({
   create: () => null,
   update: (value, tr) => {
@@ -474,10 +490,17 @@ class LinkPillWidget extends WidgetType {
       const mark = document.createElement('button')
       mark.type = 'button'
       mark.className = `edge-mark${this.reverse ? ' edge-mark--rev' : ''}`
+      // target side: the linked note's H1 when the index resolved it
+      // (S06; candidates carry titles), else the typed text
+      const candidates = view.state.field(wikiCandidatesField, false)
+      const targetTitle =
+        (this.follow?.kind === 'rel'
+          ? candidates?.find((c) => c.relPath === this.follow?.target)?.title
+          : undefined) ?? this.text
       mark.title = edgeSentence(
         this.subjectOf(view),
         this.label,
-        this.text,
+        targetTitle,
         this.reverse
       )
       mark.addEventListener('mousedown', (event) => {
@@ -514,7 +537,12 @@ class LinkPillWidget extends WidgetType {
     const listId = `edge-labels-${Math.floor(Math.random() * 1e9)}`
     const datalist = document.createElement('datalist')
     datalist.id = listId
-    for (const label of labelsInDoc(view.state.doc.toString())) {
+    // vault vocabulary first (most-used, S06), then labels only this
+    // buffer knows yet (unsaved edits)
+    for (const label of mergeVocabulary(
+      view.state.field(vocabularyField, false) ?? [],
+      labelsInDoc(view.state.doc.toString())
+    )) {
       const option = document.createElement('option')
       option.value = label
       datalist.appendChild(option)

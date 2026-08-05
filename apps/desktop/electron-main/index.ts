@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { isValidAiOperation } from './ai-mock'
+import { invalidateGraphIndex, readGraphIndex } from './graph-index'
 import {
   GenerationError,
   mockGenerationAdapter,
@@ -188,6 +189,11 @@ function registerVaultHandlers(stateDir: string): void {
   ipcMain.handle(ATOMIK_CHANNELS.listVaultFiles, () =>
     listVaultFiles(requireVault())
   )
+  // The nodes/edges index (CP-MVP-009 S06): read-only projection, lazy
+  // build main-side, invalidated by every write verb below.
+  ipcMain.handle(ATOMIK_CHANNELS.readGraphIndex, () =>
+    readGraphIndex(requireVault(), stateDir)
+  )
   ipcMain.handle(
     ATOMIK_CHANNELS.searchVault,
     (_event, query: unknown, scope: unknown) =>
@@ -243,6 +249,7 @@ function registerVaultHandlers(stateDir: string): void {
           ? undefined
           : expectedMtimeMs
       )
+      invalidateGraphIndex()
       // S07: saving a bundle's transcript IS the human correction — the
       // dossier flips to human-corrected. Bookkeeping must never fail
       // the user's save; a racing dossier retries on the next save
@@ -264,12 +271,14 @@ function registerVaultHandlers(stateDir: string): void {
     ATOMIK_CHANNELS.createNote,
     (event, relPath: unknown, content: unknown) => {
       const result = createNote(requireVault(), relPath, content)
+      invalidateGraphIndex()
       event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
       return result
     }
   )
   ipcMain.handle(ATOMIK_CHANNELS.createFolder, (event, relPath: unknown) => {
     const info = createFolder(requireVault(), relPath)
+    invalidateGraphIndex()
     event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
     return info
   })
@@ -279,6 +288,7 @@ function registerVaultHandlers(stateDir: string): void {
     const result = await deleteNote(requireVault(), relPath, (abs) =>
       shell.trashItem(abs)
     )
+    invalidateGraphIndex()
     event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
     return result
   })
@@ -286,6 +296,7 @@ function registerVaultHandlers(stateDir: string): void {
     const result = await deleteFolder(requireVault(), relPath, (abs) =>
       shell.trashItem(abs)
     )
+    invalidateGraphIndex()
     event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
     return result
   })
@@ -300,6 +311,7 @@ function registerVaultHandlers(stateDir: string): void {
     ATOMIK_CHANNELS.relocateApply,
     (event, from: unknown, to: unknown) => {
       const result = relocateApply(requireVault(), from, to)
+      invalidateGraphIndex()
       event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
       event.sender.send(ATOMIK_CHANNELS.noteRelocated, {
         from: result.from,
@@ -317,6 +329,7 @@ function registerVaultHandlers(stateDir: string): void {
     ATOMIK_CHANNELS.relocateFolderApply,
     (event, from: unknown, to: unknown) => {
       const result = relocateFolderApply(requireVault(), from, to)
+      invalidateGraphIndex()
       event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
       // the same push: relocateTabPaths' prefix form covers folders
       event.sender.send(ATOMIK_CHANNELS.noteRelocated, {

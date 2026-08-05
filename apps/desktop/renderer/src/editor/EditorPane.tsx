@@ -62,11 +62,14 @@ import { wireSystemPlan } from './system-plan'
 import {
   frontmatterEnd,
   livePreview,
+  setVocabulary,
   setWikiCandidates,
+  vocabularyField,
   wikiCandidatesField
 } from './live-preview'
 import { ModeSwitch } from './ModeSwitch'
-import { linkableNotesOf, quickActions } from './quick-actions'
+import { quickActions } from './quick-actions'
+import { vocabularyOf, wikiCandidatesFor } from '../../../shared/graph-core'
 import { hasMediaResource, isMediaFilePath } from '../source/dossier'
 
 /** Auto mode saves this long after the last keystroke. */
@@ -436,10 +439,11 @@ export function EditorPane({
           base: markdownLanguage,
           codeLanguages: fencedCodeLanguage
         }),
-        // Wikilink resolution candidates for live pills (S04b: read
-        // parity) — OUTSIDE the mode compartment so a live⇄source
-        // switch keeps the loaded value.
+        // Wikilink resolution candidates + the vault label vocabulary
+        // for live pills (S04b read parity, S06 index) — OUTSIDE the
+        // mode compartment so a live⇄source switch keeps the values.
         wikiCandidatesField,
+        vocabularyField,
         previewCompartment.of(
           modeExtensions(modeRef.current, followHandler, followRelHandler, note.relPath)
         ),
@@ -492,14 +496,18 @@ export function EditorPane({
       }
     }
     view.focus()
-    // Feed the wikilink resolution candidates (S04b: live pills carry
-    // the same kind/broken truth as read). Mount-time fetch; the S06
-    // index takes over live updates.
-    void listVaultTree()
-      .then((tree) => {
+    // Feed the wikilink resolution candidates (S04b; S06: from the
+    // nodes/edges INDEX — titles included, so live sentences read the
+    // target's H1).
+    void window.atomik
+      .readGraphIndex()
+      .then((index) => {
         if (viewRef.current !== view) return
         view.dispatch({
-          effects: setWikiCandidates.of(linkableNotesOf(tree, note.relPath))
+          effects: [
+            setWikiCandidates.of(wikiCandidatesFor(note.relPath, index.nodes)),
+            setVocabulary.of(vocabularyOf(index))
+          ]
         })
       })
       .catch(() => {})
