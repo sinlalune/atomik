@@ -387,8 +387,23 @@ changed(S04d): owner bench round 3 ("still not the same colors
               source view, .md → host open; hash/mailto skip
               preventDefault (cursor placement, never a consumed
               no-op); Ctrl+click inherits the same router.
-tests       : 684/58 unchanged; typecheck + build green (gates
+tests(S04d) : 684/58 unchanged; typecheck + build green (gates
               bare); parity + web-click pins probed + shot.
+changed(S04e): owner bench round 4 (screenshots: "still not the same
+              pill bg colors some links, no hover effect, links
+              still not work when clicking in live mode") —
+              screenshots PREDATE S04d (taken on the previous
+              evening's code); the owner-shaped repro pin (root
+              note with apostrophe+accents, flat-era chat, web
+              dossier links, terracotta theme, read→live via the
+              real mode button) PASSES on current code: hello chat
+              in BOTH modes, click navigates to the chat. The one
+              real residue fixed: live pills had NO hover rule —
+              the recipe's hover selector now includes .cm-content
+              .link-pill:hover (probed: bg changes on mouseover).
+              Version probe for the owner: hover tooltip says
+              "— right-click to edit" only on current code.
+tests       : 684/58 unchanged; typecheck + build green.
 next action : S05 edge authoring on the pill — the "+" affordance
               (widening input, owner vision), edit label, ⇄ flip,
               delete; full lifecycle (03), each gesture one clean

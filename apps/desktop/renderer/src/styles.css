@@ -2999,7 +2999,8 @@ body[data-maximized] .tabstrip {
   vertical-align: baseline;
 }
 
-.markdown-body a.link-pill:hover {
+.markdown-body a.link-pill:hover,
+.cm-content .link-pill:hover {
   border-color: var(--pill-kind);
   background: color-mix(in srgb, var(--pill-kind) 26%, var(--surface));
 }
