@@ -3112,38 +3112,58 @@ body[data-maximized] .tabstrip {
   opacity: 1;
 }
 
-/* THE pill widens: the input lives INSIDE it, borderless — the pill's
-   own border and tint stretch around the growing content. */
-.cm-content .link-pill.link-pill--editing {
-  border-color: var(--pill-kind);
+/* The edge editor tooltip (S05c: CM-native, rendered at the pill —
+   widget DOM is never mutated): a pill-shaped floating input in the
+   edge's kind color, ⇄ beside it for typed edges. */
+.cm-tooltip:has(> .edge-editor) {
+  border: none;
+  background: none;
 }
 
-.cm-content .link-pill--editing .pill-input {
+.edge-editor {
+  --pill-kind: var(--kind-note);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2em;
+  padding: 0.1rem 0.55rem;
+  border: 1px solid var(--pill-kind);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--pill-kind) 16%, var(--surface));
+  box-shadow: var(--shadow-pop, 0 4px 14px rgb(0 0 0 / 0.18));
+}
+
+.edge-editor--folder { --pill-kind: var(--kind-folder); }
+.edge-editor--chat { --pill-kind: var(--kind-chat); }
+.edge-editor--prompt { --pill-kind: var(--kind-prompt); }
+.edge-editor--pdf,
+.edge-editor--pdf-anchor { --pill-kind: var(--kind-pdf); }
+.edge-editor--web { --pill-kind: var(--kind-web); }
+.edge-editor--capture,
+.edge-editor--media { --pill-kind: var(--kind-capture); }
+.edge-editor--source { --pill-kind: var(--kind-source); }
+
+.edge-editor .pill-input {
   font: inherit;
-  font-size: 0.9em;
-  width: 10em;
-  margin-left: 0.3em;
-  padding: 0;
+  font-size: var(--fs-sm);
+  width: 11em;
   border: none;
   background: transparent;
   color: var(--fg);
   outline: none;
 }
 
-.cm-content .link-pill--editing .pill-flip {
+.edge-editor .pill-flip {
   font: inherit;
-  font-size: 0.85em;
-  line-height: 1.1;
-  margin-left: 0.1em;
-  padding: 0 0.15em;
+  font-size: var(--fs-sm);
+  padding: 0 0.2em;
   border: none;
   background: none;
-  color: inherit;
-  opacity: 0.8;
+  color: color-mix(in srgb, var(--pill-kind) 70%, var(--fg));
+  opacity: 0.85;
   cursor: pointer;
 }
 
-.cm-content .link-pill--editing .pill-flip:hover {
+.edge-editor .pill-flip:hover {
   opacity: 1;
 }
 

@@ -10,8 +10,10 @@ import {
 import {
   Decoration,
   EditorView,
+  showTooltip,
   WidgetType,
-  type DecorationSet
+  type DecorationSet,
+  type Tooltip
 } from '@codemirror/view'
 import type { SyntaxNode } from '@lezer/common'
 import { normalizeLabel, parseEdges } from '../../../shared/edge-grammar'
@@ -394,14 +396,13 @@ class LinkPillWidget extends WidgetType {
   }
 
   override toDOM(view: EditorView): HTMLElement {
+    // The widget DOM is BUILT ONCE and never mutated afterwards —
+    // the S05c lesson: live-mutating widget DOM desyncs CodeMirror's
+    // view (eq-reuse then preserves the corpse). The editing UI lives
+    // in a TOOLTIP (DOM outside the managed content), opened by
+    // dispatching openEdgeEditor.
     const wrap = document.createElement('span')
     wrap.className = 'edge-widget'
-    this.renderBaseline(view, wrap)
-    return wrap
-  }
-
-  private renderBaseline(view: EditorView, wrap: HTMLElement): void {
-    wrap.textContent = ''
     const pill = document.createElement('span')
     pill.className = `link-pill link-pill--${this.kind}${
       this.broken ? ' link-pill--broken' : ''
@@ -430,14 +431,23 @@ class LinkPillWidget extends WidgetType {
     // click too, via CM's default cursor placement).
     pill.addEventListener('contextmenu', (event) => {
       event.preventDefault()
-      const pos = view.posAtDOM(wrap)
-      view.dispatch({ selection: { anchor: pos } })
+      view.dispatch({ selection: { anchor: view.posAtDOM(wrap) } })
       view.focus()
     })
+    const openEditor = (event: Event): void => {
+      event.preventDefault()
+      event.stopPropagation()
+      // Resolve the edge at CLICK time from the DOM position — the
+      // widget instance may be REUSED across doc changes (CM maps
+      // decorations and keeps widget views; position must never be
+      // widget identity — the S05c lesson: putting start into eq
+      // forced rebuilds whose views CM then dropped, killing every
+      // shifted pill on each edit).
+      view.dispatch({ effects: openEdgeEditor.of({ start: view.posAtDOM(wrap) }) })
+    }
     if (this.label === null) {
       // Untyped: the little "+" INSIDE the pill, after the label text
-      // (owner vision + S05b correction: "the + not in the pills" —
-      // it belongs to the pill body). Hover-revealed via CSS.
+      // (owner vision). Hover-revealed via CSS.
       const add = document.createElement('button')
       add.type = 'button'
       add.className = 'pill-add'
@@ -447,17 +457,12 @@ class LinkPillWidget extends WidgetType {
         event.preventDefault()
         event.stopPropagation()
       })
-      add.addEventListener('click', (event) => {
-        event.preventDefault()
-        event.stopPropagation()
-        this.openEditor(view, wrap)
-      })
+      add.addEventListener('click', openEditor)
       pill.appendChild(add)
     }
     wrap.appendChild(pill)
     if (this.label !== null) {
-      // Typed: the chip IS the edit door — click widens the pill
-      // into the input.
+      // Typed: the chip IS the edit door.
       const chip = document.createElement('button')
       chip.type = 'button'
       chip.className = `edge-chip edge-chip--editable${this.reverse ? ' edge-chip--rev' : ''}`
@@ -467,134 +472,10 @@ class LinkPillWidget extends WidgetType {
         event.preventDefault()
         event.stopPropagation()
       })
-      chip.addEventListener('click', (event) => {
-        event.preventDefault()
-        event.stopPropagation()
-        this.openEditor(view, wrap)
-      })
+      chip.addEventListener('click', openEditor)
       wrap.appendChild(chip)
     }
-  }
-
-  /** THE pill widens (owner vision verbatim, S05b correction: one
-   *  pill, growing — never a second pill-shaped element): the input
-   *  lives INSIDE the pill after its text, borderless, with the
-   *  document vocabulary as a datalist; ⇄ flips a typed edge in
-   *  place. Enter commits (empty = remove) — with a keyup backstop,
-   *  because Chrome swallows the Enter KEYDOWN while the datalist
-   *  popup is open (the owner's "doesn't save on enter"); Esc or
-   *  clicking away cancels; a leading ^ asserts reverse. */
-  private openEditor(view: EditorView, wrap: HTMLElement): void {
-    wrap.textContent = ''
-    wrap.classList.add('edge-widget--editing')
-    const pill = document.createElement('span')
-    pill.className = `link-pill link-pill--${this.kind} link-pill--editing`
-    const text = document.createElement('span')
-    text.textContent = this.text
-    pill.appendChild(text)
-
-    const listId = `edge-labels-${Math.floor(Math.random() * 1e9)}`
-    const datalist = document.createElement('datalist')
-    datalist.id = listId
-    for (const label of labelsInDoc(view.state.doc.toString())) {
-      const option = document.createElement('option')
-      option.value = label
-      datalist.appendChild(option)
-    }
-    pill.appendChild(datalist)
-
-    const input = document.createElement('input')
-    input.className = 'pill-input'
-    input.setAttribute('list', listId)
-    input.placeholder = 'label (^ = reverse)'
-    input.setAttribute('aria-label', 'edge label')
-    input.value = this.label === null ? '' : `${this.reverse ? '^' : ''}${this.label}`
-    let done = false
-    const cancel = (): void => {
-      if (done) return
-      done = true
-      wrap.classList.remove('edge-widget--editing')
-      this.renderBaseline(view, wrap)
-    }
-    const commit = (): void => {
-      if (done) return
-      done = true
-      const pos = view.posAtDOM(wrap)
-      const edge = findEdgeAt(view.state.doc.toString(), pos)
-      if (!edge) {
-        done = false
-        return cancel()
-      }
-      const raw = input.value.trim()
-      const reverse = raw.startsWith('^')
-      const label = normalizeLabel(reverse ? raw.slice(1) : raw)
-      const change =
-        edge.decoration === null
-          ? addLabel(edge, label, reverse)
-          : label.length > 0 && reverse !== edge.decoration.reverse
-            ? {
-                from:
-                  edge.end -
-                  `{${edge.decoration.reverse ? '^' : ''}${edge.decoration.label}}`.length,
-                to: edge.end,
-                insert: `{${reverse ? '^' : ''}${label}}`
-              }
-            : editLabel(edge, label)
-      if (change) view.dispatch({ changes: change })
-      else {
-        wrap.classList.remove('edge-widget--editing')
-        this.renderBaseline(view, wrap)
-      }
-      view.focus()
-    }
-    const onEnter = (event: KeyboardEvent): void => {
-      event.stopPropagation()
-      if (event.key === 'Enter' || event.key === 'NumpadEnter') {
-        event.preventDefault()
-        commit()
-      } else if (event.key === 'Escape') {
-        event.preventDefault()
-        cancel()
-        view.focus()
-      }
-    }
-    input.addEventListener('keydown', onEnter)
-    // Backstop: with the datalist popup open, Chrome delivers no Enter
-    // KEYDOWN — but the keyup still arrives.
-    input.addEventListener('keyup', (event) => {
-      event.stopPropagation()
-      if (event.key === 'Enter' || event.key === 'NumpadEnter') commit()
-    })
-    input.addEventListener('blur', () => cancel())
-    input.addEventListener('mousedown', (event) => event.stopPropagation())
-    pill.appendChild(input)
-
-    if (this.label !== null) {
-      const flip = document.createElement('button')
-      flip.type = 'button'
-      flip.className = 'pill-flip'
-      flip.textContent = '⇄'
-      flip.title = `flip direction (now: ${this.reverse ? 'reverse' : 'forward'})`
-      flip.addEventListener('mousedown', (event) => {
-        event.preventDefault()
-        event.stopPropagation()
-      })
-      flip.addEventListener('click', (event) => {
-        event.preventDefault()
-        event.stopPropagation()
-        if (done) return
-        done = true
-        const pos = view.posAtDOM(wrap)
-        const edge = findEdgeAt(view.state.doc.toString(), pos)
-        const change = edge ? flipDirection(edge) : null
-        if (change) view.dispatch({ changes: change })
-        view.focus()
-      })
-      pill.appendChild(flip)
-    }
-    wrap.appendChild(pill)
-    input.focus()
-    input.select()
+    return wrap
   }
 
   override eq(other: LinkPillWidget): boolean {
@@ -607,6 +488,159 @@ class LinkPillWidget extends WidgetType {
       other.follow?.kind === this.follow?.kind &&
       other.follow?.target === this.follow?.target
     )
+  }
+}
+
+/**
+ * The edge editor (CP-MVP-009 S05; S05c rebuilt on CM's tooltip system
+ * after in-widget DOM mutation proved unmanageable): clicking the "+"
+ * or a label chip dispatches openEdgeEditor; the tooltip renders a
+ * pill-styled input AT the edge with the document vocabulary as a
+ * datalist and ⇄ for typed edges. Enter commits (empty = remove,
+ * leading ^ = reverse, keyup backstop for the datalist-popup case);
+ * Esc or clicking away cancels. The edited position maps through any
+ * doc change and closes if its edge disappears.
+ */
+export const openEdgeEditor = StateEffect.define<{ start: number } | null>()
+
+export const edgeEditorField = StateField.define<{ start: number } | null>({
+  create: () => null,
+  update(value, tr) {
+    let next = value
+    if (next && tr.docChanged) {
+      next = { start: tr.changes.mapPos(next.start, 1) }
+    }
+    for (const effect of tr.effects) {
+      if (effect.is(openEdgeEditor)) next = effect.value
+    }
+    return next
+  },
+  provide: (field) =>
+    showTooltip.from(field, (value) => (value ? edgeEditorTooltip(value.start) : null))
+})
+
+function edgeEditorTooltip(start: number): Tooltip {
+  return {
+    pos: start,
+    above: true,
+    arrow: false,
+    create(view) {
+      const edge = findEdgeAt(view.state.doc.toString(), start)
+      const dom = document.createElement('div')
+      dom.className = 'edge-editor'
+      const close = (): void => {
+        view.dispatch({ effects: openEdgeEditor.of(null) })
+        view.focus()
+      }
+      if (!edge) {
+        queueMicrotask(close)
+        return { dom }
+      }
+      const decoration = edge.decoration
+      const kind =
+        edge.kind === 'wikilink' ? 'note' : (classifyLinkKind(edge.target) ?? 'note')
+      dom.classList.add(`edge-editor--${kind}`)
+
+      const listId = `edge-labels-${start}`
+      const datalist = document.createElement('datalist')
+      datalist.id = listId
+      for (const label of labelsInDoc(view.state.doc.toString())) {
+        const option = document.createElement('option')
+        option.value = label
+        datalist.appendChild(option)
+      }
+      dom.appendChild(datalist)
+
+      const input = document.createElement('input')
+      input.className = 'pill-input'
+      input.setAttribute('list', listId)
+      input.placeholder = 'label (^ = reverse)'
+      input.setAttribute('aria-label', 'edge label')
+      input.value = decoration ? `${decoration.reverse ? '^' : ''}${decoration.label}` : ''
+      let done = false
+      const commit = (): void => {
+        if (done) return
+        done = true
+        const current = findEdgeAt(view.state.doc.toString(), start)
+        if (!current) return close()
+        const raw = input.value.trim()
+        const reverse = raw.startsWith('^')
+        const label = normalizeLabel(reverse ? raw.slice(1) : raw)
+        let change = null
+        if (current.decoration === null) {
+          change = addLabel(current, label, reverse)
+        } else if (label.length > 0 && reverse !== current.decoration.reverse) {
+          const brace = `{${current.decoration.reverse ? '^' : ''}${current.decoration.label}}`
+          change = {
+            from: current.end - brace.length,
+            to: current.end,
+            insert: `{${reverse ? '^' : ''}${label}}`
+          }
+        } else {
+          change = editLabel(current, label)
+        }
+        view.dispatch({ effects: openEdgeEditor.of(null) })
+        if (change) view.dispatch({ changes: change })
+        requestAnimationFrame(() => view.focus())
+      }
+      input.addEventListener('keydown', (event) => {
+        event.stopPropagation()
+        if (event.key === 'Enter') {
+          event.preventDefault()
+          commit()
+        } else if (event.key === 'Escape') {
+          event.preventDefault()
+          done = true
+          close()
+        }
+      })
+      // Backstop: with the datalist popup open, Chrome delivers no
+      // Enter KEYDOWN — the keyup still arrives.
+      input.addEventListener('keyup', (event) => {
+        event.stopPropagation()
+        if (event.key === 'Enter') commit()
+      })
+      input.addEventListener('blur', () => {
+        if (!done) {
+          done = true
+          // let a click on ⇄ land before closing
+          window.setTimeout(() => {
+            if (view.state.field(edgeEditorField, false)) close()
+          }, 150)
+        }
+      })
+      dom.appendChild(input)
+
+      if (decoration) {
+        const flip = document.createElement('button')
+        flip.type = 'button'
+        flip.className = 'pill-flip'
+        flip.textContent = '⇄'
+        flip.title = `flip direction (now: ${decoration.reverse ? 'reverse' : 'forward'})`
+        flip.addEventListener('mousedown', (event) => {
+          event.preventDefault()
+          event.stopPropagation()
+        })
+        flip.addEventListener('click', (event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          done = true
+          const current = findEdgeAt(view.state.doc.toString(), start)
+          const change = current ? flipDirection(current) : null
+          view.dispatch({ effects: openEdgeEditor.of(null) })
+          if (change) view.dispatch({ changes: change })
+          requestAnimationFrame(() => view.focus())
+        })
+        dom.appendChild(flip)
+      }
+      return {
+        dom,
+        mount() {
+          input.focus()
+          input.select()
+        }
+      }
+    }
   }
 }
 
@@ -922,6 +956,7 @@ export function computeLivePreviewDecorations(
   // pill + chip. Wikilinks resolve against the host-fed candidates
   // (null = not loaded → neutral note pill, never a broken flash).
   const candidates = state.field(wikiCandidatesField, false) ?? null
+  const edgeRanges: [number, number][] = []
   for (const edge of parseEdges(state.doc.toString())) {
     if (edge.start < fmEnd) continue
     if (isActiveAt(edge.start)) continue
@@ -943,6 +978,7 @@ export function computeLivePreviewDecorations(
       follow = { kind: 'href', target: edge.target }
     }
     if (kind === null) continue
+    edgeRanges.push([edge.start, edge.end])
     decorations.push(
       Decoration.replace({
         lp: 'edge' as LivePreviewKind,
@@ -961,7 +997,24 @@ export function computeLivePreviewDecorations(
     )
   }
 
-  return Decoration.set(decorations, true)
+  // A pill's replace range must not NEST other replace/mark
+  // decorations (the tree walk hides link brackets and URLs inside md
+  // links): nested replaces corrupt CodeMirror's incremental redraw —
+  // a widget rebuilt mid-line simply vanished (S05c, the owner's
+  // md-link vault; wikilinks never nested, which is why every
+  // wikilink pin stayed green). Line decorations are structural and
+  // stay.
+  const filtered =
+    edgeRanges.length === 0
+      ? decorations
+      : decorations.filter((deco) => {
+          const spec = deco.value.spec as { lp?: LivePreviewKind }
+          if (spec.lp === 'edge' || spec.lp === 'line') return true
+          return !edgeRanges.some(
+            ([from, to]) => deco.from >= from && deco.to <= to
+          )
+        })
+  return Decoration.set(filtered, true)
 }
 
 /** The URL of the markdown Link enclosing `pos`, or null. Pure — the
@@ -1009,7 +1062,7 @@ export function livePreview(options?: {
   notePath?: string
 }): Extension {
   const follow = options?.onFollowLink
-  const extensions: Extension[] = [livePreviewField]
+  const extensions: Extension[] = [livePreviewField, edgeEditorField]
   if (follow || options?.onFollowRel) {
     extensions.push(
       edgeFollowFacet.of({

@@ -463,6 +463,44 @@ changed(S05b): owner bench round 6 ("+ not in the pills, doesnt
               covered; pin re-driven incl. a keyup-ONLY Enter
               commit.
 tests(S05b) : 698/59 unchanged; typecheck + build green.
+changed(S05c): owner bench round 7 ("no dropdown menu and enter
+              doesnt save (doesnt render the edge...)") — FIVE-ROUND
+              ROOT CAUSE finally isolated by reproducing on a COPY
+              of the owner's real vault with REAL key events:
+              (1) the commit ALWAYS WROTE the file correctly — what
+              failed was the RENDER AFTER the commit; (2) root
+              cause: the edge pill's replace range NESTED the tree
+              walk's own hide/mark decorations (md-link brackets,
+              URLs, lp-link) — nested replaces corrupt CodeMirror's
+              incremental redraw, so any widget REBUILT mid-line
+              (its label changed, or its offset shifted) silently
+              vanished; wikilinks never nest, which is why every
+              wikilink pin stayed green while the owner's md-link
+              vault died; FIX: compute filters every non-edge,
+              non-line decoration fully contained in an edge range
+              (regression suite repro-bold-edge.test.ts asserts
+              zero nesting on the owner's exact shapes); (3) the
+              editing UI REBUILT on CM's tooltip system
+              (openEdgeEditor effect + edgeEditorField +
+              showTooltip) — widget DOM is BUILT ONCE and never
+              mutated (live-mutating it desyncs the view); the
+              tooltip is a pill-styled floating input at the edge
+              (kind-colored, datalist vocabulary, ⇄ for typed);
+              (4) widget eq restored to CM-canonical (identity
+              fields only — putting the offset into eq forced
+              rebuilds CM then dropped); the edge resolves at CLICK
+              time via posAtDOM; (5) "no dropdown" root cause:
+              the vocabulary was EMPTY (no labels existed yet) —
+              it populates as labels accumulate (S06 registry makes
+              it vault-wide); @codemirror/view bumped 6.43.6→6.43.8
+              (ruled out, kept). VERIFIED on the vault copy with
+              real keys: add→chip immediate (in-bold pill), vocab
+              offers prior labels, edit ^precede reverse, ⇄ flip,
+              clear+Enter delete — widgets alive throughout;
+              boundary matrix (insert at pill end, bold and plain)
+              all green; legacy S04 md-link test updated to the
+              one-pill contract.
+tests(S05c) : 698→700/60; typecheck + build green (gates bare).
               OWNER VALIDATION (2026-08-05, verbatim): "YES I LOVE
               U IT WORKS perfectly" — bench rounds 1–5 closed; the
               S03/S04 rendering + interaction surface is

@@ -106,22 +106,20 @@ describe('live preview decorations (MVP-001: seamless editing)', () => {
     ).toBe(true)
   })
 
-  it('collapses [text](url) to styled text away from the cursor', () => {
+  it('collapses [text](url) into ONE edge pill away from the cursor (S05c)', () => {
     const doc = 'see [docs](https://example.org) now\n\nelsewhere\n'
     const decos = decorate(doc, doc.indexOf('elsewhere'))
-    const urlStart = doc.indexOf('(https')
-    const urlEnd = doc.indexOf(')') + 1
-    // brackets hidden, '(url)' hidden, text styled as a link
-    expect(decos).toContainEqual({ from: 4, to: 5, kind: 'hide' })
+    const linkEnd = doc.indexOf(')') + 1
+    // the whole link is one edge replace — NO decorations nest inside
+    // it (nested replaces corrupted CM's incremental redraw, S05c)
+    expect(decos).toContainEqual(
+      expect.objectContaining({ from: 4, to: linkEnd, kind: 'edge' })
+    )
     expect(
       decos.some(
-        (deco) =>
-          deco.kind === 'hide' && deco.from >= urlStart - 1 && deco.to === urlEnd
+        (deco) => deco.kind === 'hide' && deco.from >= 4 && deco.to <= linkEnd
       )
-    ).toBe(true)
-    expect(
-      decos.some((deco) => deco.kind === 'mark' && deco.cls === 'lp-link')
-    ).toBe(true)
+    ).toBe(false)
   })
 
   it('replaces list dashes with bullets and marks quote lines', () => {
