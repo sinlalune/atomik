@@ -108,27 +108,39 @@ export function RelationsStrip({
 
   return (
     <section className={`relations-strip${open ? ' is-open' : ''}`}>
-      <button
-        type="button"
-        className="relations-bar"
-        onClick={onToggle}
-        aria-expanded={open}
-        aria-label={`Relations — ${summary}`}
-        title="Relations of this note (inbound and outbound edges)"
-      >
-        <span className="relations-bar-title">Relations</span>
-        <span className="relations-bar-count">{summary}</span>
-        <span className="relations-bar-chevron" aria-hidden="true">
+      {/* ONE bar (S07c owner: "why need separation when expanded?"):
+          expanding adds the figure and nothing else — the type filter
+          rides the bar it belongs to instead of opening a second band
+          behind its own hairline. */}
+      <div className="relations-bar">
+        <button
+          type="button"
+          className="relations-bar-toggle"
+          onClick={onToggle}
+          aria-expanded={open}
+          aria-label={`Relations — ${summary}`}
+          title="Relations of this note (inbound and outbound edges)"
+        >
+          <span className="relations-bar-title">Relations</span>
+          <span className="relations-bar-count">{summary}</span>
+        </button>
+        {open && neighborhood !== null && !empty && onToggleKind && (
+          <KindFilter
+            neighborhood={neighborhood}
+            hidden={hidden}
+            onToggleKind={onToggleKind}
+          />
+        )}
+        <button
+          type="button"
+          className="relations-bar-chevron"
+          onClick={onToggle}
+          aria-label={open ? 'Collapse relations' : 'Expand relations'}
+          tabIndex={-1}
+        >
           {open ? <ChevronDownIcon /> : <ChevronUpIcon />}
-        </span>
-      </button>
-      {open && neighborhood !== null && !empty && onToggleKind && (
-        <KindFilter
-          neighborhood={neighborhood}
-          hidden={hidden}
-          onToggleKind={onToggleKind}
-        />
-      )}
+        </button>
+      </div>
       {open && (
         <div className="relations-canvas" ref={canvasRef}>
           {neighborhood === null ? (

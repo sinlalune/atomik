@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-009
   status: active
   accepted: 2026-08-04
-  current_step: S07b
+  current_step: S07c
   base_commit: fba010d
 ---
 
@@ -340,6 +340,19 @@ read contract as a clean projection, nothing more.
       text — a `sources/web/<slug>/source.md` link is titled "Source
       dossier" in the index, so swapping would LOSE the slug. The
       folder-name-as-title question is left for the ceremony.
+- [x] S07c Owner bench round 12 (DONE 2026-08-13) — screenshot of
+      the expanded strip: "design issue, also why need separation when
+      expanded ?". The filter had opened a SECOND band under its own
+      hairline, so expanding produced three stacked zones. Now ONE
+      bar: the label+counts toggle, the kind pills beside them, the
+      chevron pinned right — expanding adds the figure and nothing
+      else. The canvas lost its border-top (the strip is one surface;
+      only the strip's own top edge separates it from the note), the
+      bar lost its full-width hover wash (a hover that repainted the
+      whole row read as a button the size of the pane — now only the
+      text warms), and the row is markup-honest: the bar is a <div>
+      with two real buttons instead of a button that visually
+      contained other buttons.
 - [ ] S08 Acceptance: intents re-run + owner bench on the live vault
       (author edges in real notes, autocomplete convergence, flip,
       delete, backlinks, rename refactor over a linked note, index
@@ -713,6 +726,15 @@ pin(S07b)   : dev CDP on a fresh copy of the owner's real vault.
               "L'ethos" instead of `ethos`. The web-dossier pill
               keeps `curlew-sandpiper-wikipedia` by design (its
               index title is the generic "Source dossier").
+changed(S07c): RelationsStrip (the bar is one row: toggle + filter +
+              chevron); styles.css (§Relations strip reworked — no
+              inner hairline, no full-row hover, the filter is a bar
+              member instead of a band).
+tests(S07c) : 751/63 unchanged; typecheck + build green.
+pin(S07c)   : dev CDP — collapsed bar 34px with no filter row in the
+              DOM; expanded keeps the SAME 34px bar (filter inside
+              it), canvas border-top computes to 0px, hiding folder
+              drains its pill and drops the chip from the figure.
 next action : S08 acceptance — intents re-run + owner bench on the
               live vault (author edges in real notes, autocomplete
               convergence, flip, delete, the relations strip, rename

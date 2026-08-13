@@ -3169,6 +3169,9 @@ button.relations-node:hover,
   border-top: 1px solid var(--border);
 }
 
+/* ONE bar: the label + counts toggle, the type filter sits beside
+   them, the chevron closes the row. No inner hairline — expanding
+   grows the same surface (owner, S07c). */
 .relations-bar {
   flex: none;
   display: flex;
@@ -3178,23 +3181,33 @@ button.relations-node:hover,
   min-height: var(--bar-h);
   box-sizing: border-box;
   padding: var(--space-1) var(--gutter);
+  background: var(--surface);
+}
+
+.relations-bar-toggle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: var(--control-h);
+  padding: 0;
   font: inherit;
   font-size: var(--fs-md);
   color: var(--muted);
-  background: var(--surface);
+  background: none;
   border: none;
   text-align: left;
   cursor: pointer;
 }
 
-.relations-bar:hover {
+.relations-bar-toggle:hover {
   color: var(--fg);
-  background: var(--code-bg);
 }
 
-.relations-bar:focus-visible {
+.relations-bar-toggle:focus-visible {
   outline: 1px solid var(--accent);
-  outline-offset: -1px;
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .relations-bar-title {
@@ -3205,27 +3218,36 @@ button.relations-node:hover,
 }
 
 .relations-bar-count {
-  flex: 1;
-  min-width: 0;
+  flex: none;
   color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .relations-bar-chevron {
   flex: none;
   display: inline-flex;
   align-items: center;
+  margin-left: auto;
+  padding: 0;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
 }
 
-/* Type filter (S07b): one row of kind pills above the figure. Each
+.relations-bar-chevron:hover {
+  color: var(--fg);
+}
+
+/* Type filter (S07b): the kind pills live IN the bar (S07c). Each
    wears its own kind's colour — the legend IS the control. */
 .relations-filter {
-  flex: none;
+  flex: 1;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--gutter) 0;
-  background: var(--surface);
+  min-width: 0;
 }
 
 .relations-kind {
@@ -3258,8 +3280,9 @@ button.relations-node:hover,
   flex: none;
   max-height: 42vh;
   overflow: auto;
-  padding: var(--space-3) var(--gutter) var(--space-4);
-  border-top: 1px solid var(--border);
+  /* no border-top: the strip is ONE surface, the figure is simply
+     the room the bar opens (owner, S07c) */
+  padding: 0 var(--gutter) var(--space-4);
   background: var(--surface);
 }
 
