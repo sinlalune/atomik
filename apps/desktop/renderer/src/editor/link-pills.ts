@@ -64,6 +64,78 @@ export function decorateWikiLinks(
   })
 }
 
+const stemOf = (path: string): string =>
+  (path.split('/').pop() ?? path).replace(/\.md$/i, '')
+
+/**
+ * What a pill SHOWS (S07b owner bench: "we need to display first
+ * title of note pills instead of file name … easier to modify that
+ * directly file name").
+ *
+ * The @ menu writes `[crédibilité](<crédibilité.md>)` and a wikilink
+ * writes its target — both name the FILE. When the pill names the
+ * file, show the note's first heading instead: the title is the thing
+ * the owner edits, the filename is not.
+ *
+ * Authored text that is NOT the file's name is deliberate wording and
+ * stays untouched — a pill inside a sentence keeps the sentence's
+ * words. Pure, so read and live can never disagree.
+ */
+export function pillDisplayText(
+  authored: string,
+  target: string | null,
+  title: string | null
+): string {
+  if (title === null || title.length === 0 || target === null) return authored
+  const written = authored.trim().toLowerCase()
+  if (written.length === 0) return authored
+  // The rendered href is percent-encoded (markdown-it normalizes
+  // `<crédibilité.md>`), so compare against the DECODED path or an
+  // accented filename never matches its own pill text.
+  let decoded = target
+  try {
+    decoded = decodeURIComponent(target)
+  } catch {
+    /* malformed escape: compare raw */
+  }
+  const path = decoded.toLowerCase()
+  const namesTheFile =
+    written === stemOf(path) ||
+    written === path ||
+    written === path.replace(/\.md$/i, '')
+  return namesTheFile ? title : authored
+}
+
+const PILL_TEXT_RE = /(<a ([^>]*class="link-pill[^"]*"[^>]*)>)([^<]*)/g
+
+const escapeText = (s: string): string =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+/** Post-render title swap for every pill in the read view: the pill's
+ *  own target (`data-rel` for resolved wikilinks, `data-wiki` for
+ *  unresolved ones, the raw `href` for md links) decides what it
+ *  names, and `titleOf` supplies the note's heading. Same string-swap
+ *  idiom as decorateWikiLinks; runs AFTER it, so `data-rel` is
+ *  already there. */
+export function decorateLinkTitles(
+  html: string,
+  titleOf: (target: { rel: string | null; href: string | null }) => string | null
+): string {
+  return html.replace(
+    PILL_TEXT_RE,
+    (_whole, open: string, attrs: string, text: string) => {
+      const rel = attrOf(attrs, 'data-rel')
+      const href = attrOf(attrs, 'href')
+      const wiki = attrOf(attrs, 'data-wiki')
+      const target = rel ?? (href === '#' ? wiki : href)
+      if (target === null) return `${open}${text}`
+      const title = titleOf({ rel, href: href === '#' ? null : href })
+      const shown = pillDisplayText(unescapeHtml(text), target, title)
+      return `${open}${escapeText(shown)}`
+    }
+  )
+}
+
 /** Kebab label → human words ("repose-sur" → "repose sur") for the
  *  graph-relation sentence (S05d owner vision: hovering the in-pill
  *  graph icon reads "L'ethos repose sur la fiabilité"). */

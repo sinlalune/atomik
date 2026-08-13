@@ -4,6 +4,8 @@ import { humanizeLabel } from '../editor/link-pills'
 import {
   CENTER_W,
   NODE_W,
+  filterNeighborhood,
+  kindsPresent,
   layoutRelations,
   neighborhoodOf,
   relationsSummary,
@@ -22,6 +24,9 @@ export type RelationsStripProps = {
   onToggle: () => void
   /** Opens a neighbour (through the host's GUARDED navigation). */
   onOpenNote: (relPath: string) => void
+  /** Node kinds the strip is hiding, persisted per tab (S07b). */
+  hiddenKinds?: readonly string[]
+  onToggleKind?: (kind: string) => void
 }
 
 /**
@@ -42,7 +47,9 @@ export function RelationsStrip({
   revision,
   open,
   onToggle,
-  onOpenNote
+  onOpenNote,
+  hiddenKinds = [],
+  onToggleKind
 }: RelationsStripProps): React.JSX.Element {
   const [neighborhood, setNeighborhood] = useState<Neighborhood | null>(null)
   const [width, setWidth] = useState(720)
@@ -83,13 +90,21 @@ export function RelationsStrip({
     return () => observer.disconnect()
   }, [open, neighborhood])
 
-  const summary = neighborhood ? relationsSummary(neighborhood) : 'reading index…'
+  // The filter is a VIEW act: the neighbourhood keeps the whole truth
+  // (the bar's counts), the figure draws the kept kinds.
+  const hidden = new Set(hiddenKinds)
+  const shown = neighborhood ? filterNeighborhood(neighborhood, hidden) : null
+  const summary = neighborhood
+    ? relationsSummary(neighborhood, shown ?? undefined)
+    : 'reading index…'
   const empty =
     neighborhood !== null &&
     neighborhood.inbound.length === 0 &&
     neighborhood.outbound.length === 0
+  const allFiltered =
+    shown !== null && !empty && shown.inbound.length === 0 && shown.outbound.length === 0
   const layout: RelationsLayout | null =
-    neighborhood && !empty ? layoutRelations(neighborhood, width) : null
+    shown && !empty && !allFiltered ? layoutRelations(shown, width) : null
 
   return (
     <section className={`relations-strip${open ? ' is-open' : ''}`}>
@@ -107,6 +122,13 @@ export function RelationsStrip({
           {open ? <ChevronDownIcon /> : <ChevronUpIcon />}
         </span>
       </button>
+      {open && neighborhood !== null && !empty && onToggleKind && (
+        <KindFilter
+          neighborhood={neighborhood}
+          hidden={hidden}
+          onToggleKind={onToggleKind}
+        />
+      )}
       {open && (
         <div className="relations-canvas" ref={canvasRef}>
           {neighborhood === null ? (
@@ -116,6 +138,10 @@ export function RelationsStrip({
               No note links to this one, and it links to no note yet — write a{' '}
               <code>[[link]]</code> to start the graph.
             </p>
+          ) : allFiltered ? (
+            <p className="relations-empty">
+              Every neighbour is hidden by the type filter.
+            </p>
           ) : (
             layout && (
               <RelationsFigure layout={layout} onOpenNote={onOpenNote} />
@@ -124,6 +150,43 @@ export function RelationsStrip({
         </div>
       )}
     </section>
+  )
+}
+
+/** The type filter (S07b owner bench: folder indexes and sources link
+ *  a lot, and the picture should show what the owner is after). Only
+ *  the kinds actually present are offered, each a pill of its own kind
+ *  wearing the same recipe as the nodes it governs; pressed = shown. */
+function KindFilter({
+  neighborhood,
+  hidden,
+  onToggleKind
+}: {
+  neighborhood: Neighborhood
+  hidden: ReadonlySet<string>
+  onToggleKind: (kind: string) => void
+}): React.JSX.Element | null {
+  const kinds = kindsPresent(neighborhood)
+  if (kinds.length < 2) return null
+  return (
+    <div className="relations-filter" role="group" aria-label="Filter neighbours by type">
+      {kinds.map(({ kind, count }) => {
+        const on = !hidden.has(kind)
+        return (
+          <button
+            key={kind}
+            type="button"
+            className={`link-pill link-pill--${kind} relations-kind${on ? '' : ' is-off'}`}
+            aria-pressed={on}
+            title={`${on ? 'Hide' : 'Show'} ${kind} neighbours`}
+            onClick={() => onToggleKind(kind)}
+          >
+            {kind}
+            <span className="relations-kind-count">{count}</span>
+          </button>
+        )
+      })}
+    </div>
   )
 }
 

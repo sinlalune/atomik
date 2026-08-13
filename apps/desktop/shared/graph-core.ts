@@ -93,7 +93,12 @@ export function firstHeadingOf(content: string): string | null {
       continue
     }
     if (inFence) continue
-    const match = /^(#{1,6})[ \t]+(.+?)[ \t]*$/.exec(line)
+    // Up to THREE leading spaces still open a heading (CommonMark) —
+    // S07b: the owner's `ethos.md` starts with " # L'ethos", which
+    // markdown-it renders as an H1 while a start-anchored rule saw
+    // prose, so the note fell back to its filename everywhere titles
+    // are shown. A closing hash run ("# Title #") is decoration.
+    const match = /^ {0,3}(#{1,6})[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$/.exec(line)
     if (!match) continue
     if (match[1]!.length === 1) return match[2]!
     if (firstAny === null) firstAny = match[2]!

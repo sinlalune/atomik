@@ -139,6 +139,39 @@ index every time. The rule of thumb from note 19 holds: if losing it
 on restart would surprise the owner, persist it; if it can be
 derived, derive it.
 
+## Postscript: the filter, and a bug that was not where it looked
+
+Two owner reports arrived the same day and are worth keeping together.
+
+**"We might need a type filter."** Folder indexes link every note, so
+one kind of neighbour drowned the rest. The filter is deliberately
+NOT a fixed menu: it offers only the kinds actually present, each
+button wearing that kind's own colour, so the legend and the control
+are the same object. And filtering never touches the data — the
+neighbourhood keeps the whole truth, the figure draws a subset, and
+the bar says "· N hidden" so a filtered view can never be mistaken
+for an empty one. When you hide something, say that you did.
+
+**"Pills should show the note's title, not the file name."** Half of
+this was where it looked: pills showed the authored link text, which
+for a generated link is the filename. The other half was not. The
+owner's note opens on `" # L'ethos"` — one leading space. CommonMark
+allows up to three, so markdown renders an H1, but the title rule was
+anchored at the line start and saw prose. The reader displayed a
+title while everything else displayed `ethos`.
+
+Two lessons. First: when your rule and your renderer disagree about
+what a heading is, the renderer is the spec — copy its tolerance.
+Second: "not always the case" in a bug report usually means TWO
+causes, one of which is upstream of the symptom. Fixing the heading
+rule fixed the strip centre, the relation sentences, and the
+autocomplete candidates in one edit, because they all read the same
+title.
+
+(A third, smaller trap: the rendered href is percent-encoded, so
+`cr%C3%A9dibilit%C3%A9.md` never equals `crédibilité`. Decode before
+you compare — the first pin after the "fix" still showed file names.)
+
 ## Take-over exercises
 
 1. Add a second hop: from `neighborhoodOf`, follow each neighbour's

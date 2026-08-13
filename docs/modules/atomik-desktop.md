@@ -1619,3 +1619,34 @@ should follow these, they were each paid for in lost hours):
   note change and on content-length change. There is no push channel
   from the main-side index, so an edge authored in ANOTHER pane is not
   reflected until the note changes or the content does.
+
+## Titles, not file names (CP-MVP-009 S07b, owner bench round 11)
+
+- Two independent causes hid behind one report ("display first title of
+  note pills instead of file name, looks like it is not always the
+  case"), and only one of them was in the pills:
+- ROOT CAUSE: `firstHeadingOf` was start-anchored (`/^#{1,6} /`) while
+  the owner's `ethos.md` opens on `" # L'ethos"` — ONE leading space.
+  markdown-it renders that as an H1 (CommonMark allows up to three),
+  so the READER showed the title while every title CONSUMER fell back
+  to the filename stem. Fixing the rule fixed the strip centre, the
+  relation sentences, and the wikilink candidates at once. Lesson: when
+  a display rule and the markdown renderer disagree about what counts
+  as a heading, the renderer is the spec.
+- The pills themselves showed the AUTHORED text, which for every @-menu
+  insert is the file's name (`[crédibilité](<crédibilité.md>)`).
+  `pillDisplayText` (pure, shared by the read decoration pass and the
+  live widget) swaps in the target's title ONLY when the authored text
+  names the file — stem or path, case-insensitive, percent-DECODED
+  (markdown-it encodes accented hrefs; the first pin still read
+  `crédibilité` for exactly that reason). Deliberate wording inside a
+  sentence is never rewritten.
+- Deviation on record: a bundle contract file keeps its authored text.
+  `sources/web/<slug>/source.md` is titled "Source dossier" in the
+  index, so swapping would LOSE the slug the owner wrote.
+- The relations strip gained a TYPE FILTER in the same round: one pill
+  per kind actually present, wearing that kind's own colour (the legend
+  IS the control). Filtering is a view act — `filterNeighborhood` is
+  pure and the bar keeps the whole counts plus "· N hidden", so a
+  filtered strip can never be mistaken for an empty one. Hidden kinds
+  ride the same tab-state rung as the disclosure bit.

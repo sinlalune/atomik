@@ -973,6 +973,18 @@ export function relationsOpenOf(params?: Record<string, string>): boolean {
   return params?.['relations'] === '1'
 }
 
+/** Node kinds the relations strip is hiding (S07b owner bench: "we
+ *  link a lot of note type … we might need type filter"). A comma
+ *  list in one tab param — recoverable UI state like the disclosure,
+ *  never a property of the graph. Unknown/garbled entries are simply
+ *  kinds nothing matches, so a bad param degrades to "nothing
+ *  hidden" rather than an error. */
+export function relationsHiddenOf(params?: Record<string, string>): string[] {
+  const raw = params?.['relhide']
+  if (raw === undefined || raw.length === 0) return []
+  return [...new Set(raw.split(',').filter((kind) => /^[a-z-]{1,20}$/.test(kind)))]
+}
+
 /** The PDF page a source tab was on (03 recoverable UI state, like
  *  mode/treeW): a positive integer or absent — the viewer then starts
  *  at page 1. */

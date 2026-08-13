@@ -9,6 +9,7 @@ import { inlineImageSources, vaultImageSources } from './note-images'
 import { getCachedImage, isCachedDataUrl, setCachedImage } from './image-cache'
 import {
   decorateEdgeMarks,
+  decorateLinkTitles,
   decorateWikiLinks,
   firstHeadingOf,
   resolveWikiTarget,
@@ -138,12 +139,23 @@ export function useVaultNote(
             (note.relPath.split('/').pop() ?? '').replace(/\.md$/i, '')
           const titleAt = (path: string): string | null =>
             index.nodes.find((n) => n.path === path)?.title ?? null
-          next = decorateEdgeMarks(next, subject, ({ rel, href }) => {
+          const titleOfTarget = ({
+            rel,
+            href
+          }: {
+            rel: string | null
+            href: string | null
+          }): string | null => {
             if (rel) return titleAt(rel)
             if (!href || /^(https?:|mailto:)/i.test(href)) return null
             const resolved = resolveRelativeTarget(note.relPath, href)
             return resolved ? titleAt(resolved) : null
-          })
+          }
+          // S07b: a pill that names the FILE shows the note's title
+          // instead — before the marks, so a sentence falling back to
+          // the pill text falls back to the title too.
+          next = decorateLinkTitles(next, titleOfTarget)
+          next = decorateEdgeMarks(next, subject, titleOfTarget)
           apply(next)
         },
         () => {}

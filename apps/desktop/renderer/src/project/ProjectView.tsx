@@ -39,6 +39,9 @@ export type ProjectViewProps = {
   /** Relations strip disclosure, persisted per tab (S07). */
   relationsOpen?: boolean
   onRelationsToggle?: () => void
+  /** Node kinds the strip hides, persisted per tab (S07b). */
+  relationsHidden?: readonly string[]
+  onRelationsKindToggle?: (kind: string) => void
 }
 
 function slugifyLite(title: string): string {
@@ -73,7 +76,9 @@ export function ProjectView({
   onOpenChat,
   onAddChatContext,
   relationsOpen = false,
-  onRelationsToggle
+  onRelationsToggle,
+  relationsHidden,
+  onRelationsKindToggle
 }: ProjectViewProps): React.JSX.Element {
   const [vault, setVault] = useState<VaultInfo | null | 'loading'>('loading')
   const [projects, setProjects] = useState<ProjectInfo[]>([])
@@ -360,6 +365,8 @@ export function ProjectView({
             open={relationsOpen}
             onToggle={onRelationsToggle}
             onOpenNote={guardedOpen}
+            hiddenKinds={relationsHidden}
+            onToggleKind={onRelationsKindToggle}
           />
         )}
       </div>

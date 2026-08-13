@@ -2988,7 +2988,8 @@ body[data-maximized] .tabstrip {
    own text already wears, no fork. */
 .markdown-body a.link-pill,
 .cm-content .link-pill,
-.relations-node {
+.relations-node,
+.relations-kind {
   display: inline-flex;
   align-items: center;
   gap: 0.3em;
@@ -3005,14 +3006,16 @@ body[data-maximized] .tabstrip {
 
 .markdown-body a.link-pill:hover,
 .cm-content .link-pill:hover,
-button.relations-node:hover {
+button.relations-node:hover,
+.relations-kind:hover {
   border-color: var(--pill-kind);
   background: color-mix(in srgb, var(--pill-kind) 26%, var(--surface));
 }
 
 .markdown-body a.link-pill::before,
 .cm-content .link-pill::before,
-.relations-node::before {
+.relations-node::before,
+.relations-kind::before {
   content: '';
   flex: none;
   width: 0.85em;
@@ -3211,6 +3214,44 @@ button.relations-node:hover {
   flex: none;
   display: inline-flex;
   align-items: center;
+}
+
+/* Type filter (S07b): one row of kind pills above the figure. Each
+   wears its own kind's colour — the legend IS the control. */
+.relations-filter {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--gutter) 0;
+  background: var(--surface);
+}
+
+.relations-kind {
+  height: 20px;
+  padding: 0 0.5em;
+  font: inherit;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+
+/* Off = the kind is hidden from the figure: drained, not deleted. */
+.relations-kind.is-off {
+  --pill-kind: var(--muted);
+  opacity: 0.55;
+  border-style: dashed;
+}
+
+.relations-kind-count {
+  margin-left: 0.35em;
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
+.relations-kind:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .relations-canvas {

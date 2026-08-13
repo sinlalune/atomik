@@ -22,6 +22,7 @@ import {
   classifyLinkKind,
   edgeSentence,
   firstHeadingOf,
+  pillDisplayText,
   resolveRelativeTarget,
   resolveWikiTarget,
   type LinkKind,
@@ -1009,7 +1010,13 @@ export function computeLivePreviewDecorations(
         edgeBroken: broken,
         edgeFollow: follow,
         widget: new LinkPillWidget(
-          edge.text,
+          // S07b: read parity — a pill naming the FILE shows the
+          // note's title (same pure rule both surfaces).
+          pillDisplayText(
+            edge.text,
+            resolvedPath ?? (edge.kind === 'wikilink' ? edge.target : null),
+            targetTitle
+          ),
           kind,
           broken,
           edge.decoration?.label ?? null,

@@ -35,6 +35,7 @@ import {
   paneTreeScopeOf,
   paneTreeWidth,
   pdfPageOf,
+  relationsHiddenOf,
   relationsOpenOf,
   relocateTabPaths,
   revealNote,
@@ -195,6 +196,14 @@ function TabContent({
     dispatch((state) =>
       updateTabParams(state, tab.id, { relations: relationsOpen ? '0' : '1' })
     )
+  // S07b: which node kinds the strip hides — same tab-state rung.
+  const relationsHidden = relationsHiddenOf(tab.params)
+  const onRelationsKindToggle = (kind: string): void => {
+    const next = relationsHidden.includes(kind)
+      ? relationsHidden.filter((k) => k !== kind)
+      : [...relationsHidden, kind]
+    dispatch((state) => updateTabParams(state, tab.id, { relhide: next.join(',') }))
+  }
   // Any note's external http(s) link opens IN the workbench (S04b —
   // the web dossier's "Original URL" was a dead click; the web is one
   // tab away).
@@ -263,6 +272,8 @@ function TabContent({
         onSaveModeToggle={onSaveModeToggle}
         relationsOpen={relationsOpen}
         onRelationsToggle={onRelationsToggle}
+        relationsHidden={relationsHidden}
+        onRelationsKindToggle={onRelationsKindToggle}
       />
     )
   }
@@ -360,6 +371,8 @@ function TabContent({
         onSaveModeToggle={onSaveModeToggle}
         relationsOpen={relationsOpen}
         onRelationsToggle={onRelationsToggle}
+        relationsHidden={relationsHidden}
+        onRelationsKindToggle={onRelationsKindToggle}
       />
     )
   }

@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-009
   status: active
   accepted: 2026-08-04
-  current_step: S07
+  current_step: S07b
   base_commit: fba010d
 ---
 
@@ -305,6 +305,41 @@ read contract as a clean projection, nothing more.
       dashed when broken), so the picture only holds real vault
       nodes; the strip reads the index on note change and on content
       length change, not on an index event (no push channel exists).
+- [x] S07b Owner bench round 11 (DONE 2026-08-13) — two reports:
+      (1) "since we link a lot of note type, like the folders indexes
+      links notes and notes can links other types like source or
+      else, we might need type filter to display only what we need":
+      the strip gains a TYPE FILTER — one pill per kind actually
+      present (never a fixed menu), each wearing its own kind's
+      colour so the legend IS the control, pressed = shown; hiding is
+      a VIEW act (kindsPresent/filterNeighborhood pure, the index and
+      the neighbourhood untouched), the bar keeps the WHOLE counts and
+      appends "· N hidden" so a filtered strip can never read as an
+      empty one; hidden kinds persist per TAB (relationsHiddenOf,
+      same 03 rung as the disclosure); everything hidden = its own
+      honest message, not the no-relations one.
+      (2) "we need to display first title of note pills instead of
+      file name, looks like it is not always the case (easier to
+      modify that directly file name)": TWO real causes, both fixed —
+      (a) `firstHeadingOf` was start-anchored while the owner's
+      `ethos.md` opens on " # L'ethos" (ONE leading space): markdown
+      renders that as an H1, so the note showed its H1 in the reader
+      while every title consumer fell back to `ethos`. The rule now
+      accepts CommonMark's up-to-3-space indent (4 = code block) and
+      drops a closing hash run. This fixes titles EVERYWHERE at once
+      (strip centre, relation sentences, autocomplete candidates).
+      (b) pills showed the AUTHORED text, which for every @-menu link
+      is the file's name (`[crédibilité](<crédibilité.md>)`):
+      pillDisplayText NEW (pure, shared by read and live) shows the
+      target note's title when the authored text NAMES THE FILE
+      (stem/path, case-insensitive, percent-decoded — markdown-it
+      encodes accented hrefs, which is why the first pin still read
+      `crédibilité`), and leaves deliberate wording alone, so a pill
+      inside a sentence keeps the sentence's words.
+      DEVIATION (recorded): a bundle contract file keeps its authored
+      text — a `sources/web/<slug>/source.md` link is titled "Source
+      dossier" in the index, so swapping would LOSE the slug. The
+      folder-name-as-title question is left for the ceremony.
 - [ ] S08 Acceptance: intents re-run + owner bench on the live vault
       (author edges in real notes, autocomplete convergence, flip,
       delete, backlinks, rename refactor over a linked note, index
@@ -655,6 +690,29 @@ pin(S07)    : dev-mode CDP on a COPY of the owner's real vault
               halo behind the glyphs), and the figure was laid out at
               clientWidth INCLUDING padding, so the strip scrolled
               sideways by one gutter.
+changed(S07b): relations-graph.ts (kindsPresent, filterNeighborhood,
+              relationsSummary gains the hidden count); RelationsStrip
+              (KindFilter row, all-filtered state); workspace/model.ts
+              (relationsHiddenOf); Workspace + VaultView + ProjectView
+              (the hidden-kinds tab param); styles.css (§Type filter;
+              .relations-kind joins the pill recipe); graph-core.ts
+              (firstHeadingOf accepts a ≤3-space indent + closing hash
+              run); link-pills.ts (pillDisplayText NEW,
+              decorateLinkTitles NEW); useVaultNote (the read pass
+              swaps titles before the marks, one shared resolver);
+              live-preview.ts (the same pure rule on the widget).
+tests(S07b) : 732→751/63; typecheck + build green (gates bare).
+pin(S07b)   : dev CDP on a fresh copy of the owner's real vault.
+              FILTER: ethos.md offers note 2 · chat 1 · folder 1 ·
+              web 1; hiding folder drops the vault-juju chip and the
+              bar reads "1 in · 4 out · 1 hidden"; the choice survives
+              a note switch (crédibilité then offers folder/note with
+              folder still off). TITLES: read and live now BOTH show
+              "La crédibilité" / "La fiabilité" where they showed
+              `crédibilité` / `fiabilité`, and the strip centre reads
+              "L'ethos" instead of `ethos`. The web-dossier pill
+              keeps `curlew-sandpiper-wikipedia` by design (its
+              index title is the generic "Source dossier").
 next action : S08 acceptance — intents re-run + owner bench on the
               live vault (author edges in real notes, autocomplete
               convergence, flip, delete, the relations strip, rename

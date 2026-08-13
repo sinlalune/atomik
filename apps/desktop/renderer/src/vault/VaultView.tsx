@@ -39,6 +39,9 @@ export type VaultViewProps = {
   /** Relations strip disclosure, persisted per tab (S07). */
   relationsOpen?: boolean
   onRelationsToggle?: () => void
+  /** Node kinds the strip hides, persisted per tab (S07b). */
+  relationsHidden?: readonly string[]
+  onRelationsKindToggle?: (kind: string) => void
 }
 
 /**
@@ -60,7 +63,9 @@ export function VaultView({
   onOpenChat,
   onAddChatContext,
   relationsOpen = false,
-  onRelationsToggle
+  onRelationsToggle,
+  relationsHidden,
+  onRelationsKindToggle
 }: VaultViewProps): React.JSX.Element {
   const [info, setInfo] = useState<VaultInfo | null | 'loading'>('loading')
   const [editorDirty, setEditorDirty] = useState(false)
@@ -274,6 +279,8 @@ export function VaultView({
             open={relationsOpen}
             onToggle={onRelationsToggle}
             onOpenNote={guardedOpen}
+            hiddenKinds={relationsHidden}
+            onToggleKind={onRelationsKindToggle}
           />
         )}
       </div>

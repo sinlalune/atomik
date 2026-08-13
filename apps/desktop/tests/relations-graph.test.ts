@@ -9,6 +9,8 @@ import { buildGraphIndex } from '../shared/graph-core'
 import {
   CENTER_W,
   NODE_W,
+  filterNeighborhood,
+  kindsPresent,
   layoutRelations,
   neighborhoodOf,
   relationsSummary
@@ -108,6 +110,48 @@ describe('relationsSummary', () => {
     expect(relationsSummary(neighborhoodOf(index, 'nowhere.md'))).toBe(
       'no relations yet'
     )
+  })
+})
+
+describe('the kind filter (S07b)', () => {
+  const hood = neighborhoodOf(index, 'crédibilité.md')
+
+  it('offers only the kinds actually present, most numerous first', () => {
+    // pathos + L'ethos inbound, aristote outbound = 3 distinct notes
+    expect(kindsPresent(hood)).toEqual([
+      { kind: 'note', count: 3 },
+      { kind: 'pdf', count: 1 }
+    ])
+  })
+
+  it('counts NEIGHBOURS, not relations (pathos is related twice)', () => {
+    const notes = kindsPresent(hood).find((k) => k.kind === 'note')!
+    // 4 note-kind RELATIONS inbound+outbound, but only 3 note NEIGHBOURS
+    expect(notes.count).toBe(3)
+    expect(
+      [...hood.inbound, ...hood.outbound].filter((l) => l.kind === 'note')
+    ).toHaveLength(4)
+  })
+
+  it('hiding a kind drops it from both columns, index untouched', () => {
+    const shown = filterNeighborhood(hood, new Set(['pdf']))
+    expect(shown.outbound.map((l) => l.path)).toEqual(['aristote.md'])
+    expect(shown.inbound).toHaveLength(3)
+    expect(hood.outbound).toHaveLength(2)
+  })
+
+  it('hiding nothing returns the very same object (no needless re-layout)', () => {
+    expect(filterNeighborhood(hood, new Set())).toBe(hood)
+  })
+
+  it('an unknown kind in the param hides nothing', () => {
+    expect(filterNeighborhood(hood, new Set(['nonsense']))).toEqual(hood)
+  })
+
+  it('the bar keeps the WHOLE truth and says how many are hidden', () => {
+    const shown = filterNeighborhood(hood, new Set(['pdf']))
+    expect(relationsSummary(hood, shown)).toBe('4 in · 2 out · 1 hidden')
+    expect(relationsSummary(hood, hood)).toBe('4 in · 2 out')
   })
 })
 
