@@ -2983,8 +2983,12 @@ body[data-maximized] .tabstrip {
   --pill-kind: var(--kind-note);
 }
 
+/* S07: the relations strip's nodes join the SAME recipe selectors
+   (the .cm-content precedent) — the graph paints the pills the note's
+   own text already wears, no fork. */
 .markdown-body a.link-pill,
-.cm-content .link-pill {
+.cm-content .link-pill,
+.relations-node {
   display: inline-flex;
   align-items: center;
   gap: 0.3em;
@@ -3000,13 +3004,15 @@ body[data-maximized] .tabstrip {
 }
 
 .markdown-body a.link-pill:hover,
-.cm-content .link-pill:hover {
+.cm-content .link-pill:hover,
+button.relations-node:hover {
   border-color: var(--pill-kind);
   background: color-mix(in srgb, var(--pill-kind) 26%, var(--surface));
 }
 
 .markdown-body a.link-pill::before,
-.cm-content .link-pill::before {
+.cm-content .link-pill::before,
+.relations-node::before {
   content: '';
   flex: none;
   width: 0.85em;
@@ -3143,6 +3149,149 @@ body[data-maximized] .tabstrip {
 
 .cm-content .link-pill--editing .pill-flip:hover {
   opacity: 1;
+}
+
+/* Relations strip (CP-MVP-009 S07, owner ruling "why not directly an
+   ontology in a canvas"): the note's 1-hop neighbourhood under BOTH
+   note surfaces. A content-column bar (36: --bar-h, --gutter, hairline,
+   --surface) that discloses an opaque figure — the reading surface is
+   never translucent. Layout px come from relations-graph.ts; CSS only
+   paints. */
+.relations-strip {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+.relations-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--bar-h);
+  box-sizing: border-box;
+  padding: var(--space-1) var(--gutter);
+  font: inherit;
+  font-size: var(--fs-md);
+  color: var(--muted);
+  background: var(--surface);
+  border: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.relations-bar:hover {
+  color: var(--fg);
+  background: var(--code-bg);
+}
+
+.relations-bar:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.relations-bar-title {
+  flex: none;
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.relations-bar-count {
+  flex: 1;
+  min-width: 0;
+  color: var(--muted);
+}
+
+.relations-bar-chevron {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.relations-canvas {
+  flex: none;
+  max-height: 42vh;
+  overflow: auto;
+  padding: var(--space-3) var(--gutter) var(--space-4);
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.relations-empty {
+  margin: var(--space-3) 0;
+  color: var(--muted);
+  font-size: var(--fs-md);
+}
+
+.relations-figure {
+  position: relative;
+  min-width: 100%;
+}
+
+.relations-edges {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  color: color-mix(in srgb, var(--accent) 55%, var(--border));
+}
+
+.relations-edge path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.3;
+}
+
+/* An untyped link is still an edge — drawn quieter, never hidden. */
+.relations-edge.is-untyped {
+  color: var(--border);
+}
+
+.relations-edge text {
+  fill: var(--muted);
+  font-size: var(--fs-xs);
+  font-family: inherit;
+  /* the label sits ON the curve: paint the surface behind the glyphs
+     rather than a box, so nothing occludes the graph */
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.relations-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  box-sizing: border-box;
+  height: 24px;
+  padding: 0 0.5em;
+  font: inherit;
+  font-size: var(--fs-md);
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.relations-node-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+button.relations-node:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* The note itself: the anchor of the picture, not a destination. */
+.relations-node--center {
+  cursor: default;
+  font-weight: 600;
+  border-width: 2px;
 }
 
 .markdown-body img {

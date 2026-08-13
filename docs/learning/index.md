@@ -100,6 +100,12 @@ when the shape changes, not on every diff.
   never lands", payload enrichment of browser-native text drags,
   and open-as-routing (one conversation = one tab). Covers
   CP-MVP-008 S06c–S06c7.
+- [20 — Drawing a graph without a graph library](./20-drawing-a-graph-without-a-library.md) —
+  computing a diagram as pure, testable data before painting it, the
+  HTML-chips-over-SVG-edges split that reuses the existing pill
+  recipe, the direction rule behind inbound vs outbound, and the
+  geometry facts (bezier midpoints, clientWidth includes padding)
+  that decide whether it looks right. Covers CP-MVP-009 S07.
 
 ## Coverage stall (2026-07-07 → 2026-07-21) — repaid
 

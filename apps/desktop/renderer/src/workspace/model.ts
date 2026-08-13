@@ -965,6 +965,14 @@ export function noteModeOf(params?: Record<string, string>): NoteViewMode {
   return 'live'
 }
 
+/** Whether the note tab's relations strip is expanded (S07). Pure
+ *  recoverable UI state like mode/treeW (03): the graph itself lives
+ *  in the files, only the disclosure bit rides the tab. Default
+ *  closed — the collapsed bar still reports the counts. */
+export function relationsOpenOf(params?: Record<string, string>): boolean {
+  return params?.['relations'] === '1'
+}
+
 /** The PDF page a source tab was on (03 recoverable UI state, like
  *  mode/treeW): a positive integer or absent — the viewer then starts
  *  at page 1. */

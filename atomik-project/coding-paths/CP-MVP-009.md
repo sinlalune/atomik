@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-009
   status: active
   accepted: 2026-08-04
-  current_step: S01
+  current_step: S07
   base_commit: fba010d
 ---
 
@@ -269,9 +269,42 @@ read contract as a clean projection, nothing more.
       — the broken PILL remains the visible diagnostic (S03); a
       vault-wide diagnostics surface rides S07's backlinks pane or
       later.
-- [ ] S07 Typed backlinks pane: per-note inbound edges with inverse
-      label rendering (pane state per 03 precedent); counts; click
-      navigates; empty state honest.
+- [x] S07 Typed relations strip (DONE 2026-08-13; the drafted
+      "typed backlinks pane" AMENDED by three owner rulings taken
+      before any code, recorded in
+      `../sessions/2026-08-13-cp-mvp-009-s07-form.md`):
+      (1) FORM — a 1-hop MINI-GRAPH, not a list. Owner, asked to
+      confirm the pane: "yes but why not directly an ontology in a
+      canvas?" The canvas/studio stays a LATER consumer of this same
+      index (21 excluded here; brainstorm 2026-08-04: the studio
+      PROJECTS the nodes/edges index — honest cost on record, one
+      custom engine, multi-month) — so S07 ships its note-scale v0:
+      the note centered, inbound left, outbound right, labelled
+      curves, click opens. No stored layout (recomputed every render
+      — a projection, 04/33), which is exactly what lets the studio
+      replace the RENDERER later without touching the data.
+      (2) INVERSE READING — the label renders AS AUTHORED, other note
+      as subject; no invented inverse phrasing (ADR-011 keeps
+      "inverse reads as …" as later optional registry metadata).
+      (3) BROKEN LINKS — the vault-wide list stays deferred (S06's
+      deviation carried, not closed): the dashed pill remains the
+      only diagnostic.
+      Landed: relations-graph.ts NEW (pure — neighbourhood from the
+      index with the DIRECTION DOCTRINE resolved on both ends
+      (`{^label}` flips the reading, not the storage), dedupe with
+      counts, deterministic column layout + bezier connectors);
+      RelationsStrip.tsx NEW (collapsible bottom strip under BOTH
+      note surfaces, vault AND project — the collapsed bar still
+      reports "3 in · 1 out"); disclosure persisted per TAB
+      (relationsOpenOf, 03 recoverable UI state); chips reuse the
+      .link-pill recipe unforked (36) so a neighbour wears its node
+      kind's colour and icon; navigation goes through the host's
+      GUARDED open (dirty-buffer rule holds).
+      DEVIATIONS (recorded): external and unresolved targets draw no
+      node — they stay visible where they are written (the pill,
+      dashed when broken), so the picture only holds real vault
+      nodes; the strip reads the index on note change and on content
+      length change, not on an index event (no push channel exists).
 - [ ] S08 Acceptance: intents re-run + owner bench on the live vault
       (author edges in real notes, autocomplete convergence, flip,
       delete, backlinks, rename refactor over a linked note, index
@@ -591,9 +624,42 @@ changed(S06b): owner bench round 10 (screenshots: the sentence read
               Verified on a copy of the owner's real vault: both
               surfaces read "L'ethos repose sur La crédibilité".
 tests(S06b) : 714→716/62; typecheck + build green.
-next action : S07 typed backlinks pane — per-note inbound edges from
-              the index with inverse label rendering (pane state per
-              03), counts, click navigates, honest empty state.
+changed(S07): renderer/src/vault/relations-graph.ts NEW (pure
+              neighbourhood + layout); renderer/src/vault/
+              RelationsStrip.tsx NEW; VaultView + ProjectView (the
+              strip under both note surfaces); Workspace.tsx +
+              workspace/model.ts (relationsOpenOf — the disclosure as
+              tab state); icons.tsx (ChevronDown/ChevronUp);
+              styles.css (§Relations strip; the pill recipe's
+              selector list gains .relations-node — no fork);
+              tests/relations-graph.test.ts NEW (16).
+tests(S07)  : 716→732/63; typecheck + build green (gates bare).
+              LEDGER RECONCILIATION (22 §4, done first): the
+              frontmatter `current_step` and ACTIVE.md both still
+              read S01 while the ledger stood at S06b — corrected in
+              this same unit; no code implication.
+pin(S07)    : dev-mode CDP on a COPY of the owner's real vault
+              (isolated user-data-dir + state dir; the owner's own
+              dev instance untouched). READ: crédibilité.md → bar
+              "2 in · 0 out", expanded shows centre "La crédibilité"
+              with L'ethos on a "repose sur" curve and the vault-juju
+              folder-kind chip. CLICK a neighbour → navigates
+              (centre becomes L'ethos, 1 in · 4 out, chips carrying
+              note/web/chat/folder kinds). LIVE mode: the same strip,
+              identical content (read↔live parity). EMPTY: a note
+              nothing links to reads "No note links to this one, and
+              it links to no note yet — write a [[link]] to start the
+              graph." The disclosure survives note switches.
+              TWO defects caught by the pin and fixed: the label sat
+              ON the neighbour chip (gap 56→120 + a surface-coloured
+              halo behind the glyphs), and the figure was laid out at
+              clientWidth INCLUDING padding, so the strip scrolled
+              sideways by one gutter.
+next action : S08 acceptance — intents re-run + owner bench on the
+              live vault (author edges in real notes, autocomplete
+              convergence, flip, delete, the relations strip, rename
+              refactor over a linked note, index delete→rebuild),
+              then the closing ceremony.
 blockers    : none.
               OWNER VALIDATION (2026-08-05, verbatim): "YES I LOVE
               U IT WORKS perfectly" — bench rounds 1–5 closed; the

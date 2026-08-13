@@ -6,6 +6,7 @@ import { ModeSwitch } from '../editor/ModeSwitch'
 import { noteFollowTarget } from '../vault/note-follow'
 import { useNavHistory } from '../vault/nav-history'
 import { useVaultNote } from '../vault/useVaultNote'
+import { RelationsStrip } from '../vault/RelationsStrip'
 import type { NoteViewMode, PaneNoteGuard, SaveMode } from '../workspace/model'
 import { registerAiContext } from '../workspace/ai-context'
 
@@ -35,6 +36,9 @@ export type ProjectViewProps = {
   onOpenChat?: () => void
   /** Adds a context entry to the chat pane (S06c5b). */
   onAddChatContext?: (entry: string) => void
+  /** Relations strip disclosure, persisted per tab (S07). */
+  relationsOpen?: boolean
+  onRelationsToggle?: () => void
 }
 
 function slugifyLite(title: string): string {
@@ -67,7 +71,9 @@ export function ProjectView({
   onOpenWebUrl,
   historyKey,
   onOpenChat,
-  onAddChatContext
+  onAddChatContext,
+  relationsOpen = false,
+  onRelationsToggle
 }: ProjectViewProps): React.JSX.Element {
   const [vault, setVault] = useState<VaultInfo | null | 'loading'>('loading')
   const [projects, setProjects] = useState<ProjectInfo[]>([])
@@ -344,6 +350,17 @@ export function ProjectView({
               />
             </div>
           </>
+        )}
+        {/* S07: same strip as the vault surface — a project note is a
+            graph node like any other. */}
+        {note && onRelationsToggle && (
+          <RelationsStrip
+            notePath={note.relPath}
+            revision={note.content.length}
+            open={relationsOpen}
+            onToggle={onRelationsToggle}
+            onOpenNote={guardedOpen}
+          />
         )}
       </div>
     </div>

@@ -392,6 +392,44 @@ export function ChevronRightIcon(): React.JSX.Element {
   )
 }
 
+/** Disclosure open (S07: the relations strip's expanded state). */
+export function ChevronDownIcon(): React.JSX.Element {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <polyline points="3.5 6 8 10.5 12.5 6" />
+    </svg>
+  )
+}
+
+/** Disclosure closed — a bottom strip opens UPWARD. */
+export function ChevronUpIcon(): React.JSX.Element {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <polyline points="3.5 10 8 5.5 12.5 10" />
+    </svg>
+  )
+}
+
 /** Reload — open circular arc with an arrowhead. */
 export function ReloadIcon(): React.JSX.Element {
   return (

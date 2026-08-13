@@ -1576,3 +1576,46 @@ should follow these, they were each paid for in lost hours):
   (fixture with a web-dossier tab: bar=en.wikipedia.org, dossier text
   rendered, snapshot host sized — capturePage cannot see native views,
   so the painted pixels stay an owner-bench item).
+
+## The relations strip — the graph as a picture (CP-MVP-009 S07)
+
+- Owner ruling that shaped it (2026-08-13, `sessions/
+  2026-08-13-cp-mvp-009-s07-form.md`): asked to confirm a backlinks
+  PANE, the owner answered "why not directly an ontology in a canvas?"
+  The canvas is on the books as a LATER consumer of the same index
+  (bedrock 21; the studio brainstorm's "the canvas PROJECTS the
+  nodes/edges index"), so S07 shipped its note-scale v0 instead: a
+  1-hop mini-graph. The lesson generalizes — when the owner asks for
+  the ambitious surface, look for the version of it that reads the
+  SAME data through a cheaper renderer, and say what it costs.
+- `vault/relations-graph.ts` is PURE and holds all the geometry:
+  `neighborhoodOf(index, notePath)` (direction doctrine resolved on
+  BOTH ends — `{^label}` flips the reading, not the storage, so an
+  edge written here can be an INBOUND relation), dedupe per
+  (neighbour, direction, label) with counts, then `layoutRelations`
+  → columns + cubic beziers + label midpoints. No simulation, no
+  randomness, no stored positions: the same index yields the same
+  picture, and the layout is unit-testable without a DOM.
+- `vault/RelationsStrip.tsx` only paints it. Chips are HTML over an
+  SVG edge layer (not `foreignObject`): that is what lets a node reuse
+  the `.link-pill` recipe unforked (36) — `.relations-node` joins the
+  recipe's selector list beside `.markdown-body a.link-pill` and
+  `.cm-content .link-pill`, so a neighbour wears its kind's colour and
+  mask icon for free. Chip widths are FIXED constants so the pure
+  layout can compute connector endpoints without measuring the DOM.
+- Mounted under BOTH note surfaces (VaultView and ProjectView) inside
+  the existing `.vault-content` flex column: the graph belongs to the
+  note, not to a view mode, so read and live show the same strip.
+  The disclosure bit is TAB state (`relationsOpenOf`, 03) — the graph
+  itself is never UI state.
+- Two defects the CDP pin caught, both worth remembering: an edge
+  label placed at the curve midpoint lands ON the neighbour chip
+  unless the column gap is far wider than it looks on paper (56 →
+  120 px, plus a surface-coloured `paint-order: stroke` halo behind
+  the glyphs); and `clientWidth` INCLUDES padding, so laying a figure
+  out at the scroll container's clientWidth overflows it by exactly
+  the padding — measure the content box.
+- Refresh model (deviation on record): the strip re-reads the index on
+  note change and on content-length change. There is no push channel
+  from the main-side index, so an edge authored in ANOTHER pane is not
+  reflected until the note changes or the content does.

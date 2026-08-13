@@ -9,6 +9,7 @@ import { hasMediaResource } from '../source/dossier'
 import { noteFollowTarget } from './note-follow'
 import { useNavHistory } from './nav-history'
 import { useVaultNote } from './useVaultNote'
+import { RelationsStrip } from './RelationsStrip'
 
 export type VaultViewProps = {
   /** Note to show; identical values are ignored (no self-retry on failure). */
@@ -35,6 +36,9 @@ export type VaultViewProps = {
   onOpenChat?: () => void
   /** Adds a context entry to the chat pane (S06c5b). */
   onAddChatContext?: (entry: string) => void
+  /** Relations strip disclosure, persisted per tab (S07). */
+  relationsOpen?: boolean
+  onRelationsToggle?: () => void
 }
 
 /**
@@ -54,7 +58,9 @@ export function VaultView({
   onOpenWebUrl,
   historyKey,
   onOpenChat,
-  onAddChatContext
+  onAddChatContext,
+  relationsOpen = false,
+  onRelationsToggle
 }: VaultViewProps): React.JSX.Element {
   const [info, setInfo] = useState<VaultInfo | null | 'loading'>('loading')
   const [editorDirty, setEditorDirty] = useState(false)
@@ -257,6 +263,18 @@ export function VaultView({
               />
             </div>
           </>
+        )}
+        {/* S07: the note seen from the other end of its edges — one
+            strip under BOTH surfaces (read and live), because the
+            graph is a property of the note, not of a view mode. */}
+        {note && onRelationsToggle && (
+          <RelationsStrip
+            notePath={note.relPath}
+            revision={note.content.length}
+            open={relationsOpen}
+            onToggle={onRelationsToggle}
+            onOpenNote={guardedOpen}
+          />
         )}
       </div>
     </div>

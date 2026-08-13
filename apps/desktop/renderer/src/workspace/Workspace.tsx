@@ -35,6 +35,7 @@ import {
   paneTreeScopeOf,
   paneTreeWidth,
   pdfPageOf,
+  relationsOpenOf,
   relocateTabPaths,
   revealNote,
   revealSource,
@@ -187,6 +188,13 @@ function TabContent({
   const mode = noteModeOf(tab.params)
   const onModeChange = (next: NoteViewMode): void =>
     dispatch((state) => updateTabParams(state, tab.id, { mode: next }))
+  // S07: the relations strip's disclosure is tab state (03), so a
+  // reopened workspace finds the note surface as it was left.
+  const relationsOpen = relationsOpenOf(tab.params)
+  const onRelationsToggle = (): void =>
+    dispatch((state) =>
+      updateTabParams(state, tab.id, { relations: relationsOpen ? '0' : '1' })
+    )
   // Any note's external http(s) link opens IN the workbench (S04b —
   // the web dossier's "Original URL" was a dead click; the web is one
   // tab away).
@@ -253,6 +261,8 @@ function TabContent({
         onModeChange={onModeChange}
         saveMode={saveMode}
         onSaveModeToggle={onSaveModeToggle}
+        relationsOpen={relationsOpen}
+        onRelationsToggle={onRelationsToggle}
       />
     )
   }
@@ -348,6 +358,8 @@ function TabContent({
         onModeChange={onModeChange}
         saveMode={saveMode}
         onSaveModeToggle={onSaveModeToggle}
+        relationsOpen={relationsOpen}
+        onRelationsToggle={onRelationsToggle}
       />
     )
   }
