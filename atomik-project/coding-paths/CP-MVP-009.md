@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-009
   status: active
   accepted: 2026-08-04
-  current_step: S07c
+  current_step: S07d
   base_commit: fba010d
 ---
 
@@ -353,6 +353,36 @@ read contract as a clean projection, nothing more.
       text warms), and the row is markup-honest: the bar is a <div>
       with two real buttons instead of a button that visually
       contained other buttons.
+- [x] S07d Owner bench round 13 (DONE 2026-08-13) — "we need to find
+      a way to display more information about the source name and the
+      different forms (original, extracted, etc..) also we don't see
+      some forms like original url and snapshot is that normal ?".
+      ANSWER: half normal, half a gap. The original URL was excluded
+      BY S07's recorded deviation (external targets drew no node); the
+      snapshot was a GAP — the index only ever held `.md` files, so a
+      link to `snapshot.mhtml` resolved to a path with no node record
+      and the strip dropped it silently. Both closed:
+      (a) EVERY vault file is now a node — non-markdown files are
+      collected without being READ (they carry no edges), so a
+      snapshot, an original and the bundle media join the graph; a
+      `[[wikilink]]` still resolves to notes only.
+      (b) A file inside a source BUNDLE wears the SOURCE's name
+      (frontmatter `title:` of its source.md — the body H1 is the
+      generic "Source dossier" — else the bundle index's heading,
+      else the folder) plus its own `form`: dossier · index · reader
+      text · extracted text · transcript · snapshot · media. Node
+      titles feed the relation sentences too, so "cite Source
+      dossier" now reads "cite Curlew sandpiper - Wikipedia".
+      (c) An http(s) target IS a node of the strip (kind web, titled
+      by host+path) — a source's original URL is its provenance.
+      (d) DOORS: a chip opens what it actually is — a note in the note
+      surface, a URL in a web tab, a non-markdown form through its
+      bundle's SOURCE view (the note reader takes `.md` only, so a
+      click on the snapshot used to land on "vault: rejected path");
+      a door the host has not wired renders the chip disabled.
+      (e) Pin fix: inside a bundle every sibling repeated the source
+      name and truncated to "Curlew s… | snapshot", so a sibling of
+      the CENTRE's own bundle now shows its form alone.
 - [ ] S08 Acceptance: intents re-run + owner bench on the live vault
       (author edges in real notes, autocomplete convergence, flip,
       delete, backlinks, rename refactor over a linked note, index
@@ -735,6 +765,24 @@ pin(S07c)   : dev CDP — collapsed bar 34px with no filter row in the
               DOM; expanded keeps the SAME 34px bar (filter inside
               it), canvas border-top computes to 0px, hiding folder
               drains its pill and drops the chip from the figure.
+changed(S07d): graph-core.ts (VaultFileInput.content OPTIONAL,
+              GraphNode.form NEW, frontmatterTitleOf NEW, bundle
+              naming + form mapping, wikiCandidates .md-only);
+              graph-index.ts (non-markdown files collected as nodes,
+              unread); relations-graph.ts (external ends are nodes,
+              hostOf, door/target per neighbour, sibling-form rule,
+              NODE_W 150→200); RelationsStrip (form suffix, one
+              handler per door, disabled when unwired); VaultView
+              (source + web openers passed through); styles.css
+              (.relations-node-form).
+tests(S07d) : 751→766/63; typecheck + build green (gates bare).
+pin(S07d)   : dev CDP on a copy of the owner's real vault. From
+              ethos.md the web chip reads "Curlew sandpiper -
+              Wikipedia | dossier"; clicking it opens the dossier as a
+              note, whose own strip reads 3 in · 3 out — index,
+              L'ethos, UI Fine tuning inbound; reader text, snapshot
+              and en.wikipedia.org/wiki/Curlew_sandpiper outbound,
+              the snapshot titled "… through its source view".
 next action : S08 acceptance — intents re-run + owner bench on the
               live vault (author edges in real notes, autocomplete
               convergence, flip, delete, the relations strip, rename

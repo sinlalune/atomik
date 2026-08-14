@@ -24,6 +24,12 @@ export type RelationsStripProps = {
   onToggle: () => void
   /** Opens a neighbour (through the host's GUARDED navigation). */
   onOpenNote: (relPath: string) => void
+  /** Opens an EXTERNAL neighbour — a source's original URL is a node
+   *  of the graph (S07d), and it belongs in a web tab. */
+  onOpenUrl?: (url: string) => void
+  /** Opens a non-markdown FORM (snapshot, original, media) through its
+   *  bundle's source view — the note reader takes `.md` only. */
+  onOpenSource?: (dossierPath: string) => void
   /** Node kinds the strip is hiding, persisted per tab (S07b). */
   hiddenKinds?: readonly string[]
   onToggleKind?: (kind: string) => void
@@ -48,6 +54,8 @@ export function RelationsStrip({
   open,
   onToggle,
   onOpenNote,
+  onOpenUrl,
+  onOpenSource,
   hiddenKinds = [],
   onToggleKind
 }: RelationsStripProps): React.JSX.Element {
@@ -156,7 +164,12 @@ export function RelationsStrip({
             </p>
           ) : (
             layout && (
-              <RelationsFigure layout={layout} onOpenNote={onOpenNote} />
+              <RelationsFigure
+                layout={layout}
+                onOpenNote={onOpenNote}
+                {...(onOpenUrl ? { onOpenUrl } : {})}
+                {...(onOpenSource ? { onOpenSource } : {})}
+              />
             )
           )}
         </div>
@@ -214,10 +227,14 @@ function edgeLabelText(labels: { label: string | null; count: number }[]): strin
 
 function RelationsFigure({
   layout,
-  onOpenNote
+  onOpenNote,
+  onOpenUrl,
+  onOpenSource
 }: {
   layout: RelationsLayout
   onOpenNote: (relPath: string) => void
+  onOpenUrl?: (url: string) => void
+  onOpenSource?: (dossierPath: string) => void
 }): React.JSX.Element {
   return (
     <div className="relations-figure" style={{ height: `${layout.height}px` }}>
@@ -263,6 +280,8 @@ function RelationsFigure({
           key={`${node.side} ${node.path}`}
           node={node}
           onOpenNote={onOpenNote}
+          {...(onOpenUrl ? { onOpenUrl } : {})}
+          {...(onOpenSource ? { onOpenSource } : {})}
         />
       ))}
     </div>
@@ -271,10 +290,14 @@ function RelationsFigure({
 
 function RelationNode({
   node,
-  onOpenNote
+  onOpenNote,
+  onOpenUrl,
+  onOpenSource
 }: {
   node: PlacedNode
   onOpenNote: (relPath: string) => void
+  onOpenUrl?: (url: string) => void
+  onOpenSource?: (dossierPath: string) => void
 }): React.JSX.Element {
   const style = {
     left: `${node.x}px`,
@@ -284,22 +307,48 @@ function RelationNode({
   // The pill recipe, unforked (36): one .link-pill + its kind modifier,
   // exactly like the pills inside the note's own text.
   const className = `link-pill link-pill--${node.kind} relations-node relations-node--${node.side}`
+  // S07d: one source has SEVERAL forms (dossier, snapshot, reader
+  // text …) and they all wear the source's name — the form is what
+  // tells two chips of the same bundle apart.
+  const body = (
+    <>
+      <span className="relations-node-text">{node.title}</span>
+      {node.form !== undefined && (
+        <span className="relations-node-form">{node.form}</span>
+      )}
+    </>
+  )
   if (node.side === 'center') {
     return (
       <span className={className} style={style} title={node.path}>
-        <span className="relations-node-text">{node.title}</span>
+        {body}
       </span>
     )
   }
+  // Each door has its own handler, and a door the host did not wire
+  // is a DISABLED chip — never a click that lands on an error.
+  const open =
+    node.door === 'web'
+      ? onOpenUrl
+      : node.door === 'source'
+        ? onOpenSource
+        : onOpenNote
+  const hint =
+    node.door === 'web'
+      ? `Open ${node.path} in a web tab`
+      : node.door === 'source'
+        ? `Open ${node.path} through its source view`
+        : `Open ${node.path}`
   return (
     <button
       type="button"
       className={className}
       style={style}
-      title={`Open ${node.path}`}
-      onClick={() => onOpenNote(node.path)}
+      title={hint}
+      disabled={open === undefined}
+      onClick={() => open?.(node.target)}
     >
-      <span className="relations-node-text">{node.title}</span>
+      {body}
     </button>
   )
 }

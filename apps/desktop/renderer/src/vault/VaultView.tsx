@@ -279,6 +279,8 @@ export function VaultView({
             open={relationsOpen}
             onToggle={onRelationsToggle}
             onOpenNote={guardedOpen}
+            {...(onOpenWebUrl ? { onOpenUrl: onOpenWebUrl } : {})}
+            {...(onOpenSourceImage ? { onOpenSource: onOpenSourceImage } : {})}
             hiddenKinds={relationsHidden}
             onToggleKind={onRelationsKindToggle}
           />

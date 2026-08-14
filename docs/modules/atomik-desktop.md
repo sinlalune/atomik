@@ -1650,3 +1650,40 @@ should follow these, they were each paid for in lost hours):
   pure and the bar keeps the whole counts plus "· N hidden", so a
   filtered strip can never be mistaken for an empty one. Hidden kinds
   ride the same tab-state rung as the disclosure bit.
+
+## Source bundles in the graph (CP-MVP-009 S07d, owner bench round 13)
+
+- The vault index used to hold `.md` files ONLY. Every consequence of
+  that showed up in one owner report: a link to `snapshot.mhtml`
+  resolved to a path with no node record, so the strip dropped it
+  without a word. Nodes are now EVERY vault file — non-markdown ones
+  are collected without being read (they carry no edges), which keeps
+  the scan cheap and the projection honest. `[[wikilinks]]` still
+  resolve to notes only; that filter moved into `wikiCandidatesFor`.
+- A file inside a source BUNDLE (a folder holding `source.md`) wears
+  the SOURCE's name plus its own `form`. The name comes from the
+  dossier's FRONTMATTER `title:` — its body H1 is the contract
+  heading "Source dossier", which is why every source used to look
+  identical in the graph — falling back to the bundle index's heading,
+  then the folder name. Forms: dossier · index · reader text ·
+  extracted text · transcript · snapshot · media (a subfolder names
+  its own form).
+- Because node titles also feed the relation sentences, this fixed
+  "cite Source dossier" → "cite Curlew sandpiper - Wikipedia" for
+  free. One title rule, every consumer.
+- EXTERNAL targets are nodes of the strip (not of the index): an
+  http(s) edge has no file to point at, so the URL itself is the node,
+  titled host-first (`en.wikipedia.org/wiki/Curlew_sandpiper`) since
+  the chip ellipsizes from the right. A source's original URL is its
+  provenance — the strip that hides it is lying by omission.
+- DOORS: each chip carries `{ door, target }` computed in the pure
+  layer — 'note' for markdown, 'web' for a URL, 'source' for a
+  non-markdown form (whose target is its BUNDLE's dossier, because
+  that is the view where a snapshot is visible). `readNote` rejects
+  anything that is not `.md`, so before this a snapshot chip landed on
+  "vault: rejected path". A door the host has not wired renders the
+  chip disabled rather than clickable-and-broken.
+- Bundle chips share one name, so inside a bundle the siblings
+  truncated to "Curlew s… | snapshot". A neighbour of the CENTRE's own
+  bundle now shows its form alone — the centre already says which
+  source you are in.

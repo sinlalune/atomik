@@ -67,7 +67,15 @@ function collectVaultFiles(vaultRoot: string): VaultFileInput[] {
       const rel = relPath === '' ? entry.name : `${relPath}/${entry.name}`
       if (entry.isDirectory()) {
         walk(abs, rel, depth + 1)
-      } else if (entry.isFile() && extname(entry.name).toLowerCase() === '.md') {
+      } else if (entry.isFile()) {
+        // S07d: EVERY vault file is a node (a snapshot and an original
+        // are forms of their source, and links reach them), but only
+        // markdown is READ — the rest carry no edges, so their bytes
+        // never enter the index.
+        if (extname(entry.name).toLowerCase() !== '.md') {
+          files.push({ path: rel })
+          continue
+        }
         try {
           if (statSync(abs).size > MAX_INDEXED_BYTES) continue
           files.push({ path: rel, content: readFileSync(abs, 'utf8') })

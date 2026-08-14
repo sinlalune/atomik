@@ -6,6 +6,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildGraphIndex,
+  frontmatterTitleOf,
   vocabularyOf,
   wikiCandidatesFor
 } from '../shared/graph-core'
@@ -82,5 +83,84 @@ describe('vocabularyOf', () => {
       { path: 'b.md', content: '# B' }
     ])
     expect(vocabularyOf(index)).toEqual(['x', 'aa'])
+  })
+})
+
+describe('source bundles (S07d: the source name and its forms)', () => {
+  const BUNDLE = [
+    {
+      path: 'sources/web/curlew/source.md',
+      content:
+        '---\ntype: Atomik Source\ntitle: "Curlew sandpiper - Wikipedia"\noriginal_url: https://en.wikipedia.org/wiki/Curlew_sandpiper\n---\n\n# Source dossier\n\n- [Original URL](https://en.wikipedia.org/wiki/Curlew_sandpiper) — accessed\n- [Local snapshot](<./snapshot.mhtml>) — the page as rendered.\n- [Reader text](<./reader.md>)\n'
+    },
+    {
+      path: 'sources/web/curlew/index.md',
+      content: '---\ntitle: "Curlew sandpiper - Wikipedia"\n---\n\n# Curlew sandpiper - Wikipedia\n'
+    },
+    { path: 'sources/web/curlew/reader.md', content: '# Reader text — derived\n' },
+    { path: 'sources/web/curlew/snapshot.mhtml' },
+    { path: 'sources/web/curlew/media/a1b2.jpg' },
+    { path: 'notes/birds.md', content: '# Birds\n\n[curlew](<../sources/web/curlew/source.md>){cite}\n' }
+  ]
+  const index = buildGraphIndex(BUNDLE)
+  const at = (path: string) => index.nodes.find((n) => n.path === path)!
+
+  it('every file of a bundle wears the SOURCE name, with its own form', () => {
+    expect(at('sources/web/curlew/source.md')).toMatchObject({
+      title: 'Curlew sandpiper - Wikipedia',
+      form: 'dossier'
+    })
+    expect(at('sources/web/curlew/reader.md')).toMatchObject({
+      title: 'Curlew sandpiper - Wikipedia',
+      form: 'reader text'
+    })
+    expect(at('sources/web/curlew/index.md')!.form).toBe('index')
+  })
+
+  it('the name comes from the dossier FRONTMATTER, not its generic H1', () => {
+    expect(at('sources/web/curlew/source.md')!.title).not.toBe('Source dossier')
+  })
+
+  it('non-markdown files are nodes too — the snapshot and the media', () => {
+    expect(at('sources/web/curlew/snapshot.mhtml')).toMatchObject({
+      title: 'Curlew sandpiper - Wikipedia',
+      form: 'snapshot'
+    })
+    expect(at('sources/web/curlew/media/a1b2.jpg')!.form).toBe('media')
+    // they carry no edges of their own
+    expect(index.edges.some((e) => e.subject.endsWith('.mhtml'))).toBe(false)
+  })
+
+  it('the snapshot link now RESOLVES to that node (it used to vanish)', () => {
+    const toSnapshot = index.edges.find((e) => e.targetRaw.includes('snapshot'))!
+    expect(toSnapshot.object).toBe('sources/web/curlew/snapshot.mhtml')
+  })
+
+  it('an ordinary note keeps its heading as title, with no form', () => {
+    expect(at('notes/birds.md')).toEqual({
+      path: 'notes/birds.md',
+      kind: 'note',
+      title: 'Birds'
+    })
+  })
+
+  it('a wikilink still resolves to NOTES only', () => {
+    const names = wikiCandidatesFor('notes/birds.md', index.nodes).map((c) => c.relPath)
+    expect(names).not.toContain('sources/web/curlew/snapshot.mhtml')
+    expect(names).not.toContain('sources/web/curlew/media/a1b2.jpg')
+  })
+
+  it('rebuilds byte-identical (the projection rule, 03)', () => {
+    expect(JSON.stringify(buildGraphIndex(BUNDLE))).toBe(JSON.stringify(index))
+  })
+})
+
+describe('frontmatterTitleOf', () => {
+  it('reads quoted, bare, and absent titles', () => {
+    expect(frontmatterTitleOf('---\ntitle: "A - B"\n---\nbody')).toBe('A - B')
+    expect(frontmatterTitleOf("---\ntitle: Plain name\n---\n")).toBe('Plain name')
+    expect(frontmatterTitleOf('---\ntype: Note\n---\n')).toBeNull()
+    expect(frontmatterTitleOf('# No frontmatter')).toBeNull()
+    expect(frontmatterTitleOf('---\ntitle:   \n---\n')).toBeNull()
   })
 })

@@ -3346,6 +3346,18 @@ button.relations-node:hover,
   text-overflow: ellipsis;
 }
 
+/* One source, several forms (S07d): every chip of a bundle wears the
+   SOURCE's name, and this quiet suffix says which form it is. */
+.relations-node-form {
+  flex: none;
+  margin-left: 0.4em;
+  padding-left: 0.4em;
+  border-left: 1px solid currentColor;
+  font-size: 0.85em;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
 button.relations-node:focus-visible {
   outline: 1px solid var(--accent);
   outline-offset: 1px;

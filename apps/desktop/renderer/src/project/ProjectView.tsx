@@ -365,6 +365,7 @@ export function ProjectView({
             open={relationsOpen}
             onToggle={onRelationsToggle}
             onOpenNote={guardedOpen}
+            {...(onOpenWebUrl ? { onOpenUrl: onOpenWebUrl } : {})}
             hiddenKinds={relationsHidden}
             onToggleKind={onRelationsKindToggle}
           />

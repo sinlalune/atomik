@@ -149,6 +149,10 @@ export function wikiCandidatesFor(
   )
   return nodes
     .filter((node) => {
+      // S07d: the index now holds non-markdown files too (a snapshot
+      // and an original ARE nodes of the graph) — but a `[[link]]`
+      // still resolves to NOTES only (the S03 rule).
+      if (!/\.md$/i.test(node.path)) return false
       if (node.path === subjectPath) return false
       const dir = node.path.split('/').slice(0, -1).join('/')
       const name = node.path.split('/').pop() ?? ''
@@ -179,8 +183,15 @@ export type GraphNode = {
   /** Vault-relative path. */
   path: string
   kind: LinkKind
-  /** H1 when present, filename stem otherwise. */
+  /** H1 when present, filename stem otherwise. Inside a source
+   *  BUNDLE this is the SOURCE's name (S07d owner bench: "display
+   *  more information about the source name and the different
+   *  forms") — every form of one source shares it. */
   title: string
+  /** Which FORM of a source bundle this file is — 'dossier',
+   *  'snapshot', 'reader text', 'media' … Absent for ordinary notes,
+   *  which are not a form of anything. */
+  form?: string
 }
 
 export type GraphEdge = {
@@ -209,20 +220,106 @@ export type GraphIndex = {
   broken: { subject: string; targetRaw: string; line: number }[]
 }
 
-export type VaultFileInput = { path: string; content: string }
+/** A vault file. NON-markdown files are nodes too (S07d: a snapshot
+ *  and an original are forms of a source, and a link to them is a
+ *  real edge) — they simply arrive without content, since only
+ *  markdown carries edges. */
+export type VaultFileInput = { path: string; content?: string }
+
+/** The frontmatter `title:` — a source bundle's real name lives there
+ *  ("Curlew sandpiper - Wikipedia") while its body H1 is the generic
+ *  contract heading ("Source dossier"). Quoted or bare, first match. */
+export function frontmatterTitleOf(content: string): string | null {
+  if (!content.startsWith('---\n')) return null
+  const end = content.indexOf('\n---', 4)
+  const block = end === -1 ? content : content.slice(4, end)
+  const match = /^title:[ \t]*(.+?)[ \t]*$/m.exec(block)
+  if (!match) return null
+  const raw = match[1]!
+  const unquoted = /^(["'])(.*)\1$/.exec(raw)
+  const title = (unquoted ? unquoted[2]! : raw).trim()
+  return title.length > 0 ? title : null
+}
+
+/** What FORM of its bundle a file is: the contract files by name, a
+ *  subfolder by its own name (media/…), anything else by its stem. */
+function formOf(relPathInBundle: string): string {
+  const segments = relPathInBundle.split('/')
+  if (segments.length > 1) return segments[0]!
+  const name = segments[0]!.toLowerCase()
+  if (name === 'source.md') return 'dossier'
+  if (name === 'index.md') return 'index'
+  if (name === 'reader.md') return 'reader text'
+  if (name === 'extracted.md') return 'extracted text'
+  if (name === 'transcript.md') return 'transcript'
+  if (name.endsWith('.mhtml')) return 'snapshot'
+  return stemOf(segments[0]!)
+}
 
 /** Build the whole index from vault files — PURE and deterministic:
  *  the same files yield byte-identical JSON (the delete→rebuild
  *  round-trip test relies on it, 03). */
 export function buildGraphIndex(files: readonly VaultFileInput[]): GraphIndex {
   const sorted = [...files].sort((a, b) => a.path.localeCompare(b.path))
-  const nodes: GraphNode[] = sorted.map((file) => ({
-    path: file.path,
-    kind: classifyLinkKind(file.path) ?? 'note',
-    title: firstHeadingOf(stripFrontmatter(file.content)) ?? stemOf(file.path)
-  }))
+  // A BUNDLE is a folder holding a source.md; its name comes from that
+  // dossier's frontmatter (the source's real name), else its index.md
+  // heading, else the folder itself. Every file under it is a FORM of
+  // that one source and wears its name (S07d).
+  const bundleNames = new Map<string, string>()
+  for (const file of sorted) {
+    const name = file.path.split('/').pop() ?? ''
+    if (name !== 'source.md' && name !== 'index.md') continue
+    const dir = file.path.split('/').slice(0, -1).join('/')
+    if (dir === '') continue
+    const isDossier = name === 'source.md'
+    if (!isDossier && bundleNames.has(dir)) continue
+    const content = file.content ?? ''
+    const named =
+      frontmatterTitleOf(content) ??
+      firstHeadingOf(stripFrontmatter(content)) ??
+      (dir.split('/').pop() ?? dir)
+    // source.md wins over index.md; index.md alone names a plain folder
+    if (isDossier || !bundleNames.has(dir)) bundleNames.set(dir, named)
+  }
+  const bundleDirs = new Set(
+    sorted
+      .filter((file) => (file.path.split('/').pop() ?? '') === 'source.md')
+      .map((file) => file.path.split('/').slice(0, -1).join('/'))
+  )
+  /** The bundle a file belongs to: its own folder, or the nearest
+   *  ancestor holding a source.md (so media/ rides its dossier). */
+  const bundleOf = (path: string): string | null => {
+    const segments = path.split('/').slice(0, -1)
+    while (segments.length > 0) {
+      const dir = segments.join('/')
+      if (bundleDirs.has(dir)) return dir
+      segments.pop()
+    }
+    return null
+  }
+
+  const nodes: GraphNode[] = sorted.map((file) => {
+    const bundle = bundleOf(file.path)
+    if (bundle !== null) {
+      return {
+        path: file.path,
+        kind: classifyLinkKind(file.path) ?? 'note',
+        title: bundleNames.get(bundle) ?? (bundle.split('/').pop() ?? bundle),
+        form: formOf(file.path.slice(bundle.length + 1))
+      }
+    }
+    return {
+      path: file.path,
+      kind: classifyLinkKind(file.path) ?? 'note',
+      title:
+        firstHeadingOf(stripFrontmatter(file.content ?? '')) ?? stemOf(file.path)
+    }
+  })
   const edges: GraphEdge[] = []
   for (const file of sorted) {
+    // Only markdown carries edges; a snapshot or an image is a node
+    // with no outgoing links of its own.
+    if (file.content === undefined) continue
     const candidates = wikiCandidatesFor(file.path, nodes)
     for (const parsed of parseEdges(stripFrontmatter(file.content))) {
       const external = /^https?:/i.test(parsed.target)

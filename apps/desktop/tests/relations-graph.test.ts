@@ -82,10 +82,28 @@ describe('neighborhoodOf', () => {
     expect(hood.outbound.at(-1)?.label).toBeNull()
   })
 
-  it('external, unresolved and self edges draw no node', () => {
+  it('unresolved and self edges draw no node; an EXTERNAL one does (S07d)', () => {
     const ethos = neighborhoodOf(index, "L'ethos.md")
-    expect(ethos.outbound.map((l) => l.path)).toEqual(['crédibilité.md'])
+    // [[ghost]] (unresolved) and [[L'ethos]] (self) are absent;
+    // the http target is a neighbour of its own, titled by its host.
+    expect(ethos.outbound.map((l) => l.path)).toEqual([
+      'https://example.org',
+      'crédibilité.md'
+    ])
+    expect(ethos.outbound[0]).toMatchObject({
+      title: 'example.org',
+      kind: 'web',
+      external: true,
+      label: 'cite'
+    })
     expect(ethos.inbound).toEqual([])
+  })
+
+  it('an external target only counts for the note that WRITES it', () => {
+    // nothing points AT a URL: it has no inbound side anywhere else
+    expect(neighborhoodOf(index, 'pathos.md').outbound.every((l) => !l.external)).toBe(
+      true
+    )
   })
 
   it('an unknown path is an honest empty neighbourhood', () => {
@@ -157,10 +175,10 @@ describe('the kind filter (S07b)', () => {
 
 describe('layoutRelations', () => {
   const hood = neighborhoodOf(index, 'crédibilité.md')
-  const layout = layoutRelations(hood, 800)
+  const layout = layoutRelations(hood, 1000)
 
   it('places the note in the middle, inbound left, outbound right', () => {
-    expect(layout.center.x).toBe(400)
+    expect(layout.center.x).toBe(500)
     const left = layout.nodes.filter((n) => n.side === 'left')
     const right = layout.nodes.filter((n) => n.side === 'right')
     // pathos is related twice (illustre + repose-sur ×2): ONE chip.
@@ -203,7 +221,7 @@ describe('layoutRelations', () => {
   })
 
   it('is deterministic — same index, same picture', () => {
-    expect(layoutRelations(hood, 800)).toEqual(layout)
+    expect(layoutRelations(hood, 1000)).toEqual(layout)
   })
 
   it('a narrow pane keeps a usable minimum width', () => {
@@ -212,9 +230,87 @@ describe('layoutRelations', () => {
   })
 
   it('an empty neighbourhood still has a positive box (the caller shows the empty state)', () => {
-    const empty = layoutRelations(neighborhoodOf(index, 'nowhere.md'), 800)
+    const empty = layoutRelations(neighborhoodOf(index, 'nowhere.md'), 1000)
     expect(empty.links).toEqual([])
     expect(empty.nodes).toHaveLength(1)
     expect(empty.height).toBeGreaterThan(0)
+  })
+})
+
+describe('doors (S07d: a chip opens what it actually is)', () => {
+  const BUNDLE = [
+    {
+      path: 'sources/web/curlew/source.md',
+      content:
+        '---\ntitle: "Curlew sandpiper - Wikipedia"\n---\n\n# Source dossier\n\n[Original URL](https://en.wikipedia.org/wiki/Curlew_sandpiper)\n[Local snapshot](<./snapshot.mhtml>)\n[Reader text](<./reader.md>)\n'
+    },
+    { path: 'sources/web/curlew/reader.md', content: '# Reader text\n' },
+    { path: 'sources/web/curlew/snapshot.mhtml' },
+    { path: 'stray.pdf' },
+    { path: 'notes/birds.md', content: '# Birds\n\n[a pdf](<../stray.pdf>)\n' }
+  ]
+  const bundleIndex = buildGraphIndex(BUNDLE)
+  const dossier = neighborhoodOf(bundleIndex, 'sources/web/curlew/source.md')
+  const at = (path: string) =>
+    [...dossier.inbound, ...dossier.outbound].find((l) => l.path === path)!
+
+  it('a markdown form opens as a note', () => {
+    expect(at('sources/web/curlew/reader.md')).toMatchObject({
+      door: 'note',
+      target: 'sources/web/curlew/reader.md'
+    })
+  })
+
+  it('a sibling of the SAME bundle shows its form alone', () => {
+    // inside the dossier the centre already names the source, so the
+    // chip reads "reader text", not "Curlew sandpip… | reader text"
+    expect(at('sources/web/curlew/reader.md').title).toBe('reader text')
+    expect(at('sources/web/curlew/reader.md').form).toBeUndefined()
+    // from OUTSIDE the bundle the same node carries name + form
+    const fromNote = neighborhoodOf(
+      buildGraphIndex([
+        ...BUNDLE,
+        {
+          path: 'notes/ref.md',
+          content: '# Ref\n\n[d](<../sources/web/curlew/source.md>)\n'
+        }
+      ]),
+      'notes/ref.md'
+    ).outbound[0]!
+    expect(fromNote).toMatchObject({
+      title: 'Curlew sandpiper - Wikipedia',
+      form: 'dossier'
+    })
+  })
+
+  it('a snapshot opens through its BUNDLE, not as a note', () => {
+    expect(at('sources/web/curlew/snapshot.mhtml')).toMatchObject({
+      door: 'source',
+      target: 'sources/web/curlew/source.md',
+      title: 'snapshot'
+    })
+  })
+
+  it('the original URL opens in a web tab', () => {
+    expect(at('https://en.wikipedia.org/wiki/Curlew_sandpiper')).toMatchObject({
+      door: 'web',
+      target: 'https://en.wikipedia.org/wiki/Curlew_sandpiper',
+      title: 'en.wikipedia.org/wiki/Curlew_sandpiper'
+    })
+  })
+
+  it('a non-markdown file outside any bundle falls back to itself', () => {
+    const birds = neighborhoodOf(bundleIndex, 'notes/birds.md')
+    expect(birds.outbound[0]).toMatchObject({ door: 'source', target: 'stray.pdf' })
+  })
+
+  it('the layout carries the door to the chip', () => {
+    const placed = layoutRelations(dossier, 1000)
+    const snapshot = placed.nodes.find((n) => n.path.endsWith('.mhtml'))!
+    expect(snapshot).toMatchObject({
+      door: 'source',
+      target: 'sources/web/curlew/source.md'
+    })
+    expect(placed.center).toMatchObject({ door: 'note' })
   })
 })
