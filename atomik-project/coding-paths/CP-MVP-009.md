@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-009
   status: active
   accepted: 2026-08-04
-  current_step: S07d
+  current_step: S08
   base_commit: fba010d
 ---
 
@@ -383,10 +383,20 @@ read contract as a clean projection, nothing more.
       (e) Pin fix: inside a bundle every sibling repeated the source
       name and truncated to "Curlew s… | snapshot", so a sibling of
       the CENTRE's own bundle now shows its form alone.
-- [ ] S08 Acceptance: intents re-run + owner bench on the live vault
-      (author edges in real notes, autocomplete convergence, flip,
-      delete, backlinks, rename refactor over a linked note, index
-      delete→rebuild); review and close (closing ceremony).
+- [x] S08 Acceptance (DONE 2026-08-13, record:
+      `../sessions/2026-08-13-cp-mvp-009-acceptance.md`). OWNER half:
+      "bench is ok, go on you half" — validated across the thirteen
+      live rounds. AGENT half, driven with real events on a fresh copy
+      of the real vault: index round-trip byte-identical (133 files →
+      133 nodes, 351 edges, 0 broken); the widened pill offered the
+      owner's five labels most-used-first; ADD → `{explique-que}`
+      (free input kebab-normalized), FLIP → `{^explique-que}`, EDIT →
+      `{cause-de}`, DELETE → the link alone, each one clean diff;
+      read↔live pill parity; chat render-only; RENAME previewed "3
+      links in 3 notes" in the confirm gate, then rewrote the md link
+      AND the wikilink (decoration intact), index rebuilding to 134
+      nodes / 0 broken. Five deviations carried to the ceremony (see
+      the record). Remaining: the closing ceremony (22).
 
 # Current checkpoint
 
@@ -783,11 +793,16 @@ pin(S07d)   : dev CDP on a copy of the owner's real vault. From
               L'ethos, UI Fine tuning inbound; reader text, snapshot
               and en.wikipedia.org/wiki/Curlew_sandpiper outbound,
               the snapshot titled "… through its source view".
-next action : S08 acceptance — intents re-run + owner bench on the
-              live vault (author edges in real notes, autocomplete
-              convergence, flip, delete, the relations strip, rename
-              refactor over a linked note, index delete→rebuild),
-              then the closing ceremony.
+changed(S08): docs-only — the acceptance record; graph-core form
+              labels lost their extension (the one defect the sweep
+              caught).
+tests(S08)  : 766→767/63; typecheck + build green (gates bare).
+next action : the CLOSING CEREMONY (22 §Between paths): recall from
+              the repo, then owner rulings on the five carried
+              deviations and the next path (back half = retrieval over
+              the graph, vs the studio canvas now that S07 proved the
+              index read contract). Roadmap amendments stay
+              owner-gated.
 blockers    : none.
               OWNER VALIDATION (2026-08-05, verbatim): "YES I LOVE
               U IT WORKS perfectly" — bench rounds 1–5 closed; the
