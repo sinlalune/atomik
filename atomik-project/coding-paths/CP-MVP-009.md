@@ -6,9 +6,9 @@ tags: [coding-path, m8, semantic-graph, wikilinks, typed-edges, pills, backlinks
 timestamp: 2026-08-04T00:00:00Z
 atomik:
   id: CP-MVP-009
-  status: active
+  status: done
   accepted: 2026-08-04
-  current_step: S08
+  current_step: S08 (closed)
   base_commit: fba010d
 ---
 
@@ -797,12 +797,23 @@ changed(S08): docs-only — the acceptance record; graph-core form
               labels lost their extension (the one defect the sweep
               caught).
 tests(S08)  : 766→767/63; typecheck + build green (gates bare).
-next action : the CLOSING CEREMONY (22 §Between paths): recall from
-              the repo, then owner rulings on the five carried
-              deviations and the next path (back half = retrieval over
-              the graph, vs the studio canvas now that S07 proved the
-              index read contract). Roadmap amendments stay
-              owner-gated.
+closed      : 2026-08-13 — acceptance
+              (../sessions/2026-08-13-cp-mvp-009-acceptance.md) then
+              the CLOSING CEREMONY
+              (../sessions/2026-08-13-cp-mvp-009-closing-ceremony.md).
+              Owner delegated the deviation rulings ("Fix what you
+              think is needed, all to nothing spectrum allowed") and
+              chose the next path: the M8 BACK HALF, retrieval over
+              the graph. Deviation outcomes: live md-link pill parity
+              ALREADY CLOSED (verified at acceptance, the S04 note had
+              gone stale); index invalidation broadcast + incremental
+              per-file patching PROMOTED into the next path; the
+              vault-wide broken-links list STAYS DEFERRED with a
+              trigger (ride the back half's vault-wide scan); in-text
+              pills keeping the authored slug reclassified as a
+              DESIGN RULE, not debt.
+next action : draft CP-MVP-010 (M8 back half), run its OPENING check,
+              activate on the owner's explicit acceptance.
 blockers    : none.
               OWNER VALIDATION (2026-08-05, verbatim): "YES I LOVE
               U IT WORKS perfectly" — bench rounds 1–5 closed; the
