@@ -136,6 +136,21 @@ describe('source bundles (S07d: the source name and its forms)', () => {
     expect(toSnapshot.object).toBe('sources/web/curlew/snapshot.mhtml')
   })
 
+  it("a PDF bundle's original is the form 'original', extension dropped", () => {
+    const pdf = buildGraphIndex([
+      {
+        path: 'sources/pdf/mml-book/source.md',
+        content: '---\ntitle: mml-book\n---\n\n# Source dossier\n\n[the original](<./original.pdf>)\n'
+      },
+      { path: 'sources/pdf/mml-book/original.pdf' }
+    ])
+    expect(pdf.nodes.find((n) => n.path.endsWith('.pdf'))).toMatchObject({
+      title: 'mml-book',
+      form: 'original',
+      kind: 'pdf'
+    })
+  })
+
   it('an ordinary note keeps its heading as title, with no form', () => {
     expect(at('notes/birds.md')).toEqual({
       path: 'notes/birds.md',

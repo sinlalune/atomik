@@ -253,7 +253,9 @@ function formOf(relPathInBundle: string): string {
   if (name === 'extracted.md') return 'extracted text'
   if (name === 'transcript.md') return 'transcript'
   if (name.endsWith('.mhtml')) return 'snapshot'
-  return stemOf(segments[0]!)
+  // any other file: its name WITHOUT the extension ("original.pdf" is
+  // the form "original", not "original.pdf")
+  return segments[0]!.replace(/\.[^./]+$/, '')
 }
 
 /** Build the whole index from vault files — PURE and deterministic:
