@@ -106,6 +106,13 @@ when the shape changes, not on every diff.
   recipe, the direction rule behind inbound vs outbound, and the
   geometry facts (bezier midpoints, clientWidth includes padding)
   that decide whether it looks right. Covers CP-MVP-009 S07.
+- [21 — Running several agents at once](./21-concurrent-lanes-and-worktrees.md) —
+  what a Git worktree does and does not isolate, why state keyed on the
+  USER (Electron's `userData` profile) collides while state keyed on the
+  DIRECTORY (`.atomik/` beside the checkout) does not, and the
+  counter-intuitive finding that the prose a protocol forces every writer
+  to touch conflicts far more than the code does. Covers CP-OPS-001
+  S01–S03.
 
 ## Coverage stall (2026-07-07 → 2026-07-21) — repaid
 

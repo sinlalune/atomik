@@ -1,0 +1,641 @@
+<title>Running Cairn Day to Day</title>
+<style>
+  :root {
+    --ground: #f6f6f4;
+    --surface: #ffffff;
+    --sunk: #edeeeb;
+    --ink: #1a1e22;
+    --soft: #4c545b;
+    --faint: #7a838a;
+    --rule: #dfe1de;
+    --rule-2: #c5c9c5;
+
+    /* roles — the one axis colour encodes */
+    --human: #b4622f;   --human-bg: #fbeee4;   --human-line: #e0a97e;
+    --agent: #6247b8;   --agent-bg: #eeebfa;   --agent-line: #a897e0;
+    --auto:  #17727f;   --auto-bg:  #e0f0f2;   --auto-line: #7cc0c9;
+    --file:  #4c545b;   --file-bg:  #ecedea;   --file-line: #b6bcb8;
+
+    --stop: #a6392e; --stop-bg: #f8e8e5;
+    --note: #8a6206; --note-bg: #f9f0dd;
+    --go: #2c6b4e;   --go-bg: #e4f0e9;
+
+    --serif: Georgia, "Iowan Old Style", "Times New Roman", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+    --measure: 70ch;
+    --pad: clamp(1.1rem, 4vw, 3rem);
+    --r: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #15181b; --surface: #1d2125; --sunk: #111417;
+      --ink: #e9eae7; --soft: #a8afb5; --faint: #7c858c;
+      --rule: #2b3135; --rule-2: #3c4449;
+      --human: #e5a274; --human-bg: #33241b; --human-line: #8a5a33;
+      --agent: #ab9be8; --agent-bg: #241f38; --agent-line: #574a91;
+      --auto:  #6fc2cd; --auto-bg:  #122b30; --auto-line: #2f6d78;
+      --file:  #a8afb5; --file-bg:  #22262a; --file-line: #454d52;
+      --stop: #e29184; --stop-bg: #331f1c;
+      --note: #d8ae5a; --note-bg: #2e2617;
+      --go: #74b995;   --go-bg: #16291f;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #15181b; --surface: #1d2125; --sunk: #111417;
+    --ink: #e9eae7; --soft: #a8afb5; --faint: #7c858c;
+    --rule: #2b3135; --rule-2: #3c4449;
+    --human: #e5a274; --human-bg: #33241b; --human-line: #8a5a33;
+    --agent: #ab9be8; --agent-bg: #241f38; --agent-line: #574a91;
+    --auto:  #6fc2cd; --auto-bg:  #122b30; --auto-line: #2f6d78;
+    --file:  #a8afb5; --file-bg:  #22262a; --file-line: #454d52;
+    --stop: #e29184; --stop-bg: #331f1c;
+    --note: #d8ae5a; --note-bg: #2e2617;
+    --go: #74b995;   --go-bg: #16291f;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--ink); font-family: var(--sans); font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 76rem; margin: 0 auto; padding: 0 var(--pad); }
+  .col { max-width: var(--measure); }
+
+  header.mast { padding: clamp(2.4rem,7vw,4.2rem) 0 clamp(1.4rem,3vw,2rem); }
+  .eyebrow { font-family: var(--mono); font-size: .7rem; letter-spacing: .15em; text-transform: uppercase; color: var(--faint); margin: 0 0 1rem; }
+  h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(2.3rem,6.5vw,3.6rem); line-height: 1.05; letter-spacing: -.015em; margin: 0; text-wrap: balance; }
+  .standfirst { font-family: var(--serif); font-size: clamp(1.05rem,2.2vw,1.28rem); line-height: 1.5; color: var(--soft); margin: 1.2rem 0 0; max-width: 55ch; text-wrap: balance; }
+
+  section { padding: clamp(2rem,4.5vw,3.2rem) 0; }
+  section + section { border-top: 1px solid var(--rule); }
+  h2 { font-family: var(--serif); font-weight: 400; font-size: clamp(1.45rem,3vw,1.95rem); line-height: 1.15; margin: 0 0 .3rem; text-wrap: balance; }
+  h3 { font-size: 1rem; font-weight: 650; margin: 1.6rem 0 .5rem; }
+  .kicker { font-family: var(--mono); font-size: .68rem; letter-spacing: .15em; text-transform: uppercase; color: var(--faint); margin: 0 0 .8rem; }
+  .p { margin: 0 0 1rem; }
+  .p:last-child { margin-bottom: 0; }
+  .lede { font-size: 1.05rem; color: var(--soft); }
+  code { font-family: var(--mono); font-size: .85em; background: var(--sunk); border-radius: 4px; padding: .08em .34em; }
+  strong { font-weight: 650; }
+
+  /* ---------- the expandable mechanic ---------- */
+  .x {
+    font: inherit; color: inherit; cursor: pointer; padding: .06em .38em;
+    border: 0; border-radius: 5px; background: var(--file-bg);
+    box-shadow: inset 0 -2px 0 var(--file-line);
+    transition: box-shadow .15s ease, background .15s ease;
+  }
+  .x:hover { box-shadow: inset 0 -3px 0 var(--file-line); }
+  .x:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+  .x[data-role="human"] { background: var(--human-bg); color: var(--human); box-shadow: inset 0 -2px 0 var(--human-line); }
+  .x[data-role="agent"] { background: var(--agent-bg); color: var(--agent); box-shadow: inset 0 -2px 0 var(--agent-line); }
+  .x[data-role="auto"]  { background: var(--auto-bg);  color: var(--auto);  box-shadow: inset 0 -2px 0 var(--auto-line); }
+  .x[aria-expanded="true"] { box-shadow: inset 0 -2px 0 currentColor; font-weight: 600; }
+
+  .blk {
+    margin: .55rem 0 1.05rem; padding: .95rem 1.05rem;
+    border-radius: var(--r); background: var(--file-bg);
+    border-left: 3px solid var(--file-line);
+    font-size: .96rem; color: var(--soft);
+  }
+  .blk[hidden] { display: none; }
+  .blk[data-role="human"] { background: var(--human-bg); border-left-color: var(--human); }
+  .blk[data-role="agent"] { background: var(--agent-bg); border-left-color: var(--agent); }
+  .blk[data-role="auto"]  { background: var(--auto-bg);  border-left-color: var(--auto); }
+  /* nested blocks sit on the page ground so depth stays readable */
+  .blk .blk { background: var(--surface); }
+
+  /* every block LEADS with a synthesis that stands on its own */
+  .syn {
+    font-family: var(--serif); font-size: 1.04rem; line-height: 1.45;
+    color: var(--ink); margin: 0 0 .75rem;
+  }
+  .blk .p { margin-bottom: .7rem; }
+  .role-tag {
+    display: inline-block; font-family: var(--mono); font-size: .6rem;
+    letter-spacing: .11em; text-transform: uppercase; margin-bottom: .5rem;
+    opacity: .85;
+  }
+  .blk[data-role="human"] .role-tag { color: var(--human); }
+  .blk[data-role="agent"] .role-tag { color: var(--agent); }
+  .blk[data-role="auto"] .role-tag { color: var(--auto); }
+  .blk[data-role="file"] .role-tag { color: var(--faint); }
+
+  /* ---------- controls ---------- */
+  .bar { position: sticky; top: 0; z-index: 30; background: color-mix(in srgb, var(--ground) 90%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--rule); padding: .55rem 0; }
+  .bar .inner { display: flex; flex-wrap: wrap; gap: .8rem; align-items: center; }
+  .seg { display: flex; gap: .25rem; }
+  .seg button { font-family: var(--mono); font-size: .72rem; padding: .3rem .65rem; border-radius: 6px; border: 1px solid var(--rule-2); background: var(--surface); color: var(--soft); cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: var(--ground); border-color: var(--ink); }
+  .seg button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .legend { display: flex; flex-wrap: wrap; gap: .5rem; font-size: .74rem; }
+  .key { display: inline-flex; align-items: center; gap: .32rem; padding: .12rem .45rem; border-radius: 5px; font-family: var(--mono); font-size: .66rem; letter-spacing: .05em; }
+  .key.human { background: var(--human-bg); color: var(--human); }
+  .key.agent { background: var(--agent-bg); color: var(--agent); }
+  .key.auto { background: var(--auto-bg); color: var(--auto); }
+  .key.file { background: var(--file-bg); color: var(--faint); }
+
+  /* ---------- steps ---------- */
+  .step { display: grid; grid-template-columns: 3.2rem 1fr; gap: 1.1rem; padding: 1.5rem 0; border-top: 1px solid var(--rule); }
+  .step:first-of-type { border-top: 0; }
+  .stepnum { font-family: var(--mono); font-size: .8rem; color: var(--faint); padding-top: .2rem; }
+  .step h3 { margin: 0 0 .5rem; font-family: var(--serif); font-weight: 400; font-size: 1.3rem; }
+  .actors { display: flex; flex-wrap: wrap; gap: .35rem; margin: 0 0 .7rem; }
+  .out { margin-top: .9rem; font-size: .86rem; color: var(--faint); font-family: var(--mono); }
+  .out b { color: var(--soft); font-weight: 500; }
+
+  pre { font-family: var(--mono); font-size: .79rem; line-height: 1.6; background: var(--sunk); border-radius: 8px; padding: .9rem 1rem; overflow-x: auto; margin: 1rem 0 0; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .tablewrap { overflow-x: auto; margin: 1.3rem 0 0; border-radius: 8px; border: 1px solid var(--rule); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 30rem; font-size: .89rem; }
+  th, td { text-align: left; padding: .65rem .95rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  thead th { font-family: var(--mono); font-weight: 400; font-size: .66rem; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); background: var(--sunk); }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.term { font-weight: 650; }
+  ul { padding-left: 1.1rem; margin: .7rem 0 0; }
+  li { margin-bottom: .35rem; }
+  .callout { margin: 1.4rem 0 0; padding: 1rem 1.15rem; border-radius: var(--r); background: var(--go-bg); border-left: 3px solid var(--go); }
+  .callout .p { font-family: var(--serif); font-size: 1.03rem; color: var(--ink); margin: 0; }
+
+  .figure { margin: 1.8rem 0 0; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r); padding: 1.3rem 1.1rem; overflow-x: auto; }
+  .figure svg { display: block; min-width: 44rem; width: 100%; height: auto; }
+  .figure figcaption { font-size: .8rem; color: var(--faint); margin-top: .9rem; }
+  .fh { fill: var(--human-bg); stroke: var(--human); }
+  .fa { fill: var(--agent-bg); stroke: var(--agent); }
+  .fm { fill: var(--auto-bg); stroke: var(--auto); }
+  .ff { fill: var(--sunk); stroke: var(--rule-2); }
+  .wire { stroke: var(--rule-2); fill: none; stroke-width: 1.3; }
+  .wire-b { stroke: var(--human); fill: none; stroke-width: 1.3; stroke-dasharray: 4 3; }
+  .t-ink { fill: var(--ink); } .t-soft { fill: var(--soft); } .t-faint { fill: var(--faint); } .t-h { fill: var(--human); }
+  .figure text { font-family: var(--sans); }
+  .figure marker path { stroke: var(--faint); }
+
+  footer { border-top: 1px solid var(--rule-2); background: var(--sunk); padding: clamp(2rem,5vw,3.2rem) 0; font-size: .92rem; color: var(--soft); }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header class="mast">
+  <div class="wrap col">
+    <p class="eyebrow">A working framework, day to day</p>
+    <h1>Running Cairn</h1>
+    <p class="standfirst">From an empty repository to shipped work: who acts at each moment, what the agent does, where a human is genuinely needed, and which file holds the answer afterwards.</p>
+  </div>
+</header>
+
+<div class="bar">
+  <div class="wrap inner">
+    <div class="seg" role="group" aria-label="Detail">
+      <button type="button" data-depth="0" aria-pressed="true">Synthesis</button>
+      <button type="button" data-depth="1" aria-pressed="false">+ parts</button>
+      <button type="button" data-depth="9" aria-pressed="false">Everything</button>
+    </div>
+    <div class="legend">
+      <span class="key human">HUMAN</span>
+      <span class="key agent">AGENT</span>
+      <span class="key auto">AUTOMATED</span>
+      <span class="key file">ARTIFACT</span>
+    </div>
+  </div>
+</div>
+
+<main>
+
+<section>
+  <div class="wrap col">
+    <p class="kicker">How to read this</p>
+    <h2>Each level is complete on its own</h2>
+    <div class="p lede">Highlighted phrases expand into blocks of the same colour. The rule for the writing, not just the interface: every block opens with a single sentence that is <em>true and sufficient by itself</em>. Opening one of its parts gives you another such sentence, one grain finer — never a continuation of the last.</div>
+    <div class="p">So you can stop at any level and have a whole answer rather than half of one. Colour tells you <button class="x" data-role="agent" data-open="b-roles" aria-expanded="false">who is acting</button>, not how deep you are.</div>
+
+    <div class="blk" data-role="agent" id="b-roles" data-level="1" hidden>
+      <span class="role-tag">Agent · the four actors</span>
+      <div class="syn">Cairn has three actors and one substrate: a human decides, an agent executes, automation checks, and files remember.</div>
+      <div class="p"><strong>Human</strong> — appears at exactly two mandatory moments per piece of work, plus whenever they use the product and something rubs. <strong>Agent</strong> — does the work: reads, writes code, writes documentation, updates the checkpoint. <strong>Automated</strong> — build gates and the protocol check; no judgment, only verdicts. <strong>Artifact</strong> — the files, which are the only thing that persists.</div>
+      <div class="p">A human can do any agent step by hand; nothing here assumes an AI. The division is about <em>when a decision needs a person</em>, not about who types.</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap col">
+    <p class="kicker">The shape of it</p>
+    <h2>The project remembers, not the people</h2>
+    <div class="p lede">Cairn is a set of Markdown files in the repository holding what was decided, what is being done, where it stands, and what happened. Several people or agents work in parallel, each on their own branch, and each merges their own work.</div>
+    <div class="p">Three properties make the daily loop below work at all: work is <button class="x" data-role="file" data-open="b-bounded" aria-expanded="false">cut into bounded paths</button>, nothing is <button class="x" data-role="file" data-open="b-shared" aria-expanded="false">shared between two workers</button>, and <button class="x" data-role="auto" data-open="b-enforce" aria-expanded="false">the mechanical rules are enforced by a pipeline</button> rather than by goodwill.</div>
+
+    <div class="blk" data-role="file" id="b-bounded" data-level="1" hidden>
+      <span class="role-tag">Artifact · the path</span>
+      <div class="syn">A path is one file describing one bounded piece of work: what it changes, in what order, and exactly where it stands right now.</div>
+      <div class="p">It carries numbered steps, a list of documents it must respect (and the ones it is deliberately ignoring, with reasons), and a <button class="x" data-role="file" data-open="b-check" aria-expanded="false">live checkpoint</button>. Numbered paths come from the roadmap; labelled paths are named for their subject — a repair, a spike, a polish pass.</div>
+      <div class="blk" data-role="file" id="b-check" data-level="2" hidden>
+        <span class="role-tag">Artifact · the checkpoint</span>
+        <div class="syn">The checkpoint is the five facts that let a stranger continue the work tomorrow.</div>
+        <pre><code>base commit : 70f7e27
+changed     : electron-main/lane.ts (new), tests/lane.test.ts
+tests       : 773/64 pass — typecheck, build, protocol green
+next action : split the module note per area
+blockers    : none</code></pre>
+        <div class="p" style="margin-top:.8rem">Rewritten at every step. It is why three workstations work: pull, read five lines, continue. It is also why an interrupted agent session costs nothing — the context window was never the memory.</div>
+      </div>
+    </div>
+
+    <div class="blk" data-role="file" id="b-shared" data-level="1" hidden>
+      <span class="role-tag">Artifact · unshared by construction</span>
+      <div class="syn">The files everyone used to touch are now either generated from the paths, or split one-file-per-entry — so two workers never edit the same thing.</div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th scope="col">Was shared</th><th scope="col">Now</th></tr></thead>
+          <tbody>
+            <tr><td class="term">what's running</td><td>generated from the path files</td></tr>
+            <tr><td class="term">status register</td><td>generated from the same source</td></tr>
+            <tr><td class="term">the journal</td><td>one file per entry</td></tr>
+            <tr><td class="term">module docs</td><td>one note per area + generated index</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="p" style="margin-top:.9rem">This is what removes the need for a gatekeeper. Nobody arbitrates because there is nothing left to arbitrate.</div>
+    </div>
+
+    <div class="blk" data-role="auto" id="b-enforce" data-level="1" hidden>
+      <span class="role-tag">Automated · the split that keeps checks alive</span>
+      <div class="syn">Rules that leave the repository objectively wrong fail the build; everything requiring judgment only speaks up.</div>
+      <div class="p"><strong>Blocking</strong> — branch has a path · rebase gate · ceremony recorded · code and docs in one commit · metadata parses · links resolve · generated views current. <strong>Advisory</strong> — coherence audit · scope drift · stale contract note · decision drift.</div>
+      <div class="callout" style="background:var(--auto-bg); border-left-color: var(--auto)"><div class="p">A false blocking verdict costs more than a missed one — it teaches people to route around the check, after which it catches nothing.</div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap col">
+    <p class="kicker">The daily loop</p>
+    <h2>Nine stages, start to finish</h2>
+    <div class="p lede">This is the whole framework in use. Each stage names who acts, what gets produced, and what goes wrong if it is skipped.</div>
+  </div>
+
+  <div class="wrap col">
+
+    <div class="step">
+      <div class="stepnum">00</div>
+      <div>
+        <h3>Initialize the repository</h3>
+        <div class="actors"><span class="key human">HUMAN</span><span class="key agent">AGENT</span></div>
+        <div class="p">Once per project. The document kit lands: a one-page bootloader, an architecture document, an empty decision log, an empty journal directory, a path template, and the protocol check with its pipeline job.</div>
+        <div class="p">The bootloader is the only file anyone needs to know about — it says <button class="x" data-role="file" data-open="b-boot" aria-expanded="false">which three documents to read first</button>. Every AI tool's own config file is a single line pointing at it.</div>
+        <div class="blk" data-role="file" id="b-boot" data-level="1" hidden>
+          <span class="role-tag">Artifact · the bootloader</span>
+          <div class="syn">One page that points and does not explain, so it can never go stale in a way that matters.</div>
+          <pre><code>1. this file
+2. what's running now      → the generated view
+3. the architecture doc    → if this is your first session
+
+Absolute rules that survive a truncated read:
+- no work outside an accepted path
+- every step: code + tests + docs + checkpoint, one commit
+- progress persists in files, never in a conversation</code></pre>
+          <div class="p" style="margin-top:.8rem">Keep it under a page. The moment it starts containing knowledge instead of pointing at it, it becomes a second source of truth.</div>
+        </div>
+        <div class="out"><b>produces</b> the kit · <b>skip it and</b> every session starts by guessing</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="stepnum">01</div>
+      <div>
+        <h3>Decide what to work on</h3>
+        <div class="actors"><span class="key human">HUMAN</span></div>
+        <div class="p">Two sources, and they are not equal: the roadmap produces <em>numbered</em> paths in sequence, and using the product produces <em>labelled</em> paths whenever something rubs. <button class="x" data-role="human" data-open="b-preempt" aria-expanded="false">Friction wins</button>.</div>
+        <div class="blk" data-role="human" id="b-preempt" data-level="1" hidden>
+          <span class="role-tag">Human · friction preempts the plan</span>
+          <div class="syn">A reproduced problem in what people are actually using integrates as soon as it is green; longer paths rebase onto it.</div>
+          <div class="p">The alternative — queueing repairs behind roadmap milestones — means the product you use daily stays broken for weeks while the plan advances. The plan is a guess; the friction is evidence.</div>
+          <div class="p">In practice this means the person using the product files short labelled paths continuously, and the roadmap path absorbs them at its next step boundary.</div>
+        </div>
+        <div class="out"><b>produces</b> a decision · <b>skip it and</b> work starts without anyone having chosen it</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="stepnum">02</div>
+      <div>
+        <h3>Opening check</h3>
+        <div class="actors"><span class="key human">HUMAN</span><span class="key agent">AGENT</span></div>
+        <div class="p">The first of two mandatory conversations. The agent drafts what it believes the work is, then walks the human through it <button class="x" data-role="human" data-open="b-opening" aria-expanded="false">feature by feature</button> before anything is written. Corrections amend the draft before it is accepted.</div>
+        <div class="blk" data-role="human" id="b-opening" data-level="1" hidden>
+          <span class="role-tag">Human · what the conversation looks like</span>
+          <div class="syn">One short prompted confirmation per major feature — "this is what I am about to build, this way; still what you want?" — never an essay to review.</div>
+          <div class="p">Short options, answered in a word. The answers are recorded <em>verbatim</em> in a session note, because a paraphrase of a decision is a new decision. Activation needs explicit acceptance, not silence.</div>
+          <div class="p">This is the cheapest moment in the whole loop to change direction. Everything after it costs code.</div>
+        </div>
+        <div class="out"><b>produces</b> a session note · <b>skip it and</b> you find out at the end that the wrong thing was built</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="stepnum">03</div>
+      <div>
+        <h3>Open the path and its worktree</h3>
+        <div class="actors"><span class="key agent">AGENT</span></div>
+        <div class="p">The agent writes the path file — id, status, base commit, branch, and the <button class="x" data-role="file" data-open="b-writes" aria-expanded="false">surfaces it expects to touch</button> — then creates a separate working copy so this work can run beside others.</div>
+        <div class="blk" data-role="file" id="b-writes" data-level="1" hidden>
+          <span class="role-tag">Artifact · declared writes</span>
+          <div class="syn">A declaration of expected reach — an overlap signal when the path opens and a comparison at merge time, never a lock.</div>
+          <div class="p">Locks fail here because a root cause is <em>discovered</em>, not declared. A bug reported as "labels show file names" turned out to live in the title-resolution helper, and fixing it correctly rewrote four surfaces at once. A convention that forbids what debugging requires gets ignored rather than followed.</div>
+          <div class="p">Declare documentation surfaces too — those are the ones that actually collide.</div>
+        </div>
+        <pre><code>git worktree add ../proj-cp-mvp-010 -b path/cp-mvp-010 master
+cd ../proj-cp-mvp-010 &amp;&amp; ln -s ../proj/node_modules node_modules</code></pre>
+        <div class="out"><b>produces</b> the path file, a branch, a working copy · <b>skip it and</b> two workers collide in one directory</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="stepnum">04</div>
+      <div>
+        <h3>Execute one step</h3>
+        <div class="actors"><span class="key agent">AGENT</span></div>
+        <div class="p">The repeating unit, and the heart of the framework. One step means: change the code, change the tests, <button class="x" data-role="agent" data-open="b-docs" aria-expanded="false">change the documentation</button>, update the checkpoint — <button class="x" data-role="agent" data-open="b-unit" aria-expanded="false">all in the same commit</button>. Then run the gates locally, bare.</div>
+        <div class="blk" data-role="agent" id="b-docs" data-level="1" hidden>
+          <span class="role-tag">Agent · what documentation means here</span>
+          <div class="syn">Three kinds, each triggered by a different thing, and none of them optional.</div>
+          <div class="p"><strong>The module note</strong> — one per area of the system, stating what that area owns and the contracts it exposes. Updated whenever its code changes. <strong>The learning note</strong> — written the first time the project uses a technology or pattern, explaining it to someone who did not build it. <strong>The decision record</strong> — written when an architectural choice is made, with the alternatives considered.</div>
+          <div class="p">And a fourth, which most projects skip: <button class="x" data-role="agent" data-open="b-visual" aria-expanded="false">a drawing of the mechanism</button>.</div>
+          <div class="blk" data-role="agent" id="b-visual" data-level="2" hidden>
+            <span class="role-tag">Agent · the figure</span>
+            <div class="syn">Every module note carries a figure of what it owns, and every path introducing a new mechanism ships a drawing of that mechanism in the same commit.</div>
+            <div class="p">Prose is bad at three specific things, and those three are exactly what a newcomer needs first: what talks to what, what happens in what order, and where the trust boundaries are. A paragraph describing a five-step pipeline takes longer to read than the pipeline takes to run.</div>
+            <div class="p">The section further down says what to draw and how to keep it honest.</div>
+          </div>
+        </div>
+        <div class="blk" data-role="agent" id="b-unit" data-level="1" hidden>
+          <span class="role-tag">Agent · why one commit</span>
+          <div class="syn">Anything left for later drifts immediately, so "done" is defined as all four landing together.</div>
+          <div class="p">This is one of the few rules a pipeline can check mechanically — source changed, so a module note and a checkpoint must have changed too — which is why it is enforced rather than encouraged. It also makes "done" stop being a judgment call: either the commit contains all four or it does not.</div>
+          <div class="p">Gates run <em>bare</em>: the exit code is the verdict, never a grep over the output. A pipe once swallowed a failing type-check and shipped a white screen.</div>
+        </div>
+        <div class="out"><b>produces</b> a commit, an updated checkpoint · <b>skip parts and</b> the docs describe a system that no longer exists</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="stepnum">05</div>
+      <div>
+        <h3>Bench round</h3>
+        <div class="actors"><span class="key human">HUMAN</span><span class="key agent">AGENT</span></div>
+        <div class="p">Optional, and in practice the highest-value hour in the week. The human uses what was just built and says what is wrong, in their own words. The agent <button class="x" data-role="agent" data-open="b-bench" aria-expanded="false">turns each report into a step or a labelled path</button>.</div>
+        <div class="blk" data-role="agent" id="b-bench" data-level="1" hidden>
+          <span class="role-tag">Agent · absorbing a report</span>
+          <div class="syn">Pin the exact state, reproduce it, add the regression test, then fix — in that order, always.</div>
+          <div class="p">Pin means: the commit, the data, the configuration. A report compared against an unpinned state is an opinion about two different systems. Reproduce before fixing, because a fix without a reproduction is a guess that happens to change the symptom.</div>
+          <div class="p">The report's own words go into the record verbatim. "Design issue, also why need separation when expanded?" is more useful six months later than a tidy paraphrase, because it preserves what actually bothered someone.</div>
+        </div>
+        <div class="out"><b>produces</b> steps, regression tests, sometimes a new path · <b>skip it and</b> the work is only correct against its own assumptions</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="stepnum">06</div>
+      <div>
+        <h3>Push — the pipeline answers two questions</h3>
+        <div class="actors"><span class="key auto">AUTOMATED</span></div>
+        <div class="p">Two jobs, deliberately separate, because a red build and a broken protocol need different fixes: <strong>does the software work</strong> (type-check, tests, build) and <strong>was the protocol followed</strong> (the check, including <button class="x" data-role="auto" data-open="b-rebase" aria-expanded="false">the rebase gate</button>).</div>
+        <div class="blk" data-role="auto" id="b-rebase" data-level="1" hidden>
+          <span class="role-tag">Automated · the rebase gate</span>
+          <div class="syn">A branch must already contain the tip of the trunk before it may merge — which serializes merging without serializing work.</div>
+          <div class="p">This is the mechanism that makes a gatekeeper unnecessary. Two paths run for two days in parallel; whoever merges second pays a rebase and a re-run, which takes minutes. With a human gatekeeper, every merge instead waits on one person's attention.</div>
+          <div class="p">The re-run matters as much as the rebase: CI must be green on the <em>rebased</em> result, not on a stale branch that was green against a trunk that has since moved.</div>
+        </div>
+        <div class="out"><b>produces</b> two verdicts · <b>skip it and</b> the rules are enforced by whoever remembers them</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="stepnum">07</div>
+      <div>
+        <h3>Closing ceremony</h3>
+        <div class="actors"><span class="key human">HUMAN</span><span class="key agent">AGENT</span></div>
+        <div class="p">The second mandatory conversation, and the last human judgment before the work lands. The agent presents a <button class="x" data-role="agent" data-open="b-recall" aria-expanded="false">recall drawn from the repository</button>, the human accepts the work, and together they decide what comes next.</div>
+        <div class="blk" data-role="agent" id="b-recall" data-level="1" hidden>
+          <span class="role-tag">Agent · recall from files, never from memory</span>
+          <div class="syn">Everything presented at the ceremony is read out of the repository — the register, the checkpoints, the journal — never recalled from the conversation.</div>
+          <div class="p">A conversation-based recall is a summary of a summary, and it quietly omits whatever fell out of the context window. A file-based recall is auditable: the human can open any line of it.</div>
+          <div class="p">The output is a session note. It is also what the pipeline looks for — a path marked done without one fails the check, because with no gatekeeper this ceremony is the only human guard left.</div>
+        </div>
+        <div class="out"><b>produces</b> a session note, an accepted path, a decision about what's next</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="stepnum">08</div>
+      <div>
+        <h3>The path merges itself</h3>
+        <div class="actors"><span class="key agent">AGENT</span><span class="key auto">AUTOMATED</span></div>
+        <div class="p">Rebase, let the pipeline run again, record a <button class="x" data-role="auto" data-open="b-audit" aria-expanded="false">coherence audit</button>, set the path's own status to done in the same pull request, and merge. Nobody approves it; the gates already did.</div>
+        <div class="blk" data-role="auto" id="b-audit" data-level="1" hidden>
+          <span class="role-tag">Automated · a deterministic gate on a non-deterministic activity</span>
+          <div class="syn">An agent reads the rebased diff for architectural drift and writes a record; the pipeline checks only that the record exists and is filled.</div>
+          <div class="p">This replaces the one thing lost by removing a gatekeeper — the person who noticed two parallel efforts pulling in different directions. The questions are fixed: does this contradict an accepted decision, duplicate another running path, introduce architecture with no decision record, or document something in a second place that will drift?</div>
+          <div class="p">Its verdict never blocks. A pipeline that fails on a model's opinion is unpredictable, expensive, and needs credentials it should not hold. If after some months the audit has never caught something a human would have missed, delete it rather than keep it as decoration.</div>
+        </div>
+        <div class="out"><b>produces</b> a merge, a journal entry, regenerated views · <b>skip the rebase and</b> two green branches combine into a red trunk</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <div class="wrap col">
+    <p class="kicker">Visual documentation</p>
+    <h2>Draw the implementation, not just the process</h2>
+    <div class="p lede">Figures are documentation and rot faster than prose, because nothing complains when they go stale. A Cairn project draws four specific things about its own implementation, and audits them like any other document.</div>
+
+    <h3>What to draw</h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th scope="col">Figure</th><th scope="col">Answers</th><th scope="col">Lives with</th></tr></thead>
+        <tbody>
+          <tr><td class="term">Module map</td><td>what exists, what owns what, what may call what</td><td>the root module note</td></tr>
+          <tr><td class="term">Boundary map</td><td>where the trust and process boundaries are, and what crosses them</td><td>the security or architecture doc</td></tr>
+          <tr><td class="term">Flow of one operation</td><td>what happens in what order when the system does its central thing</td><td>the module note that owns it</td></tr>
+          <tr><td class="term">Lifecycle</td><td>the states a core object moves through, and what moves it</td><td>the document defining that object</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="p" style="margin-top:1.2rem">Those four cover what prose is worst at: <button class="x" data-role="file" data-open="b-worst" aria-expanded="false">structure, order, and boundaries</button>. Beyond them, a path adds a figure whenever it introduces a mechanism a newcomer would otherwise have to reconstruct from code.</div>
+
+    <div class="blk" data-role="file" id="b-worst" data-level="1" hidden>
+      <span class="role-tag">Artifact · why these four</span>
+      <div class="syn">Each of the four answers a question a reader has to hold in their head all at once, which is exactly where sentences fail.</div>
+      <div class="p">A module map answers "what am I allowed to touch". A boundary map answers "why is this indirection here" — usually the most confusing thing in a codebase, and almost never explained. A flow answers "where does this go wrong". A lifecycle answers "can this state even happen".</div>
+      <div class="p">If a figure would only restate a paragraph in boxes, it is decoration and should not exist. The test: could a newcomer answer the question faster from the figure than from the text?</div>
+    </div>
+
+    <h3>The rules that keep them true</h3>
+    <ul>
+      <li><strong>A figure is a derived view.</strong> It draws a mechanism that already exists in a named document; it never introduces structure the written corpus does not contain. If a figure needs a box the documents do not describe, the documents are wrong — fix them first.</li>
+      <li><strong>One mechanism per figure.</strong> Detail belongs in the document being projected.</li>
+      <li><strong>A register row per figure</strong> — id, file, what it projects, and the trigger that makes it stale.</li>
+      <li><strong>Same commit.</strong> Change a projected section and the figure updates with it. A stale figure is a documentation bug, not a cosmetic one.</li>
+      <li><strong>Self-contained</strong>, so it renders in code hosting, in exports, and in whatever reader comes next.</li>
+      <li><strong><button class="x" data-role="auto" data-open="b-gen" aria-expanded="false">Generated figures declare their generator</button></strong> and are never hand-edited.</li>
+    </ul>
+
+    <div class="blk" data-role="auto" id="b-gen" data-level="1" hidden>
+      <span class="role-tag">Automated · generate, then assert</span>
+      <div class="syn">A figure worth keeping is emitted by a short script that asserts its own geometry — because a hand-placed diagram is a hundred coordinates nobody can review.</div>
+      <div class="p">Three assertions cover almost everything: no box overlaps another, nothing falls outside the canvas, and every floating label's full text extent clears every box. They are not theoretical — writing them caught two real placement bugs in this project's own figures, the second only because the check measured a label's text <em>extent</em> rather than its anchor point.</div>
+      <div class="p">Once generated, the script is the source and the image is a build artifact. Editing the image is the same mistake as editing compiled output.</div>
+    </div>
+
+    <h3>The audit, run when a path closes</h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th scope="col">Check</th><th scope="col">Automatable</th></tr></thead>
+        <tbody>
+          <tr><td>every figure has a register row, and every row a file</td><td>yes</td></tr>
+          <tr><td>every figure is referenced by at least one document</td><td>yes</td></tr>
+          <tr><td>no projected document changed after its figure</td><td>yes</td></tr>
+          <tr><td>generated figures regenerate byte-identically</td><td>yes</td></tr>
+          <tr><td>no figure references an external asset</td><td>yes</td></tr>
+          <tr><td class="term">which mechanisms have <em>no</em> figure — and should</td><td><strong>no</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="p" style="margin-top:1.2rem">The last row is the point of the exercise. The first five keep existing figures honest; only the last notices that the most confusing part of the system was never drawn at all.</div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="col">
+      <p class="kicker">All of it at once</p>
+      <h2>The loop</h2>
+      <div class="p lede">Colour carries the same meaning as above: ochre where a human is required, violet where the agent works, teal where automation decides.</div>
+    </div>
+    <figure class="figure">
+      <svg viewBox="0 0 780 980" role="img" aria-labelledby="lt ld">
+        <title id="lt">The Cairn daily loop</title>
+        <desc id="ld">A repository is initialized, then the human decides what to work on and runs an opening check. The agent opens a path and its worktree, executes one step at a time, and bench rounds with the human feed corrections back into the steps. Pushing runs two automated jobs; a closing ceremony with the human accepts the work; then the path rebases, audits, and merges itself into the trunk. Friction with the trunk opens a new path.</desc>
+        <defs><marker id="l-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+        <g class="wire">
+          <path d="M390 76 V96" marker-end="url(#l-a)"/>
+          <path d="M390 152 V172" marker-end="url(#l-a)"/>
+          <path d="M390 228 V248" marker-end="url(#l-a)"/>
+          <path d="M390 314 V334" marker-end="url(#l-a)"/>
+          <path d="M390 410 V430" marker-end="url(#l-a)"/>
+          <path d="M390 486 V506" marker-end="url(#l-a)"/>
+          <path d="M390 582 V602" marker-end="url(#l-a)"/>
+          <path d="M390 668 V688" marker-end="url(#l-a)"/>
+          <path d="M390 774 V794" marker-end="url(#l-a)"/>
+        </g>
+        <g class="wire-b">
+          <path d="M600 458 H636 V372 H600" marker-end="url(#l-a)"/>
+          <path d="M180 838 H30 V128 H180" marker-end="url(#l-a)"/>
+        </g>
+        <text class="t-h" x="642" y="416" font-size="10.5" font-family="ui-monospace, Menlo, monospace">reports</text>
+        <text class="t-h" x="36" y="470" font-size="10.5" font-family="ui-monospace, Menlo, monospace">friction opens a path</text>
+
+        <g>
+          <rect class="ff" x="180" y="26" width="420" height="50" rx="9"/>
+          <text class="t-ink" x="390" y="46" text-anchor="middle" font-size="13" font-weight="600">00 · Repository initialized</text>
+          <text class="t-soft" x="390" y="63" text-anchor="middle" font-size="11">bootloader · architecture · journal · path template · the check</text>
+
+          <rect class="fh" x="180" y="98" width="420" height="54" rx="9"/>
+          <text class="t-ink" x="390" y="118" text-anchor="middle" font-size="13" font-weight="600">01 · Decide what to work on</text>
+          <text class="t-soft" x="390" y="136" text-anchor="middle" font-size="11">numbered from the roadmap · labelled from friction</text>
+
+          <rect class="fh" x="180" y="174" width="420" height="54" rx="9"/>
+          <text class="t-ink" x="390" y="194" text-anchor="middle" font-size="13" font-weight="600">02 · Opening check</text>
+          <text class="t-soft" x="390" y="212" text-anchor="middle" font-size="11">feature by feature, answers verbatim → session note</text>
+
+          <rect class="fa" x="180" y="250" width="420" height="64" rx="9"/>
+          <text class="t-ink" x="390" y="270" text-anchor="middle" font-size="13" font-weight="600">03 · Open the path and its worktree</text>
+          <text class="t-soft" x="390" y="288" text-anchor="middle" font-size="11">id · base · branch · declared writes</text>
+          <text class="t-faint" x="390" y="304" text-anchor="middle" font-size="10.5">one writer per working copy</text>
+
+          <rect class="fa" x="180" y="336" width="420" height="74" rx="9"/>
+          <text class="t-ink" x="390" y="357" text-anchor="middle" font-size="13" font-weight="600">04 · Execute ONE step</text>
+          <text class="t-soft" x="390" y="375" text-anchor="middle" font-size="11">code + tests + docs + figure + checkpoint</text>
+          <text class="t-faint" x="390" y="392" text-anchor="middle" font-size="10.5">one commit · gates run bare</text>
+
+          <rect class="fh" x="180" y="432" width="420" height="54" rx="9"/>
+          <text class="t-ink" x="390" y="452" text-anchor="middle" font-size="13" font-weight="600">05 · Bench round</text>
+          <text class="t-soft" x="390" y="470" text-anchor="middle" font-size="11">pin · reproduce · regression test · fix</text>
+
+          <rect class="fm" x="180" y="508" width="420" height="74" rx="9"/>
+          <text class="t-ink" x="390" y="529" text-anchor="middle" font-size="13" font-weight="600">06 · Push — two verdicts</text>
+          <text class="t-soft" x="390" y="547" text-anchor="middle" font-size="11">does it work · was the protocol followed</text>
+          <text class="t-faint" x="390" y="564" text-anchor="middle" font-size="10.5">7 blocking · 4 advisory · incl. the rebase gate</text>
+
+          <rect class="fh" x="180" y="604" width="420" height="64" rx="9"/>
+          <text class="t-ink" x="390" y="624" text-anchor="middle" font-size="13" font-weight="600">07 · Closing ceremony</text>
+          <text class="t-soft" x="390" y="642" text-anchor="middle" font-size="11">recall from the repo · acceptance · what's next</text>
+          <text class="t-faint" x="390" y="658" text-anchor="middle" font-size="10.5">→ session note, checked by the pipeline</text>
+
+          <rect class="fa" x="180" y="690" width="420" height="84" rx="9"/>
+          <text class="t-ink" x="390" y="711" text-anchor="middle" font-size="13" font-weight="600">08 · The path merges itself</text>
+          <text class="t-soft" x="390" y="729" text-anchor="middle" font-size="11">rebase · CI green on the rebased result</text>
+          <text class="t-soft" x="390" y="745" text-anchor="middle" font-size="11">coherence audit recorded · status: done</text>
+          <text class="t-faint" x="390" y="762" text-anchor="middle" font-size="10.5">no approver — the gates already answered</text>
+
+          <rect class="ff" x="180" y="796" width="420" height="52" rx="9"/>
+          <text class="t-ink" x="390" y="816" text-anchor="middle" font-size="13" font-weight="600">Trunk — always shippable</text>
+          <text class="t-soft" x="390" y="834" text-anchor="middle" font-size="11">the human uses this state, and says what rubs</text>
+        </g>
+      </svg>
+      <figcaption>Two mandatory human moments per path — the opening check and the closing ceremony — plus as many bench rounds as the work deserves. Everything between the push and the trunk is automated.</figcaption>
+    </figure>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap col">
+    <div class="p"><strong>Where this stands.</strong> Cairn is mid-pilot: the convention lives in the repository it governs and has not been promoted into that project's constitution, because a protocol that has not yet run twice in parallel has not earned permanence.</div>
+    <div class="p" style="margin-top:.9rem">Two known gaps, stated rather than hidden: an abandoned path keeps its running status and lingers in the generated views, and a path's recorded base commit is checked for presence but not accuracy.</div>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var xs = Array.prototype.slice.call(document.querySelectorAll('.x'));
+    function blockOf(x) { return document.getElementById(x.dataset.open); }
+
+    function shut(x) {
+      var b = blockOf(x); if (!b) return;
+      x.setAttribute('aria-expanded', 'false'); b.hidden = true;
+      Array.prototype.forEach.call(b.querySelectorAll('.x'), function (inner) {
+        var ib = blockOf(inner);
+        if (ib) { inner.setAttribute('aria-expanded', 'false'); ib.hidden = true; }
+      });
+    }
+    function show(x) {
+      var b = blockOf(x); if (!b) return;
+      x.setAttribute('aria-expanded', 'true'); b.hidden = false;
+    }
+
+    xs.forEach(function (x) {
+      x.addEventListener('click', function () {
+        if (x.getAttribute('aria-expanded') === 'true') shut(x); else show(x);
+      });
+    });
+
+    // Detail control. Level 0 is the synthesis alone: every level is a whole
+    // statement, so collapsing never leaves a half-finished thought.
+    var buttons = Array.prototype.slice.call(document.querySelectorAll('.seg button'));
+    function setDepth(depth) {
+      buttons.forEach(function (b) {
+        b.setAttribute('aria-pressed', String(Number(b.dataset.depth) === depth));
+      });
+      xs.forEach(function (x) {
+        var b = blockOf(x); if (!b) return;
+        var level = Number(b.dataset.level || 1);
+        if (level <= depth) { x.setAttribute('aria-expanded', 'true'); b.hidden = false; }
+        else { x.setAttribute('aria-expanded', 'false'); b.hidden = true; }
+      });
+    }
+    buttons.forEach(function (b) {
+      b.addEventListener('click', function () { setDepth(Number(b.dataset.depth)); });
+    });
+    setDepth(0);
+  })();
+</script>

@@ -1,6 +1,12 @@
 import { resolve } from 'node:path'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'electron-vite'
+import { resolveLaneRuntime } from './electron-main/lane'
+
+// Read once at config load: the build tool is not an Electron process, so
+// it takes only the port half of the lane runtime (userData is claimed in
+// electron-main/index.ts, which is the only place that can).
+const lanePort = resolveLaneRuntime(process.env, '').rendererPort
 
 // Directory names follow docs/bedrock/14_14-app-kernels.md (electron-main /
 // electron-preload / renderer) instead of electron-vite's src/* defaults.
@@ -27,6 +33,12 @@ export default defineConfig({
   },
   renderer: {
     root: resolve(__dirname, 'renderer'),
+    // LANE ISOLATION (CP-OPS-001 S01): concurrent lanes run `dev` at the
+    // same time from their own worktrees. ATOMIK_LANE_PORT pins this
+    // lane's dev server so CDP pinning stays predictable; unset keeps
+    // electron-vite's default. strictPort stays false — a busy port
+    // should still start, just noisily.
+    ...(lanePort ? { server: { port: lanePort } } : {}),
     build: {
       rollupOptions: {
         input: resolve(__dirname, 'renderer/index.html')

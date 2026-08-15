@@ -11,7 +11,11 @@
     "build": "npm --workspace atomik-desktop run build",
     "test": "npm --workspace atomik-desktop run test",
     "typecheck": "npm --workspace atomik-desktop run typecheck",
-    "smoke": "npm --workspace atomik-desktop run smoke"
+    "smoke": "npm --workspace atomik-desktop run smoke",
+    "cairn-check": "node tools/cairn-check.mjs",
+    "cairn-active": "node tools/cairn-active.mjs",
+    "cairn-audit": "node tools/cairn-audit.mjs",
+    "cairn-check:test": "node --test 'tools/**/*.test.mjs'"
   },
   "engines": {
     "node": ">=20"

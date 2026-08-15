@@ -26,3 +26,12 @@ Initialized 2026-07-05 at corpus v0.6. This folder is the visual projection of t
 | D10 | `D10_roadmap_m0_m13.svg` | Roadmap M0–M13 | 18 | milestones or center of gravity change | current @ v0.6 |
 | D11 | `D11_note_lifecycle.svg` | Note lifecycle | 11 | lifecycle states change | current @ v0.6 |
 | D12 | `D12_reuse_loop.svg` | The reuse loop | 02, 20 | proposal mechanism changes | current @ v0.6 |
+| D13 | `D13_concurrent_execution_lanes.svg` | Concurrent execution lanes | 35, `atomik-project/coding-paths/paths.md` | lane kinds, ownership map, or gate steps change | current @ CP-OPS-001 S03 |
+| D14 | `D14_cairn_protocol_workflow.svg` | The Cairn protocol — full workflow | 22, 35, `atomik-project/coding-paths/paths.md` | a role, a lifecycle stage, a gate step, or the blocking/advisory split changes | current @ CP-OPS-001 S04d |
+
+D14 is GENERATED — edit `tools/gen-d14-workflow.py` and re-run it, never the SVG
+by hand. The generator asserts its own geometry (no box overlaps, nothing out of
+bounds, and every loop label's full text extent clear of every box); both checks
+caught real placement bugs that hand-authoring had shipped. D13 remains the
+close-up of the lane/gate mechanics; D14 is the whole lifecycle including the
+ceremonies, CI, and the loops between them.

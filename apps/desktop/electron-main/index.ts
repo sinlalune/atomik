@@ -52,6 +52,7 @@ import { extractPdfSource, resetExtraction } from './pdf-extract'
 import { pdftoppmRasterizer, readPdfTextWithPdfjs } from './pdf-text'
 import { rotateRgba, scanCleanRgba } from './scan-filter'
 import { listDevDocs, readDevDoc, resolveDocsRoot } from './dev-docs'
+import { resolveLaneRuntime } from './lane'
 import { searchVault } from './search'
 import { buildMainWindowOptions } from './security'
 import { createFolder, createProject, listProjects } from './project'
@@ -132,6 +133,17 @@ if (process.platform === 'linux') {
   if (process.env['WSL_DISTRO_NAME']) {
     app.commandLine.appendSwitch('audio-buffer-size', '16384')
   }
+}
+
+// LANE ISOLATION (CP-OPS-001 S01). Concurrent lanes run this app from
+// their own worktrees; `.atomik/` is already per-checkout, but Electron's
+// userData profile is keyed on the package name and would be SHARED —
+// two instances would trample one cookie jar, one localStorage, one GPU
+// cache. Claimed here, at module scope: setPath must land before ready.
+// No ATOMIK_LANE = untouched behaviour (owner's instance, tests, smoke).
+const lane = resolveLaneRuntime(process.env, app.getPath('userData'))
+if (lane.userDataDir) {
+  app.setPath('userData', lane.userDataDir)
 }
 
 /** Current vault root — main-process state; the renderer only ever sees
@@ -1826,7 +1838,14 @@ app.whenReady().then(() => {
   }
   const stateDir = resolveStateDir(app.getAppPath(), process.env)
   traces = new ActionTraceLedger(stateDir)
-  const capturePort = Number(process.env['ATOMIK_CAPTURE_PORT'])
+  const envCapturePort = Number(process.env['ATOMIK_CAPTURE_PORT'])
+  // A lane takes an ephemeral capture port (lane.ts) so two instances
+  // never race for the firewall-friendly default; an explicit override
+  // still wins, and the owner's own instance keeps 41414.
+  const capturePort =
+    Number.isInteger(envCapturePort) && envCapturePort >= 0 && envCapturePort <= 65535
+      ? envCapturePort
+      : (lane.capturePort ?? Number.NaN)
   const speechPaths = {
     binary: process.env['ATOMIK_WHISPER_BIN'] ?? join(stateDir, 'speech', 'whisper-cli'),
     model: process.env['ATOMIK_WHISPER_MODEL'] ?? join(stateDir, 'speech', 'ggml-small.bin'),

@@ -1,0 +1,56 @@
+# Cairn — the protocol made enforceable (CP-OPS-001 S04b).
+#
+# Two jobs, deliberately separate, because they answer two different
+# questions and a team needs to see which one failed:
+#
+#   gates   does the software still work?
+#   cairn   was the protocol followed?
+#
+# Both run bare: the exit code is the verdict, never a grep over output
+# (bedrock 24 gate discipline — the 2026-07-16 white-screen incident
+# shipped because `typecheck | grep | head` swallowed a failing status).
+name: cairn
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  gates:
+    name: gates (typecheck · tests · build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  cairn:
+    name: cairn-check (protocol)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # cairn-check compares the branch against its merge-base, so it
+          # needs history rather than the default shallow clone.
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # No `npm ci` on purpose: the validator is dependency-free, which is
+      # what keeps it runnable in any pipeline and readable by a sceptic.
+      - name: validator self-test
+        run: npm run cairn-check:test
+      - name: protocol check
+        # --base doubles as the rebase gate: cairn-check fails a path/* branch
+        # that does not already contain this ref's tip. Every path merges
+        # itself, so nothing else stops a stale branch landing on a trunk it
+        # never saw. Pair it with the host's "require branches to be up to
+        # date" so the rule holds for merges made from the web UI too.
+        run: node tools/cairn-check.mjs --base "origin/${{ github.base_ref || 'master' }}"
