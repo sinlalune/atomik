@@ -505,10 +505,14 @@ adopt | optional experiment | reject | recheck later
 type: Atomik Coding Path
 title: Task title
 atomik:
-  id: CP-XXX-000
-  status: draft | active | blocked | done | archived
+  id: CP-MVP-000            # numbered = roadmap · labelled = CP-SUBJECT
+  status: draft             # draft | running | blocked | done | archived
   current_step: S01
-  base_commit: null
+  base_commit: null         # pins at activation
+  branch: path/cp-mvp-000   # required once status is `running`
+  writes:                   # ADVISORY — an overlap signal, never a lock
+    - path/to/expected/surface
+    - docs/modules/…        # declare DOCUMENTATION surfaces too
 ---
 
 # Goal

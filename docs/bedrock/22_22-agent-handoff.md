@@ -31,7 +31,7 @@
     "inputs": [
       "AGENTS.md",
       "atomik-project/index.md",
-      "active coding path",
+      "the path you own (several may be running)",
       "work ledger checkpoint",
       "repository and test state"
     ],
@@ -39,16 +39,16 @@
       "executed path steps",
       "updated work ledger",
       "code + tests + docs in one work unit",
-      "log.md entries",
+      "one journal file per merged step",
       "generated brief on handoff only"
     ],
     "invariants": [
       "Navigate Bedrock for knowledge; follow a Coding Path for execution; persist progress in the Work Ledger; generate a brief only as a portable view of that state.",
-      "Never begin implementation without an active coding path; propose one first if none exists.",
+      "Never begin implementation without an accepted coding path; propose one first if none exists.",
       "Never silently invent architecture outside the bedrock.",
       "Read every Required document of the active path; honor Conditional triggers; respect Deliberately excluded entries.",
       "Verify repository reality against the ledger before executing; reconcile mismatches explicitly.",
-      "Every executed step updates code, tests, documentation, the ledger, and log.md in the same work unit.",
+      "Every executed step updates code, tests, documentation and the ledger in the same work unit; the journal is written once, at merge.",
       "Do not hide canonical knowledge or execution state in caches, embeddings, or chat memory.",
       "Provider keys and private context stay behind typed secure boundaries.",
       "Emit a minimal ActionTrace from the first AI mock; no raw prompt/output telemetry by default.",
@@ -76,31 +76,53 @@ Coding Path    = what this task will change, in what order, and where it stands
 
 ```text
 1. Read AGENTS.md.
-2. Read atomik-project/index.md.
-3. Open atomik-project/coding-paths/ACTIVE.md and follow it to the active path.
+2. Read atomik-project/coding-paths/paths.md — how work runs: parallel
+   paths, one per worktree, each merging itself.
+3. Open atomik-project/coding-paths/ACTIVE.md and follow it to YOUR path.
+   Several may be running; you own exactly one.
 4. Verify reality against the Work Ledger:
    git status, base commit, dirty files, test state.
    If they disagree, reconcile and record the correction before anything else.
 5. Read the documents listed under Required in the path's documentation coverage.
 6. Note the Conditional triggers; read those documents when a trigger fires.
 7. Confirm the Deliberately excluded list; do not silently widen scope.
-8. Execute ONE path step at a time.
+8. Execute ONE path step at a time, on your own branch, in your own worktree.
 9. After each step, in the same work unit:
-   update tests, update the Work Ledger checkpoint,
-   update module notes / affected docs, append to log.md,
+   update tests, update YOUR path's Work Ledger checkpoint,
+   update the affected module AREA note and any other affected docs,
    and when the step first mobilizes a technology or pattern,
    add or extend the matching docs/learning/ note (17 first-use rule).
-10. Generate a brief into atomik-project/briefs/ ONLY when handing work
+   The journal is written at MERGE time, one file per entry in
+   atomik-project/log/ — never appended to the frozen log.md.
+10. Before merging: closing ceremony recorded, rebase onto the trunk, gates
+    green on the REBASED result, coherence audit recorded, status: done in
+    the same change. Then merge — nobody approves it; the gates did.
+11. Generate a brief into atomik-project/briefs/ ONLY when handing work
     to another session, agent, or person.
 ```
 
-## Between paths: the two ceremonies
+The mechanical half of this is enforced rather than remembered: `npm run
+cairn-check` runs the same rules locally that CI runs, and `paths.md` lists
+them with the test a rule must pass before it is allowed to fail a build.
 
-Do not start coding without an active path. The gap between paths is governed by two ceremonies (owner directives, 2026-07-21, refining the earlier single review). Both are INTERACTIVE — short prompted questions with options, never essay forms — and both persist their answers verbatim into files.
+## Around every path: the two ceremonies
 
-1. **CLOSING ceremony**, run when the active path closes (with its acceptance): present the owner a compact RECALL derived from repo metadata (register, ledgers, acceptance records, log — never from conversation memory): everything done, the backlog as it stands, what comes next, and what the agent believes needs challenging or completing. Then manage the roadmap backlog through prompted exchange. Answers are promoted into a session note; roadmap (18) amendments stay owner-gated — propose, never apply silently.
-2. **OPENING check**, run when the next path is about to activate: walk the FEATURES INSIDE that path with the owner — one quick prompted confirmation per major feature ("this is what I am about to implement, this way — still your vision?"). Deltas amend the path BEFORE its base commit pins; answers are recorded in the path file and its session note. Activation still requires the owner's explicit acceptance.
-3. Then propose/adjust the path from the roadmap milestone using the template in `24_24-doc-templates.md` and begin at S01. Activating a path with no recorded ceremonies for its gap is invalid.
+Do not start coding without an accepted path. Every path is bracketed by two
+ceremonies (owner directives, 2026-07-21, refining the earlier single review).
+Both are INTERACTIVE — short prompted questions with options, never essay forms
+— and both persist their answers verbatim into files.
+
+They were originally described as gating the *gap between* paths, which assumed
+paths ran one at a time. With several running at once there is no shared gap:
+the ceremonies belong to the path, and every path gets both, numbered or
+labelled (owner ruling 2026-08-15: *"better too much evaluation than not
+enough"*). The closing ceremony matters more than it used to — with no
+integrator, it is the last human judgment before a path merges itself, and a
+path marked `done` without its session note fails the protocol check.
+
+1. **CLOSING ceremony**, run when a path closes, before it merges (with its acceptance): present the owner a compact RECALL derived from repo metadata (register, ledgers, acceptance records, log — never from conversation memory): everything done, the backlog as it stands, what comes next, and what the agent believes needs challenging or completing. Then manage the roadmap backlog through prompted exchange. Answers are promoted into a session note; roadmap (18) amendments stay owner-gated — propose, never apply silently.
+2. **OPENING check**, run when a path is about to activate — drafting and executing happen in the SAME session, since nobody drafts a path for someone else to pick up: walk the FEATURES INSIDE that path with the owner — one quick prompted confirmation per major feature ("this is what I am about to implement, this way — still your vision?"). Deltas amend the path BEFORE its base commit pins; answers are recorded in the path file and its session note. Activation still requires the owner's explicit acceptance.
+3. Then propose/adjust the path — from a roadmap milestone if it is numbered, from its subject if it is labelled — using the template in `24_24-doc-templates.md`, and begin at S01. Activating or closing a path with no recorded ceremony is invalid, and the closing half of that is machine-checked.
 
 An in-app "ceremony tab" (path state as an interactive projection, 35) is a recorded candidate (`atomik-project/brainstorm/2026-07-21-ceremony-tab.md`); until it exists, the ceremonies live in prompted exchange + session notes.
 

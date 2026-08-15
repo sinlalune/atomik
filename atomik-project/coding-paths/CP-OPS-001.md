@@ -240,8 +240,25 @@ lanes — providers and settings share `ai-settings.ts`, `ipc-contract.ts` and
       Cairn decision.
 - [ ] S05 PILOT — open Lane A (CP-MVP-010, delivery) and Lane B (backlog
       fine-tune, feedback); carry one lane through the integration gate.
-- [ ] S06 RATIFY from what the pilot actually cost — ADR + bedrock 22/24/35 and
-      `AGENTS.md` amendments. Owner-gated; not automatic.
+- [x] S06 RATIFIED (owner, 2026-08-15: *"the pilot will serve to fine tune but
+      we are not going back to single path so why not ammend now?"* — and the
+      deferral did not survive the question). Bedrock 35 §Start as one file
+      guards against adding SPECULATIVE structure; it says nothing about
+      leaving a known-false constitution in place. Bedrock 22, 24 and 35
+      described a model the project had decided against, which made them stale
+      documents, not cautious ones — the same defect class as the register row
+      that still read `active` after CP-MVP-009 closed. Amended: 35 §Session
+      protocol + §Path register (paths are the unit of parallelism; views are
+      derived), 22's protocol steps and §Around every path (ceremonies bracket
+      a path, not a gap; the journal is written at merge; step 10 is the
+      self-merge sequence) plus its agent-contract invariants, 24's path
+      template (status `running`, `branch`, advisory `writes`). `ADR-012`
+      records the decision WITH its evidence — the four merges, the retracted
+      journal rule, the app that could not run twice — and its four known gaps,
+      including that the model has never actually run two paths in parallel.
+      `AGENTS.md`'s precedence note is dropped: bedrock no longer contradicts
+      `paths.md`, and a future disagreement is now a defect to report rather
+      than a rule to follow.
 
 # Current checkpoint
 

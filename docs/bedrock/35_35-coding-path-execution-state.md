@@ -185,19 +185,47 @@ quick task
   one coding path, completed in one session
 
 larger work
-  a parent path containing sequential child paths
-  or one child path per Git worktree
+  several coding paths running AT THE SAME TIME
+  one path = one worktree = one branch = one writer
+  each path merges ITSELF; there is no integrator
 
 every new session
   resumes from the persisted checkpoint
   never reconstructs progress from conversation history
 ```
 
+Paths are the unit of parallelism, not a layer beneath one. Numbered paths
+(`CP-MVP-010`) come from a roadmap milestone and hold a register row; labelled
+paths (`CP-SETTINGS`) are named for their subject and hold none. Both are
+ordinary accepted paths and both are bracketed by the two ceremonies.
+
+A path merges itself when its closing ceremony is recorded, its branch contains
+the trunk tip, and the gates are green on the *rebased* result. Requiring the
+trunk tip serializes the merge without serializing the work, which is what makes
+a gatekeeper unnecessary.
+
+Nothing may be shared between two paths. Views over the whole — what is running,
+the register's status column, the index over module notes — are GENERATED from
+the path files; the journal is one file per entry. Deriving a view is strictly
+better than forbidding edits to it: it makes the conflicting state impossible
+rather than illegal.
+
+The operating detail is `atomik-project/coding-paths/paths.md`, which is
+execution-plane and may change without amending this page. `ADR-012` records the
+decision and the evidence behind it, including what remains unproven: as of
+2026-08-15 the model is written, enforced in CI, and has not yet run two paths
+in parallel.
+
 The step-by-step re-entry procedure is `22_22-agent-handoff.md`, which is now a bootstrap protocol rather than a static recipe.
 
 ## Path register
 
-`coding-paths/index.md` maps every roadmap milestone to a path status — active, reserved, or not yet opened. Paths are created just-in-time from the milestone and the template, never speculatively; no milestone is silently unassigned. The completeness rule is fractal: the roadmap accounts for the vision, the register accounts for the roadmap, and each path accounts for its own documents.
+`coding-paths/index.md` maps every roadmap milestone to a path status — running, reserved, or not yet opened. Paths are created just-in-time from the milestone and the template, never speculatively; no milestone is silently unassigned. The completeness rule is fractal: the roadmap accounts for the vision, the register accounts for the roadmap, and each path accounts for its own documents.
+
+Several paths may be running at once, so the register's status column and the
+running-paths view in `ACTIVE.md` are DERIVED from the path files rather than
+maintained by hand — each path already declares its own status, branch and base
+commit, which makes any hand-written summary a second source of truth.
 
 ## Interactive artifacts are projections
 

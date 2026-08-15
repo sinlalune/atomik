@@ -15,12 +15,10 @@ Durable knowledge lives in `docs/`; durable execution state lives in `atomik-pro
 4. `docs/bedrock/00_00-orientation.md` — the constitution, if this is your
    first session.
 
-> **Precedence, until CP-OPS-001 S06 ratifies.** `paths.md` supersedes bedrock
-> 22 and 35 wherever they disagree: those pages still describe a single active
-> path with no branching model, which is how this project ran until 2026-08-14.
-> Everything else in them still holds. The same applies to the coding-path
-> template in bedrock 24 — take the frontmatter block from `paths.md` instead,
-> since a path now declares its own `status`, `branch` and `base_commit`.
+> Bedrock 22, 24 and 35 were amended to this model on 2026-08-15 (`ADR-012`),
+> so they no longer contradict `paths.md`. Bedrock states the doctrine;
+> `paths.md` carries the operating detail and may change without amending a
+> bedrock page. If they ever disagree again, that is a defect — report it.
 
 ## The mechanical contract
 
