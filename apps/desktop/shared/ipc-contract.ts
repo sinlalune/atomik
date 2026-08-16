@@ -538,6 +538,11 @@ export type AiOperation = {
    *  contains — a prompt file can no more opt out of this than out of
    *  the mechanical grounding rules (28). */
   grounding?: { scope?: ContextScope; maxTokens?: number }
+  /** MAIN-SET (CP-MVP-010 S08c), never accepted from the renderer:
+   *  what the vault could and could not answer, so the request can say
+   *  it out loud. Without it a thin packet reads to the model as "these
+   *  are the only facts that exist" and the answer becomes a refusal. */
+  groundingCoverage?: { verdict: 'covered' | 'thin' | 'empty'; missingTerms: string[] }
   target: { relPath: string; destination: AiDestination }
 }
 

@@ -212,9 +212,20 @@ function ClaimBody({
     const sourceOf = (claim: ClaimRecord): string | null =>
       meta.evidence.find((record) => claim.evidenceIds.includes(record.id))
         ?.source.relPath ?? null
+    // S08c (owner bench round 5: "I still don't understand how claim
+    // typology work, looks broken"). In a CONVERSATION, "the model said
+    // it" is the default, not news: marking model-only, interpretive
+    // and needs-citation sentences underlines nearly everything and
+    // teaches the reader to ignore all of it. Only VERBATIM-FROM-A-NOTE
+    // survives here — the one thing a reader cannot see for themselves.
+    // The full typology stays where it is actionable: the AI panel,
+    // where you decide what enters the vault, and later M6's Truth Lens
+    // where the vocabulary freezes.
+    const verbatim = meta.claims.filter((claim) => claim.label === 'source-backed')
+    if (verbatim.length === 0) return
     applyClaimMarks(
       container,
-      findClaimRanges(container.textContent ?? '', meta.claims),
+      findClaimRanges(container.textContent ?? '', verbatim),
       (claim) => claimTitle(claim, sourceOf(claim))
     )
   }, [text, meta, rewritten])
@@ -869,7 +880,8 @@ export function ChatView({
               ''
             // S07b10: the you-turn's breakdown persists with the answer;
             // S07b16: so do the answer's own measured metrics
-            const baseParts = breakdownByTurn.current.get(priorTurns.length)?.parts
+            const baseBreakdown = breakdownByTurn.current.get(priorTurns.length)
+            const baseParts = baseBreakdown?.parts
             const usedPacket = packetByTurn.current.get(priorTurns.length)
             // The retrieved notes were part of what was SENT, so they
             // join the request breakdown of the turn that sent them —
@@ -890,6 +902,20 @@ export function ChatView({
                     }
                   ]
                 : baseParts
+            // S08c (owner bench round 5): the LIVE breakdown is what the
+            // turn displays, so it has to learn about the vault part
+            // too — otherwise the header says "~273 tok sent" for a send
+            // that carried a thousand.
+            if (baseBreakdown && sentParts && sentParts !== baseParts) {
+              breakdownByTurn.current.set(priorTurns.length, {
+                ...baseBreakdown,
+                parts: sentParts,
+                totalTokensEst: sentParts.reduce(
+                  (sum, part) => sum + part.tokensEst,
+                  0
+                )
+              })
+            }
             const runMeta = serializeRunMeta({
               ...(result.usage
                 ? {

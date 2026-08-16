@@ -5386,9 +5386,45 @@ button svg {
   white-space: nowrap;
 }
 
-/* Citations (CP-MVP-010 S08). The markers themselves are ordinary link
-   pills — a citation wears the same clothes as every other link in
-   Atomik — so only the sources block under an answer needs styling. */
+/* Citations (CP-MVP-010 S08, reshaped at S08c on the owner's bench:
+   "there is no visual cue highlighting citation, only pills with
+   link"). A citation is NOT another link to somewhere — it is a
+   reference marker attached to the sentence before it. So it drops the
+   pill's chrome and takes the shape every reader already knows: a small
+   raised number in the accent colour. The claim highlight (a tint on
+   the sentence: "these words are verbatim from a note") and the
+   citation (a marker: "the model attributes this to note 1") then say
+   two different things and stop competing. */
+.markdown-body a.link-pill[data-citation],
+.chat-turn-body a[data-citation] {
+  display: inline;
+  vertical-align: super;
+  font-size: 0.72em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0 0.1em;
+  margin: 0 0.05em;
+  text-decoration: none;
+}
+
+/* the pill recipe paints its kind icon through a mask — a marker has
+   no kind to show */
+.markdown-body a.link-pill[data-citation]::before,
+.markdown-body a.link-pill[data-citation]::after,
+.chat-turn-body a[data-citation]::before,
+.chat-turn-body a[data-citation]::after {
+  content: none;
+}
+
+.chat-turn-body a[data-citation]:hover {
+  text-decoration: underline;
+}
+
+/* The sources block under an answer. */
 .chat-sources {
   display: flex;
   flex-wrap: wrap;

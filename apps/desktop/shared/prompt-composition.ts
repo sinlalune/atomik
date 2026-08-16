@@ -223,7 +223,8 @@ export function systemTextOf(operation: {
  */
 export function composeChatUserMessage(
   question: string,
-  references: PromptSelection[]
+  references: PromptSelection[],
+  coverage?: { verdict: 'covered' | 'thin' | 'empty'; missingTerms: string[] }
 ): string {
   const cited = references.filter((entry) => entry.content.trim().length > 0)
   return [
@@ -242,6 +243,18 @@ export function composeChatUserMessage(
           // traced borrows the vault's authority without offering the
           // way to check it.
           CITATION_INSTRUCTION,
+          // S08c: retrieval is a SERVICE, not a fence. The vault having
+          // nothing on a subject is a fact about the vault, not about
+          // the world — and a model told only "here are the notes"
+          // reads them as the boundary of what may be said.
+          ...(coverage && coverage.verdict !== 'covered'
+            ? [
+                '',
+                coverage.missingTerms.length > 0
+                  ? `The vault has no material for: ${coverage.missingTerms.join(', ')}. Answer those parts from your own knowledge, say plainly that the notes do not cover them, and cite nothing for them.`
+                  : 'The notes above may not cover the question. Answer anyway from your own knowledge for whatever they do not cover, and say plainly which parts they do not support.'
+              ]
+            : []),
           '',
           ...cited.flatMap((entry, index) => [
             `### [${index + 1}] \`${entry.relPath}\``,
@@ -261,13 +274,18 @@ export function userTextOf(operation: {
   input: ReadonlyArray<{ content: string; relPath: string }>
   noteContext?: NoteContext
   mode?: RequestMode
+  groundingCoverage?: { verdict: 'covered' | 'thin' | 'empty'; missingTerms: string[] }
 }): string {
   const selections = operation.input.map((selection) => ({
     content: selection.content,
     relPath: selection.relPath
   }))
   return operation.mode === 'chat'
-    ? composeChatUserMessage(operation.instruction, selections)
+    ? composeChatUserMessage(
+        operation.instruction,
+        selections,
+        operation.groundingCoverage
+      )
     : composeUserMessage(operation.instruction, selections, operation.noteContext)
 }
 

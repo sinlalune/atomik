@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S08b
+  current_step: S08c
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -643,6 +643,41 @@ live, on real notes.
       row now reads `“ethos” in title, body` instead of `matched title,
       body`, and hovering the reason shows the excerpt actually sent.
       +5 tests (861 → 866).
+- [x] S08c BENCH ROUND 5 (2026-08-16, one screenshot, four reports —
+      DONE same day):
+      (1) THE TOKEN COUNT LIED. A grounded send showed `~273 tok sent`
+      for a request carrying a thousand: S07b taught the PERSISTED
+      breakdown about the vault part but not the LIVE one the turn
+      actually displays. Both learn it now, so the vault pill appears on
+      the turn and opens its packet — which was also the missing
+      "inspect what was sent".
+      (2) CITATIONS LOOKED LIKE LINKS. A citation is not another link to
+      somewhere; it is a reference marker on the sentence before it. It
+      drops the pill chrome for the shape every reader knows: a small
+      raised number in the accent colour.
+      (3) CLAIM TYPOLOGY UNREADABLE, and its cohabitation with citations
+      undecided. Ruled: in a CONVERSATION "the model said it" is the
+      default, not news — marking model-only / interpretive /
+      needs-citation underlined nearly every line and taught the reader
+      to ignore all of it. Chat marks ONLY `source-backed`, the one
+      thing a reader cannot verify by looking. Tint = "verbatim from
+      this note"; marker = "attributed to note 1". The full typology
+      stays where it is actionable (AI panel) and M6 freezes the
+      vocabulary.
+      (4) THE SECOND QUESTION WENT UNANSWERED — "the notes do not
+      contain information about…". Retrieval is a SERVICE, not a fence:
+      a model handed only notes reads them as the boundary of what may
+      be said. Main now passes the packet's coverage into the request
+      (main-set, overwriting anything a renderer supplies) and the
+      reference section names the words the vault lacks, instructing the
+      model to answer those from its own knowledge and cite nothing for
+      them. The vault having nothing on a subject is a fact about the
+      VAULT, never about the world.
+      +3 tests (866 → 869). DEVIATION recorded: the renderer's
+      sent-request inspector composes BEFORE main grounds, so it cannot
+      show the coverage line or the retrieved notes — "what you see is
+      what is sent" now holds up to grounding, and the turn's vault pill
+      is what closes the gap after the fact.
 - [ ] S09 Search surface + diagnostics: ranked results with kind pills
       and "why this result", the packet disclosure, and the vault-wide
       broken-links list docked there.
@@ -662,7 +697,7 @@ live, on real notes.
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S08b done (owner bench rounds 1–4 absorbed) — S09 next
+current step: S08c done (owner bench rounds 1–5 absorbed) — S09 next
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts
@@ -674,7 +709,7 @@ changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               docs/learning/22-lexical-retrieval-without-a-database.md + index
               docs/adr/ADR-013-lexical-retrieval-without-a-database.md
               docs/index.md · atomik-project/coding-paths/CP-MVP-010.md
-tests       : 866 passing / 71 files (this path added 78 so far),
+tests       : 869 passing / 71 files (this path added 81 so far),
               typecheck and build green, each gate run BARE (24)
 next action : S09 — the search surface: ranked results with kind pills
               and "why this result", the packet disclosure, and the

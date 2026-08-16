@@ -211,3 +211,33 @@ describe('system plan UI model (serialize / parse / wire)', () => {
     expect(moveSystemPlanEntry(plan, plan.length - 1, 1)).toBe(plan)
   })
 })
+
+describe('a thin vault is not a fence (CP-MVP-010 S08c)', () => {
+  const references = [{ content: "L'ethos est…", relPath: 'ethos.md' }]
+
+  it('tells the model to answer anyway, naming what the vault lacks', () => {
+    const text = composeChatUserMessage('et les réseaux sociaux ?', references, {
+      verdict: 'thin',
+      missingTerms: ['reseaux', 'sociaux']
+    })
+    expect(text).toContain('The vault has no material for: reseaux, sociaux')
+    expect(text).toContain('Answer those parts from your own knowledge')
+  })
+
+  it('says nothing extra when the vault covered the question', () => {
+    const text = composeChatUserMessage('parle moi de l ethos', references, {
+      verdict: 'covered',
+      missingTerms: []
+    })
+    expect(text).not.toContain('no material for')
+    expect(text).not.toContain('may not cover')
+  })
+
+  it('falls back to a general warning when no term is nameable', () => {
+    const text = composeChatUserMessage('question', references, {
+      verdict: 'empty',
+      missingTerms: []
+    })
+    expect(text).toContain('may not cover the question')
+  })
+})

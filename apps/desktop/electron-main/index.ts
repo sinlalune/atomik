@@ -535,7 +535,17 @@ function registerVaultHandlers(stateDir: string): void {
         })
         const references = referenceSelectionsOf(packet)
         if (references.length > 0) {
-          grounded = { ...operation, input: [...operation.input, ...references] }
+          grounded = {
+            ...operation,
+            input: [...operation.input, ...references],
+            // Set HERE, which also overwrites anything the renderer
+            // tried to supply: what the vault covered is main's finding,
+            // not the renderer's claim.
+            groundingCoverage: {
+              verdict: packet.coverage.verdict,
+              missingTerms: packet.coverage.missingTerms
+            }
+          }
         }
       }
       // S06 URL provenance: web-reader selections trace back to their
