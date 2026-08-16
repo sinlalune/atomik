@@ -146,18 +146,12 @@ This path makes Atomik's AI generation architecture truly provider-neutral:
    - `google`: direct Google Gemini API (`https://generativelanguage.googleapis.com/v1beta/openai/chat/completions` or native generateContent)
 
 2. **Curated Model Allowlist & Default Models**:
-   - `mistral`: default `mistral-small-2603`
-     - allowlist: `mistral-small-2603`, `mistral-large-2411`, `codestral-2501`, `ministral-8b-2410`, `ministral-3b-2410`
-   - `openrouter`: default `mistralai/mistral-small-24b-instruct-2501`
-     - allowlist: `mistralai/mistral-small-24b-instruct-2501`, `anthropic/claude-3.5-haiku`, `openai/gpt-4o-mini`, `deepseek/deepseek-chat`, `google/gemini-2.0-flash-001`, `meta-llama/llama-3.3-70b-instruct`, `qwen/qwen-2.5-72b-instruct`
-   - `openai`: default `gpt-4o-mini`
-     - allowlist: `gpt-4o-mini`, `gpt-4o`, `o3-mini`
-   - `anthropic`: default `claude-3-5-haiku-20241022`
-     - allowlist: `claude-3-5-haiku-20241022`, `claude-3-5-sonnet-20241022`, `claude-3-opus-20240229`
-   - `deepseek`: default `deepseek-chat`
-     - allowlist: `deepseek-chat`, `deepseek-reasoner`
-   - `google`: default `gemini-2.0-flash`
-     - allowlist: `gemini-2.0-flash`, `gemini-2.0-flash-lite`, `gemini-1.5-pro`, `gemini-1.5-flash`
+   - `anthropic`: default `claude-sonnet-5` (Claude Sonnet 5, Claude Opus 5, Claude Fable 5, Claude Opus 4.8, Claude Sonnet 4.6, Claude Haiku 4.5)
+   - `openai`: default `gpt-5.6` (GPT-5.6 Sol, GPT-5.6 Terra, GPT-5.6 Luna, GPT-4.1, o3, o4-mini, o3-mini, GPT-4o, GPT-4o-mini)
+   - `google`: default `gemini-3.6-flash` (Gemini 3.6 Flash, Gemini 3.5 Flash, Gemini 3.5 Flash-Lite, Gemini 3.1 Pro Preview, Gemini 2.5 Pro, Gemini 2.5 Flash)
+   - `deepseek`: default `deepseek-chat` (DeepSeek-V3, DeepSeek-R1)
+   - `mistral`: default `mistral-large-2411` (Mistral Large 2, Mistral Small 3, Codestral 2501, Pixtral Large, Ministral 8B, Ministral 3B)
+   - `openrouter`: default `anthropic/claude-sonnet-5` (Claude Sonnet 5, Claude Fable 5, Claude Opus 5, GPT-5.6 Sol/Terra/Luna, DeepSeek V4 Pro/Flash, Kimi K3, GLM 5.2, MiniMax M3, Nemotron 3 Ultra, etc.)
 
 3. **Dated Price Snapshot (`2026-08-16`) (USD per 1M tokens)**:
    - Snapshot ID: `model-research@2026-08-16`

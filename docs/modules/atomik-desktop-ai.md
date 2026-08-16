@@ -56,18 +56,21 @@ timestamp: 2026-08-14T00:00:00Z
   content ever leaks. Badge in the AI panel via `get-ai-trace-summary`;
   decision reported via `resolve-ai-trace` (fire-and-forget: telemetry
   never blocks UX).
-- The AI patch loop (06, S08; REAL engines CP-MVP-008 S02; MULTI-PROVIDER CP-PROVIDERS S02/S03): the typed
+- The AI patch loop (06, S08; REAL engines CP-MVP-008 S02; MULTI-PROVIDER CP-PROVIDERS S02/S03/S05): the typed
   `GenerationAdapter` seam in `electron-main/generation.ts` (the ai-core
   seat, 14) behind `atomik:run-ai-operation` — engines are PURE COMPUTE;
   identity travels in the answering adapter's output, so the renderer
   contract is unchanged from the mock era. Multiple selectable engines:
   `ai-mock.ts` (S08, the deterministic offline path), `mistral-generation-adapter.ts`
-  (Mistral chat completions), `openrouter-generation-adapter.ts` (OpenRouter gateway,
+  (Mistral chat completions: Mistral Large 2, Mistral Small 3, Codestral 2501, Pixtral Large),
+  `openrouter-generation-adapter.ts` (OpenRouter gateway: Claude Sonnet 5, Claude Fable 5,
+  Claude Opus 5, GPT-5.6 Sol/Terra/Luna, DeepSeek V4 Pro/Flash, Kimi K3, GLM 5.2, etc.
   with strict privacy controls: `allow_fallbacks: false`, `require_parameters: true`,
   `data_collection: 'deny'`, `zdr: true`, disabled lossy compression, and router metadata),
-  and direct adapters `openai-generation-adapter.ts` (OpenAI), `anthropic-generation-adapter.ts`
-  (Anthropic Messages API), `deepseek-generation-adapter.ts` (DeepSeek), and
-  `google-generation-adapter.ts` (Google Gemini).
+  and direct adapters `openai-generation-adapter.ts` (GPT-5.6 Sol, Terra, Luna, GPT-4.1, o3, o4-mini),
+  `anthropic-generation-adapter.ts` (Claude Sonnet 5, Claude Opus 5, Claude Fable 5, Claude Opus 4.8),
+  `deepseek-generation-adapter.ts` (DeepSeek-V3, DeepSeek-R1), and
+  `google-generation-adapter.ts` (Gemini 3.6 Flash, Gemini 3.5 Flash, Gemini 3.1 Pro Preview).
   Keys attached in MAIN only (13), budgets below renderer
   state (2k output tokens, 60s wall via AbortController, input token
   pre-check), and the eight-kind typed error taxonomy carried as

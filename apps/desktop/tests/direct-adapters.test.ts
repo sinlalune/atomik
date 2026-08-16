@@ -63,7 +63,7 @@ describe('OpenAI direct generation adapter (CP-PROVIDERS S03)', () => {
     expect((capturedHeaders as Record<string, string>)['authorization']).toBe(
       'Bearer sk-openai-test-key'
     )
-    expect(capturedBody['model']).toBe('gpt-4o-mini')
+    expect(capturedBody['model']).toBe('gpt-5.6')
     expect(result.providerMeta.provider).toBe('openai')
     expect(result.providerMeta.location).toBe('cloud-model')
     expect(result.bundle.blocks[0]!.content).toBe('Self-attention powers transformers.')

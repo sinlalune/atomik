@@ -16,6 +16,7 @@ export function SettingsModal(props: {
   const { open, onClose } = props
   const [settings, setSettings] = useState<AiSettingsPublic | null>(null)
   const [draftKeys, setDraftKeys] = useState<Partial<Record<AiProviderKeyId, string>>>({})
+  const [customModels, setCustomModels] = useState<Partial<Record<AiEngine, string>>>({})
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -110,6 +111,12 @@ export function SettingsModal(props: {
     )
   }
 
+  const handleApplyCustomModel = (engine: AiEngine): void => {
+    const custom = customModels[engine]?.trim()
+    if (!custom) return
+    handleSelectModel(engine, custom)
+  }
+
   const providers = Object.values(PROVIDER_CATALOG)
 
   return (
@@ -178,6 +185,8 @@ export function SettingsModal(props: {
                 const activeModel =
                   settings?.selectedModels?.[p.id] ?? p.defaultModel
 
+                const isPresetModel = p.models.some((m) => m.id === activeModel)
+
                 return (
                   <div key={p.id} className="settings-provider-card">
                     <div className="provider-card-header">
@@ -202,20 +211,60 @@ export function SettingsModal(props: {
 
                     <div className="provider-card-body">
                       <div className="provider-form-row">
-                        <label htmlFor={`model-select-${p.id}`}>Model</label>
+                        <label htmlFor={`model-select-${p.id}`}>
+                          Model (Curated Presets)
+                        </label>
                         <select
                           id={`model-select-${p.id}`}
-                          value={activeModel}
+                          value={isPresetModel ? activeModel : 'custom'}
                           disabled={busy}
-                          onChange={(e) => handleSelectModel(p.id, e.target.value)}
+                          onChange={(e) => {
+                            if (e.target.value !== 'custom') {
+                              handleSelectModel(p.id, e.target.value)
+                            }
+                          }}
                         >
                           {p.models.map((m) => (
                             <option key={m.id} value={m.id}>
-                              {m.label} ({m.id}) — in ${m.inputUsdPerMTok}/M · out $
-                              {m.outputUsdPerMTok}/M
+                              {m.label} ({m.id}) {m.inputUsdPerMTok ? `— $${m.inputUsdPerMTok}/M in` : ''}
                             </option>
                           ))}
+                          {!isPresetModel && (
+                            <option value="custom">Custom: {activeModel}</option>
+                          )}
                         </select>
+                      </div>
+
+                      <div className="provider-form-row">
+                        <label htmlFor={`custom-model-${p.id}`}>
+                          Custom Model ID (Optional override)
+                        </label>
+                        <div className="provider-key-input-group">
+                          <input
+                            id={`custom-model-${p.id}`}
+                            type="text"
+                            placeholder={activeModel}
+                            value={customModels[p.id] ?? ''}
+                            disabled={busy}
+                            onChange={(e) =>
+                              setCustomModels({
+                                ...customModels,
+                                [p.id]: e.target.value
+                              })
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleApplyCustomModel(p.id)
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="settings-save-btn"
+                            disabled={busy || !customModels[p.id]?.trim()}
+                            onClick={() => handleApplyCustomModel(p.id)}
+                          >
+                            Set Model
+                          </button>
+                        </div>
                       </div>
 
                       {!isMock && (
@@ -254,7 +303,7 @@ export function SettingsModal(props: {
                                 handleSaveKey(p.id as AiProviderKeyId)
                               }
                             >
-                              Save
+                              Save Key
                             </button>
                             {keyInfo?.present && (
                               <button
@@ -265,7 +314,7 @@ export function SettingsModal(props: {
                                   handleClearKey(p.id as AiProviderKeyId)
                                 }
                               >
-                                Clear
+                                Clear Key
                               </button>
                             )}
                           </div>

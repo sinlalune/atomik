@@ -65,16 +65,16 @@ describe('AI settings store (CP-MVP-005, CP-PROVIDERS S04) — multi-provider, m
   it('persists and resolves selected models per provider engine', () => {
     dir = mkdtempSync(join(tmpdir(), 'atomik-ai-settings-'))
     expect(resolveSelectedModel(dir, 'openrouter')).toBe(
-      'mistralai/mistral-small-24b-instruct-2501'
+      'anthropic/claude-sonnet-5'
     )
-    expect(resolveSelectedModel(dir, 'openai')).toBe('gpt-4o-mini')
+    expect(resolveSelectedModel(dir, 'openai')).toBe('gpt-5.6')
 
     writeSelectedModel(dir, 'openrouter', 'anthropic/claude-3.5-haiku')
     expect(resolveSelectedModel(dir, 'openrouter')).toBe('anthropic/claude-3.5-haiku')
 
     const view = publicAiSettings(dir)
     expect(view.selectedModels.openrouter).toBe('anthropic/claude-3.5-haiku')
-    expect(view.selectedModels.openai).toBe('gpt-4o-mini')
+    expect(view.selectedModels.openai).toBe('gpt-5.6')
   })
 
   it('clears provider keys with null', () => {
