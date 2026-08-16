@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   ClaimRecord,
   ContextPacket,
@@ -63,6 +63,12 @@ import {
 } from '../editor/prompts'
 import { linkableNotesOf, sourceBundlesOf } from '../editor/quick-actions'
 import { noteMarkdown } from '../editor/note-markdown'
+import {
+  citationSourcesOf,
+  rewriteCitations,
+  serializeCitedMeta,
+  type CitationSource
+} from '../../../shared/chat-citations'
 import {
   BookIcon,
   BrainIcon,
@@ -173,17 +179,35 @@ type TurnMeta = {
 function ClaimBody({
   text,
   meta,
+  sources,
   onOpenSource
 }: {
   text: string
   meta: TurnMeta | undefined
+  /** CP-MVP-010 S08: what this answer was allowed to cite. */
+  sources?: readonly CitationSource[]
   onOpenSource: (relPath: string) => void
 }): React.JSX.Element {
   const ref = useRef<HTMLDivElement | null>(null)
+  // S08: numbered markers become real links BEFORE rendering, so a
+  // citation wears the same pill as every other link in Atomik
+  // (ADR-011) instead of growing its own renderer.
+  const rewritten = useMemo(
+    () => (sources && sources.length > 0 ? rewriteCitations(text, sources) : null),
+    [text, sources]
+  )
   useEffect(() => {
     const container = ref.current
     if (!container) return
-    container.innerHTML = md.render(text)
+    container.innerHTML = md.render(rewritten ? rewritten.markdown : text)
+    if (rewritten) {
+      for (const anchor of container.querySelectorAll<HTMLAnchorElement>('a[href]')) {
+        const href = decodeURIComponent(anchor.getAttribute('href') ?? '')
+        if (sources?.some((source) => source.path === href)) {
+          anchor.dataset['citation'] = href
+        }
+      }
+    }
     if (!meta || meta.claims.length === 0) return
     const sourceOf = (claim: ClaimRecord): string | null =>
       meta.evidence.find((record) => claim.evidenceIds.includes(record.id))
@@ -193,12 +217,22 @@ function ClaimBody({
       findClaimRanges(container.textContent ?? '', meta.claims),
       (claim) => claimTitle(claim, sourceOf(claim))
     )
-  }, [text, meta])
-  return (
+  }, [text, meta, rewritten])
+  const body = (
     <div
       ref={ref}
       className="markdown-body chat-turn-body"
       onClick={(event) => {
+        // S08: a citation opens its note — a marker that could not be
+        // clicked would be a footnote, not a citation.
+        const citation = (event.target as HTMLElement).closest<HTMLElement>(
+          'a[data-citation]'
+        )
+        if (citation) {
+          event.preventDefault()
+          onOpenSource(citation.dataset['citation'] as string)
+          return
+        }
         const mark = (event.target as HTMLElement).closest<HTMLElement>(
           'mark[data-claim-id]'
         )
@@ -213,6 +247,39 @@ function ClaimBody({
         if (source) onOpenSource(source.source.relPath)
       }}
     />
+  )
+
+  if (!rewritten || (rewritten.cited.length === 0 && rewritten.unresolved.length === 0)) {
+    return body
+  }
+  return (
+    <>
+      {body}
+      <div className="chat-sources">
+        {rewritten.cited.map((source) => (
+          <button
+            key={source.number}
+            type="button"
+            className="chat-source"
+            title={source.path}
+            onClick={() => onOpenSource(source.path)}
+          >
+            <span className="chat-source-n">{source.number}</span>
+            {source.title}
+          </button>
+        ))}
+        {rewritten.unresolved.length > 0 && (
+          // A citation that pointed nowhere stays VISIBLE: silently
+          // dropping it would hide the one failure mode that matters.
+          <span
+            className="chat-source-unresolved"
+            title="The answer cited a number that was never among its sources"
+          >
+            unresolved: {rewritten.unresolved.map((number) => `[${number}]`).join(' ')}
+          </span>
+        )}
+      </div>
+    </>
   )
 }
 
@@ -285,6 +352,29 @@ export function ChatView({
   const [running, setRunning] = useState(false)
   const [engine, setEngine] = useState('…')
   const [genDrafts, setGenDrafts] = useState(defaultGenOptionDrafts)
+  /**
+   * What an answer was allowed to cite (S08). This session's packet is
+   * richer (it knows titles), the transcript's own `cited:` map is what
+   * survives a reopen — figures persist, prompts never do.
+   */
+  const citationsFor = useCallback(
+    (turn: ChatTurn, index: number): CitationSource[] | undefined => {
+      if (turn.role !== 'atomik') return undefined
+      const packet = packetByTurn.current.get(index - 1)
+      if (packet) {
+        return citationSourcesOf(
+          packet.entries.filter((entry) => entry.stage !== 'direct')
+        )
+      }
+      return turn.cited?.map((entry) => ({
+        number: entry.number,
+        path: entry.path,
+        title: (entry.path.split('/').pop() ?? entry.path).replace(/\.md$/i, '')
+      }))
+    },
+    []
+  )
+
   // CP-MVP-010 S07: vault grounding. The TOGGLE is a preference for the
   // next sends and belongs to the composer (session state, like the
   // model drafts beside it). A PACKET is not: it was compiled for one
@@ -527,7 +617,7 @@ export function ChatView({
       role: 'you' | 'atomik',
       text: string,
       youMeta?: string,
-      ownMeta?: string
+      ownMeta?: string | readonly (string | undefined)[]
     ): Promise<string> => {
       const existing = fileRef.current
       if (existing) {
@@ -815,11 +905,20 @@ export function ChatView({
                 ? { costUsd: result.billing.estimatedAmount }
                 : {})
             })
+            // S08: the citation map travels WITH the answer, so a
+            // reopened conversation still resolves its [1] markers.
+            const citedMeta = usedPacket
+              ? serializeCitedMeta(
+                  citationSourcesOf(
+                    usedPacket.entries.filter((entry) => entry.stage !== 'direct')
+                  )
+                )
+              : null
             await persistTurn(
               'atomik',
               answer,
               sentParts ? serializeSentMeta(sentParts) : undefined,
-              runMeta ?? undefined
+              [runMeta ?? undefined, citedMeta ? `cited:${citedMeta}` : undefined]
             )
             setTurns((current) => {
               metaByTurn.current.set(current.length, {
@@ -1248,6 +1347,7 @@ export function ChatView({
               <ClaimBody
                 text={turn.text}
                 meta={meta}
+                sources={citationsFor(turn, index)}
                 onOpenSource={(relPath) =>
                   dispatch((state) => revealNote(state, paneId, relPath))
                 }

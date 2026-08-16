@@ -16,6 +16,8 @@
  * duplicating what already exists.
  */
 
+import { CITATION_INSTRUCTION } from './chat-citations'
+
 export const BUILT_IN_IDENTITY =
   'You are the AI assistant inside Atomik, a local-first knowledge workbench.'
 
@@ -235,8 +237,14 @@ export function composeChatUserMessage(
           '',
           '## Reference notes — read-only, quotable',
           '',
-          ...cited.flatMap((entry) => [
-            `### \`${entry.relPath}\``,
+          // CP-MVP-010 S08: the notes are NUMBERED and the numbering is
+          // the citation contract. A grounded answer that cannot be
+          // traced borrows the vault's authority without offering the
+          // way to check it.
+          CITATION_INSTRUCTION,
+          '',
+          ...cited.flatMap((entry, index) => [
+            `### [${index + 1}] \`${entry.relPath}\``,
             '',
             ...fenced('markdown', entry.content),
             ''

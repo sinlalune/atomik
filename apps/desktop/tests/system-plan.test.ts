@@ -99,7 +99,10 @@ describe('composeSystemFromPlan (S07b8 — the system message as an ordered plan
     ])
     expect(text).toContain('## Question\n\nparle moi du logos')
     expect(text).toContain('## Reference notes — read-only, quotable')
-    expect(text).toContain("### `philosophy/L'ethos.md`")
+    // CP-MVP-010 S08: references are NUMBERED, and the number is the
+    // citation contract the answer's markers resolve against.
+    expect(text).toContain("### [1] `philosophy/L'ethos.md`")
+    expect(text).toContain('Cite these notes inline with their number')
     // empty anchors (contextless transcripts) never appear
     expect(text).not.toContain('empty-anchor')
     // nothing note-shaped travels

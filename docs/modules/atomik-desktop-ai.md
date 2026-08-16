@@ -100,6 +100,29 @@ timestamp: 2026-08-14T00:00:00Z
       what derived it. A packet belongs to a message the way a claim
       belongs to an answer — putting it beside the composer made the
       chat's own timeline lie about when it happened.
+- CITATIONS (CP-MVP-010 S08): `shared/chat-citations.ts`, pure.
+  - The reference notes are sent NUMBERED (`### [1] \`path\``) with one
+    short instruction, because the numbering IS the citation contract:
+    a grounded answer that cannot be traced is worse than an ungrounded
+    one — it borrows the vault's authority without offering the way to
+    check it.
+  - `rewriteCitations` turns `[1]` / `[1, 2]` markers into real markdown
+    links BEFORE rendering, so a citation wears the same pill as every
+    other link in Atomik (ADR-011) instead of growing its own renderer.
+    Code spans and fences are skipped — `arr[1]` is not a citation — and
+    a phrase-level link the model emitted is already a citation and is
+    left alone.
+  - An invented number stays VISIBLE as `unresolved: [7]`. Silently
+    dropping it would hide the one failure mode that matters, which is
+    a model citing a source nobody gave it.
+  - The map persists as a `cited:` heading comment beside `run:` — a
+    heading now carries a LIST of comments — so a reopened transcript
+    still resolves its markers. This session's packet is richer (it has
+    titles); the file's map is what survives. Figures persist, prompts
+    never do.
+  - Under the answer, a sources block lists what was actually cited;
+    clicking a marker or a source opens the note through the ordinary
+    reveal path.
 - RETRIEVAL traces (CP-MVP-010 S06): `recordRetrieval` appends one
   `action: 'retrieve'` line per compiled context packet — stages,
   candidates, selected entries, estimated context tokens, wallMs,

@@ -8,13 +8,15 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S07d
+  current_step: S08
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
     - apps/desktop/shared/retrieval-core.ts
     - apps/desktop/shared/retrieval-expand.ts
     - apps/desktop/shared/context-packet.ts
+    - apps/desktop/shared/chat-citations.ts
+    - apps/desktop/shared/prompt-composition.ts
     - apps/desktop/shared/graph-core.ts
     - apps/desktop/shared/ipc-contract.ts
     - apps/desktop/electron-main/vault-index.ts
@@ -612,10 +614,20 @@ live, on real notes.
       silently. Expansion scores are lexical scores times attenuation,
       so the comparison is in one unit and honest.
       +3 tests (850 → 853).
-- [ ] S08 Citations: phrase-level links where the model emits them,
-      numbered markers otherwise, a sources block under the answer,
-      every marker a CP-MVP-009 pill that opens its note; unresolved
-      citations render as diagnostics.
+- [x] S08 Citations (DONE 2026-08-16): `shared/chat-citations.ts` NEW,
+      pure. Reference notes are sent NUMBERED with one short
+      instruction — the numbering IS the contract. `rewriteCitations`
+      turns `[1]` / `[1, 2]` into real markdown links BEFORE rendering,
+      so a citation wears the same pill as every other link (ADR-011)
+      rather than growing its own renderer; code spans and fences are
+      skipped (`arr[1]` is not a citation) and a phrase-level link the
+      model emitted is left alone, being already a citation. An invented
+      number stays visible as `unresolved: [7]` — silently dropping it
+      would hide the one failure mode that matters. The map persists as
+      a `cited:` heading comment beside `run:` (a heading now carries a
+      LIST of comments), so a reopened transcript still resolves its
+      markers. Sources block under the answer; markers and sources open
+      their note through the ordinary reveal path. +8 tests (853 → 861).
 - [ ] S09 Search surface + diagnostics: ranked results with kind pills
       and "why this result", the packet disclosure, and the vault-wide
       broken-links list docked there.
@@ -635,7 +647,7 @@ live, on real notes.
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S07d done (owner bench rounds 1–3 absorbed) — S08 next
+current step: S08 done — S09 next
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts
@@ -647,12 +659,11 @@ changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               docs/learning/22-lexical-retrieval-without-a-database.md + index
               docs/adr/ADR-013-lexical-retrieval-without-a-database.md
               docs/index.md · atomik-project/coding-paths/CP-MVP-010.md
-tests       : 853 passing / 70 files (this path added 65 so far),
+tests       : 861 passing / 71 files (this path added 73 so far),
               typecheck and build green, each gate run BARE (24)
-next action : S08 — citations: phrase-level links where the model emits
-              them, numbered markers otherwise, a sources block under
-              the answer, every marker a CP-MVP-009 pill that opens its
-              note, unresolved citations rendered as diagnostics
+next action : S09 — the search surface: ranked results with kind pills
+              and "why this result", the packet disclosure, and the
+              vault-wide broken-links list docked there
 rebase note : the learning index collided at the rebase (note 22 here,
               note 23 from CP-PROVIDERS) — mechanical, both kept in
               order. Exactly the shared-prose conflict paths.md

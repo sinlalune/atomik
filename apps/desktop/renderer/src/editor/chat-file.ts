@@ -1,3 +1,4 @@
+import { parseCitedMeta } from '../../../shared/chat-citations'
 import type { AiThreadTurn, VaultFolder } from '../../../shared/ipc-contract'
 import { newNotePathForSelection, type BufferChange } from './ai-helpers'
 
@@ -40,6 +41,9 @@ export type ChatTurn = {
   sent?: SentPart[]
   /** S07b16: the atomik-turn's persisted run metrics. */
   run?: RunMeta
+  /** CP-MVP-010 S08: the answer's citation map (number → note path),
+   *  so a reopened conversation still resolves its markers. */
+  cited?: { number: number; path: string }[]
 }
 
 export const CHATS_FOLDER = 'chats'
@@ -83,8 +87,17 @@ export function chatRelPath(
   return `${CHATS_FOLDER}/${day}/${chatSlug(firstMessage)}${suffix}.md`
 }
 
-const turnSection = (role: ChatRole, text: string, comment?: string): string =>
-  `## ${role}${comment ? ` <!-- ${comment} -->` : ''}\n\n${text.replace(/\s+$/, '')}\n`
+const turnSection = (
+  role: ChatRole,
+  text: string,
+  comments?: string | readonly (string | null | undefined)[]
+): string => {
+  const list = (typeof comments === 'string' ? [comments] : (comments ?? []))
+    .filter((comment): comment is string => Boolean(comment))
+    .map((comment) => ` <!-- ${comment} -->`)
+    .join('')
+  return `## ${role}${list}\n\n${text.replace(/\s+$/, '')}\n`
+}
 
 /**
  * Run-metrics persistence (S07b16, owner: "token counters on response
@@ -196,9 +209,9 @@ export function appendChatTurn(
   content: string,
   role: ChatRole,
   text: string,
-  comment?: string
+  comments?: string | readonly (string | null | undefined)[]
 ): string {
-  return `${content.replace(/\s+$/, '')}\n\n${turnSection(role, text, comment)}`
+  return `${content.replace(/\s+$/, '')}\n\n${turnSection(role, text, comments)}`
 }
 
 /**
@@ -218,6 +231,7 @@ export function parseChatTurns(content: string): ChatTurn[] {
     lines: string[]
     sent?: SentPart[]
     run?: RunMeta
+    cited?: { number: number; path: string }[]
   } | null = null
   const flush = (): void => {
     if (!current) return
@@ -227,7 +241,8 @@ export function parseChatTurns(content: string): ChatTurn[] {
         role: current.role,
         text,
         ...(current.sent ? { sent: current.sent } : {}),
-        ...(current.run ? { run: current.run } : {})
+        ...(current.run ? { run: current.run } : {}),
+        ...(current.cited ? { cited: current.cited } : {})
       })
     current = null
   }
@@ -235,23 +250,31 @@ export function parseChatTurns(content: string): ChatTurn[] {
     // S07b10: a heading may carry a comment — `sent:` comments parse
     // into the turn's persisted breakdown, unknown ones are ignored;
     // either way the line still STARTS a turn.
-    const heading = /^##\s+(you|atomik)\s*(?:<!--\s*(.*?)\s*-->)?\s*$/.exec(line)
+    // S08: a heading may carry SEVERAL comments — an answer records
+    // both its metrics and its citation map — so they are read as a
+    // list rather than as one slot.
+    const heading = /^##\s+(you|atomik)\s*((?:<!--.*?-->\s*)*)$/.exec(line)
     if (heading) {
       flush()
-      const comment = heading[2]
-      const sent =
-        comment?.startsWith('sent:') === true
-          ? parseSentMeta(comment.slice(5))
-          : null
-      const run =
-        comment?.startsWith('run:') === true
-          ? parseRunMeta(comment.slice(4))
-          : null
+      const comments = [...(heading[2] ?? '').matchAll(/<!--\s*(.*?)\s*-->/g)].map(
+        (match) => match[1] as string
+      )
+      const commentWith = (prefix: string): string | null => {
+        const found = comments.find((comment) => comment.startsWith(prefix))
+        return found === undefined ? null : found.slice(prefix.length)
+      }
+      const sentRaw = commentWith('sent:')
+      const runRaw = commentWith('run:')
+      const citedRaw = commentWith('cited:')
+      const sent = sentRaw === null ? null : parseSentMeta(sentRaw)
+      const run = runRaw === null ? null : parseRunMeta(runRaw)
+      const cited = citedRaw === null ? null : parseCitedMeta(citedRaw)
       current = {
         role: heading[1] as ChatRole,
         lines: [],
         ...(sent ? { sent } : {}),
-        ...(run ? { run } : {})
+        ...(run ? { run } : {}),
+        ...(cited ? { cited } : {})
       }
     } else if (current) {
       current.lines.push(line)
