@@ -181,16 +181,18 @@ changed     : S02 flat assistant presentation/a11y; S03 real quick-note action,
               blank file + one-time H1 naming lifecycle; S04 sanitized page
               title identity; S05 canonical web-source kind + distinct read,
               live, relations, visual, and accessible pill treatment
-tests       : S05 focused graph/editor/relations 120/120 PASS; typecheck +
-              production build PASS; S04 web 17/17; baseline full 773/773 PASS
-next action : S06 — rebase onto current trunk, run the integrated responsive,
-              keyboard, theme, reload/navigation bench and full bare gates
+tests       : rebased/current-trunk full gate PASS — cairn, typecheck, 806/806
+              tests (68 files), production build; S05 focused 120/120 PASS
+next action : owner bench + closing ceremony in the disposable CP-FEEDBACK
+              lane; record verbatim acceptance/deltas before audit or merge
 blockers    : none; CP-MVP-010 remains active across chat/editor/vault/graph,
               so rebase and overlap checks continue at step boundaries
 scope note  : S04 widened to renderer/src/web/urls.ts after the shared pure
               title/fallback policy was discovered as the maintainable seam;
               S05 names the exact read/live editor consumers discovered behind
               the already-declared editor directory (Cairn matches exact paths)
+bench       : isolated /tmp fixture opens context-link and chat panes together;
+              owner checks responsive/theme/keyboard/reload/web navigation
 ```
 
 # Blockers
