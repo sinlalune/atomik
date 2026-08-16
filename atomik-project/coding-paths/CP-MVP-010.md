@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S01
+  current_step: S02
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -21,16 +21,17 @@ atomik:
     - apps/desktop/electron-main/action-trace.ts
     - apps/desktop/electron-preload/index.ts
     - apps/desktop/renderer/src/workspace/PaneTreePanel.tsx
-    - apps/desktop/renderer/src/vault/
-    - apps/desktop/renderer/src/editor/
-    - apps/desktop/tests/
+    - apps/desktop/renderer/src/vault/**
+    - apps/desktop/renderer/src/editor/**
+    - apps/desktop/tests/**
     - docs/modules/atomik-desktop-graph.md
     - docs/modules/atomik-desktop-ai.md
     - docs/modules/atomik-desktop.md
-    - docs/learning/22-lexical-retrieval-without-a-database.md
-    - docs/adr/
+    - docs/learning/**
+    - docs/adr/**
+    - docs/index.md
     - atomik-project/coding-paths/CP-MVP-010.md
-    - atomik-project/log/
+    - atomik-project/log/**
 ---
 
 # Goal
@@ -257,15 +258,92 @@ EVALUATION  in-repo fixture vault (CI-runnable) AND a dated bench on
 PERSISTENCE (CP-MVP-011) transient by default, dossier on gesture.
 ```
 
+# S01 pins (2026-08-16)
+
+Everything below is a starting point pinned by tests, not a truth:
+weights and thresholds move only on evidence from the S10 evaluation
+set, and every move is recorded there.
+
+```text
+ENGINE + STORAGE  ADR-013. Pure `shared/retrieval-core.ts` (no fs, no
+                  Electron, no DOM — graph-core's rules). The main-side
+                  seat persists `.atomik/index/retrieval.json` (04's
+                  layout for derived indexes). `.atomik/graph.json`
+                  stays where CP-MVP-009 put it: moving it would be
+                  churn with no reader asking for it.
+
+TOKENIZER         lowercase · Unicode NFD diacritic folding (so
+                  `ethos` finds `éthos`, the exact miss that bit
+                  CP-MVP-009 S07b) · split on non-letter/non-digit ·
+                  elision split for French clitics (`l'ethos` →
+                  `ethos`, keeping the whole form too) · kebab tokens
+                  indexed whole AND in parts (`part-of` → `part-of`,
+                  `part`, `of`) · positions stored, so phrases work ·
+                  NO stemming (a real French stemmer is a dependency
+                  and a quality question the evaluation set must ask
+                  first — recorded as S10's open question).
+
+FIELDS + WEIGHTS  title/H1 3.0 · headings 2.0 · filename+path 2.0 ·
+                  frontmatter (title/description/tags) 1.8 · link text
+                  and edge labels 1.5 · body 1.0. Per-field length
+                  normalization; a hit reports its field contributions
+                  so "why this result" is computed, never narrated.
+
+BM25              k1 = 1.2, b = 0.75 (the standard defaults; the eval
+                  set is what may move them).
+
+PACKET            bedrock 26's ContextPacket shape — the superset —
+                  with 06's `budget { maxTokens, policy }`. Entries:
+                  { path, reason, stage, score, excerpt, span }.
+                  `omitted[]` entries always carry a reason
+                  (budget · threshold · scope · duplicate).
+                  ADDED by this path: `coverage` — 'covered' | 'thin'
+                  | 'empty' — the "do we already know this?" verdict
+                  the owner named as the harness minimum and the
+                  branch point CP-MVP-011 reads. Threshold pinned at
+                  S05 against the fixture set, never by feel.
+
+BUDGET DEFAULTS   maxContextTokens 4000 (estimated, chars/4 — the
+                  existing convention, kept honest by 33's "do not
+                  manufacture precision") · max 12 entries · max 800
+                  chars per excerpt.
+
+TOOL CONTRACT     `search_vault({ query, scope?, limit?, expand? })`
+                  → hits, shaped from S05 as something a model could
+                  call, mirroring what brainstorm session C reserved
+                  for `search_web` (CP-MVP-011 adds the loop, not a
+                  second contract).
+
+TRACE             `action: 'retrieve'`, `execution.location:
+                  'deterministic'`, usage { candidates, selected,
+                  contextTokens (estimated) }, performance.wallMs,
+                  outcome.status, privacy.contentRecorded false —
+                  the ledger's existing content-leak test extended to
+                  cover retrieval lines.
+```
+
+**Reality check against the ledger (22 step 4).** The trunk baseline is
+**773 tests / 64 files**, not the 767 the CP-MVP-009 ceremony recorded:
+CP-OPS-001's S06 ratification added six after that ceremony closed. The
+ledger below carries the corrected number.
+
+**Declared-write overlap (advisory, `paths.md`).** CP-PROVIDERS is
+running in parallel and declares `shared/ipc-contract.ts`,
+`electron-main/index.ts`, `electron-main/action-trace.ts` and
+`electron-preload/index.ts` — all four also declared here, and the
+first two are the hot files the convention names. Resolution is
+mechanical (distinct channels appended). This path rebases on the trunk
+at every step boundary rather than at the end.
+
 # Execution
 
-- [ ] S01 Bootstrap + pins: read the Required documents, verify the
-      ledger against repository reality, record the opening-check
-      answers (above), and pin what the rest depends on — tokenizer
-      rules (lowercase + diacritic folding for a French vault, no
-      stemming), field weights, packet budget shape, trace fields, and
-      the `RetrievalQuery` / `RetrievalHit` / `ContextPacket` /
-      tool-contract type sketch. Docs-only step.
+- [x] S01 Bootstrap + pins (DONE 2026-08-16, docs-only): Required
+      documents read (33, 26, 04, 06 §Input/Context/Operation, 18 §M8,
+      ADR-007, ADR-011, 22, 24, paths.md); repository reality verified
+      against this ledger (one correction below); **ADR-013 written and
+      accepted** — the engine decision that overrides CP-MVP-009's
+      SQLite pin, with the dated thresholds that would reopen it. The
+      pins the rest of the path executes against are in §S01 pins.
 - [ ] S02 Lexical core (pure): `shared/retrieval-core.ts` — tokenizer,
       field-aware inverted index, BM25 ranking, phrase and exact
       matching, snippet extraction with match spans. Dependency-free
@@ -312,17 +390,37 @@ PERSISTENCE (CP-MVP-011) transient by default, dossier on gesture.
 # Current checkpoint
 
 ```text
-base commit : 2370546
-changed     : atomik-project/coding-paths/CP-MVP-010.md (new, activated)
-              atomik-project/sessions/2026-08-16-cp-mvp-010-opening-check.md (new)
-              atomik-project/coding-paths/{ACTIVE.md,index.md}
-tests       : not run for this path yet (trunk: 767 passing at 2370546)
-next action : S01 — read the Required documents in the worktree, verify
-              reality against this ledger, pin tokenizer/field weights/
-              packet budget/trace fields/type sketch
+base commit : 2370546 (branch created at 15a115f, the activation commit)
+current step: S01 done — S02 next
+changed     : docs/adr/ADR-013-lexical-retrieval-without-a-database.md (new)
+              docs/index.md (ADR range)
+              atomik-project/coding-paths/CP-MVP-010.md (S01 pins + ledger)
+tests       : 773 passing / 64 files, run bare in this worktree at
+              15a115f (the ceremony's "767" was stale by six tests —
+              CP-OPS-001 S06 landed them; reconciled here)
+next action : S02 — `shared/retrieval-core.ts`: tokenizer (folding,
+              elision, kebab parts, positions), field-aware inverted
+              index, BM25 with the pinned weights, phrase matching,
+              snippet spans; `search.ts` becomes its caller and the
+              existing search tests must stay green
 blockers    : none
 ```
 
 # Blockers
 
-None recorded.
+None.
+
+## Found, not this path's to fix (reported to the owner, S01)
+
+`tools/cairn-check.mjs` eats the first character of the FIRST file in
+`git status --porcelain`: `git()` trims the whole stdout before the
+per-line `slice(3)`, so a leading `" M path"` becomes `"M path"` and the
+path comes back as `tomik-project/…`. Seen on this path's own S01 run
+(`scope-drift` reported `tomik-project/coding-paths/CP-MVP-010.md`,
+which also defeated the `startsWith(PATH_DIR)` exemption). It silently
+misreads one file in every local run, including in the BLOCKING rules,
+and CI is unaffected only because CI passes `--base`, where the
+committed list is read separately. One-line fix (`split` before
+`trim`, or a `/^..[ ]/` strip) plus a test. The file belongs to
+CP-OPS-001's surface, so the owner decides whether it goes there or
+into a short labelled path.
