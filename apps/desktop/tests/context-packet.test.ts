@@ -256,3 +256,20 @@ describe('bench round 3 (2026-08-16): a neighbourhood is not an answer', () => {
     }
   })
 })
+
+describe('bench round 4 (2026-08-16): what matched, and what was noise', () => {
+  it('names the WORDS that matched, not only the fields', () => {
+    const packet = compileContextPacket({ query: 'pathos' }, deps)
+    const entry = packet.entries.find((item) => item.path === 'concepts/pathos.md')!
+    expect(entry.reason).toContain('“pathos”')
+    expect(entry.reason).toContain('title')
+  })
+
+  it('does not report a word the vault is full of as missing', () => {
+    // "de" is in every note here: it cannot rank anything, but it is
+    // certainly not a gap in the vault's knowledge
+    const packet = compileContextPacket({ query: 'de pathos' }, deps)
+    expect(packet.coverage.missingTerms).toEqual([])
+    expect(packet.coverage.verdict).toBe('covered')
+  })
+})

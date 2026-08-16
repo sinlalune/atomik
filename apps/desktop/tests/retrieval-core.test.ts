@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   BM25_K1,
+  commonTermsOf,
   buildRetrievalIndex,
   documentFields,
   extractMatches,
@@ -228,5 +229,42 @@ describe('incremental patching (S03)', () => {
 
   it('ignores a patch for a document that was never indexed being removed', () => {
     expect(patched([{ path: 'ghost.md', removed: true }])).toBe(rebuilt(VAULT))
+  })
+})
+
+describe('common words rank nothing (S08b, owner bench round 4)', () => {
+  // "parle moi de l'éthos" retrieved SVG, Sociologie and three daily
+  // notes: `de`, `moi` and `parle` are in half the vault, and their
+  // small contributions accumulated.
+  const CORPUS = [
+    { path: 'ethos.md', content: "# L'éthos\n\nParle de la crédibilité de l'orateur.\n" },
+    { path: 'svg.md', content: '# SVG\n\nParle de vecteurs, de formats, de rendu.\n' },
+    { path: 'socio.md', content: '# Sociologie\n\nParle de groupes et de normes.\n' },
+    { path: 'journal.md', content: '# 2026-08-04\n\nJe parle de tout et de rien.\n' }
+  ]
+  const index = buildRetrievalIndex(CORPUS)
+
+  it('ignores a term the vault is full of', () => {
+    expect(commonTermsOf(index, "parle moi de l'éthos").sort()).toEqual(['de', 'parle'])
+    const hits = searchIndex(index, "parle moi de l'éthos")
+    expect(hits).toHaveLength(1)
+    expect(hits[0]!.path).toBe('ethos.md')
+    expect(hits[0]!.terms).toEqual(['ethos'])
+  })
+
+  it('still ranks those words when they are the whole question', () => {
+    // nothing else to go on: a query of only common words returns
+    // nothing rather than everything, which is the honest answer
+    expect(searchIndex(index, 'de')).toEqual([])
+  })
+
+  it('leaves a discriminating word alone however often it appears in ONE note', () => {
+    const repeated = buildRetrievalIndex([
+      { path: 'a.md', content: `# A\n\n${'ethos '.repeat(50)}\n` },
+      { path: 'b.md', content: '# B\n\nAutre chose.\n' },
+      { path: 'c.md', content: '# C\n\nAutre chose encore.\n' }
+    ])
+    expect(commonTermsOf(repeated, 'ethos')).toEqual([])
+    expect(searchIndex(repeated, 'ethos')[0]!.path).toBe('a.md')
   })
 })

@@ -58,6 +58,18 @@ export const BM25_B = 0.75
 
 const MAX_TERM_LENGTH = 64
 const DEFAULT_LIMIT = 20
+/**
+ * A term in more than this share of the vault discriminates nothing
+ * (CP-MVP-010 S08b, owner bench round 4). "parle moi de l'éthos"
+ * retrieved SVG, Sociologie and three daily notes, because `de`, `moi`
+ * and `parle` are in half the vault and their small contributions
+ * accumulate. Textbook BM25 lets IDF go negative for such terms; Atomik
+ * drops them instead — clearer to explain, and identical in effect.
+ *
+ * Corpus-driven, not a French stopword list: the vault decides which of
+ * ITS words are noise, in whatever language it is written.
+ */
+export const COMMON_TERM_SHARE = 0.5
 
 /* ------------------------------------------------------------------ */
 /* Tokenizer                                                           */
@@ -485,6 +497,10 @@ export function searchIndex(
     if (!postings) continue
 
     const documents = new Set(postings.map((posting) => posting.doc))
+    // Everywhere = nowhere: a word in half the vault cannot tell two
+    // notes apart, and letting it score turns every long note into a
+    // match for every question.
+    if (documents.size / docCount > COMMON_TERM_SHARE) continue
     const idf = Math.log(1 + (docCount - documents.size + 0.5) / (documents.size + 0.5))
 
     for (const posting of postings) {
@@ -540,6 +556,22 @@ export function searchIndex(
 
   hits.sort((a, b) => b.score - a.score || (a.path < b.path ? -1 : 1))
   return hits.slice(0, options.limit ?? DEFAULT_LIMIT)
+}
+
+/**
+ * The query's terms that are too common to discriminate. They are NOT
+ * missing — the vault is full of them — so coverage counts them as
+ * present while ranking ignores them (S08b).
+ */
+export function commonTermsOf(index: RetrievalIndex, query: string): string[] {
+  const docCount = index.docs.length
+  if (docCount === 0) return []
+  return parseQuery(query).terms.filter((term) => {
+    const postings = index.terms[term]
+    if (!postings) return false
+    const documents = new Set(postings.map((posting) => posting.doc))
+    return documents.size / docCount > COMMON_TERM_SHARE
+  })
 }
 
 /** Do the phrase's words sit at consecutive ordinals inside ONE field? */

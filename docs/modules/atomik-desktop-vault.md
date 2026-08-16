@@ -44,6 +44,17 @@ timestamp: 2026-08-14T00:00:00Z
   with BM25F (`k1 1.2`, `b 0.75`, weights 3/2/2/1.8/1.5/1). Rung 1 of
   33's ladder; no embeddings, no vector store, and deliberately no
   SQLite (ADR-013 carries the dated thresholds that would reverse it).
+  - EVERYWHERE = NOWHERE (S08b): a term present in more than half the
+    documents is dropped from ranking. The owner's bench asked "parle
+    moi de l'éthos" and got SVG, Sociologie and three daily notes back,
+    because `de`, `moi` and `parle` are in half the vault and their
+    small contributions accumulated. Textbook BM25 lets IDF go negative
+    for such terms; Atomik drops them, which is the same effect and far
+    easier to explain. Corpus-driven, never a French stopword list: the
+    vault decides which of ITS words are noise, in whatever language it
+    is written. `commonTermsOf` exposes them so the packet counts them
+    as PRESENT rather than missing — they are everywhere, they simply
+    cannot rank.
   - The tokenizer is where the vault's own shape lives: NFD folding so
     `ethos` finds `éthos` (the exact miss that cost CP-MVP-009 S07b a
     bench round), a one-letter part dropped ONLY in the elision

@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S08
+  current_step: S08b
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -628,6 +628,21 @@ live, on real notes.
       LIST of comments), so a reopened transcript still resolves its
       markers. Sources block under the answer; markers and sources open
       their note through the ordinary reveal path. +8 tests (853 → 861).
+- [x] S08b BENCH ROUND 4 (2026-08-16, query "parle moi de l'éthos" —
+      DONE same day). Two reports, two fixes:
+      (a) "matches are weird" — SVG, Sociologie, Le logos and three
+      daily notes came back, because `de`, `moi` and `parle` are in half
+      the vault and their small contributions accumulated. A term in
+      more than half the documents is now dropped from ranking
+      (`COMMON_TERM_SHARE`). Textbook BM25 lets IDF go negative for
+      those; dropping them is the same effect and far easier to
+      explain. Corpus-driven, NOT a French stopword list — the vault
+      decides which of its own words are noise, in any language. They
+      count as PRESENT for coverage: everywhere is not missing.
+      (b) "we don't know what content of the request has matched" — a
+      row now reads `“ethos” in title, body` instead of `matched title,
+      body`, and hovering the reason shows the excerpt actually sent.
+      +5 tests (861 → 866).
 - [ ] S09 Search surface + diagnostics: ranked results with kind pills
       and "why this result", the packet disclosure, and the vault-wide
       broken-links list docked there.
@@ -647,7 +662,7 @@ live, on real notes.
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S08 done — S09 next
+current step: S08b done (owner bench rounds 1–4 absorbed) — S09 next
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts
@@ -659,7 +674,7 @@ changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               docs/learning/22-lexical-retrieval-without-a-database.md + index
               docs/adr/ADR-013-lexical-retrieval-without-a-database.md
               docs/index.md · atomik-project/coding-paths/CP-MVP-010.md
-tests       : 861 passing / 71 files (this path added 73 so far),
+tests       : 866 passing / 71 files (this path added 78 so far),
               typecheck and build green, each gate run BARE (24)
 next action : S09 — the search surface: ranked results with kind pills
               and "why this result", the packet disclosure, and the

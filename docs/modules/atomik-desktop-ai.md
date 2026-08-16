@@ -89,7 +89,11 @@ timestamp: 2026-08-14T00:00:00Z
       packet for the draft as typed and labels it "next send". It is
       dismissible and clears itself on send, because after the send it
       would be describing the past again.
-    - DIALOGUE NEVER GROUNDS (S07c, owner bench round 2): a chat
+    - A packet row says WHAT matched, not only where (S08b, owner bench
+    round 4: "we don't know what content of the request has matched"):
+    the reason reads `“ethos” in title, body`, and hovering it shows the
+    excerpt that was actually sent.
+  - DIALOGUE NEVER GROUNDS (S07c, owner bench round 2): a chat
       transcript is excluded from the packet — at the lexical stage and
       at the expansion stage — and the omission says `dialogue`. A chat
       grounded in old chats compounds its own output: the model's past

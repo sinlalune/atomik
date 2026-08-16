@@ -1,5 +1,6 @@
 import type { GraphIndex } from './graph-core'
 import {
+  commonTermsOf,
   extractMatches,
   parseQuery,
   searchIndex,
@@ -203,7 +204,9 @@ export function compileContextPacket(
   // ---- rung 1: lexical ------------------------------------------------
   const parsed = parseQuery(request.query)
   const hits = searchIndex(deps.index, request.query, { limit: CANDIDATE_LIMIT })
-  const matchedTerms = new Set<string>()
+  // Words the vault is full of are not gaps: they are everywhere, they
+  // simply cannot rank anything (S08b).
+  const matchedTerms = new Set<string>(commonTermsOf(deps.index, request.query))
   const lexicalSeeds: { path: string; score: number }[] = []
 
   if (hits.length > 0) stages.push('lexical')
@@ -235,7 +238,11 @@ export function compileContextPacket(
       path: hit.path,
       title: titleOf(hit.path),
       stage: 'lexical',
-      reason: `matched ${hit.fields.map((field) => field.field).join(', ')}`,
+      // S08b (owner bench round 4: "we don't know what content of the
+      // request has matched"): the WORDS first, then where they were.
+      reason: `${hit.terms.map((term) => `“${term}”`).join(' ')} in ${hit.fields
+        .map((field) => field.field)
+        .join(', ')}`,
       score: hit.score,
       excerpt,
       tokens: estimateTokens(excerpt)

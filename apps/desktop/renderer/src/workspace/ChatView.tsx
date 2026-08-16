@@ -1433,7 +1433,15 @@ export function ChatView({
                             >
                               {entry.title}
                             </button>
-                            <span className="chat-packet-why">{entry.reason}</span>
+                            <span
+                              className="chat-packet-why"
+                              // S08b: hovering shows the TEXT that was
+                              // sent — the reason names the words, this
+                              // shows them in place.
+                              title={entry.excerpt}
+                            >
+                              {entry.reason}
+                            </span>
                           </li>
                         ))}
                         {packet.omitted.length > 0 && (
@@ -1774,7 +1782,9 @@ export function ChatView({
                     >
                       {entry.title}
                     </button>
-                    <span className="chat-packet-why">{entry.reason}</span>
+                    <span className="chat-packet-why" title={entry.excerpt}>
+                      {entry.reason}
+                    </span>
                   </li>
                 ))}
               </ul>
