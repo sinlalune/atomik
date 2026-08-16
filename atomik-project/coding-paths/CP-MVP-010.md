@@ -345,6 +345,50 @@ first two are the hot files the convention names. Resolution is
 mechanical (distinct channels appended). This path rebases on the trunk
 at every step boundary rather than at the end.
 
+# Convention files, and the shape of the harness (owner, 2026-08-16)
+
+Owner question, after three bench rounds where `index.md` / `log.md`
+kept ranking into packets: *"explain me a use case where we would want
+to have index and log of the vault or other folder in the context, maybe
+after with the agent harness, we would have specific tool to explore
+tree and file history rather than a global search context tool"*.
+
+The honest answer, recorded because it shapes CP-MVP-011:
+
+```text
+a MAP is only worth sending to something that can act on it
+```
+
+- There ARE questions a folder's `index.md` answers: "what is in my
+  rhetoric project", "where did I put the XML notes". Bedrock 26 says
+  exactly that — read the nearest index.md BEFORE opening many files.
+  And `log.md` answers time-scoped questions: what changed, what was
+  decided recently.
+- But those are different INTENTS, and no BM25 pool can separate them,
+  because the distinguishing signal is not in the document text: it is
+  in the question and in the file's ROLE. Asked about XML, a log line
+  reading "created xml.md" matches lexically and answers nothing.
+- The deciding argument is the owner's own: in a ONE-SHOT pre-pass a map
+  is a dead end — nothing can follow it — while in a LOOP a map is a
+  launchpad, because the model can read it and then ask for what it
+  named. So convention files belong to the loop's tools, not to the
+  deterministic packet.
+
+Agreed direction, therefore: not "tools INSTEAD of search" but one door
+per kind of question, all over the SAME index —
+
+```text
+search_vault(query)          concepts        (this path; conventions demoted)
+explore_tree(path)           the map         index.md + children, deterministic
+file_history(path | since)   what changed    log.md lines, later git (27)
+```
+
+Recorded as opening input for CP-MVP-011, whose tool loop is what
+chooses among doors. In THIS path the only change is a weight, decided
+with S10's numbers rather than by impression: convention files are
+DEMOTED in the concept packet, never banned — a question that names the
+folder should still reach its index.
+
 # The workflow diagram — decided 2026-08-16 (owner request, timing delegated)
 
 Owner: *"At one moment I will need a exhaustive diagram of the workflow,
