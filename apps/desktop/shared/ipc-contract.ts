@@ -33,6 +33,12 @@ export const ATOMIK_CHANNELS = {
    *  vault-backed view must drop state from the previous vault. */
   vaultChanged: 'atomik:vault-changed',
   vaultFilesChanged: 'atomik:vault-files-changed',
+  /** Push (main -> renderer): a vault mutation landed and the derived
+   *  indexes moved with it (CP-MVP-010 S03). Distinct from
+   *  `vaultFilesChanged`, which means the TREE changed: a plain save
+   *  changes the graph and the retrieval index without adding a file,
+   *  and refreshing every tree on every keystroke-save would be waste. */
+  indexChanged: 'atomik:index-changed',
   getVault: 'atomik:get-vault',
   listVaultFiles: 'atomik:list-vault-files',
   readGraphIndex: 'atomik:read-graph-index',
@@ -308,6 +314,25 @@ export type SearchMatch = {
   /** 1-based line of the match; 0 for filename matches. */
   line: number
   excerpt: string
+}
+
+/**
+ * What a write verb reports to the index maintenance door
+ * (`electron-main/vault-index.ts`). The kind decides whether a
+ * projection can be patched in place or has to be rebuilt.
+ */
+export type VaultIndexChange =
+  | { kind: 'saved'; path: string }
+  | { kind: 'created'; path: string }
+  | { kind: 'deleted'; path: string }
+  | { kind: 'relocated'; from: string; to: string }
+  | { kind: 'bulk' }
+
+/** The push payload: what changed, so a view can decide whether it
+ *  cares. `paths` is empty for a bulk change. */
+export type IndexChangedEvent = {
+  reason: VaultIndexChange['kind']
+  paths: string[]
 }
 
 export type SearchResult = {
@@ -645,6 +670,11 @@ export type AtomikApi = {
    *  fired by main after operations that LAND files (transcription,
    *  cloud OCR); trees refresh without dropping any view state. */
   onVaultFilesChanged: (listener: () => void) => () => void
+  /** The derived indexes moved (CP-MVP-010 S03): the graph and the
+   *  retrieval index reflect a save, create, delete or relocate. Views
+   *  projecting either one re-read from this instead of guessing from
+   *  content length — the refresh the relations strip lacked. */
+  onIndexChanged: (listener: (event: IndexChangedEvent) => void) => () => void
   /** Currently open vault (restored across restarts); null when none. */
   getVault: () => Promise<VaultInfo | null>
   /** Markdown tree of the open vault (dot-dirs and node_modules skipped). */
@@ -845,6 +875,7 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'openVault',
   'onVaultChanged',
   'onVaultFilesChanged',
+  'onIndexChanged',
   'getVault',
   'listVaultFiles',
   'searchVault',

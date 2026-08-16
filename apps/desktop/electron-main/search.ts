@@ -1,14 +1,13 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { readFileSync, statSync } from 'node:fs'
 import { extname, join } from 'node:path'
 import type { SearchMatch, SearchResult } from '../shared/ipc-contract'
 import {
-  buildRetrievalIndex,
   extractMatches,
   foldTerm,
   searchIndex,
-  type RetrievalDocInput,
   type RetrievalHit
 } from '../shared/retrieval-core'
+import { readRetrievalIndex } from './retrieval'
 
 /**
  * Lexical search — the vault-core seat (14). Since CP-MVP-010 S02 this is
@@ -65,7 +64,8 @@ export function resolveSearchScope(scope: unknown): string {
 export function searchVault(
   vaultRoot: string,
   query: unknown,
-  scope?: unknown
+  scope?: unknown,
+  stateDir?: string
 ): SearchResult[] {
   if (typeof query !== 'string') throw new Error('search: rejected query')
   const needle = query.trim()
@@ -74,25 +74,34 @@ export function searchVault(
   }
   const scopeRel =
     scope === undefined || scope === null ? '' : resolveSearchScope(scope)
+  const prefix = scopeRel === '' ? '' : `${scopeRel}/`
 
-  const startDir = scopeRel ? join(vaultRoot, ...scopeRel.split('/')) : vaultRoot
-  try {
-    if (!statSync(startDir).isDirectory()) return []
-  } catch {
-    return [] // a vanished scope folder is an empty perimeter, not a crash
-  }
-
-  const contents = new Map<string, string>()
-  const files = collectSearchableFiles(startDir, scopeRel, contents)
-  const hits = searchIndex(buildRetrievalIndex(files), needle, {
-    limit: MAX_RESULTS
+  const hits = searchIndex(readRetrievalIndex(vaultRoot, stateDir), needle, {
+    limit: MAX_RESULTS,
+    // The index holds every vault file (a snapshot is findable by name),
+    // but THIS contract opens notes: a non-markdown hit here would be a
+    // dead click, the class CP-MVP-009 S04b spent a step killing.
+    accept: (path) =>
+      extname(path).toLowerCase() === '.md' && path.startsWith(prefix)
   })
 
   return hits.map((hit) => ({
     relPath: hit.path,
     name: hit.path.split('/').pop() ?? hit.path,
-    matches: matchesOf(hit, contents.get(hit.path))
+    matches: matchesOf(hit, contentOf(vaultRoot, hit.path))
   }))
+}
+
+/** The matched file's text, for snippets only — read on demand for the
+ *  few files a query returned, which is why the index never stores it. */
+function contentOf(root: string, relPath: string): string | undefined {
+  const abs = join(root, ...relPath.split('/'))
+  try {
+    if (statSync(abs).size > MAX_FILE_BYTES) return undefined
+    return readFileSync(abs, 'utf8')
+  } catch {
+    return undefined
+  }
 }
 
 /**
@@ -116,42 +125,4 @@ function matchesOf(hit: RetrievalHit, content: string | undefined): SearchMatch[
     }
   }
   return matches
-}
-
-/** Markdown files under the perimeter, with their contents (same walk
- *  rules as the vault listing: no dotfiles, no denied segments). */
-function collectSearchableFiles(
-  startDir: string,
-  scopeRel: string,
-  contents: Map<string, string>
-): RetrievalDocInput[] {
-  const files: RetrievalDocInput[] = []
-  const walk = (dir: string, relPath: string): void => {
-    let entries
-    try {
-      entries = readdirSync(dir, { withFileTypes: true })
-    } catch {
-      return
-    }
-    for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
-      if (entry.name.startsWith('.') || DENIED_SEGMENTS.has(entry.name)) continue
-      const abs = join(dir, entry.name)
-      const childRel = relPath === '' ? entry.name : `${relPath}/${entry.name}`
-      if (entry.isDirectory()) {
-        walk(abs, childRel)
-        continue
-      }
-      if (!entry.isFile() || extname(entry.name).toLowerCase() !== '.md') continue
-      try {
-        if (statSync(abs).size > MAX_FILE_BYTES) continue
-        const content = readFileSync(abs, 'utf8')
-        contents.set(childRel, content)
-        files.push({ path: childRel, content })
-      } catch {
-        files.push({ path: childRel }) // unreadable: findable by path alone
-      }
-    }
-  }
-  walk(startDir, scopeRel)
-  return files
 }

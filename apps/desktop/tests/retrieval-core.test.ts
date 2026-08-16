@@ -7,6 +7,7 @@ import {
   FIELD_WEIGHTS,
   foldTerm,
   parseQuery,
+  patchRetrievalIndex,
   searchIndex,
   serializeRetrievalIndex,
   tokenize
@@ -187,5 +188,45 @@ describe('snippets', () => {
     expect(extractMatches(repeated, ['repeat'])).toHaveLength(6)
     expect(extractMatches(repeated, ['repeat'], { maxMatches: 2 })).toHaveLength(2)
     expect(extractMatches(repeated, [])).toEqual([])
+  })
+})
+
+describe('incremental patching (S03)', () => {
+  const patched = (patches: Parameters<typeof patchRetrievalIndex>[1]) =>
+    serializeRetrievalIndex(patchRetrievalIndex(buildRetrievalIndex(VAULT), patches))
+  const rebuilt = (files: typeof VAULT) =>
+    serializeRetrievalIndex(buildRetrievalIndex(files))
+
+  it('a saved document patches to exactly what a rebuild would produce', () => {
+    const edited = { path: 'concepts/pathos.md', content: '# Pathos revu\n\nLe pathos, autrement.\n' }
+    expect(patched([edited])).toBe(
+      rebuilt(VAULT.map((file) => (file.path === edited.path ? edited : file)))
+    )
+  })
+
+  it('a created and a deleted document do the same', () => {
+    const born = { path: 'concepts/logos.md', content: '# Logos\n\nLa raison du discours.\n' }
+    expect(patched([born])).toBe(rebuilt([...VAULT, born]))
+
+    expect(patched([{ path: 'concepts/pathos.md', removed: true }])).toBe(
+      rebuilt(VAULT.filter((file) => file.path !== 'concepts/pathos.md'))
+    )
+  })
+
+  it('keeps ranking correct after a patch — the point of patching', () => {
+    const index = patchRetrievalIndex(buildRetrievalIndex(VAULT), [
+      { path: 'concepts/ethos.md', content: '# Autre sujet\n\nPlus rien sur le sujet précédent.\n' }
+    ])
+    // The word is gone from the note's text, so only the FILENAME can
+    // still match it — a good reminder that path is one of the six fields.
+    const stale = searchIndex(index, 'ethos').find(
+      (hit) => hit.path === 'concepts/ethos.md'
+    )!
+    expect(stale.fields.map((field) => field.field)).toEqual(['path'])
+    expect(searchIndex(index, 'sujet')[0]!.path).toBe('concepts/ethos.md')
+  })
+
+  it('ignores a patch for a document that was never indexed being removed', () => {
+    expect(patched([{ path: 'ghost.md', removed: true }])).toBe(rebuilt(VAULT))
   })
 })

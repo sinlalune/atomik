@@ -131,6 +131,19 @@ timestamp: 2026-08-14T00:00:00Z
   which would win over the `#dev-docs` hash.
 
 
+## The index-changed push (CP-MVP-010 S03)
+
+- `atomik:index-changed` carries `{ reason, paths }` from main to the
+  renderer after every vault mutation. It is DISTINCT from
+  `vaultFilesChanged` on purpose: that one means the TREE changed, and a
+  plain save changes both derived indexes without adding a file —
+  refreshing every tree on every keystroke-save would be waste.
+- One helper in main (`indexed(event, change)`) is the only place a
+  write verb reports a change; it calls `recordVaultChange` and sends
+  the push. Adding a verb without adding a maintenance call is now the
+  kind of mistake that shows up as a missing push rather than as a
+  silently stale projection weeks later.
+
 ## Typed choosers, docs panes, close-pane, the Import page (S07e, owner bench)
 
 - Owner bench report on S07d: the (+) chooser still offered pane-type

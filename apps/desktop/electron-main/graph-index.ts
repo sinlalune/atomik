@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { extname, join } from 'node:path'
 import {
   buildGraphIndex,
+  patchGraphIndexForSave,
   type GraphIndex,
   type VaultFileInput
 } from '../shared/graph-core'
@@ -16,10 +17,12 @@ import { atomicWrite } from './vault'
  *
  * Lifecycle: LAZY — nothing scans on app open (04: opening the app
  * never rewrites files; `.atomik/` writes are ordinary disposable
- * state). The first readGraphIndex call builds and caches; write
- * verbs invalidate (whole-vault rescan is O(vault) and the vault is
- * note-scale — per-file patching becomes worthwhile with M8
- * retrieval, recorded).
+ * state). The first readGraphIndex call builds and caches. Since
+ * CP-MVP-010 S03 a SAVE patches the cached index in place (the moment
+ * S06 predicted: "per-file patching becomes worthwhile with M8
+ * retrieval"); structure changes — create, delete, relocate — still
+ * invalidate, because they move the node set and a wrong graph is
+ * worse than a slow one.
  */
 
 const MAX_INDEXED_BYTES = 2 * 1024 * 1024
@@ -27,26 +30,60 @@ const GRAPH_FILE = 'graph.json'
 
 let cached: GraphIndex | null = null
 let cachedVault: string | null = null
+let dirty = false
 
-/** Write verbs call this after any vault mutation (save, create,
- *  delete, relocate): the next read rebuilds. */
+/** Write verbs call this after a mutation the index cannot patch —
+ *  create, delete, relocate, imports: the next read rebuilds. */
 export function invalidateGraphIndex(): void {
   cached = null
+  dirty = false
+}
+
+/**
+ * A saved note folded into the cached index instead of throwing the whole
+ * projection away (CP-MVP-010 S03, closing-ceremony deviation 3). Falls
+ * back to invalidation whenever the pure patch refuses the change — a
+ * bundle contract file, an unknown path, anything whose effect reaches
+ * past the one file. Persistence waits for the next READ: a
+ * keystroke-save is not a reason to touch the disk.
+ */
+export function patchGraphIndexOnSave(
+  vaultRoot: string,
+  relPath: string,
+  content: string
+): void {
+  if (!cached || cachedVault !== vaultRoot) return // nothing cached to patch
+  const patched = patchGraphIndexForSave(cached, relPath, content)
+  if (patched === null) {
+    invalidateGraphIndex()
+    return
+  }
+  cached = patched
+  dirty = true
 }
 
 /** The current index — cached, else rebuilt from the vault files and
  *  persisted to `<stateDir>/graph.json`. */
 export function readGraphIndex(vaultRoot: string, stateDir: string): GraphIndex {
-  if (cached && cachedVault === vaultRoot) return cached
+  if (cached && cachedVault === vaultRoot) {
+    if (dirty) persist(cached, stateDir)
+    return cached
+  }
   const index = buildGraphIndex(collectVaultFiles(vaultRoot))
   cached = index
   cachedVault = vaultRoot
+  dirty = false
+  persist(index, stateDir)
+  return index
+}
+
+function persist(index: GraphIndex, stateDir: string): void {
   try {
     atomicWrite(join(stateDir, GRAPH_FILE), `${JSON.stringify(index, null, 2)}\n`)
+    dirty = false
   } catch {
     /* the file is a disposable projection — memory serves the read */
   }
-  return index
 }
 
 /** Every markdown file in the vault (dotfiles and denied segments

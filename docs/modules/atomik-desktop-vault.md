@@ -66,6 +66,38 @@ timestamp: 2026-08-14T00:00:00Z
     inputs and `serializeRetrievalIndex` sorts term keys, so a rebuild
     from the files alone is byte-identical (03 lifecycle rule) whatever
     order the walk produced. Round-trip pinned by test.
+- The retrieval SEAT (CP-MVP-010 S03): `electron-main/retrieval.ts` —
+  the I/O half, sibling of `graph-index.ts`. Lazy (nothing scans on
+  app open), rebuildable (`.atomik/index/retrieval.json`, delete it and
+  the next read reproduces it byte-identical), and INCREMENTAL: a save
+  patches one document instead of rescanning the vault, which is the
+  closing-ceremony ruling that a retrieval index rebuilt wholesale on
+  every keystroke-save is the wrong shape. Cached PER ROOT, because the
+  same engine serves the vault and the read-only docs bundle.
+  - Persistence waits for the next READ, never the write: a keystroke
+    save moves memory only. A patch on a root with no cached index is a
+    no-op — an absent index is already correct, and building one on the
+    write path is exactly the cost this step removes.
+  - The index holds EVERY vault file (non-markdown by path alone, S07d's
+    rule), but `searchVault` filters to `.md`: the search contract opens
+    notes, and a snapshot hit there would be the dead click CP-MVP-009
+    S04b spent a step killing. Wider doors come with S05's packet.
+- The maintenance DOOR (CP-MVP-010 S03): `electron-main/vault-index.ts`
+  — `recordVaultChange(vaultRoot, change, notify)`. Every write verb
+  reports its change here and nowhere else; the module decides per
+  projection whether to patch or rebuild, then pushes `indexChanged`.
+  - saved → patch both · created/deleted → patch retrieval, rebuild the
+    graph (the node set moved) · relocated → rebuild both (the rename
+    refactor rewrote links in OTHER notes) · bulk → rebuild both.
+    Invalidation is always CORRECT and merely slower: it is the honest
+    answer whenever a change reaches past the file that carried it.
+  - It also closed a silent staleness: the verbs that LAND files
+    (transcription, cloud OCR, PDF import/extract, web reader, web
+    import, the resets) pushed `vaultFilesChanged` for the trees but
+    never touched the graph index, so a freshly imported dossier's edges
+    stayed invisible until some unrelated save happened to reset it.
+    Seven hand-written `invalidateGraphIndex()` calls became one door
+    that no new verb can forget.
 - Link-click routing S04b (owner reports, same day): the shared
   note-link handler (`useVaultNote`) kills three dead-click classes —
   external http(s) links open a WEB TAB (`onOpenWebUrl`, threaded from

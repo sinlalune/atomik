@@ -8,6 +8,7 @@ import {
   type AiTraceDecision,
   type AtomikApi,
   type CaptureImportDestination,
+  type IndexChangedEvent,
   type VaultInfo,
   type WebViewBounds,
   type WebViewControlAction,
@@ -64,6 +65,14 @@ const api: AtomikApi = {
     ipcRenderer.on(ATOMIK_CHANNELS.vaultFilesChanged, wrapped)
     return () => {
       ipcRenderer.removeListener(ATOMIK_CHANNELS.vaultFilesChanged, wrapped)
+    }
+  },
+  onIndexChanged: (listener: (event: IndexChangedEvent) => void) => {
+    const wrapped = (_event: unknown, payload: IndexChangedEvent): void =>
+      listener(payload)
+    ipcRenderer.on(ATOMIK_CHANNELS.indexChanged, wrapped)
+    return () => {
+      ipcRenderer.removeListener(ATOMIK_CHANNELS.indexChanged, wrapped)
     }
   },
   getVault: () => ipcRenderer.invoke(ATOMIK_CHANNELS.getVault),

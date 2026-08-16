@@ -360,6 +360,98 @@ export function buildGraphIndex(files: readonly VaultFileInput[]): GraphIndex {
   return { version: 1, nodes, edges, labels: orderedLabels, broken }
 }
 
+/**
+ * The index after ONE existing markdown file was saved (CP-MVP-010 S03).
+ * Returns null when the change cannot be patched safely — the caller then
+ * rebuilds, which is always correct and merely slower.
+ *
+ * A content save is patchable because the NODE SET does not move: the
+ * file's own edges are re-parsed against the same candidates, and its
+ * title is recomputed. Everything that would ripple beyond one file is
+ * refused instead of approximated:
+ *
+ * ```text
+ * unknown path            a create — the node set changes, rebuild
+ * a bundle contract file  source.md / index.md name their whole bundle,
+ *                         so every sibling's title could move, rebuild
+ * ```
+ *
+ * Structure changes (create, delete, relocate) keep invalidating the
+ * whole index: they are rare, and a wrong graph is worse than a slow one.
+ */
+export function patchGraphIndexForSave(
+  index: GraphIndex,
+  path: string,
+  content: string
+): GraphIndex | null {
+  const name = path.split('/').pop() ?? ''
+  if (name === 'source.md' || name === 'index.md') return null
+  if (!path.toLowerCase().endsWith('.md')) return null
+  const nodeIndex = index.nodes.findIndex((node) => node.path === path)
+  if (nodeIndex === -1) return null
+
+  const previous = index.nodes[nodeIndex] as GraphNode
+  const nodes = [...index.nodes]
+  // Inside a bundle the title belongs to the SOURCE, not to this file
+  // (S07d), so only a free-standing note retitles itself on save.
+  nodes[nodeIndex] =
+    previous.form === undefined
+      ? { ...previous, title: firstHeadingOf(stripFrontmatter(content)) ?? stemOf(path) }
+      : previous
+
+  const candidates = wikiCandidatesFor(path, nodes)
+  const rewritten: GraphEdge[] = []
+  for (const parsed of parseEdges(stripFrontmatter(content))) {
+    const external = /^https?:/i.test(parsed.target)
+    let object: string | null = null
+    if (parsed.kind === 'wikilink') {
+      object = resolveWikiTarget(candidates, parsed.target)
+    } else if (!external && !/^mailto:/i.test(parsed.target)) {
+      object = resolveRelativeTarget(path, parsed.target)
+    }
+    rewritten.push({
+      subject: path,
+      object,
+      targetRaw: parsed.target,
+      external,
+      label: parsed.decoration?.label ?? null,
+      reverse: parsed.decoration?.reverse ?? false,
+      line: parsed.line,
+      col: parsed.col
+    })
+  }
+
+  // Edges stay in whole-build order — by subject path, then by position —
+  // so a patched index is byte-identical to a rebuilt one.
+  const edges = [...index.edges.filter((edge) => edge.subject !== path), ...rewritten].sort(
+    (a, b) =>
+      a.subject.localeCompare(b.subject) || a.line - b.line || a.col - b.col
+  )
+
+  const labels: Record<string, number> = {}
+  for (const edge of edges) {
+    if (edge.label !== null) labels[edge.label] = (labels[edge.label] ?? 0) + 1
+  }
+  const orderedLabels: Record<string, number> = {}
+  for (const key of Object.keys(labels).sort()) orderedLabels[key] = labels[key] as number
+
+  const broken = edges
+    .filter(
+      (edge) =>
+        edge.object === null &&
+        !edge.external &&
+        !edge.targetRaw.startsWith('#') &&
+        !/^mailto:/i.test(edge.targetRaw)
+    )
+    .map((edge) => ({
+      subject: edge.subject,
+      targetRaw: edge.targetRaw,
+      line: edge.line
+    }))
+
+  return { version: 1, nodes, edges, labels: orderedLabels, broken }
+}
+
 /** Vault-relative resolution of an md-link href against its note —
  *  the read pipeline's rules: relative only, `..` never escapes.
  *  Exported since S06b: graph sentences resolve md-link targets to

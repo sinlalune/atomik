@@ -8,12 +8,14 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S02
+  current_step: S03
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
     - apps/desktop/shared/retrieval-core.ts
+    - apps/desktop/shared/graph-core.ts
     - apps/desktop/shared/ipc-contract.ts
+    - apps/desktop/electron-main/vault-index.ts
     - apps/desktop/electron-main/retrieval.ts
     - apps/desktop/electron-main/search.ts
     - apps/desktop/electron-main/graph-index.ts
@@ -27,6 +29,7 @@ atomik:
     - docs/modules/atomik-desktop-graph.md
     - docs/modules/atomik-desktop-ai.md
     - docs/modules/atomik-desktop-vault.md
+    - docs/modules/atomik-desktop-shell.md
     - docs/modules/atomik-desktop.md
     - docs/learning/**
     - docs/adr/**
@@ -369,12 +372,35 @@ at every step boundary rather than at the end.
       area-note advisory only because Cairn's AREA_MAP has no retrieval
       entry yet, which is a mapping gap fixed on the trunk in
       CP-OPS-001 rather than by writing into the wrong note.
-- [ ] S03 Index seat + incremental maintenance + broadcast: the
-      main-side retrieval index (lazy build, `.atomik/` rebuildable
-      artifact, round-trip test), per-file patching on save · create ·
-      delete · relocate for BOTH indexes, and an index-changed push
-      channel to the renderer. Closes closing-ceremony deviations 2
-      and 3; the relations strip refreshes live as a side effect.
+- [x] S03 Index seat + incremental maintenance + broadcast (DONE
+      2026-08-16). `electron-main/retrieval.ts` NEW — lazy, cached per
+      ROOT (the same engine serves the vault and the docs bundle),
+      persisted as `.atomik/index/retrieval.json`, round-trip pinned.
+      `patchRetrievalIndex` and `patchGraphIndexForSave` NEW in the pure
+      cores, both proved by the only assertion that makes patching safe
+      to trust: a patched index equals a rebuilt one, byte for byte.
+      `electron-main/vault-index.ts` NEW — ONE door
+      (`recordVaultChange`) that every write verb reports through, with
+      the per-projection policy in one readable table, plus the
+      `atomik:index-changed` push. The relations strip subscribes to it,
+      closing deviation 2; per-file patching closes deviation 3.
+      SCOPE WIDENED, recorded: `shared/graph-core.ts` and the new
+      `electron-main/vault-index.ts` were not declared at S01 — the
+      graph patch has to live beside the builder it must match, and the
+      maintenance door only became necessary once there were two
+      projections to keep in step.
+      FOUND AND FIXED IN PASSING: the verbs that LAND files
+      (transcription, cloud OCR, PDF import/extract, web reader, web
+      import, the resets) pushed `vaultFilesChanged` for the trees but
+      never invalidated the graph index — a freshly imported dossier's
+      edges stayed invisible until an unrelated save reset it. Seven
+      hand-written invalidation calls became one door that a new verb
+      cannot forget. +12 tests (808 → 820); typecheck, tests, build
+      green, run bare.
+      GRAPH PATCH SCOPE, deliberate: only a content SAVE is patched.
+      Creates, deletes and relocates move the node set or rewrite links
+      in other notes, so they rebuild — invalidation is always correct
+      and merely slower, and a wrong graph is worse than a slow one.
 - [ ] S04 Link expansion: pure expansion over the nodes/edges tables —
       seeds → neighbours by typed edge, direction- and label-aware,
       budgeted and deduped, with per-hop attenuation. Unit-tested on
@@ -412,24 +438,23 @@ at every step boundary rather than at the end.
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S02 done — S03 next
-changed     : apps/desktop/shared/retrieval-core.ts (new)
-              apps/desktop/electron-main/search.ts (now the I/O half)
-              apps/desktop/tests/retrieval-core.test.ts (new) + search.test.ts
-              docs/learning/22-lexical-retrieval-without-a-database.md (new) + index
-              docs/modules/atomik-desktop-vault.md
-              docs/adr/ADR-013-lexical-retrieval-without-a-database.md (new)
-              docs/index.md (ADR range)
-              atomik-project/coding-paths/CP-MVP-010.md
-tests       : 808 passing on the REBASED result (this path added 20:
-              773 -> 793; CP-PROVIDERS' merge brought the rest),
+current step: S03 done — S04 next
+changed     : apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
+              apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts
+              apps/desktop/electron-main/{search,graph-index,index}.ts
+              apps/desktop/electron-preload/index.ts
+              apps/desktop/renderer/src/vault/RelationsStrip.tsx
+              apps/desktop/tests/{retrieval-core,vault-index,search}.test.ts
+              docs/modules/atomik-desktop-{vault,graph,shell}.md
+              docs/learning/22-lexical-retrieval-without-a-database.md + index
+              docs/adr/ADR-013-lexical-retrieval-without-a-database.md
+              docs/index.md · atomik-project/coding-paths/CP-MVP-010.md
+tests       : 820 passing / 68 files (this path added 32 so far),
               typecheck and build green, each gate run BARE (24)
-next action : S03 — the main-side retrieval seat: lazy build, the
-              `.atomik/index/retrieval.json` rebuildable projection with
-              its round-trip test, per-file patching on save · create ·
-              delete · relocate for BOTH indexes, and the index-changed
-              broadcast to the renderer (closing-ceremony deviations 2
-              and 3; the relations strip refreshes as a side effect)
+next action : S04 — link expansion over the nodes/edges tables: pure,
+              budgeted, direction- and label-aware, per-hop attenuation,
+              unit-tested on fixture graphs; the stage that turns a hit
+              list into a neighbourhood for S05's packet
 rebase note : the learning index collided at the rebase (note 22 here,
               note 23 from CP-PROVIDERS) — mechanical, both kept in
               order. Exactly the shared-prose conflict paths.md

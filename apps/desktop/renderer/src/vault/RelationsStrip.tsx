@@ -17,8 +17,9 @@ import {
 export type RelationsStripProps = {
   /** The note whose 1-hop neighbourhood is drawn. */
   notePath: string
-  /** Changes when the note's content changes — the index is
-   *  invalidated by every write verb, so a save must repaint. */
+  /** Changes when the note's content changes. Since CP-MVP-010 S03 the
+   *  strip also listens to the index-changed PUSH, so an edge authored
+   *  in another pane arrives without this prop moving. */
   revision?: string | number
   open: boolean
   onToggle: () => void
@@ -61,7 +62,19 @@ export function RelationsStrip({
 }: RelationsStripProps): React.JSX.Element {
   const [neighborhood, setNeighborhood] = useState<Neighborhood | null>(null)
   const [width, setWidth] = useState(720)
+  const [indexRevision, setIndexRevision] = useState(0)
   const canvasRef = useRef<HTMLDivElement | null>(null)
+
+  // CP-MVP-010 S03 closes the CP-MVP-009 deviation "no push refresh on
+  // the strip": main tells every renderer when the indexes moved, so an
+  // edge authored in ANOTHER pane no longer waits for this note to
+  // change. The push carries which paths moved, but a 1-hop
+  // neighbourhood can be reshaped by a note it does not yet touch —
+  // re-reading is one cached IPC call, filtering would be a guess.
+  useEffect(
+    () => window.atomik.onIndexChanged(() => setIndexRevision((n) => n + 1)),
+    []
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -77,7 +90,7 @@ export function RelationsStrip({
     return () => {
       cancelled = true
     }
-  }, [notePath, revision])
+  }, [notePath, revision, indexRevision])
 
   // The graph is laid out in the strip's own px space: re-measure on
   // pane resize so the columns keep their distance from the center.

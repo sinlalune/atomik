@@ -57,6 +57,30 @@ timestamp: 2026-08-14T00:00:00Z
   from the main-side index, so an edge authored in ANOTHER pane is not
   reflected until the note changes or the content does.
 
+## Incremental index maintenance (CP-MVP-010 S03)
+
+- `patchGraphIndexForSave(index, path, content)` is PURE and returns
+  `null` when it refuses: a content save is patchable because the NODE
+  SET does not move — the file's own edges are re-parsed against the
+  same candidates and its title recomputed — while anything whose effect
+  reaches past one file is refused rather than approximated. Refused:
+  an unknown path (a create), a bundle contract file (`source.md` /
+  `index.md` name their whole bundle, so every sibling's title could
+  move), a non-markdown path.
+- Edges are re-sorted by (subject, line, col) after a patch, which is
+  the order a whole build produces, so a patched index is byte-identical
+  to a rebuilt one. Pinned by a test that patches and rebuilds the same
+  change and compares — the only assertion that makes patching safe to
+  trust.
+- Structure changes still invalidate. They are rare, and a wrong graph
+  is worse than a slow one.
+- The strip now refreshes from the `indexChanged` PUSH (closing-ceremony
+  deviation 2, closed): an edge authored in another pane arrives without
+  waiting for this note to change. It re-reads rather than filtering on
+  the pushed paths — a 1-hop neighbourhood can be reshaped by a note it
+  does not yet touch, so filtering would be a guess and the read is one
+  cached IPC call.
+
 ## Titles, not file names (CP-MVP-009 S07b, owner bench round 11)
 
 - Two independent causes hid behind one report ("display first title of

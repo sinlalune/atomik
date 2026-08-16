@@ -274,41 +274,110 @@ const emptyLengths = (): Record<RetrievalField, number> => ({
   body: 0
 })
 
-export function buildRetrievalIndex(
-  files: readonly RetrievalDocInput[]
-): RetrievalIndex {
-  const sorted = [...files].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
+/** One document's contribution to the index: its record and its postings,
+ *  computed without knowing anything about the rest of the vault. That
+ *  independence is what makes incremental patching possible at all. */
+type DocumentEntry = {
+  doc: RetrievalDoc
+  postings: { term: string; field: RetrievalField; tf: number; pos: number[] }[]
+}
+
+function indexDocument(file: RetrievalDocInput): DocumentEntry {
+  const parsed = documentFields(file.path, file.content)
+  const lengths = emptyLengths()
+  const postings: DocumentEntry['postings'] = []
+
+  for (const field of RETRIEVAL_FIELDS) {
+    const text = parsed.fields[field]
+    if (text.length === 0) continue
+    const tokens = tokenize(text)
+    lengths[field] = tokens.length
+
+    const byTerm = new Map<string, number[]>()
+    for (const token of tokens) {
+      const positions = byTerm.get(token.term)
+      if (positions) positions.push(token.position)
+      else byTerm.set(token.term, [token.position])
+    }
+    for (const [term, pos] of byTerm) postings.push({ term, field, tf: pos.length, pos })
+  }
+
+  return { doc: { path: file.path, title: parsed.title, lengths }, postings }
+}
+
+/** Assemble entries into an index: sort by path, number the docs, collect
+ *  the postings. BUILD and PATCH both end here, which is why a patched
+ *  index is indistinguishable from a rebuilt one (asserted by test). */
+function assemble(entries: Iterable<DocumentEntry>): RetrievalIndex {
+  const sorted = [...entries].sort((a, b) =>
+    a.doc.path < b.doc.path ? -1 : a.doc.path > b.doc.path ? 1 : 0
+  )
   const docs: RetrievalDoc[] = []
   const terms: Record<string, TermPosting[]> = {}
   const totals = emptyLengths()
 
-  sorted.forEach((file, doc) => {
-    const parsed = documentFields(file.path, file.content)
-    const lengths = emptyLengths()
-
-    for (const field of RETRIEVAL_FIELDS) {
-      const text = parsed.fields[field]
-      if (text.length === 0) continue
-      const tokens = tokenize(text)
-      lengths[field] = tokens.length
-      totals[field] += tokens.length
-
-      const byTerm = new Map<string, number[]>()
-      for (const token of tokens) {
-        const positions = byTerm.get(token.term)
-        if (positions) positions.push(token.position)
-        else byTerm.set(token.term, [token.position])
-      }
-      for (const [term, pos] of byTerm) {
-        const postings = terms[term] ?? (terms[term] = [])
-        postings.push({ doc, field, tf: pos.length, pos })
-      }
+  sorted.forEach((entry, doc) => {
+    docs.push(entry.doc)
+    for (const field of RETRIEVAL_FIELDS) totals[field] += entry.doc.lengths[field]
+    for (const posting of entry.postings) {
+      const list = terms[posting.term] ?? (terms[posting.term] = [])
+      list.push({ doc, field: posting.field, tf: posting.tf, pos: posting.pos })
     }
-
-    docs.push({ path: file.path, title: parsed.title, lengths })
   })
 
   return { version: 1, docs, terms, totals }
+}
+
+export function buildRetrievalIndex(
+  files: readonly RetrievalDocInput[]
+): RetrievalIndex {
+  return assemble(files.map(indexDocument))
+}
+
+export type RetrievalPatch =
+  | { path: string; content?: string }
+  | { path: string; removed: true }
+
+/**
+ * The index after a handful of files changed (CP-MVP-010 S03). The write
+ * verbs call this instead of rebuilding the vault on every save — the
+ * closing-ceremony ruling that a retrieval index rebuilt wholesale on
+ * every keystroke-save is the wrong shape.
+ *
+ * Only the changed documents are re-tokenized; the rest are carried over.
+ * Reassembly is O(postings) because doc ids are positions in a sorted
+ * array — cheap at note scale, and the point where a tombstone scheme
+ * would earn its complexity if ADR-013's thresholds are ever crossed.
+ */
+export function patchRetrievalIndex(
+  index: RetrievalIndex,
+  patches: readonly RetrievalPatch[]
+): RetrievalIndex {
+  const entries = new Map<string, DocumentEntry>()
+
+  // Carry the untouched documents over, postings and all.
+  const kept = index.docs.map((doc) => ({ doc, postings: [] as DocumentEntry['postings'] }))
+  for (const [term, postings] of Object.entries(index.terms)) {
+    for (const posting of postings) {
+      kept[posting.doc]?.postings.push({
+        term,
+        field: posting.field,
+        tf: posting.tf,
+        pos: posting.pos
+      })
+    }
+  }
+  for (const entry of kept) entries.set(entry.doc.path, entry)
+
+  for (const patch of patches) {
+    if ('removed' in patch && patch.removed) {
+      entries.delete(patch.path)
+      continue
+    }
+    entries.set(patch.path, indexDocument(patch))
+  }
+
+  return assemble(entries.values())
 }
 
 /** Deterministic JSON — sorted term keys, so the persisted projection is

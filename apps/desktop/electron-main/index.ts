@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, nativeTheme, screen, session, shell, utilityProcess, WebContentsView } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, nativeTheme, screen, session, shell, utilityProcess, WebContentsView, type IpcMainInvokeEvent } from 'electron'
 import { execFile } from 'node:child_process'
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
@@ -6,7 +6,8 @@ import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { isValidAiOperation } from './ai-mock'
-import { invalidateGraphIndex, readGraphIndex } from './graph-index'
+import { readGraphIndex } from './graph-index'
+import { recordVaultChange } from './vault-index'
 import {
   GenerationError,
   mockGenerationAdapter,
@@ -117,6 +118,7 @@ import {
 } from './web-view'
 import {
   ATOMIK_CHANNELS,
+  type VaultIndexChange,
   type VaultInfo,
   type WebViewState
 } from '../shared/ipc-contract'
@@ -164,6 +166,21 @@ function vaultInfo(): VaultInfo | null {
 function requireVault(): string {
   if (!vaultRoot) throw new Error('vault: no vault open')
   return vaultRoot
+}
+
+/**
+ * Every write verb reports its change HERE (CP-MVP-010 S03) and nowhere
+ * else: `vault-index.ts` decides what each projection does with it —
+ * patch the one document, or rebuild — and the renderer hears about it
+ * once. Before this, each handler remembered `invalidateGraphIndex()` by
+ * hand, and the verbs that LAND files (transcription, OCR, PDF and web
+ * imports) never remembered at all, so the graph stayed stale until some
+ * unrelated save happened to reset it.
+ */
+function indexed(event: IpcMainInvokeEvent, change: VaultIndexChange): void {
+  recordVaultChange(requireVault(), change, (payload) =>
+    event.sender.send(ATOMIK_CHANNELS.indexChanged, payload)
+  )
 }
 
 /** Startup restore: ATOMIK_VAULT_DIR (tests/smoke/dev) wins over the
@@ -259,7 +276,7 @@ function registerVaultHandlers(stateDir: string): void {
   )
   ipcMain.handle(
     ATOMIK_CHANNELS.writeNote,
-    (_event, relPath: unknown, content: unknown, expectedMtimeMs: unknown) => {
+    (event, relPath: unknown, content: unknown, expectedMtimeMs: unknown) => {
       const result = writeNote(
         requireVault(),
         relPath,
@@ -268,7 +285,9 @@ function registerVaultHandlers(stateDir: string): void {
           ? undefined
           : expectedMtimeMs
       )
-      invalidateGraphIndex()
+      indexed(event, typeof relPath === 'string'
+        ? { kind: 'saved', path: relPath }
+        : { kind: 'bulk' })
       // S07: saving a bundle's transcript IS the human correction — the
       // dossier flips to human-corrected. Bookkeeping must never fail
       // the user's save; a racing dossier retries on the next save
@@ -290,14 +309,16 @@ function registerVaultHandlers(stateDir: string): void {
     ATOMIK_CHANNELS.createNote,
     (event, relPath: unknown, content: unknown) => {
       const result = createNote(requireVault(), relPath, content)
-      invalidateGraphIndex()
+      indexed(event, typeof relPath === 'string'
+        ? { kind: 'created', path: relPath }
+        : { kind: 'bulk' })
       event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
       return result
     }
   )
   ipcMain.handle(ATOMIK_CHANNELS.createFolder, (event, relPath: unknown) => {
     const info = createFolder(requireVault(), relPath)
-    invalidateGraphIndex()
+    indexed(event, { kind: 'bulk' }) // a folder is born with index.md + log.md
     event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
     return info
   })
@@ -307,7 +328,9 @@ function registerVaultHandlers(stateDir: string): void {
     const result = await deleteNote(requireVault(), relPath, (abs) =>
       shell.trashItem(abs)
     )
-    invalidateGraphIndex()
+    indexed(event, typeof relPath === 'string'
+      ? { kind: 'deleted', path: relPath }
+      : { kind: 'bulk' })
     event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
     return result
   })
@@ -315,7 +338,7 @@ function registerVaultHandlers(stateDir: string): void {
     const result = await deleteFolder(requireVault(), relPath, (abs) =>
       shell.trashItem(abs)
     )
-    invalidateGraphIndex()
+    indexed(event, { kind: 'bulk' }) // a folder takes its whole subtree
     event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
     return result
   })
@@ -330,7 +353,7 @@ function registerVaultHandlers(stateDir: string): void {
     ATOMIK_CHANNELS.relocateApply,
     (event, from: unknown, to: unknown) => {
       const result = relocateApply(requireVault(), from, to)
-      invalidateGraphIndex()
+      indexed(event, { kind: 'relocated', from: result.from, to: result.to })
       event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
       event.sender.send(ATOMIK_CHANNELS.noteRelocated, {
         from: result.from,
@@ -348,7 +371,7 @@ function registerVaultHandlers(stateDir: string): void {
     ATOMIK_CHANNELS.relocateFolderApply,
     (event, from: unknown, to: unknown) => {
       const result = relocateFolderApply(requireVault(), from, to)
-      invalidateGraphIndex()
+      indexed(event, { kind: 'relocated', from: result.from, to: result.to })
       event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
       // the same push: relocateTabPaths' prefix form covers folders
       event.sender.send(ATOMIK_CHANNELS.noteRelocated, {
@@ -365,6 +388,7 @@ function registerVaultHandlers(stateDir: string): void {
     ATOMIK_CHANNELS.createProject,
     (event, relPath: unknown, title: unknown) => {
       const info = createProject(requireVault(), relPath, title)
+      indexed(event, { kind: 'bulk' })
       event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
       return info
     }
@@ -592,6 +616,7 @@ function registerCaptureHandlers(stateDir: string): void {
     async (event, dossierPath: unknown) => {
       const result = await transcribeSource(requireVault(), dossierPath, transcriptionAdapter, traces)
       // new files landed (transcript, scan, segments) — trees refresh
+      indexed(event, { kind: 'bulk' })
       event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
       return result
     }
@@ -616,6 +641,7 @@ function registerCaptureHandlers(stateDir: string): void {
         createMistralOcrAdapter(key)
       )
       const result = await transcribeSource(requireVault(), dossierPath, cloudSeat, traces)
+      indexed(event, { kind: 'bulk' })
       event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
       return result
     }
@@ -630,6 +656,7 @@ function registerCaptureHandlers(stateDir: string): void {
     const chosen = picked.filePaths[0]
     if (picked.canceled || !chosen) return null
     const result = importPdfFromPath(requireVault(), chosen)
+    indexed(event, { kind: 'bulk' })
     event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
     return result
   })
@@ -649,6 +676,7 @@ function registerCaptureHandlers(stateDir: string): void {
         rasterize,
         traces
       )
+      indexed(event, { kind: 'bulk' })
       event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
       return result
     }
@@ -658,6 +686,7 @@ function registerCaptureHandlers(stateDir: string): void {
     ATOMIK_CHANNELS.resetExtraction,
     (event, dossierPath: unknown) => {
       resetExtraction(requireVault(), dossierPath)
+      indexed(event, { kind: 'bulk' })
       event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
     }
   )
@@ -675,6 +704,7 @@ function registerCaptureHandlers(stateDir: string): void {
         traces,
         runReaderJob
       )
+      indexed(event, { kind: 'bulk' })
       event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
       return result
     }
@@ -683,6 +713,7 @@ function registerCaptureHandlers(stateDir: string): void {
     ATOMIK_CHANNELS.resetWebReader,
     (event, dossierPath: unknown) => {
       resetWebReader(requireVault(), dossierPath)
+      indexed(event, { kind: 'bulk' })
       event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
     }
   )
@@ -691,6 +722,7 @@ function registerCaptureHandlers(stateDir: string): void {
     ATOMIK_CHANNELS.resetTranscription,
     (event, dossierPath: unknown) => {
       resetTranscription(requireVault(), dossierPath)
+      indexed(event, { kind: 'bulk' })
       event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
     }
   )
@@ -1235,6 +1267,7 @@ function registerWebViewHandlers(getWindow: () => BrowserWindow | null): void {
         { url, title: contents.getTitle(), meta },
         (absPath) => contents.savePage(absPath, 'MHTML')
       )
+      indexed(event, { kind: 'bulk' })
       event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
       return result
     }
@@ -1300,6 +1333,7 @@ function registerWebViewHandlers(getWindow: () => BrowserWindow | null): void {
         { url: contents.getURL(), title: contents.getTitle(), meta },
         (absPath) => contents.savePage(absPath, 'MHTML')
       )
+      indexed(event, { kind: 'bulk' })
       event.sender.send(ATOMIK_CHANNELS.vaultFilesChanged)
       return result
     } finally {
