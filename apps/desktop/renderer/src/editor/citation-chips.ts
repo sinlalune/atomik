@@ -110,6 +110,11 @@ function wrapCitedSpan(chip: HTMLElement): void {
   if (!parent || parent.classList.contains('cited-span')) return
   const doc = chip.ownerDocument
 
+  // Inside a blockquote the citation belongs to the QUOTE, so the walk
+  // is allowed to climb out of an inline wrapper (a claim mark, an
+  // emphasis) before looking for a sentence boundary — otherwise the
+  // extent stops at the edge of whatever element happened to hold the
+  // marker (S10b, owner: the quote format).
   const collected: ChildNode[] = [chip]
   let node: ChildNode | null = chip.previousSibling
   let boundary = -1

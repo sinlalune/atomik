@@ -5428,7 +5428,18 @@ button svg {
 
 .chat-turn-body .cited-span:hover {
   background: color-mix(in srgb, var(--accent) 9%, transparent);
-  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--accent) 45%, transparent);
+  /* An OUTLINE rather than a background alone (S10b): inside a
+     blockquote the cited sentence usually also wears a claim mark,
+     whose own background sits on top and swallowed the tint. An
+     outline reads over any fill. */
+  outline: 1px dashed color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: 1px;
+  border-radius: var(--radius-sm);
+}
+
+/* the quote's own mark stays legible under it */
+.chat-turn-body .cited-span:hover .claim-mark {
+  box-shadow: inset 0 -2px 0 var(--accent);
 }
 
 .chat-turn-body .cited-span:hover > a.citation-chip {

@@ -198,30 +198,40 @@ function ClaimBody({
     const container = ref.current
     if (!container) return
     container.innerHTML = md.render(text)
+
+    // ORDER MATTERS (S10b, owner: "the dynamic citation visualisation
+    // doesnt work when in a quote format"). Claim ranges are computed
+    // from the container's textContent, so they must be measured BEFORE
+    // citation chips add digits to it — otherwise every mark after the
+    // first citation lands a few characters off, which is most visible
+    // exactly where quotes are, since a quoted passage is what earns a
+    // source-backed mark in the first place.
+    if (meta && meta.claims.length > 0) {
+      const sourceOf = (claim: ClaimRecord): string | null =>
+        meta.evidence.find((record) => claim.evidenceIds.includes(record.id))
+          ?.source.relPath ?? null
+      // S08c (owner bench round 5: "I still don't understand how claim
+      // typology work, looks broken"). In a CONVERSATION, "the model
+      // said it" is the default, not news: marking model-only,
+      // interpretive and needs-citation sentences underlines nearly
+      // everything and teaches the reader to ignore all of it. Only
+      // VERBATIM-FROM-A-NOTE survives here — the one thing a reader
+      // cannot see for themselves. The full typology stays where it is
+      // actionable: the AI panel, and later M6's Truth Lens.
+      const verbatim = meta.claims.filter((claim) => claim.label === 'source-backed')
+      if (verbatim.length > 0) {
+        applyClaimMarks(
+          container,
+          findClaimRanges(container.textContent ?? '', verbatim),
+          (claim) => claimTitle(claim, sourceOf(claim))
+        )
+      }
+    }
+
     setCitations(
       sources && sources.length > 0
         ? applyCitationChips(container, text, sources)
         : null
-    )
-    if (!meta || meta.claims.length === 0) return
-    const sourceOf = (claim: ClaimRecord): string | null =>
-      meta.evidence.find((record) => claim.evidenceIds.includes(record.id))
-        ?.source.relPath ?? null
-    // S08c (owner bench round 5: "I still don't understand how claim
-    // typology work, looks broken"). In a CONVERSATION, "the model said
-    // it" is the default, not news: marking model-only, interpretive
-    // and needs-citation sentences underlines nearly everything and
-    // teaches the reader to ignore all of it. Only VERBATIM-FROM-A-NOTE
-    // survives here — the one thing a reader cannot see for themselves.
-    // The full typology stays where it is actionable: the AI panel,
-    // where you decide what enters the vault, and later M6's Truth Lens
-    // where the vocabulary freezes.
-    const verbatim = meta.claims.filter((claim) => claim.label === 'source-backed')
-    if (verbatim.length === 0) return
-    applyClaimMarks(
-      container,
-      findClaimRanges(container.textContent ?? '', verbatim),
-      (claim) => claimTitle(claim, sourceOf(claim))
     )
   }, [text, meta, sources])
   const body = (

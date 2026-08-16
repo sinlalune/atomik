@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S10
+  current_step: S10b
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -858,6 +858,23 @@ live, on real notes.
       picture of vault retrieval that stops at "the vault does not know
       this" lies by omission about where that answer goes.
       +6 tests (892 → 898).
+- [x] S10b BENCH ROUND 13 (2026-08-16, "the dynamic citation
+      visualisation doesnt work when in a quote format" — DONE same
+      day). The two decorators ran in the wrong order: claim ranges are
+      computed from the container's `textContent`, so they have to be
+      measured BEFORE citation chips add digits to it. Every mark after
+      the first citation was landing a few characters off, and it
+      surfaced in QUOTES because a quoted passage is exactly what earns
+      a source-backed mark. Claims first, citations second. The hover
+      cue gained an outline as well: inside a blockquote the cited
+      sentence usually wears a claim mark whose background sat on top of
+      the tint.
+      COVERAGE GAP STATED: both decorators are DOM code and neither has
+      a unit test — there is no DOM test environment in the repo, and
+      adding one is a dependency decision. Their pure halves are tested;
+      their DOM behaviour rides the owner's bench, the same precedent
+      `applyClaimMarks` has followed since CP-MVP-008. This is the one
+      class of change in this path I cannot verify myself.
 - [ ] S11 Owner bench rounds + acceptance record, then the closing
       ceremony, the coherence audit, and the self-merge — after which
       CP-MVP-011 opens with its own (short) opening check.
@@ -867,7 +884,7 @@ live, on real notes.
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S10 done — S11 next (owner bench, acceptance, ceremony, merge)
+current step: S10b done (bench round 13) — S11 next (acceptance, ceremony, merge)
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts
