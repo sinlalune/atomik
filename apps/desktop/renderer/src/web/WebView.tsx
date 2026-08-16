@@ -10,7 +10,7 @@ import {
   ReloadIcon
 } from '../icons'
 import { onWebOverlayChange, webOverlayCovered } from './overlay'
-import { normalizeInputUrl } from './urls'
+import { normalizeInputUrl, webPageIdentity } from './urls'
 
 /** A page's identity for reader invalidation: origin + path, hash and
  *  query jitter ignored (an in-page anchor jump is the same page). */
@@ -38,15 +38,21 @@ function pageKey(url: string | undefined): string | null {
 export function WebView({
   tabId,
   initialUrl,
+  initialTitle,
   onUrlChange,
+  onTitleChange,
   onImported
 }: {
   /** The tab id doubles as the view id in main's registry. */
   tabId: string
   /** The tab param's url, read once at mount (restore). */
   initialUrl?: string
+  /** Last trusted page-title snapshot, shown while a restored view wakes. */
+  initialTitle?: string
   /** Reports navigations so the tab param follows. */
   onUrlChange?: (url: string) => void
+  /** Reports sanitized title metadata into renderer-owned workspace state. */
+  onTitleChange?: (title: string) => void
   /** A landed import — the host opens the new dossier (S04). */
   onImported?: (dossierPath: string) => void
 }): React.JSX.Element {
@@ -101,6 +107,17 @@ export function WebView({
     // navigation-driven; the freshest callback is the right one
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state?.url])
+
+  // Page metadata follows the URL into recoverable renderer state. An empty
+  // title is meaningful: it clears stale metadata so identity falls back to
+  // hostname/URL after navigating to an untitled document.
+  useEffect(() => {
+    if (state?.url && state.url !== 'about:blank') {
+      onTitleChange?.(webPageIdentity(state.url, state.title).title)
+    }
+    // metadata-driven; the freshest callback is the right one
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state?.url, state?.title])
 
   // restore: a saved url creates the view at mount; a fresh tab waits
   // for the first address instead of parking a blank native view
@@ -230,6 +247,11 @@ export function WebView({
   const importable =
     ready && !importing && !state?.loading && Boolean(state?.url) &&
     state?.url !== 'about:blank'
+  const snapshotHasPage = Boolean(state?.url && state.url !== 'about:blank')
+  const identity = webPageIdentity(
+    snapshotHasPage ? state?.url : initialUrl,
+    snapshotHasPage ? state?.title : initialTitle
+  )
 
   return (
     <div className="web-view-tab">
@@ -266,11 +288,18 @@ export function WebView({
         </button>
         <form
           className="web-url"
+          data-page={identity.url ? 'true' : 'false'}
           onSubmit={(event) => {
             event.preventDefault()
             go(input)
           }}
         >
+          <span className="web-page-identity" aria-hidden="true">
+            <strong className="web-page-title">{identity.label}</strong>
+            {identity.secondary && (
+              <span className="web-page-address">{identity.secondary}</span>
+            )}
+          </span>
           <input
             value={input}
             onChange={(event) => setInput(event.target.value)}
@@ -284,6 +313,7 @@ export function WebView({
             placeholder="type an address — colab.research.google.com"
             spellCheck={false}
             aria-label="Address"
+            title={identity.url || undefined}
           />
         </form>
         <button

@@ -100,6 +100,14 @@ timestamp: 2026-08-14T00:00:00Z
   `quick: '1'` tab param carries the disposable one-time naming lifecycle
   across ordinary workspace persistence. The durable file and refactor
   behavior is documented in the vault area note.
+  CP-FEEDBACK S04 gives web tabs recoverable metadata-led identity without
+  changing the IPC surface: `WebViewState.title` was already pushed by the
+  isolated main-owned view, and the renderer now stores its sanitized value in
+  the tab's open `params` map beside `url`. Both tabstrip and in-pane location
+  chrome call `webPageIdentity` (title -> hostname -> URL -> `Web`), while the
+  complete URL stays visible as secondary/tooltip information and as the
+  focused address input. A pushed empty title deliberately overwrites stale
+  state, so navigation to an untitled page falls back honestly.
 - The Dev Docs tab (16 MVP slice): grouped docs tree + rendered Markdown
   with the bedrock diagrams inlined as SVG data URIs, reading the real
   files under `docs/`. `electron-main/dev-docs.ts` holds the pure logic —

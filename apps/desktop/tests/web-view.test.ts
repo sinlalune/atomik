@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { SECURE_WEB_PREFERENCES } from '../electron-main/security'
 import {
+  cleanWebPageTitle,
+  webPageIdentity
+} from '../renderer/src/web/urls'
+import {
   authRequestHeaders,
   clampedViewBounds,
   FIREFOX_UA,
@@ -16,6 +20,36 @@ import {
   WEB_ALLOWED_PERMISSIONS,
   WEB_PARTITION
 } from '../electron-main/web-view'
+
+describe('web page identity (CP-FEEDBACK S04)', () => {
+  it('leads with sanitized page metadata and retains the full URL', () => {
+    const identity = webPageIdentity(
+      'https://example.org/research/paper?q=1#results',
+      '  A\nResearch\u202e Title  '
+    )
+    expect(identity).toEqual({
+      label: 'A Research Title',
+      title: 'A Research Title',
+      url: 'https://example.org/research/paper?q=1#results',
+      secondary: 'https://example.org/research/paper?q=1#results'
+    })
+  })
+
+  it('falls through hostname, URL, and Web when metadata is absent', () => {
+    expect(webPageIdentity('https://docs.example.org/guide', ' \n ').label).toBe(
+      'docs.example.org'
+    )
+    expect(webPageIdentity('restored but malformed', '').label).toBe(
+      'restored but malformed'
+    )
+    expect(webPageIdentity('about:blank', '').label).toBe('Web')
+    expect(webPageIdentity(undefined, undefined).label).toBe('Web')
+  })
+
+  it('bounds persisted page-title metadata well below the workspace cap', () => {
+    expect(cleanWebPageTitle('x'.repeat(5000))).toHaveLength(240)
+  })
+})
 
 describe('embedded web view gates (CP-MVP-006 S03, 13)', () => {
   it('the guest gets the four required settings, the partition, and NO preload', () => {

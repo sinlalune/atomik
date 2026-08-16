@@ -7,7 +7,7 @@ timestamp: 2026-08-16T00:00:00Z
 atomik:
   id: CP-FEEDBACK
   status: running
-  current_step: S04
+  current_step: S05
   base_commit: b32df20
   branch: path/cp-feedback
   writes:
@@ -16,6 +16,7 @@ atomik:
     - apps/desktop/renderer/src/vault/
     - apps/desktop/renderer/src/vault/VaultView.tsx
     - apps/desktop/renderer/src/web/WebView.tsx
+    - apps/desktop/renderer/src/web/urls.ts
     - apps/desktop/renderer/src/workspace/
     - apps/desktop/renderer/src/workspace/ChatView.tsx
     - apps/desktop/renderer/src/workspace/chat-presentation.ts
@@ -157,7 +158,7 @@ are recorded in
       sanitization, and one-time rename cases; implement the quick action using
       existing vault write/relocate transactions; update vault/editor/shell
       notes and checkpoint the ledger.
-- [ ] S04 Metadata-led web identity: pin title/fallback/persistence cases,
+- [x] S04 Metadata-led web identity: pin title/fallback/persistence cases,
       connect isolated page-title metadata to tab and header identity, update
       source/shell notes, and checkpoint the ledger.
 - [ ] S05 Distinct web-source pills: extend the canonical link kind and editor
@@ -173,15 +174,17 @@ are recorded in
 ```text
 base commit : b32df20
 trunk pin   : f9ed012 (rebased before source work; CP-PROVIDERS is integrated)
-changed     : S02 chat presentation + a11y helper + regression; AI module note;
-              S03 quick-note action/shortcut, blank creation, one-time H1
-              naming lifecycle, host save seam, tests, and module notes
-tests       : S03 focused 145/145 PASS; typecheck PASS; production build PASS;
-              baseline full suite 773/773 PASS at S01; S02 focused 6/6 PASS
-next action : S04 — connect isolated page-title metadata to persisted web-tab
-              and in-pane header identity with hostname/URL fallbacks
+changed     : S02 flat assistant presentation/a11y; S03 real quick-note action,
+              blank file + one-time H1 naming lifecycle; S04 sanitized page
+              title persistence + shared tab/location identity fallbacks
+tests       : S04 focused web 17/17 PASS; typecheck PASS; production build PASS;
+              S03 focused 145/145 PASS; baseline full suite 773/773 PASS
+next action : S05 — split durable sources/web note links from raw HTTP links in
+              the canonical graph kind and both editor pill renderers
 blockers    : none; CP-MVP-010 remains active across chat/editor/vault/graph,
               so rebase and overlap checks continue at step boundaries
+scope note  : S04 widened to renderer/src/web/urls.ts after the shared pure
+              title/fallback policy was discovered as the maintainable seam
 ```
 
 # Blockers

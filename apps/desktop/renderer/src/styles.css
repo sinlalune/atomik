@@ -950,6 +950,7 @@ body[data-maximized] .tabstrip {
   flex: 1;
   display: flex;
   min-width: 0;
+  position: relative;
 }
 
 .web-url input {
@@ -962,6 +963,49 @@ body[data-maximized] .tabstrip {
   color: inherit;
   font: inherit;
   font-size: 0.78rem;
+}
+
+/* CP-FEEDBACK S04: the unfocused location surface leads with remote page
+ * metadata but never lets it impersonate the destination — the full URL stays
+ * beside the title, in the tooltip, and becomes the editable value on focus. */
+.web-page-identity {
+  position: absolute;
+  z-index: var(--z-bar);
+  inset: 1px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  pointer-events: none;
+}
+
+.web-page-title,
+.web-page-address {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.web-page-title {
+  flex: none;
+  max-width: 52%;
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+.web-page-address {
+  flex: 1;
+  min-width: 0;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+
+.web-url:focus-within .web-page-identity,
+.web-url:not([data-page='true']) .web-page-identity {
+  visibility: hidden;
 }
 
 .web-hint {

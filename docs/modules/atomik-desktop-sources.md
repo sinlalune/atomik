@@ -305,8 +305,16 @@ timestamp: 2026-08-14T00:00:00Z
   divider-drag moves); geometry channels are tolerant of the
   ensure/report race; overlays that could sit under the native view
   take the `web/overlay.ts` guard (the settings panel does). The URL
-  rides the tab's `url` param (03) — the tab label becomes the
-  hostname, restore reloads the page; tab SWITCHES only hide the view,
+  rides the tab's `url` param (03) and CP-FEEDBACK S04 persists the
+  isolated surface's `page-title-updated` snapshot beside it as `title`.
+  `webPageIdentity` is the renderer's one policy for the tab and the
+  in-pane location surface: sanitized one-line title -> hostname -> URL
+  -> `Web`; bidi/control characters drop and the stored title is capped.
+  Metadata never hides destination identity — the full URL remains the
+  secondary line/tooltip and becomes the editable value on focus. Empty
+  title events are persisted too, clearing a previous page's title so an
+  untitled navigation falls back instead of lying. Restore shows the last
+  title while the isolated view wakes; tab SWITCHES only hide the view,
   so a running page (a Colab session) survives; tab CLOSE destroys it
   (both close paths call `destroyTabView`). E2E probe: ATOMIK_SMOKE_WEB
   (below). Google-auth compatibility: the exact hosts

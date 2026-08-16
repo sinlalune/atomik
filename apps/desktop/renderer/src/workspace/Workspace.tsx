@@ -16,6 +16,7 @@ import { ProjectView } from '../project/ProjectView'
 import { noteDisplayName } from '../vault/scope'
 import { VaultView } from '../vault/VaultView'
 import { WebView } from '../web/WebView'
+import { webPageIdentity } from '../web/urls'
 import {
   activateTab,
   addChatContext,
@@ -144,12 +145,8 @@ function tabLabel(tab: WorkspaceTab): string {
     const segments = tab.params['dossierPath'].split('/')
     return segments[segments.length - 2] ?? 'Image'
   }
-  if (tab.view === 'source-web' && tab.params?.['url']) {
-    try {
-      return new URL(tab.params['url']).hostname || 'Web'
-    } catch {
-      return 'Web'
-    }
+  if (tab.view === 'source-web') {
+    return webPageIdentity(tab.params?.['url'], tab.params?.['title']).label
   }
   const pathParam =
     tab.view === 'dev-docs'
@@ -348,8 +345,12 @@ function TabContent({
       <WebView
         tabId={tab.id}
         initialUrl={tab.params?.['url']}
+        initialTitle={tab.params?.['title']}
         onUrlChange={(url) =>
           dispatch((state) => updateTabParams(state, tab.id, { url }))
+        }
+        onTitleChange={(title) =>
+          dispatch((state) => updateTabParams(state, tab.id, { title }))
         }
         onImported={(dossierPath) =>
           // a web dossier is a SOURCE — it opens in the source view
