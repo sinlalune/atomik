@@ -8,11 +8,12 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S03
+  current_step: S04
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
     - apps/desktop/shared/retrieval-core.ts
+    - apps/desktop/shared/retrieval-expand.ts
     - apps/desktop/shared/graph-core.ts
     - apps/desktop/shared/ipc-contract.ts
     - apps/desktop/electron-main/vault-index.ts
@@ -401,10 +402,19 @@ at every step boundary rather than at the end.
       Creates, deletes and relocates move the node set or rewrite links
       in other notes, so they rebuild — invalidation is always correct
       and merely slower, and a wrong graph is worse than a slow one.
-- [ ] S04 Link expansion: pure expansion over the nodes/edges tables —
-      seeds → neighbours by typed edge, direction- and label-aware,
-      budgeted and deduped, with per-hop attenuation. Unit-tested on
-      fixture graphs.
+- [x] S04 Link expansion (DONE 2026-08-16): `shared/retrieval-expand.ts`
+      NEW — pure, reads only a `GraphIndex`. Both directions of every
+      resolved internal edge; per-hop decay 0.4; untyped links weighted
+      0.8 against a typed edge's 1.0; per-label weights accepted as DATA
+      so no ontology is ever built in; contributions SUM across seeds
+      while the strongest single path is kept as the `via` the packet
+      will show. External and unresolved targets excluded — expansion
+      looks for vault material to read. Budgeted, deduped, deterministic
+      (score, then path). +9 tests (820 → 829).
+      KNOWN LIMIT recorded, not guessed at: summing also rewards a hub
+      that links everything. If S10's evaluation shows hubs crowding out
+      answers, the fix is a measured degree penalty, not a threshold
+      invented today.
 - [ ] S05 Context packet: `compileContextPacket` — scope rung 0 first
       (selection, open resources, pinned paths), then lexical, then
       expansion; bounded by an explicit token budget; entries carry
@@ -438,8 +448,9 @@ at every step boundary rather than at the end.
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S03 done — S04 next
-changed     : apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
+current step: S04 done — S05 next
+changed     : apps/desktop/shared/retrieval-expand.ts (new)
+              apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts
               apps/desktop/electron-main/{search,graph-index,index}.ts
               apps/desktop/electron-preload/index.ts
@@ -449,12 +460,14 @@ changed     : apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               docs/learning/22-lexical-retrieval-without-a-database.md + index
               docs/adr/ADR-013-lexical-retrieval-without-a-database.md
               docs/index.md · atomik-project/coding-paths/CP-MVP-010.md
-tests       : 820 passing / 68 files (this path added 32 so far),
+tests       : 829 passing / 69 files (this path added 41 so far),
               typecheck and build green, each gate run BARE (24)
-next action : S04 — link expansion over the nodes/edges tables: pure,
-              budgeted, direction- and label-aware, per-hop attenuation,
-              unit-tested on fixture graphs; the stage that turns a hit
-              list into a neighbourhood for S05's packet
+next action : S05 — `compileContextPacket`: rung 0 first (selection,
+              open resources, pinned paths), then lexical, then
+              expansion; bounded by an explicit token budget; entries
+              carrying stage + score + span; omitted entries carrying a
+              reason; the coverage verdict; one read-only IPC channel
+              shaped as the `search_vault` tool contract
 rebase note : the learning index collided at the rebase (note 22 here,
               note 23 from CP-PROVIDERS) — mechanical, both kept in
               order. Exactly the shared-prose conflict paths.md

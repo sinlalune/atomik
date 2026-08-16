@@ -57,6 +57,29 @@ timestamp: 2026-08-14T00:00:00Z
   from the main-side index, so an edge authored in ANOTHER pane is not
   reflected until the note changes or the content does.
 
+## Link expansion — the graph as a retrieval stage (CP-MVP-010 S04)
+
+- `shared/retrieval-expand.ts` is PURE and reads only a `GraphIndex`:
+  lexical search finds the notes that CONTAIN the words, expansion finds
+  the notes the author already said were related. That is the return on
+  CP-MVP-009 — an edge nobody retrieves through is decoration.
+- `adjacencyOf` walks every RESOLVED internal edge in both directions
+  (an edge is stored once and directed; relatedness reads both ways, per
+  the direction doctrine). External and unresolved targets are left out:
+  expansion exists to find more vault material to read, and neither is a
+  file.
+- Scoring pins (S01, movable only on S10 evidence): per-hop decay 0.4,
+  untyped link 0.8 against a typed edge's 1.0 — a typed edge is a
+  stronger statement of relatedness than a bare mention — and per-label
+  weights accepted as DATA, so no ontology is ever built in (ADR-011:
+  the vocabulary is the owner's).
+- Contributions SUM across seeds, so a note reached from several hits
+  outranks one reached from a single hit; the strongest single path is
+  kept separately as the `via` the packet shows for "why this entry".
+  Known limit, recorded rather than guessed at: summing also rewards a
+  hub that links everything (a folder `index.md`). If the S10 evaluation
+  shows hubs crowding out answers, the fix is a measured degree penalty.
+
 ## Incremental index maintenance (CP-MVP-010 S03)
 
 - `patchGraphIndexForSave(index, path, content)` is PURE and returns
