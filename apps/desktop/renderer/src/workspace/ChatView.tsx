@@ -388,6 +388,9 @@ export function ChatView({
   // "it is a message bounded information"). The composer holds only a
   // forward-looking preview of what the NEXT send would retrieve.
   const [grounding, setGrounding] = useState(false)
+  // S08g: how wide the net is thrown. A preference for the next sends,
+  // like the toggle beside it.
+  const [sensitivity, setSensitivity] = useState<'titles' | 'links' | 'full'>('links')
   const [preview, setPreview] = useState<ContextPacket | null>(null)
   const packetByTurn = useRef(new Map<number, ContextPacket>())
   const [openPacketTurn, setOpenPacketTurn] = useState<number | null>(null)
@@ -840,7 +843,7 @@ export function ChatView({
           ...(thread.length > 0 ? { thread } : {}),
           // The renderer ASKS; main decides what the packet contains
           // and returns it on the bundle (S07).
-          ...(grounding ? { grounding: {} } : {})
+          ...(grounding ? { grounding: { sensitivity } } : {})
         }
         // S07b4 (owner): the sent request, RETRACED — per-part pills
         // with token estimates ride the you-turn (session meta, like
@@ -989,6 +992,7 @@ export function ChatView({
     [
       genDrafts,
       grounding,
+      sensitivity,
       loadPrompts,
       persistTurn,
       resolveTarget,
@@ -1898,11 +1902,32 @@ export function ChatView({
               <button
                 type="button"
                 className="chat-tool"
+                title={
+                  sensitivity === 'titles'
+                    ? 'Matching note TITLES, headings and paths only — the narrowest net'
+                    : sensitivity === 'links'
+                      ? 'Matching titles, headings, paths, frontmatter and LINK text — what notes are called and point at'
+                      : 'Matching everything including note BODIES — the widest net, and the noisiest'
+                }
+                aria-label={`Retrieval reach: ${sensitivity}`}
+                onClick={() =>
+                  setSensitivity((current) =>
+                    current === 'titles' ? 'links' : current === 'links' ? 'full' : 'titles'
+                  )
+                }
+              >
+                reach · {sensitivity}
+              </button>
+            )}
+            {grounding && (
+              <button
+                type="button"
+                className="chat-tool"
                 disabled={input.trim().length === 0 || running}
                 title="See what the NEXT send would retrieve, without sending"
                 onClick={() => {
                   void window.atomik
-                    .compileContextPacket({ query: input.trim() })
+                    .compileContextPacket({ query: input.trim(), sensitivity })
                     .then(setPreview)
                     .catch(() => {
                       /* a failed preview must never block the send */

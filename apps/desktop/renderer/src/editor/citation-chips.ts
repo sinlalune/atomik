@@ -50,6 +50,7 @@ export function applyCitationChips(
     MARKER_RE.lastIndex = 0
   }
 
+  const marked: HTMLElement[] = []
   for (const target of targets) {
     const parent = target.parentElement
     if (!parent || SKIP.has(parent.tagName)) continue
@@ -78,11 +79,69 @@ export function applyCitationChips(
         fragment.append(anchor)
       }
       cursor = start + match[0].length
+      marked.push(fragment.lastElementChild as HTMLElement)
     }
     if (cursor === 0) continue
     fragment.append(doc.createTextNode(target.data.slice(cursor)))
     parent.replaceChild(fragment, target)
   }
 
+  for (const chip of marked) wrapCitedSpan(chip)
   return found
+}
+
+/**
+ * The EXTENT of a citation (owner bench round 8: "there is still no
+ * visual clue or cue of the citation (the length of it for example)").
+ *
+ * A marker says where a citation ENDS; it says nothing about how much
+ * of the text it covers, which is the question a reader actually has.
+ * So the sentence carrying the marker is wrapped with it: hovering
+ * anywhere in that sentence lights both up, and the reader sees exactly
+ * how far the note's support reaches. Pure CSS from there — no hover
+ * handlers, no state.
+ *
+ * The walk goes BACKWARD over siblings until a sentence boundary, so a
+ * sentence containing bold or a link is captured whole. Failing that it
+ * stops at the block, which is coarser but never wrong.
+ */
+function wrapCitedSpan(chip: HTMLElement): void {
+  const parent = chip.parentElement
+  if (!parent || parent.classList.contains('cited-span')) return
+  const doc = chip.ownerDocument
+
+  const collected: ChildNode[] = [chip]
+  let node: ChildNode | null = chip.previousSibling
+  let boundary = -1
+  while (node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const data = (node as Text).data
+      const match = /[.!?…:][\s"»]*(?=[^.!?…]*$)/.exec(data)
+      if (match) {
+        boundary = match.index + match[0].length
+        break
+      }
+    }
+    // Another citation's span: stop rather than swallow it.
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const element = node as HTMLElement
+      if (element.classList.contains('cited-span')) break
+      if (element.tagName === 'BR') break
+    }
+    collected.unshift(node)
+    node = node.previousSibling
+  }
+
+  const span = doc.createElement('span')
+  span.className = 'cited-span'
+  const first = collected[0]
+  if (!first) return
+  if (boundary >= 0 && node && node.nodeType === Node.TEXT_NODE) {
+    const text = node as Text
+    const tail = text.splitText(boundary)
+    collected.unshift(tail)
+  }
+  const anchor = collected[0] as ChildNode
+  parent.insertBefore(span, anchor)
+  for (const child of collected) span.append(child)
 }

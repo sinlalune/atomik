@@ -224,9 +224,20 @@ export function toPacketRequest(raw: unknown): PacketRequest {
     scope = { ...(folder === undefined ? {} : { folder }), ...(paths ? { paths } : {}) }
   }
 
+  const sensitivity = value['sensitivity']
+  if (
+    sensitivity !== undefined &&
+    sensitivity !== 'titles' &&
+    sensitivity !== 'links' &&
+    sensitivity !== 'full'
+  ) {
+    throw new Error('packet: rejected sensitivity')
+  }
+
   return {
     query,
     ...(scope ? { scope } : {}),
+    ...(sensitivity ? { sensitivity } : {}),
     ...(boundedNumber(value['maxTokens'], 1, 32_000) ?? {}),
     ...(boundedNumber(value['hops'], 0, 3, 'hops') ?? {}),
     ...(boundedNumber(value['limit'], 1, 50, 'limit') ?? {})

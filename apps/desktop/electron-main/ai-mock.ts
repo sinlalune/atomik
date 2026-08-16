@@ -112,6 +112,15 @@ export function isValidAiOperation(value: unknown): value is AiOperation {
     ) {
       return false
     }
+    const sensitivity = grounding['sensitivity']
+    if (
+      sensitivity !== undefined &&
+      sensitivity !== 'titles' &&
+      sensitivity !== 'links' &&
+      sensitivity !== 'full'
+    ) {
+      return false
+    }
     const scope = grounding['scope']
     if (scope !== undefined) {
       if (!isRecord(scope)) return false

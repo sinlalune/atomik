@@ -4,7 +4,8 @@ import {
   extractMatches,
   parseQuery,
   searchIndex,
-  type RetrievalIndex
+  type RetrievalIndex,
+  type RetrievalSensitivity
 } from './retrieval-core'
 import { expandOverGraph, explainStep } from './retrieval-expand'
 
@@ -119,6 +120,10 @@ export type PacketRequest = {
   hops?: number
   /** Cap on entries, before the token budget bites. */
   limit?: number
+  /** How wide the net: titles · links · full (default `links` — the
+   *  owner's ruling at bench round 8, since a body-wide net drags in
+   *  every note that mentions a word in passing). */
+  sensitivity?: RetrievalSensitivity
 }
 
 export type PacketDeps = {
@@ -129,6 +134,11 @@ export type PacketDeps = {
   /** Injected so packets are reproducible in tests. */
   id?: string
 }
+
+/** Owner ruling, bench round 8: the default net reads what notes are
+ *  CALLED and what they POINT AT, not everything they say. Body-wide
+ *  matching stays one click away. */
+export const DEFAULT_SENSITIVITY: RetrievalSensitivity = 'links'
 
 export const DEFAULT_MAX_TOKENS = 4000
 export const DEFAULT_ENTRY_LIMIT = 12
@@ -222,7 +232,11 @@ export function compileContextPacket(
 
   // ---- rung 1: lexical ------------------------------------------------
   const parsed = parseQuery(request.query)
-  const hits = searchIndex(deps.index, request.query, { limit: CANDIDATE_LIMIT })
+  const sensitivity = request.sensitivity ?? DEFAULT_SENSITIVITY
+  const hits = searchIndex(deps.index, request.query, {
+    limit: CANDIDATE_LIMIT,
+    sensitivity
+  })
   // Words the vault is full of are not gaps: they are everywhere, they
   // simply cannot rank anything (S08b).
   const matchedTerms = new Set<string>(commonTermsOf(deps.index, request.query))
@@ -353,7 +367,10 @@ export function compileContextPacket(
       selected: entries.length,
       contextTokens
     },
-    budget: { maxTokens, policy: 'cheapest-sufficient (33 ladder)' },
+    budget: {
+      maxTokens,
+      policy: `cheapest-sufficient (33 ladder) · ${sensitivity}`
+    },
     coverage: {
       verdict:
         matchedTerms.size === 0 ? 'empty' : missingTerms.length === 0 ? 'covered' : 'thin',

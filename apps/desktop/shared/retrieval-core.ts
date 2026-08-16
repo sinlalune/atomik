@@ -475,8 +475,33 @@ export type RetrievalHit = {
   terms: string[]
 }
 
+/**
+ * How wide the net is thrown (CP-MVP-010 S08g, owner: "the context rag
+ * search would need a sensibility option like from title only to title
+ * + link pages to etc"). Narrow reads the vault's SKELETON — what notes
+ * are called and what they point at; wide reads everything they say.
+ *
+ * ```text
+ * titles   title · heading · path            what a note is called
+ * links    + link text, labels, frontmatter  + what it points at
+ * full     + body                            + everything it says
+ * ```
+ */
+export type RetrievalSensitivity = 'titles' | 'links' | 'full'
+
+export const SENSITIVITY_FIELDS: Record<
+  RetrievalSensitivity,
+  readonly RetrievalField[]
+> = {
+  titles: ['title', 'heading', 'path'],
+  links: ['title', 'heading', 'path', 'frontmatter', 'link'],
+  full: RETRIEVAL_FIELDS
+}
+
 export type SearchOptions = {
   limit?: number
+  /** Which fields may match at all. Absent = every field. */
+  sensitivity?: RetrievalSensitivity
   /** Every query term must appear somewhere in the document. */
   requireAll?: boolean
   /** Perimeter filter, applied before scoring (scope, 26). */
@@ -497,6 +522,9 @@ export function searchIndex(
 ): RetrievalHit[] {
   const { terms, phrases } = parseQuery(query)
   if (terms.length === 0 || index.docs.length === 0) return []
+  const fields = new Set(
+    SENSITIVITY_FIELDS[options.sensitivity ?? 'full'] as readonly RetrievalField[]
+  )
 
   const docCount = index.docs.length
   const average = emptyLengths()
@@ -516,7 +544,9 @@ export function searchIndex(
       // is also the commonest word in the corpus. This is the cheap,
       // dependency-free half of what a POS tagger buys: Atomik knows
       // its own nouns because the owner titled them.
-      const named = postings.some((posting) => posting.field === 'title')
+      const named = postings.some(
+        (posting) => posting.field === 'title' && fields.has('title')
+      )
       if (!named && df / docCount > COMMON_TERM_SHARE) return null
       return { term, df, named }
     })
@@ -556,6 +586,7 @@ export function searchIndex(
     const idf = Math.log(1 + (docCount - documents.size + 0.5) / (documents.size + 0.5))
 
     for (const posting of postings) {
+      if (!fields.has(posting.field)) continue
       const doc = index.docs[posting.doc]
       if (!doc) continue
       if (options.accept && !options.accept(doc.path)) continue

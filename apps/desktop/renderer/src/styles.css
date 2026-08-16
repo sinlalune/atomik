@@ -5417,6 +5417,25 @@ button svg {
    the sentence: "these words are verbatim from a note") and the
    citation (a marker: "the model attributes this to note 1") then say
    two different things and stop competing. */
+/* A citation's EXTENT (S08g): the marker says where it ends, the span
+   says how far back it reaches. Quiet until asked — a permanent tint on
+   every cited sentence would be the claim-overlay mistake again — then
+   both light up together on hover. */
+.chat-turn-body .cited-span {
+  border-radius: var(--radius-sm);
+  transition: background 120ms ease;
+}
+
+.chat-turn-body .cited-span:hover {
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.chat-turn-body .cited-span:hover > a.citation-chip {
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+  border-color: var(--accent);
+}
+
 .chat-turn-body a.citation-chip {
   display: inline-flex;
   align-items: center;

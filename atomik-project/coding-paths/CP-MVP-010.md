@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S08f
+  current_step: S08g
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -749,6 +749,31 @@ live, on real notes.
       Where a parser WOULD win, recorded so S10 can measure it: word
       order ("Plato's influence on Kant"), and subjects that are common
       words the vault never titled. +2 tests (875 → 877).
+- [x] S08g BENCH ROUND 8 (2026-08-16 — DONE same day):
+      (1) A CITATION HAS AN EXTENT. The chips render, but a marker says
+      only where a citation ENDS — "there is still no visual clue or cue
+      of the citation (the length of it for exemple)". The sentence
+      carrying a marker is now wrapped with it (`cited-span`, walked
+      backward over siblings to the sentence boundary so bold and links
+      inside it are captured whole); hovering anywhere in the sentence
+      lights the sentence and its chip together. Quiet until asked — a
+      permanent tint would repeat the claim-overlay mistake — and pure
+      CSS from there.
+      (2) REACH, the owner's "sensibility option like from title only to
+      title + link pages to etc": three settings over the SAME index —
+      `titles` (what a note is called), `links` (+ what it points at),
+      `full` (+ everything it says) — with `links` as the default per
+      the owner's ruling, exposed as a `reach · links` button beside the
+      vault toggle and carried through the packet request, the grounding
+      request and main-side validation.
+      TERMINOLOGY, since the owner asked: `path` is the file path and
+      folder names; `link` is the TEXT of links and edge labels inside a
+      note. "title + link" is the `links` setting, which covers both.
+      COST NAMED: at `links` a note that discusses a subject without ever
+      naming it is invisible. That is a recall trade, and it is the first
+      thing S10's evaluation set should measure — nine existing tests
+      now state their reach explicitly, which is itself the honest
+      documentation of the change. +3 tests (877 → 880).
 - [ ] S09 Search surface + diagnostics: ranked results with kind pills
       and "why this result", the packet disclosure, and the vault-wide
       broken-links list docked there.
@@ -768,7 +793,7 @@ live, on real notes.
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S08f done (owner bench rounds 1–7 + the subject-weighting research absorbed) — S09 next
+current step: S08g done (owner bench rounds 1–8 absorbed) — S09 next
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts
@@ -780,7 +805,7 @@ changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               docs/learning/22-lexical-retrieval-without-a-database.md + index
               docs/adr/ADR-013-lexical-retrieval-without-a-database.md
               docs/index.md · atomik-project/coding-paths/CP-MVP-010.md
-tests       : 877 passing / 71 files (this path added 89 so far),
+tests       : 880 passing / 71 files (this path added 92 so far),
               typecheck and build green, each gate run BARE (24)
 next action : S09 — the search surface: ranked results with kind pills
               and "why this result", the packet disclosure, and the

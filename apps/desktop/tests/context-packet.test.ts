@@ -47,7 +47,10 @@ const paths = (entries: { path: string }[]): string[] =>
 
 describe('compileContextPacket', () => {
   it('walks the ladder and labels every entry with the stage that found it', () => {
-    const packet = compileContextPacket({ query: 'crédibilité' }, deps)
+    const packet = compileContextPacket(
+      { query: 'crédibilité', sensitivity: 'full' },
+      deps
+    )
 
     expect(packet.retrieval.stages).toEqual(['lexical', 'link'])
     const lexical = packet.entries.filter((entry) => entry.stage === 'lexical')
@@ -74,13 +77,19 @@ describe('compileContextPacket', () => {
   })
 
   it('reports coverage in terms of the words themselves', () => {
-    const covered = compileContextPacket({ query: 'pathos émotions' }, deps).coverage
+    const covered = compileContextPacket(
+      { query: 'pathos émotions', sensitivity: 'full' },
+      deps
+    ).coverage
     expect(covered.verdict).toBe('covered')
     expect(covered.missingTerms).toEqual([])
 
     // the vault has "pathos" but nothing about Wikidata — the exact
     // branch CP-MVP-011's external half will take
-    const thin = compileContextPacket({ query: 'pathos wikidata' }, deps).coverage
+    const thin = compileContextPacket(
+      { query: 'pathos wikidata', sensitivity: 'full' },
+      deps
+    ).coverage
     expect(thin.verdict).toBe('thin')
     expect(thin.missingTerms).toEqual(['wikidata'])
 
@@ -101,7 +110,7 @@ describe('compileContextPacket', () => {
 
   it('drops entries outside the scope folder as scope omissions', () => {
     const packet = compileContextPacket(
-      { query: 'crédibilité', scope: { folder: 'projects' } },
+      { query: 'crédibilité', scope: { folder: 'projects' }, sensitivity: 'full' },
       deps
     )
     expect(paths(packet.entries).every((path) => path.startsWith('projects/'))).toBe(true)
@@ -202,7 +211,10 @@ describe('bench round 2 (2026-08-16): what may ground, and what a title is', () 
   }
 
   it('never grounds an answer in old dialogue, and says why', () => {
-    const packet = compileContextPacket({ query: 'crédibilité' }, chatDeps)
+    const packet = compileContextPacket(
+      { query: 'crédibilité', sensitivity: 'full' },
+      chatDeps
+    )
     expect(paths(packet.entries)).not.toContain(CHAT.path)
     expect(packet.omitted).toContainEqual({ path: CHAT.path, reason: 'dialogue' })
   })
@@ -247,7 +259,7 @@ describe('bench round 3 (2026-08-16): a neighbourhood is not an answer', () => {
   }
 
   it('keeps a hub`s unrelated neighbours out, and reports them as threshold', () => {
-    const packet = compileContextPacket({ query: 'XML' }, hubDeps)
+    const packet = compileContextPacket({ query: 'XML', sensitivity: 'full' }, hubDeps)
 
     expect(paths(packet.entries)).toContain('xml.md')
     for (const stray of ['ai.md', 'logos.md', 'peloponnese.md']) {
@@ -268,7 +280,10 @@ describe('bench round 4 (2026-08-16): what matched, and what was noise', () => {
   it('does not report a word the vault is full of as missing', () => {
     // "de" is in every note here: it cannot rank anything, but it is
     // certainly not a gap in the vault's knowledge
-    const packet = compileContextPacket({ query: 'de pathos' }, deps)
+    const packet = compileContextPacket(
+      { query: 'de pathos', sensitivity: 'full' },
+      deps
+    )
     expect(packet.coverage.missingTerms).toEqual([])
     expect(packet.coverage.verdict).toBe('covered')
   })
@@ -297,7 +312,7 @@ describe('bench round 7 (2026-08-16): app machinery is not knowledge', () => {
   }
 
   it('keeps a chat FOLDER index out, which the node-kind rule let through', () => {
-    const packet = compileContextPacket({ query: 'pathos' }, deps2)
+    const packet = compileContextPacket({ query: 'pathos', sensitivity: 'full' }, deps2)
     expect(paths(packet.entries)).not.toContain('chats/2026-08-03/index.md')
     expect(packet.omitted).toContainEqual({
       path: 'chats/2026-08-03/index.md',
@@ -306,7 +321,7 @@ describe('bench round 7 (2026-08-16): app machinery is not knowledge', () => {
   })
 
   it('never feeds a prompt file back to the model as reference', () => {
-    const packet = compileContextPacket({ query: 'pathos' }, deps2)
+    const packet = compileContextPacket({ query: 'pathos', sensitivity: 'full' }, deps2)
     expect(paths(packet.entries)).not.toContain(
       "prompts/Explain me like I'm 5 years old.md"
     )
@@ -314,5 +329,53 @@ describe('bench round 7 (2026-08-16): app machinery is not knowledge', () => {
       path: "prompts/Explain me like I'm 5 years old.md",
       reason: 'machinery'
     })
+  })
+})
+
+describe('bench round 8 (2026-08-16): how wide the net is thrown', () => {
+  const REACH = [
+    { path: 'concepts/stoicisme.md', content: '# Stoïcisme\n\nUne école grecque.\n' },
+    {
+      path: 'notes/lecture.md',
+      content: '# Lecture du jour\n\nUn passage qui mentionne le stoicisme en passant.\n'
+    },
+    {
+      path: 'notes/renvoi.md',
+      content: '# Renvoi\n\nVoir [[stoicisme]]{prolonge} pour la suite.\n'
+    },
+    ...Array.from({ length: 10 }, (_, index) => ({
+      path: `misc/${index}.md`,
+      content: `# Divers ${index}\n\nSans rapport.\n`
+    }))
+  ]
+  const reachDeps: PacketDeps = {
+    index: buildRetrievalIndex(REACH),
+    graph: buildGraphIndex(REACH),
+    read: (path) => REACH.find((file) => file.path === path)?.content,
+    id: 'packet-reach'
+  }
+
+  it('titles: only what a note is CALLED', () => {
+    const packet = compileContextPacket(
+      { query: 'stoicisme', sensitivity: 'titles', hops: 0 },
+      reachDeps
+    )
+    expect(paths(packet.entries)).toEqual(['concepts/stoicisme.md'])
+  })
+
+  it('links (the default): what notes are called AND point at, never their prose', () => {
+    const packet = compileContextPacket({ query: 'stoicisme', hops: 0 }, reachDeps)
+    expect(paths(packet.entries)).toContain('concepts/stoicisme.md')
+    expect(paths(packet.entries)).toContain('notes/renvoi.md') // wikilink text
+    expect(paths(packet.entries)).not.toContain('notes/lecture.md') // body only
+    expect(packet.budget.policy).toContain('links')
+  })
+
+  it('full: everything, including a passing mention in a body', () => {
+    const packet = compileContextPacket(
+      { query: 'stoicisme', sensitivity: 'full', hops: 0 },
+      reachDeps
+    )
+    expect(paths(packet.entries)).toContain('notes/lecture.md')
   })
 })

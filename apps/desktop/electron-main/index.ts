@@ -531,6 +531,9 @@ function registerVaultHandlers(stateDir: string): void {
           ...(operation.grounding.scope ? { scope: operation.grounding.scope } : {}),
           ...(operation.grounding.maxTokens
             ? { maxTokens: operation.grounding.maxTokens }
+            : {}),
+          ...(operation.grounding.sensitivity
+            ? { sensitivity: operation.grounding.sensitivity }
             : {})
         })
         const references = referenceSelectionsOf(packet)
