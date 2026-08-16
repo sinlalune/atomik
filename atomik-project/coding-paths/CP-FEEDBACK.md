@@ -7,7 +7,7 @@ timestamp: 2026-08-16T00:00:00Z
 atomik:
   id: CP-FEEDBACK
   status: running
-  current_step: S01
+  current_step: S02
   base_commit: b32df20
   branch: path/cp-feedback
   writes:
@@ -141,7 +141,7 @@ are recorded in
 
 # Execution
 
-- [ ] S01 Bootstrap + regression pins: create the isolated worktree, read every
+- [x] S01 Bootstrap + regression pins: create the isolated worktree, read every
       Required document, verify the pinned trunk behavior, record overlap
       boundaries with CP-MVP-010 and CP-PROVIDERS, and run the baseline gates.
 - [ ] S02 Flat assistant chat turns: add focused layout/accessibility regression
@@ -166,10 +166,13 @@ are recorded in
 
 ```text
 base commit : b32df20
-changed     : path file + 2026-08-16 opening-check session record
-tests       : not run for this path yet
-next action : activate path/cp-feedback in its own worktree and execute S01
-blockers    : none; declared source overlaps require early rebase checks, not ownership locks
+trunk pin   : f9ed012 (rebased before source work; CP-PROVIDERS is integrated)
+changed     : CP-FEEDBACK ledger (S01); no source changes yet
+tests       : typecheck PASS; 773/773 tests PASS with loopback permission;
+              production build PASS; cairn-check rebase finding resolved
+next action : S02 — pin and implement flat assistant chat turns
+blockers    : none; CP-MVP-010 remains active across chat/editor/vault/graph,
+              so rebase and overlap checks continue at step boundaries
 ```
 
 # Blockers
