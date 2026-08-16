@@ -476,26 +476,40 @@ export type RetrievalHit = {
 }
 
 /**
- * How wide the net is thrown (CP-MVP-010 S08g, owner: "the context rag
- * search would need a sensibility option like from title only to title
- * + link pages to etc"). Narrow reads the vault's SKELETON — what notes
- * are called and what they point at; wide reads everything they say.
+ * How far retrieval reaches (CP-MVP-010 S08g, owner: "from title only to
+ * title + link pages to etc" — corrected at S08h, where the owner made
+ * the axis explicit: *"links for me was the fact that a note is linked
+ * to a found note with title match"*).
+ *
+ * The ladder is 33's, not a set of index fields: first WHAT MATCHED,
+ * then HOW FAR the graph is walked from what matched.
  *
  * ```text
- * titles   title · heading · path            what a note is called
- * links    + link text, labels, frontmatter  + what it points at
- * full     + body                            + everything it says
+ * titles   title · heading · path match, no expansion
+ * linked   the same match, plus the notes LINKED to it   (default)
+ * full     every field including bodies, plus expansion
  * ```
+ *
+ * `linked` is not about the link-TEXT field: a note earns its place by
+ * being connected to a note whose title answered, which is the whole
+ * argument for having built the graph.
  */
-export type RetrievalSensitivity = 'titles' | 'links' | 'full'
+export type RetrievalSensitivity = 'titles' | 'linked' | 'full'
 
 export const SENSITIVITY_FIELDS: Record<
   RetrievalSensitivity,
   readonly RetrievalField[]
 > = {
   titles: ['title', 'heading', 'path'],
-  links: ['title', 'heading', 'path', 'frontmatter', 'link'],
+  linked: ['title', 'heading', 'path'],
   full: RETRIEVAL_FIELDS
+}
+
+/** How far the graph is walked at each reach. */
+export const SENSITIVITY_HOPS: Record<RetrievalSensitivity, number> = {
+  titles: 0,
+  linked: 1,
+  full: 1
 }
 
 export type SearchOptions = {

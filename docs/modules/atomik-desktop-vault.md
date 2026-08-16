@@ -44,20 +44,25 @@ timestamp: 2026-08-14T00:00:00Z
   with BM25F (`k1 1.2`, `b 0.75`, weights 3/2/2/1.8/1.5/1). Rung 1 of
   33's ladder; no embeddings, no vector store, and deliberately no
   SQLite (ADR-013 carries the dated thresholds that would reverse it).
-  - REACH — how wide the net is thrown (S08g, owner: "the context rag
-    search would need a sensibility option like from title only to title
-    + link pages to etc"). Three settings over the SAME index, no second
-    engine: `titles` (title · heading · path — what a note is CALLED),
-    `links` (+ frontmatter and link text/labels — what it POINTS AT),
-    `full` (+ body — everything it SAYS). Default `links`, the owner's
-    ruling: a body-wide net drags in every note that mentions a word in
-    passing. The cost is recall — a note that discusses a subject
-    without ever naming it is invisible at `links` — which is the first
-    thing S10's evaluation should measure.
-    NOTE for the record: `path` is the file path and folder names;
-    `link` is the TEXT of links and edge labels inside a note. They are
-    different fields, and the owner's "title + link" is the `links`
-    setting, which includes both.
+  - REACH — how FAR retrieval goes (S08g, corrected at S08h). The owner
+    asked for "a sensibility option like from title only to title + link
+    pages to etc"; the first implementation read that as a set of index
+    FIELDS, and the correction was exact: *"links for me was the fact
+    that a note is linked to a found note with title match"*. The axis
+    is 33's ladder — what MATCHED, then how far the graph is WALKED from
+    it — not which columns are searched.
+    ```text
+    titles   title · heading · path match, no expansion
+    linked   the same match, plus the notes LINKED to it   (default)
+    full     every field including bodies, plus expansion
+    ```
+    `linked` is the whole argument for having built the graph: a note
+    earns its place by being connected to a note whose title answered,
+    not by containing the word somewhere. An explicit `hops` in a
+    request still wins over the reach's own walk.
+    The cost is recall — at `titles`/`linked` a note that discusses a
+    subject without naming it anywhere is invisible — and that is the
+    first thing S10's evaluation should measure.
   - THE VAULT NAMES ITS OWN SUBJECTS (S08f): a query term that appears
     in some note's TITLE is principal whatever the statistics say. The
     frequency rule alone gets one case badly wrong — a vault ABOUT

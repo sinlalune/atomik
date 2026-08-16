@@ -390,7 +390,9 @@ export function ChatView({
   const [grounding, setGrounding] = useState(false)
   // S08g: how wide the net is thrown. A preference for the next sends,
   // like the toggle beside it.
-  const [sensitivity, setSensitivity] = useState<'titles' | 'links' | 'full'>('links')
+  const [sensitivity, setSensitivity] = useState<'titles' | 'linked' | 'full'>(
+    'linked'
+  )
   const [preview, setPreview] = useState<ContextPacket | null>(null)
   const packetByTurn = useRef(new Map<number, ContextPacket>())
   const [openPacketTurn, setOpenPacketTurn] = useState<number | null>(null)
@@ -1904,15 +1906,19 @@ export function ChatView({
                 className="chat-tool"
                 title={
                   sensitivity === 'titles'
-                    ? 'Matching note TITLES, headings and paths only — the narrowest net'
-                    : sensitivity === 'links'
-                      ? 'Matching titles, headings, paths, frontmatter and LINK text — what notes are called and point at'
-                      : 'Matching everything including note BODIES — the widest net, and the noisiest'
+                    ? 'Notes whose TITLE matches — nothing else'
+                    : sensitivity === 'linked'
+                      ? 'Notes whose title matches, PLUS the notes linked to them'
+                      : 'Everything, including notes that only mention it in their body'
                 }
                 aria-label={`Retrieval reach: ${sensitivity}`}
                 onClick={() =>
                   setSensitivity((current) =>
-                    current === 'titles' ? 'links' : current === 'links' ? 'full' : 'titles'
+                    current === 'titles'
+                      ? 'linked'
+                      : current === 'linked'
+                        ? 'full'
+                        : 'titles'
                   )
                 }
               >

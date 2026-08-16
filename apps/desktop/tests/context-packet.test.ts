@@ -332,7 +332,7 @@ describe('bench round 7 (2026-08-16): app machinery is not knowledge', () => {
   })
 })
 
-describe('bench round 8 (2026-08-16): how wide the net is thrown', () => {
+describe('bench round 8 (2026-08-16): how FAR retrieval reaches', () => {
   const REACH = [
     { path: 'concepts/stoicisme.md', content: '# Stoïcisme\n\nUne école grecque.\n' },
     {
@@ -355,25 +355,30 @@ describe('bench round 8 (2026-08-16): how wide the net is thrown', () => {
     id: 'packet-reach'
   }
 
-  it('titles: only what a note is CALLED', () => {
+  it('titles: the notes whose title matches, and nothing else', () => {
     const packet = compileContextPacket(
-      { query: 'stoicisme', sensitivity: 'titles', hops: 0 },
+      { query: 'stoicisme', sensitivity: 'titles' },
       reachDeps
     )
     expect(paths(packet.entries)).toEqual(['concepts/stoicisme.md'])
   })
 
-  it('links (the default): what notes are called AND point at, never their prose', () => {
-    const packet = compileContextPacket({ query: 'stoicisme', hops: 0 }, reachDeps)
+  it('linked (the default): the title match PLUS the notes linked to it', () => {
+    const packet = compileContextPacket({ query: 'stoicisme' }, reachDeps)
     expect(paths(packet.entries)).toContain('concepts/stoicisme.md')
-    expect(paths(packet.entries)).toContain('notes/renvoi.md') // wikilink text
-    expect(paths(packet.entries)).not.toContain('notes/lecture.md') // body only
-    expect(packet.budget.policy).toContain('links')
+    // renvoi.md never says "stoicisme" outside its LINK — it is here
+    // because it is connected to the note whose title answered
+    const linked = packet.entries.find((entry) => entry.path === 'notes/renvoi.md')!
+    expect(linked.stage).toBe('link')
+    expect(linked.reason).toContain('prolonge')
+    // a passing mention in a body is still not an answer
+    expect(paths(packet.entries)).not.toContain('notes/lecture.md')
+    expect(packet.budget.policy).toContain('linked')
   })
 
   it('full: everything, including a passing mention in a body', () => {
     const packet = compileContextPacket(
-      { query: 'stoicisme', sensitivity: 'full', hops: 0 },
+      { query: 'stoicisme', sensitivity: 'full' },
       reachDeps
     )
     expect(paths(packet.entries)).toContain('notes/lecture.md')

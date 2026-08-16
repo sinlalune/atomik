@@ -116,7 +116,7 @@ export function isValidAiOperation(value: unknown): value is AiOperation {
     if (
       sensitivity !== undefined &&
       sensitivity !== 'titles' &&
-      sensitivity !== 'links' &&
+      sensitivity !== 'linked' &&
       sensitivity !== 'full'
     ) {
       return false

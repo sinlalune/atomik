@@ -228,7 +228,7 @@ export function toPacketRequest(raw: unknown): PacketRequest {
   if (
     sensitivity !== undefined &&
     sensitivity !== 'titles' &&
-    sensitivity !== 'links' &&
+    sensitivity !== 'linked' &&
     sensitivity !== 'full'
   ) {
     throw new Error('packet: rejected sensitivity')

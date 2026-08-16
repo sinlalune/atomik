@@ -540,8 +540,8 @@ export type AiOperation = {
   grounding?: {
     scope?: ContextScope
     maxTokens?: number
-    /** How wide the net: titles · links · full (S08g). */
-    sensitivity?: 'titles' | 'links' | 'full'
+    /** How far retrieval reaches: titles · linked · full (S08g/h). */
+    sensitivity?: 'titles' | 'linked' | 'full'
   }
   /** MAIN-SET (CP-MVP-010 S08c), never accepted from the renderer:
    *  what the vault could and could not answer, so the request can say

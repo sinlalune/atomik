@@ -760,20 +760,25 @@ live, on real notes.
       permanent tint would repeat the claim-overlay mistake — and pure
       CSS from there.
       (2) REACH, the owner's "sensibility option like from title only to
-      title + link pages to etc": three settings over the SAME index —
-      `titles` (what a note is called), `links` (+ what it points at),
-      `full` (+ everything it says) — with `links` as the default per
-      the owner's ruling, exposed as a `reach · links` button beside the
-      vault toggle and carried through the packet request, the grounding
-      request and main-side validation.
-      TERMINOLOGY, since the owner asked: `path` is the file path and
-      folder names; `link` is the TEXT of links and edge labels inside a
-      note. "title + link" is the `links` setting, which covers both.
-      COST NAMED: at `links` a note that discusses a subject without ever
-      naming it is invisible. That is a recall trade, and it is the first
-      thing S10's evaluation set should measure — nine existing tests
-      now state their reach explicitly, which is itself the honest
-      documentation of the change. +3 tests (877 → 880).
+      title + link pages to etc" — MISREAD FIRST, corrected at S08h by
+      the owner: *"links for me was the fact that a note is linked to a
+      found note with title match"*. The first implementation made it a
+      set of index FIELDS; the real axis is 33's ladder — what MATCHED,
+      then how far the graph is WALKED from it:
+      `titles` (title match, no expansion) · `linked` (the same match
+      plus the notes linked to it, DEFAULT) · `full` (every field
+      including bodies, plus expansion). An explicit `hops` still wins.
+      Exposed as a `reach · linked` button beside the vault toggle, and
+      carried through the packet request, the grounding request and
+      main-side validation.
+      The correction is worth keeping: `linked` is the whole argument
+      for having built the graph — a note earns its place by being
+      CONNECTED to a note whose title answered, not by containing the
+      word somewhere. Reading it as a field set would have shipped a
+      wider lexical net under a graph-shaped name.
+      COST NAMED: at `titles`/`linked`, a note that discusses a subject
+      without naming it anywhere is invisible — a recall trade, and the
+      first thing S10's evaluation should measure. +3 tests (877 → 880).
 - [ ] S09 Search surface + diagnostics: ranked results with kind pills
       and "why this result", the packet disclosure, and the vault-wide
       broken-links list docked there.

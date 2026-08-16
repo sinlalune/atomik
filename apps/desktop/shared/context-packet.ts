@@ -4,6 +4,7 @@ import {
   extractMatches,
   parseQuery,
   searchIndex,
+  SENSITIVITY_HOPS,
   type RetrievalIndex,
   type RetrievalSensitivity
 } from './retrieval-core'
@@ -120,9 +121,9 @@ export type PacketRequest = {
   hops?: number
   /** Cap on entries, before the token budget bites. */
   limit?: number
-  /** How wide the net: titles · links · full (default `links` — the
-   *  owner's ruling at bench round 8, since a body-wide net drags in
-   *  every note that mentions a word in passing). */
+  /** How far retrieval reaches: titles · linked · full (default
+   *  `linked` — a title match plus the notes connected to it). An
+   *  explicit `hops` overrides the reach's own walk. */
   sensitivity?: RetrievalSensitivity
 }
 
@@ -135,10 +136,10 @@ export type PacketDeps = {
   id?: string
 }
 
-/** Owner ruling, bench round 8: the default net reads what notes are
- *  CALLED and what they POINT AT, not everything they say. Body-wide
- *  matching stays one click away. */
-export const DEFAULT_SENSITIVITY: RetrievalSensitivity = 'links'
+/** Owner ruling, bench round 8: the default answer is the notes whose
+ *  TITLE matches, plus the notes linked to them. Body-wide matching
+ *  stays one click away. */
+export const DEFAULT_SENSITIVITY: RetrievalSensitivity = 'linked'
 
 export const DEFAULT_MAX_TOKENS = 4000
 export const DEFAULT_ENTRY_LIMIT = 12
@@ -164,7 +165,10 @@ export function compileContextPacket(
 ): ContextPacket {
   const maxTokens = request.maxTokens ?? DEFAULT_MAX_TOKENS
   const entryLimit = request.limit ?? DEFAULT_ENTRY_LIMIT
-  const hops = request.hops ?? 1
+  const sensitivity = request.sensitivity ?? DEFAULT_SENSITIVITY
+  // The reach decides how far the graph is walked; an explicit `hops`
+  // still wins, because a caller who asked for a number meant it.
+  const hops = request.hops ?? SENSITIVITY_HOPS[sensitivity]
   const scope = request.scope ?? {}
   const folder = scope.folder ?? ''
   const inScope = (path: string): boolean =>
@@ -232,7 +236,6 @@ export function compileContextPacket(
 
   // ---- rung 1: lexical ------------------------------------------------
   const parsed = parseQuery(request.query)
-  const sensitivity = request.sensitivity ?? DEFAULT_SENSITIVITY
   const hits = searchIndex(deps.index, request.query, {
     limit: CANDIDATE_LIMIT,
     sensitivity
