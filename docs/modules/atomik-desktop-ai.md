@@ -45,6 +45,17 @@ timestamp: 2026-08-14T00:00:00Z
   grows [page ↗] beside [source] (onOpenWebUrl threaded VaultView/
   ProjectView → EditorPane → AiPanel). E2E rung `ATOMIK_SMOKE_AI_WEB=1`
   seeds a fixture bundle and proves the whole chain on the real app.
+- RETRIEVAL traces (CP-MVP-010 S06): `recordRetrieval` appends one
+  `action: 'retrieve'` line per compiled context packet — stages,
+  candidates, selected entries, estimated context tokens, wallMs,
+  `location: 'deterministic'`, zero EXTERNAL billing (33's rule: a local
+  result reports zero external cost without claiming zero cost, and the
+  wall time sits right beside it). Appended IMMEDIATELY, unlike a
+  generation draft: retrieval has no accept/reject decision to wait for.
+  The QUERY is never recorded — user text is content like a prompt — and
+  a test greps the ledger to keep it that way. The line points at its
+  packet by id, one-way: telemetry points at knowledge, never the
+  reverse.
 - The ActionTrace ledger (S09, 33-minimal): `electron-main/action-trace.ts`
   (the execution-core seat, 14) — ONE JSON line per operation appended to
   `.atomik/usage/private/actions.jsonl` at DECISION time (drafts in

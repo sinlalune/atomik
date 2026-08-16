@@ -238,3 +238,61 @@ describe('ActionTraceLedger (S09 minimum, nothing more)', () => {
     expect(ledger.summary(42)).toBeNull()
   })
 })
+
+describe('retrieval traces (CP-MVP-010 S06)', () => {
+  it('records one line per packet: stages, counts, tokens, latency', () => {
+    const id = ledger.recordRetrieval({
+      packetId: 'packet-42',
+      stages: ['lexical', 'link'],
+      candidates: 17,
+      selected: 5,
+      contextTokens: 812,
+      coverage: 'thin',
+      wallMs: 4,
+      status: 'completed'
+    })
+
+    const line = readLines().at(-1)!
+    expect(line['id']).toBe(id)
+    expect(line['action']).toBe('retrieve')
+    expect(line['packetId']).toBe('packet-42')
+    expect(line['execution']).toEqual({
+      location: 'deterministic',
+      provider: 'atomik',
+      model: 'lexical-bm25'
+    })
+    expect(line['usage']).toEqual({
+      candidates: 17,
+      selected: 5,
+      estimatedContextTokens: 812,
+      basis: 'estimated',
+      stages: ['lexical', 'link'],
+      coverage: 'thin'
+    })
+    // a local result reports zero EXTERNAL billing without claiming zero
+    // cost — the wall time sits right beside it (33)
+    expect(line['billing']).toEqual({
+      currency: 'EUR',
+      estimatedAmount: 0,
+      basis: 'estimated'
+    })
+    expect((line['performance'] as Record<string, number>)['wallMs']).toBe(4)
+    expect(line['privacy']).toEqual({ mode: 'offline', contentRecorded: false })
+  })
+
+  it('never records the query — user text is content like any other', () => {
+    ledger.recordRetrieval({
+      packetId: 'packet-43',
+      stages: ['lexical'],
+      candidates: 1,
+      selected: 1,
+      contextTokens: 10,
+      coverage: 'covered',
+      wallMs: 1,
+      status: 'completed'
+    })
+    const raw = readFileSync(ledger.ledgerPath(), 'utf8')
+    expect(raw).not.toContain('crédibilité')
+    expect(raw).not.toContain('ethos')
+  })
+})

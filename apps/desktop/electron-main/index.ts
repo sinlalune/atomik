@@ -244,8 +244,39 @@ function registerVaultHandlers(stateDir: string): void {
   // query is bounded and every path in the request is contained (13).
   ipcMain.handle(
     ATOMIK_CHANNELS.compileContextPacket,
-    (_event, request: unknown) =>
-      compileVaultContextPacket(requireVault(), stateDir, toPacketRequest(request))
+    (_event, request: unknown) => {
+      const parsed = toPacketRequest(request)
+      const started = Date.now()
+      try {
+        const packet = compileVaultContextPacket(requireVault(), stateDir, parsed)
+        // 33: search records candidates, selected entries, context
+        // tokens and latency. The packet computed all four; this is
+        // where they become durable — and the QUERY never does.
+        traces.recordRetrieval({
+          packetId: packet.id,
+          stages: packet.retrieval.stages,
+          candidates: packet.retrieval.candidates,
+          selected: packet.retrieval.selected,
+          contextTokens: packet.retrieval.contextTokens,
+          coverage: packet.coverage.verdict,
+          wallMs: Date.now() - started,
+          status: 'completed'
+        })
+        return packet
+      } catch (error) {
+        traces.recordRetrieval({
+          packetId: 'none',
+          stages: [],
+          candidates: 0,
+          selected: 0,
+          contextTokens: 0,
+          coverage: 'empty',
+          wallMs: Date.now() - started,
+          status: 'failed'
+        })
+        throw error
+      }
+    }
   )
   ipcMain.handle(ATOMIK_CHANNELS.readNote, (_event, relPath: unknown) =>
     readNote(requireVault(), relPath)

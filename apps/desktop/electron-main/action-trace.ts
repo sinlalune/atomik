@@ -55,6 +55,49 @@ type ActionTraceLine = {
   privacy: { mode: 'offline' | 'cloud'; contentRecorded: false }
 }
 
+/**
+ * One retrieval, as the ledger sees it (CP-MVP-010 S06). 33 asks for
+ * search to record "candidates, selected entries, context tokens,
+ * latency", and the packet already computes all four — this line is
+ * where they become durable. Deterministic location, zero external
+ * billing, and the same absolute rule as every other line: no content,
+ * ever. The QUERY is not recorded either; it is user text like a prompt.
+ */
+export type RetrievalRecord = {
+  packetId: string
+  stages: string[]
+  candidates: number
+  selected: number
+  /** Estimated (chars/4) — named estimated, per 33. */
+  contextTokens: number
+  /** How much of the query the vault could answer at all. */
+  coverage: 'covered' | 'thin' | 'empty'
+  wallMs: number
+  status: 'completed' | 'failed'
+}
+
+type RetrieveTraceLine = {
+  id: string
+  /** The packet this line measures — the link is one-way on purpose:
+   *  telemetry points at knowledge, never the reverse. */
+  packetId: string
+  timestamp: string
+  action: 'retrieve'
+  execution: { location: 'deterministic'; provider: 'atomik'; model: 'lexical-bm25' }
+  usage: {
+    candidates: number
+    selected: number
+    estimatedContextTokens: number
+    basis: 'estimated'
+    stages: string[]
+    coverage: 'covered' | 'thin' | 'empty'
+  }
+  performance: { wallMs: number }
+  billing: { currency: 'EUR'; estimatedAmount: 0; basis: 'estimated' }
+  outcome: { status: 'completed' | 'failed' }
+  privacy: { mode: 'offline'; contentRecorded: false }
+}
+
 /** Engine identity + labeled usage/billing a real adapter reports
  *  (CP-MVP-008 S02); absent → the S08 mock identity. */
 export type GenerationTraceMeta = {
@@ -141,7 +184,9 @@ export class ActionTraceLedger {
     return join(this.stateDir, 'usage', 'private', 'actions.jsonl')
   }
 
-  private append(line: ActionTraceLine | TranscribeTraceLine): void {
+  private append(
+    line: ActionTraceLine | TranscribeTraceLine | RetrieveTraceLine
+  ): void {
     mkdirSync(join(this.stateDir, 'usage', 'private'), { recursive: true })
     appendFileSync(this.ledgerPath(), `${JSON.stringify(line)}\n`, 'utf8')
   }
@@ -149,6 +194,37 @@ export class ActionTraceLedger {
   /** Pre-generated so files can reference the trace before it lands. */
   newTraceId(): string {
     return `trace_${randomUUID()}`
+  }
+
+  /**
+   * One line per compiled context packet (CP-MVP-010 S06), appended
+   * immediately: retrieval has no accept/reject decision to wait for —
+   * it either happened or it did not. A local result reports zero
+   * EXTERNAL billing without claiming zero cost (33): the wall time is
+   * right there beside it.
+   */
+  recordRetrieval(record: RetrievalRecord): string {
+    const id = this.newTraceId()
+    this.append({
+      id,
+      packetId: record.packetId,
+      timestamp: new Date().toISOString(),
+      action: 'retrieve',
+      execution: { location: 'deterministic', provider: 'atomik', model: 'lexical-bm25' },
+      usage: {
+        candidates: record.candidates,
+        selected: record.selected,
+        estimatedContextTokens: record.contextTokens,
+        basis: 'estimated',
+        stages: record.stages,
+        coverage: record.coverage
+      },
+      performance: { wallMs: record.wallMs },
+      billing: { currency: 'EUR', estimatedAmount: 0, basis: 'estimated' },
+      outcome: { status: record.status },
+      privacy: { mode: 'offline', contentRecorded: false }
+    })
+    return id
   }
 
   /** One line per transcription run, appended immediately (S06). */

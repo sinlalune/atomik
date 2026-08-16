@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S05
+  current_step: S06
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -435,10 +435,16 @@ at every step boundary rather than at the end.
       Validation in main (13): bounded query, contained scope folder,
       rung-0 paths filtered rather than trusted — read-only is not
       unvalidated. +11 tests (829 → 840).
-- [ ] S06 Retrieval trace: `action: 'retrieve'` lines through the
-      existing ActionTrace ledger — stages, candidates, selected,
-      estimated context tokens, wallMs, deterministic location,
-      `contentRecorded: false`; the content-leak test extended.
+- [x] S06 Retrieval trace (DONE 2026-08-16): `recordRetrieval` on the
+      existing ledger — one `action: 'retrieve'` line per packet with
+      stages, candidates, selected, estimated context tokens, wallMs,
+      deterministic location, zero external billing, and the packet id
+      as a ONE-WAY link (telemetry points at knowledge, never the
+      reverse). Appended immediately, unlike a generation draft:
+      retrieval has no accept/reject decision to wait for. Failures
+      record a failed line and rethrow. The QUERY is never written —
+      user text is content like a prompt — and the content-leak test
+      now greps for it too. +2 tests (840 → 842).
 - [ ] S07 Vault-grounded chat: per-thread toggle, retrieval pre-pass
       before the send, the packet inspectable before and after, the
       grounding block composed MAIN-side beside the existing
@@ -462,11 +468,11 @@ at every step boundary rather than at the end.
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S05 done — S06 next
+current step: S06 done — S07 next
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts
-              apps/desktop/electron-main/{search,graph-index,index}.ts
+              apps/desktop/electron-main/{search,graph-index,index,action-trace}.ts
               apps/desktop/electron-preload/index.ts
               apps/desktop/renderer/src/vault/RelationsStrip.tsx
               apps/desktop/tests/{retrieval-core,vault-index,search}.test.ts
@@ -474,13 +480,12 @@ changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               docs/learning/22-lexical-retrieval-without-a-database.md + index
               docs/adr/ADR-013-lexical-retrieval-without-a-database.md
               docs/index.md · atomik-project/coding-paths/CP-MVP-010.md
-tests       : 840 passing / 70 files (this path added 52 so far),
+tests       : 842 passing / 70 files (this path added 54 so far),
               typecheck and build green, each gate run BARE (24)
-next action : S06 — the retrieval trace: `action: 'retrieve'` lines
-              through the existing ActionTrace ledger (stages,
-              candidates, selected, estimated context tokens, wallMs,
-              deterministic location), with the content-leak test
-              extended to cover them
+next action : S07 — vault-grounded chat: a per-thread toggle, the
+              retrieval pre-pass before the send, the packet inspectable
+              before and after, and the grounding block composed
+              MAIN-side beside the existing mechanical contract
 rebase note : the learning index collided at the rebase (note 22 here,
               note 23 from CP-PROVIDERS) — mechanical, both kept in
               order. Exactly the shared-prose conflict paths.md
