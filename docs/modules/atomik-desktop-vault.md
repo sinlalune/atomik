@@ -72,6 +72,16 @@ timestamp: 2026-08-14T00:00:00Z
     The cost is recall — at `titles`/`linked` a note that discusses a
     subject without naming it anywhere is invisible — and that is the
     first thing S10's evaluation should measure.
+  - A FUNCTION WORD INSIDE A TITLE IS STILL A FUNCTION WORD (S08l, owner
+    bench round 12: "is there an explanation why `to` has more weight in
+    full reach than in title and link"). There was, and it is worth
+    keeping: `to` sits in the TITLE "From Plato to Stoicism", so S08f's
+    naming signal counted it as a subject; at 4× the rarest term its
+    document frequency still fit under the tier. At `titles`/`linked`
+    that was invisible — it could only match titles — but at `full` it
+    matched the body of every English note. The tier is 2× now, which
+    S08k's retry makes safe: over-narrowing falls back instead of
+    returning nothing.
   - THE CORPUS A QUESTION IS MEASURED AGAINST IS THE CORPUS IT MAY
     RETURN (S08k, owner bench round 11: "adding more term empty the rag
     context package"). Document frequencies and the naming signal are

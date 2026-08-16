@@ -1912,15 +1912,29 @@ export function ChatView({
                       : 'Everything, including notes that only mention it in their body'
                 }
                 aria-label={`Retrieval reach: ${sensitivity}`}
-                onClick={() =>
-                  setSensitivity((current) =>
-                    current === 'titles'
+                onClick={() => {
+                  const next =
+                    sensitivity === 'titles'
                       ? 'linked'
-                      : current === 'linked'
+                      : sensitivity === 'linked'
                         ? 'full'
                         : 'titles'
-                  )
-                }
+                  setSensitivity(next)
+                  // S08l: a preview compiled at another reach is a
+                  // stale answer to a question nobody asked. Recompile
+                  // it rather than leave it lying.
+                  if (preview !== null && input.trim().length > 0 && !running) {
+                    void window.atomik
+                      .compileContextPacket({
+                        query: input.trim(),
+                        sensitivity: next
+                      })
+                      .then(setPreview)
+                      .catch(() => setPreview(null))
+                  } else if (preview !== null) {
+                    setPreview(null)
+                  }
+                }}
               >
                 reach · {sensitivity}
               </button>

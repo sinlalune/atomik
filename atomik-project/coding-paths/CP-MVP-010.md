@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S08k
+  current_step: S08l
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -831,7 +831,7 @@ live, on real notes.
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S08k done (owner bench rounds 1–11 absorbed) — S09 next
+current step: S08l done (owner bench rounds 1–12 absorbed) — S09 next
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts
@@ -843,7 +843,7 @@ changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               docs/learning/22-lexical-retrieval-without-a-database.md + index
               docs/adr/ADR-013-lexical-retrieval-without-a-database.md
               docs/index.md · atomik-project/coding-paths/CP-MVP-010.md
-tests       : 888 passing / 71 files (this path added 100 so far),
+tests       : 890 passing / 71 files (this path added 102 so far),
               typecheck and build green, each gate run BARE (24)
 next action : S09 — the search surface: ranked results with kind pills
               and "why this result", the packet disclosure, and the

@@ -404,3 +404,31 @@ describe('title is not heading (S08j, owner bench round 10)', () => {
     expect(parsed.fields.title).toBe('bibi')
   })
 })
+
+describe('a function word inside a title is still a function word (S08l)', () => {
+  // "From Plato to Stoicism" puts `to` in a TITLE, so the naming signal
+  // called it a subject. At a title reach that was invisible; at `full`
+  // it matched the body of every English note.
+  const CORPUS = [
+    { path: 'plato.md', content: '# Plato\n\nAncient philosopher.\n' },
+    { path: 'stoicism.md', content: '# From Plato to Stoicism\n\nA path.\n' },
+    ...Array.from({ length: 14 }, (_, index) => ({
+      path: `misc-${index}.md`,
+      content: `# Divers ${index}\n\nSomething to read, related to nothing.\n`
+    }))
+  ]
+  const index = buildRetrievalIndex(CORPUS)
+
+  it('does not let it rank at the widest reach either', () => {
+    const hits = searchIndex(index, 'what plato brought to philosphy', {
+      sensitivity: 'full'
+    })
+    expect(hits.map((hit) => hit.path)).toEqual(['plato.md', 'stoicism.md'])
+    expect(hits.every((hit) => !hit.terms.includes('to'))).toBe(true)
+  })
+
+  it('a query whose only terms are filler still answers, via the retry', () => {
+    expect(searchIndex(index, 'something to read', { sensitivity: 'full' }).length)
+      .toBeGreaterThan(0)
+  })
+})
