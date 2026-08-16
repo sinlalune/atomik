@@ -18,7 +18,6 @@ stale. Deriving it is what lets every path merge itself: there is nothing here
 for two paths to disagree about.
 
 <!-- cairn:paths:begin -->
-- **CP-FEEDBACK** — Daily workbench feedback · branch `path/cp-feedback` · base `b32df20`
 - **CP-MVP-010** — Retrieval over the graph · branch `path/cp-mvp-010` · base `2370546`
 <!-- cairn:paths:end -->
 
