@@ -148,7 +148,7 @@ This path makes Atomik's AI generation architecture truly provider-neutral:
 2. **Curated Model Allowlist & Default Models**:
    - `anthropic`: default `claude-sonnet-5` (Claude Sonnet 5, Claude Opus 5, Claude Fable 5, Claude Opus 4.8, Claude Sonnet 4.6, Claude Haiku 4.5)
    - `openai`: default `gpt-5.6` (GPT-5.6 Sol, GPT-5.6 Terra, GPT-5.6 Luna, GPT-4.1, o3, o4-mini, o3-mini, GPT-4o, GPT-4o-mini)
-   - `google`: default `gemini-3.6-flash` (Gemini 3.6 Flash, Gemini 3.5 Flash, Gemini 3.5 Flash-Lite, Gemini 3.1 Pro Preview, Gemini 2.5 Pro, Gemini 2.5 Flash)
+   - `google`: default `gemini-3.7-flash` (Gemini 3.7 Flash, Gemini 3.6 Flash, Gemini 3.5 Flash, Gemini 3.5 Flash-Lite, Gemini 3.1 Pro Preview, Gemini 2.5 Pro, Gemini 2.5 Flash)
    - `deepseek`: default `deepseek-chat` (DeepSeek-V3, DeepSeek-R1)
    - `mistral`: default `mistral-large-2411` (Mistral Large 2, Mistral Small 3, Codestral 2501, Pixtral Large, Ministral 8B, Ministral 3B)
    - `openrouter`: default `anthropic/claude-sonnet-5` (Claude Sonnet 5, Claude Fable 5, Claude Opus 5, GPT-5.6 Sol/Terra/Luna, DeepSeek V4 Pro/Flash, Kimi K3, GLM 5.2, MiniMax M3, Nemotron 3 Ultra, etc.)

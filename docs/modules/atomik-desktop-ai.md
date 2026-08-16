@@ -70,7 +70,7 @@ timestamp: 2026-08-14T00:00:00Z
   and direct adapters `openai-generation-adapter.ts` (GPT-5.6 Sol, Terra, Luna, GPT-4.1, o3, o4-mini),
   `anthropic-generation-adapter.ts` (Claude Sonnet 5, Claude Opus 5, Claude Fable 5, Claude Opus 4.8),
   `deepseek-generation-adapter.ts` (DeepSeek-V3, DeepSeek-R1), and
-  `google-generation-adapter.ts` (Gemini 3.6 Flash, Gemini 3.5 Flash, Gemini 3.1 Pro Preview).
+  `google-generation-adapter.ts` (Gemini 3.7 Flash, Gemini 3.6 Flash, Gemini 3.5 Flash, Gemini 3.1 Pro Preview).
   Keys attached in MAIN only (13), budgets below renderer
   state (2k output tokens, 60s wall via AbortController, input token
   pre-check), and the eight-kind typed error taxonomy carried as

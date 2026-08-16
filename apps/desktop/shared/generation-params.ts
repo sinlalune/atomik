@@ -224,8 +224,16 @@ export const PROVIDER_CATALOG: Record<AiEngine, ProviderDescriptor> = {
   google: {
     id: 'google',
     name: 'Google Gemini',
-    defaultModel: 'gemini-3.6-flash',
+    defaultModel: 'gemini-3.7-flash',
     models: [
+      {
+        id: 'gemini-3.7-flash',
+        label: 'Gemini 3.7 Flash',
+        inputUsdPerMTok: 0.375,
+        outputUsdPerMTok: 1.875,
+        contextWindow: 1_048_576,
+        description: 'Latest flagship Flash model with high-speed multi-step reasoning and 1M context'
+      },
       {
         id: 'gemini-3.6-flash',
         label: 'Gemini 3.6 Flash',
@@ -451,6 +459,14 @@ export const PROVIDER_CATALOG: Record<AiEngine, ProviderDescriptor> = {
         inputUsdPerMTok: 0.14,
         outputUsdPerMTok: 0.28,
         contextWindow: 64_000
+      },
+      {
+        id: 'google/gemini-3.7-flash',
+        label: 'Gemini 3.7 Flash',
+        inputUsdPerMTok: 0.375,
+        outputUsdPerMTok: 1.875,
+        contextWindow: 1_048_576,
+        description: 'Google Gemini 3.7 Flash multimodal reasoning'
       },
       {
         id: 'google/gemini-3.6-flash',
