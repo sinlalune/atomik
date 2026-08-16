@@ -127,3 +127,44 @@ describe('explaining a step', () => {
     expect(explainStep(step({ direction: 'inbound' }), "L'éthos")).toBe("links to L'éthos")
   })
 })
+
+describe('hubs (owner bench round 3, 2026-08-16)', () => {
+  // The shape that produced the bug: one note links to everything, so a
+  // weak match on it dragged AI, Le logos and Peloponnesian War into an
+  // answer about XML.
+  const HUB = [
+    {
+      path: 'vault-juju.md',
+      content:
+        '# vault-juju\n\n' +
+        Array.from({ length: 30 }, (_, index) => `[[note-${index}]]`).join('\n') +
+        '\n'
+    },
+    ...Array.from({ length: 30 }, (_, index) => ({
+      path: `note-${index}.md`,
+      content: `# Note ${index}\n`
+    })),
+    { path: 'xml.md', content: '# XML\n\n[[schema]]{defines}\n' },
+    { path: 'schema.md', content: '# Schema\n' }
+  ]
+  const hubIndex = buildGraphIndex(HUB)
+
+  it('a link from a hub is worth a fraction of a link from a focused note', () => {
+    const fromHub = expandOverGraph(hubIndex, [{ path: 'vault-juju.md', score: 1 }])
+    const fromFocused = expandOverGraph(hubIndex, [{ path: 'xml.md', score: 1 }])
+
+    expect(fromFocused[0]!.path).toBe('schema.md')
+    expect(fromHub[0]!.score).toBeLessThan(fromFocused[0]!.score / 4)
+  })
+
+  it('leaves a note with five links or fewer untouched', () => {
+    const small = buildGraphIndex([
+      { path: 'a.md', content: '# A\n\n[[b]]\n[[c]]\n' },
+      { path: 'b.md', content: '# B\n' },
+      { path: 'c.md', content: '# C\n' }
+    ])
+    const [first] = expandOverGraph(small, [{ path: 'a.md', score: 1 }])
+    // untyped weight only: no hub penalty applied
+    expect(first!.score).toBeCloseTo(0.8, 5)
+  })
+})

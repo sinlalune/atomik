@@ -76,9 +76,15 @@ timestamp: 2026-08-14T00:00:00Z
 - Contributions SUM across seeds, so a note reached from several hits
   outranks one reached from a single hit; the strongest single path is
   kept separately as the `via` the packet shows for "why this entry".
-  Known limit, recorded rather than guessed at: summing also rewards a
-  hub that links everything (a folder `index.md`). If the S10 evaluation
-  shows hubs crowding out answers, the fix is a measured degree penalty.
+  The hub problem this created was real, and the owner's bench found it
+  within a day (2026-08-16, query "XML": AI, Le logos and Peloponnesian
+  War arrived in the packet, all dragged in by one weakly-matching note
+  that links to dozens of others). The recorded candidate fix is now in
+  place with its evidence: a link from a note counts for
+  `HUB_DEGREE / degree` — five links or fewer is unaffected, thirty
+  links is worth a sixth. A note with five links speaks about each one;
+  a note with thirty is a catalogue, and being listed by it says
+  almost nothing.
 
 ## Incremental index maintenance (CP-MVP-010 S03)
 

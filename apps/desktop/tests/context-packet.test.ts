@@ -220,3 +220,39 @@ describe('bench round 2 (2026-08-16): what may ground, and what a title is', () 
     expect(packet.coverage.missingTerms).not.toContain('qu-est-ce')
   })
 })
+
+describe('bench round 3 (2026-08-16): a neighbourhood is not an answer', () => {
+  const HUB_VAULT = [
+    { path: 'xml.md', content: '# XML\n\nUn format de balisage.\n' },
+    {
+      path: 'vault-juju.md',
+      content:
+        '# vault-juju\n\nUne note qui parle de XML en passant.\n' +
+        ['ai', 'logos', 'peloponnese', 'raster', 'characteristics']
+          .map((stem) => `[[${stem}]]`)
+          .join('\n') +
+        '\n'
+    },
+    { path: 'ai.md', content: '# AI\n\nRien à voir.\n' },
+    { path: 'logos.md', content: '# Le logos\n\nRien à voir.\n' },
+    { path: 'peloponnese.md', content: '# Peloponnesian War\n\nRien à voir.\n' },
+    { path: 'raster.md', content: '# Formats raster\n\nRien à voir.\n' },
+    { path: 'characteristics.md', content: '# Characteristics\n\nRien à voir.\n' }
+  ]
+  const hubDeps: PacketDeps = {
+    index: buildRetrievalIndex(HUB_VAULT),
+    graph: buildGraphIndex(HUB_VAULT),
+    read: (path) => HUB_VAULT.find((file) => file.path === path)?.content,
+    id: 'packet-hub'
+  }
+
+  it('keeps a hub`s unrelated neighbours out, and reports them as threshold', () => {
+    const packet = compileContextPacket({ query: 'XML' }, hubDeps)
+
+    expect(paths(packet.entries)).toContain('xml.md')
+    for (const stray of ['ai.md', 'logos.md', 'peloponnese.md']) {
+      expect(paths(packet.entries)).not.toContain(stray)
+      expect(packet.omitted).toContainEqual({ path: stray, reason: 'threshold' })
+    }
+  })
+})

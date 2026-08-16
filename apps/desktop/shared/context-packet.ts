@@ -130,6 +130,15 @@ export const MAX_EXCERPT_CHARS = 800
 /** Candidates considered before the budget: generous, since the whole
  *  point of `omitted` is to show what did not make it. */
 const CANDIDATE_LIMIT = 40
+/**
+ * How relevant a LINKED note must be, relative to the best lexical hit,
+ * to take a slot from one (CP-MVP-010 S07d, owner bench round 3).
+ * Expansion scores are lexical scores times attenuation, so the two are
+ * in the same unit and the comparison is honest. Below the floor the
+ * neighbourhood is not an answer, it is a footnote — and it is reported
+ * as `threshold`, never dropped silently.
+ */
+const LINK_SCORE_FLOOR = 0.15
 
 const estimateTokens = (text: string): number => Math.ceil(text.length / 4)
 
@@ -241,10 +250,15 @@ export function compileContextPacket(
   if (hops > 0 && seeds.length > 0) {
     const expanded = expandOverGraph(deps.graph, seeds, { hops, limit: entryLimit })
     if (expanded.length > 0) stages.push('link')
+    const bestLexical = lexicalSeeds[0]?.score ?? 0
     for (const node of expanded) {
       considered += 1
       if (chats.has(node.path)) {
         omitted.push({ path: node.path, reason: 'dialogue' })
+        continue
+      }
+      if (bestLexical > 0 && node.score < bestLexical * LINK_SCORE_FLOOR) {
+        omitted.push({ path: node.path, reason: 'threshold' })
         continue
       }
       if (!inScope(node.path)) {

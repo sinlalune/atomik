@@ -103,6 +103,14 @@ timestamp: 2026-08-14T00:00:00Z
   - Rung 0 outranks search by STAGE, not by a giant score: the packet
     crosses IPC as JSON, where `Infinity` would arrive as `null`.
     A test pins the whole packet as JSON round-trippable.
+  - A LINKED note must be comparably relevant to take a slot from a
+    lexical one (S07d): expansion scores are lexical scores times
+    attenuation, so the two are in the same unit and the comparison is
+    honest. Below 15% of the best lexical hit, a neighbour is a footnote
+    rather than an answer — reported as `threshold`, never dropped
+    silently. Together with the hub penalty in `retrieval-expand`, this
+    is what stopped a question about XML from retrieving Peloponnesian
+    War.
   - What may GROUND is narrower than what may be FOUND (S07c): chat
     transcripts stay in the retrieval index — the search panel finds
     them — but never enter a packet, with the omission reason

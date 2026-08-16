@@ -69,6 +69,13 @@ export const DEFAULT_HOPS = 1
 export const DEFAULT_LIMIT = 12
 export const DEFAULT_DECAY = 0.4
 export const DEFAULT_UNTYPED_WEIGHT = 0.8
+/**
+ * Degree at which a note stops speaking about its links and starts
+ * cataloguing them (CP-MVP-010 S07d, owner bench round 3). Up to five
+ * links, a note is making a statement about each one; a note with
+ * thirty is a hub, and being listed by it says almost nothing.
+ */
+export const HUB_DEGREE = 5
 
 type Adjacency = Map<string, AdjacencyEntry[]>
 
@@ -100,11 +107,14 @@ export function adjacencyOf(index: GraphIndex): Adjacency {
  * the walk is breadth-first so `hop` is a real distance rather than the
  * order the edges happened to be stored in.
  *
- * KNOWN LIMIT, for the S10 evaluation set rather than for a guess now:
- * summing contributions rewards a note connected to several seeds, and
- * also rewards a hub that links everything (a folder's `index.md`). If
- * the evaluation shows hubs crowding out real answers, the fix is a
- * degree penalty here, measured — not a threshold invented today.
+ * Summing contributions rewards a note reached from several seeds. It
+ * also used to reward a HUB that links everything: the owner's bench
+ * (2026-08-16, query "XML") retrieved AI, Le logos and Peloponnesian
+ * War, all of them dragged in by one weakly-matching note that links to
+ * dozens of others. S04 recorded that risk and refused to guess a fix;
+ * the bench supplied the evidence, so the fix is here now: a link from
+ * a note is worth `HUB_DEGREE / degree` of a link from a focused one.
+ * A note with five links or fewer is unaffected.
  */
 export function expandOverGraph(
   index: GraphIndex,
@@ -118,6 +128,10 @@ export function expandOverGraph(
   if (hops < 1 || seeds.length === 0) return []
 
   const adjacency = adjacencyOf(index)
+  const hubFactor = (path: string): number => {
+    const degree = adjacency.get(path)?.length ?? 0
+    return degree <= HUB_DEGREE ? 1 : HUB_DEGREE / degree
+  }
   const seedPaths = new Set(seeds.map((seed) => seed.path))
   const found = new Map<string, ExpandedNode>()
   /** Best SINGLE contribution per node — the one worth explaining, kept
@@ -137,7 +151,8 @@ export function expandOverGraph(
         if (seedPaths.has(neighbour)) continue
         const weight =
           entry.label === null ? untyped : (labelWeights[entry.label] ?? 1)
-        const contribution = node.score * decay ** (hop - 1) * weight
+        const contribution =
+          node.score * decay ** (hop - 1) * weight * hubFactor(node.path)
         if (contribution <= 0) continue
         const via = { from: node.path, label: entry.label, direction: entry.direction }
 

@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S07c
+  current_step: S07d
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -552,6 +552,22 @@ live, on real notes.
       management history, rarely an answer — but down-ranking convention
       files is a weight decision, and S10's evaluation set is where
       weights get decided rather than guessed.
+- [x] S07d BENCH ROUND 3 — THE HUB (2026-08-16, owner preview for the
+      query "XML"; DONE same day). Four of twelve entries were AI, Le
+      logos, Characteristics and Peloponnesian War, every one of them
+      `linked from vault-juju` — a note that links to dozens of others
+      and matched "XML" weakly in its body. This is exactly the limit
+      S04 recorded and refused to guess a fix for; the bench supplied
+      the evidence, so both halves landed together:
+      (a) HUB PENALTY in expansion — a link from a note counts for
+      `HUB_DEGREE / degree` (five links or fewer unaffected, thirty
+      links worth a sixth). A note with five links speaks about each
+      one; a note with thirty is a catalogue.
+      (b) RELEVANCE FLOOR in the packet — a linked note below 15% of the
+      best lexical score is omitted as `threshold`, not dropped
+      silently. Expansion scores are lexical scores times attenuation,
+      so the comparison is in one unit and honest.
+      +3 tests (850 → 853).
 - [ ] S08 Citations: phrase-level links where the model emits them,
       numbered markers otherwise, a sources block under the answer,
       every marker a CP-MVP-009 pill that opens its note; unresolved
@@ -575,7 +591,7 @@ live, on real notes.
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S07c done (owner bench rounds 1–2 absorbed) — S08 next
+current step: S07d done (owner bench rounds 1–3 absorbed) — S08 next
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts
@@ -587,7 +603,7 @@ changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               docs/learning/22-lexical-retrieval-without-a-database.md + index
               docs/adr/ADR-013-lexical-retrieval-without-a-database.md
               docs/index.md · atomik-project/coding-paths/CP-MVP-010.md
-tests       : 850 passing / 70 files (this path added 62 so far),
+tests       : 853 passing / 70 files (this path added 65 so far),
               typecheck and build green, each gate run BARE (24)
 next action : S08 — citations: phrase-level links where the model emits
               them, numbered markers otherwise, a sources block under
