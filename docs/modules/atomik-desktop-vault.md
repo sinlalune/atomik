@@ -126,7 +126,9 @@ timestamp: 2026-08-14T00:00:00Z
   `Mod+N` create an explicit empty string through the existing exclusive
   `createNote` verb. Placement is deterministic: active note parent, then
   current project root, then vault root. Source dossiers are excluded so a
-  thought cannot accidentally become a source-bundle contract file.
+  thought cannot accidentally become a source-bundle contract file; this guard
+  also applies when `sources/…/source.md` is open in an ordinary vault/project
+  note tab rather than its dedicated source view.
 - `workspace/quick-note.ts` owns the pure naming policy: case-insensitive
   collision scans choose `Untitled.md`, `Untitled 2.md`, …; the first H1
   outside fenced code yields a portable sanitized title, with collision and

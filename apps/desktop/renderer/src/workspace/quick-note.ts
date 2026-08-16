@@ -54,7 +54,10 @@ export function quickNoteParent(
     active?.view === 'vault' || active?.view === 'project'
       ? active.params?.['notePath']
       : undefined
-  if (activeNote) return parentOf(activeNote)
+  // `sources/` is the reserved home of imported evidence bundles. A dossier
+  // can also be opened through an ordinary vault/project note tab, so checking
+  // only the tab view would still let a quick thought land inside that bundle.
+  if (activeNote && !/^sources\//i.test(activeNote)) return parentOf(activeNote)
   return scope.kind === 'project' ? scope.projectPath : ''
 }
 

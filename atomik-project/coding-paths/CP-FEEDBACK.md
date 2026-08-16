@@ -180,13 +180,16 @@ are recorded in
 base commit : b32df20
 trunk pin   : f9ed012 (rebased before source work; CP-PROVIDERS is integrated)
 changed     : S02 flat assistant presentation/a11y; S03 real quick-note action,
-              blank file + one-time H1 naming lifecycle; S04 sanitized page
+              blank file + one-time H1 naming lifecycle, including source-tree
+              placement guard found by the closing audit; S04 sanitized page
               title identity; S05 canonical web-source kind + distinct read,
               live, relations, visual, and accessible pill treatment; S06
               owner delta adds safe address-or-Google-search omnibox behavior
 tests       : post-delta full gate PASS — cairn, typecheck, 807/807 tests
-              (68 files), production build; omnibox/web focused 18/18 PASS
-next action : accepted verbatim; rebase, rerun gates, audit, journal, done,
+              (68 files), production build; omnibox/web focused 18/18 PASS;
+              source-placement focused quick-note suite 9/9 PASS
+next action : accepted verbatim; commit audit preflight correction, regenerate
+              the head-pinned audit, journal, done,
               self-merge, then open CP-LANGUAGE-NOTES
 blockers    : none; CP-MVP-010 remains active across chat/editor/vault/graph,
               so rebase and overlap checks continue at step boundaries

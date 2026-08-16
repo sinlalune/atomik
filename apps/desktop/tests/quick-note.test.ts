@@ -60,6 +60,17 @@ describe('quick note placement and provisional name (CP-FEEDBACK S03)', () => {
       })
     ).toBe('projects/atomik')
     expect(quickNoteParent(tab('source-web'), { kind: 'vault' })).toBe('')
+    expect(
+      quickNoteParent(tab('vault', 'sources/web/example/source.md'), {
+        kind: 'vault'
+      })
+    ).toBe('')
+    expect(
+      quickNoteParent(tab('project', 'sources/pdf/paper/source.md'), {
+        kind: 'project',
+        projectPath: 'projects/atomik'
+      })
+    ).toBe('projects/atomik')
   })
 
   it('chooses collision-safe Untitled names case-insensitively', () => {
