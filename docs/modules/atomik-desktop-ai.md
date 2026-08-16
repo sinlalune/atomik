@@ -45,6 +45,36 @@ timestamp: 2026-08-14T00:00:00Z
   grows [page ↗] beside [source] (onOpenWebUrl threaded VaultView/
   ProjectView → EditorPane → AiPanel). E2E rung `ATOMIK_SMOKE_AI_WEB=1`
   seeds a fixture bundle and proves the whole chain on the real app.
+- VAULT-GROUNDED CHAT (CP-MVP-010 S07): `AiOperation.grounding` is a
+  REQUEST, never a payload — the renderer may ask for retrieval and
+  bound it, but the packet is compiled MAIN-side from the instruction
+  and its contents can never be supplied from the renderer. A prompt
+  file can no more opt out of grounding than out of the mechanical
+  grounding rules (28).
+  - The packet's entries join `operation.input` as read-only reference
+    selections (`referenceSelectionsOf`, pure and tested), which the
+    existing chat contract already renders as "Reference notes —
+    read-only, quotable". No new prompt block, no forked composition.
+  - DIRECT entries are dropped from that injection: what the user
+    already had open is in the operation's own selections, and sending
+    it twice would pay twice for it.
+  - The EXCERPT travels, never the whole note: the budget was decided
+    when the packet was compiled, and re-reading files at send time
+    would quietly undo it.
+  - The packet returns on the bundle (`contextPacket`), so the answer
+    and what produced it travel together and the reader never takes the
+    grounding on faith. Consequence worth naming: because the excerpts
+    are real vault text supplied as selections, an answer that quotes
+    one EXACTLY earns `source-backed` through the ordinary containment
+    rule (28) — retrieval still asserts nothing about truth, only that
+    the sentence stands on that note.
+  - UI: a `vault` toggle in the chat composer (session state like the
+    model drafts beside it — a preference for the next sends, never
+    knowledge) plus a packet strip that shows, per entry, the STAGE that
+    found it and why, the omissions summarized by reason, and the words
+    the vault has no material for. `preview` compiles the packet for the
+    current draft without sending — the same channel, so what you
+    inspect is what the send would compile.
 - RETRIEVAL traces (CP-MVP-010 S06): `recordRetrieval` appends one
   `action: 'retrieve'` line per compiled context packet — stages,
   candidates, selected entries, estimated context tokens, wallMs,

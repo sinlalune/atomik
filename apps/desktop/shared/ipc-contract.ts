@@ -339,7 +339,7 @@ export type IndexChangedEvent = {
   paths: string[]
 }
 
-import type { ContextPacket, PacketRequest } from './context-packet'
+import type { ContextPacket, ContextScope, PacketRequest } from './context-packet'
 
 export type {
   ContextEntry,
@@ -530,8 +530,21 @@ export type AiOperation = {
   /** Sampling overrides (S05d): pinned-model allowlist + bounded
    *  temperature / top_p / max_tokens; absent = the defaults. */
   params?: import('./generation-params').GenerationParams
+  /** VAULT GROUNDING (CP-MVP-010 S07). Present = retrieve before
+   *  answering: main compiles a context packet from the instruction,
+   *  adds its entries as read-only reference selections, and returns
+   *  the packet on the bundle so the answer can be inspected against
+   *  what produced it. The renderer asks for it; MAIN decides what it
+   *  contains — a prompt file can no more opt out of this than out of
+   *  the mechanical grounding rules (28). */
+  grounding?: { scope?: ContextScope; maxTokens?: number }
   target: { relPath: string; destination: AiDestination }
 }
+
+/** What retrieval put in front of the model, for the answer to be read
+ *  against (CP-MVP-010 S07): the packet main actually used, entries,
+ *  omissions, coverage and all. */
+export type GroundedContext = ContextPacket
 
 /** Open kind/role strings (06): renderers degrade unknown kinds to text. */
 export type AiOutputBlock = {
@@ -627,6 +640,11 @@ export type AiResponseBundle = {
   }
   /** Wall time of the exchange as measured in MAIN (S06c16). */
   durationMs?: number
+  /** The context packet this answer actually stood on (CP-MVP-010
+   *  S07) — present only when the operation asked to be grounded.
+   *  The answer and what produced it travel together, so the reader
+   *  never has to take the grounding on faith. */
+  contextPacket?: GroundedContext
   /** The exchange's cost estimate (S06c19) — from the dated price
    *  snapshot, always labeled 'estimated'; absent for free engines. */
   billing?: {

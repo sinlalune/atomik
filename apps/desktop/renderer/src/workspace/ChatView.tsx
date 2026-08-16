@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type {
   ClaimRecord,
+  ContextPacket,
   EvidenceRecord,
   VaultFolder,
   WorkspaceState,
@@ -63,6 +64,7 @@ import {
 import { linkableNotesOf, sourceBundlesOf } from '../editor/quick-actions'
 import { noteMarkdown } from '../editor/note-markdown'
 import {
+  BookIcon,
   BrainIcon,
   InsertIcon,
   NoteAddIcon,
@@ -117,6 +119,20 @@ import { CHAT_LOG_A11Y } from './chat-presentation'
  */
 
 type Dispatch = (operation: (state: WorkspaceState) => WorkspaceState) => void
+
+/** "3 by budget, 1 already open" — the omissions as one readable line
+ *  (26 asks for them by reason, not as a dump). */
+function summarizeOmissions(
+  omitted: readonly { reason: string }[]
+): string {
+  const counts = new Map<string, number>()
+  for (const entry of omitted) {
+    counts.set(entry.reason, (counts.get(entry.reason) ?? 0) + 1)
+  }
+  return [...counts]
+    .map(([reason, count]) => `${count} · ${reason}`)
+    .join(', ')
+}
 
 export type ChatViewProps = {
   tab: WorkspaceTab
@@ -261,6 +277,14 @@ export function ChatView({
   const [running, setRunning] = useState(false)
   const [engine, setEngine] = useState('…')
   const [genDrafts, setGenDrafts] = useState(defaultGenOptionDrafts)
+  // CP-MVP-010 S07: vault grounding. Session state like the model
+  // drafts beside it — a preference for the next sends, never
+  // knowledge (03). `packet` holds what the LAST send actually stood
+  // on, or a preview of what the next one would.
+  const [grounding, setGrounding] = useState(false)
+  const [packet, setPacket] = useState<ContextPacket | null>(null)
+  const [packetIsPreview, setPacketIsPreview] = useState(false)
+  const [packetOpen, setPacketOpen] = useState(false)
   const [tree, setTree] = useState<VaultFolder | null>(null)
   const [atMenu, setAtMenu] = useState<{
     start: number
@@ -699,7 +723,10 @@ export function ChatView({
         const operation = {
           ...prepared.operation,
           input,
-          ...(thread.length > 0 ? { thread } : {})
+          ...(thread.length > 0 ? { thread } : {}),
+          // The renderer ASKS; main decides what the packet contains
+          // and returns it on the bundle (S07).
+          ...(grounding ? { grounding: {} } : {})
         }
         // S07b4 (owner): the sent request, RETRACED — per-part pills
         // with token estimates ride the you-turn (session meta, like
@@ -727,6 +754,10 @@ export function ChatView({
         run.done = (async () => {
           try {
             const result = await window.atomik.runAiOperation(operation)
+            if (result.contextPacket) {
+              setPacket(result.contextPacket)
+              setPacketIsPreview(false)
+            }
             const answer =
               result.blocks.find((block) => block.role === 'answer')?.content ??
               result.blocks[0]?.content ??
@@ -795,7 +826,17 @@ export function ChatView({
         runningOperationId.current = null
       }
     },
-    [genDrafts, loadPrompts, persistTurn, resolveTarget, running, setInput, tab.id, turns]
+    [
+      genDrafts,
+      grounding,
+      loadPrompts,
+      persistTurn,
+      resolveTarget,
+      running,
+      setInput,
+      tab.id,
+      turns
+    ]
   )
 
   const send = useCallback(
@@ -1490,6 +1531,90 @@ export function ChatView({
               </div>
             )}
           </span>
+          {grounding && (
+            <div className="chat-packet">
+              {/* CP-MVP-010 S07: what retrieval put in front of the
+                  model — before the send as a PREVIEW, after it as
+                  what the answer actually stood on. 26/33: a packet
+                  that could not be inspected would be a prompt with
+                  extra steps. */}
+              <div className="chat-packet-head">
+                <button
+                  type="button"
+                  className="chat-tool"
+                  aria-expanded={packetOpen}
+                  disabled={packet === null}
+                  onClick={() => setPacketOpen((open) => !open)}
+                  title={
+                    packet === null
+                      ? 'Nothing retrieved yet — preview, or send a message'
+                      : 'What the vault contributed'
+                  }
+                >
+                  {packet === null
+                    ? 'no packet yet'
+                    : `${packetIsPreview ? 'preview' : 'grounded'} · ${
+                        packet.entries.length
+                      } notes · ~${packet.retrieval.contextTokens} tok`}
+                </button>
+                {packet !== null && packet.coverage.missingTerms.length > 0 && (
+                  <span
+                    className="chat-packet-gap"
+                    title="The vault has no material for these words — a future path can go and look them up"
+                  >
+                    not in the vault: {packet.coverage.missingTerms.join(', ')}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  className="chat-tool"
+                  disabled={input.trim().length === 0 || running}
+                  title="Compile the packet for the current draft, without sending"
+                  onClick={() => {
+                    void window.atomik
+                      .compileContextPacket({ query: input.trim() })
+                      .then((next) => {
+                        setPacket(next)
+                        setPacketIsPreview(true)
+                        setPacketOpen(true)
+                      })
+                      .catch(() => {
+                        /* a failed preview must never block the send */
+                      })
+                  }}
+                >
+                  preview
+                </button>
+              </div>
+              {packetOpen && packet !== null && (
+                <ul className="chat-packet-list">
+                  {packet.entries.map((entry) => (
+                    <li key={entry.path}>
+                      <span className={`chat-packet-stage stage-${entry.stage}`}>
+                        {entry.stage}
+                      </span>
+                      <button
+                        type="button"
+                        className="chat-packet-note"
+                        title={entry.path}
+                        onClick={() =>
+                          dispatch((state) => revealNote(state, paneId, entry.path))
+                        }
+                      >
+                        {entry.title}
+                      </button>
+                      <span className="chat-packet-why">{entry.reason}</span>
+                    </li>
+                  ))}
+                  {packet.omitted.length > 0 && (
+                    <li className="chat-packet-omitted">
+                      left out: {summarizeOmissions(packet.omitted)}
+                    </li>
+                  )}
+                </ul>
+              )}
+            </div>
+          )}
           <div className="chat-card-foot">
             <button
               type="button"
@@ -1505,6 +1630,24 @@ export function ChatView({
               {!isDefaultSystemPlan(sysPlan, 'chat') && (
                 <span className="chat-sys-badge">custom · {sysPlan.length}</span>
               )}
+            </button>
+            <button
+              type="button"
+              className="chat-tool"
+              title={
+                grounding
+                  ? 'Vault grounding ON — every send retrieves notes first; the packet is shown below'
+                  : 'Ground the next sends in the vault: retrieve related notes before answering'
+              }
+              aria-pressed={grounding}
+              aria-label="Vault grounding"
+              onClick={() => {
+                setGrounding((on) => !on)
+                setPacketOpen(false)
+              }}
+            >
+              <BookIcon /> vault
+              {grounding && <span className="chat-sys-badge">on</span>}
             </button>
             <button
               type="button"

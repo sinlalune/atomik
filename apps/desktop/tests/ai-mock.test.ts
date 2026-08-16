@@ -389,3 +389,43 @@ describe('runAiOperation (mock bundle)', () => {
     )
   })
 })
+
+describe('vault grounding is a request, never a payload (CP-MVP-010 S07)', () => {
+  const base = {
+    id: 'op-ground',
+    input: [
+      {
+        relPath: 'note.md',
+        kind: 'text',
+        content: 'text',
+        range: { from: 0, to: 4 }
+      }
+    ],
+    instruction: 'explain the ethos',
+    target: { relPath: 'note.md', destination: { kind: 'append' } }
+  }
+
+  it('accepts an empty grounding request and a bounded one', () => {
+    expect(isValidAiOperation({ ...base, grounding: {} })).toBe(true)
+    expect(
+      isValidAiOperation({
+        ...base,
+        grounding: { maxTokens: 500, scope: { folder: 'projects', paths: ['a.md'] } }
+      })
+    ).toBe(true)
+  })
+
+  it('rejects a malformed one — the renderer may ask, never dictate', () => {
+    expect(isValidAiOperation({ ...base, grounding: 'yes' })).toBe(false)
+    expect(isValidAiOperation({ ...base, grounding: { maxTokens: -1 } })).toBe(false)
+    expect(isValidAiOperation({ ...base, grounding: { maxTokens: 'lots' } })).toBe(false)
+    expect(isValidAiOperation({ ...base, grounding: { scope: 42 } })).toBe(false)
+    expect(isValidAiOperation({ ...base, grounding: { scope: { paths: [42] } } })).toBe(false)
+    expect(
+      isValidAiOperation({
+        ...base,
+        grounding: { scope: { paths: Array.from({ length: 21 }, () => 'a.md') } }
+      })
+    ).toBe(false)
+  })
+})

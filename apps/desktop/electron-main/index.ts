@@ -7,6 +7,7 @@ import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { isValidAiOperation } from './ai-mock'
 import { readGraphIndex } from './graph-index'
+import { referenceSelectionsOf } from '../shared/context-packet'
 import { compileVaultContextPacket, toPacketRequest } from './retrieval'
 import { recordVaultChange } from './vault-index'
 import {
@@ -119,6 +120,8 @@ import {
 } from './web-view'
 import {
   ATOMIK_CHANNELS,
+  type ContextPacket,
+  type PacketRequest,
   type VaultIndexChange,
   type VaultInfo,
   type WebViewState
@@ -178,6 +181,44 @@ function requireVault(): string {
  * imports) never remembered at all, so the graph stayed stale until some
  * unrelated save happened to reset it.
  */
+/**
+ * One compile, one trace (CP-MVP-010 S06/S07). Both callers — the
+ * renderer's inspector channel and the chat's grounding pass — go
+ * through here, so a packet can never be produced without its line:
+ * 33 asks search to record candidates, selected entries, context tokens
+ * and latency, and the packet already computed all four. The QUERY is
+ * never recorded; user text is content like a prompt.
+ */
+function tracedPacket(stateDir: string, request: PacketRequest): ContextPacket {
+  const started = Date.now()
+  try {
+    const packet = compileVaultContextPacket(requireVault(), stateDir, request)
+    traces.recordRetrieval({
+      packetId: packet.id,
+      stages: packet.retrieval.stages,
+      candidates: packet.retrieval.candidates,
+      selected: packet.retrieval.selected,
+      contextTokens: packet.retrieval.contextTokens,
+      coverage: packet.coverage.verdict,
+      wallMs: Date.now() - started,
+      status: 'completed'
+    })
+    return packet
+  } catch (error) {
+    traces.recordRetrieval({
+      packetId: 'none',
+      stages: [],
+      candidates: 0,
+      selected: 0,
+      contextTokens: 0,
+      coverage: 'empty',
+      wallMs: Date.now() - started,
+      status: 'failed'
+    })
+    throw error
+  }
+}
+
 function indexed(event: IpcMainInvokeEvent, change: VaultIndexChange): void {
   recordVaultChange(requireVault(), change, (payload) =>
     event.sender.send(ATOMIK_CHANNELS.indexChanged, payload)
@@ -242,41 +283,8 @@ function registerVaultHandlers(stateDir: string): void {
   )
   // CP-MVP-010 S05: read-only, but read-only is not unvalidated — the
   // query is bounded and every path in the request is contained (13).
-  ipcMain.handle(
-    ATOMIK_CHANNELS.compileContextPacket,
-    (_event, request: unknown) => {
-      const parsed = toPacketRequest(request)
-      const started = Date.now()
-      try {
-        const packet = compileVaultContextPacket(requireVault(), stateDir, parsed)
-        // 33: search records candidates, selected entries, context
-        // tokens and latency. The packet computed all four; this is
-        // where they become durable — and the QUERY never does.
-        traces.recordRetrieval({
-          packetId: packet.id,
-          stages: packet.retrieval.stages,
-          candidates: packet.retrieval.candidates,
-          selected: packet.retrieval.selected,
-          contextTokens: packet.retrieval.contextTokens,
-          coverage: packet.coverage.verdict,
-          wallMs: Date.now() - started,
-          status: 'completed'
-        })
-        return packet
-      } catch (error) {
-        traces.recordRetrieval({
-          packetId: 'none',
-          stages: [],
-          candidates: 0,
-          selected: 0,
-          contextTokens: 0,
-          coverage: 'empty',
-          wallMs: Date.now() - started,
-          status: 'failed'
-        })
-        throw error
-      }
-    }
+  ipcMain.handle(ATOMIK_CHANNELS.compileContextPacket, (_event, request: unknown) =>
+    tracedPacket(stateDir, toPacketRequest(request))
   )
   ipcMain.handle(ATOMIK_CHANNELS.readNote, (_event, relPath: unknown) =>
     readNote(requireVault(), relPath)
@@ -508,6 +516,28 @@ function registerVaultHandlers(stateDir: string): void {
         }
         adapter = createGoogleGenerationAdapter(key, fetch, { defaultModel: selectedModel })
       }
+      // CP-MVP-010 S07: vault grounding. The renderer ASKS; main
+      // decides what the model sees. Retrieval runs before the call,
+      // its entries join `input` as read-only reference material (the
+      // chat contract already renders those as quotable notes), and
+      // the packet travels back on the bundle so the answer can be
+      // read against what produced it. A prompt file can no more opt
+      // out of this than out of the mechanical grounding rules (28).
+      let packet: ContextPacket | undefined
+      let grounded = operation
+      if (operation.grounding) {
+        packet = tracedPacket(stateDir, {
+          query: operation.instruction,
+          ...(operation.grounding.scope ? { scope: operation.grounding.scope } : {}),
+          ...(operation.grounding.maxTokens
+            ? { maxTokens: operation.grounding.maxTokens }
+            : {})
+        })
+        const references = referenceSelectionsOf(packet)
+        if (references.length > 0) {
+          grounded = { ...operation, input: [...operation.input, ...references] }
+        }
+      }
       // S06 URL provenance: web-reader selections trace back to their
       // dossier BEFORE the pure-compute call — adapters/truth never read
       // files. Best-effort: a failed resolve degrades to no-URL evidence.
@@ -515,7 +545,7 @@ function registerVaultHandlers(stateDir: string): void {
       try {
         provenance = webProvenanceFor(
           requireVault(),
-          operation.input.map((selection) => selection.relPath)
+          grounded.input.map((selection) => selection.relPath)
         )
       } catch {
         provenance = undefined
@@ -523,7 +553,7 @@ function registerVaultHandlers(stateDir: string): void {
       const controller = new AbortController()
       activeAiOperations.set(operation.id, controller)
       try {
-        const result = await adapter.generate(operation, {
+        const result = await adapter.generate(grounded, {
           signal: controller.signal,
           provenance
         })
@@ -536,6 +566,7 @@ function registerVaultHandlers(stateDir: string): void {
         return {
           ...result.bundle,
           actionTraceIds: [traceId],
+          ...(packet ? { contextPacket: packet } : {}),
           ...(result.usage ? { usage: result.usage } : {}),
           ...(result.providerMeta.billing
             ? { billing: result.providerMeta.billing }

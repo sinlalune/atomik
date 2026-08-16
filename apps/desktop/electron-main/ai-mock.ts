@@ -99,6 +99,31 @@ export function isValidAiOperation(value: unknown): value is AiOperation {
   }
   const mode = value['mode']
   if (mode !== undefined && mode !== 'chat') return false
+  // CP-MVP-010 S07: vault grounding is a REQUEST, never a payload —
+  // the renderer may ask for retrieval and bound it, but the packet's
+  // contents are compiled main-side and cannot be supplied from here.
+  const grounding = value['grounding']
+  if (grounding !== undefined) {
+    if (!isRecord(grounding)) return false
+    const maxTokens = grounding['maxTokens']
+    if (
+      maxTokens !== undefined &&
+      (typeof maxTokens !== 'number' || !Number.isFinite(maxTokens) || maxTokens <= 0)
+    ) {
+      return false
+    }
+    const scope = grounding['scope']
+    if (scope !== undefined) {
+      if (!isRecord(scope)) return false
+      const folder = scope['folder']
+      if (folder !== undefined && (typeof folder !== 'string' || folder.length > 500)) return false
+      const paths = scope['paths']
+      if (paths !== undefined) {
+        if (!Array.isArray(paths) || paths.length > 20) return false
+        if (paths.some((path) => typeof path !== 'string' || path.length > 500)) return false
+      }
+    }
+  }
   const systemPlan = value['systemPlan']
   if (systemPlan !== undefined) {
     if (!Array.isArray(systemPlan) || systemPlan.length > MAX_PLAN_ENTRIES) return false

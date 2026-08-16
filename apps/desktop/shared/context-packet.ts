@@ -290,6 +290,32 @@ export function compileContextPacket(
   }
 }
 
+/**
+ * The packet as READ-ONLY reference selections for an AI operation
+ * (CP-MVP-010 S07). Direct entries are dropped: what the user already
+ * had open is already in the operation's own selections, and sending it
+ * twice would pay twice for it.
+ *
+ * The excerpt is what travels, not the whole note — the budget was
+ * decided when the packet was compiled, and re-reading files here would
+ * quietly undo it.
+ */
+export function referenceSelectionsOf(packet: ContextPacket): {
+  relPath: string
+  kind: 'text'
+  content: string
+  range: { from: number; to: number }
+}[] {
+  return packet.entries
+    .filter((entry) => entry.stage !== 'direct')
+    .map((entry) => ({
+      relPath: entry.path,
+      kind: 'text' as const,
+      content: entry.excerpt,
+      range: { from: 0, to: entry.excerpt.length }
+    }))
+}
+
 /** Direct entries first, then whatever scored highest. */
 function stageRank(entry: ContextEntry): number {
   return entry.stage === 'direct' ? 0 : entry.stage === 'lexical' ? 1 : 2

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { compileContextPacket, type PacketDeps } from '../shared/context-packet'
+import {
+  compileContextPacket,
+  referenceSelectionsOf,
+  type PacketDeps
+} from '../shared/context-packet'
 import { buildGraphIndex } from '../shared/graph-core'
 import { buildRetrievalIndex } from '../shared/retrieval-core'
 import { toPacketRequest } from '../electron-main/retrieval'
@@ -147,5 +151,36 @@ describe('toPacketRequest (main-side validation, 13)', () => {
       scope: { paths: ['notes/a.md', '../escape.md', '.hidden/x.md', 42] }
     })
     expect(request.scope?.paths).toEqual(['notes/a.md'])
+  })
+})
+
+describe('grounding an AI operation (S07)', () => {
+  it('sends the retrieved excerpts as read-only reference selections', () => {
+    const packet = compileContextPacket(
+      { query: 'crédibilité', scope: { paths: ['concepts/emotion.md'] } },
+      deps
+    )
+    const references = referenceSelectionsOf(packet)
+
+    // what the user already had open is NOT re-sent: it is already in
+    // the operation's own selections
+    expect(references.map((entry) => entry.relPath)).not.toContain(
+      'concepts/emotion.md'
+    )
+    expect(references.length).toBe(
+      packet.entries.filter((entry) => entry.stage !== 'direct').length
+    )
+    for (const reference of references) {
+      expect(reference.kind).toBe('text')
+      expect(reference.range).toEqual({ from: 0, to: reference.content.length })
+      // the EXCERPT travels, never the whole note — the budget was
+      // decided when the packet was compiled
+      expect(reference.content.length).toBeLessThanOrEqual(800)
+    }
+  })
+
+  it('sends nothing when the vault knows nothing', () => {
+    const packet = compileContextPacket({ query: 'zzzunknown' }, deps)
+    expect(referenceSelectionsOf(packet)).toEqual([])
   })
 })

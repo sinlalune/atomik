@@ -5274,3 +5274,91 @@ button svg {
   background: var(--ok-bg);
   color: var(--ok-fg);
 }
+
+/* Vault grounding packet (CP-MVP-010 S07) — what retrieval put in front
+   of the model, sitting between the draft and the send verb because
+   that is where it is decided. Ambient enough to ignore, per 36's
+   quiet-chrome rule; the detail opens on demand. */
+.chat-packet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: 0 var(--space-2) var(--space-1);
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+
+.chat-packet-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.chat-packet-gap {
+  color: var(--warn-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-packet-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 9rem;
+  overflow-y: auto;
+}
+
+.chat-packet-list li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* The stage is the honest half of "why this entry": direct, lexical,
+   link — the rung of 33's ladder that found it. */
+.chat-packet-stage {
+  flex: none;
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  opacity: 0.8;
+  min-width: 3.5rem;
+}
+
+.chat-packet-stage.stage-direct {
+  color: var(--accent);
+  opacity: 1;
+}
+
+.chat-packet-note {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-packet-note:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.chat-packet-why,
+.chat-packet-omitted {
+  color: var(--muted);
+  opacity: 0.75;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

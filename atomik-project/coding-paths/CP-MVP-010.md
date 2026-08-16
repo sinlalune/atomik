@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S06
+  current_step: S07
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -26,6 +26,8 @@ atomik:
     - apps/desktop/electron-preload/index.ts
     - apps/desktop/renderer/src/workspace/PaneTreePanel.tsx
     - apps/desktop/renderer/src/vault/**
+    - apps/desktop/renderer/src/workspace/ChatView.tsx
+    - apps/desktop/renderer/src/styles.css
     - apps/desktop/renderer/src/editor/**
     - apps/desktop/tests/**
     - docs/modules/atomik-desktop-graph.md
@@ -485,10 +487,28 @@ live, on real notes.
       record a failed line and rethrow. The QUERY is never written —
       user text is content like a prompt — and the content-leak test
       now greps for it too. +2 tests (840 → 842).
-- [ ] S07 Vault-grounded chat: per-thread toggle, retrieval pre-pass
-      before the send, the packet inspectable before and after, the
-      grounding block composed MAIN-side beside the existing
-      mechanical contract (no prompt file opts out, 28).
+- [x] S07 Vault-grounded chat (DONE 2026-08-16, owner confirmed the
+      main-side composition): `AiOperation.grounding` is a REQUEST,
+      never a payload — the renderer asks and may bound it, main
+      compiles the packet from the instruction and injects its entries
+      as read-only reference selections through the EXISTING chat
+      contract (no new prompt block, no forked composition). Direct
+      entries are not re-sent (already in the operation's selections);
+      the excerpt travels, never the whole note, so the packet's budget
+      still means something at send time. The packet returns on the
+      bundle, so the answer and what produced it travel together.
+      UI: a `vault` toggle in the composer (session state like the model
+      drafts) + a packet strip showing each entry's STAGE and why, the
+      omissions summarized by reason, and the words the vault has no
+      material for; `preview` compiles for the current draft through the
+      same channel, so what is inspected is what a send would compile.
+      One traced compile serves both call sites — a packet can never be
+      produced without its trace line.
+      CONSEQUENCE NAMED, not hidden: retrieved excerpts are real vault
+      text supplied as selections, so an answer quoting one exactly
+      earns `source-backed` through the ordinary containment rule (28).
+      Retrieval still asserts nothing about truth — only that the
+      sentence stands on that note. +4 tests (842 → 846).
 - [ ] S08 Citations: phrase-level links where the model emits them,
       numbered markers otherwise, a sources block under the answer,
       every marker a CP-MVP-009 pill that opens its note; unresolved
@@ -512,7 +532,7 @@ live, on real notes.
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S06 done — S07 next
+current step: S07 done — S08 next
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts
@@ -524,12 +544,12 @@ changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               docs/learning/22-lexical-retrieval-without-a-database.md + index
               docs/adr/ADR-013-lexical-retrieval-without-a-database.md
               docs/index.md · atomik-project/coding-paths/CP-MVP-010.md
-tests       : 842 passing / 70 files (this path added 54 so far),
+tests       : 846 passing / 70 files (this path added 58 so far),
               typecheck and build green, each gate run BARE (24)
-next action : S07 — vault-grounded chat: a per-thread toggle, the
-              retrieval pre-pass before the send, the packet inspectable
-              before and after, and the grounding block composed
-              MAIN-side beside the existing mechanical contract
+next action : S08 — citations: phrase-level links where the model emits
+              them, numbered markers otherwise, a sources block under
+              the answer, every marker a CP-MVP-009 pill that opens its
+              note, unresolved citations rendered as diagnostics
 rebase note : the learning index collided at the rebase (note 22 here,
               note 23 from CP-PROVIDERS) — mechanical, both kept in
               order. Exactly the shared-prose conflict paths.md
