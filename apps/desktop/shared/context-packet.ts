@@ -370,6 +370,29 @@ export function referenceSelectionsOf(packet: ContextPacket): {
     }))
 }
 
+/**
+ * `lexical:notes/a.md|link:notes/b.md` — the packet's SHAPE, small
+ * enough to live on a transcript heading (S08d). Excerpts and scores
+ * stay session-only: figures persist, prompts never do, and a
+ * transcript should not become a second copy of the vault.
+ */
+export function serializePacketMeta(packet: ContextPacket): string | null {
+  if (packet.entries.length === 0) return null
+  return packet.entries
+    .map((entry) => `${entry.stage}:${entry.path.replace(/[|<>]/g, '')}`)
+    .join('|')
+}
+
+export function parsePacketMeta(raw: string): { stage: string; path: string }[] | null {
+  const parsed: { stage: string; path: string }[] = []
+  for (const piece of raw.split('|')) {
+    const match = /^\s*(direct|lexical|link):(.+?)\s*$/.exec(piece)
+    if (!match) return null
+    parsed.push({ stage: match[1] as string, path: match[2] as string })
+  }
+  return parsed.length > 0 ? parsed : null
+}
+
 /** Direct entries first, then whatever scored highest. */
 function stageRank(entry: ContextEntry): number {
   return entry.stage === 'direct' ? 0 : entry.stage === 'lexical' ? 1 : 2

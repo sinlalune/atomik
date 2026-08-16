@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type {
   ClaimRecord,
   ContextPacket,
@@ -65,10 +65,11 @@ import { linkableNotesOf, sourceBundlesOf } from '../editor/quick-actions'
 import { noteMarkdown } from '../editor/note-markdown'
 import {
   citationSourcesOf,
-  rewriteCitations,
   serializeCitedMeta,
   type CitationSource
 } from '../../../shared/chat-citations'
+import { serializePacketMeta } from '../../../shared/context-packet'
+import { applyCitationChips, type AppliedCitations } from '../editor/citation-chips'
 import {
   BookIcon,
   BrainIcon,
@@ -189,25 +190,19 @@ function ClaimBody({
   onOpenSource: (relPath: string) => void
 }): React.JSX.Element {
   const ref = useRef<HTMLDivElement | null>(null)
-  // S08: numbered markers become real links BEFORE rendering, so a
-  // citation wears the same pill as every other link in Atomik
-  // (ADR-011) instead of growing its own renderer.
-  const rewritten = useMemo(
-    () => (sources && sources.length > 0 ? rewriteCitations(text, sources) : null),
-    [text, sources]
-  )
+  // S08d: the answer is rendered AS WRITTEN; markers are decorated
+  // afterwards, like claim marks. A citation is not a link that happens
+  // to be short, so it does not borrow the link pill.
+  const [citations, setCitations] = useState<AppliedCitations | null>(null)
   useEffect(() => {
     const container = ref.current
     if (!container) return
-    container.innerHTML = md.render(rewritten ? rewritten.markdown : text)
-    if (rewritten) {
-      for (const anchor of container.querySelectorAll<HTMLAnchorElement>('a[href]')) {
-        const href = decodeURIComponent(anchor.getAttribute('href') ?? '')
-        if (sources?.some((source) => source.path === href)) {
-          anchor.dataset['citation'] = href
-        }
-      }
-    }
+    container.innerHTML = md.render(text)
+    setCitations(
+      sources && sources.length > 0
+        ? applyCitationChips(container, text, sources)
+        : null
+    )
     if (!meta || meta.claims.length === 0) return
     const sourceOf = (claim: ClaimRecord): string | null =>
       meta.evidence.find((record) => claim.evidenceIds.includes(record.id))
@@ -228,7 +223,7 @@ function ClaimBody({
       findClaimRanges(container.textContent ?? '', verbatim),
       (claim) => claimTitle(claim, sourceOf(claim))
     )
-  }, [text, meta, rewritten])
+  }, [text, meta, sources])
   const body = (
     <div
       ref={ref}
@@ -260,14 +255,14 @@ function ClaimBody({
     />
   )
 
-  if (!rewritten || (rewritten.cited.length === 0 && rewritten.unresolved.length === 0)) {
+  if (!citations || (citations.cited.length === 0 && citations.unresolved.length === 0)) {
     return body
   }
   return (
     <>
       {body}
       <div className="chat-sources">
-        {rewritten.cited.map((source) => (
+        {citations.cited.map((source) => (
           <button
             key={source.number}
             type="button"
@@ -279,14 +274,14 @@ function ClaimBody({
             {source.title}
           </button>
         ))}
-        {rewritten.unresolved.length > 0 && (
+        {citations.unresolved.length > 0 && (
           // A citation that pointed nowhere stays VISIBLE: silently
           // dropping it would hide the one failure mode that matters.
           <span
             className="chat-source-unresolved"
             title="The answer cited a number that was never among its sources"
           >
-            unresolved: {rewritten.unresolved.map((number) => `[${number}]`).join(' ')}
+            unresolved: {citations.unresolved.map((number) => `[${number}]`).join(' ')}
           </span>
         )}
       </div>
@@ -396,6 +391,7 @@ export function ChatView({
   const [preview, setPreview] = useState<ContextPacket | null>(null)
   const packetByTurn = useRef(new Map<number, ContextPacket>())
   const [openPacketTurn, setOpenPacketTurn] = useState<number | null>(null)
+  const [openBreakdownTurn, setOpenBreakdownTurn] = useState<number | null>(null)
   const [tree, setTree] = useState<VaultFolder | null>(null)
   const [atMenu, setAtMenu] = useState<{
     start: number
@@ -628,6 +624,7 @@ export function ChatView({
       role: 'you' | 'atomik',
       text: string,
       youMeta?: string,
+      youPacket?: string | null,
       ownMeta?: string | readonly (string | undefined)[]
     ): Promise<string> => {
       const existing = fileRef.current
@@ -637,7 +634,9 @@ export function ChatView({
         // breakdown onto its heading — one write persists both;
         // S07b16: the answer's OWN metrics ride its own heading
         const base = youMeta
-          ? withSentMetaOnLastYou(note.content, youMeta)
+          ? withSentMetaOnLastYou(note.content, youMeta, [
+              youPacket ? `packet:${youPacket}` : null
+            ])
           : note.content
         await window.atomik.writeNote(
           existing,
@@ -944,6 +943,7 @@ export function ChatView({
               'atomik',
               answer,
               sentParts ? serializeSentMeta(sentParts) : undefined,
+              usedPacket ? serializePacketMeta(usedPacket) : undefined,
               [runMeta ?? undefined, citedMeta ? `cited:${citedMeta}` : undefined]
             )
             setTurns((current) => {
@@ -1299,12 +1299,20 @@ export function ChatView({
               <header className="chat-turn-head">
                 <span className="chat-turn-role">{turn.role}</span>
                 {sentTotal !== undefined && (
-                  <span
-                    className="chat-turn-metrics"
-                    title="what this exchange sent, estimated at chars/4 — the pills below retrace it"
+                  // S08d (owner bench round 6): the breakdown is DETAIL,
+                  // so it hides behind the number it explains rather
+                  // than crowding every turn.
+                  <button
+                    type="button"
+                    className="chat-turn-metrics chat-turn-metrics-open"
+                    aria-expanded={openBreakdownTurn === index}
+                    title="What this exchange sent, estimated at chars/4 — click to retrace it part by part"
+                    onClick={() =>
+                      setOpenBreakdownTurn((open) => (open === index ? null : index))
+                    }
                   >
                     ↑~{sentTotal} tok sent
-                  </span>
+                  </button>
                 )}
                 {(() => {
                   // S07b16: live meta first, else the transcript's
@@ -1378,7 +1386,7 @@ export function ChatView({
                   dispatch((state) => revealNote(state, paneId, relPath))
                 }
               />
-              {sentParts && (
+              {sentParts && openBreakdownTurn === index && (
                 <div className="chat-request-pills">
                   {sentParts.map((part, partIndex) => {
                     const packet =
@@ -1432,7 +1440,43 @@ export function ChatView({
               {openPacketTurn === index &&
                 (() => {
                   const packet = packetByTurn.current.get(index)
-                  if (!packet) return null
+                  if (!packet) {
+                    // Reopened transcript: the SHAPE survived, the
+                    // excerpts did not (S08d).
+                    const persisted = turn.packet
+                    if (!persisted) return null
+                    return (
+                      <div className="chat-packet">
+                        <ul className="chat-packet-list">
+                          {persisted.map((entry) => (
+                            <li key={entry.path}>
+                              <span
+                                className={`chat-packet-stage stage-${entry.stage}`}
+                                title={STAGE_DESCRIPTIONS[entry.stage]}
+                              >
+                                {entry.stage}
+                              </span>
+                              <button
+                                type="button"
+                                className="chat-packet-note"
+                                title={entry.path}
+                                onClick={() =>
+                                  dispatch((state) =>
+                                    revealNote(state, paneId, entry.path)
+                                  )
+                                }
+                              >
+                                {(entry.path.split('/').pop() ?? entry.path).replace(
+                                  /\.md$/i,
+                                  ''
+                                )}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )
+                  }
                   return (
                     <div className="chat-packet">
                       {packet.coverage.missingTerms.length > 0 && (

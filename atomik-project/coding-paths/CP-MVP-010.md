@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S08c
+  current_step: S08d
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -31,6 +31,8 @@ atomik:
     - apps/desktop/renderer/src/vault/**
     - apps/desktop/renderer/src/workspace/ChatView.tsx
     - apps/desktop/renderer/src/editor/request-breakdown.ts
+    - apps/desktop/renderer/src/editor/citation-chips.ts
+    - apps/desktop/renderer/src/editor/chat-file.ts
     - apps/desktop/renderer/src/styles.css
     - apps/desktop/renderer/src/editor/**
     - apps/desktop/tests/**
@@ -678,6 +680,31 @@ live, on real notes.
       show the coverage line or the retrieved notes — "what you see is
       what is sent" now holds up to grounding, and the turn's vault pill
       is what closes the gap after the fact.
+- [x] S08d BENCH ROUND 6 (2026-08-16 — DONE same day). Three reports:
+      (1) THE PILLS DID NOT MATCH and the packet list trapped a second
+      scrollbar. The vault pill is a BUTTON among spans and wore the
+      browser's font instead of the shared recipe; fixed by inheriting
+      it. The list extends instead of scrolling — a list inside a
+      scrollable conversation should not trap a scrollbar. And the whole
+      breakdown now hides behind the `↑~N tok sent` total it explains
+      (owner: "hide the themed token count pill by default making it an
+      expendable part of the sent token on top right of message").
+      (2) A CITATION IS NOT A LINK. Rewriting `[1]` into markdown made
+      the pill recipe render it as one more link — the owner's diagnosis
+      was structural, not cosmetic. The answer's markdown is now left
+      exactly as the model wrote it and the markers are DECORATED
+      afterwards (`editor/citation-chips.ts`, beside `claim-highlight`:
+      same job, same shape), as a small round chip in the accent colour,
+      skipping code and existing links. An invented number keeps its
+      plain brackets, so a bad citation still looks like one.
+      (3) NOTHING SURVIVED A TAB SWITCH. The citation map already
+      persisted; the packet did not, so the vault pill opened onto
+      nothing. The you-heading now carries `packet:` beside `sent:` —
+      stage and path per entry. Excerpts stay session-only: figures
+      persist, prompts never do, and a transcript must not become a
+      second copy of the vault.
+      +1 test net (869 → 870: two new cases, one obsolete rewrite
+      assertion retired with the markdown-rewriting approach).
 - [ ] S09 Search surface + diagnostics: ranked results with kind pills
       and "why this result", the packet disclosure, and the vault-wide
       broken-links list docked there.
@@ -697,7 +724,7 @@ live, on real notes.
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S08c done (owner bench rounds 1–5 absorbed) — S09 next
+current step: S08d done (owner bench rounds 1–6 absorbed) — S09 next
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts
@@ -709,7 +736,7 @@ changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               docs/learning/22-lexical-retrieval-without-a-database.md + index
               docs/adr/ADR-013-lexical-retrieval-without-a-database.md
               docs/index.md · atomik-project/coding-paths/CP-MVP-010.md
-tests       : 869 passing / 71 files (this path added 81 so far),
+tests       : 870 passing / 72 files (this path added 82 so far),
               typecheck and build green, each gate run BARE (24)
 next action : S09 — the search surface: ranked results with kind pills
               and "why this result", the packet disclosure, and the

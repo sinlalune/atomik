@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import {
   citationSourcesOf,
+  findCitationMarkers,
   parseCitedMeta,
-  rewriteCitations,
   serializeCitedMeta
 } from '../shared/chat-citations'
-import { appendChatTurn, parseChatTurns } from '../renderer/src/editor/chat-file'
+import {
+  appendChatTurn,
+  parseChatTurns,
+  withSentMetaOnLastYou
+} from '../renderer/src/editor/chat-file'
+import { parsePacketMeta, serializePacketMeta } from '../shared/context-packet'
 
 /**
  * Citations (CP-MVP-010 S08). A grounded answer that cannot be traced is
@@ -20,47 +25,34 @@ const SOURCES = citationSourcesOf([
   { path: 'concepts/pathos.md', title: 'Pathos' }
 ])
 
-describe('rewriteCitations', () => {
-  it('turns a marker into a real link to its note', () => {
-    const { markdown, cited } = rewriteCitations(
-      "L'éthos est la crédibilité [1].",
-      SOURCES
-    )
-    expect(markdown).toBe(
-      "L'éthos est la crédibilité [1](<concepts/ethos.md>)."
-    )
+describe('findCitationMarkers', () => {
+  it('locates a marker and maps it to its note — the ANSWER is untouched', () => {
+    const answer = "L'éthos est la crédibilité [1]."
+    const { markers, cited } = findCitationMarkers(answer, SOURCES)
     expect(cited).toEqual([SOURCES[0]])
+    expect(markers).toHaveLength(1)
+    expect(answer.slice(markers[0]!.from, markers[0]!.to)).toBe('[1]')
   })
 
   it('handles a grouped marker and reports each source once', () => {
-    const { markdown, cited } = rewriteCitations('Les deux preuves [1, 2].', SOURCES)
-    expect(markdown).toContain('[1](<concepts/ethos.md>)[2](<concepts/pathos.md>)')
-    expect(cited.map((source) => source.number)).toEqual([1, 2])
+    const { markers, cited } = findCitationMarkers('Les deux preuves [1, 2].', SOURCES)
+    expect(markers[0]!.numbers).toEqual([1, 2])
+    expect(cited.map((source: { number: number }) => source.number)).toEqual([1, 2])
   })
 
-  it('keeps an invented number visible instead of dropping it', () => {
-    const { markdown, unresolved, cited } = rewriteCitations('Selon [7].', SOURCES)
-    expect(markdown).toBe('Selon [7].')
+  it('reports an invented number instead of hiding it', () => {
+    const { unresolved, cited } = findCitationMarkers('Selon [7].', SOURCES)
     expect(unresolved).toEqual([7])
     expect(cited).toEqual([])
   })
 
-  it('never touches code — arr[0] is not a citation', () => {
-    const answer = 'Voir `arr[1]` et:\n\n```js\nconst x = arr[1]\n```\n\nPuis [1].'
-    const { markdown } = rewriteCitations(answer, SOURCES)
-    expect(markdown).toContain('`arr[1]`')
-    expect(markdown).toContain('const x = arr[1]')
-    expect(markdown).toContain('Puis [1](<concepts/ethos.md>).')
+  it('does not mistake a reference-style link or an image for a citation', () => {
+    expect(findCitationMarkers('voir [texte][1] et ![alt][2]', SOURCES).markers).toEqual([])
   })
 
-  it('leaves a phrase-level link alone — it is already a citation', () => {
-    const answer = 'Voir [la crédibilité](<concepts/ethos.md>).'
-    expect(rewriteCitations(answer, SOURCES).markdown).toBe(answer)
-  })
-
-  it('does nothing when the answer cites nothing', () => {
-    const { markdown, cited, unresolved } = rewriteCitations('Pas de citation.', SOURCES)
-    expect(markdown).toBe('Pas de citation.')
+  it('finds nothing when the answer cites nothing', () => {
+    const { markers, cited, unresolved } = findCitationMarkers('Pas de citation.', SOURCES)
+    expect(markers).toEqual([])
     expect(cited).toEqual([])
     expect(unresolved).toEqual([])
   })
@@ -94,5 +86,35 @@ describe('the citation map survives the transcript', () => {
   it('reads a hand-mangled map as no map, never as a crash', () => {
     expect(parseCitedMeta('garbage')).toBeNull()
     expect(serializeCitedMeta([])).toBeNull()
+  })
+})
+
+describe('the packet shape survives a closed tab (S08d)', () => {
+  it('round-trips through the you-turn heading, beside the sent breakdown', () => {
+    const packet = {
+      entries: [
+        { path: 'concepts/ethos.md', stage: 'lexical' },
+        { path: 'concepts/pathos.md', stage: 'link' }
+      ]
+    } as never
+    const meta = serializePacketMeta(packet)
+    expect(meta).toBe('lexical:concepts/ethos.md|link:concepts/pathos.md')
+
+    const file = withSentMetaOnLastYou(
+      '---\ntype: Atomik Chat\n---\n\n## you\n\nquestion\n',
+      'system=100|instruction=20',
+      [`packet:${meta}`]
+    )
+    const turn = parseChatTurns(file)[0]!
+    expect(turn.sent?.map((part) => part.kind)).toEqual(['system', 'instruction'])
+    expect(turn.packet).toEqual([
+      { stage: 'lexical', path: 'concepts/ethos.md' },
+      { stage: 'link', path: 'concepts/pathos.md' }
+    ])
+  })
+
+  it('reads a mangled packet comment as no packet', () => {
+    expect(parsePacketMeta('nonsense')).toBeNull()
+    expect(parsePacketMeta('unknown-stage:a.md')).toBeNull()
   })
 })

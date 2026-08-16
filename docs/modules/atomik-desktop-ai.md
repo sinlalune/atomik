@@ -104,6 +104,25 @@ timestamp: 2026-08-14T00:00:00Z
       what derived it. A packet belongs to a message the way a claim
       belongs to an answer — putting it beside the composer made the
       chat's own timeline lie about when it happened.
+- A CITATION IS NOT A LINK (S08d, owner bench round 6: "it still don't
+  look like citation… the idea that you should use md citation format
+  for it is a bad assumption, it should be format normally but with a
+  different render"). The first version rewrote `[1]` into a markdown
+  link, so the pill recipe rendered it as one more link — the objection
+  was structural, not cosmetic. The answer's markdown is now left
+  EXACTLY as the model wrote it and the markers are decorated afterwards
+  (`editor/citation-chips.ts`, beside `claim-highlight`: same job, same
+  shape) as a small round chip in the accent colour, skipping code and
+  existing links. An invented number keeps its plain brackets, so a bad
+  citation still looks like one.
+- WHAT SURVIVES A CLOSED TAB (S08d): the you-heading carries `packet:`
+  beside `sent:` — stage and path per entry, the packet's SHAPE — so
+  reopening a conversation reopens "what the vault contributed". The
+  excerpts and scores stay session-only: figures persist, prompts never
+  do, and a transcript must not become a second copy of the vault.
+- THE BREAKDOWN IS DETAIL (S08d): the request pills hide behind the
+  `↑~N tok sent` total they explain, one click away, instead of
+  crowding every turn.
 - CITATIONS (CP-MVP-010 S08): `shared/chat-citations.ts`, pure.
   - The reference notes are sent NUMBERED (`### [1] \`path\``) with one
     short instruction, because the numbering IS the citation contract:

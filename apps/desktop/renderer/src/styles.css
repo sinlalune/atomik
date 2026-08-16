@@ -3877,6 +3877,12 @@ button svg {
 }
 
 .chat-request-pill-open {
+  /* a BUTTON among spans: it has to wear the same recipe, not the
+     browser's (owner bench round 6: "the pills doesnt look the same") */
+  font: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
   cursor: pointer;
 }
 
@@ -3884,6 +3890,22 @@ button svg {
 .chat-request-pill-open[aria-expanded='true'] {
   color: var(--accent);
   border-color: var(--accent);
+}
+
+/* The breakdown hides behind the total it explains (S08d). */
+.chat-turn-metrics-open {
+  font: inherit;
+  font-size: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.chat-turn-metrics-open:hover,
+.chat-turn-metrics-open[aria-expanded='true'] {
+  color: var(--accent);
 }
 
 .chat-request-copy {
@@ -5327,12 +5349,12 @@ button svg {
 .chat-packet-list {
   list-style: none;
   margin: 0;
+  /* No inner scroll (owner bench round 6): a list inside a scrollable
+     conversation should extend, not trap a second scrollbar. */
   padding: 0 0 0 var(--space-2);
   display: flex;
   flex-direction: column;
   gap: 2px;
-  max-height: 9rem;
-  overflow-y: auto;
 }
 
 .chat-packet-list li {
@@ -5395,33 +5417,30 @@ button svg {
    the sentence: "these words are verbatim from a note") and the
    citation (a marker: "the model attributes this to note 1") then say
    two different things and stop competing. */
-.markdown-body a.link-pill[data-citation],
-.chat-turn-body a[data-citation] {
-  display: inline;
+.chat-turn-body a.citation-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   vertical-align: super;
-  font-size: 0.72em;
+  min-width: 1.15em;
+  height: 1.15em;
+  margin: 0 0.15em;
+  padding: 0 0.3em;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+  font-size: 0.68em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  color: var(--accent);
-  background: none;
-  border: none;
-  border-radius: 0;
-  padding: 0 0.1em;
-  margin: 0 0.05em;
   text-decoration: none;
+  cursor: pointer;
 }
 
-/* the pill recipe paints its kind icon through a mask — a marker has
-   no kind to show */
-.markdown-body a.link-pill[data-citation]::before,
-.markdown-body a.link-pill[data-citation]::after,
-.chat-turn-body a[data-citation]::before,
-.chat-turn-body a[data-citation]::after {
-  content: none;
-}
-
-.chat-turn-body a[data-citation]:hover {
-  text-decoration: underline;
+.chat-turn-body a.citation-chip:hover {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  border-color: var(--accent);
+  text-decoration: none;
 }
 
 /* The sources block under an answer. */

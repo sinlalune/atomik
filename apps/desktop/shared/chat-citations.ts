@@ -14,9 +14,16 @@
  * [text](<notes/x.md>)    a phrase-level link -> already a link
  * ```
  *
- * PURE: string in, string out. The renderer's existing markdown factory
- * turns the result into pills, so a citation wears the same clothes as
- * every other link in Atomik (ADR-011, CP-MVP-009).
+ * The markdown is NOT rewritten (owner bench round 6: "the idea that
+ * you should use md citation format for it is a bad assumption, it
+ * should be format normally but with a different render"). The answer
+ * keeps the text the model wrote; the renderer decorates the markers
+ * afterwards, the same way claim marks are applied. A citation is not a
+ * link that happens to be short — it is its own kind of thing, and
+ * borrowing the link pill made it read as neither.
+ *
+ * PURE: this module finds markers and maps numbers to sources; the DOM
+ * work lives in the renderer beside the other decorators.
  */
 
 export type CitationSource = {
@@ -61,8 +68,15 @@ export function parseCitedMeta(raw: string): { number: number; path: string }[] 
  *  markdown links (`[text][1]`) and images are deliberately not matched. */
 const MARKER_RE = /(?<![\]\w!])\[(\d+(?:\s*,\s*\d+)*)\](?!\()/g
 
-export type RewrittenAnswer = {
-  markdown: string
+export type CitationMarker = {
+  /** Offsets in the text the marker was found in. */
+  from: number
+  to: number
+  numbers: number[]
+}
+
+export type AnswerCitations = {
+  markers: CitationMarker[]
   /** Numbers the model invented — no such source was ever sent. They
    *  stay visible as a diagnostic; a citation that silently vanished
    *  would be worse than one that admits it is broken. */
@@ -72,46 +86,45 @@ export type RewrittenAnswer = {
 }
 
 /**
- * Numbered markers become real links; everything else is left alone.
- * Fenced code and inline code are skipped — `arr[0]` is not a citation.
+ * Every citation marker in one plain-text run, with what it resolves to.
+ * The caller decorates; nothing here rewrites the answer.
  */
-export function rewriteCitations(
-  answer: string,
+export function findCitationMarkers(
+  text: string,
   sources: readonly CitationSource[]
-): RewrittenAnswer {
+): AnswerCitations {
   const byNumber = new Map(sources.map((source) => [source.number, source]))
   const unresolved = new Set<number>()
   const cited = new Map<number, CitationSource>()
+  const markers: CitationMarker[] = []
 
-  const markdown = mapOutsideCode(answer, (segment) =>
-    segment.replace(MARKER_RE, (whole, group: string) => {
-      const numbers = group.split(',').map((piece) => Number(piece.trim()))
-      const links = numbers.map((number) => {
-        const source = byNumber.get(number)
-        if (!source) {
-          unresolved.add(number)
-          return `[${number}]`
-        }
-        cited.set(number, source)
-        return `[${number}](<${source.path}>)`
-      })
-      return numbers.length === links.length ? links.join('') : whole
+  for (const match of text.matchAll(MARKER_RE)) {
+    const numbers = (match[1] as string).split(',').map((piece) => Number(piece.trim()))
+    for (const number of numbers) {
+      const source = byNumber.get(number)
+      if (source) cited.set(number, source)
+      else unresolved.add(number)
+    }
+    markers.push({
+      from: match.index ?? 0,
+      to: (match.index ?? 0) + match[0].length,
+      numbers
     })
-  )
+  }
 
   return {
-    markdown,
+    markers,
     unresolved: [...unresolved].sort((a, b) => a - b),
     cited: [...cited.values()].sort((a, b) => a.number - b.number)
   }
 }
 
-/** Apply a transform to everything that is NOT code. */
-function mapOutsideCode(text: string, transform: (segment: string) => string): string {
-  const parts = text.split(/(```[\s\S]*?```|`[^`\n]*`)/g)
-  return parts
-    .map((part, index) => (index % 2 === 1 ? part : transform(part)))
-    .join('')
+/** The source a number points at, for the decorator. */
+export function sourceOfNumber(
+  sources: readonly CitationSource[],
+  number: number
+): CitationSource | undefined {
+  return sources.find((source) => source.number === number)
 }
 
 /**

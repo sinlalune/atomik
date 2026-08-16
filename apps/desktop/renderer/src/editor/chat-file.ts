@@ -1,4 +1,5 @@
 import { parseCitedMeta } from '../../../shared/chat-citations'
+import { parsePacketMeta } from '../../../shared/context-packet'
 import type { AiThreadTurn, VaultFolder } from '../../../shared/ipc-contract'
 import { newNotePathForSelection, type BufferChange } from './ai-helpers'
 
@@ -44,6 +45,10 @@ export type ChatTurn = {
   /** CP-MVP-010 S08: the answer's citation map (number → note path),
    *  so a reopened conversation still resolves its markers. */
   cited?: { number: number; path: string }[]
+  /** CP-MVP-010 S08d: the you-turn's packet, stage by stage — enough to
+   *  reopen "what the vault contributed" after the tab was closed. The
+   *  excerpts stay session-only: figures persist, prompts never do. */
+  packet?: { stage: string; path: string }[]
 }
 
 export const CHATS_FOLDER = 'chats'
@@ -174,15 +179,23 @@ export function parseSentMeta(raw: string): SentPart[] | null {
 
 /** Sets (or replaces) the sent comment on the LAST `## you` heading —
  *  called by the ANSWER's write, so one write persists both. */
-export function withSentMetaOnLastYou(content: string, meta: string): string {
-  const headings = [...content.matchAll(/^##[ \t]+you[ \t]*(?:<!--.*?-->)?[ \t]*$/gm)]
+export function withSentMetaOnLastYou(
+  content: string,
+  meta: string,
+  extra?: readonly (string | null | undefined)[]
+): string {
+  const headings = [...content.matchAll(/^##[ \t]+you[ \t]*(?:<!--.*?-->)*[ \t]*$/gm)]
   const last = headings.at(-1)
   if (!last) return content
   const start = last.index
+  // S08d: a you-heading may carry its packet beside its breakdown, so
+  // the vault pill still opens after the tab is closed and reopened.
+  const comments = [`sent: ${meta}`, ...(extra ?? [])]
+    .filter((comment): comment is string => Boolean(comment))
+    .map((comment) => ` <!-- ${comment} -->`)
+    .join('')
   return (
-    content.slice(0, start) +
-    `## you <!-- sent: ${meta} -->` +
-    content.slice(start + last[0].length)
+    content.slice(0, start) + `## you${comments}` + content.slice(start + last[0].length)
   )
 }
 
@@ -232,6 +245,7 @@ export function parseChatTurns(content: string): ChatTurn[] {
     sent?: SentPart[]
     run?: RunMeta
     cited?: { number: number; path: string }[]
+    packet?: { stage: string; path: string }[]
   } | null = null
   const flush = (): void => {
     if (!current) return
@@ -242,7 +256,8 @@ export function parseChatTurns(content: string): ChatTurn[] {
         text,
         ...(current.sent ? { sent: current.sent } : {}),
         ...(current.run ? { run: current.run } : {}),
-        ...(current.cited ? { cited: current.cited } : {})
+        ...(current.cited ? { cited: current.cited } : {}),
+        ...(current.packet ? { packet: current.packet } : {})
       })
     current = null
   }
@@ -266,15 +281,18 @@ export function parseChatTurns(content: string): ChatTurn[] {
       const sentRaw = commentWith('sent:')
       const runRaw = commentWith('run:')
       const citedRaw = commentWith('cited:')
+      const packetRaw = commentWith('packet:')
       const sent = sentRaw === null ? null : parseSentMeta(sentRaw)
       const run = runRaw === null ? null : parseRunMeta(runRaw)
       const cited = citedRaw === null ? null : parseCitedMeta(citedRaw)
+      const packet = packetRaw === null ? null : parsePacketMeta(packetRaw)
       current = {
         role: heading[1] as ChatRole,
         lines: [],
         ...(sent ? { sent } : {}),
         ...(run ? { run } : {}),
-        ...(cited ? { cited } : {})
+        ...(cited ? { cited } : {}),
+        ...(packet ? { packet } : {})
       }
     } else if (current) {
       current.lines.push(line)
