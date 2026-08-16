@@ -70,6 +70,24 @@ const DEFAULT_LIMIT = 20
  * ITS words are noise, in whatever language it is written.
  */
 export const COMMON_TERM_SHARE = 0.5
+/**
+ * The subject of a question is what is RARE in it (CP-MVP-010 S08e,
+ * owner bench round 7: "still a lot word noise, maybe use fast
+ * principal subject ranking algo?").
+ *
+ * "Que peux tu me dire de platon (Plato) ?" is one question about one
+ * subject. `platon` and `plato` appear in two notes; `peux`, `dire`,
+ * `me`, `que` appear in dozens — not enough to be dropped as common,
+ * but enough that a long note matching four of them outranks a short
+ * note about Plato.
+ *
+ * The rule compares DOCUMENT FREQUENCIES rather than IDFs: a logarithm
+ * compresses a 10× difference in rarity into a 2× difference in score,
+ * which is exactly the compression that let filler compete. A term
+ * appearing in more than this many times as many documents as the
+ * query's RAREST term is context around the subject, not the subject.
+ */
+export const PRINCIPAL_DF_FACTOR = 4
 
 /* ------------------------------------------------------------------ */
 /* Tokenizer                                                           */
@@ -484,6 +502,22 @@ export function searchIndex(
   const average = emptyLengths()
   for (const field of RETRIEVAL_FIELDS) average[field] = index.totals[field] / docCount
 
+  // The query's own terms, by how rare each one is in THIS vault.
+  const informative = terms
+    .map((term) => {
+      const postings = index.terms[term]
+      if (!postings) return null
+      const df = new Set(postings.map((posting) => posting.doc)).size
+      return df / docCount > COMMON_TERM_SHARE ? null : { term, df }
+    })
+    .filter((entry): entry is { term: string; df: number } => entry !== null)
+  const rarest = Math.min(...informative.map((entry) => entry.df))
+  const principal = new Set(
+    informative
+      .filter((entry) => entry.df <= rarest * PRINCIPAL_DF_FACTOR)
+      .map((entry) => entry.term)
+  )
+
   type Accumulator = {
     score: number
     fields: Map<RetrievalField, number>
@@ -499,8 +533,10 @@ export function searchIndex(
     const documents = new Set(postings.map((posting) => posting.doc))
     // Everywhere = nowhere: a word in half the vault cannot tell two
     // notes apart, and letting it score turns every long note into a
-    // match for every question.
+    // match for every question. Below the principal share it is filler
+    // around the actual subject, and ranks nothing either.
     if (documents.size / docCount > COMMON_TERM_SHARE) continue
+    if (principal.size > 0 && !principal.has(term)) continue
     const idf = Math.log(1 + (docCount - documents.size + 0.5) / (documents.size + 0.5))
 
     for (const posting of postings) {

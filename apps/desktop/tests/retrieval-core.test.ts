@@ -268,3 +268,45 @@ describe('common words rank nothing (S08b, owner bench round 4)', () => {
     expect(searchIndex(repeated, 'ethos')[0]!.path).toBe('a.md')
   })
 })
+
+describe('principal subject ranking (S08e, owner bench round 7)', () => {
+  // "Que peux tu me dire de platon (Plato) ?" — one question, one
+  // subject, and six words of politeness that are not rare enough to be
+  // dropped as common yet common enough to rank long notes.
+  // Twenty notes: `peux` and `dire` sit in nine of them — under the
+  // common ceiling, far over the subject threshold — while `plato` sits
+  // in two. That spread is what a real vault looks like, and it is
+  // exactly where ranking on every term failed.
+  const CORPUS = [
+    { path: 'plato.md', content: '# Plato\n\nUn philosophe grec.\n' },
+    { path: 'stoic.md', content: '# From Plato to Stoicism\n\nPlato et les stoïciens.\n' },
+    ...Array.from({ length: 9 }, (_, index) => ({
+      path: `filler-${index}.md`,
+      content: `# Filler ${index}\n\nCe que tu peux dire, tu peux le dire ici.\n`
+    })),
+    ...Array.from({ length: 9 }, (_, index) => ({
+      path: `other-${index}.md`,
+      content: `# Other ${index}\n\nUn sujet sans rapport.\n`
+    }))
+  ]
+  const index = buildRetrievalIndex(CORPUS)
+
+  it('ranks on the subject, not on the words around it', () => {
+    const hits = searchIndex(index, 'Que peux tu me dire de platon (Plato) ?')
+    expect(hits.map((hit) => hit.path)).toEqual(['plato.md', 'stoic.md'])
+    // and the row can say WHY: only the informative term ranked
+    expect(hits[0]!.terms).toEqual(['plato'])
+  })
+
+  it('keeps every term when they are equally rare', () => {
+    const hits = searchIndex(index, 'plato stoicism')
+    expect(hits[0]!.path).toBe('stoic.md')
+    expect(hits[0]!.terms.sort()).toEqual(['plato', 'stoicism'])
+  })
+
+  it('still answers a question made only of filler', () => {
+    // nothing is more principal than anything else, so the filler is
+    // all there is to go on — better than answering nothing
+    expect(searchIndex(index, 'peux dire').length).toBeGreaterThan(0)
+  })
+})

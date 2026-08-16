@@ -60,6 +60,11 @@ export type OmissionReason =
   /** A chat transcript: dialogue is a record of thinking, not knowledge
    *  to think WITH (CP-MVP-010 S07c, owner bench round 2). */
   | 'dialogue'
+  /** A prompt file: instructions TO the model. Feeding them back as
+   *  reference material is not merely noise — it is the model reading
+   *  its own instructions as if they were the owner's knowledge
+   *  (CP-MVP-010 S08e, owner bench round 7). */
+  | 'machinery'
 
 export type OmittedEntry = {
   path: string
@@ -155,9 +160,23 @@ export function compileContextPacket(
   const inScope = (path: string): boolean =>
     folder === '' || path === folder || path.startsWith(`${folder}/`)
 
-  const chats = new Set(
-    deps.graph.nodes.filter((node) => node.kind === 'chat').map((node) => node.path)
-  )
+  /**
+   * What is APP MACHINERY rather than knowledge. Kept as a path rule,
+   * not a node-kind rule, because the graph legitimately calls
+   * `chats/2026-08-03/index.md` a FOLDER — it is one — and that let a
+   * chat index through the S07c filter (owner bench round 7). The
+   * question "may this ground an answer?" is about the family a file
+   * belongs to, not about the icon it wears.
+   */
+  const machineryOf = (path: string): OmissionReason | null => {
+    if (/(^|\/)chats\//.test(path)) return 'dialogue'
+    if (/(^|\/)prompts\//.test(path)) return 'machinery'
+    return deps.graph.nodes.some(
+      (node) => node.path === path && node.kind === 'chat'
+    )
+      ? 'dialogue'
+      : null
+  }
   const titles = new Map(deps.graph.nodes.map((node) => [node.path, node.title]))
   const titleOf = (path: string): string =>
     titles.get(path) ?? (path.split('/').pop() ?? path).replace(/\.[^./]+$/, '')
@@ -217,8 +236,9 @@ export function compileContextPacket(
     // model's past answers would come back as if they were vault
     // knowledge. Transcripts stay searchable (the search panel finds
     // them); they simply do not GROUND (owner bench round 2).
-    if (chats.has(hit.path)) {
-      omitted.push({ path: hit.path, reason: 'dialogue' })
+    const machinery = machineryOf(hit.path)
+    if (machinery) {
+      omitted.push({ path: hit.path, reason: machinery })
       continue
     }
     if (!inScope(hit.path)) {
@@ -260,8 +280,9 @@ export function compileContextPacket(
     const bestLexical = lexicalSeeds[0]?.score ?? 0
     for (const node of expanded) {
       considered += 1
-      if (chats.has(node.path)) {
-        omitted.push({ path: node.path, reason: 'dialogue' })
+      const machinery = machineryOf(node.path)
+      if (machinery) {
+        omitted.push({ path: node.path, reason: machinery })
         continue
       }
       if (bestLexical > 0 && node.score < bestLexical * LINK_SCORE_FLOOR) {

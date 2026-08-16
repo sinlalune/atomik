@@ -44,6 +44,18 @@ timestamp: 2026-08-14T00:00:00Z
   with BM25F (`k1 1.2`, `b 0.75`, weights 3/2/2/1.8/1.5/1). Rung 1 of
   33's ladder; no embeddings, no vector store, and deliberately no
   SQLite (ADR-013 carries the dated thresholds that would reverse it).
+  - THE SUBJECT IS WHAT IS RARE (S08e, owner bench round 7: "still a lot
+    word noise, maybe use fast principal subject ranking algo?"). "Que
+    peux tu me dire de platon (Plato) ?" is one question about one
+    subject, but `peux`, `dire`, `me`, `que` sit in dozens of notes —
+    under the common ceiling, yet enough that a long note matching four
+    of them outranks a short note about Plato. Only terms whose document
+    frequency is within `PRINCIPAL_DF_FACTOR` (4×) of the query's RAREST
+    term rank anything. The comparison is on document frequency, not
+    IDF: a logarithm compresses a 10× difference in rarity into a 2×
+    difference in score, and that compression is exactly what let filler
+    compete. No grammar, no language list, no model — the vault's own
+    statistics find the subject.
   - EVERYWHERE = NOWHERE (S08b): a term present in more than half the
     documents is dropped from ranking. The owner's bench asked "parle
     moi de l'éthos" and got SVG, Sociologie and three daily notes back,

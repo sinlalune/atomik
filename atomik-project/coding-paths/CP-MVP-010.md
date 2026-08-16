@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S08d
+  current_step: S08e
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -705,6 +705,27 @@ live, on real notes.
       second copy of the vault.
       +1 test net (869 → 870: two new cases, one obsolete rewrite
       assertion retired with the markdown-rewriting approach).
+- [x] S08e BENCH ROUND 7 (2026-08-16, query "Que peux tu me dire de
+      platon (Plato) ?" — DONE same day). Two reports:
+      (1) CHAT INDEXES AND PROMPTS IN THE PACKET. S07c filtered on the
+      node KIND, but the graph rightly calls `chats/2026-08-03/index.md`
+      a FOLDER, so a chat index walked straight past it. The rule is now
+      on the PATH FAMILY: everything under `chats/` is omitted as
+      `dialogue`, everything under `prompts/` as `machinery`. Prompt
+      files are worse than noise — feeding them back as reference is the
+      model reading its own instructions as if they were the owner's
+      knowledge.
+      (2) WORD NOISE — the owner's own suggestion, "maybe use fast
+      principal subject ranking algo?". Implemented as the vault's own
+      statistics: only terms whose document frequency is within 4× the
+      query's RAREST term rank anything. The comparison is on document
+      frequency, not IDF — a logarithm compresses a 10× difference in
+      rarity into a 2× difference in score, and that compression is
+      precisely what let `peux`, `dire`, `que` compete with `platon`. No
+      grammar, no language list, no model.
+      +5 tests (870 → 875). Two fixtures had to grow into real vaults:
+      in a five-file corpus every term looks common, which is a lesson
+      about test fixtures for a statistical ranker.
 - [ ] S09 Search surface + diagnostics: ranked results with kind pills
       and "why this result", the packet disclosure, and the vault-wide
       broken-links list docked there.
@@ -724,7 +745,7 @@ live, on real notes.
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S08d done (owner bench rounds 1–6 absorbed) — S09 next
+current step: S08e done (owner bench rounds 1–7 absorbed) — S09 next
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts
@@ -736,7 +757,7 @@ changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               docs/learning/22-lexical-retrieval-without-a-database.md + index
               docs/adr/ADR-013-lexical-retrieval-without-a-database.md
               docs/index.md · atomik-project/coding-paths/CP-MVP-010.md
-tests       : 870 passing / 72 files (this path added 82 so far),
+tests       : 875 passing / 71 files (this path added 87 so far),
               typecheck and build green, each gate run BARE (24)
 next action : S09 — the search surface: ranked results with kind pills
               and "why this result", the packet disclosure, and the

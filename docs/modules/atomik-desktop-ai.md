@@ -93,6 +93,14 @@ timestamp: 2026-08-14T00:00:00Z
     round 4: "we don't know what content of the request has matched"):
     the reason reads `“ethos” in title, body`, and hovering it shows the
     excerpt that was actually sent.
+  - APP MACHINERY NEVER GROUNDS (S08e, owner bench round 7): anything
+    under `chats/` or `prompts/` is excluded from the packet, as
+    `dialogue` and `machinery` respectively. The rule is on the PATH
+    FAMILY rather than the node kind, because the graph rightly calls
+    `chats/2026-08-03/index.md` a FOLDER — which is how a chat index
+    walked straight past the S07c filter. Prompt files matter more than
+    noise: feeding them back as reference is the model reading its own
+    instructions as if they were the owner's knowledge.
   - DIALOGUE NEVER GROUNDS (S07c, owner bench round 2): a chat
       transcript is excluded from the packet — at the lexical stage and
       at the expansion stage — and the omission says `dialogue`. A chat

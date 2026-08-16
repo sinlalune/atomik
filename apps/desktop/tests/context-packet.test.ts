@@ -273,3 +273,46 @@ describe('bench round 4 (2026-08-16): what matched, and what was noise', () => {
     expect(packet.coverage.verdict).toBe('covered')
   })
 })
+
+describe('bench round 7 (2026-08-16): app machinery is not knowledge', () => {
+  const WITH_MACHINERY = [
+    ...VAULT,
+    // a vault, not four files: without enough unrelated notes every
+    // term looks common and nothing ranks at all
+    ...Array.from({ length: 10 }, (_, index) => ({
+      path: `misc/note-${index}.md`,
+      content: `# Note ${index}\n\nUn sujet sans rapport.\n`
+    })),
+    { path: 'chats/2026-08-03/index.md', content: '# 2026-08-03\n\nPathos, pathos, pathos.\n' },
+    {
+      path: "prompts/Explain me like I'm 5 years old.md",
+      content: '---\nkind: system\n---\n# Explain\n\nExplique le pathos simplement.\n'
+    }
+  ]
+  const deps2: PacketDeps = {
+    index: buildRetrievalIndex(WITH_MACHINERY),
+    graph: buildGraphIndex(WITH_MACHINERY),
+    read: (path) => WITH_MACHINERY.find((file) => file.path === path)?.content,
+    id: 'packet-machinery'
+  }
+
+  it('keeps a chat FOLDER index out, which the node-kind rule let through', () => {
+    const packet = compileContextPacket({ query: 'pathos' }, deps2)
+    expect(paths(packet.entries)).not.toContain('chats/2026-08-03/index.md')
+    expect(packet.omitted).toContainEqual({
+      path: 'chats/2026-08-03/index.md',
+      reason: 'dialogue'
+    })
+  })
+
+  it('never feeds a prompt file back to the model as reference', () => {
+    const packet = compileContextPacket({ query: 'pathos' }, deps2)
+    expect(paths(packet.entries)).not.toContain(
+      "prompts/Explain me like I'm 5 years old.md"
+    )
+    expect(packet.omitted).toContainEqual({
+      path: "prompts/Explain me like I'm 5 years old.md",
+      reason: 'machinery'
+    })
+  })
+})
