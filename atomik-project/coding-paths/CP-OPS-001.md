@@ -238,8 +238,18 @@ lanes — providers and settings share `ai-settings.ts`, `ipc-contract.ts` and
       (`../brainstorm/2026-08-15-layered-depth-reader.md`) with its three
       artifacts, since the reader is a candidate Atomik surface rather than a
       Cairn decision.
-- [ ] S05 PILOT — open Lane A (CP-MVP-010, delivery) and Lane B (backlog
-      fine-tune, feedback); carry one lane through the integration gate.
+- [~] S05 PILOT — IN PROGRESS since 2026-08-16, and in the vocabulary that
+      survived S04e: two PATHS, not two lanes. Both halves of the opening are
+      real: **CP-MVP-010** (retrieval over the graph, numbered) and
+      **CP-PROVIDERS** (provider expansion + settings, labelled) each ran their
+      opening check with the owner, pinned base `2370546`, and took their own
+      worktree and branch (`path/cp-mvp-010`, `path/cp-providers`) on the same
+      day. That is the first time the convention has actually carried two
+      writers at once — the gap ADR-012 names as its own biggest unknown.
+      REMAINING for S05: carry whichever finishes first through the full
+      sequence — closing ceremony → rebase → CI green on the rebased result →
+      coherence audit → `status: done` → self-merge — since nothing has yet
+      exercised the merge half. First pilot finding already landed, below.
 - [x] S06 RATIFIED (owner, 2026-08-15: *"the pilot will serve to fine tune but
       we are not going back to single path so why not ammend now?"* — and the
       deferral did not survive the question). Bedrock 35 §Start as one file
@@ -259,43 +269,55 @@ lanes — providers and settings share `ai-settings.ts`, `ipc-contract.ts` and
       `AGENTS.md`'s precedence note is dropped: bedrock no longer contradicts
       `paths.md`, and a future disagreement is now a defect to report rather
       than a rule to follow.
+- [x] S07 PILOT FINDING 1 — the validator misread its own input (found by
+      CP-MVP-010 S01, folded back here on the owner's ruling 2026-08-16;
+      DONE 2026-08-16). `changedFiles` trimmed the whole `git status
+      --porcelain` stdout before taking `line.slice(3)`, so the leading space
+      of an unstaged first line (`" M path"`) disappeared and the path came
+      back missing its first character — `tomik-project/coding-paths/…`. The
+      damage was not cosmetic: that list feeds every rule, the BLOCKING ones
+      included, and the mangled name also slipped past the
+      `startsWith(PATH_DIR)` exemption that keeps a path file out of
+      scope-drift. CI never saw it because CI passes `--base` against a clean
+      tree, where there are no porcelain lines at all — a defect that only
+      exists where the tool is actually used is the worst shape a gate can
+      have. Fix: a pure exported `porcelainPaths(raw)` reading raw stdout
+      (leading whitespace is DATA in porcelain, not padding), which also
+      resolves rename lines to their new path, plus two tests in the
+      validator's own suite (27 pass, was 25). The pilot's first real return:
+      running the protocol on two live paths found a hole in the protocol's
+      own instrument within a day.
 
 # Current checkpoint
 
 ```text
-base commit : 70f7e27
-changed     : apps/desktop/electron-main/lane.ts (new)
-              apps/desktop/tests/lane.test.ts (new)
-              apps/desktop/electron-main/index.ts
-              apps/desktop/electron.vite.config.ts
-              docs/modules/atomik-desktop.md (now an index)
-              docs/modules/atomik-desktop-{shell,vault,ai,editor,sources,graph}.md (new)
-              docs/learning/21-concurrent-lanes-and-worktrees.md (new) + index
-              docs/diagrams/D13_concurrent_execution_lanes.svg (new) + index
-              atomik-project/coding-paths/{CP-OPS-001.md,paths.md} (new)
-              atomik-project/coding-paths/{ACTIVE.md,index.md}
-              atomik-project/sessions/2026-08-14-cp-ops-001-opening-check.md (new)
-              atomik-project/brainstorm/2026-08-14-parallel-agent-execution.md + index
-              tools/cairn-check.mjs + tools/cairn-check.test.mjs (new)
-              .github/workflows/cairn.yml (new) · package.json scripts
-tests       : 773/64 app pass (was 767/63) + 17/17 validator (node --test);
+base commit : 70f7e27 (S01–S04f + S06 merged to the trunk: 92f25cb, 4ff81af)
+current step: S05 in progress (both paths opened; the merge half untested),
+              S06 done, S07 done
+changed     : tools/cairn-check.mjs (porcelainPaths — the S07 fix)
+              tools/cairn-check.test.mjs (+2 cases)
+              atomik-project/coding-paths/{CP-OPS-001.md,ACTIVE.md}
+tests       : 773/64 app pass + 27/27 validator (node --test, was 25);
               typecheck, tests, build, cairn-check all green, each run BARE,
-              verdict from exit code (24 gate discipline)
-next action : COMMIT this tree to the trunk. 33 files are uncommitted and the
-              trunk does not yet contain Cairn — a second worktree branching
-              from it today would get a repo with no convention, no validator
-              and no CI. Nothing about S05 can start before that.
-              Then S05: draft CP-MVP-010, run its opening check, open it on
-              path/cp-mvp-010, open one small labelled path beside it, and
-              carry one of them through ceremony → rebase → audit → self-merge.
-blockers    : none technical; S05 needs the owner for two opening checks
+              verdict from the exit code (24 gate discipline)
+next action : S05's remaining half — the first SELF-MERGE. Whichever of
+              CP-MVP-010 / CP-PROVIDERS reaches its closing ceremony first
+              runs ceremony → rebase → CI green on the rebased result →
+              `npm run cairn-audit` filled in → status: done → merge, and
+              whatever that costs is what S05 has to report.
+blockers    : none
 ```
 
-Ledger drift noted and corrected 2026-08-15: this checkpoint still described
-step zero in lane vocabulary five steps after the lane layer was removed. Cairn
-enforces ledger freshness on every path but its OWN — the validator checks that
-a coding path file CHANGED when source changed, never that its checkpoint is
-accurate. Recorded as a hole; see §Holes in `paths.md`.
+Ledger drift noted 2026-08-15, REPAIRED 2026-08-16: this checkpoint kept
+describing step zero in lane vocabulary — first five steps after the lane layer
+was removed, then two more after S06 ratified its removal — while the tree it
+listed had long since been committed. It was repaired only because a human
+asked; nothing in Cairn noticed, because the validator checks that a path file
+CHANGED when source changed, never whether its checkpoint is TRUE. The hole is
+recorded in `paths.md` §Holes, and this is now its second dated instance on the
+same path: evidence for the mitigation candidate (require the checkpoint's
+`base commit` line to match the branch's actual base) rather than proof that
+prose can be policed.
 
 Step zero (S01–S04) is complete. NOT done and deliberately so: no bedrock
 page, no ADR, and `AGENTS.md` are untouched — S06 territory, owner-gated,

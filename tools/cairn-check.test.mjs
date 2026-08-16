@@ -18,6 +18,7 @@ import {
   globToRegExp,
   isPathBranch,
   matchesAny,
+  porcelainPaths,
   readFrontmatter,
   stripCode
 } from './cairn-check.mjs'
@@ -253,4 +254,22 @@ test('area mapping routes source to its module note', () => {
   assert.equal(areaOf('apps/desktop/electron-main/vault.ts'), 'vault')
   assert.equal(areaOf('apps/desktop/electron-main/lane.ts'), 'shell')
   assert.equal(areaOf('docs/index.md'), null)
+})
+
+test('porcelain paths survive an unstaged first line', () => {
+  // The bug this covers: trimming the whole stdout before slicing eats the
+  // leading space of ` M path`, and with it the path's first character —
+  // every rule downstream then reads `tomik-project/…` (CP-MVP-010 S01).
+  const raw = ' M atomik-project/coding-paths/CP-MVP-010.md\n?? docs/adr/ADR-013.md\nA  apps/desktop/shared/retrieval-core.ts\n'
+  assert.deepEqual(porcelainPaths(raw), [
+    'atomik-project/coding-paths/CP-MVP-010.md',
+    'docs/adr/ADR-013.md',
+    'apps/desktop/shared/retrieval-core.ts'
+  ])
+})
+
+test('porcelain paths: renames report the new path, noise is dropped', () => {
+  assert.deepEqual(porcelainPaths('R  docs/old.md -> docs/new.md\n'), ['docs/new.md'])
+  assert.deepEqual(porcelainPaths(''), [])
+  assert.deepEqual(porcelainPaths('\n\n'), [])
 })

@@ -37,9 +37,13 @@ is mechanical (distinct channels appended).
 
 - [CP-OPS-001 — Cairn: the protocol and its enforcement](./CP-OPS-001.md) —
   accepted 2026-08-14 (opening check: `../sessions/2026-08-14-cp-ops-001-opening-check.md`).
-  Base commit 70f7e27. S01–S04e done; next S05, the pilot. Runs on the trunk by
-  the bootstrap exception below, since it is the path that builds the machinery
-  every other path will use.
+  Base commit 70f7e27. S01–S04f, S06 (ratification, `ADR-012`) and S07 (the
+  pilot's first finding, fixed in the validator) are done. S05, the pilot, is
+  half-run: two paths opened on their own worktrees on 2026-08-16, and what
+  remains is the first self-merge — ceremony → rebase → CI on the rebased
+  result → audit → `done` → merge. Runs on the trunk by the bootstrap
+  exception below, since it is the path that builds the machinery every other
+  path uses.
 
 ## Done
 

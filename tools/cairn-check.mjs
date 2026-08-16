@@ -168,6 +168,29 @@ export function matchesAny(file, patterns) {
   return patterns.some((pattern) => globToRegExp(pattern).test(file))
 }
 
+/** The paths in `git status --porcelain` output.
+ *
+ *  The status field is TWO columns and a space, so the path starts at index
+ *  3 — which is why the raw stdout must NOT be trimmed first. Trimming eats
+ *  the leading space of an UNSTAGED line (`" M path"`) and `slice(3)` then
+ *  eats the path's own first character: found on CP-MVP-010 S01, where
+ *  scope-drift reported `tomik-project/coding-paths/CP-MVP-010.md` and the
+ *  missing `a` also defeated the `startsWith(PATH_DIR)` exemption. Every
+ *  rule downstream reads this list, blocking ones included.
+ *
+ *  A rename line carries `old -> new`; the NEW path is the changed one. */
+export function porcelainPaths(raw) {
+  return raw
+    .split('\n')
+    .filter((line) => line.length > 3)
+    .map((line) => {
+      const entry = line.slice(3).trim()
+      const arrow = entry.indexOf(' -> ')
+      return arrow === -1 ? entry : entry.slice(arrow + 4)
+    })
+    .filter(Boolean)
+}
+
 /** Which module area note a source file belongs to. Used ADVISORY only:
  *  the map is a judgment call and a wrong blocking verdict would teach
  *  people to bypass the validator. */
@@ -315,20 +338,19 @@ function git(args) {
   return execFileSync('git', args, { cwd: REPO, encoding: 'utf8' }).trim()
 }
 
+/** Raw stdout — for output whose LEADING whitespace is data, not padding. */
+function gitRaw(args) {
+  return execFileSync('git', args, { cwd: REPO, encoding: 'utf8' })
+}
+
 function changedFiles(base) {
+  const working = porcelainPaths(gitRaw(['status', '--porcelain']))
   if (base) {
     const merge = git(['merge-base', base, 'HEAD'])
-    const committed = git(['diff', '--name-only', `${merge}..HEAD`])
-    const working = git(['status', '--porcelain'])
-      .split('\n')
-      .filter(Boolean)
-      .map((line) => line.slice(3).trim())
-    return [...new Set([...committed.split('\n'), ...working].filter(Boolean))]
+    const committed = git(['diff', '--name-only', `${merge}..HEAD`]).split('\n')
+    return [...new Set([...committed, ...working].filter(Boolean))]
   }
-  return git(['status', '--porcelain'])
-    .split('\n')
-    .filter(Boolean)
-    .map((line) => line.slice(3).trim())
+  return working
 }
 
 function walk(dir, out = []) {
