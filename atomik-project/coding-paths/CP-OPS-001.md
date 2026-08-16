@@ -287,6 +287,12 @@ lanes — providers and settings share `ai-settings.ts`, `ipc-contract.ts` and
       validator's own suite (27 pass, was 25). The pilot's first real return:
       running the protocol on two live paths found a hole in the protocol's
       own instrument within a day.
+      ADDENDUM, same day: the AREA_MAP gained the retrieval seat
+      (`shared/retrieval-core`, `electron-main/retrieval`). CP-MVP-010 S02
+      landed a file the map could only classify as `shell`, so the area-note
+      advisory asked for the wrong module note — and an advisory that points
+      at the wrong file teaches people to ignore advisories. A map that names
+      areas must grow when an area appears; two cases pin it.
 
 # Current checkpoint
 

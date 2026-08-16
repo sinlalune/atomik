@@ -199,7 +199,7 @@ export const AREA_MAP = [
   [/^apps\/desktop\/renderer\/src\/editor\//, 'editor'],
   [/^apps\/desktop\/(electron-main\/(capture|pdf|web|transcription|whisper|ocr|mistral-ocr|scan-filter|reader-worker)|renderer\/src\/(source|web|import)\/)/, 'sources'],
   [/^apps\/desktop\/electron-main\/(ai-|generation|mistral-generation|action-trace|truth|web-provenance)/, 'ai'],
-  [/^apps\/desktop\/(electron-main\/(vault|search|project|folder-index)|renderer\/src\/(vault|project)\/)/, 'vault'],
+  [/^apps\/desktop\/(shared\/retrieval-core|electron-main\/(vault|search|retrieval|project|folder-index)|renderer\/src\/(vault|project)\/)/, 'vault'],
   [/^apps\/desktop\//, 'shell']
 ]
 

@@ -252,6 +252,8 @@ test('area mapping routes source to its module note', () => {
   assert.equal(areaOf('apps/desktop/electron-main/pdf-import.ts'), 'sources')
   assert.equal(areaOf('apps/desktop/electron-main/ai-settings.ts'), 'ai')
   assert.equal(areaOf('apps/desktop/electron-main/vault.ts'), 'vault')
+  assert.equal(areaOf('apps/desktop/shared/retrieval-core.ts'), 'vault')
+  assert.equal(areaOf('apps/desktop/electron-main/retrieval.ts'), 'vault')
   assert.equal(areaOf('apps/desktop/electron-main/lane.ts'), 'shell')
   assert.equal(areaOf('docs/index.md'), null)
 })

@@ -20,7 +20,6 @@ for two paths to disagree about.
 <!-- cairn:paths:begin -->
 - **CP-FEEDBACK** — Daily workbench feedback · branch `path/cp-feedback` · base `b32df20`
 - **CP-MVP-010** — Retrieval over the graph · branch `path/cp-mvp-010` · base `2370546`
-- **CP-PROVIDERS** — Provider expansion + settings menu · branch `path/cp-providers` · base `b32df20`
 <!-- cairn:paths:end -->
 
 Next up: **CP-MVP-011** — Wikimedia augmentation over the same nodes/edges
