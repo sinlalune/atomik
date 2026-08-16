@@ -47,6 +47,7 @@ atomik:
     - docs/modules/atomik-desktop-vault.md
     - atomik-project/coding-paths/CP-FEEDBACK.md
     - atomik-project/sessions/
+    - atomik-project/sessions/2026-08-16-cp-feedback-closing-ceremony.md
     - atomik-project/audits/
     - atomik-project/log/
 ---
@@ -185,18 +186,21 @@ changed     : S02 flat assistant presentation/a11y; S03 real quick-note action,
               owner delta adds safe address-or-Google-search omnibox behavior
 tests       : post-delta full gate PASS — cairn, typecheck, 807/807 tests
               (68 files), production build; omnibox/web focused 18/18 PASS
-next action : owner re-benches Google search plus the original four behaviors;
-              record verbatim acceptance/deltas before audit or merge
+next action : accepted verbatim; rebase, rerun gates, audit, journal, done,
+              self-merge, then open CP-LANGUAGE-NOTES
 blockers    : none; CP-MVP-010 remains active across chat/editor/vault/graph,
               so rebase and overlap checks continue at step boundaries
 scope note  : S04 widened to renderer/src/web/urls.ts after the shared pure
               title/fallback policy was discovered as the maintainable seam;
               S05 names the exact read/live editor consumers discovered behind
               the already-declared editor directory (Cairn matches exact paths);
-              closing owner feedback widened to the focused web-urls regression
+              closing owner feedback widened to the focused web-urls regression;
+              closing ceremony exact path added for Cairn's file matcher
 bench       : isolated /tmp fixture opens context-link and chat panes together;
               owner checks responsive/theme/keyboard/reload/web navigation and
               a plain-text Google query in the hot-reloaded web omnibox
+ceremony    : accepted — sessions/2026-08-16-cp-feedback-closing-ceremony.md;
+              carried order = LANGUAGE-NOTES → OPEN-DOCK → PDF-READER
 ```
 
 # Blockers
