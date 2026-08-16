@@ -35,7 +35,8 @@ Late paths are better paths: they inherit module notes, friction records from th
 | M6 | minimal Truth Lens + challenge/repair | — | not opened |
 | M7 | live verification provider | — | not opened |
 | M8 (front half) | semantic graph foundation — ADR-011 grammar, pills everywhere, nodes/edges index, typed backlinks | [CP-MVP-009](./CP-MVP-009.md) | done (2026-08-13, [acceptance](../sessions/2026-08-13-cp-mvp-009-acceptance.md) · [closing](../sessions/2026-08-13-cp-mvp-009-closing-ceremony.md)) |
-| M8 (retrieval) | graph retrieval — FTS5 + link expansion, context packets (+ the Wikidata slice joining the same tables) | CP-MVP-010 | to draft + opening-check, then runs on `path/cp-mvp-010` |
+| M8 (retrieval) | graph retrieval — lexical BM25 baseline + link expansion, context packets, retrieval traces, vault-grounded chat | [CP-MVP-010](./CP-MVP-010.md) | **running** (accepted 2026-08-16, [opening check](../sessions/2026-08-16-cp-mvp-010-opening-check.md)) on `path/cp-mvp-010` |
+| M8/M10 (augmentation) | Wikimedia augmentation — Wikipedia extract · Wikidata entity into the same nodes/edges tables · Commons P18 · Wiktionary etymology · the model-driven tool loop · web citations · save-as-source | CP-MVP-011 | reserved; opens immediately after CP-MVP-010 merges, short opening check (rulings already recorded in the 010 [opening check](../sessions/2026-08-16-cp-mvp-010-opening-check.md)) |
 | — (process) | Cairn — parallel paths, self-merge, and the CI that enforces it | [CP-OPS-001](./CP-OPS-001.md) | **running** (accepted 2026-08-14, [opening check](../sessions/2026-08-14-cp-ops-001-opening-check.md)) |
 | — (labelled) | provider expansion + settings menu — see the OpenRouter research pointer below | CP-PROVIDERS | reserved; own opening check, opens once CP-MVP-010 is running |
 | M9 | measured local assistance + autocomplete | — | not opened |

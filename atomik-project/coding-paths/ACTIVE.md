@@ -18,13 +18,20 @@ stale. Deriving it is what lets every path merge itself: there is nothing here
 for two paths to disagree about.
 
 <!-- cairn:paths:begin -->
-- *(no path running)*
+- **CP-MVP-010** — Retrieval over the graph · branch `path/cp-mvp-010` · base `2370546`
+- **CP-PROVIDERS** — Provider expansion + settings menu · branch `path/cp-providers` · base `2370546`
 <!-- cairn:paths:end -->
 
-Next up: **CP-MVP-010** — M8 back half, retrieval over the graph (numbered,
-roadmap); **CP-PROVIDERS** — provider expansion + settings menu (labelled),
-which the overlap audit merged into one path because `ai-settings.ts`,
-`ipc-contract.ts` and `AppMenu.tsx` are the same panel.
+Next up: **CP-MVP-011** — Wikimedia augmentation over the same nodes/edges
+tables (Wikipedia extract · Wikidata entity · Commons P18 · Wiktionary
+etymology · the model-driven tool loop · web citations · save-as-source),
+split out of CP-MVP-010 at its opening check and opening once it merges.
+
+Declared-write overlap between the two paths running now (advisory signal,
+never a lock): `shared/ipc-contract.ts`, `electron-main/index.ts`,
+`electron-main/action-trace.ts`, `electron-preload/index.ts` — the hot
+files `paths.md` names. Both paths rebase early and often; the resolution
+is mechanical (distinct channels appended).
 
 ## In flight, on the trunk
 

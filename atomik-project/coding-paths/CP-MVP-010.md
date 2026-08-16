@@ -1,0 +1,328 @@
+---
+type: Atomik Coding Path
+title: Retrieval over the graph — lexical baseline, link expansion, inspectable context packets, and vault-grounded chat (M8 back half, first half of the split)
+description: The vault's typed graph becomes something the app can SEARCH and something the chat can be GROUNDED in — a rebuildable lexical index over paths, titles, headings, frontmatter, link text and bodies; expansion over the nodes/edges tables CP-MVP-009 laid; a bounded, inspectable context packet with omitted-entry diagnostics; a retrieval trace per query; citations back to the notes that grounded the answer; and a small evaluation set that keeps the no-embeddings baseline honest. The Wikimedia augmentation half is CP-MVP-011, opened immediately after.
+tags: [coding-path, m8, retrieval, bm25, context-packet, link-expansion, rag, chat, traces, evaluation]
+timestamp: 2026-08-16T00:00:00Z
+atomik:
+  id: CP-MVP-010
+  status: running
+  accepted: 2026-08-16
+  current_step: S01
+  base_commit: 2370546
+  branch: path/cp-mvp-010
+  writes:
+    - apps/desktop/shared/retrieval-core.ts
+    - apps/desktop/shared/ipc-contract.ts
+    - apps/desktop/electron-main/retrieval.ts
+    - apps/desktop/electron-main/search.ts
+    - apps/desktop/electron-main/graph-index.ts
+    - apps/desktop/electron-main/index.ts
+    - apps/desktop/electron-main/action-trace.ts
+    - apps/desktop/electron-preload/index.ts
+    - apps/desktop/renderer/src/workspace/PaneTreePanel.tsx
+    - apps/desktop/renderer/src/vault/
+    - apps/desktop/renderer/src/editor/
+    - apps/desktop/tests/
+    - docs/modules/atomik-desktop-graph.md
+    - docs/modules/atomik-desktop-ai.md
+    - docs/modules/atomik-desktop.md
+    - docs/learning/22-lexical-retrieval-without-a-database.md
+    - docs/adr/
+    - atomik-project/coding-paths/CP-MVP-010.md
+    - atomik-project/log/
+---
+
+# Goal
+
+CP-MVP-009 made the vault's links a visible, typed graph and left a
+rebuildable nodes/edges index behind one read-only channel. Nothing
+reads that index for RETRIEVAL yet: the app's only search is a
+case-insensitive substring scan (`electron-main/search.ts`, written as
+the placeholder M8 replaces), a chat message reaches the model with no
+vault context at all, and no packet, trace or evaluation exists.
+
+This path builds the BACK half of M8, ruled at the CP-MVP-009 closing
+ceremony (2026-08-13) as the next path, and shaped by the opening check
+of 2026-08-16 (`../sessions/2026-08-16-cp-mvp-010-opening-check.md`):
+
+1. **Lexical baseline** — ranked retrieval over the vault (bedrock 33
+   rung 1: paths, filenames, headings, frontmatter, link text, bodies),
+   replacing the substring scan behind the same contract. No
+   embeddings, no vector database — 33's ladder forbids them before the
+   lexical baseline is evaluated.
+2. **Link expansion over the graph** — seeds found lexically expand
+   through the typed nodes/edges tables, so retrieval answers with the
+   neighbourhood of an idea and not only the notes containing the word.
+3. **The context packet** — one bounded, INSPECTABLE object: what was
+   selected, why (which stage found it), and what was left out and for
+   which reason. Omitted-entry diagnostics are part of the contract,
+   not a debug afterthought.
+4. **Vault-grounded chat** — the owner's stated first use, verbatim at
+   the opening check: *"The first use is definitally the RAG, in chat
+   discussion for exemple, the agent harness (current state and future
+   true harness) should be able from a given question to trigger
+   search... but it need at least to know if: we already have knowledge
+   as note or source in the vault or that we need to gather more."*
+   This path builds the DETERMINISTIC half of that: every chat message
+   retrieves vault context first, the packet is inspectable before the
+   send, and the answer cites the notes it stood on. The model-driven
+   tool loop and the external half are CP-MVP-011.
+5. **Retrieval traces** — one ActionTrace line per query: stages,
+   candidate counts, selected entries, estimated context tokens,
+   latency; deterministic location; no content recorded.
+6. **A small evaluation set** — queries with expected notes, run on
+   demand, reporting recall and latency, so "the lexical baseline is
+   enough" is a measured claim and the embeddings question has a dated
+   answer instead of a preference.
+
+Plus the three deviations the closing ceremony assigned here: **index
+invalidation broadcast** (a push channel, which also fixes the
+relations strip's stale refresh), **incremental per-file index
+patching** (a retrieval index rebuilt wholesale on every save is the
+wrong shape), and the **vault-wide broken-links list**, whose deferral
+trigger — "the back half builds a vault-wide scan anyway" — fired at
+this opening check.
+
+The truth slice, unchanged and standing (33/28): retrieval relevance is
+never truth; supporting and contradicting evidence coexist in a packet.
+
+## What this path is NOT (CP-MVP-011, opened immediately after)
+
+The owner ruled the whole vision in at this opening check and then
+ruled it into TWO back-to-back paths, so a working vault RAG lands
+before the external half starts. Recorded here so nothing is lost:
+
+```text
+Wikimedia augmentation   Wikipedia search + article extract
+                         Wikidata entity (QID, labels, claims) joining
+                           the SAME nodes/edges tables
+                         Commons image (P18) with licence + attribution
+                         Wiktionary etymology
+the model-driven loop    the model itself calls search_vault /
+                         search_wiki on terms it chooses, over the tool
+                         contract this path defines
+web citations            phrase links + numbered markers pointing at
+                         external pages, beside the vault ones
+persistence gesture      transient by default; "save as source" turns
+                         consulted material into a real dossier with
+                         revision + accessed_at (existing web-source
+                         machinery); no auto-persist
+```
+
+Two consequences bind THIS path: the retrieval entry point is shaped as
+a TOOL CONTRACT from the start (a `search_vault` a model could call,
+mirroring the shape session C reserved for `search_web`), and the
+citation renderer is built so an external source is a new source KIND,
+never a second renderer.
+
+Recorded inputs this opening read (register pointers, not decisions):
+
+- brainstorm 2026-08-03 session B — M8 has a named consumer in claim
+  verification: a claim index, top-k passages, link expansion. What
+  this path builds must be able to serve M6 without redesign.
+- brainstorm 2026-08-03 session C — the eventual `search_web` tool
+  mirrors the `searchVault` contract SHAPE; the function-calling tool
+  loop in the harness is named as M8's; Wikimedia-first is the owner's
+  recorded lean, confirmed again here; local rerank and query rewrite
+  stay later roles.
+- brainstorm 2026-08-04 studio — the studio projects the same
+  nodes/edges index; expansion helpers stay pure so it can reuse them.
+- brainstorm 2026-08-15 layered depth reader — a grounded answer is
+  exactly where synthesis layering applies; read at S07/S08 as an
+  output-shape candidate, not a requirement.
+- CP-MVP-009 S01 pin — "SQLite arrives with the retrieval/Wikidata
+  path and the index migrates then (rebuildable = free migration)":
+  RE-DECIDED at this opening check, not inherited — see below.
+
+# Definition of done
+
+- A ranked lexical retrieval exists over the vault, field-aware
+  (path · filename · title/headings · frontmatter · link text · body),
+  diacritic-folded, phrase-capable, and it is the engine behind the
+  app's existing search perimeters (vault, project bundle, docs) —
+  the substring scan is replaced, not doubled.
+- The retrieval index is rebuildable from files alone (delete it →
+  identical rebuild, round-trip test, 03/33), builds LAZILY (no scan
+  on app open), and is maintained per-file by the write verbs rather
+  than rebuilt wholesale.
+- Every vault mutation broadcasts an index-changed event to the
+  renderer; the relations strip and the retrieval surfaces refresh from
+  it (closing-ceremony deviation 2, closed here).
+- Link expansion over the nodes/edges tables is pure, budgeted,
+  direction- and label-aware, and unit-tested without a DOM.
+- `compileContextPacket` returns a BOUNDED packet whose entries each
+  carry their origin stage and score, plus an omitted list where every
+  omission carries a reason (budget, threshold, scope, duplicate).
+  Inspectable in the app, not only in tests.
+- A chat message can be answered WITH vault context: retrieval runs
+  before the send (per-thread toggle), the packet is inspectable before
+  and after, and the answer carries citations back to the notes that
+  grounded it — phrase-level links where the model emits them, numbered
+  markers otherwise, plus a sources block. Every citation is a
+  CP-MVP-009 pill that opens the note; a citation that resolves to
+  nothing renders as a visible diagnostic, never a silent drop.
+- A "we already have this" verdict is visible: the packet says whether
+  the vault covered the question or came up thin — the signal
+  CP-MVP-011's external half will branch on.
+- One ActionTrace line per retrieval (`action: 'retrieve'`,
+  `location: 'deterministic'`), with stage counts, selected entries,
+  estimated context tokens and wallMs; the existing
+  no-content-in-telemetry test extends to cover it.
+- A vault-wide diagnostics list (broken wikilinks and md links) rides
+  the same scan and is reachable from the search surface.
+- The evaluation set runs on command, reports recall@k and latency
+  against an in-repo fixture vault, and a dated bench record captures
+  the same measures on the owner's real vault at a pinned commit
+  (33 §Evaluation gates) — together the entry condition any future
+  embedding experiment must beat.
+- Module notes, learning note (17 first-use rule), the log entry at
+  merge, and this ledger updated in the same work unit as the code;
+  typecheck, tests and build green at every step, run BARE (24).
+
+# Documentation coverage
+
+## Required
+
+- 33-retrieval-local-execution-cost — the spine: the ladder, the
+  ContextPacket, the trace, the evaluation gates, the cost model
+- 26-okf-agent-context — the retrieval ladder as the agent sees it
+- 04-file-first-model — files are canonical; every index is a
+  rebuildable projection, never a source of record
+- 20-relations-future + ADR-011 — the graph the expansion walks
+- 18-roadmap §Milestone 8 — the scope boundary of this half
+- 06-ai-patch-pipeline — the chat/operation door the packet enters
+- 03-workspace-tabs — derived artifacts ship their lifecycle;
+  per-thread toggles are tab state, never knowledge
+- 15-maintainability — zero-dependency bias; a new dependency is a
+  decision with an owner, not a convenience
+- 13-electron-security — every new IPC channel is typed, validated,
+  read-only where it can be
+- 36-ui-design-system — the packet inspector, citation pills and
+  diagnostics obey tokens, themes, glass rules, accessibility floors
+- 17-self-evolving-docs · 22-agent-handoff · 24-doc-templates ·
+  35-coding-path-execution-state · coding-paths/paths.md — standing
+  execution law (this path runs in its own worktree and merges itself)
+
+## Conditional
+
+- 28-truth-evidence-model + 31-truth-lens-ux — when a citation sits
+  beside a claim; retrieval score is never epistemic support
+- 02-learning-loop — when grounded answers feed the reuse loop
+- 12-electron-mvp + 14-app-kernels — if the index earns its own
+  main-side seat rather than joining the graph seat
+- 05-resource-selection-model — scope, selection, open-resource
+  perimeter feeding rung 0
+- 27-git-compatibility — if index maintenance touches rename/relocate
+- 16-dev-docs-tab — the docs perimeter rides the same engine
+- 25-use-cases — when a scoping doubt needs pressure-testing
+- 00-orientation + 01-workbench-first — re-read if a step seems to
+  bend the constitution
+
+## Deliberately excluded
+
+- 29-verification-grounding-router + 30-public-knowledge-dictionary —
+  the external half is CP-MVP-011; nothing in this path calls the
+  network
+- 07/08/09/10 (source adapters, capture, web, PDF) — retrieval reads
+  what they already wrote; no adapter changes here (CP-MVP-011 reuses
+  the web-source machinery for its persistence gesture)
+- 19-dsl-future · 21-canvas-future — the studio is a later consumer
+- 32-truth-investigation-record — M6 territory
+- 34-local-execution-investigation-record — no local model work; no
+  reranker, no embedding experiment
+- 23-references — no new external corpus decisions expected
+- embeddings, rerankers, and any vector store — forbidden before the
+  lexical baseline is evaluated (33); the evaluation set is what would
+  ever unlock them
+
+# Opening-check decisions (2026-08-16)
+
+```text
+ENGINE      pure TypeScript BM25 core in shared/, zero dependency —
+            overrides CP-MVP-009's "SQLite arrives with this path" pin.
+            Native modules cost an Electron rebuild per version; the
+            vault is note-scale; 33 asks for a BM25 baseline, not for
+            SQLite. Rebuildable = the migration stays free.
+SCOPE       the whole vision ruled IN, then split: this path = vault
+            retrieval + chat RAG; CP-MVP-011 = Wikimedia + tool loop.
+INDEX       per-file patching AND the change broadcast, early (S03).
+DIAGNOSTICS the broken-links list rides the vault-wide scan (S09).
+CHAT        deterministic pre-pass first; the model-driven tool loop
+            is CP-MVP-011, over the same tool contract.
+CITATIONS   phrase links where emitted + numbered markers otherwise +
+            a sources block. Vault notes here; external kinds later.
+EVALUATION  in-repo fixture vault (CI-runnable) AND a dated bench on
+            the owner's real vault at a pinned commit.
+PERSISTENCE (CP-MVP-011) transient by default, dossier on gesture.
+```
+
+# Execution
+
+- [ ] S01 Bootstrap + pins: read the Required documents, verify the
+      ledger against repository reality, record the opening-check
+      answers (above), and pin what the rest depends on — tokenizer
+      rules (lowercase + diacritic folding for a French vault, no
+      stemming), field weights, packet budget shape, trace fields, and
+      the `RetrievalQuery` / `RetrievalHit` / `ContextPacket` /
+      tool-contract type sketch. Docs-only step.
+- [ ] S02 Lexical core (pure): `shared/retrieval-core.ts` — tokenizer,
+      field-aware inverted index, BM25 ranking, phrase and exact
+      matching, snippet extraction with match spans. Dependency-free
+      and unit-tested without a DOM, the same discipline as
+      `graph-core`. The scan in `search.ts` becomes a caller of it.
+- [ ] S03 Index seat + incremental maintenance + broadcast: the
+      main-side retrieval index (lazy build, `.atomik/` rebuildable
+      artifact, round-trip test), per-file patching on save · create ·
+      delete · relocate for BOTH indexes, and an index-changed push
+      channel to the renderer. Closes closing-ceremony deviations 2
+      and 3; the relations strip refreshes live as a side effect.
+- [ ] S04 Link expansion: pure expansion over the nodes/edges tables —
+      seeds → neighbours by typed edge, direction- and label-aware,
+      budgeted and deduped, with per-hop attenuation. Unit-tested on
+      fixture graphs.
+- [ ] S05 Context packet: `compileContextPacket` — scope rung 0 first
+      (selection, open resources, pinned paths), then lexical, then
+      expansion; bounded by an explicit token budget; entries carry
+      origin stage + score + span; omitted entries carry a reason; the
+      packet reports its own coverage verdict. One read-only IPC
+      channel, typed and validated, shaped as the tool contract.
+- [ ] S06 Retrieval trace: `action: 'retrieve'` lines through the
+      existing ActionTrace ledger — stages, candidates, selected,
+      estimated context tokens, wallMs, deterministic location,
+      `contentRecorded: false`; the content-leak test extended.
+- [ ] S07 Vault-grounded chat: per-thread toggle, retrieval pre-pass
+      before the send, the packet inspectable before and after, the
+      grounding block composed MAIN-side beside the existing
+      mechanical contract (no prompt file opts out, 28).
+- [ ] S08 Citations: phrase-level links where the model emits them,
+      numbered markers otherwise, a sources block under the answer,
+      every marker a CP-MVP-009 pill that opens its note; unresolved
+      citations render as diagnostics.
+- [ ] S09 Search surface + diagnostics: ranked results with kind pills
+      and "why this result", the packet disclosure, and the vault-wide
+      broken-links list docked there.
+- [ ] S10 Evaluation set: fixture vault + queries + expected notes, a
+      runnable evaluation reporting recall@k, MRR and latency, plus
+      the dated real-vault bench record (33 §Evaluation gates).
+- [ ] S11 Owner bench rounds + acceptance record, then the closing
+      ceremony, the coherence audit, and the self-merge — after which
+      CP-MVP-011 opens with its own (short) opening check.
+
+# Current checkpoint
+
+```text
+base commit : 2370546
+changed     : atomik-project/coding-paths/CP-MVP-010.md (new, activated)
+              atomik-project/sessions/2026-08-16-cp-mvp-010-opening-check.md (new)
+              atomik-project/coding-paths/{ACTIVE.md,index.md}
+tests       : not run for this path yet (trunk: 767 passing at 2370546)
+next action : S01 — read the Required documents in the worktree, verify
+              reality against this ledger, pin tokenizer/field weights/
+              packet budget/trace fields/type sketch
+blockers    : none
+```
+
+# Blockers
+
+None recorded.
