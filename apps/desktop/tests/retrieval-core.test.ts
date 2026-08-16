@@ -379,3 +379,28 @@ describe('phrasing versus subject (S08i, owner bench round 9)', () => {
     expect(hits[0]!.path).toBe('heroes.md')
   })
 })
+
+describe('title is not heading (S08j, owner bench round 10)', () => {
+  const CORPUS = [
+    { path: 'plato.md', content: '# Plato\n\nLe philosophe.\n' },
+    // the folder-index convention writes this heading into EVERY index
+    { path: 'bibi/index.md', content: '# bibi\n\n## What is inside\n\n- log.md\n' },
+    ...Array.from({ length: 10 }, (_, index) => ({
+      path: `misc-${index}.md`,
+      content: `# Divers ${index}\n\n## What is inside\n\nDu texte.\n`
+    }))
+  ]
+  const index = buildRetrievalIndex(CORPUS)
+
+  it('a title reach matches what a note is CALLED, not its sections', () => {
+    const titles = searchIndex(index, 'what plato', { sensitivity: 'titles' })
+    expect(titles.map((hit) => hit.path)).toEqual(['plato.md'])
+  })
+
+  it('the full reach still sees section headings', () => {
+    const parsed = documentFields('bibi/index.md', CORPUS[1]!.content)
+    expect(parsed.title).toBe('bibi')
+    expect(parsed.fields.heading).toContain('What is inside')
+    expect(parsed.fields.title).toBe('bibi')
+  })
+})

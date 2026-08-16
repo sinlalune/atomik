@@ -485,10 +485,21 @@ export type RetrievalHit = {
  * then HOW FAR the graph is walked from what matched.
  *
  * ```text
- * titles   title · heading · path match, no expansion
+ * titles   title · path match, no expansion
  * linked   the same match, plus the notes LINKED to it   (default)
- * full     every field including bodies, plus expansion
+ * full     every field — headings, frontmatter, links, bodies — plus
+ *          expansion
  * ```
+ *
+ * TITLE and HEADING are different things (S08j, owner: "you are not
+ * isolating # h1 heading for title search. What the difference between
+ * heading and title?"). The TITLE is what a note is CALLED — its
+ * frontmatter title, else its first heading, else its file name: one
+ * string per note. HEADINGS are its internal structure, every `##` in
+ * its body. A title reach that matched every section heading found
+ * notes through boilerplate like "What is inside" — a heading the app
+ * writes into every folder index — which is how `bibi` answered a
+ * question about Plato.
  *
  * `linked` is not about the link-TEXT field: a note earns its place by
  * being connected to a note whose title answered, which is the whole
@@ -500,8 +511,8 @@ export const SENSITIVITY_FIELDS: Record<
   RetrievalSensitivity,
   readonly RetrievalField[]
 > = {
-  titles: ['title', 'heading', 'path'],
-  linked: ['title', 'heading', 'path'],
+  titles: ['title', 'path'],
+  linked: ['title', 'path'],
   full: RETRIEVAL_FIELDS
 }
 

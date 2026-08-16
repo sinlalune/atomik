@@ -52,10 +52,19 @@ timestamp: 2026-08-14T00:00:00Z
     is 33's ladder — what MATCHED, then how far the graph is WALKED from
     it — not which columns are searched.
     ```text
-    titles   title · heading · path match, no expansion
+    titles   title · path match, no expansion
     linked   the same match, plus the notes LINKED to it   (default)
-    full     every field including bodies, plus expansion
+    full     every field — headings, frontmatter, links, bodies — plus
+             expansion
     ```
+    TITLE and HEADING are different fields, and confusing them cost a
+    bench round (S08j). The TITLE is what a note is CALLED: its
+    frontmatter title, else its first heading, else its file name — one
+    string per note. HEADINGS are its internal structure, every `##` in
+    its body. Matching section headings at a TITLE reach found notes
+    through boilerplate like "What is inside", the heading the
+    folder-index convention writes into every index, which is how a note
+    called `bibi` answered a question about Plato.
     `linked` is the whole argument for having built the graph: a note
     earns its place by being connected to a note whose title answered,
     not by containing the word somewhere. An explicit `hops` in a

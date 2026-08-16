@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S08i
+  current_step: S08j
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -799,7 +799,20 @@ live, on real notes.
       while another is titled after it. The naming rule does the work
       without the collateral damage; a second line of defence that
       cuts real answers is not a defence. +3 tests (880 → 883).
-- [ ] S09 Search surface + diagnostics: ranked results with kind pills
+- [x] S08j TITLE IS NOT HEADING (2026-08-16, owner bench round 10: "you
+      are not isolating # h1 heading for title search. What the
+      difference between heading and title?" — DONE same day). The
+      `titles` and `linked` reaches matched the HEADING field, which
+      holds every `##` in a note's body, so a title-only search found
+      notes through boilerplate — "What is inside", the heading the
+      folder-index convention writes into every index. That is how a
+      note called `bibi` answered a question about Plato even at reach
+      `titles`. Both reaches now match TITLE and PATH only; headings
+      belong to `full`, with the rest of what a note says.
+      The distinction, recorded because it is easy to blur: the TITLE is
+      what a note is CALLED (frontmatter title, else first heading, else
+      file name — one string); HEADINGS are its internal structure.
+      +2 tests (883 → 885). ranked results with kind pills
       and "why this result", the packet disclosure, and the vault-wide
       broken-links list docked there.
 - [ ] S10 Evaluation set: fixture vault + queries + expected notes, a
@@ -818,7 +831,7 @@ live, on real notes.
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S08i done (owner bench rounds 1–9 absorbed) — S09 next
+current step: S08j done (owner bench rounds 1–10 absorbed) — S09 next
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts
@@ -830,7 +843,7 @@ changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               docs/learning/22-lexical-retrieval-without-a-database.md + index
               docs/adr/ADR-013-lexical-retrieval-without-a-database.md
               docs/index.md · atomik-project/coding-paths/CP-MVP-010.md
-tests       : 883 passing / 71 files (this path added 95 so far),
+tests       : 885 passing / 71 files (this path added 97 so far),
               typecheck and build green, each gate run BARE (24)
 next action : S09 — the search surface: ranked results with kind pills
               and "why this result", the packet disclosure, and the
