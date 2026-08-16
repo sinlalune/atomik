@@ -103,6 +103,12 @@ timestamp: 2026-08-14T00:00:00Z
   - Rung 0 outranks search by STAGE, not by a giant score: the packet
     crosses IPC as JSON, where `Infinity` would arrive as `null`.
     A test pins the whole packet as JSON round-trippable.
+  - What may GROUND is narrower than what may be FOUND (S07c): chat
+    transcripts stay in the retrieval index — the search panel finds
+    them — but never enter a packet, with the omission reason
+    `dialogue`. `isChatTranscript` reads the frontmatter type, and a
+    transcript's title comes from its file name rather than its first
+    turn.
   - `toPacketRequest` validates in main (13): bounded query, contained
     scope folder, rung-0 paths FILTERED rather than trusted. Read-only
     is not the same as unvalidated.

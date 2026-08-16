@@ -179,3 +179,23 @@ describe('frontmatterTitleOf', () => {
     expect(frontmatterTitleOf('---\ntitle:   \n---\n')).toBeNull()
   })
 })
+
+describe('a conversation is named by its file (CP-MVP-010 S07c)', () => {
+  it('titles a chat node by its stem, never by its first turn', () => {
+    const index = buildGraphIndex([
+      {
+        path: 'chats/qu-est-ce-que-l-ethos.md',
+        content:
+          '---\ntype: Atomik Chat\n---\n\n## you <!-- sent: system=1042 -->\n\nquestion\n'
+      },
+      { path: 'ethos.md', content: '# Ethos\n' }
+    ])
+    expect(index.nodes[0]).toMatchObject({
+      path: 'chats/qu-est-ce-que-l-ethos.md',
+      kind: 'chat',
+      title: 'qu-est-ce-que-l-ethos'
+    })
+    // ordinary notes are unchanged
+    expect(index.nodes[1]!.title).toBe('Ethos')
+  })
+})

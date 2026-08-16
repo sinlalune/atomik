@@ -89,7 +89,14 @@ timestamp: 2026-08-14T00:00:00Z
       packet for the draft as typed and labels it "next send". It is
       dismissible and clears itself on send, because after the send it
       would be describing the past again.
-    - The lesson generalizes: derived information inherits the SCOPE of
+    - DIALOGUE NEVER GROUNDS (S07c, owner bench round 2): a chat
+      transcript is excluded from the packet — at the lexical stage and
+      at the expansion stage — and the omission says `dialogue`. A chat
+      grounded in old chats compounds its own output: the model's past
+      answers would return as if they were vault knowledge. Transcripts
+      stay in the retrieval index, so the search panel still finds them;
+      they simply do not ground.
+  - The lesson generalizes: derived information inherits the SCOPE of
       what derived it. A packet belongs to a message the way a claim
       belongs to an answer — putting it beside the composer made the
       chat's own timeline lie about when it happened.

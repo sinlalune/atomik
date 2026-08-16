@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S07b
+  current_step: S07c
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -526,6 +526,32 @@ live, on real notes.
       "next send", dismissible, cleared on send. Rule recorded in the
       module note: derived information inherits the scope of what
       derived it.
+- [x] S07c BENCH ROUND 2 (2026-08-16, owner ran a real question against
+      the real vault and read the preview aloud — DONE same day). Three
+      defects in one report, one of them older than this path:
+      (a) TITLES — the preview showed entries called
+      `you <!-- sent: system=1042|instruction=21 -->`. A chat turn
+      heading carries the app's own bookkeeping comment, and
+      `firstHeadingOf` returned it verbatim, so it had been reaching the
+      pills and the relations strip since CP-MVP-009 too. Comments are
+      now stripped, and since what remained was `you`, a transcript is
+      titled by its STEM in BOTH cores — the file name is the question
+      that started the conversation; its first turn names nobody.
+      (b) DIALOGUE AS KNOWLEDGE — six of the twelve retrieved entries
+      were old chat transcripts. A chat grounded in old chats compounds
+      its own output. Transcripts are now excluded from the packet at
+      both stages with the omission reason `dialogue`, while staying in
+      the index so the search panel still finds them.
+      (c) A TOKENIZER ARTIFACT SHOWN AS A GAP — coverage reported
+      `not in the vault: qu-est-ce`, which is the welded form of
+      `qu'est-ce`, whose parts all matched. A welded compound whose
+      parts matched is no longer reported missing.
+      +4 tests (846 → 850).
+      STILL OPEN, deliberately unfixed without evidence: folder `log.md`
+      files rank into the packet (`2026-08-16 — log`). They are
+      management history, rarely an answer — but down-ranking convention
+      files is a weight decision, and S10's evaluation set is where
+      weights get decided rather than guessed.
 - [ ] S08 Citations: phrase-level links where the model emits them,
       numbered markers otherwise, a sources block under the answer,
       every marker a CP-MVP-009 pill that opens its note; unresolved
@@ -549,7 +575,7 @@ live, on real notes.
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S07b done (owner bench round 1 absorbed) — S08 next
+current step: S07c done (owner bench rounds 1–2 absorbed) — S08 next
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts
@@ -561,7 +587,7 @@ changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               docs/learning/22-lexical-retrieval-without-a-database.md + index
               docs/adr/ADR-013-lexical-retrieval-without-a-database.md
               docs/index.md · atomik-project/coding-paths/CP-MVP-010.md
-tests       : 846 passing / 70 files (this path added 58 so far),
+tests       : 850 passing / 70 files (this path added 62 so far),
               typecheck and build green, each gate run BARE (24)
 next action : S08 — citations: phrase-level links where the model emits
               them, numbered markers otherwise, a sources block under

@@ -154,6 +154,16 @@ export type DocumentFields = {
 }
 
 const HEADING_RE = /^ {0,3}(#{1,6})\s+(.*)$/
+const CHAT_FRONTMATTER_RE = /^type:[ \t]*Atomik Chat[ \t]*$/m
+
+/** A chat transcript declares itself in its frontmatter (CP-MVP-008
+ *  S06). Dialogue is a RECORD of thinking, not the thinking — which
+ *  changes both how it is titled and whether it may ground an answer. */
+export function isChatTranscript(content: string | undefined): boolean {
+  if (content === undefined || !content.startsWith('---\n')) return false
+  const end = content.indexOf('\n---', 4)
+  return CHAT_FRONTMATTER_RE.test(content.slice(4, end === -1 ? undefined : end))
+}
 const STEM_RE = /\.[^./]+$/
 
 const stemOf = (path: string): string =>
@@ -192,7 +202,11 @@ export function documentFields(path: string, content?: string): DocumentFields {
   }
 
   const { front, body } = splitFrontmatter(content)
-  const title = frontmatterTitleOf(content) ?? firstHeadingOf(content) ?? stem
+  // A chat transcript's first heading is a TURN (`## you`), which names
+  // nobody. Its file name is the question that started it, which does.
+  const title = isChatTranscript(content)
+    ? stem
+    : (frontmatterTitleOf(content) ?? firstHeadingOf(content) ?? stem)
 
   const headings: string[] = []
   const bodyLines: string[] = []

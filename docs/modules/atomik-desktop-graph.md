@@ -104,6 +104,20 @@ timestamp: 2026-08-14T00:00:00Z
   does not yet touch, so filtering would be a guess and the read is one
   cached IPC call.
 
+## What a title is NOT (CP-MVP-010 S07c, owner bench round 2)
+
+- A heading may carry an HTML comment the app wrote for itself — a chat
+  turn heading is `## you <!-- sent: system=1042|instruction=21 -->`.
+  `firstHeadingOf` now strips comments before returning a title, so
+  machine bookkeeping stops reaching the pills, the relations strip and
+  the context packet as if it were someone's title.
+- Stripping was not enough: what remained was `you`. A chat transcript
+  is now titled by its STEM — the file name is the question that started
+  the conversation, which names it; its first turn names nobody. Same
+  rule in `graph-core` (node titles) and `retrieval-core` (document
+  fields), because one title rule serving every consumer is the lesson
+  CP-MVP-009 S07b already paid for.
+
 ## Titles, not file names (CP-MVP-009 S07b, owner bench round 11)
 
 - Two independent causes hid behind one report ("display first title of

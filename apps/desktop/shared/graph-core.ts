@@ -101,8 +101,15 @@ export function firstHeadingOf(content: string): string | null {
     // are shown. A closing hash run ("# Title #") is decoration.
     const match = /^ {0,3}(#{1,6})[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$/.exec(line)
     if (!match) continue
-    if (match[1]!.length === 1) return match[2]!
-    if (firstAny === null) firstAny = match[2]!
+    // A heading may carry an HTML comment the app writes for itself —
+    // a chat turn heading is `## you <!-- sent: system=1042|… -->`.
+    // That is machine bookkeeping, not part of anyone's title
+    // (CP-MVP-010 S07c: it was reaching the packet, the pills and the
+    // relations strip as if it were one).
+    const heading = (match[2] as string).replace(/<!--[\s\S]*?-->/g, '').trim()
+    if (heading.length === 0) continue
+    if (match[1]!.length === 1) return heading
+    if (firstAny === null) firstAny = heading
   }
   return firstAny
 }
@@ -311,11 +318,18 @@ export function buildGraphIndex(files: readonly VaultFileInput[]): GraphIndex {
         form: formOf(file.path.slice(bundle.length + 1))
       }
     }
+    const kind = classifyLinkKind(file.path) ?? 'note'
     return {
       path: file.path,
-      kind: classifyLinkKind(file.path) ?? 'note',
+      kind,
       title:
-        firstHeadingOf(stripFrontmatter(file.content ?? '')) ?? stemOf(file.path)
+        // A chat transcript's first heading is a TURN (`## you`), which
+        // names nobody; its file name is the question that started it,
+        // which does (CP-MVP-010 S07c, owner bench round 2 — the strip
+        // and the pills were showing `you` for every conversation).
+        kind === 'chat'
+          ? stemOf(file.path)
+          : (firstHeadingOf(stripFrontmatter(file.content ?? '')) ?? stemOf(file.path))
     }
   })
   const edges: GraphEdge[] = []

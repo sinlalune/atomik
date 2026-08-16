@@ -4,8 +4,8 @@ import {
   referenceSelectionsOf,
   type PacketDeps
 } from '../shared/context-packet'
-import { buildGraphIndex } from '../shared/graph-core'
-import { buildRetrievalIndex } from '../shared/retrieval-core'
+import { buildGraphIndex, firstHeadingOf } from '../shared/graph-core'
+import { buildRetrievalIndex, documentFields } from '../shared/retrieval-core'
 import { toPacketRequest } from '../electron-main/retrieval'
 
 /**
@@ -182,5 +182,41 @@ describe('grounding an AI operation (S07)', () => {
   it('sends nothing when the vault knows nothing', () => {
     const packet = compileContextPacket({ query: 'zzzunknown' }, deps)
     expect(referenceSelectionsOf(packet)).toEqual([])
+  })
+})
+
+describe('bench round 2 (2026-08-16): what may ground, and what a title is', () => {
+  const CHAT = {
+    path: 'chats/qu-est-ce-que-l-ethos-2.md',
+    content:
+      '---\ntype: Atomik Chat\nengine: mock\n---\n\n' +
+      '## you <!-- sent: system=1042|instruction=21:your message|template=25 -->\n\n' +
+      "qu'est-ce que l'éthos\n\n## atomik\n\nL'éthos est la crédibilité.\n"
+  }
+  const withChat = [...VAULT, CHAT]
+  const chatDeps: PacketDeps = {
+    index: buildRetrievalIndex(withChat),
+    graph: buildGraphIndex(withChat),
+    read: (path) => withChat.find((file) => file.path === path)?.content,
+    id: 'packet-chat'
+  }
+
+  it('never grounds an answer in old dialogue, and says why', () => {
+    const packet = compileContextPacket({ query: 'crédibilité' }, chatDeps)
+    expect(paths(packet.entries)).not.toContain(CHAT.path)
+    expect(packet.omitted).toContainEqual({ path: CHAT.path, reason: 'dialogue' })
+  })
+
+  it('titles a transcript by its file, never by its first turn', () => {
+    // the raw heading is `## you <!-- sent: … -->` — machine bookkeeping
+    expect(documentFields(CHAT.path, CHAT.content).title).toBe(
+      'qu-est-ce-que-l-ethos-2'
+    )
+    expect(firstHeadingOf('## you <!-- sent: system=1042 -->\n\ntext\n')).toBe('you')
+  })
+
+  it('does not report a welded compound as a gap when its parts matched', () => {
+    const packet = compileContextPacket({ query: "qu'est-ce que l'éthos" }, chatDeps)
+    expect(packet.coverage.missingTerms).not.toContain('qu-est-ce')
   })
 })

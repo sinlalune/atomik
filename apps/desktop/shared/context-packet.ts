@@ -51,7 +51,14 @@ export type ContextEntry = {
   tokens: number
 }
 
-export type OmissionReason = 'budget' | 'threshold' | 'scope' | 'duplicate'
+export type OmissionReason =
+  | 'budget'
+  | 'threshold'
+  | 'scope'
+  | 'duplicate'
+  /** A chat transcript: dialogue is a record of thinking, not knowledge
+   *  to think WITH (CP-MVP-010 S07c, owner bench round 2). */
+  | 'dialogue'
 
 export type OmittedEntry = {
   path: string
@@ -138,6 +145,9 @@ export function compileContextPacket(
   const inScope = (path: string): boolean =>
     folder === '' || path === folder || path.startsWith(`${folder}/`)
 
+  const chats = new Set(
+    deps.graph.nodes.filter((node) => node.kind === 'chat').map((node) => node.path)
+  )
   const titles = new Map(deps.graph.nodes.map((node) => [node.path, node.title]))
   const titleOf = (path: string): string =>
     titles.get(path) ?? (path.split('/').pop() ?? path).replace(/\.[^./]+$/, '')
@@ -191,6 +201,14 @@ export function compileContextPacket(
   for (const hit of hits) {
     considered += 1
     for (const term of hit.terms) matchedTerms.add(term)
+    // A chat grounded in old chats compounds its own output: the
+    // model's past answers would come back as if they were vault
+    // knowledge. Transcripts stay searchable (the search panel finds
+    // them); they simply do not GROUND (owner bench round 2).
+    if (chats.has(hit.path)) {
+      omitted.push({ path: hit.path, reason: 'dialogue' })
+      continue
+    }
     if (!inScope(hit.path)) {
       omitted.push({ path: hit.path, reason: 'scope' })
       continue
@@ -225,6 +243,10 @@ export function compileContextPacket(
     if (expanded.length > 0) stages.push('link')
     for (const node of expanded) {
       considered += 1
+      if (chats.has(node.path)) {
+        omitted.push({ path: node.path, reason: 'dialogue' })
+        continue
+      }
       if (!inScope(node.path)) {
         omitted.push({ path: node.path, reason: 'scope' })
         continue
@@ -266,7 +288,18 @@ export function compileContextPacket(
     contextTokens += entry.tokens
   }
 
-  const missingTerms = parsed.terms.filter((term) => !matchedTerms.has(term))
+  // `qu'est-ce` is indexed BOTH as the welded form `qu-est-ce` and as
+  // its parts. Reporting the welded form as "not in the vault" when
+  // every part matched shows the user a tokenizer artifact and calls it
+  // a gap (owner bench round 2).
+  const missingTerms = parsed.terms.filter(
+    (term) =>
+      !matchedTerms.has(term) &&
+      !(
+        term.includes('-') &&
+        term.split('-').every((part) => part.length < 2 || matchedTerms.has(part))
+      )
+  )
   return {
     id: deps.id ?? `packet-${Date.now()}`,
     query: request.query,
