@@ -1,16 +1,16 @@
 ---
 type: Atomik Coherence Audit
-title: Coherence audit — CP-PROVIDERS @ b32df20
-timestamp: 2026-08-16T09:42:00.000Z
+title: Coherence audit — CP-PROVIDERS @ 352662c
+timestamp: 2026-08-16T09:43:00.000Z
 atomik:
   path: CP-PROVIDERS
   branch: path/cp-providers
-  head: b32df20381c98ce838c38f4e4da6ce2761d33399
+  head: 352662cf289a29e947492f2492fcbad2051863bd
   base: b32df20
   verdict: clean
 ---
 
-# Coherence audit — CP-PROVIDERS @ b32df20
+# Coherence audit — CP-PROVIDERS @ 352662c
 
 Run after the rebase, before the merge. ADVISORY: nothing here blocks. Its job
 is to catch what no deterministic check can — two paths that each pass every

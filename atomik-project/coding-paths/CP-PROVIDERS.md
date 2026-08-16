@@ -8,7 +8,7 @@ atomik:
   id: CP-PROVIDERS
   status: running
   current_step: S09
-  base_commit: b32df20
+  base_commit: 1ffe08b
   branch: path/cp-providers
   writes:
     - apps/desktop/electron-main/generation.ts
