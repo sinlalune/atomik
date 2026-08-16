@@ -300,8 +300,14 @@ timestamp: 2026-08-14T00:00:00Z
   (fullscreen + clipboard-sanitized-write only), downloads cancelled,
   popups denied with browse-in-place. http(s)-only is enforced in MAIN
   (`isAllowedWebUrl`) on ensure, navigate, will-navigate and popups —
-  whatever the renderer asked. The renderer reports the placeholder's
-  rect (ResizeObserver + window resize + per-render check for
+  whatever the renderer asked. CP-FEEDBACK's closing bench turns the
+  renderer URL field into an honest omnibox: explicit http(s) and clear bare
+  hosts navigate (domains default HTTPS; localhost/IP default HTTP), while
+  ordinary text is encoded into `https://www.google.com/search?q=…` only when
+  submitted. Known unsafe/local schemes and any non-http `scheme://` still
+  fail closed rather than becoming search text; MAIN validates the resulting
+  Google URL exactly like every other navigation. The renderer reports the
+  placeholder's rect (ResizeObserver + window resize + per-render check for
   divider-drag moves); geometry channels are tolerant of the
   ensure/report race; overlays that could sit under the native view
   take the `web/overlay.ts` guard (the settings panel does). The URL

@@ -170,7 +170,7 @@ export function WebView({
   const go = (raw: string): void => {
     const url = normalizeInputUrl(raw)
     if (!url) {
-      setInputError('web addresses only — http(s)')
+      setInputError('that address is not allowed — use http(s) or search terms')
       return
     }
     setInputError(null)
@@ -310,9 +310,9 @@ export function WebView({
             onBlur={() => {
               inputFocused.current = false
             }}
-            placeholder="type an address — colab.research.google.com"
+            placeholder="search Google or type an address"
             spellCheck={false}
-            aria-label="Address"
+            aria-label="Search or address"
             title={identity.url || undefined}
           />
         </form>

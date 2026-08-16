@@ -108,6 +108,10 @@ timestamp: 2026-08-14T00:00:00Z
   complete URL stays visible as secondary/tooltip information and as the
   focused address input. A pushed empty title deliberately overwrites stale
   state, so navigation to an untitled page falls back honestly.
+  The closing bench adds Google-search fallback inside the same renderer seam:
+  prose becomes an encoded HTTPS Google URL, clear hosts remain navigation,
+  and unsafe schemes remain rejected. This adds no engine setting, IPC, preload
+  surface, or remote-content authority; MAIN still accepts http(s) only.
   CP-FEEDBACK S05 is deliberately shell-neutral: the additive `web-source`
   graph kind changes shared renderer classification and pill presentation, but
   no workspace view id, tab param, opening route, IPC channel, or preload

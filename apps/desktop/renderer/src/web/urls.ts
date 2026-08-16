@@ -1,4 +1,4 @@
-/** Pure URL-bar and page-identity handling for the web tab. */
+/** Pure omnibox and page-identity handling for the web tab. */
 
 const PAGE_TITLE_MAX = 240
 
@@ -59,22 +59,77 @@ export function webPageIdentity(
   }
 }
 
+const BLOCKED_INPUT_SCHEMES = new Set([
+  'about',
+  'chrome',
+  'data',
+  'file',
+  'javascript',
+  'mailto',
+  'tel',
+  'vbscript'
+])
+
+function parsedHttpUrl(candidate: string): string | null {
+  try {
+    const url = new URL(candidate)
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null
+    return url.hostname ? url.href : null
+  } catch {
+    return null
+  }
+}
+
+/** A scheme-less value that is clearly an address rather than prose. */
+function bareWebAddress(raw: string): string | null {
+  if (/\s/.test(raw)) return null
+  try {
+    const url = new URL(`https://${raw}`)
+    if (url.username || url.password) return null
+    const host = url.hostname.toLowerCase()
+    const localAddress =
+      host === 'localhost' ||
+      host.includes(':') ||
+      /^(?:\d{1,3}\.){3}\d{1,3}$/.test(host)
+    const addressLike = localAddress || host.includes('.')
+    if (localAddress) url.protocol = 'http:'
+    return addressLike ? url.href : null
+  } catch {
+    return null
+  }
+}
+
+function googleSearchUrl(query: string): string {
+  const search = new URL('https://www.google.com/search')
+  search.searchParams.set('q', query)
+  return search.href
+}
+
 /**
- * What the user typed, as a navigable URL: a bare host gains https://,
- * anything that isn't http(s) after that — javascript:, file:, garbage —
- * returns null (main re-validates regardless; this is the UX gate).
+ * What the user submitted to the web-tab omnibox. Explicit http(s) and clear
+ * bare hosts navigate; ordinary prose and single words become a Google search.
+ * Explicit browser/local schemes still fail closed (main re-validates the
+ * resulting http(s) URL regardless). Search operators such as `site:` remain
+ * useful because only known unsafe schemes or `scheme://` forms are rejected.
  */
 export function normalizeInputUrl(raw: string): string | null {
   const trimmed = raw.trim()
   if (!trimmed) return null
-  const candidate = /^[a-z][a-z0-9+.-]*:/i.test(trimmed)
-    ? trimmed
-    : `https://${trimmed}`
-  try {
-    const url = new URL(candidate)
-    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null
-    return url.href
-  } catch {
-    return null
+
+  const bare = bareWebAddress(trimmed)
+  if (bare !== null) return bare
+
+  const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(trimmed)
+  if (scheme) {
+    const name = scheme[1]!.toLowerCase()
+    if (name === 'http' || name === 'https') return parsedHttpUrl(trimmed)
+    if (
+      BLOCKED_INPUT_SCHEMES.has(name) ||
+      trimmed.slice(scheme[0].length).startsWith('//')
+    ) {
+      return null
+    }
   }
+
+  return googleSearchUrl(trimmed)
 }
