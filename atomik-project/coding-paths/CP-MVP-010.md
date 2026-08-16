@@ -341,6 +341,46 @@ first two are the hot files the convention names. Resolution is
 mechanical (distinct channels appended). This path rebases on the trunk
 at every step boundary rather than at the end.
 
+# The workflow diagram — decided 2026-08-16 (owner request, timing delegated)
+
+Owner: *"At one moment I will need a exhaustive diagram of the workflow,
+decide when is the best moment"*. Read as the RETRIEVAL workflow — a
+question travelling through the ladder into a grounded, cited answer —
+not the Cairn protocol one, which already exists as D14 and would only
+need a refresh.
+
+```text
+DRAW IT AT S10, after the evaluation set produces its first dated
+baseline and BEFORE the S11 owner bench.
+```
+
+Four reasons, in the order they decide it:
+
+1. **The register's own rule.** A diagram is a DERIVED VIEW: "the figure
+   never introduces structure the corpus does not contain". Today half
+   the pipeline is intention. S05 already proves the risk — the coverage
+   verdict changed shape from what the S01 pin predicted, and a figure
+   drawn at S04 would have shipped the wrong branch point.
+2. **Exhaustive means every stage.** Rung 0 · lexical · link · packet
+   with its omissions · the coverage branch · the trace · the chat
+   pre-pass · the citations. The last two do not exist until S07/S08.
+3. **At S10 the picture can carry FACTS.** The evaluation set gives real
+   candidate → selected → token → latency numbers, so the figure shows
+   what the pipeline actually does on a real vault instead of boxes.
+4. **The bench is when it is most useful.** The owner benches S11 with
+   the map in hand rather than reconstructing it from behaviour.
+
+Shape, decided with it: **D15, GENERATED** like D14
+(`tools/gen-d15-*.py`, geometry asserted — no overlaps, nothing out of
+bounds), and it must show CP-MVP-011's external branch hanging off the
+`thin`/`empty` coverage verdict as a clearly-marked NEXT-PATH lane. A
+picture of vault retrieval that stops at "the vault does not know this"
+would lie by omission about where that answer goes.
+
+If something sooner is wanted to steer the build, the honest instrument
+is not a diagram but S07's packet inspector: it shows the real stages,
+live, on real notes.
+
 # Execution
 
 - [x] S01 Bootstrap + pins (DONE 2026-08-16, docs-only): Required
@@ -459,6 +499,10 @@ at every step boundary rather than at the end.
 - [ ] S10 Evaluation set: fixture vault + queries + expected notes, a
       runnable evaluation reporting recall@k, MRR and latency, plus
       the dated real-vault bench record (33 §Evaluation gates).
+      AND **D15 — the retrieval workflow**, exhaustive, generated with
+      asserted geometry, carrying the evaluation's real numbers and
+      showing CP-MVP-011's external branch off the coverage verdict
+      (owner request 2026-08-16; timing reasoned above).
 - [ ] S11 Owner bench rounds + acceptance record, then the closing
       ceremony, the coherence audit, and the self-merge — after which
       CP-MVP-011 opens with its own (short) opening check.
