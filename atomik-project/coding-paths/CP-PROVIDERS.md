@@ -6,7 +6,7 @@ tags: [coding-path, providers, ai, generation, openrouter, openai, anthropic, de
 timestamp: 2026-08-16T00:00:00Z
 atomik:
   id: CP-PROVIDERS
-  status: running
+  status: done
   current_step: S09
   base_commit: 1ffe08b
   branch: path/cp-providers
