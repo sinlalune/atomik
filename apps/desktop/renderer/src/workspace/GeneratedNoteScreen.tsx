@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   DEFAULT_GENERATION_MODEL,
-  GENERATION_MODELS,
   PARAM_LIMITS,
+  PROVIDER_CATALOG,
   type GenerationModelId,
   type GenerationParams
 } from '../../../shared/generation-params'
@@ -336,10 +336,14 @@ export function GeneratedNoteScreen({
                 value={model}
                 onChange={(event) => setModel(event.target.value as GenerationModelId)}
               >
-                {(Object.keys(GENERATION_MODELS) as GenerationModelId[]).map((id) => (
-                  <option key={id} value={id}>
-                    {GENERATION_MODELS[id].label} ({id})
-                  </option>
+                {Object.values(PROVIDER_CATALOG).map((provider) => (
+                  <optgroup key={provider.id} label={provider.name}>
+                    {provider.models.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.label} ({m.id})
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </label>

@@ -12,10 +12,12 @@ import {
   mockGenerationAdapter,
   type GenerationAdapter
 } from './generation'
-import {
-  createMistralGenerationAdapter,
-  MISTRAL_SMALL_MODEL
-} from './mistral-generation-adapter'
+import { createMistralGenerationAdapter } from './mistral-generation-adapter'
+import { createOpenRouterGenerationAdapter } from './openrouter-generation-adapter'
+import { createOpenAiGenerationAdapter } from './openai-generation-adapter'
+import { createAnthropicGenerationAdapter } from './anthropic-generation-adapter'
+import { createDeepSeekGenerationAdapter } from './deepseek-generation-adapter'
+import { createGoogleGenerationAdapter } from './google-generation-adapter'
 import { webProvenanceFor } from './web-provenance'
 import { ActionTraceLedger } from './action-trace'
 import { importCaptureUpload } from './capture-import'
@@ -34,10 +36,15 @@ import { createMistralOcrAdapter, createVoxtralTranscribeAdapter } from './mistr
 import {
   publicAiSettings,
   readMistralKey,
+  readProviderKey,
   resolveGenerationEngine,
+  resolveSelectedModel,
   writeAiEngine,
-  writeMistralKey
+  writeMistralKey,
+  writeProviderKey,
+  writeSelectedModel
 } from './ai-settings'
+import type { AiProviderKeyId } from '../shared/generation-params'
 import { importPdfFromPath } from './pdf-import'
 import { importWebSource, type WebPageMeta } from './web-import'
 import {
@@ -368,13 +375,14 @@ function registerVaultHandlers(stateDir: string): void {
     // key-present default; a failed cloud call SURFACES — it never
     // silently falls back to the mock (13 explicit-policy rule).
     const engine = resolveGenerationEngine(stateDir)
+    const selectedModel = resolveSelectedModel(stateDir, engine)
     const failureMeta =
-      engine === 'mistral'
+      engine !== 'mock'
         ? {
             location: 'cloud-model' as const,
-            provider: 'mistral',
-            model: 'mistral-small',
-            modelVersion: MISTRAL_SMALL_MODEL
+            provider: engine,
+            model: selectedModel,
+            modelVersion: selectedModel
           }
         : undefined
     try {
@@ -383,15 +391,59 @@ function registerVaultHandlers(stateDir: string): void {
       }
       let adapter: GenerationAdapter = mockGenerationAdapter
       if (engine === 'mistral') {
-        // same dev override as the cloud transcription rung (CP-MVP-005)
-        const key = readMistralKey(stateDir) ?? process.env['MISTRAL_API_KEY']?.trim() ?? null
+        const key = readProviderKey(stateDir, 'mistral')
         if (!key) {
           throw new GenerationError(
             'auth',
-            'no Mistral key configured — add one in ☰ → AI, or switch the engine to mock'
+            'no Mistral key configured — add one in ☰ → Settings, or switch the engine to mock'
           )
         }
-        adapter = createMistralGenerationAdapter(key)
+        adapter = createMistralGenerationAdapter(key, fetch, { defaultModel: selectedModel })
+      } else if (engine === 'openrouter') {
+        const key = readProviderKey(stateDir, 'openrouter')
+        if (!key) {
+          throw new GenerationError(
+            'auth',
+            'no OpenRouter key configured — add one in ☰ → Settings, or switch the engine to mock'
+          )
+        }
+        adapter = createOpenRouterGenerationAdapter(key, fetch, { defaultModel: selectedModel })
+      } else if (engine === 'openai') {
+        const key = readProviderKey(stateDir, 'openai')
+        if (!key) {
+          throw new GenerationError(
+            'auth',
+            'no OpenAI key configured — add one in ☰ → Settings, or switch the engine to mock'
+          )
+        }
+        adapter = createOpenAiGenerationAdapter(key, fetch, { defaultModel: selectedModel })
+      } else if (engine === 'anthropic') {
+        const key = readProviderKey(stateDir, 'anthropic')
+        if (!key) {
+          throw new GenerationError(
+            'auth',
+            'no Anthropic key configured — add one in ☰ → Settings, or switch the engine to mock'
+          )
+        }
+        adapter = createAnthropicGenerationAdapter(key, fetch, { defaultModel: selectedModel })
+      } else if (engine === 'deepseek') {
+        const key = readProviderKey(stateDir, 'deepseek')
+        if (!key) {
+          throw new GenerationError(
+            'auth',
+            'no DeepSeek key configured — add one in ☰ → Settings, or switch the engine to mock'
+          )
+        }
+        adapter = createDeepSeekGenerationAdapter(key, fetch, { defaultModel: selectedModel })
+      } else if (engine === 'google') {
+        const key = readProviderKey(stateDir, 'google')
+        if (!key) {
+          throw new GenerationError(
+            'auth',
+            'no Google Gemini key configured — add one in ☰ → Settings, or switch the engine to mock'
+          )
+        }
+        adapter = createGoogleGenerationAdapter(key, fetch, { defaultModel: selectedModel })
       }
       // S06 URL provenance: web-reader selections trace back to their
       // dossier BEFORE the pure-compute call — adapters/truth never read
@@ -651,11 +703,37 @@ function registerCaptureHandlers(stateDir: string): void {
     writeMistralKey(stateDir, key)
     return publicAiSettings(stateDir)
   })
+  ipcMain.handle(
+    ATOMIK_CHANNELS.setProviderApiKey,
+    (_event, provider: unknown, key: unknown) => {
+      if (typeof provider !== 'string') {
+        throw new Error('ai settings: rejected provider')
+      }
+      if (key !== null && typeof key !== 'string') {
+        throw new Error('ai settings: key must be a string or null')
+      }
+      writeProviderKey(stateDir, provider as AiProviderKeyId, key)
+      return publicAiSettings(stateDir)
+    }
+  )
   // S02: the engine choice is explicit and persists beside the key.
   ipcMain.handle(ATOMIK_CHANNELS.setAiEngine, (_event, engine: unknown) => {
     writeAiEngine(stateDir, engine)
     return publicAiSettings(stateDir)
   })
+  ipcMain.handle(
+    ATOMIK_CHANNELS.setSelectedModel,
+    (_event, engine: unknown, model: unknown) => {
+      if (typeof engine !== 'string') {
+        throw new Error('ai settings: rejected engine')
+      }
+      if (typeof model !== 'string') {
+        throw new Error('ai settings: rejected model')
+      }
+      writeSelectedModel(stateDir, engine as any, model)
+      return publicAiSettings(stateDir)
+    }
+  )
   // Desktop mic (owner request): same inbox, same gates, no endpoint.
   ipcMain.handle(
     ATOMIK_CHANNELS.addLocalCapture,
@@ -1524,19 +1602,24 @@ async function runSmoke(
       )) as string
       vaultReport += ` ai=${outcome}`
     }
-    // Opt-in LIVE rung (CP-MVP-008 S02): proves the real Mistral chain
-    // end to end — engine switch, one tiny real completion, the trace
+    // Opt-in LIVE rung (CP-MVP-008 S02, CP-PROVIDERS S07): proves the real
+    // provider chain end to end — engine switch, one tiny real completion, the trace
     // wearing cloud-model identity + provider-reported usage, and a
     // mid-flight cancel. Needs a configured key; never runs in CI.
     if (process.env['ATOMIK_SMOKE_AI_LIVE'] === '1') {
+      const smokeProvider =
+        (process.env['ATOMIK_SMOKE_AI_PROVIDER']?.trim() as AiProviderKeyId) ||
+        'mistral'
       // key presence decided MAIN-SIDE so the dev override counts too
-      const liveKey =
-        readMistralKey(stateDir) ?? process.env['MISTRAL_API_KEY']?.trim() ?? null
-      const outcome = liveKey === null ? 'skip:no-key' : (await window.webContents.executeJavaScript(
-        `(async () => {
+      const liveKey = readProviderKey(stateDir, smokeProvider)
+      const outcome =
+        liveKey === null
+          ? 'skip:no-key'
+          : ((await window.webContents.executeJavaScript(
+              `(async () => {
           try {
             const before = await window.atomik.getAiSettings()
-            await window.atomik.setAiEngine('mistral')
+            await window.atomik.setAiEngine('${smokeProvider}')
             try {
               const bundle = await window.atomik.runAiOperation({
                 id: crypto.randomUUID(),
@@ -1559,13 +1642,13 @@ async function runSmoke(
                 () => 'raced-to-completion',
                 (e) => (String(e).includes('ai(cancelled)') ? 'cancelled' : 'wrong-error:' + String(e).slice(0, 80))
               )
-              return 'ok:' + (summary ? summary.location + '/' + summary.model + '/' + summary.estimatedInputTokens + '+' + summary.estimatedOutputTokens + 'tok/' + summary.estimatedExternalCost.amount + summary.estimatedExternalCost.currency : 'no-trace') + ':cancel=' + cancelled
+              return 'ok:' + (summary ? summary.location + '/' + summary.provider + '/' + summary.model + '/' + summary.estimatedInputTokens + '+' + summary.estimatedOutputTokens + 'tok/' + summary.estimatedExternalCost.amount + summary.estimatedExternalCost.currency : 'no-trace') + ':cancel=' + cancelled
             } finally {
               await window.atomik.setAiEngine(before.generationEngine)
             }
           } catch (e) { return 'fail:' + String(e).slice(0, 160) }
         })()`
-      )) as string
+            )) as string)
       vaultReport += ` aiLive=${outcome}`
     }
     // Opt-in rung (S06): seed a fixture web bundle and prove URL

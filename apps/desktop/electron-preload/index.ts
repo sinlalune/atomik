@@ -3,6 +3,7 @@ import {
   ATOMIK_API_KEY,
   ATOMIK_CHANNELS,
   type AiEngine,
+  type AiProviderKeyId,
   type AiOperation,
   type AiTraceDecision,
   type AtomikApi,
@@ -148,8 +149,12 @@ const api: AtomikApi = {
   getAiSettings: () => ipcRenderer.invoke(ATOMIK_CHANNELS.getAiSettings),
   setMistralApiKey: (key: string | null) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.setMistralApiKey, key),
+  setProviderApiKey: (provider: AiProviderKeyId, key: string | null) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.setProviderApiKey, provider, key),
   setAiEngine: (engine: AiEngine) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.setAiEngine, engine),
+  setSelectedModel: (engine: AiEngine, model: string) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.setSelectedModel, engine, model),
   webViewEnsure: (id: string, url?: string) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.webViewEnsure, id, url),
   webViewNavigate: (id: string, url: string) =>

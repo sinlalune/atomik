@@ -173,6 +173,46 @@ describe('ActionTraceLedger (S09 minimum, nothing more)', () => {
     expect(line['privacy']).toEqual({ mode: 'cloud', contentRecorded: false })
   })
 
+  it('records multi-provider trace receipts with dated price snapshots (CP-PROVIDERS S06)', () => {
+    const providers = [
+      { provider: 'openrouter', model: 'mistralai/mistral-small-24b-instruct-2501' },
+      { provider: 'openai', model: 'gpt-4o-mini' },
+      { provider: 'anthropic', model: 'claude-3-5-haiku-20241022' },
+      { provider: 'deepseek', model: 'deepseek-chat' },
+      { provider: 'google', model: 'gemini-2.0-flash' }
+    ]
+
+    for (const p of providers) {
+      const opId = `op-${p.provider}`
+      const bundle = runOne(opId)
+      ledger.draftFor(operation(opId), bundle, 500, {
+        location: 'cloud-model',
+        provider: p.provider,
+        model: p.model,
+        modelVersion: p.model,
+        usage: { inputTokens: 200, outputTokens: 50, basis: 'provider-reported' },
+        billing: {
+          currency: 'USD',
+          estimatedAmount: 0.00005,
+          basis: 'estimated',
+          priceSnapshotId: 'model-research@2026-08-16'
+        }
+      })
+
+      ledger.resolve(bundle.id, 'accepted')
+      const line = readLines().at(-1)!
+      expect(line['execution']).toMatchObject({
+        location: 'cloud-model',
+        provider: p.provider,
+        model: p.model
+      })
+      expect(line['billing']).toMatchObject({
+        priceSnapshotId: 'model-research@2026-08-16'
+      })
+      expect(line['privacy']).toEqual({ mode: 'cloud', contentRecorded: false })
+    }
+  })
+
   it('names the failed engine on a cloud failure', () => {
     ledger.recordFailure('op-cloud-fail', 12, {
       location: 'cloud-model',

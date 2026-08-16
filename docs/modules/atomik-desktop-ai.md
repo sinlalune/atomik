@@ -56,37 +56,37 @@ timestamp: 2026-08-14T00:00:00Z
   content ever leaks. Badge in the AI panel via `get-ai-trace-summary`;
   decision reported via `resolve-ai-trace` (fire-and-forget: telemetry
   never blocks UX).
-- The AI patch loop (06, S08; REAL engines CP-MVP-008 S02): the typed
+- The AI patch loop (06, S08; REAL engines CP-MVP-008 S02; MULTI-PROVIDER CP-PROVIDERS S02/S03): the typed
   `GenerationAdapter` seam in `electron-main/generation.ts` (the ai-core
   seat, 14) behind `atomik:run-ai-operation` — engines are PURE COMPUTE;
   identity travels in the answering adapter's output, so the renderer
-  contract is unchanged from the mock era. Two engines:
-  `ai-mock.ts` (S08, the deterministic offline path, still a selectable
-  engine) and `mistral-generation-adapter.ts` — Mistral Small chat
-  completions (model id PINNED `mistral-small-2603`, confirmed live
-  2026-07-21; upgrades are a new dated decision), key via
-  `readMistralKey` attached in MAIN only (13), budgets below renderer
+  contract is unchanged from the mock era. Multiple selectable engines:
+  `ai-mock.ts` (S08, the deterministic offline path), `mistral-generation-adapter.ts`
+  (Mistral chat completions), `openrouter-generation-adapter.ts` (OpenRouter gateway,
+  with strict privacy controls: `allow_fallbacks: false`, `require_parameters: true`,
+  `data_collection: 'deny'`, `zdr: true`, disabled lossy compression, and router metadata),
+  and direct adapters `openai-generation-adapter.ts` (OpenAI), `anthropic-generation-adapter.ts`
+  (Anthropic Messages API), `deepseek-generation-adapter.ts` (DeepSeek), and
+  `google-generation-adapter.ts` (Google Gemini).
+  Keys attached in MAIN only (13), budgets below renderer
   state (2k output tokens, 60s wall via AbortController, input token
   pre-check), and the eight-kind typed error taxonomy carried as
   `ai(<kind>): …` — offline / timeout / auth / rate-limit /
   provider-request / provider-server / cancelled / budget-exceeded —
   with NO silent fallback to the mock (13 explicit-policy rule).
-  Engine selection persists in `ai-settings.json` beside the key
-  (`atomik:set-ai-engine`; resolution: explicit choice, else 'mistral'
-  when a key exists — the PROPOSED default until the S07 owner bench —
-  else 'mock'). `atomik:cancel-ai-operation` aborts the in-flight call
+  Engine selection and per-provider model overrides persist in `ai-settings.json`
+  (`atomik:set-ai-engine`, `atomik:set-provider-api-key`, `atomik:set-selected-model`). `atomik:cancel-ai-operation` aborts the in-flight call
   by operation id (the AiPanel shows Cancel while running). Claim
   candidates over real output are extracted deterministically
   (sentences, fences dropped, capped) and `labelClaims` runs unchanged
   — exact containment stays the only road to source-backed (28).
-  Traces (33): provider-reported usage preferred over estimates, each
+  Traces (33, CP-PROVIDERS S06): provider-reported usage preferred over estimates, each
   labeled; external cost estimated in USD from the dated snapshot
-  `docs/research/model-research.md@2026-07-20` (upper bound), snapshot
+  `model-research@2026-08-16` across all providers (Mistral, OpenRouter, OpenAI, Anthropic, DeepSeek, Google Gemini), snapshot
   id in the line; cloud lines wear `location: 'cloud-model'` +
-  `privacy.mode: 'cloud'`, `contentRecorded` stays false. The
-  env-gated `ATOMIK_SMOKE_AI_LIVE=1` rung proves the live chain
-  (engine switch, one real completion, cloud trace, mid-flight cancel;
-  honest `skip:no-key` without a key).
+  `privacy.mode: 'cloud'`, `contentRecorded` stays false.   The env-gated `ATOMIK_SMOKE_AI_LIVE=1` rung proves the live chain across providers
+  (with optional `ATOMIK_SMOKE_AI_PROVIDER=<name>`, default 'mistral': engine switch,
+  one real completion, cloud trace, mid-flight cancel; honest `skip:no-key` without a key).
   SCOPED PROMPT FOLDERS (S03, owner amendment 2026-07-21):
   `renderer/src/editor/prompts.ts` — a `prompts/` folder may live at
   the vault root, in ANY folder, and in a project bundle (a project IS

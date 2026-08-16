@@ -73,7 +73,9 @@ export const ATOMIK_CHANNELS = {
   getAiTraceSummary: 'atomik:get-ai-trace-summary',
   getAiSettings: 'atomik:get-ai-settings',
   setMistralApiKey: 'atomik:set-mistral-api-key',
+  setProviderApiKey: 'atomik:set-provider-api-key',
   setAiEngine: 'atomik:set-ai-engine',
+  setSelectedModel: 'atomik:set-selected-model',
   webViewEnsure: 'atomik:web-view-ensure',
   webViewNavigate: 'atomik:web-view-navigate',
   webViewControl: 'atomik:web-view-control',
@@ -95,20 +97,43 @@ export const ATOMIK_CHANNELS = {
 } as const
 
 /**
- * The selectable generation engines (CP-MVP-008 S02): the deterministic
- * mock stays a first-class engine (test/fallback; the offline path) —
+ * The selectable generation engines (CP-MVP-008, CP-PROVIDERS):
+ * the deterministic mock stays a first-class engine (test/fallback; the offline path) —
  * an engine choice is EXPLICIT, never a silent fallback (13).
  */
-export type AiEngine = 'mock' | 'mistral'
+export type AiEngine =
+  | 'mock'
+  | 'mistral'
+  | 'openrouter'
+  | 'openai'
+  | 'anthropic'
+  | 'deepseek'
+  | 'google'
+
+export type AiProviderKeyId =
+  | 'mistral'
+  | 'openrouter'
+  | 'openai'
+  | 'anthropic'
+  | 'deepseek'
+  | 'google'
+
+export type ProviderKeyInfo = {
+  present: boolean
+  hint: string | null
+}
 
 /** What the renderer may know about AI settings (13): presence and a
  *  recognition hint — the raw key never crosses back. */
 export type AiSettingsPublic = {
   mistralKeyPresent: boolean
   mistralKeyHint: string | null
-  /** Resolved engine: the explicit choice, else 'mistral' when a key is
-   *  configured (proposed default — owner confirms at S07), else 'mock'. */
+  /** Resolved engine: the explicit choice, else key-present default, else 'mock'. */
   generationEngine: AiEngine
+  /** Multi-provider key presence and hints (0600 main storage). */
+  keys: Record<AiProviderKeyId, ProviderKeyInfo>
+  /** Per-provider selected model overrides. */
+  selectedModels: Partial<Record<AiEngine, string>>
 }
 
 /**
@@ -748,9 +773,19 @@ export type AtomikApi = {
   /** Stores (or clears, with null) the Mistral API key MAIN-SIDE; the
    *  response is the new public view, never the key. */
   setMistralApiKey: (key: string | null) => Promise<AiSettingsPublic>
+  /** Stores (or clears, with null) a provider API key MAIN-SIDE (0600 storage). */
+  setProviderApiKey: (
+    provider: AiProviderKeyId,
+    key: string | null
+  ) => Promise<AiSettingsPublic>
   /** Chooses the generation engine (S02): explicit, persisted main-side
    *  beside the key; validated against the engine union. */
   setAiEngine: (engine: AiEngine) => Promise<AiSettingsPublic>
+  /** Sets the active model for a provider engine. */
+  setSelectedModel: (
+    engine: AiEngine,
+    model: string
+  ) => Promise<AiSettingsPublic>
   /** Ensures a tab's isolated web view exists (created on first call,
    *  loading `url`); idempotent — an existing view ignores `url`. */
   webViewEnsure: (
@@ -849,7 +884,9 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'getAiTraceSummary',
   'getAiSettings',
   'setMistralApiKey',
+  'setProviderApiKey',
   'setAiEngine',
+  'setSelectedModel',
   'webViewEnsure',
   'webViewNavigate',
   'webViewControl',

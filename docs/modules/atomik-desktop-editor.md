@@ -51,5 +51,8 @@ timestamp: 2026-08-14T00:00:00Z
   byte fidelity is untouched. live<->source reconfigure ONE EditorView
   through a compartment (buffer/undo/selection survive); only the
   switch to read passes the save-first gate. GFM base.
-  One EditorView per mounted pane, keyed by note path; view lives in a
+- Foldable AI sampling options (`editor/gen-options.tsx`): model selector grouping
+  models by provider from `PROVIDER_CATALOG` with input/output token pricing, temperature,
+  top_p, and maxTokens bounds.
+- One EditorView per mounted pane, keyed by note path; view lives in a
   ref (mount-only).

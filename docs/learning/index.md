@@ -113,6 +113,12 @@ when the shape changes, not on every diff.
   counter-intuitive finding that the prose a protocol forces every writer
   to touch conflicts far more than the code does. Covers CP-OPS-001
   S01–S03.
+- [23 — Multi-provider AI generation & gateway](./23-multi-provider-ai-generation-and-gateway.md) —
+  how a provider-neutral `GenerationAdapter` core, OpenRouter gateway with
+  Zero Data Retention, direct adapters (OpenAI, Anthropic Messages API,
+  DeepSeek, Google Gemini, Mistral), main-only 0600 key storage, and full
+  ActionTrace telemetry enable multi-model workbench capabilities. Covers
+  CP-PROVIDERS.
 
 ## Coverage stall (2026-07-07 → 2026-07-21) — repaid
 

@@ -101,6 +101,8 @@ describe('preload surface (13 §IPC rule)', () => {
       runAiOperation: (operation: unknown) => Promise<unknown>
       resolveAiTrace: (bundleId: string, decision: string) => Promise<unknown>
       getAiTraceSummary: (bundleId: string) => Promise<unknown>
+      setProviderApiKey: (provider: string, key: string | null) => Promise<unknown>
+      setSelectedModel: (engine: string, model: string) => Promise<unknown>
     }
     invoke.mockResolvedValue({})
 
@@ -286,6 +288,20 @@ describe('preload surface (13 §IPC rule)', () => {
     expect(invoke).toHaveBeenLastCalledWith(
       ATOMIK_CHANNELS.getAiTraceSummary,
       'bundle-1'
+    )
+
+    await api.setProviderApiKey('openrouter', 'sk-or-key')
+    expect(invoke).toHaveBeenLastCalledWith(
+      ATOMIK_CHANNELS.setProviderApiKey,
+      'openrouter',
+      'sk-or-key'
+    )
+
+    await api.setSelectedModel('openrouter', 'anthropic/claude-3.5-haiku')
+    expect(invoke).toHaveBeenLastCalledWith(
+      ATOMIK_CHANNELS.setSelectedModel,
+      'openrouter',
+      'anthropic/claude-3.5-haiku'
     )
   })
 })

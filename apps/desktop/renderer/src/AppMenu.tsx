@@ -5,12 +5,14 @@ import type {
   PaneNode,
   WorkspaceTab
 } from '../../shared/ipc-contract'
+import { PROVIDER_CATALOG } from '../../shared/generation-params'
 import {
   materializeBuiltinBlocks,
   materializeStarterPrompts
 } from './editor/prompts'
 import { MenuIcon } from './icons'
 import { acquireWebOverlay } from './web/overlay'
+import { SettingsModal } from './settings/SettingsModal'
 import {
   NOTE_FONT_SIZE_DEFAULT,
   NOTE_FONT_SIZE_MAX,
@@ -119,8 +121,8 @@ export function AppMenu(): React.JSX.Element {
   const dispatch = useWorkspace((store) => store.dispatch)
 
   const [open, setOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [settings, setSettings] = useState<AiSettingsPublic | null>(null)
-  const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const panelRef = useRef<HTMLDivElement | null>(null)
@@ -139,22 +141,6 @@ export function AppMenu(): React.JSX.Element {
       releaseOverlay()
     }
   }, [open])
-
-  const submitKey = (key: string | null): void => {
-    setBusy(true)
-    setError(null)
-    window.atomik.setMistralApiKey(key).then(
-      (next) => {
-        setBusy(false)
-        setSettings(next)
-        setDraft('')
-      },
-      (cause) => {
-        setBusy(false)
-        setError(String(cause))
-      }
-    )
-  }
 
   const [starterStatus, setStarterStatus] = useState<string | null>(null)
 
@@ -381,44 +367,19 @@ export function AppMenu(): React.JSX.Element {
             onCommit={(px) => dispatch((current) => setNoteWidth(current, px))}
           />
 
-          <h4>AI · Mistral key</h4>
-          <p className="app-menu-status">
-            {settings === null
-              ? 'checking…'
-              : settings.mistralKeyPresent
-                ? `key set · ${settings.mistralKeyHint ?? '••••'}`
-                : 'no key — cloud transcribe/OCR need one'}
-          </p>
-          <div className="app-menu-row">
-            <input
-              type="password"
-              value={draft}
-              placeholder="paste a Mistral API key"
-              aria-label="Mistral API key"
-              onChange={(event) => setDraft(event.target.value)}
-              disabled={busy}
-            />
-            <button
-              type="button"
-              disabled={busy || draft.trim().length === 0}
-              onClick={() => submitKey(draft.trim())}
-            >
-              Save
-            </button>
-          </div>
-          {settings?.mistralKeyPresent && (
-            <button
-              type="button"
-              className="app-menu-clear"
-              disabled={busy}
-              onClick={() => submitKey(null)}
-            >
-              Clear key
-            </button>
-          )}
           <h4>AI · Engine</h4>
           <div className="app-menu-themes">
-            {(['mock', 'mistral'] as const).map((candidate) => (
+            {(
+              [
+                'mock',
+                'openrouter',
+                'mistral',
+                'openai',
+                'anthropic',
+                'deepseek',
+                'google'
+              ] as const
+            ).map((candidate) => (
               <button
                 key={candidate}
                 type="button"
@@ -426,16 +387,23 @@ export function AppMenu(): React.JSX.Element {
                 disabled={busy || settings === null}
                 onClick={() => pickEngine(candidate)}
               >
-                {candidate}
+                {PROVIDER_CATALOG[candidate]?.name ?? candidate}
               </button>
             ))}
           </div>
-          {settings?.generationEngine === 'mistral' &&
-            !settings.mistralKeyPresent && (
-              <p className="app-menu-status">
-                mistral needs a key — runs will fail until one is set
-              </p>
-            )}
+
+          <h4>AI · Provider Settings</h4>
+          <button
+            type="button"
+            className="app-menu-clear"
+            onClick={() => {
+              setOpen(false)
+              setSettingsOpen(true)
+            }}
+          >
+            Configure AI Providers & Keys…
+          </button>
+
           <h4>AI · Prompts</h4>
           <button
             type="button"
@@ -464,6 +432,13 @@ export function AppMenu(): React.JSX.Element {
           </p>
         </div>
       )}
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => {
+          setSettingsOpen(false)
+          void window.atomik.getAiSettings().then(setSettings)
+        }}
+      />
     </div>
   )
 }

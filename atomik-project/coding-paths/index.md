@@ -38,7 +38,7 @@ Late paths are better paths: they inherit module notes, friction records from th
 | M8 (retrieval) | graph retrieval — lexical BM25 baseline + link expansion, context packets, retrieval traces, vault-grounded chat | [CP-MVP-010](./CP-MVP-010.md) | **running** (accepted 2026-08-16, [opening check](../sessions/2026-08-16-cp-mvp-010-opening-check.md)) on `path/cp-mvp-010` |
 | M8/M10 (augmentation) | Wikimedia augmentation — Wikipedia extract · Wikidata entity into the same nodes/edges tables · Commons P18 · Wiktionary etymology · the model-driven tool loop · web citations · save-as-source | CP-MVP-011 | reserved; opens immediately after CP-MVP-010 merges, short opening check (rulings already recorded in the 010 [opening check](../sessions/2026-08-16-cp-mvp-010-opening-check.md)) |
 | — (process) | Cairn — parallel paths, self-merge, and the CI that enforces it | [CP-OPS-001](./CP-OPS-001.md) | **running** (accepted 2026-08-14, [opening check](../sessions/2026-08-14-cp-ops-001-opening-check.md)) |
-| — (labelled) | provider expansion + settings menu — see the OpenRouter research pointer below | CP-PROVIDERS | reserved; own opening check, opens once CP-MVP-010 is running |
+| — (labelled) | provider expansion + settings menu — OpenRouter gateway, direct adapters (OpenAI, Anthropic, DeepSeek, Google Gemini, Mistral), multi-provider settings panel | [CP-PROVIDERS](./CP-PROVIDERS.md) | done (2026-08-16, [acceptance](../sessions/2026-08-16-cp-providers-acceptance.md) · [closing](../sessions/2026-08-16-cp-providers-closing-ceremony.md)) |
 | M9 | measured local assistance + autocomplete | — | not opened |
 | M10 | public knowledge + dictionary MVP | — | not opened |
 | M11 | truth maintenance + cost dashboard | — | not opened |

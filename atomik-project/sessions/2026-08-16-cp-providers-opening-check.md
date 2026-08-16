@@ -19,7 +19,7 @@ One prompted confirmation per major feature; owner answers recorded verbatim.
 
 1. **Provider Architecture** → **"Hybrid (OpenRouter + Direct)"** —
    Provider-neutral `GenerationAdapter` core with OpenRouter gateway + direct
-   Mistral, OpenAI, Anthropic, and DeepSeek adapters with a curated model
+   Mistral, OpenAI, Anthropic, DeepSeek, and Google (Gemini) adapters with a curated model
    allowlist and dated pricing snapshot.
 2. **Settings UI Scope** → **"Full Multi-Provider Settings Panel"** —
    Dedicated multi-provider settings dialog/panel accessible from `AppMenu`

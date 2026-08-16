@@ -23,8 +23,8 @@ timestamp: 2026-08-14T00:00:00Z
   (`electron-main/security.ts`) pins 13's required settings; the renderer's
   CSP lives in `renderer/index.html`. The window is chromeless
   (`frame: false`): a GLOBAL app header (`AppHeader` — brand "atomik",
-  the `AppMenu` ☰ dropdown holding theme + Mistral key + the S02
-  generation-engine choice (mock | mistral), and
+  the `AppMenu` ☰ dropdown holding theme, generation engine switcher,
+  the multi-provider settings dialog (`SettingsModal`), and
   `WindowControls`) is the top row and the drag surface
   (`-webkit-app-region`); the per-pane tabstrips sit on the row below
   and no longer carry the window controls (owner request 2026-07-14,
