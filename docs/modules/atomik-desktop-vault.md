@@ -63,6 +63,21 @@ timestamp: 2026-08-14T00:00:00Z
     The cost is recall — at `titles`/`linked` a note that discusses a
     subject without naming it anywhere is invisible — and that is the
     first thing S10's evaluation should measure.
+  - PHRASING IS NOT SUBJECT (S08i, owner bench round 9: "I don't
+    understand the two last hit with bibi"). Asked "what plato brought
+    to philosphy", retrieval returned a note called `bibi` because its
+    HEADING said "what" — and then bibi's neighbours arrived behind it
+    through expansion. Frequency alone could not see the difference: in
+    a bilingual vault `what` is uncommon enough to look like a subject.
+    Rule: when the vault has notes NAMED after some of the query's
+    words, ONLY those words rank; the rest is phrasing. The df tier
+    still applies inside that pool, so a note titled "What is an
+    ethos?" cannot make `what` a subject forever.
+  - COVERAGE IS ABOUT THE VAULT, NOT THE RANKING (S08i): a term counts
+    as covered when the index holds it at all, even if it was too
+    common — or too peripheral — to decide which notes to send.
+    Answering the first question with the second told the owner the
+    vault had nothing on `emotions` while a note discussed them.
   - THE VAULT NAMES ITS OWN SUBJECTS (S08f): a query term that appears
     in some note's TITLE is principal whatever the statistics say. The
     frequency rule alone gets one case badly wrong — a vault ABOUT

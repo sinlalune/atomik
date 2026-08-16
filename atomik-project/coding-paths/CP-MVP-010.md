@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S08g
+  current_step: S08i
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -779,6 +779,26 @@ live, on real notes.
       COST NAMED: at `titles`/`linked`, a note that discusses a subject
       without naming it anywhere is invisible — a recall trade, and the
       first thing S10's evaluation should measure. +3 tests (877 → 880).
+- [x] S08i BENCH ROUND 9 (2026-08-16, query "what plato brought to
+      philosphy" — DONE same day). Two notes arrived through the word
+      `what` in a HEADING (`bibi`, `Superheroes`), and bibi's neighbours
+      followed through expansion. Frequency alone could not catch it: in
+      a bilingual vault `what` is uncommon enough to look like a
+      subject. Rule added: when the vault has notes NAMED after some of
+      the query's words, only those words rank — the rest is phrasing.
+      The df tier still applies inside that pool, so a note titled "What
+      is an ethos?" cannot make `what` a subject forever.
+      SECOND FIX, found by the first: coverage was computed from what
+      RANKED, so it told the owner the vault had nothing on `emotions`
+      while a note discussed them. "Does the vault know this word" and
+      "should this word decide which notes to send" are different
+      questions; coverage now reads the index directly.
+      TRIED AND REVERTED, recorded: a relative floor on lexical hits
+      (below 25% of the best). It killed the noise, and also killed the
+      legitimate case — a note that discusses a subject in its body
+      while another is titled after it. The naming rule does the work
+      without the collateral damage; a second line of defence that
+      cuts real answers is not a defence. +3 tests (880 → 883).
 - [ ] S09 Search surface + diagnostics: ranked results with kind pills
       and "why this result", the packet disclosure, and the vault-wide
       broken-links list docked there.
@@ -798,7 +818,7 @@ live, on real notes.
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S08g done (owner bench rounds 1–8 absorbed) — S09 next
+current step: S08i done (owner bench rounds 1–9 absorbed) — S09 next
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts
@@ -810,7 +830,7 @@ changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               docs/learning/22-lexical-retrieval-without-a-database.md + index
               docs/adr/ADR-013-lexical-retrieval-without-a-database.md
               docs/index.md · atomik-project/coding-paths/CP-MVP-010.md
-tests       : 880 passing / 71 files (this path added 92 so far),
+tests       : 883 passing / 71 files (this path added 95 so far),
               typecheck and build green, each gate run BARE (24)
 next action : S09 — the search surface: ranked results with kind pills
               and "why this result", the packet disclosure, and the

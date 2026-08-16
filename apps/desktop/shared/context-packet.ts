@@ -3,6 +3,7 @@ import {
   commonTermsOf,
   extractMatches,
   parseQuery,
+  presentTermsOf,
   searchIndex,
   SENSITIVITY_HOPS,
   type RetrievalIndex,
@@ -240,9 +241,13 @@ export function compileContextPacket(
     limit: CANDIDATE_LIMIT,
     sensitivity
   })
-  // Words the vault is full of are not gaps: they are everywhere, they
-  // simply cannot rank anything (S08b).
-  const matchedTerms = new Set<string>(commonTermsOf(deps.index, request.query))
+  // COVERAGE is about the VAULT, not about the ranking (S08i): a word
+  // the vault discusses is covered even when it was too common — or too
+  // peripheral to the question — to decide which notes to send.
+  const matchedTerms = new Set<string>([
+    ...commonTermsOf(deps.index, request.query),
+    ...presentTermsOf(deps.index, request.query)
+  ])
   const lexicalSeeds: { path: string; score: number }[] = []
 
   if (hits.length > 0) stages.push('lexical')

@@ -516,7 +516,9 @@ export type SearchOptions = {
   limit?: number
   /** Which fields may match at all. Absent = every field. */
   sensitivity?: RetrievalSensitivity
-  /** Every query term must appear somewhere in the document. */
+  /** Every RANKING term must appear in the document — the phrasing
+   *  around the subject was never scored, so it is not required
+   *  either (S08i). */
   requireAll?: boolean
   /** Perimeter filter, applied before scoring (scope, 26). */
   accept?: (path: string) => boolean
@@ -567,10 +569,22 @@ export function searchIndex(
     .filter(
       (entry): entry is { term: string; df: number; named: boolean } => entry !== null
     )
-  const rarest = Math.min(...informative.map((entry) => entry.df))
+  // S08i (owner bench round 9: "I don't understand the two last hit
+  // with bibi" — a note whose HEADING contained "what", plus its
+  // neighbours behind it). When the vault has notes NAMED after some of
+  // the query's words, those words ARE the question's subject and the
+  // rest is phrasing: `what`, `to`, `brought` name nothing. Comparing
+  // frequencies alone could not see that, because in a bilingual vault
+  // `what` is uncommon enough to look like a subject.
+  const pool = informative.some((entry) => entry.named)
+    ? informative.filter((entry) => entry.named)
+    : informative
+  const rarest = Math.min(...pool.map((entry) => entry.df))
   const principal = new Set(
-    informative
-      .filter((entry) => entry.named || entry.df <= rarest * PRINCIPAL_DF_FACTOR)
+    pool
+      // Even among named terms the rarest wins: a note titled "What is
+      // an ethos?" must not make `what` a subject forever.
+      .filter((entry) => entry.df <= rarest * PRINCIPAL_DF_FACTOR)
       .map((entry) => entry.term)
   )
 
@@ -637,7 +651,7 @@ export function searchIndex(
   for (const [docIndex, accumulator] of accumulators) {
     const doc = index.docs[docIndex]
     if (!doc) continue
-    if (options.requireAll && accumulator.matched.size < terms.length) continue
+    if (options.requireAll && accumulator.matched.size < principal.size) continue
     if (!phrases.every((phrase) => hasPhrase(phrase, accumulator.positions))) continue
 
     hits.push({
@@ -653,6 +667,17 @@ export function searchIndex(
 
   hits.sort((a, b) => b.score - a.score || (a.path < b.path ? -1 : 1))
   return hits.slice(0, options.limit ?? DEFAULT_LIMIT)
+}
+
+/**
+ * The query's terms the vault has ANY material for (CP-MVP-010 S08i).
+ * Deliberately independent of ranking: "does the vault know about this
+ * word" and "should this word decide which notes to send" are different
+ * questions, and answering the first with the second told the owner the
+ * vault had nothing on `emotions` while a note discussed them.
+ */
+export function presentTermsOf(index: RetrievalIndex, query: string): string[] {
+  return parseQuery(query).terms.filter((term) => index.terms[term] !== undefined)
 }
 
 /**

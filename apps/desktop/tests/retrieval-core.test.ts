@@ -134,10 +134,12 @@ describe('ranking', () => {
 
     expect(searchIndex(index, 'pathos', { limit: 1 })).toHaveLength(1)
 
-    expect(searchIndex(index, 'pathos emotions').length).toBeGreaterThan(1)
+    // requireAll speaks of the terms that RANK (S08i): both `ethos` and
+    // `rhetorique` name notes here, and only one document carries both.
+    expect(searchIndex(index, 'ethos rhetorique').length).toBeGreaterThan(1)
     expect(
-      searchIndex(index, 'pathos emotions', { requireAll: true }).map((h) => h.path)
-    ).toEqual(['concepts/pathos.md'])
+      searchIndex(index, 'ethos rhetorique', { requireAll: true }).map((h) => h.path)
+    ).toEqual(['concepts/ethos.md'])
   })
 
   it('treats a quoted phrase as a filter, not a bonus', () => {
@@ -335,5 +337,45 @@ describe('the vault names its own subjects (S08f)', () => {
 
   it('still ignores a word that names nothing and is everywhere', () => {
     expect(commonTermsOf(index, 'une note')).toContain('une')
+  })
+})
+
+describe('phrasing versus subject (S08i, owner bench round 9)', () => {
+  // "what plato brought to philosphy" retrieved a note called `bibi`
+  // because its HEADING contained "what" — and then bibi's neighbours
+  // arrived behind it through expansion.
+  const CORPUS = [
+    { path: 'plato.md', content: '# Plato\n\nLe philosophe.\n' },
+    { path: 'stoicism.md', content: '# From Plato to Stoicism\n\nSuite.\n' },
+    { path: 'bibi.md', content: '# bibi\n\n## what I did today\n\nDes choses.\n' },
+    { path: 'heroes.md', content: '# Superheroes\n\n## what powers\n\nDes pouvoirs.\n' },
+    // `what` and `to` behave like question words do in a real vault:
+    // scattered through many notes, rare enough to escape the common
+    // ceiling, common enough to drown a subject if they ranked.
+    ...Array.from({ length: 12 }, (_, index) => ({
+      path: `misc-${index}.md`,
+      content: `# Divers ${index}\n\n## what happened\n\nUn texte to be read.\n`
+    }))
+  ]
+  const index = buildRetrievalIndex(CORPUS)
+
+  it('keeps only the words the vault has notes NAMED after', () => {
+    const hits = searchIndex(index, 'what plato brought to philosphy')
+    expect(hits.map((hit) => hit.path)).toEqual(['plato.md', 'stoicism.md'])
+    expect(hits.every((hit) => hit.terms.includes('plato'))).toBe(true)
+  })
+
+  it('does not let a question-shaped TITLE make a question word a subject', () => {
+    const withQuestion = buildRetrievalIndex([
+      ...CORPUS,
+      { path: 'what-is-ethos.md', content: '# What is an ethos ?\n\nUne définition.\n' }
+    ])
+    const hits = searchIndex(withQuestion, 'what plato brought to philosphy')
+    expect(hits.map((hit) => hit.path)).toEqual(['plato.md', 'stoicism.md'])
+  })
+
+  it('still answers when the vault names nothing in the query', () => {
+    const hits = searchIndex(index, 'pouvoirs')
+    expect(hits[0]!.path).toBe('heroes.md')
   })
 })
