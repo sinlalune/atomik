@@ -410,7 +410,8 @@ at every step boundary rather than at the end.
 # Current checkpoint
 
 ```text
-base commit : 2370546 (rebased onto b32df20 after the trunk's cairn fix)
+base commit : 2370546 (branch rebased onto trunk tip 260f964, which
+              carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
 current step: S02 done — S03 next
 changed     : apps/desktop/shared/retrieval-core.ts (new)
               apps/desktop/electron-main/search.ts (now the I/O half)
@@ -420,14 +421,19 @@ changed     : apps/desktop/shared/retrieval-core.ts (new)
               docs/adr/ADR-013-lexical-retrieval-without-a-database.md (new)
               docs/index.md (ADR range)
               atomik-project/coding-paths/CP-MVP-010.md
-tests       : 793 passing / 65 files (was 773/64), typecheck and build
-              green, each gate run BARE (24)
+tests       : 808 passing on the REBASED result (this path added 20:
+              773 -> 793; CP-PROVIDERS' merge brought the rest),
+              typecheck and build green, each gate run BARE (24)
 next action : S03 — the main-side retrieval seat: lazy build, the
               `.atomik/index/retrieval.json` rebuildable projection with
               its round-trip test, per-file patching on save · create ·
               delete · relocate for BOTH indexes, and the index-changed
               broadcast to the renderer (closing-ceremony deviations 2
               and 3; the relations strip refreshes as a side effect)
+rebase note : the learning index collided at the rebase (note 22 here,
+              note 23 from CP-PROVIDERS) — mechanical, both kept in
+              order. Exactly the shared-prose conflict paths.md
+              predicts, and the only one in the whole rebase.
 blockers    : none
 ```
 
