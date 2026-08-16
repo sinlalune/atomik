@@ -1342,24 +1342,29 @@ body[data-maximized] .tabstrip {
 }
 
 .chat-turn {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-2) var(--space-3);
-  background: var(--surface);
+  box-sizing: border-box;
+  min-width: 0;
 }
 
-/* S06b (owner): orientation tells the speakers apart at a glance —
-   your turns hang right as tinted bubbles, atomik's hang left */
+/* CP-FEEDBACK S02: modern AI-chat geometry. The user's compact input stays
+   contained; the assistant is the reading surface itself — flat, full-width,
+   and led from the pane's left edge. */
 .chat-turn.role-you {
   align-self: flex-end;
   max-width: 85%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2) var(--space-3);
   background: var(--code-bg);
 }
 
 .chat-turn.role-atomik {
-  align-self: flex-start;
-  max-width: 95%;
-  min-width: 60%;
+  align-self: stretch;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  padding: var(--space-2) 0 var(--space-4);
+  background: transparent;
 }
 
 /* S07b8b (researched anatomy): per-message actions reveal on hover or
@@ -1460,6 +1465,9 @@ body[data-maximized] .tabstrip {
   font-size: var(--fs-md);
   line-height: 1.6;
   max-width: 72ch;
+  /* `.markdown-body` centers normal note reading columns; assistant turns
+     deliberately begin at the conversation's left edge. */
+  margin-inline: 0;
 }
 
 .chat-turn-body > :first-child {

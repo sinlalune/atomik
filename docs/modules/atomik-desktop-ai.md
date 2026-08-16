@@ -274,3 +274,18 @@ timestamp: 2026-08-14T00:00:00Z
   `relocateTabPaths` drags `chat.file` on rename/move, close paths
   are regression-pinned, and both side columns cap at a pane
   fraction (tree 35%, chat 45%) so a split never crushes the note.
+  CP-FEEDBACK S02 corrects the message geometry after daily use:
+  user turns remain compact right-aligned bubbles, while Atomik turns
+  are flat, stretch across the conversation measure, and begin at the
+  pane's left edge (`.markdown-body` normally auto-centers, so
+  `.chat-turn-body` explicitly resets that margin). The scroll stream
+  carries `role="log"`, a polite live policy limited to additions, and
+  `aria-busy` while an exchange runs; this announces completed turns
+  without treating changing metrics as new messages. Assistant actions
+  remain quiet until pointer hover or keyboard focus-within, so the same
+  controls are discoverable without permanently crowding the answer.
+  The presentation follows the flat assistant variant documented by
+  [Vercel AI Elements](https://v6.ai-sdk.dev/elements/components/message)
+  and the chronological update semantics of the
+  [WAI-ARIA log pattern](https://www.w3.org/WAI/WCAG21/Techniques/aria/ARIA23);
+  neither reference changes Atomik's file-backed transcript contract.

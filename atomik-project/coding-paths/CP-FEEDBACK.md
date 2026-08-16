@@ -7,21 +7,23 @@ timestamp: 2026-08-16T00:00:00Z
 atomik:
   id: CP-FEEDBACK
   status: running
-  current_step: S02
+  current_step: S03
   base_commit: b32df20
   branch: path/cp-feedback
   writes:
-    - apps/desktop/renderer/src/ai/ChatView.tsx
     - apps/desktop/renderer/src/NewTabChooser.tsx
     - apps/desktop/renderer/src/Workspace.tsx
     - apps/desktop/renderer/src/editor/
     - apps/desktop/renderer/src/vault/
     - apps/desktop/renderer/src/web/WebView.tsx
     - apps/desktop/renderer/src/workspace/
+    - apps/desktop/renderer/src/workspace/ChatView.tsx
+    - apps/desktop/renderer/src/workspace/chat-presentation.ts
     - apps/desktop/renderer/src/styles.css
     - apps/desktop/shared/graph-core.ts
     - apps/desktop/shared/note-markdown.ts
     - apps/desktop/tests/chat-run.test.ts
+    - apps/desktop/tests/chat-view.test.ts
     - apps/desktop/tests/file-manage.test.ts
     - apps/desktop/tests/graph-core.test.ts
     - apps/desktop/tests/link-pills.test.ts
@@ -144,7 +146,7 @@ are recorded in
 - [x] S01 Bootstrap + regression pins: create the isolated worktree, read every
       Required document, verify the pinned trunk behavior, record overlap
       boundaries with CP-MVP-010 and CP-PROVIDERS, and run the baseline gates.
-- [ ] S02 Flat assistant chat turns: add focused layout/accessibility regression
+- [x] S02 Flat assistant chat turns: add focused layout/accessibility regression
       coverage, implement the assistant/user geometry and focus-visible action
       behavior, update AI/UI module knowledge, and checkpoint the ledger.
 - [ ] S03 Quick untitled note: pin placement, collision, heading extraction,
@@ -167,10 +169,12 @@ are recorded in
 ```text
 base commit : b32df20
 trunk pin   : f9ed012 (rebased before source work; CP-PROVIDERS is integrated)
-changed     : CP-FEEDBACK ledger (S01); no source changes yet
-tests       : typecheck PASS; 773/773 tests PASS with loopback permission;
-              production build PASS; cairn-check rebase finding resolved
-next action : S02 — pin and implement flat assistant chat turns
+changed     : S02 chat presentation + a11y helper + regression; AI module note;
+              CP-FEEDBACK ledger and corrected ChatView write declaration
+tests       : S02 focused 6/6 PASS; typecheck PASS; production build PASS;
+              baseline full suite 773/773 PASS at S01
+next action : S03 — pin and implement quick untitled-note creation plus
+              one-time first-H1 rename through existing vault transactions
 blockers    : none; CP-MVP-010 remains active across chat/editor/vault/graph,
               so rebase and overlap checks continue at step boundaries
 ```

@@ -88,6 +88,12 @@ timestamp: 2026-08-14T00:00:00Z
   bundle dropped 2.98 → 2.0 MB and measured launch-to-content went
   1.7–1.8 s → ~0.71 s. Keep new heavy deps behind a lazy view — a
   plain static import from any eager module undoes the split silently.
+  The eager chat view is also a workspace surface: CP-FEEDBACK S02 marks
+  its chronological scroll stream as a polite `role="log"` and keeps
+  assistant answers flat/left-led while user messages retain their compact
+  right-side containment. Detailed transcript and action behavior remains
+  owned by the AI area note; the shell owns the pane geometry and accessible
+  stream boundary.
 - The Dev Docs tab (16 MVP slice): grouped docs tree + rendered Markdown
   with the bedrock diagrams inlined as SVG data URIs, reading the real
   files under `docs/`. `electron-main/dev-docs.ts` holds the pure logic —

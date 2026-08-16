@@ -98,6 +98,7 @@ import {
   setChatDraft,
   type ChatRun
 } from './chat-run'
+import { CHAT_LOG_A11Y } from './chat-presentation'
 
 /**
  * The chat PANE (CP-MVP-008 S06c, owner redirect: "it should live in
@@ -1057,7 +1058,12 @@ export function ChatView({
           </span>
         </div>
       )}
-      <div className="chat-scroll" ref={scrollRef}>
+      <div
+        className="chat-scroll"
+        ref={scrollRef}
+        {...CHAT_LOG_A11Y}
+        aria-busy={running}
+      >
         <p className="chat-title" title={file ?? undefined}>
           {title}
         </p>
@@ -1202,7 +1208,10 @@ export function ChatView({
           )
         })}
         {running && (
-          <article className="chat-turn role-atomik chat-running">
+          <article
+            className="chat-turn role-atomik chat-running"
+            aria-label="Atomik is thinking"
+          >
             <span>thinking…</span>
             <button
               type="button"
