@@ -1,7 +1,7 @@
 {
   "name": "atomik",
   "private": true,
-  "description": "Atomik — local-first AI learning workbench. Dual-plane repository (ADR-009): code plane + atomik-project/ knowledge/execution plane. Agents start at AGENTS.md.",
+  "description": "Atomik \u2014 local-first AI learning workbench. Dual-plane repository (ADR-009): code plane + atomik-project/ knowledge/execution plane. Agents start at AGENTS.md.",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -15,7 +15,8 @@
     "cairn-check": "node tools/cairn-check.mjs",
     "cairn-active": "node tools/cairn-active.mjs",
     "cairn-audit": "node tools/cairn-audit.mjs",
-    "cairn-check:test": "node --test 'tools/**/*.test.mjs'"
+    "cairn-check:test": "node --test 'tools/**/*.test.mjs'",
+    "retrieval-eval": "npm --workspace atomik-desktop run retrieval-eval"
   },
   "engines": {
     "node": ">=20"

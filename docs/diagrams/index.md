@@ -28,10 +28,20 @@ Initialized 2026-07-05 at corpus v0.6. This folder is the visual projection of t
 | D12 | `D12_reuse_loop.svg` | The reuse loop | 02, 20 | proposal mechanism changes | current @ v0.6 |
 | D13 | `D13_concurrent_execution_lanes.svg` | Concurrent execution lanes | 35, `atomik-project/coding-paths/paths.md` | lane kinds, ownership map, or gate steps change | current @ CP-OPS-001 S03 |
 | D14 | `D14_cairn_protocol_workflow.svg` | The Cairn protocol — full workflow | 22, 35, `atomik-project/coding-paths/paths.md` | a role, a lifecycle stage, a gate step, or the blocking/advisory split changes | current @ CP-OPS-001 S04d |
+| D15 | `D15_retrieval_workflow.svg` | Retrieval over the graph — question to grounded answer | 26, 33, `docs/modules/atomik-desktop-vault.md`, `docs/modules/atomik-desktop-ai.md` | a ladder rung, a packet field, a subject rule, a reach, or the coverage branch changes — and whenever the evaluation numbers on it are re-measured | current @ CP-MVP-010 S10 |
 
-D14 is GENERATED — edit `tools/gen-d14-workflow.py` and re-run it, never the SVG
+D14 and D15 are GENERATED — edit `tools/gen-d14-workflow.py` /
+`tools/gen-d15-retrieval-workflow.py` and re-run them, never the SVG
 by hand. The generator asserts its own geometry (no box overlaps, nothing out of
 bounds, and every loop label's full text extent clear of every box); both checks
 caught real placement bugs that hand-authoring had shipped. D13 remains the
 close-up of the lane/gate mechanics; D14 is the whole lifecycle including the
 ceremonies, CI, and the loops between them.
+
+D15's generator carries the same discipline one step further: it asserts that
+every line of text FITS its box and that no drawn point leaves the canvas.
+Both checks caught real defects on the first run — the second one caught a loop
+elbow running twelve pixels past the right edge, which the D14 checks (boxes
+and label extents only) would have shipped. A figure that carries measurements
+also carries a refresh obligation: D15 prints the evaluation's numbers, so
+re-measuring is a reason to regenerate it.

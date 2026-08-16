@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S09
+  current_step: S10
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -45,6 +45,11 @@ atomik:
     - docs/learning/**
     - docs/adr/**
     - docs/index.md
+    - docs/diagrams/**
+    - docs/research/**
+    - tools/gen-d15-retrieval-workflow.py
+    - package.json
+    - apps/desktop/package.json
     - atomik-project/coding-paths/CP-MVP-010.md
     - atomik-project/log/**
 ---
@@ -816,13 +821,43 @@ live, on real notes.
       +2 tests (883 → 885). ranked results with kind pills
       and "why this result", the packet disclosure, and the vault-wide
       broken-links list docked there.
-- [ ] S10 Evaluation set: fixture vault + queries + expected notes, a
-      runnable evaluation reporting recall@k, MRR and latency, plus
-      the dated real-vault bench record (33 §Evaluation gates).
-      AND **D15 — the retrieval workflow**, exhaustive, generated with
-      asserted geometry, carrying the evaluation's real numbers and
-      showing CP-MVP-011's external branch off the coverage verdict
-      (owner request 2026-08-16; timing reasoned above).
+- [x] S10 Evaluation set + D15 (DONE 2026-08-16). `npm run
+      retrieval-eval` runs fourteen cases over a 40-file fixture vault
+      versioned with the tests — each case written because a real
+      question exposed a real rule across the twelve bench rounds — and
+      reports recall@5, MRR, per-case coverage and latency. Passing it
+      is now a gate: recall 100%, MRR 0.955, and ADR-013's own
+      thresholds (cold build < 2 s, p95 < 50 ms) are CHECKED rather than
+      remembered. `ATOMIK_EVAL_VAULT=<path>` runs the cost half on a
+      real corpus.
+      THE INSTRUMENT PAID FOR ITSELF IN AN HOUR, twice:
+      (a) a note titled "What is an ethos ?" answered a question about
+      Plato — S08f's naming rule treated ANY title token as naming, so
+      a term now has to carry half a title (`NAME_TITLE_SHARE`), which
+      also retires the frequency patch S08l needed for `to`. While
+      fixing it I found that S08l's tier change had never actually
+      landed in the file; both constants are now applied and tested;
+      (b) a vault containing the word `constructor` CRASHED the index —
+      `terms['constructor']` returned Object.prototype's member and the
+      build died on `.push`. Null-prototype maps and guarded reads, in
+      the retrieval index and in the graph's label registry (kebab
+      labels can be `constructor` too). Neither was visible to fourteen
+      hand-written test files or to twelve rounds of human benching.
+      BENCH RECORD: `docs/research/retrieval-baseline-2026-08-16.md` —
+      115-file corpus, build 166 ms, index 8.4 MiB, p95 0.4 ms. Three
+      of ADR-013's four thresholds are clear by 12–100×; INDEX SIZE is
+      the one to watch, since position lists scale with word count and
+      linear extrapolation crosses 100 MB around 1,500 notes. Two cheap
+      answers exist before SQLite is needed, and they are recorded.
+      D15 GENERATED (`tools/gen-d15-retrieval-workflow.py`) with the
+      asserted-geometry discipline extended twice: text must FIT its box,
+      and no drawn point may leave the canvas. The second check caught a
+      loop elbow twelve pixels past the right edge — which D14's checks
+      would have shipped. It carries the evaluation's real numbers and
+      shows CP-MVP-011's branch off the coverage verdict, because a
+      picture of vault retrieval that stops at "the vault does not know
+      this" lies by omission about where that answer goes.
+      +6 tests (892 → 898).
 - [ ] S11 Owner bench rounds + acceptance record, then the closing
       ceremony, the coherence audit, and the self-merge — after which
       CP-MVP-011 opens with its own (short) opening check.
@@ -832,7 +867,7 @@ live, on real notes.
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S09 done — S10 next (evaluation set + the D15 diagram)
+current step: S10 done — S11 next (owner bench, acceptance, ceremony, merge)
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts
@@ -846,10 +881,9 @@ changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               docs/index.md · atomik-project/coding-paths/CP-MVP-010.md
 tests       : 892 passing / 71 files (this path added 104 so far),
               typecheck and build green, each gate run BARE (24)
-next action : S10 — the evaluation set (in-repo fixture vault, queries
-              with expected notes, recall@k · MRR · latency) + the dated
-              real-vault bench, and D15, the exhaustive workflow diagram
-              decided for this step
+next action : S11 — owner bench on the restarted app, the acceptance
+              record, the closing ceremony, `npm run cairn-audit`, then
+              status: done and the self-merge
 rebase note : the learning index collided at the rebase (note 22 here,
               note 23 from CP-PROVIDERS) — mechanical, both kept in
               order. Exactly the shared-prose conflict paths.md

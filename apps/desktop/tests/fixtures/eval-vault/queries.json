@@ -1,0 +1,143 @@
+{
+  "about": "CP-MVP-010 S10 — the retrieval evaluation set. Each case is a question a person would actually ask this vault, with the notes that ANSWER it. `expect` is what must appear in the packet; `reject` is what must not. Reach defaults to `linked`. Bedrock 33 §Evaluation gates: this is the baseline any heavier stage (stemming, embeddings, a parser) has to beat, with numbers.",
+  "cases": [
+    {
+      "id": "exact-title",
+      "query": "ethos",
+      "expect": [
+        "concepts/ethos.md"
+      ],
+      "why": "the plainest case: a note titled after the word"
+    },
+    {
+      "id": "accent-fold",
+      "query": "credibilite",
+      "reach": "full",
+      "expect": [
+        "concepts/ethos.md"
+      ],
+      "why": "the vault writes crédibilité; the question does not"
+    },
+    {
+      "id": "accented-query",
+      "query": "éthos",
+      "expect": [
+        "concepts/ethos.md"
+      ],
+      "why": "and the other way round"
+    },
+    {
+      "id": "question-phrasing",
+      "query": "Que peux tu me dire de Plato ?",
+      "expect": [
+        "concepts/plato.md"
+      ],
+      "reject": [
+        "notes/passing.md",
+        "notes/question.md"
+      ],
+      "why": "the subject is what is rare; the politeness ranks nothing"
+    },
+    {
+      "id": "english-question",
+      "query": "what plato brought to philosophy",
+      "expect": [
+        "concepts/plato.md"
+      ],
+      "reject": [
+        "chats/what-plato-brought-to-philosophy.md",
+        "notes/question.md"
+      ],
+      "why": "the transcript is titled after the question and must not answer it"
+    },
+    {
+      "id": "link-expansion",
+      "query": "xml",
+      "expect": [
+        "concepts/xml.md",
+        "concepts/schema.md"
+      ],
+      "why": "schema never says xml: the typed edge is what brings it"
+    },
+    {
+      "id": "typed-neighbour",
+      "query": "pathos",
+      "expect": [
+        "concepts/pathos.md",
+        "concepts/emotion.md"
+      ],
+      "why": "repose-sur, walked from the title match"
+    },
+    {
+      "id": "phrase",
+      "query": "\"trois preuves\"",
+      "reach": "full",
+      "expect": [
+        "concepts/rhetorique.md"
+      ],
+      "why": "a quoted phrase is a filter, not a bonus"
+    },
+    {
+      "id": "hub-restraint",
+      "query": "stoicism",
+      "reject": [
+        "notes/note-7.md",
+        "notes/note-11.md"
+      ],
+      "why": "the hub mentions it in passing and links twelve notes: being listed by it is not relevance",
+      "expect": [
+        "concepts/stoicism.md"
+      ],
+      "maxEntries": 5,
+      "reach": "full"
+    },
+    {
+      "id": "machinery",
+      "query": "explain simply",
+      "reach": "full",
+      "reject": [
+        "prompts/Explain me like I am 5 years old.md"
+      ],
+      "why": "a prompt file is instructions to the model, never knowledge"
+    },
+    {
+      "id": "source-bundle",
+      "query": "curlew sandpiper",
+      "reach": "full",
+      "expect": [
+        "sources/web/curlew/reader.md"
+      ],
+      "why": "a source's derived text is ordinary retrievable knowledge"
+    },
+    {
+      "id": "scoped",
+      "query": "credibilite",
+      "reach": "full",
+      "scope": "projects/cours",
+      "expect": [
+        "projects/cours/plan.md"
+      ],
+      "reject": [
+        "concepts/ethos.md"
+      ],
+      "why": "a project bundle is a perimeter"
+    },
+    {
+      "id": "coverage-gap",
+      "query": "wikidata",
+      "expect": [],
+      "missing": [
+        "wikidata"
+      ],
+      "why": "the vault says nothing: the packet must say so, which is what CP-MVP-011 branches on"
+    },
+    {
+      "id": "boilerplate",
+      "query": "what is inside",
+      "reject": [
+        "projects/cours/index.md"
+      ],
+      "why": "a heading the app writes into every index answers nothing"
+    }
+  ]
+}

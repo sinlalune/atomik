@@ -112,6 +112,27 @@ timestamp: 2026-08-14T00:00:00Z
     common — or too peripheral — to decide which notes to send.
     Answering the first question with the second told the owner the
     vault had nothing on `emotions` while a note discussed them.
+  - A TERM MUST CARRY HALF A TITLE TO NAME IT (S10, found by the
+    evaluation set on its first run): S08f treated any title token as
+    naming its note, so "What is an ethos ?" made `what` a subject and
+    answered a question about Plato. `NAME_TITLE_SHARE` fixes it at the
+    root, and retires the frequency patch S08l needed for `to` — a
+    function word inside a longer title never carried enough of it.
+  - A VAULT MAY CONTAIN THE WORD `constructor` (S10): the term map was
+    a plain object, so `terms['constructor']` returned
+    `Object.prototype.constructor` and the build died on `.push`. The
+    index uses null-prototype maps and guarded reads now — a persisted
+    index parsed back from JSON has a prototype again, so the guard is
+    on the READ — and the graph's label registry got the same fix,
+    because `constructor` is a valid kebab label. Found by benching a
+    real corpus, invisible to every hand-written test.
+  - THE EVALUATION SET (S10): `npm run retrieval-eval` runs fourteen
+    cases over an in-repo fixture vault and reports recall@5, MRR,
+    coverage and latency; `ATOMIK_EVAL_VAULT=<path>` measures cost on a
+    real corpus instead. Each case exists because a real question
+    exposed a real rule, so the file is also the readable record of why
+    retrieval behaves as it does. Baseline and the ADR-013 threshold
+    check: `docs/research/retrieval-baseline-2026-08-16.md`.
   - THE VAULT NAMES ITS OWN SUBJECTS (S08f): a query term that appears
     in some note's TITLE is principal whatever the statistics say. The
     frequency rule alone gets one case badly wrong — a vault ABOUT

@@ -358,7 +358,9 @@ export function buildGraphIndex(files: readonly VaultFileInput[]): GraphIndex {
       })
     }
   }
-  const labels: Record<string, number> = {}
+  // Null prototype: `constructor` is a valid kebab label, and a plain
+  // object would count it against Object's own member (S10).
+  const labels: Record<string, number> = Object.create(null)
   for (const edge of edges) {
     if (edge.label !== null) labels[edge.label] = (labels[edge.label] ?? 0) + 1
   }
@@ -442,7 +444,7 @@ export function patchGraphIndexForSave(
       a.subject.localeCompare(b.subject) || a.line - b.line || a.col - b.col
   )
 
-  const labels: Record<string, number> = {}
+  const labels: Record<string, number> = Object.create(null)
   for (const edge of edges) {
     if (edge.label !== null) labels[edge.label] = (labels[edge.label] ?? 0) + 1
   }

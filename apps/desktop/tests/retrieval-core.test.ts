@@ -427,8 +427,35 @@ describe('a function word inside a title is still a function word (S08l)', () =>
     expect(hits.every((hit) => !hit.terms.includes('to'))).toBe(true)
   })
 
-  it('a query whose only terms are filler still answers, via the retry', () => {
-    expect(searchIndex(index, 'something to read', { sensitivity: 'full' }).length)
-      .toBeGreaterThan(0)
+  it('a query of words that are in nearly every note answers nothing', () => {
+    // "everywhere is nowhere" holds even after the retry: `something`,
+    // `to` and `read` are in 14 of these 16 notes, so there is no
+    // question left to answer. The retry rescues an OVER-NARROWED
+    // query, not an empty one (S08e covers that case).
+    expect(searchIndex(index, 'something to read', { sensitivity: 'full' })).toEqual([])
+  })
+})
+
+describe('a vault may contain the word "constructor" (S10)', () => {
+  // Found by the first bench on a real corpus — the repository's own
+  // docs. `terms` is a plain object, so reading terms['constructor']
+  // returned Object.prototype's member and crashed on .push.
+  const CORPUS = [
+    { path: 'js.md', content: '# JS\n\nA constructor builds an object; toString prints it.\n' },
+    { path: 'proto.md', content: '# Proto\n\nOn parle de __proto__ et de valueOf.\n' },
+    { path: 'other.md', content: '# Autre\n\nRien de tout cela.\n' }
+  ]
+
+  it('indexes and finds words that are Object members', () => {
+    const index = buildRetrievalIndex(CORPUS)
+    expect(searchIndex(index, 'constructor')[0]!.path).toBe('js.md')
+    expect(searchIndex(index, 'valueof')[0]!.path).toBe('proto.md')
+    expect(searchIndex(index, 'tostring')[0]!.path).toBe('js.md')
+  })
+
+  it('survives the JSON round trip, where the prototype comes back', () => {
+    const parsed = JSON.parse(serializeRetrievalIndex(buildRetrievalIndex(CORPUS)))
+    expect(searchIndex(parsed, 'constructor')[0]!.path).toBe('js.md')
+    expect(searchIndex(parsed, 'zzz-nothing')).toEqual([])
   })
 })

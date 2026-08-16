@@ -1,0 +1,15 @@
+# vault-juju
+
+Tout ce que je garde sous la main. Une ligne sur Stoicism, en passant.
+[[note-0]]
+[[note-1]]
+[[note-2]]
+[[note-3]]
+[[note-4]]
+[[note-5]]
+[[note-6]]
+[[note-7]]
+[[note-8]]
+[[note-9]]
+[[note-10]]
+[[note-11]]

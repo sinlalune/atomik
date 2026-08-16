@@ -57,6 +57,15 @@ timestamp: 2026-08-14T00:00:00Z
   from the main-side index, so an edge authored in ANOTHER pane is not
   reflected until the note changes or the content does.
 
+## `constructor` is a valid label (CP-MVP-010 S10)
+
+- The label registry was a plain object, so a kebab label named
+  `constructor` — or `toString`, or `valueOf` — would have been counted
+  against `Object.prototype`'s member instead of the vocabulary. It uses
+  a null-prototype map now, the same fix the retrieval index needed and
+  for the same reason. Found by benching retrieval on a real corpus; no
+  hand-written test would have thought to try it.
+
 ## Link expansion — the graph as a retrieval stage (CP-MVP-010 S04)
 
 - `shared/retrieval-expand.ts` is PURE and reads only a `GraphIndex`:

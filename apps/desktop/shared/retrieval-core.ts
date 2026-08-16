@@ -87,7 +87,29 @@ export const COMMON_TERM_SHARE = 0.5
  * appearing in more than this many times as many documents as the
  * query's RAREST term is context around the subject, not the subject.
  */
-export const PRINCIPAL_DF_FACTOR = 4
+export const PRINCIPAL_DF_FACTOR = 2
+
+/**
+ * How much of a title a term must BE for that title to count as naming
+ * it (CP-MVP-010 S10, found by the evaluation set on its FIRST run).
+ *
+ * S08f's rule — "a word the vault has a note named after is a subject"
+ * — treated any title token as naming, so a note titled "What is an
+ * ethos ?" made `what` a subject and answered a question about Plato.
+ * A term names a note when it carries at least half of its title:
+ *
+ * ```text
+ * "Plato"                   plato   1.00   names it
+ * "Le logos"                logos   0.50   names it
+ * "From Plato to Stoicism"  to      0.25   does not
+ * "What is an ethos ?"      what    0.25   does not
+ * ```
+ *
+ * This is also the honest fix for the `to` that S08l chased with a
+ * tighter frequency tier: a function word inside a longer title never
+ * carried enough of it to be a subject in the first place.
+ */
+export const NAME_TITLE_SHARE = 0.5
 
 /* ------------------------------------------------------------------ */
 /* Tokenizer                                                           */
@@ -349,6 +371,23 @@ function indexDocument(file: RetrievalDocInput): DocumentEntry {
   return { doc: { path: file.path, title: parsed.title, lengths }, postings }
 }
 
+/**
+ * The postings for a term, or undefined.
+ *
+ * `terms` is a plain object, so a vault containing the word
+ * `constructor` — or `toString`, or `valueOf` — would otherwise read
+ * Object.prototype's member and crash on `.push` (CP-MVP-010 S10, found
+ * by the first bench on a real corpus: the repository's own docs). An
+ * index built here has a null prototype, but one PARSED back from JSON
+ * does not, so every read goes through this guard.
+ */
+export function postingsOf(
+  index: RetrievalIndex,
+  term: string
+): TermPosting[] | undefined {
+  return Object.hasOwn(index.terms, term) ? index.terms[term] : undefined
+}
+
 /** Assemble entries into an index: sort by path, number the docs, collect
  *  the postings. BUILD and PATCH both end here, which is why a patched
  *  index is indistinguishable from a rebuilt one (asserted by test). */
@@ -357,7 +396,9 @@ function assemble(entries: Iterable<DocumentEntry>): RetrievalIndex {
     a.doc.path < b.doc.path ? -1 : a.doc.path > b.doc.path ? 1 : 0
   )
   const docs: RetrievalDoc[] = []
-  const terms: Record<string, TermPosting[]> = {}
+  // Null prototype: a term named `constructor` must be a term, not a
+  // function inherited from Object.
+  const terms: Record<string, TermPosting[]> = Object.create(null)
   const totals = emptyLengths()
 
   sorted.forEach((entry, doc) => {
@@ -586,7 +627,7 @@ export function searchIndex(
   // by whether the vault has a NOTE NAMED after it.
   const informative = terms
     .map((term) => {
-      const all = index.terms[term]
+      const all = postingsOf(index, term)
       const postings = allowed
         ? all?.filter((posting) => allowed.has(posting.doc))
         : all
@@ -599,33 +640,34 @@ export function searchIndex(
       // is also the commonest word in the corpus. This is the cheap,
       // dependency-free half of what a POS tagger buys: Atomik knows
       // its own nouns because the owner titled them.
-      const named = postings.some(
-        (posting) => posting.field === 'title' && fields.has('title')
-      )
+      const named = postings.some((posting) => {
+        if (posting.field !== 'title' || !fields.has('title')) return false
+        const titleLength = index.docs[posting.doc]?.lengths.title ?? 0
+        return titleLength > 0 && posting.tf / titleLength >= NAME_TITLE_SHARE
+      })
       if (!named && df / docCount > COMMON_TERM_SHARE) return null
       return { term, df, named }
     })
     .filter(
       (entry): entry is { term: string; df: number; named: boolean } => entry !== null
     )
-  // S08i (owner bench round 9: "I don't understand the two last hit
-  // with bibi" — a note whose HEADING contained "what", plus its
-  // neighbours behind it). When the vault has notes NAMED after some of
-  // the query's words, those words ARE the question's subject and the
-  // rest is phrasing: `what`, `to`, `brought` name nothing. Comparing
-  // frequencies alone could not see that, because in a bilingual vault
-  // `what` is uncommon enough to look like a subject.
-  const pool = informative.some((entry) => entry.named)
-    ? informative.filter((entry) => entry.named)
-    : informative
-  const rarest = Math.min(...pool.map((entry) => entry.df))
+  // A named term is a subject (S08f). It also ANCHORS the tier rather
+  // than replacing it (S10, found by the evaluation set): restricting
+  // the pool to named terms alone dropped `stoicism`, a rare content
+  // word that only ever appears INSIDE a longer title. So the subject
+  // is what the vault named, plus anything comparably rare — measured
+  // against the named term rather than against whatever freak-rare
+  // word the phrasing happened to contain.
+  const named = informative.filter((entry) => entry.named)
+  const anchor = Math.min(
+    ...(named.length > 0 ? named : informative).map((entry) => entry.df)
+  )
   const principal = new Set(
     (options.allTerms
       ? informative
-      : pool
-          // Even among named terms the rarest wins: a note titled "What
-          // is an ethos?" must not make `what` a subject forever.
-          .filter((entry) => entry.df <= rarest * PRINCIPAL_DF_FACTOR)
+      : informative.filter(
+          (entry) => entry.named || entry.df <= anchor * PRINCIPAL_DF_FACTOR
+        )
     ).map((entry) => entry.term)
   )
 
@@ -638,7 +680,7 @@ export function searchIndex(
   const accumulators = new Map<number, Accumulator>()
 
   for (const term of terms) {
-    const postings = index.terms[term]
+    const postings = postingsOf(index, term)
     if (!postings) continue
 
     const documents = new Set(postings.map((posting) => posting.doc))
@@ -725,7 +767,7 @@ export function searchIndex(
  * vault had nothing on `emotions` while a note discussed them.
  */
 export function presentTermsOf(index: RetrievalIndex, query: string): string[] {
-  return parseQuery(query).terms.filter((term) => index.terms[term] !== undefined)
+  return parseQuery(query).terms.filter((term) => postingsOf(index, term) !== undefined)
 }
 
 /**
@@ -737,7 +779,7 @@ export function commonTermsOf(index: RetrievalIndex, query: string): string[] {
   const docCount = index.docs.length
   if (docCount === 0) return []
   return parseQuery(query).terms.filter((term) => {
-    const postings = index.terms[term]
+    const postings = postingsOf(index, term)
     if (!postings) return false
     const documents = new Set(postings.map((posting) => posting.doc))
     return documents.size / docCount > COMMON_TERM_SHARE
