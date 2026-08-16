@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S10b
+  current_step: S10c
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -875,7 +875,24 @@ live, on real notes.
       their DOM behaviour rides the owner's bench, the same precedent
       `applyClaimMarks` has followed since CP-MVP-008. This is the one
       class of change in this path I cannot verify myself.
-- [ ] S11 Owner bench rounds + acceptance record, then the closing
+- [x] S10c BENCH ROUND 14 (2026-08-16 — DONE same day). Three reports,
+      all of them about the same thing: the conversation's geometry.
+      (1) "first user message should be included in note width
+      constraint" — the assistant's body was bounded at 72ch while the
+      user's bubble was bounded by the PANE, so on a wide pane a
+      question floated far right of the answer it belongs to.
+      `--chat-measure` bounds both now, and the bubble is right-aligned
+      INSIDE that column.
+      (2) the outline "leave a blank space on top of the numbered pill"
+      — `vertical-align: super` grows the LINE BOX. A relative lift sits
+      in the same place without touching line height.
+      (3) "im not sure it is a progress" — correct, and the outline is
+      gone. The extent is a highlighted SENTENCE now: the tint follows
+      the text's own line boxes rather than drawing a rectangle across
+      the paragraph, and inside a quote the source-backed mark lifts
+      with it instead of hiding under it. S10b's problem (the mark's
+      background swallowing the tint) is solved by raising the mark, not
+      by boxing the sentence., then the closing
       ceremony, the coherence audit, and the self-merge — after which
       CP-MVP-011 opens with its own (short) opening check.
 
@@ -884,7 +901,7 @@ live, on real notes.
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S10b done (bench round 13) — S11 next (acceptance, ceremony, merge)
+current step: S10c done (bench rounds 13–14) — S11 next (acceptance, ceremony, merge)
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts
@@ -896,7 +913,8 @@ changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               docs/learning/22-lexical-retrieval-without-a-database.md + index
               docs/adr/ADR-013-lexical-retrieval-without-a-database.md
               docs/index.md · atomik-project/coding-paths/CP-MVP-010.md
-tests       : 892 passing / 71 files (this path added 104 so far),
+tests       : 915 passing / 74 files on the rebased branch (this path
+              added 110; CP-FEEDBACK's merge brought the rest),
               typecheck and build green, each gate run BARE (24)
 next action : S11 — owner bench on the restarted app, the acceptance
               record, the closing ceremony, `npm run cairn-audit`, then

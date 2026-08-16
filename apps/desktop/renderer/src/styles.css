@@ -1363,6 +1363,13 @@ body[data-maximized] .tabstrip {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  /* ONE measure for the conversation (S10c, owner: "first user message
+     should be included in note width constraint"). The assistant's body
+     was bounded at 72ch while the user's bubble was bounded by the PANE,
+     so on a wide pane a question floated far to the right of the answer
+     it belongs to. Both live in the same column now, and the column is
+     the reading measure. */
+  --chat-measure: 72ch;
   /* the floating composer overlays the bottom (S07b14) — the last
      message must scroll clear of it */
   padding: var(--space-3) var(--space-3) 10rem;
@@ -1395,8 +1402,11 @@ body[data-maximized] .tabstrip {
    contained; the assistant is the reading surface itself — flat, full-width,
    and led from the pane's left edge. */
 .chat-turn.role-you {
-  align-self: flex-end;
-  max-width: 85%;
+  align-self: flex-start;
+  /* right-aligned INSIDE the reading column, not against the pane */
+  margin-inline-start: auto;
+  margin-inline-end: max(0px, 100% - var(--chat-measure));
+  max-width: min(85%, var(--chat-measure));
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: var(--space-2) var(--space-3);
@@ -1406,6 +1416,7 @@ body[data-maximized] .tabstrip {
 .chat-turn.role-atomik {
   align-self: stretch;
   width: 100%;
+  max-width: var(--chat-measure);
   border: 0;
   border-radius: 0;
   padding: var(--space-2) 0 var(--space-4);
@@ -1509,7 +1520,7 @@ body[data-maximized] .tabstrip {
 .chat-turn-body {
   font-size: var(--fs-md);
   line-height: 1.6;
-  max-width: 72ch;
+  max-width: var(--chat-measure, 72ch);
   /* `.markdown-body` centers normal note reading columns; assistant turns
      deliberately begin at the conversation's left edge. */
   margin-inline: 0;
@@ -5427,19 +5438,20 @@ button svg {
 }
 
 .chat-turn-body .cited-span:hover {
-  background: color-mix(in srgb, var(--accent) 9%, transparent);
-  /* An OUTLINE rather than a background alone (S10b): inside a
-     blockquote the cited sentence usually also wears a claim mark,
-     whose own background sits on top and swallowed the tint. An
-     outline reads over any fill. */
-  outline: 1px dashed color-mix(in srgb, var(--accent) 55%, transparent);
-  outline-offset: 1px;
-  border-radius: var(--radius-sm);
+  /* A highlighted SENTENCE, not a box around it (S10c, owner: the
+     outline "leave a blank space on top of the numbered pill… im not
+     sure it is a progress"). The tint follows the text's own line
+     boxes, so a wrapped sentence reads as one thing without drawing a
+     rectangle over the paragraph. */
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-radius: 2px;
 }
 
-/* the quote's own mark stays legible under it */
+/* Inside a quote the sentence usually also wears a source-backed mark,
+   whose own background would otherwise sit on top of the tint and
+   swallow it — so the mark lifts with it instead of hiding it. */
 .chat-turn-body .cited-span:hover .claim-mark {
-  box-shadow: inset 0 -2px 0 var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--ok-bg));
 }
 
 .chat-turn-body .cited-span:hover > a.citation-chip {
@@ -5451,7 +5463,12 @@ button svg {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  vertical-align: super;
+  /* `vertical-align: super` grows the LINE BOX, which left a band of
+     empty space above every cited sentence once the extent had an
+     outline (S10c). A relative lift does not. */
+  vertical-align: baseline;
+  position: relative;
+  top: -0.35em;
   min-width: 1.15em;
   height: 1.15em;
   margin: 0 0.15em;
