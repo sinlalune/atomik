@@ -7,6 +7,7 @@ import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { isValidAiOperation } from './ai-mock'
 import { readGraphIndex } from './graph-index'
+import { compileVaultContextPacket, toPacketRequest } from './retrieval'
 import { recordVaultChange } from './vault-index'
 import {
   GenerationError,
@@ -238,6 +239,13 @@ function registerVaultHandlers(stateDir: string): void {
         query,
         scope === undefined || scope === null ? undefined : scope
       )
+  )
+  // CP-MVP-010 S05: read-only, but read-only is not unvalidated — the
+  // query is bounded and every path in the request is contained (13).
+  ipcMain.handle(
+    ATOMIK_CHANNELS.compileContextPacket,
+    (_event, request: unknown) =>
+      compileVaultContextPacket(requireVault(), stateDir, toPacketRequest(request))
   )
   ipcMain.handle(ATOMIK_CHANNELS.readNote, (_event, relPath: unknown) =>
     readNote(requireVault(), relPath)

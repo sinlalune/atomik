@@ -1,0 +1,319 @@
+import type { GraphIndex } from './graph-core'
+import {
+  extractMatches,
+  parseQuery,
+  searchIndex,
+  type RetrievalIndex
+} from './retrieval-core'
+import { expandOverGraph, explainStep } from './retrieval-expand'
+
+/**
+ * The context packet (CP-MVP-010 S05) — bedrock 26's shape, with 06's
+ * budget and one addition this path owes the owner: a COVERAGE verdict.
+ *
+ * A packet is the answer to "what should the model see, and what did it
+ * not see". Both halves are the contract: bedrock 26 asks for entries
+ * that say WHY they were selected and an `omitted` list that says why
+ * material was left out, and 33 asks for the whole thing to be bounded
+ * and inspectable. A packet that only listed what it kept would be a
+ * prompt with extra steps.
+ *
+ * The ladder it walks is 33's, cheapest first:
+ *
+ * ```text
+ * direct    what the user already has open, selected or pinned
+ * lexical   BM25 over the vault (rung 1)
+ * link      the typed neighbourhood of what lexical found (S04)
+ * ```
+ *
+ * PURE: the caller injects a reader, so this file has no filesystem and
+ * every rule is unit-testable.
+ */
+
+export type PacketStage = 'direct' | 'lexical' | 'link'
+
+export type ContextScope = {
+  /** Confine retrieval to one vault folder (a project bundle, 26). */
+  folder?: string
+  /** Rung 0: what the workspace already holds open, pinned or selected. */
+  paths?: readonly string[]
+}
+
+export type ContextEntry = {
+  path: string
+  title: string
+  stage: PacketStage
+  /** Why this entry is here, in the packet's own words. */
+  reason: string
+  score: number
+  excerpt: string
+  /** Estimated, and named estimated (33: never manufacture precision). */
+  tokens: number
+}
+
+export type OmissionReason = 'budget' | 'threshold' | 'scope' | 'duplicate'
+
+export type OmittedEntry = {
+  path: string
+  reason: OmissionReason
+}
+
+/**
+ * "Do we already know this?" — the signal the owner named as the minimum
+ * a harness must have (opening check 2026-08-16), and the branch point
+ * CP-MVP-011's external half reads: `missingTerms` is exactly what a
+ * wikisearch would have to go and find.
+ *
+ * Term coverage rather than a score threshold, deliberately: BM25 scores
+ * are unbounded and corpus-dependent, so a numeric floor would mean
+ * something different in every vault. "Which of the words you asked
+ * about does the vault have material for" means the same thing
+ * everywhere, and can be shown to a human without an explanation.
+ */
+export type PacketCoverage = {
+  verdict: 'covered' | 'thin' | 'empty'
+  matchedTerms: string[]
+  missingTerms: string[]
+}
+
+export type ContextPacket = {
+  id: string
+  query: string
+  scope: ContextScope
+  strategy: 'selection-first' | 'lexical-first'
+  retrieval: {
+    stages: PacketStage[]
+    candidates: number
+    selected: number
+    /** Estimated (chars / 4), the existing convention. */
+    contextTokens: number
+  }
+  budget: { maxTokens: number; policy: string }
+  coverage: PacketCoverage
+  entries: ContextEntry[]
+  omitted: OmittedEntry[]
+}
+
+/** The `search_vault` a model could call (CP-MVP-011 adds the loop, not
+ *  a second contract; brainstorm session C reserved the same shape for
+ *  `search_web`). */
+export type PacketRequest = {
+  query: string
+  scope?: ContextScope
+  /** Hard ceiling on the packet, in estimated tokens. */
+  maxTokens?: number
+  /** How far to walk the graph. 0 disables the link stage. */
+  hops?: number
+  /** Cap on entries, before the token budget bites. */
+  limit?: number
+}
+
+export type PacketDeps = {
+  index: RetrievalIndex
+  graph: GraphIndex
+  /** Vault-relative read; undefined for anything unreadable. */
+  read: (path: string) => string | undefined
+  /** Injected so packets are reproducible in tests. */
+  id?: string
+}
+
+export const DEFAULT_MAX_TOKENS = 4000
+export const DEFAULT_ENTRY_LIMIT = 12
+export const MAX_EXCERPT_CHARS = 800
+/** Candidates considered before the budget: generous, since the whole
+ *  point of `omitted` is to show what did not make it. */
+const CANDIDATE_LIMIT = 40
+
+const estimateTokens = (text: string): number => Math.ceil(text.length / 4)
+
+export function compileContextPacket(
+  request: PacketRequest,
+  deps: PacketDeps
+): ContextPacket {
+  const maxTokens = request.maxTokens ?? DEFAULT_MAX_TOKENS
+  const entryLimit = request.limit ?? DEFAULT_ENTRY_LIMIT
+  const hops = request.hops ?? 1
+  const scope = request.scope ?? {}
+  const folder = scope.folder ?? ''
+  const inScope = (path: string): boolean =>
+    folder === '' || path === folder || path.startsWith(`${folder}/`)
+
+  const titles = new Map(deps.graph.nodes.map((node) => [node.path, node.title]))
+  const titleOf = (path: string): string =>
+    titles.get(path) ?? (path.split('/').pop() ?? path).replace(/\.[^./]+$/, '')
+
+  const candidates: ContextEntry[] = []
+  const omitted: OmittedEntry[] = []
+  /** Everything the compiler looked at, kept or not — 26's `candidates`. */
+  let considered = 0
+  const stages: PacketStage[] = []
+  const seen = new Set<string>()
+
+  // ---- rung 0: what the user already has ------------------------------
+  // 33 is explicit that a selected paragraph must not trigger a
+  // vault-wide search; open and pinned material is free and certain.
+  for (const path of scope.paths ?? []) {
+    considered += 1
+    if (seen.has(path)) {
+      omitted.push({ path, reason: 'duplicate' })
+      continue
+    }
+    if (!inScope(path)) {
+      omitted.push({ path, reason: 'scope' })
+      continue
+    }
+    const content = deps.read(path)
+    if (content === undefined) continue
+    seen.add(path)
+    if (!stages.includes('direct')) stages.push('direct')
+    const excerpt = leadOf(content)
+    candidates.push({
+      path,
+      title: titleOf(path),
+      stage: 'direct',
+      reason: 'open in the workspace',
+      // Rung 0 outranks anything found by searching — expressed by the
+      // stage, not by a giant number: the packet crosses IPC as JSON,
+      // where Infinity would arrive as null.
+      score: 1,
+      excerpt,
+      tokens: estimateTokens(excerpt)
+    })
+  }
+
+  // ---- rung 1: lexical ------------------------------------------------
+  const parsed = parseQuery(request.query)
+  const hits = searchIndex(deps.index, request.query, { limit: CANDIDATE_LIMIT })
+  const matchedTerms = new Set<string>()
+  const lexicalSeeds: { path: string; score: number }[] = []
+
+  if (hits.length > 0) stages.push('lexical')
+  for (const hit of hits) {
+    considered += 1
+    for (const term of hit.terms) matchedTerms.add(term)
+    if (!inScope(hit.path)) {
+      omitted.push({ path: hit.path, reason: 'scope' })
+      continue
+    }
+    if (seen.has(hit.path)) {
+      omitted.push({ path: hit.path, reason: 'duplicate' })
+      continue
+    }
+    const content = deps.read(hit.path)
+    if (content === undefined) continue
+    seen.add(hit.path)
+    lexicalSeeds.push({ path: hit.path, score: hit.score })
+    const excerpt = matchExcerpt(content, hit.terms)
+    candidates.push({
+      path: hit.path,
+      title: titleOf(hit.path),
+      stage: 'lexical',
+      reason: `matched ${hit.fields.map((field) => field.field).join(', ')}`,
+      score: hit.score,
+      excerpt,
+      tokens: estimateTokens(excerpt)
+    })
+  }
+
+  // ---- rung 2: the typed neighbourhood --------------------------------
+  const seeds = [
+    ...lexicalSeeds.slice(0, 5),
+    ...(scope.paths ?? []).filter(inScope).map((path) => ({ path, score: 1 }))
+  ]
+  if (hops > 0 && seeds.length > 0) {
+    const expanded = expandOverGraph(deps.graph, seeds, { hops, limit: entryLimit })
+    if (expanded.length > 0) stages.push('link')
+    for (const node of expanded) {
+      considered += 1
+      if (!inScope(node.path)) {
+        omitted.push({ path: node.path, reason: 'scope' })
+        continue
+      }
+      if (seen.has(node.path)) {
+        omitted.push({ path: node.path, reason: 'duplicate' })
+        continue
+      }
+      const content = deps.read(node.path)
+      if (content === undefined) continue
+      seen.add(node.path)
+      const excerpt = leadOf(content)
+      candidates.push({
+        path: node.path,
+        title: titleOf(node.path),
+        stage: 'link',
+        reason: explainStep(node.via, titleOf(node.via.from)),
+        score: node.score,
+        excerpt,
+        tokens: estimateTokens(excerpt)
+      })
+    }
+  }
+
+  // ---- the budget bites last, and says so -----------------------------
+  const ordered = [...candidates].sort((a, b) => stageRank(a) - stageRank(b) || b.score - a.score)
+  const entries: ContextEntry[] = []
+  let contextTokens = 0
+  for (const entry of ordered) {
+    if (entries.length >= entryLimit) {
+      omitted.push({ path: entry.path, reason: 'threshold' })
+      continue
+    }
+    if (contextTokens + entry.tokens > maxTokens) {
+      omitted.push({ path: entry.path, reason: 'budget' })
+      continue
+    }
+    entries.push(entry)
+    contextTokens += entry.tokens
+  }
+
+  const missingTerms = parsed.terms.filter((term) => !matchedTerms.has(term))
+  return {
+    id: deps.id ?? `packet-${Date.now()}`,
+    query: request.query,
+    scope,
+    strategy: (scope.paths?.length ?? 0) > 0 ? 'selection-first' : 'lexical-first',
+    retrieval: {
+      stages,
+      candidates: considered,
+      selected: entries.length,
+      contextTokens
+    },
+    budget: { maxTokens, policy: 'cheapest-sufficient (33 ladder)' },
+    coverage: {
+      verdict:
+        matchedTerms.size === 0 ? 'empty' : missingTerms.length === 0 ? 'covered' : 'thin',
+      matchedTerms: [...matchedTerms].sort(),
+      missingTerms
+    },
+    entries,
+    omitted
+  }
+}
+
+/** Direct entries first, then whatever scored highest. */
+function stageRank(entry: ContextEntry): number {
+  return entry.stage === 'direct' ? 0 : entry.stage === 'lexical' ? 1 : 2
+}
+
+/** The note's opening — what a human would read first. */
+function leadOf(content: string): string {
+  const body = content.startsWith('---\n')
+    ? content.slice(Math.max(content.indexOf('\n---', 4), 0) + 4)
+    : content
+  const lines = body
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !line.startsWith('#'))
+  return lines.join('\n').slice(0, MAX_EXCERPT_CHARS)
+}
+
+/** The matching lines, which is what makes a lexical entry inspectable:
+ *  the reader can see the words that earned it. */
+function matchExcerpt(content: string, terms: readonly string[]): string {
+  const matches = extractMatches(content, terms, { maxMatches: 4, maxExcerpt: 200 })
+  if (matches.length === 0) return leadOf(content)
+  return matches
+    .map((match) => match.excerpt)
+    .join('\n')
+    .slice(0, MAX_EXCERPT_CHARS)
+}

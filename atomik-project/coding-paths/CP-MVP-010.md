@@ -8,12 +8,13 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S04
+  current_step: S05
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
     - apps/desktop/shared/retrieval-core.ts
     - apps/desktop/shared/retrieval-expand.ts
+    - apps/desktop/shared/context-packet.ts
     - apps/desktop/shared/graph-core.ts
     - apps/desktop/shared/ipc-contract.ts
     - apps/desktop/electron-main/vault-index.ts
@@ -415,12 +416,25 @@ at every step boundary rather than at the end.
       that links everything. If S10's evaluation shows hubs crowding out
       answers, the fix is a measured degree penalty, not a threshold
       invented today.
-- [ ] S05 Context packet: `compileContextPacket` — scope rung 0 first
-      (selection, open resources, pinned paths), then lexical, then
-      expansion; bounded by an explicit token budget; entries carry
-      origin stage + score + span; omitted entries carry a reason; the
-      packet reports its own coverage verdict. One read-only IPC
-      channel, typed and validated, shaped as the tool contract.
+- [x] S05 Context packet (DONE 2026-08-16): `shared/context-packet.ts`
+      NEW (pure, reader injected) + `compileVaultContextPacket` in the
+      seat + the read-only `atomik:compile-context-packet` channel,
+      shaped as the `search_vault` tool contract CP-MVP-011 will drive.
+      Walks 33's ladder cheapest-first — direct → lexical → link — and
+      returns bedrock 26's shape with 06's budget. Every entry carries
+      its stage and a reason; every omission carries `budget` ·
+      `threshold` · `scope` · `duplicate`; the budget is enforced in
+      estimated tokens and named estimated.
+      COVERAGE, decided here rather than pinned at S01: term coverage
+      (`matchedTerms` / `missingTerms`) instead of a score threshold.
+      BM25 scores are unbounded and corpus-dependent, so a numeric floor
+      would mean something different in every vault; "which of your
+      words does the vault have material for" means the same everywhere,
+      needs no explanation to a human, and hands CP-MVP-011 exactly the
+      list its wikisearch must go and find.
+      Validation in main (13): bounded query, contained scope folder,
+      rung-0 paths filtered rather than trusted — read-only is not
+      unvalidated. +11 tests (829 → 840).
 - [ ] S06 Retrieval trace: `action: 'retrieve'` lines through the
       existing ActionTrace ledger — stages, candidates, selected,
       estimated context tokens, wallMs, deterministic location,
@@ -448,8 +462,8 @@ at every step boundary rather than at the end.
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S04 done — S05 next
-changed     : apps/desktop/shared/retrieval-expand.ts (new)
+current step: S05 done — S06 next
+changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts
               apps/desktop/electron-main/{search,graph-index,index}.ts
@@ -460,14 +474,13 @@ changed     : apps/desktop/shared/retrieval-expand.ts (new)
               docs/learning/22-lexical-retrieval-without-a-database.md + index
               docs/adr/ADR-013-lexical-retrieval-without-a-database.md
               docs/index.md · atomik-project/coding-paths/CP-MVP-010.md
-tests       : 829 passing / 69 files (this path added 41 so far),
+tests       : 840 passing / 70 files (this path added 52 so far),
               typecheck and build green, each gate run BARE (24)
-next action : S05 — `compileContextPacket`: rung 0 first (selection,
-              open resources, pinned paths), then lexical, then
-              expansion; bounded by an explicit token budget; entries
-              carrying stage + score + span; omitted entries carrying a
-              reason; the coverage verdict; one read-only IPC channel
-              shaped as the `search_vault` tool contract
+next action : S06 — the retrieval trace: `action: 'retrieve'` lines
+              through the existing ActionTrace ledger (stages,
+              candidates, selected, estimated context tokens, wallMs,
+              deterministic location), with the content-leak test
+              extended to cover them
 rebase note : the learning index collided at the rebase (note 22 here,
               note 23 from CP-PROVIDERS) — mechanical, both kept in
               order. Exactly the shared-prose conflict paths.md

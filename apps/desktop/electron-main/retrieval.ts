@@ -8,6 +8,13 @@ import {
   type RetrievalIndex,
   type RetrievalPatch
 } from '../shared/retrieval-core'
+import {
+  compileContextPacket,
+  type ContextPacket,
+  type ContextScope,
+  type PacketRequest
+} from '../shared/context-packet'
+import { readGraphIndex } from './graph-index'
 import { atomicWrite } from './vault'
 
 /**
@@ -148,4 +155,110 @@ function collectDocs(root: string): RetrievalDocInput[] {
   }
   walk(root, '', 0)
   return files
+}
+
+/**
+ * The packet compiler as the app calls it (CP-MVP-010 S05): the two
+ * cached projections plus a bounded vault reader, handed to the pure
+ * compiler. Shaped as the `search_vault` tool contract from the start —
+ * CP-MVP-011 adds the model-driven loop over THIS, not a second door.
+ */
+export function compileVaultContextPacket(
+  vaultRoot: string,
+  stateDir: string,
+  request: PacketRequest
+): ContextPacket {
+  return compileContextPacket(request, {
+    index: readRetrievalIndex(vaultRoot, stateDir),
+    graph: readGraphIndex(vaultRoot, stateDir),
+    read: (relPath) => {
+      const abs = join(vaultRoot, ...relPath.split('/'))
+      try {
+        if (statSync(abs).size > MAX_INDEXED_BYTES) return undefined
+        return readFileSync(abs, 'utf8')
+      } catch {
+        return undefined
+      }
+    }
+  })
+}
+
+/**
+ * Renderer input, validated in main (13). A packet request is
+ * read-only, but "read-only" is not "unvalidated": the query is bounded,
+ * the scope folder goes through the same lexical containment as search,
+ * and rung-0 paths are filtered rather than trusted.
+ */
+export function toPacketRequest(raw: unknown): PacketRequest {
+  if (typeof raw !== 'object' || raw === null) throw new Error('packet: rejected request')
+  const value = raw as Record<string, unknown>
+  if (typeof value['query'] !== 'string') throw new Error('packet: rejected query')
+  const query = value['query'].trim()
+  if (query.length === 0 || query.length > MAX_QUERY) {
+    throw new Error('packet: rejected query')
+  }
+
+  const scopeValue = value['scope']
+  let scope: ContextScope | undefined
+  if (scopeValue !== undefined && scopeValue !== null) {
+    if (typeof scopeValue !== 'object') throw new Error('packet: rejected scope')
+    const raws = scopeValue as Record<string, unknown>
+    // The same containment rule `resolveSearchScope` applies, spelled
+    // out here rather than imported: search.ts already depends on this
+    // module for the index, and a cycle between them would be a worse
+    // trade than four lines.
+    const rawFolder = raws['folder']
+    let folder: string | undefined
+    if (rawFolder !== undefined && rawFolder !== null) {
+      if (typeof rawFolder !== 'string' || !isSafeRelPath(rawFolder)) {
+        throw new Error('packet: rejected scope')
+      }
+      folder = rawFolder
+    }
+    const paths = Array.isArray(raws['paths'])
+      ? raws['paths']
+          .filter((path): path is string => typeof path === 'string')
+          .slice(0, MAX_DIRECT_PATHS)
+          .filter((path) => isSafeRelPath(path))
+      : undefined
+    scope = { ...(folder === undefined ? {} : { folder }), ...(paths ? { paths } : {}) }
+  }
+
+  return {
+    query,
+    ...(scope ? { scope } : {}),
+    ...(boundedNumber(value['maxTokens'], 1, 32_000) ?? {}),
+    ...(boundedNumber(value['hops'], 0, 3, 'hops') ?? {}),
+    ...(boundedNumber(value['limit'], 1, 50, 'limit') ?? {})
+  }
+}
+
+const MAX_QUERY = 500
+const MAX_DIRECT_PATHS = 20
+
+/** Same containment rule the vault verbs use: relative, no traversal,
+ *  no hidden or denied segment. */
+function isSafeRelPath(path: string): boolean {
+  if (path.length === 0 || path.length > 500) return false
+  if (path.includes('\\') || path.includes('\0') || path.startsWith('/')) return false
+  return path
+    .split('/')
+    .every(
+      (segment) =>
+        segment.length > 0 &&
+        segment !== '.' &&
+        segment !== '..' &&
+        !segment.startsWith('.') &&
+        !DENIED_SEGMENTS.has(segment)
+    )
+}
+
+function boundedNumber(
+  value: unknown,
+  min: number,
+  max: number,
+  key: 'maxTokens' | 'hops' | 'limit' = 'maxTokens'
+): Record<string, number> | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return undefined
+  return { [key]: Math.min(Math.max(Math.round(value), min), max) }
 }

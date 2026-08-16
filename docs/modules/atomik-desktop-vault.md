@@ -82,6 +82,30 @@ timestamp: 2026-08-14T00:00:00Z
     rule), but `searchVault` filters to `.md`: the search contract opens
     notes, and a snapshot hit there would be the dead click CP-MVP-009
     S04b spent a step killing. Wider doors come with S05's packet.
+- The CONTEXT PACKET (CP-MVP-010 S05): `shared/context-packet.ts`
+  (pure, reader injected) + `compileVaultContextPacket` in the seat +
+  the read-only `atomik:compile-context-packet` channel. It walks 33's
+  ladder cheapest-first — `direct` (what the workspace already has open,
+  pinned or selected) → `lexical` (BM25) → `link` (S04's typed
+  neighbourhood) — and returns bedrock 26's shape with 06's budget.
+  - Both halves are the contract: every entry carries the STAGE that
+    found it and a reason in the packet's own words, and every omission
+    carries why (`budget` · `threshold` · `scope` · `duplicate`). A
+    packet that only listed what it kept would be a prompt with extra
+    steps.
+  - COVERAGE is this path's addition: `{ verdict, matchedTerms,
+    missingTerms }`. Term coverage, not a score threshold — BM25 scores
+    are unbounded and corpus-dependent, so a numeric floor means
+    something different in every vault, while "which of your words does
+    the vault have material for" means the same thing everywhere and can
+    be shown to a human without explanation. `missingTerms` is precisely
+    what CP-MVP-011's wikisearch will be asked to go and find.
+  - Rung 0 outranks search by STAGE, not by a giant score: the packet
+    crosses IPC as JSON, where `Infinity` would arrive as `null`.
+    A test pins the whole packet as JSON round-trippable.
+  - `toPacketRequest` validates in main (13): bounded query, contained
+    scope folder, rung-0 paths FILTERED rather than trusted. Read-only
+    is not the same as unvalidated.
 - The maintenance DOOR (CP-MVP-010 S03): `electron-main/vault-index.ts`
   — `recordVaultChange(vaultRoot, change, notify)`. Every write verb
   reports its change here and nowhere else; the module decides per

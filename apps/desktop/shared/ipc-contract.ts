@@ -43,6 +43,10 @@ export const ATOMIK_CHANNELS = {
   listVaultFiles: 'atomik:list-vault-files',
   readGraphIndex: 'atomik:read-graph-index',
   searchVault: 'atomik:search-vault',
+  /** Read-only: compile a bounded, inspectable context packet over the
+   *  vault (CP-MVP-010 S05). Shaped as the `search_vault` tool contract
+   *  a model could call — CP-MVP-011 adds the loop, not a second door. */
+  compileContextPacket: 'atomik:compile-context-packet',
   searchDevDocs: 'atomik:search-dev-docs',
   readNote: 'atomik:read-note',
   readSourceAsset: 'atomik:read-source-asset',
@@ -334,6 +338,18 @@ export type IndexChangedEvent = {
   reason: VaultIndexChange['kind']
   paths: string[]
 }
+
+import type { ContextPacket, PacketRequest } from './context-packet'
+
+export type {
+  ContextEntry,
+  ContextPacket,
+  ContextScope,
+  OmittedEntry,
+  PacketCoverage,
+  PacketRequest,
+  PacketStage
+} from './context-packet'
 
 export type SearchResult = {
   relPath: string
@@ -688,6 +704,10 @@ export type AtomikApi = {
    * validated in main.
    */
   searchVault: (query: string, scope?: string) => Promise<SearchResult[]>
+  /** The context packet for a query: what retrieval would give an AI
+   *  operation, WITH what it left out and why (26/33). Read-only, and
+   *  inspectable before it is ever sent anywhere. */
+  compileContextPacket: (request: PacketRequest) => Promise<ContextPacket>
   /** The same lexical scan over the docs bundle (dev docs perimeter). */
   searchDevDocs: (query: string) => Promise<SearchResult[]>
   /** Reads one note; validated vault-relative .md path. */
@@ -879,6 +899,7 @@ export const DOCUMENTED_PRELOAD_SURFACE = [
   'getVault',
   'listVaultFiles',
   'searchVault',
+  'compileContextPacket',
   'searchDevDocs',
   'readGraphIndex',
   'readNote',

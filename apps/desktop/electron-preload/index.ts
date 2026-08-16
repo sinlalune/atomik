@@ -9,6 +9,7 @@ import {
   type AtomikApi,
   type CaptureImportDestination,
   type IndexChangedEvent,
+  type PacketRequest,
   type VaultInfo,
   type WebViewBounds,
   type WebViewControlAction,
@@ -80,6 +81,8 @@ const api: AtomikApi = {
   readGraphIndex: () => ipcRenderer.invoke(ATOMIK_CHANNELS.readGraphIndex),
   searchVault: (query: string, scope?: string) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.searchVault, query, scope),
+  compileContextPacket: (request: PacketRequest) =>
+    ipcRenderer.invoke(ATOMIK_CHANNELS.compileContextPacket, request),
   searchDevDocs: (query: string) =>
     ipcRenderer.invoke(ATOMIK_CHANNELS.searchDevDocs, query),
   readNote: (relPath: string) =>
