@@ -23,6 +23,7 @@ atomik:
     - apps/desktop/electron-main/graph-index.ts
     - apps/desktop/electron-main/index.ts
     - apps/desktop/electron-main/action-trace.ts
+    - apps/desktop/electron-main/ai-mock.ts
     - apps/desktop/electron-preload/index.ts
     - apps/desktop/renderer/src/workspace/PaneTreePanel.tsx
     - apps/desktop/renderer/src/vault/**
