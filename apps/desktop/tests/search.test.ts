@@ -138,3 +138,17 @@ describe('ranked retrieval behind the same contract (CP-MVP-010 S02)', () => {
     expect(searchVault(vault, '"vectors key"')).toEqual([])
   })
 })
+
+describe('a ranked result explains itself (CP-MVP-010 S09)', () => {
+  it('carries its score and the words that matched, in the packet`s language', () => {
+    const [first] = searchVault(vault, 'attention')
+    expect(first!.score).toBeGreaterThan(0)
+    expect(first!.why).toBe('“attention” in title, path, heading')
+  })
+
+  it('orders by score, and the explanation follows each result', () => {
+    const results = searchVault(vault, 'jardinage')
+    expect(results.every((result) => typeof result.why === 'string')).toBe(true)
+    expect(results[0]!.score).toBeGreaterThanOrEqual(results[1]?.score ?? 0)
+  })
+})

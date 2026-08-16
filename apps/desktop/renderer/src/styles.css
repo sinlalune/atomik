@@ -5507,3 +5507,85 @@ button svg {
 .chat-source-unresolved {
   color: var(--warn-fg);
 }
+
+/* Vault-wide broken links (CP-MVP-010 S09) — a diagnostic strip under
+   the tree's search box. Quiet when there is nothing to report, but
+   never silent: a clean bill is information too. */
+.broken-links {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 var(--space-2) var(--space-1);
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+.broken-links-head {
+  font: inherit;
+  font-size: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.broken-links-head:disabled {
+  cursor: default;
+  opacity: 0.75;
+}
+
+.broken-links-head:not(:disabled) {
+  color: var(--warn-fg);
+}
+
+.broken-links ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.broken-links li {
+  display: flex;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.broken-links li button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.broken-links li button:hover {
+  color: var(--accent);
+}
+
+.broken-target {
+  color: var(--warn-fg);
+  opacity: 0.85;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Why a search result is here (S09): the same words the context packet
+   uses, because one retrieval should speak one language. */
+.search-why {
+  margin: 0 0 2px var(--space-2);
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

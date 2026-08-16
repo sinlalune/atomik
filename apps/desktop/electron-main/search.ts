@@ -1,6 +1,7 @@
 import { readFileSync, statSync } from 'node:fs'
 import { extname, join } from 'node:path'
 import type { SearchMatch, SearchResult } from '../shared/ipc-contract'
+import { explainHit } from '../shared/context-packet'
 import {
   extractMatches,
   foldTerm,
@@ -88,7 +89,9 @@ export function searchVault(
   return hits.map((hit) => ({
     relPath: hit.path,
     name: hit.path.split('/').pop() ?? hit.path,
-    matches: matchesOf(hit, contentOf(vaultRoot, hit.path))
+    matches: matchesOf(hit, contentOf(vaultRoot, hit.path)),
+    score: hit.score,
+    why: explainHit(hit)
   }))
 }
 

@@ -28,6 +28,11 @@ export function SearchResultsList({
           >
             {noteDisplayName(result.name)}
           </button>
+          {result.why && (
+            // S09: results are RANKED now, so the order is an argument —
+            // and an argument the reader cannot see is just an order.
+            <p className="search-why">{result.why}</p>
+          )}
           <ul>
             {result.matches.map((match, index) => (
               <li key={index}>

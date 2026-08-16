@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S08l
+  current_step: S09
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -29,6 +29,7 @@ atomik:
     - apps/desktop/electron-preload/index.ts
     - apps/desktop/renderer/src/workspace/PaneTreePanel.tsx
     - apps/desktop/renderer/src/vault/**
+    - apps/desktop/renderer/src/search/**
     - apps/desktop/renderer/src/workspace/ChatView.tsx
     - apps/desktop/renderer/src/editor/request-breakdown.ts
     - apps/desktop/renderer/src/editor/citation-chips.ts
@@ -831,7 +832,7 @@ live, on real notes.
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S08l done (owner bench rounds 1–12 absorbed) — S09 next
+current step: S09 done — S10 next (evaluation set + the D15 diagram)
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts
@@ -843,11 +844,12 @@ changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               docs/learning/22-lexical-retrieval-without-a-database.md + index
               docs/adr/ADR-013-lexical-retrieval-without-a-database.md
               docs/index.md · atomik-project/coding-paths/CP-MVP-010.md
-tests       : 890 passing / 71 files (this path added 102 so far),
+tests       : 892 passing / 71 files (this path added 104 so far),
               typecheck and build green, each gate run BARE (24)
-next action : S09 — the search surface: ranked results with kind pills
-              and "why this result", the packet disclosure, and the
-              vault-wide broken-links list docked there
+next action : S10 — the evaluation set (in-repo fixture vault, queries
+              with expected notes, recall@k · MRR · latency) + the dated
+              real-vault bench, and D15, the exhaustive workflow diagram
+              decided for this step
 rebase note : the learning index collided at the rebase (note 22 here,
               note 23 from CP-PROVIDERS) — mechanical, both kept in
               order. Exactly the shared-prose conflict paths.md

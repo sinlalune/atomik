@@ -11,6 +11,7 @@ import {
   SidebarToggleIcon,
   VaultSwitchIcon
 } from '../icons'
+import { BrokenLinksPanel } from '../search/BrokenLinksPanel'
 import { SearchResultsList } from '../search/SearchResultsList'
 import { useTreeSearch } from '../search/useTreeSearch'
 import { TreeResizeHandle } from '../TreeResizeHandle'
@@ -591,6 +592,10 @@ export function PaneTreePanel({
             />
           </div>
           {error && <p className="error">{error}</p>}
+          <BrokenLinksPanel
+            scope={scope.kind === 'project' ? scope.projectPath : undefined}
+            onOpen={guardedOpen}
+          />
           <div className="pane-tree-scroll">
             {searchResults !== null ? (
               <SearchResultsList

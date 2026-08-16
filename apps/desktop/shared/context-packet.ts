@@ -288,9 +288,7 @@ export function compileContextPacket(
       stage: 'lexical',
       // S08b (owner bench round 4: "we don't know what content of the
       // request has matched"): the WORDS first, then where they were.
-      reason: `${hit.terms.map((term) => `“${term}”`).join(' ')} in ${hit.fields
-        .map((field) => field.field)
-        .join(', ')}`,
+      reason: explainHit(hit),
       score: hit.score,
       excerpt,
       tokens: estimateTokens(excerpt)
@@ -443,6 +441,20 @@ export function parsePacketMeta(raw: string): { stage: string; path: string }[] 
     parsed.push({ stage: match[1] as string, path: match[2] as string })
   }
   return parsed.length > 0 ? parsed : null
+}
+
+/**
+ * Why a lexical hit is here, in the packet's words — shared with the
+ * search panel (S09) so one retrieval speaks one language wherever it
+ * surfaces.
+ */
+export function explainHit(hit: {
+  terms: readonly string[]
+  fields: readonly { field: string }[]
+}): string {
+  return `${hit.terms.map((term) => `“${term}”`).join(' ')} in ${hit.fields
+    .map((field) => field.field)
+    .join(', ')}`
 }
 
 /** Direct entries first, then whatever scored highest. */

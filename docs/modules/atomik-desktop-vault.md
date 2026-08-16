@@ -170,6 +170,23 @@ timestamp: 2026-08-14T00:00:00Z
     inputs and `serializeRetrievalIndex` sorts term keys, so a rebuild
     from the files alone is byte-identical (03 lifecycle rule) whatever
     order the walk produced. Round-trip pinned by test.
+- The SEARCH SURFACE (CP-MVP-010 S09): results arrive RANKED and each
+  one says why it is here — `“plato” in title, path`, the same sentence
+  the context packet uses, built by the shared `explainHit`. One
+  retrieval should speak one language wherever it surfaces, and an order
+  the reader cannot account for is just an order. `SearchResult` gained
+  `score` and `why`; the contract is otherwise unchanged.
+- VAULT-WIDE BROKEN LINKS (CP-MVP-010 S09): `search/BrokenLinksPanel`
+  under every tree's search box — the diagnostics list CP-MVP-009
+  deferred *with a trigger* ("the back half builds a vault-wide scan
+  anyway; when it exists the list becomes nearly free"). It rides the
+  graph index retrieval already keeps current, so there is no second
+  scan and no new channel, and it refreshes from the S03 push so a link
+  repaired in another pane cannot leave a stale complaint. In a project
+  scope it filters to that bundle. A broken link stays a DIAGNOSTIC —
+  nothing here writes, auto-creates or suggests (bedrock 20) — and the
+  clean bill is stated rather than implied: "✓ no broken links", so the
+  reader knows the check ran.
 - The retrieval SEAT (CP-MVP-010 S03): `electron-main/retrieval.ts` —
   the I/O half, sibling of `graph-index.ts`. Lazy (nothing scans on
   app open), rebuildable (`.atomik/index/retrieval.json`, delete it and

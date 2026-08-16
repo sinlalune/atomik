@@ -355,6 +355,13 @@ export type SearchResult = {
   relPath: string
   name: string
   matches: SearchMatch[]
+  /** BM25 score (CP-MVP-010 S09) — results arrive ranked, and the
+   *  number is here so a surface can show it if it wants to. */
+  score?: number
+  /** Why this result is here, in the same words the context packet
+   *  uses: `“plato” in title, path`. Retrieval that cannot explain
+   *  itself is indistinguishable from retrieval that is wrong. */
+  why?: string
 }
 
 /**
