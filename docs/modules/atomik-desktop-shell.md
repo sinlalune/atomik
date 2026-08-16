@@ -94,6 +94,12 @@ timestamp: 2026-08-14T00:00:00Z
   right-side containment. Detailed transcript and action behavior remains
   owned by the AI area note; the shell owns the pane geometry and accessible
   stream boundary.
+  CP-FEEDBACK S03 adds one icon-first Quick note action to vault/project
+  tabstrips and arms `Mod+N` only in the focused eligible pane (dialogs keep
+  the chord). It creates and opens a real blank tab in one transaction; a
+  `quick: '1'` tab param carries the disposable one-time naming lifecycle
+  across ordinary workspace persistence. The durable file and refactor
+  behavior is documented in the vault area note.
 - The Dev Docs tab (16 MVP slice): grouped docs tree + rendered Markdown
   with the bedrock diagrams inlined as SVG data URIs, reading the real
   files under `docs/`. `electron-main/dev-docs.ts` holds the pure logic —

@@ -118,3 +118,24 @@ timestamp: 2026-08-14T00:00:00Z
   grid child spanning both rows (the S07c negative-margin pull-up is
   retired); `.pane-content` sits at (row 2, col 2) without the
   padding-top hack.
+
+## Quick untitled notes (CP-FEEDBACK S03)
+
+- A quick note is an ordinary vault Markdown file from birth, never a
+  path-less editor or hidden record. The note-add tabstrip action and
+  `Mod+N` create an explicit empty string through the existing exclusive
+  `createNote` verb. Placement is deterministic: active note parent, then
+  current project root, then vault root. Source dossiers are excluded so a
+  thought cannot accidentally become a source-bundle contract file.
+- `workspace/quick-note.ts` owns the pure naming policy: case-insensitive
+  collision scans choose `Untitled.md`, `Untitled 2.md`, …; the first H1
+  outside fenced code yields a portable sanitized title, with collision and
+  Windows/convention-name guards. Tests cover nested trees, lower headings,
+  fences, collisions, and a real blank-create → save → relocate round trip.
+- Pending auto-naming is recoverable tab state (`quick: '1'`), not note
+  metadata. After a successful save, `VaultView`/`ProjectView` report the
+  content to Workspace, which runs `relocatePreview` then the ordinary atomic
+  `relocateApply`; the relocation push updates every open tab. The folder's
+  one managed `index.md` link is expected and follows without a modal. Any
+  additional backlink still requires confirmation. Success, same-name H1, or
+  decline clears the flag, so later title edits never create a rename loop.

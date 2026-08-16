@@ -16,6 +16,9 @@ export type VaultViewProps = {
   notePath?: string
   /** Reports every successfully opened note (the tab persists it). */
   onNoteOpened?: (relPath: string) => void
+  /** Successful editor saves, used by the provisional quick-note naming
+   *  lifecycle. Ordinary notes omit it. */
+  onNoteSaved?: (relPath: string, content: string) => void
   /** Registers this view's dirty editor with the pane (S07d): the pane
    *  tree guards navigation and the refactor verbs with it. */
   registerGuard?: (guard: PaneNoteGuard | null) => void
@@ -52,6 +55,7 @@ export type VaultViewProps = {
 export function VaultView({
   notePath,
   onNoteOpened,
+  onNoteSaved,
   registerGuard,
   mode = 'live',
   onModeChange,
@@ -80,6 +84,14 @@ export function VaultView({
     lastRequested,
     onContentClick
   } = useVaultNote(onNoteOpened, onOpenSourceImage, onOpenWebUrl)
+
+  const applyEditorSave = useCallback(
+    (content: string, mtimeMs: number) => {
+      applySaved(content, mtimeMs)
+      if (note) onNoteSaved?.(note.relPath, content)
+    },
+    [applySaved, note, onNoteSaved]
+  )
 
   const onDirtyChange = useCallback((dirty: boolean) => {
     setEditorDirty(dirty)
@@ -222,7 +234,7 @@ export function VaultView({
             onOpenSourceImage={onOpenSourceImage}
             onOpenChat={onOpenChat}
             onAddChatContext={onAddChatContext}
-            onSaved={applySaved}
+            onSaved={applyEditorSave}
             onDirtyChange={onDirtyChange}
             mode={mode}
             onModeChange={onModeChange}

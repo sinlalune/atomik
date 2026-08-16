@@ -56,3 +56,9 @@ timestamp: 2026-08-14T00:00:00Z
   top_p, and maxTokens bounds.
 - One EditorView per mounted pane, keyed by note path; view lives in a
   ref (mount-only).
+- CP-FEEDBACK S03 keeps quick-note naming outside CodeMirror: the editor
+  still performs one ordinary optimistic save and reports its successful
+  bytes through the existing `onSaved` callback. VaultView/ProjectView add a
+  narrow host notification only for the provisional tab lifecycle; Workspace
+  decides whether the first H1 names the file. A failed/conflicting save can
+  never trigger a rename, and the editor gains no filesystem authority.

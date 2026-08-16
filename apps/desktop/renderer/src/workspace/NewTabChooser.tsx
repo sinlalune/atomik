@@ -74,6 +74,7 @@ export type TabPick = 'note' | 'import' | 'web'
 export function NewTabFlow({
   basePath,
   onPick,
+  onPlainNewNote,
   onCreated,
   onClose,
   closeLabel
@@ -81,6 +82,9 @@ export function NewTabFlow({
   /** Prompt-scoping/naming anchor ('generated.md', or inside a project). */
   basePath: string
   onPick: (pick: TabPick) => void
+  /** Optional real quick-note landing; non-vault callers retain the
+   *  historical view-only fallback through `onPick('note')`. */
+  onPlainNewNote?: (() => void) | undefined
   onCreated: (relPath: string) => void
   onClose?: (() => void) | undefined
   closeLabel?: string
@@ -90,7 +94,7 @@ export function NewTabFlow({
     return (
       <GeneratedNoteScreen
         basePath={basePath}
-        onPlainNewNote={() => onPick('note')}
+        onPlainNewNote={onPlainNewNote ?? (() => onPick('note'))}
         onBack={() => setStage('chooser')}
         onCreated={onCreated}
       />

@@ -7,18 +7,21 @@ timestamp: 2026-08-16T00:00:00Z
 atomik:
   id: CP-FEEDBACK
   status: running
-  current_step: S03
+  current_step: S04
   base_commit: b32df20
   branch: path/cp-feedback
   writes:
-    - apps/desktop/renderer/src/NewTabChooser.tsx
-    - apps/desktop/renderer/src/Workspace.tsx
+    - apps/desktop/renderer/src/project/ProjectView.tsx
     - apps/desktop/renderer/src/editor/
     - apps/desktop/renderer/src/vault/
+    - apps/desktop/renderer/src/vault/VaultView.tsx
     - apps/desktop/renderer/src/web/WebView.tsx
     - apps/desktop/renderer/src/workspace/
     - apps/desktop/renderer/src/workspace/ChatView.tsx
     - apps/desktop/renderer/src/workspace/chat-presentation.ts
+    - apps/desktop/renderer/src/workspace/NewTabChooser.tsx
+    - apps/desktop/renderer/src/workspace/Workspace.tsx
+    - apps/desktop/renderer/src/workspace/quick-note.ts
     - apps/desktop/renderer/src/styles.css
     - apps/desktop/shared/graph-core.ts
     - apps/desktop/shared/note-markdown.ts
@@ -28,6 +31,7 @@ atomik:
     - apps/desktop/tests/graph-core.test.ts
     - apps/desktop/tests/link-pills.test.ts
     - apps/desktop/tests/live-preview.test.ts
+    - apps/desktop/tests/quick-note.test.ts
     - apps/desktop/tests/web-view.test.ts
     - apps/desktop/tests/workspace-model.test.ts
     - docs/modules/atomik-desktop-ai.md
@@ -149,7 +153,7 @@ are recorded in
 - [x] S02 Flat assistant chat turns: add focused layout/accessibility regression
       coverage, implement the assistant/user geometry and focus-visible action
       behavior, update AI/UI module knowledge, and checkpoint the ledger.
-- [ ] S03 Quick untitled note: pin placement, collision, heading extraction,
+- [x] S03 Quick untitled note: pin placement, collision, heading extraction,
       sanitization, and one-time rename cases; implement the quick action using
       existing vault write/relocate transactions; update vault/editor/shell
       notes and checkpoint the ledger.
@@ -170,11 +174,12 @@ are recorded in
 base commit : b32df20
 trunk pin   : f9ed012 (rebased before source work; CP-PROVIDERS is integrated)
 changed     : S02 chat presentation + a11y helper + regression; AI module note;
-              CP-FEEDBACK ledger and corrected ChatView write declaration
-tests       : S02 focused 6/6 PASS; typecheck PASS; production build PASS;
-              baseline full suite 773/773 PASS at S01
-next action : S03 — pin and implement quick untitled-note creation plus
-              one-time first-H1 rename through existing vault transactions
+              S03 quick-note action/shortcut, blank creation, one-time H1
+              naming lifecycle, host save seam, tests, and module notes
+tests       : S03 focused 145/145 PASS; typecheck PASS; production build PASS;
+              baseline full suite 773/773 PASS at S01; S02 focused 6/6 PASS
+next action : S04 — connect isolated page-title metadata to persisted web-tab
+              and in-pane header identity with hostname/URL fallbacks
 blockers    : none; CP-MVP-010 remains active across chat/editor/vault/graph,
               so rebase and overlap checks continue at step boundaries
 ```

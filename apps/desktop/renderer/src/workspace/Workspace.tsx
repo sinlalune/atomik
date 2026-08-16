@@ -64,11 +64,18 @@ import {
   type PaneKindPick,
   type TabPick
 } from './NewTabChooser'
+import {
+  createQuickNoteFile,
+  finalizeQuickNoteName,
+  isQuickNoteShortcut,
+  quickNoteParent,
+  QUICK_NOTE_PENDING
+} from './quick-note'
 import { ChatView } from './ChatView'
 import { chatHistoryOf, chatRenameTarget } from '../editor/chat-file'
 import { TREE_DRAG_MIME } from '../vault/tree-menu'
 import { PaneTreePanel } from './PaneTreePanel'
-import { ChatIcon, HistoryIcon, SidebarToggleIcon } from '../icons'
+import { ChatIcon, HistoryIcon, NoteAddIcon, SidebarToggleIcon } from '../icons'
 import { useWorkspace } from './store'
 
 // Code-split the two heavy views (perf audit 2026-07-15: zero dynamic
@@ -161,6 +168,7 @@ function TabContent({
   registerGuard,
   onOpenChat,
   onAddChatContext,
+  onQuickNote,
   dispatch
 }: {
   tab: WorkspaceTab
@@ -174,6 +182,8 @@ function TabContent({
   onOpenChat: () => void
   /** Adds a context entry to the chat pane (S06c5b). */
   onAddChatContext: (entry: string) => void
+  /** Creates a blank provisional note, optionally replacing a chooser tab. */
+  onQuickNote: (replaceTabId?: string) => void
   dispatch: Dispatch
 }): React.JSX.Element {
   const closeThisTab = (): void => {
@@ -216,6 +226,46 @@ function TabContent({
       addTab(state, paneId, makeTab('source-image', { dossierPath }))
     )
 
+  // A quick note is provisional UI state, not hidden note metadata. The
+  // successful save is the moment its first H1 can safely name the file;
+  // relocation stays behind the existing preview/apply refactor boundary.
+  const quickRenameStarted = useRef(false)
+  const settleQuickNote = useCallback(
+    (relPath: string, content: string): void => {
+      if (
+        tab.params?.['quick'] !== QUICK_NOTE_PENDING ||
+        quickRenameStarted.current
+      ) {
+        return
+      }
+      quickRenameStarted.current = true
+      const clearPending = (): void =>
+        dispatch((state) => updateTabParams(state, tab.id, { quick: '' }))
+      void (async () => {
+        try {
+          const result = await finalizeQuickNoteName(
+            relPath,
+            content,
+            window.atomik,
+            (to, reviewLinks) =>
+              window.confirm(
+                `Name this quick note “${to}”?\n\n${reviewLinks} existing link${reviewLinks === 1 ? '' : 's'} beyond the managed folder-index entry will follow the rename.`
+              )
+          )
+          if (result === 'waiting') {
+            quickRenameStarted.current = false
+            return
+          }
+          clearPending()
+        } catch (reason) {
+          quickRenameStarted.current = false
+          window.alert(`quick-note rename failed — ${String(reason)}`)
+        }
+      })()
+    },
+    [dispatch, tab.id, tab.params]
+  )
+
   if (tab.view === 'new') {
     return (
       <NewTabFlow
@@ -228,6 +278,11 @@ function TabContent({
           const next = tabForPick(pick, paneScope)
           dispatch((state) => setTabView(state, tab.id, next.view, next.params))
         }}
+        onPlainNewNote={
+          paneScope.kind === 'vault' || paneScope.kind === 'project'
+            ? () => onQuickNote(tab.id)
+            : undefined
+        }
         onCreated={(relPath) => {
           // the generated note opens IN this tab (S05e)
           const base = tabForPick('note', paneScope)
@@ -263,6 +318,7 @@ function TabContent({
         onNoteOpened={(relPath) =>
           dispatch((state) => updateTabParams(state, tab.id, { notePath: relPath }))
         }
+        onNoteSaved={settleQuickNote}
         registerGuard={registerGuard}
         onOpenChat={onOpenChat}
         onAddChatContext={onAddChatContext}
@@ -362,6 +418,7 @@ function TabContent({
         onNoteOpened={(relPath) =>
           dispatch((state) => updateTabParams(state, tab.id, { notePath: relPath }))
         }
+        onNoteSaved={settleQuickNote}
         registerGuard={registerGuard}
         onOpenChat={onOpenChat}
         onAddChatContext={onAddChatContext}
@@ -410,6 +467,68 @@ function LeafPane({
   const isChatPane = scope.kind === 'chat'
   const treeHidden = paneTreeHidden(tree)
   const treeWidth = untyped || treeHidden ? 0 : paneTreeWidth(tree)
+  const quickNoteAvailable = scope.kind === 'vault' || scope.kind === 'project'
+
+  // Direct file-first note birth: the quick action never opens a path-less
+  // editor. Empty content is explicit (createNote's ordinary default would
+  // synthesize an H1 from the provisional filename).
+  const quickCreating = useRef(false)
+  const createQuickNote = useCallback(
+    (replaceTabId?: string): void => {
+      if (!quickNoteAvailable || quickCreating.current) return
+      quickCreating.current = true
+      void (async () => {
+        try {
+          const parent = quickNoteParent(active, scope)
+          const relPath = await createQuickNoteFile(parent, window.atomik)
+          const params =
+            scope.kind === 'project'
+              ? {
+                  projectPath: scope.projectPath,
+                  ...(scope.projectTitle
+                    ? { projectTitle: scope.projectTitle }
+                    : {}),
+                  notePath: relPath,
+                  quick: QUICK_NOTE_PENDING
+                }
+              : { notePath: relPath, quick: QUICK_NOTE_PENDING }
+          dispatch((state) =>
+            replaceTabId
+              ? setTabView(
+                  state,
+                  replaceTabId,
+                  scope.kind === 'project' ? 'project' : 'vault',
+                  params
+                )
+              : addTab(
+                  state,
+                  node.id,
+                  makeTab(scope.kind === 'project' ? 'project' : 'vault', params)
+                )
+          )
+        } catch (reason) {
+          window.alert(`quick note failed — ${String(reason)}`)
+        } finally {
+          quickCreating.current = false
+        }
+      })()
+    },
+    [active, dispatch, node.id, quickNoteAvailable, scope]
+  )
+
+  // One listener is armed: only the focused eligible pane handles Mod+N.
+  useEffect(() => {
+    if (!focused || !quickNoteAvailable) return
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (!isQuickNoteShortcut(event)) return
+      const target = event.target
+      if (target instanceof Element && target.closest('[role="dialog"]')) return
+      event.preventDefault()
+      createQuickNote()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [createQuickNote, focused, quickNoteAvailable])
 
   // Note views register their dirty editor here (cleared on unmount);
   // the pane tree reads it at decision time.
@@ -686,6 +805,16 @@ function LeafPane({
           </button>
         </div>
         <span className="tabstrip-actions">
+          {quickNoteAvailable && (
+            <button
+              type="button"
+              title="Quick note (Ctrl/Cmd+N)"
+              aria-label="Create quick note"
+              onClick={() => createQuickNote()}
+            >
+              <NoteAddIcon />
+            </button>
+          )}
           {isChatPane && (
             <span className="chat-history">
               <button
@@ -852,6 +981,7 @@ function LeafPane({
             registerGuard={registerGuard}
             onOpenChat={openChat}
             onAddChatContext={addChatCtx}
+            onQuickNote={createQuickNote}
             dispatch={dispatch}
           />
         ) : untyped ? (
@@ -867,6 +997,10 @@ function LeafPane({
         ) : (
           <NewTabChooser
             onPick={(pick) => {
+              if (pick === 'note' && quickNoteAvailable) {
+                createQuickNote()
+                return
+              }
               const next = tabForPick(pick, scope)
               dispatch((state) =>
                 addTab(state, node.id, makeTab(next.view, next.params))

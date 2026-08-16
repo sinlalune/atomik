@@ -17,6 +17,9 @@ export type ProjectViewProps = {
   notePath?: string
   onProjectOpened?: (project: ProjectInfo) => void
   onNoteOpened?: (relPath: string) => void
+  /** Successful editor saves, used by the provisional quick-note naming
+   *  lifecycle. Ordinary notes omit it. */
+  onNoteSaved?: (relPath: string, content: string) => void
   /** Escape hatch on the picker screens (a mistakenly opened tab). */
   onCloseTab?: () => void
   /** Registers this view's dirty editor with the pane (S07d): the pane
@@ -65,6 +68,7 @@ export function ProjectView({
   notePath,
   onProjectOpened,
   onNoteOpened,
+  onNoteSaved,
   onCloseTab,
   registerGuard,
   mode = 'live',
@@ -96,6 +100,14 @@ export function ProjectView({
     lastRequested,
     onContentClick
   } = useVaultNote(onNoteOpened, undefined, onOpenWebUrl)
+
+  const applyEditorSave = useCallback(
+    (content: string, mtimeMs: number) => {
+      applySaved(content, mtimeMs)
+      if (note) onNoteSaved?.(note.relPath, content)
+    },
+    [applySaved, note, onNoteSaved]
+  )
 
   const onDirtyChange = useCallback((dirty: boolean) => {
     setEditorDirty(dirty)
@@ -319,7 +331,7 @@ export function ProjectView({
             note={note}
             onOpenChat={onOpenChat}
             onAddChatContext={onAddChatContext}
-            onSaved={applySaved}
+            onSaved={applyEditorSave}
             onDirtyChange={onDirtyChange}
             mode={mode}
             onModeChange={onModeChange}
