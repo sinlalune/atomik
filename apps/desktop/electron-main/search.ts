@@ -1,17 +1,30 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { extname, join } from 'node:path'
 import type { SearchMatch, SearchResult } from '../shared/ipc-contract'
+import {
+  buildRetrievalIndex,
+  extractMatches,
+  foldTerm,
+  searchIndex,
+  type RetrievalDocInput,
+  type RetrievalHit
+} from '../shared/retrieval-core'
 
 /**
- * Lexical search (M1/S11 + MVP-001 feedback) — vault-core territory. A
- * plain case-insensitive scan over filenames, headings, and body lines:
- * the deliberate no-embeddings baseline (01/18). ripgrep or SQLite FTS5
- * replace the scan at M8 behind this same contract; retrieval relevance
- * never becomes epistemic support (04).
+ * Lexical search — the vault-core seat (14). Since CP-MVP-010 S02 this is
+ * the I/O half only: it walks the perimeter, hands the files to the PURE
+ * `retrieval-core` (BM25, ADR-013), and maps ranked hits back onto the
+ * `SearchResult` contract the renderer already speaks. The M1 substring
+ * scan it replaces is gone, not doubled — 33's rung 1 is now the engine
+ * behind every perimeter: the whole vault, one project bundle (`scope` =
+ * validated root-relative folder), and the docs bundle (the dev-docs
+ * channel binds it to docsRoot).
  *
- * The same scan serves every search perimeter: the whole vault, one
- * project bundle (`scope` = validated root-relative folder), and the
- * docs bundle (the dev-docs channel binds it to docsRoot).
+ * Results are ordered by SCORE now, not by walk order, and a hit knows
+ * which fields earned it. Retrieval relevance is still never truth (04).
+ *
+ * The index is rebuilt per call here; S03 gives it a cached, incrementally
+ * patched seat. That is a performance change, not a contract change.
  */
 
 const DENIED_SEGMENTS = new Set(['.git', '.atomik', 'node_modules'])
@@ -21,8 +34,6 @@ const MAX_RESULTS = 100
 const MAX_MATCHES_PER_FILE = 6
 const MAX_FILE_BYTES = 10 * 1024 * 1024
 const MAX_EXCERPT = 160
-
-const HEADING_PATTERN = /^#{1,6}\s/
 
 /**
  * Validates a renderer-supplied scope folder (13: IPC input). Returns the
@@ -57,22 +68,72 @@ export function searchVault(
   scope?: unknown
 ): SearchResult[] {
   if (typeof query !== 'string') throw new Error('search: rejected query')
-  const needle = query.trim().toLowerCase()
+  const needle = query.trim()
   if (needle.length === 0 || needle.length > MAX_QUERY) {
     throw new Error('search: rejected query')
   }
   const scopeRel =
     scope === undefined || scope === null ? '' : resolveSearchScope(scope)
 
-  const results: SearchResult[] = []
+  const startDir = scopeRel ? join(vaultRoot, ...scopeRel.split('/')) : vaultRoot
+  try {
+    if (!statSync(startDir).isDirectory()) return []
+  } catch {
+    return [] // a vanished scope folder is an empty perimeter, not a crash
+  }
 
+  const contents = new Map<string, string>()
+  const files = collectSearchableFiles(startDir, scopeRel, contents)
+  const hits = searchIndex(buildRetrievalIndex(files), needle, {
+    limit: MAX_RESULTS
+  })
+
+  return hits.map((hit) => ({
+    relPath: hit.path,
+    name: hit.path.split('/').pop() ?? hit.path,
+    matches: matchesOf(hit, contents.get(hit.path))
+  }))
+}
+
+/**
+ * The contract's three match kinds, in the order the UI reads them: the
+ * filename first (it is why the file is a candidate at all for a name
+ * query), then headings and text by line.
+ */
+function matchesOf(hit: RetrievalHit, content: string | undefined): SearchMatch[] {
+  const matches: SearchMatch[] = []
+  const name = hit.path.split('/').pop() ?? hit.path
+  const foldedName = foldTerm(name)
+  if (hit.terms.some((term) => foldedName.includes(term))) {
+    matches.push({ kind: 'filename', line: 0, excerpt: name })
+  }
+  if (content !== undefined) {
+    for (const match of extractMatches(content, hit.terms, {
+      maxMatches: MAX_MATCHES_PER_FILE - matches.length,
+      maxExcerpt: MAX_EXCERPT
+    })) {
+      matches.push({ kind: match.kind, line: match.line, excerpt: match.excerpt })
+    }
+  }
+  return matches
+}
+
+/** Markdown files under the perimeter, with their contents (same walk
+ *  rules as the vault listing: no dotfiles, no denied segments). */
+function collectSearchableFiles(
+  startDir: string,
+  scopeRel: string,
+  contents: Map<string, string>
+): RetrievalDocInput[] {
+  const files: RetrievalDocInput[] = []
   const walk = (dir: string, relPath: string): void => {
-    if (results.length >= MAX_RESULTS) return
-    const entries = readdirSync(dir, { withFileTypes: true }).sort((a, b) =>
-      a.name.localeCompare(b.name)
-    )
-    for (const entry of entries) {
-      if (results.length >= MAX_RESULTS) return
+    let entries
+    try {
+      entries = readdirSync(dir, { withFileTypes: true })
+    } catch {
+      return
+    }
+    for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
       if (entry.name.startsWith('.') || DENIED_SEGMENTS.has(entry.name)) continue
       const abs = join(dir, entry.name)
       const childRel = relPath === '' ? entry.name : `${relPath}/${entry.name}`
@@ -81,42 +142,16 @@ export function searchVault(
         continue
       }
       if (!entry.isFile() || extname(entry.name).toLowerCase() !== '.md') continue
-
-      const matches: SearchMatch[] = []
-      if (entry.name.toLowerCase().includes(needle)) {
-        matches.push({ kind: 'filename', line: 0, excerpt: entry.name })
-      }
       try {
-        if (statSync(abs).size <= MAX_FILE_BYTES) {
-          const lines = readFileSync(abs, 'utf8').split('\n')
-          for (let index = 0; index < lines.length; index += 1) {
-            if (matches.length >= MAX_MATCHES_PER_FILE) break
-            const line = lines[index] as string
-            if (!line.toLowerCase().includes(needle)) continue
-            matches.push({
-              kind: HEADING_PATTERN.test(line) ? 'heading' : 'text',
-              line: index + 1,
-              excerpt: line.trim().slice(0, MAX_EXCERPT)
-            })
-          }
-        }
+        if (statSync(abs).size > MAX_FILE_BYTES) continue
+        const content = readFileSync(abs, 'utf8')
+        contents.set(childRel, content)
+        files.push({ path: childRel, content })
       } catch {
-        // unreadable file: filename match (if any) still counts
-      }
-      if (matches.length > 0) {
-        results.push({ relPath: childRel, name: entry.name, matches })
+        files.push({ path: childRel }) // unreadable: findable by path alone
       }
     }
   }
-
-  const startDir = scopeRel
-    ? join(vaultRoot, ...scopeRel.split('/'))
-    : vaultRoot
-  try {
-    if (!statSync(startDir).isDirectory()) return []
-  } catch {
-    return [] // a vanished scope folder is an empty perimeter, not a crash
-  }
   walk(startDir, scopeRel)
-  return results
+  return files
 }

@@ -23,18 +23,49 @@ timestamp: 2026-08-14T00:00:00Z
   writes on open. Last vault remembered in `.atomik/local-settings.json`,
   written by main only (no channel). `ATOMIK_VAULT_DIR` overrides for
   tests/smoke/dev.
-- Lexical search (M1/S11 + MVP-001 feedback): `electron-main/search.ts` —
-  case-insensitive scan over filenames/headings/body lines (kinds +
-  1-based line numbers + capped excerpts), same denylist as the tree,
-  hard caps (query 200, 6 matches/file, 100 files, 10 MB/file). No
-  embeddings, no index by design (01/18); ripgrep/FTS5 replace the scan
-  at M8 behind the same channels. Perimeters: whole vault, one project
+- Lexical search (M1/S11 + MVP-001 feedback; **engine replaced at
+  CP-MVP-010 S02**): `electron-main/search.ts` — now the I/O half only
+  (walk the perimeter, read files, map hits back to `SearchResult`),
+  with ranking done by the pure `shared/retrieval-core.ts`. Same
+  denylist as the tree, same hard caps (query 200, 6 matches/file, 100
+  files, 10 MB/file), same channels and same contract — but results are
+  ordered by SCORE rather than walk order, and a query for `ethos` now
+  finds `éthos`. Perimeters: whole vault, one project
   bundle (`search-vault` optional `scope` folder — `resolveSearchScope`
   rejects traversal/absolute/hidden/denied; a missing folder reads as
   empty), and the docs bundle (`search-dev-docs`, same scan bound to
   docsRoot). UI: every tree panel (vault / project / dev docs) has the
   debounced search box (`useTreeSearch` + `SearchResultsList` shared);
   results replace the tree; Esc clears.
+- The retrieval engine (CP-MVP-010 S02, ADR-013):
+  `shared/retrieval-core.ts` — PURE (no fs, no Electron, no DOM), the
+  sibling of `graph-core`. Field-aware inverted index over six views of
+  a file — title · heading · path · frontmatter · link · body — scored
+  with BM25F (`k1 1.2`, `b 0.75`, weights 3/2/2/1.8/1.5/1). Rung 1 of
+  33's ladder; no embeddings, no vector store, and deliberately no
+  SQLite (ADR-013 carries the dated thresholds that would reverse it).
+  - The tokenizer is where the vault's own shape lives: NFD folding so
+    `ethos` finds `éthos` (the exact miss that cost CP-MVP-009 S07b a
+    bench round), a one-letter part dropped ONLY in the elision
+    position (`l'éthos` → `ethos`, but `oppose-a` keeps its `a`), and
+    kebab runs indexed whole AND in parts so an ADR-011 edge label is
+    findable as written. No stemming until the S10 evaluation set has
+    an opinion.
+  - Link text, edge labels and link targets are indexed through
+    `parseEdges` — the same parser rendering and the graph index use.
+    The grammar never forks per consumer (ADR-011).
+  - The index stores counts and ordinals, never note TEXT: snippets are
+    extracted on demand from the few files a query returned
+    (`extractMatches`), which keeps the projection small and stops it
+    from becoming a second copy of the vault. Ordinals are also what
+    make `"quoted phrases"` a filter rather than a bonus.
+  - A hit carries its per-field contributions, so "why this result" is
+    computed rather than narrated — the property the S05 context packet
+    needs to stay inspectable (26/33).
+  - Deterministic by construction: `buildRetrievalIndex` sorts its
+    inputs and `serializeRetrievalIndex` sorts term keys, so a rebuild
+    from the files alone is byte-identical (03 lifecycle rule) whatever
+    order the walk produced. Round-trip pinned by test.
 - Link-click routing S04b (owner reports, same day): the shared
   note-link handler (`useVaultNote`) kills three dead-click classes —
   external http(s) links open a WEB TAB (`onOpenWebUrl`, threaded from

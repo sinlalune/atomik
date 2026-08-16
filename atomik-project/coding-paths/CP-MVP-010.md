@@ -26,6 +26,7 @@ atomik:
     - apps/desktop/tests/**
     - docs/modules/atomik-desktop-graph.md
     - docs/modules/atomik-desktop-ai.md
+    - docs/modules/atomik-desktop-vault.md
     - docs/modules/atomik-desktop.md
     - docs/learning/**
     - docs/adr/**
@@ -344,11 +345,30 @@ at every step boundary rather than at the end.
       accepted** — the engine decision that overrides CP-MVP-009's
       SQLite pin, with the dated thresholds that would reopen it. The
       pins the rest of the path executes against are in §S01 pins.
-- [ ] S02 Lexical core (pure): `shared/retrieval-core.ts` — tokenizer,
-      field-aware inverted index, BM25 ranking, phrase and exact
-      matching, snippet extraction with match spans. Dependency-free
-      and unit-tested without a DOM, the same discipline as
-      `graph-core`. The scan in `search.ts` becomes a caller of it.
+- [x] S02 Lexical core (DONE 2026-08-16): `shared/retrieval-core.ts` NEW
+      — pure, dependency-free, `graph-core`'s rules. Tokenizer (NFD
+      folding, elision-only clitic drop, kebab runs indexed whole AND in
+      parts, ordinals for phrases), six-field extraction (title ·
+      heading · path · frontmatter · link · body, link text and labels
+      read through `parseEdges` so the grammar never forks), a
+      field-aware inverted index, BM25F with the S01 weights, quoted
+      phrases as a FILTER, and `extractMatches` for snippets with
+      highlight spans. `search.ts` is now the I/O half only — same
+      contract, same caps, same channels, results ordered by score.
+      Index determinism pinned by a round-trip test (sorted inputs,
+      sorted term keys → byte-identical rebuild in any input order).
+      +20 tests (773 → 793); typecheck, tests, build green, run bare.
+      DEVIATION from the S01 pin, recorded: the pin said a one-letter
+      part is always noise; `oppose-a` proved otherwise, so the drop is
+      now elision-only. Vocabulary after a hyphen is vocabulary.
+      Two advisories answered in the ledger rather than by silence:
+      `docs/learning/index.md` is a SHARED file and the edit is
+      deliberate — 17's first-use rule requires the new note to be
+      listed, and one line at the end of a list is the cheapest
+      possible collision; and `retrieval-core.ts` draws a `shell`
+      area-note advisory only because Cairn's AREA_MAP has no retrieval
+      entry yet, which is a mapping gap fixed on the trunk in
+      CP-OPS-001 rather than by writing into the wrong note.
 - [ ] S03 Index seat + incremental maintenance + broadcast: the
       main-side retrieval index (lazy build, `.atomik/` rebuildable
       artifact, round-trip test), per-file patching on save · create ·
@@ -390,19 +410,24 @@ at every step boundary rather than at the end.
 # Current checkpoint
 
 ```text
-base commit : 2370546 (branch created at 15a115f, the activation commit)
-current step: S01 done — S02 next
-changed     : docs/adr/ADR-013-lexical-retrieval-without-a-database.md (new)
+base commit : 2370546 (rebased onto b32df20 after the trunk's cairn fix)
+current step: S02 done — S03 next
+changed     : apps/desktop/shared/retrieval-core.ts (new)
+              apps/desktop/electron-main/search.ts (now the I/O half)
+              apps/desktop/tests/retrieval-core.test.ts (new) + search.test.ts
+              docs/learning/22-lexical-retrieval-without-a-database.md (new) + index
+              docs/modules/atomik-desktop-vault.md
+              docs/adr/ADR-013-lexical-retrieval-without-a-database.md (new)
               docs/index.md (ADR range)
-              atomik-project/coding-paths/CP-MVP-010.md (S01 pins + ledger)
-tests       : 773 passing / 64 files, run bare in this worktree at
-              15a115f (the ceremony's "767" was stale by six tests —
-              CP-OPS-001 S06 landed them; reconciled here)
-next action : S02 — `shared/retrieval-core.ts`: tokenizer (folding,
-              elision, kebab parts, positions), field-aware inverted
-              index, BM25 with the pinned weights, phrase matching,
-              snippet spans; `search.ts` becomes its caller and the
-              existing search tests must stay green
+              atomik-project/coding-paths/CP-MVP-010.md
+tests       : 793 passing / 65 files (was 773/64), typecheck and build
+              green, each gate run BARE (24)
+next action : S03 — the main-side retrieval seat: lazy build, the
+              `.atomik/index/retrieval.json` rebuildable projection with
+              its round-trip test, per-file patching on save · create ·
+              delete · relocate for BOTH indexes, and the index-changed
+              broadcast to the renderer (closing-ceremony deviations 2
+              and 3; the relations strip refreshes as a side effect)
 blockers    : none
 ```
 

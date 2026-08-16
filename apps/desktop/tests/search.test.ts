@@ -24,6 +24,14 @@ beforeAll(() => {
   write('.hidden/skip.md', '# attention hidden\n')
   write('node_modules/pkg/skip.md', '# attention dep\n')
   write(
+    'ideas/credibilite.md',
+    "# La crédibilité\n\nL'éthos est la crédibilité de l'orateur.\n"
+  )
+  write(
+    'ideas/passing-mention.md',
+    '# Notes\n\nUn paragraphe qui parle de jardinage en passant.\n'
+  )
+  write(
     'many-matches.md',
     `# repeat\n${Array.from({ length: 20 }, () => 'repeat me').join('\n')}\n`
   )
@@ -102,5 +110,31 @@ describe('scoped search (project / docs perimeters)', () => {
       expect(() => resolveSearchScope(bad)).toThrow()
     }
     expect(resolveSearchScope('projects/demo')).toBe('projects/demo')
+  })
+})
+
+describe('ranked retrieval behind the same contract (CP-MVP-010 S02)', () => {
+  it('orders results by score, title matches first', () => {
+    // Both files mention "jardinage" in their text; the one whose HEADING
+    // carries it must come first. Under the old walk order the winner was
+    // whichever name sorted first.
+    const results = searchVault(vault, 'jardinage')
+    expect(results[0]!.relPath).toBe('ideas/jardin.md')
+  })
+
+  it('finds accented notes through an unaccented query (French vault)', () => {
+    expect(searchVault(vault, 'credibilite').map((r) => r.relPath)).toContain(
+      'ideas/credibilite.md'
+    )
+    expect(searchVault(vault, 'CRÉDIBILITÉ').map((r) => r.relPath)).toContain(
+      'ideas/credibilite.md'
+    )
+  })
+
+  it('treats a quoted phrase as a filter', () => {
+    expect(searchVault(vault, '"key vectors"')[0]!.relPath).toBe(
+      'attention-basics.md'
+    )
+    expect(searchVault(vault, '"vectors key"')).toEqual([])
   })
 })

@@ -113,6 +113,13 @@ when the shape changes, not on every diff.
   counter-intuitive finding that the prose a protocol forces every writer
   to touch conflicts far more than the code does. Covers CP-OPS-001
   S01–S03.
+- [22 — Lexical retrieval without a database](./22-lexical-retrieval-without-a-database.md) —
+  what a token is once you decide it (accent folding, French elision,
+  kebab labels), the inverted index as a table you could write by hand,
+  BM25's three ideas in plain arithmetic (rarity, saturation, length),
+  why the score is accumulated per FIELD so a hit can say why it won,
+  and the deferral-with-a-trigger that keeps SQLite out for now.
+  Covers CP-MVP-010 S02.
 - [23 — Multi-provider AI generation & gateway](./23-multi-provider-ai-generation-and-gateway.md) —
   how a provider-neutral `GenerationAdapter` core, OpenRouter gateway with
   Zero Data Retention, direct adapters (OpenAI, Anthropic Messages API,
