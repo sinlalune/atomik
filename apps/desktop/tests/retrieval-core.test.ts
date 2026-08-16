@@ -310,3 +310,30 @@ describe('principal subject ranking (S08e, owner bench round 7)', () => {
     expect(searchIndex(index, 'peux dire').length).toBeGreaterThan(0)
   })
 })
+
+describe('the vault names its own subjects (S08f)', () => {
+  // The case a frequency rule alone gets wrong: the subject IS a common
+  // word in this vault, because the vault is about it.
+  const CORPUS = [
+    { path: 'note.md', content: '# Note\n\nCe qu est une note dans Atomik.\n' },
+    ...Array.from({ length: 8 }, (_, index) => ({
+      path: `journal-${index}.md`,
+      content: `# Journal ${index}\n\nUne note rapide sur un sujet quelconque.\n`
+    })),
+    ...Array.from({ length: 8 }, (_, index) => ({
+      path: `other-${index}.md`,
+      content: `# Autre ${index}\n\nRien de particulier ici.\n`
+    }))
+  ]
+  const index = buildRetrievalIndex(CORPUS)
+
+  it('treats a word that NAMES a note as the subject, whatever its frequency', () => {
+    const hits = searchIndex(index, 'quest ce quune note ?')
+    expect(hits[0]!.path).toBe('note.md')
+    expect(hits[0]!.terms).toContain('note')
+  })
+
+  it('still ignores a word that names nothing and is everywhere', () => {
+    expect(commonTermsOf(index, 'une note')).toContain('une')
+  })
+})

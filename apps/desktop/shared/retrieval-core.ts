@@ -502,19 +502,31 @@ export function searchIndex(
   const average = emptyLengths()
   for (const field of RETRIEVAL_FIELDS) average[field] = index.totals[field] / docCount
 
-  // The query's own terms, by how rare each one is in THIS vault.
+  // The query's own terms, by how rare each one is in THIS vault — and
+  // by whether the vault has a NOTE NAMED after it.
   const informative = terms
     .map((term) => {
       const postings = index.terms[term]
       if (!postings) return null
       const df = new Set(postings.map((posting) => posting.doc)).size
-      return df / docCount > COMMON_TERM_SHARE ? null : { term, df }
+      // S08f: the vault's own titles are its entity list. A query word
+      // that NAMES a note is the subject of the question, whatever the
+      // statistics say — the case a frequency rule alone gets wrong is
+      // a vault ABOUT notes, asked "what is a note?", where the subject
+      // is also the commonest word in the corpus. This is the cheap,
+      // dependency-free half of what a POS tagger buys: Atomik knows
+      // its own nouns because the owner titled them.
+      const named = postings.some((posting) => posting.field === 'title')
+      if (!named && df / docCount > COMMON_TERM_SHARE) return null
+      return { term, df, named }
     })
-    .filter((entry): entry is { term: string; df: number } => entry !== null)
+    .filter(
+      (entry): entry is { term: string; df: number; named: boolean } => entry !== null
+    )
   const rarest = Math.min(...informative.map((entry) => entry.df))
   const principal = new Set(
     informative
-      .filter((entry) => entry.df <= rarest * PRINCIPAL_DF_FACTOR)
+      .filter((entry) => entry.named || entry.df <= rarest * PRINCIPAL_DF_FACTOR)
       .map((entry) => entry.term)
   )
 
@@ -531,12 +543,16 @@ export function searchIndex(
     if (!postings) continue
 
     const documents = new Set(postings.map((posting) => posting.doc))
-    // Everywhere = nowhere: a word in half the vault cannot tell two
-    // notes apart, and letting it score turns every long note into a
-    // match for every question. Below the principal share it is filler
-    // around the actual subject, and ranks nothing either.
-    if (documents.size / docCount > COMMON_TERM_SHARE) continue
-    if (principal.size > 0 && !principal.has(term)) continue
+    // The principal set already applied both rules — everywhere =
+    // nowhere, and filler around the subject ranks nothing — with the
+    // one exception that a word naming a note is never either. When
+    // NOTHING qualified, the common ceiling still holds on its own:
+    // answering with the whole vault is worse than answering nothing.
+    if (principal.size > 0) {
+      if (!principal.has(term)) continue
+    } else if (documents.size / docCount > COMMON_TERM_SHARE) {
+      continue
+    }
     const idf = Math.log(1 + (docCount - documents.size + 0.5) / (documents.size + 0.5))
 
     for (const posting of postings) {

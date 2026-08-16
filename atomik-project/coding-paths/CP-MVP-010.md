@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S08e
+  current_step: S08f
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -726,6 +726,29 @@ live, on real notes.
       +5 tests (870 → 875). Two fixtures had to grow into real vaults:
       in a five-file corpus every term looks common, which is a lesson
       about test fixtures for a statistical ranker.
+- [x] S08f THE VAULT NAMES ITS OWN SUBJECTS (2026-08-16, owner research
+      on subject-weighting algorithms — DONE same day). A query term
+      appearing in some note's TITLE is principal whatever its
+      frequency. The df rule alone gets one case badly wrong: a vault
+      ABOUT notes, asked "what is a note?", where the subject is also
+      the commonest word in the corpus. The vault's titles ARE its
+      entity list — the owner named them — so the dependency-free half
+      of what a POS tagger buys is already in the index.
+      DECIDED AGAINST, with reasons (owner shared an LLM survey of
+      dependency parsing / POS tagging / SPLADE / attention):
+      • a syntactic parser (spaCy, Stanza) means a Python runtime plus
+        per-language models in an app with zero native dependencies
+        (15, ADR-013), for a gain nothing has measured;
+      • the survey's own point 2 concedes that BM25 already downweights
+        common words through document frequency — which is exactly the
+        rule this path implements, in the corpus's own statistics
+        rather than in grammar;
+      • SPLADE and attention-based weighting are the embedding rung,
+        which 33 and ADR-007 forbid before the lexical baseline is
+        evaluated. Recorded for M9's local-embedding experiment.
+      Where a parser WOULD win, recorded so S10 can measure it: word
+      order ("Plato's influence on Kant"), and subjects that are common
+      words the vault never titled. +2 tests (875 → 877).
 - [ ] S09 Search surface + diagnostics: ranked results with kind pills
       and "why this result", the packet disclosure, and the vault-wide
       broken-links list docked there.
@@ -745,7 +768,7 @@ live, on real notes.
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S08e done (owner bench rounds 1–7 absorbed) — S09 next
+current step: S08f done (owner bench rounds 1–7 + the subject-weighting research absorbed) — S09 next
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts
@@ -757,7 +780,7 @@ changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               docs/learning/22-lexical-retrieval-without-a-database.md + index
               docs/adr/ADR-013-lexical-retrieval-without-a-database.md
               docs/index.md · atomik-project/coding-paths/CP-MVP-010.md
-tests       : 875 passing / 71 files (this path added 87 so far),
+tests       : 877 passing / 71 files (this path added 89 so far),
               typecheck and build green, each gate run BARE (24)
 next action : S09 — the search surface: ranked results with kind pills
               and "why this result", the packet disclosure, and the

@@ -44,6 +44,19 @@ timestamp: 2026-08-14T00:00:00Z
   with BM25F (`k1 1.2`, `b 0.75`, weights 3/2/2/1.8/1.5/1). Rung 1 of
   33's ladder; no embeddings, no vector store, and deliberately no
   SQLite (ADR-013 carries the dated thresholds that would reverse it).
+  - THE VAULT NAMES ITS OWN SUBJECTS (S08f): a query term that appears
+    in some note's TITLE is principal whatever the statistics say. The
+    frequency rule alone gets one case badly wrong — a vault ABOUT
+    notes, asked "what is a note?", where the subject is also the
+    commonest word in the corpus. This is the cheap, dependency-free
+    half of what a POS tagger would buy: Atomik knows its own nouns
+    because the owner titled them, so the entity list is the vault
+    itself rather than a language model. Recorded against the
+    alternative (spaCy/Stanza dependency parsing, owner research
+    2026-08-16): a parser is a Python runtime plus per-language models
+    for a gain nothing has measured yet, and 33's ladder is explicit
+    that a heavier stage earns its place with numbers — which is what
+    S10's evaluation set is for.
   - THE SUBJECT IS WHAT IS RARE (S08e, owner bench round 7: "still a lot
     word noise, maybe use fast principal subject ranking algo?"). "Que
     peux tu me dire de platon (Plato) ?" is one question about one
