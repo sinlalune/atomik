@@ -6,7 +6,7 @@ tags: [coding-path, feedback, chat, notes, web, metadata, links, ui]
 timestamp: 2026-08-16T00:00:00Z
 atomik:
   id: CP-FEEDBACK
-  status: running
+  status: done
   current_step: S06
   base_commit: b32df20
   branch: path/cp-feedback
@@ -49,7 +49,9 @@ atomik:
     - atomik-project/sessions/
     - atomik-project/sessions/2026-08-16-cp-feedback-closing-ceremony.md
     - atomik-project/audits/
+    - atomik-project/audits/cp-feedback-583b4f6.md
     - atomik-project/log/
+    - atomik-project/log/2026-08-16-cp-feedback.md
 ---
 
 # Goal
@@ -169,7 +171,7 @@ are recorded in
 - [x] S05 Distinct web-source pills: extend the canonical link kind and editor
       decoration with focused graph/live-preview tests, update graph/editor
       notes, and checkpoint the ledger.
-- [ ] S06 Integrated bench + closure: run responsive, keyboard, theme, reload,
+- [x] S06 Integrated bench + closure: run responsive, keyboard, theme, reload,
       and navigation benches; complete owner acceptance and closing ceremony;
       rebase, run bare gates, produce the coherence audit and journal entry,
       mark the path done, and self-merge.
@@ -178,32 +180,34 @@ are recorded in
 
 ```text
 base commit : b32df20
-trunk pin   : f9ed012 (rebased before source work; CP-PROVIDERS is integrated)
+trunk pin   : f9ed012 (final rebase confirmed immediately before the full gate)
 changed     : S02 flat assistant presentation/a11y; S03 real quick-note action,
               blank file + one-time H1 naming lifecycle, including source-tree
               placement guard found by the closing audit; S04 sanitized page
               title identity; S05 canonical web-source kind + distinct read,
               live, relations, visual, and accessible pill treatment; S06
               owner delta adds safe address-or-Google-search omnibox behavior
-tests       : post-delta full gate PASS — cairn, typecheck, 807/807 tests
+tests       : final post-rebase bare gate PASS — cairn, typecheck, 807/807 tests
               (68 files), production build; omnibox/web focused 18/18 PASS;
               source-placement focused quick-note suite 9/9 PASS
-next action : accepted verbatim; commit audit preflight correction, regenerate
-              the head-pinned audit, journal, done,
-              self-merge, then open CP-LANGUAGE-NOTES
-blockers    : none; CP-MVP-010 remains active across chat/editor/vault/graph,
-              so rebase and overlap checks continue at step boundaries
+next action : self-merge path/cp-feedback into master, regenerate ACTIVE on
+              trunk, then run the CP-LANGUAGE-NOTES opening check
+blockers    : none; coherence audit verdict is “drift noted, proceeding” —
+              CP-MVP-010 owns reconciliation of its overlapping chat, style,
+              graph, test, and module-note files when it next rebases
 scope note  : S04 widened to renderer/src/web/urls.ts after the shared pure
               title/fallback policy was discovered as the maintainable seam;
               S05 names the exact read/live editor consumers discovered behind
               the already-declared editor directory (Cairn matches exact paths);
               closing owner feedback widened to the focused web-urls regression;
-              closing ceremony exact path added for Cairn's file matcher
+              closing ceremony exact path added for Cairn's file matcher;
+              closing adds exact audit/journal paths for the same matcher
 bench       : isolated /tmp fixture opens context-link and chat panes together;
               owner checks responsive/theme/keyboard/reload/web navigation and
               a plain-text Google query in the hot-reloaded web omnibox
 ceremony    : accepted — sessions/2026-08-16-cp-feedback-closing-ceremony.md;
               carried order = LANGUAGE-NOTES → OPEN-DOCK → PDF-READER
+audit       : audits/cp-feedback-583b4f6.md — drift noted, proceeding
 ```
 
 # Blockers
