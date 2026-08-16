@@ -1402,9 +1402,12 @@ body[data-maximized] .tabstrip {
    contained; the assistant is the reading surface itself — flat, full-width,
    and led from the pane's left edge. */
 .chat-turn.role-you {
-  align-self: flex-start;
-  /* right-aligned INSIDE the reading column, not against the pane */
-  margin-inline-start: auto;
+  align-self: flex-end;
+  /* flex-end aligns to the container's edge; the end margin then pulls
+     the bubble back INSIDE the reading column, so a question sits above
+     the answer it belongs to rather than out at the pane's edge. The
+     alignment CP-FEEDBACK S02 chose is preserved — only the column it
+     aligns within changes. */
   margin-inline-end: max(0px, 100% - var(--chat-measure));
   max-width: min(85%, var(--chat-measure));
   border: 1px solid var(--border);

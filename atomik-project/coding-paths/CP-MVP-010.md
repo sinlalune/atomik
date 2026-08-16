@@ -882,7 +882,10 @@ live, on real notes.
       user's bubble was bounded by the PANE, so on a wide pane a
       question floated far right of the answer it belongs to.
       `--chat-measure` bounds both now, and the bubble is right-aligned
-      INSIDE that column.
+      INSIDE that column. First attempt swapped `align-self` and broke
+      CP-FEEDBACK S02's contract test; the fix keeps their alignment and
+      moves the bubble with an end margin instead. Two paths sharing one
+      stylesheet is exactly where a contract test earns its keep.
       (2) the outline "leave a blank space on top of the numbered pill"
       — `vertical-align: super` grows the LINE BOX. A relative lift sits
       in the same place without touching line height.
