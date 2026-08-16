@@ -68,13 +68,31 @@ timestamp: 2026-08-14T00:00:00Z
     one EXACTLY earns `source-backed` through the ordinary containment
     rule (28) — retrieval still asserts nothing about truth, only that
     the sentence stands on that note.
-  - UI: a `vault` toggle in the chat composer (session state like the
-    model drafts beside it — a preference for the next sends, never
-    knowledge) plus a packet strip that shows, per entry, the STAGE that
-    found it and why, the omissions summarized by reason, and the words
-    the vault has no material for. `preview` compiles the packet for the
-    current draft without sending — the same channel, so what you
-    inspect is what the send would compile.
+  - UI, reshaped at S07b on the owner's first bench ("it seems that the
+    packet information surface is emerging on the chat input ui when it
+    is a message bounded information no? Also it is accessible but
+    after sending the message, is that normal?"). Both halves of that
+    report were right, and they have the same root: a packet is
+    compiled for ONE message, so the composer — which is about the NEXT
+    message — is the wrong home for it.
+    - The TOGGLE stays in the composer: it is a preference for the next
+      sends (session state, like the model drafts beside it).
+    - The USED packet moved onto the turn it grounded, as a `vault N
+      notes · ~T` pill in that turn's request breakdown, beside
+      `system` / `your message` / `template`. It opens under the pills:
+      each entry with the STAGE that found it (hover explains the rung
+      in 33's vocabulary), its reason, the omissions summarized by
+      reason, and the words the vault had nothing for. The COUNT
+      persists in the transcript's sent meta like the other figures;
+      the detail is session-live, exactly like `copy request`.
+    - The composer keeps only a FORWARD preview: `preview` compiles the
+      packet for the draft as typed and labels it "next send". It is
+      dismissible and clears itself on send, because after the send it
+      would be describing the past again.
+    - The lesson generalizes: derived information inherits the SCOPE of
+      what derived it. A packet belongs to a message the way a claim
+      belongs to an answer — putting it beside the composer made the
+      chat's own timeline lie about when it happened.
 - RETRIEVAL traces (CP-MVP-010 S06): `recordRetrieval` appends one
   `action: 'retrieve'` line per compiled context packet — stages,
   candidates, selected entries, estimated context tokens, wallMs,

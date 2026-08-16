@@ -25,6 +25,7 @@ export type RequestPartKind =
   | 'document'
   | 'note-context'
   | 'template'
+  | 'vault'
 
 export type RequestPart = {
   kind: RequestPartKind
@@ -56,7 +57,9 @@ export const PART_DESCRIPTIONS: Record<RequestPartKind, string> = {
   document: 'an added document/selection, quotable reference material',
   'note-context': 'note excerpts around the landing point, so an insert integrates',
   template:
-    'the fixed request scaffolding around your message and context — section headings, steps, and quoting rules the app always sends'
+    'the fixed request scaffolding around your message and context — section headings, steps, and quoting rules the app always sends',
+  vault:
+    'notes retrieved from your vault for THIS message — click the pill to see which ones, why each was chosen, and what was left out'
 }
 
 const estimateTokens = (chars: number): number =>

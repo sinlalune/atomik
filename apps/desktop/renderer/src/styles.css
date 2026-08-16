@@ -3871,6 +3871,21 @@ button svg {
   opacity: 0.85;
 }
 
+/* The vault pill is a BUTTON: its packet opens under the turn. */
+.chat-request-pill.kind-vault {
+  border-color: color-mix(in srgb, var(--ok-border) 70%, var(--accent));
+}
+
+.chat-request-pill-open {
+  cursor: pointer;
+}
+
+.chat-request-pill-open:hover,
+.chat-request-pill-open[aria-expanded='true'] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 .chat-request-copy {
   font: inherit;
   font-size: var(--fs-xs);
@@ -5275,10 +5290,12 @@ button svg {
   color: var(--ok-fg);
 }
 
-/* Vault grounding packet (CP-MVP-010 S07) — what retrieval put in front
-   of the model, sitting between the draft and the send verb because
-   that is where it is decided. Ambient enough to ignore, per 36's
-   quiet-chrome rule; the detail opens on demand. */
+/* Vault grounding packet (CP-MVP-010 S07, reshaped at S07b on the
+   owner's bench: "it is a message bounded information"). A packet was
+   compiled for ONE message, so its detail hangs under that message's
+   request pills. Only the forward-looking PREVIEW of the next send
+   lives in the composer. Ambient enough to ignore (36's quiet chrome);
+   the detail opens on demand. */
 .chat-packet {
   display: flex;
   flex-direction: column;
@@ -5295,8 +5312,14 @@ button svg {
   flex-wrap: wrap;
 }
 
+.chat-packet-preview {
+  border-top: 1px dashed var(--border);
+  padding-top: var(--space-1);
+}
+
 .chat-packet-gap {
   color: var(--warn-fg);
+  margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }

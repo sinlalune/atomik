@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S07
+  current_step: S07b
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -28,6 +28,7 @@ atomik:
     - apps/desktop/renderer/src/workspace/PaneTreePanel.tsx
     - apps/desktop/renderer/src/vault/**
     - apps/desktop/renderer/src/workspace/ChatView.tsx
+    - apps/desktop/renderer/src/editor/request-breakdown.ts
     - apps/desktop/renderer/src/styles.css
     - apps/desktop/renderer/src/editor/**
     - apps/desktop/tests/**
@@ -510,6 +511,21 @@ live, on real notes.
       earns `source-backed` through the ordinary containment rule (28).
       Retrieval still asserts nothing about truth — only that the
       sentence stands on that note. +4 tests (842 → 846).
+- [x] S07b PACKET SCOPE (owner bench round 1, 2026-08-16 — DONE same
+      day): *"it seems that the packet information surface is emerging
+      on the chat input ui when it is a message bounded information no?
+      Also it is accessible but after sending the message, is that
+      normal?"* Both halves right, one root cause: the composer is
+      about the NEXT message, and a packet was compiled for ONE past
+      message. The used packet moved onto its own turn as a `vault N
+      notes · ~T` pill in that turn's request breakdown (opens to the
+      entries with their stage, reasons, omissions and missing terms;
+      the count persists in sent meta, the detail stays session-live
+      like `copy request`). The composer keeps the toggle — a
+      preference for the next sends — plus a FORWARD preview labelled
+      "next send", dismissible, cleared on send. Rule recorded in the
+      module note: derived information inherits the scope of what
+      derived it.
 - [ ] S08 Citations: phrase-level links where the model emits them,
       numbered markers otherwise, a sources block under the answer,
       every marker a CP-MVP-009 pill that opens its note; unresolved
@@ -533,7 +549,7 @@ live, on real notes.
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S07 done — S08 next
+current step: S07b done (owner bench round 1 absorbed) — S08 next
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts

@@ -120,6 +120,14 @@ import { CHAT_LOG_A11Y } from './chat-presentation'
 
 type Dispatch = (operation: (state: WorkspaceState) => WorkspaceState) => void
 
+/** What each retrieval stage IS — hover copy, in the vocabulary of
+ *  33's ladder rather than the code's. */
+const STAGE_DESCRIPTIONS: Record<string, string> = {
+  direct: 'you already had it open, pinned or selected — nothing was searched for it',
+  lexical: 'the words of your message were found in this note',
+  link: 'no word matched: a typed edge from a matching note led here'
+}
+
 /** "3 by budget, 1 already open" — the omissions as one readable line
  *  (26 asks for them by reason, not as a dump). */
 function summarizeOmissions(
@@ -277,14 +285,16 @@ export function ChatView({
   const [running, setRunning] = useState(false)
   const [engine, setEngine] = useState('…')
   const [genDrafts, setGenDrafts] = useState(defaultGenOptionDrafts)
-  // CP-MVP-010 S07: vault grounding. Session state like the model
-  // drafts beside it — a preference for the next sends, never
-  // knowledge (03). `packet` holds what the LAST send actually stood
-  // on, or a preview of what the next one would.
+  // CP-MVP-010 S07: vault grounding. The TOGGLE is a preference for the
+  // next sends and belongs to the composer (session state, like the
+  // model drafts beside it). A PACKET is not: it was compiled for one
+  // message, so it belongs to that message's turn (S07b, owner bench:
+  // "it is a message bounded information"). The composer holds only a
+  // forward-looking preview of what the NEXT send would retrieve.
   const [grounding, setGrounding] = useState(false)
-  const [packet, setPacket] = useState<ContextPacket | null>(null)
-  const [packetIsPreview, setPacketIsPreview] = useState(false)
-  const [packetOpen, setPacketOpen] = useState(false)
+  const [preview, setPreview] = useState<ContextPacket | null>(null)
+  const packetByTurn = useRef(new Map<number, ContextPacket>())
+  const [openPacketTurn, setOpenPacketTurn] = useState<number | null>(null)
   const [tree, setTree] = useState<VaultFolder | null>(null)
   const [atMenu, setAtMenu] = useState<{
     start: number
@@ -436,6 +446,9 @@ export function ChatView({
     loadedRef.current = file
     metaByTurn.current.clear()
     breakdownByTurn.current.clear()
+    packetByTurn.current.clear()
+    setPreview(null)
+    setOpenPacketTurn(null)
     if (!file) {
       setTurns([])
       return
@@ -653,6 +666,7 @@ export function ChatView({
           await persistTurn('you', text)
           setTurns((current) => [...current, { role: 'you', text }])
           setInput('')
+          setPreview(null) // the preview described the message just sent
           setAtMenu(null)
           persisted = true
         }
@@ -739,6 +753,7 @@ export function ChatView({
           await persistTurn('you', text)
           setTurns((current) => [...current, { role: 'you', text }])
           setInput('')
+          setPreview(null) // the preview described the message just sent
           setAtMenu(null)
         }
 
@@ -755,8 +770,8 @@ export function ChatView({
           try {
             const result = await window.atomik.runAiOperation(operation)
             if (result.contextPacket) {
-              setPacket(result.contextPacket)
-              setPacketIsPreview(false)
+              // the packet belongs to the YOU turn it was compiled for
+              packetByTurn.current.set(priorTurns.length, result.contextPacket)
             }
             const answer =
               result.blocks.find((block) => block.role === 'answer')?.content ??
@@ -764,7 +779,27 @@ export function ChatView({
               ''
             // S07b10: the you-turn's breakdown persists with the answer;
             // S07b16: so do the answer's own measured metrics
-            const sentParts = breakdownByTurn.current.get(priorTurns.length)?.parts
+            const baseParts = breakdownByTurn.current.get(priorTurns.length)?.parts
+            const usedPacket = packetByTurn.current.get(priorTurns.length)
+            // The retrieved notes were part of what was SENT, so they
+            // join the request breakdown of the turn that sent them —
+            // figures persist with the transcript, the packet's detail
+            // stays session-live like the full request text.
+            const sentParts =
+              baseParts && usedPacket && usedPacket.entries.length > 0
+                ? [
+                    ...baseParts,
+                    {
+                      kind: 'vault' as const,
+                      label: `vault ${usedPacket.entries.length} notes`,
+                      chars: usedPacket.entries.reduce(
+                        (sum, entry) => sum + entry.excerpt.length,
+                        0
+                      ),
+                      tokensEst: usedPacket.retrieval.contextTokens
+                    }
+                  ]
+                : baseParts
             const runMeta = serializeRunMeta({
               ...(result.usage
                 ? {
@@ -1219,15 +1254,38 @@ export function ChatView({
               />
               {sentParts && (
                 <div className="chat-request-pills">
-                  {sentParts.map((part, partIndex) => (
-                    <span
-                      key={partIndex}
-                      className={`chat-request-pill kind-${part.kind}`}
-                      title={`${PART_DESCRIPTIONS[part.kind as RequestPartKind] ?? part.kind} · ${part.chars} chars · ~${part.tokensEst} tokens (estimated)`}
-                    >
-                      {part.label} <b>~{part.tokensEst}</b>
-                    </span>
-                  ))}
+                  {sentParts.map((part, partIndex) => {
+                    const packet =
+                      part.kind === 'vault'
+                        ? packetByTurn.current.get(index)
+                        : undefined
+                    const title = `${PART_DESCRIPTIONS[part.kind as RequestPartKind] ?? part.kind} · ${part.chars} chars · ~${part.tokensEst} tokens (estimated)`
+                    // The vault pill OPENS: the packet was compiled for
+                    // this message, so its detail belongs here and
+                    // nowhere else (S07b, owner bench).
+                    return packet ? (
+                      <button
+                        key={partIndex}
+                        type="button"
+                        className={`chat-request-pill kind-${part.kind} chat-request-pill-open`}
+                        aria-expanded={openPacketTurn === index}
+                        title={title}
+                        onClick={() =>
+                          setOpenPacketTurn((open) => (open === index ? null : index))
+                        }
+                      >
+                        {part.label} <b>~{part.tokensEst}</b>
+                      </button>
+                    ) : (
+                      <span
+                        key={partIndex}
+                        className={`chat-request-pill kind-${part.kind}`}
+                        title={title}
+                      >
+                        {part.label} <b>~{part.tokensEst}</b>
+                      </span>
+                    )
+                  })}
                   {live && (
                     // the full text exists only for THIS session's
                     // sends — figures persist, prompts never do
@@ -1245,6 +1303,48 @@ export function ChatView({
                   )}
                 </div>
               )}
+              {openPacketTurn === index &&
+                (() => {
+                  const packet = packetByTurn.current.get(index)
+                  if (!packet) return null
+                  return (
+                    <div className="chat-packet">
+                      {packet.coverage.missingTerms.length > 0 && (
+                        <p className="chat-packet-gap">
+                          not in the vault: {packet.coverage.missingTerms.join(', ')}
+                        </p>
+                      )}
+                      <ul className="chat-packet-list">
+                        {packet.entries.map((entry) => (
+                          <li key={entry.path}>
+                            <span
+                              className={`chat-packet-stage stage-${entry.stage}`}
+                              title={STAGE_DESCRIPTIONS[entry.stage]}
+                            >
+                              {entry.stage}
+                            </span>
+                            <button
+                              type="button"
+                              className="chat-packet-note"
+                              title={entry.path}
+                              onClick={() =>
+                                dispatch((state) => revealNote(state, paneId, entry.path))
+                              }
+                            >
+                              {entry.title}
+                            </button>
+                            <span className="chat-packet-why">{entry.reason}</span>
+                          </li>
+                        ))}
+                        {packet.omitted.length > 0 && (
+                          <li className="chat-packet-omitted">
+                            left out: {summarizeOmissions(packet.omitted)}
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  )
+                })()}
             </article>
           )
         })}
@@ -1531,88 +1631,53 @@ export function ChatView({
               </div>
             )}
           </span>
-          {grounding && (
-            <div className="chat-packet">
-              {/* CP-MVP-010 S07: what retrieval put in front of the
-                  model — before the send as a PREVIEW, after it as
-                  what the answer actually stood on. 26/33: a packet
-                  that could not be inspected would be a prompt with
-                  extra steps. */}
+          {grounding && preview !== null && (
+            // Forward-looking ONLY: what the NEXT send would retrieve
+            // for the draft as typed. What a PAST send actually used
+            // lives on its own turn, above.
+            <div className="chat-packet chat-packet-preview">
               <div className="chat-packet-head">
-                <button
-                  type="button"
-                  className="chat-tool"
-                  aria-expanded={packetOpen}
-                  disabled={packet === null}
-                  onClick={() => setPacketOpen((open) => !open)}
-                  title={
-                    packet === null
-                      ? 'Nothing retrieved yet — preview, or send a message'
-                      : 'What the vault contributed'
-                  }
-                >
-                  {packet === null
-                    ? 'no packet yet'
-                    : `${packetIsPreview ? 'preview' : 'grounded'} · ${
-                        packet.entries.length
-                      } notes · ~${packet.retrieval.contextTokens} tok`}
-                </button>
-                {packet !== null && packet.coverage.missingTerms.length > 0 && (
-                  <span
-                    className="chat-packet-gap"
-                    title="The vault has no material for these words — a future path can go and look them up"
-                  >
-                    not in the vault: {packet.coverage.missingTerms.join(', ')}
+                <span>
+                  next send · {preview.entries.length} notes · ~
+                  {preview.retrieval.contextTokens} tok
+                </span>
+                {preview.coverage.missingTerms.length > 0 && (
+                  <span className="chat-packet-gap">
+                    not in the vault: {preview.coverage.missingTerms.join(', ')}
                   </span>
                 )}
                 <button
                   type="button"
                   className="chat-tool"
-                  disabled={input.trim().length === 0 || running}
-                  title="Compile the packet for the current draft, without sending"
-                  onClick={() => {
-                    void window.atomik
-                      .compileContextPacket({ query: input.trim() })
-                      .then((next) => {
-                        setPacket(next)
-                        setPacketIsPreview(true)
-                        setPacketOpen(true)
-                      })
-                      .catch(() => {
-                        /* a failed preview must never block the send */
-                      })
-                  }}
+                  title="Dismiss this preview"
+                  onClick={() => setPreview(null)}
                 >
-                  preview
+                  dismiss
                 </button>
               </div>
-              {packetOpen && packet !== null && (
-                <ul className="chat-packet-list">
-                  {packet.entries.map((entry) => (
-                    <li key={entry.path}>
-                      <span className={`chat-packet-stage stage-${entry.stage}`}>
-                        {entry.stage}
-                      </span>
-                      <button
-                        type="button"
-                        className="chat-packet-note"
-                        title={entry.path}
-                        onClick={() =>
-                          dispatch((state) => revealNote(state, paneId, entry.path))
-                        }
-                      >
-                        {entry.title}
-                      </button>
-                      <span className="chat-packet-why">{entry.reason}</span>
-                    </li>
-                  ))}
-                  {packet.omitted.length > 0 && (
-                    <li className="chat-packet-omitted">
-                      left out: {summarizeOmissions(packet.omitted)}
-                    </li>
-                  )}
-                </ul>
-              )}
+              <ul className="chat-packet-list">
+                {preview.entries.map((entry) => (
+                  <li key={entry.path}>
+                    <span
+                      className={`chat-packet-stage stage-${entry.stage}`}
+                      title={STAGE_DESCRIPTIONS[entry.stage]}
+                    >
+                      {entry.stage}
+                    </span>
+                    <button
+                      type="button"
+                      className="chat-packet-note"
+                      title={entry.path}
+                      onClick={() =>
+                        dispatch((state) => revealNote(state, paneId, entry.path))
+                      }
+                    >
+                      {entry.title}
+                    </button>
+                    <span className="chat-packet-why">{entry.reason}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
           <div className="chat-card-foot">
@@ -1636,19 +1701,37 @@ export function ChatView({
               className="chat-tool"
               title={
                 grounding
-                  ? 'Vault grounding ON — every send retrieves notes first; the packet is shown below'
+                  ? 'Vault grounding ON — every send retrieves notes first; what each send used is shown on its own turn'
                   : 'Ground the next sends in the vault: retrieve related notes before answering'
               }
               aria-pressed={grounding}
               aria-label="Vault grounding"
               onClick={() => {
                 setGrounding((on) => !on)
-                setPacketOpen(false)
+                setPreview(null)
               }}
             >
               <BookIcon /> vault
               {grounding && <span className="chat-sys-badge">on</span>}
             </button>
+            {grounding && (
+              <button
+                type="button"
+                className="chat-tool"
+                disabled={input.trim().length === 0 || running}
+                title="See what the NEXT send would retrieve, without sending"
+                onClick={() => {
+                  void window.atomik
+                    .compileContextPacket({ query: input.trim() })
+                    .then(setPreview)
+                    .catch(() => {
+                      /* a failed preview must never block the send */
+                    })
+                }}
+              >
+                preview
+              </button>
+            )}
             <button
               type="button"
               className="chat-tool chat-tool-model"
