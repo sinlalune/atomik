@@ -22,6 +22,7 @@ import {
   classifyLinkKind,
   edgeSentence,
   firstHeadingOf,
+  linkKindDescription,
   pillDisplayText,
   resolveRelativeTarget,
   resolveWikiTarget,
@@ -446,9 +447,16 @@ class LinkPillWidget extends WidgetType {
     text.className = 'pill-text'
     text.textContent = this.text
     pill.appendChild(text)
-    pill.title = this.broken
+    const kindDescription = linkKindDescription(this.kind)
+    if (kindDescription !== null) {
+      pill.setAttribute('aria-description', kindDescription)
+    }
+    const actionTitle = this.broken
       ? `unresolved: ${this.text} — click to edit`
       : `${this.follow?.target ?? this.text} — right-click to edit`
+    pill.title = kindDescription
+      ? `${kindDescription} — ${actionTitle}`
+      : actionTitle
     if (this.follow) {
       const target = this.follow
       pill.addEventListener('mousedown', (event) => {
@@ -531,6 +539,10 @@ class LinkPillWidget extends WidgetType {
     wrap.classList.add('edge-widget--editing')
     const pill = document.createElement('span')
     pill.className = `link-pill link-pill--${this.kind} link-pill--editing`
+    const kindDescription = linkKindDescription(this.kind)
+    if (kindDescription !== null) {
+      pill.setAttribute('aria-description', kindDescription)
+    }
     const text = document.createElement('span')
     text.className = 'pill-text'
     text.textContent = this.text

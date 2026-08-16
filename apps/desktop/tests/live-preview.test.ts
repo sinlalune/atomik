@@ -422,9 +422,14 @@ describe('semantic edges in live (CP-MVP-009 S04 + S04b read parity)', () => {
   })
 
   it('pills untyped md links too — read parity (S04b owner ruling)', () => {
-    const doc = '[paper](x.md) and [w](https://a.b)\nnext'
+    const doc =
+      '[paper](x.md), [saved](sources/web/a/source.md), and [w](https://a.b)\nnext'
     const away = edges(decorate(doc, doc.length))
-    expect(away.map((d) => d.edgeKind)).toEqual(['note', 'web'])
+    expect(away.map((d) => d.edgeKind)).toEqual([
+      'note',
+      'web-source',
+      'web'
+    ])
   })
 
   it('leaves hash links un-pilled, like read', () => {

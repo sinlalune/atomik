@@ -108,6 +108,10 @@ timestamp: 2026-08-14T00:00:00Z
   complete URL stays visible as secondary/tooltip information and as the
   focused address input. A pushed empty title deliberately overwrites stale
   state, so navigation to an untitled page falls back honestly.
+  CP-FEEDBACK S05 is deliberately shell-neutral: the additive `web-source`
+  graph kind changes shared renderer classification and pill presentation, but
+  no workspace view id, tab param, opening route, IPC channel, or preload
+  authority. Raw web links and captured dossiers keep their existing doors.
 - The Dev Docs tab (16 MVP slice): grouped docs tree + rendered Markdown
   with the bedrock diagrams inlined as SVG data URIs, reading the real
   files under `docs/`. `electron-main/dev-docs.ts` holds the pure logic —

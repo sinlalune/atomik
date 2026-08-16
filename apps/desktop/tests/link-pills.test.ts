@@ -3,15 +3,22 @@
  * wikilink resolution, and the post-render decoration swap.
  */
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
 import {
   classifyLinkKind,
   decorateLinkTitles,
   decorateWikiLinks,
   firstHeadingOf,
+  linkKindDescription,
   pillDisplayText,
   resolveWikiTarget
 } from '../renderer/src/editor/link-pills'
 import { noteMarkdown } from '../renderer/src/editor/note-markdown'
+
+const STYLES = readFileSync(
+  new URL('../renderer/src/styles.css', import.meta.url),
+  'utf8'
+)
 
 describe('classifyLinkKind', () => {
   it('derives the node kind from the target string', () => {
@@ -21,12 +28,25 @@ describe('classifyLinkKind', () => {
     expect(classifyLinkKind('prompts/tone.md')).toBe('prompt')
     expect(classifyLinkKind('../sources/pdf/x/source.md')).toBe('pdf')
     expect(classifyLinkKind('../sources/pdf/x/source.md#page=3')).toBe('pdf-anchor')
-    expect(classifyLinkKind('sources/web/x/source.md')).toBe('web')
+    expect(classifyLinkKind('sources/web/x/source.md')).toBe('web-source')
     expect(classifyLinkKind('sources/captures/x/source.md')).toBe('capture')
     expect(classifyLinkKind('x/source.md')).toBe('source')
     expect(classifyLinkKind('https://example.org')).toBe('web')
     expect(classifyLinkKind('img/shot.png')).toBe('media')
     expect(classifyLinkKind('doc.pdf')).toBe('pdf')
+  })
+
+  it('names raw web destinations and durable captures distinctly', () => {
+    expect(linkKindDescription('web')).toBe('External web link')
+    expect(linkKindDescription('web-source')).toBe('Captured web source')
+  })
+
+  it('gives captured web sources a themed colour and non-colour icon cue', () => {
+    expect(STYLES).toMatch(/--kind-web-source:\s*light-dark\(/)
+    expect(STYLES).toContain(
+      '.link-pill--web-source { --pill-kind: var(--kind-web-source); }'
+    )
+    expect(STYLES).toMatch(/\.link-pill--web-source::before \{ mask-image:/)
   })
 
   it('returns null for non-edge targets (plain rendering)', () => {
@@ -71,6 +91,28 @@ describe('decorateWikiLinks', () => {
     expect(out).toContain('data-rel="chats/2026-08-03/my chat.md"')
     expect(out).toContain('link-pill--chat')
     expect(out).not.toContain('link-pill--note')
+  })
+
+  it('resolved web-source: gains its durable kind and accessible cue', () => {
+    const html = md.render('[[captured page]]')
+    const out = decorateWikiLinks(
+      html,
+      () => 'sources/web/captured-page/source.md'
+    )
+    expect(out).toContain('link-pill--web-source')
+    expect(out).toContain('aria-description="Captured web source"')
+  })
+
+  it('read pills distinguish a capture from its external destination', () => {
+    const out = md.render(
+      '[saved](sources/web/page/source.md) and [live](https://example.org)'
+    )
+    expect(out).toMatch(
+      /link-pill--web-source[^>]*aria-description="Captured web source"/
+    )
+    expect(out).toMatch(
+      /link-pill--web[^>]*aria-description="External web link"/
+    )
   })
 
   it('unresolved: gains the broken diagnostic modifier, no data-rel', () => {

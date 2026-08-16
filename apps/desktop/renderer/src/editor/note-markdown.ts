@@ -1,6 +1,6 @@
 import MarkdownIt from 'markdown-it'
 import { matchDecorationAt, matchWikilinkAt, type EdgeDecoration } from '../../../shared/edge-grammar'
-import { classifyLinkKind } from './link-pills'
+import { classifyLinkKind, linkKindDescription } from './link-pills'
 
 /**
  * The ONE note renderer (CP-MVP-008 S05g, owner: "task list doesnt
@@ -164,7 +164,11 @@ function semanticEdges(md: MarkdownIt): void {
       token.attrGet('data-wiki') !== null
         ? 'note'
         : classifyLinkKind(token.attrGet('href') ?? '')
-    if (kind !== null) token.attrJoin('class', `link-pill link-pill--${kind}`)
+    if (kind !== null) {
+      token.attrJoin('class', `link-pill link-pill--${kind}`)
+      const description = linkKindDescription(kind)
+      if (description !== null) token.attrSet('aria-description', description)
+    }
     return self.renderToken(tokens, idx, options)
   }
 }

@@ -124,3 +124,20 @@ timestamp: 2026-08-14T00:00:00Z
   truncated to "Curlew s… | snapshot". A neighbour of the CENTRE's own
   bundle now shows its form alone — the centre already says which
   source you are in.
+
+## External web edges versus captured web sources (CP-FEEDBACK S05)
+
+- `classifyLinkKind` remains the one shared classifier, but no longer folds two
+  different nodes into `web`: a raw `http(s)` target is `web`; any durable form
+  under `sources/web/` is `web-source`. Because the index is a rebuildable
+  projection, reopening/rebuilding upgrades existing nodes without editing one
+  byte of authored Markdown or migrating durable truth.
+- The difference is presentation/classification, not evidence semantics. A raw
+  URL still uses the web door; a local dossier/form still uses its existing
+  note/source door. Relations nodes and kind filters inherit the additive kind
+  through their unforked `link-pill--${kind}` recipe.
+- The renderer deliberately makes the cue redundant: external web keeps the
+  blue globe; a capture gets its own light/dark green token and saved-document
+  icon. Read anchors and live widgets also share `linkKindDescription`, exposing
+  “External web link” versus “Captured web source” as accessible description
+  (and in live's hover title), so colour is never the only distinction.

@@ -62,3 +62,16 @@ timestamp: 2026-08-14T00:00:00Z
   narrow host notification only for the provisional tab lifecycle; Workspace
   decides whether the first H1 names the file. A failed/conflicting save can
   never trigger a rename, and the editor gains no filesystem authority.
+
+## Web-link pill identity (CP-FEEDBACK S05)
+
+- Read and live still ask the shared `graph-core` classifier; neither surface
+  guesses from its own markup. Raw `http(s)` links render as `web`, while links
+  resolved under `sources/web/` render as the additive `web-source` kind.
+- The common pill recipe now gives a capture a saved-document icon and its own
+  light/dark token instead of the external globe/blue treatment. The distinction
+  survives wikilink post-resolution as well as ordinary Markdown links.
+- `linkKindDescription` is the single wording seam for both modes. Read anchors
+  carry `aria-description`; live widgets carry the same description plus a
+  type-prefixed hover title: “External web link” versus “Captured web source”.
+  Authored link text and navigation targets remain untouched.

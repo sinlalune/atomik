@@ -28,7 +28,7 @@ describe('buildGraphIndex', () => {
     expect(byPath["L'ethos.md"]).toMatchObject({ kind: 'note', title: "L'ethos" })
     expect(byPath['fiabilité.md']!.title).toBe('La fiabilité')
     expect(byPath['crédibilité.md']!.title).toBe('crédibilité')
-    expect(byPath['sources/web/curlew/source.md']!.kind).toBe('web')
+    expect(byPath['sources/web/curlew/source.md']!.kind).toBe('web-source')
   })
 
   it('edges resolve: wiki by stem, md by relative path (angle form ok)', () => {

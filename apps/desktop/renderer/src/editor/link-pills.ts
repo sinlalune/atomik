@@ -1,4 +1,4 @@
-import { classifyLinkKind } from '../../../shared/graph-core'
+import { classifyLinkKind, type LinkKind } from '../../../shared/graph-core'
 
 /**
  * Link pills (CP-MVP-009 S03, owner UI vision: "every links notes or
@@ -40,6 +40,28 @@ const unescapeHtml = (s: string): string =>
 const escapeAttr = (s: string): string =>
   s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
 
+/**
+ * The two web-looking destinations need a non-colour cue. Keep the wording in
+ * one renderer helper so read and live expose the same accessible distinction.
+ */
+export function linkKindDescription(kind: LinkKind): string | null {
+  if (kind === 'web') return 'External web link'
+  if (kind === 'web-source') return 'Captured web source'
+  return null
+}
+
+function withLinkKindDescription(open: string, kind: LinkKind): string {
+  const description = linkKindDescription(kind)
+  if (description === null) return open
+  if (/\saria-description="[^"]*"/.test(open)) {
+    return open.replace(
+      /\saria-description="[^"]*"/,
+      ` aria-description="${description}"`
+    )
+  }
+  return open.replace(/>$/, ` aria-description="${description}">`)
+}
+
 /** Post-render wikilink resolution over the factory's HTML: a resolved
  *  target gains `data-rel` and its real kind class; an unresolved one
  *  gains the broken modifier. Same string-swap idiom as note-images. */
@@ -57,7 +79,7 @@ export function decorateWikiLinks(
     }
     const kind = classifyLinkKind(rel) ?? 'note'
     const reclassed = whole.replace('link-pill--note', `link-pill--${kind}`)
-    return reclassed.replace(
+    return withLinkKindDescription(reclassed, kind).replace(
       `data-wiki="${target}"`,
       `data-wiki="${target}" data-rel="${escapeAttr(rel)}"`
     )

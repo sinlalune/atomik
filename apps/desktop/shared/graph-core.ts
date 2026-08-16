@@ -21,6 +21,7 @@ export type LinkKind =
   | 'pdf'
   | 'pdf-anchor'
   | 'web'
+  | 'web-source'
   | 'capture'
   | 'source'
   | 'media'
@@ -38,7 +39,7 @@ export function classifyLinkKind(href: string): LinkKind | null {
   if (path.includes('sources/pdf/')) {
     return hash.includes('page=') ? 'pdf-anchor' : 'pdf'
   }
-  if (path.includes('sources/web/')) return 'web'
+  if (path.includes('sources/web/')) return 'web-source'
   if (path.includes('sources/captures/')) return 'capture'
   if (path.endsWith('source.md')) return 'source'
   if (path.endsWith('.pdf')) return 'pdf'
