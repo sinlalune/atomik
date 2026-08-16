@@ -210,13 +210,15 @@ describe('bench round 2 (2026-08-16): what may ground, and what a title is', () 
     id: 'packet-chat'
   }
 
-  it('never grounds an answer in old dialogue, and says why', () => {
+  it('never grounds an answer in old dialogue', () => {
     const packet = compileContextPacket(
       { query: 'crédibilité', sensitivity: 'full' },
       chatDeps
     )
+    // Since S08k a transcript is not even part of the corpus a question
+    // is measured against, so it is not a candidate to omit — the
+    // linked case, where the vault itself pointed at one, still reports.
     expect(paths(packet.entries)).not.toContain(CHAT.path)
-    expect(packet.omitted).toContainEqual({ path: CHAT.path, reason: 'dialogue' })
   })
 
   it('titles a transcript by its file, never by its first turn', () => {
@@ -314,10 +316,6 @@ describe('bench round 7 (2026-08-16): app machinery is not knowledge', () => {
   it('keeps a chat FOLDER index out, which the node-kind rule let through', () => {
     const packet = compileContextPacket({ query: 'pathos', sensitivity: 'full' }, deps2)
     expect(paths(packet.entries)).not.toContain('chats/2026-08-03/index.md')
-    expect(packet.omitted).toContainEqual({
-      path: 'chats/2026-08-03/index.md',
-      reason: 'dialogue'
-    })
   })
 
   it('never feeds a prompt file back to the model as reference', () => {
@@ -325,9 +323,32 @@ describe('bench round 7 (2026-08-16): app machinery is not knowledge', () => {
     expect(paths(packet.entries)).not.toContain(
       "prompts/Explain me like I'm 5 years old.md"
     )
+  })
+
+  it('reports machinery only when the vault LINKED to it', () => {
+    // reached through an edge from a real note: here the vault itself
+    // pointed at the transcript, so the packet says it dropped it
+    const LINKED_CHAT = [
+      { path: 'ethos.md', content: '# Ethos\n\nVoir [[2026-08-03]]{discute}\n' },
+      { path: 'chats/2026-08-03.md', content: '---\ntype: Atomik Chat\n---\n\n## you\n\nq\n' },
+      ...Array.from({ length: 10 }, (_, index) => ({
+        path: `misc-${index}.md`,
+        content: `# Divers ${index}\n\nRien.\n`
+      }))
+    ]
+    const packet = compileContextPacket(
+      { query: 'ethos' },
+      {
+        index: buildRetrievalIndex(LINKED_CHAT),
+        graph: buildGraphIndex(LINKED_CHAT),
+        read: (path) => LINKED_CHAT.find((file) => file.path === path)?.content,
+        id: 'packet-linked-chat'
+      }
+    )
+    expect(paths(packet.entries)).toEqual(['ethos.md'])
     expect(packet.omitted).toContainEqual({
-      path: "prompts/Explain me like I'm 5 years old.md",
-      reason: 'machinery'
+      path: 'chats/2026-08-03.md',
+      reason: 'dialogue'
     })
   })
 })
@@ -382,5 +403,55 @@ describe('bench round 8 (2026-08-16): how FAR retrieval reaches', () => {
       reachDeps
     )
     expect(paths(packet.entries)).toContain('notes/lecture.md')
+  })
+})
+
+describe('bench round 11 (2026-08-16): the conversation about itself', () => {
+  // The transcript of the very question being asked is titled after it,
+  // so every word of the question looked like a NAMED subject — and the
+  // packet came back empty because those "subjects" lived only in a file
+  // that may never ground an answer.
+  const SELF = [
+    { path: 'plato.md', content: '# Plato\n\nLe philosophe grec.\n' },
+    { path: 'stoicism.md', content: '# From Plato to Stoicism\n\nUne suite.\n' },
+    {
+      path: 'chats/what-plato-brought-to-philosphy.md',
+      content: '---\ntype: Atomik Chat\n---\n\n## you\n\nwhat plato brought to philosphy\n'
+    },
+    ...Array.from({ length: 12 }, (_, index) => ({
+      path: `misc-${index}.md`,
+      content: `# Divers ${index}\n\nwhat happened, brought to philosophy.\n`
+    }))
+  ]
+  const selfDeps: PacketDeps = {
+    index: buildRetrievalIndex(SELF),
+    graph: buildGraphIndex(SELF),
+    read: (path) => SELF.find((file) => file.path === path)?.content,
+    id: 'packet-self'
+  }
+
+  it('adding words to a question never empties its answer', () => {
+    const short = compileContextPacket(
+      { query: 'what plato', sensitivity: 'titles' },
+      selfDeps
+    )
+    const long = compileContextPacket(
+      { query: 'what plato brought to philosphy', sensitivity: 'titles' },
+      selfDeps
+    )
+    expect(paths(short.entries)).toContain('plato.md')
+    expect(paths(long.entries)).toContain('plato.md')
+    expect(long.entries.length).toBeGreaterThan(0)
+  })
+
+  it('never lets a chat transcript decide what the question is about', () => {
+    const packet = compileContextPacket(
+      { query: 'what plato brought to philosphy', sensitivity: 'titles' },
+      selfDeps
+    )
+    expect(paths(packet.entries)).not.toContain(
+      'chats/what-plato-brought-to-philosphy.md'
+    )
+    expect(paths(packet.entries)).toEqual(['plato.md', 'stoicism.md'])
   })
 })

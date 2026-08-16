@@ -72,6 +72,21 @@ timestamp: 2026-08-14T00:00:00Z
     The cost is recall — at `titles`/`linked` a note that discusses a
     subject without naming it anywhere is invisible — and that is the
     first thing S10's evaluation should measure.
+  - THE CORPUS A QUESTION IS MEASURED AGAINST IS THE CORPUS IT MAY
+    RETURN (S08k, owner bench round 11: "adding more term empty the rag
+    context package"). Document frequencies and the naming signal are
+    now computed over the ACCEPTED documents only. The failure was
+    beautiful and would have been very hard to find by reading: the
+    transcript of the conversation asking "what plato brought to
+    philosphy" is TITLED after that question, so every word of it
+    looked like a named subject; the rarest of them (`brought`) then set
+    the tier and pushed `plato` out; and the notes those "subjects"
+    named were chat files, which may never ground an answer. Result: a
+    longer question returned nothing at all.
+  - A NARROWING RULE THAT NARROWS TO NOTHING HAS FAILED (S08k): when the
+    principal terms yield no hit, the query is retried with every
+    informative term. Silence is never the honest answer to a question
+    the vault can partly answer.
   - PHRASING IS NOT SUBJECT (S08i, owner bench round 9: "I don't
     understand the two last hit with bibi"). Asked "what plato brought
     to philosphy", retrieval returned a note called `bibi` because its

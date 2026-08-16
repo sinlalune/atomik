@@ -531,8 +531,11 @@ export type SearchOptions = {
    *  around the subject was never scored, so it is not required
    *  either (S08i). */
   requireAll?: boolean
-  /** Perimeter filter, applied before scoring (scope, 26). */
+  /** Perimeter filter, applied before scoring AND before the query's
+   *  own statistics are computed (scope, 26). */
   accept?: (path: string) => boolean
+  /** Internal: the retry that follows an over-narrowed query (S08k). */
+  allTerms?: boolean
 }
 
 /**
@@ -553,16 +556,41 @@ export function searchIndex(
     SENSITIVITY_FIELDS[options.sensitivity ?? 'full'] as readonly RetrievalField[]
   )
 
-  const docCount = index.docs.length
+  // S08k: the statistics are computed over the SAME documents the query
+  // may return. Otherwise a document that can never be an answer still
+  // votes on what the question is about — and the transcript of the
+  // very conversation asking "what plato brought to philosphy" is
+  // titled after the question, so it made every word of it look like a
+  // named subject and emptied the packet.
+  const allowed = options.accept
+    ? new Set(
+        index.docs.flatMap((doc, position) =>
+          options.accept?.(doc.path) === false ? [] : [position]
+        )
+      )
+    : null
+  const docCount = allowed ? allowed.size : index.docs.length
+  if (docCount === 0) return []
   const average = emptyLengths()
-  for (const field of RETRIEVAL_FIELDS) average[field] = index.totals[field] / docCount
+  for (const field of RETRIEVAL_FIELDS) {
+    average[field] = allowed
+      ? index.docs.reduce(
+          (total, doc, position) =>
+            allowed.has(position) ? total + doc.lengths[field] : total,
+          0
+        ) / docCount
+      : index.totals[field] / docCount
+  }
 
   // The query's own terms, by how rare each one is in THIS vault — and
   // by whether the vault has a NOTE NAMED after it.
   const informative = terms
     .map((term) => {
-      const postings = index.terms[term]
-      if (!postings) return null
+      const all = index.terms[term]
+      const postings = allowed
+        ? all?.filter((posting) => allowed.has(posting.doc))
+        : all
+      if (!postings || postings.length === 0) return null
       const df = new Set(postings.map((posting) => posting.doc)).size
       // S08f: the vault's own titles are its entity list. A query word
       // that NAMES a note is the subject of the question, whatever the
@@ -592,11 +620,13 @@ export function searchIndex(
     : informative
   const rarest = Math.min(...pool.map((entry) => entry.df))
   const principal = new Set(
-    pool
-      // Even among named terms the rarest wins: a note titled "What is
-      // an ethos?" must not make `what` a subject forever.
-      .filter((entry) => entry.df <= rarest * PRINCIPAL_DF_FACTOR)
-      .map((entry) => entry.term)
+    (options.allTerms
+      ? informative
+      : pool
+          // Even among named terms the rarest wins: a note titled "What
+          // is an ethos?" must not make `what` a subject forever.
+          .filter((entry) => entry.df <= rarest * PRINCIPAL_DF_FACTOR)
+    ).map((entry) => entry.term)
   )
 
   type Accumulator = {
@@ -677,6 +707,13 @@ export function searchIndex(
   }
 
   hits.sort((a, b) => b.score - a.score || (a.path < b.path ? -1 : 1))
+  // A narrowing rule that narrows to NOTHING has failed at its job
+  // (S08k, owner: "adding more term empty the rag context package"). If
+  // the principal terms found nothing, the question is answered with
+  // everything informative in it rather than with silence.
+  if (hits.length === 0 && principal.size > 0 && principal.size < informative.length) {
+    return searchIndex(index, query, { ...options, allTerms: true })
+  }
   return hits.slice(0, options.limit ?? DEFAULT_LIMIT)
 }
 

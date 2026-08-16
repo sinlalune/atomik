@@ -176,7 +176,14 @@ export function compileContextPacket(
     folder === '' || path === folder || path.startsWith(`${folder}/`)
 
   /**
-   * What is APP MACHINERY rather than knowledge. Kept as a path rule,
+   * What is APP MACHINERY rather than knowledge — chats and prompts.
+   * Since S08k it is a CORPUS rule rather than a filter: machinery is
+   * not searched, does not vote on what a question is about, and is not
+   * reported as "omitted" because it was never a candidate. It can
+   * still be REACHED by a link from a real note, and that case is
+   * reported, because there the vault genuinely pointed at it.
+   *
+   * Kept as a path rule,
    * not a node-kind rule, because the graph legitimately calls
    * `chats/2026-08-03/index.md` a FOLDER — it is one — and that let a
    * chat index through the S07c filter (owner bench round 7). The
@@ -239,7 +246,11 @@ export function compileContextPacket(
   const parsed = parseQuery(request.query)
   const hits = searchIndex(deps.index, request.query, {
     limit: CANDIDATE_LIMIT,
-    sensitivity
+    sensitivity,
+    // App machinery is not part of the corpus a QUESTION is measured
+    // against either (S08k): a chat transcript titled after the very
+    // question being asked made every word of it look like a subject.
+    accept: (path) => machineryOf(path) === null
   })
   // COVERAGE is about the VAULT, not about the ranking (S08i): a word
   // the vault discusses is covered even when it was too common — or too
@@ -258,11 +269,6 @@ export function compileContextPacket(
     // model's past answers would come back as if they were vault
     // knowledge. Transcripts stay searchable (the search panel finds
     // them); they simply do not GROUND (owner bench round 2).
-    const machinery = machineryOf(hit.path)
-    if (machinery) {
-      omitted.push({ path: hit.path, reason: machinery })
-      continue
-    }
     if (!inScope(hit.path)) {
       omitted.push({ path: hit.path, reason: 'scope' })
       continue
