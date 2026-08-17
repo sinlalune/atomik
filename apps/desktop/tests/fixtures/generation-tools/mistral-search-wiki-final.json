@@ -1,0 +1,18 @@
+{
+  "id": "cmpl_tool_fixture_2",
+  "model": "mistral-small-2603",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "An atom is the smallest unit of a chemical element represented by that source."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 140,
+    "completion_tokens": 45
+  }
+}

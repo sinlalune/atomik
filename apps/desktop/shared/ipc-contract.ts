@@ -666,6 +666,9 @@ export type AiResponseBundle = {
    *  The answer and what produced it travel together, so the reader
    *  never has to take the grounding on faith. */
   contextPacket?: GroundedContext
+  /** Model-requested client-tool activity, including typed transient payloads
+   *  for visible disclosure/citations. No item is durable by consultation. */
+  toolExecutions?: import('./generation-tools').GenerationToolExecution[]
   /** The exchange's cost estimate (S06c19) — from the dated price
    *  snapshot, always labeled 'estimated'; absent for free engines. */
   billing?: {

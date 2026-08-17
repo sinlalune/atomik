@@ -13,8 +13,11 @@ import { recordVaultChange } from './vault-index'
 import {
   GenerationError,
   mockGenerationAdapter,
+  runGenerationWithTools,
   type GenerationAdapter
 } from './generation'
+import { createGenerationToolExecutor } from './generation-tool-executor'
+import { WikimediaClient } from './wikimedia'
 import { createMistralGenerationAdapter } from './mistral-generation-adapter'
 import { createOpenRouterGenerationAdapter } from './openrouter-generation-adapter'
 import { createOpenAiGenerationAdapter } from './openai-generation-adapter'
@@ -189,7 +192,15 @@ function requireVault(): string {
  * and latency, and the packet already computed all four. The QUERY is
  * never recorded; user text is content like a prompt.
  */
-function tracedPacket(stateDir: string, request: PacketRequest): ContextPacket {
+function tracedPacket(
+  stateDir: string,
+  request: PacketRequest,
+  parent?: {
+    parentTraceId: string
+    parentOperationId: string
+    tool: 'search_vault'
+  }
+): ContextPacket {
   const started = Date.now()
   try {
     const packet = compileVaultContextPacket(requireVault(), stateDir, request)
@@ -201,7 +212,8 @@ function tracedPacket(stateDir: string, request: PacketRequest): ContextPacket {
       contextTokens: packet.retrieval.contextTokens,
       coverage: packet.coverage.verdict,
       wallMs: Date.now() - started,
-      status: 'completed'
+      status: 'completed',
+      ...parent
     })
     return packet
   } catch (error) {
@@ -213,7 +225,8 @@ function tracedPacket(stateDir: string, request: PacketRequest): ContextPacket {
       contextTokens: 0,
       coverage: 'empty',
       wallMs: Date.now() - started,
-      status: 'failed'
+      status: 'failed',
+      ...parent
     })
     throw error
   }
@@ -567,14 +580,36 @@ function registerVaultHandlers(stateDir: string): void {
       if (activeAiOperations.has(operation.id)) {
         throw new Error('ai: operation already running')
       }
-      parentTraceId = traces.beginGeneration(operation.id, failureMeta)
+      // The tool executor's closures capture the root id, so bind it as a
+      // const: the outer `let` stays for the failure path, which runs when
+      // the id may never have been reserved.
+      const rootTraceId = traces.beginGeneration(operation.id, failureMeta)
+      parentTraceId = rootTraceId
       const controller = new AbortController()
       activeAiOperations.set(operation.id, controller)
       try {
-        const result = await adapter.generate(grounded, {
-          signal: controller.signal,
-          provenance
-        })
+        const wikimedia = new WikimediaClient({ trace: traces })
+        const result = await runGenerationWithTools(
+          adapter,
+          grounded,
+          {
+            signal: controller.signal,
+            provenance
+          },
+          createGenerationToolExecutor({
+            compileVault: (args) =>
+              tracedPacket(stateDir, args, {
+                parentTraceId: rootTraceId,
+                parentOperationId: operation.id,
+                tool: 'search_vault'
+              }),
+            searchWiki: (request, context) =>
+              wikimedia.search(request, context),
+            parentTraceId: rootTraceId,
+            parentOperationId: operation.id,
+            mediaPolicy: 'remote'
+          })
+        )
         const traceId = traces.draftFor(
           operation,
           result.bundle,

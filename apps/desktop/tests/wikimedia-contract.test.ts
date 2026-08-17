@@ -214,7 +214,7 @@ describe('provider-neutral model tool calls', () => {
     ).toThrow('unknown search_vault field')
   })
 
-  it('keeps every current adapter final-only until native parsing is implemented', () => {
+  it('opts in only the fixture-proven Mistral codec and keeps every other adapter final-only', () => {
     const adapters = [
       mockGenerationAdapter,
       createMistralGenerationAdapter('test-key'),
@@ -233,6 +233,24 @@ describe('provider-neutral model tool calls', () => {
       'deepseek',
       'google'
     ])
-    expect(adapters.every((adapter) => adapter.tools.kind === 'unsupported')).toBe(true)
+    expect(adapters.map((adapter) => adapter.tools.kind)).toEqual([
+      'unsupported',
+      'native',
+      'unsupported',
+      'unsupported',
+      'unsupported',
+      'unsupported',
+      'unsupported'
+    ])
+    expect(adapters[1]?.startToolLoop).toBeTypeOf('function')
+    expect(
+      adapters
+        .filter((adapter) => adapter.id !== 'mistral')
+        .every(
+          (adapter) =>
+            adapter.tools.kind === 'unsupported' &&
+            adapter.startToolLoop === undefined
+        )
+    ).toBe(true)
   })
 })

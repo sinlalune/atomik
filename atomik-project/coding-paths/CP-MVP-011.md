@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-011
   status: running
   accepted: 2026-08-17
-  current_step: S06
+  current_step: S07
   base_commit: 783c7c6
   branch: path/cp-mvp-011
   writes:
@@ -21,6 +21,7 @@ atomik:
     - apps/desktop/electron-main/wikimedia.ts
     - apps/desktop/electron-main/ai-mock.ts
     - apps/desktop/electron-main/generation.ts
+    - apps/desktop/electron-main/generation-tool-executor.ts
     - apps/desktop/electron-main/*-generation-adapter.ts
     - apps/desktop/electron-main/graph-index.ts
     - apps/desktop/electron-main/action-trace.ts
@@ -250,7 +251,7 @@ BASE        783c7c6; branch path/cp-mvp-011; dedicated worktree
 - [x] S05 Typed Wikimedia door: expose the narrow `search_wiki` operation to
       the harness and renderer through validated IPC where needed; add call
       budgets, cancellation, action-trace parenting, and security regressions.
-- [ ] S06 Provider-neutral tool loop: add discriminated tool requests/results
+- [x] S06 Provider-neutral tool loop: add discriminated tool requests/results
       to generation, implement bounded multi-turn execution, adapt supported
       providers using recorded payload fixtures, and preserve a loud,
       deterministic fallback for unsupported providers.
@@ -387,16 +388,71 @@ BASE        783c7c6; branch path/cp-mvp-011; dedicated worktree
   tool-preference validation elsewhere would leave the IPC gate split. S06 now
   owns actual provider tool round trips.
 
+## S06 work unit — complete 2026-08-17
+
+- **Code:** added `runGenerationWithTools` — the one authority seat for the
+  bounded client-tool loop. Adapters expose `startToolLoop` returning a
+  discriminated `final` / `tool-calls` turn whose `continue(results)` closure
+  keeps provider message state adapter-side, so the loop stays provider-neutral
+  while owning parsing, allowlist, call/depth/char/byte/wall budgets, execution
+  and cancellation. A rejected or failing call returns an untrusted error result
+  the model can recover from; a budget breach, empty turn, undeclared parallel
+  calls or a mismatched executor result ends the operation as a typed
+  `GenerationError`, with caller cancel and wall exhaustion reported apart.
+  Added `generation-tool-executor.ts` binding `search_vault` to the traced
+  packet compiler and `search_wiki` to `WikimediaClient.search`, holding the
+  parent trace/operation ids and media policy out of renderer and model reach,
+  plus `boundedToolContent`, which clips structurally (longest prose, then
+  repeated array entries, then a truncation marker) so bounded output stays
+  valid JSON. Added `generationToolDefinitions` so advertised schemas derive
+  from the enforcing policy. Adapted `mistral-generation-adapter.ts` as the
+  first and only native opt-in (`openai-chat-completions`, `parallelCalls:
+  false`). `recordRetrieval` now takes the parent triple and refuses a parented
+  vault receipt with no live root; `AiResponseBundle.toolExecutions` carries the
+  transient typed activity home for S07.
+- **Tests:** new `generation-tool-loop.test.ts` — recorded Mistral round trip
+  (exact request schemas, call/result id matching, summed usage), malformed
+  native arguments returned as an untrusted error without executing, visible
+  limitation for final-only adapters, depth and call ceilings, undeclared
+  parallel calls, oversize executor output rejected before continuation, unknown
+  verb refused as not-allowed without executing, wall budget checked at every
+  provider/tool boundary, in-flight executor cancellation, both verbs executing
+  with parent context held below renderer state, and hostile long text staying
+  valid, untrusted and in budget. No test contacts a live provider or API. Full
+  result: 79 files, 983 passed + 1 skipped; typecheck and production build green.
+- **Docs:** the AI note records the loop's authority split, the fail-loud
+  fallback and the executor's sole ownership of parent ids; the shell note
+  records that the loop rides the unchanged `run-ai-operation` door and adds no
+  IPC surface; learning note 25 teaches the closure-owned transcript, the bad
+  call versus broken operation distinction, why cancellation keeps two causes
+  apart, and why bounding happens inside the structure.
+- **Ledger notes:** the declared writes widen by
+  `electron-main/generation-tool-executor.ts`. The loop's authority and the
+  executor's bindings are separate concerns — keeping them in `generation.ts`
+  would have given the provider-neutral core direct knowledge of the vault
+  compiler and the Wikimedia client, which is exactly the dependency the
+  contract exists to invert.
+- **Deviations:** a mid-step session change of hands (the prior session
+  exhausted its budget with one unresolved `tsc` error). Reality was reconciled
+  against this ledger before any new work: `index.ts` captured the reserved root
+  trace id in a `const` for the executor closures, keeping the outer `let` for
+  the failure path where the id may never have been reserved. Only Mistral is
+  adapted; the remaining six adapters stay final-only by capability declaration.
+  S07 owns rendering `toolExecutions` as disclosure and external citations.
+
 # Current checkpoint
 
 ```text
 base commit : 783c7c6 (local master and origin/master at activation)
 changed     : S01 contracts; S02 Wikipedia; S03 Wikidata/graph projection;
               S04 Commons+Wiktionary; S05 unified main-side search_wiki door,
-              strict IPC preference, shared budgets and early parent traces
-tests       : typecheck green; 78 files / 970 pass / 1 skip; build green
-next action : execute S06 — provider-neutral bounded tool loop and recorded
-              native adapter round trips with loud unsupported fallback
+              strict IPC preference, shared budgets and early parent traces;
+              S06 provider-neutral bounded tool loop, main-side executor with
+              parented vault receipts, and the native Mistral opt-in
+tests       : typecheck green; 79 files / 983 pass / 1 skip; build green
+next action : execute S07 — augmented chat: per-thread visible tool control,
+              call/result disclosure over `toolExecutions`, external citation
+              marks and source block, attributed Commons media, safe navigation
 blockers    : none
 parallel    : CP-RICH-MARKDOWN is running; styles.css and broad renderer/test/
               docs surfaces overlap advisory-only. Rebase at step boundaries.

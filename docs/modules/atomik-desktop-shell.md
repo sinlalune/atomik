@@ -41,6 +41,17 @@ timestamp: 2026-08-17T00:00:00Z
   Preload regression tests pin the absence of both a generic `fetch` and a
   direct `searchWiki` method, so a compromised renderer cannot bypass the
   tool policy, parent trace or generation cancellation lifecycle.
+  S06 enables the loop behind that unchanged door: the `run-ai-operation`
+  handler now calls `runGenerationWithTools` instead of `adapter.generate`, and
+  constructs the executor with main-only values — the reserved root trace id,
+  the operation id, and the media policy. The renderer supplies a preference,
+  never a target: it cannot name a tool, widen the allowlist, choose a corpus
+  outside the validated request, or address a trace parent. The one existing
+  cancellation path still covers tool work, because the loop derives its inner
+  signal from the same per-operation AbortController the cancel channel aborts.
+  Results return on the EXISTING response bundle (`toolExecutions`) rather than
+  a new channel or an event stream, so the shell adds no IPC surface at S06
+  either; the renderer reads that field for the first time at S07.
 
 - The Electron shell: app lifecycle, the trusted UI window, and the
   main/preload/renderer split (`apps/desktop/electron-main/`,

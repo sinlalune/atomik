@@ -1,8 +1,10 @@
 import type { RetrievalSensitivity } from './retrieval-core'
+import type { ContextPacket } from './context-packet'
 import {
   normalizeWikimediaLanguage,
   parseSearchWikiRequest,
-  type SearchWikiRequest
+  type SearchWikiRequest,
+  type WikimediaSearchBundle
 } from './wikimedia'
 
 /** Provider-neutral model tool protocol (CP-MVP-011 S01). */
@@ -76,12 +78,30 @@ export type GenerationToolErrorCode =
  */
 export type GenerationToolResult = {
   callId: string
-  name: GenerationToolName
+  /** Echoes the provider request even when the name is rejected. */
+  name: string
   ok: boolean
   untrusted: true
   content: string
   stats: GenerationToolResultStats
   error?: { code: GenerationToolErrorCode; message: string }
+}
+
+export type GenerationToolPayload =
+  | { kind: 'vault-context'; packet: ContextPacket }
+  | { kind: 'wikimedia'; bundle: WikimediaSearchBundle }
+
+/** Inspectable activity returned with the answer; still transient. */
+export type GenerationToolExecution = {
+  call: { id: string; name: string; arguments: unknown }
+  result: GenerationToolResult
+  payload?: GenerationToolPayload
+}
+
+export type GenerationToolDefinition = {
+  name: GenerationToolName
+  description: string
+  inputSchema: Record<string, unknown>
 }
 
 export type GenerationToolDialect =
@@ -265,4 +285,62 @@ export function createGenerationToolPolicy(
     wikiLanguage: parsed.wikiLanguage,
     limits: GENERATION_TOOL_LIMITS
   }
+}
+
+/** Provider-neutral schemas; adapters translate only the outer wire dialect. */
+export function generationToolDefinitions(
+  policy: GenerationToolPolicy
+): GenerationToolDefinition[] {
+  if (policy.mode !== 'model') return []
+  const definitions: GenerationToolDefinition[] = []
+  if (policy.allowed.includes('search_vault')) {
+    definitions.push({
+      name: 'search_vault',
+      description:
+        "Search the owner's local vault for bounded, inspectable context.",
+      inputSchema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          query: { type: 'string', minLength: 1, maxLength: 500 },
+          sensitivity: {
+            type: 'string',
+            enum: ['titles', 'linked', 'full'],
+            default: 'linked'
+          },
+          limit: {
+            type: 'integer',
+            minimum: 1,
+            maximum: policy.limits.maxVaultResults,
+            default: policy.limits.maxVaultResults
+          }
+        },
+        required: ['query']
+      }
+    })
+  }
+  if (policy.allowed.includes('search_wiki')) {
+    definitions.push({
+      name: 'search_wiki',
+      description:
+        'Search bounded Wikipedia, Wikidata, Commons P18 or pinned Wiktionary material.',
+      inputSchema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          query: { type: 'string', minLength: 1, maxLength: 300 },
+          language: { type: 'string', enum: [policy.wikiLanguage] },
+          corpus: {
+            type: 'string',
+            enum: ['auto', 'wikipedia', 'wikidata', 'wiktionary'],
+            default: 'auto'
+          },
+          limit: { type: 'integer', minimum: 1, maximum: 5, default: 3 },
+          includeMedia: { type: 'boolean', default: true }
+        },
+        required: ['query', 'language']
+      }
+    })
+  }
+  return definitions
 }

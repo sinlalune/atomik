@@ -1,12 +1,18 @@
 import { randomUUID } from 'node:crypto'
 import { provenanceLine } from './ai-mock'
 import {
-  FINAL_ONLY_TOOL_CAPABILITY,
   GenerationError,
+  type AdapterToolCall,
   type GenerationAdapter,
+  type GenerationAdapterTurn,
   type GenerationResult,
   type GenerationUsage
 } from './generation'
+import {
+  generationToolDefinitions,
+  type GenerationToolPolicy,
+  type GenerationToolResult
+} from '../shared/generation-tools'
 import { labelClaims, type ClaimCandidate } from './truth'
 import { systemTextOf, userTextOf } from '../shared/prompt-composition'
 import {
@@ -89,6 +95,26 @@ export type ChatMessage = {
   content: string
 }
 
+type MistralToolCallWire = {
+  id: string
+  type: 'function'
+  function: { name: string; arguments: unknown }
+}
+
+type MistralMessage =
+  | ChatMessage
+  | {
+      role: 'assistant'
+      content: string | null
+      tool_calls: MistralToolCallWire[]
+    }
+  | {
+      role: 'tool'
+      tool_call_id: string
+      name: string
+      content: string
+    }
+
 /** instruction + selection(s) → chat-completions messages (S01 pin);
  *  both halves come from shared/prompt-composition — the renderer's
  *  inspector shows and copies the SAME text by construction (S04h/i).
@@ -155,7 +181,10 @@ function proposedTextFor(
 type ChatResponse = {
   model?: string
   choices?: Array<{
-    message?: { content?: string }
+    message?: {
+      content?: string | null
+      tool_calls?: unknown
+    }
     finish_reason?: string
   }>
   usage?: { prompt_tokens?: number; completion_tokens?: number }
@@ -167,6 +196,174 @@ export type MistralAdapterOptions = {
   defaultModel?: string
 }
 
+function usageOf(
+  parsed: ChatResponse,
+  inputChars: number,
+  outputChars: number
+): GenerationUsage {
+  return parsed.usage?.prompt_tokens !== undefined &&
+    parsed.usage?.completion_tokens !== undefined
+    ? {
+        inputTokens: parsed.usage.prompt_tokens,
+        outputTokens: parsed.usage.completion_tokens,
+        basis: 'provider-reported'
+      }
+    : {
+        inputTokens: estimateTokens(inputChars),
+        outputTokens: estimateTokens(outputChars),
+        basis: 'estimated'
+      }
+}
+
+function combinedUsage(
+  previous: GenerationUsage | undefined,
+  next: GenerationUsage
+): GenerationUsage {
+  if (previous === undefined) return next
+  return {
+    inputTokens: previous.inputTokens + next.inputTokens,
+    outputTokens: previous.outputTokens + next.outputTokens,
+    basis:
+      previous.basis === 'provider-reported' &&
+      next.basis === 'provider-reported'
+        ? 'provider-reported'
+        : 'estimated'
+  }
+}
+
+function normalizedToolCalls(value: unknown): {
+  calls: AdapterToolCall[]
+  wire: MistralToolCallWire[]
+} {
+  if (!Array.isArray(value) || value.length === 0) {
+    return { calls: [], wire: [] }
+  }
+  const calls: AdapterToolCall[] = []
+  const wire: MistralToolCallWire[] = []
+  const ids = new Set<string>()
+  for (const candidate of value) {
+    if (
+      typeof candidate !== 'object' ||
+      candidate === null ||
+      typeof (candidate as Record<string, unknown>)['id'] !== 'string' ||
+      typeof (candidate as Record<string, unknown>)['function'] !== 'object' ||
+      (candidate as Record<string, unknown>)['function'] === null
+    ) {
+      throw new GenerationError('provider-request', 'provider returned a malformed tool call')
+    }
+    const record = candidate as Record<string, unknown>
+    const fn = record['function'] as Record<string, unknown>
+    const id = record['id'] as string
+    if (ids.has(id) || typeof fn['name'] !== 'string' || !('arguments' in fn)) {
+      throw new GenerationError('provider-request', 'provider returned a malformed tool call')
+    }
+    ids.add(id)
+    let args = fn['arguments']
+    if (typeof args === 'string') {
+      try {
+        args = JSON.parse(args) as unknown
+      } catch {
+        // Preserve malformed native arguments as data. The shared authority
+        // parser returns an invalid-arguments tool result; nothing executes.
+      }
+    }
+    calls.push({ id, name: fn['name'], arguments: args })
+    wire.push({
+      id,
+      type: 'function',
+      function: { name: fn['name'], arguments: fn['arguments'] }
+    })
+  }
+  return { calls, wire }
+}
+
+function completionResult(
+  operation: AiOperation,
+  context: { provenance?: Map<string, WebEvidenceProvenance> },
+  parsed: ChatResponse,
+  content: string,
+  usage: GenerationUsage,
+  model: GenerationModelId,
+  maxTokens: number
+): GenerationResult {
+  const choice = parsed.choices?.[0]
+  const selection = operation.input[0] as AiSelection
+  const webSource = context.provenance?.get(selection.relPath)
+  const answerBlock: AiOutputBlock = {
+    id: randomUUID(),
+    kind: 'markdown',
+    role: 'answer',
+    content
+  }
+  const destination = operation.target.destination
+  const proposedText = proposedTextFor(operation, content, webSource)
+  const file: ProposedFileChange =
+    destination.kind === 'replace-selection'
+      ? {
+          relPath: operation.target.relPath,
+          kind: 'replace-range',
+          range: selection.range,
+          newText: proposedText
+        }
+      : destination.kind === 'append'
+        ? {
+            relPath: operation.target.relPath,
+            kind: 'append',
+            newText: proposedText
+          }
+        : {
+            relPath: destination.newNotePath,
+            kind: 'create',
+            newText: proposedText
+          }
+  const { claims, evidence } = labelClaims(
+    operation.input,
+    extractClaimCandidates(content, answerBlock.id),
+    context.provenance
+  )
+  return {
+    bundle: {
+      id: randomUUID(),
+      operationId: operation.id,
+      blocks: [answerBlock],
+      patchProposals: [
+        {
+          id: randomUUID(),
+          operationId: operation.id,
+          files: [file],
+          status: 'pending'
+        }
+      ],
+      claims,
+      evidence,
+      verification: [],
+      uncertainties:
+        choice?.finish_reason === 'length'
+          ? [
+              {
+                message: `Response hit the ${maxTokens}-token output budget and may be truncated.`,
+                severity: 'warning'
+              }
+            ]
+          : [],
+      actionTraceIds: []
+    },
+    usage,
+    providerMeta: {
+      location: 'cloud-model',
+      provider: 'mistral',
+      model: `mistral-${(GENERATION_MODELS as Record<string, { label: string }>)[model]?.label ?? model}`,
+      modelVersion: parsed.model ?? model,
+      billing: {
+        currency: 'USD',
+        estimatedAmount: estimateCostUsd(usage, model),
+        basis: 'estimated',
+        priceSnapshotId: GENERATION_PRICE_SNAPSHOT.id
+      }
+    }
+  }
+}
+
 export function createMistralGenerationAdapter(
   key: string,
   fetchImpl: typeof fetch = fetch,
@@ -175,212 +372,240 @@ export function createMistralGenerationAdapter(
   const maxOutputTokens = options.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS
   const maxWallMs = options.maxWallMs ?? DEFAULT_MAX_WALL_MS
 
-  return {
-    id: 'mistral',
-    tools: FINAL_ONLY_TOOL_CAPABILITY,
-    generate: async (operation, context): Promise<GenerationResult> => {
-      const messages = buildMessages(operation)
-      const inputChars = messages.reduce(
-        (total, message) => total + message.content.length,
-        0
+  async function request(
+    operation: AiOperation,
+    context: { signal: AbortSignal },
+    messages: MistralMessage[],
+    policy?: GenerationToolPolicy
+  ): Promise<{
+    parsed: ChatResponse
+    inputChars: number
+    model: GenerationModelId
+    maxTokens: number
+  }> {
+    const inputChars = messages.reduce(
+      (total, message) =>
+        total +
+        (typeof message.content === 'string' ? message.content.length : 0) +
+        ('tool_calls' in message ? JSON.stringify(message.tool_calls).length : 0),
+      0
+    )
+    if (estimateTokens(inputChars) > MAX_INPUT_TOKENS_ESTIMATE) {
+      throw new GenerationError(
+        'budget-exceeded',
+        `input ≈${estimateTokens(inputChars)} tokens exceeds the ${MAX_INPUT_TOKENS_ESTIMATE}-token budget — narrow the selection`
       )
-      // budget-exceeded is a MAIN-SIDE pre-check (S01 pin), not a
-      // provider 4xx after the bytes already travelled.
-      if (estimateTokens(inputChars) > MAX_INPUT_TOKENS_ESTIMATE) {
+    }
+    if (context.signal.aborted) {
+      throw new GenerationError('cancelled', 'operation cancelled')
+    }
+
+    const fetchController = new AbortController()
+    let timedOut = false
+    const timer = setTimeout(() => {
+      timedOut = true
+      fetchController.abort()
+    }, maxWallMs)
+    const relayCancel = (): void => fetchController.abort()
+    context.signal.addEventListener('abort', relayCancel, { once: true })
+
+    const fallbackModel =
+      (options.defaultModel as GenerationModelId) ?? DEFAULT_GENERATION_MODEL
+    const model: GenerationModelId = operation.params?.model ?? fallbackModel
+    const temperature =
+      operation.params?.temperature ?? PARAM_LIMITS.temperature.default
+    const maxTokens = operation.params?.maxTokens ?? maxOutputTokens
+    let response: Response
+    try {
+      response = await fetchImpl(CHAT_URL, {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${key}`,
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          max_tokens: maxTokens,
+          temperature,
+          ...(operation.params?.topP !== undefined
+            ? { top_p: operation.params.topP }
+            : {}),
+          ...(policy === undefined
+            ? {}
+            : {
+                tools: generationToolDefinitions(policy).map((definition) => ({
+                  type: 'function',
+                  function: {
+                    name: definition.name,
+                    description: definition.description,
+                    parameters: definition.inputSchema
+                  }
+                })),
+                tool_choice: 'auto',
+                parallel_tool_calls: false
+              })
+        }),
+        signal: fetchController.signal
+      })
+    } catch (error) {
+      if (timedOut) {
         throw new GenerationError(
-          'budget-exceeded',
-          `input ≈${estimateTokens(inputChars)} tokens exceeds the ${MAX_INPUT_TOKENS_ESTIMATE}-token budget — narrow the selection`
+          'timeout',
+          `no response within ${maxWallMs / 1000}s`
         )
       }
       if (context.signal.aborted) {
         throw new GenerationError('cancelled', 'operation cancelled')
       }
+      throw new GenerationError(
+        'offline',
+        `network failure — ${String(error).slice(0, 120)}`
+      )
+    } finally {
+      clearTimeout(timer)
+      context.signal.removeEventListener('abort', relayCancel)
+    }
 
-      // One fetch signal fed by two sources: the caller's cancel and an
-      // own wall-clock timer — the flag keeps the two distinguishable.
-      const fetchController = new AbortController()
-      let timedOut = false
-      const timer = setTimeout(() => {
-        timedOut = true
-        fetchController.abort()
-      }, maxWallMs)
-      const relayCancel = (): void => fetchController.abort()
-      context.signal.addEventListener('abort', relayCancel, { once: true })
-
-      // S05d: bounded overrides ride the operation (validated main-side)
-      const fallbackModel =
-        (options.defaultModel as GenerationModelId) ?? DEFAULT_GENERATION_MODEL
-      const model: GenerationModelId = operation.params?.model ?? fallbackModel
-      const temperature =
-        operation.params?.temperature ?? PARAM_LIMITS.temperature.default
-      const maxTokens = operation.params?.maxTokens ?? maxOutputTokens
-      let response: Response
-      try {
-        response = await fetchImpl(CHAT_URL, {
-          method: 'POST',
-          headers: {
-            authorization: `Bearer ${key}`,
-            'content-type': 'application/json'
-          },
-          body: JSON.stringify({
-            model,
-            messages,
-            max_tokens: maxTokens,
-            temperature,
-            ...(operation.params?.topP !== undefined
-              ? { top_p: operation.params.topP }
-              : {})
-          }),
-          signal: fetchController.signal
-        })
-      } catch (error) {
-        if (timedOut) {
-          throw new GenerationError(
-            'timeout',
-            `no response within ${maxWallMs / 1000}s`
-          )
-        }
-        if (context.signal.aborted) {
-          throw new GenerationError('cancelled', 'operation cancelled')
-        }
+    if (!response.ok) {
+      const detail = (await response.text().catch(() => '')).slice(0, 200)
+      if (response.status === 401 || response.status === 403) {
         throw new GenerationError(
-          'offline',
-          `network failure — ${String(error).slice(0, 120)}`
-        )
-      } finally {
-        clearTimeout(timer)
-        context.signal.removeEventListener('abort', relayCancel)
-      }
-
-      if (!response.ok) {
-        const detail = (await response.text().catch(() => '')).slice(0, 200)
-        if (response.status === 401 || response.status === 403) {
-          throw new GenerationError(
-            'auth',
-            `the Mistral key was rejected (HTTP ${response.status}) — check it in ☰ → AI`
-          )
-        }
-        if (response.status === 429) {
-          const retryAfter = Number(response.headers.get('retry-after'))
-          throw new GenerationError(
-            'rate-limit',
-            `rate/quota limit (HTTP 429)${Number.isFinite(retryAfter) ? ` — retry after ${retryAfter}s` : ''}`,
-            Number.isFinite(retryAfter) ? retryAfter : undefined
-          )
-        }
-        if (response.status >= 500) {
-          throw new GenerationError(
-            'provider-server',
-            `provider error (HTTP ${response.status}) — ${detail}`
-          )
-        }
-        throw new GenerationError(
-          'provider-request',
-          `request rejected (HTTP ${response.status}) — ${detail}`
+          'auth',
+          `the Mistral key was rejected (HTTP ${response.status}) — check it in ☰ → AI`
         )
       }
+      if (response.status === 429) {
+        const retryAfter = Number(response.headers.get('retry-after'))
+        throw new GenerationError(
+          'rate-limit',
+          `rate/quota limit (HTTP 429)${Number.isFinite(retryAfter) ? ` — retry after ${retryAfter}s` : ''}`,
+          Number.isFinite(retryAfter) ? retryAfter : undefined
+        )
+      }
+      if (response.status >= 500) {
+        throw new GenerationError(
+          'provider-server',
+          `provider error (HTTP ${response.status}) — ${detail}`
+        )
+      }
+      throw new GenerationError(
+        'provider-request',
+        `request rejected (HTTP ${response.status}) — ${detail}`
+      )
+    }
+    const parsed = (await response.json().catch(() => ({}))) as ChatResponse
+    return { parsed, inputChars, model, maxTokens }
+  }
 
-      const parsed = (await response.json().catch(() => ({}))) as ChatResponse
-      const choice = parsed.choices?.[0]
-      const content = (choice?.message?.content ?? '').trim()
+  async function toolTurn(
+    operation: AiOperation,
+    context: { signal: AbortSignal; provenance?: Map<string, WebEvidenceProvenance> },
+    policy: GenerationToolPolicy,
+    messages: MistralMessage[],
+    accumulated?: GenerationUsage
+  ): Promise<GenerationAdapterTurn> {
+    const response = await request(operation, context, messages, policy)
+    const choice = response.parsed.choices?.[0]
+    const content = (choice?.message?.content ?? '').trim()
+    const nativeCalls = normalizedToolCalls(choice?.message?.tool_calls)
+    const usage = combinedUsage(
+      accumulated,
+      usageOf(
+        response.parsed,
+        response.inputChars,
+        content.length + JSON.stringify(nativeCalls.wire).length
+      )
+    )
+    if (nativeCalls.calls.length > 0) {
+      return {
+        kind: 'tool-calls',
+        calls: nativeCalls.calls,
+        continue: async (
+          results: readonly GenerationToolResult[]
+        ): Promise<GenerationAdapterTurn> => {
+          const byId = new Map(results.map((result) => [result.callId, result]))
+          const toolMessages = nativeCalls.wire.map((call) => {
+            const result = byId.get(call.id)
+            if (result === undefined) {
+              throw new GenerationError(
+                'provider-request',
+                'tool continuation omitted a call result'
+              )
+            }
+            return {
+              role: 'tool' as const,
+              tool_call_id: call.id,
+              name: call.function.name,
+              content: result.content
+            }
+          })
+          return toolTurn(
+            operation,
+            context,
+            policy,
+            [
+              ...messages,
+              {
+                role: 'assistant',
+                content: choice?.message?.content ?? null,
+                tool_calls: nativeCalls.wire
+              },
+              ...toolMessages
+            ],
+            usage
+          )
+        }
+      }
+    }
+    if (content.length === 0) {
+      throw new GenerationError(
+        'provider-request',
+        'provider returned neither a tool call nor a completion'
+      )
+    }
+    return {
+      kind: 'final',
+      result: completionResult(
+        operation,
+        context,
+        response.parsed,
+        content,
+        usage,
+        response.model,
+        response.maxTokens
+      )
+    }
+  }
+
+  return {
+    id: 'mistral',
+    tools: {
+      kind: 'native',
+      dialect: 'openai-chat-completions',
+      parallelCalls: false
+    },
+    generate: async (operation, context): Promise<GenerationResult> => {
+      const messages = buildMessages(operation)
+      const response = await request(operation, context, messages)
+      const content = (response.parsed.choices?.[0]?.message?.content ?? '').trim()
       if (content.length === 0) {
         throw new GenerationError(
           'provider-request',
           'provider returned an empty completion'
         )
       }
-
-      const selection = operation.input[0] as AiSelection
-      const webSource = context.provenance?.get(selection.relPath)
-      const answerBlock: AiOutputBlock = {
-        id: randomUUID(),
-        kind: 'markdown',
-        role: 'answer',
-        content
-      }
-      const destination = operation.target.destination
-      const proposedText = proposedTextFor(operation, content, webSource)
-      const file: ProposedFileChange =
-        destination.kind === 'replace-selection'
-          ? {
-              relPath: operation.target.relPath,
-              kind: 'replace-range',
-              range: selection.range,
-              newText: proposedText
-            }
-          : destination.kind === 'append'
-            ? {
-                relPath: operation.target.relPath,
-                kind: 'append',
-                newText: proposedText
-              }
-            : {
-                relPath: destination.newNotePath,
-                kind: 'create',
-                newText: proposedText
-              }
-
-      const { claims, evidence } = labelClaims(
-        operation.input,
-        extractClaimCandidates(content, answerBlock.id),
-        context.provenance
+      return completionResult(
+        operation,
+        context,
+        response.parsed,
+        content,
+        usageOf(response.parsed, response.inputChars, content.length),
+        response.model,
+        response.maxTokens
       )
-
-      const usage: GenerationUsage =
-        parsed.usage?.prompt_tokens !== undefined &&
-        parsed.usage?.completion_tokens !== undefined
-          ? {
-              inputTokens: parsed.usage.prompt_tokens,
-              outputTokens: parsed.usage.completion_tokens,
-              basis: 'provider-reported'
-            }
-          : {
-              inputTokens: estimateTokens(inputChars),
-              outputTokens: estimateTokens(content.length),
-              basis: 'estimated'
-            }
-
-      return {
-        bundle: {
-          id: randomUUID(),
-          operationId: operation.id,
-          blocks: [answerBlock],
-          patchProposals: [
-            {
-              id: randomUUID(),
-              operationId: operation.id,
-              files: [file],
-              status: 'pending'
-            }
-          ],
-          claims,
-          evidence,
-          verification: [],
-          uncertainties:
-            choice?.finish_reason === 'length'
-              ? [
-                  {
-                    message: `Response hit the ${maxTokens}-token output budget and may be truncated.`,
-                    severity: 'warning'
-                  }
-                ]
-              : [],
-          actionTraceIds: []
-        },
-        usage,
-        providerMeta: {
-          location: 'cloud-model',
-          provider: 'mistral',
-          model: `mistral-${(GENERATION_MODELS as Record<string, { label: string }>)[model]?.label ?? model}`,
-          modelVersion: parsed.model ?? model,
-          billing: {
-            currency: 'USD',
-            estimatedAmount: estimateCostUsd(usage, model),
-            basis: 'estimated',
-            priceSnapshotId: GENERATION_PRICE_SNAPSHOT.id
-          }
-        }
-      }
-    }
+    },
+    startToolLoop: (operation, context, policy) =>
+      toolTurn(operation, context, policy, buildMessages(operation))
   }
 }

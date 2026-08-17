@@ -218,6 +218,48 @@ or failed generation line later reuses the reserved id. If the app quits in
 between, `flush` lands the reserved parent as failed rather than leaving an
 orphaned retrieval receipt.
 
+### S06: who owns the loop, and who owns the transcript
+
+The second turn needs the FIRST turn's provider message state — the assistant
+message carrying the tool call must be replayed verbatim beside the tool result,
+or the provider rejects the continuation. Two designs are possible:
+
+```text
+A  the loop keeps provider messages     -> the loop learns every wire dialect
+B  the adapter keeps them in a closure  -> the loop stays provider-neutral
+```
+
+Atomik takes B. `startToolLoop` returns a discriminated turn, and a `tool-calls`
+turn carries `continue(results)` — a closure over that adapter's own message
+array. The loop hands back results and receives the next turn; it never sees a
+`tool_calls` field or an Anthropic content block. Authority is the mirror image:
+budgets, parsing, execution, cancellation and the fallback live in the loop, so
+adding a provider cannot loosen a limit.
+
+The distinction that matters most in the loop is **a bad call versus a broken
+operation**. A rejected name, malformed arguments or a failing seat becomes an
+untrusted error RESULT handed back to the model, which can correct itself — the
+provider transcript stays valid, and the exchange still ends in an answer. A
+budget breach, an empty tool turn, parallel calls from an adapter that declared
+`parallelCalls: false`, or an executor result whose id/name does not match the
+call it answers ends the operation with a typed `GenerationError`. The first
+class is expected model behavior; the second means something is no longer
+trustworthy, and continuing would spend the owner's money on a loop that has
+already lost its invariants.
+
+Cancellation gets its own controller. The loop aborts an inner signal from
+either the caller's signal or the wall-budget timer, so in-flight tool work
+actually stops — but it remembers WHICH fired, because a user pressing cancel
+and a runaway loop hitting its ceiling are different diagnostics that a shared
+`AbortError` would flatten into one.
+
+Bounding the result is a serialization problem, not a `slice` problem. A tool
+result must reach the provider under budget AND still parse as JSON, so
+`boundedToolContent` clips inside the structure: longest prose fields first,
+then repeated array entries, then — only if the shape itself is too large — a
+bare truncation marker. Truncating the serialized string instead would hand the
+model a syntax error and waste the whole turn.
+
 ## 4. Why the result is marked untrusted
 
 A Wikipedia page can contain prose such as “ignore earlier instructions.” It
@@ -270,6 +312,14 @@ S06 opts in one adapter only after tests prove:
 
 This is **capability declaration**: behavior becomes available when the code
 can demonstrate it, not when a vendor documentation page says it exists.
+
+S06 met that bar for Mistral only, against recorded payloads under
+`tests/fixtures/generation-tools/` — no test reaches a live provider. The other
+six adapters stay final-only, and the loop makes that state LOUD rather than
+silent: an unsupported engine still runs the deterministic vault grounding pass
+and returns an `uncertainties` warning naming the engine and the reason. A user
+who switches models sees why the answer stopped consulting Wikipedia, instead of
+watching quality quietly drop.
 
 ## 7. Methodology used in this path
 

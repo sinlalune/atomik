@@ -1,0 +1,28 @@
+{
+  "id": "cmpl_tool_fixture_bad_args",
+  "model": "mistral-small-2603",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "call_bad_args_1",
+            "type": "function",
+            "function": {
+              "name": "search_wiki",
+              "arguments": "{not-json"
+            }
+          }
+        ]
+      },
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 90,
+    "completion_tokens": 15
+  }
+}

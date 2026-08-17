@@ -49,6 +49,44 @@ timestamp: 2026-08-17T00:00:00Z
   accepted only while that exact id+operation pair is active, final/failure
   generation lines reuse it, and quit flushes a reserved root as failed. This
   makes S06's child traces structurally parented before any adapter is enabled.
+- PROVIDER-NEUTRAL TOOL LOOP (CP-MVP-011 S06): `runGenerationWithTools`
+  (`electron-main/generation.ts`) is the ONE place authority lives. Adapters own
+  their wire dialect and nothing else: `startToolLoop` returns a discriminated
+  turn — `final`, or `tool-calls` carrying normalized `{id, name, arguments}`
+  envelopes plus a `continue(results)` closure that keeps provider message state
+  ADAPTER-SIDE, so the loop never rebuilds a vendor transcript. The loop parses
+  every call through `parseGenerationToolCall`, executes through the injected
+  `GenerationToolExecutor`, and counts calls, depth, per-call/total result chars
+  and bytes, and wall time against the policy. A rejected or failed call becomes
+  an untrusted error RESULT the model can recover from; a budget breach, an empty
+  turn, unexpected parallel calls, or a mismatched executor result ends the
+  operation as a typed `GenerationError`. Cancellation is relayed through an
+  inner AbortController, so caller abort and the wall-budget timer both stop
+  in-flight tool work and are reported apart (`cancelled` vs `budget-exceeded`).
+  An adapter that is `unsupported` — or declares native tools without
+  implementing the turn — still runs the deterministic CP-MVP-010 grounding pass
+  and returns a VISIBLE `uncertainties` warning naming the engine and reason;
+  chat is never silently degraded. `mistral-generation-adapter.ts` is the first
+  and only native opt-in (`openai-chat-completions` dialect, `parallelCalls:
+  false`), proven against recorded request/response fixtures rather than a live
+  API. `generationToolDefinitions` emits the schemas from the same pure policy
+  the parser enforces, so an adapter cannot advertise a verb main would refuse.
+  Executed activity rides home on `AiResponseBundle.toolExecutions` with typed
+  transient payloads for S07's disclosure and citations — consultation alone
+  still makes nothing durable.
+- MAIN-SIDE EXECUTOR (CP-MVP-011 S06):
+  `electron-main/generation-tool-executor.ts` binds the two verbs to their
+  existing seats — `search_vault` to the traced ContextPacket compiler,
+  `search_wiki` to `WikimediaClient.search` — and is the only component holding
+  the parent trace/operation ids and media policy, which therefore cannot be
+  influenced from the renderer or the model. `boundedToolContent` serializes
+  each payload as VALID JSON wrapped in an explicit untrusted notice, then clips
+  it deterministically (longest prose fields first, then repeated array entries,
+  then a bare truncation marker) so hostile or oversized material reaches the
+  provider inside budget and still parses. `recordRetrieval` now accepts the
+  parent triple and refuses a parented vault receipt whose root id and operation
+  are not live, giving `search_vault` the same parented, content-free receipt
+  `search_wiki` already had.
 
 - Mechanical truth labels (06 §labeling rule, S10): `electron-main/truth.ts`
   (truth-core validator seat, 14 — validators never call AI). Providers

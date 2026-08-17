@@ -1,0 +1,28 @@
+{
+  "id": "cmpl_tool_fixture_1",
+  "model": "mistral-small-2603",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "call_wiki_atom_1",
+            "type": "function",
+            "function": {
+              "name": "search_wiki",
+              "arguments": "{\"query\":\"atom\",\"language\":\"en\",\"corpus\":\"wikipedia\",\"limit\":1,\"includeMedia\":false}"
+            }
+          }
+        ]
+      },
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 100,
+    "completion_tokens": 20
+  }
+}

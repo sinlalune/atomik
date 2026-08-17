@@ -75,10 +75,16 @@ export type RetrievalRecord = {
   coverage: 'covered' | 'thin' | 'empty'
   wallMs: number
   status: 'completed' | 'failed'
+  /** Present only when retrieval was an actual model-requested tool call. */
+  parentTraceId?: string
+  parentOperationId?: string
+  tool?: 'search_vault'
 }
 
 type RetrieveTraceLine = {
   id: string
+  parentTraceId?: string
+  operationId?: string
   /** The packet this line measures — the link is one-way on purpose:
    *  telemetry points at knowledge, never the reverse. */
   packetId: string
@@ -92,6 +98,7 @@ type RetrieveTraceLine = {
     basis: 'estimated'
     stages: string[]
     coverage: 'covered' | 'thin' | 'empty'
+    tool?: 'search_vault'
   }
   performance: { wallMs: number }
   billing: { currency: 'EUR'; estimatedAmount: 0; basis: 'estimated' }
@@ -285,9 +292,33 @@ export class ActionTraceLedger {
    * right there beside it.
    */
   recordRetrieval(record: RetrievalRecord): string {
+    const hasParent =
+      record.parentTraceId !== undefined ||
+      record.parentOperationId !== undefined ||
+      record.tool !== undefined
+    if (hasParent) {
+      const parent =
+        record.parentTraceId === undefined
+          ? undefined
+          : this.pendingGenerationParents.get(record.parentTraceId)
+      if (
+        record.parentTraceId === undefined ||
+        record.parentOperationId === undefined ||
+        record.tool !== 'search_vault' ||
+        parent?.operationId !== record.parentOperationId
+      ) {
+        throw new Error('trace: vault receipt has no active generation parent')
+      }
+    }
     const id = this.newTraceId()
     this.append({
       id,
+      ...(record.parentTraceId === undefined
+        ? {}
+        : {
+            parentTraceId: record.parentTraceId,
+            operationId: record.parentOperationId
+          }),
       packetId: record.packetId,
       timestamp: new Date().toISOString(),
       action: 'retrieve',
@@ -298,7 +329,8 @@ export class ActionTraceLedger {
         estimatedContextTokens: record.contextTokens,
         basis: 'estimated',
         stages: record.stages,
-        coverage: record.coverage
+        coverage: record.coverage,
+        ...(record.tool === undefined ? {} : { tool: record.tool })
       },
       performance: { wallMs: record.wallMs },
       billing: { currency: 'EUR', estimatedAmount: 0, basis: 'estimated' },

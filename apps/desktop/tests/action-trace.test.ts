@@ -356,4 +356,29 @@ describe('retrieval traces (CP-MVP-010 S06)', () => {
     expect(raw).not.toContain('crédibilité')
     expect(raw).not.toContain('ethos')
   })
+
+  it('parents model-requested search_vault receipts without changing inspector traces', () => {
+    const parentTraceId = ledger.beginGeneration('op-vault-tool')
+    const childTraceId = ledger.recordRetrieval({
+      packetId: 'packet-tool',
+      stages: ['lexical'],
+      candidates: 2,
+      selected: 1,
+      contextTokens: 30,
+      coverage: 'thin',
+      wallMs: 2,
+      status: 'completed',
+      parentTraceId,
+      parentOperationId: 'op-vault-tool',
+      tool: 'search_vault'
+    })
+    const line = readLines().find((candidate) => candidate['id'] === childTraceId)!
+    expect(line).toMatchObject({
+      parentTraceId,
+      operationId: 'op-vault-tool',
+      action: 'retrieve',
+      usage: { tool: 'search_vault' }
+    })
+    ledger.recordFailure('op-vault-tool', 3, undefined, parentTraceId)
+  })
 })
