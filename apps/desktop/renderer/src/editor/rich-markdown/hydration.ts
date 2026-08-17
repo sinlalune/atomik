@@ -112,6 +112,7 @@ function showSource(nodes: BlockNodes, message: string): void {
   nodes.output.hidden = true
   nodes.output.replaceChildren()
   nodes.status.textContent = message
+  nodes.status.removeAttribute('data-rich-severity')
   nodes.status.hidden = message.length === 0
 }
 
@@ -133,9 +134,11 @@ function showReady(block: ActiveBlock): void {
   const diagnostic = block.handle?.diagnostics[0]
   if (diagnostic) {
     block.status.textContent = `${diagnostic.severity}: ${diagnostic.message}`
+    block.status.dataset['richSeverity'] = diagnostic.severity
     block.status.hidden = false
   } else {
     block.status.textContent = ''
+    block.status.removeAttribute('data-rich-severity')
     block.status.hidden = true
   }
 }

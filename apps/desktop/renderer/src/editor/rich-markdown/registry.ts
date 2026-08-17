@@ -62,5 +62,7 @@ export const defaultRichRendererRegistry = createRichRendererRegistry({
   mermaid: async () =>
     import('./adapters/mermaid').then((module) => module.mermaidAdapter),
   'vega-lite': async () =>
-    import('./adapters/vega-lite').then((module) => module.vegaLiteAdapter)
+    import('./adapters/vega-lite').then((module) => module.vegaLiteAdapter),
+  code: async () =>
+    import('./adapters/code').then((module) => module.codeAdapter)
 })

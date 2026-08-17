@@ -8,7 +8,7 @@ atomik:
   id: CP-RICH-MARKDOWN
   status: running
   accepted: 2026-08-17
-  current_step: S06
+  current_step: S07
   base_commit: 98561b4
   branch: path/cp-rich-markdown
   writes:
@@ -57,7 +57,7 @@ note into executable or hidden state:
    data visualizations through local, lazy, bounded adapters.
 3. One renderer registry gives every rich block the same loading, theme,
    accessibility, cancellation, diagnostic, source-fallback, and lifecycle
-   contract. Unknown fences remain normal code.
+   contract. Unknown fences remain escaped plain code inside common chrome.
 4. Fenced code gains broad on-demand language parsing and VS Code-quality
    read presentation, plus copy/language/wrap-or-expand affordances.
 5. Code feedback stops at decoration: diagnostic ranges, severity, count, and
@@ -74,8 +74,8 @@ The owner-approved details and revised backlog order are recorded in
   encountering an error never rewrites a note.
 - One typed registry maps normalized fence identifiers to lazy renderer
   adapters. It owns cancellation/stale-result suppression, theme input,
-  budgets, accessible diagnostics, and a source fallback; unsupported fences
-  preserve the existing `<pre><code>` behavior.
+  budgets, accessible diagnostics, and a source fallback; unsupported language
+  identifiers stay escaped/plain and never trigger a guessed grammar.
 - KaTeX supports inline/display math with HTML+MathML accessibility,
   `trust: false`, bounded expansion/size, no shared cross-note macro state, and
   visible source-preserving parse errors.
@@ -183,7 +183,7 @@ The owner-approved details and revised backlog order are recorded in
 - [x] S05 Vega-Lite: add local lazy inline-data charts, schema/cap validation,
       blocked loaders/actions, view finalization, theme/a11y/source behavior,
       focused tests, docs, ledger, and a bare gate.
-- [ ] S06 Code presentation + decoration-only diagnostics: replace the fixed
+- [x] S06 Code presentation + decoration-only diagnostics: replace the fixed
       language switch with dynamic CodeMirror language data, add fine-grained
       lazy Shiki read highlighting and code-block chrome, then add bounded
       parser/local-analyzer diagnostics mapped to note ranges through
@@ -209,21 +209,25 @@ changed     : S02 exact package lock; pure syntax + escaped Markdown-it
               touched-range reveal, shared cap, cancellation/staging cleanup;
               S05 structured inline-only Vega preflight, two-stage lazy runtime,
               deny loader, token theme, View finalization, shared SVG guard,
-              read/live parity and three-renderer cap
-tests       : S05 focused PASS (3 files / 92 tests); full PASS (75 files / 974
-              passed + 1 skipped); Cairn/typecheck/build PASS —
-              entry 2,383,608 B (+443 from S04), global CSS 136,043 B (+271);
-              lazy policy adapter 15,357 B, Vega-Lite 618,083 B, Vega 940,911 B;
-              pinned-runtime smoke 7,614 B static SVG / no image or external href
+              read/live parity and three-renderer cap; S06 exact lazy
+              CodeMirror language catalog, 37-language fine-grained Shiki map,
+              safe token DOM + code chrome, source-only lazy lint decorations,
+              bounded parser diagnostics and explicit no-LSP capability pin
+tests       : S06 focused PASS (3 files / 102 tests); full PASS (75 files / 984
+              passed + 1 skipped); Cairn/typecheck/build PASS — entry 2,454,528
+              B (+70,920 from S05, +125,030 from S01), CSS 140,228 B (+4,185);
+              lazy code 23,033 B, diagnostics 35,017 B, Shiki core 226,275 B,
+              JS engine 111,669 B, themes 14,198/14,475 B; 28,570 B eager
+              headroom remains under the 150 KiB ceiling
 audit       : npm audit reports the same 4 inherited highs on trunk and S02
               (PDF.js + Vite/PostCSS/nanoid + Electron optional undici); zero
               rich-dependency advisory delta, no automatic rewrite applied
 catalog     : docs/learning/index.md edit is deliberate under bedrock 17's
               first-use catalog rule; it is not generated ACTIVE/register state
 receipt     : atomik-project/sessions/
-              2026-08-17-cp-rich-markdown-s05-vega-lite.md
-next action : checkpoint S05, then begin S06 broad lazy code presentation and
-              decoration-only diagnostic feedback (no other LSP capability)
+              2026-08-17-cp-rich-markdown-s06-code-diagnostics.md
+next action : checkpoint S06, then begin S07 parity/lifecycle/performance
+              hardening and responsive keyboard/screen-reader benching
 blockers    : none; rebased onto trunk 783c7c6
 ```
 

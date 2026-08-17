@@ -249,23 +249,42 @@ Vega requires the custom loader at View construction time and documents
 
 #### Code and diagnostics
 
-- Live/source nested parsers resolve through
-  `@codemirror/language-data`'s lazy `LanguageDescription` loaders. Direct
-  matches are used; fuzzy language-name matching is off. Unknown languages
-  remain plain text.
+- Every ordinary fence becomes the same escaped inert `code` placeholder in
+  read and untouched live mode. A known language receives fine highlighting;
+  an unknown language stays visually ordinary escaped code inside the common
+  header. Touching the live range restores the nested editable CodeMirror
+  source, and source mode is always raw Markdown.
+- Live/source nested parsers resolve through `@codemirror/language-data`'s
+  lazy `LanguageDescription` loaders. Name/alias and extension matches are
+  exact; fuzzy matching is off, so `script` and misspellings cannot silently
+  select JavaScript. The catalog metadata is eager because Markdown's nested
+  parser resolver is synchronous, while each grammar remains a dynamic chunk.
 - Read highlighting uses `@shikijs/core`, selected language/theme submodules,
   and `@shikijs/engine-javascript`. The `shiki` full/web bundles, Oniguruma
   Wasm, precompiled experimental grammars, and Twoslash are excluded.
-- One highlighter instance is cached and disposed by the registry. Only a
-  reviewed, explicit high-value language map is emitted as lazy chunks; an
-  unknown alias falls back to escaped code.
-- Local parser/analyzer results use the `RichDiagnostic` shape and are mapped
-  from fence-relative offsets to note offsets. `@codemirror/lint` renders
-  squiggles, severity, source-mode gutter markers, a count, and accessible
-  messages. Live remains gutter-free and exposes the count in block chrome.
-- Diagnostics contain no `actions`. No server discovery/spawn/transport,
-  completion, protocol hover, definition, references, rename, formatting,
-  code actions, or workspace indexing is implemented.
+- One highlighter instance is cached and disposed by the registry. Grammar
+  loads serialize and retry after failure. The reviewed map covers 37 common
+  web, data, shell, systems, mobile, and framework grammars; every grammar and
+  the two GitHub default themes are explicit subpath imports. Unknown aliases
+  never invoke Shiki.
+- The adapter never mounts Shiki HTML. It reconstructs spans from authored
+  source offsets with `textContent`, admits only hex token colors and the four
+  documented font-style bits, and ignores any HTML-style/attribute surface.
+  Its semantic toolbar names the language and problem count; standard buttons
+  copy authored source only, reveal plain source, wrap, and expand/collapse.
+- Local CodeMirror/Lezer parser error nodes become bounded `RichDiagnostic`
+  values and map from fence-relative offsets to raw note offsets. Source mode
+  dynamically imports `@codemirror/lint` only when selected, then renders
+  squiggles, severity, gutter markers, messages, and keyboard navigation.
+  Live remains gutter-free and exposes the count plus accessible messages in
+  block chrome. At most 100 diagnostics per block, 64 analyzable blocks, and
+  200 diagnostics per document are admitted; the first omitted block receives
+  a visible limit diagnostic.
+- Diagnostics contain no `actions`. An executable capability pin keeps server
+  discovery/spawn/transport, virtual documents/workspaces, completion,
+  signature help, protocol hover, definition/references/symbols, rename,
+  formatting, semantic tokens, inlay hints, hierarchies, workspace edits/code
+  actions, and workspace indexing false. No LSP client exists in this path.
 
 CodeMirror's `LanguageDescription.load()` and lint `Diagnostic`/`lintGutter`
 contracts supply exactly these lazy-language and decoration seams
@@ -311,6 +330,13 @@ Simple-block targets on the pinned development machine are: KaTeX first
 <300 ms/repeat <50 ms; Mermaid and Vega-Lite first <1,500 ms/repeat <250 ms;
 Shiki first <500 ms/repeat <100 ms. The 3 s deadline is the hard safety cap,
 not the performance target.
+
+S06 production inspection measures a 2,454,528-byte eager renderer entry
+(+70,920 B from S05, +125,030 B from the S01 baseline, leaving 28,570 B under
+the 150 KiB ceiling) and 140,228-byte global CSS. Code presentation is a lazy
+23,033-byte adapter; source diagnostics are a separate lazy 35,017-byte chunk.
+Shiki core (226,275 B), its JavaScript regex engine (111,669 B), the two themes
+(14,198/14,475 B), and each selected grammar remain separate on-demand assets.
 
 ### 7. UI and accessibility contract
 

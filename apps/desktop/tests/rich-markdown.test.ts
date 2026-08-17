@@ -1,3 +1,6 @@
+import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
+import { ensureSyntaxTree } from '@codemirror/language'
+import { EditorState } from '@codemirror/state'
 import { parseHTML } from 'linkedom'
 import { describe, expect, it, vi } from 'vitest'
 import { noteMarkdown } from '../renderer/src/editor/note-markdown'
@@ -19,7 +22,25 @@ import {
   type VegaLiteRuntime,
   type VegaView
 } from '../renderer/src/editor/rich-markdown/adapters/vega-lite-core'
+import {
+  createCodeAdapter,
+  type CodeHighlighterRuntime
+} from '../renderer/src/editor/rich-markdown/adapters/code-core'
+import {
+  SHIKI_LANGUAGE_IDS,
+  shikiLanguageForFence
+} from '../renderer/src/editor/rich-markdown/adapters/code'
 import { safeSvgNode } from '../renderer/src/editor/rich-markdown/adapters/safe-svg'
+import {
+  analyzeCodeSource,
+  CODE_FEEDBACK_CAPABILITIES,
+  codeDiagnosticsForMarkdownState,
+  mapFenceDiagnostic
+} from '../renderer/src/editor/rich-markdown/code-diagnostics'
+import {
+  codeLanguageForFence,
+  codeMirrorFenceLanguage
+} from '../renderer/src/editor/rich-markdown/code-languages'
 import { hydrateRichMarkdown } from '../renderer/src/editor/rich-markdown/hydration'
 import { createRichRendererRegistry } from '../renderer/src/editor/rich-markdown/registry'
 import {
@@ -167,6 +188,43 @@ function fakeVega(
     finalize,
     view
   }
+}
+
+function codeRequest(
+  source = 'const answer: number = 42\n',
+  overrides: Partial<RichRenderRequest> = {}
+): RichRenderRequest {
+  return {
+    id: 'rich-test-code-0-c3',
+    kind: 'code',
+    source,
+    info: 'typescript',
+    theme: { name: 'system', scheme: 'light' },
+    limits: DEFAULT_RICH_LIMITS,
+    signal: new AbortController().signal,
+    ...overrides
+  }
+}
+
+function fakeCodeRuntime(): {
+  runtime: CodeHighlighterRuntime
+  highlight: ReturnType<typeof vi.fn>
+  dispose: ReturnType<typeof vi.fn>
+} {
+  const highlight = vi.fn(async (source: string) => ({
+    tokens: [
+      [
+        {
+          content: source,
+          offset: 0,
+          color: '#cf222e',
+          fontStyle: 2
+        }
+      ]
+    ]
+  }))
+  const dispose = vi.fn()
+  return { runtime: { highlight, dispose }, highlight, dispose }
 }
 
 describe('rich Markdown syntax discovery (ADR-014)', () => {
@@ -456,6 +514,390 @@ describe('rich Markdown hydration lifecycle', () => {
     )
     firstHydration.dispose()
     secondHydration.dispose()
+  })
+})
+
+describe('rich code and diagnostic decorations (CP-RICH-MARKDOWN S06)', () => {
+  it('resolves CodeMirror languages exactly across names, aliases, and extensions', () => {
+    expect(codeLanguageForFence('JavaScript title=demo')?.name).toBe(
+      'JavaScript'
+    )
+    expect(codeLanguageForFence('TS')?.name).toBe('TypeScript')
+    expect(codeLanguageForFence('py')?.name).toBe('Python')
+    expect(codeLanguageForFence('rs')?.name).toBe('Rust')
+    expect(codeLanguageForFence('yml')?.name).toBe('YAML')
+    expect(codeLanguageForFence('SQL')?.name).toBe('SQL')
+    expect(codeMirrorFenceLanguage('cpp')?.name).toBe('C++')
+    expect(codeLanguageForFence('script')).toBeNull()
+    expect(codeLanguageForFence('typscript')).toBeNull()
+    expect(codeLanguageForFence('')).toBeNull()
+  })
+
+  it('pins the reviewed Shiki language surface and leaves unknown DSLs plain', () => {
+    expect(shikiLanguageForFence('js title=demo')).toEqual({
+      id: 'javascript',
+      label: 'JavaScript'
+    })
+    expect(shikiLanguageForFence('TS')).toEqual({
+      id: 'typescript',
+      label: 'TypeScript'
+    })
+    expect(shikiLanguageForFence('py')).toMatchObject({ id: 'python' })
+    expect(shikiLanguageForFence('sh')).toMatchObject({ id: 'bash' })
+    expect(shikiLanguageForFence('c++')).toMatchObject({ id: 'cpp' })
+    expect(shikiLanguageForFence('cs')).toMatchObject({ id: 'csharp' })
+    expect(shikiLanguageForFence('yml')).toMatchObject({ id: 'yaml' })
+    expect(shikiLanguageForFence('gql')).toMatchObject({ id: 'graphql' })
+    expect(shikiLanguageForFence('docker')).toMatchObject({ id: 'dockerfile' })
+    expect(shikiLanguageForFence('patch')).toMatchObject({ id: 'diff' })
+    expect(shikiLanguageForFence('graphviz')).toBeNull()
+    expect(shikiLanguageForFence('script')).toBeNull()
+    expect(new Set(SHIKI_LANGUAGE_IDS).size).toBe(SHIKI_LANGUAGE_IDS.length)
+    expect(SHIKI_LANGUAGE_IDS).toEqual(
+      expect.arrayContaining([
+        'javascript',
+        'typescript',
+        'tsx',
+        'html',
+        'css',
+        'json',
+        'yaml',
+        'markdown',
+        'bash',
+        'python',
+        'sql',
+        'graphql',
+        'dockerfile',
+        'cpp',
+        'csharp',
+        'java',
+        'go',
+        'rust',
+        'ruby',
+        'php',
+        'swift',
+        'diff',
+        'vue',
+        'svelte'
+      ])
+    )
+  })
+
+  it('hydrates an ordinary fence with real fine-grained Shiki output safely', async () => {
+    const authored = 'const literal = "<img src=x onerror=alert(1)>"\n'
+    const root = domFor(`\`\`\`typescript\n${authored}\`\`\``)
+    const hydration = hydrateRichMarkdown(root)
+    await hydration.ready
+
+    const block = root.querySelector<HTMLElement>('[data-rich-block]')!
+    const frame = root.querySelector<HTMLElement>('.rich-code-frame')!
+    expect(block.dataset['richState']).toBe('ready')
+    expect(frame).not.toBeNull()
+    expect(frame.getAttribute('aria-label')).toBe('TypeScript code block')
+    expect(frame.querySelector('.rich-code-language')?.textContent).toBe(
+      'TypeScript'
+    )
+    expect(frame.querySelector('.rich-code-token')).not.toBeNull()
+    expect(
+      frame.querySelector('.rich-code-pre--source code')?.textContent
+    ).toBe(authored)
+    expect(frame.querySelector('img, script')).toBeNull()
+    expect(frame.innerHTML).not.toContain('<img src=x')
+
+    hydration.dispose()
+    expect(block.querySelector<HTMLElement>('[data-rich-source]')!.hidden).toBe(
+      false
+    )
+    expect(block.querySelector('[data-rich-output]')!.textContent).toBe('')
+  })
+
+  it('offers keyboard-native copy, source, wrap, and expand controls', async () => {
+    const fixture = fakeCodeRuntime()
+    const writeText = vi.fn(async (_document: Document, _text: string) => {})
+    const adapter = createCodeAdapter({
+      languageFor: shikiLanguageForFence,
+      loadRuntime: async () => fixture.runtime,
+      writeText
+    })
+    const host = emptyHost()
+    const request = codeRequest('const answer: number = 42\n', {
+      theme: { name: 'moss', scheme: 'dark' }
+    })
+    const rendered = await adapter.render(host, request)
+    const frame = host.querySelector<HTMLElement>('.rich-code-frame')!
+    const buttons = Array.from(
+      frame.querySelectorAll<HTMLButtonElement>('button')
+    )
+    const button = (label: string): HTMLButtonElement =>
+      buttons.find((candidate) => candidate.textContent === label)!
+    const click = (target: HTMLButtonElement): void => {
+      const ViewEvent = target.ownerDocument.defaultView!.Event
+      target.dispatchEvent(new ViewEvent('click', { bubbles: true }))
+    }
+
+    expect(buttons.map((candidate) => candidate.textContent)).toEqual([
+      'Copy',
+      'Source',
+      'Wrap',
+      'Expand'
+    ])
+    expect(fixture.highlight).toHaveBeenCalledWith(
+      request.source,
+      'typescript',
+      'dark'
+    )
+    expect(
+      buttons.every(
+        (candidate) =>
+          candidate.type === 'button' &&
+          candidate.title.length > 0 &&
+          Boolean(candidate.getAttribute('aria-label')) &&
+          candidate.hasAttribute('data-rich-interactive')
+      )
+    ).toBe(true)
+
+    click(button('Copy'))
+    await Promise.resolve()
+    expect(writeText).toHaveBeenCalledWith(host.ownerDocument, request.source)
+    expect(frame.querySelector('.rich-code-copy-status')?.textContent).toBe(
+      'Copied'
+    )
+
+    click(button('Wrap'))
+    expect(frame.dataset['codeWrap']).toBe('on')
+    expect(button('Unwrap').getAttribute('aria-pressed')).toBe('true')
+    expect(button('Unwrap').getAttribute('aria-label')).toBe(
+      'Keep code on one line'
+    )
+    click(button('Expand'))
+    expect(frame.dataset['codeExpanded']).toBe('true')
+    expect(button('Collapse').getAttribute('aria-pressed')).toBe('true')
+
+    const highlighted = frame.querySelector<HTMLElement>(
+      '.rich-code-pre--highlighted'
+    )!
+    const plain = frame.querySelector<HTMLElement>('.rich-code-pre--source')!
+    expect(highlighted.hidden).toBe(false)
+    expect(plain.hidden).toBe(true)
+    click(button('Source'))
+    expect(highlighted.hidden).toBe(true)
+    expect(plain.hidden).toBe(false)
+    expect(button('Highlight').getAttribute('aria-pressed')).toBe('true')
+    expect(button('Highlight').getAttribute('aria-label')).toBe(
+      'Show syntax highlighting'
+    )
+
+    rendered.dispose()
+    expect(host.querySelector('.rich-code-frame')).toBeNull()
+    adapter.dispose?.()
+    expect(fixture.dispose).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps unknown and over-budget code plain without loading Shiki', async () => {
+    const fixture = fakeCodeRuntime()
+    const loadRuntime = vi.fn(async () => fixture.runtime)
+    const adapter = createCodeAdapter({
+      languageFor: shikiLanguageForFence,
+      loadRuntime
+    })
+
+    const unknownHost = emptyHost()
+    const unknown = await adapter.render(
+      unknownHost,
+      codeRequest('digraph { a -> b }\n', { info: 'graphviz' })
+    )
+    expect(loadRuntime).not.toHaveBeenCalled()
+    expect(unknownHost.querySelector('.rich-code-token')).toBeNull()
+    expect(
+      unknownHost.querySelector('.rich-code-pre--source code')?.textContent
+    ).toBe('digraph { a -> b }\n')
+    expect(unknown.diagnostics).toEqual([])
+
+    const limitedHost = emptyHost()
+    const limited = await adapter.render(
+      limitedHost,
+      codeRequest('const one = 1\nconst two = 2', {
+        limits: {
+          ...DEFAULT_RICH_LIMITS,
+          code: { ...DEFAULT_RICH_LIMITS.code, maxLines: 1 }
+        }
+      })
+    )
+    expect(loadRuntime).not.toHaveBeenCalled()
+    expect(limitedHost.querySelector('.rich-code-token')).toBeNull()
+    expect(limited.diagnostics).toEqual([
+      expect.objectContaining({
+        severity: 'info',
+        code: 'highlight-limit'
+      })
+    ])
+    expect(
+      limitedHost.querySelector('.rich-code-diagnostics summary')?.textContent
+    ).toBe('1 diagnostic')
+    unknown.dispose()
+    limited.dispose()
+  })
+
+  it('falls back to escaped source with a visible diagnostic when Shiki fails', async () => {
+    const adapter = createCodeAdapter({
+      languageFor: shikiLanguageForFence,
+      loadRuntime: async () => {
+        throw new Error('highlighter unavailable')
+      }
+    })
+    const host = emptyHost()
+    const rendered = await adapter.render(host, codeRequest())
+    expect(host.querySelector('.rich-code-token')).toBeNull()
+    expect(
+      host.querySelector('.rich-code-pre--source code')?.textContent
+    ).toBe('const answer: number = 42\n')
+    expect(rendered.diagnostics).toEqual([
+      expect.objectContaining({
+        severity: 'warning',
+        code: 'highlight-unavailable'
+      })
+    ])
+    expect(
+      host.querySelector('.rich-code-diagnostics summary')?.textContent
+    ).toBe('1 diagnostic')
+    rendered.dispose()
+  })
+
+  it('emits bounded parser ranges and maps only decorations into note offsets', async () => {
+    const invalidJson = await analyzeCodeSource('{"answer": }', 'json')
+    const invalidJavaScript = await analyzeCodeSource('const = 1', 'javascript')
+    expect(invalidJson).toEqual([
+      expect.objectContaining({
+        from: expect.any(Number),
+        to: expect.any(Number),
+        severity: 'error',
+        source: 'JSON parser',
+        code: 'syntax-error'
+      })
+    ])
+    expect(invalidJavaScript).toEqual([
+      expect.objectContaining({
+        severity: 'error',
+        source: 'JavaScript parser',
+        code: 'syntax-error'
+      })
+    ])
+    expect(invalidJson[0]!.to).toBeGreaterThan(invalidJson[0]!.from)
+    expect(invalidJson[0]).not.toHaveProperty('actions')
+    expect(await analyzeCodeSource('{"answer": 42}', 'json')).toEqual([])
+    expect(await analyzeCodeSource('anything', 'graphviz')).toEqual([])
+
+    expect(mapFenceDiagnostic(invalidJson[0]!, 20, 12, 40)).toEqual({
+      ...invalidJson[0],
+      from: 20 + invalidJson[0]!.from,
+      to: 20 + invalidJson[0]!.to
+    })
+  })
+
+  it('maps fence-relative parser errors to document decorations and skips DSLs', async () => {
+    const doc = [
+      '# Before',
+      '',
+      '```json',
+      '{"answer": }',
+      '```',
+      '',
+      '```mermaid',
+      'not valid JavaScript',
+      '```'
+    ].join('\n')
+    const state = EditorState.create({
+      doc,
+      extensions: [
+        markdown({
+          base: markdownLanguage,
+          codeLanguages: codeMirrorFenceLanguage
+        })
+      ]
+    })
+    ensureSyntaxTree(state, state.doc.length, 5_000)
+    const diagnostics = await codeDiagnosticsForMarkdownState(state)
+    const sourceFrom = doc.indexOf('{"answer": }')
+    expect(diagnostics).toEqual([
+      expect.objectContaining({
+        from: sourceFrom + 11,
+        to: sourceFrom + 12,
+        severity: 'error',
+        source: 'JSON parser',
+        code: 'syntax-error'
+      })
+    ])
+    expect(
+      diagnostics.every(
+        (diagnostic) =>
+          diagnostic.from >= sourceFrom &&
+          diagnostic.to <= sourceFrom + '{"answer": }'.length &&
+          !('actions' in diagnostic)
+      )
+    ).toBe(true)
+
+    const valid = EditorState.create({
+      doc: '```json\n{"answer": 42}\n```',
+      extensions: [markdown({ base: markdownLanguage })]
+    })
+    ensureSyntaxTree(valid, valid.doc.length, 5_000)
+    expect(await codeDiagnosticsForMarkdownState(valid)).toEqual([])
+  })
+
+  it('bounds analyzable fences and reports the first omitted block', async () => {
+    const blocks = Array.from(
+      { length: 65 },
+      (_, index) => `\`\`\`json\n{"index": ${index}}\n\`\`\``
+    )
+    const doc = blocks.join('\n\n')
+    const state = EditorState.create({
+      doc,
+      extensions: [markdown({ base: markdownLanguage })]
+    })
+    ensureSyntaxTree(state, state.doc.length, 5_000)
+    const diagnostics = await codeDiagnosticsForMarkdownState(state)
+    expect(diagnostics).toEqual([
+      expect.objectContaining({
+        from: doc.lastIndexOf('{"index": 64}'),
+        severity: 'info',
+        source: 'Atomik code diagnostics',
+        code: 'diagnostic-limit',
+        message: 'Diagnostics limited to the first 64 code blocks.'
+      })
+    ])
+  })
+
+  it('pins feedback to passive diagnostics with no LSP-shaped capability', () => {
+    expect(CODE_FEEDBACK_CAPABILITIES.diagnostics).toBe(true)
+    expect(
+      Object.entries(CODE_FEEDBACK_CAPABILITIES)
+        .filter(([capability]) => capability !== 'diagnostics')
+        .every(([, enabled]) => enabled === false)
+    ).toBe(true)
+    expect(CODE_FEEDBACK_CAPABILITIES).toMatchObject({
+      diagnosticActions: false,
+      serverDiscovery: false,
+      processSpawn: false,
+      protocolTransport: false,
+      virtualDocuments: false,
+      virtualWorkspace: false,
+      completion: false,
+      signatureHelp: false,
+      protocolHover: false,
+      definition: false,
+      references: false,
+      documentSymbols: false,
+      rename: false,
+      formatting: false,
+      codeActions: false,
+      semanticTokens: false,
+      inlayHints: false,
+      callHierarchy: false,
+      typeHierarchy: false,
+      workspaceEdits: false,
+      workspaceSymbols: false,
+      workspaceIndexing: false
+    })
   })
 })
 

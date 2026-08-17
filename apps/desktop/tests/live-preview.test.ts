@@ -174,23 +174,41 @@ describe('live preview decorations (MVP-001: seamless editing)', () => {
     ).toBe(true)
   })
 
-  it('folds fence marks away from the cursor, dims them on the active line', () => {
+  it('projects untouched code and reveals the nested CodeMirror source when touched', () => {
     const doc = '```js\ncode()\n```\n\nelsewhere\n'
     const away = decorate(doc, doc.indexOf('elsewhere'))
-    // opening ``` + js info + closing ``` all fold; block lines stay tinted
-    expect(away.filter((deco) => deco.kind === 'hide')).toHaveLength(3)
+    expect(away).toContainEqual({
+      from: 0,
+      to: doc.indexOf('```', 3) + 3,
+      kind: 'code',
+      richKind: 'code',
+      richDisplay: true,
+      richSource: 'code()',
+      richTheme: 'system'
+    })
+
+    const touchedBody = decorate(doc, doc.indexOf('code'))
+    // Once touched, opening ``` + info + closing ``` fold and the original
+    // nested language spans remain on the editable code lines.
+    expect(touchedBody.filter((deco) => deco.kind === 'code')).toHaveLength(0)
+    expect(touchedBody.filter((deco) => deco.kind === 'hide')).toHaveLength(3)
     expect(
-      away.some((deco) => deco.kind === 'mark' && deco.cls === 'lp-dim')
+      touchedBody.some((deco) => deco.kind === 'mark' && deco.cls === 'lp-dim')
     ).toBe(false)
     expect(
-      away.filter((deco) => deco.kind === 'line' && deco.cls === 'lp-fence')
+      touchedBody.filter(
+        (deco) => deco.kind === 'line' && deco.cls === 'lp-fence'
+      )
     ).toHaveLength(3)
-    // rounded caps for read parity: first + last fence lines tagged
     expect(
-      away.some((deco) => deco.kind === 'line' && deco.cls === 'lp-fence-first')
+      touchedBody.some(
+        (deco) => deco.kind === 'line' && deco.cls === 'lp-fence-first'
+      )
     ).toBe(true)
     expect(
-      away.some((deco) => deco.kind === 'line' && deco.cls === 'lp-fence-last')
+      touchedBody.some(
+        (deco) => deco.kind === 'line' && deco.cls === 'lp-fence-last'
+      )
     ).toBe(true)
 
     const onFence = decorate(doc, 1)
@@ -257,7 +275,7 @@ describe('live preview decorations (MVP-001: seamless editing)', () => {
     ).toEqual([])
   })
 
-  it('keeps code, currency, and unknown fences literal while math wins inside TeX', () => {
+  it('protects inline code/currency and projects unknown fences as plain code', () => {
     const ticks = '`'.repeat(3)
     const doc = [
       '`$code$` and price $5 and tax',
@@ -274,6 +292,7 @@ describe('live preview decorations (MVP-001: seamless editing)', () => {
     const math = decos.filter((deco) => deco.kind === 'math')
     expect(math).toHaveLength(1)
     expect(math[0]?.mathSource).toBe('[x](target.md)')
+    expect(decos.filter((deco) => deco.kind === 'code')).toHaveLength(1)
     expect(decos.filter((deco) => deco.kind === 'edge')).toHaveLength(0)
   })
 
@@ -349,19 +368,21 @@ describe('live preview decorations (MVP-001: seamless editing)', () => {
     ).toEqual([])
   })
 
-  it('shares the 128-block live budget across math, Mermaid, and Vega-Lite', () => {
+  it('shares the 128-block live budget across math, Mermaid, Vega-Lite, and code', () => {
     const ticks = '`'.repeat(3)
-    const math = Array.from({ length: 126 }, (_, index) => `$x_${index}$`)
+    const math = Array.from({ length: 125 }, (_, index) => `$x_${index}$`)
     const richFences = [
       `${ticks}mermaid\nflowchart LR\nA --> B\n${ticks}`,
       `${ticks}vega-lite\n{"data":{"values":[]},"mark":"bar"}\n${ticks}`,
+      `${ticks}typescript\nconst answer = 42\n${ticks}`,
       `${ticks}vl\n{"data":{"values":[]},"mark":"point"}\n${ticks}`
     ]
     const doc = [...math, ...richFences, 'elsewhere'].join('\n')
     const decos = decorate(doc, doc.indexOf('elsewhere'))
-    expect(decos.filter((deco) => deco.kind === 'math')).toHaveLength(126)
+    expect(decos.filter((deco) => deco.kind === 'math')).toHaveLength(125)
     expect(decos.filter((deco) => deco.kind === 'mermaid')).toHaveLength(1)
     expect(decos.filter((deco) => deco.kind === 'vega-lite')).toHaveLength(1)
+    expect(decos.filter((deco) => deco.kind === 'code')).toHaveLength(1)
     expect(decos.filter((deco) => deco.kind === 'rich-limit')).toHaveLength(1)
   })
 

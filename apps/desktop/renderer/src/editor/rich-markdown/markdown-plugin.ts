@@ -1,7 +1,7 @@
 import type MarkdownIt from 'markdown-it'
 import { displayMathOnLine, inlineMathClose, richKindForFence } from './syntax'
 
-const labelFor = (kind: 'math' | 'mermaid' | 'vega-lite'): string => {
+const labelFor = (kind: 'math' | 'mermaid' | 'vega-lite' | 'code'): string => {
   switch (kind) {
     case 'math':
       return 'Math source'
@@ -9,6 +9,8 @@ const labelFor = (kind: 'math' | 'mermaid' | 'vega-lite'): string => {
       return 'Mermaid source'
     case 'vega-lite':
       return 'Vega-Lite source'
+    case 'code':
+      return 'Code source'
   }
 }
 
@@ -25,7 +27,7 @@ function inlinePlaceholder(md: MarkdownIt, source: string): string {
 function blockPlaceholder(
   md: MarkdownIt,
   source: string,
-  kind: 'math' | 'mermaid' | 'vega-lite',
+  kind: 'math' | 'mermaid' | 'vega-lite' | 'code',
   info: string,
   attrs: string
 ): string {
@@ -116,13 +118,9 @@ export function richMarkdownPlaceholders(md: MarkdownIt): void {
     )
   }
 
-  const ordinaryFence = md.renderer.rules.fence!
-  md.renderer.rules.fence = (tokens, index, options, env, self) => {
+  md.renderer.rules.fence = (tokens, index, _options, _env, self) => {
     const token = tokens[index]!
-    const kind = richKindForFence(token.info)
-    if (kind === null || kind === 'code') {
-      return ordinaryFence(tokens, index, options, env, self)
-    }
+    const kind = richKindForFence(token.info) ?? 'code'
     token.attrJoin('class', 'rich-markdown-block')
     return blockPlaceholder(
       md,

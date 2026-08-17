@@ -78,6 +78,7 @@ export type LivePreviewKind =
   | 'math'
   | 'mermaid'
   | 'vega-lite'
+  | 'code'
   | 'rich-limit'
 
 const DEFAULT_RICH_THEME: RichTheme = { name: 'system', scheme: 'light' }
@@ -319,7 +320,7 @@ class RichBlockWidget extends WidgetType {
   constructor(
     private readonly kind: Extract<
       RichRendererKind,
-      'math' | 'mermaid' | 'vega-lite'
+      'math' | 'mermaid' | 'vega-lite' | 'code'
     >,
     private readonly source: string,
     private readonly display: boolean,
@@ -354,6 +355,8 @@ class RichBlockWidget extends WidgetType {
         ? 'Mermaid source'
         : this.kind === 'vega-lite'
           ? 'Vega-Lite source'
+          : this.kind === 'code'
+            ? 'Code source'
           : this.display
             ? 'Display math'
             : 'Inline math'
@@ -376,6 +379,8 @@ class RichBlockWidget extends WidgetType {
     richHydrations.set(root, hydration)
     root.addEventListener('mousedown', (event) => {
       if (event.button !== 0) return
+      const target = event.target as Element | null
+      if (target?.closest?.('[data-rich-interactive]')) return
       event.preventDefault()
       view.dispatch({ selection: { anchor: view.posAtDOM(root) } })
       view.focus()
@@ -895,7 +900,10 @@ export function computeLivePreviewDecorations(
   }
 
   type LiveRichRange = SourceRange & {
-    kind: Extract<RichRendererKind, 'math' | 'mermaid' | 'vega-lite'>
+    kind: Extract<
+      RichRendererKind,
+      'math' | 'mermaid' | 'vega-lite' | 'code'
+    >
     source: string
     display: boolean
     info: string
@@ -916,10 +924,7 @@ export function computeLivePreviewDecorations(
       const info = infoNode
         ? state.doc.sliceString(infoNode.from, infoNode.to).trim()
         : ''
-      const kind = richKindForFence(info)
-      if (kind !== 'math' && kind !== 'mermaid' && kind !== 'vega-lite') {
-        return false
-      }
+      const kind = richKindForFence(info) ?? 'code'
       const code = node.node.getChild('CodeText')
       fencedRich.push({
         from: node.from,
@@ -1293,6 +1298,7 @@ export function computeLivePreviewDecorations(
     if (spec.lp === 'math') return !insideEdge
     if (spec.lp === 'mermaid') return !insideEdge
     if (spec.lp === 'vega-lite') return !insideEdge
+    if (spec.lp === 'code') return !insideEdge
     if (insideEdge) return spec.lp === 'line'
     return !replacedRichRanges.some(
       (range) => deco.from >= range.from && deco.to <= range.to

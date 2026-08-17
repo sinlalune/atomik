@@ -96,13 +96,17 @@ describe('noteMarkdown — inert rich placeholders (CP-RICH-MARKDOWN S02)', () =
     )
   })
 
-  it('keeps unknown fences on Markdown-it ordinary-code parity', () => {
-    expect(md.render('```python\nprint(1)\n```')).toBe(
-      '<pre><code class="language-python">print(1)\n</code></pre>\n'
-    )
-    expect(md.render('```graphviz\ndigraph { a -> b }\n```')).not.toContain(
-      'data-rich-block'
-    )
+  it('keeps supported and unknown code escaped in inert code placeholders', () => {
+    const python = md.render('```python\nprint("<safe>")\n```')
+    expect(python).toContain('data-rich-kind="code"')
+    expect(python).toContain('data-rich-info="python"')
+    expect(python).toContain('class="language-python"')
+    expect(python).toContain('&lt;safe&gt;')
+
+    const unknown = md.render('```graphviz\ndigraph { a -> b }\n```')
+    expect(unknown).toContain('data-rich-kind="code"')
+    expect(unknown).toContain('data-rich-info="graphviz"')
+    expect(unknown).toContain('digraph { a -&gt; b }')
   })
 
   it('carries source-gap classes onto rich block placeholders', () => {

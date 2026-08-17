@@ -14,7 +14,7 @@ This note starts from a normal Markdown string and explains the first brick of
 Atomik's rich technical reader. Afterwards you can:
 
 - explain why the note stays plain Markdown even when it displays math, a
-  diagram, or a chart;
+  diagram, a chart, or highlighted code;
 - follow a `$...$` expression from parsing to its safe source fallback;
 - add a renderer adapter without making it load at app startup;
 - reason about cancellation, stale promises, output caps, and cleanup;
@@ -40,8 +40,9 @@ raw Markdown
 
 Atomik already had one factory, `editor/note-markdown.ts`, with raw HTML
 disabled. The rich plugin in `rich-markdown/markdown-plugin.ts` adds parser
-rules for strict inline/display math and wraps only the accepted fence aliases.
-It does not import KaTeX, Mermaid, Vega, or Shiki.
+rules for strict inline/display math and wraps every fence in an inert
+placeholder. An accepted DSL kind chooses its adapter; every other fence
+chooses `code`. It does not import KaTeX, Mermaid, Vega, or Shiki.
 
 The plugin emits an inert shape:
 
@@ -112,6 +113,15 @@ Vega policy adapter. Only after JSON preflight succeeds does it load the
 618,083-byte Vega-Lite compiler and 940,911-byte Vega runtime chunks. An
 invalid or external-data chart therefore never evaluates either heavy
 runtime; an ordinary note requests none of the three chunks.
+
+S06 adds broad code presentation without importing the highlighter at startup.
+The eager entry is 2,454,528 B (+70,920 B from S05, +125,030 B from the S01
+baseline) and global CSS is 140,228 B. The 23,033-byte code adapter and
+35,017-byte source-diagnostic module are lazy. Shiki core (226,275 B), its
+JavaScript regex engine (111,669 B), the two 14 KiB themes, and every reviewed
+grammar are independent on-demand chunks. Loading diagnostics only when source
+mode is selected recovered 32,136 eager bytes and kept the path 28,570 B under
+its 150 KiB ceiling.
 
 ### KaTeX: safe TeX is still untrusted input
 
@@ -207,6 +217,42 @@ visual defaults without changing authored encodings. `runAsync()` and
 finalize the View on success, failure, timeout, replacement, or unmount. The
 remaining handle owns only the sanitized static node.
 
+### Code: two lazy catalogs, one source of truth
+
+CodeMirror and Shiki solve different presentation problems. CodeMirror parses
+the editable Markdown buffer and can locate syntax errors. Shiki supplies the
+high-quality read colors. Neither result is canonical:
+
+```text
+raw fenced source
+  -> exact CodeMirror LanguageDescription -> editable nested grammar/errors
+  -> reviewed Shiki alias -> read-only token colors
+  -> unknown alias -> escaped plain code
+```
+
+`code-languages.ts` deliberately disables CodeMirror's fuzzy language match.
+`ts`, `py`, `rs`, and exact file extensions work; `script` and `typscript` stay
+plain. The catalog carries lazy descriptions, so broad support does not mean
+loading every parser. `adapters/code.ts` separately lists 37 reviewed Shiki
+grammars as explicit package subpaths. It creates one cached highlighter from
+fine-grained core, the native JavaScript regex engine, and light/dark GitHub
+themes. It never imports Shiki's full/web bundle, Wasm engine, or Twoslash.
+
+Shiki can return HTML, but Atomik does not accept that sink. `code-core.ts`
+rebuilds spans from token offsets and slices of the authored source using
+`textContent`. Only hex colors and the documented italic/bold/underline/
+strikethrough bits cross the boundary. Copy receives the closed-over source
+string, not `textContent` from a frame that also contains language, status, and
+buttons.
+
+`code-diagnostics.ts` loads the same exact CodeMirror description, walks local
+Lezer error nodes, and produces ranges relative to the fence. Source mode maps
+those ranges back to document offsets and dynamically installs CodeMirror lint
+squiggles, gutter marks, messages, and keyboard navigation. Read/live chrome
+shows the count and messages but no gutter. There is no language-server process
+or protocol, and diagnostics have no actions; fixing the source simply makes
+the parser error decoration disappear.
+
 ### AbortSignal: a shared cancellation vocabulary
 
 `AbortController` owns a signal. Code that receives the signal can stop work
@@ -279,8 +325,9 @@ becomes readable source again.
 
 1. `rich-markdown/syntax.ts` owns aliases and strict dollar rules. Currency
    without a closing delimiter stays prose; inline math cannot cross a line.
-2. `rich-markdown/markdown-plugin.ts` adds Markdown-it rules. Unknown fences
-   call the saved ordinary fence renderer byte-for-byte.
+2. `rich-markdown/markdown-plugin.ts` adds Markdown-it rules. Ordinary and
+   unknown fences become escaped `code` placeholders; an unknown language
+   stays plain inside the common block chrome.
 3. `rich-markdown/contracts.ts` defines requests, diagnostics, handles, theme,
    and the ADR budgets.
 4. `rich-markdown/registry.ts` lazily loads and caches kind-correct adapters.
@@ -299,7 +346,11 @@ becomes readable source again.
 9. `vega-lite-core.ts` owns the JSON/data policy, token theme, deny loader,
    finalization, and shared SVG postflight. The tiny `vega-lite.ts` adapter
    loads the compiler and runtime only after preflight.
-10. Vault, project, source-dossier, chat, new-note preview, and inline-AI
+10. `code-languages.ts` owns exact CodeMirror descriptions;
+    `code-diagnostics.ts` owns local bounded ranges and source-mode lint
+    decorations; `adapters/code-core.ts` owns safe DOM and controls; the tiny
+    `adapters/code.ts` module owns reviewed Shiki dynamic imports.
+11. Vault, project, source-dossier, chat, new-note preview, and inline-AI
    surfaces now enter that same host rather than growing per-surface renderers.
 
 ## How it was built (methodology)
@@ -323,8 +374,8 @@ pure ambiguity rules
 S03 then connects only KaTeX. S04 connects Mermaid through an independently
 tested preflight/postflight instead of trusting library output. S05 reuses
 only the renderer-neutral SVG postflight: its JSON/data admission and View
-lifecycle remain independently testable. Shiki stays absent until S06, so its
-security and cost boundary does not hide inside chart work.
+lifecycle remain independently testable. S06 gives code its own safe token-DOM
+adapter and local diagnostic seam instead of hiding either inside chart work.
 
 ## Lessons learned the hard way
 
@@ -385,8 +436,8 @@ in their grammatical positions.
    count remains zero.
 2. Give two fake Mermaid requests different seeds, hold the first render open,
    and prove the second config is not applied until the first finishes.
-3. Render a `graphviz` fence through `noteMarkdown()` and compare the exact
-   HTML to an ordinary Markdown-it fence. Why is silent “best effort” worse?
+3. Render a `graphviz` fence through the code adapter. Prove Shiki is never
+   loaded and the exact escaped source still appears under the common chrome.
 4. Temporarily import a heavy package eagerly from `registry.ts`, run the
    production build, and inspect the renderer entry delta. Revert the import.
 5. Add a diagnostic containing `<script>` as its message. Prove it stays text.
@@ -404,12 +455,12 @@ AbortSignal          shared cancellation state passed into async work
 stale result          an older async answer arriving after a newer generation
 disposer              explicit release function for owned resources
 loud degradation      visible source + diagnostic instead of blank/silent failure
+diagnostic decoration  disposable feedback range; never a canonical edit
 ```
 
 ## What arrives next
 
-S05 adds inline-data-only Vega-Lite behind the same host and reuses the SVG
-postflight before it finalizes each view. S06 adds broad lazy code languages,
-fine-grained Shiki read highlighting, and decoration-only diagnostics. None
-receives file, IPC, network, or mutation authority merely because KaTeX and
-Mermaid proved the adapter shape.
+S07 stress-tests rapid edits, cancellations, theme/tab switches, large input,
+cache teardown, responsiveness, keyboard and screen-reader behavior, and the
+production chunk graph. None of those checks grants a renderer file, IPC,
+network, execution, or mutation authority.

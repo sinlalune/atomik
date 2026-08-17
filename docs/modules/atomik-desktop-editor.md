@@ -38,8 +38,8 @@ timestamp: 2026-08-17T00:00:00Z
   links collapsed, bullets, quote/fence lines; leading frontmatter
   styled as one dim unit with markdown suppressed inside), and any line
   the selection touches reveals its full syntax. Blocks render too
-  (follow-up feedback): fenced code nests real language highlighting
-  (js/ts/jsx/tsx/html/css packs; others plain), task markers become
+  (follow-up feedback): fenced code nests exact, lazy language-data
+  highlighting (unknowns remain plain), task markers become
   clickable checkboxes that write back through ordinary transactions
   (dirty/auto-save/undo apply; checked items struck), horizontal rules
   draw as rules, tables style mono with dimmed pipes and bold header
@@ -75,8 +75,9 @@ timestamp: 2026-08-17T00:00:00Z
   mandatory `dispose()`. Adapters receive no vault bridge, write callback,
   generic fetch, or provider context.
 - Initial adapters are KaTeX (`$`, `$$`, `math`/`latex`/`tex`/`katex`), Mermaid,
-  and inline-data-only Vega-Lite. Unknown fences remain ordinary code. These
-  are third-party projections, never the reserved Atomik Scene IR/studio.
+  inline-data-only Vega-Lite, and ordinary fenced code. Unknown languages stay
+  escaped/plain inside shared code chrome. These are third-party projections,
+  never the reserved Atomik Scene IR/studio.
 - CodeMirror language-data replaces the six-language switch lazily; read mode
   uses fine-grained Shiki packages with its JavaScript regex engine. The full
   Shiki bundles, Oniguruma Wasm, and Twoslash are excluded.
@@ -92,8 +93,8 @@ timestamp: 2026-08-17T00:00:00Z
 S02 implements that host in `renderer/src/editor/rich-markdown/`:
 
 - `syntax.ts` is the pure alias/dollar-ambiguity seam;
-  `markdown-plugin.ts` emits escaped placeholders and calls Markdown-it's
-  saved fence renderer unchanged for unknown languages.
+  `markdown-plugin.ts` emits escaped placeholders. Since S06 every ordinary
+  fence selects `code`; unknown languages still render exact plain source.
 - `registry.ts` caches kind-checked lazy loaders and drops a failed load for an
   explicit retry. S02 proved an empty built-in map as a complete safe state;
   S03 adds only the static dynamic-import target for KaTeX.
@@ -196,6 +197,37 @@ file, image, embedding-control, or canonical-write capability:
   runtime bar smoke emitted 7,614 B of static SVG with no image or external
   href; focused proof is 92 assertions across note, live, real/fake runtime,
   admission, budgets, loader denial, lifecycle, theme, SVG, and accessibility.
+
+S06 connects rich fenced code and passive parser feedback without adding an
+LSP client or changing note bytes:
+
+- `code-languages.ts` replaces the six fixed nested grammars with the pinned
+  `@codemirror/language-data` catalog. Its synchronous resolver matches exact
+  names/aliases/extensions with fuzzy matching disabled; each description
+  loads its grammar on demand and unknown/misspelled names remain plain. The
+  now-unused direct CSS/HTML/JavaScript language dependencies leave the app
+  manifest; the catalog still owns those same packages transitively.
+- Untouched live and read fences use the shared `code` placeholder/adapter;
+  touching a live fence restores raw nested CodeMirror. `code.ts` reviews 37
+  Shiki languages and imports their subpaths explicitly. One cached highlighter
+  uses fine-grained core, the JavaScript regex engine, and explicit light/dark
+  themes; no full/web Shiki bundle, Wasm, Twoslash, or unknown grammar load.
+- `code-core.ts` reconstructs token spans only from authored source slices via
+  `textContent`; it accepts hex colors plus documented font bits, never Shiki
+  HTML. Its token-based responsive header reports language/problems and offers
+  native Copy, source/highlight, wrap, and expand/collapse buttons. Copy closes
+  over authored source, so generated chrome cannot enter the clipboard.
+- `code-diagnostics.ts` converts bounded local Lezer error nodes to relative
+  `RichDiagnostic` ranges, then maps them to note offsets. Source mode lazily
+  installs `@codemirror/lint` squiggles, gutter markers, messages, and keymap;
+  live stays gutter-free and uses the block count/details. The 64-block and
+  200-document caps report their omission. Every LSP-shaped capability besides
+  passive diagnostics is pinned false and diagnostics have no actions.
+- S06 build inspection measures 2,454,528 B eager entry (+70,920 B from S05,
+  +125,030 B from S01), 140,228 B CSS (+4,185 B), a 23,033 B lazy code adapter,
+  and a 35,017 B lazy diagnostics chunk. Shiki core (226,275 B), JS engine
+  (111,669 B), themes (14,198/14,475 B), and grammar chunks remain on demand;
+  28,570 B of the path's 150 KiB eager ceiling remains.
 
 ## Web-link pill identity (CP-FEEDBACK S05)
 

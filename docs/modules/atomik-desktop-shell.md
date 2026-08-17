@@ -241,6 +241,14 @@ timestamp: 2026-08-17T00:00:00Z
   grows 443 B and CSS 271 B from S04. Charts add no IPC/preload/CSP exception;
   their View receives a deny-all loader and is finalized before its sanitized
   static SVG becomes the note projection.
+- S06 adds ordinary fenced-code placeholders plus broad CodeMirror metadata to
+  the eager editor, but keeps source lint and every Shiki runtime/theme/grammar
+  behind dynamic imports. The renderer entry is 2,454,528 B (+125,030 B from
+  S01, 28,570 B below the 150 KiB ceiling), CSS is 140,228 B, and the first
+  code doors are a 23,033 B adapter and 35,017 B diagnostic chunk. Shiki core
+  (226,275 B), JavaScript regex engine (111,669 B), two ~14 KiB themes, and all
+  reviewed grammar chunks remain absent from a no-code startup. No IPC/preload,
+  worker, CSP exception, network, filesystem, or execution capability is added.
 - Two mounted note bodies receive different rich render generations, so
   identical Mermaid/Vega SVGs cannot collide in the shared renderer document.
   Live widgets and every React read consumer still use the same hydration
