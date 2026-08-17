@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { parseHTML } from 'linkedom'
 import {
   citationSourcesOf,
   citedSentenceRange,
@@ -6,6 +7,8 @@ import {
   parseCitedMeta,
   serializeCitedMeta
 } from '../shared/chat-citations'
+import { citationExtents } from '../renderer/src/editor/citation-chips'
+import { noteMarkdown } from '../renderer/src/editor/note-markdown'
 import {
   appendChatTurn,
   parseChatTurns,
@@ -177,5 +180,43 @@ describe('the exact sentence a citation covers (S10g/S10i)', () => {
     expect(citedSentenceRange('', 0, 0)).toEqual({ from: 0, to: 0 })
     const text = 'Il cite Aristote… La suite est de lui [1].'
     expect(extent(text, '[1]')).toBe('La suite est de lui [1].')
+  })
+})
+
+describe('the quoted passage a closing citation covers (S10j)', () => {
+  const md = noteMarkdown()
+  const measured = (html: string): string[] => {
+    const { document } = parseHTML(`<div id="answer">${html}</div>`)
+    const container = document.querySelector('#answer') as unknown as HTMLElement
+    const rendered = container.textContent ?? ''
+    return citationExtents(container, rendered, SOURCES).map((range) =>
+      rendered.slice(range.from, range.to).trim()
+    )
+  }
+
+  it('covers every sentence in a blockquote when the marker closes it', () => {
+    const quoted =
+      '"In 2001, Zidane transferred for €77.5 million. He helped Madrid win the final." [1]'
+    expect(
+      measured(md.render(`> ${quoted}`))
+    ).toEqual([quoted])
+
+    expect(
+      measured(md.render('First ordinary sentence. Second ordinary sentence. [1]'))
+    ).toEqual(['Second ordinary sentence. [1]'])
+  })
+
+  it('keeps an inline quote marker local but groups trailing quote markers', () => {
+    expect(
+      measured(
+        md.render('> First quoted sentence [1]. More quoted prose follows.')
+      )
+    ).toEqual(['First quoted sentence [1].'])
+
+    expect(
+      measured(
+        md.render('> First quoted sentence. Second quoted sentence [1] [2].')
+      )
+    ).toEqual(['First quoted sentence. Second quoted sentence [1] [2].'])
   })
 })

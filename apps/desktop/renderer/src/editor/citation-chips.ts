@@ -1,4 +1,5 @@
 import {
+  citedQuotedPassageRange,
   citedSentenceRange,
   findCitationMarkers,
   sourceOfNumber,
@@ -32,23 +33,30 @@ import {
  * Markers on the same sentence are grouped BEFORE any DOM mutation. That
  * prevents nested extents and keeps all offsets in the rendered text the
  * reader actually sees.
+ *
+ * S10j makes the existing blockquote rule true in the DOM: when a
+ * citation closes a quote, its extent is the complete quoted passage,
+ * even when that passage contains several sentences. An inline marker
+ * followed by more quoted prose remains sentence-local.
  */
 
 const MARKER_RE = /\[(\d+(?:\s*,\s*\d+)*)\]/g
-/** A citation belongs to its own block: it never reaches back into a
- *  previous paragraph, and inside a blockquote the quote is the unit. */
+const TRAILING_MARKER_RE = /\[(\d+(?:\s*,\s*\d+)*)\]/g
+const SHOW_TEXT = 0x4 // NodeFilter.SHOW_TEXT, also usable in the node test DOM.
+/** A citation belongs to its own innermost rendered block: it never
+ *  reaches into a previous paragraph or list item. */
 const BLOCKS = 'p, li, blockquote, td, th, h1, h2, h3, h4, h5, h6'
 
 export type AppliedCitations = AnswerCitations
 
 type TextSlot = { node: Text; from: number; to: number }
-type CitationExtent = { from: number; to: number }
+export type CitationExtent = { from: number; to: number }
 
 /** Every text node under the container, with its offset in the whole. */
 function textSlots(container: HTMLElement): TextSlot[] {
   const walker = container.ownerDocument.createTreeWalker(
     container,
-    NodeFilter.SHOW_TEXT
+    SHOW_TEXT
   )
   const slots: TextSlot[] = []
   let offset = 0
@@ -96,7 +104,7 @@ export function applyCitationChips(
  * touched. A paragraph/list item/quote is a hard ceiling even if its last
  * line has no punctuation.
  */
-function citationExtents(
+export function citationExtents(
   container: HTMLElement,
   rendered: string,
   sources: readonly CitationSource[]
@@ -123,7 +131,21 @@ function citationExtents(
     const first = scopeSlots[0]
     if (!first) continue
 
-    const local = citedSentenceRange(scope.textContent ?? '', from - first.from, to - first.from)
+    const scopeText = scope.textContent ?? ''
+    const localFrom = from - first.from
+    const localTo = to - first.from
+    const inQuote = scope.matches('blockquote') || scope.closest('blockquote') !== null
+    // A final marker attributes the complete quoted passage. Citation
+    // markers, punctuation and closing quote characters may follow it;
+    // any real prose after it keeps the marker sentence-local.
+    const trailingQuoteText = scopeText
+      .slice(localTo)
+      .replace(TRAILING_MARKER_RE, '')
+      .replace(/[\s.!?…»"”’')\]]/gu, '')
+    const local =
+      inQuote && trailingQuoteText.length === 0
+        ? citedQuotedPassageRange(scopeText)
+        : citedSentenceRange(scopeText, localFrom, localTo)
     const extent = { from: first.from + local.from, to: first.from + local.to }
     if (extent.from >= extent.to) continue
     if (!extents.some((known) => known.from === extent.from && known.to === extent.to)) {

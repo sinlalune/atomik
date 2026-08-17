@@ -76,15 +76,19 @@ timestamp: 2026-08-14T00:00:00Z
   type-prefixed hover title: “External web link” versus “Captured web source”.
   Authored link text and navigation targets remain untouched.
 
-## Chat citation decoration (CP-MVP-010 S08/S10i)
+## Chat citation decoration (CP-MVP-010 S08/S10i/S10j)
 
 - `renderer/src/editor/citation-chips.ts` is the DOM half of chat
   citations. It decorates rendered `[1]` markers without rewriting the
   answer's Markdown, skips code and existing links, and leaves unresolved
   numbers visible.
-- Sentence choice stays in the pure shared helper
-  `citedSentenceRange`; the DOM half supplies one Markdown block at a
-  time, groups markers with the same range, wraps that range once, and
-  then turns its resolved markers into clickable chips. This split keeps
-  decimals such as `€77.5`, abbreviations, terminal punctuation, quotes,
-  and multiple markers unit-testable without adding a DOM-test runtime.
+- Ordinary sentence choice stays in the pure shared helper
+  `citedSentenceRange`; a marker that closes a blockquote instead uses
+  `citedQuotedPassageRange`, because the evidence unit is the complete
+  quoted passage even when it has several sentences. A marker followed
+  by more quoted prose remains sentence-local. The DOM half supplies the
+  innermost Markdown block, groups markers with the same range, wraps
+  that range once, and then turns its resolved markers into clickable
+  chips. This keeps decimals such as `€77.5`, abbreviations, terminal
+  punctuation, quoted passages, and multiple markers unit-testable; the
+  existing LinkeDOM dependency now also pins the range-selection half.

@@ -262,6 +262,22 @@ export function citedSentenceRange(
   return { from: rangeFrom, to: rangeTo }
 }
 
+/**
+ * A citation that closes a blockquote cites the quoted PASSAGE, not only
+ * its final grammatical sentence (CP-MVP-010 S10j). The DOM half keeps
+ * this bounded to the quote's innermost rendered block, so this helper
+ * only has to remove renderer whitespace at that block's edges.
+ */
+export function citedQuotedPassageRange(text: string): CitationSentenceRange {
+  let from = 0
+  while (from < text.length && isSpace(text[from])) from += 1
+
+  let to = text.length
+  while (to > from && isSpace(text[to - 1])) to -= 1
+
+  return { from, to }
+}
+
 /** The source a number points at, for the decorator. */
 export function sourceOfNumber(
   sources: readonly CitationSource[],

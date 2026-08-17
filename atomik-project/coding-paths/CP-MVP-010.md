@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S10i
+  current_step: S10j
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -919,13 +919,31 @@ live, on real notes.
       S11 owner re-bench remains required before acceptance,
       then the closing ceremony, coherence audit, and self-merge — after
       which CP-MVP-011 opens with its own short opening check.
+- [x] S10j OWNER RE-BENCH CORRECTION (2026-08-17 — DONE). Reopening the
+      EXISTING chat was a valid bench: the centred conversation and the
+      decimal-point correction both held there. It exposed one remaining
+      citation unit that S10i's sentence rule could not express. A marker
+      at the end of a blockquote containing several sentences cites the
+      whole QUOTED PASSAGE, not only its final sentence.
+      `citationExtents` now identifies the innermost rendered block inside
+      a quote. If no prose follows the marker (apart from punctuation,
+      closing quote characters, or more citation markers), it selects that
+      complete block through `citedQuotedPassageRange`; a marker followed
+      by more quoted prose stays sentence-local. Ordinary paragraphs and
+      list items keep S10i's exact-sentence behavior. The measurement half
+      is now pinned with the existing LinkeDOM dependency: multi-sentence
+      closing quote, ordinary paragraph, inline quote citation, and grouped
+      trailing markers. No dependency, CSS, transcript, IPC, retrieval, or
+      truth-state contract changed. +2 tests (925 → 927): 927 passing / 74
+      files, typecheck, build, and retrieval-eval green. S11 owner re-bench
+      remains required before acceptance and the closing ceremony.
 
 # Current checkpoint
 
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S10i done (owner correction after bench rounds 13–19) —
+current step: S10j done (multi-sentence blockquote correction) —
               S11 next (re-bench, acceptance, ceremony, audit, merge)
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
@@ -942,8 +960,8 @@ changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               docs/learning/22-lexical-retrieval-without-a-database.md + index
               docs/adr/ADR-013-lexical-retrieval-without-a-database.md
               docs/index.md · atomik-project/coding-paths/CP-MVP-010.md
-tests       : 925 passing / 74 files on the rebased branch (this path
-              added 120; CP-FEEDBACK's merge brought the rest),
+tests       : 927 passing / 74 files on the rebased branch (this path
+              added 122; CP-FEEDBACK's merge brought the rest),
               typecheck, build, retrieval-eval and cairn-check green,
               each gate run BARE (24)
 next action : S11 — owner re-bench on the restarted app, the acceptance

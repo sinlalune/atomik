@@ -142,7 +142,9 @@ timestamp: 2026-08-14T00:00:00Z
     citation markers; code and existing links are skipped, and a
     phrase-level link the model emitted remains an ordinary link.
   - The hover extent is one exact rendered sentence inside its nearest
-    paragraph/list item/quote/table cell/heading. The pure
+    paragraph/list item/table cell/heading. In a blockquote, a closing
+    citation instead covers the complete quoted passage; an inline
+    citation followed by more quote prose stays sentence-local. The pure
     `citedSentenceRange` includes terminal punctuation whether it falls
     before or after the marker, while protecting points inside decimals
     (`€77.5`), abbreviations and dotted initials. Markers on the same
