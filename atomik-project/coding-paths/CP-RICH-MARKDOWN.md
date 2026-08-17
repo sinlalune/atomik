@@ -8,7 +8,7 @@ atomik:
   id: CP-RICH-MARKDOWN
   status: running
   accepted: 2026-08-17
-  current_step: S01
+  current_step: S02
   base_commit: 98561b4
   branch: path/cp-rich-markdown
   writes:
@@ -30,6 +30,7 @@ atomik:
     - atomik-project/coding-paths/CP-RICH-MARKDOWN.md
     - atomik-project/coding-paths/index.md
     - atomik-project/sessions/2026-08-17-cp-rich-markdown-opening-check.md
+    - atomik-project/sessions/2026-08-17-cp-rich-markdown-s01-baseline.md
     - atomik-project/sessions/
     - atomik-project/audits/
     - atomik-project/log/
@@ -154,7 +155,7 @@ The owner-approved details and revised backlog order are recorded in
 
 # Execution
 
-- [ ] S01 Bootstrap + ADR/security/performance pins: create the worktree, read
+- [x] S01 Bootstrap + ADR/security/performance pins: create the worktree, read
       every Required document, recheck exact dependency versions/licenses and
       APIs, measure current startup/build/read/live baselines, define renderer
       result/budget/diagnostic contracts, and record the third-party-renderer
@@ -190,10 +191,14 @@ The owner-approved details and revised backlog order are recorded in
 
 ```text
 base commit : 98561b4
-changed     : opening record + accepted CP-RICH-MARKDOWN execution contract
-tests       : not run yet; S01 pins the clean trunk baseline in the worktree
-next action : activate worktree, read Required docs, then S01 dependency/
-              security/performance matrix and ADR-014
+changed     : ADR-014 accepted; S01 dependency/security/performance record;
+              editor area note + docs index + this ledger; declared write
+              surface widened to the dated S01 record discovered in this step
+tests       : PASS pre-change — Cairn; typecheck; 68 files / 807 tests; build;
+              3-pass production smoke; read/Lezer/live microbaseline
+next action : S02 — install the accepted exact package set, implement the pure
+              discovery + typed lazy registry/source fallback, focused tests,
+              learning note, module docs, then bare gates and chunk inspection
 blockers    : none; CP-MVP-010 is still closing and overlaps styles/editor
               prose, so this path rebases immediately after it self-merges
 ```

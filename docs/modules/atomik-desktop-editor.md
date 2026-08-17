@@ -3,7 +3,7 @@ type: Atomik Module Note
 title: 'Module: atomik-desktop — editor'
 description: The CodeMirror editor pane, optimistic saves and live preview.
 tags: [module, editor, codemirror, live-preview]
-timestamp: 2026-08-14T00:00:00Z
+timestamp: 2026-08-17T00:00:00Z
 ---
 
 # Module: atomik-desktop — editor
@@ -62,6 +62,32 @@ timestamp: 2026-08-14T00:00:00Z
   narrow host notification only for the provisional tab lifecycle; Workspace
   decides whether the first H1 names the file. A failed/conflicting save can
   never trigger a rename, and the editor gains no filesystem authority.
+
+## Rich Markdown architecture pin (CP-RICH-MARKDOWN S01)
+
+- ADR-014 keeps `noteMarkdown()` synchronous. Pure Markdown-it discovery emits
+  escaped inert placeholders; one post-mount registry hydrates them through
+  local dynamic imports. Existing read/chat/AI-preview callers do not become
+  async, and every heavy runtime must remain outside the renderer entry chunk.
+- The registry owns one lifecycle for DOM read surfaces and live CodeMirror
+  block widgets: normalized alias, theme, limits, `AbortSignal`, monotonic
+  stale-result suppression, accessible loading/error/source fallback, and a
+  mandatory `dispose()`. Adapters receive no vault bridge, write callback,
+  generic fetch, or provider context.
+- Initial adapters are KaTeX (`$`, `$$`, `math`/`latex`/`tex`/`katex`), Mermaid,
+  and inline-data-only Vega-Lite. Unknown fences remain ordinary code. These
+  are third-party projections, never the reserved Atomik Scene IR/studio.
+- CodeMirror language-data replaces the six-language switch lazily; read mode
+  uses fine-grained Shiki packages with its JavaScript regex engine. The full
+  Shiki bundles, Oniguruma Wasm, and Twoslash are excluded.
+- Code feedback is diagnostics-as-decoration only: relative fence ranges map
+  back to raw note offsets, with squiggle, severity, count, source-mode gutter,
+  and accessible message. No diagnostic action and no LSP process, transport,
+  completion, hover protocol, navigation, refactor, or formatting capability.
+- S01's dated dependency/security/performance evidence is
+  `atomik-project/sessions/2026-08-17-cp-rich-markdown-s01-baseline.md`.
+  The production baseline is 2,329,498 B entry JS / 123,707 B CSS; a no-rich
+  note must stay within 10% of the pinned read/parse/live medians.
 
 ## Web-link pill identity (CP-FEEDBACK S05)
 
