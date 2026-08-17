@@ -33,6 +33,7 @@ import { applyRotation } from '../source/rotate'
 import { getCachedImage, isCachedDataUrl, setCachedImage } from '../vault/image-cache'
 import {
   DEFAULT_RICH_LIMITS,
+  type RichRendererKind,
   type RichTheme
 } from './rich-markdown/contracts'
 import {
@@ -75,7 +76,8 @@ export type LivePreviewKind =
   | 'image'
   | 'edge'
   | 'math'
-  | 'math-limit'
+  | 'mermaid'
+  | 'rich-limit'
 
 const DEFAULT_RICH_THEME: RichTheme = { name: 'system', scheme: 'light' }
 
@@ -305,15 +307,16 @@ class TableWidget extends WidgetType {
   }
 }
 
-const mathHydrations = new WeakMap<HTMLElement, RichHydration>()
+const richHydrations = new WeakMap<HTMLElement, RichHydration>()
 
 /**
  * A disposable live-mode projection over an unchanged replacement range.
  * Clicking the result moves the cursor back onto that range; the next state
  * computation removes the widget and reveals the literal delimiters/source.
  */
-class MathWidget extends WidgetType {
+class RichBlockWidget extends WidgetType {
   constructor(
+    private readonly kind: Extract<RichRendererKind, 'math' | 'mermaid'>,
     private readonly source: string,
     private readonly display: boolean,
     private readonly info: string,
@@ -325,17 +328,30 @@ class MathWidget extends WidgetType {
   override toDOM(view: EditorView): HTMLElement {
     const doc = view.dom.ownerDocument
     const root = doc.createElement('span')
-    root.className = `lp-math-widget${this.display ? ' lp-math-widget--display' : ''}`
+    root.className = [
+      'lp-rich-widget',
+      `lp-${this.kind}-widget`,
+      this.display ? 'lp-rich-widget--display' : ''
+    ]
+      .filter(Boolean)
+      .join(' ')
 
     const block = doc.createElement('span')
     block.className = this.display
-      ? 'rich-markdown-block rich-markdown-math'
-      : 'rich-markdown-inline rich-markdown-math'
+      ? `rich-markdown-block rich-markdown-${this.kind}`
+      : `rich-markdown-inline rich-markdown-${this.kind}`
     block.dataset['richBlock'] = ''
-    block.dataset['richKind'] = 'math'
+    block.dataset['richKind'] = this.kind
     block.dataset['richInfo'] = this.info
     block.setAttribute('role', 'group')
-    block.setAttribute('aria-label', this.display ? 'Display math' : 'Inline math')
+    block.setAttribute(
+      'aria-label',
+      this.kind === 'mermaid'
+        ? 'Mermaid source'
+        : this.display
+          ? 'Display math'
+          : 'Inline math'
+    )
 
     const source = doc.createElement('code')
     source.dataset['richSource'] = ''
@@ -351,7 +367,7 @@ class MathWidget extends WidgetType {
     root.appendChild(block)
 
     const hydration = hydrateRichMarkdown(root, { theme: this.theme })
-    mathHydrations.set(root, hydration)
+    richHydrations.set(root, hydration)
     root.addEventListener('mousedown', (event) => {
       if (event.button !== 0) return
       event.preventDefault()
@@ -362,12 +378,13 @@ class MathWidget extends WidgetType {
   }
 
   override destroy(dom: HTMLElement): void {
-    mathHydrations.get(dom)?.dispose()
-    mathHydrations.delete(dom)
+    richHydrations.get(dom)?.dispose()
+    richHydrations.delete(dom)
   }
 
-  override eq(other: MathWidget): boolean {
+  override eq(other: RichBlockWidget): boolean {
     return (
+      other.kind === this.kind &&
       other.source === this.source &&
       other.display === this.display &&
       other.info === this.info &&
@@ -377,12 +394,12 @@ class MathWidget extends WidgetType {
   }
 }
 
-class MathLimitWidget extends WidgetType {
+class RichLimitWidget extends WidgetType {
   override toDOM(view: EditorView): HTMLElement {
     const status = view.dom.ownerDocument.createElement('span')
-    status.className = 'lp-math-limit'
+    status.className = 'lp-rich-limit'
     status.setAttribute('role', 'status')
-    status.textContent = `Rich block limit reached (${DEFAULT_RICH_LIMITS.maxBlocks}); remaining math stays source. `
+    status.textContent = `Rich block limit reached (${DEFAULT_RICH_LIMITS.maxBlocks}); remaining rich source stays editable. `
     return status
   }
 
@@ -871,14 +888,15 @@ export function computeLivePreviewDecorations(
     }
   }
 
-  type LiveMathRange = SourceRange & {
+  type LiveRichRange = SourceRange & {
+    kind: Extract<RichRendererKind, 'math' | 'mermaid'>
     source: string
     display: boolean
     info: string
   }
   const tree = syntaxTree(state)
   const protectedRanges: SourceRange[] = fmEnd > 0 ? [{ from: 0, to: fmEnd }] : []
-  const fencedMath: LiveMathRange[] = []
+  const fencedRich: LiveRichRange[] = []
   tree.iterate({
     enter: (node) => {
       if (node.name === 'InlineCode') {
@@ -892,53 +910,71 @@ export function computeLivePreviewDecorations(
       const info = infoNode
         ? state.doc.sliceString(infoNode.from, infoNode.to).trim()
         : ''
-      if (richKindForFence(info) !== 'math') return false
+      const kind = richKindForFence(info)
+      if (kind !== 'math' && kind !== 'mermaid') return false
       const code = node.node.getChild('CodeText')
-      fencedMath.push({
+      fencedRich.push({
         from: node.from,
         to: node.to,
+        kind,
         source: code ? state.doc.sliceString(code.from, code.to) : '',
         display: true,
-        info: info.trim().split(/\s+/, 1)[0]?.toLowerCase() ?? 'math'
+        info: info.trim().split(/\s+/, 1)[0]?.toLowerCase() || kind
       })
       return false
     }
   })
 
-  const mathRanges: LiveMathRange[] = [
+  const richRanges: LiveRichRange[] = [
     ...discoverDollarMath(state.doc.toString(), protectedRanges).map((span) => ({
       ...span,
+      kind: 'math' as const,
       info: span.display ? 'display' : 'inline'
     })),
-    ...fencedMath
+    ...fencedRich
   ].sort((a, b) => a.from - b.from)
-  const replacedMathRanges: SourceRange[] = []
-  const mathTheme = state.facet(richThemeFacet)
+  const mathRanges = richRanges.filter((range) => range.kind === 'math')
+  const replacedRichRanges: SourceRange[] = []
+  const richTheme = state.facet(richThemeFacet)
 
-  for (const [index, math] of mathRanges.entries()) {
+  for (const [index, rich] of richRanges.entries()) {
     if (index >= DEFAULT_RICH_LIMITS.maxBlocks) {
       decorations.push(
         Decoration.widget({
-          lp: 'math-limit' as LivePreviewKind,
+          lp: 'rich-limit' as LivePreviewKind,
           side: -1,
-          widget: new MathLimitWidget()
-        }).range(math.from)
+          widget: new RichLimitWidget()
+        }).range(rich.from)
       )
       break
     }
-    const firstLine = state.doc.lineAt(math.from).number
-    const lastLine = state.doc.lineAt(math.to).number
+    const firstLine = state.doc.lineAt(rich.from).number
+    const lastLine = state.doc.lineAt(rich.to).number
     const touched = active.from <= lastLine && active.to >= firstLine
     if (touched) continue
-    replacedMathRanges.push({ from: math.from, to: math.to })
+    replacedRichRanges.push({ from: rich.from, to: rich.to })
     decorations.push(
       Decoration.replace({
-        lp: 'math' as LivePreviewKind,
-        mathDisplay: math.display,
-        mathSource: math.source,
-        mathTheme: mathTheme.name,
-        widget: new MathWidget(math.source, math.display, math.info, mathTheme)
-      }).range(math.from, math.to)
+        lp: rich.kind as LivePreviewKind,
+        richKind: rich.kind,
+        richDisplay: rich.display,
+        richSource: rich.source,
+        richTheme: richTheme.name,
+        ...(rich.kind === 'math'
+          ? {
+              mathDisplay: rich.display,
+              mathSource: rich.source,
+              mathTheme: richTheme.name
+            }
+          : {}),
+        widget: new RichBlockWidget(
+          rich.kind,
+          rich.source,
+          rich.display,
+          rich.info,
+          richTheme
+        )
+      }).range(rich.from, rich.to)
     )
   }
 
@@ -1135,7 +1171,7 @@ export function computeLivePreviewDecorations(
           return
         case 'FencedCode': {
           if (
-            replacedMathRanges.some(
+            replacedRichRanges.some(
               (range) => range.from === node.from && range.to === node.to
             )
           ) {
@@ -1237,7 +1273,7 @@ export function computeLivePreviewDecorations(
   }
 
   // Replace ranges must not nest. Edge pills keep their structural line
-  // decorations; math widgets own their complete range, including fenced-code
+  // decorations; rich widgets own their complete range, including fenced-code
   // line chrome. A link enclosing math wins, while link-shaped TeX was skipped
   // above so the math widget wins in the opposite containment direction.
   const filtered = decorations.filter((deco) => {
@@ -1247,8 +1283,9 @@ export function computeLivePreviewDecorations(
     )
     if (spec.lp === 'edge') return true
     if (spec.lp === 'math') return !insideEdge
+    if (spec.lp === 'mermaid') return !insideEdge
     if (insideEdge) return spec.lp === 'line'
-    return !replacedMathRanges.some(
+    return !replacedRichRanges.some(
       (range) => deco.from >= range.from && deco.to <= range.to
     )
   })

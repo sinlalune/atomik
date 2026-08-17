@@ -230,3 +230,13 @@ timestamp: 2026-08-17T00:00:00Z
 - S03 keeps that boundary: math host/live wiring adds 8,626 bytes to the entry,
   while KaTeX ships as its own 485,408-byte JS and 28,946-byte CSS chunk with
   local fonts. A note with no math does not load that runtime.
+- S04 keeps Mermaid behind a second static dynamic-import target. The eager
+  entry grows only 1,114 bytes from S03; Mermaid core (1,097,914 B) and its
+  per-diagram definitions remain lazy. No IPC/preload channel, provider key,
+  web-view capability, or CSP exception is added: diagrams receive only source,
+  theme, budgets, an abort signal, and a temporary renderer-owned DOM node.
+- Two mounted note bodies receive different rich render generations, so
+  identical Mermaid/Vega SVGs cannot collide in the shared renderer document.
+  Live widgets and every React read consumer still use the same hydration
+  ownership: timeout, theme change, rerender, and unmount abort and detach the
+  old generation; late third-party output cannot publish into the replacement.

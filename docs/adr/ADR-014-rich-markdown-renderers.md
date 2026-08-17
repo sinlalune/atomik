@@ -170,6 +170,32 @@ layout ([security](https://katex.org/docs/security),
 - Use token-derived light/dark theme variables; authored source cannot provide
   theme CSS outside Mermaid's strict configuration.
 
+S04 implements this as a three-part boundary. `mermaid-core.ts` performs a
+cheap preflight before calling Mermaid: the hard 64 KiB / 20,000-character /
+200-edge ceilings cannot be raised by a host override, and init/YAML config,
+click/link directives, image shapes, Markdown images, CSS URLs, raw active
+tags, and absolute/protocol-relative schemes fail to escaped source. Mermaid's
+site config repeats the limits and locks security, HTML labels, theme,
+deterministic IDs, resource behavior, and layout selection in `secure`.
+
+Mermaid owns global mutable site configuration, so one adapter-level promise
+queue encloses the complete `updateSiteConfig` + `render` pair. Initialization
+still happens once; queued requests cannot exchange a theme or ID seed. The
+renderer works in an off-screen, non-interactive staging node, never calls the
+returned `bindFunctions`, checks cancellation before publication, and removes
+the staging node immediately on abort and in `finally`.
+
+`safe-svg.ts` is the shared postflight seam for S04 and S05. It rejects DTDs,
+entities, processing instructions, foreign namespaces/elements, animation and
+resource elements, base URLs, non-fragment URI/CSS targets, active or escaped
+CSS, and duplicate IDs; removes event attributes and residual anchor
+navigation; then namespaces every ID and rewrites fragment references before
+importing a DOM node. It never assigns Mermaid's string to the reading surface.
+The host's render generation makes two identical blocks collision-free, while
+the request ID remains the deterministic seed inside one mount. Existing
+`accTitle`/`accDescr` output is retained; otherwise the guard adds a titled,
+described `role="img"` rooted in the authored source summary.
+
 Mermaid documents that strict mode encodes HTML labels and disables click
 functionality, and exposes text/edge/deterministic-ID caps in its configuration
 schema ([security level](https://mermaid.js.org/config/schema-docs/config-properties-securitylevel.html),

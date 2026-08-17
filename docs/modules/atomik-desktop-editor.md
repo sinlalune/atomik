@@ -137,6 +137,39 @@ S03 connects safe math without changing the canonical editor buffer:
 - Focused proof is 72 assertions across note rendering, registry/hydration,
   KaTeX security/accessibility/limits, and live source-range parity.
 
+S04 connects Mermaid without granting a diagram file, IPC, binding, or network
+authority:
+
+- `adapters/mermaid.ts` is the only static Mermaid import and remains behind
+  the registry's `import()` target. `mermaid-core.ts` is separately testable
+  with a fake runtime: it rejects note config, clicks/links, images, URL/CSS
+  resources, and source/character/edge floods before render; repeats immutable
+  strict/HTML-label/deterministic-ID/200-edge policy in Mermaid's secure site
+  config; and maps Atomik light/dark tokens across the main Mermaid diagram
+  families.
+- Mermaid's site config is process-global. One adapter queue encloses each
+  config + render pair, so concurrent notes cannot exchange theme variables or
+  deterministic seeds. Rendering uses an off-screen non-interactive staging
+  node, never calls `bindFunctions`, checks abort before publication, and
+  removes staging immediately on cancellation and in `finally`.
+- `adapters/safe-svg.ts` parses returned SVG, rejects foreign/scriptable/
+  resource content and active CSS, strips event/navigation attributes,
+  namespaces IDs per hydration generation, rewrites only grammatical fragment
+  references (without mistaking colors such as `#fff` for IDs), adds/preserves
+  title and description, then imports a DOM node. Mermaid's raw string is never
+  assigned to the note surface. This guard is the S05 Vega postflight seam.
+- Read mode uses the existing escaped `mermaid` fence placeholder. Live mode
+  generalizes the S03 math widget: a Mermaid fence projects through the same
+  hydrator only away from touched lines, reveals exact source on click/touch,
+  rebuilds on theme change, and shares the 128-block cap with math. Source mode
+  remains raw.
+- S04 build inspection measures 2,383,165 B eager entry (+1,114 B from S03),
+  135,772 B global CSS (+911 B), a separate 1,097,914 B Mermaid core, and a
+  102,800 B lazy flowchart definition. The pinned package's own headless smoke
+  returned `flowchart-v2` SVG with no `foreignObject` or external href; focused
+  proof is 83 assertions across note, live, lifecycle, SVG security, config
+  isolation, cancellation, theme, limits, IDs, and accessibility.
+
 ## Web-link pill identity (CP-FEEDBACK S05)
 
 - Read and live still ask the shared `graph-core` classifier; neither surface

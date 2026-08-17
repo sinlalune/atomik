@@ -4,8 +4,16 @@ import { noteMarkdown } from '../renderer/src/editor/note-markdown'
 import {
   DEFAULT_RICH_LIMITS,
   type RichRenderHandle,
+  type RichRenderRequest,
   type RichRendererAdapter
 } from '../renderer/src/editor/rich-markdown/contracts'
+import {
+  createMermaidAdapter,
+  estimateMermaidEdges,
+  mermaidConfigFor,
+  type MermaidRuntime
+} from '../renderer/src/editor/rich-markdown/adapters/mermaid-core'
+import { safeSvgNode } from '../renderer/src/editor/rich-markdown/adapters/safe-svg'
 import { hydrateRichMarkdown } from '../renderer/src/editor/rich-markdown/hydration'
 import { createRichRendererRegistry } from '../renderer/src/editor/rich-markdown/registry'
 import {
@@ -20,6 +28,11 @@ function domFor(markdown: string): HTMLElement {
   const root = document.querySelector('#root')!
   root.innerHTML = noteMarkdown().render(markdown)
   return root as unknown as HTMLElement
+}
+
+function emptyHost(): HTMLElement {
+  const { document } = parseHTML('<html><body><main id="host"></main></body></html>')
+  return document.querySelector('#host') as unknown as HTMLElement
 }
 
 function deferred<T>(): {
@@ -38,6 +51,51 @@ function deferred<T>(): {
 
 function handle(onDispose = () => {}): RichRenderHandle {
   return { diagnostics: [], dispose: onDispose }
+}
+
+function mermaidRequest(
+  source = 'flowchart LR\nA --> B',
+  overrides: Partial<RichRenderRequest> = {}
+): RichRenderRequest {
+  return {
+    id: 'rich-test-mermaid-0-a1',
+    kind: 'mermaid',
+    source,
+    info: 'mermaid',
+    theme: { name: 'system', scheme: 'light' },
+    limits: DEFAULT_RICH_LIMITS,
+    signal: new AbortController().signal,
+    ...overrides
+  }
+}
+
+function fakeMermaid(svg = '<svg xmlns="http://www.w3.org/2000/svg"><path /></svg>'):
+  {
+    runtime: MermaidRuntime
+    initialize: ReturnType<typeof vi.fn>
+    updateSiteConfig: ReturnType<typeof vi.fn>
+    render: ReturnType<typeof vi.fn>
+    bindFunctions: ReturnType<typeof vi.fn>
+  } {
+  const initialize = vi.fn()
+  const updateSiteConfig = vi.fn((config) => config)
+  const bindFunctions = vi.fn()
+  const render = vi.fn(async () => ({
+    svg,
+    diagramType: 'flowchart-v2',
+    bindFunctions
+  }))
+  return {
+    runtime: {
+      initialize,
+      render,
+      mermaidAPI: { updateSiteConfig }
+    } as MermaidRuntime,
+    initialize,
+    updateSiteConfig,
+    render,
+    bindFunctions
+  }
 }
 
 describe('rich Markdown syntax discovery (ADR-014)', () => {
@@ -300,6 +358,370 @@ describe('rich Markdown hydration lifecycle', () => {
     expect(root.querySelector('[data-rich-status]')!.textContent).toContain(
       'output exceeds the 2-byte render limit'
     )
+  })
+
+  it('gives identical SVG-producing blocks distinct mount-generation ids', async () => {
+    const ids: string[] = []
+    const registry = createRichRendererRegistry({
+      mermaid: async () => ({
+        kind: 'mermaid',
+        async render(host, request) {
+          ids.push(request.id)
+          host.textContent = 'diagram'
+          return handle()
+        }
+      })
+    })
+    const first = domFor('```mermaid\nflowchart LR\nA --> B\n```')
+    const second = domFor('```mermaid\nflowchart LR\nA --> B\n```')
+    const firstHydration = hydrateRichMarkdown(first, { registry })
+    const secondHydration = hydrateRichMarkdown(second, { registry })
+    await Promise.all([firstHydration.ready, secondHydration.ready])
+
+    expect(ids).toHaveLength(2)
+    expect(ids[0]).not.toBe(ids[1])
+    expect(ids.every((id) => /^rich-\d+-mermaid-0-[a-f0-9]+$/.test(id))).toBe(
+      true
+    )
+    firstHydration.dispose()
+    secondHydration.dispose()
+  })
+})
+
+describe('Mermaid adapter (CP-RICH-MARKDOWN S04)', () => {
+  it('hydrates a strict, namespaced, accessible static SVG without bindings', async () => {
+    const fixture = fakeMermaid(
+      [
+        '<svg xmlns="http://www.w3.org/2000/svg" id="diagram" onload="alert(1)">',
+        '<defs><marker id="arrow"><path d="M0 0L4 2L0 4Z" /></marker></defs>',
+        '<style>#diagram .edge{marker-end:url(#arrow)}</style>',
+        '<path id="edge" class="edge" marker-end="url(#arrow)" onclick="alert(2)" />',
+        '</svg>'
+      ].join('')
+    )
+    const root = domFor('```mermaid\nflowchart LR\nA --> B\n```')
+    const hydration = hydrateRichMarkdown(root, {
+      registry: createRichRendererRegistry({
+        mermaid: async () => createMermaidAdapter(fixture.runtime)
+      })
+    })
+    await hydration.ready
+
+    expect(fixture.initialize).toHaveBeenCalledTimes(1)
+    expect(fixture.initialize.mock.calls[0]?.[0]).toMatchObject({
+      startOnLoad: false,
+      securityLevel: 'strict',
+      htmlLabels: false,
+      suppressErrorRendering: true,
+      deterministicIds: true,
+      maxTextSize: 20_000,
+      maxEdges: 200,
+      arrowMarkerAbsolute: false
+    })
+    const siteConfig = fixture.updateSiteConfig.mock.calls[0]?.[0]
+    expect(siteConfig).toMatchObject({
+      securityLevel: 'strict',
+      deterministicIds: true,
+      deterministicIDSeed: expect.stringMatching(/^rich-\d+-mermaid-0-/),
+      theme: 'base'
+    })
+    expect(siteConfig.secure).toEqual(
+      expect.arrayContaining([
+        'securityLevel',
+        'htmlLabels',
+        'themeCSS',
+        'deterministicIDSeed',
+        'maxEdges'
+      ])
+    )
+    expect(fixture.render.mock.calls[0]?.[0]).toMatch(
+      /^atomik_mermaid_rich-\d+-mermaid-0-/
+    )
+    expect(fixture.bindFunctions).not.toHaveBeenCalled()
+
+    const svg = root.querySelector<SVGElement>('[data-rich-output] svg')!
+    expect(svg).not.toBeNull()
+    expect(svg.getAttribute('role')).toBe('img')
+    expect(svg.getAttribute('onload')).toBeNull()
+    expect(svg.querySelector('path.edge')?.getAttribute('onclick')).toBeNull()
+    expect(svg.querySelector('title')?.textContent).toBe(
+      'Mermaid flowchart v2 diagram'
+    )
+    expect(svg.querySelector('desc')?.textContent).toContain(
+      'flowchart LR A --> B'
+    )
+    const labelledBy = svg.getAttribute('aria-labelledby')!.split(' ')
+    expect(labelledBy).toHaveLength(2)
+    expect(labelledBy.every((id) => root.querySelector(`[id="${id}"]`))).toBe(
+      true
+    )
+    const marker = svg.querySelector('marker')!
+    expect(marker.id).toMatch(/^atomik-rich-\d+-mermaid-0-/)
+    expect(svg.querySelector('path.edge')?.getAttribute('marker-end')).toBe(
+      `url(#${marker.id})`
+    )
+    expect(svg.querySelector('style')?.textContent).toContain(`#${marker.id}`)
+    expect(svg.querySelector('style')?.textContent).not.toContain('#arrow')
+
+    hydration.dispose()
+    expect(root.querySelector('[data-rich-output] svg')).toBeNull()
+    expect((root.querySelector('[data-rich-source]') as HTMLElement).hidden).toBe(
+      false
+    )
+  })
+
+  it('rejects active syntax and resource floods before Mermaid runs', async () => {
+    const fixture = fakeMermaid()
+    const adapter = createMermaidAdapter(fixture.runtime)
+    const edgeFlood = Array.from(
+      { length: DEFAULT_RICH_LIMITS.mermaid.maxEdges + 1 },
+      (_, index) => `A${index} --> A${index + 1}`
+    ).join('\n')
+    expect(estimateMermaidEdges(edgeFlood)).toBe(201)
+
+    const rejected = [
+      '%%{init: { securityLevel: "loose" }}%%\nflowchart LR\nA --> B',
+      '---\nconfig:\n  securityLevel: loose\n---\nflowchart LR\nA --> B',
+      'flowchart LR; click A href "https://evil.example"',
+      'flowchart LR\nA[https://evil.example/x]',
+      'flowchart LR\nA@{ img: "relative.png" }',
+      'flowchart LR\nA[![alt](relative.png)]',
+      edgeFlood,
+      'x'.repeat(DEFAULT_RICH_LIMITS.mermaid.maxTextCharacters + 1)
+    ]
+    for (const source of rejected) {
+      await expect(adapter.render(emptyHost(), mermaidRequest(source))).rejects.toThrow()
+    }
+    await expect(
+      adapter.render(
+        emptyHost(),
+        mermaidRequest('flowchart LR\nA --> B', {
+          limits: {
+            ...DEFAULT_RICH_LIMITS,
+            mermaid: { ...DEFAULT_RICH_LIMITS.mermaid, maxSourceBytes: 4 }
+          }
+        })
+      )
+    ).rejects.toThrow('exceeds 4 bytes')
+    await expect(
+      adapter.render(
+        emptyHost(),
+        mermaidRequest(edgeFlood, {
+          limits: {
+            ...DEFAULT_RICH_LIMITS,
+            mermaid: {
+              ...DEFAULT_RICH_LIMITS.mermaid,
+              maxTextCharacters: 100_000,
+              maxEdges: 10_000
+            }
+          }
+        })
+      )
+    ).rejects.toThrow('exceeds 200 edges')
+    expect(fixture.initialize).not.toHaveBeenCalled()
+    expect(fixture.render).not.toHaveBeenCalled()
+  })
+
+  it('rejects foreign/scriptable SVG and non-fragment resource targets', () => {
+    const document = emptyHost().ownerDocument
+    const unsafe = [
+      '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg"><foreignObject><div /></foreignObject></svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg"><image href="#local" /></svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg"><a href="https://evil.example"><text>x</text></a></svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg"><path style="fill:url(https://evil.example/x)" /></svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg"><style>@import "evil.css";</style></svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg" xml:base="https://evil.example"><path /></svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg"><g xmlns="http://www.w3.org/1999/xhtml"><div /></g></svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg"><g id="same" /><path id="same" /></svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg"><style>path{fill:u\\72l(https://evil.example/x)}</style></svg>',
+      '<!DOCTYPE svg><svg xmlns="http://www.w3.org/2000/svg"><path /></svg>',
+      '<?xml-stylesheet href="evil.css"?><svg xmlns="http://www.w3.org/2000/svg"><path /></svg>'
+    ]
+    for (const svg of unsafe) {
+      expect(() =>
+        safeSvgNode(document, svg, {
+          requestId: 'unsafe-test',
+          title: 'Diagram',
+          description: 'Source'
+        })
+      ).toThrow('Unsafe generated SVG')
+    }
+  })
+
+  it('preserves authored SVG accessibility text and disables fragment links', () => {
+    const document = emptyHost().ownerDocument
+    const svg = safeSvgNode(
+      document,
+      [
+        '<svg xmlns="http://www.w3.org/2000/svg">',
+        '<title>Authored process title</title>',
+        '<desc>Authored process description</desc>',
+        '<style>#fff{fill:#fff}#target{stroke:#fff}</style>',
+        '<g id="fff" />',
+        '<a id="jump" href="#target" target="_blank"><text>jump</text></a>',
+        '<g id="target" onfocus="alert(1)" />',
+        '</svg>'
+      ].join(''),
+      {
+        requestId: 'a11y-test',
+        title: 'Generated title',
+        description: 'Generated description'
+      }
+    )
+    expect(svg.querySelector('title')?.textContent).toBe('Authored process title')
+    expect(svg.querySelector('desc')?.textContent).toBe(
+      'Authored process description'
+    )
+    expect(svg.querySelector('a')?.getAttribute('href')).toBeNull()
+    expect(svg.querySelector('a')?.getAttribute('target')).toBeNull()
+    expect(svg.querySelectorAll('g')[1]?.getAttribute('onfocus')).toBeNull()
+    const style = svg.querySelector('style')?.textContent ?? ''
+    expect(style).toContain('fill:#fff')
+    expect(style).toContain('stroke:#fff')
+    expect(style).not.toMatch(/^#fff\{/)
+  })
+
+  it('maps each theme and request budget into immutable site configuration', () => {
+    const host = emptyHost()
+    const request = mermaidRequest('flowchart LR\nA --> B', {
+      id: 'dark-seed',
+      theme: { name: 'biolum', scheme: 'dark' },
+      limits: {
+        ...DEFAULT_RICH_LIMITS,
+        mermaid: {
+          ...DEFAULT_RICH_LIMITS.mermaid,
+          maxTextCharacters: 1_234,
+          maxEdges: 99
+        }
+      }
+    })
+    expect(mermaidConfigFor(host, request)).toMatchObject({
+      deterministicIDSeed: 'dark-seed',
+      darkMode: true,
+      maxTextSize: 1_234,
+      maxEdges: 99,
+      themeVariables: {
+        darkMode: true,
+        background: '#1e1e23',
+        primaryTextColor: '#e8e8e3',
+        lineColor: '#9ec49e'
+      }
+    })
+    const raised = mermaidConfigFor(host, {
+      ...request,
+      limits: {
+        ...DEFAULT_RICH_LIMITS,
+        mermaid: {
+          ...DEFAULT_RICH_LIMITS.mermaid,
+          maxTextCharacters: 100_000,
+          maxEdges: 10_000
+        }
+      }
+    })
+    expect(raised.maxTextSize).toBe(20_000)
+    expect(raised.maxEdges).toBe(200)
+  })
+
+  it('serializes global config changes across concurrent diagram requests', async () => {
+    const firstResult = deferred<{
+      svg: string
+      diagramType: string
+    }>()
+    const firstStarted = deferred<void>()
+    const seeds: string[] = []
+    let currentSeed = ''
+    const initialize = vi.fn()
+    const updateSiteConfig = vi.fn((config) => {
+      currentSeed = String(config.deterministicIDSeed)
+      return config
+    })
+    const render = vi.fn(async () => {
+      seeds.push(currentSeed)
+      if (seeds.length === 1) {
+        firstStarted.resolve()
+        return firstResult.promise
+      }
+      return {
+        svg: '<svg xmlns="http://www.w3.org/2000/svg"><path /></svg>',
+        diagramType: 'flowchart-v2'
+      }
+    })
+    const adapter = createMermaidAdapter({
+      initialize,
+      render,
+      mermaidAPI: { updateSiteConfig }
+    } as MermaidRuntime)
+    const first = adapter.render(
+      emptyHost(),
+      mermaidRequest(undefined, { id: 'request-one' })
+    )
+    await firstStarted.promise
+    const second = adapter.render(
+      emptyHost(),
+      mermaidRequest(undefined, { id: 'request-two' })
+    )
+    await Promise.resolve()
+    expect(render).toHaveBeenCalledTimes(1)
+    expect(updateSiteConfig).toHaveBeenCalledTimes(1)
+
+    firstResult.resolve({
+      svg: '<svg xmlns="http://www.w3.org/2000/svg"><path /></svg>',
+      diagramType: 'flowchart-v2'
+    })
+    const [firstHandle, secondHandle] = await Promise.all([first, second])
+    expect(seeds).toEqual(['request-one', 'request-two'])
+    expect(initialize).toHaveBeenCalledTimes(1)
+    firstHandle.dispose()
+    secondHandle.dispose()
+  })
+
+  it('suppresses a completed Mermaid result after cancellation', async () => {
+    const pending = deferred<{
+      svg: string
+      diagramType: string
+    }>()
+    const started = deferred<void>()
+    const fixture = fakeMermaid()
+    fixture.render.mockImplementationOnce(async () => {
+      started.resolve()
+      return pending.promise
+    })
+    const adapter = createMermaidAdapter(fixture.runtime)
+    const host = emptyHost()
+    const controller = new AbortController()
+    const rendering = adapter.render(
+      host,
+      mermaidRequest(undefined, { signal: controller.signal })
+    )
+    await started.promise
+    controller.abort(new Error('diagram cancelled'))
+    expect(host.ownerDocument.body?.querySelector('[aria-hidden="true"]')).toBeNull()
+    pending.resolve({
+      svg: '<svg xmlns="http://www.w3.org/2000/svg"><path /></svg>',
+      diagramType: 'flowchart-v2'
+    })
+
+    await expect(rendering).rejects.toThrow('diagram cancelled')
+    expect(host.querySelector('svg')).toBeNull()
+    expect(host.ownerDocument.body?.querySelector('[aria-hidden="true"]')).toBeNull()
+  })
+
+  it('drops oversized SVG before parsing or mounting it', async () => {
+    const fixture = fakeMermaid(
+      `<svg xmlns="http://www.w3.org/2000/svg"><text>${'x'.repeat(100)}</text></svg>`
+    )
+    const adapter = createMermaidAdapter(fixture.runtime)
+    const host = emptyHost()
+    await expect(
+      adapter.render(
+        host,
+        mermaidRequest(undefined, {
+          limits: { ...DEFAULT_RICH_LIMITS, maxOutputBytes: 32 }
+        })
+      )
+    ).rejects.toThrow('output exceeds 32 bytes')
+    expect(host.querySelector('svg')).toBeNull()
   })
 })
 

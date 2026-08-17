@@ -8,7 +8,7 @@ atomik:
   id: CP-RICH-MARKDOWN
   status: running
   accepted: 2026-08-17
-  current_step: S04
+  current_step: S05
   base_commit: 98561b4
   branch: path/cp-rich-markdown
   writes:
@@ -177,7 +177,7 @@ The owner-approved details and revised backlog order are recorded in
 - [x] S03 KaTeX: add safe inline/display/fenced math to read and live, MathML
       accessibility, edit-range reveal, error/source behavior, themes, focused
       tests, docs, ledger, and a bare gate.
-- [ ] S04 Mermaid: add local lazy secure SVG diagrams, sanitizer/security and
+- [x] S04 Mermaid: add local lazy secure SVG diagrams, sanitizer/security and
       resource caps, theme/a11y/source behavior, cancellation tests, docs,
       ledger, and a bare gate.
 - [ ] S05 Vega-Lite: add local lazy inline-data charts, schema/cap validation,
@@ -204,18 +204,24 @@ base commit : 98561b4
 changed     : S02 exact package lock; pure syntax + escaped Markdown-it
               placeholders and bounded host; S03 KaTeX HTML+MathML adapter;
               safe per-expression macros; inline/display/fence read + live;
-              edit-range reveal, theme rebuild, precedence and limit status
-tests       : S03 focused PASS (3 files / 72 tests); full PASS (75 files / 954
-              passed + 1 skipped); Cairn/typecheck/build PASS — entry
-              2,382,051 B (+8,626 from S02), global CSS 134,861 B (+1,944);
-              lazy KaTeX 485,408 B JS + 28,946 B CSS + local font assets
+              S04 strict queued Mermaid config + source/resource/edge preflight;
+              parsed static SVG postflight, ID namespace/a11y; read/live theme,
+              touched-range reveal, shared cap, cancellation/staging cleanup
+tests       : S04 focused PASS (3 files / 83 tests); full PASS (75 files / 965
+              passed + 1 skipped); Cairn/typecheck/build PASS —
+              entry 2,383,165 B (+1,114 from S03), global CSS 135,772 B (+911);
+              lazy Mermaid core 1,097,914 B + flowchart definition 102,800 B;
+              pinned-runtime smoke flowchart-v2 / no foreign or external href
 audit       : npm audit reports the same 4 inherited highs on trunk and S02
               (PDF.js + Vite/PostCSS/nanoid + Electron optional undici); zero
               rich-dependency advisory delta, no automatic rewrite applied
 catalog     : docs/learning/index.md edit is deliberate under bedrock 17's
               first-use catalog rule; it is not generated ACTIVE/register state
-next action : checkpoint S03, then begin S04 secure Mermaid adapter
-blockers    : none; rebased onto trunk 783c7c6 and full gate is green
+receipt     : atomik-project/sessions/
+              2026-08-17-cp-rich-markdown-s04-mermaid.md
+next action : checkpoint S04, then begin S05 inline-data-only Vega-Lite using
+              the shared SVG postflight
+blockers    : none; rebased onto trunk 783c7c6
 ```
 
 # Blockers

@@ -2466,10 +2466,10 @@ body[data-maximized] .tabstrip {
   font-weight: 650;
 }
 
-/* Disposable KaTeX projection in live mode. The widget replaces authored
-   bytes only while their lines are inactive; click/keyboard navigation puts
-   the cursor back on the range and CodeMirror reveals raw source. */
-.editor-host .lp-math-widget {
+/* Disposable rich projections in live mode. A widget replaces authored bytes
+   only while their lines are inactive; click/keyboard navigation puts the
+   cursor back on the range and CodeMirror reveals raw source. */
+.editor-host .lp-rich-widget {
   display: inline-block;
   max-width: 100%;
   color: var(--fg);
@@ -2477,24 +2477,25 @@ body[data-maximized] .tabstrip {
   vertical-align: baseline;
 }
 
-.editor-host .lp-math-widget--display {
+.editor-host .lp-rich-widget--display {
   display: block;
   width: 100%;
   overflow-x: auto;
   padding-block: var(--space-2);
 }
 
-.editor-host .lp-math-widget .rich-markdown-block {
+.editor-host .lp-rich-widget .rich-markdown-block {
   display: block;
 }
 
-.editor-host .lp-math-widget code[data-rich-source] {
+.editor-host .lp-rich-widget code[data-rich-source] {
   font-family: ui-monospace, 'Cascadia Mono', Menlo, monospace;
   font-size: var(--note-code-size);
   color: var(--fg);
+  white-space: pre-wrap;
 }
 
-.editor-host .lp-math-limit {
+.editor-host .lp-rich-limit {
   color: var(--error);
   font-size: var(--fs-sm);
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -3522,6 +3523,37 @@ button.relations-node:focus-visible {
 .rich-markdown-block[data-rich-kind='math'] .katex-display {
   margin: 0;
   padding-block: var(--space-3);
+}
+
+.rich-markdown-block[data-rich-kind='mermaid'] > [data-rich-output]:not([hidden]) {
+  display: block;
+  max-width: 100%;
+  overflow: auto;
+  padding: var(--space-3);
+  color: var(--fg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  white-space: normal;
+}
+
+.rich-markdown-block[data-rich-kind='mermaid'] [data-rich-render-host] > svg {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  margin-inline: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rich-markdown-block[data-rich-kind='mermaid'] svg *,
+  .rich-markdown-block[data-rich-kind='mermaid'] svg *::before,
+  .rich-markdown-block[data-rich-kind='mermaid'] svg *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 [data-rich-status]:not([hidden]) {

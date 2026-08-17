@@ -36,6 +36,7 @@ export type RichHydrationOptions = {
 }
 
 const activeRoots = new WeakMap<HTMLElement, RichHydration>()
+let hydrationGeneration = 0
 
 const DARK_THEMES = new Set(['dark', 'moss', 'biolum'])
 
@@ -69,13 +70,18 @@ function sourceCap(kind: RichRendererKind, limits: Readonly<RichLimits>): number
   }
 }
 
-function requestId(kind: RichRendererKind, index: number, source: string): string {
+function requestId(
+  generation: number,
+  kind: RichRendererKind,
+  index: number,
+  source: string
+): string {
   let hash = 0x811c9dc5
   for (let at = 0; at < source.length; at += 1) {
     hash ^= source.charCodeAt(at)
     hash = Math.imul(hash, 0x01000193)
   }
-  return `${kind}-${index}-${(hash >>> 0).toString(16)}`
+  return `rich-${generation}-${kind}-${index}-${(hash >>> 0).toString(16)}`
 }
 
 function kindOf(element: HTMLElement): RichRendererKind | null {
@@ -163,6 +169,11 @@ export function hydrateRichMarkdown(
   const registry = options.registry ?? defaultRichRendererRegistry
   const limits = options.limits ?? DEFAULT_RICH_LIMITS
   const theme = options.theme ?? themeFor(root)
+  // Mermaid and Vega emit document-visible SVG ids. A render generation keeps
+  // identical blocks mounted in two notes from sharing marker/clip-path ids,
+  // while the source hash and block index keep every request inspectable.
+  hydrationGeneration = (hydrationGeneration + 1) % Number.MAX_SAFE_INTEGER
+  const generation = hydrationGeneration || 1
   const blocks: ActiveBlock[] = []
   let disposed = false
 
@@ -227,7 +238,7 @@ export function hydrateRichMarkdown(
       ])
       if (disposed || controller.signal.aborted) return
       const rendering = adapter.render(renderHost, {
-          id: requestId(kind, index, source),
+          id: requestId(generation, kind, index, source),
           kind,
           source,
           info: element.dataset['richInfo'] ?? '',

@@ -24,6 +24,10 @@ type Deco = {
   mathDisplay?: boolean
   mathSource?: string
   mathTheme?: string
+  richKind?: string
+  richDisplay?: boolean
+  richSource?: string
+  richTheme?: string
 }
 
 /** Fully parses the doc (GFM base, like the editor), lists decorations. */
@@ -53,6 +57,10 @@ function decorate(
       mathDisplay?: boolean
       mathSource?: string
       mathTheme?: string
+      richKind?: string
+      richDisplay?: boolean
+      richSource?: string
+      richTheme?: string
     }
     const deco: Deco = { from: iter.from, to: iter.to, kind: spec.lp }
     if (spec.class !== undefined) deco.cls = spec.class
@@ -61,6 +69,10 @@ function decorate(
     if (spec.mathDisplay !== undefined) deco.mathDisplay = spec.mathDisplay
     if (spec.mathSource !== undefined) deco.mathSource = spec.mathSource
     if (spec.mathTheme !== undefined) deco.mathTheme = spec.mathTheme
+    if (spec.richKind !== undefined) deco.richKind = spec.richKind
+    if (spec.richDisplay !== undefined) deco.richDisplay = spec.richDisplay
+    if (spec.richSource !== undefined) deco.richSource = spec.richSource
+    if (spec.richTheme !== undefined) deco.richTheme = spec.richTheme
     out.push(deco)
     iter.next()
   }
@@ -197,7 +209,11 @@ describe('live preview decorations (MVP-001: seamless editing)', () => {
       kind: 'math',
       mathDisplay: false,
       mathSource: 'e^{i\\pi}+1=0',
-      mathTheme: 'system'
+      mathTheme: 'system',
+      richKind: 'math',
+      richDisplay: false,
+      richSource: 'e^{i\\pi}+1=0',
+      richTheme: 'system'
     })
     expect(decorate(doc, from + 2).filter((deco) => deco.kind === 'math')).toEqual(
       []
@@ -274,7 +290,52 @@ describe('live preview decorations (MVP-001: seamless editing)', () => {
     )
     const decos = decorate(doc, doc.length)
     expect(decos.filter((deco) => deco.kind === 'math')).toHaveLength(128)
-    expect(decos.filter((deco) => deco.kind === 'math-limit')).toHaveLength(1)
+    expect(decos.filter((deco) => deco.kind === 'rich-limit')).toHaveLength(1)
+  })
+
+  it('projects Mermaid fences with read parity and reveals source when touched', () => {
+    const ticks = '`'.repeat(3)
+    const source = 'flowchart LR\n  Start --> Finish'
+    const doc = [
+      `${ticks}Mermaid`,
+      source,
+      ticks,
+      '',
+      'elsewhere'
+    ].join('\n')
+    const from = doc.indexOf(ticks)
+    const away = decorate(doc, doc.indexOf('elsewhere'), {
+      name: 'biolum',
+      scheme: 'dark'
+    })
+    expect(away).toContainEqual({
+      from,
+      to: doc.indexOf(ticks, from + ticks.length) + ticks.length,
+      kind: 'mermaid',
+      richKind: 'mermaid',
+      richDisplay: true,
+      richSource: source,
+      richTheme: 'biolum'
+    })
+    expect(
+      decorate(doc, doc.indexOf('Start')).filter(
+        (deco) => deco.kind === 'mermaid'
+      )
+    ).toEqual([])
+  })
+
+  it('shares the 128-block live budget across math and Mermaid', () => {
+    const ticks = '`'.repeat(3)
+    const math = Array.from({ length: 127 }, (_, index) => `$x_${index}$`)
+    const diagrams = [
+      `${ticks}mermaid\nflowchart LR\nA --> B\n${ticks}`,
+      `${ticks}mermaid\nflowchart LR\nB --> C\n${ticks}`
+    ]
+    const doc = [...math, ...diagrams, 'elsewhere'].join('\n')
+    const decos = decorate(doc, doc.indexOf('elsewhere'))
+    expect(decos.filter((deco) => deco.kind === 'math')).toHaveLength(127)
+    expect(decos.filter((deco) => deco.kind === 'mermaid')).toHaveLength(1)
+    expect(decos.filter((deco) => deco.kind === 'rich-limit')).toHaveLength(1)
   })
 
   it('hides GFM strikethrough marks and styles the content', () => {

@@ -58,5 +58,7 @@ export function createRichRendererRegistry(
  * Vite can keep it out of the no-rich startup path. */
 export const defaultRichRendererRegistry = createRichRendererRegistry({
   math: async () =>
-    import('./adapters/katex').then((module) => module.katexAdapter)
+    import('./adapters/katex').then((module) => module.katexAdapter),
+  mermaid: async () =>
+    import('./adapters/mermaid').then((module) => module.mermaidAdapter)
 })

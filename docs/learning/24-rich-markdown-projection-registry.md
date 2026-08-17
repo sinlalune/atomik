@@ -100,6 +100,12 @@ wiring moves the entry to 2,382,051 B (+8,626 B from S02) and global CSS to
 Those files exist in the build, but the browser requests the dynamic chunk only
 when a mounted note contains accepted math syntax.
 
+S04 keeps the same property for diagrams. The entry is 2,383,165 B, only
+1,114 B above S03, and global CSS is 135,772 B (+911 B). Mermaid's core is a
+separate 1,097,914 B chunk; its diagram definitions remain separate again (the
+flowchart definition is 102,800 B), so an ordinary note pays none of that cost
+and a flowchart does not load every other diagram implementation.
+
 ### KaTeX: safe TeX is still untrusted input
 
 KaTeX turns a TeX expression into visual HTML and semantic MathML. Atomik asks
@@ -121,6 +127,45 @@ escaped placeholders. Live mode replaces an exact CodeMirror source range only
 while the cursor is elsewhere; touching or clicking it reveals the raw bytes.
 Destroying or recoloring the widget invokes the same abort/dispose path as a
 React read surface.
+
+### Mermaid: generated SVG still crosses a trust boundary
+
+Mermaid is not inserted through a document-scanning helper. The adapter gets
+one accepted fence, renders it locally with strict site configuration, and
+never calls Mermaid's optional `bindFunctions`. That last detail matters:
+bindings are where diagram-authored click behavior would become live DOM
+behavior.
+
+There are three gates:
+
+```text
+authored fence
+  -> preflight source + complexity/resource limits
+  -> strict Mermaid render in an off-screen staging node
+  -> parse and inspect returned SVG
+  -> import a static, fragment-local DOM tree
+```
+
+The preflight rejects note config, click/link directives, image/resource
+syntax, external schemes, and more than 200 ordinary edges before heavy parse
+work. The Mermaid config repeats those limits and keeps security, HTML labels,
+theme, IDs, and layout in its secure-key list. The limits are hard ceilings:
+passing a larger test/custom host budget cannot turn 200 into 10,000.
+
+The SVG guard is independent of Mermaid's own sanitizer. It rejects foreign or
+scriptable elements, event handlers, base URLs, external `href`/CSS resources,
+active CSS, processing instructions, entities, and duplicate IDs. Allowed
+`url(#marker)` references stay local. Every generated ID is then namespaced to
+the rich request and every fragment reference is rewritten before
+`document.importNode` publishes it. This prevents two identical diagrams from
+sharing marker, filter, clip-path, or accessibility IDs in one window.
+
+Mermaid's site config is global mutable state even though `render()` returns a
+promise. The adapter therefore serializes the complete config-and-render pair.
+Without that queue, note A could choose a dark palette and seed, note B could
+replace them, and note A could finish with B's IDs or colors. Cancellation
+removes staging immediately; publication checks the signal again, so a late
+diagram never enters a stale note.
 
 ### AbortSignal: a shared cancellation vocabulary
 
@@ -208,7 +253,10 @@ becomes readable source again.
 7. `rich-markdown/adapters/katex.ts` is the first concrete strategy; the live
    editor reaches it through disposable source-range widgets, not a second
    renderer.
-8. Vault, project, source-dossier, chat, new-note preview, and inline-AI
+8. `rich-markdown/adapters/mermaid-core.ts` owns source policy, strict config,
+   global serialization and staging. `safe-svg.ts` owns the renderer-neutral
+   SVG postflight; the tiny `mermaid.ts` module is the only runtime import.
+9. Vault, project, source-dossier, chat, new-note preview, and inline-AI
    surfaces now enter that same host rather than growing per-surface renderers.
 
 ## How it was built (methodology)
@@ -229,9 +277,10 @@ pure ambiguity rules
   -> typecheck + production chunk inspection
 ```
 
-S03 then connects only KaTeX. Mermaid, Vega-Lite, and Shiki remain absent until
-their own steps, so the safe fallback and every later security boundary stay
-independently testable.
+S03 then connects only KaTeX. S04 connects Mermaid through an independently
+tested preflight/postflight instead of trusting library output. Vega-Lite and
+Shiki remain absent until their own steps, so every later security boundary
+stays independently testable.
 
 ## Lessons learned the hard way
 
@@ -269,14 +318,29 @@ The path's `writes:` contract uses a minimal glob language. A trailing slash is
 not recursive; `rich-markdown/**` is. Declaring the real surface keeps scope
 drift useful without pretending it is a lock.
 
+### “Sanitized SVG string” is not yet a mount contract
+
+Mermaid sanitizes its own output, but its policy and Atomik's policy are not
+identical. Atomik forbids every external resource and every binding; Mermaid
+supports features that intentionally need them in other products. Assigning
+the returned string with `innerHTML` would silently make Mermaid's current
+policy Atomik's permanent policy.
+
+The extra parse/inspect/import step also found a less obvious correctness
+problem: SVG IDs are document-visible. Deterministic output makes identical
+diagrams more likely to collide, not less. Request-generation namespacing plus
+targeted rewriting of `href`, `url(#...)`, ARIA references, and CSS selectors
+keeps determinism without cross-note collisions. Rewriting every `#id` as raw
+text is incorrect because `#fff` may be a color; references must be rewritten
+in their grammatical positions.
+
 ## Try it yourself (exercises)
 
 1. Run `npm --workspace atomik-desktop test -- tests/rich-markdown.test.ts`.
    Change the math source cap to four bytes and explain why the adapter loader
    count remains zero.
-2. Add a fake `mermaid` adapter in a test that waits on a deferred promise.
-   Start a second hydration, resolve the old promise, and verify only the new
-   text is mounted.
+2. Give two fake Mermaid requests different seeds, hold the first render open,
+   and prove the second config is not applied until the first finishes.
 3. Render a `graphviz` fence through `noteMarkdown()` and compare the exact
    HTML to an ordinary Markdown-it fence. Why is silent “best effort” worse?
 4. Temporarily import a heavy package eagerly from `registry.ts`, run the
@@ -300,7 +364,8 @@ loud degradation      visible source + diagnostic instead of blank/silent failur
 
 ## What arrives next
 
-S04 and S05 add Mermaid and Vega-Lite behind the same host. S06 adds broad
-lazy code languages, fine-grained Shiki read highlighting, and
-decoration-only diagnostics. None receives file, IPC, network, or mutation
-authority merely because KaTeX proved the adapter shape.
+S05 adds inline-data-only Vega-Lite behind the same host and reuses the SVG
+postflight before it finalizes each view. S06 adds broad lazy code languages,
+fine-grained Shiki read highlighting, and decoration-only diagnostics. None
+receives file, IPC, network, or mutation authority merely because KaTeX and
+Mermaid proved the adapter shape.
