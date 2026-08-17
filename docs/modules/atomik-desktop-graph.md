@@ -3,7 +3,7 @@ type: Atomik Module Note
 title: 'Module: atomik-desktop — semantic graph'
 description: The nodes/edges index consumers: the relations strip, note titles as the graph reads them, and source bundles as graph nodes.
 tags: [module, graph, relations, wikilinks, adr-011]
-timestamp: 2026-08-14T00:00:00Z
+timestamp: 2026-08-17T00:00:00Z
 ---
 
 # Module: atomik-desktop — semantic graph
@@ -13,6 +13,18 @@ timestamp: 2026-08-14T00:00:00Z
 > colliding in one 1689-line note. The root note keeps what is cross-cutting
 > (public contracts, data flow, alternatives, common mistakes, tests, agent
 > checklist, dependency facts); this note keeps what THIS AREA owns.
+
+## Live external projection boundary (CP-MVP-011 S01)
+
+Wikidata does not become a second canonical graph. ADR-015 pins live QID
+entities and allowlisted statements as a disposable augmentation that can be
+merged with existing `GraphNode` / `GraphEdge` shapes for one chat/graph view.
+It is never written to `.atomik/graph.json` merely because a model consulted
+it, and it never invents a vault path for a QID. The entity URL, revision,
+language and access time travel as external provenance; P18 routes to an
+attributed Commons media object rather than an evidentiary edge. Only an
+explicit source import creates files, after which the ordinary file-built
+graph sees those files on its next refresh.
 
 ## The relations strip — the graph as a picture (CP-MVP-009 S07)
 

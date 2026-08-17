@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { provenanceLine } from './ai-mock'
 import {
+  FINAL_ONLY_TOOL_CAPABILITY,
   GenerationError,
   type GenerationAdapter,
   type GenerationResult,
@@ -126,6 +127,7 @@ export function createAnthropicGenerationAdapter(
 
   return {
     id: 'anthropic',
+    tools: FINAL_ONLY_TOOL_CAPABILITY,
     generate: async (operation, context): Promise<GenerationResult> => {
       const model = operation.params?.model ?? fallbackModel
       const temperature =

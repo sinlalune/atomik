@@ -16,6 +16,20 @@ timestamp: 2026-08-17T00:00:00Z
 
 ## What it owns
 
+- WIKIMEDIA LIVE SOURCE CONTRACT (CP-MVP-011 S01):
+  `shared/wikimedia.ts`, pure. One fixed-host main seat will normalize four
+  foreign shapes: bounded Wikipedia article text; allowlisted Wikidata
+  entities/statements; Commons P18 media that cannot exist in the public type
+  without creator plus concrete licence; conservative Wiktionary etymology
+  whose uncertainty defaults to `unknown`. Every text/media result carries
+  page/revision identity, canonical URL, access time and licence where exposed.
+  Core REST is pinned for Wikipedia/Wiktionary pages; Action API for
+  Wikidata/Commons. The renderer never supplies a URL and raw HTML never
+  crosses IPC. These objects are TRANSIENT until explicit Save as source; a
+  durable image is copied locally rather than hotlinked. Volatile facts and
+  the fixture refresh ritual live in
+  `docs/research/wikimedia-live-api-snapshot-2026-08-17.md`.
+
 - The capture session server (08/13 §capture, CP-MVP-002 S02):
   `electron-main/capture-session.ts` (incubating capture-core, 14) — a
   short-lived `node:http` endpoint bound to the FIRST non-internal IPv4

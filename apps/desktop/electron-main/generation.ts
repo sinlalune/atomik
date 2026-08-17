@@ -5,6 +5,12 @@ import type {
   AiResponseBundle,
   WebEvidenceProvenance
 } from '../shared/ipc-contract'
+import {
+  FINAL_ONLY_TOOL_CAPABILITY,
+  type GenerationToolCapability
+} from '../shared/generation-tools'
+
+export { FINAL_ONLY_TOOL_CAPABILITY } from '../shared/generation-tools'
 
 /**
  * The GenerationAdapter seam (CP-MVP-008 S02) — the ai-core seat (14)
@@ -53,6 +59,8 @@ export type GenerationContext = {
 
 export type GenerationAdapter = {
   id: AiEngine
+  /** Fail closed: native tool calls exist only when the adapter declares them. */
+  tools: GenerationToolCapability
   generate(
     operation: AiOperation,
     context: GenerationContext
@@ -89,6 +97,7 @@ export class GenerationError extends Error {
 /** The S08 mock behind the seam — selectable engine, offline path. */
 export const mockGenerationAdapter: GenerationAdapter = {
   id: 'mock',
+  tools: FINAL_ONLY_TOOL_CAPABILITY,
   generate: (operation, context) =>
     Promise.resolve({
       bundle: runAiOperation(operation, context.provenance),

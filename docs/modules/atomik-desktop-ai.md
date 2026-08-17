@@ -3,7 +3,7 @@ type: Atomik Module Note
 title: 'Module: atomik-desktop — AI, traces and truth'
 description: The AI patch loop and its real engines, the chat pane, the ActionTrace ledger, mechanical truth labels and URL provenance.
 tags: [module, ai, patch-loop, chat, traces, truth]
-timestamp: 2026-08-14T00:00:00Z
+timestamp: 2026-08-17T00:00:00Z
 ---
 
 # Module: atomik-desktop — AI, traces and truth
@@ -15,6 +15,19 @@ timestamp: 2026-08-14T00:00:00Z
 > checklist, dependency facts); this note keeps what THIS AREA owns.
 
 ## What it owns
+
+- BOUNDED MODEL-TOOL CONTRACT (CP-MVP-011 S01):
+  `shared/generation-tools.ts`, pure. The only model-requestable verbs are
+  `search_vault` and `search_wiki`; a discriminated call carries an opaque
+  provider call id, allowlisted name, and schema-validated arguments. The
+  renderer may request `off | model` and a Wikimedia language, but main owns
+  the allowed names and hard call/depth/argument/result/byte/wall/token limits.
+  Results are explicitly `untrusted: true`: retrieved prose is data, never a
+  new instruction. `GenerationAdapter.tools` is required and FAIL-CLOSED;
+  every existing adapter declares final-only/unsupported at S01. A provider
+  opts into its native dialect only when its first request, tool-call parse,
+  result continuation and final response are fixture-tested. ADR-015 pins the
+  main-side loop and forbids provider-native web-search shortcuts.
 
 - Mechanical truth labels (06 §labeling rule, S10): `electron-main/truth.ts`
   (truth-core validator seat, 14 — validators never call AI). Providers

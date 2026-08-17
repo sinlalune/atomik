@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { provenanceLine } from './ai-mock'
 import {
+  FINAL_ONLY_TOOL_CAPABILITY,
   GenerationError,
   type GenerationAdapter,
   type GenerationResult,
@@ -176,6 +177,7 @@ export function createMistralGenerationAdapter(
 
   return {
     id: 'mistral',
+    tools: FINAL_ONLY_TOOL_CAPABILITY,
     generate: async (operation, context): Promise<GenerationResult> => {
       const messages = buildMessages(operation)
       const inputChars = messages.reduce(

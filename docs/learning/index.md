@@ -131,6 +131,10 @@ when the shape changes, not on every diff.
   adapter registry, AbortSignal + stale-result suppression, explicit
   teardown, source-visible failure, and bundle verification before a real
   renderer joins. Covers CP-RICH-MARKDOWN S01–S02 and grows with its adapters.
+- [25 — Live Wikimedia and model tool loops, from zero](./25-live-wikimedia-and-model-tool-loops.md) —
+  fixed-host API seats, Wikipedia/Wikidata/Commons/Wiktionary normalization,
+  provenance versus truth, provider-native client-tool round trips, fail-closed
+  capabilities, loop budgets and content-free receipts. Covers CP-MVP-011.
 
 ## Coverage stall (2026-07-07 → 2026-07-21) — repaid
 

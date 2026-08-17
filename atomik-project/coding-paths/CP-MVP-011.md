@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-011
   status: running
   accepted: 2026-08-17
-  current_step: S01
+  current_step: S02
   base_commit: 783c7c6
   branch: path/cp-mvp-011
   writes:
@@ -39,6 +39,7 @@ atomik:
     - docs/modules/atomik-desktop-sources.md
     - docs/modules/atomik-desktop-shell.md
     - docs/modules/atomik-desktop.md
+    - docs/adr/ADR-015-bounded-wikimedia-grounding-and-model-tools.md
     - docs/learning/**
     - docs/research/**
     - atomik-project/coding-paths/CP-MVP-011.md
@@ -230,7 +231,7 @@ BASE        783c7c6; branch path/cp-mvp-011; dedicated worktree
 
 # Execution
 
-- [ ] S01 Bootstrap + contract pins: read every Required document; verify the
+- [x] S01 Bootstrap + contract pins: read every Required document; verify the
       inherited chat, adapter, graph, citation, trace, source-import, security,
       and test seams against the clean baseline; recheck current official
       Wikimedia API/etiquette/licensing documentation; pin the typed contracts,
@@ -268,15 +269,36 @@ BASE        783c7c6; branch path/cp-mvp-011; dedicated worktree
       on local master, run bare typecheck/tests/build/Cairn gates, create the
       coherence audit and per-entry journal, mark `done`, and self-merge.
 
+## S01 work unit — complete 2026-08-17
+
+- **Code:** added pure fixed-host Wikimedia contracts, endpoint/language
+  validation, provenance/result/error shapes, conservative product budgets,
+  the 21-property Wikidata allowlist and fixture obligations. Added the
+  provider-neutral two-tool union, policy/budgets, strict call parser and
+  required fail-closed capability declaration on every generation adapter.
+- **Tests:** `wikimedia-contract.test.ts` pins host injection resistance,
+  endpoint families, explicit language, malformed/widened requests, the
+  property/fixture sets, both allowed calls, disabled/unknown/oversize calls,
+  and all seven adapters remaining final-only. Full result: 75 files,
+  936 passed + 1 skipped; typecheck and production build green.
+- **Docs:** ADR-015 records the new main-side Wikimedia/tool-loop boundary;
+  the dated research snapshot records official APIs, licensing, rate handling
+  and provider codec targets; learning note 25 teaches the pattern; AI,
+  sources, graph and shell area notes carry their side of the contract.
+- **Ledger notes:** ADR-015 widened the declared write set because changing the
+  AI operation/tool boundary is an ADR trigger, not an implementation detail.
+  The learning index edit is deliberate catalogue maintenance (17), not a
+  generated ACTIVE view. No live response became a fixture or canonical file.
+
 # Current checkpoint
 
 ```text
 base commit : 783c7c6 (local master and origin/master at activation)
-changed     : opening record + path; the shared register deliberately maps the
-              reserved row to this accepted path; ACTIVE was generator-written
-tests       : not run yet; S01 pins the clean worktree baseline
-next action : read all Required documents and verify inherited seams, then
-              execute S01 contract/research pins
+changed     : S01 contracts/tests/ADR/research/learning + AI/source/graph/shell
+              notes; adapters explicitly fail closed until S06 codecs exist
+tests       : typecheck green; 75 files / 936 pass / 1 skip; build green
+next action : execute S02 — injected main-side Wikipedia search/page seat with
+              byte/time/cancel limits, revision provenance, traces and fixtures
 blockers    : none
 parallel    : CP-RICH-MARKDOWN is running; styles.css and broad renderer/test/
               docs surfaces overlap advisory-only. Rebase at step boundaries.

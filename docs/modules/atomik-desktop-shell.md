@@ -16,6 +16,13 @@ timestamp: 2026-08-17T00:00:00Z
 
 ## What it owns
 
+- The CP-MVP-011 S01 tool boundary changes NO IPC yet. The required
+  `GenerationAdapter.tools` declaration is a main-side capability gate:
+  every adapter is explicitly final-only until its native tool-call codec is
+  fixture-tested. Future `search_wiki` renderer access must be one named,
+  validated channel over the fixed-host seat; neither a generic URL/fetch verb
+  nor provider-native web-search surface is permitted (ADR-015, bedrock 13).
+
 - The Electron shell: app lifecycle, the trusted UI window, and the
   main/preload/renderer split (`apps/desktop/electron-main/`,
   `electron-preload/`, `renderer/` — directory names per 14).
