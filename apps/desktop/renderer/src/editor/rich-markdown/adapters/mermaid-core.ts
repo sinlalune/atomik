@@ -5,6 +5,11 @@ import type {
   RichRendererAdapter,
   RichTheme
 } from '../contracts'
+import {
+  createColorResolver,
+  tokenExpression,
+  type ColorResolver
+} from './css-color'
 import { safeSvgNode } from './safe-svg'
 
 export type MermaidRuntime = {
@@ -171,33 +176,40 @@ const FALLBACK_PALETTES: Record<RichTheme['scheme'], Palette> = {
   }
 }
 
-function token(host: HTMLElement, name: string, fallback: string): string {
-  const view = host.ownerDocument.defaultView
-  for (const element of [host, host.ownerDocument.documentElement]) {
-    const value = view
-      ?.getComputedStyle?.(element)
-      .getPropertyValue(name)
-      .trim()
-    if (value) return value
-  }
-  return fallback
+type Accents = {
+  soft: string
+  mid: string
+  strong: string
 }
 
-function paletteFor(host: HTMLElement, theme: RichTheme): Palette {
+function paletteFor(resolver: ColorResolver, theme: RichTheme): Palette {
   const fallback = FALLBACK_PALETTES[theme.scheme]
+  const token = (name: string, value: string): string =>
+    resolver.resolve(tokenExpression(name, value), value)
   return {
-    surface: token(host, '--surface', fallback.surface),
-    foreground: token(host, '--fg', fallback.foreground),
-    accent: token(host, '--accent', fallback.accent),
-    border: token(host, '--border', fallback.border),
-    code: token(host, '--code-bg', fallback.code)
+    surface: token('--surface', fallback.surface),
+    foreground: token('--fg', fallback.foreground),
+    accent: token('--accent', fallback.accent),
+    border: token('--border', fallback.border),
+    code: token('--code-bg', fallback.code)
   }
 }
 
-function themeVariablesFor(palette: Palette, darkMode: boolean): object {
-  const softAccent = `color-mix(in srgb, ${palette.accent} 18%, ${palette.surface})`
-  const midAccent = `color-mix(in srgb, ${palette.accent} 35%, ${palette.surface})`
-  const strongAccent = `color-mix(in srgb, ${palette.accent} 58%, ${palette.surface})`
+function accentsFor(resolver: ColorResolver, palette: Palette): Accents {
+  const mix = (percent: number): string =>
+    resolver.resolve(
+      `color-mix(in srgb, ${palette.accent} ${percent}%, ${palette.surface})`,
+      palette.accent
+    )
+  return { soft: mix(18), mid: mix(35), strong: mix(58) }
+}
+
+function themeVariablesFor(
+  palette: Palette,
+  accents: Accents,
+  darkMode: boolean
+): object {
+  const { soft: softAccent, mid: midAccent, strong: strongAccent } = accents
   const categorical = [
     palette.code,
     softAccent,
@@ -321,7 +333,15 @@ export function mermaidConfigFor(
   host: HTMLElement,
   request: RichRenderRequest
 ): MermaidConfig {
-  const palette = paletteFor(host, request.theme)
+  const resolver = createColorResolver(host)
+  let palette: Palette
+  let accents: Accents
+  try {
+    palette = paletteFor(resolver, request.theme)
+    accents = accentsFor(resolver, palette)
+  } finally {
+    resolver.dispose()
+  }
   return {
     ...BASE_CONFIG,
     deterministicIDSeed: request.id,
@@ -334,6 +354,7 @@ export function mermaidConfigFor(
     fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif",
     themeVariables: themeVariablesFor(
       palette,
+      accents,
       request.theme.scheme === 'dark'
     )
   }

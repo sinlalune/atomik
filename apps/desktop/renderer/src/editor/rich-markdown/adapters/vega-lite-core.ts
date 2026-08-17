@@ -4,6 +4,11 @@ import type {
   RichRendererAdapter,
   RichTheme
 } from '../contracts'
+import {
+  createColorResolver,
+  toHexColor,
+  tokenExpression
+} from './css-color'
 import { safeSvgNode } from './safe-svg'
 
 export type VegaLoader = {
@@ -343,27 +348,33 @@ const FALLBACK_PALETTES: Record<RichTheme['scheme'], Palette> = {
   }
 }
 
-function hexToken(host: HTMLElement, name: string, fallback: string): string {
-  const view = host.ownerDocument.defaultView
-  for (const element of [host, host.ownerDocument.documentElement]) {
-    const value = view
-      ?.getComputedStyle?.(element)
-      .getPropertyValue(name)
-      .trim()
-    if (value && /^#[0-9a-f]{3}(?:[0-9a-f]{3})?$/i.test(value)) return value
-  }
-  return fallback
-}
-
+/**
+ * Charts follow the app theme.
+ *
+ * This used to read each custom property and accept it only if it was already
+ * plain hex. Every token is `light-dark(...)` (36), so nothing ever matched
+ * and charts silently drew in the pinned defaults no matter the theme — the
+ * same defect that made Mermaid refuse outright, but quiet, and invisible
+ * until the owner bench of 2026-08-17 got charts rendering at all. The engine
+ * resolves the token; `mixHex` below is integer arithmetic over hex pairs, so
+ * the resolved color is narrowed back to `#rrggbb`.
+ */
 function paletteFor(host: HTMLElement, theme: RichTheme): Palette {
   const fallback = FALLBACK_PALETTES[theme.scheme]
-  return {
-    surface: hexToken(host, '--surface', fallback.surface),
-    foreground: hexToken(host, '--fg', fallback.foreground),
-    accent: hexToken(host, '--accent', fallback.accent),
-    border: hexToken(host, '--border', fallback.border),
-    muted: hexToken(host, '--muted', fallback.muted),
-    code: hexToken(host, '--code-bg', fallback.code)
+  const resolver = createColorResolver(host)
+  try {
+    const token = (name: string, value: string): string =>
+      toHexColor(resolver.resolve(tokenExpression(name, value), value), value)
+    return {
+      surface: token('--surface', fallback.surface),
+      foreground: token('--fg', fallback.foreground),
+      accent: token('--accent', fallback.accent),
+      border: token('--border', fallback.border),
+      muted: token('--muted', fallback.muted),
+      code: token('--code-bg', fallback.code)
+    }
+  } finally {
+    resolver.dispose()
   }
 }
 

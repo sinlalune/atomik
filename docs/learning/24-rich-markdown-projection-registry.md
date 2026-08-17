@@ -429,6 +429,60 @@ keeps determinism without cross-note collisions. Rewriting every `#id` as raw
 text is incorrect because `#fff` may be a color; references must be rewritten
 in their grammatical positions.
 
+### A green suite is not evidence that a renderer renders
+
+The hardest lesson of this path, and it cost six steps. S01–S06 landed math,
+diagrams, charts and code with every gate green — `cairn-check`, typecheck, 984
+tests, build. The first time anyone ran the app, two of the three renderers had
+never worked at all:
+
+```text
+mermaid     Unsupported color format: "light-dark(#fbfbf9, #1e1e23)"
+vega-lite   Evaluating a string as JavaScript violates ... script-src 'self'
+```
+
+Both are true statements about a *browser*. The suite runs on linkedom, which
+has no `getComputedStyle` at all and enforces no Content Security Policy. So
+the suite could not have caught either one, and — the part worth internalising
+— **both defects passed the suite identically before and after the fix.** The
+first regression tests written for them were decoration: they exercised a code
+path that, under linkedom, took the fallback branch in both versions.
+
+The repair was to make each test install the engine surface the adapter
+actually talks to (a stub `getComputedStyle`, a stub `vega` module), and then
+to *verify the test by reverting the fix and watching it fail*. A regression
+test you have never seen fail is a guess.
+
+The general principle: a test double can only encode assumptions you already
+have. Environment-level truths — CSS resolution, CSP, GPU, fonts, real event
+ordering — are exactly the assumptions you do not know you are making. They
+need either a real environment or an early human look. For renderer work,
+bench in the real app *before* hardening, not after.
+
+### Do not reimplement CSS in JavaScript
+
+The same defect appeared four times in this path, in four flavours:
+
+```text
+mermaid-core    read --surface, hand light-dark(...) to a JS color parser
+vega-lite-core  read --surface, accept it only if already plain hex → theme
+                silently ignored, charts drew in built-in defaults
+hydration.ts    a hand-kept list of "which themes are dark" (missing two)
+EditorPane      a different hand-kept rule (missing four)
+```
+
+Every one is the same mistake: duplicating in JavaScript something the
+stylesheet already states. `light-dark()`, `color-mix()` and `color-scheme` are
+not data you can read — they are computations only the engine can perform,
+against a context (which element, which theme, which `color-scheme`) that JS
+does not have.
+
+The fix is always to *ask the engine*: set the value on a probe element inside
+the relevant host and read back what the engine computed. And where a mirror is
+genuinely unavoidable — a set of dark theme names for engine-less test
+environments — pin the mirror to its source with a test that parses the
+stylesheet, so drift becomes a build failure rather than a bug report.
+
 ## Try it yourself (exercises)
 
 1. Run `npm --workspace atomik-desktop test -- tests/rich-markdown.test.ts`.

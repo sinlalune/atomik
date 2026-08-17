@@ -9,6 +9,7 @@ import {
   defaultRichRendererRegistry,
   type RichRendererRegistry
 } from './registry'
+import { richThemeFor } from './theme'
 
 type BlockNodes = {
   element: HTMLElement
@@ -38,19 +39,8 @@ export type RichHydrationOptions = {
 const activeRoots = new WeakMap<HTMLElement, RichHydration>()
 let hydrationGeneration = 0
 
-const DARK_THEMES = new Set(['dark', 'moss', 'biolum'])
-
 function themeFor(root: HTMLElement): RichTheme {
-  const doc = root.ownerDocument
-  const name = doc.documentElement.dataset['theme'] ?? 'system'
-  const systemDark =
-    name === 'system' &&
-    (doc.defaultView?.matchMedia?.('(prefers-color-scheme: dark)').matches ??
-      false)
-  return {
-    name,
-    scheme: DARK_THEMES.has(name) || systemDark ? 'dark' : 'light'
-  }
+  return richThemeFor(root.ownerDocument)
 }
 
 function byteLength(value: string): number {

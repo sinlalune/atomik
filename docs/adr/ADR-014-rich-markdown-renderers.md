@@ -352,6 +352,46 @@ generated label plus the source fallback. Loading and failures announce a
 polite status without repeatedly speaking on theme-only rerenders. Keyboard
 users can reveal source, copy, wrap/expand, and reach diagnostic messages.
 
+### 8. The renderer's environment is part of the contract (S07, owner bench)
+
+Added after the first owner bench of this path (2026-08-17), which ran S01–S06
+in the real app for the first time and found two renderers dead on arrival
+while every gate was green. Both failures were environmental — true in a
+browser under this app's policies, invisible to a test suite.
+
+**Colors reach a library resolved, never as CSS.** The design system states
+every color as `light-dark(...)` (36) and derives shades with `color-mix(...)`.
+Reading those custom properties returns their UNRESOLVED text. Mermaid's color
+parser rejected it outright (`Unsupported color format: "light-dark(#fbfbf9,
+#1e1e23)"`) and fell back to source for every themed diagram; Vega's palette
+accepted a token only when it was already plain hex, so it silently ignored the
+theme and drew every chart in built-in defaults. `adapters/css-color.ts` now
+resolves tokens through a hidden probe **inside the render host** — where
+`color-scheme` and `[data-theme]` actually apply — and hands libraries `rgb()`,
+narrowed to `#rrggbb` where a library does arithmetic on it. An adapter must
+never re-read a design token itself.
+
+**Charts run inside the CSP, not around it.** Vega compiles expressions with
+`Function(...)`; the renderer's `script-src 'self'` (13) refuses that, so every
+chart fell back to source. The CSP is a security boundary over untrusted note
+content and is not negotiable, so Vega is parsed with `{ ast: true }` and
+evaluated with `vega-interpreter`. Expression text is never converted into
+executable code. Slightly slower per chart, irrelevant at note scale.
+
+**Dark-ness has ONE definition.** It had three that disagreed — an allowlist of
+three themes in `hydration.ts`, `appTheme === 'dark'` in `EditorPane`, and five
+`color-scheme: dark` blocks in `styles.css` — so `ember` and `hearth` rendered
+code dark-on-dark. `rich-markdown/theme.ts` is the single source: it asks the
+engine for the computed `color-scheme` and keeps a mirrored set only for
+environments with no engine. A test parses `styles.css` and fails if the mirror
+drifts.
+
+The standing rule this leaves behind: **a passing suite is not evidence that a
+renderer renders.** These tests run on linkedom, which has no `getComputedStyle`
+and enforces no CSP; both defects passed the full suite before and after the
+fix until the regressions were rewritten to install the engine surface the
+adapters actually talk to. Renderer work needs a real bench, early.
+
 ## Dependency pin (checked 2026-08-17)
 
 | Package | Accepted version | License | Registry unpacked size | Decision |
@@ -366,6 +406,7 @@ users can reveal source, copy, wrap/expand, and reach diagnostic messages.
 | `@shikijs/themes` | `4.4.3` | MIT | 1,479,330 B | two explicit lazy theme subpaths only |
 | `@codemirror/language-data` | `6.5.2` | MIT | 71,718 B | broad dynamic nested-language registry |
 | `@codemirror/lint` | `6.9.7` | MIT | 97,441 B | decoration rendering only |
+| `vega-interpreter` | `2.3.2` | BSD-3-Clause | 55,842 B | required by §8; only way to run Vega under the renderer CSP |
 
 KaTeX `0.18.4` was current on the registry but is deliberately not selected:
 Mermaid `11.16.1` constrains its own KaTeX dependency to `^0.16.45`; selecting

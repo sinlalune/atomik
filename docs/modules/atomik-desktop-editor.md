@@ -229,6 +229,34 @@ LSP client or changing note bytes:
   (111,669 B), themes (14,198/14,475 B), and grammar chunks remain on demand;
   28,570 B of the path's 150 KiB eager ceiling remains.
 
+## Renderer environment: colors, CSP, dark-ness (CP-RICH-MARKDOWN S07)
+
+The first owner bench of this path (2026-08-17) ran S01–S06 in the real app and
+found Mermaid and Vega-Lite both dead while every gate was green. ADR-014 §8
+carries the decisions; the operational shape:
+
+- `adapters/css-color.ts` is the ONLY place a renderer turns an app token into
+  a color. `createColorResolver(host)` resolves through a hidden probe inside
+  the render host — not the document root, which would use the wrong theme
+  inside a themed subtree — and returns `rgb()`; `toHexColor` narrows that for
+  Vega, whose palette mixes with integer arithmetic over hex pairs. An adapter
+  reading `getPropertyValue('--token')` itself is a defect: the design system's
+  `light-dark()`/`color-mix()` values come back unresolved, which Mermaid
+  rejects loudly and Vega ignores silently.
+- `adapters/vega-lite.ts` parses with `{ ast: true }` and evaluates with
+  `vega-interpreter`. Vega's default path compiles expressions through
+  `Function(...)`, which `script-src 'self'` refuses (13). Never relax the CSP
+  to make a chart work.
+- `rich-markdown/theme.ts` owns dark-ness for BOTH the rich renderers and
+  `EditorPane`'s CodeMirror theme. Five themes declare `color-scheme: dark`
+  (`dark`, `moss`, `biolum`, `ember`, `hearth`); the two that used to be
+  missing rendered code dark-on-dark. `dark-themes-match-stylesheet` parses
+  `styles.css` and fails on drift, so a new theme cannot reintroduce it.
+- Tests run on linkedom: no `getComputedStyle`, no CSP. Both defects passed the
+  full suite unchanged before and after the fix until each regression was
+  rewritten to install the engine surface the adapter talks to. **Renderer
+  coverage is not evidence of rendering** — bench in the real app, early.
+
 ## Web-link pill identity (CP-FEEDBACK S05)
 
 - Read and live still ask the shared `graph-core` classifier; neither surface

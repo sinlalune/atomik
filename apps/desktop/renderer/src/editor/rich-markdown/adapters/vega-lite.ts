@@ -5,16 +5,27 @@ import {
   type VegaLiteRuntime
 } from './vega-lite-core'
 
-async function loadVegaLiteRuntime(): Promise<VegaLiteRuntime> {
-  const [vegaLite, vega] = await Promise.all([
+export async function loadVegaLiteRuntime(): Promise<VegaLiteRuntime> {
+  const [vegaLite, vega, interpreter] = await Promise.all([
     import('vega-lite'),
-    import('vega')
+    import('vega'),
+    import('vega-interpreter')
   ])
   return {
     compile: (spec) => vegaLite.compile(spec as unknown as TopLevelSpec),
-    parse: (spec) => vega.parse(spec as Spec),
+    // `ast: true` keeps Vega's expressions as a parsed tree instead of
+    // compiling them into JavaScript source. Vega's default path ends in
+    // `Function(...)`, which the renderer's `script-src 'self'` CSP refuses
+    // (13) — the real app showed every chart falling back to source with
+    // "Evaluating a string as JavaScript violates ... 'unsafe-eval'".
+    // Relaxing the CSP is not on the table, so the AST plus the official
+    // interpreter is how a chart runs inside the policy rather than around it.
+    parse: (spec) => vega.parse(spec as Spec, {}, { ast: true }),
     createView: (runtime, options) =>
-      new vega.View(runtime as Runtime, options as ViewOptions)
+      new vega.View(runtime as Runtime, {
+        ...(options as ViewOptions),
+        expr: interpreter.expressionInterpreter
+      })
   }
 }
 

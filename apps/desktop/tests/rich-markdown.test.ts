@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { ensureSyntaxTree } from '@codemirror/language'
 import { EditorState } from '@codemirror/state'
@@ -10,6 +11,11 @@ import {
   type RichRenderRequest,
   type RichRendererAdapter
 } from '../renderer/src/editor/rich-markdown/contracts'
+import { toHexColor } from '../renderer/src/editor/rich-markdown/adapters/css-color'
+import {
+  DARK_THEME_NAMES,
+  richThemeFor
+} from '../renderer/src/editor/rich-markdown/theme'
 import {
   createMermaidAdapter,
   estimateMermaidEdges,
@@ -18,6 +24,7 @@ import {
 } from '../renderer/src/editor/rich-markdown/adapters/mermaid-core'
 import {
   createVegaLiteAdapter,
+  themedVegaLiteSpec,
   validateVegaLiteSource,
   type VegaLiteRuntime,
   type VegaView
@@ -1136,6 +1143,87 @@ describe('Mermaid adapter (CP-RICH-MARKDOWN S04)', () => {
     expect(raised.maxEdges).toBe(200)
   })
 
+  // linkedom ships no `getComputedStyle` at all, so a bare host exercises
+  // neither the old token path nor the new probe — both just take the pinned
+  // fallback. These two tests install the engine surface the adapter actually
+  // talks to, which is the only way the defect below is expressible here.
+  // linkedom hands every parsed document the SAME defaultView, so a stub must
+  // be undone or it leaks into every later test in the file.
+  function withEngine<T>(
+    host: HTMLElement,
+    engine: {
+      tokens?: Record<string, string>
+      resolve?: (expression: string) => string
+    },
+    run: () => T
+  ): T {
+    const view = host.ownerDocument.defaultView as unknown as {
+      getComputedStyle?: (element: HTMLElement) => unknown
+    }
+    const original = view.getComputedStyle
+    view.getComputedStyle = (element: HTMLElement) => ({
+      getPropertyValue: (name: string) => engine.tokens?.[name] ?? '',
+      color: engine.resolve
+        ? engine.resolve(element.style.color)
+        : element.style.color
+    })
+    try {
+      return run()
+    } finally {
+      view.getComputedStyle = original
+    }
+  }
+
+  const CSS_LEVEL_TOKENS: Record<string, string> = {
+    '--surface': 'light-dark(#fbfbf9, #1e1e23)',
+    '--fg': 'light-dark(#26261f, #e8e8e3)',
+    '--accent': 'light-dark(#3d5a3d, #9ec49e)',
+    '--border': 'light-dark(#e0e0d8, #33333a)',
+    '--code-bg': 'light-dark(#f1f1ec, #26262c)'
+  }
+
+  it('never leaks CSS-level theme tokens into the Mermaid config', () => {
+    // Owner bench, 2026-08-17: every themed diagram fell back to source with
+    // `Unsupported color format: "light-dark(#fbfbf9, #1e1e23)"`. The design
+    // system states all colors as `light-dark()` (36) and the derived accents
+    // as `color-mix()` — forms only the engine resolves, never something
+    // Mermaid's JS color parser can read. Reading them as custom properties
+    // hands back that unresolved text, so nothing CSS-level may reach Mermaid.
+    const host = emptyHost()
+    const config = withEngine(host, { tokens: CSS_LEVEL_TOKENS }, () =>
+      mermaidConfigFor(host, mermaidRequest('flowchart LR\nA --> B'))
+    )
+    const values = Object.values(
+      config.themeVariables as Record<string, unknown>
+    ).filter((value): value is string => typeof value === 'string')
+
+    expect(values.length).toBeGreaterThan(0)
+    for (const value of values) {
+      expect(value).not.toMatch(/light-dark\(|color-mix\(|var\(/)
+    }
+    // The probe is an implementation detail and must never outlive the call.
+    expect(host.querySelector('span[aria-hidden="true"]')).toBeNull()
+  })
+
+  it('uses the color the engine computed, not the authored expression', () => {
+    const host = emptyHost()
+    const config = withEngine(
+      host,
+      {
+        tokens: CSS_LEVEL_TOKENS,
+        // A real engine turns every accepted form — `var()`, `light-dark()`,
+        // `color-mix()` — into a concrete color.
+        resolve: () => 'rgb(30, 30, 35)'
+      },
+      () => mermaidConfigFor(host, mermaidRequest('flowchart LR\nA --> B'))
+    )
+    expect(config.themeVariables).toMatchObject({
+      background: 'rgb(30, 30, 35)',
+      primaryTextColor: 'rgb(30, 30, 35)',
+      lineColor: 'rgb(30, 30, 35)'
+    })
+  })
+
   it('serializes global config changes across concurrent diagram requests', async () => {
     const firstResult = deferred<{
       svg: string
@@ -1238,7 +1326,151 @@ describe('Mermaid adapter (CP-RICH-MARKDOWN S04)', () => {
   })
 })
 
+describe('CSS color resolution (CP-RICH-MARKDOWN S07)', () => {
+  it('narrows resolved engine colors to the hex Vega mixes with', () => {
+    expect(toHexColor('rgb(30, 30, 35)', '#000000')).toBe('#1e1e23')
+    expect(toHexColor('rgb(30 30 35)', '#000000')).toBe('#1e1e23')
+    expect(toHexColor('rgba(30, 30, 35, 0.5)', '#000000')).toBe('#1e1e23')
+    expect(toHexColor('rgb(30 30 35 / 50%)', '#000000')).toBe('#1e1e23')
+    expect(toHexColor('#ABC', '#000000')).toBe('#aabbcc')
+    expect(toHexColor('#1E1E23', '#000000')).toBe('#1e1e23')
+    // Anything the engine could not resolve keeps the pinned fallback rather
+    // than reaching a library that cannot read it.
+    expect(toHexColor('light-dark(#fbfbf9, #1e1e23)', '#111111')).toBe('#111111')
+    expect(toHexColor('color-mix(in srgb, red 50%, blue)', '#111111')).toBe('#111111')
+    expect(toHexColor('', '#111111')).toBe('#111111')
+  })
+
+  it('charts follow the resolved theme instead of the pinned default', () => {
+    // Owner bench, 2026-08-17: the palette accepted a token only when it was
+    // already plain hex, so `light-dark()` tokens never matched and every
+    // chart drew in defaults regardless of theme.
+    const host = emptyHost()
+    const view = host.ownerDocument.defaultView as unknown as {
+      getComputedStyle?: (element: HTMLElement) => unknown
+    }
+    const original = view.getComputedStyle
+    view.getComputedStyle = () => ({
+      getPropertyValue: () => 'light-dark(#fbfbf9, #1e1e23)',
+      color: 'rgb(18, 52, 86)'
+    })
+    try {
+      const themed = themedVegaLiteSpec(
+        host,
+        { mark: 'bar' },
+        { name: 'ember', scheme: 'dark' }
+      )
+      const config = themed['config'] as Record<string, unknown>
+      expect(JSON.stringify(config)).toContain('#123456')
+    } finally {
+      view.getComputedStyle = original
+    }
+  })
+})
+
+describe('theme scheme (CP-RICH-MARKDOWN S07)', () => {
+  it('dark-themes-match-stylesheet: the mirrored set equals the CSS truth', () => {
+    // Owner bench, 2026-08-17: code rendered dark-on-dark in `ember` and
+    // `hearth`. Dark-ness had three definitions — an allowlist of three here,
+    // `appTheme === 'dark'` in EditorPane, and five `color-scheme: dark`
+    // blocks in the stylesheet. The stylesheet is the truth; this pins the one
+    // remaining mirror to it so adding a theme cannot silently break code
+    // colors again.
+    const css = readFileSync(
+      new URL('../renderer/src/styles.css', import.meta.url),
+      'utf8'
+    )
+    const declared = new Set<string>()
+    const block = /:root\[data-theme='([^']+)'\]\s*\{([^}]*)\}/g
+    for (const [, name, body] of css.matchAll(block)) {
+      if (/color-scheme:\s*dark\s*;/.test(body!)) declared.add(name!)
+    }
+
+    expect(declared.size).toBeGreaterThan(0)
+    expect([...DARK_THEME_NAMES].sort()).toEqual([...declared].sort())
+  })
+
+  it('prefers the engine color-scheme over the mirrored set', () => {
+    const { document } = parseHTML(
+      "<html data-theme='brand-new-dark'><body></body></html>"
+    )
+    const view = document.defaultView as unknown as {
+      getComputedStyle?: () => unknown
+    }
+    const original = view.getComputedStyle
+    // A theme the set has never heard of, forcing dark in CSS.
+    view.getComputedStyle = () => ({ colorScheme: 'dark' })
+    try {
+      expect(richThemeFor(document as unknown as Document)).toEqual({
+        name: 'brand-new-dark',
+        scheme: 'dark'
+      })
+    } finally {
+      view.getComputedStyle = original
+    }
+  })
+
+  it('falls back to the mirrored set when no engine can be asked', () => {
+    for (const name of DARK_THEME_NAMES) {
+      const { document } = parseHTML(
+        `<html data-theme='${name}'><body></body></html>`
+      )
+      expect(richThemeFor(document as unknown as Document).scheme).toBe('dark')
+    }
+    const { document } = parseHTML("<html data-theme='green'><body></body></html>")
+    expect(richThemeFor(document as unknown as Document).scheme).toBe('light')
+  })
+})
+
 describe('Vega-Lite adapter (CP-RICH-MARKDOWN S05)', () => {
+  it('runs Vega inside the renderer CSP: AST parse plus interpreter', async () => {
+    // Owner bench, 2026-08-17: every chart fell back to source with
+    // "Evaluating a string as JavaScript violates ... 'unsafe-eval'". Vega's
+    // default path compiles expressions through `Function(...)`, which the
+    // renderer's `script-src 'self'` refuses (13) and which must NOT be
+    // relaxed. Parsing to an AST and evaluating it with the official
+    // interpreter is how a chart runs inside the policy instead of around it.
+    // The fixtures below stand in for the real packages because a CSP is a
+    // browser-level guarantee that neither linkedom nor Vitest enforces — the
+    // wiring is what regresses, so the wiring is what is pinned.
+    vi.resetModules()
+    const parse = vi.fn(() => ({ runtime: true }))
+    const viewOptions: Record<string, unknown>[] = []
+    const expressionInterpreter = (): void => undefined
+    vi.doMock('vega-lite', () => ({ compile: () => ({ spec: {} }) }))
+    vi.doMock('vega', () => ({
+      parse,
+      View: class {
+        constructor(_runtime: unknown, options: Record<string, unknown>) {
+          viewOptions.push(options)
+        }
+      }
+    }))
+    vi.doMock('vega-interpreter', () => ({ expressionInterpreter }))
+
+    const { loadVegaLiteRuntime } = await import(
+      '../renderer/src/editor/rich-markdown/adapters/vega-lite'
+    )
+    const runtime = await loadVegaLiteRuntime()
+    const spec = { mark: 'bar' }
+    runtime.parse(spec)
+    expect(parse).toHaveBeenCalledWith(spec, {}, { ast: true })
+
+    const denyLoader = {
+      load: async () => '',
+      sanitize: async () => ({ href: '' }),
+      http: async () => '',
+      file: async () => ''
+    }
+    runtime.createView({}, { renderer: 'svg', loader: denyLoader, hover: false })
+    expect(viewOptions[0]).toMatchObject({ expr: expressionInterpreter })
+
+    vi.doUnmock('vega')
+    vi.doUnmock('vega-lite')
+    vi.doUnmock('vega-interpreter')
+    vi.resetModules()
+  })
+
   it('renders through the pinned Vega-Lite and Vega runtime', async () => {
     const root = domFor(`\`\`\`vega-lite\n${VALID_VEGA_SOURCE}\n\`\`\``)
     const hydration = hydrateRichMarkdown(root)

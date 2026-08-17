@@ -49,6 +49,7 @@ import {
   type InlineAiState
 } from './inline-ai'
 import { loadBuiltinOverridesFor, loadPromptsFor } from './prompts'
+import { isDarkThemeName } from './rich-markdown/theme'
 import { wireSystemPlan } from './system-plan'
 import {
   frontmatterEnd,
@@ -361,9 +362,13 @@ export function EditorPane({
 
   // The editor's dark theme follows the app theme (round-2 feedback:
   // explicit dark + pastels), not the mount-time OS query alone.
+  //
+  // Owner bench 2026-08-17: this used to count ONLY `dark`, so the four other
+  // dark themes kept CodeMirror's light theme — dark text on a dark surface.
+  // Dark-ness now has one definition, shared with the rich renderers.
   const appTheme = useWorkspace((store) => themeOf(store.state))
   const editorDark =
-    appTheme === 'dark' ||
+    isDarkThemeName(appTheme) ||
     (appTheme === 'system' &&
       window.matchMedia('(prefers-color-scheme: dark)').matches)
   const editorDarkRef = useRef(editorDark)

@@ -189,10 +189,16 @@ The owner-approved details and revised backlog order are recorded in
       parser/local-analyzer diagnostics mapped to note ranges through
       CodeMirror lint decorations; explicitly regression-pin every excluded
       LSP capability.
-- [ ] S07 Parity, lifecycle, and performance hardening: large/malformed blocks,
-      rapid edit/cancel/theme/tab switches, cache/teardown, responsive and
-      keyboard/screen-reader benches, bundle-chunk inspection, all focused and
-      bare integrated gates, docs, and ledger.
+- [ ] S07 Owner bench, environment defects, then parity/lifecycle hardening.
+      Reordered on 2026-08-17: the first bench of this path found Mermaid and
+      Vega-Lite had never rendered in the real app and code was dark-on-dark in
+      two themes, all with green gates. Bench first, harden what the bench
+      actually hits. Remaining: notes 01/04/05 and every security probe
+      unexercised; large/malformed blocks, rapid edit/cancel/theme/tab
+      switches, cache/teardown, responsive and keyboard/screen-reader benches,
+      bundle-chunk inspection, all focused and bare integrated gates, docs and
+      ledger. Open question the bench raised: whether a real-Electron smoke
+      lane is the only mechanical guard against environment-class defects.
 - [ ] S08 Owner bench + closure: acceptance and closing ceremony, rebase on the
       latest local trunk, repeat all bare gates, coherence audit, per-entry
       journal, `status: done`, and self-merge; then open CP-LANGUAGE-NOTES.
@@ -226,8 +232,28 @@ catalog     : docs/learning/index.md edit is deliberate under bedrock 17's
               first-use catalog rule; it is not generated ACTIVE/register state
 receipt     : atomik-project/sessions/
               2026-08-17-cp-rich-markdown-s06-code-diagnostics.md
-next action : checkpoint S06, then begin S07 parity/lifecycle/performance
-              hardening and responsive keyboard/screen-reader benching
+              2026-08-17-cp-rich-markdown-s07-owner-bench.md
+bench       : S07 FIRST OWNER BENCH — the app could not start at all (Electron
+              never unpacked in either tree; restored from the local July
+              cache). It found Mermaid refusing every themed diagram
+              (`light-dark()` handed to a JS color parser), Vega-Lite refusing
+              every chart (`Function(...)` vs `script-src 'self'`), code
+              dark-on-dark in `ember`/`hearth` (dark-ness defined three ways),
+              and charts ignoring the theme (hex-only token reader). Fixed via
+              adapters/css-color.ts, AST + vega-interpreter 2.3.2, and one
+              rich-markdown/theme.ts; ADR-014 §8 records the decisions.
+tests       : S07 focused PASS (rich-markdown 53); full PASS (75 files / 992
+              passed + 1 skipped); Cairn/typecheck/build PASS — entry
+              2,454,861 B (+333 from S06), CSS 140,228 B (unchanged);
+              vega-interpreter 8,716 B as its own lazy chunk, so the CSP fix
+              costs nothing at startup; 28,237 B eager headroom remains under
+              the 150 KiB ceiling. Every new regression was verified by
+              reverting its fix and watching it fail — the suite runs on
+              linkedom, which has no getComputedStyle and no CSP, so coverage
+              alone could not see any of this.
+next action : finish the bench — notes 01/04/05, every security probe, and the
+              byte-stability check — then harden what it hits; decide on a
+              real-Electron smoke lane
 blockers    : none; rebased onto trunk 783c7c6
 ```
 
