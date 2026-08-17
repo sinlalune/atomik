@@ -51,11 +51,6 @@ import {
 } from '../editor/system-plan'
 import type { BuiltinOverrides } from '../../../shared/prompt-composition'
 import {
-  applyClaimMarks,
-  claimTitle,
-  findClaimRanges
-} from '../editor/claim-highlight'
-import {
   atPromptToken,
   loadBuiltinOverridesFor,
   loadPromptsFor,
@@ -199,34 +194,27 @@ function ClaimBody({
     if (!container) return
     container.innerHTML = md.render(text)
 
-    // ORDER MATTERS (S10b, owner: "the dynamic citation visualisation
-    // doesnt work when in a quote format"). Claim ranges are computed
-    // from the container's textContent, so they must be measured BEFORE
-    // citation chips add digits to it — otherwise every mark after the
-    // first citation lands a few characters off, which is most visible
-    // exactly where quotes are, since a quoted passage is what earns a
-    // source-backed mark in the first place.
-    if (meta && meta.claims.length > 0) {
-      const sourceOf = (claim: ClaimRecord): string | null =>
-        meta.evidence.find((record) => claim.evidenceIds.includes(record.id))
-          ?.source.relPath ?? null
-      // S08c (owner bench round 5: "I still don't understand how claim
-      // typology work, looks broken"). In a CONVERSATION, "the model
-      // said it" is the default, not news: marking model-only,
-      // interpretive and needs-citation sentences underlines nearly
-      // everything and teaches the reader to ignore all of it. Only
-      // VERBATIM-FROM-A-NOTE survives here — the one thing a reader
-      // cannot see for themselves. The full typology stays where it is
-      // actionable: the AI panel, and later M6's Truth Lens.
-      const verbatim = meta.claims.filter((claim) => claim.label === 'source-backed')
-      if (verbatim.length > 0) {
-        applyClaimMarks(
-          container,
-          findClaimRanges(container.textContent ?? '', verbatim),
-          (claim) => claimTitle(claim, sourceOf(claim))
-        )
-      }
-    }
+    // CLAIM MARKS ARE OFF IN CHAT (S10f, owner ruling 2026-08-16: "I
+    // think we should disable claims for now untill we find a better
+    // solution later on the truth lens path"). Three bench rounds in a
+    // row, what looked broken was this overlay rather than retrieval:
+    // claims are extracted as sentences of RAW markdown and then
+    // re-located in RENDERED text by fuzzy matching, so any inline
+    // formatting — bold, a link pill standing in for [[XML]], a smart
+    // quote — could shift or shorten a mark. S10e's word-boundary guard
+    // stopped it breaking words; it could not make the mechanism sound.
+    //
+    // Nothing is deleted: `claim-highlight` and its tests stay, the
+    // bundle still carries claims and evidence, and the AI panel still
+    // labels what enters the vault. What is gone is the inline overlay
+    // in a CONVERSATION, where citations now say the useful half —
+    // "this stands on that note" — with a mechanism that cannot drift,
+    // because a citation is a number the model emitted rather than a
+    // sentence someone has to find again.
+    //
+    // M6 inherits the real question: whether a claim should carry
+    // offsets from the moment it is extracted, instead of being located
+    // afterwards in text it no longer matches.
 
     setCitations(
       sources && sources.length > 0
@@ -247,20 +235,10 @@ function ClaimBody({
         if (citation) {
           event.preventDefault()
           onOpenSource(citation.dataset['citation'] as string)
-          return
         }
-        const mark = (event.target as HTMLElement).closest<HTMLElement>(
-          'mark[data-claim-id]'
-        )
-        if (!mark || !meta) return
-        const claim = meta.claims.find(
-          (candidate) => candidate.id === mark.dataset['claimId']
-        )
-        if (!claim || claim.label !== 'source-backed') return
-        const source = meta.evidence.find((record) =>
-          claim.evidenceIds.includes(record.id)
-        )
-        if (source) onOpenSource(source.source.relPath)
+        // The claim-mark handler went with the overlay (S10f): there is
+        // nothing to click when nothing is marked, and a citation now
+        // carries the "open what this stands on" gesture.
       }}
     />
   )
