@@ -91,9 +91,11 @@ timestamp: 2026-08-14T00:00:00Z
   The eager chat view is also a workspace surface: CP-FEEDBACK S02 marks
   its chronological scroll stream as a polite `role="log"` and keeps
   assistant answers flat/left-led while user messages retain their compact
-  right-side containment. Detailed transcript and action behavior remains
-  owned by the AI area note; the shell owns the pane geometry and accessible
-  stream boundary.
+  right-side containment. CP-MVP-010 S10i puts those turns inside one
+  centred `.chat-thread`: the THREAD is centred in the pane, while user and
+  Atomik retain opposite alignment inside it. Detailed transcript and action
+  behavior remains owned by the AI area note; the shell owns the pane
+  geometry and accessible stream boundary.
   CP-FEEDBACK S03 adds one icon-first Quick note action to vault/project
   tabstrips and arms `Mod+N` only in the focused eligible pane (dialogs keep
   the chord). It creates and opens a real blank tab in one transaction; a

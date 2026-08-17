@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   citationSourcesOf,
-  citedSentenceStart,
+  citedSentenceRange,
   findCitationMarkers,
   parseCitedMeta,
   serializeCitedMeta
@@ -120,38 +120,62 @@ describe('the packet shape survives a closed tab (S08d)', () => {
   })
 })
 
-describe('where a cited sentence begins (S10g)', () => {
-  const start = (text: string, marker: string): string => {
-    const at = text.indexOf(marker)
-    return text.slice(citedSentenceStart(text, at), at).trim()
+describe('the exact sentence a citation covers (S10g/S10i)', () => {
+  const extent = (text: string, marker: string, occurrence = 0): string => {
+    let at = -1
+    for (let index = 0; index <= occurrence; index += 1) {
+      at = text.indexOf(marker, at + 1)
+    }
+    const range = citedSentenceRange(text, at, at + marker.length)
+    return text.slice(range.from, range.to).trim()
   }
 
-  it('covers the sentence a marker sits inside', () => {
-    const text = 'XML is a format for data 1. It defines rules for encoding 2.'
-    expect(start(text, '1')).toBe('XML is a format for data')
-    expect(start(text, '2')).toBe('It defines rules for encoding')
+  it('includes terminal punctuation on either side of the marker', () => {
+    const text = 'XML is a format for data [1]. It defines rules for encoding. [2]'
+    expect(extent(text, '[1]')).toBe('XML is a format for data [1].')
+    expect(extent(text, '[2]')).toBe('It defines rules for encoding. [2]')
   })
 
   it('covers the QUOTE when the marker follows its closing punctuation', () => {
     // the case that produced an empty extent: the citation comes after
     // the full stop and the closing guillemet, so a naive "previous
     // boundary" search found the end of the very sentence to include
-    const text = 'Selon la note : « L\'ethos est une preuve rhétorique. » 1'
-    expect(start(text, '1')).toBe("L'ethos est une preuve rhétorique. »")
+    const text = 'Selon la note : « L\'ethos est une preuve rhétorique. » [1]'
+    expect(extent(text, '[1]')).toBe("L'ethos est une preuve rhétorique. » [1]")
   })
 
   it('handles several sentences and stops at the previous one', () => {
-    const text = 'First one. Second one! Third one? The fourth is cited 3.'
-    expect(start(text, '3')).toBe('The fourth is cited')
+    const text = 'First one. Second one! Third one? The fourth is cited [1].'
+    expect(extent(text, '[1]')).toBe('The fourth is cited [1].')
   })
 
-  it('falls back to the start of the text when there is no earlier sentence', () => {
-    expect(citedSentenceStart('Only one sentence cited 1.', 24)).toBe(0)
-    expect(citedSentenceStart('', 0)).toBe(0)
+  it('does not mistake the decimal point in the owner bench for a stop', () => {
+    const text =
+      'Real Madrid (2001–2006): Transferred for a then world-record fee of €77.5 million [1]. ' +
+      'He helped Madrid win the 2002 UEFA Champions League [2].'
+    expect(extent(text, '[1]')).toBe(
+      'Real Madrid (2001–2006): Transferred for a then world-record fee of €77.5 million [1].'
+    )
+    expect(extent(text, '[2]')).toBe(
+      'He helped Madrid win the 2002 UEFA Champions League [2].'
+    )
   })
 
-  it('does not walk past an ellipsis or an abbreviation-free start', () => {
-    const text = 'Il cite Aristote… La suite est de lui 1.'
-    expect(start(text, '1')).toBe('La suite est de lui')
+  it('protects abbreviations and dotted initials inside the sentence', () => {
+    const text =
+      'Zidane, né env. 1972 et actif à la fin du XXe s., remporta le titre face au Real Madrid F.C. [1].'
+    expect(extent(text, '[1]')).toBe(text)
+  })
+
+  it('keeps separate markers in one sentence on the same extent', () => {
+    const text = 'One statement [1] supported by two notes [2]. Next sentence.'
+    expect(extent(text, '[1]')).toBe('One statement [1] supported by two notes [2].')
+    expect(extent(text, '[2]')).toBe('One statement [1] supported by two notes [2].')
+  })
+
+  it('falls back to the whole block and respects an ellipsis boundary', () => {
+    expect(citedSentenceRange('', 0, 0)).toEqual({ from: 0, to: 0 })
+    const text = 'Il cite Aristote… La suite est de lui [1].'
+    expect(extent(text, '[1]')).toBe('La suite est de lui [1].')
   })
 })

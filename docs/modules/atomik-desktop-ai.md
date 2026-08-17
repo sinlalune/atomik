@@ -137,12 +137,17 @@ timestamp: 2026-08-14T00:00:00Z
     a grounded answer that cannot be traced is worse than an ungrounded
     one — it borrows the vault's authority without offering the way to
     check it.
-  - `rewriteCitations` turns `[1]` / `[1, 2]` markers into real markdown
-    links BEFORE rendering, so a citation wears the same pill as every
-    other link in Atomik (ADR-011) instead of growing its own renderer.
-    Code spans and fences are skipped — `arr[1]` is not a citation — and
-    a phrase-level link the model emitted is already a citation and is
-    left alone.
+  - The Markdown stays exactly as the model wrote it. AFTER rendering,
+    `editor/citation-chips.ts` decorates `[1]` / `[1, 2]` as raised
+    citation markers; code and existing links are skipped, and a
+    phrase-level link the model emitted remains an ordinary link.
+  - The hover extent is one exact rendered sentence inside its nearest
+    paragraph/list item/quote/table cell/heading. The pure
+    `citedSentenceRange` includes terminal punctuation whether it falls
+    before or after the marker, while protecting points inside decimals
+    (`€77.5`), abbreviations and dotted initials. Markers on the same
+    sentence are grouped before DOM mutation, so they share one extent
+    instead of nesting wrappers or shifting each other's offsets.
   - An invented number stays VISIBLE as `unresolved: [7]`. Silently
     dropping it would hide the one failure mode that matters, which is
     a model citing a source nobody gave it.
@@ -394,11 +399,13 @@ timestamp: 2026-08-14T00:00:00Z
   `relocateTabPaths` drags `chat.file` on rename/move, close paths
   are regression-pinned, and both side columns cap at a pane
   fraction (tree 35%, chat 45%) so a split never crushes the note.
-  CP-FEEDBACK S02 corrects the message geometry after daily use:
-  user turns remain compact right-aligned bubbles, while Atomik turns
-  are flat, stretch across the conversation measure, and begin at the
-  pane's left edge (`.markdown-body` normally auto-centers, so
-  `.chat-turn-body` explicitly resets that margin). The scroll stream
+  CP-FEEDBACK S02 corrects the message geometry after daily use, and
+  CP-MVP-010 S10i corrects its later centring: `.chat-thread` is ONE
+  centred conversation lane. User turns remain compact bubbles aligned
+  to that lane's right edge; Atomik turns are flat, stretch across it,
+  and begin at its left edge. No message is independently centred.
+  (`.markdown-body` normally auto-centers, so `.chat-turn-body`
+  explicitly resets that margin.) The scroll stream
   carries `role="log"`, a polite live policy limited to additions, and
   `aria-busy` while an exchange runs; this announces completed turns
   without treating changing metrics as new messages. Assistant actions

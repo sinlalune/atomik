@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S10h
+  current_step: S10i
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -39,6 +39,7 @@ atomik:
     - apps/desktop/tests/**
     - docs/modules/atomik-desktop-graph.md
     - docs/modules/atomik-desktop-ai.md
+    - docs/modules/atomik-desktop-editor.md
     - docs/modules/atomik-desktop-vault.md
     - docs/modules/atomik-desktop-shell.md
     - docs/modules/atomik-desktop.md
@@ -895,32 +896,57 @@ live, on real notes.
       the paragraph, and inside a quote the source-backed mark lifts
       with it instead of hiding under it. S10b's problem (the mark's
       background swallowing the tint) is solved by raising the mark, not
-      by boxing the sentence., then the closing
-      ceremony, the coherence audit, and the self-merge — after which
-      CP-MVP-011 opens with its own (short) opening check.
+      by boxing the sentence.
+- [x] S10i OWNER CORRECTION (2026-08-17 — DONE). The prior bench
+      acceptance was superseded before S11: "center the chat" had been
+      implemented by positioning EACH turn, but the intended object was
+      the CONVERSATION — user on the right, Atomik on the left. One real
+      centred `.chat-thread` now owns the 72ch measure; ordinary flex
+      alignment places both roles inside it, with no calculated message
+      margins.
+      The same report's screenshots isolated the remaining citation
+      defect: in `€77.5 million [1].`, the decimal point was treated as a
+      sentence stop and only `million` lit up. `citedSentenceRange` now
+      returns the complete block-local sentence including terminal
+      punctuation, protects decimals/abbreviations/dotted initials, and
+      the DOM half groups same-sentence markers before wrapping once.
+      Pure range tests pin the exact Real Madrid sentence, punctuation on
+      either side of a marker, quotes, abbreviations, and multiple markers;
+      the presentation contract pins the single lane and role alignment.
+      No dependency, IPC, persisted transcript, or truth-state contract
+      changed. 925 tests / 74 files, typecheck, build, retrieval-eval,
+      and cairn-check green (the expected pre-merge audit advisory only).
+      S11 owner re-bench remains required before acceptance,
+      then the closing ceremony, coherence audit, and self-merge — after
+      which CP-MVP-011 opens with its own short opening check.
 
 # Current checkpoint
 
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S10h done (bench rounds 13–19) — S11 next (acceptance,
-              ceremony, coherence audit, merge)
+current step: S10i done (owner correction after bench rounds 13–19) —
+              S11 next (re-bench, acceptance, ceremony, audit, merge)
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts
               apps/desktop/electron-main/{search,graph-index,index,action-trace}.ts
               apps/desktop/electron-preload/index.ts
+              apps/desktop/renderer/src/{styles.css,workspace/ChatView.tsx}
+              apps/desktop/renderer/src/editor/citation-chips.ts
+              apps/desktop/shared/chat-citations.ts
               apps/desktop/renderer/src/vault/RelationsStrip.tsx
-              apps/desktop/tests/{retrieval-core,vault-index,search}.test.ts
-              docs/modules/atomik-desktop-{vault,graph,shell}.md
+              apps/desktop/tests/{retrieval-core,vault-index,search,
+                chat-citations,chat-view}.test.ts
+              docs/modules/atomik-desktop-{vault,graph,shell,ai,editor}.md
               docs/learning/22-lexical-retrieval-without-a-database.md + index
               docs/adr/ADR-013-lexical-retrieval-without-a-database.md
               docs/index.md · atomik-project/coding-paths/CP-MVP-010.md
-tests       : 923 passing / 74 files on the rebased branch (this path
-              added 118; CP-FEEDBACK's merge brought the rest),
-              typecheck and build green, each gate run BARE (24)
-next action : S11 — owner bench on the restarted app, the acceptance
+tests       : 925 passing / 74 files on the rebased branch (this path
+              added 120; CP-FEEDBACK's merge brought the rest),
+              typecheck, build, retrieval-eval and cairn-check green,
+              each gate run BARE (24)
+next action : S11 — owner re-bench on the restarted app, the acceptance
               record, the closing ceremony, `npm run cairn-audit`, then
               status: done and the self-merge
 rebase note : the learning index collided at the rebase (note 22 here,

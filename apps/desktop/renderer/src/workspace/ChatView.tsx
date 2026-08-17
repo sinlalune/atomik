@@ -1259,6 +1259,7 @@ export function ChatView({
         {...CHAT_LOG_A11Y}
         aria-busy={running}
       >
+        <div className="chat-thread">
         <p className="chat-title" title={file ?? undefined}>
           {title}
         </p>
@@ -1537,6 +1538,7 @@ export function ChatView({
             </button>
           </article>
         )}
+        </div>
       </div>
       <div className="chat-compose">
         {error && (

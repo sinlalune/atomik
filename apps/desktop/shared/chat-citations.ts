@@ -119,63 +119,147 @@ export function findCitationMarkers(
   }
 }
 
-/**
- * Where the sentence a marker cites BEGINS, given the rendered text and
- * the marker's position in it (CP-MVP-010 S10g).
- *
- * The first version walked the DOM backwards from the chip, and it got
- * two cases wrong for the same reason — it looked for "the previous
- * sentence boundary" and found the boundary of the sentence it was
- * supposed to include:
- *
- * ```text
- * a quote        « … à la raison). » [1]     the citation FOLLOWS the
- *                                            full stop, so the boundary
- *                                            immediately before it was
- *                                            the end of its own sentence
- *                                            -> an empty extent
- * a paragraph    … data [1]. It establishes … [1].
- *                                            fine for the first marker,
- *                                            fragile for the second
- * ```
- *
- * So the scan skips whatever CLOSES the cited sentence first — trailing
- * whitespace, the full stop, closing quotes and brackets — and only then
- * looks back for the end of the PREVIOUS one. Pure string work, which is
- * the point: it is the half that kept being wrong, and now it is the
- * half that is tested.
- */
-const SENTENCE_END = /[.!?…]/
-/** An opening quotation mark starts a unit of its own: a quoted passage
- *  is what a citation covers, not the sentence that introduced it. Only
- *  the unambiguous ones — a straight `"` closes as often as it opens. */
-const QUOTE_OPEN = new Set(['«', '“'])
-const CLOSERS = new Set([
-  ' ', '\t', '\n', '»', '"', '”', '’', "'", ')', ']', '.', '!', '?', '…', ':', ';', ','
-])
-const OPENERS = new Set([' ', '\t', '\n', '«', '"', '“', '‘', "'", '(', '['])
+export type CitationSentenceRange = {
+  /** Inclusive offset in the rendered block text. */
+  from: number
+  /** Exclusive offset in the rendered block text. */
+  to: number
+}
 
-export function citedSentenceStart(text: string, markerIndex: number): number {
-  let index = Math.min(markerIndex, text.length)
-  // 1. step over what closes the cited sentence
-  while (index > 0 && CLOSERS.has(text[index - 1] as string)) index -= 1
-  // 2. back to the end of the previous sentence, the start of a quoted
-  //    passage, or the start of the text
-  while (
-    index > 0 &&
-    !SENTENCE_END.test(text[index - 1] as string) &&
-    !QUOTE_OPEN.has(text[index - 1] as string)
-  ) {
-    index -= 1
-  }
-  // 3. forward again over the punctuation and quotes that open this one
-  while (
-    index < markerIndex &&
-    (SENTENCE_END.test(text[index] as string) || OPENERS.has(text[index] as string))
-  ) {
-    index += 1
-  }
+/**
+ * The complete sentence a marker cites, including its terminal
+ * punctuation (CP-MVP-010 S10g/S10i).
+ *
+ * This is deliberately BLOCK-local: the DOM half supplies one paragraph,
+ * list item, quote, table cell or heading at a time, so an uncertain
+ * punctuation decision can never make a citation swallow another block.
+ * The marker is treated as transparent — both `sentence. [1]` and
+ * `sentence [1].` return the same textual unit.
+ *
+ * S10i replaces the old "any dot is a stop" rule. That rule turned the
+ * first Real Madrid citation in the owner's bench into the single word
+ * `million`, because the decimal point in `€77.5` was mistaken for the
+ * previous sentence boundary. Periods inside decimals, dotted initials,
+ * abbreviations and other uninterrupted tokens are protected here.
+ */
+const TERMINAL = new Set(['.', '!', '?', '…'])
+const QUOTE_OPEN = new Set(['«', '“'])
+const QUOTE_CLOSE = new Set(['»', '"', '”', '’', "'", ')', ']'])
+const OPENING = new Set([' ', '\t', '\n', '\r', '«', '"', '“', '‘', "'", '(', '['])
+const ABBREVIATIONS = new Set([
+  'av',
+  'dr',
+  'dre',
+  'env',
+  'etc',
+  'fig',
+  'm',
+  'mlle',
+  'mme',
+  'mr',
+  'mrs',
+  'ms',
+  'no',
+  'p',
+  'pp',
+  'prof',
+  'st',
+  'vs'
+])
+
+const isSpace = (char: string | undefined): boolean => char !== undefined && /\s/u.test(char)
+const isDigit = (char: string | undefined): boolean => char !== undefined && /\p{N}/u.test(char)
+const isTokenChar = (char: string | undefined): boolean =>
+  char !== undefined && /[\p{L}\p{N}.-]/u.test(char)
+
+function tokenEndingAt(text: string, period: number): string {
+  let start = period
+  while (start > 0 && isTokenChar(text[start - 1])) start -= 1
+  return text.slice(start, period).toLocaleLowerCase()
+}
+
+function protectedPeriod(text: string, index: number): boolean {
+  const before = text[index - 1]
+  const after = text[index + 1]
+
+  // Decimal/version points and dots inside an uninterrupted token are
+  // never sentence stops (`77.5`, `example.org`, the first dot of J.-C.).
+  if (isDigit(before) && isDigit(after)) return true
+  if (after !== undefined && !isSpace(after) && !QUOTE_CLOSE.has(after)) return true
+
+  const token = tokenEndingAt(text, index)
+  if (ABBREVIATIONS.has(token)) return true
+  if (/^\p{L}$/u.test(token)) return true
+  // Dotted initials/acronyms (`U.S.`, `J.-C.`) carry internal
+  // punctuation before their final point.
+  if ((token.match(/[.-]/g) ?? []).length >= 1) return true
+  return false
+}
+
+function isSentenceEnd(text: string, index: number): boolean {
+  const char = text[index]
+  if (!char || !TERMINAL.has(char)) return false
+  return char !== '.' || !protectedPeriod(text, index)
+}
+
+function afterSentenceStart(text: string, boundary: number, limit: number): number {
+  let index = boundary
+  while (index < limit && OPENING.has(text[index] as string)) index += 1
   return index
+}
+
+function afterSentenceEnd(text: string, boundary: number): number {
+  let index = boundary
+  while (index < text.length && TERMINAL.has(text[index] as string)) index += 1
+  while (index < text.length && QUOTE_CLOSE.has(text[index] as string)) index += 1
+  return index
+}
+
+export function citedSentenceRange(
+  text: string,
+  markerFrom: number,
+  markerTo: number
+): CitationSentenceRange {
+  const from = Math.max(0, Math.min(markerFrom, text.length))
+  const to = Math.max(from, Math.min(markerTo, text.length))
+
+  // A marker may follow the sentence's own stop and closing quote. Find
+  // that stop first so the backward scan skips it rather than calling it
+  // the end of the PREVIOUS sentence.
+  let before = from - 1
+  while (before >= 0 && (isSpace(text[before]) || QUOTE_CLOSE.has(text[before] as string))) {
+    before -= 1
+  }
+  const terminalBeforeMarker = before >= 0 && isSentenceEnd(text, before)
+  const backwardFrom = terminalBeforeMarker ? before : from
+
+  let rangeFrom = 0
+  for (let index = backwardFrom - 1; index >= 0; index -= 1) {
+    if (QUOTE_OPEN.has(text[index] as string)) {
+      rangeFrom = afterSentenceStart(text, index + 1, from)
+      break
+    }
+    if (isSentenceEnd(text, index)) {
+      rangeFrom = afterSentenceStart(text, index + 1, from)
+      break
+    }
+  }
+
+  // When punctuation already precedes the marker, the marker closes the
+  // unit. Otherwise find the stop after it, so `sentence [1].` includes
+  // the full stop instead of leaving it outside the hover extent.
+  let rangeTo = to
+  if (!terminalBeforeMarker) {
+    rangeTo = text.length
+    for (let index = to; index < text.length; index += 1) {
+      if (!isSentenceEnd(text, index)) continue
+      rangeTo = afterSentenceEnd(text, index)
+      break
+    }
+    while (rangeTo > to && isSpace(text[rangeTo - 1])) rangeTo -= 1
+  }
+
+  return { from: rangeFrom, to: rangeTo }
 }
 
 /** The source a number points at, for the decorator. */

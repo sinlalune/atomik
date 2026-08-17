@@ -1,5 +1,5 @@
 import {
-  citedSentenceStart,
+  citedSentenceRange,
   findCitationMarkers,
   sourceOfNumber,
   type AnswerCitations,
@@ -18,22 +18,20 @@ import {
  * markers are decorated in place and the answer stays exactly as
  * written.
  *
- * S10g rebuilt the EXTENT (which sentence a citation covers) after four
- * rounds of it working "sometimes". The old version walked the DOM
- * backwards from the chip asking "where is the previous sentence
- * boundary?", which is the wrong question whenever the citation follows
- * the full stop of the sentence it cites — a quote, always. It now works
- * in two clean halves:
+ * S10i rebuilds the EXTENT (which sentence a citation covers) after the
+ * owner's screenshot exposed the remaining false boundary: the point in
+ * `€77.5` made only `million` light up. It works in two clean halves:
  *
  * ```text
- * WHERE the sentence starts   pure string work on the rendered text,
- *                             unit-tested (citedSentenceStart)
- * HOW it is wrapped           offset ranges over the container's text
- *                             nodes — the same slicing claim marks use
+ * WHICH sentence              pure block-local string work, unit-tested
+ *                             (`citedSentenceRange`)
+ * HOW it is wrapped           one DOM Range per sentence, then every
+ *                             marker inside becomes a citation chip
  * ```
  *
- * That split is the point: the half that kept being wrong is now the
- * half that can be tested without a browser.
+ * Markers on the same sentence are grouped BEFORE any DOM mutation. That
+ * prevents nested extents and keeps all offsets in the rendered text the
+ * reader actually sees.
  */
 
 const MARKER_RE = /\[(\d+(?:\s*,\s*\d+)*)\]/g
@@ -44,6 +42,7 @@ const BLOCKS = 'p, li, blockquote, td, th, h1, h2, h3, h4, h5, h6'
 export type AppliedCitations = AnswerCitations
 
 type TextSlot = { node: Text; from: number; to: number }
+type CitationExtent = { from: number; to: number }
 
 /** Every text node under the container, with its offset in the whole. */
 function textSlots(container: HTMLElement): TextSlot[] {
@@ -80,107 +79,132 @@ export function applyCitationChips(
 
   const doc = container.ownerDocument
   const rendered = container.textContent ?? ''
+  const extents = citationExtents(container, rendered, sources)
 
-  // Markers as ranges over the RENDERED text — what the reader sees, and
-  // what the sentence rule reasons about.
-  const markers: { from: number; to: number; numbers: number[] }[] = []
-  for (const match of rendered.matchAll(MARKER_RE)) {
-    const from = match.index ?? 0
-    const numbers = (match[1] as string)
-      .split(',')
-      .map((piece) => Number(piece.trim()))
-      .filter((number) => sourceOfNumber(sources, number) !== undefined)
-    // An invented number keeps its brackets: the reader should see that
-    // the model cited something that does not exist.
-    if (numbers.length === 0) continue
-    markers.push({ from, to: from + match[0].length, numbers })
-  }
-
-  // Back to front, so earlier offsets stay valid as the DOM changes —
-  // the discipline `applyClaimMarks` follows for the same reason.
-  for (const marker of [...markers].reverse()) {
-    const chips = replaceMarker(doc, container, marker, sources)
-    if (chips.length === 0) continue
-    wrapSentence(doc, container, marker, chips, rendered)
+  // Back to front: replacing `[1]` with `1` changes text length, but only
+  // AFTER every still-to-be-used offset.
+  for (const extent of extents.sort((a, b) => b.from - a.from)) {
+    const span = wrapExtent(doc, container, extent)
+    if (span) decorateMarkers(doc, span, sources)
   }
 
   return found
 }
 
-/** The marker's text becomes chips, in place. */
-function replaceMarker(
-  doc: Document,
+/**
+ * Computes one block-bounded extent per cited sentence before the DOM is
+ * touched. A paragraph/list item/quote is a hard ceiling even if its last
+ * line has no punctuation.
+ */
+function citationExtents(
   container: HTMLElement,
-  marker: { from: number; to: number; numbers: number[] },
+  rendered: string,
   sources: readonly CitationSource[]
-): HTMLElement[] {
-  const slot = textSlots(container).find(
-    (candidate) => candidate.from <= marker.from && marker.to <= candidate.to
-  )
-  // A marker split across text nodes is left alone: rare, and a
-  // half-decorated citation is worse than a plain one.
-  if (!slot || !isDecoratable(slot.node)) return []
+): CitationExtent[] {
+  const slots = textSlots(container)
+  const extents: CitationExtent[] = []
 
-  const localTo = marker.to - slot.from
-  const localFrom = marker.from - slot.from
-  const tail = localTo < slot.node.data.length ? slot.node.splitText(localTo) : null
-  const middle = localFrom > 0 ? slot.node.splitText(localFrom) : slot.node
+  for (const match of rendered.matchAll(MARKER_RE)) {
+    const from = match.index ?? 0
+    const to = from + match[0].length
+    const numbers = (match[1] as string)
+      .split(',')
+      .map((piece) => Number(piece.trim()))
+    if (!numbers.some((number) => sourceOfNumber(sources, number))) continue
 
-  const chips: HTMLElement[] = []
-  const fragment = doc.createDocumentFragment()
-  for (const number of marker.numbers) {
-    const source = sourceOfNumber(sources, number)
-    if (!source) continue
-    const anchor = doc.createElement('a')
-    anchor.className = 'citation-chip'
-    anchor.dataset['citation'] = source.path
-    anchor.href = '#'
-    anchor.textContent = String(number)
-    anchor.title = `${source.title} — ${source.path}`
-    fragment.append(anchor)
-    chips.push(anchor)
+    const slot = slots.find((candidate) => candidate.from <= from && to <= candidate.to)
+    // A marker split by rendered markup, inside code, or already inside a
+    // link remains plain. Half a citation is worse than no decoration.
+    if (!slot || !isDecoratable(slot.node)) continue
+
+    const scope =
+      (slot.node.parentElement?.closest(BLOCKS) as HTMLElement | null) ?? container
+    const scopeSlots = slots.filter((candidate) => scope.contains(candidate.node))
+    const first = scopeSlots[0]
+    if (!first) continue
+
+    const local = citedSentenceRange(scope.textContent ?? '', from - first.from, to - first.from)
+    const extent = { from: first.from + local.from, to: first.from + local.to }
+    if (extent.from >= extent.to) continue
+    if (!extents.some((known) => known.from === extent.from && known.to === extent.to)) {
+      extents.push(extent)
+    }
   }
-  middle.parentNode?.replaceChild(fragment, middle)
-  void tail
-  return chips
+
+  return extents
 }
 
 /**
- * Wraps the cited sentence — from `citedSentenceStart` up to the marker
- * — in one `.cited-span`, so hovering anywhere in it lights the sentence
- * and its chips together.
+ * Wraps an exact rendered-text range while preserving any bold, emphasis,
+ * links or other inline markup inside it.
  */
-function wrapSentence(
+function wrapExtent(
   doc: Document,
   container: HTMLElement,
-  marker: { from: number; to: number },
-  chips: HTMLElement[],
-  rendered: string
-): void {
-  const scope = chips[0]?.parentElement?.closest(BLOCKS) ?? container
-  const start = citedSentenceStart(rendered, marker.from)
+  extent: CitationExtent
+): HTMLSpanElement | null {
+  const slots = textSlots(container)
+  const start = slots.find(
+    (slot) => slot.from <= extent.from && extent.from < slot.to
+  )
+  const end = slots.find((slot) => slot.from < extent.to && extent.to <= slot.to)
+  if (!start || !end) return null
+
+  const range = doc.createRange()
+  range.setStart(start.node, extent.from - start.from)
+  range.setEnd(end.node, extent.to - end.from)
+  if (range.collapsed) return null
 
   const span = doc.createElement('span')
   span.className = 'cited-span'
-  const first = chips[0] as HTMLElement
-  first.parentNode?.insertBefore(span, first)
+  span.append(range.extractContents())
+  range.insertNode(span)
+  return span
+}
 
-  for (const slot of textSlots(container)) {
-    if (!scope.contains(slot.node)) continue
-    const localFrom = Math.max(start - slot.from, 0)
-    const localTo = Math.min(marker.from - slot.from, slot.node.data.length)
-    if (localFrom >= localTo) continue
-    const tail = localTo < slot.node.data.length ? slot.node.splitText(localTo) : null
-    const middle = localFrom > 0 ? slot.node.splitText(localFrom) : slot.node
-    span.append(middle)
-    void tail
+/** Every fully-resolved marker in one sentence becomes its chip(s). */
+function decorateMarkers(
+  doc: Document,
+  span: HTMLElement,
+  sources: readonly CitationSource[]
+): void {
+  const targets: Text[] = []
+  const walker = doc.createTreeWalker(span, NodeFilter.SHOW_TEXT)
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const text = node as Text
+    if (!isDecoratable(text)) continue
+    MARKER_RE.lastIndex = 0
+    if (MARKER_RE.test(text.data)) targets.push(text)
+    MARKER_RE.lastIndex = 0
   }
 
-  // Nothing but the chip would be a one-character "extent", which reads
-  // as the feature failing rather than as an extent.
-  if ((span.textContent ?? '').trim().length === 0) {
-    span.remove()
-    return
+  for (const target of targets) {
+    const fragment = doc.createDocumentFragment()
+    let cursor = 0
+    for (const match of target.data.matchAll(MARKER_RE)) {
+      const at = match.index ?? 0
+      const resolved = (match[1] as string)
+        .split(',')
+        .map((piece) => Number(piece.trim()))
+        .map((number) => ({ number, source: sourceOfNumber(sources, number) }))
+      // If even one number is invented, keep the complete marker exactly
+      // as written so its visible unresolved diagnostic is not laundered.
+      if (resolved.some((entry) => !entry.source)) continue
+
+      fragment.append(doc.createTextNode(target.data.slice(cursor, at)))
+      for (const entry of resolved) {
+        const anchor = doc.createElement('a')
+        anchor.className = 'citation-chip'
+        anchor.dataset['citation'] = entry.source!.path
+        anchor.href = '#'
+        anchor.textContent = String(entry.number)
+        anchor.title = `${entry.source!.title} — ${entry.source!.path}`
+        fragment.append(anchor)
+      }
+      cursor = at + match[0].length
+    }
+    if (cursor === 0) continue
+    fragment.append(doc.createTextNode(target.data.slice(cursor)))
+    target.parentNode?.replaceChild(fragment, target)
   }
-  for (const chip of chips) span.append(chip)
 }

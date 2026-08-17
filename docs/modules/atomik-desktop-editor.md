@@ -75,3 +75,16 @@ timestamp: 2026-08-14T00:00:00Z
   carry `aria-description`; live widgets carry the same description plus a
   type-prefixed hover title: “External web link” versus “Captured web source”.
   Authored link text and navigation targets remain untouched.
+
+## Chat citation decoration (CP-MVP-010 S08/S10i)
+
+- `renderer/src/editor/citation-chips.ts` is the DOM half of chat
+  citations. It decorates rendered `[1]` markers without rewriting the
+  answer's Markdown, skips code and existing links, and leaves unresolved
+  numbers visible.
+- Sentence choice stays in the pure shared helper
+  `citedSentenceRange`; the DOM half supplies one Markdown block at a
+  time, groups markers with the same range, wraps that range once, and
+  then turns its resolved markers into clickable chips. This split keeps
+  decimals such as `€77.5`, abbreviations, terminal punctuation, quotes,
+  and multiple markers unit-testable without adding a DOM-test runtime.

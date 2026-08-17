@@ -1360,19 +1360,26 @@ body[data-maximized] .tabstrip {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  /* ONE measure for the conversation (S10c, owner: "first user message
-     should be included in note width constraint"). The assistant's body
-     was bounded at 72ch while the user's bubble was bounded by the PANE,
-     so on a wide pane a question floated far to the right of the answer
-     it belongs to. Both live in the same column now, and the column is
-     the reading measure. */
+  /* ONE measure for the conversation, inherited by the real thread
+     container below. The SCROLLPORT fills the pane; the conversation is
+     the one thing centred inside it. */
   --chat-measure: 72ch;
   /* the floating composer overlays the bottom (S07b14) — the last
      message must scroll clear of it */
   padding: var(--space-3) var(--space-3) 10rem;
+}
+
+/* S10i owner correction: centre the CONVERSATION, not each message.
+   Once the shared lane is placed, ordinary flex alignment expresses the
+   dialogue again — you on its right, Atomik on its left. */
+.chat-thread {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--chat-measure);
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
 .chat-title {
@@ -1403,13 +1410,7 @@ body[data-maximized] .tabstrip {
    and led from the pane's left edge. */
 .chat-turn.role-you {
   align-self: flex-end;
-  /* flex-end aligns to the container's edge; the end margin then pulls
-     the bubble back INSIDE the reading column, so a question sits above
-     the answer it belongs to rather than out at the pane's edge. The
-     alignment CP-FEEDBACK S02 chose is preserved — only the column it
-     aligns within changes. */
-  margin-inline-end: max(0px, 100% - var(--chat-measure));
-  max-width: min(85%, var(--chat-measure));
+  max-width: 85%;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: var(--space-2) var(--space-3);
@@ -1419,9 +1420,7 @@ body[data-maximized] .tabstrip {
 .chat-turn.role-atomik {
   align-self: stretch;
   width: 100%;
-  max-width: var(--chat-measure);
-  /* centred with the composer below it, not led from the pane's edge */
-  margin-inline: auto;
+  margin-inline: 0;
   border: 0;
   border-radius: 0;
   padding: var(--space-2) 0 var(--space-4);
@@ -1527,9 +1526,8 @@ body[data-maximized] .tabstrip {
   line-height: 1.6;
   max-width: var(--chat-measure, 72ch);
   /* `.markdown-body` centers normal note reading columns; an assistant
-     turn deliberately begins at the CONVERSATION's left edge — which
-     since S10h is the centred column's edge, not the pane's, so the
-     answer, the question and the composer share one axis. */
+     turn deliberately begins at the centred CONVERSATION lane's left
+     edge. The user bubble independently aligns to that lane's right. */
   margin-inline: 0;
 }
 
@@ -5464,7 +5462,7 @@ button svg {
   background: color-mix(in srgb, var(--accent) 18%, var(--ok-bg));
 }
 
-.chat-turn-body .cited-span:hover > a.citation-chip {
+.chat-turn-body .cited-span:hover a.citation-chip {
   background: color-mix(in srgb, var(--accent) 25%, transparent);
   border-color: var(--accent);
 }
