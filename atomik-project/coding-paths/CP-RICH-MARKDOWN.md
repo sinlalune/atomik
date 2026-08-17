@@ -204,19 +204,19 @@ base commit : 98561b4
 changed     : S02 exact package lock; pure syntax + escaped Markdown-it
               placeholders; typed lazy registry; bounded cancellation/stale/
               teardown hydration; every noteMarkdown DOM consumer; 30 focused
-              assertions; learning + editor notes; declared surfaces widened
-tests       : focused PASS (2 files / 30 tests); full PASS (69 files / 822
-              tests); typecheck PASS; build PASS —
-              entry 2,345,119 B (+15,621 / +0.67%), CSS unchanged, no heavy
-              runtime chunk; Cairn's sole blocker is the required trunk rebase
+              assertions; learning + module notes; rebased Chat keeps current
+              citation-only decoration before rich hydration
+tests       : focused PASS (2 files / 30 tests); rebased full PASS (75 files /
+              942 passed + 1 skipped); typecheck PASS; build PASS; Cairn PASS —
+              entry 2,373,425 B vs trunk 2,358,560 B (+14,865 / +0.63%), CSS
+              byte-identical at 132,917 B, no heavy runtime chunk
 audit       : npm audit reports the same 4 inherited highs on trunk and S02
               (PDF.js + Vite/PostCSS/nanoid + Electron optional undici); zero
               rich-dependency advisory delta, no automatic rewrite applied
 catalog     : docs/learning/index.md edit is deliberate under bedrock 17's
               first-use catalog rule; it is not generated ACTIVE/register state
-next action : checkpoint S02, rebase onto CP-MVP-010's merged trunk, rerun the
-              full bare gate, then begin S03 KaTeX adapter/live-mode parity
-blockers    : none; trunk is now 783c7c6, so the protocol rebase is due
+next action : begin S03 KaTeX adapter and live-mode widget parity
+blockers    : none; rebased onto trunk 783c7c6 and full gate is green
 ```
 
 # Blockers

@@ -103,9 +103,10 @@ S02 implements that host in `renderer/src/editor/rich-markdown/`:
 - `RichMarkdownBody.tsx` puts that lifecycle behind one React effect. Vault,
   project, source-dossier, chat, AI note preview, and inline-AI output all use
   the same hydrator; no surface owns a renderer library.
-- Exact packages are locked but remain unimported. S02 build inspection:
-  entry JS 2,345,119 B (+15,621 B / +0.67% from S01), CSS unchanged at
-  123,707 B, no heavy rich-runtime chunk. The post-lock four-high npm audit is
+- Exact packages are locked but remain unimported. On the mandatory
+  CP-MVP-010 rebase, S02 build inspection measured 2,373,425 B entry JS versus
+  2,358,560 B on the same trunk (+14,865 B / +0.63%), byte-identical 132,917 B
+  CSS, and no heavy rich-runtime chunk. The post-lock four-high npm audit is
   identical to the pre-rich trunk (existing PDF.js and Vite/Electron tooling),
   so S02 introduced no advisory delta.
 - Focused contracts live in `tests/rich-markdown.test.ts` and

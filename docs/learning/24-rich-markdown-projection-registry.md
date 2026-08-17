@@ -89,6 +89,10 @@ S02 proves the empty-host cost. The production entry changed from 2,329,498 B
 to 2,345,119 B (+15,621 B), CSS stayed 123,707 B, and the emitted asset list
 contained no KaTeX/Mermaid/Vega/Shiki chunk.
 
+The required rebase onto CP-MVP-010 changed both comparison bundles. On that
+same trunk, the empty host is 2,373,425 B versus 2,358,560 B (+14,865 B,
++0.63%); CSS is byte-identical at 132,917 B and the heavy chunks remain absent.
+
 ### AbortSignal: a shared cancellation vocabulary
 
 `AbortController` owns a signal. Code that receives the signal can stop work
