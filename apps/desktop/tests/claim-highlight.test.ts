@@ -4,6 +4,7 @@ import {
   claimPattern,
   claimTitle,
   findClaimRanges,
+  isWordBoundary,
   stripInlineMarkdown
 } from '../renderer/src/editor/claim-highlight'
 
@@ -95,5 +96,34 @@ describe('claim highlighting (S06c17): locating raw-markdown claims in rendered 
       'interpretive'
     )
     expect(claimTitle(claim('c4', 'x'), null)).toContain('model-only')
+  })
+})
+
+describe('a highlight never ends inside a word (CP-MVP-010 S10e)', () => {
+  const rendered =
+    'XML is a markup language. It defines a set of rules for encoding documents ' +
+    'in a format that is both human-readable and machine-readable.'
+
+  it('keeps a match that lands on word boundaries', () => {
+    const whole = claim('c1', 'It defines a set of rules for encoding documents')
+    const [range] = findClaimRanges(rendered, [whole])
+    expect(range).toBeDefined()
+    expect(rendered.slice(range!.from, range!.to)).toBe(
+      'It defines a set of rules for encoding documents'
+    )
+  })
+
+  it('drops a match that would cut a word in half', () => {
+    // the claim text was truncated upstream — the located range would
+    // end at "human-readable an", which reads as a rendering fault
+    const truncated = claim('c2', 'in a format that is both human-readable an')
+    expect(findClaimRanges(rendered, [truncated])).toEqual([])
+  })
+
+  it('allows a boundary at punctuation or at the very edges', () => {
+    expect(isWordBoundary(rendered, 0)).toBe(true)
+    expect(isWordBoundary(rendered, rendered.length)).toBe(true)
+    expect(isWordBoundary(rendered, rendered.indexOf(' It defines'))).toBe(true)
+    expect(isWordBoundary(rendered, rendered.indexOf('ML is'))).toBe(false)
   })
 })

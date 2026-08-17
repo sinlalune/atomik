@@ -159,6 +159,12 @@ function wrapCitedSpan(chip: HTMLElement): void {
     node = node.previousSibling
   }
 
+  // Nothing but the chip itself was collected — the marker opens its
+  // block, so there is no sentence in front of it to light up. A
+  // one-character "extent" would read as the feature failing (S10e);
+  // the chip's own hover still says what it points at.
+  if (collected.length === 1) return
+
   const span = doc.createElement('span')
   span.className = 'cited-span'
   const first = collected[0]

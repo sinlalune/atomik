@@ -46,6 +46,16 @@ export function claimPattern(text: string): RegExp | null {
 
 export type ClaimRange = { from: number; to: number; claim: ClaimRecord }
 
+/** Is `at` a place a highlight may begin or end — the text's edge, or
+ *  a point where a word does not continue on both sides? */
+export function isWordBoundary(text: string, at: number): boolean {
+  if (at <= 0 || at >= text.length) return true
+  const before = text[at - 1] as string
+  const after = text[at] as string
+  const isWord = (character: string): boolean => /[\p{L}\p{N}]/u.test(character)
+  return !(isWord(before) && isWord(after))
+}
+
 /**
  * Locates each claim in the rendered text (longest claims first so a
  * sentence containing another can't steal its span); overlapping
@@ -65,6 +75,15 @@ export function findClaimRanges(
     if (!match) continue
     const from = match.index
     const to = from + match[0].length
+    // A highlight that starts or ends INSIDE a word is worse than no
+    // highlight: it reads as a rendering fault and it breaks the
+    // sentence's continuity for the reader (CP-MVP-010 S10e, owner:
+    // "careful with md formatting… it breaks continuity sometimes").
+    // Better to say nothing than to say it wrong, so a match that does
+    // not land on word boundaries is dropped.
+    if (!isWordBoundary(renderedText, from) || !isWordBoundary(renderedText, to)) {
+      continue
+    }
     if (taken.some((slot) => from < slot.to && to > slot.from)) continue
     taken.push({ from, to })
     ranges.push({ from, to, claim })
