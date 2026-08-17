@@ -231,6 +231,29 @@ ACTIVATE    owner reply, verbatim: "You right"
 BASE        783c7c6; branch path/cp-mvp-011; dedicated worktree
 ```
 
+# Vision-check decisions (2026-08-17, mid-path)
+
+Session note: `../sessions/2026-08-17-cp-mvp-011-vision-and-provider-order.md`.
+Run between S06 and S07 after the owner reported that no bench had happened and
+that they had not been walked through the framing. The scope did not change;
+the control shape and the provider order became explicit.
+
+```text
+CONTROL     wiki mirrors the vault tool: enable toggle + `reach` depth +
+            four per-source switches (owner's selection)
+CITATION    the citation/media surface is a named S07 deliverable
+PROVIDERS   Google → OpenAI ("luna", id to confirm) → Anthropic
+            (`claude-fable-5`) → OpenRouter as the BENCHMARKING seat
+DIALECTS    two only. openai-chat-completions covers Mistral, Google (its
+            adapter uses Gemini's OpenAI-compatible endpoint), OpenAI,
+            OpenRouter and DeepSeek; anthropic-messages is the sole second
+            codec. S06's codec is generic to the first, so the first four
+            of the owner's priorities are a shared extraction plus plumbing
+BENCH       moves earlier than S09 — run as soon as a surface exists
+OPEN        provider-step position vs S07; the "luna" model id; whether
+            ADR-015's pins survive the owner reading it
+```
+
 # Execution
 
 - [x] S01 Bootstrap + contract pins: read every Required document; verify the
@@ -255,10 +278,13 @@ BASE        783c7c6; branch path/cp-mvp-011; dedicated worktree
       to generation, implement bounded multi-turn execution, adapt supported
       providers using recorded payload fixtures, and preserve a loud,
       deterministic fallback for unsupported providers.
-- [ ] S07 Augmented chat + external citations: per-thread visible tool control,
-      call/result disclosure, Wikipedia/Wikidata/Wiktionary sources, attributed
-      Commons media, external citation marks/source block, safe navigation,
-      persistence, accessibility, and presentation tests.
+- [ ] S07 Augmented chat + external citations: the wiki control MIRRORS the
+      vault tool — a per-thread enable toggle, a `reach` depth control, and
+      four per-source switches (Wikipedia · Wikidata · Commons image ·
+      Wiktionary etymology), per the 2026-08-17 vision check. Plus call/result
+      disclosure, external citation marks/source block with attributed Commons
+      media as a named deliverable, safe navigation, persistence,
+      accessibility, and presentation tests.
 - [ ] S08 Save as source: explicit preview/confirm gesture through the existing
       source-core/web import lifecycle, revision/access metadata,
       canonical-URL deduplication, rollback/cancel behavior, graph/index
