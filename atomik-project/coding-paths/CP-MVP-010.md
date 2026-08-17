@@ -957,8 +957,8 @@ live, on real notes.
 # Current checkpoint
 
 ```text
-base commit : 2370546 (branch rebased onto trunk tip 260f964, which
-              carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
+base commit : 2370546 (closing rebase contains trunk tip eec8107,
+              including the CP-RICH-MARKDOWN opening record)
 current step: S11 done (owner acceptance + closing ceremony recorded) —
               mechanical close next (rebase, gates, audit, journal,
               status done, self-merge)
@@ -981,13 +981,12 @@ tests       : 927 passing / 74 files on the rebased branch (this path
               added 122; CP-FEEDBACK's merge brought the rest),
               typecheck, build, retrieval-eval and cairn-check green,
               each gate run BARE (24)
-next action : rebase onto the latest local master, rerun every gate on
-              that exact result, fill `npm run cairn-audit`, write the
-              journal, mark done, and self-merge
-rebase note : the learning index collided at the rebase (note 22 here,
-              note 23 from CP-PROVIDERS) — mechanical, both kept in
-              order. Exactly the shared-prose conflict paths.md
-              predicts, and the only one in the whole rebase.
+next action : run every gate on this rebased result, fill `npm run
+              cairn-audit`, write the journal, mark done, and self-merge
+rebase note : final closing rebase onto eec8107 was conflict-free. The
+              earlier rebase onto 260f964 had one mechanical learning-
+              index collision (note 22 here, note 23 from CP-PROVIDERS),
+              with both retained in order.
 blockers    : none
 ```
 
