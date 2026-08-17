@@ -89,6 +89,29 @@ timestamp: 2026-08-17T00:00:00Z
   The production baseline is 2,329,498 B entry JS / 123,707 B CSS; a no-rich
   note must stay within 10% of the pinned read/parse/live medians.
 
+S02 implements that host in `renderer/src/editor/rich-markdown/`:
+
+- `syntax.ts` is the pure alias/dollar-ambiguity seam;
+  `markdown-plugin.ts` emits escaped placeholders and calls Markdown-it's
+  saved fence renderer unchanged for unknown languages.
+- `registry.ts` caches kind-checked lazy loaders and drops a failed load for an
+  explicit retry. The built-in map is intentionally empty until S03; source +
+  an unavailable diagnostic is a complete safe state.
+- `hydration.ts` owns the 128-block cap, pre-import source cap, total 3 s
+  deadline, detached-generation isolation, 2 MiB output cap, text-only errors,
+  `AbortSignal`, late-handle cleanup, and idempotent teardown.
+- `RichMarkdownBody.tsx` puts that lifecycle behind one React effect. Vault,
+  project, source-dossier, chat, AI note preview, and inline-AI output all use
+  the same hydrator; no surface owns a renderer library.
+- Exact packages are locked but remain unimported. S02 build inspection:
+  entry JS 2,345,119 B (+15,621 B / +0.67% from S01), CSS unchanged at
+  123,707 B, no heavy rich-runtime chunk. The post-lock four-high npm audit is
+  identical to the pre-rich trunk (existing PDF.js and Vite/Electron tooling),
+  so S02 introduced no advisory delta.
+- Focused contracts live in `tests/rich-markdown.test.ts` and
+  `tests/note-markdown.test.ts`; beginner walkthrough:
+  `docs/learning/24-rich-markdown-projection-registry.md`.
+
 ## Web-link pill identity (CP-FEEDBACK S05)
 
 - Read and live still ask the shared `graph-core` classifier; neither surface

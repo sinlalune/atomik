@@ -9,6 +9,7 @@ import { useVaultNote } from '../vault/useVaultNote'
 import { RelationsStrip } from '../vault/RelationsStrip'
 import type { NoteViewMode, PaneNoteGuard, SaveMode } from '../workspace/model'
 import { registerAiContext } from '../workspace/ai-context'
+import { RichMarkdownBody } from '../editor/rich-markdown/RichMarkdownBody'
 
 export type ProjectViewProps = {
   /** Vault-relative folder of the opened bundle. */
@@ -361,9 +362,10 @@ export function ProjectView({
             </div>
             <div className="note-scroll">
               {error && <p className="error">{error}</p>}
-              <article
+              <RichMarkdownBody
+                as="article"
                 className="markdown-body"
-                dangerouslySetInnerHTML={{ __html: html }}
+                html={html}
               />
             </div>
           </>

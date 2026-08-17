@@ -28,6 +28,7 @@ import { pdfPageTarget, takePendingPdfPage } from './pdf-open'
 import { applyRotation, mediaObjectUrl } from './rotate'
 import { PdfView } from './PdfView'
 import { SnapshotView } from './SnapshotView'
+import { RichMarkdownBody } from '../editor/rich-markdown/RichMarkdownBody'
 
 /**
  * The image source tab (08 "image tab views the original beside the
@@ -608,9 +609,10 @@ export function SourceImageView({
         </div>
         <div className="note-scroll" onClick={onDossierClick}>
           {error && <p className="error">{error}</p>}
-          <article
+          <RichMarkdownBody
+            as="article"
             className="markdown-body"
-            dangerouslySetInnerHTML={{ __html: html }}
+            html={html}
           />
         </div>
       </div>

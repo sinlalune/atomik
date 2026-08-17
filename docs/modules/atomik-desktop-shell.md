@@ -3,7 +3,7 @@ type: Atomik Module Note
 title: 'Module: atomik-desktop — shell'
 description: Electron shell, window and security posture, the IPC contract surface, the workspace pane tree, the Dev Docs tab and the smoke hook.
 tags: [module, electron, security, shell, ipc, workspace]
-timestamp: 2026-08-14T00:00:00Z
+timestamp: 2026-08-17T00:00:00Z
 ---
 
 # Module: atomik-desktop — shell
@@ -216,3 +216,13 @@ timestamp: 2026-08-14T00:00:00Z
 - Tests: `tests/lane.test.ts` (6) — profile uniqueness across two lane
   ids, ephemeral-vs-explicit capture port, port validation, id
   sanitization including `../escape`.
+
+## Rich Markdown projection lifecycle (CP-RICH-MARKDOWN S02)
+
+- `RichMarkdownBody` is the shared post-mount lifecycle boundary for every
+  `noteMarkdown` DOM consumer, including eager Chat messages and AI previews.
+  It hydrates inert escaped placeholders only after React commits the DOM and
+  disposes every renderer handle on content, theme, or component teardown.
+- Renderer modules stay behind dynamic adapter imports. The S02 shell entry
+  increased by 15,621 bytes (+0.67%) while KaTeX, Mermaid, Vega-Lite, and
+  Shiki emitted no eager runtime chunk; later steps must preserve that split.

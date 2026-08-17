@@ -3,7 +3,7 @@ type: Atomik Module Note
 title: 'Module: atomik-desktop — sources'
 description: Capture, image, transcription and OCR seats, PDF import/viewer/anchors, and the web tab, reader and import.
 tags: [module, sources, capture, pdf, web, ocr, transcription]
-timestamp: 2026-08-14T00:00:00Z
+timestamp: 2026-08-17T00:00:00Z
 ---
 
 # Module: atomik-desktop — sources
@@ -457,3 +457,13 @@ timestamp: 2026-08-14T00:00:00Z
   (fixture with a web-dossier tab: bar=en.wikipedia.org, dossier text
   rendered, snapshot host sized — capturePage cannot see native views,
   so the painted pixels stay an owner-bench item).
+
+## Rich Markdown source reading (CP-RICH-MARKDOWN S02)
+
+- The dossier article rendered by `SourceImageView` uses the same
+  `RichMarkdownBody` lifecycle as ordinary note read mode. Source anchors,
+  extraction provenance, original-media controls, and snapshot/native-view
+  ownership are unchanged.
+- Hydration is a disposable DOM projection over already-produced reader
+  Markdown. Render adapters have no IPC or source-bundle authority, and a
+  failure remains inspectable as escaped authored source.

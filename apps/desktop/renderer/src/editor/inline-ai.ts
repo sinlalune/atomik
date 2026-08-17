@@ -15,6 +15,10 @@ import {
 import type { SentRequest } from './ai-run'
 import { copyText } from './clipboard'
 import { noteMarkdown } from './note-markdown'
+import {
+  hydrateRichMarkdown,
+  type RichHydration
+} from './rich-markdown/hydration'
 
 /**
  * The inline AI preview (CP-MVP-008 S05b) — a quick request's proposal
@@ -122,6 +126,8 @@ export function computeInlineAiDecorations(value: InlineAiValue): DecorationSet 
 const LABEL_STRIP_MAX = 8
 
 class InlineAiWidget extends WidgetType {
+  private hydration: RichHydration | null = null
+
   constructor(private readonly value: InlineAiValue) {
     super()
   }
@@ -195,6 +201,8 @@ class InlineAiWidget extends WidgetType {
     const body = document.createElement('div')
     body.className = 'cm-inline-ai-body'
     const renderBody = (): void => {
+      this.hydration?.dispose()
+      this.hydration = null
       body.textContent = ''
       if (editing) {
         const editor = document.createElement('textarea')
@@ -215,6 +223,7 @@ class InlineAiWidget extends WidgetType {
         rendered.className = 'markdown-body cm-inline-ai-rendered'
         rendered.innerHTML = noteMarkdown().render(editedValue)
         body.appendChild(rendered)
+        this.hydration = hydrateRichMarkdown(rendered)
       }
     }
     renderBody()
@@ -298,6 +307,11 @@ class InlineAiWidget extends WidgetType {
     actions.appendChild(reject)
     root.appendChild(actions)
     return root
+  }
+
+  destroy(): void {
+    this.hydration?.dispose()
+    this.hydration = null
   }
 }
 

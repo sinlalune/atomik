@@ -58,6 +58,7 @@ import {
 } from '../editor/prompts'
 import { linkableNotesOf, sourceBundlesOf } from '../editor/quick-actions'
 import { noteMarkdown } from '../editor/note-markdown'
+import { hydrateRichMarkdown } from '../editor/rich-markdown/hydration'
 import {
   citationSourcesOf,
   serializeCitedMeta,
@@ -193,7 +194,6 @@ function ClaimBody({
     const container = ref.current
     if (!container) return
     container.innerHTML = md.render(text)
-
     // CLAIM MARKS ARE OFF IN CHAT (S10f, owner ruling 2026-08-16: "I
     // think we should disable claims for now untill we find a better
     // solution later on the truth lens path"). Three bench rounds in a
@@ -221,6 +221,8 @@ function ClaimBody({
         ? applyCitationChips(container, text, sources)
         : null
     )
+    const hydration = hydrateRichMarkdown(container)
+    return () => hydration.dispose()
   }, [text, meta, sources])
   const body = (
     <div

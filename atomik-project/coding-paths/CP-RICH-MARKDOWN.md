@@ -8,7 +8,7 @@ atomik:
   id: CP-RICH-MARKDOWN
   status: running
   accepted: 2026-08-17
-  current_step: S02
+  current_step: S03
   base_commit: 98561b4
   branch: path/cp-rich-markdown
   writes:
@@ -16,24 +16,34 @@ atomik:
     - apps/desktop/package.json
     - apps/desktop/electron.vite.config.ts
     - apps/desktop/renderer/src/editor/EditorPane.tsx
+    - apps/desktop/renderer/src/editor/AiNotePreview.tsx
+    - apps/desktop/renderer/src/editor/inline-ai.ts
     - apps/desktop/renderer/src/editor/live-preview.ts
     - apps/desktop/renderer/src/editor/note-markdown.ts
-    - apps/desktop/renderer/src/editor/rich-markdown/
+    - apps/desktop/renderer/src/editor/rich-markdown/**
+    - apps/desktop/renderer/src/project/ProjectView.tsx
+    - apps/desktop/renderer/src/source/SourceImageView.tsx
+    - apps/desktop/renderer/src/vault/VaultView.tsx
+    - apps/desktop/renderer/src/workspace/ChatView.tsx
     - apps/desktop/renderer/src/styles.css
     - apps/desktop/tests/live-preview.test.ts
     - apps/desktop/tests/note-markdown.test.ts
     - apps/desktop/tests/rich-markdown.test.ts
     - docs/adr/ADR-014-rich-markdown-renderers.md
     - docs/index.md
+    - docs/learning/24-rich-markdown-projection-registry.md
+    - docs/learning/index.md
     - docs/modules/atomik-desktop-editor.md
     - docs/modules/atomik-desktop-shell.md
+    - docs/modules/atomik-desktop-vault.md
+    - docs/modules/atomik-desktop-sources.md
     - atomik-project/coding-paths/CP-RICH-MARKDOWN.md
     - atomik-project/coding-paths/index.md
     - atomik-project/sessions/2026-08-17-cp-rich-markdown-opening-check.md
     - atomik-project/sessions/2026-08-17-cp-rich-markdown-s01-baseline.md
-    - atomik-project/sessions/
-    - atomik-project/audits/
-    - atomik-project/log/
+    - atomik-project/sessions/**
+    - atomik-project/audits/**
+    - atomik-project/log/**
 ---
 
 # Goal
@@ -160,7 +170,7 @@ The owner-approved details and revised backlog order are recorded in
       APIs, measure current startup/build/read/live baselines, define renderer
       result/budget/diagnostic contracts, and record the third-party-renderer
       boundary in ADR-014 before installing or implementing.
-- [ ] S02 Registry + safe fallback: implement pure fence/math discovery and a
+- [x] S02 Registry + safe fallback: implement pure fence/math discovery and a
       typed lazy adapter registry with cancellation, stale-result suppression,
       theme input, budgets, teardown, accessible error/source fallback, and
       unknown-fence parity; tests and editor module note in the same unit.
@@ -191,16 +201,22 @@ The owner-approved details and revised backlog order are recorded in
 
 ```text
 base commit : 98561b4
-changed     : ADR-014 accepted; S01 dependency/security/performance record;
-              editor area note + docs index + this ledger; declared write
-              surface widened to the dated S01 record discovered in this step
-tests       : PASS pre-change — Cairn; typecheck; 68 files / 807 tests; build;
-              3-pass production smoke; read/Lezer/live microbaseline
-next action : S02 — install the accepted exact package set, implement the pure
-              discovery + typed lazy registry/source fallback, focused tests,
-              learning note, module docs, then bare gates and chunk inspection
-blockers    : none; CP-MVP-010 is still closing and overlaps styles/editor
-              prose, so this path rebases immediately after it self-merges
+changed     : S02 exact package lock; pure syntax + escaped Markdown-it
+              placeholders; typed lazy registry; bounded cancellation/stale/
+              teardown hydration; every noteMarkdown DOM consumer; 30 focused
+              assertions; learning + editor notes; declared surfaces widened
+tests       : focused PASS (2 files / 30 tests); full PASS (69 files / 822
+              tests); typecheck PASS; build PASS —
+              entry 2,345,119 B (+15,621 / +0.67%), CSS unchanged, no heavy
+              runtime chunk; Cairn's sole blocker is the required trunk rebase
+audit       : npm audit reports the same 4 inherited highs on trunk and S02
+              (PDF.js + Vite/PostCSS/nanoid + Electron optional undici); zero
+              rich-dependency advisory delta, no automatic rewrite applied
+catalog     : docs/learning/index.md edit is deliberate under bedrock 17's
+              first-use catalog rule; it is not generated ACTIVE/register state
+next action : checkpoint S02, rebase onto CP-MVP-010's merged trunk, rerun the
+              full bare gate, then begin S03 KaTeX adapter/live-mode parity
+blockers    : none; trunk is now 783c7c6, so the protocol rebase is due
 ```
 
 # Blockers

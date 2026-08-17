@@ -8,6 +8,7 @@ import {
 import type { SentRequest } from './ai-run'
 import { copyText } from './clipboard'
 import { noteMarkdown } from './note-markdown'
+import { RichMarkdownBody } from './rich-markdown/RichMarkdownBody'
 
 /**
  * New-note preview as a NATIVE note-tab simulation (S05c; S05h owner
@@ -112,9 +113,9 @@ export function AiNotePreview({
                     onChange={(event) => setEdited(event.target.value)}
                   />
                 ) : (
-                  <div
+                  <RichMarkdownBody
                     className="markdown-body cm-inline-ai-rendered"
-                    dangerouslySetInnerHTML={{ __html: md.render(text) }}
+                    html={md.render(text)}
                   />
                 )}
               </div>

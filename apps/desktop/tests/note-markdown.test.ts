@@ -63,6 +63,54 @@ describe('noteMarkdown — the ONE note renderer (S05g)', () => {
   })
 })
 
+describe('noteMarkdown — inert rich placeholders (CP-RICH-MARKDOWN S02)', () => {
+  const md = noteMarkdown()
+
+  it('discovers strict inline and display math while currency stays prose', () => {
+    const inline = md.render('Euler: $e^{i\\pi} + 1 = 0$.')
+    expect(inline).toContain('data-rich-kind="math"')
+    expect(inline).toContain('data-rich-info="inline"')
+    expect(inline).toContain('e^{i\\pi} + 1 = 0')
+
+    const display = md.render('$$\n\\int_0^1 x^2 dx\n$$')
+    expect(display).toContain('data-rich-info="display"')
+    expect(display).toContain('\\int_0^1 x^2 dx')
+
+    for (const prose of ['price $5 and tax', '$ x$', '$x $', '`$x$`']) {
+      expect(md.render(prose)).not.toContain('data-rich-block')
+    }
+  })
+
+  it('emits escaped inert source for accepted renderer fences', () => {
+    const html = md.render('```mermaid\ngraph TD\nA[<script>] --> B\n```')
+    expect(html).toContain('data-rich-kind="mermaid"')
+    expect(html).toContain('data-rich-info="mermaid"')
+    expect(html).toContain('&lt;script&gt;')
+    expect(html).not.toContain('<script>')
+
+    expect(md.render('```VL\n{"data":{"values":[]}}\n```')).toContain(
+      'data-rich-kind="vega-lite"'
+    )
+    expect(md.render('```latex\nx^2\n```')).toContain(
+      'data-rich-kind="math"'
+    )
+  })
+
+  it('keeps unknown fences on Markdown-it ordinary-code parity', () => {
+    expect(md.render('```python\nprint(1)\n```')).toBe(
+      '<pre><code class="language-python">print(1)\n</code></pre>\n'
+    )
+    expect(md.render('```graphviz\ndigraph { a -> b }\n```')).not.toContain(
+      'data-rich-block'
+    )
+  })
+
+  it('carries source-gap classes onto rich block placeholders', () => {
+    const html = md.render('## Diagram\n```mermaid\ngraph TD; A-->B\n```')
+    expect(html).toMatch(/class="[^"]*md-tight[^"]*rich-markdown-block|class="[^"]*rich-markdown-block[^"]*md-tight/)
+  })
+})
+
 describe('noteMarkdown — semantic edges (CP-MVP-009 S03, ADR-011)', () => {
   const md = noteMarkdown()
 
