@@ -6,9 +6,9 @@ tags: [coding-path, m8, retrieval, bm25, context-packet, link-expansion, rag, ch
 timestamp: 2026-08-16T00:00:00Z
 atomik:
   id: CP-MVP-010
-  status: running
+  status: done
   accepted: 2026-08-16
-  current_step: S11
+  current_step: S11 (closed)
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -953,15 +953,24 @@ live, on real notes.
       product contract changed in this step. Mechanical closure remains:
       rebase onto the latest local trunk, gates on that exact result,
       coherence audit, journal, `status: done`, and self-merge.
+      CLOSURE COMPLETE: conflict-free rebase onto trunk `eec8107`; bare
+      Cairn, typecheck, 927-test/74-file suite, production build, and
+      retrieval-eval green on the rebased result. The filled coherence
+      audit (`../audits/cp-mvp-010-23f47da.md`) rules **drift noted,
+      proceeding**: CP-RICH-MARKDOWN duplicates nothing and already owns
+      the later shared-style/module-note rebase. Audit found and removed
+      only one local defect, unrelated `\u2014` serialization churn in the
+      two package descriptions. Merge journal:
+      `../log/2026-08-17-cp-mvp-010.md`. Path marked `done`; self-merge is
+      the only action left.
 
 # Current checkpoint
 
 ```text
 base commit : 2370546 (closing rebase contains trunk tip eec8107,
               including the CP-RICH-MARKDOWN opening record)
-current step: S11 done (owner acceptance + closing ceremony recorded) —
-              mechanical close next (rebase, gates, audit, journal,
-              status done, self-merge)
+current step: S11 closed — owner acceptance + ceremony recorded; rebased
+              gates green; audit and journal filled; status done
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts
@@ -977,12 +986,16 @@ changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               docs/learning/22-lexical-retrieval-without-a-database.md + index
               docs/adr/ADR-013-lexical-retrieval-without-a-database.md
               docs/index.md · atomik-project/coding-paths/CP-MVP-010.md
+              atomik-project/sessions/2026-08-17-cp-mvp-010-{acceptance,
+                closing-ceremony}.md
+              atomik-project/audits/cp-mvp-010-23f47da.md
+              atomik-project/log/2026-08-17-cp-mvp-010.md
 tests       : 927 passing / 74 files on the rebased branch (this path
               added 122; CP-FEEDBACK's merge brought the rest),
               typecheck, build, retrieval-eval and cairn-check green,
               each gate run BARE (24)
-next action : run every gate on this rebased result, fill `npm run
-              cairn-audit`, write the journal, mark done, and self-merge
+next action : commit the complete close and fast-forward self-merge into
+              local master; CP-MVP-011 then receives its short opening check
 rebase note : final closing rebase onto eec8107 was conflict-free. The
               earlier rebase onto 260f964 had one mechanical learning-
               index collision (note 22 here, note 23 from CP-PROVIDERS),

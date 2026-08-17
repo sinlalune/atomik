@@ -1,7 +1,7 @@
 {
   "name": "atomik",
   "private": true,
-  "description": "Atomik \u2014 local-first AI learning workbench. Dual-plane repository (ADR-009): code plane + atomik-project/ knowledge/execution plane. Agents start at AGENTS.md.",
+  "description": "Atomik — local-first AI learning workbench. Dual-plane repository (ADR-009): code plane + atomik-project/ knowledge/execution plane. Agents start at AGENTS.md.",
   "workspaces": [
     "apps/*",
     "packages/*"
