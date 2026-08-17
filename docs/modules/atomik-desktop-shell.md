@@ -22,6 +22,11 @@ timestamp: 2026-08-17T00:00:00Z
   fixture-tested. Future `search_wiki` renderer access must be one named,
   validated channel over the fixed-host seat; neither a generic URL/fetch verb
   nor provider-native web-search surface is permitted (ADR-015, bedrock 13).
+  S02 implements the Wikipedia side behind that boundary without exposing it:
+  injected main-side fetch, fixed Wikimedia host derivation, redirect denial,
+  bounded streamed JSON, caller abort + per-request timeout, and hostile HTML
+  reduced to typed text before any future IPC. The preload surface therefore
+  remains byte-for-byte unchanged until S05 has a narrow operation to publish.
 
 - The Electron shell: app lifecycle, the trusted UI window, and the
   main/preload/renderer split (`apps/desktop/electron-main/`,

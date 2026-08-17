@@ -28,6 +28,14 @@ timestamp: 2026-08-17T00:00:00Z
   opts into its native dialect only when its first request, tool-call parse,
   result continuation and final response are fixture-tested. ADR-015 pins the
   main-side loop and forbids provider-native web-search shortcuts.
+- EXTERNAL RETRIEVAL RECEIPT (CP-MVP-011 S02):
+  `ActionTraceLedger.recordWikimedia` appends a parented `retrieve` line for a
+  live `search_wiki` execution: public-api/Wikimedia/corpus identity, language,
+  HTTP request count, results, response bytes, wall time and typed outcome.
+  Its input type contains no query or returned content field, and the ledger
+  pins `contentRecorded: false`. The client takes the ledger through a tiny
+  injected trace-sink interface; S05 creates the parent trace before the first
+  provider turn and wires this already-tested child record into the operation.
 
 - Mechanical truth labels (06 §labeling rule, S10): `electron-main/truth.ts`
   (truth-core validator seat, 14 — validators never call AI). Providers

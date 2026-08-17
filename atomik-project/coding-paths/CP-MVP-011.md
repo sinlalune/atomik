@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-011
   status: running
   accepted: 2026-08-17
-  current_step: S02
+  current_step: S03
   base_commit: 783c7c6
   branch: path/cp-mvp-011
   writes:
@@ -237,7 +237,7 @@ BASE        783c7c6; branch path/cp-mvp-011; dedicated worktree
       Wikimedia API/etiquette/licensing documentation; pin the typed contracts,
       budgets, supported language flow, claim allowlist, provenance, adapter
       capability matrix, and fixture corpus in code/tests/docs.
-- [ ] S02 Wikipedia seat: implement the injected, abortable main-side client,
+- [x] S02 Wikipedia seat: implement the injected, abortable main-side client,
       bounded search + article extract, typed failures, revision/canonical URL
       provenance, traces, fixtures, and module/learning notes.
 - [ ] S03 Wikidata + graph bridge: entity search/resolution, labels/aliases,
@@ -290,15 +290,33 @@ BASE        783c7c6; branch path/cp-mvp-011; dedicated worktree
   The learning index edit is deliberate catalogue maintenance (17), not a
   generated ACTIVE view. No live response became a fixture or canonical file.
 
+## S02 work unit — complete 2026-08-17
+
+- **Code:** added the injected main-side `WikimediaClient` Wikipedia seat,
+  fixed Core REST routing, streaming per-response/total byte gates, sequential
+  request budget, linked timeout/caller cancellation, typed HTTP/JSON/empty/429
+  failures, main-side HTML-to-bounded-text extraction, canonical revision and
+  licence provenance, and a content-free parented Wikimedia trace line.
+- **Tests:** dated minimal English/French search/page fixtures plus empty and
+  malformed responses; pure extraction; fixed URL/User-Agent/no-redirect;
+  provenance; response byte limits; Retry-After; timeout versus cancel; and a
+  real private ActionTrace assertion that query/article text cannot leak.
+- **Docs:** extended the research snapshot with the French probe, learning note
+  25 with streaming/abort/receipt methodology, and source/AI module notes with
+  the implemented seat and trace seam.
+- **Deviations:** S05 still owns IPC/tool execution and parent generation-trace
+  creation. S02 records through an injected sink now, so no unparented live
+  trace or premature renderer network door was introduced.
+
 # Current checkpoint
 
 ```text
 base commit : 783c7c6 (local master and origin/master at activation)
-changed     : S01 contracts/tests/ADR/research/learning + AI/source/graph/shell
-              notes; adapters explicitly fail closed until S06 codecs exist
-tests       : typecheck green; 75 files / 936 pass / 1 skip; build green
-next action : execute S02 — injected main-side Wikipedia search/page seat with
-              byte/time/cancel limits, revision provenance, traces and fixtures
+changed     : S01 contracts plus S02 Wikipedia client, offline fixtures,
+              streaming budgets, provenance and parented trace seam
+tests       : typecheck green; 76 files / 943 pass / 1 skip; build + Cairn green
+next action : execute S03 — Wikidata entity search/resolution, allowlisted
+              statements, labels/sitelinks and disposable graph projection
 blockers    : none
 parallel    : CP-RICH-MARKDOWN is running; styles.css and broad renderer/test/
               docs surfaces overlap advisory-only. Rebase at step boundaries.

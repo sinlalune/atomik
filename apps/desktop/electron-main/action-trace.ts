@@ -7,6 +7,7 @@ import type {
   AiTraceDecision,
   TraceSummary
 } from '../shared/ipc-contract'
+import type { WikimediaTraceRecord } from '../shared/wikimedia'
 
 /**
  * Minimal ActionTrace ledger (S09) — the incubating execution-core seat
@@ -98,6 +99,35 @@ type RetrieveTraceLine = {
   privacy: { mode: 'offline'; contentRecorded: false }
 }
 
+/** One external read-only tool call, content-free and parented (011/33). */
+type WikimediaTraceLine = {
+  id: string
+  parentTraceId: string
+  operationId: string
+  timestamp: string
+  action: 'retrieve'
+  execution: {
+    location: 'public-api'
+    provider: 'wikimedia'
+    model: string
+  }
+  usage: {
+    tool: 'search_wiki'
+    corpus: string
+    language: string
+    requests: number
+    results: number
+    responseBytes: number
+  }
+  performance: { wallMs: number }
+  billing: { currency: 'EUR'; estimatedAmount: 0; basis: 'estimated' }
+  outcome: {
+    status: 'completed' | 'failed'
+    errorKind?: string
+  }
+  privacy: { mode: 'public-api'; contentRecorded: false }
+}
+
 /** Engine identity + labeled usage/billing a real adapter reports
  *  (CP-MVP-008 S02); absent → the S08 mock identity. */
 export type GenerationTraceMeta = {
@@ -185,7 +215,11 @@ export class ActionTraceLedger {
   }
 
   private append(
-    line: ActionTraceLine | TranscribeTraceLine | RetrieveTraceLine
+    line:
+      | ActionTraceLine
+      | TranscribeTraceLine
+      | RetrieveTraceLine
+      | WikimediaTraceLine
   ): void {
     mkdirSync(join(this.stateDir, 'usage', 'private'), { recursive: true })
     appendFileSync(this.ledgerPath(), `${JSON.stringify(line)}\n`, 'utf8')
@@ -223,6 +257,42 @@ export class ActionTraceLedger {
       billing: { currency: 'EUR', estimatedAmount: 0, basis: 'estimated' },
       outcome: { status: record.status },
       privacy: { mode: 'offline', contentRecorded: false }
+    })
+    return id
+  }
+
+  /**
+   * One line per search_wiki execution. Query and returned prose are absent by
+   * type, not merely omitted by convention.
+   */
+  recordWikimedia(record: WikimediaTraceRecord): string {
+    const id = this.newTraceId()
+    this.append({
+      id,
+      parentTraceId: record.parentTraceId,
+      operationId: record.parentOperationId,
+      timestamp: new Date().toISOString(),
+      action: 'retrieve',
+      execution: {
+        location: 'public-api',
+        provider: 'wikimedia',
+        model: record.corpus
+      },
+      usage: {
+        tool: record.tool,
+        corpus: record.corpus,
+        language: record.language,
+        requests: record.requests,
+        results: record.resultCount,
+        responseBytes: record.responseBytes
+      },
+      performance: { wallMs: record.wallMs },
+      billing: { currency: 'EUR', estimatedAmount: 0, basis: 'estimated' },
+      outcome: {
+        status: record.status,
+        ...(record.errorKind === undefined ? {} : { errorKind: record.errorKind })
+      },
+      privacy: { mode: 'public-api', contentRecorded: false }
     })
     return id
   }

@@ -29,6 +29,16 @@ timestamp: 2026-08-17T00:00:00Z
   durable image is copied locally rather than hotlinked. Volatile facts and
   the fixture refresh ritual live in
   `docs/research/wikimedia-live-api-snapshot-2026-08-17.md`.
+- WIKIPEDIA LIVE SEAT (CP-MVP-011 S02):
+  `electron-main/wikimedia.ts`. `WikimediaClient` accepts injected fetch,
+  clock, trace sink and numeric budgets. `searchWikipedia` validates the pure
+  `search_wiki` request, constructs only `<language>.wikipedia.org` Core REST
+  URLs, serially searches/reads the selected page revisions, and emits bounded
+  clean text with canonical URL, revision/access/licence provenance. Response
+  bytes are bounded WHILE streaming (Content-Length early gate plus chunk
+  ceiling); caller abort and request timeout remain distinct typed failures;
+  429 preserves Retry-After without an eager retry. Local English/French,
+  empty, malformed, 429, oversize, timeout and cancel fixtures keep CI offline.
 
 - The capture session server (08/13 §capture, CP-MVP-002 S02):
   `electron-main/capture-session.ts` (incubating capture-core, 14) — a

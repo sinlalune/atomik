@@ -45,6 +45,12 @@ timestamp `2026-08-11T19:33:57Z`, CC BY-SA 4.0 licence metadata, and about
 683k HTML characters. The large page is why the transport must enforce a byte
 ceiling while reading, then derive a much smaller cited text result.
 
+S02 fixture refresh also checked the French edition at low concurrency:
+`Atome` returned page id 189 and Core REST returned revision id 238155014,
+timestamp `2026-07-27T17:50:43Z`, and the French CC BY-SA 4.0 deed URL. CI
+keeps only minimal schema/content fragments for those English/French cases,
+not the full remote articles.
+
 ### Identification, rate limits and deprecation
 
 - Wikimedia requires an informative User-Agent with a way to contact the
@@ -155,4 +161,3 @@ Refresh procedure: make a low-rate opt-in diagnostic with the product user
 agent, review licence and schema drift, redact volatile/unneeded fields, save a
 minimal JSON fixture, and keep the expected normalized result beside it. Never
 record API keys, prompts, owner queries, or full pages.
-

@@ -23,7 +23,9 @@ export const WIKIMEDIA_LIMITS = {
   defaultResults: 3,
   maxResults: 5,
   maxNetworkRequestsPerSearch: 8,
+  /** Per HTTP response; the whole search has its own independent ceiling. */
   maxResponseBytes: 2_000_000,
+  maxTotalResponseBytes: 6_000_000,
   maxArticleTextChars: 6_000,
   maxToolTextChars: 18_000,
   requestTimeoutMs: 12_000,
@@ -200,6 +202,21 @@ export type WikimediaErrorKind =
   | 'cancelled'
   | 'budget-exceeded'
   | 'unsupported-language'
+
+/** Privacy-safe receipt input; it deliberately has no query or result text. */
+export type WikimediaTraceRecord = {
+  parentTraceId: string
+  parentOperationId: string
+  tool: 'search_wiki'
+  corpus: Exclude<WikimediaSearchCorpus, 'auto'>
+  language: string
+  requests: number
+  resultCount: number
+  responseBytes: number
+  wallMs: number
+  status: 'completed' | 'failed'
+  errorKind?: WikimediaErrorKind
+}
 
 /**
  * The claim vocabulary is data, not an ontology. Only these properties may

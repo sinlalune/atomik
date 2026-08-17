@@ -37,6 +37,31 @@ any compromised renderer choose what network resource to read. Instead it can
 eventually ask for one typed operation whose host is derived from a validated
 project and language.
 
+### S02: bounding the response while it is still a stream
+
+Checking `text.length` after `await response.text()` is too late: the whole
+remote body is already in memory. `boundedText` first rejects an excessive
+`Content-Length`, then reads the response stream chunk by chunk and cancels the
+reader as soon as either the per-response or whole-search byte budget is
+crossed. Only the bounded bytes are decoded and parsed as JSON.
+
+Cancellation has two authors: the parent AI operation and a per-request
+timeout. `requestSignal` links both to a fresh AbortController, remembers which
+one won, and always removes its listener/timer. That is why the caller gets
+`cancelled` when it pressed Cancel and `timeout` when the remote service took
+too long — both abort the same fetch, but they mean different things.
+
+`WikimediaClient.searchWikipedia` then performs a deliberately sequential
+search → page loop. Sequential requests make rate limits, cancellation and
+request accounting deterministic. Page HTML is parsed in main, chrome and
+reference furniture are removed, whitespace is normalized, and the result is
+clipped on a word boundary. Page id, latest revision, canonical URL, access
+time and licence stay attached to that derived text.
+
+The client records one privacy-safe child receipt through the injected
+`WikimediaTraceSink`. `ActionTraceLedger.recordWikimedia` can persist it because
+the receipt type has no field in which a query or article could be placed.
+
 ### Hands-on: read the host rule
 
 Find `wikimediaHostOf`. Try the inputs `wikipedia + fr`,
@@ -206,4 +231,6 @@ offline.
    or becoming a valid citation.
 6. Explain why `thin` vault coverage should be visible to the model but must
    not itself execute `search_wiki`.
-
+7. In `wikimedia.test.ts`, change the fake `Content-Length` from 100 to 40.
+   Explain why the failure moves from the byte gate to JSON validation, and why
+   neither case can allocate an unbounded response.
