@@ -235,6 +235,12 @@ timestamp: 2026-08-17T00:00:00Z
   per-diagram definitions remain lazy. No IPC/preload channel, provider key,
   web-view capability, or CSP exception is added: diagrams receive only source,
   theme, budgets, an abort signal, and a temporary renderer-owned DOM node.
+- S05 adds a two-stage chart boundary: 15,357 B of lazy validation/lifecycle
+  code loads for an accepted fence, then the 618,083 B Vega-Lite compiler and
+  940,911 B Vega runtime load only after inline-data preflight. The eager entry
+  grows 443 B and CSS 271 B from S04. Charts add no IPC/preload/CSP exception;
+  their View receives a deny-all loader and is finalized before its sanitized
+  static SVG becomes the note projection.
 - Two mounted note bodies receive different rich render generations, so
   identical Mermaid/Vega SVGs cannot collide in the shared renderer document.
   Live widgets and every React read consumer still use the same hydration

@@ -13,6 +13,12 @@ import {
   mermaidConfigFor,
   type MermaidRuntime
 } from '../renderer/src/editor/rich-markdown/adapters/mermaid-core'
+import {
+  createVegaLiteAdapter,
+  validateVegaLiteSource,
+  type VegaLiteRuntime,
+  type VegaView
+} from '../renderer/src/editor/rich-markdown/adapters/vega-lite-core'
 import { safeSvgNode } from '../renderer/src/editor/rich-markdown/adapters/safe-svg'
 import { hydrateRichMarkdown } from '../renderer/src/editor/rich-markdown/hydration'
 import { createRichRendererRegistry } from '../renderer/src/editor/rich-markdown/registry'
@@ -95,6 +101,71 @@ function fakeMermaid(svg = '<svg xmlns="http://www.w3.org/2000/svg"><path /></sv
     updateSiteConfig,
     render,
     bindFunctions
+  }
+}
+
+const VALID_VEGA_SOURCE = JSON.stringify({
+  title: 'Quarterly total',
+  description: 'A bar chart of quarterly totals.',
+  data: {
+    values: [
+      { quarter: 'Q1', total: 3 },
+      { quarter: 'Q2', total: 7 }
+    ]
+  },
+  mark: 'bar',
+  encoding: {
+    x: { field: 'quarter', type: 'nominal' },
+    y: { field: 'total', type: 'quantitative' }
+  }
+})
+
+function vegaRequest(
+  source = VALID_VEGA_SOURCE,
+  overrides: Partial<RichRenderRequest> = {}
+): RichRenderRequest {
+  return {
+    id: 'rich-test-vega-lite-0-b2',
+    kind: 'vega-lite',
+    source,
+    info: 'vega-lite',
+    theme: { name: 'system', scheme: 'light' },
+    limits: DEFAULT_RICH_LIMITS,
+    signal: new AbortController().signal,
+    ...overrides
+  }
+}
+
+function fakeVega(
+  svg = '<svg xmlns="http://www.w3.org/2000/svg"><rect id="bar" /></svg>'
+): {
+  runtime: VegaLiteRuntime
+  compile: ReturnType<typeof vi.fn>
+  parse: ReturnType<typeof vi.fn>
+  createView: ReturnType<typeof vi.fn>
+  runAsync: ReturnType<typeof vi.fn>
+  toSVG: ReturnType<typeof vi.fn>
+  finalize: ReturnType<typeof vi.fn>
+  view: VegaView
+} {
+  const compile = vi.fn((spec: Record<string, unknown>) => ({
+    spec: { compiled: spec }
+  }))
+  const parse = vi.fn((spec: unknown) => ({ runtime: spec }))
+  const runAsync = vi.fn(async () => undefined)
+  const toSVG = vi.fn(async () => svg)
+  const finalize = vi.fn()
+  const view: VegaView = { runAsync, toSVG, finalize }
+  const createView = vi.fn(() => view)
+  return {
+    runtime: { compile, parse, createView },
+    compile,
+    parse,
+    createView,
+    runAsync,
+    toSVG,
+    finalize,
+    view
   }
 }
 
@@ -721,6 +792,324 @@ describe('Mermaid adapter (CP-RICH-MARKDOWN S04)', () => {
         })
       )
     ).rejects.toThrow('output exceeds 32 bytes')
+    expect(host.querySelector('svg')).toBeNull()
+  })
+})
+
+describe('Vega-Lite adapter (CP-RICH-MARKDOWN S05)', () => {
+  it('renders through the pinned Vega-Lite and Vega runtime', async () => {
+    const root = domFor(`\`\`\`vega-lite\n${VALID_VEGA_SOURCE}\n\`\`\``)
+    const hydration = hydrateRichMarkdown(root)
+    await hydration.ready
+    const svg = root.querySelector<SVGElement>('[data-rich-output] svg')!
+    expect(svg).not.toBeNull()
+    expect(svg.getAttribute('role')).toBe('img')
+    expect(svg.querySelector('title')?.textContent).toBe('Quarterly total')
+    expect(svg.querySelector('image')).toBeNull()
+    expect(svg.querySelector('a')).toBeNull()
+    expect(svg.querySelectorAll('rect, path')).not.toHaveLength(0)
+    hydration.dispose()
+    expect(root.querySelector('[data-rich-output] svg')).toBeNull()
+  })
+
+  it('renders a themed, static, accessible SVG through a deny-all loader', async () => {
+    const fixture = fakeVega(
+      [
+        '<svg xmlns="http://www.w3.org/2000/svg" id="chart" onload="bad()">',
+        '<rect id="bar" onclick="bad()" />',
+        '</svg>'
+      ].join('')
+    )
+    const root = domFor(`\`\`\`vl\n${VALID_VEGA_SOURCE}\n\`\`\``)
+    const hydration = hydrateRichMarkdown(root, {
+      registry: createRichRendererRegistry({
+        'vega-lite': async () =>
+          createVegaLiteAdapter(async () => fixture.runtime)
+      })
+    })
+    await hydration.ready
+
+    expect(fixture.compile).toHaveBeenCalledTimes(1)
+    expect(fixture.compile.mock.calls[0]?.[0]).toMatchObject({
+      title: 'Quarterly total',
+      background: '#fbfbf9',
+      config: {
+        axis: {
+          labelColor: '#26261f',
+          gridColor: '#e0e0d8'
+        },
+        mark: { color: '#3d5a3d' }
+      }
+    })
+    expect(fixture.parse).toHaveBeenCalledTimes(1)
+    expect(fixture.createView).toHaveBeenCalledTimes(1)
+    const viewOptions = fixture.createView.mock.calls[0]?.[1]
+    expect(viewOptions).toMatchObject({ renderer: 'svg', hover: false })
+    await expect(viewOptions.loader.load('https://evil.example')).rejects.toThrow(
+      'resource loading is disabled'
+    )
+    await expect(viewOptions.loader.sanitize('file:///secret')).rejects.toThrow(
+      'link sanitization is disabled'
+    )
+    await expect(viewOptions.loader.http('https://evil.example')).rejects.toThrow(
+      'HTTP loading is disabled'
+    )
+    await expect(viewOptions.loader.file('/secret')).rejects.toThrow(
+      'file loading is disabled'
+    )
+    expect(fixture.runAsync).toHaveBeenCalledTimes(1)
+    expect(fixture.toSVG).toHaveBeenCalledTimes(1)
+    expect(fixture.finalize).toHaveBeenCalledTimes(1)
+
+    const svg = root.querySelector<SVGElement>('[data-rich-output] svg')!
+    expect(svg.getAttribute('role')).toBe('img')
+    expect(svg.getAttribute('onload')).toBeNull()
+    expect(svg.querySelector('rect')?.getAttribute('onclick')).toBeNull()
+    expect(svg.querySelector('title')?.textContent).toBe('Quarterly total')
+    expect(svg.querySelector('desc')?.textContent).toBe(
+      'A bar chart of quarterly totals.'
+    )
+    expect(svg.id).toMatch(/^atomik-rich-\d+-vega-lite-0-/)
+
+    hydration.dispose()
+    expect(root.querySelector('[data-rich-output] svg')).toBeNull()
+  })
+
+  it('accepts inline values and top-level named inline datasets only', () => {
+    const named = {
+      datasets: {
+        table: [
+          { url: 'ordinary field value', href: 'ordinary field value', data: 2 },
+          { url: 'another value', href: 'another value', data: 4 }
+        ]
+      },
+      data: { name: 'table' },
+      mark: 'point',
+      encoding: { x: { field: 'data', type: 'quantitative' } }
+    }
+    expect(validateVegaLiteSource(vegaRequest(JSON.stringify(named)))).toEqual(
+      named
+    )
+    expect(
+      validateVegaLiteSource(
+        vegaRequest(
+          JSON.stringify({
+            data: {
+              values: { records: [{ x: 1, y: 2 }] },
+              format: { type: 'json', property: 'records' }
+            },
+            mark: 'point'
+          })
+        )
+      )
+    ).toMatchObject({ data: { values: { records: [{ x: 1, y: 2 }] } } })
+  })
+
+  it('maps dark app tokens into site-owned chart defaults', async () => {
+    const fixture = fakeVega()
+    const handle = await createVegaLiteAdapter(async () => fixture.runtime).render(
+      emptyHost(),
+      vegaRequest(undefined, {
+        theme: { name: 'biolum', scheme: 'dark' }
+      })
+    )
+    expect(fixture.compile.mock.calls[0]?.[0]).toMatchObject({
+      background: '#1e1e23',
+      config: {
+        axis: { labelColor: '#e8e8e3', gridColor: '#44444c' },
+        mark: { color: '#9ec49e' },
+        title: { color: '#e8e8e3' }
+      }
+    })
+    handle.dispose()
+  })
+
+  it('rejects external, generated, image, action, and missing-dataset inputs before import', async () => {
+    const rejected = [
+      { data: { url: 'https://evil.example/data.json' }, mark: 'bar' },
+      { data: { sequence: { start: 0, stop: 10 } }, mark: 'line' },
+      { data: { name: 'not-defined' }, mark: 'point' },
+      { data: { values: [] }, mark: 'image' },
+      { data: { values: [] }, mark: { type: 'image' } },
+      {
+        data: { values: [] },
+        mark: 'point',
+        encoding: { href: { value: 'https://evil.example' } }
+      },
+      {
+        data: { values: [] },
+        mark: 'point',
+        encoding: { url: { field: 'photo' } }
+      },
+      { data: { values: [] }, mark: 'point', usermeta: { actions: true } },
+      { data: { values: [] }, mark: 'point', config: { patch: [] } },
+      {
+        data: { values: 'x,y\\n1,2', format: { type: 'csv' } },
+        mark: 'point'
+      },
+      {
+        data: { values: [] },
+        mark: 'point',
+        params: [{ name: 'selection', bind: 'scales' }]
+      },
+      {
+        data: { values: [] },
+        layer: [{ datasets: { nested: [] }, mark: 'point' }]
+      }
+    ]
+    const loadRuntime = vi.fn(async () => fakeVega().runtime)
+    const adapter = createVegaLiteAdapter(loadRuntime)
+    for (const spec of rejected) {
+      await expect(
+        adapter.render(emptyHost(), vegaRequest(JSON.stringify(spec)))
+      ).rejects.toThrow('Vega-Lite')
+    }
+    expect(loadRuntime).not.toHaveBeenCalled()
+  })
+
+  it('rejects malformed roots and clamps every authored-data budget', () => {
+    for (const source of ['', 'null', '[]', '42', '"chart"']) {
+      expect(() => validateVegaLiteSource(vegaRequest(source))).toThrow(
+        'Vega-Lite'
+      )
+    }
+
+    expect(() =>
+      validateVegaLiteSource(
+        vegaRequest(VALID_VEGA_SOURCE, {
+          limits: {
+            ...DEFAULT_RICH_LIMITS,
+            vegaLite: {
+              ...DEFAULT_RICH_LIMITS.vegaLite,
+              maxSourceBytes: 16
+            }
+          }
+        })
+      )
+    ).toThrow('source exceeds 16 bytes')
+
+    expect(() =>
+      validateVegaLiteSource(
+        vegaRequest(JSON.stringify({ a: { b: { c: true } } }), {
+          limits: {
+            ...DEFAULT_RICH_LIMITS,
+            vegaLite: { ...DEFAULT_RICH_LIMITS.vegaLite, maxDepth: 2 }
+          }
+        })
+      )
+    ).toThrow('nesting depth 2')
+
+    expect(() =>
+      validateVegaLiteSource(
+        vegaRequest(JSON.stringify({ a: 1, b: 2, c: 3 }), {
+          limits: {
+            ...DEFAULT_RICH_LIMITS,
+            vegaLite: { ...DEFAULT_RICH_LIMITS.vegaLite, maxProperties: 2 }
+          }
+        })
+      )
+    ).toThrow('exceeds 2 properties')
+
+    expect(() =>
+      validateVegaLiteSource(
+        vegaRequest(JSON.stringify({ data: { values: [{ a: 1 }, { a: 2 }] } }), {
+          limits: {
+            ...DEFAULT_RICH_LIMITS,
+            vegaLite: { ...DEFAULT_RICH_LIMITS.vegaLite, maxRows: 1 }
+          }
+        })
+      )
+    ).toThrow('exceeds 1 rows')
+
+    expect(() =>
+      validateVegaLiteSource(
+        vegaRequest(JSON.stringify({ data: { values: [{ a: 1, b: 2 }] } }), {
+          limits: {
+            ...DEFAULT_RICH_LIMITS,
+            vegaLite: {
+              ...DEFAULT_RICH_LIMITS.vegaLite,
+              maxPrimitiveCells: 1
+            }
+          }
+        })
+      )
+    ).toThrow('exceeds 1 primitive cells')
+
+    const overHardCap = JSON.stringify({
+      description: 'x'.repeat(DEFAULT_RICH_LIMITS.vegaLite.maxSourceBytes)
+    })
+    expect(() =>
+      validateVegaLiteSource(
+        vegaRequest(overHardCap, {
+          limits: {
+            ...DEFAULT_RICH_LIMITS,
+            vegaLite: {
+              ...DEFAULT_RICH_LIMITS.vegaLite,
+              maxSourceBytes: 1_000_000
+            }
+          }
+        })
+      )
+    ).toThrow(`source exceeds ${256 * 1024} bytes`)
+  })
+
+  it('finalizes exactly once across runtime errors, unsafe output, and output caps', async () => {
+    const runFailure = fakeVega()
+    runFailure.runAsync.mockRejectedValueOnce(new Error('dataflow failed'))
+    await expect(
+      createVegaLiteAdapter(async () => runFailure.runtime).render(
+        emptyHost(),
+        vegaRequest()
+      )
+    ).rejects.toThrow('dataflow failed')
+    expect(runFailure.finalize).toHaveBeenCalledTimes(1)
+
+    const unsafe = fakeVega(
+      '<svg xmlns="http://www.w3.org/2000/svg"><image href="https://evil.example/x" /></svg>'
+    )
+    await expect(
+      createVegaLiteAdapter(async () => unsafe.runtime).render(
+        emptyHost(),
+        vegaRequest()
+      )
+    ).rejects.toThrow('Unsafe generated SVG')
+    expect(unsafe.finalize).toHaveBeenCalledTimes(1)
+
+    const oversized = fakeVega(
+      `<svg xmlns="http://www.w3.org/2000/svg"><text>${'x'.repeat(100)}</text></svg>`
+    )
+    await expect(
+      createVegaLiteAdapter(async () => oversized.runtime).render(
+        emptyHost(),
+        vegaRequest(undefined, {
+          limits: { ...DEFAULT_RICH_LIMITS, maxOutputBytes: 32 }
+        })
+      )
+    ).rejects.toThrow('output exceeds 32 bytes')
+    expect(oversized.finalize).toHaveBeenCalledTimes(1)
+  })
+
+  it('finalizes immediately when an in-flight dataflow is cancelled', async () => {
+    const fixture = fakeVega()
+    const pending = deferred<undefined>()
+    const started = deferred<void>()
+    fixture.runAsync.mockImplementationOnce(async () => {
+      started.resolve()
+      return pending.promise
+    })
+    const controller = new AbortController()
+    const host = emptyHost()
+    const rendering = createVegaLiteAdapter(async () => fixture.runtime).render(
+      host,
+      vegaRequest(undefined, { signal: controller.signal })
+    )
+    await started.promise
+    controller.abort(new Error('chart cancelled'))
+    expect(fixture.finalize).toHaveBeenCalledTimes(1)
+    pending.resolve(undefined)
+
+    await expect(rendering).rejects.toThrow('chart cancelled')
+    expect(fixture.finalize).toHaveBeenCalledTimes(1)
     expect(host.querySelector('svg')).toBeNull()
   })
 })

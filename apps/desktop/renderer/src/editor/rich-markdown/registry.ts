@@ -60,5 +60,7 @@ export const defaultRichRendererRegistry = createRichRendererRegistry({
   math: async () =>
     import('./adapters/katex').then((module) => module.katexAdapter),
   mermaid: async () =>
-    import('./adapters/mermaid').then((module) => module.mermaidAdapter)
+    import('./adapters/mermaid').then((module) => module.mermaidAdapter),
+  'vega-lite': async () =>
+    import('./adapters/vega-lite').then((module) => module.vegaLiteAdapter)
 })

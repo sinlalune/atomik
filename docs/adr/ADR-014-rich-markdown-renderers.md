@@ -216,6 +216,31 @@ schema ([security level](https://mermaid.js.org/config/schema-docs/config-proper
   Mermaid. Call `view.finalize()` on cancellation, replacement, unmount, and
   error.
 
+S05 implements a two-stage lazy boundary. The registry first imports a small
+policy adapter; that adapter parses and completely preflights the JSON before
+its second dynamic import loads either `vega-lite` or `vega`. The 256 KiB,
+depth-32, 50,000-property, 5,000-row, 100,000-primitive-cell, and 2 MiB output
+ceilings are hard maxima: a host can lower but cannot raise them. Traversal
+counts decoded string/key bytes and nested inline collections as well as the
+top-level row array. Inline encoded-text datasets are rejected because their
+post-parse row/cell count cannot be proved before the runtime loads; admitted
+values and top-level datasets are structured JSON arrays or objects.
+
+Outside admitted data records, the policy rejects URL/href channels, image
+marks, generated or unresolved named data, nested datasets, loader/patch/
+action/export keys, and bound controls. Named data must resolve to a top-level
+inline dataset. Ordinary record fields named `url`, `href`, or `data` remain
+data, not capabilities. The compiled projection receives site-owned
+light/dark token defaults; authored chart semantics and canonical JSON source
+remain unchanged.
+
+The adapter does not use `vega-embed`. It constructs a headless SVG
+`vega.View` with all four loader methods denied and hover binding disabled,
+runs it, obtains SVG, and immediately finalizes the no-longer-needed view. An
+abort listener finalizes an in-flight view on timeout, replacement, or
+unmount; the `finally` path covers success and every runtime/postflight error.
+Only the static SVG node returned by `safe-svg.ts` is published.
+
 Vega-Lite explicitly supports both inline values and URL data; Atomik admits
 only the former ([data model](https://vega.github.io/vega-lite/docs/data.html)).
 Vega requires the custom loader at View construction time and documents

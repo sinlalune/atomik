@@ -3525,7 +3525,11 @@ button.relations-node:focus-visible {
   padding-block: var(--space-3);
 }
 
-.rich-markdown-block[data-rich-kind='mermaid'] > [data-rich-output]:not([hidden]) {
+.rich-markdown-block:is(
+    [data-rich-kind='mermaid'],
+    [data-rich-kind='vega-lite']
+  )
+  > [data-rich-output]:not([hidden]) {
   display: block;
   max-width: 100%;
   overflow: auto;
@@ -3537,7 +3541,12 @@ button.relations-node:focus-visible {
   white-space: normal;
 }
 
-.rich-markdown-block[data-rich-kind='mermaid'] [data-rich-render-host] > svg {
+.rich-markdown-block:is(
+    [data-rich-kind='mermaid'],
+    [data-rich-kind='vega-lite']
+  )
+  [data-rich-render-host]
+  > svg {
   display: block;
   width: auto;
   max-width: 100%;
@@ -3546,9 +3555,21 @@ button.relations-node:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rich-markdown-block[data-rich-kind='mermaid'] svg *,
-  .rich-markdown-block[data-rich-kind='mermaid'] svg *::before,
-  .rich-markdown-block[data-rich-kind='mermaid'] svg *::after {
+  .rich-markdown-block:is(
+      [data-rich-kind='mermaid'],
+      [data-rich-kind='vega-lite']
+    )
+    svg *,
+  .rich-markdown-block:is(
+      [data-rich-kind='mermaid'],
+      [data-rich-kind='vega-lite']
+    )
+    svg *::before,
+  .rich-markdown-block:is(
+      [data-rich-kind='mermaid'],
+      [data-rich-kind='vega-lite']
+    )
+    svg *::after {
     scroll-behavior: auto !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;

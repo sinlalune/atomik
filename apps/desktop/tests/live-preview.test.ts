@@ -324,17 +324,44 @@ describe('live preview decorations (MVP-001: seamless editing)', () => {
     ).toEqual([])
   })
 
-  it('shares the 128-block live budget across math and Mermaid', () => {
+  it('projects Vega-Lite aliases with read parity and reveals source when touched', () => {
     const ticks = '`'.repeat(3)
-    const math = Array.from({ length: 127 }, (_, index) => `$x_${index}$`)
-    const diagrams = [
+    const source = '{"data":{"values":[{"x":1} ]},"mark":"point"}'
+    const doc = [`${ticks}VL`, source, ticks, '', 'elsewhere'].join('\n')
+    const from = doc.indexOf(ticks)
+    const away = decorate(doc, doc.indexOf('elsewhere'), {
+      name: 'biolum',
+      scheme: 'dark'
+    })
+    expect(away).toContainEqual({
+      from,
+      to: doc.indexOf(ticks, from + ticks.length) + ticks.length,
+      kind: 'vega-lite',
+      richKind: 'vega-lite',
+      richDisplay: true,
+      richSource: source,
+      richTheme: 'biolum'
+    })
+    expect(
+      decorate(doc, doc.indexOf('values')).filter(
+        (deco) => deco.kind === 'vega-lite'
+      )
+    ).toEqual([])
+  })
+
+  it('shares the 128-block live budget across math, Mermaid, and Vega-Lite', () => {
+    const ticks = '`'.repeat(3)
+    const math = Array.from({ length: 126 }, (_, index) => `$x_${index}$`)
+    const richFences = [
       `${ticks}mermaid\nflowchart LR\nA --> B\n${ticks}`,
-      `${ticks}mermaid\nflowchart LR\nB --> C\n${ticks}`
+      `${ticks}vega-lite\n{"data":{"values":[]},"mark":"bar"}\n${ticks}`,
+      `${ticks}vl\n{"data":{"values":[]},"mark":"point"}\n${ticks}`
     ]
-    const doc = [...math, ...diagrams, 'elsewhere'].join('\n')
+    const doc = [...math, ...richFences, 'elsewhere'].join('\n')
     const decos = decorate(doc, doc.indexOf('elsewhere'))
-    expect(decos.filter((deco) => deco.kind === 'math')).toHaveLength(127)
+    expect(decos.filter((deco) => deco.kind === 'math')).toHaveLength(126)
     expect(decos.filter((deco) => deco.kind === 'mermaid')).toHaveLength(1)
+    expect(decos.filter((deco) => deco.kind === 'vega-lite')).toHaveLength(1)
     expect(decos.filter((deco) => deco.kind === 'rich-limit')).toHaveLength(1)
   })
 

@@ -77,6 +77,7 @@ export type LivePreviewKind =
   | 'edge'
   | 'math'
   | 'mermaid'
+  | 'vega-lite'
   | 'rich-limit'
 
 const DEFAULT_RICH_THEME: RichTheme = { name: 'system', scheme: 'light' }
@@ -316,7 +317,10 @@ const richHydrations = new WeakMap<HTMLElement, RichHydration>()
  */
 class RichBlockWidget extends WidgetType {
   constructor(
-    private readonly kind: Extract<RichRendererKind, 'math' | 'mermaid'>,
+    private readonly kind: Extract<
+      RichRendererKind,
+      'math' | 'mermaid' | 'vega-lite'
+    >,
     private readonly source: string,
     private readonly display: boolean,
     private readonly info: string,
@@ -348,9 +352,11 @@ class RichBlockWidget extends WidgetType {
       'aria-label',
       this.kind === 'mermaid'
         ? 'Mermaid source'
-        : this.display
-          ? 'Display math'
-          : 'Inline math'
+        : this.kind === 'vega-lite'
+          ? 'Vega-Lite source'
+          : this.display
+            ? 'Display math'
+            : 'Inline math'
     )
 
     const source = doc.createElement('code')
@@ -889,7 +895,7 @@ export function computeLivePreviewDecorations(
   }
 
   type LiveRichRange = SourceRange & {
-    kind: Extract<RichRendererKind, 'math' | 'mermaid'>
+    kind: Extract<RichRendererKind, 'math' | 'mermaid' | 'vega-lite'>
     source: string
     display: boolean
     info: string
@@ -911,7 +917,9 @@ export function computeLivePreviewDecorations(
         ? state.doc.sliceString(infoNode.from, infoNode.to).trim()
         : ''
       const kind = richKindForFence(info)
-      if (kind !== 'math' && kind !== 'mermaid') return false
+      if (kind !== 'math' && kind !== 'mermaid' && kind !== 'vega-lite') {
+        return false
+      }
       const code = node.node.getChild('CodeText')
       fencedRich.push({
         from: node.from,
@@ -1284,6 +1292,7 @@ export function computeLivePreviewDecorations(
     if (spec.lp === 'edge') return true
     if (spec.lp === 'math') return !insideEdge
     if (spec.lp === 'mermaid') return !insideEdge
+    if (spec.lp === 'vega-lite') return !insideEdge
     if (insideEdge) return spec.lp === 'line'
     return !replacedRichRanges.some(
       (range) => deco.from >= range.from && deco.to <= range.to

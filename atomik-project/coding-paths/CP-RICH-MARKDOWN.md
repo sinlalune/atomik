@@ -8,7 +8,7 @@ atomik:
   id: CP-RICH-MARKDOWN
   status: running
   accepted: 2026-08-17
-  current_step: S05
+  current_step: S06
   base_commit: 98561b4
   branch: path/cp-rich-markdown
   writes:
@@ -180,7 +180,7 @@ The owner-approved details and revised backlog order are recorded in
 - [x] S04 Mermaid: add local lazy secure SVG diagrams, sanitizer/security and
       resource caps, theme/a11y/source behavior, cancellation tests, docs,
       ledger, and a bare gate.
-- [ ] S05 Vega-Lite: add local lazy inline-data charts, schema/cap validation,
+- [x] S05 Vega-Lite: add local lazy inline-data charts, schema/cap validation,
       blocked loaders/actions, view finalization, theme/a11y/source behavior,
       focused tests, docs, ledger, and a bare gate.
 - [ ] S06 Code presentation + decoration-only diagnostics: replace the fixed
@@ -206,21 +206,24 @@ changed     : S02 exact package lock; pure syntax + escaped Markdown-it
               safe per-expression macros; inline/display/fence read + live;
               S04 strict queued Mermaid config + source/resource/edge preflight;
               parsed static SVG postflight, ID namespace/a11y; read/live theme,
-              touched-range reveal, shared cap, cancellation/staging cleanup
-tests       : S04 focused PASS (3 files / 83 tests); full PASS (75 files / 965
+              touched-range reveal, shared cap, cancellation/staging cleanup;
+              S05 structured inline-only Vega preflight, two-stage lazy runtime,
+              deny loader, token theme, View finalization, shared SVG guard,
+              read/live parity and three-renderer cap
+tests       : S05 focused PASS (3 files / 92 tests); full PASS (75 files / 974
               passed + 1 skipped); Cairn/typecheck/build PASS —
-              entry 2,383,165 B (+1,114 from S03), global CSS 135,772 B (+911);
-              lazy Mermaid core 1,097,914 B + flowchart definition 102,800 B;
-              pinned-runtime smoke flowchart-v2 / no foreign or external href
+              entry 2,383,608 B (+443 from S04), global CSS 136,043 B (+271);
+              lazy policy adapter 15,357 B, Vega-Lite 618,083 B, Vega 940,911 B;
+              pinned-runtime smoke 7,614 B static SVG / no image or external href
 audit       : npm audit reports the same 4 inherited highs on trunk and S02
               (PDF.js + Vite/PostCSS/nanoid + Electron optional undici); zero
               rich-dependency advisory delta, no automatic rewrite applied
 catalog     : docs/learning/index.md edit is deliberate under bedrock 17's
               first-use catalog rule; it is not generated ACTIVE/register state
 receipt     : atomik-project/sessions/
-              2026-08-17-cp-rich-markdown-s04-mermaid.md
-next action : checkpoint S04, then begin S05 inline-data-only Vega-Lite using
-              the shared SVG postflight
+              2026-08-17-cp-rich-markdown-s05-vega-lite.md
+next action : checkpoint S05, then begin S06 broad lazy code presentation and
+              decoration-only diagnostic feedback (no other LSP capability)
 blockers    : none; rebased onto trunk 783c7c6
 ```
 

@@ -106,6 +106,13 @@ separate 1,097,914 B chunk; its diagram definitions remain separate again (the
 flowchart definition is 102,800 B), so an ordinary note pays none of that cost
 and a flowchart does not load every other diagram implementation.
 
+S05 uses two lazy doors for charts. The eager entry is 2,383,608 B (+443 B)
+and CSS is 136,043 B (+271 B). An accepted chart first loads the 15,357-byte
+Vega policy adapter. Only after JSON preflight succeeds does it load the
+618,083-byte Vega-Lite compiler and 940,911-byte Vega runtime chunks. An
+invalid or external-data chart therefore never evaluates either heavy
+runtime; an ordinary note requests none of the three chunks.
+
 ### KaTeX: safe TeX is still untrusted input
 
 KaTeX turns a TeX expression into visual HTML and semantic MathML. Atomik asks
@@ -166,6 +173,39 @@ Without that queue, note A could choose a dark palette and seed, note B could
 replace them, and note A could finish with B's IDs or colors. Cancellation
 removes staging immediately; publication checks the signal again, so a late
 diagram never enters a stale note.
+
+### Vega-Lite: data is input, not loading authority
+
+Vega-Lite normally accepts inline data, URL data, generated data, image marks,
+links, and embedding controls. Atomik needs only the first capability. A
+`vega-lite`/`vegalite`/`vl` fence therefore crosses this pipeline:
+
+```text
+authored JSON fence
+  -> parse one object + enforce hard structural/data budgets
+  -> admit structured inline values or named top-level inline datasets
+  -> load Vega-Lite + Vega only after that preflight
+  -> compile, run a headless SVG View with a deny-all loader
+  -> finalize the View in every exit path
+  -> pass SVG through the shared static-resource postflight
+```
+
+The policy walk treats inline records as records: a column called `url` or
+`href` is ordinary data. The same key in a chart encoding or data-source
+object would create a capability and is rejected. URL-backed and generated
+data, unresolved names, nested dataset registries, image marks, href/url
+channels, patches, actions/exports, loaders, and bound controls all fail before
+the heavy import. Encoded CSV/DSV strings also fail because their true row and
+cell count would not be known until parsing; arrays and objects can be bounded
+up front.
+
+No `vega-embed` wrapper exists. Atomik constructs `vega.View` directly with
+the SVG renderer, hover off, and a loader whose `load`, `sanitize`, `http`, and
+`file` methods all reject. Theme colors come from Atomik tokens and override
+visual defaults without changing authored encodings. `runAsync()` and
+`toSVG()` produce a disposable snapshot; an abort listener plus `finally`
+finalize the View on success, failure, timeout, replacement, or unmount. The
+remaining handle owns only the sanitized static node.
 
 ### AbortSignal: a shared cancellation vocabulary
 
@@ -256,7 +296,10 @@ becomes readable source again.
 8. `rich-markdown/adapters/mermaid-core.ts` owns source policy, strict config,
    global serialization and staging. `safe-svg.ts` owns the renderer-neutral
    SVG postflight; the tiny `mermaid.ts` module is the only runtime import.
-9. Vault, project, source-dossier, chat, new-note preview, and inline-AI
+9. `vega-lite-core.ts` owns the JSON/data policy, token theme, deny loader,
+   finalization, and shared SVG postflight. The tiny `vega-lite.ts` adapter
+   loads the compiler and runtime only after preflight.
+10. Vault, project, source-dossier, chat, new-note preview, and inline-AI
    surfaces now enter that same host rather than growing per-surface renderers.
 
 ## How it was built (methodology)
@@ -278,9 +321,10 @@ pure ambiguity rules
 ```
 
 S03 then connects only KaTeX. S04 connects Mermaid through an independently
-tested preflight/postflight instead of trusting library output. Vega-Lite and
-Shiki remain absent until their own steps, so every later security boundary
-stays independently testable.
+tested preflight/postflight instead of trusting library output. S05 reuses
+only the renderer-neutral SVG postflight: its JSON/data admission and View
+lifecycle remain independently testable. Shiki stays absent until S06, so its
+security and cost boundary does not hide inside chart work.
 
 ## Lessons learned the hard way
 

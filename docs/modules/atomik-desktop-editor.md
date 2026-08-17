@@ -170,6 +170,33 @@ authority:
   proof is 83 assertions across note, live, lifecycle, SVG security, config
   isolation, cancellation, theme, limits, IDs, and accessibility.
 
+S05 connects inline-data-only Vega-Lite without granting a chart network,
+file, image, embedding-control, or canonical-write capability:
+
+- `adapters/vega-lite-core.ts` parses one JSON object and applies hard
+  256 KiB / depth-32 / 50,000-property / 5,000-row / 100,000-cell ceilings.
+  It admits structured `data.values` and named top-level inline `datasets`,
+  while rejecting URL/generated/missing data, nested datasets, encoded text,
+  image marks, href/url channels, loaders, patches, actions/exports, and bound
+  controls before a heavy module loads. Record fields with capability-shaped
+  names remain ordinary record data.
+- The registry imports a lightweight adapter first. Only a successful
+  preflight crosses the adapter's second dynamic boundary into pinned
+  `vega-lite` 6.4.3 and `vega` 6.4.0. The adapter compiles without
+  `vega-embed`, creates a headless SVG View with all loader methods denied and
+  hover off, and finalizes on success, error, cancellation, replacement, and
+  unmount. It publishes only a node accepted by `safe-svg.ts`.
+- Light/dark app tokens own chart background, axes, labels, legends, marks,
+  and categorical defaults. Read and live use the same adapter; a live chart
+  replaces only an untouched `vega-lite`/`vegalite`/`vl` fence, reveals exact
+  source on touch/click, and shares the 128-block cap with math and Mermaid.
+- S05 build inspection measures 2,383,608 B eager entry (+443 B from S04) and
+  136,043 B CSS (+271 B). The 15,357 B policy adapter, 618,083 B Vega-Lite
+  compiler, and 940,911 B Vega runtime are separate lazy chunks. The pinned
+  runtime bar smoke emitted 7,614 B of static SVG with no image or external
+  href; focused proof is 92 assertions across note, live, real/fake runtime,
+  admission, budgets, loader denial, lifecycle, theme, SVG, and accessibility.
+
 ## Web-link pill identity (CP-FEEDBACK S05)
 
 - Read and live still ask the shared `graph-core` classifier; neither surface
