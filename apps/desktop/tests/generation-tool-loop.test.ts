@@ -21,6 +21,7 @@ import {
   createGenerationToolExecutor
 } from '../electron-main/generation-tool-executor'
 import { createMistralGenerationAdapter } from '../electron-main/mistral-generation-adapter'
+import { createGoogleGenerationAdapter } from '../electron-main/google-generation-adapter'
 import type { WikimediaSearchContext } from '../electron-main/wikimedia'
 
 const FIXTURES = join(import.meta.dirname, 'fixtures', 'generation-tools')
@@ -192,6 +193,103 @@ describe('Mistral recorded client-tool round trip', () => {
       error: { code: string }
     }
     expect(returned.error.code).toBe('invalid-arguments')
+  })
+})
+
+describe('Gemini recorded round trip over the SHARED codec (S06b)', () => {
+  it('echoes the provider turn verbatim so the thought signature survives', async () => {
+    const bodies: Array<Record<string, unknown>> = []
+    let fetchCall = 0
+    const fetchImpl: typeof fetch = async (_input, init) => {
+      bodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>)
+      fetchCall += 1
+      return fetchCall === 1
+        ? response('gemini-search-wiki-call.json')
+        : response('gemini-search-wiki-final.json')
+    }
+    const execute = vi.fn<GenerationToolExecutor>(async (call) => ({
+      result: resultFor(call)
+    }))
+    const adapter = createGoogleGenerationAdapter('gemini-fixture-key', fetchImpl)
+
+    const generated = await runGenerationWithTools(
+      adapter,
+      operation(),
+      { signal: signal() },
+      execute
+    )
+
+    // Same codec, same emitted schemas as Mistral — that is the point of S06b.
+    const firstTools = bodies[0]?.['tools'] as Array<Record<string, unknown>>
+    expect(
+      firstTools.map((tool) => (tool['function'] as Record<string, unknown>)['name'])
+    ).toEqual(['search_vault', 'search_wiki'])
+    expect(bodies[0]?.['parallel_tool_calls']).toBe(false)
+
+    // Gemini omits `content` on a tool turn; the call must still parse.
+    expect(execute).toHaveBeenCalledTimes(1)
+    // The executor receives the VALIDATED call — the provider sent only
+    // query+language, and the authority parser applied the pinned defaults.
+    expect(execute.mock.calls[0]?.[0]).toEqual({
+      id: 'call_4103380',
+      name: 'search_wiki',
+      arguments: {
+        query: 'Marie Curie',
+        language: 'en',
+        corpus: 'auto',
+        limit: 3,
+        includeMedia: true
+      }
+    })
+
+    // THE REGRESSION THIS FILE EXISTS FOR: a rebuilt assistant turn would
+    // carry id/name/arguments and silently drop Google's opaque
+    // `extra_content`, losing reasoning continuity across the tool boundary.
+    const continuation = bodies[1]?.['messages'] as Array<Record<string, unknown>>
+    const echoed = continuation.at(-2) as Record<string, unknown>
+    expect(echoed['role']).toBe('assistant')
+    expect(echoed).not.toHaveProperty('content')
+    const echoedCalls = echoed['tool_calls'] as Array<Record<string, unknown>>
+    expect(echoedCalls[0]?.['extra_content']).toEqual({
+      google: { thought_signature: 'FIXTURE_THOUGHT_SIGNATURE_NOT_A_REAL_TOKEN' }
+    })
+    // Arguments stay the provider's own JSON STRING on the wire, unparsed.
+    expect((echoedCalls[0]?.['function'] as Record<string, unknown>)['arguments'])
+      .toBe('{"language":"en","query":"Marie Curie"}')
+
+    expect(continuation.at(-1)).toMatchObject({
+      role: 'tool',
+      tool_call_id: 'call_4103380',
+      name: 'search_wiki'
+    })
+    expect(generated.bundle.blocks[0]?.content).toContain('two Nobel Prizes')
+    expect(generated.bundle.toolExecutions).toHaveLength(1)
+  })
+
+  it('bills thinking tokens that completion_tokens omits', async () => {
+    let fetchCall = 0
+    const fetchImpl: typeof fetch = async () => {
+      fetchCall += 1
+      return fetchCall === 1
+        ? response('gemini-search-wiki-call.json')
+        : response('gemini-search-wiki-final.json')
+    }
+    const generated = await runGenerationWithTools(
+      createGoogleGenerationAdapter('gemini-fixture-key', fetchImpl),
+      operation(),
+      { signal: signal() },
+      async (call) => ({ result: resultFor(call) })
+    )
+
+    // Turn 1: total 190 - prompt 120 = 70 output, NOT the reported 18.
+    // Turn 2: total 614 - prompt 277 = 337 output, NOT the reported 229.
+    // Charging from completion_tokens alone would understate by 118 tokens.
+    expect(generated.usage).toEqual({
+      inputTokens: 397,
+      outputTokens: 407,
+      basis: 'provider-reported'
+    })
+    expect(generated.providerMeta.billing?.currency).toBe('USD')
   })
 })
 

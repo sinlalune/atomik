@@ -214,7 +214,7 @@ describe('provider-neutral model tool calls', () => {
     ).toThrow('unknown search_vault field')
   })
 
-  it('opts in only the fixture-proven Mistral codec and keeps every other adapter final-only', () => {
+  it('opts in only the fixture-proven codecs and keeps every other adapter final-only', () => {
     const adapters = [
       mockGenerationAdapter,
       createMistralGenerationAdapter('test-key'),
@@ -233,6 +233,11 @@ describe('provider-neutral model tool calls', () => {
       'deepseek',
       'google'
     ])
+    // S06b: Google joins Mistral — its adapter targets Gemini's
+    // OpenAI-compatibility endpoint, so the SAME codec serves it, proven by a
+    // live two-turn probe and the recorded fixtures. The rest stay fail-closed
+    // until their own codec is fixture-proven.
+    const proven = new Set(['mistral', 'google'])
     expect(adapters.map((adapter) => adapter.tools.kind)).toEqual([
       'unsupported',
       'native',
@@ -240,17 +245,25 @@ describe('provider-neutral model tool calls', () => {
       'unsupported',
       'unsupported',
       'unsupported',
-      'unsupported'
+      'native'
     ])
-    expect(adapters[1]?.startToolLoop).toBeTypeOf('function')
     expect(
-      adapters
-        .filter((adapter) => adapter.id !== 'mistral')
-        .every(
-          (adapter) =>
-            adapter.tools.kind === 'unsupported' &&
+      adapters.every((adapter) =>
+        proven.has(adapter.id)
+          ? adapter.tools.kind === 'native' &&
+            typeof adapter.startToolLoop === 'function'
+          : adapter.tools.kind === 'unsupported' &&
             adapter.startToolLoop === undefined
-        )
+      )
     ).toBe(true)
+    // Both proven adapters declare the same dialect, which is what lets one
+    // codec serve them; parallel calls stay off per ADR-015.
+    for (const adapter of adapters.filter((entry) => proven.has(entry.id))) {
+      expect(adapter.tools).toMatchObject({
+        kind: 'native',
+        dialect: 'openai-chat-completions',
+        parallelCalls: false
+      })
+    }
   })
 })

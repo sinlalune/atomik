@@ -1,0 +1,32 @@
+{
+  "model": "gemini-3.7-flash",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "tool_calls": [
+          {
+            "id": "call_4103380",
+            "type": "function",
+            "function": {
+              "name": "search_wiki",
+              "arguments": "{\"language\":\"en\",\"query\":\"Marie Curie\"}"
+            },
+            "extra_content": {
+              "google": {
+                "thought_signature": "FIXTURE_THOUGHT_SIGNATURE_NOT_A_REAL_TOKEN"
+              }
+            }
+          }
+        ]
+      },
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 120,
+    "completion_tokens": 18,
+    "total_tokens": 190
+  }
+}

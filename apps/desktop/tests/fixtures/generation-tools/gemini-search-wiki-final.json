@@ -1,0 +1,18 @@
+{
+  "model": "gemini-3.7-flash",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Marie Curie was a Polish-born physicist and chemist who won two Nobel Prizes."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 277,
+    "completion_tokens": 229,
+    "total_tokens": 614
+  }
+}

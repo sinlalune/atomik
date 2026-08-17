@@ -22,6 +22,7 @@ atomik:
     - apps/desktop/electron-main/ai-mock.ts
     - apps/desktop/electron-main/generation.ts
     - apps/desktop/electron-main/generation-tool-executor.ts
+    - apps/desktop/electron-main/openai-tool-codec.ts
     - apps/desktop/electron-main/*-generation-adapter.ts
     - apps/desktop/electron-main/graph-index.ts
     - apps/desktop/electron-main/action-trace.ts
@@ -278,6 +279,11 @@ OPEN        provider-step position vs S07; the "luna" model id; whether
       to generation, implement bounded multi-turn execution, adapt supported
       providers using recorded payload fixtures, and preserve a loud,
       deterministic fallback for unsupported providers.
+- [x] S06b Shared dialect codec + Google: extract S06's wire grammar into one
+      `openai-chat-completions` codec behind adapter hooks, prove the dialect
+      against the live endpoint, opt Google in with recorded fixtures, and keep
+      every unproven adapter fail-closed. (Added 2026-08-17 from the owner's
+      provider order and their ask for provider-transparent layering.)
 - [ ] S07 Augmented chat + external citations: the wiki control MIRRORS the
       vault tool — a per-thread enable toggle, a `reach` depth control, and
       four per-source switches (Wikipedia · Wikidata · Commons image ·
@@ -466,6 +472,46 @@ OPEN        provider-step position vs S07; the "luna" model id; whether
   adapted; the remaining six adapters stay final-only by capability declaration.
   S07 owns rendering `toolExecutions` as disclosure and external citations.
 
+## S06b work unit — complete 2026-08-17
+
+- **Code:** added `electron-main/openai-tool-codec.ts` — the
+  `openai-chat-completions` dialect in one place: schema emission, call
+  parsing, `role:"tool"` continuation, usage accumulation, and an
+  `OpenAiTurnHooks` seam through which an adapter supplies only transport,
+  usage arithmetic and result shaping. Mistral moved onto it (its local
+  wire type and duplicate parser deleted). Google refactored from a monolithic
+  `generate` into `request`/`usageOf`/`completionResult` and opted in natively
+  through the same codec. The codec ECHOES the provider's assistant turn
+  verbatim instead of rebuilding it, and Google's usage folds
+  `total_tokens - prompt_tokens` into output.
+- **Tests:** the fail-closed capability test now asserts exactly which ids are
+  native and that both proven adapters declare the same dialect with parallel
+  calls off. Added dated Gemini call/final fixtures and two tests: a full
+  two-turn round trip proving the emitted schemas match Mistral's, the absent
+  `content` key parses, the executor receives the VALIDATED call with pinned
+  defaults, and `extra_content.google.thought_signature` survives the
+  continuation byte-for-byte; plus a usage test pinning the thinking-token
+  correction (118 tokens that `completion_tokens` alone would have missed).
+  Full result: 79 files, 985 passed + 1 skipped; typecheck and build green.
+- **Docs:** `docs/research/provider-tool-calling-snapshot-2026-08-17.md` records
+  the live probe, the dialect map, and the documentation-only facts for
+  OpenAI's `gpt-5.6-luna` and Anthropic's `claude-fable-5`. The AI note carries
+  the codec seam and the verbatim rule; learning note 25 teaches counting
+  dialects rather than vendors, and why a normalized copy never substitutes for
+  the original wire.
+- **Ledger notes:** the declared writes already covered
+  `*-generation-adapter.ts`; they widen by `electron-main/openai-tool-codec.ts`
+  and `docs/research/**` (already declared). The owner's broader ask — layering
+  transport, auth, model catalogue and pricing so a new provider is a
+  declarative profile — is deliberately NOT done here: it would rewrite six
+  working adapters and belongs to its own labelled path, agreed with the owner
+  on 2026-08-17. S06b does the tool-dialect layer only.
+- **Deviations:** one live request was made against Gemini with the owner's own
+  key, at their explicit instruction, to observe the tool-call shape rather
+  than assume it. It printed structure only, never the secret; the probe script
+  was discarded and no live response became a canonical file — the fixtures are
+  minimal hand-reduced records with a placeholder thought signature.
+
 # Current checkpoint
 
 ```text
@@ -474,11 +520,14 @@ changed     : S01 contracts; S02 Wikipedia; S03 Wikidata/graph projection;
               S04 Commons+Wiktionary; S05 unified main-side search_wiki door,
               strict IPC preference, shared budgets and early parent traces;
               S06 provider-neutral bounded tool loop, main-side executor with
-              parented vault receipts, and the native Mistral opt-in
-tests       : typecheck green; 79 files / 983 pass / 1 skip; build green
-next action : execute S07 — augmented chat: per-thread visible tool control,
-              call/result disclosure over `toolExecutions`, external citation
-              marks and source block, attributed Commons media, safe navigation
+              parented vault receipts, and the native Mistral opt-in;
+              S06b shared openai-chat-completions codec + native Google
+tests       : typecheck green; 79 files / 985 pass / 1 skip; build green
+next action : execute S07 — augmented chat to the ruled control shape (enable
+              toggle + `reach` + four source switches), call/result disclosure
+              over `toolExecutions`, external citation marks and source block,
+              attributed Commons media, safe navigation. The owner benches on
+              `gemini-3.7-flash` as soon as that surface exists
 blockers    : none
 parallel    : CP-RICH-MARKDOWN is running; styles.css and broad renderer/test/
               docs surfaces overlap advisory-only. Rebase at step boundaries.

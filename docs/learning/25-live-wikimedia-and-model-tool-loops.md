@@ -260,6 +260,55 @@ then repeated array entries, then — only if the shape itself is too large — 
 bare truncation marker. Truncating the serialized string instead would hand the
 model a syntax error and waste the whole turn.
 
+### S06b: one dialect, one codec — and never rebuild the wire
+
+Adding the second provider is where you find out whether the boundary was
+drawn in the right place. It was, with one correction.
+
+Providers do not divide into "each needs its own integration". They divide into
+DIALECTS, and the dialect is not always the one the vendor's name suggests:
+
+```text
+openai-chat-completions   Mistral · Google · OpenAI · OpenRouter · DeepSeek
+anthropic-messages        Anthropic
+```
+
+Google lands in the first group because Atomik's adapter targets Gemini's
+OpenAI-compatibility endpoint rather than the native `generateContent` API. So
+the codec written for Mistral serves Gemini unchanged, and the adapter supplies
+only transport, usage arithmetic and result shaping. Count dialects, not
+vendors, before deciding how much work a provider is.
+
+The correction came from probing the live endpoint instead of assuming its
+response shape. Gemini returns this on a tool call:
+
+```json
+{ "id": "call_…", "type": "function",
+  "function": { "name": "search_wiki", "arguments": "{…}" },
+  "extra_content": { "google": { "thought_signature": "…" } } }
+```
+
+That `thought_signature` carries reasoning continuity across the tool boundary.
+The original codec REBUILT the assistant turn from the fields it had
+normalized — `{id, type, function:{name, arguments}}` — which is byte-for-byte
+plausible and silently drops the signature. Hence the rule:
+
+```text
+normalize INWARD   for Atomik's authority layer — parse, validate, execute
+echo OUTWARD       the provider's own message object, field for field
+```
+
+**A normalized copy is not a substitute for the original.** Anything you did
+not model is exactly what gets lost, and vendor extras are where the losses
+hurt. A probe catches this in one request; a fixture written from imagination
+never would.
+
+Two smaller findings from the same probe, both now pinned by tests: Gemini
+omits `content` **entirely** on a tool turn (an absent key, not an empty
+string), and its `total_tokens` exceeds `prompt + completion` because thinking
+is billed as output without appearing in `completion_tokens` — so cost computed
+from prompt+completion understates real spend.
+
 ## 4. Why the result is marked untrusted
 
 A Wikipedia page can contain prose such as “ignore earlier instructions.” It

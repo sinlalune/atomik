@@ -52,6 +52,14 @@ timestamp: 2026-08-17T00:00:00Z
   Results return on the EXISTING response bundle (`toolExecutions`) rather than
   a new channel or an event stream, so the shell adds no IPC surface at S06
   either; the renderer reads that field for the first time at S07.
+  S06b adds a second native provider (Google) and a shared dialect codec behind
+  that same unchanged boundary. Enabling a provider is a MAIN-side capability
+  change only: no preload method, no channel, and no renderer-visible surface
+  moves when an adapter gains tool calls. The key still never leaves main, and
+  the renderer's influence remains the validated `tools` preference on
+  `run-ai-operation`. Whether the model can call a tool is therefore a
+  main-process fact the renderer reads in the response, never a permission it
+  holds.
 
 - The Electron shell: app lifecycle, the trusted UI window, and the
   main/preload/renderer split (`apps/desktop/electron-main/`,

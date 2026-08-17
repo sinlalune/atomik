@@ -2,17 +2,17 @@ import { randomUUID } from 'node:crypto'
 import { provenanceLine } from './ai-mock'
 import {
   GenerationError,
-  type AdapterToolCall,
   type GenerationAdapter,
   type GenerationAdapterTurn,
   type GenerationResult,
   type GenerationUsage
 } from './generation'
 import {
-  generationToolDefinitions,
-  type GenerationToolPolicy,
-  type GenerationToolResult
-} from '../shared/generation-tools'
+  openAiToolRequestFields,
+  openAiToolTurn,
+  type OpenAiChatMessage
+} from './openai-tool-codec'
+import { type GenerationToolPolicy } from '../shared/generation-tools'
 import { labelClaims, type ClaimCandidate } from './truth'
 import { systemTextOf, userTextOf } from '../shared/prompt-composition'
 import {
@@ -95,25 +95,10 @@ export type ChatMessage = {
   content: string
 }
 
-type MistralToolCallWire = {
-  id: string
-  type: 'function'
-  function: { name: string; arguments: unknown }
-}
-
-type MistralMessage =
-  | ChatMessage
-  | {
-      role: 'assistant'
-      content: string | null
-      tool_calls: MistralToolCallWire[]
-    }
-  | {
-      role: 'tool'
-      tool_call_id: string
-      name: string
-      content: string
-    }
+/** S06b: the wire grammar moved to `openai-tool-codec.ts`, shared with every
+ *  other provider on this dialect. Assistant turns are echoed verbatim there,
+ *  so no adapter-local tool-call wire type survives. */
+type MistralMessage = OpenAiChatMessage
 
 /** instruction + selection(s) → chat-completions messages (S01 pin);
  *  both halves come from shared/prompt-composition — the renderer's
@@ -229,52 +214,6 @@ function combinedUsage(
         ? 'provider-reported'
         : 'estimated'
   }
-}
-
-function normalizedToolCalls(value: unknown): {
-  calls: AdapterToolCall[]
-  wire: MistralToolCallWire[]
-} {
-  if (!Array.isArray(value) || value.length === 0) {
-    return { calls: [], wire: [] }
-  }
-  const calls: AdapterToolCall[] = []
-  const wire: MistralToolCallWire[] = []
-  const ids = new Set<string>()
-  for (const candidate of value) {
-    if (
-      typeof candidate !== 'object' ||
-      candidate === null ||
-      typeof (candidate as Record<string, unknown>)['id'] !== 'string' ||
-      typeof (candidate as Record<string, unknown>)['function'] !== 'object' ||
-      (candidate as Record<string, unknown>)['function'] === null
-    ) {
-      throw new GenerationError('provider-request', 'provider returned a malformed tool call')
-    }
-    const record = candidate as Record<string, unknown>
-    const fn = record['function'] as Record<string, unknown>
-    const id = record['id'] as string
-    if (ids.has(id) || typeof fn['name'] !== 'string' || !('arguments' in fn)) {
-      throw new GenerationError('provider-request', 'provider returned a malformed tool call')
-    }
-    ids.add(id)
-    let args = fn['arguments']
-    if (typeof args === 'string') {
-      try {
-        args = JSON.parse(args) as unknown
-      } catch {
-        // Preserve malformed native arguments as data. The shared authority
-        // parser returns an invalid-arguments tool result; nothing executes.
-      }
-    }
-    calls.push({ id, name: fn['name'], arguments: args })
-    wire.push({
-      id,
-      type: 'function',
-      function: { name: fn['name'], arguments: fn['arguments'] }
-    })
-  }
-  return { calls, wire }
 }
 
 function completionResult(
@@ -431,20 +370,7 @@ export function createMistralGenerationAdapter(
           ...(operation.params?.topP !== undefined
             ? { top_p: operation.params.topP }
             : {}),
-          ...(policy === undefined
-            ? {}
-            : {
-                tools: generationToolDefinitions(policy).map((definition) => ({
-                  type: 'function',
-                  function: {
-                    name: definition.name,
-                    description: definition.description,
-                    parameters: definition.inputSchema
-                  }
-                })),
-                tool_choice: 'auto',
-                parallel_tool_calls: false
-              })
+          ...(policy === undefined ? {} : openAiToolRequestFields(policy))
         }),
         signal: fetchController.signal
       })
@@ -498,84 +424,38 @@ export function createMistralGenerationAdapter(
     return { parsed, inputChars, model, maxTokens }
   }
 
-  async function toolTurn(
+  /** S06b: the wire loop is the shared codec's; this adapter supplies only
+   *  transport, usage arithmetic and result shaping. */
+  function toolTurn(
     operation: AiOperation,
     context: { signal: AbortSignal; provenance?: Map<string, WebEvidenceProvenance> },
     policy: GenerationToolPolicy,
-    messages: MistralMessage[],
-    accumulated?: GenerationUsage
+    messages: MistralMessage[]
   ): Promise<GenerationAdapterTurn> {
-    const response = await request(operation, context, messages, policy)
-    const choice = response.parsed.choices?.[0]
-    const content = (choice?.message?.content ?? '').trim()
-    const nativeCalls = normalizedToolCalls(choice?.message?.tool_calls)
-    const usage = combinedUsage(
-      accumulated,
-      usageOf(
-        response.parsed,
-        response.inputChars,
-        content.length + JSON.stringify(nativeCalls.wire).length
-      )
-    )
-    if (nativeCalls.calls.length > 0) {
-      return {
-        kind: 'tool-calls',
-        calls: nativeCalls.calls,
-        continue: async (
-          results: readonly GenerationToolResult[]
-        ): Promise<GenerationAdapterTurn> => {
-          const byId = new Map(results.map((result) => [result.callId, result]))
-          const toolMessages = nativeCalls.wire.map((call) => {
-            const result = byId.get(call.id)
-            if (result === undefined) {
-              throw new GenerationError(
-                'provider-request',
-                'tool continuation omitted a call result'
-              )
-            }
-            return {
-              role: 'tool' as const,
-              tool_call_id: call.id,
-              name: call.function.name,
-              content: result.content
-            }
-          })
-          return toolTurn(
+    return openAiToolTurn(
+      {
+        request: (turnMessages, turnPolicy) =>
+          request(operation, context, turnMessages, turnPolicy),
+        choiceOf: (response) => response.parsed.choices?.[0]?.message,
+        usageOf: (response, outputChars, accumulated) =>
+          combinedUsage(
+            accumulated,
+            usageOf(response.parsed, response.inputChars, outputChars)
+          ),
+        finalResult: (response, content, usage) =>
+          completionResult(
             operation,
             context,
-            policy,
-            [
-              ...messages,
-              {
-                role: 'assistant',
-                content: choice?.message?.content ?? null,
-                tool_calls: nativeCalls.wire
-              },
-              ...toolMessages
-            ],
-            usage
+            response.parsed,
+            content,
+            usage,
+            response.model,
+            response.maxTokens
           )
-        }
-      }
-    }
-    if (content.length === 0) {
-      throw new GenerationError(
-        'provider-request',
-        'provider returned neither a tool call nor a completion'
-      )
-    }
-    return {
-      kind: 'final',
-      result: completionResult(
-        operation,
-        context,
-        response.parsed,
-        content,
-        usage,
-        response.model,
-        response.maxTokens
-      )
-    }
+      },
+      policy,
+      messages
+    )
   }
 
   return {

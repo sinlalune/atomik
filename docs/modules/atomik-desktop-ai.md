@@ -74,6 +74,24 @@ timestamp: 2026-08-17T00:00:00Z
   Executed activity rides home on `AiResponseBundle.toolExecutions` with typed
   transient payloads for S07's disclosure and citations — consultation alone
   still makes nothing durable.
+- SHARED DIALECT CODEC (CP-MVP-011 S06b): `electron-main/openai-tool-codec.ts`
+  owns the `openai-chat-completions` wire grammar ONCE — schema emission, call
+  parsing, the `role: "tool"` continuation, and usage accumulation. An adapter
+  supplies only transport, usage arithmetic and result shaping through
+  `OpenAiTurnHooks`, so a provider on this dialect never re-derives the
+  protocol. Five of the six real providers sit here (Mistral, Google, OpenAI,
+  OpenRouter, DeepSeek); only Anthropic needs the second codec. **The assistant
+  turn is ECHOED VERBATIM, never rebuilt from the normalized call.** Gemini
+  attaches `tool_calls[].extra_content.google.thought_signature` — opaque
+  reasoning continuity — and a reconstructed turn drops it silently;
+  normalization exists for Atomik's authority layer, the wire keeps what the
+  provider put on it. Google is the second native opt-in, proven by a live
+  two-turn probe on 2026-08-17 plus recorded fixtures; its usage folds
+  `total_tokens - prompt_tokens` into output because Gemini bills thinking as
+  output while omitting it from `completion_tokens` (charging from
+  prompt+completion understates spend). Adapters stay fail-closed until their
+  own codec is fixture-proven — the capability test asserts exactly which ids
+  are native.
 - MAIN-SIDE EXECUTOR (CP-MVP-011 S06):
   `electron-main/generation-tool-executor.ts` binds the two verbs to their
   existing seats — `search_vault` to the traced ContextPacket compiler,
