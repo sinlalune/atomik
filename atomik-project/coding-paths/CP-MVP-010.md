@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S10j
+  current_step: S11
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -52,6 +52,10 @@ atomik:
     - package.json
     - apps/desktop/package.json
     - atomik-project/coding-paths/CP-MVP-010.md
+    - atomik-project/coding-paths/ACTIVE.md
+    - atomik-project/coding-paths/index.md
+    - atomik-project/sessions/**
+    - atomik-project/audits/**
     - atomik-project/log/**
 ---
 
@@ -937,14 +941,27 @@ live, on real notes.
       truth-state contract changed. +2 tests (925 → 927): 927 passing / 74
       files, typecheck, build, and retrieval-eval green. S11 owner re-bench
       remains required before acceptance and the closing ceremony.
+- [x] S11 OWNER ACCEPTANCE + CLOSING CEREMONY (2026-08-17 — DONE).
+      The owner re-benched the existing persisted conversation after S10j
+      and answered **"ok it works"**. The prompted ceremony then ruled,
+      verbatim, **"1. A ,2. a, 3.A"**: CP-MVP-010 accepted for merge;
+      CP-MVP-011 remains the next path; existing backlog triggers stand
+      with NO roadmap amendment. Acceptance is recorded in
+      `../sessions/2026-08-17-cp-mvp-010-acceptance.md`; the complete
+      repo-derived recall and rulings are recorded in
+      `../sessions/2026-08-17-cp-mvp-010-closing-ceremony.md`. No code or
+      product contract changed in this step. Mechanical closure remains:
+      rebase onto the latest local trunk, gates on that exact result,
+      coherence audit, journal, `status: done`, and self-merge.
 
 # Current checkpoint
 
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S10j done (multi-sentence blockquote correction) —
-              S11 next (re-bench, acceptance, ceremony, audit, merge)
+current step: S11 done (owner acceptance + closing ceremony recorded) —
+              mechanical close next (rebase, gates, audit, journal,
+              status done, self-merge)
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts
@@ -964,9 +981,9 @@ tests       : 927 passing / 74 files on the rebased branch (this path
               added 122; CP-FEEDBACK's merge brought the rest),
               typecheck, build, retrieval-eval and cairn-check green,
               each gate run BARE (24)
-next action : S11 — owner re-bench on the restarted app, the acceptance
-              record, the closing ceremony, `npm run cairn-audit`, then
-              status: done and the self-merge
+next action : rebase onto the latest local master, rerun every gate on
+              that exact result, fill `npm run cairn-audit`, write the
+              journal, mark done, and self-merge
 rebase note : the learning index collided at the rebase (note 22 here,
               note 23 from CP-PROVIDERS) — mechanical, both kept in
               order. Exactly the shared-prose conflict paths.md
