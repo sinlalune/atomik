@@ -138,9 +138,17 @@ contract is accepted.
   `maxSize: 20`.
 - Pass a fresh null-prototype macro object for every expression. Definitions
   never cross an expression or note.
+- KaTeX 0.16 expects that macro table to expose `hasOwnProperty`; the
+  null-prototype table therefore receives only the unmodified
+  `Object.prototype.hasOwnProperty` as a non-enumerable own compatibility
+  method. It does not regain a prototype or shared macro storage.
 - Escape source and error messages as text. KaTeX's thrown message may contain
   authored source and is never inserted as HTML.
 - Package fonts and CSS locally; no CDN or external font request.
+- Live mode discovers dollar forms outside CodeMirror-owned code ranges and
+  treats accepted math fences as display expressions. A disposable replacement
+  widget exists only while no selection touches its source lines; theme
+  reconfiguration and widget destruction run the same host disposer as read.
 
 These pins follow KaTeX's documented untrusted-input controls: `trust` gates
 resource/HTML commands, while `maxExpand` and `maxSize` bound expansion and

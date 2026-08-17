@@ -8,7 +8,7 @@ atomik:
   id: CP-RICH-MARKDOWN
   status: running
   accepted: 2026-08-17
-  current_step: S03
+  current_step: S04
   base_commit: 98561b4
   branch: path/cp-rich-markdown
   writes:
@@ -174,7 +174,7 @@ The owner-approved details and revised backlog order are recorded in
       typed lazy adapter registry with cancellation, stale-result suppression,
       theme input, budgets, teardown, accessible error/source fallback, and
       unknown-fence parity; tests and editor module note in the same unit.
-- [ ] S03 KaTeX: add safe inline/display/fenced math to read and live, MathML
+- [x] S03 KaTeX: add safe inline/display/fenced math to read and live, MathML
       accessibility, edit-range reveal, error/source behavior, themes, focused
       tests, docs, ledger, and a bare gate.
 - [ ] S04 Mermaid: add local lazy secure SVG diagrams, sanitizer/security and
@@ -202,20 +202,19 @@ The owner-approved details and revised backlog order are recorded in
 ```text
 base commit : 98561b4
 changed     : S02 exact package lock; pure syntax + escaped Markdown-it
-              placeholders; typed lazy registry; bounded cancellation/stale/
-              teardown hydration; every noteMarkdown DOM consumer; 30 focused
-              assertions; learning + module notes; rebased Chat keeps current
-              citation-only decoration before rich hydration
-tests       : focused PASS (2 files / 30 tests); rebased full PASS (75 files /
-              942 passed + 1 skipped); typecheck PASS; build PASS; Cairn PASS —
-              entry 2,373,425 B vs trunk 2,358,560 B (+14,865 / +0.63%), CSS
-              byte-identical at 132,917 B, no heavy runtime chunk
+              placeholders and bounded host; S03 KaTeX HTML+MathML adapter;
+              safe per-expression macros; inline/display/fence read + live;
+              edit-range reveal, theme rebuild, precedence and limit status
+tests       : S03 focused PASS (3 files / 72 tests); full PASS (75 files / 954
+              passed + 1 skipped); Cairn/typecheck/build PASS — entry
+              2,382,051 B (+8,626 from S02), global CSS 134,861 B (+1,944);
+              lazy KaTeX 485,408 B JS + 28,946 B CSS + local font assets
 audit       : npm audit reports the same 4 inherited highs on trunk and S02
               (PDF.js + Vite/PostCSS/nanoid + Electron optional undici); zero
               rich-dependency advisory delta, no automatic rewrite applied
 catalog     : docs/learning/index.md edit is deliberate under bedrock 17's
               first-use catalog rule; it is not generated ACTIVE/register state
-next action : begin S03 KaTeX adapter and live-mode widget parity
+next action : checkpoint S03, then begin S04 secure Mermaid adapter
 blockers    : none; rebased onto trunk 783c7c6 and full gate is green
 ```
 

@@ -93,6 +93,35 @@ The required rebase onto CP-MVP-010 changed both comparison bundles. On that
 same trunk, the empty host is 2,373,425 B versus 2,358,560 B (+14,865 B,
 +0.63%); CSS is byte-identical at 132,917 B and the heavy chunks remain absent.
 
+S03 adds the first real target without making it eager. Math range/widget
+wiring moves the entry to 2,382,051 B (+8,626 B from S02) and global CSS to
+134,861 B (+1,944 B). KaTeX is a separate 485,408 B JavaScript chunk and
+28,946 B CSS chunk; its 59 locally packaged font assets total 1,072,948 B.
+Those files exist in the build, but the browser requests the dynamic chunk only
+when a mounted note contains accepted math syntax.
+
+### KaTeX: safe TeX is still untrusted input
+
+KaTeX turns a TeX expression into visual HTML and semantic MathML. Atomik asks
+for both (`htmlAndMathml`) so the equation is visible and assistive technology
+has a mathematical tree. The adapter also sets `trust: false`: commands that
+could create a URL, image, class, id, or style do not gain those capabilities.
+`maxExpand` stops recursive macro expansion and `maxSize` caps attacker-sized
+layout dimensions.
+
+Each render receives a new macro table. That matters because TeX can define a
+macro: sharing the table would let one note silently change how a later note
+renders. KaTeX 0.16 calls `hasOwnProperty` on the table, so Atomik keeps its
+prototype null and adds only that one built-in method as a non-enumerable own
+property. A first expression may define `\\foo`; a second still reports it as
+undefined.
+
+Read and live reuse the same adapter and hydrator. Read mode starts from inert
+escaped placeholders. Live mode replaces an exact CodeMirror source range only
+while the cursor is elsewhere; touching or clicking it reveals the raw bytes.
+Destroying or recoloring the widget invokes the same abort/dispose path as a
+React read surface.
+
 ### AbortSignal: a shared cancellation vocabulary
 
 `AbortController` owns a signal. Code that receives the signal can stop work
@@ -176,7 +205,10 @@ becomes readable source again.
 6. `rich-markdown/RichMarkdownBody.tsx` bridges React's mounted DOM to that
    imperative lifecycle. Its effect cleanup runs on HTML/theme change and
    unmount.
-7. Vault, project, source-dossier, chat, new-note preview, and inline-AI
+7. `rich-markdown/adapters/katex.ts` is the first concrete strategy; the live
+   editor reaches it through disposable source-range widgets, not a second
+   renderer.
+8. Vault, project, source-dossier, chat, new-note preview, and inline-AI
    surfaces now enter that same host rather than growing per-surface renderers.
 
 ## How it was built (methodology)
@@ -197,8 +229,9 @@ pure ambiguity rules
   -> typecheck + production chunk inspection
 ```
 
-The actual libraries remain absent from the loader map until their own steps.
-That makes the safe fallback testable independently from library success.
+S03 then connects only KaTeX. Mermaid, Vega-Lite, and Shiki remain absent until
+their own steps, so the safe fallback and every later security boundary stay
+independently testable.
 
 ## Lessons learned the hard way
 
@@ -267,8 +300,7 @@ loud degradation      visible source + diagnostic instead of blank/silent failur
 
 ## What arrives next
 
-S03 connects the first real loader: KaTeX with local CSS/fonts,
-HTML+MathML output, fresh macro state, size/expansion caps, and read/live
-parity. S04 and S05 add Mermaid and Vega-Lite behind the same host. S06 adds
-broad lazy code languages, fine-grained Shiki read highlighting, and
-decoration-only diagnostics.
+S04 and S05 add Mermaid and Vega-Lite behind the same host. S06 adds broad
+lazy code languages, fine-grained Shiki read highlighting, and
+decoration-only diagnostics. None receives file, IPC, network, or mutation
+authority merely because KaTeX proved the adapter shape.

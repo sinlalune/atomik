@@ -31,6 +31,19 @@ import {
 } from './link-pills'
 import { applyRotation } from '../source/rotate'
 import { getCachedImage, isCachedDataUrl, setCachedImage } from '../vault/image-cache'
+import {
+  DEFAULT_RICH_LIMITS,
+  type RichTheme
+} from './rich-markdown/contracts'
+import {
+  hydrateRichMarkdown,
+  type RichHydration
+} from './rich-markdown/hydration'
+import {
+  discoverDollarMath,
+  richKindForFence,
+  type SourceRange
+} from './rich-markdown/syntax'
 
 /** The preload bridge, reached at call time only (this module is also
  *  imported by headless node tests, which never render widgets). */
@@ -61,6 +74,16 @@ export type LivePreviewKind =
   | 'table'
   | 'image'
   | 'edge'
+  | 'math'
+  | 'math-limit'
+
+const DEFAULT_RICH_THEME: RichTheme = { name: 'system', scheme: 'light' }
+
+/** Theme is explicit state for async widgets: a compartment reconfigure
+ * rebuilds them when the app theme changes instead of leaving stale output. */
+export const richThemeFacet = Facet.define<RichTheme, RichTheme>({
+  combine: (values) => values[0] ?? DEFAULT_RICH_THEME
+})
 
 /**
  * The note's vault-relative path, needed to resolve image embeds. Views
@@ -279,6 +302,92 @@ class TableWidget extends WidgetType {
 
   override eq(other: TableWidget): boolean {
     return other.source === this.source
+  }
+}
+
+const mathHydrations = new WeakMap<HTMLElement, RichHydration>()
+
+/**
+ * A disposable live-mode projection over an unchanged replacement range.
+ * Clicking the result moves the cursor back onto that range; the next state
+ * computation removes the widget and reveals the literal delimiters/source.
+ */
+class MathWidget extends WidgetType {
+  constructor(
+    private readonly source: string,
+    private readonly display: boolean,
+    private readonly info: string,
+    private readonly theme: RichTheme
+  ) {
+    super()
+  }
+
+  override toDOM(view: EditorView): HTMLElement {
+    const doc = view.dom.ownerDocument
+    const root = doc.createElement('span')
+    root.className = `lp-math-widget${this.display ? ' lp-math-widget--display' : ''}`
+
+    const block = doc.createElement('span')
+    block.className = this.display
+      ? 'rich-markdown-block rich-markdown-math'
+      : 'rich-markdown-inline rich-markdown-math'
+    block.dataset['richBlock'] = ''
+    block.dataset['richKind'] = 'math'
+    block.dataset['richInfo'] = this.info
+    block.setAttribute('role', 'group')
+    block.setAttribute('aria-label', this.display ? 'Display math' : 'Inline math')
+
+    const source = doc.createElement('code')
+    source.dataset['richSource'] = ''
+    source.textContent = this.source
+    const output = doc.createElement('span')
+    output.dataset['richOutput'] = ''
+    output.hidden = true
+    const status = doc.createElement('span')
+    status.dataset['richStatus'] = ''
+    status.setAttribute('role', 'status')
+    status.hidden = true
+    block.append(source, output, status)
+    root.appendChild(block)
+
+    const hydration = hydrateRichMarkdown(root, { theme: this.theme })
+    mathHydrations.set(root, hydration)
+    root.addEventListener('mousedown', (event) => {
+      if (event.button !== 0) return
+      event.preventDefault()
+      view.dispatch({ selection: { anchor: view.posAtDOM(root) } })
+      view.focus()
+    })
+    return root
+  }
+
+  override destroy(dom: HTMLElement): void {
+    mathHydrations.get(dom)?.dispose()
+    mathHydrations.delete(dom)
+  }
+
+  override eq(other: MathWidget): boolean {
+    return (
+      other.source === this.source &&
+      other.display === this.display &&
+      other.info === this.info &&
+      other.theme.name === this.theme.name &&
+      other.theme.scheme === this.theme.scheme
+    )
+  }
+}
+
+class MathLimitWidget extends WidgetType {
+  override toDOM(view: EditorView): HTMLElement {
+    const status = view.dom.ownerDocument.createElement('span')
+    status.className = 'lp-math-limit'
+    status.setAttribute('role', 'status')
+    status.textContent = `Rich block limit reached (${DEFAULT_RICH_LIMITS.maxBlocks}); remaining math stays source. `
+    return status
+  }
+
+  override eq(): boolean {
+    return true
   }
 }
 
@@ -762,7 +871,78 @@ export function computeLivePreviewDecorations(
     }
   }
 
-  syntaxTree(state).iterate({
+  type LiveMathRange = SourceRange & {
+    source: string
+    display: boolean
+    info: string
+  }
+  const tree = syntaxTree(state)
+  const protectedRanges: SourceRange[] = fmEnd > 0 ? [{ from: 0, to: fmEnd }] : []
+  const fencedMath: LiveMathRange[] = []
+  tree.iterate({
+    enter: (node) => {
+      if (node.name === 'InlineCode') {
+        protectedRanges.push({ from: node.from, to: node.to })
+        return false
+      }
+      if (node.name !== 'FencedCode') return
+      protectedRanges.push({ from: node.from, to: node.to })
+      if (node.from < fmEnd) return false
+      const infoNode = node.node.getChild('CodeInfo')
+      const info = infoNode
+        ? state.doc.sliceString(infoNode.from, infoNode.to).trim()
+        : ''
+      if (richKindForFence(info) !== 'math') return false
+      const code = node.node.getChild('CodeText')
+      fencedMath.push({
+        from: node.from,
+        to: node.to,
+        source: code ? state.doc.sliceString(code.from, code.to) : '',
+        display: true,
+        info: info.trim().split(/\s+/, 1)[0]?.toLowerCase() ?? 'math'
+      })
+      return false
+    }
+  })
+
+  const mathRanges: LiveMathRange[] = [
+    ...discoverDollarMath(state.doc.toString(), protectedRanges).map((span) => ({
+      ...span,
+      info: span.display ? 'display' : 'inline'
+    })),
+    ...fencedMath
+  ].sort((a, b) => a.from - b.from)
+  const replacedMathRanges: SourceRange[] = []
+  const mathTheme = state.facet(richThemeFacet)
+
+  for (const [index, math] of mathRanges.entries()) {
+    if (index >= DEFAULT_RICH_LIMITS.maxBlocks) {
+      decorations.push(
+        Decoration.widget({
+          lp: 'math-limit' as LivePreviewKind,
+          side: -1,
+          widget: new MathLimitWidget()
+        }).range(math.from)
+      )
+      break
+    }
+    const firstLine = state.doc.lineAt(math.from).number
+    const lastLine = state.doc.lineAt(math.to).number
+    const touched = active.from <= lastLine && active.to >= firstLine
+    if (touched) continue
+    replacedMathRanges.push({ from: math.from, to: math.to })
+    decorations.push(
+      Decoration.replace({
+        lp: 'math' as LivePreviewKind,
+        mathDisplay: math.display,
+        mathSource: math.source,
+        mathTheme: mathTheme.name,
+        widget: new MathWidget(math.source, math.display, math.info, mathTheme)
+      }).range(math.from, math.to)
+    )
+  }
+
+  tree.iterate({
     enter: (node) => {
       // Nothing inside the frontmatter block gets markdown treatment.
       if (node.name !== 'Document' && node.from < fmEnd) return false
@@ -954,6 +1134,13 @@ export function computeLivePreviewDecorations(
           if (!isActiveAt(node.from)) hideMark(node.from, node.to, true)
           return
         case 'FencedCode': {
+          if (
+            replacedMathRanges.some(
+              (range) => range.from === node.from && range.to === node.to
+            )
+          ) {
+            return false
+          }
           addLineDecos(node.from, node.to, 'lp-fence')
           // first/last lines carry read's rounded corners; with the
           // fence marks folded they read as the block's padding
@@ -982,6 +1169,15 @@ export function computeLivePreviewDecorations(
   for (const edge of parseEdges(state.doc.toString())) {
     if (edge.start < fmEnd) continue
     if (isActiveAt(edge.start)) continue
+    // A link-shaped TeX fragment belongs to the math expression. A link that
+    // encloses math still wins as one edge pill (normal Markdown precedence).
+    if (
+      mathRanges.some(
+        (math) => math.from <= edge.start && edge.end <= math.to
+      )
+    ) {
+      continue
+    }
     let kind: LinkKind | null
     let broken = false
     let follow: EdgeFollowTarget = null
@@ -1040,23 +1236,22 @@ export function computeLivePreviewDecorations(
     )
   }
 
-  // A pill's replace range must not NEST other replace/mark
-  // decorations (the tree walk hides link brackets and URLs inside md
-  // links): nested replaces corrupt CodeMirror's incremental redraw —
-  // a widget rebuilt mid-line simply vanished (S05c, the owner's
-  // md-link vault; wikilinks never nested, which is why every
-  // wikilink pin stayed green). Line decorations are structural and
-  // stay.
-  const filtered =
-    edgeRanges.length === 0
-      ? decorations
-      : decorations.filter((deco) => {
-          const spec = deco.value.spec as { lp?: LivePreviewKind }
-          if (spec.lp === 'edge' || spec.lp === 'line') return true
-          return !edgeRanges.some(
-            ([from, to]) => deco.from >= from && deco.to <= to
-          )
-        })
+  // Replace ranges must not nest. Edge pills keep their structural line
+  // decorations; math widgets own their complete range, including fenced-code
+  // line chrome. A link enclosing math wins, while link-shaped TeX was skipped
+  // above so the math widget wins in the opposite containment direction.
+  const filtered = decorations.filter((deco) => {
+    const spec = deco.value.spec as { lp?: LivePreviewKind }
+    const insideEdge = edgeRanges.some(
+      ([from, to]) => deco.from >= from && deco.to <= to
+    )
+    if (spec.lp === 'edge') return true
+    if (spec.lp === 'math') return !insideEdge
+    if (insideEdge) return spec.lp === 'line'
+    return !replacedMathRanges.some(
+      (range) => deco.from >= range.from && deco.to <= range.to
+    )
+  })
   return Decoration.set(filtered, true)
 }
 
@@ -1079,6 +1274,7 @@ export const livePreviewField = StateField.define<DecorationSet>({
     if (
       transaction.docChanged ||
       transaction.selection ||
+      transaction.reconfigured ||
       transaction.effects.some(
         (effect) => effect.is(imageCacheBump) || effect.is(setWikiCandidates)
       ) ||
@@ -1103,9 +1299,14 @@ export function livePreview(options?: {
   onFollowRel?: (relPath: string) => void
   /** Vault-relative note path; enables image embeds. */
   notePath?: string
+  /** App theme snapshot; changing it rebuilds disposable rich widgets. */
+  theme?: RichTheme
 }): Extension {
   const follow = options?.onFollowLink
-  const extensions: Extension[] = [livePreviewField]
+  const extensions: Extension[] = [
+    richThemeFacet.of(options?.theme ?? DEFAULT_RICH_THEME),
+    livePreviewField
+  ]
   if (follow || options?.onFollowRel) {
     extensions.push(
       edgeFollowFacet.of({

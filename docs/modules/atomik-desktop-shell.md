@@ -227,3 +227,6 @@ timestamp: 2026-08-17T00:00:00Z
   the S02 shell entry increased by 14,865 bytes (+0.63%) while KaTeX, Mermaid,
   Vega-Lite, and Shiki emitted no eager runtime chunk; later steps must preserve
   that split.
+- S03 keeps that boundary: math host/live wiring adds 8,626 bytes to the entry,
+  while KaTeX ships as its own 485,408-byte JS and 28,946-byte CSS chunk with
+  local fonts. A note with no math does not load that runtime.

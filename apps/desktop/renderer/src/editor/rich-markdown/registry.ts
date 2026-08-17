@@ -54,6 +54,9 @@ export function createRichRendererRegistry(
   return new RichRendererRegistry(loaders)
 }
 
-/** Adapters join this map in their own path steps. An empty registry is a
- * valid, source-visible state and is intentionally exercised by S02. */
-export const defaultRichRendererRegistry = createRichRendererRegistry({})
+/** Every concrete runtime stays behind its own static dynamic-import target so
+ * Vite can keep it out of the no-rich startup path. */
+export const defaultRichRendererRegistry = createRichRendererRegistry({
+  math: async () =>
+    import('./adapters/katex').then((module) => module.katexAdapter)
+})

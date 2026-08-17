@@ -71,6 +71,7 @@ import { ModeSwitch } from './ModeSwitch'
 import { quickActions } from './quick-actions'
 import { vocabularyOf, wikiCandidatesFor } from '../../../shared/graph-core'
 import { hasMediaResource, isMediaFilePath } from '../source/dossier'
+import type { RichTheme } from './rich-markdown/contracts'
 
 /** Auto mode saves this long after the last keystroke. */
 const AUTOSAVE_DELAY_MS = 800
@@ -111,10 +112,11 @@ const modeExtensions = (
   mode: 'live' | 'source',
   onFollowLink: (href: string) => void,
   onFollowRel: (relPath: string) => void,
-  notePath: string
+  notePath: string,
+  theme: RichTheme
 ): Extension =>
   mode === 'live'
-    ? livePreview({ onFollowLink, onFollowRel, notePath })
+    ? livePreview({ onFollowLink, onFollowRel, notePath, theme })
     : SOURCE_CHROME
 
 /** Vault tree for the "@" menu (bundles + linkable notes), freshly
@@ -412,15 +414,29 @@ export function EditorPane({
   // survive the mode change (the raw bytes are identical in both).
   const previewCompartment = useRef(new Compartment()).current
   const modeRef = useRef(mode)
+  const previewKey = `${mode}:${appTheme}:${editorDark ? 'dark' : 'light'}`
+  const previewKeyRef = useRef(previewKey)
   useEffect(() => {
-    if (modeRef.current === mode) return
+    if (previewKeyRef.current === previewKey) return
+    previewKeyRef.current = previewKey
     modeRef.current = mode
     viewRef.current?.dispatch({
       effects: previewCompartment.reconfigure(
-        modeExtensions(mode, followHandler, followRelHandler, note.relPath)
+        modeExtensions(mode, followHandler, followRelHandler, note.relPath, {
+          name: appTheme,
+          scheme: editorDark ? 'dark' : 'light'
+        })
       )
     })
-  }, [followHandler, mode, note.relPath, previewCompartment])
+  }, [
+    appTheme,
+    editorDark,
+    followHandler,
+    mode,
+    note.relPath,
+    previewCompartment,
+    previewKey
+  ])
 
   // One EditorView per mounted pane; the host keys this component by note
   // path, so a different note is a fresh mount. The view lives in a ref —
@@ -445,7 +461,16 @@ export function EditorPane({
         wikiCandidatesField,
         vocabularyField,
         previewCompartment.of(
-          modeExtensions(modeRef.current, followHandler, followRelHandler, note.relPath)
+          modeExtensions(
+            modeRef.current,
+            followHandler,
+            followRelHandler,
+            note.relPath,
+            {
+              name: appTheme,
+              scheme: editorDarkRef.current ? 'dark' : 'light'
+            }
+          )
         ),
         darkCompartment.of(editorDarkRef.current ? [oneDark] : []),
         // "@" quick actions + edge autocompletes ([[ titles, { labels)

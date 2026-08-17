@@ -2466,6 +2466,40 @@ body[data-maximized] .tabstrip {
   font-weight: 650;
 }
 
+/* Disposable KaTeX projection in live mode. The widget replaces authored
+   bytes only while their lines are inactive; click/keyboard navigation puts
+   the cursor back on the range and CodeMirror reveals raw source. */
+.editor-host .lp-math-widget {
+  display: inline-block;
+  max-width: 100%;
+  color: var(--fg);
+  cursor: pointer;
+  vertical-align: baseline;
+}
+
+.editor-host .lp-math-widget--display {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  padding-block: var(--space-2);
+}
+
+.editor-host .lp-math-widget .rich-markdown-block {
+  display: block;
+}
+
+.editor-host .lp-math-widget code[data-rich-source] {
+  font-family: ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  font-size: var(--note-code-size);
+  color: var(--fg);
+}
+
+.editor-host .lp-math-limit {
+  color: var(--error);
+  font-size: var(--fs-sm);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
 .editor-host .lp-h1 {
   font-size: var(--note-h1-size);
   font-weight: var(--note-heading-weight);
@@ -2941,11 +2975,12 @@ body[data-maximized] .tabstrip {
 .markdown-body blockquote,
 .markdown-body pre,
 .markdown-body table,
-.markdown-body hr {
+.markdown-body hr,
+.markdown-body .rich-markdown-block {
   margin-block: 0;
 }
 
-.markdown-body > :where(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, table, hr):not(:first-child) {
+.markdown-body > :where(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, table, hr, .rich-markdown-block):not(:first-child) {
   margin-top: var(--note-block-gap);
 }
 
@@ -3465,6 +3500,45 @@ button.relations-node:focus-visible {
 .markdown-body pre code {
   background: none;
   padding: 0;
+}
+
+/* Rich placeholders begin as escaped source and become local renderer output
+   after mount. Explicit :not([hidden]) guards keep the HTML hidden contract
+   stronger than author display rules. */
+.rich-markdown-inline > [data-rich-output]:not([hidden]) {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: baseline;
+}
+
+.rich-markdown-block[data-rich-kind='math'] > [data-rich-output]:not([hidden]) {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  color: inherit;
+  white-space: normal;
+}
+
+.rich-markdown-block[data-rich-kind='math'] .katex-display {
+  margin: 0;
+  padding-block: var(--space-3);
+}
+
+[data-rich-status]:not([hidden]) {
+  display: block;
+  margin-top: var(--space-2);
+  color: var(--error);
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  white-space: normal;
+}
+
+[data-rich-state='loading'] > [data-rich-status]:not([hidden]) {
+  color: var(--muted);
+}
+
+[data-rich-state='ready'] > [data-rich-status]:not([hidden]) {
+  color: var(--warn-fg);
 }
 
 .markdown-body blockquote {

@@ -95,8 +95,8 @@ S02 implements that host in `renderer/src/editor/rich-markdown/`:
   `markdown-plugin.ts` emits escaped placeholders and calls Markdown-it's
   saved fence renderer unchanged for unknown languages.
 - `registry.ts` caches kind-checked lazy loaders and drops a failed load for an
-  explicit retry. The built-in map is intentionally empty until S03; source +
-  an unavailable diagnostic is a complete safe state.
+  explicit retry. S02 proved an empty built-in map as a complete safe state;
+  S03 adds only the static dynamic-import target for KaTeX.
 - `hydration.ts` owns the 128-block cap, pre-import source cap, total 3 s
   deadline, detached-generation isolation, 2 MiB output cap, text-only errors,
   `AbortSignal`, late-handle cleanup, and idempotent teardown.
@@ -112,6 +112,30 @@ S02 implements that host in `renderer/src/editor/rich-markdown/`:
 - Focused contracts live in `tests/rich-markdown.test.ts` and
   `tests/note-markdown.test.ts`; beginner walkthrough:
   `docs/learning/24-rich-markdown-projection-registry.md`.
+
+S03 connects safe math without changing the canonical editor buffer:
+
+- `adapters/katex.ts` renders HTML+MathML locally with `trust: false`,
+  `globalGroup: false`, thrown parse errors, the ADR expansion/size limits,
+  and a fresh null-prototype macro table per expression. KaTeX 0.16's
+  `hasOwnProperty` expectation is met by one non-enumerable own method; macro
+  definitions still cannot cross expressions.
+- Read surfaces hydrate the existing escaped `$…$`, `$$…$$`, and
+  `math`/`latex`/`tex`/`katex` fence placeholders. Parse/limit failures restore
+  source and a text-only status; untrusted resource commands create no anchor,
+  image, or external request.
+- Live mode combines the Lezer-owned code ranges with pure dollar discovery,
+  then uses CodeMirror replacement widgets only away from the selected lines.
+  Touch/click reveals raw source; link/math containment has deterministic
+  precedence; the 129th block stays raw beside one accessible limit status.
+  App theme is a facet, so a theme compartment reconfigure disposes/rebuilds
+  widgets rather than keeping stale output.
+- S03 build inspection: the no-math entry is 2,382,051 B (+8,626 B from S02)
+  and global CSS 134,861 B (+1,944 B). KaTeX remains a separate 485,408 B JS +
+  28,946 B CSS chunk; 59 local font assets total 1,072,948 B. No Mermaid,
+  Vega-Lite, or Shiki runtime entered the eager bundle.
+- Focused proof is 72 assertions across note rendering, registry/hydration,
+  KaTeX security/accessibility/limits, and live source-range parity.
 
 ## Web-link pill identity (CP-FEEDBACK S05)
 
