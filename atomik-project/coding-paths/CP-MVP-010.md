@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S10g
+  current_step: S10h
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -904,9 +904,8 @@ live, on real notes.
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S10g done (bench rounds 13–18; claim overlay off in chat by
-              owner ruling, citation extent rebuilt as a pure rule) —
-              S11 next (acceptance, ceremony, merge)
+current step: S10h done (bench rounds 13–19) — S11 next (acceptance,
+              ceremony, coherence audit, merge)
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts

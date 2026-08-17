@@ -1420,6 +1420,8 @@ body[data-maximized] .tabstrip {
   align-self: stretch;
   width: 100%;
   max-width: var(--chat-measure);
+  /* centred with the composer below it, not led from the pane's edge */
+  margin-inline: auto;
   border: 0;
   border-radius: 0;
   padding: var(--space-2) 0 var(--space-4);
@@ -1524,8 +1526,10 @@ body[data-maximized] .tabstrip {
   font-size: var(--fs-md);
   line-height: 1.6;
   max-width: var(--chat-measure, 72ch);
-  /* `.markdown-body` centers normal note reading columns; assistant turns
-     deliberately begin at the conversation's left edge. */
+  /* `.markdown-body` centers normal note reading columns; an assistant
+     turn deliberately begins at the CONVERSATION's left edge — which
+     since S10h is the centred column's edge, not the pane's, so the
+     answer, the question and the composer share one axis. */
   margin-inline: 0;
 }
 
