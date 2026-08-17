@@ -119,6 +119,65 @@ export function findCitationMarkers(
   }
 }
 
+/**
+ * Where the sentence a marker cites BEGINS, given the rendered text and
+ * the marker's position in it (CP-MVP-010 S10g).
+ *
+ * The first version walked the DOM backwards from the chip, and it got
+ * two cases wrong for the same reason — it looked for "the previous
+ * sentence boundary" and found the boundary of the sentence it was
+ * supposed to include:
+ *
+ * ```text
+ * a quote        « … à la raison). » [1]     the citation FOLLOWS the
+ *                                            full stop, so the boundary
+ *                                            immediately before it was
+ *                                            the end of its own sentence
+ *                                            -> an empty extent
+ * a paragraph    … data [1]. It establishes … [1].
+ *                                            fine for the first marker,
+ *                                            fragile for the second
+ * ```
+ *
+ * So the scan skips whatever CLOSES the cited sentence first — trailing
+ * whitespace, the full stop, closing quotes and brackets — and only then
+ * looks back for the end of the PREVIOUS one. Pure string work, which is
+ * the point: it is the half that kept being wrong, and now it is the
+ * half that is tested.
+ */
+const SENTENCE_END = /[.!?…]/
+/** An opening quotation mark starts a unit of its own: a quoted passage
+ *  is what a citation covers, not the sentence that introduced it. Only
+ *  the unambiguous ones — a straight `"` closes as often as it opens. */
+const QUOTE_OPEN = new Set(['«', '“'])
+const CLOSERS = new Set([
+  ' ', '\t', '\n', '»', '"', '”', '’', "'", ')', ']', '.', '!', '?', '…', ':', ';', ','
+])
+const OPENERS = new Set([' ', '\t', '\n', '«', '"', '“', '‘', "'", '(', '['])
+
+export function citedSentenceStart(text: string, markerIndex: number): number {
+  let index = Math.min(markerIndex, text.length)
+  // 1. step over what closes the cited sentence
+  while (index > 0 && CLOSERS.has(text[index - 1] as string)) index -= 1
+  // 2. back to the end of the previous sentence, the start of a quoted
+  //    passage, or the start of the text
+  while (
+    index > 0 &&
+    !SENTENCE_END.test(text[index - 1] as string) &&
+    !QUOTE_OPEN.has(text[index - 1] as string)
+  ) {
+    index -= 1
+  }
+  // 3. forward again over the punctuation and quotes that open this one
+  while (
+    index < markerIndex &&
+    (SENTENCE_END.test(text[index] as string) || OPENERS.has(text[index] as string))
+  ) {
+    index += 1
+  }
+  return index
+}
+
 /** The source a number points at, for the decorator. */
 export function sourceOfNumber(
   sources: readonly CitationSource[],

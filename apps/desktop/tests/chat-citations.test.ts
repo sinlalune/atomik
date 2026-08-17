@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   citationSourcesOf,
+  citedSentenceStart,
   findCitationMarkers,
   parseCitedMeta,
   serializeCitedMeta
@@ -116,5 +117,41 @@ describe('the packet shape survives a closed tab (S08d)', () => {
   it('reads a mangled packet comment as no packet', () => {
     expect(parsePacketMeta('nonsense')).toBeNull()
     expect(parsePacketMeta('unknown-stage:a.md')).toBeNull()
+  })
+})
+
+describe('where a cited sentence begins (S10g)', () => {
+  const start = (text: string, marker: string): string => {
+    const at = text.indexOf(marker)
+    return text.slice(citedSentenceStart(text, at), at).trim()
+  }
+
+  it('covers the sentence a marker sits inside', () => {
+    const text = 'XML is a format for data 1. It defines rules for encoding 2.'
+    expect(start(text, '1')).toBe('XML is a format for data')
+    expect(start(text, '2')).toBe('It defines rules for encoding')
+  })
+
+  it('covers the QUOTE when the marker follows its closing punctuation', () => {
+    // the case that produced an empty extent: the citation comes after
+    // the full stop and the closing guillemet, so a naive "previous
+    // boundary" search found the end of the very sentence to include
+    const text = 'Selon la note : « L\'ethos est une preuve rhétorique. » 1'
+    expect(start(text, '1')).toBe("L'ethos est une preuve rhétorique. »")
+  })
+
+  it('handles several sentences and stops at the previous one', () => {
+    const text = 'First one. Second one! Third one? The fourth is cited 3.'
+    expect(start(text, '3')).toBe('The fourth is cited')
+  })
+
+  it('falls back to the start of the text when there is no earlier sentence', () => {
+    expect(citedSentenceStart('Only one sentence cited 1.', 24)).toBe(0)
+    expect(citedSentenceStart('', 0)).toBe(0)
+  })
+
+  it('does not walk past an ellipsis or an abbreviation-free start', () => {
+    const text = 'Il cite Aristote… La suite est de lui 1.'
+    expect(start(text, '1')).toBe('La suite est de lui')
   })
 })

@@ -1,4 +1,5 @@
 import {
+  citedSentenceStart,
   findCitationMarkers,
   sourceOfNumber,
   type AnswerCitations,
@@ -6,175 +7,180 @@ import {
 } from '../../../shared/chat-citations'
 
 /**
- * Citation chips (CP-MVP-010 S08d) — the DOM half of `chat-citations`,
- * sitting beside `claim-highlight` because it does the same kind of job:
- * decorate rendered markdown without touching what the model wrote.
+ * Citation chips (CP-MVP-010 S08d, rebuilt at S10g) — the DOM half of
+ * `chat-citations`, sitting beside `claim-highlight` because it does the
+ * same kind of job: decorate rendered markdown without touching what the
+ * model wrote.
  *
  * The first version rewrote `[1]` into a markdown link, which made a
- * citation render as a link pill. The owner's bench was blunt about it
- * ("it still don't look like citation, its just plain text… the idea
- * that you should use md citation format for it is a bad assumption"),
- * and the objection is structural rather than cosmetic: a citation is
- * not a link that happens to be short. It is a reference marker bound to
- * the sentence in front of it, so it needs its own element and its own
- * shape — and the answer text stays exactly as written.
+ * citation render as a link pill. The owner's bench rejected that on the
+ * right grounds — a citation is not a link that happens to be short — so
+ * markers are decorated in place and the answer stays exactly as
+ * written.
+ *
+ * S10g rebuilt the EXTENT (which sentence a citation covers) after four
+ * rounds of it working "sometimes". The old version walked the DOM
+ * backwards from the chip asking "where is the previous sentence
+ * boundary?", which is the wrong question whenever the citation follows
+ * the full stop of the sentence it cites — a quote, always. It now works
+ * in two clean halves:
+ *
+ * ```text
+ * WHERE the sentence starts   pure string work on the rendered text,
+ *                             unit-tested (citedSentenceStart)
+ * HOW it is wrapped           offset ranges over the container's text
+ *                             nodes — the same slicing claim marks use
+ * ```
+ *
+ * That split is the point: the half that kept being wrong is now the
+ * half that can be tested without a browser.
  */
 
 const MARKER_RE = /\[(\d+(?:\s*,\s*\d+)*)\]/g
-/** Where a `[1]` is code or already a link, it is not a citation. */
-const SKIP = new Set(['CODE', 'PRE', 'A'])
+/** A citation belongs to its own block: it never reaches back into a
+ *  previous paragraph, and inside a blockquote the quote is the unit. */
+const BLOCKS = 'p, li, blockquote, td, th, h1, h2, h3, h4, h5, h6'
 
 export type AppliedCitations = AnswerCitations
 
+type TextSlot = { node: Text; from: number; to: number }
+
+/** Every text node under the container, with its offset in the whole. */
+function textSlots(container: HTMLElement): TextSlot[] {
+  const walker = container.ownerDocument.createTreeWalker(
+    container,
+    NodeFilter.SHOW_TEXT
+  )
+  const slots: TextSlot[] = []
+  let offset = 0
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const text = node as Text
+    slots.push({ node: text, from: offset, to: offset + text.data.length })
+    offset += text.data.length
+  }
+  return slots
+}
+
+/** Inside code, or already inside a link, a `[1]` is not a citation. */
+const isDecoratable = (node: Text): boolean =>
+  node.parentElement?.closest('code, pre, a') == null
+
 /**
- * Replaces every resolvable marker in the container with a chip. Returns
- * what was found so the caller can render the sources block and the
- * unresolved diagnostic.
+ * Decorates every resolvable marker in the container and wraps the
+ * sentence each one cites. Returns what was found, so the caller can
+ * render the sources block and the unresolved diagnostic.
  */
 export function applyCitationChips(
   container: HTMLElement,
-  text: string,
+  answer: string,
   sources: readonly CitationSource[]
 ): AppliedCitations {
-  const found = findCitationMarkers(text, sources)
+  const found = findCitationMarkers(answer, sources)
   if (sources.length === 0) return found
 
   const doc = container.ownerDocument
-  const walker = doc.createTreeWalker(container, NodeFilter.SHOW_TEXT)
-  const targets: Text[] = []
-  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-    const parent = (node as Text).parentElement
-    if (parent && !parent.closest('code, pre, a') && MARKER_RE.test((node as Text).data)) {
-      targets.push(node as Text)
-    }
-    MARKER_RE.lastIndex = 0
+  const rendered = container.textContent ?? ''
+
+  // Markers as ranges over the RENDERED text — what the reader sees, and
+  // what the sentence rule reasons about.
+  const markers: { from: number; to: number; numbers: number[] }[] = []
+  for (const match of rendered.matchAll(MARKER_RE)) {
+    const from = match.index ?? 0
+    const numbers = (match[1] as string)
+      .split(',')
+      .map((piece) => Number(piece.trim()))
+      .filter((number) => sourceOfNumber(sources, number) !== undefined)
+    // An invented number keeps its brackets: the reader should see that
+    // the model cited something that does not exist.
+    if (numbers.length === 0) continue
+    markers.push({ from, to: from + match[0].length, numbers })
   }
 
-  const marked: HTMLElement[] = []
-  for (const target of targets) {
-    const parent = target.parentElement
-    if (!parent || SKIP.has(parent.tagName)) continue
-    const fragment = doc.createDocumentFragment()
-    let cursor = 0
-    for (const match of target.data.matchAll(MARKER_RE)) {
-      const start = match.index ?? 0
-      const numbers = (match[1] as string)
-        .split(',')
-        .map((piece) => Number(piece.trim()))
-      const chips = numbers
-        .map((number) => ({ number, source: sourceOfNumber(sources, number) }))
-        .filter((entry) => entry.source !== undefined)
-      // An invented number keeps its brackets: it is left as written so
-      // the reader sees the model cited something that does not exist.
-      if (chips.length === 0) continue
-
-      fragment.append(doc.createTextNode(target.data.slice(cursor, start)))
-      for (const chip of chips) {
-        const anchor = doc.createElement('a')
-        anchor.className = 'citation-chip'
-        anchor.dataset['citation'] = chip.source!.path
-        anchor.href = '#'
-        anchor.textContent = String(chip.number)
-        anchor.title = `${chip.source!.title} — ${chip.source!.path}`
-        fragment.append(anchor)
-      }
-      cursor = start + match[0].length
-      marked.push(fragment.lastElementChild as HTMLElement)
-    }
-    if (cursor === 0) continue
-    fragment.append(doc.createTextNode(target.data.slice(cursor)))
-    parent.replaceChild(fragment, target)
+  // Back to front, so earlier offsets stay valid as the DOM changes —
+  // the discipline `applyClaimMarks` follows for the same reason.
+  for (const marker of [...markers].reverse()) {
+    const chips = replaceMarker(doc, container, marker, sources)
+    if (chips.length === 0) continue
+    wrapSentence(doc, container, marker, chips, rendered)
   }
 
-  for (const chip of marked) wrapCitedSpan(chip)
   return found
 }
 
+/** The marker's text becomes chips, in place. */
+function replaceMarker(
+  doc: Document,
+  container: HTMLElement,
+  marker: { from: number; to: number; numbers: number[] },
+  sources: readonly CitationSource[]
+): HTMLElement[] {
+  const slot = textSlots(container).find(
+    (candidate) => candidate.from <= marker.from && marker.to <= candidate.to
+  )
+  // A marker split across text nodes is left alone: rare, and a
+  // half-decorated citation is worse than a plain one.
+  if (!slot || !isDecoratable(slot.node)) return []
+
+  const localTo = marker.to - slot.from
+  const localFrom = marker.from - slot.from
+  const tail = localTo < slot.node.data.length ? slot.node.splitText(localTo) : null
+  const middle = localFrom > 0 ? slot.node.splitText(localFrom) : slot.node
+
+  const chips: HTMLElement[] = []
+  const fragment = doc.createDocumentFragment()
+  for (const number of marker.numbers) {
+    const source = sourceOfNumber(sources, number)
+    if (!source) continue
+    const anchor = doc.createElement('a')
+    anchor.className = 'citation-chip'
+    anchor.dataset['citation'] = source.path
+    anchor.href = '#'
+    anchor.textContent = String(number)
+    anchor.title = `${source.title} — ${source.path}`
+    fragment.append(anchor)
+    chips.push(anchor)
+  }
+  middle.parentNode?.replaceChild(fragment, middle)
+  void tail
+  return chips
+}
+
 /**
- * The EXTENT of a citation (owner bench round 8: "there is still no
- * visual clue or cue of the citation (the length of it for example)").
- *
- * A marker says where a citation ENDS; it says nothing about how much
- * of the text it covers, which is the question a reader actually has.
- * So the sentence carrying the marker is wrapped with it: hovering
- * anywhere in that sentence lights both up, and the reader sees exactly
- * how far the note's support reaches. Pure CSS from there — no hover
- * handlers, no state.
- *
- * The walk goes BACKWARD over siblings until a sentence boundary, so a
- * sentence containing bold or a link is captured whole. Failing that it
- * stops at the block, which is coarser but never wrong.
+ * Wraps the cited sentence — from `citedSentenceStart` up to the marker
+ * — in one `.cited-span`, so hovering anywhere in it lights the sentence
+ * and its chips together.
  */
-/** Inline wrappers a citation may find itself inside — a claim mark, an
- *  emphasis — none of which is the thing being cited. */
-const INLINE_WRAPPERS = new Set(['MARK', 'STRONG', 'EM', 'B', 'I', 'SPAN', 'SMALL'])
-
-function wrapCitedSpan(chip: HTMLElement): void {
-  // S10d (owner: "the citation inside quote block is still not
-  // decorated"). In a quote the sentence is usually also a source-backed
-  // CLAIM, so the marker lands inside its <mark> — and the extent then
-  // wrapped itself INSIDE the mark, under the mark's own background,
-  // where nothing could show. A citation is never part of the passage
-  // it cites, so it is hoisted out of any inline wrapper it ended up in
-  // before the extent is measured.
-  let host = chip.parentElement
-  while (
-    host &&
-    INLINE_WRAPPERS.has(host.tagName) &&
-    host.lastChild === chip &&
-    host.parentElement
-  ) {
-    host.after(chip)
-    host = chip.parentElement
-  }
-
-  const parent = chip.parentElement
-  if (!parent || parent.classList.contains('cited-span')) return
-  const doc = chip.ownerDocument
-
-  // Inside a blockquote the citation belongs to the QUOTE, so the walk
-  // is allowed to climb out of an inline wrapper (a claim mark, an
-  // emphasis) before looking for a sentence boundary — otherwise the
-  // extent stops at the edge of whatever element happened to hold the
-  // marker (S10b, owner: the quote format).
-  const collected: ChildNode[] = [chip]
-  let node: ChildNode | null = chip.previousSibling
-  let boundary = -1
-  while (node) {
-    if (node.nodeType === Node.TEXT_NODE) {
-      const data = (node as Text).data
-      const match = /[.!?…:][\s"»]*(?=[^.!?…]*$)/.exec(data)
-      if (match) {
-        boundary = match.index + match[0].length
-        break
-      }
-    }
-    // Another citation's span: stop rather than swallow it.
-    if (node.nodeType === Node.ELEMENT_NODE) {
-      const element = node as HTMLElement
-      if (element.classList.contains('cited-span')) break
-      if (element.tagName === 'BR') break
-    }
-    collected.unshift(node)
-    node = node.previousSibling
-  }
-
-  // Nothing but the chip itself was collected — the marker opens its
-  // block, so there is no sentence in front of it to light up. A
-  // one-character "extent" would read as the feature failing (S10e);
-  // the chip's own hover still says what it points at.
-  if (collected.length === 1) return
+function wrapSentence(
+  doc: Document,
+  container: HTMLElement,
+  marker: { from: number; to: number },
+  chips: HTMLElement[],
+  rendered: string
+): void {
+  const scope = chips[0]?.parentElement?.closest(BLOCKS) ?? container
+  const start = citedSentenceStart(rendered, marker.from)
 
   const span = doc.createElement('span')
   span.className = 'cited-span'
-  const first = collected[0]
-  if (!first) return
-  if (boundary >= 0 && node && node.nodeType === Node.TEXT_NODE) {
-    const text = node as Text
-    const tail = text.splitText(boundary)
-    collected.unshift(tail)
+  const first = chips[0] as HTMLElement
+  first.parentNode?.insertBefore(span, first)
+
+  for (const slot of textSlots(container)) {
+    if (!scope.contains(slot.node)) continue
+    const localFrom = Math.max(start - slot.from, 0)
+    const localTo = Math.min(marker.from - slot.from, slot.node.data.length)
+    if (localFrom >= localTo) continue
+    const tail = localTo < slot.node.data.length ? slot.node.splitText(localTo) : null
+    const middle = localFrom > 0 ? slot.node.splitText(localFrom) : slot.node
+    span.append(middle)
+    void tail
   }
-  const anchor = collected[0] as ChildNode
-  parent.insertBefore(span, anchor)
-  for (const child of collected) span.append(child)
+
+  // Nothing but the chip would be a one-character "extent", which reads
+  // as the feature failing rather than as an extent.
+  if ((span.textContent ?? '').trim().length === 0) {
+    span.remove()
+    return
+  }
+  for (const chip of chips) span.append(chip)
 }

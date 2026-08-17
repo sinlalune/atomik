@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S10f
+  current_step: S10g
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -904,8 +904,9 @@ live, on real notes.
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S10f done (bench rounds 13–17; claim overlay off in chat by
-              owner ruling) — S11 next (acceptance, ceremony, merge)
+current step: S10g done (bench rounds 13–18; claim overlay off in chat by
+              owner ruling, citation extent rebuilt as a pure rule) —
+              S11 next (acceptance, ceremony, merge)
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts
@@ -917,8 +918,8 @@ changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               docs/learning/22-lexical-retrieval-without-a-database.md + index
               docs/adr/ADR-013-lexical-retrieval-without-a-database.md
               docs/index.md · atomik-project/coding-paths/CP-MVP-010.md
-tests       : 915 passing / 74 files on the rebased branch (this path
-              added 110; CP-FEEDBACK's merge brought the rest),
+tests       : 923 passing / 74 files on the rebased branch (this path
+              added 118; CP-FEEDBACK's merge brought the rest),
               typecheck and build green, each gate run BARE (24)
 next action : S11 — owner bench on the restarted app, the acceptance
               record, the closing ceremony, `npm run cairn-audit`, then
