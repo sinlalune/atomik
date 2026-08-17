@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-011
   status: running
   accepted: 2026-08-17
-  current_step: S04
+  current_step: S05
   base_commit: 783c7c6
   branch: path/cp-mvp-011
   writes:
@@ -243,7 +243,7 @@ BASE        783c7c6; branch path/cp-mvp-011; dedicated worktree
 - [x] S03 Wikidata + graph bridge: entity search/resolution, labels/aliases,
       sitelinks and pinned claims; disposable external nodes/edges using the
       existing graph contract; provenance, ambiguity handling, and tests.
-- [ ] S04 Commons + Wiktionary: P18 metadata/attribution and safe thumbnail
+- [x] S04 Commons + Wiktionary: P18 metadata/attribution and safe thumbnail
       policy; language-aware Wiktionary/etymology result with status honesty;
       fixture tests, lifecycle/security notes, and no durable hotlinks.
 - [ ] S05 Typed Wikimedia door: expose the narrow `search_wiki` operation to
@@ -327,15 +327,43 @@ BASE        783c7c6; branch path/cp-mvp-011; dedicated worktree
   GraphEdge contract, whose comment now admits that transient form. No writer
   or cache path consumes the merged view; S07 owns presentation integration.
 
+## S04 work unit — complete 2026-08-17
+
+- **Code:** completed the two remaining project seats in the injected
+  `WikimediaClient`. Wikidata P18 filenames resolve through one bounded Commons
+  Action API request only in explicit remote media mode; selected extmetadata
+  becomes bounded plain text, upload URLs must be HTTPS on the pinned host, and
+  creator/licence/source completeness gates every `CommonsMedia`. Private and
+  offline modes skip Commons entirely. Wiktionary now uses fixed-host Core REST
+  search/page calls for pinned English/French section pairs, isolates the
+  correct language's etymology sections, preserves conservative source status,
+  and enforces per-section plus whole-result text budgets.
+- **Tests:** added dated minimal Commons and English/French Wiktionary fixtures
+  and 12 focused tests for complete attribution, explicit unknown creator,
+  missing attribution, non-HTTPS upload rejection, private/offline request
+  suppression, exact revision/licence provenance, cross-language isolation,
+  conservative status markers, unsupported editions, absent etymology and text
+  ceilings. Full result: 78 files, 959 passed + 1 skipped; typecheck and
+  production build green.
+- **Docs:** the dated research snapshot records the observed Q7186/P18 media
+  metadata and English/French Wiktionary revision/section shapes; learning and
+  sources/shell notes explain the two fail-closed rules and unchanged IPC
+  boundary.
+- **Deviations:** Wikimedia's Public Domain metadata did not expose a licence
+  URL for the probed file, so the normalizer maps that exact named case to the
+  Commons Public-domain reuse page instead of inventing a CC deed. S04 changes
+  no preload/IPC surface and writes no media or dossier; S05 and S08 retain
+  those responsibilities.
+
 # Current checkpoint
 
 ```text
 base commit : 783c7c6 (local master and origin/master at activation)
-changed     : S01 contracts; S02 Wikipedia; S03 Wikidata normalization and
-              disposable QID-URL graph projection with offline fixtures
-tests       : typecheck green; 77 files / 947 pass / 1 skip; build + Cairn green
-next action : execute S04 — Commons P18 attribution/media policy and bounded,
-              language-aware Wiktionary etymology extraction
+changed     : S01 contracts; S02 Wikipedia; S03 Wikidata/graph projection;
+              S04 fail-closed Commons P18 and bounded en/fr Wiktionary seats
+tests       : typecheck green; 78 files / 959 pass / 1 skip; build green
+next action : execute S05 — narrow validated search_wiki door, budgets,
+              cancellation, parented traces and security regressions
 blockers    : none
 parallel    : CP-RICH-MARKDOWN is running; styles.css and broad renderer/test/
               docs surfaces overlap advisory-only. Rebase at step boundaries.

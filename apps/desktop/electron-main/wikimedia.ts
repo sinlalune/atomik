@@ -7,6 +7,8 @@ import {
   wikimediaActionApiBase,
   wikimediaCoreRestBase,
   wikimediaHostOf,
+  type CommonsMedia,
+  type EtymologyStatus,
   type SearchWikiRequest,
   type WikidataEntity,
   type WikidataPropertyId,
@@ -17,7 +19,9 @@ import {
   type WikimediaErrorKind,
   type WikimediaSearchBundle,
   type WikimediaTraceRecord,
-  type WikipediaArticle
+  type WikimediaWarning,
+  type WikipediaArticle,
+  type WiktionaryEtymology
 } from '../shared/wikimedia'
 
 /**
@@ -33,6 +37,8 @@ export type WikimediaSearchContext = {
   signal: AbortSignal
   parentTraceId: string
   parentOperationId: string
+  /** Fail-closed default is private: no remote thumbnail URL is returned. */
+  mediaPolicy?: 'remote' | 'private' | 'offline'
 }
 
 type WikimediaClientOptions = {
@@ -108,9 +114,9 @@ const nonNegativeInteger = (value: unknown): value is number =>
 const requiredString = (value: unknown): value is string =>
   typeof value === 'string' && value.length > 0
 
-function parseSearchPages(value: unknown): SearchPage[] {
+function parseSearchPages(value: unknown, source = 'Wikipedia'): SearchPage[] {
   if (!isRecord(value) || !Array.isArray(value.pages)) {
-    throw new WikimediaError('malformed', 'Wikipedia search response has no pages array')
+    throw new WikimediaError('malformed', `${source} search response has no pages array`)
   }
   const pages: SearchPage[] = []
   for (const candidate of value.pages) {
@@ -123,7 +129,7 @@ function parseSearchPages(value: unknown): SearchPage[] {
         candidate.description !== undefined &&
         typeof candidate.description !== 'string')
     ) {
-      throw new WikimediaError('malformed', 'Wikipedia search result is malformed')
+      throw new WikimediaError('malformed', `${source} search result is malformed`)
     }
     pages.push({
       id: candidate.id,
@@ -136,7 +142,7 @@ function parseSearchPages(value: unknown): SearchPage[] {
   return pages
 }
 
-function parsePageWithHtml(value: unknown): PageWithHtml {
+function parsePageWithHtml(value: unknown, source = 'Wikipedia'): PageWithHtml {
   if (
     !isRecord(value) ||
     !positiveInteger(value.id) ||
@@ -150,7 +156,7 @@ function parsePageWithHtml(value: unknown): PageWithHtml {
     !requiredString(value.license.title) ||
     typeof value.html !== 'string'
   ) {
-    throw new WikimediaError('malformed', 'Wikipedia page response is malformed')
+    throw new WikimediaError('malformed', `${source} page response is malformed`)
   }
   return {
     id: value.id,
@@ -162,13 +168,13 @@ function parsePageWithHtml(value: unknown): PageWithHtml {
   }
 }
 
-function throwActionApiError(value: unknown): void {
+function throwActionApiError(value: unknown, source = 'Wikidata'): void {
   if (!isRecord(value) || !isRecord(value.error)) return
   const code = typeof value.error.code === 'string' ? value.error.code : 'unknown'
   if (code === 'maxlag' || code === 'ratelimited' || code === 'readonly') {
-    throw new WikimediaError('rate-limit', `Wikidata Action API returned ${code}`)
+    throw new WikimediaError('rate-limit', `${source} Action API returned ${code}`)
   }
-  throw new WikimediaError('malformed', `Wikidata Action API returned ${code}`)
+  throw new WikimediaError('malformed', `${source} Action API returned ${code}`)
 }
 
 function parseWikidataSearch(value: unknown): WikidataSearchResponse {
@@ -390,6 +396,255 @@ function labelsOfEntities(
     if (label !== null) labels.set(id, label)
   }
   return labels
+}
+
+function boundedPlainText(html: string, maxChars: number): string | null {
+  const { document } = parseHTML(`<html><body>${html}</body></html>`)
+  for (const selector of [
+    'script',
+    'style',
+    'noscript',
+    'img',
+    'svg',
+    '[style*="display: none"]',
+    '[style*="display:none"]'
+  ]) {
+    for (const node of Array.from(document.body.querySelectorAll(selector))) node.remove()
+  }
+  const text = (document.body.textContent ?? '').replace(/\s+/g, ' ').trim()
+  if (text.length === 0) return null
+  return text.slice(0, maxChars).trimEnd()
+}
+
+function metadataTextOf(
+  metadata: Record<string, unknown>,
+  field: string,
+  maxChars: number
+): string | null {
+  const entry = metadata[field]
+  if (!isRecord(entry) || typeof entry.value !== 'string') return null
+  return boundedPlainText(entry.value, maxChars)
+}
+
+function safeHttpUrl(value: unknown, requiredHost?: string): string | null {
+  if (typeof value !== 'string') return null
+  try {
+    const url = new URL(value)
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null
+    if (
+      requiredHost !== undefined &&
+      (url.protocol !== 'https:' || url.hostname !== requiredHost)
+    ) {
+      return null
+    }
+    return url.toString()
+  } catch {
+    return null
+  }
+}
+
+function commonsLicenseUrl(name: string, value: string | null): string | null {
+  const supplied = safeHttpUrl(value)
+  if (supplied !== null) return supplied
+  return name.toLowerCase() === 'public domain'
+    ? 'https://commons.wikimedia.org/wiki/Commons:Public_domain'
+    : null
+}
+
+function commonsMediaOf(
+  value: unknown,
+  requested: ReadonlySet<string>,
+  language: string,
+  accessedAt: string,
+  limits: EffectiveLimits
+): { media: CommonsMedia[]; withheld: number } {
+  throwActionApiError(value, 'Commons')
+  if (!isRecord(value) || !isRecord(value.query) || !Array.isArray(value.query.pages)) {
+    throw new WikimediaError('malformed', 'Commons response has no pages array')
+  }
+  const media: CommonsMedia[] = []
+  let withheld = 0
+  const seen = new Set<string>()
+  for (const page of value.query.pages) {
+    if (!isRecord(page) || !requiredString(page.title)) {
+      throw new WikimediaError('malformed', 'Commons page record is malformed')
+    }
+    const fileTitle = page.title.replace(/^File:/i, '')
+    if (!requested.has(fileTitle)) continue
+    seen.add(fileTitle)
+    const info = Array.isArray(page.imageinfo) ? page.imageinfo[0] : undefined
+    if (
+      !positiveInteger(page.pageid) ||
+      !isRecord(info) ||
+      !requiredString(info.timestamp) ||
+      !requiredString(info.mime) ||
+      !info.mime.startsWith('image/') ||
+      !positiveInteger(info.width) ||
+      !positiveInteger(info.height) ||
+      !isRecord(info.extmetadata)
+    ) {
+      withheld += 1
+      continue
+    }
+    const originalUrl = safeHttpUrl(info.url, 'upload.wikimedia.org')
+    const thumbnailUrl = safeHttpUrl(info.thumburl, 'upload.wikimedia.org')
+    const creator = metadataTextOf(
+      info.extmetadata,
+      'Artist',
+      limits.maxMetadataChars
+    )
+    const credit = metadataTextOf(
+      info.extmetadata,
+      'Credit',
+      limits.maxMetadataChars
+    )
+    const description = metadataTextOf(
+      info.extmetadata,
+      'ImageDescription',
+      limits.maxMetadataChars
+    )
+    const licenseName =
+      metadataTextOf(
+        info.extmetadata,
+        'LicenseShortName',
+        limits.maxMetadataChars
+      ) ??
+      metadataTextOf(info.extmetadata, 'UsageTerms', limits.maxMetadataChars)
+    const licenseUrl =
+      licenseName === null
+        ? null
+        : commonsLicenseUrl(
+            licenseName,
+            metadataTextOf(info.extmetadata, 'LicenseUrl', limits.maxMetadataChars)
+          )
+    if (
+      originalUrl === null ||
+      thumbnailUrl === null ||
+      creator === null ||
+      licenseName === null ||
+      licenseUrl === null
+    ) {
+      withheld += 1
+      continue
+    }
+    const encoded = fileTitle
+      .split('/')
+      .map((part) => encodeURIComponent(part.replace(/ /g, '_')))
+      .join('/')
+    media.push({
+      kind: 'commons-media',
+      fileTitle,
+      description,
+      creator,
+      credit,
+      attributionRequired:
+        metadataTextOf(info.extmetadata, 'AttributionRequired', 16)?.toLowerCase() ===
+        'true',
+      originalUrl,
+      thumbnailUrl,
+      mime: info.mime,
+      width: info.width,
+      height: info.height,
+      source: {
+        project: 'commons',
+        language,
+        title: page.title,
+        pageId: page.pageid,
+        revision: { id: null, timestamp: info.timestamp },
+        canonicalUrl: `https://commons.wikimedia.org/wiki/File:${encoded}`,
+        accessedAt,
+        license: { name: licenseName, url: licenseUrl }
+      }
+    })
+    if (media.length >= limits.maxCommonsMedia) break
+  }
+  withheld += [...requested].filter((fileTitle) => !seen.has(fileTitle)).length
+  return { media, withheld }
+}
+
+const WIKTIONARY_SECTIONS = {
+  en: { language: 'English', etymology: /^Etymology(?:\s+[0-9]+)?$/i },
+  fr: { language: 'Français', etymology: /^Étymologie(?:\s+[0-9]+)?$/i }
+} as const
+
+export function etymologyStatusOf(text: string): EtymologyStatus {
+  const folded = text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+  if (/\b(disputed|controversial|contestee?|controversee?)\b/.test(folded)) {
+    return 'disputed'
+  }
+  if (
+    /\b(reconstructed|reconstruction|reconstruit|reconstituee?)\b/.test(folded) ||
+    /(^|\s)\*[a-z]/i.test(folded)
+  ) {
+    return 'reconstructed'
+  }
+  if (/\b(attested|attestee?)\b/.test(folded)) return 'attested'
+  return 'unknown'
+}
+
+export type ExtractedEtymology = {
+  heading: string
+  text: string
+  status: EtymologyStatus
+  truncated: boolean
+}
+
+export function wiktionaryEtymologiesOfHtml(
+  html: string,
+  language: string,
+  maxChars: number = WIKIMEDIA_LIMITS.maxEtymologyTextChars,
+  maxSections: number = WIKIMEDIA_LIMITS.maxEtymologiesPerEntry
+): ExtractedEtymology[] {
+  const config = WIKTIONARY_SECTIONS[language as keyof typeof WIKTIONARY_SECTIONS]
+  if (config === undefined) {
+    throw new WikimediaError('unsupported-language', `Wiktionary ${language} is not pinned`)
+  }
+  const { document } = parseHTML(`<html><body>${html}</body></html>`)
+  const languageHeading = Array.from(document.querySelectorAll('h2')).find(
+    (heading) => (heading.textContent ?? '').replace(/\s+/g, ' ').trim() === config.language
+  )
+  const languageSection = languageHeading?.parentElement
+  if (!languageSection) return []
+  const headings = Array.from(languageSection.querySelectorAll('h3,h4')).filter(
+    (heading) => config.etymology.test((heading.textContent ?? '').trim())
+  )
+  const extracted: ExtractedEtymology[] = []
+  for (const heading of headings.slice(0, maxSections)) {
+    const section = heading.parentElement
+    if (!section) continue
+    const clone = section.cloneNode(true) as Element
+    for (const selector of [
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'section',
+      'script',
+      'style',
+      'link',
+      'sup',
+      '.reference',
+      '.mw-editsection'
+    ]) {
+      for (const node of Array.from(clone.querySelectorAll(selector))) node.remove()
+    }
+    const normalized = (clone.textContent ?? '').replace(/\s+/g, ' ').trim()
+    if (normalized.length === 0) continue
+    const clipped = normalized.slice(0, maxChars)
+    const lastSpace = clipped.lastIndexOf(' ')
+    const truncated = normalized.length > maxChars
+    const text = truncated
+      ? clipped.slice(0, lastSpace > maxChars * 0.8 ? lastSpace : maxChars).trimEnd()
+      : normalized
+    extracted.push({
+      heading: (heading.textContent ?? '').replace(/\s+/g, ' ').trim(),
+      text,
+      status: etymologyStatusOf(text),
+      truncated
+    })
+  }
+  return extracted
 }
 
 const REMOVE_FROM_ARTICLE = [
@@ -784,20 +1039,82 @@ export class WikimediaClient {
           this.limits
         )
       )
+      const warnings: WikimediaWarning[] =
+        searched.hasMore || hits.length > 1
+          ? [
+              {
+                kind: 'ambiguous',
+                message: 'Wikidata returned multiple ranked entity candidates.'
+              }
+            ]
+          : []
+      let media: CommonsMedia[] = []
+      const fileTitles = [
+        ...new Set(
+          entities.flatMap((entity) =>
+            entity.statements.flatMap((statement) =>
+              statement.value.kind === 'commons-media'
+                ? [statement.value.fileTitle]
+                : []
+            )
+          )
+        )
+      ].slice(0, this.limits.maxCommonsMedia)
+      if (request.includeMedia && fileTitles.length > 0) {
+        if (context.mediaPolicy !== 'remote') {
+          warnings.push({
+            kind: 'media-withheld',
+            message: 'Commons media is disabled by private/offline policy.'
+          })
+        } else {
+          const commonsUrl = new URL(
+            wikimediaActionApiBase('commons', request.language)
+          )
+          commonsUrl.searchParams.set('action', 'query')
+          commonsUrl.searchParams.set(
+            'titles',
+            fileTitles.map((title) => `File:${title}`).join('|')
+          )
+          commonsUrl.searchParams.set('prop', 'imageinfo')
+          commonsUrl.searchParams.set(
+            'iiprop',
+            'timestamp|url|mime|size|extmetadata'
+          )
+          commonsUrl.searchParams.set(
+            'iiextmetadatafilter',
+            'Artist|LicenseShortName|LicenseUrl|Credit|AttributionRequired|UsageTerms|ImageDescription|ObjectName'
+          )
+          commonsUrl.searchParams.set(
+            'iiextmetadatalanguage',
+            request.language
+          )
+          commonsUrl.searchParams.set('iiurlwidth', '640')
+          commonsUrl.searchParams.set('uselang', request.language)
+          commonsUrl.searchParams.set('maxlag', '5')
+          commonsUrl.searchParams.set('format', 'json')
+          commonsUrl.searchParams.set('formatversion', '2')
+          const resolved = commonsMediaOf(
+            await this.json(commonsUrl, context.signal, budget),
+            new Set(fileTitles),
+            request.language,
+            accessedAt,
+            this.limits
+          )
+          media = resolved.media
+          if (resolved.withheld > 0) {
+            warnings.push({
+              kind: 'media-withheld',
+              message: `${resolved.withheld} Commons image(s) lacked complete attribution or safe URLs.`
+            })
+          }
+        }
+      }
       resultCount = entities.length
       return {
         request,
         results: entities,
-        media: [],
-        warnings:
-          searched.hasMore || hits.length > 1
-            ? [
-                {
-                  kind: 'ambiguous',
-                  message: 'Wikidata returned multiple ranked entity candidates.'
-                }
-              ]
-            : [],
+        media,
+        warnings,
         responseBytes: budget.responseBytes,
         accessedAt
       }
@@ -810,6 +1127,159 @@ export class WikimediaClient {
         parentOperationId: context.parentOperationId,
         tool: 'search_wiki',
         corpus: 'wikidata',
+        language: request.language,
+        requests: budget.requests,
+        resultCount,
+        responseBytes: budget.responseBytes,
+        wallMs: Math.max(0, this.nowMs() - started),
+        status: errorKind === undefined ? 'completed' : 'failed',
+        ...(errorKind === undefined ? {} : { errorKind })
+      })
+    }
+  }
+
+  async searchWiktionary(
+    value: unknown,
+    context: WikimediaSearchContext
+  ): Promise<WikimediaSearchBundle> {
+    const request = parseSearchWikiRequest(value)
+    if (request.corpus !== 'wiktionary') {
+      throw new WikimediaError('malformed', 'Wiktionary seat requires corpus=wiktionary')
+    }
+    if (!(request.language in WIKTIONARY_SECTIONS)) {
+      throw new WikimediaError(
+        'unsupported-language',
+        `Wiktionary ${request.language} is not pinned`
+      )
+    }
+    if (context.signal.aborted) {
+      throw new WikimediaError('cancelled', 'operation was cancelled')
+    }
+    const started = this.nowMs()
+    const budget: RequestBudget = { requests: 0, responseBytes: 0 }
+    let resultCount = 0
+    let errorKind: WikimediaErrorKind | undefined
+    try {
+      const base = wikimediaCoreRestBase('wiktionary', request.language)
+      const searchUrl = new URL(`${base}/search/page`)
+      searchUrl.searchParams.set('q', request.query)
+      searchUrl.searchParams.set('limit', String(request.limit))
+      const hits = parseSearchPages(
+        await this.json(searchUrl, context.signal, budget),
+        'Wiktionary'
+      )
+      if (hits.length === 0) {
+        throw new WikimediaError('empty', 'Wiktionary returned no matching entry')
+      }
+
+      const accessedAt = new Date(this.nowMs()).toISOString()
+      const etymologies: WiktionaryEtymology[] = []
+      let remainingTextChars = this.limits.maxToolTextChars
+      entries: for (const hit of hits.slice(0, request.limit)) {
+        const pageUrl = new URL(
+          `${base}/page/${encodeURIComponent(hit.key)}/with_html`
+        )
+        const page = parsePageWithHtml(
+          await this.json(pageUrl, context.signal, budget),
+          'Wiktionary'
+        )
+        if (page.id !== hit.id) {
+          throw new WikimediaError('malformed', 'Wiktionary page identity changed during lookup')
+        }
+        const sections = wiktionaryEtymologiesOfHtml(
+          page.html,
+          request.language,
+          this.limits.maxEtymologyTextChars,
+          this.limits.maxEtymologiesPerEntry
+        )
+        const encoded = page.key
+          .split('/')
+          .map((part) => encodeURIComponent(part.replace(/ /g, '_')))
+          .join('/')
+        for (const section of sections) {
+          if (remainingTextChars <= 0) break entries
+          const clipped = section.text.slice(0, remainingTextChars)
+          const lastSpace = clipped.lastIndexOf(' ')
+          const budgetTruncated = section.text.length > remainingTextChars
+          const text = budgetTruncated
+            ? clipped
+                .slice(
+                  0,
+                  lastSpace > remainingTextChars * 0.8
+                    ? lastSpace
+                    : remainingTextChars
+                )
+                .trimEnd()
+            : section.text
+          etymologies.push({
+            kind: 'wiktionary-etymology',
+            term: page.title,
+            editionLanguage: request.language,
+            entryLanguage: request.language,
+            heading: section.heading,
+            text,
+            status: section.status,
+            truncated: section.truncated || budgetTruncated,
+            source: {
+              project: 'wiktionary',
+              language: request.language,
+              title: page.title,
+              pageId: page.id,
+              revision: {
+                id: page.latest.id,
+                timestamp: page.latest.timestamp
+              },
+              canonicalUrl: `https://${wikimediaHostOf(
+                'wiktionary',
+                request.language
+              )}/wiki/${encoded}`,
+              accessedAt,
+              license: {
+                name: page.license.title,
+                url: page.license.url
+              }
+            }
+          })
+          remainingTextChars -= text.length
+        }
+      }
+      if (etymologies.length === 0) {
+        throw new WikimediaError(
+          'empty',
+          'Wiktionary entry has no pinned language etymology section'
+        )
+      }
+      resultCount = etymologies.length
+      const warnings: WikimediaWarning[] = []
+      if (etymologies.some((entry) => entry.status === 'unknown')) {
+        warnings.push({
+          kind: 'parser-uncertain',
+          message: 'Etymology status is unknown because the source exposes no explicit marker.'
+        })
+      }
+      if (etymologies.some((entry) => entry.truncated)) {
+        warnings.push({
+          kind: 'truncated',
+          message: 'One or more etymology sections were clipped to the text budget.'
+        })
+      }
+      return {
+        request,
+        results: etymologies,
+        media: [],
+        warnings,
+        responseBytes: budget.responseBytes,
+        accessedAt
+      }
+    } catch (error) {
+      errorKind = error instanceof WikimediaError ? error.kind : 'network'
+      throw error
+    } finally {
+      this.trace?.recordWikimedia({
+        parentTraceId: context.parentTraceId,
+        parentOperationId: context.parentOperationId,
+        tool: 'search_wiki',
+        corpus: 'wiktionary',
         language: request.language,
         requests: budget.requests,
         resultCount,

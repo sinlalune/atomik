@@ -116,6 +116,33 @@ data, not graph edges. `withExternalGraphProjection` returns a new session view
 without mutating the file-built graph, and the projection carries a separate
 provenance list. Nothing calls the graph persistence seat.
 
+### S04: media and word origins need different fail-closed rules
+
+A Wikidata P18 value is only a Commons filename. It is not yet an image that
+Atomik may present. In explicit `remote` mode, `searchWikidata` resolves the
+few retained filenames with one Commons `imageinfo` request. Main reduces the
+selected `extmetadata` HTML to bounded plain text and returns a
+`CommonsMedia` only when all of these survive validation:
+
+- the requested file identity and source-page identity;
+- HTTPS original and thumbnail URLs on `upload.wikimedia.org`;
+- an explicit creator, including an honest value such as “Unknown author”;
+- a licence name and safe licence URL.
+
+Missing attribution is not repaired with plausible prose. The media item is
+withheld and the result carries `media-withheld`. Private/offline mode is even
+stricter: it skips the Commons request and returns no remote media URL. A
+thumbnail is therefore disposable chat presentation, never a durable hotlink.
+
+Wiktionary needs a structural rather than attribution gate. The first parser
+pins only English (`English` → `Etymology`) and French (`Français` →
+`Étymologie`) edition headings. It selects the matching language section,
+removes nested definition/pronunciation sections and reference furniture, and
+clips each section plus the combined search result. A starred or explicitly
+reconstructed/disputed/attested source marker can strengthen `status`; ordinary
+origin prose remains `unknown`. That uncertainty is a result, not a parser
+failure to hide.
+
 ### Provenance is not truth
 
 `WikimediaSource` records where and when text was consulted: project,

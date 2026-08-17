@@ -29,7 +29,13 @@ timestamp: 2026-08-17T00:00:00Z
   remains byte-for-byte unchanged until S05 has a narrow operation to publish.
   S03 adds Wikidata through the same fixed `www.wikidata.org/w/api.php` seat;
   Action API caller URLs, raw claims and a graph persistence verb still do not
-  enter the renderer surface.
+  enter the renderer surface. S04 adds fixed `commons.wikimedia.org` metadata
+  resolution and fixed English/French Wiktionary Core REST reads behind the
+  same unexposed seat. Commons upload URLs are admitted only in explicit
+  remote mode and only after HTTPS-host plus attribution/licence validation;
+  private/offline skips the request. Hostile extmetadata/page HTML is reduced
+  in main. IPC/preload remains unchanged; S05 still owns the first narrow
+  renderer door.
 
 - The Electron shell: app lifecycle, the trusted UI window, and the
   main/preload/renderer split (`apps/desktop/electron-main/`,

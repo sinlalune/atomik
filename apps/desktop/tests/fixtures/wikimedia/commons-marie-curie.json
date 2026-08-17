@@ -1,0 +1,52 @@
+{
+  "batchcomplete": true,
+  "query": {
+    "pages": [
+      {
+        "pageid": 123803240,
+        "title": "File:Marie Curie (1900) (cropped).jpg",
+        "imageinfo": [
+          {
+            "timestamp": "2022-10-05T09:16:49Z",
+            "url": "https://upload.wikimedia.org/wikipedia/commons/7/77/Marie_Curie_%281900%29_%28cropped%29.jpg?fixture=original",
+            "descriptionurl": "https://commons.wikimedia.org/wiki/File:Marie_Curie_(1900)_(cropped).jpg",
+            "thumburl": "https://upload.wikimedia.org/wikipedia/commons/7/77/Marie_Curie_%281900%29_%28cropped%29.jpg?fixture=thumbnail",
+            "mime": "image/jpeg",
+            "width": 335,
+            "height": 491,
+            "extmetadata": {
+              "ObjectName": {
+                "value": "Marie Curie (1900) (cropped)",
+                "source": "mediawiki-metadata"
+              },
+              "ImageDescription": {
+                "value": "Portrait of <a href=\"https://en.wikipedia.org/wiki/Marie_Curie\">Marie Skłodowska-Curie</a>",
+                "source": "commons-desc-page"
+              },
+              "Credit": {
+                "value": "Historic photograph",
+                "source": "commons-desc-page"
+              },
+              "Artist": {
+                "value": "Unknown author<span style=\"display: none;\">duplicate</span>",
+                "source": "commons-desc-page"
+              },
+              "LicenseShortName": {
+                "value": "Public domain",
+                "source": "commons-desc-page"
+              },
+              "UsageTerms": {
+                "value": "Public domain",
+                "source": "commons-desc-page"
+              },
+              "AttributionRequired": {
+                "value": "false",
+                "source": "commons-desc-page"
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

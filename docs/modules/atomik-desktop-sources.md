@@ -48,6 +48,22 @@ timestamp: 2026-08-17T00:00:00Z
   description, requested+English Wikipedia sitelinks, CC0, page/revision and
   access provenance. Action API `maxlag` is a typed rate-limit outcome;
   non-allowlisted claim content is fixture-proven not to cross the boundary.
+- COMMONS + WIKTIONARY LIVE SEATS (CP-MVP-011 S04): retained Wikidata P18
+  filenames may trigger one bounded Commons `imageinfo` lookup only when the
+  caller's media policy is explicitly `remote`. Main strips HTML from selected
+  extmetadata and admits a media item only with requested file/source identity,
+  explicit creator, concrete licence name+URL, and HTTPS original+thumbnail on
+  `upload.wikimedia.org`; incomplete attribution or unsafe URLs become a
+  visible `media-withheld` warning. Private/offline mode makes no Commons
+  request and returns no remote media URL. `searchWiktionary` uses Core REST
+  search+`with_html`, currently pins only English and French edition/language
+  headings, extracts bounded etymology text without sibling language or
+  definition sections, preserves page/revision/licence/access provenance, and
+  defaults source status to visible `unknown` unless an explicit attested,
+  reconstructed, or disputed marker supports more. Local fixtures cover both
+  editions, language isolation, text budgets, unsupported editions, missing
+  sections, explicit status markers, incomplete attribution and non-HTTPS
+  media. Neither seat writes a file; S08 owns explicit local persistence.
 
 - The capture session server (08/13 §capture, CP-MVP-002 S02):
   `electron-main/capture-session.ts` (incubating capture-core, 14) — a

@@ -109,6 +109,14 @@ not the full remote articles.
   licence is not meaningful. The diagnostic `File:Example.jpg` returned an
   icon-only Artist value and Public Domain terms; that is the pinned
   missing-attribution case, not permission to invent a creator.
+- The low-rate S04 P18 probe followed Q7186 to
+  `File:Marie Curie (1900) (cropped).jpg` (Commons page id 123803240). Its
+  selected imageinfo timestamp was `2022-10-05T09:16:49Z`; upload and thumbnail
+  URLs were on `upload.wikimedia.org`; Artist explicitly said `Unknown author`;
+  and the terms said `Public domain` without a `LicenseUrl`. Atomik preserves
+  that explicit uncertainty and maps only this named Public Domain case to the
+  Commons Public-domain reuse explanation. It does not manufacture a CC deed
+  or a named photographer.
 - Remote thumbnails are transient presentation only and are disabled by
   private/offline policy. A saved source copies bytes locally instead of
   hotlinking. Source:
@@ -122,6 +130,14 @@ not the full remote articles.
 - The live seat therefore retrieves edition HTML through Core REST and performs
   conservative heading-bounded extraction. `en.wiktionary.org` `atom` exposed
   page/revision/licence metadata through the same Core REST shape as Wikipedia.
+- The S04 diagnostic observed English `atom` page id 29589, revision 91397040
+  (`2026-06-27T05:27:18Z`), with an `English` h2 whose nested h3 section was
+  `Etymology`; other language h2 sections existed in the same document and
+  must not leak into that result. French `atome` was page id 50574, revision
+  39727749 (`2026-08-01T18:02:30Z`), with `Français` → `Étymologie`. The first
+  parser pins only these English/French heading pairs. Adding an edition needs
+  a fresh dated fixture and explicit section rule; language-tag validation
+  alone is not parser support.
 - Etymology prose can cite reconstructed, disputed, or merely proposed forms.
   Atomik only assigns `attested`, `reconstructed`, or `disputed` when explicit
   source markers support it; parser uncertainty defaults to `unknown` and is

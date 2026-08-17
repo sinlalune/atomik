@@ -1,0 +1,35 @@
+{
+  "batchcomplete": true,
+  "query": {
+    "pages": [
+      {
+        "pageid": 123803240,
+        "title": "File:Marie Curie (1900) (cropped).jpg",
+        "imageinfo": [
+          {
+            "timestamp": "2022-10-05T09:16:49Z",
+            "url": "https://upload.wikimedia.org/wikipedia/commons/7/77/file.jpg",
+            "thumburl": "https://upload.wikimedia.org/wikipedia/commons/7/77/thumb.jpg",
+            "mime": "image/jpeg",
+            "width": 335,
+            "height": 491,
+            "extmetadata": {
+              "Artist": {
+                "value": "<span><img src=\"https://upload.wikimedia.org/icon.svg\"></span>",
+                "source": "commons-desc-page"
+              },
+              "LicenseShortName": {
+                "value": "Public domain",
+                "source": "commons-desc-page"
+              },
+              "AttributionRequired": {
+                "value": "false",
+                "source": "commons-desc-page"
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
