@@ -19,6 +19,7 @@ for two paths to disagree about.
 
 <!-- cairn:paths:begin -->
 - **CP-MVP-010** — Retrieval over the graph · branch `path/cp-mvp-010` · base `2370546`
+- **CP-RICH-MARKDOWN** — Rich Markdown · branch `path/cp-rich-markdown` · base `98561b4`
 <!-- cairn:paths:end -->
 
 Next up: **CP-MVP-011** — Wikimedia augmentation over the same nodes/edges
