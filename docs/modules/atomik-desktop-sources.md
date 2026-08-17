@@ -64,6 +64,14 @@ timestamp: 2026-08-17T00:00:00Z
   editions, language isolation, text budgets, unsupported editions, missing
   sections, explicit status markers, incomplete attribution and non-HTTPS
   media. Neither seat writes a file; S08 owns explicit local persistence.
+- UNIFIED SEARCH DOOR (CP-MVP-011 S05): `WikimediaClient.search` validates one
+  `SearchWikiRequest` and dispatches only to the pinned seats. `auto` consults
+  Wikipedia plus Wikidata sequentially, shares one request/byte budget and one
+  caller cancellation signal, and keeps each corpus's content-free child
+  receipt. Its 3/2 maximum result allocation caps the worst-case HTTP path at
+  eight requests; a typed empty from one corpus does not erase usable results
+  from the other. This method is for the main-side tool harness, not a renderer
+  network primitive.
 
 - The capture session server (08/13 §capture, CP-MVP-002 S02):
   `electron-main/capture-session.ts` (incubating capture-core, 14) — a

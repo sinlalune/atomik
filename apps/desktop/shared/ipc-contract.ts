@@ -550,6 +550,10 @@ export type AiOperation = {
     /** How far retrieval reaches: titles · linked · full (S08g/h). */
     sensitivity?: 'titles' | 'linked' | 'full'
   }
+  /** Renderer preference for the provider-neutral client-tool loop. It
+   *  grants no tool directly: main validates this wire shape, derives the
+   *  allowlist/policy and remains the only executor (CP-MVP-011 S05). */
+  tools?: import('./generation-tools').GenerationToolPreference
   /** MAIN-SET (CP-MVP-010 S08c), never accepted from the renderer:
    *  what the vault could and could not answer, so the request can say
    *  it out loud. Without it a thin packet reads to the model as "these

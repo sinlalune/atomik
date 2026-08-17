@@ -192,6 +192,32 @@ model text and never accepts a model-provided function.
 This pattern is **dependency inversion**: vendor adapters depend on Atomik's
 two-tool contract, while the core does not depend on a vendor's message shape.
 
+### S05: one operation door, not one renderer network channel
+
+The renderer already has one named AI operation IPC method. Adding a separate
+`searchWiki` preload method would let renderer state execute the network rung
+outside the model-tool policy and its parent trace. S05 therefore adds only a
+strict `AiOperation.tools` preference to the existing wire object:
+
+```text
+{ mode: "off" | "model", wikiLanguage: "en" }
+```
+
+Main parses that object, rejects widened fields and unsafe language labels,
+then derives the allowlist. A later provider call must use the same pinned
+language; the model cannot silently switch editions. The actual executor is
+`WikimediaClient.search` inside main. Specific corpora dispatch to their fixed
+seats. `auto` consults Wikipedia and Wikidata sequentially with one shared
+request/response-byte counter and one AbortSignal, so crossing the corpus
+boundary resets neither budget nor cancellation.
+
+Trace identity follows the same ownership rule. `beginGeneration` reserves a
+root trace id immediately before provider work. `recordWikimedia` accepts a
+child only while that exact root id and operation id are active; the completed
+or failed generation line later reuses the reserved id. If the app quits in
+between, `flush` lands the reserved parent as failed rather than leaving an
+orphaned retrieval receipt.
+
 ## 4. Why the result is marked untrusted
 
 A Wikipedia page can contain prose such as “ignore earlier instructions.” It

@@ -1,5 +1,6 @@
 import type { RetrievalSensitivity } from './retrieval-core'
 import {
+  normalizeWikimediaLanguage,
   parseSearchWikiRequest,
   type SearchWikiRequest
 } from './wikimedia'
@@ -108,6 +109,7 @@ const isRecord = (value: unknown): value is UnknownRecord =>
 
 const CALL_ID_RE = /^[A-Za-z0-9._:-]{1,128}$/
 const VAULT_KEYS = new Set(['query', 'sensitivity', 'limit'])
+const PREFERENCE_KEYS = new Set(['mode', 'wikiLanguage'])
 const SENSITIVITIES = new Set<RetrievalSensitivity>(['titles', 'linked', 'full'])
 
 export class GenerationToolContractError extends Error {
@@ -118,6 +120,41 @@ export class GenerationToolContractError extends Error {
     super(`tool(${code}): ${detail}`)
     this.name = 'GenerationToolContractError'
   }
+}
+
+/** Strict renderer-wire parser; a preference grants no execution authority. */
+export function parseGenerationToolPreference(
+  value: unknown
+): GenerationToolPreference {
+  if (!isRecord(value)) {
+    throw new GenerationToolContractError(
+      'invalid-arguments',
+      'tool preference must be an object'
+    )
+  }
+  const unknownKeys = Object.keys(value).filter(
+    (key) => !PREFERENCE_KEYS.has(key)
+  )
+  if (unknownKeys.length > 0) {
+    throw new GenerationToolContractError(
+      'invalid-arguments',
+      `unknown tool preference field: ${unknownKeys[0]}`
+    )
+  }
+  if (value.mode !== 'off' && value.mode !== 'model') {
+    throw new GenerationToolContractError(
+      'invalid-arguments',
+      'tool mode must be off or model'
+    )
+  }
+  const wikiLanguage = normalizeWikimediaLanguage(value.wikiLanguage)
+  if (wikiLanguage === null) {
+    throw new GenerationToolContractError(
+      'invalid-arguments',
+      'invalid Wikimedia language'
+    )
+  }
+  return { mode: value.mode, wikiLanguage }
 }
 
 function parseVaultArguments(value: unknown): SearchVaultToolArguments {
@@ -199,12 +236,20 @@ export function parseGenerationToolCall(
     }
   }
   try {
+    const request = parseSearchWikiRequest(value.arguments)
+    if (request.language !== policy.wikiLanguage) {
+      throw new GenerationToolContractError(
+        'not-allowed',
+        `search_wiki language must be ${policy.wikiLanguage}`
+      )
+    }
     return {
       id: value.id,
       name: value.name,
-      arguments: parseSearchWikiRequest(value.arguments)
+      arguments: request
     }
   } catch (error) {
+    if (error instanceof GenerationToolContractError) throw error
     const detail = error instanceof Error ? error.message : 'invalid wiki arguments'
     throw new GenerationToolContractError('invalid-arguments', detail)
   }
@@ -213,10 +258,11 @@ export function parseGenerationToolCall(
 export function createGenerationToolPolicy(
   preference: GenerationToolPreference
 ): GenerationToolPolicy {
+  const parsed = parseGenerationToolPreference(preference)
   return {
-    mode: preference.mode,
-    allowed: preference.mode === 'model' ? ['search_vault', 'search_wiki'] : [],
-    wikiLanguage: preference.wikiLanguage,
+    mode: parsed.mode,
+    allowed: parsed.mode === 'model' ? ['search_vault', 'search_wiki'] : [],
+    wikiLanguage: parsed.wikiLanguage,
     limits: GENERATION_TOOL_LIMITS
   }
 }

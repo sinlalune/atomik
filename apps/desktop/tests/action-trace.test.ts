@@ -237,6 +237,67 @@ describe('ActionTraceLedger (S09 minimum, nothing more)', () => {
     expect(ledger.summary(bundle.id)).toBeNull()
     expect(ledger.summary(42)).toBeNull()
   })
+
+  it('reserves a generation parent before Wikimedia children and reuses its id', () => {
+    const op = operation('op-wiki-parent')
+    const parentTraceId = ledger.beginGeneration(op.id)
+    const childTraceId = ledger.recordWikimedia({
+      parentTraceId,
+      parentOperationId: op.id,
+      tool: 'search_wiki',
+      corpus: 'wikipedia',
+      language: 'en',
+      requests: 2,
+      resultCount: 1,
+      responseBytes: 512,
+      wallMs: 8,
+      status: 'completed'
+    })
+    const bundle = runAiOperation(op)
+    expect(ledger.draftFor(op, bundle, 12, undefined, parentTraceId)).toBe(
+      parentTraceId
+    )
+    ledger.resolve(bundle.id, 'accepted')
+
+    const lines = readLines()
+    const child = lines.find((line) => line['id'] === childTraceId)!
+    const parent = lines.find((line) => line['id'] === parentTraceId)!
+    expect(child['parentTraceId']).toBe(parentTraceId)
+    expect(child['operationId']).toBe(op.id)
+    expect(parent['operationId']).toBe(op.id)
+    expect(parent['action']).toBe('generate')
+  })
+
+  it('refuses orphaned or mismatched Wikimedia receipts', () => {
+    const record = {
+      parentTraceId: 'trace_orphan',
+      parentOperationId: 'op-orphan',
+      tool: 'search_wiki' as const,
+      corpus: 'wikipedia' as const,
+      language: 'en',
+      requests: 1,
+      resultCount: 0,
+      responseBytes: 10,
+      wallMs: 1,
+      status: 'failed' as const,
+      errorKind: 'empty' as const
+    }
+    expect(() => ledger.recordWikimedia(record)).toThrow('no active generation parent')
+
+    const parentTraceId = ledger.beginGeneration('op-right-parent')
+    expect(() =>
+      ledger.recordWikimedia({ ...record, parentTraceId })
+    ).toThrow('no active generation parent')
+    ledger.recordFailure('op-right-parent', 1, undefined, parentTraceId)
+  })
+
+  it('flushes an in-flight reserved parent as a failed generation line', () => {
+    const parentTraceId = ledger.beginGeneration('op-interrupted-parent')
+    ledger.flush()
+    const line = readLines().find((candidate) => candidate['id'] === parentTraceId)!
+    expect(line['operationId']).toBe('op-interrupted-parent')
+    expect(line['outcome']).toEqual({ status: 'failed' })
+  })
 })
 
 describe('retrieval traces (CP-MVP-010 S06)', () => {

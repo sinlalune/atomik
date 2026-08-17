@@ -456,6 +456,7 @@ function registerVaultHandlers(stateDir: string): void {
             modelVersion: selectedModel
           }
         : undefined
+    let parentTraceId: string | undefined
     try {
       if (!isValidAiOperation(operation)) {
         throw new Error('ai: rejected operation')
@@ -563,6 +564,10 @@ function registerVaultHandlers(stateDir: string): void {
       } catch {
         provenance = undefined
       }
+      if (activeAiOperations.has(operation.id)) {
+        throw new Error('ai: operation already running')
+      }
+      parentTraceId = traces.beginGeneration(operation.id, failureMeta)
       const controller = new AbortController()
       activeAiOperations.set(operation.id, controller)
       try {
@@ -570,10 +575,16 @@ function registerVaultHandlers(stateDir: string): void {
           signal: controller.signal,
           provenance
         })
-        const traceId = traces.draftFor(operation, result.bundle, Date.now() - started, {
-          ...result.providerMeta,
-          ...(result.usage ? { usage: result.usage } : {})
-        })
+        const traceId = traces.draftFor(
+          operation,
+          result.bundle,
+          Date.now() - started,
+          {
+            ...result.providerMeta,
+            ...(result.usage ? { usage: result.usage } : {})
+          },
+          parentTraceId
+        )
         // S06c16: the chat monitors tokens + latency per exchange —
         // the same numbers the trace records, surfaced on the bundle
         return {
@@ -596,7 +607,12 @@ function registerVaultHandlers(stateDir: string): void {
         typeof (operation as Record<string, unknown>)['id'] === 'string'
           ? ((operation as Record<string, unknown>)['id'] as string)
           : 'unknown'
-      traces.recordFailure(operationId, Date.now() - started, failureMeta)
+      traces.recordFailure(
+        operationId,
+        Date.now() - started,
+        failureMeta,
+        parentTraceId
+      )
       throw error
     }
   })

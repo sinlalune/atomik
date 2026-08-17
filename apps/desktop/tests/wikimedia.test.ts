@@ -31,9 +31,12 @@ const request = (
   includeMedia: false
 })
 
-const context = (signal: AbortSignal = new AbortController().signal) => ({
+const context = (
+  signal: AbortSignal = new AbortController().signal,
+  parentTraceId = 'trace_parent'
+) => ({
   signal,
-  parentTraceId: 'trace_parent',
+  parentTraceId,
   parentOperationId: 'operation_parent'
 })
 
@@ -60,8 +63,12 @@ describe('Wikipedia live seat', () => {
       trace: traces,
       nowMs: () => Date.parse('2026-08-17T12:00:00Z')
     })
+    const parentTraceId = traces.beginGeneration('operation_parent')
 
-    const bundle = await client.searchWikipedia(request(), context())
+    const bundle = await client.searchWikipedia(
+      request(),
+      context(new AbortController().signal, parentTraceId)
+    )
 
     expect(calls).toHaveLength(2)
     expect(calls[0]!.url.toString()).toBe(
@@ -109,7 +116,7 @@ describe('Wikipedia live seat', () => {
     const rawTrace = readFileSync(traces.ledgerPath(), 'utf8')
     const trace = JSON.parse(rawTrace) as Record<string, unknown>
     expect(trace).toMatchObject({
-      parentTraceId: 'trace_parent',
+      parentTraceId,
       operationId: 'operation_parent',
       action: 'retrieve',
       execution: {
@@ -247,6 +254,198 @@ describe('Wikipedia live seat', () => {
     const pending = cancelled.searchWikipedia(request(), context(controller.signal))
     controller.abort()
     await expect(pending).rejects.toMatchObject({ kind: 'cancelled' })
+  })
+})
+
+describe('provider-neutral search_wiki door (S05)', () => {
+  const autoRequest = {
+    query: 'atom',
+    language: 'en',
+    corpus: 'auto',
+    limit: 5,
+    includeMedia: true
+  }
+
+  function autoClient(
+    calls: URL[],
+    records: unknown[] = [],
+    limits?: {
+      maxNetworkRequestsPerSearch?: number
+      maxTotalResponseBytes?: number
+    }
+  ): WikimediaClient {
+    return new WikimediaClient({
+      ...(limits === undefined ? {} : { limits }),
+      trace: { recordWikimedia: (record) => void records.push(record) },
+      fetchImpl: async (input) => {
+        const url = new URL(String(input))
+        calls.push(url)
+        if (url.hostname === 'en.wikipedia.org') {
+          return response(
+            fixture(
+              url.pathname.endsWith('/search/page')
+                ? 'wikipedia-search-en-atom.json'
+                : 'wikipedia-page-en-atom.json'
+            )
+          )
+        }
+        if (url.hostname === 'commons.wikimedia.org') {
+          return response(fixture('commons-marie-curie.json'))
+        }
+        if (url.searchParams.get('action') === 'wbsearchentities') {
+          return response(fixture('wikidata-search-fr-marie-curie.json'))
+        }
+        if (url.searchParams.get('props') === 'labels') {
+          return response(fixture('wikidata-labels-fr-marie-curie.json'))
+        }
+        return response(fixture('wikidata-entity-fr-marie-curie.json'))
+      }
+    })
+  }
+
+  it('dispatches auto through fixed hosts with one shared request budget', async () => {
+    const calls: URL[] = []
+    const records: unknown[] = []
+    const bundle = await autoClient(calls, records).search(
+      autoRequest,
+      { ...context(), mediaPolicy: 'remote' }
+    )
+
+    expect(calls).toHaveLength(6)
+    expect(
+      calls.every((url) =>
+        [
+          'en.wikipedia.org',
+          'www.wikidata.org',
+          'commons.wikimedia.org'
+        ].includes(url.hostname)
+      )
+    ).toBe(true)
+    expect(calls[0]!.searchParams.get('limit')).toBe('3')
+    expect(
+      calls.find((url) => url.searchParams.get('action') === 'wbsearchentities')
+        ?.searchParams.get('limit')
+    ).toBe('2')
+    expect(bundle.request).toEqual(autoRequest)
+    expect(bundle.results.map((result) => result.kind)).toEqual([
+      'wikipedia-article',
+      'wikidata-entity'
+    ])
+    expect(bundle.media).toHaveLength(1)
+    expect(bundle.responseBytes).toBeGreaterThan(0)
+    expect(records).toEqual([
+      expect.objectContaining({
+        parentTraceId: 'trace_parent',
+        corpus: 'wikipedia',
+        requests: 2,
+        status: 'completed'
+      }),
+      expect.objectContaining({
+        parentTraceId: 'trace_parent',
+        corpus: 'wikidata',
+        requests: 4,
+        status: 'completed'
+      })
+    ])
+  })
+
+  it('does not reset the network-call budget between auto corpora', async () => {
+    const calls: URL[] = []
+    await expect(
+      autoClient(calls, [], { maxNetworkRequestsPerSearch: 5 }).search(autoRequest, {
+        ...context(),
+        mediaPolicy: 'remote'
+      })
+    ).rejects.toMatchObject({ kind: 'budget-exceeded' })
+    expect(calls).toHaveLength(5)
+  })
+
+  it('does not reset the response-byte budget between auto corpora', async () => {
+    const calls: URL[] = []
+    const wikipediaBytes = new TextEncoder().encode(
+      fixture('wikipedia-search-en-atom.json') +
+        fixture('wikipedia-page-en-atom.json')
+    ).byteLength
+    await expect(
+      autoClient(calls, [], {
+        maxTotalResponseBytes: wikipediaBytes + 16
+      }).search(autoRequest, { ...context(), mediaPolicy: 'remote' })
+    ).rejects.toMatchObject({ kind: 'budget-exceeded' })
+    expect(calls).toHaveLength(3)
+  })
+
+  it('does not begin the second auto corpus after parent cancellation', async () => {
+    const controller = new AbortController()
+    const calls: URL[] = []
+    const client = new WikimediaClient({
+      fetchImpl: async (input) => {
+        const url = new URL(String(input))
+        calls.push(url)
+        const search = url.pathname.endsWith('/search/page')
+        if (!search) controller.abort()
+        return response(
+          fixture(
+            search
+              ? 'wikipedia-search-en-atom.json'
+              : 'wikipedia-page-en-atom.json'
+          )
+        )
+      }
+    })
+
+    await expect(
+      client.search(autoRequest, context(controller.signal))
+    ).rejects.toMatchObject({ kind: 'cancelled' })
+    expect(calls).toHaveLength(2)
+    expect(calls.every((url) => url.hostname === 'en.wikipedia.org')).toBe(true)
+  })
+
+  it('keeps a usable corpus when the other auto corpus is empty', async () => {
+    const calls: URL[] = []
+    const client = new WikimediaClient({
+      fetchImpl: async (input) => {
+        const url = new URL(String(input))
+        calls.push(url)
+        if (url.hostname === 'en.wikipedia.org') {
+          return response(fixture('wikipedia-search-empty.json'))
+        }
+        return response(
+          fixture(
+            url.searchParams.get('action') === 'wbsearchentities'
+              ? 'wikidata-search-en-atom-ambiguous.json'
+              : 'wikidata-entities-en-atom-ambiguous.json'
+          )
+        )
+      }
+    })
+
+    const bundle = await client.search(autoRequest, context())
+    expect(calls).toHaveLength(3)
+    expect(bundle.results.map((result) => result.kind)).toEqual([
+      'wikidata-entity',
+      'wikidata-entity'
+    ])
+  })
+
+  it('rejects malformed requests before transport through the unified door', async () => {
+    let calls = 0
+    const client = new WikimediaClient({
+      fetchImpl: async () => {
+        calls += 1
+        return response('{}')
+      }
+    })
+    await expect(
+      client.search(
+        {
+          query: 'atom',
+          language: 'en',
+          url: 'https://example.test'
+        },
+        context()
+      )
+    ).rejects.toThrow('unknown field')
+    expect(calls).toBe(0)
   })
 })
 

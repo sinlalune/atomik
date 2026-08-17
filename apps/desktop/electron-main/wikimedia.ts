@@ -841,9 +841,69 @@ export class WikimediaClient {
     }
   }
 
-  async searchWikipedia(
+  /**
+   * The one provider-neutral search_wiki door. A caller supplies the typed
+   * request and parent operation context, never a URL. `auto` consults both
+   * Wikipedia and Wikidata through one shared request/byte budget; its result
+   * allocation keeps both corpora visible while staying within eight HTTP
+   * requests at the maximum public limit.
+   */
+  async search(
     value: unknown,
     context: WikimediaSearchContext
+  ): Promise<WikimediaSearchBundle> {
+    const request = parseSearchWikiRequest(value)
+    if (request.corpus === 'wikipedia') {
+      return this.searchWikipedia(request, context)
+    }
+    if (request.corpus === 'wikidata') {
+      return this.searchWikidata(request, context)
+    }
+    if (request.corpus === 'wiktionary') {
+      return this.searchWiktionary(request, context)
+    }
+
+    const budget: RequestBudget = { requests: 0, responseBytes: 0 }
+    const wikipediaLimit = Math.max(1, Math.ceil(request.limit / 2))
+    const wikidataLimit = Math.max(1, Math.floor(request.limit / 2))
+    const bundles: WikimediaSearchBundle[] = []
+    for (const child of [
+      { ...request, corpus: 'wikipedia' as const, limit: wikipediaLimit },
+      { ...request, corpus: 'wikidata' as const, limit: wikidataLimit }
+    ]) {
+      try {
+        bundles.push(
+          child.corpus === 'wikipedia'
+            ? await this.searchWikipedia(child, context, budget)
+            : await this.searchWikidata(child, context, budget)
+        )
+      } catch (error) {
+        if (!(error instanceof WikimediaError) || error.kind !== 'empty') {
+          throw error
+        }
+      }
+    }
+    if (bundles.length === 0) {
+      throw new WikimediaError(
+        'empty',
+        'Wikipedia and Wikidata returned no matching result'
+      )
+    }
+    return {
+      request,
+      results: bundles.flatMap((bundle) => bundle.results),
+      media: bundles.flatMap((bundle) => bundle.media),
+      warnings: bundles.flatMap((bundle) => bundle.warnings),
+      responseBytes: budget.responseBytes,
+      accessedAt: bundles.at(-1)!.accessedAt
+    }
+  }
+
+  async searchWikipedia(
+    value: unknown,
+    context: WikimediaSearchContext,
+    /** Internal only: `auto` shares one whole-search budget. */
+    sharedBudget?: RequestBudget
   ): Promise<WikimediaSearchBundle> {
     const request = parseSearchWikiRequest(value)
     if (request.corpus !== 'wikipedia') {
@@ -853,7 +913,9 @@ export class WikimediaClient {
       throw new WikimediaError('cancelled', 'operation was cancelled')
     }
     const started = this.nowMs()
-    const budget: RequestBudget = { requests: 0, responseBytes: 0 }
+    const budget = sharedBudget ?? { requests: 0, responseBytes: 0 }
+    const requestsBefore = budget.requests
+    const responseBytesBefore = budget.responseBytes
     let resultCount = 0
     let errorKind: WikimediaErrorKind | undefined
     try {
@@ -919,7 +981,7 @@ export class WikimediaClient {
         warnings: articles.some((article) => article.truncated)
           ? [{ kind: 'truncated', message: 'One or more articles were clipped to the text budget.' }]
           : [],
-        responseBytes: budget.responseBytes,
+        responseBytes: budget.responseBytes - responseBytesBefore,
         accessedAt
       }
     } catch (error) {
@@ -932,9 +994,9 @@ export class WikimediaClient {
         tool: 'search_wiki',
         corpus: 'wikipedia',
         language: request.language,
-        requests: budget.requests,
+        requests: budget.requests - requestsBefore,
         resultCount,
-        responseBytes: budget.responseBytes,
+        responseBytes: budget.responseBytes - responseBytesBefore,
         wallMs: Math.max(0, this.nowMs() - started),
         status: errorKind === undefined ? 'completed' : 'failed',
         ...(errorKind === undefined ? {} : { errorKind })
@@ -944,7 +1006,9 @@ export class WikimediaClient {
 
   async searchWikidata(
     value: unknown,
-    context: WikimediaSearchContext
+    context: WikimediaSearchContext,
+    /** Internal only: `auto` shares one whole-search budget. */
+    sharedBudget?: RequestBudget
   ): Promise<WikimediaSearchBundle> {
     const request = parseSearchWikiRequest(value)
     if (request.corpus !== 'wikidata') {
@@ -954,7 +1018,9 @@ export class WikimediaClient {
       throw new WikimediaError('cancelled', 'operation was cancelled')
     }
     const started = this.nowMs()
-    const budget: RequestBudget = { requests: 0, responseBytes: 0 }
+    const budget = sharedBudget ?? { requests: 0, responseBytes: 0 }
+    const requestsBefore = budget.requests
+    const responseBytesBefore = budget.responseBytes
     let resultCount = 0
     let errorKind: WikimediaErrorKind | undefined
     try {
@@ -1115,7 +1181,7 @@ export class WikimediaClient {
         results: entities,
         media,
         warnings,
-        responseBytes: budget.responseBytes,
+        responseBytes: budget.responseBytes - responseBytesBefore,
         accessedAt
       }
     } catch (error) {
@@ -1128,9 +1194,9 @@ export class WikimediaClient {
         tool: 'search_wiki',
         corpus: 'wikidata',
         language: request.language,
-        requests: budget.requests,
+        requests: budget.requests - requestsBefore,
         resultCount,
-        responseBytes: budget.responseBytes,
+        responseBytes: budget.responseBytes - responseBytesBefore,
         wallMs: Math.max(0, this.nowMs() - started),
         status: errorKind === undefined ? 'completed' : 'failed',
         ...(errorKind === undefined ? {} : { errorKind })

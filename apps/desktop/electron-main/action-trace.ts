@@ -155,6 +155,12 @@ const MOCK_META: GenerationTraceMeta = {
   modelVersion: 's08'
 }
 
+type PendingGenerationTrace = {
+  operationId: string
+  meta: GenerationTraceMeta
+  startedAt: number
+}
+
 /**
  * Transcription line (S06): beyond the S09 'generate' minimum, per 33 +
  * the trace contract — action 'transcribe', full runtime identity, input
@@ -207,6 +213,11 @@ const DECISIONS: ReadonlySet<string> = new Set(['accepted', 'edited', 'rejected'
 
 export class ActionTraceLedger {
   private readonly drafts = new Map<string, ActionTraceLine>()
+  /** Parent ids exist before a provider can emit its first tool call. */
+  private readonly pendingGenerationParents = new Map<
+    string,
+    PendingGenerationTrace
+  >()
 
   constructor(private readonly stateDir: string) {}
 
@@ -228,6 +239,42 @@ export class ActionTraceLedger {
   /** Pre-generated so files can reference the trace before it lands. */
   newTraceId(): string {
     return `trace_${randomUUID()}`
+  }
+
+  /**
+   * Reserve the root generation id before provider work begins. Wikimedia
+   * receipts are accepted only while this exact operation parent is live.
+   */
+  beginGeneration(
+    operationId: string,
+    meta: GenerationTraceMeta = MOCK_META
+  ): string {
+    if (operationId.length === 0) throw new Error('trace: invalid operation id')
+    if (
+      [...this.pendingGenerationParents.values()].some(
+        (pending) => pending.operationId === operationId
+      )
+    ) {
+      throw new Error('trace: operation already active')
+    }
+    const id = this.newTraceId()
+    this.pendingGenerationParents.set(id, {
+      operationId,
+      meta,
+      startedAt: Date.now()
+    })
+    return id
+  }
+
+  private completeGenerationParent(
+    traceId: string,
+    operationId: string
+  ): void {
+    const pending = this.pendingGenerationParents.get(traceId)
+    if (pending?.operationId !== operationId) {
+      throw new Error('trace: unknown generation parent')
+    }
+    this.pendingGenerationParents.delete(traceId)
   }
 
   /**
@@ -266,6 +313,10 @@ export class ActionTraceLedger {
    * type, not merely omitted by convention.
    */
   recordWikimedia(record: WikimediaTraceRecord): string {
+    const parent = this.pendingGenerationParents.get(record.parentTraceId)
+    if (parent?.operationId !== record.parentOperationId) {
+      throw new Error('trace: Wikimedia receipt has no active generation parent')
+    }
     const id = this.newTraceId()
     this.append({
       id,
@@ -333,7 +384,8 @@ export class ActionTraceLedger {
     operation: AiOperation,
     bundle: AiResponseBundle,
     wallMs: number,
-    meta: GenerationTraceMeta = MOCK_META
+    meta: GenerationTraceMeta = MOCK_META,
+    parentTraceId?: string
   ): string {
     const inputChars =
       operation.instruction.length +
@@ -346,8 +398,12 @@ export class ActionTraceLedger {
         0
       )
     const reported = meta.usage?.basis === 'provider-reported' ? meta.usage : undefined
+    const id = parentTraceId ?? this.newTraceId()
+    if (parentTraceId !== undefined) {
+      this.completeGenerationParent(parentTraceId, operation.id)
+    }
     const line: ActionTraceLine = {
-      id: `trace_${randomUUID()}`,
+      id,
       operationId: operation.id,
       timestamp: new Date().toISOString(),
       action: 'generate',
@@ -426,10 +482,15 @@ export class ActionTraceLedger {
   recordFailure(
     operationId: string,
     wallMs: number,
-    meta: GenerationTraceMeta = MOCK_META
+    meta: GenerationTraceMeta = MOCK_META,
+    parentTraceId?: string
   ): void {
+    const id = parentTraceId ?? this.newTraceId()
+    if (parentTraceId !== undefined) {
+      this.completeGenerationParent(parentTraceId, operationId)
+    }
     this.append({
-      id: `trace_${randomUUID()}`,
+      id,
       operationId,
       timestamp: new Date().toISOString(),
       action: 'generate',
@@ -453,6 +514,16 @@ export class ActionTraceLedger {
   /** App quit: undecided operations are still real compute — append them
    *  without a decision rather than losing them. */
   flush(): void {
+    for (const [traceId, pending] of [
+      ...this.pendingGenerationParents.entries()
+    ]) {
+      this.recordFailure(
+        pending.operationId,
+        Math.max(0, Date.now() - pending.startedAt),
+        pending.meta,
+        traceId
+      )
+    }
     for (const draft of this.drafts.values()) {
       this.append(draft)
     }

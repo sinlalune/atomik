@@ -3,7 +3,8 @@ import {
   createGenerationToolPolicy,
   GENERATION_TOOL_LIMITS,
   GenerationToolContractError,
-  parseGenerationToolCall
+  parseGenerationToolCall,
+  parseGenerationToolPreference
 } from '../shared/generation-tools'
 import {
   parseSearchWikiRequest,
@@ -142,13 +143,39 @@ describe('provider-neutral model tool calls', () => {
             includeMedia: false
           }
         },
-        policy
+        createGenerationToolPolicy({ mode: 'model', wikiLanguage: 'fr' })
       )
     ).toMatchObject({
       id: 'toolu_wiki_1',
       name: 'search_wiki',
       arguments: { query: 'atome', language: 'fr', limit: 2 }
     })
+  })
+
+  it('strictly validates the renderer preference and pins the call language', () => {
+    expect(
+      parseGenerationToolPreference({ mode: 'model', wikiLanguage: 'FR' })
+    ).toEqual({ mode: 'model', wikiLanguage: 'fr' })
+    for (const invalid of [
+      null,
+      { mode: 'auto', wikiLanguage: 'en' },
+      { mode: 'model', wikiLanguage: '../evil' },
+      { mode: 'model', wikiLanguage: 'en', url: 'https://example.test' }
+    ]) {
+      expect(() => parseGenerationToolPreference(invalid)).toThrow(
+        GenerationToolContractError
+      )
+    }
+    expect(() =>
+      parseGenerationToolCall(
+        {
+          id: 'call_wrong_language',
+          name: 'search_wiki',
+          arguments: { query: 'atome', language: 'fr' }
+        },
+        policy
+      )
+    ).toThrow('language must be en')
   })
 
   it('fails visibly on disabled, unknown, oversized and widened calls', () => {

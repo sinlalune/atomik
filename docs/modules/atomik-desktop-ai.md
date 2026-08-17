@@ -34,8 +34,21 @@ timestamp: 2026-08-17T00:00:00Z
   HTTP request count, results, response bytes, wall time and typed outcome.
   Its input type contains no query or returned content field, and the ledger
   pins `contentRecorded: false`. The client takes the ledger through a tiny
-  injected trace-sink interface; S05 creates the parent trace before the first
-  provider turn and wires this already-tested child record into the operation.
+  injected trace-sink interface.
+- TYPED WIKIMEDIA OPERATION DOOR (CP-MVP-011 S05): `AiOperation.tools` is
+  the renderer-wire preference (`off | model` plus one normalized Wikimedia
+  language) and travels through the EXISTING `run-ai-operation` channel. Main
+  validates it strictly and later derives the immutable tool allowlist; a
+  model call in another language is refused. No `searchWiki`, URL or generic
+  fetch method is added to preload. `WikimediaClient.search` is the internal
+  provider-neutral dispatcher over Wikipedia/Wikidata/Wiktionary. Its `auto`
+  branch allocates results across Wikipedia+Wikidata and shares the SAME HTTP
+  request/response-byte budget and AbortSignal across both, rather than
+  resetting authority at a corpus boundary. `ActionTraceLedger.beginGeneration`
+  reserves the root id before the first provider turn; Wikimedia receipts are
+  accepted only while that exact id+operation pair is active, final/failure
+  generation lines reuse it, and quit flushes a reserved root as failed. This
+  makes S06's child traces structurally parented before any adapter is enabled.
 
 - Mechanical truth labels (06 §labeling rule, S10): `electron-main/truth.ts`
   (truth-core validator seat, 14 — validators never call AI). Providers

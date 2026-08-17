@@ -19,14 +19,14 @@ timestamp: 2026-08-17T00:00:00Z
 - The CP-MVP-011 S01 tool boundary changes NO IPC yet. The required
   `GenerationAdapter.tools` declaration is a main-side capability gate:
   every adapter is explicitly final-only until its native tool-call codec is
-  fixture-tested. Future `search_wiki` renderer access must be one named,
-  validated channel over the fixed-host seat; neither a generic URL/fetch verb
-  nor provider-native web-search surface is permitted (ADR-015, bedrock 13).
+  fixture-tested. Renderer influence over `search_wiki` must stay inside one
+  named, validated AI operation channel; neither a generic URL/fetch verb nor
+  provider-native web-search surface is permitted (ADR-015, bedrock 13).
   S02 implements the Wikipedia side behind that boundary without exposing it:
   injected main-side fetch, fixed Wikimedia host derivation, redirect denial,
   bounded streamed JSON, caller abort + per-request timeout, and hostile HTML
-  reduced to typed text before any future IPC. The preload surface therefore
-  remains byte-for-byte unchanged until S05 has a narrow operation to publish.
+  reduced to typed text before any future IPC. The preload surface remains
+  byte-for-byte unchanged through the core seat steps.
   S03 adds Wikidata through the same fixed `www.wikidata.org/w/api.php` seat;
   Action API caller URLs, raw claims and a graph persistence verb still do not
   enter the renderer surface. S04 adds fixed `commons.wikimedia.org` metadata
@@ -34,8 +34,13 @@ timestamp: 2026-08-17T00:00:00Z
   same unexposed seat. Commons upload URLs are admitted only in explicit
   remote mode and only after HTTPS-host plus attribution/licence validation;
   private/offline skips the request. Hostile extmetadata/page HTML is reduced
-  in main. IPC/preload remains unchanged; S05 still owns the first narrow
-  renderer door.
+  in main. S05 deliberately keeps IPC/preload unchanged: the existing named
+  `run-ai-operation` channel IS the renderer's operation door, and its newly
+  typed `tools` field carries only `off | model` plus a validated language.
+  Main executes `WikimediaClient.search` internally during the later loop.
+  Preload regression tests pin the absence of both a generic `fetch` and a
+  direct `searchWiki` method, so a compromised renderer cannot bypass the
+  tool policy, parent trace or generation cancellation lifecycle.
 
 - The Electron shell: app lifecycle, the trusted UI window, and the
   main/preload/renderer split (`apps/desktop/electron-main/`,

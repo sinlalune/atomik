@@ -28,6 +28,35 @@ describe('isValidAiOperation (channel input is untrusted)', () => {
     expect(isValidAiOperation(validOp())).toBe(true)
   })
 
+  it('accepts only the narrow tool preference on the existing operation IPC', () => {
+    expect(
+      isValidAiOperation(
+        validOp({ tools: { mode: 'model', wikiLanguage: 'fr' } })
+      )
+    ).toBe(true)
+    expect(
+      isValidAiOperation(
+        validOp({ tools: { mode: 'off', wikiLanguage: 'EN' } })
+      )
+    ).toBe(true)
+    expect(
+      isValidAiOperation({
+        ...validOp(),
+        tools: { mode: 'model', wikiLanguage: '../evil' }
+      })
+    ).toBe(false)
+    expect(
+      isValidAiOperation({
+        ...validOp(),
+        tools: {
+          mode: 'model',
+          wikiLanguage: 'en',
+          url: 'https://example.test'
+        }
+      })
+    ).toBe(false)
+  })
+
   it('rejects structural garbage', () => {
     expect(isValidAiOperation(null)).toBe(false)
     expect(isValidAiOperation('run')).toBe(false)

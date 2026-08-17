@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-011
   status: running
   accepted: 2026-08-17
-  current_step: S05
+  current_step: S06
   base_commit: 783c7c6
   branch: path/cp-mvp-011
   writes:
@@ -19,6 +19,7 @@ atomik:
     - apps/desktop/shared/graph-core.ts
     - apps/desktop/shared/ipc-contract.ts
     - apps/desktop/electron-main/wikimedia.ts
+    - apps/desktop/electron-main/ai-mock.ts
     - apps/desktop/electron-main/generation.ts
     - apps/desktop/electron-main/*-generation-adapter.ts
     - apps/desktop/electron-main/graph-index.ts
@@ -246,7 +247,7 @@ BASE        783c7c6; branch path/cp-mvp-011; dedicated worktree
 - [x] S04 Commons + Wiktionary: P18 metadata/attribution and safe thumbnail
       policy; language-aware Wiktionary/etymology result with status honesty;
       fixture tests, lifecycle/security notes, and no durable hotlinks.
-- [ ] S05 Typed Wikimedia door: expose the narrow `search_wiki` operation to
+- [x] S05 Typed Wikimedia door: expose the narrow `search_wiki` operation to
       the harness and renderer through validated IPC where needed; add call
       budgets, cancellation, action-trace parenting, and security regressions.
 - [ ] S06 Provider-neutral tool loop: add discriminated tool requests/results
@@ -355,15 +356,47 @@ BASE        783c7c6; branch path/cp-mvp-011; dedicated worktree
   no preload/IPC surface and writes no media or dossier; S05 and S08 retain
   those responsibilities.
 
+## S05 work unit — complete 2026-08-17
+
+- **Code:** added the unified `WikimediaClient.search` harness door. Specific
+  corpora dispatch only to pinned seats; `auto` allocates its result limit
+  across Wikipedia/Wikidata and shares one HTTP-call counter, response-byte
+  counter and caller AbortSignal across both. One empty corpus can fall through
+  to the other, while cancellation and non-empty failures stop immediately.
+  Added strict `AiOperation.tools` wire validation and policy language pinning.
+  `ActionTraceLedger.beginGeneration` now reserves the root trace before a
+  provider turn, accepts Wikimedia children only for that live id/operation,
+  reuses the id on completion/failure and flushes interrupted roots. Duplicate
+  live operation ids are rejected before replacing their controller.
+- **Tests:** unified-door dispatch/auto allocation, fixed host set, shared call
+  and byte budgets, cancellation between corpora, partial empty and malformed
+  pre-transport rejection; strict tool-preference/mismatched-language cases;
+  parent-child id reuse, orphan rejection and interrupted-parent flush; plus
+  preload assertions that neither `fetch` nor direct `searchWiki` is exposed.
+  Full result: 78 files, 970 passed + 1 skipped; typecheck and production build
+  green.
+- **Docs:** AI, sources, shell and learning notes record the operation door,
+  shared-budget semantics, early parent trace, and unchanged preload surface.
+- **Deviations:** S05 adds no second renderer IPC channel. The renderer's
+  bounded `tools` preference rides the existing validated `run-ai-operation`
+  door; actual `search_wiki` execution remains internal to main. This is the
+  narrower reading of “through validated IPC where needed” and prevents an
+  out-of-loop renderer search from bypassing policy, parent trace and the AI
+  cancellation lifecycle. The declared writes widen to `ai-mock.ts` because
+  it owns the existing main-side `AiOperation` wire validator; duplicating
+  tool-preference validation elsewhere would leave the IPC gate split. S06 now
+  owns actual provider tool round trips.
+
 # Current checkpoint
 
 ```text
 base commit : 783c7c6 (local master and origin/master at activation)
 changed     : S01 contracts; S02 Wikipedia; S03 Wikidata/graph projection;
-              S04 fail-closed Commons P18 and bounded en/fr Wiktionary seats
-tests       : typecheck green; 78 files / 959 pass / 1 skip; build green
-next action : execute S05 — narrow validated search_wiki door, budgets,
-              cancellation, parented traces and security regressions
+              S04 Commons+Wiktionary; S05 unified main-side search_wiki door,
+              strict IPC preference, shared budgets and early parent traces
+tests       : typecheck green; 78 files / 970 pass / 1 skip; build green
+next action : execute S06 — provider-neutral bounded tool loop and recorded
+              native adapter round trips with loud unsupported fallback
 blockers    : none
 parallel    : CP-RICH-MARKDOWN is running; styles.css and broad renderer/test/
               docs surfaces overlap advisory-only. Rebase at step boundaries.

@@ -56,6 +56,8 @@ describe('preload surface (13 §IPC rule)', () => {
     expect(api).not.toHaveProperty('send')
     expect(api).not.toHaveProperty('invoke')
     expect(api).not.toHaveProperty('ipcRenderer')
+    expect(api).not.toHaveProperty('fetch')
+    expect(api).not.toHaveProperty('searchWiki')
   })
 
   it('routes every method through its named channel', async () => {
@@ -270,7 +272,10 @@ describe('preload surface (13 §IPC rule)', () => {
       'memo.webm'
     )
 
-    const operation = { id: 'op-1' }
+    const operation = {
+      id: 'op-1',
+      tools: { mode: 'model', wikiLanguage: 'en' }
+    }
     await api.runAiOperation(operation)
     expect(invoke).toHaveBeenLastCalledWith(
       ATOMIK_CHANNELS.runAiOperation,

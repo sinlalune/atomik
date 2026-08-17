@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { isValidGenerationParams } from '../shared/generation-params'
 import { BUILTIN_BLOCK_IDS } from '../shared/prompt-composition'
+import { parseGenerationToolPreference } from '../shared/generation-tools'
 import { labelClaims, type ClaimCandidate } from './truth'
 import type {
   AiDestination,
@@ -131,6 +132,14 @@ export function isValidAiOperation(value: unknown): value is AiOperation {
         if (!Array.isArray(paths) || paths.length > 20) return false
         if (paths.some((path) => typeof path !== 'string' || path.length > 500)) return false
       }
+    }
+  }
+  const tools = value['tools']
+  if (tools !== undefined) {
+    try {
+      parseGenerationToolPreference(tools)
+    } catch {
+      return false
     }
   }
   const systemPlan = value['systemPlan']
