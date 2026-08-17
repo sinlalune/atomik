@@ -5452,8 +5452,11 @@ button svg {
 
 /* Inside a quote the sentence usually also wears a source-backed mark,
    whose own background would otherwise sit on top of the tint and
-   swallow it — so the mark lifts with it instead of hiding it. */
-.chat-turn-body .cited-span:hover .claim-mark {
+   swallow it — so the mark lifts with it instead of hiding it. Both
+   directions are covered: the mark inside the span (the ordinary case)
+   and a span that still sits inside a mark (S10d). */
+.chat-turn-body .cited-span:hover .claim-mark,
+.chat-turn-body .claim-mark:has(.cited-span:hover) {
   background: color-mix(in srgb, var(--accent) 18%, var(--ok-bg));
 }
 

@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-010
   status: running
   accepted: 2026-08-16
-  current_step: S10c
+  current_step: S10d
   base_commit: 2370546
   branch: path/cp-mvp-010
   writes:
@@ -904,7 +904,7 @@ live, on real notes.
 ```text
 base commit : 2370546 (branch rebased onto trunk tip 260f964, which
               carries CP-PROVIDERS merged + the two CP-OPS-001 fixes)
-current step: S10c done (bench rounds 13–14) — S11 next (acceptance, ceremony, merge)
+current step: S10d done (bench rounds 13–15) — S11 next (acceptance, ceremony, merge)
 changed     : apps/desktop/shared/{retrieval-expand,context-packet}.ts (new)
               apps/desktop/electron-main/{retrieval,vault-index}.ts (new)
               apps/desktop/shared/{retrieval-core,graph-core,ipc-contract}.ts

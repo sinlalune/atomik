@@ -105,7 +105,29 @@ export function applyCitationChips(
  * sentence containing bold or a link is captured whole. Failing that it
  * stops at the block, which is coarser but never wrong.
  */
+/** Inline wrappers a citation may find itself inside — a claim mark, an
+ *  emphasis — none of which is the thing being cited. */
+const INLINE_WRAPPERS = new Set(['MARK', 'STRONG', 'EM', 'B', 'I', 'SPAN', 'SMALL'])
+
 function wrapCitedSpan(chip: HTMLElement): void {
+  // S10d (owner: "the citation inside quote block is still not
+  // decorated"). In a quote the sentence is usually also a source-backed
+  // CLAIM, so the marker lands inside its <mark> — and the extent then
+  // wrapped itself INSIDE the mark, under the mark's own background,
+  // where nothing could show. A citation is never part of the passage
+  // it cites, so it is hoisted out of any inline wrapper it ended up in
+  // before the extent is measured.
+  let host = chip.parentElement
+  while (
+    host &&
+    INLINE_WRAPPERS.has(host.tagName) &&
+    host.lastChild === chip &&
+    host.parentElement
+  ) {
+    host.after(chip)
+    host = chip.parentElement
+  }
+
   const parent = chip.parentElement
   if (!parent || parent.classList.contains('cited-span')) return
   const doc = chip.ownerDocument
