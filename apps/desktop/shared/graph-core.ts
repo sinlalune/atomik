@@ -1,4 +1,8 @@
 import { parseEdges } from './edge-grammar'
+import type {
+  WikidataEntity,
+  WikimediaSource
+} from './wikimedia'
 
 /**
  * Graph core (CP-MVP-009 S06): the PURE heart of the nodes/edges
@@ -205,7 +209,8 @@ export type GraphNode = {
 export type GraphEdge = {
   /** Vault-relative path of the authoring note. */
   subject: string
-  /** Resolved vault-relative path; null = unresolved or external. */
+  /** Resolved node id: vault-relative in the canonical index, canonical URL
+   *  in a transient external projection; null = unresolved/external leaf. */
   object: string | null
   /** The raw target as written (wiki stem or href). */
   targetRaw: string
@@ -226,6 +231,97 @@ export type GraphIndex = {
   labels: Record<string, number>
   /** Unresolved wikilinks: diagnostics, never auto-repair (20). */
   broken: { subject: string; targetRaw: string; line: number }[]
+}
+
+/**
+ * A live graph layer (CP-MVP-011 S03). It reuses GraphIndex shapes so graph
+ * consumers do not fork, but carries provenance separately and is never the
+ * value persisted by graph-index.ts. URLs are node ids; no fake vault paths.
+ */
+export type ExternalGraphProjection = {
+  graph: GraphIndex
+  provenance: Array<{ node: string; source: WikimediaSource }>
+}
+
+const wikidataNodeUrl = (id: string): string =>
+  `https://www.wikidata.org/wiki/${encodeURIComponent(id)}`
+
+export function wikidataGraphProjectionOf(
+  entities: readonly WikidataEntity[]
+): ExternalGraphProjection {
+  const nodes = new Map<string, GraphNode>()
+  const edges: GraphEdge[] = []
+  const provenance: Array<{ node: string; source: WikimediaSource }> = []
+
+  for (const entity of entities) {
+    const subject = wikidataNodeUrl(entity.id)
+    nodes.set(subject, { path: subject, kind: 'web', title: entity.label })
+    provenance.push({ node: subject, source: entity.source })
+    for (const statement of entity.statements) {
+      if (statement.value.kind !== 'entity') continue
+      const object = wikidataNodeUrl(statement.value.id)
+      nodes.set(object, {
+        path: object,
+        kind: 'web',
+        title: statement.value.label ?? statement.value.id
+      })
+      edges.push({
+        subject,
+        object,
+        targetRaw: object,
+        external: true,
+        label: statement.propertyLabel,
+        reverse: false,
+        line: 0,
+        col: edges.length
+      })
+    }
+  }
+
+  const labels: Record<string, number> = {}
+  for (const edge of edges) {
+    if (edge.label !== null) labels[edge.label] = (labels[edge.label] ?? 0) + 1
+  }
+  const orderedLabels: Record<string, number> = {}
+  for (const label of Object.keys(labels).sort()) orderedLabels[label] = labels[label]!
+  return {
+    graph: {
+      version: 1,
+      nodes: [...nodes.values()].sort((a, b) => a.path.localeCompare(b.path)),
+      edges: edges.sort(
+        (a, b) =>
+          a.subject.localeCompare(b.subject) ||
+          (a.label ?? '').localeCompare(b.label ?? '') ||
+          a.targetRaw.localeCompare(b.targetRaw)
+      ),
+      labels: orderedLabels,
+      broken: []
+    },
+    provenance: provenance.sort((a, b) => a.node.localeCompare(b.node))
+  }
+}
+
+/** Pure, session-only view merge. Neither input is mutated or persisted. */
+export function withExternalGraphProjection(
+  base: GraphIndex,
+  projection: ExternalGraphProjection
+): GraphIndex {
+  const nodes = new Map(base.nodes.map((node) => [node.path, node]))
+  for (const node of projection.graph.nodes) nodes.set(node.path, node)
+  const edges = [...base.edges, ...projection.graph.edges]
+  const labels: Record<string, number> = {}
+  for (const edge of edges) {
+    if (edge.label !== null) labels[edge.label] = (labels[edge.label] ?? 0) + 1
+  }
+  const orderedLabels: Record<string, number> = {}
+  for (const label of Object.keys(labels).sort()) orderedLabels[label] = labels[label]!
+  return {
+    version: 1,
+    nodes: [...nodes.values()],
+    edges,
+    labels: orderedLabels,
+    broken: [...base.broken]
+  }
 }
 
 /** A vault file. NON-markdown files are nodes too (S07d: a snapshot

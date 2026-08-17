@@ -39,6 +39,15 @@ timestamp: 2026-08-17T00:00:00Z
   ceiling); caller abort and request timeout remain distinct typed failures;
   429 preserves Retry-After without an eager retry. Local English/French,
   empty, malformed, 429, oversize, timeout and cancel fixtures keep CI offline.
+- WIKIDATA LIVE SEAT (CP-MVP-011 S03): the same client calls
+  `wbsearchentities`, keeps every selected candidate ranked (an `Atom` label
+  does not resolve its own ambiguity), then requests entity info in one batch.
+  Main iterates ONLY `WIKIDATA_PROPERTY_ALLOWLIST`, caps per-property/entity
+  statements, preserves statement ranks and typed values, and batches labels
+  only for retained QID values. Results carry multilingual label/aliases/
+  description, requested+English Wikipedia sitelinks, CC0, page/revision and
+  access provenance. Action API `maxlag` is a typed rate-limit outcome;
+  non-allowlisted claim content is fixture-proven not to cross the boundary.
 
 - The capture session server (08/13 §capture, CP-MVP-002 S02):
   `electron-main/capture-session.ts` (incubating capture-core, 14) — a

@@ -1,0 +1,87 @@
+{
+  "success": 1,
+  "entities": {
+    "Q16766305": {
+      "pageid": 18369259,
+      "title": "Q16766305",
+      "lastrevid": 2470010144,
+      "modified": "2026-03-07T00:37:19Z",
+      "labels": { "en": { "language": "en", "value": "Atom" } },
+      "aliases": {},
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "free and open-source text and source code editor"
+        }
+      },
+      "sitelinks": {
+        "enwiki": { "site": "enwiki", "title": "Atom (text editor)", "badges": [] }
+      },
+      "claims": {}
+    },
+    "Q267956": {
+      "pageid": 259553,
+      "title": "Q267956",
+      "lastrevid": 2473606656,
+      "modified": "2026-03-19T13:56:30Z",
+      "labels": {},
+      "aliases": {},
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "Atom Syndication Format (XML)-used for web feeds Atom Publishing Protocol (HTTP)-protocol for creating and updating web resources"
+        }
+      },
+      "sitelinks": {
+        "enwiki": { "site": "enwiki", "title": "Atom (web standard)", "badges": [] }
+      },
+      "claims": {}
+    },
+    "Q483261": {
+      "pageid": 454856,
+      "title": "Q483261",
+      "lastrevid": 2495518460,
+      "modified": "2026-05-21T14:07:27Z",
+      "labels": { "en": { "language": "en", "value": "dalton" } },
+      "aliases": {},
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "unit of mass defined as ¹⁄₁₂ of the mass of a carbon-12 atom"
+        }
+      },
+      "sitelinks": {
+        "enwiki": { "site": "enwiki", "title": "Dalton (unit)", "badges": [] }
+      },
+      "claims": {}
+    },
+    "Q4817196": {
+      "pageid": 4603286,
+      "title": "Q4817196",
+      "lastrevid": 2529299700,
+      "modified": "2026-08-09T18:05:10Z",
+      "labels": { "en": { "language": "en", "value": "Atom" } },
+      "aliases": {},
+      "descriptions": {
+        "en": { "language": "en", "value": "Game" }
+      },
+      "sitelinks": {},
+      "claims": {}
+    },
+    "Q9121": {
+      "pageid": 10476,
+      "title": "Q9121",
+      "lastrevid": 2532245592,
+      "modified": "2026-08-17T08:31:43Z",
+      "labels": { "en": { "language": "en", "value": "atom" } },
+      "aliases": {},
+      "descriptions": {
+        "en": { "language": "en", "value": "smallest unit of a chemical element" }
+      },
+      "sitelinks": {
+        "enwiki": { "site": "enwiki", "title": "Atom", "badges": [] }
+      },
+      "claims": {}
+    }
+  }
+}

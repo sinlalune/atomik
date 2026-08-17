@@ -1,0 +1,152 @@
+{
+  "success": 1,
+  "entities": {
+    "Q7186": {
+      "pageid": 8349,
+      "title": "Q7186",
+      "lastrevid": 2532255818,
+      "modified": "2026-08-17T09:02:17Z",
+      "labels": {
+        "fr": { "language": "fr", "value": "Marie Curie" },
+        "en": { "language": "en", "value": "Marie Curie" }
+      },
+      "aliases": {
+        "fr": [
+          { "language": "fr", "value": "Marie Sklodowska-Curie" },
+          { "language": "fr", "value": "Madame Curie" }
+        ]
+      },
+      "descriptions": {
+        "fr": {
+          "language": "fr",
+          "value": "physicienne et chimiste polonaise et française"
+        },
+        "en": {
+          "language": "en",
+          "value": "Polish-born French physicist and chemist (1867–1934)"
+        }
+      },
+      "sitelinks": {
+        "frwiki": { "site": "frwiki", "title": "Marie Curie", "badges": [] },
+        "enwiki": { "site": "enwiki", "title": "Marie Curie", "badges": [] }
+      },
+      "claims": {
+        "P18": [
+          {
+            "id": "Q7186$e91be8c3-4fde-a3bf-4ef9-fa988ebb84d6",
+            "rank": "normal",
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P18",
+              "datavalue": {
+                "value": "Marie Curie (1900) (cropped).jpg",
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "P31": [
+          {
+            "id": "Q7186$AB15DE87-6738-4F57-BDE1-138D7C83436F",
+            "rank": "normal",
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P31",
+              "datavalue": {
+                "value": { "entity-type": "item", "numeric-id": 5, "id": "Q5" },
+                "type": "wikibase-entityid"
+              }
+            }
+          }
+        ],
+        "P106": [
+          {
+            "id": "q7186$03A52F25-D2E8-4894-975B-B2F267274417",
+            "rank": "normal",
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P106",
+              "datavalue": {
+                "value": {
+                  "entity-type": "item",
+                  "numeric-id": 169470,
+                  "id": "Q169470"
+                },
+                "type": "wikibase-entityid"
+              }
+            }
+          },
+          {
+            "id": "q7186$A04E31B8-4636-4288-B0EC-DE85CB043B58",
+            "rank": "normal",
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P106",
+              "datavalue": {
+                "value": {
+                  "entity-type": "item",
+                  "numeric-id": 593644,
+                  "id": "Q593644"
+                },
+                "type": "wikibase-entityid"
+              }
+            }
+          }
+        ],
+        "P19": [
+          {
+            "id": "q7186$5A8DE62A-EEF3-4CDF-AB0D-EA25CB939E9B",
+            "rank": "normal",
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P19",
+              "datavalue": {
+                "value": { "entity-type": "item", "numeric-id": 270, "id": "Q270" },
+                "type": "wikibase-entityid"
+              }
+            }
+          }
+        ],
+        "P27": [
+          {
+            "id": "q7186$BDCE07BE-CDDC-4C20-B995-7CA0EA8E39EF",
+            "rank": "normal",
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P27",
+              "datavalue": {
+                "value": { "entity-type": "item", "numeric-id": 142, "id": "Q142" },
+                "type": "wikibase-entityid"
+              }
+            }
+          }
+        ],
+        "P569": [
+          {
+            "id": "q7186$a5299bea-4071-6b8e-4430-aaf7be169a79",
+            "rank": "normal",
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P569",
+              "datavalue": {
+                "value": { "time": "+1867-11-07T00:00:00Z", "precision": 11 },
+                "type": "time"
+              }
+            }
+          }
+        ],
+        "P999": [
+          {
+            "id": "fixture-non-allowlisted",
+            "rank": "normal",
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P999",
+              "datavalue": { "value": "must-not-cross", "type": "string" }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

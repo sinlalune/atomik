@@ -28,6 +28,10 @@ export const WIKIMEDIA_LIMITS = {
   maxTotalResponseBytes: 6_000_000,
   maxArticleTextChars: 6_000,
   maxToolTextChars: 18_000,
+  maxAliasesPerEntity: 12,
+  maxStatementsPerProperty: 8,
+  maxStatementsPerEntity: 48,
+  maxReferencedEntities: 40,
   requestTimeoutMs: 12_000,
   maxRetryAfterMs: 5_000
 } as const

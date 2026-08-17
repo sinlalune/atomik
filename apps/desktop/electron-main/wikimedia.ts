@@ -1,11 +1,19 @@
 import { parseHTML } from 'linkedom'
 import {
   parseSearchWikiRequest,
+  WIKIDATA_PROPERTY_ALLOWLIST,
   WIKIMEDIA_LIMITS,
   WIKIMEDIA_USER_AGENT,
+  wikimediaActionApiBase,
   wikimediaCoreRestBase,
   wikimediaHostOf,
   type SearchWikiRequest,
+  type WikidataEntity,
+  type WikidataPropertyId,
+  type WikidataRank,
+  type WikidataSitelink,
+  type WikidataStatement,
+  type WikidataValue,
   type WikimediaErrorKind,
   type WikimediaSearchBundle,
   type WikimediaTraceRecord,
@@ -60,6 +68,23 @@ type PageWithHtml = {
   html: string
 }
 
+type WikidataSearchHit = {
+  id: string
+  label: string
+  description: string | null
+}
+
+type WikidataSearchResponse = {
+  hits: WikidataSearchHit[]
+  hasMore: boolean
+}
+
+const QID_RE = /^Q[1-9][0-9]*$/
+const WIKIDATA_LICENSE = {
+  name: 'Creative Commons CC0 1.0',
+  url: 'https://creativecommons.org/publicdomain/zero/1.0/'
+} as const
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
@@ -76,6 +101,9 @@ export class WikimediaError extends Error {
 
 const positiveInteger = (value: unknown): value is number =>
   typeof value === 'number' && Number.isInteger(value) && value > 0
+
+const nonNegativeInteger = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isInteger(value) && value >= 0
 
 const requiredString = (value: unknown): value is string =>
   typeof value === 'string' && value.length > 0
@@ -132,6 +160,236 @@ function parsePageWithHtml(value: unknown): PageWithHtml {
     license: { url: value.license.url, title: value.license.title },
     html: value.html
   }
+}
+
+function throwActionApiError(value: unknown): void {
+  if (!isRecord(value) || !isRecord(value.error)) return
+  const code = typeof value.error.code === 'string' ? value.error.code : 'unknown'
+  if (code === 'maxlag' || code === 'ratelimited' || code === 'readonly') {
+    throw new WikimediaError('rate-limit', `Wikidata Action API returned ${code}`)
+  }
+  throw new WikimediaError('malformed', `Wikidata Action API returned ${code}`)
+}
+
+function parseWikidataSearch(value: unknown): WikidataSearchResponse {
+  throwActionApiError(value)
+  if (!isRecord(value) || !Array.isArray(value.search)) {
+    throw new WikimediaError('malformed', 'Wikidata search response has no search array')
+  }
+  const hits: WikidataSearchHit[] = []
+  for (const candidate of value.search) {
+    if (
+      !isRecord(candidate) ||
+      typeof candidate.id !== 'string' ||
+      !QID_RE.test(candidate.id) ||
+      !requiredString(candidate.label) ||
+      (candidate.description !== undefined &&
+        candidate.description !== null &&
+        typeof candidate.description !== 'string')
+    ) {
+      throw new WikimediaError('malformed', 'Wikidata search result is malformed')
+    }
+    hits.push({
+      id: candidate.id,
+      label: candidate.label,
+      description:
+        typeof candidate.description === 'string' ? candidate.description : null
+    })
+  }
+  return {
+    hits,
+    hasMore:
+      typeof value['search-continue'] === 'number' ||
+      typeof value['search-continue'] === 'string'
+  }
+}
+
+function entityRecordsOf(value: unknown): Record<string, Record<string, unknown>> {
+  throwActionApiError(value)
+  if (!isRecord(value) || !isRecord(value.entities)) {
+    throw new WikimediaError('malformed', 'Wikidata entity response has no entities')
+  }
+  const entities: Record<string, Record<string, unknown>> = {}
+  for (const [id, entity] of Object.entries(value.entities)) {
+    if (!QID_RE.test(id) || !isRecord(entity)) {
+      throw new WikimediaError('malformed', 'Wikidata entity record is malformed')
+    }
+    entities[id] = entity
+  }
+  return entities
+}
+
+function localizedString(value: unknown, language: string): string | null {
+  if (!isRecord(value)) return null
+  const candidates = [language, ...(language === 'en' ? [] : ['en']), ...Object.keys(value)]
+  for (const candidate of candidates) {
+    const entry = value[candidate]
+    if (isRecord(entry) && requiredString(entry.value)) return entry.value
+  }
+  return null
+}
+
+function localizedStrings(
+  value: unknown,
+  language: string,
+  limit: number
+): string[] {
+  if (!isRecord(value)) return []
+  const candidates = [language, ...(language === 'en' ? [] : ['en']), ...Object.keys(value)]
+  for (const candidate of candidates) {
+    const entries = value[candidate]
+    if (!Array.isArray(entries)) continue
+    const strings = entries
+      .map((entry) => (isRecord(entry) && requiredString(entry.value) ? entry.value : null))
+      .filter((entry): entry is string => entry !== null)
+    if (strings.length > 0) return [...new Set(strings)].slice(0, limit)
+  }
+  return []
+}
+
+function wikidataValueOf(
+  value: unknown,
+  expected: (typeof WIKIDATA_PROPERTY_ALLOWLIST)[WikidataPropertyId]['valueKind'],
+  labels: ReadonlyMap<string, string>
+): WikidataValue | null {
+  if (!isRecord(value) || !requiredString(value.type)) return null
+  const raw = value.value
+  if (expected === 'entity') {
+    if (value.type !== 'wikibase-entityid' || !isRecord(raw)) return null
+    const id = typeof raw.id === 'string' ? raw.id : null
+    if (id === null || !QID_RE.test(id)) return null
+    return { kind: 'entity', id, label: labels.get(id) ?? null }
+  }
+  if (expected === 'time') {
+    if (value.type !== 'time' || !isRecord(raw)) return null
+    if (!requiredString(raw.time) || !nonNegativeInteger(raw.precision)) return null
+    return { kind: 'time', value: raw.time, precision: raw.precision }
+  }
+  if (value.type !== 'string' || !requiredString(raw)) return null
+  return { kind: 'commons-media', fileTitle: raw }
+}
+
+function wikidataStatementsOf(
+  entity: Record<string, unknown>,
+  labels: ReadonlyMap<string, string>,
+  limits: EffectiveLimits
+): WikidataStatement[] {
+  if (!isRecord(entity.claims)) return []
+  const statements: WikidataStatement[] = []
+  for (const property of Object.keys(
+    WIKIDATA_PROPERTY_ALLOWLIST
+  ) as WikidataPropertyId[]) {
+    const candidates = entity.claims[property]
+    if (!Array.isArray(candidates)) continue
+    const definition = WIKIDATA_PROPERTY_ALLOWLIST[property]
+    for (const candidate of candidates.slice(0, limits.maxStatementsPerProperty)) {
+      if (statements.length >= limits.maxStatementsPerEntity) return statements
+      if (
+        !isRecord(candidate) ||
+        !requiredString(candidate.id) ||
+        (candidate.rank !== 'preferred' &&
+          candidate.rank !== 'normal' &&
+          candidate.rank !== 'deprecated') ||
+        !isRecord(candidate.mainsnak) ||
+        candidate.mainsnak.snaktype !== 'value' ||
+        candidate.mainsnak.property !== property
+      ) {
+        continue
+      }
+      const normalized = wikidataValueOf(
+        candidate.mainsnak.datavalue,
+        definition.valueKind,
+        labels
+      )
+      if (normalized === null) continue
+      statements.push({
+        id: candidate.id,
+        property,
+        propertyLabel: definition.label,
+        rank: candidate.rank as WikidataRank,
+        value: normalized
+      })
+    }
+  }
+  return statements
+}
+
+function wikipediaSitelinksOf(
+  value: unknown,
+  language: string
+): WikidataSitelink[] {
+  if (!isRecord(value)) return []
+  const languages = [...new Set([language, 'en'])]
+  const links: WikidataSitelink[] = []
+  for (const linkLanguage of languages) {
+    const site = `${linkLanguage}wiki`
+    const entry = value[site]
+    if (!isRecord(entry) || !requiredString(entry.title)) continue
+    const encoded = entry.title
+      .split('/')
+      .map((part) => encodeURIComponent(part.replace(/ /g, '_')))
+      .join('/')
+    links.push({
+      language: linkLanguage,
+      site,
+      title: entry.title,
+      url: `https://${wikimediaHostOf('wikipedia', linkLanguage)}/wiki/${encoded}`
+    })
+  }
+  return links
+}
+
+function wikidataEntityOf(
+  entity: Record<string, unknown>,
+  hit: WikidataSearchHit,
+  language: string,
+  labels: ReadonlyMap<string, string>,
+  accessedAt: string,
+  rank: number,
+  limits: EffectiveLimits
+): WikidataEntity {
+  if (
+    !positiveInteger(entity.pageid) ||
+    entity.title !== hit.id ||
+    !positiveInteger(entity.lastrevid) ||
+    !requiredString(entity.modified)
+  ) {
+    throw new WikimediaError('malformed', `Wikidata entity ${hit.id} lacks revision identity`)
+  }
+  const label = localizedString(entity.labels, language) ?? hit.label
+  return {
+    kind: 'wikidata-entity',
+    id: hit.id,
+    rank,
+    label,
+    description:
+      localizedString(entity.descriptions, language) ?? hit.description,
+    aliases: localizedStrings(entity.aliases, language, limits.maxAliasesPerEntity),
+    sitelinks: wikipediaSitelinksOf(entity.sitelinks, language),
+    statements: wikidataStatementsOf(entity, labels, limits),
+    source: {
+      project: 'wikidata',
+      language,
+      title: label,
+      pageId: entity.pageid,
+      revision: { id: entity.lastrevid, timestamp: entity.modified },
+      canonicalUrl: `https://www.wikidata.org/wiki/${hit.id}`,
+      accessedAt,
+      license: WIKIDATA_LICENSE
+    }
+  }
+}
+
+function labelsOfEntities(
+  entities: Record<string, Record<string, unknown>>,
+  language: string
+): Map<string, string> {
+  const labels = new Map<string, string>()
+  for (const [id, entity] of Object.entries(entities)) {
+    const label = localizedString(entity.labels, language)
+    if (label !== null) labels.set(id, label)
+  }
+  return labels
 }
 
 const REMOVE_FROM_ARTICLE = [
@@ -418,6 +676,140 @@ export class WikimediaClient {
         parentOperationId: context.parentOperationId,
         tool: 'search_wiki',
         corpus: 'wikipedia',
+        language: request.language,
+        requests: budget.requests,
+        resultCount,
+        responseBytes: budget.responseBytes,
+        wallMs: Math.max(0, this.nowMs() - started),
+        status: errorKind === undefined ? 'completed' : 'failed',
+        ...(errorKind === undefined ? {} : { errorKind })
+      })
+    }
+  }
+
+  async searchWikidata(
+    value: unknown,
+    context: WikimediaSearchContext
+  ): Promise<WikimediaSearchBundle> {
+    const request = parseSearchWikiRequest(value)
+    if (request.corpus !== 'wikidata') {
+      throw new WikimediaError('malformed', 'Wikidata seat requires corpus=wikidata')
+    }
+    if (context.signal.aborted) {
+      throw new WikimediaError('cancelled', 'operation was cancelled')
+    }
+    const started = this.nowMs()
+    const budget: RequestBudget = { requests: 0, responseBytes: 0 }
+    let resultCount = 0
+    let errorKind: WikimediaErrorKind | undefined
+    try {
+      const base = wikimediaActionApiBase('wikidata', request.language)
+      const searchUrl = new URL(base)
+      searchUrl.searchParams.set('action', 'wbsearchentities')
+      searchUrl.searchParams.set('search', request.query)
+      searchUrl.searchParams.set('language', request.language)
+      searchUrl.searchParams.set('uselang', request.language)
+      searchUrl.searchParams.set('type', 'item')
+      searchUrl.searchParams.set('limit', String(request.limit))
+      searchUrl.searchParams.set('maxlag', '5')
+      searchUrl.searchParams.set('format', 'json')
+      searchUrl.searchParams.set('formatversion', '2')
+      const searched = parseWikidataSearch(
+        await this.json(searchUrl, context.signal, budget)
+      )
+      const hits = searched.hits.slice(0, request.limit)
+      if (hits.length === 0) {
+        throw new WikimediaError('empty', 'Wikidata returned no matching entity')
+      }
+
+      const languages = [...new Set([request.language, 'en'])]
+      const sites = languages.map((language) => `${language}wiki`)
+      const entitiesUrl = new URL(base)
+      entitiesUrl.searchParams.set('action', 'wbgetentities')
+      entitiesUrl.searchParams.set('ids', hits.map((hit) => hit.id).join('|'))
+      entitiesUrl.searchParams.set(
+        'props',
+        'info|labels|aliases|descriptions|sitelinks|claims'
+      )
+      entitiesUrl.searchParams.set('languages', languages.join('|'))
+      entitiesUrl.searchParams.set('sitefilter', sites.join('|'))
+      entitiesUrl.searchParams.set('maxlag', '5')
+      entitiesUrl.searchParams.set('format', 'json')
+      entitiesUrl.searchParams.set('formatversion', '2')
+      const rawEntities = entityRecordsOf(
+        await this.json(entitiesUrl, context.signal, budget)
+      )
+      for (const hit of hits) {
+        if (rawEntities[hit.id] === undefined) {
+          throw new WikimediaError('malformed', `Wikidata omitted entity ${hit.id}`)
+        }
+      }
+
+      const referencedIds = new Set<string>()
+      for (const hit of hits) {
+        const raw = rawEntities[hit.id]!
+        for (const statement of wikidataStatementsOf(raw, new Map(), this.limits)) {
+          if (statement.value.kind === 'entity') referencedIds.add(statement.value.id)
+          if (referencedIds.size >= this.limits.maxReferencedEntities) break
+        }
+        if (referencedIds.size >= this.limits.maxReferencedEntities) break
+      }
+      for (const hit of hits) referencedIds.delete(hit.id)
+
+      let labels = new Map<string, string>()
+      if (referencedIds.size > 0) {
+        const labelsUrl = new URL(base)
+        labelsUrl.searchParams.set('action', 'wbgetentities')
+        labelsUrl.searchParams.set('ids', [...referencedIds].join('|'))
+        labelsUrl.searchParams.set('props', 'labels')
+        labelsUrl.searchParams.set('languages', languages.join('|'))
+        labelsUrl.searchParams.set('maxlag', '5')
+        labelsUrl.searchParams.set('format', 'json')
+        labelsUrl.searchParams.set('formatversion', '2')
+        labels = labelsOfEntities(
+          entityRecordsOf(await this.json(labelsUrl, context.signal, budget)),
+          request.language
+        )
+      }
+
+      const accessedAt = new Date(this.nowMs()).toISOString()
+      const entities = hits.map((hit, index) =>
+        wikidataEntityOf(
+          rawEntities[hit.id]!,
+          hit,
+          request.language,
+          labels,
+          accessedAt,
+          index + 1,
+          this.limits
+        )
+      )
+      resultCount = entities.length
+      return {
+        request,
+        results: entities,
+        media: [],
+        warnings:
+          searched.hasMore || hits.length > 1
+            ? [
+                {
+                  kind: 'ambiguous',
+                  message: 'Wikidata returned multiple ranked entity candidates.'
+                }
+              ]
+            : [],
+        responseBytes: budget.responseBytes,
+        accessedAt
+      }
+    } catch (error) {
+      errorKind = error instanceof WikimediaError ? error.kind : 'network'
+      throw error
+    } finally {
+      this.trace?.recordWikimedia({
+        parentTraceId: context.parentTraceId,
+        parentOperationId: context.parentOperationId,
+        tool: 'search_wiki',
+        corpus: 'wikidata',
         language: request.language,
         requests: budget.requests,
         resultCount,

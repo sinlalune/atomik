@@ -1,0 +1,35 @@
+{
+  "success": 1,
+  "entities": {
+    "Q5": {
+      "labels": {
+        "fr": { "language": "fr", "value": "être humain" },
+        "en": { "language": "en", "value": "human" }
+      }
+    },
+    "Q169470": {
+      "labels": {
+        "fr": { "language": "fr", "value": "physicien ou physicienne" },
+        "en": { "language": "en", "value": "physicist" }
+      }
+    },
+    "Q593644": {
+      "labels": {
+        "fr": { "language": "fr", "value": "chimiste" },
+        "en": { "language": "en", "value": "chemist" }
+      }
+    },
+    "Q270": {
+      "labels": {
+        "fr": { "language": "fr", "value": "Varsovie" },
+        "en": { "language": "en", "value": "Warsaw" }
+      }
+    },
+    "Q142": {
+      "labels": {
+        "fr": { "language": "fr", "value": "France" },
+        "en": { "language": "en", "value": "France" }
+      }
+    }
+  }
+}

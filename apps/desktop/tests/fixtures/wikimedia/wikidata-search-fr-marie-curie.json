@@ -1,0 +1,16 @@
+{
+  "success": 1,
+  "search": [
+    {
+      "id": "Q7186",
+      "label": "Marie Curie",
+      "description": "physicienne et chimiste polonaise et française",
+      "concepturi": "http://www.wikidata.org/entity/Q7186",
+      "match": {
+        "type": "label",
+        "language": "fr",
+        "text": "Marie Curie"
+      }
+    }
+  ]
+}

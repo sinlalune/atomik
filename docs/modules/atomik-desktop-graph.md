@@ -14,7 +14,7 @@ timestamp: 2026-08-17T00:00:00Z
 > (public contracts, data flow, alternatives, common mistakes, tests, agent
 > checklist, dependency facts); this note keeps what THIS AREA owns.
 
-## Live external projection boundary (CP-MVP-011 S01)
+## Live external projection boundary (CP-MVP-011 S01/S03)
 
 Wikidata does not become a second canonical graph. ADR-015 pins live QID
 entities and allowlisted statements as a disposable augmentation that can be
@@ -25,6 +25,16 @@ language and access time travel as external provenance; P18 routes to an
 attributed Commons media object rather than an evidentiary edge. Only an
 explicit source import creates files, after which the ordinary file-built
 graph sees those files on its next refresh.
+
+S03 implements the pure bridge in `shared/graph-core.ts`:
+`wikidataGraphProjectionOf` emits the SAME `GraphIndex` node/edge shapes, keyed
+by canonical `https://www.wikidata.org/wiki/Q…` URLs. Only entity-valued
+allowlisted statements become edges; P18 stays media and time values stay
+literals. `ExternalGraphProjection.provenance` keeps the fetched entity's
+revision/source beside (not inside) the graph. `withExternalGraphProjection`
+returns a new session-only view and leaves its base byte-for-byte untouched.
+No call reaches `electron-main/graph-index.ts`, so `.atomik/graph.json` remains
+strictly a projection of vault files.
 
 ## The relations strip — the graph as a picture (CP-MVP-009 S07)
 

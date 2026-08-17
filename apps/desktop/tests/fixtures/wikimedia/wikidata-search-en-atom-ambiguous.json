@@ -1,0 +1,31 @@
+{
+  "success": 1,
+  "search-continue": 5,
+  "search": [
+    {
+      "id": "Q16766305",
+      "label": "Atom",
+      "description": "free and open-source text and source code editor"
+    },
+    {
+      "id": "Q267956",
+      "label": "Atom",
+      "description": "Atom Syndication Format (XML)-used for web feeds Atom Publishing Protocol (HTTP)-protocol for creating and updating web resources"
+    },
+    {
+      "id": "Q483261",
+      "label": "dalton",
+      "description": "unit of mass defined as ¹⁄₁₂ of the mass of a carbon-12 atom"
+    },
+    {
+      "id": "Q4817196",
+      "label": "Atom",
+      "description": "Game"
+    },
+    {
+      "id": "Q9121",
+      "label": "atom",
+      "description": "smallest unit of a chemical element"
+    }
+  ]
+}

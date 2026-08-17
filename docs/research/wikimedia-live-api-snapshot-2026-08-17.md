@@ -84,7 +84,14 @@ not the full remote articles.
 - The fixture corpus deliberately searches `Atom`: the live search's first
   candidate was Q16766305 (the Atom editor), demonstrating why a label match
   must remain a ranked candidate rather than being silently promoted as the
-  requested concept.
+  requested concept. The five-result probe ranked the chemical atom Q9121
+  fifth, after an Atom web standard, the dalton unit and a game; the fixture
+  retains that exact order and the ambiguity signal.
+- The dated Marie Curie probe returned Q7186 revision 2532255818, French and
+  English labels/sitelinks, entity-valued occupation/place/citizenship claims,
+  birth time, and P18 `Marie Curie (1900) (cropped).jpg`. S03's minimal fixture
+  adds a synthetic non-allowlisted P999 sentinel solely to prove immediate
+  filtering; the sentinel is not asserted as live Wikidata content.
 
 ### Commons P18
 

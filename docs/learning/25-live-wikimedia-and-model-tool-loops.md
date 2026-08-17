@@ -93,6 +93,29 @@ This is **contract normalization**: four foreign response formats become the
 four discriminated result kinds in `shared/wikimedia.ts`. Downstream code can
 switch on `kind` and TypeScript narrows the fields it may use.
 
+### S03: Wikidata is statements, not a JSON dictionary
+
+`searchWikidata` first calls `wbsearchentities` and keeps the returned order.
+The `atom` fixture is the useful warning: the Atom editor ranks first and the
+chemical atom ranks fifth. A matching label is not permission to choose an
+entity silently, so multiple candidates carry an `ambiguous` warning.
+
+The second request uses `wbgetentities` for those QIDs. The response may contain
+thousands of claims and cannot be filtered to selected properties server-side.
+`wikidataStatementsOf` therefore iterates only
+`WIKIDATA_PROPERTY_ALLOWLIST`, caps values per property and per entity, checks
+the statement rank and mainsnak datatype, and discards everything else before
+the result leaves main. It then batches one labels-only request for the QIDs
+actually retained as entity values. This is **parse, reduce, then enrich**:
+unwanted claims never vote on later work.
+
+`wikidataGraphProjectionOf` turns entity-valued statements into ordinary
+`GraphNode` and `GraphEdge` records. Canonical Wikidata URLs are node ids — a
+QID never pretends to be a vault path. Time and P18 values stay display/media
+data, not graph edges. `withExternalGraphProjection` returns a new session view
+without mutating the file-built graph, and the projection carries a separate
+provenance list. Nothing calls the graph persistence seat.
+
 ### Provenance is not truth
 
 `WikimediaSource` records where and when text was consulted: project,
@@ -234,3 +257,6 @@ offline.
 7. In `wikimedia.test.ts`, change the fake `Content-Length` from 100 to 40.
    Explain why the failure moves from the byte gate to JSON validation, and why
    neither case can allocate an unbounded response.
+8. Search the `wikidata-entity-fr-marie-curie` fixture for `P999`. Follow the
+   parser and explain why `must-not-cross` cannot appear in the normalized
+   bundle, label follow-up, graph projection, or trace.

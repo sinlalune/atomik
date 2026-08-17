@@ -27,6 +27,9 @@ timestamp: 2026-08-17T00:00:00Z
   bounded streamed JSON, caller abort + per-request timeout, and hostile HTML
   reduced to typed text before any future IPC. The preload surface therefore
   remains byte-for-byte unchanged until S05 has a narrow operation to publish.
+  S03 adds Wikidata through the same fixed `www.wikidata.org/w/api.php` seat;
+  Action API caller URLs, raw claims and a graph persistence verb still do not
+  enter the renderer surface.
 
 - The Electron shell: app lifecycle, the trusted UI window, and the
   main/preload/renderer split (`apps/desktop/electron-main/`,

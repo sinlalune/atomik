@@ -8,7 +8,7 @@ atomik:
   id: CP-MVP-011
   status: running
   accepted: 2026-08-17
-  current_step: S03
+  current_step: S04
   base_commit: 783c7c6
   branch: path/cp-mvp-011
   writes:
@@ -240,7 +240,7 @@ BASE        783c7c6; branch path/cp-mvp-011; dedicated worktree
 - [x] S02 Wikipedia seat: implement the injected, abortable main-side client,
       bounded search + article extract, typed failures, revision/canonical URL
       provenance, traces, fixtures, and module/learning notes.
-- [ ] S03 Wikidata + graph bridge: entity search/resolution, labels/aliases,
+- [x] S03 Wikidata + graph bridge: entity search/resolution, labels/aliases,
       sitelinks and pinned claims; disposable external nodes/edges using the
       existing graph contract; provenance, ambiguity handling, and tests.
 - [ ] S04 Commons + Wiktionary: P18 metadata/attribution and safe thumbnail
@@ -308,15 +308,34 @@ BASE        783c7c6; branch path/cp-mvp-011; dedicated worktree
   creation. S02 records through an injected sink now, so no unparented live
   trace or premature renderer network door was introduced.
 
+## S03 work unit — complete 2026-08-17
+
+- **Code:** added Action API Wikidata search/entity/label batches to the same
+  fixed-host client; language-aware ranked candidates, ambiguity, CC0 revision
+  provenance, aliases/descriptions/sitelinks, typed ranks/values, strict
+  allowlist and statement/reference caps. Added pure QID-URL GraphIndex
+  projection plus a non-mutating session-view merge with separate provenance.
+- **Tests:** dated `atom` five-candidate ordering and multilingual Marie Curie
+  fixtures; Action API URLs/maxlag; label batching; QID/time/P18 normalization;
+  P999 sentinel exclusion; empty/omitted/maxlag outcomes; content-free trace;
+  graph node/edge/provenance shapes, no media/time edges, JSON round trip and
+  proof that the canonical base graph stays untouched.
+- **Docs:** learning note 25 now teaches parse/reduce/enrich and disposable
+  graph projection; sources/graph/shell notes record the concrete boundary;
+  the research snapshot distinguishes live values from the synthetic sentinel.
+- **Deviations:** external edges carry canonical URL objects in the existing
+  GraphEdge contract, whose comment now admits that transient form. No writer
+  or cache path consumes the merged view; S07 owns presentation integration.
+
 # Current checkpoint
 
 ```text
 base commit : 783c7c6 (local master and origin/master at activation)
-changed     : S01 contracts plus S02 Wikipedia client, offline fixtures,
-              streaming budgets, provenance and parented trace seam
-tests       : typecheck green; 76 files / 943 pass / 1 skip; build + Cairn green
-next action : execute S03 — Wikidata entity search/resolution, allowlisted
-              statements, labels/sitelinks and disposable graph projection
+changed     : S01 contracts; S02 Wikipedia; S03 Wikidata normalization and
+              disposable QID-URL graph projection with offline fixtures
+tests       : typecheck green; 77 files / 947 pass / 1 skip; build + Cairn green
+next action : execute S04 — Commons P18 attribution/media policy and bounded,
+              language-aware Wiktionary etymology extraction
 blockers    : none
 parallel    : CP-RICH-MARKDOWN is running; styles.css and broad renderer/test/
               docs surfaces overlap advisory-only. Rebase at step boundaries.
