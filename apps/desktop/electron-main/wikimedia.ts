@@ -37,6 +37,11 @@ export type WikimediaSearchContext = {
   signal: AbortSignal
   parentTraceId: string
   parentOperationId: string
+  /** S07e: which corpora `auto` may consult — the user's own switches, passed
+   *  from main. Absent means the historical Wikipedia+Wikidata pair. The owner
+   *  switched all four on and got Wikipedia only, because `auto` was hard-coded
+   *  to two. */
+  corpora?: readonly ('auto' | 'wikipedia' | 'wikidata' | 'wiktionary')[]
   /** Fail-closed default is private: no remote thumbnail URL is returned. */
   mediaPolicy?: 'remote' | 'private' | 'offline'
 }
@@ -864,19 +869,30 @@ export class WikimediaClient {
     }
 
     const budget: RequestBudget = { requests: 0, responseBytes: 0 }
-    const wikipediaLimit = Math.max(1, Math.ceil(request.limit / 2))
-    const wikidataLimit = Math.max(1, Math.floor(request.limit / 2))
+    // S07e: `auto` means every corpus the user left switched on, not a fixed
+    // pair. The result allowance is shared across them, at least one each.
+    const enabled = (context.corpora ?? ['wikipedia', 'wikidata']).filter(
+      (corpus): corpus is 'wikipedia' | 'wikidata' | 'wiktionary' =>
+        corpus !== 'auto'
+    )
+    // Spread the allowance, remainder to the earlier corpora, at least one
+    // each — so limit 5 over Wikipedia+Wikidata stays the 3/2 split it was.
+    const base = Math.floor(request.limit / enabled.length)
+    const remainder = request.limit % enabled.length
     const bundles: WikimediaSearchBundle[] = []
     const degraded: WikimediaWarning[] = []
-    for (const child of [
-      { ...request, corpus: 'wikipedia' as const, limit: wikipediaLimit },
-      { ...request, corpus: 'wikidata' as const, limit: wikidataLimit }
-    ]) {
+    for (const child of enabled.map((corpus, index) => ({
+      ...request,
+      corpus,
+      limit: Math.max(1, base + (index < remainder ? 1 : 0))
+    }))) {
       try {
         bundles.push(
           child.corpus === 'wikipedia'
             ? await this.searchWikipedia(child, context, budget)
-            : await this.searchWikidata(child, context, budget)
+            : child.corpus === 'wikidata'
+              ? await this.searchWikidata(child, context, budget)
+              : await this.searchWiktionary(child, context, budget)
         )
       } catch (error) {
         if (!(error instanceof WikimediaError)) throw error
@@ -903,7 +919,7 @@ export class WikimediaClient {
     if (bundles.length === 0) {
       throw new WikimediaError(
         'empty',
-        'Wikipedia and Wikidata returned no matching result'
+        `no matching result in ${enabled.join(', ')}`
       )
     }
     return {
@@ -1274,7 +1290,9 @@ export class WikimediaClient {
 
   async searchWiktionary(
     value: unknown,
-    context: WikimediaSearchContext
+    context: WikimediaSearchContext,
+    /** Internal only: `auto` shares one whole-search budget. */
+    sharedBudget?: RequestBudget
   ): Promise<WikimediaSearchBundle> {
     const request = parseSearchWikiRequest(value)
     if (request.corpus !== 'wiktionary') {
@@ -1290,7 +1308,7 @@ export class WikimediaClient {
       throw new WikimediaError('cancelled', 'operation was cancelled')
     }
     const started = this.nowMs()
-    const budget: RequestBudget = { requests: 0, responseBytes: 0 }
+    const budget = sharedBudget ?? { requests: 0, responseBytes: 0 }
     let resultCount = 0
     let errorKind: WikimediaErrorKind | undefined
     try {

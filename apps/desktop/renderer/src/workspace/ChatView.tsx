@@ -446,11 +446,31 @@ export function ChatView({
     (turn: ChatTurn, index: number): CitationSource[] | undefined => {
       if (turn.role !== 'atomik') return undefined
       const packet = packetByTurn.current.get(index - 1)
+      // S07e: external sources cite through the same numbering and the same
+      // renderer. Main assigned their numbers where the material was
+      // gathered, continuing after the vault references, so the two lists
+      // simply concatenate.
+      const external = (consultedByTurn.current.get(index)?.sources ?? [])
+        .filter((source) => source.number !== undefined)
+        .map((source) => ({
+          number: source.number!,
+          path: source.url,
+          title: source.title,
+          external: {
+            url: source.url,
+            project: source.project,
+            language: source.language
+          }
+        }))
       if (packet) {
-        return citationSourcesOf(
-          packet.entries.filter((entry) => entry.stage !== 'direct')
-        )
+        return [
+          ...citationSourcesOf(
+            packet.entries.filter((entry) => entry.stage !== 'direct')
+          ),
+          ...external
+        ]
       }
+      if (external.length > 0) return external
       return turn.cited?.map((entry) => ({
         number: entry.number,
         path: entry.path,

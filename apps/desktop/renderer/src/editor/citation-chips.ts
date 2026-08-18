@@ -216,11 +216,20 @@ function decorateMarkers(
       fragment.append(doc.createTextNode(target.data.slice(cursor, at)))
       for (const entry of resolved) {
         const anchor = doc.createElement('a')
-        anchor.className = 'citation-chip'
-        anchor.dataset['citation'] = entry.source!.path
+        const external = entry.source!.external
+        anchor.className = external
+          ? 'citation-chip citation-chip-external'
+          : 'citation-chip'
+        // S07e: an external chip carries its URL rather than a vault path, so
+        // the click handler that reveals a note never receives one that is
+        // not a note. Same numbering, same chip, different destination.
+        if (external) anchor.dataset['citationExternal'] = external.url
+        else anchor.dataset['citation'] = entry.source!.path
         anchor.href = '#'
         anchor.textContent = String(entry.number)
-        anchor.title = `${entry.source!.title} — ${entry.source!.path}`
+        anchor.title = external
+          ? `${entry.source!.title} — ${external.project} · ${external.language}`
+          : `${entry.source!.title} — ${entry.source!.path}`
         fragment.append(anchor)
       }
       cursor = at + match[0].length

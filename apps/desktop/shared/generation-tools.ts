@@ -137,7 +137,19 @@ export type GenerationToolResult = {
 
 export type GenerationToolPayload =
   | { kind: 'vault-context'; packet: ContextPacket }
-  | { kind: 'wikimedia'; bundle: WikimediaSearchBundle }
+  | {
+      kind: 'wikimedia'
+      bundle: WikimediaSearchBundle
+      /** S07e: the citation number assigned to each result, in main, where
+       *  the material was gathered. The renderer reads these rather than
+       *  re-deriving an index it could disagree with. */
+      citations: {
+        number: number
+        url: string
+        title: string
+        project: string
+      }[]
+    }
 
 /** Inspectable activity returned with the answer; still transient. */
 export type GenerationToolExecution = {
@@ -405,8 +417,13 @@ export function createGenerationToolPolicy(
   const parsed = parseGenerationToolPreference(preference)
   const sources = parsed.wikiSources
   const corpora: WikimediaSearchCorpus[] = []
-  // `auto` only means anything when BOTH of its legs are switched on.
-  if (sources.wikipedia && sources.wikidata) corpora.push('auto')
+  // S07e: `auto` means "everything switched on", so it exists whenever any
+  // source does. It used to require BOTH Wikipedia and Wikidata and consult
+  // only those two, which is why a user with all four on still got Wikipedia
+  // alone unless they asked for the others by name.
+  if (sources.wikipedia || sources.wikidata || sources.wiktionary) {
+    corpora.push('auto')
+  }
   if (sources.wikipedia) corpora.push('wikipedia')
   if (sources.wikidata) corpora.push('wikidata')
   if (sources.wiktionary) corpora.push('wiktionary')
@@ -446,7 +463,10 @@ export function generationToolDefinitions(
     definitions.push({
       name: 'search_vault',
       description:
-        "Search the owner's local vault for bounded, inspectable context.",
+        "Search the owner's local vault for bounded, inspectable context. " +
+        "Call this when the question refers to the owner's own notes, projects " +
+        'or past decisions, or to check what the vault already says before ' +
+        'answering from general knowledge.',
       inputSchema: {
         type: 'object',
         additionalProperties: false,
@@ -471,8 +491,19 @@ export function generationToolDefinitions(
   if (policy.allowed.includes('search_wiki')) {
     definitions.push({
       name: 'search_wiki',
+      // S07e: a description that says only what a tool DOES gets under-called.
+      // The owner watched the model answer from memory, then reach for one
+      // corpus at a time only when asked by name. This says WHEN to call, and
+      // makes the single `auto` call the obvious move.
       description:
-        'Search bounded Wikipedia, Wikidata, Commons P18 or pinned Wiktionary material.',
+        'Look up public reference knowledge: encyclopedia articles, structured ' +
+        'entity facts, word origins, and a curated image. Call this whenever ' +
+        'the question asks about a person, place, work, organism, concept, ' +
+        'event or word that the vault does not already cover — including a ' +
+        'bare topic given as the whole question. Prefer ONE call with corpus ' +
+        '"auto", which consults every source the user enabled and returns them ' +
+        'together; name a single corpus only when the question is specifically ' +
+        'about that kind of material. Results arrive numbered — cite them.',
       inputSchema: {
         type: 'object',
         additionalProperties: false,

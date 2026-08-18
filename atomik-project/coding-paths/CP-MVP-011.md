@@ -303,6 +303,8 @@ OPEN        provider-step position vs S07; the "luna" model id; whether
       a surface for the vault notes the model pulls in mid-answer.
 - [x] S07d Response-budget degradation: an oversized article no longer fails
       the whole search, and the ceilings match what Wikimedia actually returns.
+- [x] S07e External citations through the vault mechanism, one call across
+      every enabled source, and the image leading the block.
 - [ ] S07 Augmented chat + external citations: the wiki control MIRRORS the
       vault tool — a per-thread enable toggle, a `reach` depth control, and
       four per-source switches (Wikipedia · Wikidata · Commons image ·
@@ -706,6 +708,42 @@ maxlag removed  1 tool call  · Wikidata ALIVE  ·  5.6s · $0.0034
   Latency is the other half: 11.8s for the Wikipedia leg at limit 3, which
   argues for `quick` being the honest conversational default.
 
+## S07e work unit — complete 2026-08-19
+
+- **Owner bench that drove it, verbatim:** *"where are wiki citations? It is
+  just using quoteblocks instead of the mechanism we built for vault
+  citation... The photo appear but in the end with the context packet list,
+  but would want it first and well presented. Also it seems that it didnt use
+  all sources when all were activated, but was capable to use it if asked in
+  chat"* — with a transcript showing blockquote attributions and one corpus per
+  question.
+- **Code:** citation numbers are assigned in the executor, continuing after the
+  request's vault references (`citationOffset` from main), and travel back in
+  the tool result's `_atomik` envelope with `EXTERNAL_CITATION_INSTRUCTION`.
+  `CitationSource` gained an `external` arm so one numbering, one parser and
+  one chip renderer serve both kinds; external chips carry a URL rather than a
+  path. `auto` became "every corpus switched on", carried from the policy into
+  the search context with the allowance spread across them, and Wiktionary
+  joined the shared-budget convention. Tool descriptions now state WHEN to
+  call. The consulted block leads with the image, captioned with file, creator
+  and licence, and lists each source with the number the model was given.
+- **Tests:** the number main assigns reaches the displayed source and an
+  unnumbered source stays unnumbered; the executor hands the model a `cite`
+  list plus an instruction that names the blockquote failure mode; `auto`
+  covers every enabled corpus with the old 3/2 split preserved for two.
+  Full result: 80 files, 1012 passed + 1 skipped; typecheck and build green.
+- **Verified live** on the owner's own question (`biologie`, all four sources
+  on): ONE `auto` call returned Wikipedia [1], Wikidata [2], Wiktionary [3] and
+  one attributed image, and the French answer carried 26 numbered markers with
+  ZERO blockquote attributions.
+- **Open, deliberately:** trace persistence and the request inspector remain
+  S07f. The owner delegated the trace architecture and suggested a separate
+  folder linked from the chat note with a JSON block — that shape is accepted
+  and not yet built. Fetches are still deliberately sequential (S02), which is
+  where the 8–12s exchanges come from; parallelising the per-article reads
+  behind the shared budget is the next velocity lever and is not attempted
+  here.
+
 # Current checkpoint
 
 ```text
@@ -720,11 +758,12 @@ changed     : S01 contracts; S02 Wikipedia; S03 Wikidata/graph projection;
               S07a wiki control contract + composer surface (default off);
               S07b consulted-sources surface, attributed media, edition control;
               S07c one switch per verb + tool-driven vault read surfaced;
-              S07d response-budget degradation (skip the page, keep the search)
-tests       : typecheck green; 80 files / 1009 pass / 1 skip; build green
+              S07d response-budget degradation (skip the page, keep the search);
+              S07e external citations, one call across every enabled source
+tests       : typecheck green; 80 files / 1012 pass / 1 skip; build green
 bench       : 2026-08-17, live, gemini-3.7-flash + fr.wikipedia + wikidata —
               one tool call, 5.6s, ~$0.0034 per exchange, French answer
-next action : execute S07e — represent TOOL activity in the request inspector
+next action : execute S07f — represent TOOL activity in the request inspector
               (the breakdown pills still describe the pre-pass packet only)
               and persist the agent trace beside the transcript for audit,
               both from the 2026-08-18 bench. Then S08 save-as-source, which

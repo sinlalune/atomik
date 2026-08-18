@@ -83,7 +83,9 @@ export type GenerationAdapterTurn =
 
 export type GenerationToolExecutor = (
   call: GenerationToolCall,
-  context: { signal: AbortSignal }
+  /** The policy travels WITH the call: the executor must widen nothing, and
+   *  `auto` needs to know which corpora the user left switched on (S07e). */
+  context: { signal: AbortSignal; policy: GenerationToolPolicy }
 ) => Promise<{ result: GenerationToolResult; payload?: GenerationToolPayload }>
 
 export type GenerationAdapter = {
@@ -267,7 +269,10 @@ export async function runGenerationWithTools(
         let execution: GenerationToolExecution
         try {
           const call = parseGenerationToolCall(rawCall, policy)
-          const executed = await execute(call, { signal: controller.signal })
+          const executed = await execute(call, {
+            signal: controller.signal,
+            policy
+          })
           if (
             executed.result.callId !== call.id ||
             executed.result.name !== call.name ||

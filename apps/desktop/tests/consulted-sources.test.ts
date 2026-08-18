@@ -177,6 +177,51 @@ describe('what an answer consulted (CP-MVP-011 S07b)', () => {
   })
 })
 
+describe('external sources cite through the vault mechanism (S07e)', () => {
+  it('carries the number main assigned onto the displayed source', () => {
+    const material = consultedMaterialOf([
+      {
+        result: { ok: true },
+        payload: {
+          kind: 'wikimedia',
+          bundle: {
+            results: [
+              article('Biology', 'https://en.wikipedia.org/wiki/Biology'),
+              article('Taxonomy', 'https://en.wikipedia.org/wiki/Taxonomy')
+            ],
+            media: [],
+            warnings: []
+          },
+          // Numbers continue after the vault references already sent, so [1]
+          // means one thing across the whole answer.
+          citations: [
+            { number: 3, url: 'https://en.wikipedia.org/wiki/Biology' },
+            { number: 4, url: 'https://en.wikipedia.org/wiki/Taxonomy' }
+          ]
+        }
+      }
+    ])
+    expect(material.sources.map((source) => source.number)).toEqual([3, 4])
+  })
+
+  it('leaves a source unnumbered rather than inventing one', () => {
+    const material = consultedMaterialOf([
+      {
+        result: { ok: true },
+        payload: {
+          kind: 'wikimedia',
+          bundle: {
+            results: [article('Biology', 'https://en.wikipedia.org/wiki/Biology')],
+            media: [],
+            warnings: []
+          }
+        }
+      }
+    ])
+    expect(material.sources[0]?.number).toBeUndefined()
+  })
+})
+
 describe('the media host the renderer may load (S07b)', () => {
   it('opens the image policy to exactly one pinned Wikimedia host', () => {
     const html = readFileSync(

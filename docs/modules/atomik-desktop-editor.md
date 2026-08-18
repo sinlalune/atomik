@@ -16,6 +16,16 @@ timestamp: 2026-08-17T00:00:00Z
 
 ## What it owns
 
+- EXTERNAL CITATION CHIPS (CP-MVP-011 S07e): `editor/citation-chips.ts`
+  decorates markers for BOTH source kinds through the one marker parser and
+  the one chip idiom. A vault chip keeps `data-citation` with its relative
+  path; an external chip carries `data-citation-external` with the canonical
+  URL and wears `citation-chip-external` (dashed border), so the handler that
+  reveals a note is never handed something that is not a note, and the reader
+  can see at a glance that a number points outside the vault. The numbering is
+  shared and assigned in main — the renderer decorates, it does not decide.
+
+
 - The editor (S07 + MVP-001 feedback): `renderer/src/editor/EditorPane.tsx`
   — CodeMirror 6 over the RAW note (frontmatter included, no template, no
   normalization; 11/27) with optimistic conflict detection: saves carry

@@ -22,6 +22,7 @@ import {
 } from '../electron-main/generation-tool-executor'
 import { createMistralGenerationAdapter } from '../electron-main/mistral-generation-adapter'
 import { createGoogleGenerationAdapter } from '../electron-main/google-generation-adapter'
+import { createGenerationToolPolicy } from '../shared/generation-tools'
 import type { WikimediaSearchContext } from '../electron-main/wikimedia'
 
 const FIXTURES = join(import.meta.dirname, 'fixtures', 'generation-tools')
@@ -593,8 +594,14 @@ describe('main-side tool executor', () => {
       name: 'search_wiki',
       arguments: wikiBundle.request
     }
-    const vault = await execute(vaultCall, { signal: signal() })
-    const wiki = await execute(wikiCall, { signal: signal() })
+    // The policy travels with the call (S07e) — `auto` consults exactly the
+    // corpora the user left switched on, so the executor never guesses.
+    const policy = createGenerationToolPolicy({
+      mode: 'model',
+      wikiLanguage: 'en'
+    })
+    const vault = await execute(vaultCall, { signal: signal(), policy })
+    const wiki = await execute(wikiCall, { signal: signal(), policy })
 
     expect(compileVault).toHaveBeenCalledWith({
       query: 'atom',
@@ -608,10 +615,78 @@ describe('main-side tool executor', () => {
       mediaPolicy: 'remote'
     })
     expect(vault.payload).toEqual({ kind: 'vault-context', packet })
-    expect(wiki.payload).toEqual({ kind: 'wikimedia', bundle: wikiBundle })
+    // S07e: the payload carries the citation numbers assigned in main.
+    expect(wiki.payload).toEqual({
+      kind: 'wikimedia',
+      bundle: wikiBundle,
+      citations: []
+    })
     expect(JSON.parse(vault.result.content)).toMatchObject({
       _atomik: { untrusted: true }
     })
+  })
+
+  it('hands the model numbered sources and how to cite them', async () => {
+    // S07e, owner bench: "where are wiki citations? It is just using
+    // quoteblocks instead of the mechanism we built for vault citation."
+    // The numbers now ride INSIDE the tool result, beside the untrusted flag.
+    const bundle = {
+      request: { query: 'biology', language: 'en', corpus: 'wikipedia', limit: 1, includeMedia: false },
+      results: [
+        {
+          kind: 'wikipedia-article',
+          rank: 1,
+          description: null,
+          text: 'Biology is the study of life.',
+          truncated: false,
+          source: {
+            project: 'wikipedia',
+            language: 'en',
+            title: 'Biology',
+            pageId: 9127632,
+            revision: { id: 1367299928, timestamp: null },
+            canonicalUrl: 'https://en.wikipedia.org/wiki/Biology',
+            accessedAt: '2026-08-19T00:00:00.000Z',
+            license: { name: 'CC BY-SA 4.0', url: 'https://example.test/cc' }
+          }
+        }
+      ],
+      media: [],
+      warnings: [],
+      responseBytes: 10,
+      accessedAt: '2026-08-19T00:00:00.000Z'
+    } as unknown as WikimediaSearchBundle
+
+    const execute = createGenerationToolExecutor({
+      compileVault: () => ({ entries: [] }) as unknown as ContextPacket,
+      searchWiki: async () => bundle,
+      parentTraceId: 'trace_root',
+      parentOperationId: 'op-tool-loop',
+      // Two vault references already used [1] and [2] in this request.
+      citationOffset: 2
+    })
+
+    const executed = await execute(
+      {
+        id: 'call_cite',
+        name: 'search_wiki',
+        arguments: bundle.request as never
+      } as GenerationToolCall,
+      {
+        signal: signal(),
+        policy: createGenerationToolPolicy({ mode: 'model', wikiLanguage: 'en' })
+      }
+    )
+
+    const envelope = JSON.parse(executed.result.content) as {
+      _atomik: { cite?: { number: number; url: string }[]; instruction?: string }
+    }
+    expect(envelope._atomik.cite).toEqual([
+      { number: 3, title: 'Biology', url: 'https://en.wikipedia.org/wiki/Biology' }
+    ])
+    expect(envelope._atomik.instruction).toContain('square brackets')
+    // The instruction names the failure mode it exists to prevent.
+    expect(envelope._atomik.instruction).toContain('quotation block')
   })
 
   it('keeps large hostile text valid, explicitly untrusted, and under budget', () => {

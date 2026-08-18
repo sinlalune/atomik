@@ -42,6 +42,43 @@ export function ConsultedBlock({
 }): React.JSX.Element {
   return (
     <section className="chat-consulted" aria-label="Consulted sources">
+      {/* S07e: the image LEADS. It is the most legible thing an augmented
+          answer produced, and trailing the source list made it read as an
+          afterthought — the owner's words: "would want it first and well
+          presented". Attribution rides with it, never in a tooltip: a credit
+          one hover away is a credit not given. */}
+      {material.media.length > 0 && (
+        <ul className="chat-consulted-media">
+          {material.media.map((item) => (
+            <li key={item.url}>
+              <img
+                src={item.thumbnailUrl}
+                alt={item.title}
+                loading="lazy"
+                {...(item.width > 0 && item.height > 0
+                  ? { width: item.width, height: item.height }
+                  : {})}
+              />
+              <span className="chat-consulted-credit">
+                <span className="chat-consulted-file">{item.title}</span>
+                {item.creator} · {item.license.name}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {material.warnings.length > 0 && (
+        <ul className="chat-consulted-warnings">
+          {material.warnings.map((warning) => (
+            <li key={`${warning.kind}:${warning.message}`}>
+              <span className="chat-consulted-warn-kind">{warning.kind}</span>
+              {warning.message}
+            </li>
+          ))}
+        </ul>
+      )}
+
       {/* A note the model asked for by calling search_vault. The pre-pass
           packet rides the QUESTION and opens from its pill; this retrieval
           happened mid-answer and had no surface at all until S07c. */}
@@ -65,43 +102,15 @@ export function ConsultedBlock({
           ))}
         </ul>
       )}
-      {material.warnings.length > 0 && (
-        <ul className="chat-consulted-warnings">
-          {material.warnings.map((warning) => (
-            <li key={`${warning.kind}:${warning.message}`}>
-              <span className="chat-consulted-warn-kind">{warning.kind}</span>
-              {warning.message}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {material.media.length > 0 && (
-        <ul className="chat-consulted-media">
-          {material.media.map((item) => (
-            <li key={item.url}>
-              <img
-                src={item.thumbnailUrl}
-                alt={item.title}
-                loading="lazy"
-                {...(item.width > 0 && item.height > 0
-                  ? { width: item.width, height: item.height }
-                  : {})}
-              />
-              {/* Attribution rides WITH the image, never in a tooltip: an
-                  illustration whose credit is one hover away is an
-                  illustration published without credit. */}
-              <span className="chat-consulted-credit">
-                {item.creator} · {item.license.name}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
 
       <ul className="chat-consulted-list">
         {material.sources.map((source) => (
           <li key={source.url}>
+            {/* The citation number the model was given, so the block and the
+                chips in the prose read as one list rather than two. */}
+            {source.number !== undefined && (
+              <span className="chat-consulted-number">[{source.number}]</span>
+            )}
             <span className={`chat-consulted-kind kind-${source.kind}`}>
               {KIND_LABELS[source.kind]}
             </span>

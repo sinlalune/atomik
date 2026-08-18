@@ -607,7 +607,10 @@ function registerVaultHandlers(stateDir: string): void {
               wikimedia.search(request, context),
             parentTraceId: rootTraceId,
             parentOperationId: operation.id,
-            mediaPolicy: 'remote'
+            mediaPolicy: 'remote',
+            // External sources continue the numbering the vault references
+            // already used in this request, so [1] means one thing (S07e).
+            citationOffset: packet ? referenceSelectionsOf(packet).length : 0
           })
         )
         const traceId = traces.draftFor(

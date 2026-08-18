@@ -29,8 +29,15 @@
 export type CitationSource = {
   /** 1-based, the number the model was told to use. */
   number: number
+  /** Vault relative path, or the canonical URL when `external` is set. */
   path: string
   title: string
+  /** S07e: an external source cites through the SAME numbering and the same
+   *  renderer — it is another source kind, not a second citation system.
+   *  Before this the model invented its own convention (a blockquote and an
+   *  em-dash attribution), which is exactly what the numbered contract exists
+   *  to replace. */
+  external?: { url: string; project: string; language: string }
 }
 
 /** The notes an answer was allowed to cite, in the order they were sent. */
@@ -292,6 +299,15 @@ export function sourceOfNumber(
  * with the honest constraint that inventing a source is worse than
  * citing none.
  */
+/** Given to the model INSIDE the tool result, so the numbers arrive with the
+ *  material they belong to rather than in a prompt written before the lookup
+ *  existed. */
+export const EXTERNAL_CITATION_INSTRUCTION =
+  'Cite these sources inline with their number in square brackets — [1], [2] — ' +
+  'right after the statement they support, exactly as you would cite a note. ' +
+  'Do not invent a different citation style, and do not attribute with a ' +
+  'quotation block instead of a number. Never cite a number you were not given.'
+
 export const CITATION_INSTRUCTION =
   'Cite these notes inline with their number in square brackets — [1], [2] — ' +
   'right after the statement they support. You may also link a phrase directly ' +
@@ -315,6 +331,10 @@ export const CITATION_INSTRUCTION =
  */
 
 export type ConsultedSource = {
+  /** The citation number the model was given for this source, when one was
+   *  assigned. Numbers are DATA, assigned in main where the material is
+   *  gathered, so the renderer never has to re-derive them. */
+  number?: number
   /** Canonical URL — also the dedup key across corpora and calls. */
   url: string
   kind: 'wikipedia-article' | 'wikidata-entity' | 'wiktionary-etymology'
@@ -459,13 +479,30 @@ export function consultedMaterialOf(
 
     if (payload?.kind !== 'wikimedia') continue
 
+    const numbers = new Map<string, number>()
+    for (const entry of Array.isArray(
+      (payload as { citations?: unknown }).citations
+    )
+      ? ((payload as { citations: unknown[] }).citations as Record<string, unknown>[])
+      : []) {
+      const url = text(entry.url)
+      if (url !== null && typeof entry.number === 'number') {
+        numbers.set(url, entry.number)
+      }
+    }
+
     for (const entry of Array.isArray(payload.bundle?.results)
       ? payload.bundle.results
       : []) {
       const source = sourceOf(entry as ResultLike)
       // First read wins: the same page reached twice is one source, and the
       // earliest access time is the honest one.
-      if (source !== null && !sources.has(source.url)) sources.set(source.url, source)
+      if (source === null || sources.has(source.url)) continue
+      const number = numbers.get(source.url)
+      sources.set(
+        source.url,
+        number === undefined ? source : { ...source, number }
+      )
     }
 
     for (const entry of Array.isArray(payload.bundle?.media)

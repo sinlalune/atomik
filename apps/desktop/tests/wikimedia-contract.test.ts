@@ -201,8 +201,10 @@ describe('provider-neutral model tool calls', () => {
       wikiReach: 'quick',
       wikiSources: { wikipedia: true, wikidata: false, media: true, wiktionary: false }
     })
-    // `auto` needs both legs, and media rides on Wikidata's P18.
-    expect(quickWikipediaOnly.wikiCorpora).toEqual(['wikipedia'])
+    // S07e: `auto` means "everything switched on", so it survives with a
+    // single source — it just consults that one. Media still rides on
+    // Wikidata's P18, so it goes when Wikidata does.
+    expect(quickWikipediaOnly.wikiCorpora).toEqual(['auto', 'wikipedia'])
     expect(quickWikipediaOnly.wikiLimit).toBe(2)
     expect(quickWikipediaOnly.wikiMedia).toBe(false)
 
@@ -242,7 +244,7 @@ describe('provider-neutral model tool calls', () => {
     )
     expect(wikiSchema).toBeDefined()
     const properties = wikiSchema!.inputSchema.properties as Record<string, any>
-    expect(properties.corpus.enum).toEqual(['wikipedia'])
+    expect(properties.corpus.enum).toEqual(['auto', 'wikipedia'])
     expect(properties.limit.maximum).toBe(2)
     expect(properties.includeMedia.enum).toEqual([false])
   })

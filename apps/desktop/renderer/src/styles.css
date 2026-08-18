@@ -5998,11 +5998,14 @@ button svg {
   gap: var(--space-2);
 }
 
+/* S07e: the image leads the block rather than trailing the source list —
+   it is the most legible thing an augmented answer produced, and it read as
+   an afterthought at the bottom. */
 .chat-consulted-media li {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  max-width: 12rem;
+  max-width: 18rem;
 }
 
 .chat-consulted-media img {
@@ -6014,8 +6017,14 @@ button svg {
 /* An illustration is labelled AS an illustration: it never argues for the
    prose above it, and its credit is visible rather than hidden on hover. */
 .chat-consulted-credit {
+  display: flex;
+  flex-direction: column;
   font-size: var(--fs-xs);
   color: var(--muted);
+}
+
+.chat-consulted-file {
+  color: inherit;
 }
 
 .chat-consulted-list {
@@ -6077,4 +6086,16 @@ button svg {
 
 .chat-consulted-note:hover {
   color: var(--accent);
+}
+
+/* An external citation is the same chip with a different provenance: it
+   points outside the vault, so it reads as its own kind at a glance. */
+.citation-chip.citation-chip-external {
+  border-style: dashed;
+}
+
+/* The number ties a listed source to its chip in the prose above. */
+.chat-consulted-number {
+  color: var(--accent);
+  font-size: var(--fs-xs);
 }

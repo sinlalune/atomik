@@ -128,6 +128,34 @@ timestamp: 2026-08-17T00:00:00Z
   sources and open in place. The distinction the UI now draws: the pre-pass
   packet belongs to the QUESTION it was compiled for and opens from its pill;
   a tool-driven read happened mid-answer and belongs to the ANSWER.
+- EXTERNAL CITATIONS THROUGH THE VAULT MECHANISM (CP-MVP-011 S07e): the owner
+  benched S07b and found the model attributing with blockquotes and an em-dash
+  — *"where are wiki citations? It is just using quoteblocks instead of the
+  mechanism we built for vault citation"*. It had never been told it could
+  cite them. Citation numbers are now DATA assigned in main, in the executor,
+  where the material is gathered: each result gets the next number continuing
+  after the vault references the request already used (`citationOffset`), and
+  they ride back inside the tool result's `_atomik` envelope — beside
+  `untrusted`, in the part the model is told is Atomik speaking, never inside
+  the payload it is told is data — together with
+  `EXTERNAL_CITATION_INSTRUCTION`. The instruction rides WITH the material
+  because a rule written before the lookup cannot name the sources it
+  produced. `CitationSource` gained an `external` arm, so one numbering, one
+  marker parser and one chip renderer serve both kinds; an external chip
+  carries its URL in `data-citation-external` rather than a vault path, so the
+  reveal-a-note handler never receives something that is not a note. Verified
+  live: the same question that produced blockquote attributions produced 26
+  numbered markers and zero blockquotes.
+- ONE CALL, EVERY ENABLED SOURCE (CP-MVP-011 S07e): `auto` now means "every
+  corpus the user switched on", carried from the policy into the search
+  context, with the result allowance spread across them (remainder to the
+  earlier corpora, at least one each). It previously required BOTH Wikipedia
+  and Wikidata and consulted only those two — which is why an owner with all
+  four switches on got Wikipedia alone and had to ask for Wikidata and
+  Wiktionary by name. The tool description was the other half: one that states
+  only what a tool DOES gets under-called, so it now says WHEN to call
+  (including for a bare topic as the whole question), names `auto` as the
+  preferred single call, and says the results arrive numbered.
 - SHARED DIALECT CODEC (CP-MVP-011 S06b): `electron-main/openai-tool-codec.ts`
   owns the `openai-chat-completions` wire grammar ONCE — schema emission, call
   parsing, the `role: "tool"` continuation, and usage accumulation. An adapter
