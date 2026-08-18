@@ -264,9 +264,15 @@ tests       : S07 focused PASS (rich-markdown 59); full PASS (75 files / 998
               reverting its fix and watching it fail — the suite runs on
               linkedom, which has no getComputedStyle and no CSP, so coverage
               alone could not see any of this.
-next action : finish the bench — notes 01/04/05, every security probe, and the
-              byte-stability check — then harden what it hits; decide on a
-              real-Electron smoke lane
+verdict     : owner accepted the bench round 2026-08-17 — "everything is
+              good". Six defects found and fixed; byte-stability verified
+              (six notes md5-identical after the full bench). Acceptance
+              covers the BENCH, not the path.
+next action : S07 hardening still open — rapid edit/cancel/theme/tab stress,
+              cache teardown, responsive + keyboard/screen-reader benching,
+              repeat/first-render timing. Unwalked bench surface: note 01,
+              note 05, and every security probe. Owner decisions pending: a
+              real-Electron smoke lane, and unpacking Electron in the trunk.
 blockers    : none; rebased onto trunk 783c7c6
 ```
 

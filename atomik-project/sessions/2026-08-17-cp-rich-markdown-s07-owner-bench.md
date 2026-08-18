@@ -160,13 +160,31 @@ unresolved input; charts following the resolved theme; Vega's AST + interpreter
 wiring; and the clipboard falling back when the async API REJECTS rather than
 only when it is absent.
 
+## Owner verdict
+
+Bench round 3, after the spacing fix: *"everything is good."* The six defects
+above are accepted as fixed against the running app — diagrams and charts
+render in every theme, code chrome and diagnostics behave, Copy lands the
+authored source, and read/live spacing agree.
+
+This is acceptance of the BENCH, not of the path: S07's hardening scope below
+is still open, and the closing ceremony remains a separate event under
+bedrock 22.
+
 ## Still open
 
-- The bench covered 02, 03 and the top of 04. Note 01 (math), the rest of 04
-  (languages, aliases, unknown fences, diagnostics, the `<img onerror>` probe,
-  wrap/expand) and note 05 (edge cases) are unexercised, as are the Mermaid and
-  Vega security probes and the byte-stability check. Baseline checksums for all
-  seven bench notes were taken before launch.
+- The bench covered 02, 03 and 04's chrome. Note 01 (math), 04's deliberate
+  syntax errors / `<img onerror>` probe / unknown fences / wrap-expand, note 05
+  (edge cases), and the Mermaid and Vega security probes were never walked. The
+  owner's verdict covers what was seen, which is most of the rendering surface
+  and none of the security claims.
+- Byte-stability HOLDS: all six content notes are md5-identical to their
+  pre-bench baseline after rendering, mode switching, theme switching and the
+  owner's own edits. `index.md` changed, but by the app's `adoptVaultRoot`
+  contents block on vault adoption — not a renderer rewrite.
+- S07's original hardening scope is untouched: rapid edit/cancel/theme/tab
+  stress, cache teardown, responsive checks, keyboard/screen-reader benching,
+  and repeat/first-render timing.
 - Whether S07 should add a smoke lane that runs the renderers in real Electron
   rather than linkedom — the only mechanical guard against this defect class.
 - `/home/toure/projects/4tom1k` (the trunk the owner dogfoods) still has the
