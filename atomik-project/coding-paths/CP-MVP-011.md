@@ -31,6 +31,8 @@ atomik:
     - apps/desktop/electron-main/index.ts
     - apps/desktop/electron-preload/index.ts
     - apps/desktop/renderer/src/workspace/ChatView.tsx
+    - apps/desktop/renderer/src/workspace/ConsultedBlock.tsx
+    - apps/desktop/renderer/index.html
     - apps/desktop/renderer/src/icons.tsx
     - apps/desktop/renderer/src/workspace/chat-run.ts
     - apps/desktop/renderer/src/workspace/chat-presentation.ts
@@ -292,6 +294,10 @@ OPEN        provider-step position vs S07; the "luna" model id; whether
       composer (enable toggle · reach · four source switches, default off) and
       the main-side authority it derives — allowed corpora, result ceiling,
       media rule, schema emission and independent enforcement.
+- [x] S07b Consulted-sources surface: after the owner's bench found the
+      lookup invisible, show what each answer read — sources with their exact
+      revision, attributed media, corpus warnings — plus the edition control
+      the first bench proved necessary.
 - [ ] S07 Augmented chat + external citations: the wiki control MIRRORS the
       vault tool — a per-thread enable toggle, a `reach` depth control, and
       four per-source switches (Wikipedia · Wikidata · Commons image ·
@@ -598,6 +604,45 @@ maxlag removed  1 tool call  · Wikidata ALIVE  ·  5.6s · $0.0034
   that is a small follow-on. S07 still owes the call/result DISCLOSURE and the
   citation/media surface — this step delivers the control, not the display.
 
+## S07b work unit — complete 2026-08-18
+
+- **Owner bench that drove it:** S07a shipped the control and the owner ran it
+  on David Hume. The trace ledger proves the rung worked — `search_vault`
+  (92ms), `search_wiki` wikipedia (3 requests, 2 results, 1.8 MB, 4.1s) and
+  wikidata (4 requests, 1 result, 198 KB, 1.8s), all parented to one
+  generation — but the answer surfaced none of it. Verdict, verbatim: *"no wiki
+  citation or element surfacing on the answer UI after 7300 input token, no way
+  to inspect the packet send, no photo"*. The same trace also showed
+  `language: "en"` on a French user's machine.
+- **Code:** `consultedMaterialOf` (pure) flattens `toolExecutions` into
+  deduplicated sources, attributed media and warnings; `ConsultedBlock` renders
+  them under the answer with kind, title, project·language, the exact revision
+  read, and a copy-link. A Wikidata entity displays its label rather than its
+  QID. Media shows creator and licence beside the image and is dropped
+  entirely if any part of the attribution is missing. Added the `lang · xx`
+  edition control, seeded from the locale but no longer dictated by it.
+- **Security:** the renderer CSP's `img-src` widens by one pinned host,
+  `https://upload.wikimedia.org` — the transient thumbnail this path's
+  definition of done allows, on the same host the main-side client validates.
+  A test pins the exact policy string so another host cannot be added quietly.
+- **Tests:** the pure layer — one source per page across repeated calls, the
+  revision carried through, entity label over QID, media dropped when
+  attribution is incomplete, warnings deduplicated, vault payloads and failed
+  calls inventing nothing. The surface — consulted material attaches to the
+  ANSWER turn, attribution sits beside the image, the revision is shown, and
+  the edition is a choice. Plus the CSP assertion. Full result: 80 files,
+  1004 passed + 1 skipped; typecheck and build green.
+- **Docs:** the AI note records why this is a source surface rather than a
+  second citation system; the shell note records the image-policy widening and
+  its limits.
+- **Deviations:** two of the owner's four asks are deliberately NOT in this
+  step. In-app navigation for a consulted URL belongs with the web-source
+  lifecycle that S08 already owns, so links copy rather than pretend. And the
+  request INSPECTOR — seeing the exact packet sent, including tool results —
+  plus persisting the agent trace beside the transcript for audit, is its own
+  work unit (S07c): it changes the chat file format, which deserves its own
+  gates rather than riding along here.
+
 # Current checkpoint
 
 ```text
@@ -609,15 +654,16 @@ changed     : S01 contracts; S02 Wikipedia; S03 Wikidata/graph projection;
               parented vault receipts, and the native Mistral opt-in;
               S06b shared openai-chat-completions codec + native Google;
               S06c live-bench repairs (partial-success in `auto`, read maxlag);
-              S07a wiki control contract + composer surface (default off)
-tests       : typecheck green; 79 files / 989 pass / 1 skip; build green
+              S07a wiki control contract + composer surface (default off);
+              S07b consulted-sources surface, attributed media, edition control
+tests       : typecheck green; 80 files / 1004 pass / 1 skip; build green
 bench       : 2026-08-17, live, gemini-3.7-flash + fr.wikipedia + wikidata —
               one tool call, 5.6s, ~$0.0034 per exchange, French answer
-next action : execute S07b — call/result DISCLOSURE on the turn (what was
-              consulted, from where) and the external citation + attributed
-              media surface over `toolExecutions`, with safe navigation. The
-              control itself now exists, so the owner can bench on
-              `gemini-3.7-flash` immediately: toggle `wiki` on in a chat
+next action : execute S07c — the request INSPECTOR (the exact packet sent,
+              tool results included) and PERSISTING the agent trace beside the
+              transcript for audit, both asked for at the 2026-08-18 bench.
+              Then S08 save-as-source, which also brings navigation to a
+              consulted URL
 blockers    : none
 parallel    : CP-RICH-MARKDOWN is running; styles.css and broad renderer/test/
               docs surfaces overlap advisory-only. Rebase at step boundaries.

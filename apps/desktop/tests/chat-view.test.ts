@@ -148,3 +148,38 @@ describe('the wiki tool control (CP-MVP-011 S07a)', () => {
     expect(view).toContain("/^[a-z]{2,3}$/.test(primary) ? primary : 'en'")
   })
 })
+
+describe('the consulted-sources surface (CP-MVP-011 S07b)', () => {
+  const block = readFileSync(
+    new URL('../renderer/src/workspace/ConsultedBlock.tsx', import.meta.url),
+    'utf8'
+  )
+
+  it('attaches what was consulted to the ANSWER, not to the question', () => {
+    // The packet belongs to the you-turn it was compiled for; the sources
+    // belong to the answer that read them.
+    expect(view).toContain('consultedByTurn.current.set(')
+    expect(view).toContain('priorTurns.length + 1')
+    expect(view).toContain('consultedMaterialOf(result.toolExecutions)')
+  })
+
+  it('keeps attribution beside the image rather than in a tooltip', () => {
+    expect(block).toContain('chat-consulted-credit')
+    expect(block).toMatch(/\{item\.creator\}/)
+    expect(block).toMatch(/\{item\.license\.name\}/)
+    const credit = cssRule('.chat-consulted-credit')
+    expect(credit).toContain('var(--muted)')
+  })
+
+  it('shows the revision that was actually read', () => {
+    expect(block).toContain('function revisionLabel')
+    expect(block).toContain('rev ')
+    expect(block).toContain('revision not exposed')
+  })
+
+  it('offers the edition as a choice, seeded from the locale', () => {
+    expect(view).toContain('lang · {wikiLang}')
+    expect(view).toContain('useState(wikiLanguageOf)')
+    expect(view).toContain('function WIKI_EDITIONS()')
+  })
+})

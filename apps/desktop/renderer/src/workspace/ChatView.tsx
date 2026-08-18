@@ -63,9 +63,12 @@ import { noteMarkdown } from '../editor/note-markdown'
 import { hydrateRichMarkdown } from '../editor/rich-markdown/hydration'
 import {
   citationSourcesOf,
+  consultedMaterialOf,
   serializeCitedMeta,
-  type CitationSource
+  type CitationSource,
+  type ConsultedMaterial
 } from '../../../shared/chat-citations'
+import { ConsultedBlock } from './ConsultedBlock'
 import { serializePacketMeta } from '../../../shared/context-packet'
 import { applyCitationChips, type AppliedCitations } from '../editor/citation-chips'
 import {
@@ -363,6 +366,14 @@ type ChatTarget = {
  * the label and pins it for the whole exchange, and anything unrecognizable
  * falls back to English rather than guessing a host.
  */
+/** The editions offered by the composer control: the user's own locale first,
+ *  then English and French. Deduplicated, so a French machine sees fr · en
+ *  rather than fr · en · fr. A wider picker is a later concern; this exists
+ *  because guessing alone read the wrong edition on the owner's own bench. */
+function WIKI_EDITIONS(): string[] {
+  return [...new Set([wikiLanguageOf(), 'en', 'fr'])]
+}
+
 function wikiLanguageOf(): string {
   const tag =
     typeof navigator === 'undefined' ? 'en' : (navigator.language ?? 'en')
@@ -470,6 +481,10 @@ export function ChatView({
   const [wikiReach, setWikiReach] = useState<'quick' | 'standard' | 'deep'>(
     'standard'
   )
+  // S07b: the owner's first bench read fr.wikipedia in ENGLISH — the locale
+  // guess was right for the machine and wrong for the person. The edition is
+  // now a visible choice, seeded from the locale rather than dictated by it.
+  const [wikiLang, setWikiLang] = useState(wikiLanguageOf)
   const [wikiSources, setWikiSources] = useState({
     wikipedia: true,
     wikidata: true,
@@ -478,6 +493,10 @@ export function ChatView({
   })
   const [preview, setPreview] = useState<ContextPacket | null>(null)
   const packetByTurn = useRef(new Map<number, ContextPacket>())
+  // S07b: what the ANSWER consulted outside the vault. Session-live like the
+  // packet beside it — the transcript keeps the prose; the excerpts and
+  // thumbnails are not re-fetched when a chat is reopened.
+  const consultedByTurn = useRef(new Map<number, ConsultedMaterial>())
   const [openPacketTurn, setOpenPacketTurn] = useState<number | null>(null)
   const [openBreakdownTurn, setOpenBreakdownTurn] = useState<number | null>(null)
   const [tree, setTree] = useState<VaultFolder | null>(null)
@@ -632,6 +651,7 @@ export function ChatView({
     metaByTurn.current.clear()
     breakdownByTurn.current.clear()
     packetByTurn.current.clear()
+    consultedByTurn.current.clear()
     setPreview(null)
     setOpenPacketTurn(null)
     if (!file) {
@@ -937,7 +957,7 @@ export function ChatView({
             ? {
                 tools: {
                   mode: 'model' as const,
-                  wikiLanguage: wikiLanguageOf(),
+                  wikiLanguage: wikiLang,
                   wikiReach,
                   wikiSources
                 }
@@ -974,6 +994,13 @@ export function ChatView({
             if (result.contextPacket) {
               // the packet belongs to the YOU turn it was compiled for
               packetByTurn.current.set(priorTurns.length, result.contextPacket)
+            }
+            if (result.toolExecutions && result.toolExecutions.length > 0) {
+              // ...and what was consulted belongs to the ANSWER that used it.
+              consultedByTurn.current.set(
+                priorTurns.length + 1,
+                consultedMaterialOf(result.toolExecutions)
+              )
             }
             const answer =
               result.blocks.find((block) => block.role === 'answer')?.content ??
@@ -1093,6 +1120,7 @@ export function ChatView({
       grounding,
       sensitivity,
       wiki,
+      wikiLang,
       wikiReach,
       wikiSources,
       loadPrompts,
@@ -1493,6 +1521,24 @@ export function ChatView({
                   dispatch((state) => revealNote(state, paneId, relPath))
                 }
               />
+              {(() => {
+                const consulted = consultedByTurn.current.get(index)
+                if (!consulted) return null
+                if (
+                  consulted.sources.length === 0 &&
+                  consulted.media.length === 0
+                ) {
+                  return null
+                }
+                return (
+                  <ConsultedBlock
+                    material={consulted}
+                    onCopy={(value: string) => {
+                      void copyText(value)
+                    }}
+                  />
+                )
+              })()}
               {sentParts && openBreakdownTurn === index && (
                 <div className="chat-request-pills">
                   {sentParts.map((part, partIndex) => {
@@ -2097,6 +2143,23 @@ export function ChatView({
                 }
               >
                 reach · {wikiReach}
+              </button>
+            )}
+            {wiki && (
+              <button
+                type="button"
+                className="chat-tool"
+                title={`Wikimedia edition to read: ${wikiLang}.wikipedia and its siblings`}
+                aria-label={`Wikimedia edition: ${wikiLang}`}
+                onClick={() =>
+                  setWikiLang((current) => {
+                    const editions = WIKI_EDITIONS()
+                    const next = editions.indexOf(current) + 1
+                    return editions[next % editions.length] ?? 'en'
+                  })
+                }
+              >
+                lang · {wikiLang}
               </button>
             )}
             {wiki &&

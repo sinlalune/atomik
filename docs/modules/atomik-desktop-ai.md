@@ -94,6 +94,26 @@ timestamp: 2026-08-17T00:00:00Z
   wanting more breadth than the user allowed is not misconduct. The edition
   comes from the user's own locale (`wikiLanguageOf`), validated in main and
   pinned for the exchange.
+- CONSULTED-SOURCES SURFACE (CP-MVP-011 S07b): after the owner benched S07a,
+  the verdict was that the lookup happened invisibly — tokens spent,
+  Wikipedia's authority borrowed, nothing to check. `consultedMaterialOf`
+  (`shared/chat-citations.ts`, pure) flattens a turn's `toolExecutions` into
+  deduplicated sources, attributed media and warnings; `ConsultedBlock` renders
+  them under the answer. It is NOT a citation marker: a marker binds a sentence
+  the model chose to cite, this names what was READ — including the case where
+  three pages were consulted and none were cited, which is the case most worth
+  seeing. Each source shows kind, title, project·language, the exact revision
+  read (id when exposed, else the date) and a copy-link; a Wikidata entity
+  shows its LABEL, never its bare QID. Media carries creator and licence
+  BESIDE the image, because a credit one hover away is a credit not given, and
+  any item missing attribution is dropped here as well as upstream — a
+  presentation bug must not be able to publish an uncredited image. What was
+  consulted attaches to the ANSWER turn (`priorTurns.length + 1`), mirroring
+  how the packet attaches to the question it was compiled for, and stays
+  session-live: a reopened transcript keeps the prose, not the thumbnails.
+  In-app navigation is deliberately absent — opening a live remote page is the
+  web-source lifecycle's job and arrives with save-as-source (S08), so the URL
+  is copyable rather than pretending to be a link.
 - SHARED DIALECT CODEC (CP-MVP-011 S06b): `electron-main/openai-tool-codec.ts`
   owns the `openai-chat-completions` wire grammar ONCE — schema emission, call
   parsing, the `role: "tool"` continuation, and usage accumulation. An adapter

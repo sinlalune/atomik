@@ -297,3 +297,193 @@ export const CITATION_INSTRUCTION =
   'right after the statement they support. You may also link a phrase directly ' +
   'to a note path. Never cite a number that is not in the list, and never cite ' +
   'a note you were not given.'
+
+/**
+ * External sources (CP-MVP-011 S07b) — what the model actually consulted.
+ *
+ * The owner benched S07a and reported the real gap: "no wiki citation or
+ * element surfacing on the answer UI". The lookup ran, the tokens were spent,
+ * and the answer borrowed Wikipedia's authority while offering no way to check
+ * it — the exact failure the vault citations above exist to prevent, repeated
+ * one rung out.
+ *
+ * External material is another SOURCE KIND, not a second citation system. This
+ * turns the transient `toolExecutions` payloads into a flat, deduplicated list
+ * a turn can display and (later) persist.
+ *
+ * PURE: no DOM, no IPC. Given the bundle's executions, it yields what was read.
+ */
+
+export type ConsultedSource = {
+  /** Canonical URL — also the dedup key across corpora and calls. */
+  url: string
+  kind: 'wikipedia-article' | 'wikidata-entity' | 'wiktionary-etymology'
+  title: string
+  project: string
+  language: string
+  /** Revision id when exposed, else the timestamp; null when neither is. */
+  revision: string | null
+  accessedAt: string
+  license: { name: string; url: string } | null
+}
+
+export type ConsultedMedia = {
+  url: string
+  thumbnailUrl: string
+  title: string
+  /** Never empty: a media item without a creator is withheld upstream. */
+  creator: string
+  license: { name: string; url: string }
+  sourcePage: string
+  width: number
+  height: number
+}
+
+export type ConsultedMaterial = {
+  sources: ConsultedSource[]
+  media: ConsultedMedia[]
+  /** Corpus degradations and truncations worth showing beside the answer. */
+  warnings: { kind: string; message: string }[]
+}
+
+type ResultLike = {
+  kind?: unknown
+  label?: unknown
+  source?: {
+    project?: unknown
+    language?: unknown
+    title?: unknown
+    canonicalUrl?: unknown
+    accessedAt?: unknown
+    revision?: { id?: unknown; timestamp?: unknown } | null
+    license?: { name?: unknown; url?: unknown } | null
+  }
+}
+
+const text = (value: unknown): string | null =>
+  typeof value === 'string' && value.length > 0 ? value : null
+
+function sourceOf(result: ResultLike): ConsultedSource | null {
+  const kind = result.kind
+  if (
+    kind !== 'wikipedia-article' &&
+    kind !== 'wikidata-entity' &&
+    kind !== 'wiktionary-etymology'
+  ) {
+    return null
+  }
+  const source = result.source
+  const url = text(source?.canonicalUrl)
+  const project = text(source?.project)
+  const language = text(source?.language)
+  const accessedAt = text(source?.accessedAt)
+  if (url === null || project === null || language === null || accessedAt === null) {
+    return null
+  }
+  const revisionId = source?.revision?.id
+  const revision =
+    typeof revisionId === 'number'
+      ? String(revisionId)
+      : text(source?.revision?.timestamp)
+  const licenseName = text(source?.license?.name)
+  const licenseUrl = text(source?.license?.url)
+  return {
+    url,
+    kind,
+    // A Wikidata entity carries its human name in `label`, not in the page
+    // title (which is the bare QID) — showing "Q7186" would be citation
+    // theatre.
+    title: text(result.label) ?? text(source?.title) ?? url,
+    project,
+    language,
+    revision,
+    accessedAt,
+    license:
+      licenseName !== null && licenseUrl !== null
+        ? { name: licenseName, url: licenseUrl }
+        : null
+  }
+}
+
+/** Flatten every wikimedia tool payload of a turn into what it read. */
+export function consultedMaterialOf(
+  executions: readonly {
+    result: { ok: boolean }
+    payload?: unknown
+  }[]
+): ConsultedMaterial {
+  const sources = new Map<string, ConsultedSource>()
+  const media = new Map<string, ConsultedMedia>()
+  const warnings: { kind: string; message: string }[] = []
+  const seenWarnings = new Set<string>()
+
+  for (const execution of executions) {
+    const payload = execution.payload as
+      | { kind?: unknown; bundle?: { results?: unknown; media?: unknown; warnings?: unknown } }
+      | undefined
+    if (payload?.kind !== 'wikimedia') continue
+
+    for (const entry of Array.isArray(payload.bundle?.results)
+      ? payload.bundle.results
+      : []) {
+      const source = sourceOf(entry as ResultLike)
+      // First read wins: the same page reached twice is one source, and the
+      // earliest access time is the honest one.
+      if (source !== null && !sources.has(source.url)) sources.set(source.url, source)
+    }
+
+    for (const entry of Array.isArray(payload.bundle?.media)
+      ? payload.bundle.media
+      : []) {
+      const item = entry as Record<string, any>
+      const url = text(item.originalUrl)
+      const thumbnailUrl = text(item.thumbnailUrl)
+      const creator = text(item.creator)
+      const licenseName = text(item.source?.license?.name)
+      const licenseUrl = text(item.source?.license?.url)
+      const sourcePage = text(item.source?.canonicalUrl)
+      // Attribution is not decoration: an item missing any of it is dropped
+      // here too, so a presentation bug can never become an unlicensed image.
+      if (
+        url === null ||
+        thumbnailUrl === null ||
+        creator === null ||
+        licenseName === null ||
+        licenseUrl === null ||
+        sourcePage === null
+      ) {
+        continue
+      }
+      if (media.has(url)) continue
+      media.set(url, {
+        url,
+        thumbnailUrl,
+        title: text(item.fileTitle) ?? url,
+        creator,
+        license: { name: licenseName, url: licenseUrl },
+        sourcePage,
+        width: typeof item.width === 'number' ? item.width : 0,
+        height: typeof item.height === 'number' ? item.height : 0
+      })
+    }
+
+    for (const entry of Array.isArray(payload.bundle?.warnings)
+      ? payload.bundle.warnings
+      : []) {
+      const warning = entry as { kind?: unknown; message?: unknown }
+      const kind = text(warning.kind)
+      const message = text(warning.message)
+      if (kind === null || message === null) continue
+      const key = `${kind}:${message}`
+      if (seenWarnings.has(key)) continue
+      seenWarnings.add(key)
+      warnings.push({ kind, message })
+    }
+  }
+
+  return {
+    sources: [...sources.values()],
+    media: [...media.values()],
+    warnings
+  }
+}

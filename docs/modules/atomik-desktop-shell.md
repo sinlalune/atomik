@@ -61,6 +61,17 @@ timestamp: 2026-08-17T00:00:00Z
   main-process fact the renderer reads in the response, never a permission it
   holds.
 
+- RENDERER IMAGE POLICY (CP-MVP-011 S07b): the renderer CSP's `img-src`
+  widens from `'self' data:` by exactly ONE host —
+  `https://upload.wikimedia.org`. This is the transient Commons thumbnail the
+  path's definition of done explicitly allows ("durable use requires an
+  explicit local import"), and it is the same pinned host the main-side client
+  already validates before returning a media URL at all. Nothing else joins
+  `img-src`; `default-src`, `script-src` and `connect-src` are untouched, so
+  the renderer still initiates no other remote connection. Private/offline mode
+  never yields a media URL in the first place, so the widened policy has
+  nothing to load there. A test pins the exact `img-src` string, so a future
+  host cannot be added quietly.
 - The Electron shell: app lifecycle, the trusted UI window, and the
   main/preload/renderer split (`apps/desktop/electron-main/`,
   `electron-preload/`, `renderer/` — directory names per 14).

@@ -5961,3 +5961,104 @@ button svg {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* CP-MVP-011 S07b — what an answer consulted outside the vault. Quieter than
+   the answer it follows: this is provenance, not more prose. */
+.chat-consulted {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--rule);
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+
+.chat-consulted-warnings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chat-consulted-warn-kind {
+  color: var(--accent);
+  margin-right: var(--space-1);
+}
+
+.chat-consulted-media {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chat-consulted-media li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 12rem;
+}
+
+.chat-consulted-media img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+
+/* An illustration is labelled AS an illustration: it never argues for the
+   prose above it, and its credit is visible rather than hidden on hover. */
+.chat-consulted-credit {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+.chat-consulted-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chat-consulted-list li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.chat-consulted-kind {
+  color: var(--accent);
+  font-size: var(--fs-xs);
+  text-transform: lowercase;
+}
+
+.chat-consulted-title {
+  color: inherit;
+}
+
+.chat-consulted-meta {
+  font-size: var(--fs-xs);
+}
+
+.chat-consulted-url {
+  font: inherit;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  background: none;
+  border: none;
+  padding: 0 var(--space-1);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.chat-consulted-url:hover {
+  color: inherit;
+}
