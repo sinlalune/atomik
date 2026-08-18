@@ -3,7 +3,7 @@ type: Atomik Module Note
 title: 'Module: atomik-desktop — vault and files'
 description: Vault IO, lexical search, project bundles, the note trees and their fold state, and link-click routing.
 tags: [module, vault, files, search, projects, tree]
-timestamp: 2026-08-14T00:00:00Z
+timestamp: 2026-08-17T00:00:00Z
 ---
 
 # Module: atomik-desktop — vault and files
@@ -384,3 +384,14 @@ timestamp: 2026-08-14T00:00:00Z
   one managed `index.md` link is expected and follows without a modal. Any
   additional backlink still requires confirmation. Success, same-name H1, or
   decline clears the flag, so later title edits never create a rename loop.
+
+## Rich Markdown read projection (CP-RICH-MARKDOWN S02)
+
+- `VaultView` and `ProjectView` now mount read HTML through the shared
+  `RichMarkdownBody`. `useVaultNote` still owns the canonical Markdown string,
+  link/image post-processing, and navigation routes; hydration only replaces
+  escaped rich placeholders in the committed DOM.
+- A rich adapter receives authored source plus bounded presentation context,
+  never a file path, preload capability, or mutation verb. A missing, stale,
+  aborted, oversized, or failed renderer leaves a visible source fallback and
+  cannot alter the note on disk.

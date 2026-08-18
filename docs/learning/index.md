@@ -126,6 +126,11 @@ when the shape changes, not on every diff.
   DeepSeek, Google Gemini, Mistral), main-only 0600 key storage, and full
   ActionTrace telemetry enable multi-model workbench capabilities. Covers
   CP-PROVIDERS.
+- [24 — Rich Markdown as a safe lazy projection](./24-rich-markdown-projection-registry.md) —
+  Markdown-it discovery into escaped inert placeholders, a typed dynamic
+  adapter registry, AbortSignal + stale-result suppression, explicit
+  teardown, source-visible failure, and bundle verification before a real
+  renderer joins. Covers CP-RICH-MARKDOWN S01–S02 and grows with its adapters.
 
 ## Coverage stall (2026-07-07 → 2026-07-21) — repaid
 

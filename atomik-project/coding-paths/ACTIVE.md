@@ -18,7 +18,7 @@ stale. Deriving it is what lets every path merge itself: there is nothing here
 for two paths to disagree about.
 
 <!-- cairn:paths:begin -->
-- **CP-RICH-MARKDOWN** — Rich Markdown · branch `path/cp-rich-markdown` · base `98561b4`
+- *(no path running)*
 <!-- cairn:paths:end -->
 
 Next up: **CP-MVP-011** — Wikimedia augmentation over the same nodes/edges

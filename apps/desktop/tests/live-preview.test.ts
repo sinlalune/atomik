@@ -10,6 +10,7 @@ import {
   notePathFacet,
   parseTable,
   resolveEmbedPath,
+  richThemeFacet,
   wikiCandidatesField
 } from '../renderer/src/editor/live-preview'
 
@@ -20,14 +21,28 @@ type Deco = {
   cls?: string
   edgeKind?: string
   edgeBroken?: boolean
+  mathDisplay?: boolean
+  mathSource?: string
+  mathTheme?: string
+  richKind?: string
+  richDisplay?: boolean
+  richSource?: string
+  richTheme?: string
 }
 
 /** Fully parses the doc (GFM base, like the editor), lists decorations. */
-function decorate(doc: string, cursor = 0): Deco[] {
+function decorate(
+  doc: string,
+  cursor = 0,
+  theme?: { name: string; scheme: 'light' | 'dark' }
+): Deco[] {
   const state = EditorState.create({
     doc,
     selection: EditorSelection.cursor(Math.min(cursor, doc.length)),
-    extensions: [markdown({ base: markdownLanguage })]
+    extensions: [
+      markdown({ base: markdownLanguage }),
+      ...(theme ? [richThemeFacet.of(theme)] : [])
+    ]
   })
   ensureSyntaxTree(state, state.doc.length, 5000)
   const set = computeLivePreviewDecorations(state)
@@ -39,11 +54,25 @@ function decorate(doc: string, cursor = 0): Deco[] {
       class?: string
       edgeKind?: string
       edgeBroken?: boolean
+      mathDisplay?: boolean
+      mathSource?: string
+      mathTheme?: string
+      richKind?: string
+      richDisplay?: boolean
+      richSource?: string
+      richTheme?: string
     }
     const deco: Deco = { from: iter.from, to: iter.to, kind: spec.lp }
     if (spec.class !== undefined) deco.cls = spec.class
     if (spec.edgeKind !== undefined) deco.edgeKind = spec.edgeKind
     if (spec.edgeBroken !== undefined) deco.edgeBroken = spec.edgeBroken
+    if (spec.mathDisplay !== undefined) deco.mathDisplay = spec.mathDisplay
+    if (spec.mathSource !== undefined) deco.mathSource = spec.mathSource
+    if (spec.mathTheme !== undefined) deco.mathTheme = spec.mathTheme
+    if (spec.richKind !== undefined) deco.richKind = spec.richKind
+    if (spec.richDisplay !== undefined) deco.richDisplay = spec.richDisplay
+    if (spec.richSource !== undefined) deco.richSource = spec.richSource
+    if (spec.richTheme !== undefined) deco.richTheme = spec.richTheme
     out.push(deco)
     iter.next()
   }
@@ -145,29 +174,216 @@ describe('live preview decorations (MVP-001: seamless editing)', () => {
     ).toBe(true)
   })
 
-  it('folds fence marks away from the cursor, dims them on the active line', () => {
+  it('projects untouched code and reveals the nested CodeMirror source when touched', () => {
     const doc = '```js\ncode()\n```\n\nelsewhere\n'
     const away = decorate(doc, doc.indexOf('elsewhere'))
-    // opening ``` + js info + closing ``` all fold; block lines stay tinted
-    expect(away.filter((deco) => deco.kind === 'hide')).toHaveLength(3)
+    expect(away).toContainEqual({
+      from: 0,
+      to: doc.indexOf('```', 3) + 3,
+      kind: 'code',
+      richKind: 'code',
+      richDisplay: true,
+      richSource: 'code()',
+      richTheme: 'system'
+    })
+
+    const touchedBody = decorate(doc, doc.indexOf('code'))
+    // Once touched, opening ``` + info + closing ``` fold and the original
+    // nested language spans remain on the editable code lines.
+    expect(touchedBody.filter((deco) => deco.kind === 'code')).toHaveLength(0)
+    expect(touchedBody.filter((deco) => deco.kind === 'hide')).toHaveLength(3)
     expect(
-      away.some((deco) => deco.kind === 'mark' && deco.cls === 'lp-dim')
+      touchedBody.some((deco) => deco.kind === 'mark' && deco.cls === 'lp-dim')
     ).toBe(false)
     expect(
-      away.filter((deco) => deco.kind === 'line' && deco.cls === 'lp-fence')
+      touchedBody.filter(
+        (deco) => deco.kind === 'line' && deco.cls === 'lp-fence'
+      )
     ).toHaveLength(3)
-    // rounded caps for read parity: first + last fence lines tagged
     expect(
-      away.some((deco) => deco.kind === 'line' && deco.cls === 'lp-fence-first')
+      touchedBody.some(
+        (deco) => deco.kind === 'line' && deco.cls === 'lp-fence-first'
+      )
     ).toBe(true)
     expect(
-      away.some((deco) => deco.kind === 'line' && deco.cls === 'lp-fence-last')
+      touchedBody.some(
+        (deco) => deco.kind === 'line' && deco.cls === 'lp-fence-last'
+      )
     ).toBe(true)
 
     const onFence = decorate(doc, 1)
     expect(
       onFence.some((deco) => deco.kind === 'mark' && deco.cls === 'lp-dim')
     ).toBe(true)
+  })
+
+  it('projects inline math away from its line and reveals raw source when touched', () => {
+    const doc = 'Euler gives $e^{i\\pi}+1=0$.\n\nelsewhere\n'
+    const from = doc.indexOf('$')
+    const away = decorate(doc, doc.indexOf('elsewhere'))
+    expect(away).toContainEqual({
+      from,
+      to: doc.indexOf('$', from + 1) + 1,
+      kind: 'math',
+      mathDisplay: false,
+      mathSource: 'e^{i\\pi}+1=0',
+      mathTheme: 'system',
+      richKind: 'math',
+      richDisplay: false,
+      richSource: 'e^{i\\pi}+1=0',
+      richTheme: 'system'
+    })
+    expect(decorate(doc, from + 2).filter((deco) => deco.kind === 'math')).toEqual(
+      []
+    )
+  })
+
+  it('projects one-line, multiline, and fenced display math with theme state', () => {
+    const ticks = '`'.repeat(3)
+    const doc = [
+      '$$ x^2 + y^2 $$',
+      '',
+      '$$',
+      '\\int_0^1 x dx',
+      '$$',
+      '',
+      `${ticks}LaTeX`,
+      '\\sum_{n=1}^N n',
+      ticks,
+      '',
+      'elsewhere'
+    ].join('\n')
+    const math = decorate(doc, doc.indexOf('elsewhere'), {
+      name: 'moss',
+      scheme: 'dark'
+    }).filter((deco) => deco.kind === 'math')
+    expect(math).toHaveLength(3)
+    expect(math.map((deco) => deco.mathSource)).toEqual([
+      ' x^2 + y^2 ',
+      '\\int_0^1 x dx',
+      '\\sum_{n=1}^N n'
+    ])
+    expect(math.every((deco) => deco.mathDisplay === true)).toBe(true)
+    expect(math.every((deco) => deco.mathTheme === 'moss')).toBe(true)
+
+    const touched = decorate(doc, doc.indexOf('int_0'))
+    expect(
+      touched.filter(
+        (deco) =>
+          deco.kind === 'math' && deco.mathSource === '\\int_0^1 x dx'
+      )
+    ).toEqual([])
+  })
+
+  it('protects inline code/currency and projects unknown fences as plain code', () => {
+    const ticks = '`'.repeat(3)
+    const doc = [
+      '`$code$` and price $5 and tax',
+      '',
+      '$[x](target.md)$',
+      '',
+      `${ticks}graphviz`,
+      '$not-math-here$',
+      ticks,
+      '',
+      'elsewhere'
+    ].join('\n')
+    const decos = decorate(doc, doc.indexOf('elsewhere'))
+    const math = decos.filter((deco) => deco.kind === 'math')
+    expect(math).toHaveLength(1)
+    expect(math[0]?.mathSource).toBe('[x](target.md)')
+    expect(decos.filter((deco) => deco.kind === 'code')).toHaveLength(1)
+    expect(decos.filter((deco) => deco.kind === 'edge')).toHaveLength(0)
+  })
+
+  it('lets a Markdown link enclosing math remain one edge pill', () => {
+    const doc = '[equation $x$](target.md)\n\nelsewhere\n'
+    const decos = decorate(doc, doc.indexOf('elsewhere'))
+    expect(decos.filter((deco) => deco.kind === 'math')).toHaveLength(0)
+    expect(decos.filter((deco) => deco.kind === 'edge')).toHaveLength(1)
+  })
+
+  it('caps live math projection at the shared 128-block budget', () => {
+    const doc = Array.from({ length: 130 }, (_, index) => `$x_${index}$`).join(
+      '\n'
+    )
+    const decos = decorate(doc, doc.length)
+    expect(decos.filter((deco) => deco.kind === 'math')).toHaveLength(128)
+    expect(decos.filter((deco) => deco.kind === 'rich-limit')).toHaveLength(1)
+  })
+
+  it('projects Mermaid fences with read parity and reveals source when touched', () => {
+    const ticks = '`'.repeat(3)
+    const source = 'flowchart LR\n  Start --> Finish'
+    const doc = [
+      `${ticks}Mermaid`,
+      source,
+      ticks,
+      '',
+      'elsewhere'
+    ].join('\n')
+    const from = doc.indexOf(ticks)
+    const away = decorate(doc, doc.indexOf('elsewhere'), {
+      name: 'biolum',
+      scheme: 'dark'
+    })
+    expect(away).toContainEqual({
+      from,
+      to: doc.indexOf(ticks, from + ticks.length) + ticks.length,
+      kind: 'mermaid',
+      richKind: 'mermaid',
+      richDisplay: true,
+      richSource: source,
+      richTheme: 'biolum'
+    })
+    expect(
+      decorate(doc, doc.indexOf('Start')).filter(
+        (deco) => deco.kind === 'mermaid'
+      )
+    ).toEqual([])
+  })
+
+  it('projects Vega-Lite aliases with read parity and reveals source when touched', () => {
+    const ticks = '`'.repeat(3)
+    const source = '{"data":{"values":[{"x":1} ]},"mark":"point"}'
+    const doc = [`${ticks}VL`, source, ticks, '', 'elsewhere'].join('\n')
+    const from = doc.indexOf(ticks)
+    const away = decorate(doc, doc.indexOf('elsewhere'), {
+      name: 'biolum',
+      scheme: 'dark'
+    })
+    expect(away).toContainEqual({
+      from,
+      to: doc.indexOf(ticks, from + ticks.length) + ticks.length,
+      kind: 'vega-lite',
+      richKind: 'vega-lite',
+      richDisplay: true,
+      richSource: source,
+      richTheme: 'biolum'
+    })
+    expect(
+      decorate(doc, doc.indexOf('values')).filter(
+        (deco) => deco.kind === 'vega-lite'
+      )
+    ).toEqual([])
+  })
+
+  it('shares the 128-block live budget across math, Mermaid, Vega-Lite, and code', () => {
+    const ticks = '`'.repeat(3)
+    const math = Array.from({ length: 125 }, (_, index) => `$x_${index}$`)
+    const richFences = [
+      `${ticks}mermaid\nflowchart LR\nA --> B\n${ticks}`,
+      `${ticks}vega-lite\n{"data":{"values":[]},"mark":"bar"}\n${ticks}`,
+      `${ticks}typescript\nconst answer = 42\n${ticks}`,
+      `${ticks}vl\n{"data":{"values":[]},"mark":"point"}\n${ticks}`
+    ]
+    const doc = [...math, ...richFences, 'elsewhere'].join('\n')
+    const decos = decorate(doc, doc.indexOf('elsewhere'))
+    expect(decos.filter((deco) => deco.kind === 'math')).toHaveLength(125)
+    expect(decos.filter((deco) => deco.kind === 'mermaid')).toHaveLength(1)
+    expect(decos.filter((deco) => deco.kind === 'vega-lite')).toHaveLength(1)
+    expect(decos.filter((deco) => deco.kind === 'code')).toHaveLength(1)
+    expect(decos.filter((deco) => deco.kind === 'rich-limit')).toHaveLength(1)
   })
 
   it('hides GFM strikethrough marks and styles the content', () => {

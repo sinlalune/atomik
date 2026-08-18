@@ -1,14 +1,6 @@
 import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
 import { AutosaveIcon, ImageIcon, SaveIcon } from '../icons'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
-import { cssLanguage } from '@codemirror/lang-css'
-import { htmlLanguage } from '@codemirror/lang-html'
-import {
-  javascriptLanguage,
-  jsxLanguage,
-  tsxLanguage,
-  typescriptLanguage
-} from '@codemirror/lang-javascript'
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import {
   bracketMatching,
@@ -16,8 +8,7 @@ import {
   foldGutter,
   foldKeymap,
   indentOnInput,
-  syntaxHighlighting,
-  type Language
+  syntaxHighlighting
 } from '@codemirror/language'
 import { highlightSelectionMatches, searchKeymap } from '@codemirror/search'
 import { Compartment, Text, type Extension } from '@codemirror/state'
@@ -58,6 +49,7 @@ import {
   type InlineAiState
 } from './inline-ai'
 import { loadBuiltinOverridesFor, loadPromptsFor } from './prompts'
+import { isDarkThemeName } from './rich-markdown/theme'
 import { wireSystemPlan } from './system-plan'
 import {
   frontmatterEnd,
@@ -71,6 +63,8 @@ import { ModeSwitch } from './ModeSwitch'
 import { quickActions } from './quick-actions'
 import { vocabularyOf, wikiCandidatesFor } from '../../../shared/graph-core'
 import { hasMediaResource, isMediaFilePath } from '../source/dossier'
+import type { RichTheme } from './rich-markdown/contracts'
+import { codeMirrorFenceLanguage } from './rich-markdown/code-languages'
 
 /** Auto mode saves this long after the last keystroke. */
 const AUTOSAVE_DELAY_MS = 800
@@ -111,40 +105,16 @@ const modeExtensions = (
   mode: 'live' | 'source',
   onFollowLink: (href: string) => void,
   onFollowRel: (relPath: string) => void,
-  notePath: string
+  notePath: string,
+  theme: RichTheme
 ): Extension =>
   mode === 'live'
-    ? livePreview({ onFollowLink, onFollowRel, notePath })
+    ? livePreview({ onFollowLink, onFollowRel, notePath, theme })
     : SOURCE_CHROME
 
 /** Vault tree for the "@" menu (bundles + linkable notes), freshly
  *  listed per menu opening. */
 const listVaultTree = (): Promise<VaultFolder> => window.atomik.listVaultFiles()
-
-/** Fenced-code languages for the installed packs; anything else stays
- *  plain mono. A registry (language-data) is a later dependency call. */
-function fencedCodeLanguage(info: string): Language | null {
-  switch (info.toLowerCase()) {
-    case 'js':
-    case 'javascript':
-    case 'mjs':
-    case 'cjs':
-      return javascriptLanguage
-    case 'jsx':
-      return jsxLanguage
-    case 'ts':
-    case 'typescript':
-      return typescriptLanguage
-    case 'tsx':
-      return tsxLanguage
-    case 'html':
-      return htmlLanguage
-    case 'css':
-      return cssLanguage
-    default:
-      return null
-  }
-}
 
 export type EditorPaneProps = {
   note: VaultNoteFile
@@ -392,9 +362,13 @@ export function EditorPane({
 
   // The editor's dark theme follows the app theme (round-2 feedback:
   // explicit dark + pastels), not the mount-time OS query alone.
+  //
+  // Owner bench 2026-08-17: this used to count ONLY `dark`, so the four other
+  // dark themes kept CodeMirror's light theme — dark text on a dark surface.
+  // Dark-ness now has one definition, shared with the rich renderers.
   const appTheme = useWorkspace((store) => themeOf(store.state))
   const editorDark =
-    appTheme === 'dark' ||
+    isDarkThemeName(appTheme) ||
     (appTheme === 'system' &&
       window.matchMedia('(prefers-color-scheme: dark)').matches)
   const editorDarkRef = useRef(editorDark)
@@ -411,16 +385,71 @@ export function EditorPane({
   // reconfigures the SAME view, so buffer, undo history, and selection
   // survive the mode change (the raw bytes are identical in both).
   const previewCompartment = useRef(new Compartment()).current
+  const diagnosticsCompartment = useRef(new Compartment()).current
+  const diagnosticsExtensionRef = useRef<Extension | null>(null)
   const modeRef = useRef(mode)
+  const previewKey = `${mode}:${appTheme}:${editorDark ? 'dark' : 'light'}`
+  const previewKeyRef = useRef(previewKey)
   useEffect(() => {
-    if (modeRef.current === mode) return
+    if (previewKeyRef.current === previewKey) return
+    previewKeyRef.current = previewKey
     modeRef.current = mode
     viewRef.current?.dispatch({
       effects: previewCompartment.reconfigure(
-        modeExtensions(mode, followHandler, followRelHandler, note.relPath)
+        modeExtensions(mode, followHandler, followRelHandler, note.relPath, {
+          name: appTheme,
+          scheme: editorDark ? 'dark' : 'light'
+        })
       )
     })
-  }, [followHandler, mode, note.relPath, previewCompartment])
+  }, [
+    appTheme,
+    editorDark,
+    followHandler,
+    mode,
+    note.relPath,
+    previewCompartment,
+    previewKey
+  ])
+
+  // Parser diagnostics belong only to raw source mode. Keep the lint runtime
+  // and its panel/gutter code out of startup and live/read work; the loaded
+  // extension is cached and the compartment removes every decoration when
+  // the user returns to live mode.
+  useEffect(() => {
+    let cancelled = false
+    if (mode !== 'source') {
+      viewRef.current?.dispatch({
+        effects: diagnosticsCompartment.reconfigure([])
+      })
+      return () => {
+        cancelled = true
+      }
+    }
+
+    const install = (extension: Extension): void => {
+      if (cancelled || modeRef.current !== 'source') return
+      viewRef.current?.dispatch({
+        effects: diagnosticsCompartment.reconfigure(extension)
+      })
+    }
+    const cached = diagnosticsExtensionRef.current
+    if (cached) install(cached)
+    else {
+      void import('./rich-markdown/code-diagnostics').then(
+        (module) => {
+          if (cancelled) return
+          const extension = module.sourceCodeDiagnostics()
+          diagnosticsExtensionRef.current = extension
+          install(extension)
+        },
+        () => undefined
+      )
+    }
+    return () => {
+      cancelled = true
+    }
+  }, [diagnosticsCompartment, mode])
 
   // One EditorView per mounted pane; the host keys this component by note
   // path, so a different note is a fresh mount. The view lives in a ref —
@@ -437,7 +466,7 @@ export function EditorPane({
         // render; fenced code nests real language highlighting.
         markdown({
           base: markdownLanguage,
-          codeLanguages: fencedCodeLanguage
+          codeLanguages: codeMirrorFenceLanguage
         }),
         // Wikilink resolution candidates + the vault label vocabulary
         // for live pills (S04b read parity, S06 index) — OUTSIDE the
@@ -445,7 +474,21 @@ export function EditorPane({
         wikiCandidatesField,
         vocabularyField,
         previewCompartment.of(
-          modeExtensions(modeRef.current, followHandler, followRelHandler, note.relPath)
+          modeExtensions(
+            modeRef.current,
+            followHandler,
+            followRelHandler,
+            note.relPath,
+            {
+              name: appTheme,
+              scheme: editorDarkRef.current ? 'dark' : 'light'
+            }
+          )
+        ),
+        diagnosticsCompartment.of(
+          modeRef.current === 'source'
+            ? (diagnosticsExtensionRef.current ?? [])
+            : []
         ),
         darkCompartment.of(editorDarkRef.current ? [oneDark] : []),
         // "@" quick actions + edge autocompletes ([[ titles, { labels)

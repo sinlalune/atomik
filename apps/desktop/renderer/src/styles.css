@@ -66,6 +66,9 @@
   --note-quote-border: 3px solid var(--accent);
   --note-code-size: 0.85em;
   --note-code-pad: 0.1em 0.35em;
+  --note-code-font: ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  --note-code-block-max-height: min(32rem, 70vh);
+  --note-code-tab-size: 2;
 
   /* one shared height for the panel header row and the note bar */
   --bar-h: 2.1rem;
@@ -2466,6 +2469,48 @@ body[data-maximized] .tabstrip {
   font-weight: 650;
 }
 
+/* Disposable rich projections in live mode. A widget replaces authored bytes
+   only while their lines are inactive; click/keyboard navigation puts the
+   cursor back on the range and CodeMirror reveals raw source. */
+.editor-host .lp-rich-widget {
+  display: inline-block;
+  max-width: 100%;
+  color: var(--fg);
+  cursor: pointer;
+  vertical-align: baseline;
+}
+
+/* Source-true block spacing in LIVE too (S07, owner bench). Read mode has
+   made spacing mirror the author's blank lines since S05o — `.md-tight` for
+   no blank line, N gaps for N. This rule's fixed padding-block gave every
+   live rich block a gap the source did not contain, so two adjacent fences
+   touched in read and floated apart in live. Blank lines are REAL LINES in
+   live mode and already render their own height; a fixed padding here can
+   only ever disagree with the source. */
+.editor-host .lp-rich-widget--display {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  padding-block: 0;
+}
+
+.editor-host .lp-rich-widget .rich-markdown-block {
+  display: block;
+}
+
+.editor-host .lp-rich-widget code[data-rich-source] {
+  font-family: ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  font-size: var(--note-code-size);
+  color: var(--fg);
+  white-space: pre-wrap;
+}
+
+.editor-host .lp-rich-limit {
+  color: var(--error);
+  font-size: var(--fs-sm);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
 .editor-host .lp-h1 {
   font-size: var(--note-h1-size);
   font-weight: var(--note-heading-weight);
@@ -2941,11 +2986,12 @@ body[data-maximized] .tabstrip {
 .markdown-body blockquote,
 .markdown-body pre,
 .markdown-body table,
-.markdown-body hr {
+.markdown-body hr,
+.markdown-body .rich-markdown-block {
   margin-block: 0;
 }
 
-.markdown-body > :where(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, table, hr):not(:first-child) {
+.markdown-body > :where(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, table, hr, .rich-markdown-block):not(:first-child) {
   margin-top: var(--note-block-gap);
 }
 
@@ -3465,6 +3511,282 @@ button.relations-node:focus-visible {
 .markdown-body pre code {
   background: none;
   padding: 0;
+}
+
+/* Rich placeholders begin as escaped source and become local renderer output
+   after mount. Explicit :not([hidden]) guards keep the HTML hidden contract
+   stronger than author display rules. */
+.rich-markdown-inline > [data-rich-output]:not([hidden]) {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: baseline;
+}
+
+.rich-markdown-block[data-rich-kind='math'] > [data-rich-output]:not([hidden]) {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  color: inherit;
+  white-space: normal;
+}
+
+.rich-markdown-block[data-rich-kind='math'] .katex-display {
+  margin: 0;
+  padding-block: var(--space-3);
+}
+
+.rich-markdown-block[data-rich-kind='code'] > [data-rich-output]:not([hidden]) {
+  display: block;
+  max-width: 100%;
+  color: inherit;
+  white-space: normal;
+}
+
+.rich-code-frame {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fg);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.rich-code-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-height: var(--bar-h);
+  padding: var(--space-1) var(--gutter);
+  color: var(--muted);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--fs-sm);
+}
+
+.rich-code-language {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fg);
+  font-weight: var(--note-heading-weight);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rich-code-count {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rich-code-copy-status {
+  flex: 1 1 calc(var(--space-5) + var(--space-5) + var(--space-5));
+  min-width: calc(var(--space-5) + var(--space-5) + var(--space-5));
+  color: var(--accent);
+  text-align: right;
+}
+
+.rich-code-actions {
+  display: inline-flex;
+  flex: none;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  margin-left: auto;
+}
+
+.rich-code-action {
+  min-height: var(--control-h);
+  padding: var(--space-1) var(--space-3);
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  cursor: pointer;
+}
+
+.rich-code-action:hover,
+.rich-code-action[aria-pressed='true'] {
+  color: var(--fg);
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+.rich-code-action:focus-visible,
+.rich-code-diagnostics summary:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.rich-code-frame .rich-code-pre {
+  max-height: var(--note-code-block-max-height);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  overflow: auto;
+  color: var(--fg);
+  background: transparent;
+  border-radius: 0;
+  font-family: var(--note-code-font);
+  font-size: var(--note-code-size);
+  line-height: var(--note-line-height);
+  tab-size: var(--note-code-tab-size);
+  white-space: pre;
+}
+
+.rich-code-frame[data-code-expanded='true'] .rich-code-pre {
+  max-height: none;
+}
+
+.rich-code-frame[data-code-wrap='on'] .rich-code-pre,
+.rich-code-frame[data-code-wrap='on'] .rich-code-pre code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.rich-code-frame .rich-code-pre code {
+  display: block;
+  min-width: max-content;
+  color: inherit;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  font: inherit;
+}
+
+.rich-code-frame[data-code-wrap='on'] .rich-code-pre code {
+  min-width: 0;
+}
+
+.rich-code-diagnostics {
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  background: var(--surface);
+  font-size: var(--fs-sm);
+}
+
+.rich-code-diagnostics summary {
+  width: fit-content;
+  padding: var(--space-2) var(--space-3);
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.rich-code-diagnostics ol {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding:
+    0 var(--space-3) var(--space-3)
+    calc(var(--space-5) + var(--space-4) + var(--space-3));
+}
+
+.rich-code-diagnostics li strong {
+  color: var(--error);
+  text-transform: capitalize;
+}
+
+.rich-code-diagnostics li[data-severity='warning'] strong {
+  color: var(--warn-fg);
+}
+
+.rich-code-diagnostics li[data-severity='info'] strong,
+.rich-code-diagnostics li[data-severity='hint'] strong {
+  color: var(--accent);
+}
+
+.rich-code-diagnostics li code {
+  display: block;
+  width: fit-content;
+  margin-top: var(--space-1);
+  color: var(--muted);
+  background: transparent;
+  padding: 0;
+  font-size: var(--fs-xs);
+}
+
+.rich-markdown-block:is(
+    [data-rich-kind='mermaid'],
+    [data-rich-kind='vega-lite']
+  )
+  > [data-rich-output]:not([hidden]) {
+  display: block;
+  max-width: 100%;
+  overflow: auto;
+  padding: var(--space-3);
+  color: var(--fg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  white-space: normal;
+}
+
+.rich-markdown-block:is(
+    [data-rich-kind='mermaid'],
+    [data-rich-kind='vega-lite']
+  )
+  [data-rich-render-host]
+  > svg {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  margin-inline: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rich-markdown-block:is(
+      [data-rich-kind='mermaid'],
+      [data-rich-kind='vega-lite']
+    )
+    svg *,
+  .rich-markdown-block:is(
+      [data-rich-kind='mermaid'],
+      [data-rich-kind='vega-lite']
+    )
+    svg *::before,
+  .rich-markdown-block:is(
+      [data-rich-kind='mermaid'],
+      [data-rich-kind='vega-lite']
+    )
+    svg *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+[data-rich-status]:not([hidden]) {
+  display: block;
+  margin-top: var(--space-2);
+  color: var(--error);
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  white-space: normal;
+}
+
+[data-rich-state='loading'] > [data-rich-status]:not([hidden]) {
+  color: var(--muted);
+}
+
+[data-rich-state='ready'] > [data-rich-status]:not([hidden]) {
+  color: var(--warn-fg);
+}
+
+[data-rich-status][data-rich-severity='error']:not([hidden]) {
+  color: var(--error);
+}
+
+[data-rich-status][data-rich-severity='warning']:not([hidden]) {
+  color: var(--warn-fg);
+}
+
+[data-rich-status]:is(
+    [data-rich-severity='info'],
+    [data-rich-severity='hint']
+  ):not([hidden]) {
+  color: var(--info-fg);
 }
 
 .markdown-body blockquote {

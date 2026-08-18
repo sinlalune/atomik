@@ -3,7 +3,7 @@ type: Atomik Module Note
 title: 'Module: atomik-desktop — shell'
 description: Electron shell, window and security posture, the IPC contract surface, the workspace pane tree, the Dev Docs tab and the smoke hook.
 tags: [module, electron, security, shell, ipc, workspace]
-timestamp: 2026-08-14T00:00:00Z
+timestamp: 2026-08-17T00:00:00Z
 ---
 
 # Module: atomik-desktop — shell
@@ -216,3 +216,70 @@ timestamp: 2026-08-14T00:00:00Z
 - Tests: `tests/lane.test.ts` (6) — profile uniqueness across two lane
   ids, ephemeral-vs-explicit capture port, port validation, id
   sanitization including `../escape`.
+
+## Global stylesheet: source-true block spacing (CP-RICH-MARKDOWN S07)
+
+`styles.css` is shared shell surface, so a rule change here is recorded in both
+notes. `.editor-host .lp-rich-widget--display` no longer carries a fixed
+`padding-block`: read mode has made block spacing mirror the author's blank
+lines since S05o, and the fixed padding gave live a gap the source did not
+contain (owner bench 2026-08-17). Blank lines are real lines in live and render
+their own height. Rationale and the pinning test live in the editor note.
+
+## The rich renderer smoke lane (CP-RICH-MARKDOWN S07)
+
+`ATOMIK_SMOKE_RICH=1` routes `did-finish-load` to `runRichSmoke` instead of
+`runSmoke`, and suppresses the `dev-docs` open hash so the seeded workspace
+restores instead. `apps/desktop/tools/rich-smoke.mjs` builds the fixture (temp
+vault + `local-workspace.json` opening the note in read mode) and spawns the
+real app; the assertions live in the main process and the verdict is the exit
+code.
+
+It exists because the unit suite runs on linkedom — no CSS engine, no CSP — and
+so could not see that two renderers had never rendered (ADR-014 §8). Keep it a
+SEPARATE lane from the gates: "does the software work" and "does it work in a
+browser" are different questions, and a team needs to see which one failed.
+
+S07 grew it into the path's lifecycle bench: it times first and repeat render,
+resizes the window to check the page never scrolls sideways, reloads to prove
+teardown leaves exactly one projection per block, and asserts the accessibility
+floors. `window.setSize` and `webContents.reload()` are driven from the main
+process, so the renderer still needs no test hook.
+
+## Rich Markdown projection lifecycle (CP-RICH-MARKDOWN S02)
+
+- `RichMarkdownBody` is the shared post-mount lifecycle boundary for every
+  `noteMarkdown` DOM consumer, including eager Chat messages and AI previews.
+  It hydrates inert escaped placeholders only after React commits the DOM and
+  disposes every renderer handle on content, theme, or component teardown.
+- Renderer modules stay behind dynamic adapter imports. Against rebased trunk,
+  the S02 shell entry increased by 14,865 bytes (+0.63%) while KaTeX, Mermaid,
+  Vega-Lite, and Shiki emitted no eager runtime chunk; later steps must preserve
+  that split.
+- S03 keeps that boundary: math host/live wiring adds 8,626 bytes to the entry,
+  while KaTeX ships as its own 485,408-byte JS and 28,946-byte CSS chunk with
+  local fonts. A note with no math does not load that runtime.
+- S04 keeps Mermaid behind a second static dynamic-import target. The eager
+  entry grows only 1,114 bytes from S03; Mermaid core (1,097,914 B) and its
+  per-diagram definitions remain lazy. No IPC/preload channel, provider key,
+  web-view capability, or CSP exception is added: diagrams receive only source,
+  theme, budgets, an abort signal, and a temporary renderer-owned DOM node.
+- S05 adds a two-stage chart boundary: 15,357 B of lazy validation/lifecycle
+  code loads for an accepted fence, then the 618,083 B Vega-Lite compiler and
+  940,911 B Vega runtime load only after inline-data preflight. The eager entry
+  grows 443 B and CSS 271 B from S04. Charts add no IPC/preload/CSP exception;
+  their View receives a deny-all loader and is finalized before its sanitized
+  static SVG becomes the note projection.
+- S06 adds ordinary fenced-code placeholders plus broad CodeMirror metadata to
+  the eager editor, but keeps source lint and every Shiki runtime/theme/grammar
+  behind dynamic imports. The renderer entry is 2,454,528 B (+125,030 B from
+  S01, 28,570 B below the 150 KiB ceiling), CSS is 140,228 B, and the first
+  code doors are a 23,033 B adapter and 35,017 B diagnostic chunk. Shiki core
+  (226,275 B), JavaScript regex engine (111,669 B), two ~14 KiB themes, and all
+  reviewed grammar chunks remain absent from a no-code startup. No IPC/preload,
+  worker, CSP exception, network, filesystem, or execution capability is added.
+- Two mounted note bodies receive different rich render generations, so
+  identical Mermaid/Vega SVGs cannot collide in the shared renderer document.
+  Live widgets and every React read consumer still use the same hydration
+  ownership: timeout, theme change, rerender, and unmount abort and detach the
+  old generation; late third-party output cannot publish into the replacement.

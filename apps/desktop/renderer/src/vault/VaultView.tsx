@@ -10,6 +10,7 @@ import { noteFollowTarget } from './note-follow'
 import { useNavHistory } from './nav-history'
 import { useVaultNote } from './useVaultNote'
 import { RelationsStrip } from './RelationsStrip'
+import { RichMarkdownBody } from '../editor/rich-markdown/RichMarkdownBody'
 
 export type VaultViewProps = {
   /** Note to show; identical values are ignored (no self-retry on failure). */
@@ -274,9 +275,10 @@ export function VaultView({
             </div>
             <div className="note-scroll">
               {error && <p className="error">{error}</p>}
-              <article
+              <RichMarkdownBody
+                as="article"
                 className="markdown-body"
-                dangerouslySetInnerHTML={{ __html: html }}
+                html={html}
               />
             </div>
           </>

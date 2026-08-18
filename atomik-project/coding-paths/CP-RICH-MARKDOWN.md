@@ -6,9 +6,9 @@ tags: [coding-path, markdown, katex, mermaid, vega-lite, code, diagnostics, rend
 timestamp: 2026-08-17T00:00:00Z
 atomik:
   id: CP-RICH-MARKDOWN
-  status: running
+  status: done
   accepted: 2026-08-17
-  current_step: S01
+  current_step: S07
   base_commit: 98561b4
   branch: path/cp-rich-markdown
   writes:
@@ -16,23 +16,37 @@ atomik:
     - apps/desktop/package.json
     - apps/desktop/electron.vite.config.ts
     - apps/desktop/renderer/src/editor/EditorPane.tsx
+    - apps/desktop/renderer/src/editor/clipboard.ts
+    - apps/desktop/electron-main/index.ts
+    - apps/desktop/tools/**
+    - apps/desktop/renderer/src/editor/AiNotePreview.tsx
+    - apps/desktop/renderer/src/editor/inline-ai.ts
     - apps/desktop/renderer/src/editor/live-preview.ts
     - apps/desktop/renderer/src/editor/note-markdown.ts
-    - apps/desktop/renderer/src/editor/rich-markdown/
+    - apps/desktop/renderer/src/editor/rich-markdown/**
+    - apps/desktop/renderer/src/project/ProjectView.tsx
+    - apps/desktop/renderer/src/source/SourceImageView.tsx
+    - apps/desktop/renderer/src/vault/VaultView.tsx
+    - apps/desktop/renderer/src/workspace/ChatView.tsx
     - apps/desktop/renderer/src/styles.css
     - apps/desktop/tests/live-preview.test.ts
     - apps/desktop/tests/note-markdown.test.ts
     - apps/desktop/tests/rich-markdown.test.ts
     - docs/adr/ADR-014-rich-markdown-renderers.md
     - docs/index.md
+    - docs/learning/24-rich-markdown-projection-registry.md
+    - docs/learning/index.md
     - docs/modules/atomik-desktop-editor.md
     - docs/modules/atomik-desktop-shell.md
+    - docs/modules/atomik-desktop-vault.md
+    - docs/modules/atomik-desktop-sources.md
     - atomik-project/coding-paths/CP-RICH-MARKDOWN.md
     - atomik-project/coding-paths/index.md
     - atomik-project/sessions/2026-08-17-cp-rich-markdown-opening-check.md
-    - atomik-project/sessions/
-    - atomik-project/audits/
-    - atomik-project/log/
+    - atomik-project/sessions/2026-08-17-cp-rich-markdown-s01-baseline.md
+    - atomik-project/sessions/**
+    - atomik-project/audits/**
+    - atomik-project/log/**
 ---
 
 # Goal
@@ -46,7 +60,7 @@ note into executable or hidden state:
    data visualizations through local, lazy, bounded adapters.
 3. One renderer registry gives every rich block the same loading, theme,
    accessibility, cancellation, diagnostic, source-fallback, and lifecycle
-   contract. Unknown fences remain normal code.
+   contract. Unknown fences remain escaped plain code inside common chrome.
 4. Fenced code gains broad on-demand language parsing and VS Code-quality
    read presentation, plus copy/language/wrap-or-expand affordances.
 5. Code feedback stops at decoration: diagnostic ranges, severity, count, and
@@ -63,8 +77,8 @@ The owner-approved details and revised backlog order are recorded in
   encountering an error never rewrites a note.
 - One typed registry maps normalized fence identifiers to lazy renderer
   adapters. It owns cancellation/stale-result suppression, theme input,
-  budgets, accessible diagnostics, and a source fallback; unsupported fences
-  preserve the existing `<pre><code>` behavior.
+  budgets, accessible diagnostics, and a source fallback; unsupported language
+  identifiers stay escaped/plain and never trigger a guessed grammar.
 - KaTeX supports inline/display math with HTML+MathML accessibility,
   `trust: false`, bounded expansion/size, no shared cross-note macro state, and
   visible source-preserving parse errors.
@@ -154,35 +168,41 @@ The owner-approved details and revised backlog order are recorded in
 
 # Execution
 
-- [ ] S01 Bootstrap + ADR/security/performance pins: create the worktree, read
+- [x] S01 Bootstrap + ADR/security/performance pins: create the worktree, read
       every Required document, recheck exact dependency versions/licenses and
       APIs, measure current startup/build/read/live baselines, define renderer
       result/budget/diagnostic contracts, and record the third-party-renderer
       boundary in ADR-014 before installing or implementing.
-- [ ] S02 Registry + safe fallback: implement pure fence/math discovery and a
+- [x] S02 Registry + safe fallback: implement pure fence/math discovery and a
       typed lazy adapter registry with cancellation, stale-result suppression,
       theme input, budgets, teardown, accessible error/source fallback, and
       unknown-fence parity; tests and editor module note in the same unit.
-- [ ] S03 KaTeX: add safe inline/display/fenced math to read and live, MathML
+- [x] S03 KaTeX: add safe inline/display/fenced math to read and live, MathML
       accessibility, edit-range reveal, error/source behavior, themes, focused
       tests, docs, ledger, and a bare gate.
-- [ ] S04 Mermaid: add local lazy secure SVG diagrams, sanitizer/security and
+- [x] S04 Mermaid: add local lazy secure SVG diagrams, sanitizer/security and
       resource caps, theme/a11y/source behavior, cancellation tests, docs,
       ledger, and a bare gate.
-- [ ] S05 Vega-Lite: add local lazy inline-data charts, schema/cap validation,
+- [x] S05 Vega-Lite: add local lazy inline-data charts, schema/cap validation,
       blocked loaders/actions, view finalization, theme/a11y/source behavior,
       focused tests, docs, ledger, and a bare gate.
-- [ ] S06 Code presentation + decoration-only diagnostics: replace the fixed
+- [x] S06 Code presentation + decoration-only diagnostics: replace the fixed
       language switch with dynamic CodeMirror language data, add fine-grained
       lazy Shiki read highlighting and code-block chrome, then add bounded
       parser/local-analyzer diagnostics mapped to note ranges through
       CodeMirror lint decorations; explicitly regression-pin every excluded
       LSP capability.
-- [ ] S07 Parity, lifecycle, and performance hardening: large/malformed blocks,
-      rapid edit/cancel/theme/tab switches, cache/teardown, responsive and
-      keyboard/screen-reader benches, bundle-chunk inspection, all focused and
-      bare integrated gates, docs, and ledger.
-- [ ] S08 Owner bench + closure: acceptance and closing ceremony, rebase on the
+- [x] S07 Owner bench, environment defects, then parity/lifecycle hardening.
+      Reordered on 2026-08-17: the first bench of this path found Mermaid and
+      Vega-Lite had never rendered in the real app and code was dark-on-dark in
+      two themes, all with green gates. Bench first, harden what the bench
+      actually hits. Remaining: notes 01/04/05 and every security probe
+      unexercised; large/malformed blocks, rapid edit/cancel/theme/tab
+      switches, cache/teardown, responsive and keyboard/screen-reader benches,
+      bundle-chunk inspection, all focused and bare integrated gates, docs and
+      ledger. Open question the bench raised: whether a real-Electron smoke
+      lane is the only mechanical guard against environment-class defects.
+- [x] S08 Owner bench + closure: acceptance and closing ceremony, rebase on the
       latest local trunk, repeat all bare gates, coherence audit, per-entry
       journal, `status: done`, and self-merge; then open CP-LANGUAGE-NOTES.
 
@@ -190,12 +210,98 @@ The owner-approved details and revised backlog order are recorded in
 
 ```text
 base commit : 98561b4
-changed     : opening record + accepted CP-RICH-MARKDOWN execution contract
-tests       : not run yet; S01 pins the clean trunk baseline in the worktree
-next action : activate worktree, read Required docs, then S01 dependency/
-              security/performance matrix and ADR-014
-blockers    : none; CP-MVP-010 is still closing and overlaps styles/editor
-              prose, so this path rebases immediately after it self-merges
+changed     : S02 exact package lock; pure syntax + escaped Markdown-it
+              placeholders and bounded host; S03 KaTeX HTML+MathML adapter;
+              safe per-expression macros; inline/display/fence read + live;
+              S04 strict queued Mermaid config + source/resource/edge preflight;
+              parsed static SVG postflight, ID namespace/a11y; read/live theme,
+              touched-range reveal, shared cap, cancellation/staging cleanup;
+              S05 structured inline-only Vega preflight, two-stage lazy runtime,
+              deny loader, token theme, View finalization, shared SVG guard,
+              read/live parity and three-renderer cap; S06 exact lazy
+              CodeMirror language catalog, 37-language fine-grained Shiki map,
+              safe token DOM + code chrome, source-only lazy lint decorations,
+              bounded parser diagnostics and explicit no-LSP capability pin
+tests       : S06 focused PASS (3 files / 102 tests); full PASS (75 files / 984
+              passed + 1 skipped); Cairn/typecheck/build PASS — entry 2,454,528
+              B (+70,920 from S05, +125,030 from S01), CSS 140,228 B (+4,185);
+              lazy code 23,033 B, diagnostics 35,017 B, Shiki core 226,275 B,
+              JS engine 111,669 B, themes 14,198/14,475 B; 28,570 B eager
+              headroom remains under the 150 KiB ceiling
+audit       : npm audit reports the same 4 inherited highs on trunk and S02
+              (PDF.js + Vite/PostCSS/nanoid + Electron optional undici); zero
+              rich-dependency advisory delta, no automatic rewrite applied
+catalog     : docs/learning/index.md edit is deliberate under bedrock 17's
+              first-use catalog rule; it is not generated ACTIVE/register state
+receipt     : atomik-project/sessions/
+              2026-08-17-cp-rich-markdown-s06-code-diagnostics.md
+              2026-08-17-cp-rich-markdown-s07-owner-bench.md
+bench       : S07 FIRST OWNER BENCH — the app could not start at all (Electron
+              never unpacked in either tree; restored from the local July
+              cache). It found Mermaid refusing every themed diagram
+              (`light-dark()` handed to a JS color parser), Vega-Lite refusing
+              every chart (`Function(...)` vs `script-src 'self'`), code
+              dark-on-dark in `ember`/`hearth` (dark-ness defined three ways),
+              and charts ignoring the theme (hex-only token reader). Fixed via
+              adapters/css-color.ts, AST + vega-interpreter 2.3.2, and one
+              rich-markdown/theme.ts; ADR-014 §8 records the decisions.
+              Bench round 2 (note 04): every code-block Copy reported "Copy
+              failed" — S06 had written a SECOND clipboard implementation that
+              fell back to execCommand only when the async API was absent, but
+              in this renderer it is present and rejects. The code frame now
+              defers to the renderer's one `editor/clipboard.ts`. Bench round
+              3 (parity): adjacent blocks touched in read but not in live —
+              live's rich widget carried a fixed padding-block while read has
+              been source-true since S05o; live is now source-true too.
+widening    : `editor/clipboard.ts` added to writes: on 2026-08-17. The root
+              cause of "Copy failed" was a duplicated clipboard, so the fix
+              belongs in the shared helper, not in a fourth copy of it — a root
+              cause is discovered, not declared (paths.md). Also
+              `electron-main/index.ts` + `apps/desktop/tools/**` for the
+              real-Electron smoke lane below: the guard against a renderer
+              defect class has to live where the app is launched.
+smoke lane  : `npm --workspace atomik-desktop run smoke:rich` — S07's open
+              question ("is a real-Electron lane the only mechanical guard?")
+              answered YES and built. Seeds a temp vault + workspace state,
+              launches the real app, asserts each adapter drew its real SHAPE
+              (svg / .katex / .rich-code-token), that no CSS-level color
+              survived into output, and that a note created no img/script node.
+              No renderer test hook: the fixture restores through the app's own
+              workspace-restore path. VALIDATED by reverting both adapter fixes
+              and confirming it reproduces the owner's two error strings
+              verbatim. Waiting on "the output element exists" is NOT enough —
+              an empty render host satisfies that, and did.
+tests       : S07 focused PASS (rich-markdown 59); full PASS (75 files / 998
+              passed + 1 skipped); Cairn/typecheck/build PASS — entry
+              2,454,861 B (+333 from S06), CSS 140,228 B (unchanged);
+              vega-interpreter 8,716 B as its own lazy chunk, so the CSP fix
+              costs nothing at startup; 28,237 B eager headroom remains under
+              the 150 KiB ceiling. Every new regression was verified by
+              reverting its fix and watching it fail — the suite runs on
+              linkedom, which has no getComputedStyle and no CSP, so coverage
+              alone could not see any of this.
+verdict     : owner accepted the bench round 2026-08-17 — "everything is
+              good". Six defects found and fixed; byte-stability verified
+              (six notes md5-identical after the full bench). Acceptance
+              covers the BENCH, not the path.
+hardening   : owner directive 2026-08-17 — HONOR the DoD scope, do not amend.
+              `tools/rich-bench.mjs` makes S01's deleted baseline re-runnable
+              (every median inside the +10% ceiling, most faster than S01);
+              `smoke:rich` now benches first render 717 ms, repeat render
+              318 ms, teardown (one projection per block), caps failing
+              visibly, responsive at 420 px, and the a11y floors. Validated by
+              breaking each guard. NOT automated: a real screen-reader pass.
+ceremony    : atomik-project/sessions/
+              2026-08-17-cp-rich-markdown-closing-ceremony.md — accepted;
+              hardening honored by owner ruling, not amended
+audit       : atomik-project/audits/cp-rich-markdown-9885ab3.md — "drift
+              noted, proceeding". Carry-forward: the renderer limits are about
+              to exist in a THIRD place (a prompt block); pin it with a test.
+journal     : atomik-project/log/2026-08-17-cp-rich-markdown.md
+next action : CLOSED. Next path: CP-AI-CAPABILITIES (owner reordered the
+              backlog ahead of CP-LANGUAGE-NOTES) — the AI writes into this
+              surface and has never been told it exists.
+blockers    : none; rebased onto trunk 783c7c6
 ```
 
 # Blockers

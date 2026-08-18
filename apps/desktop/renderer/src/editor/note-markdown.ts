@@ -1,6 +1,7 @@
 import MarkdownIt from 'markdown-it'
 import { matchDecorationAt, matchWikilinkAt, type EdgeDecoration } from '../../../shared/edge-grammar'
 import { classifyLinkKind, linkKindDescription } from './link-pills'
+import { richMarkdownPlaceholders } from './rich-markdown/markdown-plugin'
 
 /**
  * The ONE note renderer (CP-MVP-008 S05g, owner: "task list doesnt
@@ -53,7 +54,13 @@ function taskLists(md: MarkdownIt): void {
  * trailing blank line ([start, blank+1]), which made every block
  * after a list read as tight.
  */
-const BLOCK_TOKENS = new Set(['fence', 'hr', 'code_block', 'html_block'])
+const BLOCK_TOKENS = new Set([
+  'fence',
+  'hr',
+  'code_block',
+  'html_block',
+  'atomik_math_block'
+])
 
 function sourceGaps(md: MarkdownIt): void {
   md.core.ruler.push('atomik-source-gaps', (state) => {
@@ -175,6 +182,7 @@ function semanticEdges(md: MarkdownIt): void {
 
 export function noteMarkdown(): MarkdownIt {
   const md = new MarkdownIt({ html: false, linkify: false, breaks: true })
+  richMarkdownPlaceholders(md)
   taskLists(md)
   sourceGaps(md)
   semanticEdges(md)

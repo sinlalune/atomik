@@ -31,6 +31,20 @@ import {
 } from './link-pills'
 import { applyRotation } from '../source/rotate'
 import { getCachedImage, isCachedDataUrl, setCachedImage } from '../vault/image-cache'
+import {
+  DEFAULT_RICH_LIMITS,
+  type RichRendererKind,
+  type RichTheme
+} from './rich-markdown/contracts'
+import {
+  hydrateRichMarkdown,
+  type RichHydration
+} from './rich-markdown/hydration'
+import {
+  discoverDollarMath,
+  richKindForFence,
+  type SourceRange
+} from './rich-markdown/syntax'
 
 /** The preload bridge, reached at call time only (this module is also
  *  imported by headless node tests, which never render widgets). */
@@ -61,6 +75,19 @@ export type LivePreviewKind =
   | 'table'
   | 'image'
   | 'edge'
+  | 'math'
+  | 'mermaid'
+  | 'vega-lite'
+  | 'code'
+  | 'rich-limit'
+
+const DEFAULT_RICH_THEME: RichTheme = { name: 'system', scheme: 'light' }
+
+/** Theme is explicit state for async widgets: a compartment reconfigure
+ * rebuilds them when the app theme changes instead of leaving stale output. */
+export const richThemeFacet = Facet.define<RichTheme, RichTheme>({
+  combine: (values) => values[0] ?? DEFAULT_RICH_THEME
+})
 
 /**
  * The note's vault-relative path, needed to resolve image embeds. Views
@@ -279,6 +306,116 @@ class TableWidget extends WidgetType {
 
   override eq(other: TableWidget): boolean {
     return other.source === this.source
+  }
+}
+
+const richHydrations = new WeakMap<HTMLElement, RichHydration>()
+
+/**
+ * A disposable live-mode projection over an unchanged replacement range.
+ * Clicking the result moves the cursor back onto that range; the next state
+ * computation removes the widget and reveals the literal delimiters/source.
+ */
+class RichBlockWidget extends WidgetType {
+  constructor(
+    private readonly kind: Extract<
+      RichRendererKind,
+      'math' | 'mermaid' | 'vega-lite' | 'code'
+    >,
+    private readonly source: string,
+    private readonly display: boolean,
+    private readonly info: string,
+    private readonly theme: RichTheme
+  ) {
+    super()
+  }
+
+  override toDOM(view: EditorView): HTMLElement {
+    const doc = view.dom.ownerDocument
+    const root = doc.createElement('span')
+    root.className = [
+      'lp-rich-widget',
+      `lp-${this.kind}-widget`,
+      this.display ? 'lp-rich-widget--display' : ''
+    ]
+      .filter(Boolean)
+      .join(' ')
+
+    const block = doc.createElement('span')
+    block.className = this.display
+      ? `rich-markdown-block rich-markdown-${this.kind}`
+      : `rich-markdown-inline rich-markdown-${this.kind}`
+    block.dataset['richBlock'] = ''
+    block.dataset['richKind'] = this.kind
+    block.dataset['richInfo'] = this.info
+    block.setAttribute('role', 'group')
+    block.setAttribute(
+      'aria-label',
+      this.kind === 'mermaid'
+        ? 'Mermaid source'
+        : this.kind === 'vega-lite'
+          ? 'Vega-Lite source'
+          : this.kind === 'code'
+            ? 'Code source'
+          : this.display
+            ? 'Display math'
+            : 'Inline math'
+    )
+
+    const source = doc.createElement('code')
+    source.dataset['richSource'] = ''
+    source.textContent = this.source
+    const output = doc.createElement('span')
+    output.dataset['richOutput'] = ''
+    output.hidden = true
+    const status = doc.createElement('span')
+    status.dataset['richStatus'] = ''
+    status.setAttribute('role', 'status')
+    status.hidden = true
+    block.append(source, output, status)
+    root.appendChild(block)
+
+    const hydration = hydrateRichMarkdown(root, { theme: this.theme })
+    richHydrations.set(root, hydration)
+    root.addEventListener('mousedown', (event) => {
+      if (event.button !== 0) return
+      const target = event.target as Element | null
+      if (target?.closest?.('[data-rich-interactive]')) return
+      event.preventDefault()
+      view.dispatch({ selection: { anchor: view.posAtDOM(root) } })
+      view.focus()
+    })
+    return root
+  }
+
+  override destroy(dom: HTMLElement): void {
+    richHydrations.get(dom)?.dispose()
+    richHydrations.delete(dom)
+  }
+
+  override eq(other: RichBlockWidget): boolean {
+    return (
+      other.kind === this.kind &&
+      other.source === this.source &&
+      other.display === this.display &&
+      other.info === this.info &&
+      other.theme.name === this.theme.name &&
+      other.theme.scheme === this.theme.scheme
+    )
+  }
+}
+
+class RichLimitWidget extends WidgetType {
+  override toDOM(view: EditorView): HTMLElement {
+    const status = view.dom.ownerDocument.createElement('span')
+    status.className = 'lp-rich-limit'
+    status.setAttribute('role', 'status')
+    status.textContent = `Rich block limit reached (${DEFAULT_RICH_LIMITS.maxBlocks}); remaining rich source stays editable. `
+    return status
+  }
+
+  override eq(): boolean {
+    return true
   }
 }
 
@@ -762,7 +899,99 @@ export function computeLivePreviewDecorations(
     }
   }
 
-  syntaxTree(state).iterate({
+  type LiveRichRange = SourceRange & {
+    kind: Extract<
+      RichRendererKind,
+      'math' | 'mermaid' | 'vega-lite' | 'code'
+    >
+    source: string
+    display: boolean
+    info: string
+  }
+  const tree = syntaxTree(state)
+  const protectedRanges: SourceRange[] = fmEnd > 0 ? [{ from: 0, to: fmEnd }] : []
+  const fencedRich: LiveRichRange[] = []
+  tree.iterate({
+    enter: (node) => {
+      if (node.name === 'InlineCode') {
+        protectedRanges.push({ from: node.from, to: node.to })
+        return false
+      }
+      if (node.name !== 'FencedCode') return
+      protectedRanges.push({ from: node.from, to: node.to })
+      if (node.from < fmEnd) return false
+      const infoNode = node.node.getChild('CodeInfo')
+      const info = infoNode
+        ? state.doc.sliceString(infoNode.from, infoNode.to).trim()
+        : ''
+      const kind = richKindForFence(info) ?? 'code'
+      const code = node.node.getChild('CodeText')
+      fencedRich.push({
+        from: node.from,
+        to: node.to,
+        kind,
+        source: code ? state.doc.sliceString(code.from, code.to) : '',
+        display: true,
+        info: info.trim().split(/\s+/, 1)[0]?.toLowerCase() || kind
+      })
+      return false
+    }
+  })
+
+  const richRanges: LiveRichRange[] = [
+    ...discoverDollarMath(state.doc.toString(), protectedRanges).map((span) => ({
+      ...span,
+      kind: 'math' as const,
+      info: span.display ? 'display' : 'inline'
+    })),
+    ...fencedRich
+  ].sort((a, b) => a.from - b.from)
+  const mathRanges = richRanges.filter((range) => range.kind === 'math')
+  const replacedRichRanges: SourceRange[] = []
+  const richTheme = state.facet(richThemeFacet)
+
+  for (const [index, rich] of richRanges.entries()) {
+    if (index >= DEFAULT_RICH_LIMITS.maxBlocks) {
+      decorations.push(
+        Decoration.widget({
+          lp: 'rich-limit' as LivePreviewKind,
+          side: -1,
+          widget: new RichLimitWidget()
+        }).range(rich.from)
+      )
+      break
+    }
+    const firstLine = state.doc.lineAt(rich.from).number
+    const lastLine = state.doc.lineAt(rich.to).number
+    const touched = active.from <= lastLine && active.to >= firstLine
+    if (touched) continue
+    replacedRichRanges.push({ from: rich.from, to: rich.to })
+    decorations.push(
+      Decoration.replace({
+        lp: rich.kind as LivePreviewKind,
+        richKind: rich.kind,
+        richDisplay: rich.display,
+        richSource: rich.source,
+        richTheme: richTheme.name,
+        ...(rich.kind === 'math'
+          ? {
+              mathDisplay: rich.display,
+              mathSource: rich.source,
+              mathTheme: richTheme.name
+            }
+          : {}),
+        widget: new RichBlockWidget(
+          rich.kind,
+          rich.source,
+          rich.display,
+          rich.info,
+          richTheme
+        )
+      }).range(rich.from, rich.to)
+    )
+  }
+
+  tree.iterate({
     enter: (node) => {
       // Nothing inside the frontmatter block gets markdown treatment.
       if (node.name !== 'Document' && node.from < fmEnd) return false
@@ -954,6 +1183,13 @@ export function computeLivePreviewDecorations(
           if (!isActiveAt(node.from)) hideMark(node.from, node.to, true)
           return
         case 'FencedCode': {
+          if (
+            replacedRichRanges.some(
+              (range) => range.from === node.from && range.to === node.to
+            )
+          ) {
+            return false
+          }
           addLineDecos(node.from, node.to, 'lp-fence')
           // first/last lines carry read's rounded corners; with the
           // fence marks folded they read as the block's padding
@@ -982,6 +1218,15 @@ export function computeLivePreviewDecorations(
   for (const edge of parseEdges(state.doc.toString())) {
     if (edge.start < fmEnd) continue
     if (isActiveAt(edge.start)) continue
+    // A link-shaped TeX fragment belongs to the math expression. A link that
+    // encloses math still wins as one edge pill (normal Markdown precedence).
+    if (
+      mathRanges.some(
+        (math) => math.from <= edge.start && edge.end <= math.to
+      )
+    ) {
+      continue
+    }
     let kind: LinkKind | null
     let broken = false
     let follow: EdgeFollowTarget = null
@@ -1040,23 +1285,25 @@ export function computeLivePreviewDecorations(
     )
   }
 
-  // A pill's replace range must not NEST other replace/mark
-  // decorations (the tree walk hides link brackets and URLs inside md
-  // links): nested replaces corrupt CodeMirror's incremental redraw —
-  // a widget rebuilt mid-line simply vanished (S05c, the owner's
-  // md-link vault; wikilinks never nested, which is why every
-  // wikilink pin stayed green). Line decorations are structural and
-  // stay.
-  const filtered =
-    edgeRanges.length === 0
-      ? decorations
-      : decorations.filter((deco) => {
-          const spec = deco.value.spec as { lp?: LivePreviewKind }
-          if (spec.lp === 'edge' || spec.lp === 'line') return true
-          return !edgeRanges.some(
-            ([from, to]) => deco.from >= from && deco.to <= to
-          )
-        })
+  // Replace ranges must not nest. Edge pills keep their structural line
+  // decorations; rich widgets own their complete range, including fenced-code
+  // line chrome. A link enclosing math wins, while link-shaped TeX was skipped
+  // above so the math widget wins in the opposite containment direction.
+  const filtered = decorations.filter((deco) => {
+    const spec = deco.value.spec as { lp?: LivePreviewKind }
+    const insideEdge = edgeRanges.some(
+      ([from, to]) => deco.from >= from && deco.to <= to
+    )
+    if (spec.lp === 'edge') return true
+    if (spec.lp === 'math') return !insideEdge
+    if (spec.lp === 'mermaid') return !insideEdge
+    if (spec.lp === 'vega-lite') return !insideEdge
+    if (spec.lp === 'code') return !insideEdge
+    if (insideEdge) return spec.lp === 'line'
+    return !replacedRichRanges.some(
+      (range) => deco.from >= range.from && deco.to <= range.to
+    )
+  })
   return Decoration.set(filtered, true)
 }
 
@@ -1079,6 +1326,7 @@ export const livePreviewField = StateField.define<DecorationSet>({
     if (
       transaction.docChanged ||
       transaction.selection ||
+      transaction.reconfigured ||
       transaction.effects.some(
         (effect) => effect.is(imageCacheBump) || effect.is(setWikiCandidates)
       ) ||
@@ -1103,9 +1351,14 @@ export function livePreview(options?: {
   onFollowRel?: (relPath: string) => void
   /** Vault-relative note path; enables image embeds. */
   notePath?: string
+  /** App theme snapshot; changing it rebuilds disposable rich widgets. */
+  theme?: RichTheme
 }): Extension {
   const follow = options?.onFollowLink
-  const extensions: Extension[] = [livePreviewField]
+  const extensions: Extension[] = [
+    richThemeFacet.of(options?.theme ?? DEFAULT_RICH_THEME),
+    livePreviewField
+  ]
   if (follow || options?.onFollowRel) {
     extensions.push(
       edgeFollowFacet.of({
