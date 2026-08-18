@@ -189,6 +189,67 @@ Two things worth keeping:
    it fail with the owner's own two error strings, verbatim. A guard nobody has
    watched fail is a guess.
 
+## S07 hardening (owner directive: honor the scope literally)
+
+The owner chose to honor the definition of done rather than amend it, so the
+benches it names were built — as repeatable artifacts, not as one-off numbers.
+
+### The microbench, made re-runnable
+
+S01 pinned the closure target ("within 10% of these medians") using, in its own
+words, "a temporary, deleted `vite-node` script". A baseline nobody can re-run
+cannot gate a closure, and bedrock 03 says a derived artifact ships its
+lifecycle. `tools/rich-bench.mjs` now reproduces S01's method — deterministic
+200 kB / 1 MB corpora, one warm-up, sorted samples, median — and FAILS if any
+median exceeds its S01 +10% ceiling.
+
+```text
+operation        median      S01    ceiling  verdict
+read_200kb        32.98    40.95    45.05  ok
+parse_200kb       20.09    22.35    24.59  ok
+walk_200kb         2.72     3.12     3.43  ok
+read_1mb         104.29   152.69   167.96  ok
+parse_1mb        112.46   108.45   119.30  ok
+walk_1mb           9.23    13.02    14.32  ok
+```
+
+Every median is inside the ceiling and most are faster than S01: the rich
+syntax costs the no-rich path nothing measurable.
+
+### The lifecycle and accessibility bench
+
+`smoke:rich` grew from "did it render" into the bench the DoD asks for. Real
+Electron, real CSP, real design tokens:
+
+```text
+first rich render      717 ms   note mount -> every adapter drawn
+repeat render          318 ms   after reload, warm process — cache visible
+teardown               exactly one projection + one output per block
+                       (a leaked view would appear here as a duplicate)
+responsive             at 420 px the PAGE never scrolls sideways
+caps fail loudly       a 400-edge Mermaid, a malformed Vega spec and an
+                       unterminated \frac all refuse VISIBLY, with source
+                       still shown and a non-empty status
+accessibility          toolbar role, native buttons, every control focusable
+                       and named, real aria-pressed, MathML beside the glyphs,
+                       diagram exposed as a group, focus actually moves
+```
+
+`probes:nothing-refused` never fires, which is the security walk in mechanical
+form: the Mermaid HTML-label probe, the Vega `url` dataset, the over-cap
+diagram and the malformed specs are all refused, visibly, on every run.
+
+Each new assertion was validated the same way as the rest of this path — by
+breaking the code and watching it fail. Removing `role="toolbar"` from the code
+frame produces `ATOMIK_SMOKE_RICH_FAIL FAIL a11y:toolbar-role`.
+
+### The one thing not automated
+
+A real screen-reader pass. The floors above are floors — names, roles, pressed
+state, MathML presence, focus movement — and they are not the same as listening
+to the thing. That needs a human with an assistive technology running, and it
+is the only DoD line this session could not close by machine.
+
 ## Still open
 
 - The bench covered 02, 03 and 04's chrome. Note 01 (math), 04's deliberate

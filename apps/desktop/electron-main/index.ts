@@ -2033,12 +2033,12 @@ async function runSmoke(
  * `tools/rich-smoke.mjs`), so nothing here needs a test hook in the renderer.
  */
 async function runRichSmoke(window: BrowserWindow): Promise<void> {
-  const outcome = (await window.webContents.executeJavaScript(
-    `(async () => {
-      // The SHAPE each renderer must actually produce. A source fallback and
-      // an empty render host both satisfy none of these, which is the point:
-      // waiting on "the output element exists" would pass before the adapter
-      // had drawn anything.
+  const probe = (script: string): Promise<string> =>
+    window.webContents.executeJavaScript(script) as Promise<string>
+
+  // Phase A — every adapter must actually draw, in a browser, under this
+  // app's CSP and design tokens.
+  const waitForShapes = `(async () => {
       const shapes = [
         ['math', '.katex'],
         ['mermaid', 'svg'],
@@ -2049,12 +2049,10 @@ async function runRichSmoke(window: BrowserWindow): Promise<void> {
         document.querySelector('.rich-markdown-block[data-rich-kind="' + kind + '"]')
       const drawn = (pair) =>
         !!document.querySelector('[data-rich-kind="' + pair[0] + '"] ' + pair[1])
-
       const deadline = Date.now() + 25000
       while (Date.now() < deadline && !shapes.every(drawn)) {
-        await new Promise((resolve) => setTimeout(resolve, 250))
+        await new Promise((resolve) => setTimeout(resolve, 100))
       }
-
       const fails = []
       const clean = (text) => (text || '').split(',').join(';').trim().slice(0, 140)
       for (const pair of shapes) {
@@ -2067,7 +2065,20 @@ async function runRichSmoke(window: BrowserWindow): Promise<void> {
           (host && host.childElementCount === 0 ? 'render host empty' : 'no ' + pair[1])
         fails.push(pair[0] + ':' + why)
       }
+      return fails.length ? 'FAIL ' + fails.join(',') : 'ok'
+    })()`
 
+  const firstStart = Date.now()
+  const shapes = await probe(waitForShapes)
+  const firstRenderMs = Date.now() - firstStart
+  if (shapes !== 'ok') {
+    console.error(`ATOMIK_SMOKE_RICH_FAIL ${shapes}`)
+    app.exit(1)
+    return
+  }
+
+  const invariants = await probe(`(() => {
+      const fails = []
       // No CSS-level color may survive into rendered output: that is what
       // Mermaid rejected outright and Vega ignored silently.
       for (const element of document.querySelectorAll('.markdown-body [style]')) {
@@ -2077,25 +2088,111 @@ async function runRichSmoke(window: BrowserWindow): Promise<void> {
           break
         }
       }
-
       // A note is untrusted text: rendering one may never create an image or
-      // a script node, and the probe fences must not have executed anything.
+      // a script node, and no probe fence may have executed anything.
       const body = document.querySelector('.markdown-body')
       if (body && body.querySelector('img')) fails.push('security:img-node')
       if (body && body.querySelector('script')) fails.push('security:script-node')
       if (window.__atomikProbeFired) fails.push('security:probe-executed')
 
-      return fails.length ? 'FAIL ' + fails.join(',') : 'ok'
-    })()`
-  )) as string
+      // Refused blocks must FAIL VISIBLY to source, never silently or blank.
+      const refused = document.querySelectorAll('[data-rich-block] [data-rich-status]:not([hidden])')
+      if (refused.length === 0) fails.push('probes:nothing-refused')
+      for (const status of refused) {
+        const owner = status.closest('[data-rich-block]')
+        const source = owner && owner.querySelector('[data-rich-source]')
+        if (!status.textContent || !status.textContent.trim()) fails.push('refused:silent')
+        if (source && source.hasAttribute('hidden')) fails.push('refused:source-hidden')
+      }
 
-  if (outcome === 'ok') {
-    console.log(`ATOMIK_SMOKE_RICH_OK ${app.getName()} ${app.getVersion()}`)
-    app.quit()
-  } else {
-    console.error(`ATOMIK_SMOKE_RICH_FAIL ${outcome}`)
+      // Accessibility floors the ADR claims (36): named, keyboard-reachable
+      // controls with real pressed state, and MathML beside the glyphs.
+      const toolbar = document.querySelector('.rich-code-toolbar')
+      if (!toolbar) fails.push('a11y:no-code-toolbar')
+      if (toolbar && toolbar.getAttribute('role') !== 'toolbar') fails.push('a11y:toolbar-role')
+      const buttons = document.querySelectorAll('.rich-code-action')
+      if (buttons.length === 0) fails.push('a11y:no-code-actions')
+      for (const button of buttons) {
+        if (button.tagName !== 'BUTTON') fails.push('a11y:not-a-button')
+        if (button.tabIndex < 0) fails.push('a11y:not-focusable')
+        const name = button.getAttribute('aria-label') || button.textContent
+        if (!name || !name.trim()) fails.push('a11y:unnamed-control')
+      }
+      const pressable = document.querySelector('.rich-code-action[aria-pressed]')
+      if (!pressable) fails.push('a11y:no-pressed-state')
+      if (!document.querySelector('[data-rich-kind="math"] .katex mjx-container, [data-rich-kind="math"] .katex annotation, [data-rich-kind="math"] .katex math')) {
+        fails.push('a11y:math-not-in-mathml')
+      }
+      const group = document.querySelector('[data-rich-kind="mermaid"]')
+      if (group && group.getAttribute('role') !== 'group') fails.push('a11y:diagram-not-grouped')
+
+      // Focus must actually move to a control by keyboard.
+      const first = document.querySelector('.rich-code-action')
+      if (first) {
+        first.focus()
+        if (document.activeElement !== first) fails.push('a11y:focus-refused')
+      }
+      return fails.length ? 'FAIL ' + fails.join(',') : 'ok'
+    })()`)
+  if (invariants !== 'ok') {
+    console.error(`ATOMIK_SMOKE_RICH_FAIL ${invariants}`)
     app.exit(1)
+    return
   }
+
+  // Phase B — responsive: wide content (diagrams, charts, long code) scrolls
+  // inside its own box; the PAGE never scrolls sideways (36).
+  const [width, height] = window.getSize()
+  window.setSize(420, height)
+  await new Promise((resolve) => setTimeout(resolve, 600))
+  const responsive = await probe(`(() => {
+      const root = document.documentElement
+      const overflow = root.scrollWidth - root.clientWidth
+      return overflow > 4 ? 'FAIL responsive:page-scrolls-sideways-by-' + overflow + 'px' : 'ok'
+    })()`)
+  window.setSize(width, height)
+  if (responsive !== 'ok') {
+    console.error(`ATOMIK_SMOKE_RICH_FAIL ${responsive}`)
+    app.exit(1)
+    return
+  }
+
+  // Phase C — repeat render and teardown. A reload re-runs every adapter in a
+  // warm process: it must draw again, and leave exactly one output per block.
+  // A leaked projection shows up here as a duplicate.
+  const repeatStart = Date.now()
+  window.webContents.reload()
+  await new Promise<void>((resolve) => {
+    window.webContents.once('did-finish-load', () => resolve())
+  })
+  const repeated = await probe(waitForShapes)
+  const repeatRenderMs = Date.now() - repeatStart
+  if (repeated !== 'ok') {
+    console.error(`ATOMIK_SMOKE_RICH_FAIL repeat:${repeated}`)
+    app.exit(1)
+    return
+  }
+  const teardown = await probe(`(() => {
+      const fails = []
+      for (const node of document.querySelectorAll('[data-rich-block]')) {
+        const host = node.querySelector('[data-rich-render-host]')
+        if (host && host.childElementCount > 1) fails.push('teardown:duplicate-projection')
+        const outputs = node.querySelectorAll('[data-rich-output]')
+        if (outputs.length > 1) fails.push('teardown:duplicate-output')
+      }
+      return fails.length ? 'FAIL ' + fails.join(',') : 'ok'
+    })()`)
+  if (teardown !== 'ok') {
+    console.error(`ATOMIK_SMOKE_RICH_FAIL ${teardown}`)
+    app.exit(1)
+    return
+  }
+
+  console.log(
+    `ATOMIK_SMOKE_RICH_OK ${app.getName()} ${app.getVersion()} ` +
+      `firstRender=${firstRenderMs}ms repeatRender=${repeatRenderMs}ms`
+  )
+  app.quit()
 }
 
 app.whenReady().then(() => {

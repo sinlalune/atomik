@@ -240,6 +240,12 @@ so could not see that two renderers had never rendered (ADR-014 §8). Keep it a
 SEPARATE lane from the gates: "does the software work" and "does it work in a
 browser" are different questions, and a team needs to see which one failed.
 
+S07 grew it into the path's lifecycle bench: it times first and repeat render,
+resizes the window to check the page never scrolls sideways, reloads to prove
+teardown leaves exactly one projection per block, and asserts the accessibility
+floors. `window.setSize` and `webContents.reload()` are driven from the main
+process, so the renderer still needs no test hook.
+
 ## Rich Markdown projection lifecycle (CP-RICH-MARKDOWN S02)
 
 - `RichMarkdownBody` is the shared post-mount lifecycle boundary for every

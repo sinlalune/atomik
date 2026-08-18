@@ -274,6 +274,15 @@ carries the decisions; the operational shape:
   Wait on the SHAPE, never on the output element — an empty render host
   satisfies the latter. Validated by reverting both adapter fixes and watching
   it reproduce the owner's error strings.
+- Two repeatable benches ship with the renderers.
+  `npm --workspace atomik-desktop run bench:rich` reproduces the S01
+  read/parse/walk medians and fails past a +10% ceiling — S01 measured with a
+  script it then deleted, which is a baseline that cannot gate anything.
+  `smoke:rich` measures first render and repeat render, and asserts teardown
+  leaves exactly one projection per block, that caps refuse VISIBLY with source
+  intact, that the page never scrolls sideways at 420 px, and the a11y floors
+  (toolbar role, native named focusable controls, aria-pressed, MathML, group
+  role, focus movement). A real screen-reader pass stays human work.
 - Tests run on linkedom: no `getComputedStyle`, no CSP. Both defects passed the
   full suite unchanged before and after the fix until each regression was
   rewritten to install the engine surface the adapter talks to. **Renderer

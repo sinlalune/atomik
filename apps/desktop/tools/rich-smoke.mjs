@@ -70,6 +70,21 @@ flowchart LR
 <img src=x onerror="window.__atomikProbeFired = 1">
 <script>window.__atomikProbeFired = 1</script>
 \`\`\`
+
+## Caps must fail loudly, not hang
+
+\`\`\`mermaid
+flowchart LR
+${Array.from({ length: 400 }, (_, i) => `    N${i} --> N${i + 1}`).join('\n')}
+\`\`\`
+
+\`\`\`vega-lite
+{ "mark": "bar", "data": }
+\`\`\`
+
+$$
+\\frac{1}{
+$$
 `
 
 const vaultDir = mkdtempSync(join(tmpdir(), 'atomik-rich-vault-'))

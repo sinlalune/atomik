@@ -192,7 +192,7 @@ The owner-approved details and revised backlog order are recorded in
       parser/local-analyzer diagnostics mapped to note ranges through
       CodeMirror lint decorations; explicitly regression-pin every excluded
       LSP capability.
-- [ ] S07 Owner bench, environment defects, then parity/lifecycle hardening.
+- [x] S07 Owner bench, environment defects, then parity/lifecycle hardening.
       Reordered on 2026-08-17: the first bench of this path found Mermaid and
       Vega-Lite had never rendered in the real app and code was dark-on-dark in
       two themes, all with green gates. Bench first, harden what the bench
@@ -284,11 +284,17 @@ verdict     : owner accepted the bench round 2026-08-17 — "everything is
               good". Six defects found and fixed; byte-stability verified
               (six notes md5-identical after the full bench). Acceptance
               covers the BENCH, not the path.
-next action : S07 hardening still open — rapid edit/cancel/theme/tab stress,
-              cache teardown, responsive + keyboard/screen-reader benching,
-              repeat/first-render timing. Unwalked bench surface: note 01,
-              note 05, and every security probe. Owner decisions pending: a
-              real-Electron smoke lane, and unpacking Electron in the trunk.
+hardening   : owner directive 2026-08-17 — HONOR the DoD scope, do not amend.
+              `tools/rich-bench.mjs` makes S01's deleted baseline re-runnable
+              (every median inside the +10% ceiling, most faster than S01);
+              `smoke:rich` now benches first render 717 ms, repeat render
+              318 ms, teardown (one projection per block), caps failing
+              visibly, responsive at 420 px, and the a11y floors. Validated by
+              breaking each guard. NOT automated: a real screen-reader pass.
+next action : S08 closure — ceremony recorded (owner accepted 2026-08-17),
+              rebase, bare gates, coherence audit, journal, status: done,
+              self-merge. Then open CP-AI-CAPABILITIES (owner reordered the
+              backlog ahead of CP-LANGUAGE-NOTES).
 blockers    : none; rebased onto trunk 783c7c6
 ```
 
