@@ -207,3 +207,32 @@ concurrency, and honouring a real 429 with its `Retry-After`.
 
 Note the failure mode this hides: MediaWiki returns **HTTP 200** with the error
 in the body. Anything that keys on status alone reads it as success.
+
+
+## Article size on Core REST `with_html` — measured 2026-08-18 (S07d)
+
+The owner hit `wiki(budget-exceeded): response body exceeds budget` on an
+ordinary question. Measured against the live API, `fr.wikipedia`:
+
+```text
+"Zinedine Zidane" auto search, limit 3
+  wikipedia  3 requests · 2 articles · 3,403,585 bytes · 11.8s
+  wikidata   4 requests · 1 entity   ·   155,823 bytes ·  1.5s
+```
+
+A single major biography decompresses past **3.4 MB**, so the old 2 MB
+per-response ceiling made exactly the famous subjects people ask about
+unreadable. Two facts matter for anyone tuning these numbers:
+
+- The counter measures **decompressed** bytes. The wire transfer is gzipped and
+  much smaller, so the ceiling bounds memory and parse cost rather than
+  bandwidth.
+- `with_html` returns the whole parsed article to keep a 6,000-character
+  extract. That is the real inefficiency; raising the ceiling treats the
+  symptom. A lighter endpoint (or a section-scoped read) is the actual fix and
+  is not attempted here — provenance currently comes from this response's
+  `latest` revision block, and moving endpoints moves that too.
+
+Latency follows size: 11.8s for the Wikipedia leg alone at limit 3. `reach`
+therefore buys breadth at a real time cost, which is an argument for `quick`
+being the honest default for conversational use.

@@ -952,13 +952,34 @@ export class WikimediaClient {
 
       const accessedAt = new Date(this.nowMs()).toISOString()
       const articles: WikipediaArticle[] = []
+      const warnings: WikimediaWarning[] = []
       for (const [index, hit] of hits.slice(0, request.limit).entries()) {
         const pageUrl = new URL(
           `${base}/page/${encodeURIComponent(hit.key)}/with_html`
         )
-        const page = parsePageWithHtml(
-          await this.json(pageUrl, context.signal, budget)
-        )
+        let raw: unknown
+        try {
+          raw = await this.json(pageUrl, context.signal, budget)
+        } catch (error) {
+          // S07d (owner bench): one enormous article used to fail the entire
+          // search, and the biggest articles are exactly the famous subjects
+          // people ask about. A page too large to read within the budget is
+          // SKIPPED with a warning; the search still returns what it could
+          // read. Cancellation and every other failure still stop the seat.
+          if (
+            error instanceof WikimediaError &&
+            error.kind === 'budget-exceeded' &&
+            hits.length > 1
+          ) {
+            warnings.push({
+              kind: 'truncated',
+              message: `"${hit.title}" was too large to read within the response budget and was skipped.`
+            })
+            continue
+          }
+          throw error
+        }
+        const page = parsePageWithHtml(raw)
         if (page.id !== hit.id) {
           throw new WikimediaError('malformed', 'Wikipedia page identity changed during lookup')
         }
@@ -993,14 +1014,31 @@ export class WikimediaClient {
           }
         })
       }
+      // Every candidate skipped is an empty result, not a silent success:
+      // `empty` is the one kind `auto` falls through on, so the search still
+      // reaches the other corpus instead of returning nothing at all.
+      if (articles.length === 0) {
+        throw new WikimediaError(
+          'empty',
+          'every matching page was too large to read within the response budget'
+        )
+      }
       resultCount = articles.length
       return {
         request,
         results: articles,
         media: [],
-        warnings: articles.some((article) => article.truncated)
-          ? [{ kind: 'truncated', message: 'One or more articles were clipped to the text budget.' }]
-          : [],
+        warnings: [
+          ...warnings,
+          ...(articles.some((article) => article.truncated)
+            ? [
+                {
+                  kind: 'truncated' as const,
+                  message: 'One or more articles were clipped to the text budget.'
+                }
+              ]
+            : [])
+        ],
         responseBytes: budget.responseBytes - responseBytesBefore,
         accessedAt
       }

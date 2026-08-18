@@ -23,9 +23,14 @@ export const WIKIMEDIA_LIMITS = {
   defaultResults: 3,
   maxResults: 5,
   maxNetworkRequestsPerSearch: 8,
-  /** Per HTTP response; the whole search has its own independent ceiling. */
-  maxResponseBytes: 2_000_000,
-  maxTotalResponseBytes: 6_000_000,
+  /** Per HTTP response; the whole search has its own independent ceiling.
+   *  S07d: raised from 2 MB / 6 MB after the owner hit `budget-exceeded` on an
+   *  ordinary question. `with_html` returns a whole parsed article, and a
+   *  major biography decompresses past 2 MB — the pages people actually ask
+   *  about were the ones that could not be read. These count DECOMPRESSED
+   *  bytes; the transfer itself is gzipped and much smaller. */
+  maxResponseBytes: 6_000_000,
+  maxTotalResponseBytes: 18_000_000,
   maxArticleTextChars: 6_000,
   maxToolTextChars: 18_000,
   maxAliasesPerEntity: 12,

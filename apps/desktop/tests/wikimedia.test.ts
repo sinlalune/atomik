@@ -421,6 +421,63 @@ describe('provider-neutral search_wiki door (S05)', () => {
     ).rejects.toMatchObject({ kind: 'cancelled' })
   })
 
+  /** S07d: the owner hit `budget-exceeded` on an ordinary question — one
+   *  huge article failed the whole search, and huge articles are exactly the
+   *  famous subjects people ask about. */
+  /** S07d: the owner hit `budget-exceeded` on an ordinary question — one
+   *  huge article failed the whole search, and huge articles are exactly the
+   *  famous subjects people ask about. */
+  it('skips a page too large to read and keeps the ones it could', async () => {
+    const client = new WikimediaClient({
+      trace: { recordWikimedia: () => undefined },
+      limits: { maxResponseBytes: 20_000 },
+      fetchImpl: async (input) => {
+        const url = new URL(String(input))
+        if (url.pathname.endsWith('/search/page')) {
+          return response(fixture('wikipedia-search-en-atom-two.json'))
+        }
+        // The second candidate is enormous; the first is an ordinary page.
+        return url.pathname.includes('Atomic_theory')
+          ? response(`{"padding":"${'x'.repeat(30_000)}"}`)
+          : response(fixture('wikipedia-page-en-atom.json'))
+      }
+    })
+
+    const bundle = await client.searchWikipedia(
+      { query: 'atom', language: 'en', corpus: 'wikipedia', limit: 2, includeMedia: false },
+      context()
+    )
+
+    expect(bundle.results).toHaveLength(1)
+    expect(bundle.warnings).toContainEqual({
+      kind: 'truncated',
+      message:
+        '"Atomic theory" was too large to read within the response budget and was skipped.'
+    })
+  })
+
+  it('reports empty when EVERY candidate was too large to read', async () => {
+    const client = new WikimediaClient({
+      trace: { recordWikimedia: () => undefined },
+      limits: { maxResponseBytes: 20_000 },
+      fetchImpl: async (input) => {
+        const url = new URL(String(input))
+        return url.pathname.endsWith('/search/page')
+          ? response(fixture('wikipedia-search-en-atom-two.json'))
+          : response(`{"padding":"${'x'.repeat(30_000)}"}`)
+      }
+    })
+
+    // `empty` and not `budget-exceeded`: it is the one kind `auto` falls
+    // through on, so the search still reaches the other corpus.
+    await expect(
+      client.searchWikipedia(
+        { query: 'atom', language: 'en', corpus: 'wikipedia', limit: 2, includeMedia: false },
+        context()
+      )
+    ).rejects.toMatchObject({ kind: 'empty' })
+  })
+
   it('does not reset the network-call budget between auto corpora', async () => {
     const calls: URL[] = []
     await expect(

@@ -79,6 +79,18 @@ timestamp: 2026-08-17T00:00:00Z
   and 429/`Retry-After` handling carry the etiquette. Measured effect on one
   French question: two tool calls became one, wall time 11.9s → 5.6s, and
   Wikidata returned Q7186 instead of failing.
+- RESPONSE-BUDGET DEGRADATION (CP-MVP-011 S07d): a page too large to read is
+  now that PAGE's problem, not the search's. The owner hit
+  `budget-exceeded` on an ordinary question because `with_html` returns a whole
+  parsed article and a major biography decompresses past 3.4 MB — the old 2 MB
+  per-response ceiling failed exactly the subjects people ask about. Ceilings
+  are now 6 MB per response and 18 MB per search (decompressed bytes; the wire
+  is gzipped), and an oversized page inside a multi-hit search is SKIPPED with
+  a `truncated` warning naming it, so the rest still return. When every
+  candidate is too large the seat reports `empty` rather than
+  `budget-exceeded`, because `empty` is the one kind `auto` falls through on —
+  the search then still reaches the other corpus. A single-hit search still
+  fails loudly: there is nothing to keep.
 - UNIFIED SEARCH DOOR (CP-MVP-011 S05): `WikimediaClient.search` validates one
   `SearchWikiRequest` and dispatches only to the pinned seats. `auto` consults
   Wikipedia plus Wikidata sequentially, shares one request/byte budget and one

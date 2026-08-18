@@ -301,6 +301,8 @@ OPEN        provider-step position vs S07; the "luna" model id; whether
 - [x] S07c Separate the verbs, surface the tool-driven vault read: one switch
       per verb after the owner's bench found wiki silently enabling vault, and
       a surface for the vault notes the model pulls in mid-answer.
+- [x] S07d Response-budget degradation: an oversized article no longer fails
+      the whole search, and the ceilings match what Wikimedia actually returns.
 - [ ] S07 Augmented chat + external citations: the wiki control MIRRORS the
       vault tool — a per-thread enable toggle, a `reach` depth control, and
       four per-source switches (Wikipedia · Wikidata · Commons image ·
@@ -678,6 +680,32 @@ maxlag removed  1 tool call  · Wikidata ALIVE  ·  5.6s · $0.0034
   That, plus persisting the agent trace beside the transcript for audit, is
   S07d.
 
+## S07d work unit — complete 2026-08-18
+
+- **Owner bench that drove it:** `ai(budget-exceeded): wiki(budget-exceeded):
+  response body exceeds budget` — a hard failure on an ordinary question.
+- **Diagnosis, measured live:** the French "Zinedine Zidane" article comes back
+  as 3.4 MB of decompressed `with_html`, against a 2 MB per-response ceiling.
+  The biggest articles are the famous subjects people actually ask about, so
+  the limit failed precisely the useful cases.
+- **Code:** ceilings raised to 6 MB per response / 18 MB per search, and an
+  oversized page inside a multi-hit search is skipped with a `truncated`
+  warning naming it rather than failing the search. Every candidate too large
+  reports `empty`, the one kind `auto` falls through on, so the other corpus is
+  still consulted. A single-hit search still fails loudly — nothing to keep.
+- **Tests:** skip-one-keep-the-rest over a new two-hit fixture, the
+  all-too-large case reporting `empty`, and the single-hit case still failing.
+  Full result: 80 files, 1009 passed + 1 skipped; typecheck and build green.
+- **Verified live:** the owner's exact query now returns 2 French articles, the
+  Q1835 entity AND an attributed Commons photograph (Hadi Abyar, CC BY 4.0),
+  with the truncation and ambiguity warnings surfaced.
+- **Docs:** the dated snapshot records the measured article size, that the
+  counter is decompressed bytes, and that `with_html` fetching megabytes for a
+  6,000-character extract is the real inefficiency — raising the ceiling treats
+  the symptom, and a lighter endpoint would move revision provenance with it.
+  Latency is the other half: 11.8s for the Wikipedia leg at limit 3, which
+  argues for `quick` being the honest conversational default.
+
 # Current checkpoint
 
 ```text
@@ -691,11 +719,12 @@ changed     : S01 contracts; S02 Wikipedia; S03 Wikidata/graph projection;
               S06c live-bench repairs (partial-success in `auto`, read maxlag);
               S07a wiki control contract + composer surface (default off);
               S07b consulted-sources surface, attributed media, edition control;
-              S07c one switch per verb + tool-driven vault read surfaced
-tests       : typecheck green; 80 files / 1007 pass / 1 skip; build green
+              S07c one switch per verb + tool-driven vault read surfaced;
+              S07d response-budget degradation (skip the page, keep the search)
+tests       : typecheck green; 80 files / 1009 pass / 1 skip; build green
 bench       : 2026-08-17, live, gemini-3.7-flash + fr.wikipedia + wikidata —
               one tool call, 5.6s, ~$0.0034 per exchange, French answer
-next action : execute S07d — represent TOOL activity in the request inspector
+next action : execute S07e — represent TOOL activity in the request inspector
               (the breakdown pills still describe the pre-pass packet only)
               and persist the agent trace beside the transcript for audit,
               both from the 2026-08-18 bench. Then S08 save-as-source, which
