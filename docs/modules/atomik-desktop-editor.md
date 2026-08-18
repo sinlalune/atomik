@@ -288,6 +288,33 @@ carries the decisions; the operational shape:
   rewritten to install the engine surface the adapter talks to. **Renderer
   coverage is not evidence of rendering** — bench in the real app, early.
 
+## The model is told what the surface can do (CP-AI-CAPABILITIES S01)
+
+- `shared/prompt-composition.ts` gained two ordinary plan blocks:
+  `rendering-capabilities` (in BOTH default plans) and `note-conventions` (note
+  plan only). They are `BUILTIN_BLOCK_IDS` entries like any other — composed
+  through the plan, individually overridable, named in the system-plan UI,
+  verbatim in the sent-request inspector. No new prompt mechanism.
+- The renderers were hydrated in chat, inline AI and the AI note preview since
+  CP-RICH-MARKDOWN S02, but NOTHING told the model they existed. ADR-015 has
+  the reasoning; the operational rule is that the refusal half of the block
+  earns its tokens as much as the capability half — a model that does not know
+  Vega takes inline data only writes a `url` dataset the reader never sees.
+- `note-conventions` stays OUT of chat on purpose: authoring a typed edge is a
+  note act. Chat may point at a note with a plain `[[wikilink]]` (S02), which
+  is a different affordance from citation and must stay visibly so.
+- **The block text is pinned to the code**, not maintained by memory.
+  `tests/prompt-composition.test.ts` checks every fence identifier against
+  `richKindForFence` and every limit against `DEFAULT_RICH_LIMITS`, because a
+  wrong number in a prompt fails no build — it teaches the model to write
+  blocks the app refuses. Validated by changing a number and watching it fail.
+- Cost is measured, not assumed: +262 tokens per chat send, +380 per note
+  generation, roughly doubling the system message. A size ceiling is asserted
+  in the same test file, so growing it is a decision rather than a drift.
+- The legacy `composeSystemPrompt` template and `DEFAULT_SYSTEM_PLAN` must stay
+  byte-identical — an existing test pins it. Both change together or neither
+  does. Capabilities sit BEFORE `# Rules` so `## Output` stays inside it.
+
 ## Web-link pill identity (CP-FEEDBACK S05)
 
 - Read and live still ask the shared `graph-core` classifier; neither surface

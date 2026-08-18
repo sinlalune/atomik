@@ -609,6 +609,10 @@ const BUILTIN_BLOCK_DESCRIPTIONS: Record<BuiltinBlockId, string> = {
   'grounding-rules': 'The Rules > Grounding section — the mechanical contract.',
   'grounding-rules-chat':
     'The Rules > Grounding section of CHAT sends — conversation-first, same quote contract.',
+  'rendering-capabilities':
+    'The Capabilities > Rendering section — which fences render, and what is refused.',
+  'note-conventions':
+    'The Note conventions section — wikilinks, typed edges, frontmatter. Note sends only.',
   'output-replace-selection': 'The Rules > Output brief for replace-selection runs.',
   'output-append': 'The Rules > Output brief for append runs.',
   'output-new-note': 'The Rules > Output brief for new-note runs.',

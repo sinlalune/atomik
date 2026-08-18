@@ -246,6 +246,14 @@ teardown leaves exactly one projection per block, and asserts the accessibility
 floors. `window.setSize` and `webContents.reload()` are driven from the main
 process, so the renderer still needs no test hook.
 
+## Capability blocks ride on every send (CP-AI-CAPABILITIES S01)
+
+The system plan gained `rendering-capabilities` and `note-conventions`. They
+are ordinary overridable blocks, but they are sent EVERY request: +262 tokens
+per chat send, +380 per note generation. If per-request cost is ever
+investigated, these are the first thing to look at and the easiest to cut — no
+code change, just a plan edit. ADR-015 carries the reasoning.
+
 ## Rich Markdown projection lifecycle (CP-RICH-MARKDOWN S02)
 
 - `RichMarkdownBody` is the shared post-mount lifecycle boundary for every
