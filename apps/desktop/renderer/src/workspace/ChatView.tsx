@@ -957,6 +957,9 @@ export function ChatView({
             ? {
                 tools: {
                   mode: 'model' as const,
+                  // The vault VERB follows the vault switch: wiki alone does
+                  // not hand the model the vault (owner bench 2026-08-18).
+                  vault: grounding,
                   wikiLanguage: wikiLang,
                   wikiReach,
                   wikiSources
@@ -1526,7 +1529,8 @@ export function ChatView({
                 if (!consulted) return null
                 if (
                   consulted.sources.length === 0 &&
-                  consulted.media.length === 0
+                  consulted.media.length === 0 &&
+                  consulted.notes.length === 0
                 ) {
                   return null
                 }
@@ -1536,6 +1540,9 @@ export function ChatView({
                     onCopy={(value: string) => {
                       void copyText(value)
                     }}
+                    onOpenNote={(path: string) =>
+                      dispatch((state) => revealNote(state, paneId, path))
+                    }
                   />
                 )
               })()}

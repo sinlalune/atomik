@@ -298,6 +298,9 @@ OPEN        provider-step position vs S07; the "luna" model id; whether
       lookup invisible, show what each answer read — sources with their exact
       revision, attributed media, corpus warnings — plus the edition control
       the first bench proved necessary.
+- [x] S07c Separate the verbs, surface the tool-driven vault read: one switch
+      per verb after the owner's bench found wiki silently enabling vault, and
+      a surface for the vault notes the model pulls in mid-answer.
 - [ ] S07 Augmented chat + external citations: the wiki control MIRRORS the
       vault tool — a per-thread enable toggle, a `reach` depth control, and
       four per-source switches (Wikipedia · Wikidata · Commons image ·
@@ -643,6 +646,38 @@ maxlag removed  1 tool call  · Wikidata ALIVE  ·  5.6s · $0.0034
   work unit (S07c): it changes the chat file format, which deserves its own
   gates rather than riding along here.
 
+## S07c work unit — complete 2026-08-18
+
+- **Owner bench that drove it, verbatim:** *"separate the toggle of vault and
+  wiki, wiki alone don't need vault, still no surface of context packet
+  accessible"* — with a screenshot showing an answer that began "Based on your
+  note zinedine zidane.md" while the vault switch was OFF.
+- **Code:** `createGenerationToolPolicy` derives the allowlist from each switch
+  separately: `vault` gates `search_vault`, the wiki sources gate
+  `search_wiki`. The renderer sends `vault: grounding` alongside the wiki
+  preference; an omitted `vault` still resolves to true, so no pre-S07c caller
+  changes behaviour. `runGenerationWithTools` returns the plain generate path
+  when the allowlist is empty, rather than sending `tools: []`.
+  `consultedMaterialOf` gained `notes`, flattening `vault-context` payloads
+  into the notes the model asked for by calling the verb, and `ConsultedBlock`
+  renders them with the stage, estimated tokens and the reason as a tooltip;
+  clicking one reveals the note in the pane.
+- **Tests:** the vault verb appears only with its switch on and is refused
+  otherwise; wiki-only and vault-only policies each expose exactly one verb;
+  both off yields no verbs, no schemas, and no loop start at all (proven
+  through `runGenerationWithTools` with an adapter that fails if entered).
+  Plus tool-driven notes deduplicated per path, and a payload-less call
+  inventing nothing. Full result: 80 files, 1007 passed + 1 skipped; typecheck
+  and build green.
+- **Docs:** the AI note records the one-switch-per-verb rule, the empty-allowlist
+  behaviour, and the question/answer split between the pre-pass packet and a
+  tool-driven read.
+- **Still open from the same bench:** the request INSPECTOR does not yet
+  represent tool activity — the breakdown pills describe the pre-pass packet
+  only, so a turn whose context came from a tool call shows nothing there.
+  That, plus persisting the agent trace beside the transcript for audit, is
+  S07d.
+
 # Current checkpoint
 
 ```text
@@ -655,15 +690,16 @@ changed     : S01 contracts; S02 Wikipedia; S03 Wikidata/graph projection;
               S06b shared openai-chat-completions codec + native Google;
               S06c live-bench repairs (partial-success in `auto`, read maxlag);
               S07a wiki control contract + composer surface (default off);
-              S07b consulted-sources surface, attributed media, edition control
-tests       : typecheck green; 80 files / 1004 pass / 1 skip; build green
+              S07b consulted-sources surface, attributed media, edition control;
+              S07c one switch per verb + tool-driven vault read surfaced
+tests       : typecheck green; 80 files / 1007 pass / 1 skip; build green
 bench       : 2026-08-17, live, gemini-3.7-flash + fr.wikipedia + wikidata —
               one tool call, 5.6s, ~$0.0034 per exchange, French answer
-next action : execute S07c — the request INSPECTOR (the exact packet sent,
-              tool results included) and PERSISTING the agent trace beside the
-              transcript for audit, both asked for at the 2026-08-18 bench.
-              Then S08 save-as-source, which also brings navigation to a
-              consulted URL
+next action : execute S07d — represent TOOL activity in the request inspector
+              (the breakdown pills still describe the pre-pass packet only)
+              and persist the agent trace beside the transcript for audit,
+              both from the 2026-08-18 bench. Then S08 save-as-source, which
+              also brings navigation to a consulted URL
 blockers    : none
 parallel    : CP-RICH-MARKDOWN is running; styles.css and broad renderer/test/
               docs surfaces overlap advisory-only. Rebase at step boundaries.

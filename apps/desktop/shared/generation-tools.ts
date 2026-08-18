@@ -57,6 +57,9 @@ export const DEFAULT_WIKI_SOURCES: GenerationWikiSources = {
 export type GenerationToolPreference = {
   mode: GenerationToolMode
   wikiLanguage: string
+  /** S07c (owner bench): the vault VERB follows the vault switch, not the
+   *  wiki one. Omitted means true, preserving every pre-S07c caller. */
+  vault?: boolean
   wikiReach?: GenerationWikiReach
   wikiSources?: Partial<GenerationWikiSources>
 }
@@ -65,6 +68,7 @@ export type GenerationToolPreference = {
 export type ResolvedGenerationToolPreference = {
   mode: GenerationToolMode
   wikiLanguage: string
+  vault: boolean
   wikiReach: GenerationWikiReach
   wikiSources: GenerationWikiSources
 }
@@ -176,6 +180,7 @@ const VAULT_KEYS = new Set(['query', 'sensitivity', 'limit'])
 const PREFERENCE_KEYS = new Set([
   'mode',
   'wikiLanguage',
+  'vault',
   'wikiReach',
   'wikiSources'
 ])
@@ -236,7 +241,14 @@ export function parseGenerationToolPreference(
     )
   }
   const wikiSources = parseWikiSources(value.wikiSources)
-  return { mode: value.mode, wikiLanguage, wikiReach, wikiSources }
+  const vault = value.vault ?? true
+  if (typeof vault !== 'boolean') {
+    throw new GenerationToolContractError(
+      'invalid-arguments',
+      'vault preference must be a boolean'
+    )
+  }
+  return { mode: value.mode, wikiLanguage, vault, wikiReach, wikiSources }
 }
 
 function parseWikiSources(value: unknown): GenerationWikiSources {
@@ -398,13 +410,18 @@ export function createGenerationToolPolicy(
   if (sources.wikipedia) corpora.push('wikipedia')
   if (sources.wikidata) corpora.push('wikidata')
   if (sources.wiktionary) corpora.push('wiktionary')
-  // Switching every source off removes the VERB, rather than leaving a tool
-  // that can only fail: the model is never offered a door it cannot open.
+  // Each verb follows ITS OWN switch (S07c, owner bench: "separate the toggle
+  // of vault and wiki, wiki alone don't need vault"). Before this, turning on
+  // the wiki tool silently handed the model the vault tool as well, and an
+  // answer would say "based on your note" with the vault switch off.
+  // Switching every wiki source off removes that verb rather than leaving a
+  // tool that can only fail: the model is never offered a door it cannot open.
   const allowed: GenerationToolName[] =
     parsed.mode === 'model'
-      ? corpora.length > 0
-        ? ['search_vault', 'search_wiki']
-        : ['search_vault']
+      ? [
+          ...(parsed.vault ? (['search_vault'] as const) : []),
+          ...(corpora.length > 0 ? (['search_wiki'] as const) : [])
+        ]
       : []
   return {
     mode: parsed.mode,

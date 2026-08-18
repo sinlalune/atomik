@@ -114,6 +114,20 @@ timestamp: 2026-08-17T00:00:00Z
   In-app navigation is deliberately absent — opening a live remote page is the
   web-source lifecycle's job and arrives with save-as-source (S08), so the URL
   is copyable rather than pretending to be a link.
+- ONE SWITCH PER VERB (CP-MVP-011 S07c): the allowlist follows the user's
+  switches INDEPENDENTLY — `vault` gates `search_vault`, the wiki sources gate
+  `search_wiki`. Before this, `createGenerationToolPolicy` always granted
+  `search_vault` whenever tools were on, so enabling the wiki tool silently
+  handed the model the vault as well; the owner's 2026-08-18 bench caught it
+  the honest way — an answer opened "Based on your note" with the vault switch
+  off. With every verb switched off the loop does not run at all: an empty
+  allowlist is tools-off, not an empty `tools: []` array, which providers
+  reject for no gain. The tool-driven vault read also gained the surface it
+  never had — `consultedMaterialOf` now flattens `vault-context` payloads into
+  notes (path, title, stage, reason, tokens) that render beside the external
+  sources and open in place. The distinction the UI now draws: the pre-pass
+  packet belongs to the QUESTION it was compiled for and opens from its pill;
+  a tool-driven read happened mid-answer and belongs to the ANSWER.
 - SHARED DIALECT CODEC (CP-MVP-011 S06b): `electron-main/openai-tool-codec.ts`
   owns the `openai-chat-completions` wire grammar ONCE — schema emission, call
   parsing, the `role: "tool"` continuation, and usage accumulation. An adapter

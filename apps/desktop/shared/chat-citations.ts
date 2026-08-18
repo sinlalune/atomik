@@ -339,9 +339,21 @@ export type ConsultedMedia = {
   height: number
 }
 
+/** A note the model pulled in by CALLING search_vault, as opposed to the
+ *  deterministic pre-pass packet that rides the question. Both are vault
+ *  retrieval; only this one had no surface at all before S07c. */
+export type ConsultedNote = {
+  path: string
+  title: string
+  stage: string
+  reason: string
+  tokens: number
+}
+
 export type ConsultedMaterial = {
   sources: ConsultedSource[]
   media: ConsultedMedia[]
+  notes: ConsultedNote[]
   /** Corpus degradations and truncations worth showing beside the answer. */
   warnings: { kind: string; message: string }[]
 }
@@ -414,13 +426,37 @@ export function consultedMaterialOf(
 ): ConsultedMaterial {
   const sources = new Map<string, ConsultedSource>()
   const media = new Map<string, ConsultedMedia>()
+  const notes = new Map<string, ConsultedNote>()
   const warnings: { kind: string; message: string }[] = []
   const seenWarnings = new Set<string>()
 
   for (const execution of executions) {
     const payload = execution.payload as
-      | { kind?: unknown; bundle?: { results?: unknown; media?: unknown; warnings?: unknown } }
+      | {
+          kind?: unknown
+          bundle?: { results?: unknown; media?: unknown; warnings?: unknown }
+          packet?: { entries?: unknown }
+        }
       | undefined
+
+    if (payload?.kind === 'vault-context') {
+      for (const entry of Array.isArray(payload.packet?.entries)
+        ? payload.packet.entries
+        : []) {
+        const note = entry as Record<string, unknown>
+        const path = text(note.path)
+        if (path === null || notes.has(path)) continue
+        notes.set(path, {
+          path,
+          title: text(note.title) ?? path,
+          stage: text(note.stage) ?? 'unknown',
+          reason: text(note.reason) ?? '',
+          tokens: typeof note.tokens === 'number' ? note.tokens : 0
+        })
+      }
+      continue
+    }
+
     if (payload?.kind !== 'wikimedia') continue
 
     for (const entry of Array.isArray(payload.bundle?.results)
@@ -484,6 +520,7 @@ export function consultedMaterialOf(
   return {
     sources: [...sources.values()],
     media: [...media.values()],
+    notes: [...notes.values()],
     warnings
   }
 }

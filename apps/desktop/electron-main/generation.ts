@@ -196,6 +196,12 @@ export async function runGenerationWithTools(
     return adapter.generate(operation, context)
   }
   const policy = createGenerationToolPolicy(preference)
+  // Every verb switched off is the same as tools off: sending an empty tool
+  // array invites provider-specific rejections for no gain, and there is
+  // nothing for the model to call anyway (S07c).
+  if (policy.allowed.length === 0) {
+    return adapter.generate(operation, context)
+  }
   if (adapter.tools.kind === 'unsupported' || adapter.startToolLoop === undefined) {
     return visibleUnsupportedResult(
       await adapter.generate(operation, context),

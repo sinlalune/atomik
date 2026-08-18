@@ -33,13 +33,38 @@ function revisionLabel(source: ConsultedSource): string {
 
 export function ConsultedBlock({
   material,
-  onCopy
+  onCopy,
+  onOpenNote
 }: {
   material: ConsultedMaterial
   onCopy: (value: string) => void
+  onOpenNote: (path: string) => void
 }): React.JSX.Element {
   return (
     <section className="chat-consulted" aria-label="Consulted sources">
+      {/* A note the model asked for by calling search_vault. The pre-pass
+          packet rides the QUESTION and opens from its pill; this retrieval
+          happened mid-answer and had no surface at all until S07c. */}
+      {material.notes.length > 0 && (
+        <ul className="chat-consulted-list">
+          {material.notes.map((note) => (
+            <li key={note.path}>
+              <span className="chat-consulted-kind kind-vault">vault</span>
+              <button
+                type="button"
+                className="chat-consulted-note"
+                title={`${note.path}${note.reason ? ` — ${note.reason}` : ''}`}
+                onClick={() => onOpenNote(note.path)}
+              >
+                {note.title}
+              </button>
+              <span className="chat-consulted-meta">
+                {note.stage} · ~{note.tokens} tok
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
       {material.warnings.length > 0 && (
         <ul className="chat-consulted-warnings">
           {material.warnings.map((warning) => (

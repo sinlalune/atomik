@@ -311,6 +311,40 @@ describe('provider-neutral loop authority and budgets', () => {
     )
   })
 
+  it('never starts a loop when every verb is switched off', async () => {
+    // S07c: an empty allowlist is tools-off, not an empty tools array —
+    // providers reject those, and there would be nothing to call anyway.
+    let started = false
+    const adapter = nativeAdapter(async () => {
+      started = true
+      return { kind: 'final', result: await finalResult() }
+    })
+    const allOff = {
+      ...operation(),
+      tools: {
+        mode: 'model' as const,
+        wikiLanguage: 'en',
+        vault: false,
+        wikiSources: {
+          wikipedia: false,
+          wikidata: false,
+          media: false,
+          wiktionary: false
+        }
+      }
+    }
+    const generated = await runGenerationWithTools(
+      adapter,
+      allOff,
+      { signal: signal() },
+      async () => {
+        throw new Error('nothing may execute')
+      }
+    )
+    expect(started).toBe(false)
+    expect(generated.bundle.blocks.length).toBeGreaterThan(0)
+  })
+
   it('stops at the depth budget', async () => {
     const final = await finalResult()
     let depth = 0

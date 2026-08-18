@@ -131,12 +131,49 @@ describe('what an answer consulted (CP-MVP-011 S07b)', () => {
     expect(material.warnings).toEqual([warning])
   })
 
-  it('ignores vault payloads and failed calls without inventing sources', () => {
+  it('surfaces notes the model pulled in by CALLING search_vault', () => {
+    // S07c, owner bench: this retrieval happened mid-answer and had no
+    // surface at all — the pre-pass packet opens from the question's pill,
+    // but a tool-driven read was invisible.
     const material = consultedMaterialOf([
-      { result: { ok: true }, payload: { kind: 'vault-context', packet: {} } },
-      { result: { ok: false } }
+      {
+        result: { ok: true },
+        payload: {
+          kind: 'vault-context',
+          packet: {
+            entries: [
+              {
+                path: 'notes/zidane.md',
+                title: 'Zinedine Zidane',
+                stage: 'title',
+                reason: 'title matches the question',
+                tokens: 180
+              },
+              // The same note reached twice stays one entry.
+              { path: 'notes/zidane.md', title: 'Zinedine Zidane', stage: 'title' }
+            ]
+          }
+        }
+      }
     ])
-    expect(material).toEqual({ sources: [], media: [], warnings: [] })
+    expect(material.notes).toEqual([
+      {
+        path: 'notes/zidane.md',
+        title: 'Zinedine Zidane',
+        stage: 'title',
+        reason: 'title matches the question',
+        tokens: 180
+      }
+    ])
+    expect(material.sources).toEqual([])
+  })
+
+  it('invents nothing from a failed or payload-less call', () => {
+    const material = consultedMaterialOf([
+      { result: { ok: false } },
+      { result: { ok: true } }
+    ])
+    expect(material).toEqual({ sources: [], media: [], notes: [], warnings: [] })
   })
 })
 

@@ -161,6 +161,9 @@ describe('provider-neutral model tool calls', () => {
       wikiLanguage: 'fr',
       // S07a: omitting the fine-tune resolves to the pinned defaults rather
       // than failing — the renderer sends only what the user changed.
+      // S07c: an omitted `vault` stays true, so every pre-S07c caller keeps
+      // the verb it had.
+      vault: true,
       wikiReach: 'standard',
       wikiSources: {
         wikipedia: true,
@@ -242,6 +245,42 @@ describe('provider-neutral model tool calls', () => {
     expect(properties.corpus.enum).toEqual(['wikipedia'])
     expect(properties.limit.maximum).toBe(2)
     expect(properties.includeMedia.enum).toEqual([false])
+  })
+
+  it('gives the model the vault verb only when the vault switch is on', () => {
+    // Owner bench 2026-08-18: with wiki ON and vault OFF, an answer still said
+    // "Based on your note" — because search_vault was always in the allowlist.
+    // Each verb follows its own switch now.
+    const wikiOnly = createGenerationToolPolicy({
+      mode: 'model',
+      wikiLanguage: 'en',
+      vault: false
+    })
+    expect(wikiOnly.allowed).toEqual(['search_wiki'])
+    expect(() =>
+      parseGenerationToolCall(
+        { id: 'call_vault_off', name: 'search_vault', arguments: { query: 'x' } },
+        wikiOnly
+      )
+    ).toThrow('search_vault is disabled')
+
+    const vaultOnly = createGenerationToolPolicy({
+      mode: 'model',
+      wikiLanguage: 'en',
+      wikiSources: { wikipedia: false, wikidata: false, media: false, wiktionary: false }
+    })
+    expect(vaultOnly.allowed).toEqual(['search_vault'])
+
+    // Both switches off leaves no verb at all — the loop then behaves as if
+    // tools were never requested rather than sending an empty tool array.
+    const nothing = createGenerationToolPolicy({
+      mode: 'model',
+      wikiLanguage: 'en',
+      vault: false,
+      wikiSources: { wikipedia: false, wikidata: false, media: false, wiktionary: false }
+    })
+    expect(nothing.allowed).toEqual([])
+    expect(generationToolDefinitions(nothing)).toEqual([])
   })
 
   it('removes the verb entirely when every source is switched off', () => {
