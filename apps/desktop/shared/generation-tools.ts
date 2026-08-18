@@ -4,7 +4,8 @@ import {
   normalizeWikimediaLanguage,
   parseSearchWikiRequest,
   type SearchWikiRequest,
-  type WikimediaSearchBundle
+  type WikimediaSearchBundle,
+  type WikimediaSearchCorpus
 } from './wikimedia'
 
 /** Provider-neutral model tool protocol (CP-MVP-011 S01). */
@@ -25,15 +26,58 @@ export type GenerationToolName = 'search_vault' | 'search_wiki'
 export type GenerationToolMode = 'off' | 'model'
 
 /** Renderer preference only; main owns the allowlist and hard budgets. */
+/** The wiki tool's fine-tune, mirroring the vault tool's `reach` (owner
+ *  ruling 2026-08-17). Depth is a NAMED step, never a raw number from the
+ *  renderer: main maps it to the pinned result ceiling. */
+export type GenerationWikiReach = 'quick' | 'standard' | 'deep'
+
+/** Which of the four augmentations the user left switched on. */
+export type GenerationWikiSources = {
+  wikipedia: boolean
+  wikidata: boolean
+  media: boolean
+  wiktionary: boolean
+}
+
+export const WIKI_REACH_LIMITS: Record<GenerationWikiReach, number> = {
+  quick: 2,
+  standard: 3,
+  deep: 5
+}
+
+export const DEFAULT_WIKI_SOURCES: GenerationWikiSources = {
+  wikipedia: true,
+  wikidata: true,
+  media: true,
+  wiktionary: true
+}
+
+/** What the RENDERER may send: the fine-tune is optional, and omitting it
+ *  means the pinned defaults rather than an error. */
 export type GenerationToolPreference = {
   mode: GenerationToolMode
   wikiLanguage: string
+  wikiReach?: GenerationWikiReach
+  wikiSources?: Partial<GenerationWikiSources>
+}
+
+/** What MAIN works with once every default has been resolved. */
+export type ResolvedGenerationToolPreference = {
+  mode: GenerationToolMode
+  wikiLanguage: string
+  wikiReach: GenerationWikiReach
+  wikiSources: GenerationWikiSources
 }
 
 export type GenerationToolPolicy = {
   mode: GenerationToolMode
   allowed: readonly GenerationToolName[]
   wikiLanguage: string
+  /** Corpora the user left switched on, derived — never sent by the renderer. */
+  wikiCorpora: readonly WikimediaSearchCorpus[]
+  /** Result ceiling for this reach; the model may ask for less, never more. */
+  wikiLimit: number
+  wikiMedia: boolean
   limits: typeof GENERATION_TOOL_LIMITS
 }
 
@@ -129,7 +173,13 @@ const isRecord = (value: unknown): value is UnknownRecord =>
 
 const CALL_ID_RE = /^[A-Za-z0-9._:-]{1,128}$/
 const VAULT_KEYS = new Set(['query', 'sensitivity', 'limit'])
-const PREFERENCE_KEYS = new Set(['mode', 'wikiLanguage'])
+const PREFERENCE_KEYS = new Set([
+  'mode',
+  'wikiLanguage',
+  'wikiReach',
+  'wikiSources'
+])
+const WIKI_SOURCE_KEYS = new Set(['wikipedia', 'wikidata', 'media', 'wiktionary'])
 const SENSITIVITIES = new Set<RetrievalSensitivity>(['titles', 'linked', 'full'])
 
 export class GenerationToolContractError extends Error {
@@ -145,7 +195,7 @@ export class GenerationToolContractError extends Error {
 /** Strict renderer-wire parser; a preference grants no execution authority. */
 export function parseGenerationToolPreference(
   value: unknown
-): GenerationToolPreference {
+): ResolvedGenerationToolPreference {
   if (!isRecord(value)) {
     throw new GenerationToolContractError(
       'invalid-arguments',
@@ -174,7 +224,53 @@ export function parseGenerationToolPreference(
       'invalid Wikimedia language'
     )
   }
-  return { mode: value.mode, wikiLanguage }
+  const wikiReach = value.wikiReach ?? 'standard'
+  if (
+    wikiReach !== 'quick' &&
+    wikiReach !== 'standard' &&
+    wikiReach !== 'deep'
+  ) {
+    throw new GenerationToolContractError(
+      'invalid-arguments',
+      'wiki reach must be quick, standard or deep'
+    )
+  }
+  const wikiSources = parseWikiSources(value.wikiSources)
+  return { mode: value.mode, wikiLanguage, wikiReach, wikiSources }
+}
+
+function parseWikiSources(value: unknown): GenerationWikiSources {
+  if (value === undefined) return { ...DEFAULT_WIKI_SOURCES }
+  if (!isRecord(value)) {
+    throw new GenerationToolContractError(
+      'invalid-arguments',
+      'wiki sources must be an object'
+    )
+  }
+  const unknown = Object.keys(value).filter((key) => !WIKI_SOURCE_KEYS.has(key))
+  if (unknown.length > 0) {
+    throw new GenerationToolContractError(
+      'invalid-arguments',
+      `unknown wiki source field: ${unknown[0]}`
+    )
+  }
+  const read = (key: keyof GenerationWikiSources): boolean => {
+    const entry = value[key]
+    if (entry === undefined) return DEFAULT_WIKI_SOURCES[key]
+    if (typeof entry !== 'boolean') {
+      throw new GenerationToolContractError(
+        'invalid-arguments',
+        `wiki source ${key} must be a boolean`
+      )
+    }
+    return entry
+  }
+  return {
+    wikipedia: read('wikipedia'),
+    wikidata: read('wikidata'),
+    media: read('media'),
+    wiktionary: read('wiktionary')
+  }
 }
 
 function parseVaultArguments(value: unknown): SearchVaultToolArguments {
@@ -263,10 +359,26 @@ export function parseGenerationToolCall(
         `search_wiki language must be ${policy.wikiLanguage}`
       )
     }
+    // The emitted schema already advertises only the switched-on corpora; a
+    // model that asks anyway is refused here, because a schema is advice and
+    // this parser is authority.
+    if (!policy.wikiCorpora.includes(request.corpus)) {
+      throw new GenerationToolContractError(
+        'not-allowed',
+        `${request.corpus} is switched off for this thread`
+      )
+    }
     return {
       id: value.id,
       name: value.name,
-      arguments: request
+      arguments: {
+        ...request,
+        // Reach and the media switch CLAMP rather than refuse: asking for more
+        // breadth than the user allowed is not misconduct, so the call still
+        // runs, bounded to what they chose.
+        limit: Math.min(request.limit, policy.wikiLimit),
+        includeMedia: request.includeMedia && policy.wikiMedia
+      }
     }
   } catch (error) {
     if (error instanceof GenerationToolContractError) throw error
@@ -279,10 +391,30 @@ export function createGenerationToolPolicy(
   preference: GenerationToolPreference
 ): GenerationToolPolicy {
   const parsed = parseGenerationToolPreference(preference)
+  const sources = parsed.wikiSources
+  const corpora: WikimediaSearchCorpus[] = []
+  // `auto` only means anything when BOTH of its legs are switched on.
+  if (sources.wikipedia && sources.wikidata) corpora.push('auto')
+  if (sources.wikipedia) corpora.push('wikipedia')
+  if (sources.wikidata) corpora.push('wikidata')
+  if (sources.wiktionary) corpora.push('wiktionary')
+  // Switching every source off removes the VERB, rather than leaving a tool
+  // that can only fail: the model is never offered a door it cannot open.
+  const allowed: GenerationToolName[] =
+    parsed.mode === 'model'
+      ? corpora.length > 0
+        ? ['search_vault', 'search_wiki']
+        : ['search_vault']
+      : []
   return {
     mode: parsed.mode,
-    allowed: parsed.mode === 'model' ? ['search_vault', 'search_wiki'] : [],
+    allowed,
     wikiLanguage: parsed.wikiLanguage,
+    wikiCorpora: corpora,
+    wikiLimit: WIKI_REACH_LIMITS[parsed.wikiReach],
+    // Media rides on Wikidata's P18; without that leg there is nothing to
+    // resolve a filename from.
+    wikiMedia: sources.media && sources.wikidata,
     limits: GENERATION_TOOL_LIMITS
   }
 }
@@ -332,11 +464,18 @@ export function generationToolDefinitions(
           language: { type: 'string', enum: [policy.wikiLanguage] },
           corpus: {
             type: 'string',
-            enum: ['auto', 'wikipedia', 'wikidata', 'wiktionary'],
-            default: 'auto'
+            enum: [...policy.wikiCorpora],
+            default: policy.wikiCorpora[0]
           },
-          limit: { type: 'integer', minimum: 1, maximum: 5, default: 3 },
-          includeMedia: { type: 'boolean', default: true }
+          limit: {
+            type: 'integer',
+            minimum: 1,
+            maximum: policy.wikiLimit,
+            default: policy.wikiLimit
+          },
+          includeMedia: policy.wikiMedia
+            ? { type: 'boolean', default: true }
+            : { type: 'boolean', enum: [false], default: false }
         },
         required: ['query', 'language']
       }

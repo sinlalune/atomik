@@ -672,6 +672,18 @@ export function BookIcon(): React.JSX.Element {
   )
 }
 
+/** Wikimedia lookup — a globe: public knowledge, outside the vault. */
+export function GlobeIcon(): React.JSX.Element {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="8" cy="8" r="5.6" />
+      <ellipse cx="8" cy="8" rx="2.4" ry="5.6" />
+      <line x1="2.5" y1="6.2" x2="13.5" y2="6.2" />
+      <line x1="2.5" y1="9.8" x2="13.5" y2="9.8" />
+    </svg>
+  )
+}
+
 /** Live mode — pen. */
 export function PenIcon(): React.JSX.Element {
   return (

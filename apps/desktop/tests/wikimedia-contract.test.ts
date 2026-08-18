@@ -3,6 +3,7 @@ import {
   createGenerationToolPolicy,
   GENERATION_TOOL_LIMITS,
   GenerationToolContractError,
+  generationToolDefinitions,
   parseGenerationToolCall,
   parseGenerationToolPreference
 } from '../shared/generation-tools'
@@ -155,7 +156,19 @@ describe('provider-neutral model tool calls', () => {
   it('strictly validates the renderer preference and pins the call language', () => {
     expect(
       parseGenerationToolPreference({ mode: 'model', wikiLanguage: 'FR' })
-    ).toEqual({ mode: 'model', wikiLanguage: 'fr' })
+    ).toEqual({
+      mode: 'model',
+      wikiLanguage: 'fr',
+      // S07a: omitting the fine-tune resolves to the pinned defaults rather
+      // than failing — the renderer sends only what the user changed.
+      wikiReach: 'standard',
+      wikiSources: {
+        wikipedia: true,
+        wikidata: true,
+        media: true,
+        wiktionary: true
+      }
+    })
     for (const invalid of [
       null,
       { mode: 'auto', wikiLanguage: 'en' },
@@ -176,6 +189,79 @@ describe('provider-neutral model tool calls', () => {
         policy
       )
     ).toThrow('language must be en')
+  })
+
+  it('derives the wiki authority from the switches, not from the model', () => {
+    const quickWikipediaOnly = createGenerationToolPolicy({
+      mode: 'model',
+      wikiLanguage: 'en',
+      wikiReach: 'quick',
+      wikiSources: { wikipedia: true, wikidata: false, media: true, wiktionary: false }
+    })
+    // `auto` needs both legs, and media rides on Wikidata's P18.
+    expect(quickWikipediaOnly.wikiCorpora).toEqual(['wikipedia'])
+    expect(quickWikipediaOnly.wikiLimit).toBe(2)
+    expect(quickWikipediaOnly.wikiMedia).toBe(false)
+
+    // A corpus the user switched off is refused even though the verb exists.
+    expect(() =>
+      parseGenerationToolCall(
+        {
+          id: 'call_off_corpus',
+          name: 'search_wiki',
+          arguments: { query: 'atom', language: 'en', corpus: 'wikidata' }
+        },
+        quickWikipediaOnly
+      )
+    ).toThrow('switched off')
+
+    // Reach and media CLAMP instead of refusing: over-asking is not misconduct.
+    expect(
+      parseGenerationToolCall(
+        {
+          id: 'call_clamped',
+          name: 'search_wiki',
+          arguments: {
+            query: 'atom',
+            language: 'en',
+            corpus: 'wikipedia',
+            limit: 5,
+            includeMedia: true
+          }
+        },
+        quickWikipediaOnly
+      ).arguments
+    ).toMatchObject({ limit: 2, includeMedia: false })
+
+    // The emitted schema advertises only what is switched on.
+    const wikiSchema = generationToolDefinitions(quickWikipediaOnly).find(
+      (definition: { name: string }) => definition.name === 'search_wiki'
+    )
+    expect(wikiSchema).toBeDefined()
+    const properties = wikiSchema!.inputSchema.properties as Record<string, any>
+    expect(properties.corpus.enum).toEqual(['wikipedia'])
+    expect(properties.limit.maximum).toBe(2)
+    expect(properties.includeMedia.enum).toEqual([false])
+  })
+
+  it('removes the verb entirely when every source is switched off', () => {
+    const noSources = createGenerationToolPolicy({
+      mode: 'model',
+      wikiLanguage: 'en',
+      wikiSources: { wikipedia: false, wikidata: false, media: false, wiktionary: false }
+    })
+    // A door that can only fail is not offered at all.
+    expect(noSources.allowed).toEqual(['search_vault'])
+    expect(() =>
+      parseGenerationToolCall(
+        {
+          id: 'call_no_sources',
+          name: 'search_wiki',
+          arguments: { query: 'atom', language: 'en' }
+        },
+        noSources
+      )
+    ).toThrow('search_wiki is disabled')
   })
 
   it('fails visibly on disabled, unknown, oversized and widened calls', () => {

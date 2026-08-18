@@ -70,6 +70,7 @@ import { serializePacketMeta } from '../../../shared/context-packet'
 import { applyCitationChips, type AppliedCitations } from '../editor/citation-chips'
 import {
   BookIcon,
+  GlobeIcon,
   BrainIcon,
   InsertIcon,
   NoteAddIcon,
@@ -356,6 +357,19 @@ type ChatTarget = {
   insert?: ((text: string) => Promise<void>) | undefined
 }
 
+/**
+ * Which Wikimedia edition to consult. Derived from the user's own locale, so a
+ * French user reads fr.wikipedia without configuring anything; main validates
+ * the label and pins it for the whole exchange, and anything unrecognizable
+ * falls back to English rather than guessing a host.
+ */
+function wikiLanguageOf(): string {
+  const tag =
+    typeof navigator === 'undefined' ? 'en' : (navigator.language ?? 'en')
+  const primary = tag.split('-')[0]?.toLowerCase() ?? 'en'
+  return /^[a-z]{2,3}$/.test(primary) ? primary : 'en'
+}
+
 export function ChatView({
   tab,
   paneId,
@@ -447,6 +461,21 @@ export function ChatView({
   const [sensitivity, setSensitivity] = useState<'titles' | 'linked' | 'full'>(
     'linked'
   )
+  // CP-MVP-011 S07a: the wiki tool mirrors the vault tool's shape (owner
+  // ruling 2026-08-17) — an enable toggle, a `reach` depth, and one switch
+  // per augmentation. DEFAULT OFF: the owner's words were "the user enable
+  // the tool wikisearch", and a thread that reaches the network without
+  // being asked is not a preference, it is a surprise.
+  const [wiki, setWiki] = useState(false)
+  const [wikiReach, setWikiReach] = useState<'quick' | 'standard' | 'deep'>(
+    'standard'
+  )
+  const [wikiSources, setWikiSources] = useState({
+    wikipedia: true,
+    wikidata: true,
+    media: true,
+    wiktionary: true
+  })
   const [preview, setPreview] = useState<ContextPacket | null>(null)
   const packetByTurn = useRef(new Map<number, ContextPacket>())
   const [openPacketTurn, setOpenPacketTurn] = useState<number | null>(null)
@@ -899,7 +928,21 @@ export function ChatView({
           ...(thread.length > 0 ? { thread } : {}),
           // The renderer ASKS; main decides what the packet contains
           // and returns it on the bundle (S07).
-          ...(grounding ? { grounding: { sensitivity } } : {})
+          ...(grounding ? { grounding: { sensitivity } } : {}),
+          // The renderer sends a PREFERENCE only: which augmentations are on
+          // and how deep. Main derives the allowed corpora, the result
+          // ceiling and the media rule from it (S07a), so a compromised
+          // renderer cannot widen its own reach.
+          ...(wiki
+            ? {
+                tools: {
+                  mode: 'model' as const,
+                  wikiLanguage: wikiLanguageOf(),
+                  wikiReach,
+                  wikiSources
+                }
+              }
+            : {})
         }
         // S07b4 (owner): the sent request, RETRACED — per-part pills
         // with token estimates ride the you-turn (session meta, like
@@ -1049,6 +1092,9 @@ export function ChatView({
       genDrafts,
       grounding,
       sensitivity,
+      wiki,
+      wikiReach,
+      wikiSources,
       loadPrompts,
       persistTurn,
       resolveTarget,
@@ -2013,6 +2059,80 @@ export function ChatView({
                 preview
               </button>
             )}
+            <button
+              type="button"
+              className="chat-tool"
+              title={
+                wiki
+                  ? 'Wikimedia ON — the model may look up Wikipedia, Wikidata, images and etymology; every call is shown on its turn'
+                  : 'Let the model consult Wikimedia when the vault is thin'
+              }
+              aria-pressed={wiki}
+              aria-label="Wikimedia lookup"
+              onClick={() => setWiki((on) => !on)}
+            >
+              <GlobeIcon /> wiki
+              {wiki && <span className="chat-sys-badge">on</span>}
+            </button>
+            {wiki && (
+              <button
+                type="button"
+                className="chat-tool"
+                title={
+                  wikiReach === 'quick'
+                    ? 'One or two results per lookup — fastest and cheapest'
+                    : wikiReach === 'standard'
+                      ? 'A few results per lookup'
+                      : 'The widest lookup — slower, and more to read'
+                }
+                aria-label={`Wikimedia reach: ${wikiReach}`}
+                onClick={() =>
+                  setWikiReach((current) =>
+                    current === 'quick'
+                      ? 'standard'
+                      : current === 'standard'
+                        ? 'deep'
+                        : 'quick'
+                  )
+                }
+              >
+                reach · {wikiReach}
+              </button>
+            )}
+            {wiki &&
+              (
+                [
+                  ['wikipedia', 'wikipedia', 'Article extracts'],
+                  ['wikidata', 'wikidata', 'Entity facts (QID, claims)'],
+                  ['media', 'image', 'Commons image, with attribution'],
+                  ['wiktionary', 'etymology', 'Word origins']
+                ] as const
+              ).map(([key, label, hint]) => (
+                <button
+                  key={key}
+                  type="button"
+                  className="chat-tool chat-src"
+                  // Media rides on Wikidata's P18: with Wikidata off there is
+                  // nothing to resolve a filename from, so the switch says so
+                  // instead of pretending to work.
+                  disabled={key === 'media' && !wikiSources.wikidata}
+                  title={
+                    key === 'media' && !wikiSources.wikidata
+                      ? 'Needs wikidata — an image is found through its entity'
+                      : hint
+                  }
+                  aria-pressed={wikiSources[key]}
+                  aria-label={`${label} source`}
+                  onClick={() =>
+                    setWikiSources((current) => ({
+                      ...current,
+                      [key]: !current[key]
+                    }))
+                  }
+                >
+                  {label}
+                </button>
+              ))}
             <button
               type="button"
               className="chat-tool chat-tool-model"

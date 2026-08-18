@@ -74,6 +74,26 @@ timestamp: 2026-08-17T00:00:00Z
   Executed activity rides home on `AiResponseBundle.toolExecutions` with typed
   transient payloads for S07's disclosure and citations — consultation alone
   still makes nothing durable.
+- WIKI TOOL CONTROL (CP-MVP-011 S07a): the wiki tool wears the SAME shape as
+  the vault tool (owner ruling 2026-08-17) — an enable toggle, a `reach` depth,
+  and one switch per augmentation (Wikipedia · Wikidata · Commons image ·
+  Wiktionary etymology). It is **default OFF per thread**: the owner asked for
+  "possibility to enable it", and a thread that reaches the network because it
+  was opened is a surprise, not a preference. The renderer sends a PREFERENCE
+  only — `{mode, wikiLanguage, wikiReach, wikiSources}` on the existing
+  `run-ai-operation` door — and main DERIVES the authority from it:
+  `createGenerationToolPolicy` turns the switches into the allowed corpora
+  (`auto` only survives when both its legs are on), the reach into a result
+  ceiling (quick 2 / standard 3 / deep 5), and the media switch into
+  `wikiMedia` (which additionally requires Wikidata, since a Commons file is
+  found through P18). Switching every source off REMOVES `search_wiki` from the
+  allowlist rather than leaving a verb that can only fail. The emitted schema
+  advertises only what is on, and `parseGenerationToolCall` enforces it
+  independently — a schema is advice, the parser is authority: a switched-off
+  corpus is refused, while over-asking on reach or media is CLAMPED, because
+  wanting more breadth than the user allowed is not misconduct. The edition
+  comes from the user's own locale (`wikiLanguageOf`), validated in main and
+  pinned for the exchange.
 - SHARED DIALECT CODEC (CP-MVP-011 S06b): `electron-main/openai-tool-codec.ts`
   owns the `openai-chat-completions` wire grammar ONCE — schema emission, call
   parsing, the `role: "tool"` continuation, and usage accumulation. An adapter

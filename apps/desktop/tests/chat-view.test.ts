@@ -108,3 +108,43 @@ describe('pointing wikilinks in chat (CP-AI-CAPABILITIES S02)', () => {
     expect(view).toContain("wikiCandidatesFor('', index.nodes)")
   })
 })
+
+describe('the wiki tool control (CP-MVP-011 S07a)', () => {
+  it('defaults OFF and only then sends a tool preference', () => {
+    // The owner's ruling: "possibility to enable it". A thread must not reach
+    // the network because it was opened.
+    expect(view).toContain('const [wiki, setWiki] = useState(false)')
+    // `tools` rides the operation only while the toggle is on.
+    expect(view).toContain('...(wiki')
+    expect(view).toContain("mode: 'model' as const")
+    expect(view).toMatch(/wikiReach,\s*\n\s*wikiSources/)
+  })
+
+  it('mirrors the vault tool: a toggle, a reach, and one switch per source', () => {
+    expect(view).toContain('aria-label="Wikimedia lookup"')
+    expect(view).toContain('aria-pressed={wiki}')
+    expect(view).toContain('reach · {wikiReach}')
+    for (const label of ['wikipedia', 'wikidata', 'image', 'etymology']) {
+      expect(view).toContain(`'${label}'`)
+    }
+    expect(view).toContain('aria-pressed={wikiSources[key]}')
+  })
+
+  it('disables the image switch when its entity source is off', () => {
+    // Commons media is resolved through Wikidata's P18; without that leg the
+    // switch would be a control that cannot work.
+    expect(view).toContain("disabled={key === 'media' && !wikiSources.wikidata}")
+  })
+
+  it('styles a source switch so on and off are distinguishable', () => {
+    const on = cssRule(".chat-tool.chat-src[aria-pressed='true']")
+    const off = cssRule(".chat-tool.chat-src[aria-pressed='false']")
+    expect(on).toContain('var(--accent)')
+    expect(off).toContain('line-through')
+  })
+
+  it('derives the edition from the locale and refuses an unsafe label', () => {
+    expect(view).toContain('function wikiLanguageOf()')
+    expect(view).toContain("/^[a-z]{2,3}$/.test(primary) ? primary : 'en'")
+  })
+})

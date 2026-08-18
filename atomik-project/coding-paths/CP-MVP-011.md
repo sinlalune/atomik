@@ -31,6 +31,7 @@ atomik:
     - apps/desktop/electron-main/index.ts
     - apps/desktop/electron-preload/index.ts
     - apps/desktop/renderer/src/workspace/ChatView.tsx
+    - apps/desktop/renderer/src/icons.tsx
     - apps/desktop/renderer/src/workspace/chat-run.ts
     - apps/desktop/renderer/src/workspace/chat-presentation.ts
     - apps/desktop/renderer/src/editor/citation-chips.ts
@@ -287,6 +288,10 @@ OPEN        provider-step position vs S07; the "luna" model id; whether
 - [x] S06c Live-bench repairs: run the real rung end to end on the owner's
       provider and fix what only a live request could reveal — partial-success
       loss in `auto`, and read-time `maxlag` disabling the Wikidata seat.
+- [x] S07a Wiki control contract + surface: the ruled control shape in the
+      composer (enable toggle · reach · four source switches, default off) and
+      the main-side authority it derives — allowed corpora, result ceiling,
+      media rule, schema emission and independent enforcement.
 - [ ] S07 Augmented chat + external citations: the wiki control MIRRORS the
       vault tool — a per-thread enable toggle, a `reach` depth control, and
       four per-source switches (Wikipedia · Wikidata · Commons image ·
@@ -558,6 +563,41 @@ maxlag removed  1 tool call  · Wikidata ALIVE  ·  5.6s · $0.0034
   binding external passages to citations is S07's work, and this run is the
   evidence that there will be something to cite.
 
+## S07a work unit — complete 2026-08-17
+
+- **Code:** widened the tool preference to `{mode, wikiLanguage, wikiReach,
+  wikiSources}` — the renderer half optional, main resolving defaults — and
+  split the wire type from the resolved one so omitting the fine-tune is
+  correct rather than an error. `createGenerationToolPolicy` now derives
+  `wikiCorpora`, `wikiLimit` and `wikiMedia` from the switches; every source
+  off removes `search_wiki` from the allowlist. `generationToolDefinitions`
+  advertises only the live corpora and the reach ceiling;
+  `parseGenerationToolCall` refuses a switched-off corpus and clamps reach and
+  media. `ChatView` gained the control group mirroring the vault tool, a
+  `GlobeIcon`, source-switch styles, and `wikiLanguageOf` deriving the edition
+  from the user's locale. The image switch disables itself when Wikidata is
+  off, because P18 is how a file is found.
+- **Tests:** contract-level — derived corpora/limit/media, a switched-off
+  corpus refused, reach and media clamped, the schema advertising only live
+  corpora, and the verb disappearing when everything is off. Renderer-level —
+  the toggle defaults OFF, `tools` rides only while it is on, the control
+  mirrors the vault tool's parts, the image switch is disabled without
+  Wikidata, on/off states are visually distinguishable, and the locale label is
+  validated. Full result: 79 files, 989 passed + 1 skipped; typecheck and
+  build green.
+- **Docs:** the AI note records the control shape, the renderer-asks/main-derives
+  split, and the advice-versus-authority rule between schema and parser.
+- **Ledger notes:** declared writes widen by `renderer/src/icons.tsx` — the
+  control needed a glyph of its own, and the icon set is where every other
+  chat control's glyph already lives; putting it anywhere else would have been
+  the odd choice.
+- **Deviations:** default OFF and the locale-derived edition were my calls
+  inside the owner's ruling — they asked for "possibility to enable it" and
+  named no language control. A visible language picker is deliberately NOT
+  added here; if the owner wants to read a different edition than their locale,
+  that is a small follow-on. S07 still owes the call/result DISCLOSURE and the
+  citation/media surface — this step delivers the control, not the display.
+
 # Current checkpoint
 
 ```text
@@ -568,15 +608,16 @@ changed     : S01 contracts; S02 Wikipedia; S03 Wikidata/graph projection;
               S06 provider-neutral bounded tool loop, main-side executor with
               parented vault receipts, and the native Mistral opt-in;
               S06b shared openai-chat-completions codec + native Google;
-              S06c live-bench repairs (partial-success in `auto`, read maxlag)
-tests       : typecheck green; 79 files / 987 pass / 1 skip; build green
+              S06c live-bench repairs (partial-success in `auto`, read maxlag);
+              S07a wiki control contract + composer surface (default off)
+tests       : typecheck green; 79 files / 989 pass / 1 skip; build green
 bench       : 2026-08-17, live, gemini-3.7-flash + fr.wikipedia + wikidata —
               one tool call, 5.6s, ~$0.0034 per exchange, French answer
-next action : execute S07 — augmented chat to the ruled control shape (enable
-              toggle + `reach` + four source switches), call/result disclosure
-              over `toolExecutions`, external citation marks and source block,
-              attributed Commons media, safe navigation. The owner benches on
-              `gemini-3.7-flash` as soon as that surface exists
+next action : execute S07b — call/result DISCLOSURE on the turn (what was
+              consulted, from where) and the external citation + attributed
+              media surface over `toolExecutions`, with safe navigation. The
+              control itself now exists, so the owner can bench on
+              `gemini-3.7-flash` immediately: toggle `wiki` on in a chat
 blockers    : none
 parallel    : CP-RICH-MARKDOWN is running; styles.css and broad renderer/test/
               docs surfaces overlap advisory-only. Rebase at step boundaries.

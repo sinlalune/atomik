@@ -1820,6 +1820,20 @@ body[data-maximized] .tabstrip {
   background: var(--code-bg);
 }
 
+/* S07a: a wiki SOURCE switch reads as on/off at a glance. The on state
+   borrows the accent already used for an engaged control; the off state is
+   muted rather than hidden, so the user can still see what exists to turn
+   back on. Both keep the same hit area, so nothing shifts when toggled. */
+.chat-tool.chat-src[aria-pressed='true'] {
+  color: var(--accent);
+}
+
+.chat-tool.chat-src[aria-pressed='false'] {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
 .chat-tool[aria-expanded='true'] {
   color: var(--accent);
 }
