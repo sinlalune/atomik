@@ -4,6 +4,7 @@ import type {
   RichRenderRequest,
   RichRendererAdapter
 } from '../contracts'
+import { copyText } from '../../clipboard'
 import { analyzeCodeSource } from '../code-diagnostics'
 import { firstFenceInfo } from '../syntax'
 
@@ -180,22 +181,14 @@ async function defaultWriteText(
   document: Document,
   text: string
 ): Promise<void> {
-  const clipboard = document.defaultView?.navigator.clipboard
-  if (clipboard?.writeText) {
-    await clipboard.writeText(text)
-    return
+  // The renderer has ONE clipboard implementation and this defers to it.
+  // Owner bench 2026-08-17: this used to be a second one that fell back to
+  // execCommand only when `navigator.clipboard.writeText` was ABSENT. In this
+  // Electron renderer it is present and REJECTS, so the fallback never ran and
+  // every Copy reported "Copy failed".
+  if (!(await copyText(text, document))) {
+    throw new Error('Clipboard is unavailable')
   }
-  const textarea = document.createElement('textarea')
-  textarea.value = text
-  textarea.setAttribute('readonly', '')
-  textarea.style.cssText =
-    'position:fixed;left:-10000px;top:0;opacity:0;pointer-events:none;'
-  const parent = document.body ?? document.documentElement
-  parent.appendChild(textarea)
-  textarea.select()
-  const copied = document.execCommand?.('copy') ?? false
-  textarea.remove()
-  if (!copied) throw new Error('Clipboard is unavailable')
 }
 
 function renderCodeFrame(

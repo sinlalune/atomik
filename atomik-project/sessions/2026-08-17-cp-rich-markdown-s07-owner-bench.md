@@ -1,6 +1,6 @@
 ---
 type: Atomik Session Record
-title: CP-RICH-MARKDOWN S07 — first owner bench, and the three defects it found
+title: CP-RICH-MARKDOWN S07 — first owner bench, and the five defects it found
 timestamp: 2026-08-17T00:00:00Z
 tags: [rich-markdown, bench, mermaid, vega-lite, csp, theme, regression]
 path: CP-RICH-MARKDOWN
@@ -80,6 +80,20 @@ Vega's palette accepted a token only if it was already plain hex, so every
 `light-dark()` token failed and charts drew in pinned defaults. Silent, and
 unobservable until charts rendered at all.
 
+### 5. Every code-block Copy failed (bench round 2, note 04)
+
+Owner screenshot: the code frame's header showed `Copy failed`. S06 had written
+a SECOND clipboard implementation in `adapters/code-core.ts`, which fell back to
+`execCommand` only when `navigator.clipboard.writeText` was ABSENT. In this
+Electron renderer it is PRESENT and REJECTS, so the fallback never ran.
+
+`renderer/src/editor/clipboard.ts` — the renderer's existing helper, used by
+chat, inline AI and the AI note preview — has handled exactly this since S04l,
+and its own comment says so: *"the async API can reject silently; execCommand
+still works."* The code frame now defers to it; the helper gained an optional
+`doc` parameter so document-owning surfaces can share it. Same lesson as the
+colors: the duplicate was the defect.
+
 ## Fixes
 
 - `adapters/css-color.ts` — new, the single place a token becomes a color.
@@ -95,6 +109,9 @@ unobservable until charts rendered at all.
   renderers AND `EditorPane`'s CodeMirror theme. Asks the engine for the
   computed `color-scheme` first; the mirrored set is only for engine-less
   environments.
+- `editor/clipboard.ts` — gained an optional `doc` parameter; the code frame's
+  private implementation is gone. Declared-writes widening recorded in the
+  ledger.
 
 ## The finding under the findings
 
@@ -113,8 +130,8 @@ was never the missing thing. A real bench was.
 ## Verification
 
 ```text
-focused    tests/rich-markdown.test.ts     53 passed (45 at S06 + 8)
-full       75 files                        992 passed + 1 skipped
+focused    tests/rich-markdown.test.ts     56 passed (45 at S06 + 11)
+full       75 files                        995 passed + 1 skipped
 typecheck  PASS
 ```
 
@@ -123,14 +140,17 @@ resolved color being used rather than the authored expression; the probe never
 outliving the call; `dark-themes-match-stylesheet` (parses `styles.css`);
 engine `color-scheme` preferred over the mirrored set; the mirrored fallback;
 `toHexColor` across `rgb()`/`rgba()`/space-separated/percentage/short-hex and
-unresolved input; charts following the resolved theme; and Vega's AST +
-interpreter wiring.
+unresolved input; charts following the resolved theme; Vega's AST + interpreter
+wiring; and the clipboard falling back when the async API REJECTS rather than
+only when it is absent.
 
 ## Still open
 
-- The bench stopped after 02 and 03. Notes 01 (math), 04 (code) and 05 (edge
-  cases) are unexercised, as are every security probe and the byte-stability
-  check. Baseline checksums for all seven bench notes were taken before launch.
+- The bench covered 02, 03 and the top of 04. Note 01 (math), the rest of 04
+  (languages, aliases, unknown fences, diagnostics, the `<img onerror>` probe,
+  wrap/expand) and note 05 (edge cases) are unexercised, as are the Mermaid and
+  Vega security probes and the byte-stability check. Baseline checksums for all
+  seven bench notes were taken before launch.
 - Whether S07 should add a smoke lane that runs the renderers in real Electron
   rather than linkedom — the only mechanical guard against this defect class.
 - `/home/toure/projects/4tom1k` (the trunk the owner dogfoods) still has the

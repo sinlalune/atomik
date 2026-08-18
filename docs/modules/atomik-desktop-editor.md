@@ -252,6 +252,13 @@ carries the decisions; the operational shape:
   (`dark`, `moss`, `biolum`, `ember`, `hearth`); the two that used to be
   missing rendered code dark-on-dark. `dark-themes-match-stylesheet` parses
   `styles.css` and fails on drift, so a new theme cannot reintroduce it.
+- `editor/clipboard.ts` is the renderer's ONE clipboard. Its `doc` parameter
+  exists so document-owning surfaces (the code frame) reuse it instead of
+  writing a second copy. The async clipboard API is PRESENT in this Electron
+  renderer and REJECTS; the code frame's own implementation fell back to
+  `execCommand` only when the API was absent, so every Copy reported "Copy
+  failed" (owner bench 2026-08-17). Falling back on rejection is the case that
+  actually happens.
 - Tests run on linkedom: no `getComputedStyle`, no CSP. Both defects passed the
   full suite unchanged before and after the fix until each regression was
   rewritten to install the engine surface the adapter talks to. **Renderer

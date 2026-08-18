@@ -11,6 +11,7 @@ import {
   type RichRenderRequest,
   type RichRendererAdapter
 } from '../renderer/src/editor/rich-markdown/contracts'
+import { copyText } from '../renderer/src/editor/clipboard'
 import { toHexColor } from '../renderer/src/editor/rich-markdown/adapters/css-color'
 import {
   DARK_THEME_NAMES,
@@ -1323,6 +1324,62 @@ describe('Mermaid adapter (CP-RICH-MARKDOWN S04)', () => {
       )
     ).rejects.toThrow('output exceeds 32 bytes')
     expect(host.querySelector('svg')).toBeNull()
+  })
+})
+
+describe('clipboard (CP-RICH-MARKDOWN S07)', () => {
+  // linkedom's `navigator` is immutable and rebuilt on every access, so the
+  // clipboard cannot be stubbed through a real linkedom document. This stubs
+  // exactly the surface `copyText` uses and lets the real document do the DOM.
+  function docWith(clipboard: unknown, execCommand?: () => boolean): Document {
+    const { document } = parseHTML('<html><body></body></html>')
+    return {
+      defaultView: { navigator: { clipboard } },
+      createElement: (tag: string) => document.createElement(tag),
+      get body() {
+        return document.body
+      },
+      documentElement: document.documentElement,
+      execCommand,
+      querySelector: (selector: string) => document.querySelector(selector)
+    } as unknown as Document
+  }
+
+  it('falls back to execCommand when the async API REJECTS', async () => {
+    // Owner bench, 2026-08-17: "copy failed" on every code block. The async
+    // clipboard exists in this Electron renderer and rejects (permission), and
+    // the code frame's own copy fell back only when it was ABSENT. Rejection
+    // is the case that actually happens.
+    const writeText = vi.fn(async () => {
+      throw new Error('NotAllowedError')
+    })
+    const copy = vi.fn(() => true)
+    const doc = docWith({ writeText }, copy)
+
+    await expect(copyText('const a = 1', doc)).resolves.toBe(true)
+    expect(writeText).toHaveBeenCalledWith('const a = 1')
+    expect(copy).toHaveBeenCalledWith('copy')
+    // The scratch textarea never outlives the copy.
+    expect(doc.querySelector('textarea')).toBeNull()
+  })
+
+  it('reports failure when neither path lands the text', async () => {
+    const doc = docWith(
+      {
+        writeText: async () => {
+          throw new Error('NotAllowedError')
+        }
+      },
+      () => false
+    )
+    await expect(copyText('x', doc)).resolves.toBe(false)
+  })
+
+  it('uses the async API when it works', async () => {
+    const writeText = vi.fn(async () => undefined)
+    const copy = vi.fn(() => true)
+    await expect(copyText('x', docWith({ writeText }, copy))).resolves.toBe(true)
+    expect(copy).not.toHaveBeenCalled()
   })
 })
 
