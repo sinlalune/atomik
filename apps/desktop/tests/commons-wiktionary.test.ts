@@ -88,7 +88,7 @@ describe('Commons P18 resolution', () => {
     expect(commonsCall.searchParams.get('prop')).toBe('imageinfo')
     expect(commonsCall.searchParams.get('iiurlwidth')).toBe('640')
     expect(commonsCall.searchParams.get('iiextmetadatalanguage')).toBe('fr')
-    expect(commonsCall.searchParams.get('maxlag')).toBe('5')
+    expect(commonsCall.searchParams.get('maxlag')).toBeNull()
 
     expect(firstMedia(bundle.media)).toEqual({
       kind: 'commons-media',

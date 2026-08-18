@@ -185,6 +185,9 @@ export type WikimediaWarningKind =
   | 'truncated'
   | 'parser-uncertain'
   | 'media-withheld'
+  /** `auto` consulted two corpora and one of them failed transiently, after
+   *  the other had already returned results (S06c, found on the live bench). */
+  | 'corpus-unavailable'
 
 export type WikimediaWarning = {
   kind: WikimediaWarningKind

@@ -64,6 +64,21 @@ timestamp: 2026-08-17T00:00:00Z
   editions, language isolation, text budgets, unsupported editions, missing
   sections, explicit status markers, incomplete attribution and non-HTTPS
   media. Neither seat writes a file; S08 owns explicit local persistence.
+- LIVE-BENCH CORRECTIONS (CP-MVP-011 S06c): two defects the fixtures could not
+  show, both found by running the real rung against real Wikimedia on
+  2026-08-17. (1) `auto` consulted Wikipedia then Wikidata and rethrew any
+  non-`empty` failure — so a transient Wikidata error DISCARDED articles
+  Wikipedia had already returned, and the caller saw a failed search where good
+  results existed. A corpus that fails after the other has delivered is now a
+  `corpus-unavailable` WARNING on the bundle; cancellation and budget
+  exhaustion still stop the search, because those are decisions rather than
+  weather. (2) `maxlag=5` on the Action API reads counted the query service's
+  lag (~16s at the time) and returned an error body under HTTP 200, which this
+  client correctly mapped to rate-limit — making the Wikidata seat dead in
+  practice. Reads no longer send `maxlag`; the User-Agent, request/byte budgets
+  and 429/`Retry-After` handling carry the etiquette. Measured effect on one
+  French question: two tool calls became one, wall time 11.9s → 5.6s, and
+  Wikidata returned Q7186 instead of failing.
 - UNIFIED SEARCH DOOR (CP-MVP-011 S05): `WikimediaClient.search` validates one
   `SearchWikiRequest` and dispatches only to the pinned seats. `auto` consults
   Wikipedia plus Wikidata sequentially, shares one request/byte budget and one

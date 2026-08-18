@@ -309,6 +309,42 @@ string), and its `total_tokens` exceeds `prompt + completion` because thinking
 is billed as output without appearing in `completion_tokens` — so cost computed
 from prompt+completion understates real spend.
 
+### S06c: what only a live run tells you
+
+Fixtures prove a shape. They cannot tell you the shape never arrives. Two
+defects survived a full fixture suite and died within one real request:
+
+**Politeness that disables the feature.** The Wikidata reads carried
+`maxlag=5`, which reads as textbook API etiquette. But the Action API's maxlag
+counts the QUERY SERVICE's replication lag, and that service routinely sits
+tens of seconds behind — so every read returned an error and the entire
+Wikidata rung was dead. Worse, MediaWiki reports it as **HTTP 200 with the
+error in the body**, so nothing in the transport layer looked wrong. Ask of any
+politeness control: what does it do on the day the dependency misbehaves? If
+the answer is "turns my feature off", it is not politeness, it is a coupling to
+a number you do not control. Real etiquette that survives this test: identify
+yourself, bound your requests and bytes, keep concurrency low, and honour a
+genuine 429 with its `Retry-After`.
+
+**Partial success thrown away.** The `auto` corpus consulted Wikipedia, then
+Wikidata, and rethrew any non-`empty` failure. Wikipedia had already returned
+two good articles; Wikidata hit the maxlag error; the caller got a failure.
+The model then paid for a second call to recover what was already in hand.
+
+```text
+before   wikipedia OK + wikidata transient failure -> whole search FAILS
+after    wikipedia OK + wikidata transient failure -> results + a warning
+         cancellation / budget exhaustion          -> still fails, always
+```
+
+The distinction is the same one the tool loop draws between a bad call and a
+broken operation. A dependency having a bad minute is weather; the owner
+pressing cancel, or a budget ceiling being reached, is a decision. Degrade the
+first, never the second.
+
+Measured on one French question, both fixes together: two tool calls became
+one, 11.9s became 5.6s, and Wikidata answered.
+
 ## 4. Why the result is marked untrusted
 
 A Wikipedia page can contain prose such as “ignore earlier instructions.” It

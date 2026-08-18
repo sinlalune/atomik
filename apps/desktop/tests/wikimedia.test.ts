@@ -349,6 +349,78 @@ describe('provider-neutral search_wiki door (S05)', () => {
     ])
   })
 
+  /** S06c: found on the live 2026-08-17 Gemini bench. Wikidata answered 429
+   *  AFTER Wikipedia had returned usable articles, and the whole search failed
+   *  — the model saw an error where good results existed, and paid for a
+   *  second call to recover. Partial success now survives as a warning. */
+  it('keeps the corpus that answered when the other fails transiently', async () => {
+    const records: unknown[] = []
+    const client = new WikimediaClient({
+      trace: { recordWikimedia: (record) => void records.push(record) },
+      fetchImpl: async (input) => {
+        const url = new URL(String(input))
+        if (url.hostname === 'en.wikipedia.org') {
+          return response(
+            fixture(
+              url.pathname.endsWith('/search/page')
+                ? 'wikipedia-search-en-atom.json'
+                : 'wikipedia-page-en-atom.json'
+            )
+          )
+        }
+        return response('{"error":"maxlag"}', 429, { 'retry-after': '5' })
+      }
+    })
+
+    const bundle = await client.search(autoRequest, {
+      ...context(),
+      mediaPolicy: 'remote'
+    })
+
+    expect(bundle.results.map((result) => result.kind)).toEqual([
+      'wikipedia-article'
+    ])
+    expect(bundle.warnings).toContainEqual({
+      kind: 'corpus-unavailable',
+      message:
+        'wikidata was unavailable (rate-limit); these results come from the other corpus only'
+    })
+    // The failed corpus still files its own content-free receipt.
+    expect(records).toContainEqual(
+      expect.objectContaining({ corpus: 'wikidata', status: 'failed' })
+    )
+  })
+
+  it('never degrades cancellation to a warning', async () => {
+    const controller = new AbortController()
+    const client = new WikimediaClient({
+      trace: { recordWikimedia: () => undefined },
+      fetchImpl: async (input) => {
+        const url = new URL(String(input))
+        if (url.hostname === 'en.wikipedia.org') {
+          return response(
+            fixture(
+              url.pathname.endsWith('/search/page')
+                ? 'wikipedia-search-en-atom.json'
+                : 'wikipedia-page-en-atom.json'
+            )
+          )
+        }
+        controller.abort()
+        throw new DOMException('aborted', 'AbortError')
+      }
+    })
+
+    await expect(
+      client.search(autoRequest, {
+        signal: controller.signal,
+        parentTraceId: 'trace_parent',
+        parentOperationId: 'operation_parent',
+        mediaPolicy: 'remote'
+      })
+    ).rejects.toMatchObject({ kind: 'cancelled' })
+  })
+
   it('does not reset the network-call budget between auto corpora', async () => {
     const calls: URL[] = []
     await expect(

@@ -74,7 +74,10 @@ describe('Wikidata live seat', () => {
     expect(calls.every((url) => url.origin === 'https://www.wikidata.org')).toBe(true)
     expect(calls[0]!.searchParams.get('action')).toBe('wbsearchentities')
     expect(calls[0]!.searchParams.get('language')).toBe('fr')
-    expect(calls[0]!.searchParams.get('maxlag')).toBe('5')
+    // S06c: no maxlag on reads — it counted the query service's lag and
+    // made every Wikidata read fail. Politeness lives in the User-Agent,
+    // the budgets, and honouring 429/Retry-After instead.
+    expect(calls[0]!.searchParams.get('maxlag')).toBeNull()
     expect(calls[1]!.searchParams.get('props')).toContain('claims')
     expect(calls[1]!.searchParams.get('languages')).toBe('fr|en')
     expect(calls[1]!.searchParams.get('sitefilter')).toBe('frwiki|enwiki')

@@ -867,6 +867,7 @@ export class WikimediaClient {
     const wikipediaLimit = Math.max(1, Math.ceil(request.limit / 2))
     const wikidataLimit = Math.max(1, Math.floor(request.limit / 2))
     const bundles: WikimediaSearchBundle[] = []
+    const degraded: WikimediaWarning[] = []
     for (const child of [
       { ...request, corpus: 'wikipedia' as const, limit: wikipediaLimit },
       { ...request, corpus: 'wikidata' as const, limit: wikidataLimit }
@@ -878,9 +879,25 @@ export class WikimediaClient {
             : await this.searchWikidata(child, context, budget)
         )
       } catch (error) {
-        if (!(error instanceof WikimediaError) || error.kind !== 'empty') {
+        if (!(error instanceof WikimediaError)) throw error
+        if (error.kind === 'empty') continue
+        // S06c, from the live bench: Wikidata answered 429 AFTER Wikipedia had
+        // already returned usable articles, and rethrowing discarded them —
+        // the caller saw a failed search where good results existed. A corpus
+        // that fails once the other has delivered is a WARNING, not a failure.
+        // Cancellation is never degraded: it is the owner's decision, and the
+        // budget ceiling is authority, not weather.
+        if (
+          bundles.length === 0 ||
+          error.kind === 'cancelled' ||
+          error.kind === 'budget-exceeded'
+        ) {
           throw error
         }
+        degraded.push({
+          kind: 'corpus-unavailable',
+          message: `${child.corpus} was unavailable (${error.kind}); these results come from the other corpus only`
+        })
       }
     }
     if (bundles.length === 0) {
@@ -893,7 +910,10 @@ export class WikimediaClient {
       request,
       results: bundles.flatMap((bundle) => bundle.results),
       media: bundles.flatMap((bundle) => bundle.media),
-      warnings: bundles.flatMap((bundle) => bundle.warnings),
+      warnings: [
+        ...bundles.flatMap((bundle) => bundle.warnings),
+        ...degraded
+      ],
       responseBytes: budget.responseBytes,
       accessedAt: bundles.at(-1)!.accessedAt
     }
@@ -1004,6 +1024,20 @@ export class WikimediaClient {
     }
   }
 
+  /**
+   * S06c — no `maxlag` on these READS, measured 2026-08-17.
+   *
+   * `maxlag=5` looked like good etiquette and made the Wikidata rung dead in
+   * practice: the Action API counts the QUERY SERVICE's replication lag, and
+   * with wdqs ~16s behind, every read came back `error.code: maxlag` (which
+   * this client correctly maps to rate-limit). The identical request without
+   * maxlag returned Q7186 immediately. maxlag exists to protect Wikimedia from
+   * bots and bulk writes; Atomik issues at most a handful of human-initiated
+   * reads per question. Politeness is kept where it belongs — an identifying
+   * User-Agent, hard request/byte budgets, low concurrency, and honouring 429
+   * plus Retry-After — none of which depend on a lag threshold we do not
+   * control.
+   */
   async searchWikidata(
     value: unknown,
     context: WikimediaSearchContext,
@@ -1032,7 +1066,6 @@ export class WikimediaClient {
       searchUrl.searchParams.set('uselang', request.language)
       searchUrl.searchParams.set('type', 'item')
       searchUrl.searchParams.set('limit', String(request.limit))
-      searchUrl.searchParams.set('maxlag', '5')
       searchUrl.searchParams.set('format', 'json')
       searchUrl.searchParams.set('formatversion', '2')
       const searched = parseWikidataSearch(
@@ -1054,7 +1087,6 @@ export class WikimediaClient {
       )
       entitiesUrl.searchParams.set('languages', languages.join('|'))
       entitiesUrl.searchParams.set('sitefilter', sites.join('|'))
-      entitiesUrl.searchParams.set('maxlag', '5')
       entitiesUrl.searchParams.set('format', 'json')
       entitiesUrl.searchParams.set('formatversion', '2')
       const rawEntities = entityRecordsOf(
@@ -1084,7 +1116,6 @@ export class WikimediaClient {
         labelsUrl.searchParams.set('ids', [...referencedIds].join('|'))
         labelsUrl.searchParams.set('props', 'labels')
         labelsUrl.searchParams.set('languages', languages.join('|'))
-        labelsUrl.searchParams.set('maxlag', '5')
         labelsUrl.searchParams.set('format', 'json')
         labelsUrl.searchParams.set('formatversion', '2')
         labels = labelsOfEntities(
@@ -1156,7 +1187,6 @@ export class WikimediaClient {
           )
           commonsUrl.searchParams.set('iiurlwidth', '640')
           commonsUrl.searchParams.set('uselang', request.language)
-          commonsUrl.searchParams.set('maxlag', '5')
           commonsUrl.searchParams.set('format', 'json')
           commonsUrl.searchParams.set('formatversion', '2')
           const resolved = commonsMediaOf(

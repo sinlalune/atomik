@@ -184,3 +184,26 @@ Refresh procedure: make a low-rate opt-in diagnostic with the product user
 agent, review licence and schema drift, redact volatile/unneeded fields, save a
 minimal JSON fixture, and keep the expected normalized result beside it. Never
 record API keys, prompts, owner queries, or full pages.
+
+
+## `maxlag` on reads — measured 2026-08-17 (S06c)
+
+The Action API's `maxlag` includes the **query service's** replication lag, not
+just the database's. Measured directly, same query, same minute:
+
+```text
+maxlag=5   HTTP 200, body: error.code "maxlag" — "Waiting for wdqs1014:
+           16.63 seconds lagged" (this client maps that body to rate-limit)
+no maxlag  HTTP 200, Q7186 returned immediately
+```
+
+Because wdqs commonly runs well past a 5-second threshold, `maxlag=5` made the
+Wikidata rung fail on EVERY attempt during the live bench — the seat looked
+rate-limited when the service was in fact answering fine. `maxlag` is guidance
+for bots and bulk writes; Atomik issues a handful of human-initiated reads per
+question, so the reads no longer send it. The politeness that actually applies
+is unchanged: an identifying User-Agent, hard request/byte budgets, low
+concurrency, and honouring a real 429 with its `Retry-After`.
+
+Note the failure mode this hides: MediaWiki returns **HTTP 200** with the error
+in the body. Anything that keys on status alone reads it as success.

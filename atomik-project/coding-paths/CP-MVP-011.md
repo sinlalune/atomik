@@ -284,6 +284,9 @@ OPEN        provider-step position vs S07; the "luna" model id; whether
       against the live endpoint, opt Google in with recorded fixtures, and keep
       every unproven adapter fail-closed. (Added 2026-08-17 from the owner's
       provider order and their ask for provider-transparent layering.)
+- [x] S06c Live-bench repairs: run the real rung end to end on the owner's
+      provider and fix what only a live request could reveal — partial-success
+      loss in `auto`, and read-time `maxlag` disabling the Wikidata seat.
 - [ ] S07 Augmented chat + external citations: the wiki control MIRRORS the
       vault tool — a per-thread enable toggle, a `reach` depth control, and
       four per-source switches (Wikipedia · Wikidata · Commons image ·
@@ -512,6 +515,49 @@ OPEN        provider-step position vs S07; the "luna" model id; whether
   was discarded and no live response became a canonical file — the fixtures are
   minimal hand-reduced records with a placeholder thought signature.
 
+## S06c work unit — complete 2026-08-17
+
+- **Bench (the point of the step):** ran the whole rung live for the first
+  time — real `gemini-3.7-flash` through the shared codec, the bounded loop,
+  and real French Wikimedia, on the question *"Qui était Marie Curie ?"*. It
+  works: the model called `search_wiki`, received bounded French articles, and
+  answered in French with content-free parented receipts. The run also exposed
+  two defects no fixture could have shown.
+- **Code:** (1) `auto` rethrew any non-`empty` corpus failure, so a transient
+  Wikidata error DISCARDED articles Wikipedia had already returned — observed
+  live. A corpus failing after the other has delivered now yields a
+  `corpus-unavailable` warning (new `WikimediaWarningKind`) instead of failing
+  the search; `cancelled` and `budget-exceeded` still stop it, because those are
+  decisions rather than weather. (2) Removed `maxlag=5` from the Action API
+  READS: it counts the query service's lag (~16.6s at the time), returns the
+  error under HTTP 200, and made the Wikidata seat fail on every attempt.
+  Measured directly: with maxlag, `error.code: maxlag`; without, Q7186 returned
+  immediately.
+- **Tests:** two regressions pinning the bench findings — a transient Wikidata
+  failure keeps Wikipedia's results and surfaces the warning while the failed
+  corpus still files its receipt, and cancellation is never degraded to a
+  warning. The maxlag assertions now pin its ABSENCE with the reason. Full
+  result: 79 files, 987 passed + 1 skipped; typecheck and build green.
+- **Docs:** the dated Wikimedia snapshot records the maxlag measurement and the
+  HTTP-200-with-error-body trap; the sources note carries both corrections and
+  their measured effect; learning note 25 teaches what only a live run tells
+  you — politeness that disables the feature, and degrading weather but never a
+  decision.
+- **Measured effect** on one French question, across three live runs:
+
+```text
+before          2 tool calls · Wikidata dead   · 11.9s · $0.0039
+partial-success 1 tool call  · Wikidata dead   ·  9.6s · $0.0026
+maxlag removed  1 tool call  · Wikidata ALIVE  ·  5.6s · $0.0034
+```
+
+- **Deviations:** three live Gemini requests and two direct Wikidata probes on
+  the owner's key, at their instruction. Structure and prose printed, never the
+  secret; the bench script stayed outside the repository and was discarded. No
+  live response became a fixture. `claims: 2 / evidence: 0` is expected here —
+  binding external passages to citations is S07's work, and this run is the
+  evidence that there will be something to cite.
+
 # Current checkpoint
 
 ```text
@@ -521,8 +567,11 @@ changed     : S01 contracts; S02 Wikipedia; S03 Wikidata/graph projection;
               strict IPC preference, shared budgets and early parent traces;
               S06 provider-neutral bounded tool loop, main-side executor with
               parented vault receipts, and the native Mistral opt-in;
-              S06b shared openai-chat-completions codec + native Google
-tests       : typecheck green; 79 files / 985 pass / 1 skip; build green
+              S06b shared openai-chat-completions codec + native Google;
+              S06c live-bench repairs (partial-success in `auto`, read maxlag)
+tests       : typecheck green; 79 files / 987 pass / 1 skip; build green
+bench       : 2026-08-17, live, gemini-3.7-flash + fr.wikipedia + wikidata —
+              one tool call, 5.6s, ~$0.0034 per exchange, French answer
 next action : execute S07 — augmented chat to the ruled control shape (enable
               toggle + `reach` + four source switches), call/result disclosure
               over `toolExecutions`, external citation marks and source block,
