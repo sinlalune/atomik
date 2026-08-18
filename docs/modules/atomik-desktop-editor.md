@@ -315,6 +315,26 @@ carries the decisions; the operational shape:
   byte-identical — an existing test pins it. Both change together or neither
   does. Capabilities sit BEFORE `# Rules` so `## Output` stays inside it.
 
+## Pointing wikilinks in chat (CP-AI-CAPABILITIES S02)
+
+- A chat answer may POINT at a note with a plain `[[wikilink]]`. Pointing is
+  NOT citing: citation keeps its numbered marker and chip, because the owner
+  ruled at the CP-MVP-010 bench that a citation must not borrow the link pill.
+  Two affordances, deliberately distinct, and the click handler routes
+  `a[data-citation]` first and returns before considering `a[data-wiki]`.
+- Resolution REUSES the vault pipeline — `readGraphIndex` →
+  `wikiCandidatesFor` → `resolveWikiTarget` → `decorateWikiLinks` — rather than
+  growing a DOM-shaped twin of the string decorator. Decoration happens on the
+  HTML string BEFORE mounting, so citation chips and rich-markdown hydration
+  still run over final markup; re-writing `innerHTML` afterwards would destroy
+  both.
+- Candidates are built from the vault root (`''`): a conversation has no
+  subject note, so there is no sibling to prefer. They load ONCE per view —
+  an answer streams, and an IPC round trip per chunk would be absurd. Until
+  they arrive the pill renders unresolved and simply does not navigate.
+- An unresolved target stays the inert broken pill: a diagnostic, never an
+  auto-create. Same rule as the vault.
+
 ## Web-link pill identity (CP-FEEDBACK S05)
 
 - Read and live still ask the shared `graph-core` classifier; neither surface

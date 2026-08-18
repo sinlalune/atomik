@@ -8,7 +8,7 @@ atomik:
   id: CP-AI-CAPABILITIES
   status: running
   accepted: 2026-08-19
-  current_step: S01
+  current_step: S03
   base_commit: 80b131a
   branch: path/cp-ai-capabilities
   writes:
@@ -105,11 +105,11 @@ through the same registry, so anything the model emits WOULD render.
 
 # Execution
 
-- [ ] S01 The two blocks: add to `BUILTIN_BLOCK_IDS`/defaults, wire into the
+- [x] S01 The two blocks: add to `BUILTIN_BLOCK_IDS`/defaults, wire into the
       note and chat default plans with their section scaffolding, and pin them
       with drift tests against `richKindForFence` and `DEFAULT_RICH_LIMITS`.
       Measure the added per-request size. Tests, ADR-015, module note, ledger.
-- [ ] S02 Pointing wikilinks in chat: reuse the vault's resolution pipeline,
+- [x] S02 Pointing wikilinks in chat: reuse the vault's resolution pipeline,
       route `data-wiki` by resolved `data-rel`, keep unresolved inert, keep
       citation visibly distinct. Focused tests, docs, ledger.
 - [ ] S03 Owner bench on real generations + closure: acceptance, closing
@@ -140,11 +140,16 @@ tests       : prompt-composition 8 new; system-plan chat-plan expectation
               updated for the new chip (intentional change, not a break).
               Drift test validated by changing 5000 -> 4000 and watching it
               fail.
-next action : S02 pointing wikilinks in chat — chat's click handler routes
-              only a[data-citation] today, so a [[wikilink]] there is INERT.
-              Reuse readGraphIndex -> wikiCandidatesFor -> resolveWikiTarget ->
-              data-rel, keep unresolved inert, keep citation distinct.
-blockers    : none
+              S02 chat pointing wikilinks — decoration on the HTML string
+              before mount (so citation chips and rich hydration still see
+              final markup), candidates from the vault root loaded ONCE per
+              view rather than per streamed token, click routed by resolved
+              data-rel AFTER citation, unresolved left inert.
+next action : S03 owner bench on REAL generations — does the model actually
+              reach for a diagram when structure is the point, and does it
+              stay inside the limits it was told? That is a bench, never a
+              gate: the drift tests can only prove the block says true things.
+blockers    : none — S03 needs the owner
 ```
 
 # Blockers

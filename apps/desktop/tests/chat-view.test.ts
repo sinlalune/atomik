@@ -1,6 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { CHAT_LOG_A11Y } from '../renderer/src/workspace/chat-presentation'
+import { noteMarkdown } from '../renderer/src/editor/note-markdown'
+import { decorateWikiLinks } from '../renderer/src/editor/link-pills'
+import { resolveWikiTarget, type WikiCandidate } from '../shared/graph-core'
 
 const css = readFileSync(
   new URL('../renderer/src/styles.css', import.meta.url),
@@ -57,5 +60,51 @@ describe('chat message presentation (CP-FEEDBACK S02)', () => {
 
     const body = cssRule('.chat-turn-body')
     expect(body).toContain('margin-inline: 0')
+  })
+})
+
+describe('pointing wikilinks in chat (CP-AI-CAPABILITIES S02)', () => {
+  const candidates: readonly WikiCandidate[] = [
+    { name: 'Attention', relPath: 'notes/Attention.md' },
+    { name: 'Softmax', relPath: 'notes/Softmax.md' }
+  ]
+  const rendered = (markdown: string): string =>
+    decorateWikiLinks(noteMarkdown().render(markdown), (target) =>
+      resolveWikiTarget(candidates, target)
+    )
+
+  it('resolves a pointed note to a real target', () => {
+    const html = rendered('See [[Attention]] for the mechanism.')
+    expect(html).toContain('data-wiki="Attention"')
+    expect(html).toContain('data-rel="notes/Attention.md"')
+  })
+
+  it('leaves an unresolved target inert — a diagnostic, never an auto-create', () => {
+    const html = rendered('See [[Nonexistent]] for nothing.')
+    expect(html).toContain('link-pill--broken')
+    expect(html).not.toContain('data-rel=')
+  })
+
+  it('routes a pointing click by the RESOLVED target, after citations', () => {
+    // Citation keeps its own gesture and returns first; pointing is the
+    // second, distinct affordance. Bedrock 28 + the CP-MVP-010 bench ruling:
+    // a citation must not borrow the link pill, so the two never merge.
+    expect(view).toContain("'a[data-citation]'")
+    expect(view).toContain("'a[data-wiki]'")
+    const citationAt = view.indexOf("'a[data-citation]'")
+    const wikiAt = view.indexOf("'a[data-wiki]'")
+    expect(citationAt).toBeLessThan(wikiAt)
+    expect(view).toContain("rel.endsWith('.md')")
+  })
+
+  it('resolves candidates once per view, not once per streamed token', () => {
+    // An answer streams; an IPC round trip per chunk would be absurd.
+    expect(view).toContain('function useWikiCandidates')
+    const hook = view.slice(view.indexOf('function useWikiCandidates'))
+    expect(hook.slice(0, hook.indexOf('return candidates'))).toContain('}, [])')
+  })
+
+  it('builds candidates from the vault root — a conversation has no sibling', () => {
+    expect(view).toContain("wikiCandidatesFor('', index.nodes)")
   })
 })
