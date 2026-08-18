@@ -6,7 +6,7 @@ tags: [coding-path, markdown, katex, mermaid, vega-lite, code, diagnostics, rend
 timestamp: 2026-08-17T00:00:00Z
 atomik:
   id: CP-RICH-MARKDOWN
-  status: running
+  status: done
   accepted: 2026-08-17
   current_step: S07
   base_commit: 98561b4
@@ -202,7 +202,7 @@ The owner-approved details and revised backlog order are recorded in
       bundle-chunk inspection, all focused and bare integrated gates, docs and
       ledger. Open question the bench raised: whether a real-Electron smoke
       lane is the only mechanical guard against environment-class defects.
-- [ ] S08 Owner bench + closure: acceptance and closing ceremony, rebase on the
+- [x] S08 Owner bench + closure: acceptance and closing ceremony, rebase on the
       latest local trunk, repeat all bare gates, coherence audit, per-entry
       journal, `status: done`, and self-merge; then open CP-LANGUAGE-NOTES.
 
@@ -291,10 +291,16 @@ hardening   : owner directive 2026-08-17 — HONOR the DoD scope, do not amend.
               318 ms, teardown (one projection per block), caps failing
               visibly, responsive at 420 px, and the a11y floors. Validated by
               breaking each guard. NOT automated: a real screen-reader pass.
-next action : S08 closure — ceremony recorded (owner accepted 2026-08-17),
-              rebase, bare gates, coherence audit, journal, status: done,
-              self-merge. Then open CP-AI-CAPABILITIES (owner reordered the
-              backlog ahead of CP-LANGUAGE-NOTES).
+ceremony    : atomik-project/sessions/
+              2026-08-17-cp-rich-markdown-closing-ceremony.md — accepted;
+              hardening honored by owner ruling, not amended
+audit       : atomik-project/audits/cp-rich-markdown-9885ab3.md — "drift
+              noted, proceeding". Carry-forward: the renderer limits are about
+              to exist in a THIRD place (a prompt block); pin it with a test.
+journal     : atomik-project/log/2026-08-17-cp-rich-markdown.md
+next action : CLOSED. Next path: CP-AI-CAPABILITIES (owner reordered the
+              backlog ahead of CP-LANGUAGE-NOTES) — the AI writes into this
+              surface and has never been told it exists.
 blockers    : none; rebased onto trunk 783c7c6
 ```
 
