@@ -19,7 +19,6 @@ for two paths to disagree about.
 
 <!-- cairn:paths:begin -->
 - **CP-MVP-011** — Wikimedia-augmented chat · branch `path/cp-mvp-011` · base `783c7c6`
-- **CP-RICH-MARKDOWN** — Rich Markdown · branch `path/cp-rich-markdown` · base `98561b4`
 <!-- cairn:paths:end -->
 
 Next up: **CP-MVP-011** — Wikimedia augmentation over the same nodes/edges
