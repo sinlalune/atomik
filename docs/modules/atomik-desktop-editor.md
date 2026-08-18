@@ -266,6 +266,14 @@ carries the decisions; the operational shape:
   lines are real lines in live and render their own height, so any fixed
   padding there can only disagree with the source. Pinned by
   `read/live spacing parity` against `styles.css`.
+- `npm --workspace atomik-desktop run smoke:rich` is the mechanical guard.
+  `apps/desktop/tools/rich-smoke.mjs` seeds a temp vault + `local-workspace.json`
+  and launches the real app; `runRichSmoke` in `electron-main/index.ts` asserts
+  each adapter drew its real shape (`svg`, `.katex`, `.rich-code-token`), that
+  no CSS-level color survived, and that no `img`/`script` node was created.
+  Wait on the SHAPE, never on the output element — an empty render host
+  satisfies the latter. Validated by reverting both adapter fixes and watching
+  it reproduce the owner's error strings.
 - Tests run on linkedom: no `getComputedStyle`, no CSP. Both defects passed the
   full suite unchanged before and after the fix until each regression was
   rewritten to install the engine surface the adapter talks to. **Renderer

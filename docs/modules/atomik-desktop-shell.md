@@ -226,6 +226,20 @@ lines since S05o, and the fixed padding gave live a gap the source did not
 contain (owner bench 2026-08-17). Blank lines are real lines in live and render
 their own height. Rationale and the pinning test live in the editor note.
 
+## The rich renderer smoke lane (CP-RICH-MARKDOWN S07)
+
+`ATOMIK_SMOKE_RICH=1` routes `did-finish-load` to `runRichSmoke` instead of
+`runSmoke`, and suppresses the `dev-docs` open hash so the seeded workspace
+restores instead. `apps/desktop/tools/rich-smoke.mjs` builds the fixture (temp
+vault + `local-workspace.json` opening the note in read mode) and spawns the
+real app; the assertions live in the main process and the verdict is the exit
+code.
+
+It exists because the unit suite runs on linkedom — no CSS engine, no CSP — and
+so could not see that two renderers had never rendered (ADR-014 §8). Keep it a
+SEPARATE lane from the gates: "does the software work" and "does it work in a
+browser" are different questions, and a team needs to see which one failed.
+
 ## Rich Markdown projection lifecycle (CP-RICH-MARKDOWN S02)
 
 - `RichMarkdownBody` is the shared post-mount lifecycle boundary for every

@@ -171,6 +171,24 @@ This is acceptance of the BENCH, not of the path: S07's hardening scope below
 is still open, and the closing ceremony remains a separate event under
 bedrock 22.
 
+## The guard that answers this session's open question
+
+`npm --workspace atomik-desktop run smoke:rich`, built after the owner accepted
+the bench. It seeds a vault and a workspace state, launches the REAL app, and
+asserts in the REAL browser that every adapter drew its actual shape — `<svg>`
+for Mermaid and Vega, `.katex` for math, `.rich-code-token` for code — plus no
+surviving `light-dark()`/`color-mix()` and no `img`/`script` node from a note.
+
+Two things worth keeping:
+
+1. **Wait on the SHAPE, not on the output element.** The first version waited
+   for `[data-rich-output]` to be visible with children, and passed while
+   Mermaid and code had drawn nothing: the empty render host IS a child. A
+   guard that can pass on an empty frame is not a guard.
+2. **It was validated by breaking the code.** Reverting both adapter fixes made
+   it fail with the owner's own two error strings, verbatim. A guard nobody has
+   watched fail is a guess.
+
 ## Still open
 
 - The bench covered 02, 03 and 04's chrome. Note 01 (math), 04's deliberate

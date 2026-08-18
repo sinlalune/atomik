@@ -392,6 +392,23 @@ and enforces no CSP; both defects passed the full suite before and after the
 fix until the regressions were rewritten to install the engine surface the
 adapters actually talk to. Renderer work needs a real bench, early.
 
+**The mechanical half of that rule is `npm --workspace atomik-desktop run
+smoke:rich`.** The path's open question — whether a real-Electron lane was the
+only guard against this defect class — is answered yes, and built. It seeds a
+vault and a workspace state, launches the real app, and asserts in the real
+browser that each adapter produced its actual SHAPE: a `<svg>` for Mermaid and
+Vega, `.katex` for math, `.rich-code-token` for code. Waiting on "the output
+element exists" is not enough — an empty render host satisfies that, and did.
+It also asserts no `light-dark()`/`color-mix()` survives into rendered output
+and that a note never creates an `img` or `script` node.
+
+It was validated the only way a guard can be: by reverting both adapter fixes
+and confirming it reproduces the owner's two error strings verbatim. It needs
+no test hook in the renderer — the fixture restores through the app's own
+workspace-restore path — and it is a SEPARATE lane from the gates, because
+"does the software work" and "does it work in a browser" are different
+questions.
+
 ## Dependency pin (checked 2026-08-17)
 
 | Package | Accepted version | License | Registry unpacked size | Decision |

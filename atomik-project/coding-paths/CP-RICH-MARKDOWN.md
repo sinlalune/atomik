@@ -17,6 +17,8 @@ atomik:
     - apps/desktop/electron.vite.config.ts
     - apps/desktop/renderer/src/editor/EditorPane.tsx
     - apps/desktop/renderer/src/editor/clipboard.ts
+    - apps/desktop/electron-main/index.ts
+    - apps/desktop/tools/**
     - apps/desktop/renderer/src/editor/AiNotePreview.tsx
     - apps/desktop/renderer/src/editor/inline-ai.ts
     - apps/desktop/renderer/src/editor/live-preview.ts
@@ -254,7 +256,21 @@ bench       : S07 FIRST OWNER BENCH — the app could not start at all (Electron
 widening    : `editor/clipboard.ts` added to writes: on 2026-08-17. The root
               cause of "Copy failed" was a duplicated clipboard, so the fix
               belongs in the shared helper, not in a fourth copy of it — a root
-              cause is discovered, not declared (paths.md).
+              cause is discovered, not declared (paths.md). Also
+              `electron-main/index.ts` + `apps/desktop/tools/**` for the
+              real-Electron smoke lane below: the guard against a renderer
+              defect class has to live where the app is launched.
+smoke lane  : `npm --workspace atomik-desktop run smoke:rich` — S07's open
+              question ("is a real-Electron lane the only mechanical guard?")
+              answered YES and built. Seeds a temp vault + workspace state,
+              launches the real app, asserts each adapter drew its real SHAPE
+              (svg / .katex / .rich-code-token), that no CSS-level color
+              survived into output, and that a note created no img/script node.
+              No renderer test hook: the fixture restores through the app's own
+              workspace-restore path. VALIDATED by reverting both adapter fixes
+              and confirming it reproduces the owner's two error strings
+              verbatim. Waiting on "the output element exists" is NOT enough —
+              an empty render host satisfies that, and did.
 tests       : S07 focused PASS (rich-markdown 59); full PASS (75 files / 998
               passed + 1 skipped); Cairn/typecheck/build PASS — entry
               2,454,861 B (+333 from S06), CSS 140,228 B (unchanged);

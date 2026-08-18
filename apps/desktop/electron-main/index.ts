@@ -2016,6 +2016,88 @@ async function runSmoke(
   }
 }
 
+/**
+ * CP-RICH-MARKDOWN S07: the renderer-ENVIRONMENT probe.
+ *
+ * Every defect the first owner bench found (2026-08-17) was invisible to the
+ * unit suite by construction: those tests run on linkedom, which has no CSS
+ * engine and enforces no Content Security Policy. Mermaid and Vega-Lite had
+ * therefore never rendered once in six steps, with every gate green.
+ *
+ * This runs the REAL adapters in the REAL browser against a seeded fixture and
+ * asserts each one actually produced output. It is deliberately NOT a visual
+ * check — it answers only "did this renderer render, in a browser, under this
+ * app's policies", which is exactly the question the suite cannot ask.
+ *
+ * The fixture is a note plus a seeded workspace state (see
+ * `tools/rich-smoke.mjs`), so nothing here needs a test hook in the renderer.
+ */
+async function runRichSmoke(window: BrowserWindow): Promise<void> {
+  const outcome = (await window.webContents.executeJavaScript(
+    `(async () => {
+      // The SHAPE each renderer must actually produce. A source fallback and
+      // an empty render host both satisfy none of these, which is the point:
+      // waiting on "the output element exists" would pass before the adapter
+      // had drawn anything.
+      const shapes = [
+        ['math', '.katex'],
+        ['mermaid', 'svg'],
+        ['vega-lite', 'svg'],
+        ['code', '.rich-code-token']
+      ]
+      const block = (kind) =>
+        document.querySelector('.rich-markdown-block[data-rich-kind="' + kind + '"]')
+      const drawn = (pair) =>
+        !!document.querySelector('[data-rich-kind="' + pair[0] + '"] ' + pair[1])
+
+      const deadline = Date.now() + 25000
+      while (Date.now() < deadline && !shapes.every(drawn)) {
+        await new Promise((resolve) => setTimeout(resolve, 250))
+      }
+
+      const fails = []
+      const clean = (text) => (text || '').split(',').join(';').trim().slice(0, 140)
+      for (const pair of shapes) {
+        if (drawn(pair)) continue
+        const node = block(pair[0])
+        if (!node) { fails.push(pair[0] + ':missing'); continue }
+        const status = node.querySelector('[data-rich-status]')
+        const host = node.querySelector('[data-rich-render-host]')
+        const why = clean(status && status.textContent) ||
+          (host && host.childElementCount === 0 ? 'render host empty' : 'no ' + pair[1])
+        fails.push(pair[0] + ':' + why)
+      }
+
+      // No CSS-level color may survive into rendered output: that is what
+      // Mermaid rejected outright and Vega ignored silently.
+      for (const element of document.querySelectorAll('.markdown-body [style]')) {
+        const style = element.getAttribute('style') || ''
+        if (style.includes('light-dark(') || style.includes('color-mix(')) {
+          fails.push('css-level-color-leaked')
+          break
+        }
+      }
+
+      // A note is untrusted text: rendering one may never create an image or
+      // a script node, and the probe fences must not have executed anything.
+      const body = document.querySelector('.markdown-body')
+      if (body && body.querySelector('img')) fails.push('security:img-node')
+      if (body && body.querySelector('script')) fails.push('security:script-node')
+      if (window.__atomikProbeFired) fails.push('security:probe-executed')
+
+      return fails.length ? 'FAIL ' + fails.join(',') : 'ok'
+    })()`
+  )) as string
+
+  if (outcome === 'ok') {
+    console.log(`ATOMIK_SMOKE_RICH_OK ${app.getName()} ${app.getVersion()}`)
+    app.quit()
+  } else {
+    console.error(`ATOMIK_SMOKE_RICH_FAIL ${outcome}`)
+    app.exit(1)
+  }
+}
+
 app.whenReady().then(() => {
   // Permission posture made EXPLICIT (13): the trusted UI may use the
   // microphone (desktop capture, owner request); every other permission
@@ -2103,18 +2185,25 @@ app.whenReady().then(() => {
   registerWebViewHandlers(() => BrowserWindow.getAllWindows()[0] ?? null)
 
   const smoke = process.env['ATOMIK_SMOKE'] === '1'
+  // The rich probe restores its own seeded workspace instead of the
+  // dev-docs hash, so it must not be sent to Dev Docs on open.
+  const richSmoke = process.env['ATOMIK_SMOKE_RICH'] === '1'
   const smokeDoc = process.env['ATOMIK_SMOKE_DOC']
   const windowBg = windowBackgroundFor(
     readWorkspaceState(stateDir),
     nativeTheme.shouldUseDarkColors
   )
   const window = createMainWindow(
-    smoke ? (smokeDoc ? `dev-docs:${smokeDoc}` : 'dev-docs') : undefined,
+    smoke && !richSmoke
+      ? smokeDoc
+        ? `dev-docs:${smokeDoc}`
+        : 'dev-docs'
+      : undefined,
     windowBg
   )
   if (smoke) {
     window.webContents.once('did-finish-load', () => {
-      void runSmoke(window, docsRoot, stateDir)
+      void (richSmoke ? runRichSmoke(window) : runSmoke(window, docsRoot, stateDir))
     })
   }
 
