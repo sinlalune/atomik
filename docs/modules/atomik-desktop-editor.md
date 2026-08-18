@@ -259,6 +259,13 @@ carries the decisions; the operational shape:
   `execCommand` only when the API was absent, so every Copy reported "Copy
   failed" (owner bench 2026-08-17). Falling back on rejection is the case that
   actually happens.
+- Block spacing is SOURCE-TRUE in both modes. Read has done this since S05o
+  (`md-tight` for no blank line, N gaps for N blank lines); live carried a
+  fixed `padding-block` on `.lp-rich-widget--display`, so two adjacent fences
+  touched in read and floated apart in live (owner bench 2026-08-17). Blank
+  lines are real lines in live and render their own height, so any fixed
+  padding there can only disagree with the source. Pinned by
+  `read/live spacing parity` against `styles.css`.
 - Tests run on linkedom: no `getComputedStyle`, no CSP. Both defects passed the
   full suite unchanged before and after the fix until each regression was
   rewritten to install the engine surface the adapter talks to. **Renderer

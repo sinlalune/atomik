@@ -1,6 +1,6 @@
 ---
 type: Atomik Session Record
-title: CP-RICH-MARKDOWN S07 — first owner bench, and the five defects it found
+title: CP-RICH-MARKDOWN S07 — first owner bench, and the six defects it found
 timestamp: 2026-08-17T00:00:00Z
 tags: [rich-markdown, bench, mermaid, vega-lite, csp, theme, regression]
 path: CP-RICH-MARKDOWN
@@ -94,6 +94,20 @@ still works."* The code frame now defers to it; the helper gained an optional
 `doc` parameter so document-owning surfaces can share it. Same lesson as the
 colors: the duplicate was the defect.
 
+### 6. Read and live disagreed on block spacing (bench round 3)
+
+Owner: *"in live mode it display naturally a space between two blocks when in
+read mode if no line break the blocks are touching."* Read has been source-true
+since S05o — `md-tight` when the author left no blank line, N gaps for N blank
+lines, "read spacing IS the source, byte for byte". Live never got that rule:
+`.lp-rich-widget--display` carried a fixed `padding-block`, so every live rich
+block gained a gap the source did not contain.
+
+Blank lines are REAL LINES in live mode and already render their own height, so
+a fixed padding there can only ever disagree with the source. Removed; live is
+now source-true too, and the definition of done's read/live parity holds for
+spacing as well as meaning.
+
 ## Fixes
 
 - `adapters/css-color.ts` — new, the single place a token becomes a color.
@@ -112,6 +126,8 @@ colors: the duplicate was the defect.
 - `editor/clipboard.ts` — gained an optional `doc` parameter; the code frame's
   private implementation is gone. Declared-writes widening recorded in the
   ledger.
+- `styles.css` — `.lp-rich-widget--display` no longer adds fixed vertical
+  padding, so live block spacing follows the source exactly as read does.
 
 ## The finding under the findings
 
@@ -130,8 +146,8 @@ was never the missing thing. A real bench was.
 ## Verification
 
 ```text
-focused    tests/rich-markdown.test.ts     56 passed (45 at S06 + 11)
-full       75 files                        995 passed + 1 skipped
+focused    tests/rich-markdown.test.ts     59 passed (45 at S06 + 14)
+full       75 files                        998 passed + 1 skipped
 typecheck  PASS
 ```
 

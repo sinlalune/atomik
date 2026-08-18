@@ -247,12 +247,15 @@ bench       : S07 FIRST OWNER BENCH — the app could not start at all (Electron
               failed" — S06 had written a SECOND clipboard implementation that
               fell back to execCommand only when the async API was absent, but
               in this renderer it is present and rejects. The code frame now
-              defers to the renderer's one `editor/clipboard.ts`.
+              defers to the renderer's one `editor/clipboard.ts`. Bench round
+              3 (parity): adjacent blocks touched in read but not in live —
+              live's rich widget carried a fixed padding-block while read has
+              been source-true since S05o; live is now source-true too.
 widening    : `editor/clipboard.ts` added to writes: on 2026-08-17. The root
               cause of "Copy failed" was a duplicated clipboard, so the fix
               belongs in the shared helper, not in a fourth copy of it — a root
               cause is discovered, not declared (paths.md).
-tests       : S07 focused PASS (rich-markdown 56); full PASS (75 files / 995
+tests       : S07 focused PASS (rich-markdown 59); full PASS (75 files / 998
               passed + 1 skipped); Cairn/typecheck/build PASS — entry
               2,454,861 B (+333 from S06), CSS 140,228 B (unchanged);
               vega-interpreter 8,716 B as its own lazy chunk, so the CSP fix

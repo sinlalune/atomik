@@ -2480,11 +2480,18 @@ body[data-maximized] .tabstrip {
   vertical-align: baseline;
 }
 
+/* Source-true block spacing in LIVE too (S07, owner bench). Read mode has
+   made spacing mirror the author's blank lines since S05o — `.md-tight` for
+   no blank line, N gaps for N. This rule's fixed padding-block gave every
+   live rich block a gap the source did not contain, so two adjacent fences
+   touched in read and floated apart in live. Blank lines are REAL LINES in
+   live mode and already render their own height; a fixed padding here can
+   only ever disagree with the source. */
 .editor-host .lp-rich-widget--display {
   display: block;
   width: 100%;
   overflow-x: auto;
-  padding-block: var(--space-2);
+  padding-block: 0;
 }
 
 .editor-host .lp-rich-widget .rich-markdown-block {

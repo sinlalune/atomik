@@ -1327,6 +1327,34 @@ describe('Mermaid adapter (CP-RICH-MARKDOWN S04)', () => {
   })
 })
 
+describe('read/live spacing parity (CP-RICH-MARKDOWN S07)', () => {
+  const css = (): string =>
+    readFileSync(new URL('../renderer/src/styles.css', import.meta.url), 'utf8')
+
+  it('live rich blocks add no vertical padding the source does not contain', () => {
+    // Owner bench, 2026-08-17: two fences with no blank line between them
+    // TOUCH in read (`.md-tight`, S05o "read spacing IS the source") but
+    // floated apart in live, because the live widget carried a fixed
+    // padding-block. Blank lines are real lines in live and render their own
+    // height, so any fixed padding here can only disagree with the source.
+    const rule = /\.editor-host \.lp-rich-widget--display\s*\{([^}]*)\}/.exec(css())
+    expect(rule).not.toBeNull()
+    const padding = /padding-block:\s*([^;]+);/.exec(rule![1]!)
+    expect(padding?.[1]?.trim()).toBe('0')
+  })
+
+  it('read mode still marks gapless blocks tight', () => {
+    const html = noteMarkdown().render('```js\nconst a = 1\n```\n```js\nconst b = 2\n```\n')
+    // The second fence has no blank line above it.
+    expect(html).toContain('md-tight')
+  })
+
+  it('read mode leaves a single blank line at the default gap', () => {
+    const html = noteMarkdown().render('```js\nconst a = 1\n```\n\n```js\nconst b = 2\n```\n')
+    expect(html).not.toContain('md-tight')
+  })
+})
+
 describe('clipboard (CP-RICH-MARKDOWN S07)', () => {
   // linkedom's `navigator` is immutable and rebuilt on every access, so the
   // clipboard cannot be stubbed through a real linkedom document. This stubs

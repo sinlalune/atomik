@@ -217,6 +217,15 @@ timestamp: 2026-08-17T00:00:00Z
   ids, ephemeral-vs-explicit capture port, port validation, id
   sanitization including `../escape`.
 
+## Global stylesheet: source-true block spacing (CP-RICH-MARKDOWN S07)
+
+`styles.css` is shared shell surface, so a rule change here is recorded in both
+notes. `.editor-host .lp-rich-widget--display` no longer carries a fixed
+`padding-block`: read mode has made block spacing mirror the author's blank
+lines since S05o, and the fixed padding gave live a gap the source did not
+contain (owner bench 2026-08-17). Blank lines are real lines in live and render
+their own height. Rationale and the pinning test live in the editor note.
+
 ## Rich Markdown projection lifecycle (CP-RICH-MARKDOWN S02)
 
 - `RichMarkdownBody` is the shared post-mount lifecycle boundary for every
