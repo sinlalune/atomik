@@ -156,6 +156,23 @@ timestamp: 2026-08-17T00:00:00Z
   only what a tool DOES gets under-called, so it now says WHEN to call
   (including for a bare topic as the whole question), names `auto` as the
   preferred single call, and says the results arrive numbered.
+- CITATIONS SURVIVE THE TAB (CP-MVP-011 S07f): external citations lived only
+  in a session ref, so switching tabs cleared them and chips reverted to bare
+  markers — the owner's *"the render of citation disapeared after tab
+  switching"*. They now persist with the turn through the SAME `cited:` meta
+  vault citations always used; the canonical URL is the path. On restore a
+  path matching `https?://` rebuilds the external arm, so a reopened chip
+  still points outward instead of asking the workspace to reveal a note named
+  after a URL.
+- WHAT A HOVER CLAIMS (CP-MVP-011 S07f): a cited extent now ends at the
+  sentence's LAST marker when real prose still follows it. A marker placed
+  mid-sentence used to light the whole sentence, and when that sentence filled
+  its paragraph the hover read as "this entire paragraph came from source 2"
+  while the model had only meant the clause it had just written. It is the
+  last marker rather than the hovered one deliberately: every marker in a
+  sentence must resolve to the same extent (S10g/S10i), or two markers would
+  produce overlapping spans and the wrapper would nest them. A marker followed
+  only by punctuation still closes its sentence, which is the ordinary case.
 - SHARED DIALECT CODEC (CP-MVP-011 S06b): `electron-main/openai-tool-codec.ts`
   owns the `openai-chat-completions` wire grammar ONCE — schema emission, call
   parsing, the `role: "tool"` continuation, and usage accumulation. An adapter

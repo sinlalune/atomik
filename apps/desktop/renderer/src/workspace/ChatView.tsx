@@ -471,11 +471,32 @@ export function ChatView({
         ]
       }
       if (external.length > 0) return external
-      return turn.cited?.map((entry) => ({
-        number: entry.number,
-        path: entry.path,
-        title: (entry.path.split('/').pop() ?? entry.path).replace(/\.md$/i, '')
-      }))
+      return turn.cited?.map((entry) => {
+        // A persisted citation whose path is a URL is an external source: the
+        // same numbering, restored to the same chip it had before the tab
+        // switch (S07f).
+        if (/^https?:\/\//i.test(entry.path)) {
+          const url = new URL(entry.path)
+          const slug = decodeURIComponent(
+            url.pathname.split('/').filter(Boolean).pop() ?? url.hostname
+          ).replace(/_/g, ' ')
+          return {
+            number: entry.number,
+            path: entry.path,
+            title: slug,
+            external: {
+              url: entry.path,
+              project: url.hostname.replace(/^www\./, '').split('.')[0] ?? 'web',
+              language: url.hostname.split('.')[0] ?? ''
+            }
+          }
+        }
+        return {
+          number: entry.number,
+          path: entry.path,
+          title: (entry.path.split('/').pop() ?? entry.path).replace(/\.md$/i, '')
+        }
+      })
     },
     []
   )
@@ -1084,13 +1105,28 @@ export function ChatView({
             })
             // S08: the citation map travels WITH the answer, so a
             // reopened conversation still resolves its [1] markers.
-            const citedMeta = usedPacket
-              ? serializeCitedMeta(
-                  citationSourcesOf(
+            // S07f (owner bench: "the render of citation disapeared after tab
+            // switching"): external citations lived only in a session ref, so
+            // switching tabs cleared them and the chips reverted to bare
+            // markers. They persist with the turn now, exactly as vault
+            // citations always have — the URL is the path.
+            const externalCited = (
+              consultedByTurn.current.get(priorTurns.length + 1)?.sources ?? []
+            )
+              .filter((source) => source.number !== undefined)
+              .map((source) => ({
+                number: source.number!,
+                path: source.url,
+                title: source.title
+              }))
+            const citedMeta = serializeCitedMeta([
+              ...(usedPacket
+                ? citationSourcesOf(
                     usedPacket.entries.filter((entry) => entry.stage !== 'direct')
                   )
-                )
-              : null
+                : []),
+              ...externalCited
+            ])
             await persistTurn(
               'atomik',
               answer,

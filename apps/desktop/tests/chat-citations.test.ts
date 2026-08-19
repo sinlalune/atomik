@@ -170,6 +170,26 @@ describe('the exact sentence a citation covers (S10g/S10i)', () => {
     expect(extent(text, '[1]')).toBe(text)
   })
 
+  it('stops at the last marker when real prose still follows it', () => {
+    // S07f, owner bench: a paragraph-long sentence with the pill in the
+    // middle lit up entirely on hover — "the whole paragraph had the
+    // highlight on hover when the number pill was in the middle". The
+    // highlight now covers the clause the marker was placed after.
+    const text =
+      "Le morph target est une technique d'animation 3D [2] qui permet de " +
+      'déformer un maillage en interpolant les positions de ses sommets.'
+    expect(extent(text, '[2]')).toBe(
+      "Le morph target est une technique d'animation 3D [2]"
+    )
+  })
+
+  it('still covers the sentence when the marker only precedes punctuation', () => {
+    const text = 'Une phrase entière soutenue par la source [3]. La suivante.'
+    expect(extent(text, '[3]')).toBe(
+      'Une phrase entière soutenue par la source [3].'
+    )
+  })
+
   it('keeps separate markers in one sentence on the same extent', () => {
     const text = 'One statement [1] supported by two notes [2]. Next sentence.'
     expect(extent(text, '[1]')).toBe('One statement [1] supported by two notes [2].')

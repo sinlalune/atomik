@@ -305,6 +305,8 @@ OPEN        provider-step position vs S07; the "luna" model id; whether
       the whole search, and the ceilings match what Wikimedia actually returns.
 - [x] S07e External citations through the vault mechanism, one call across
       every enabled source, and the image leading the block.
+- [x] S07f Citations that survive a tab switch, an honest hover extent, and
+      the velocity question answered by measurement rather than intuition.
 - [ ] S07 Augmented chat + external citations: the wiki control MIRRORS the
       vault tool — a per-thread enable toggle, a `reach` depth control, and
       four per-source switches (Wikipedia · Wikidata · Commons image ·
@@ -744,6 +746,34 @@ maxlag removed  1 tool call  · Wikidata ALIVE  ·  5.6s · $0.0034
   behind the shared budget is the next velocity lever and is not attempted
   here.
 
+## S07f work unit — complete 2026-08-19
+
+- **Owner bench:** *"the render of citation disapeared after tab switching,
+  also I don't know if it was the purpose but when it rendered the whole
+  paragraph had the highlight on hover when the number pill was in the
+  middle"*, plus a question about parallel fetching.
+- **Code:** external citations persist with the turn through the existing
+  `cited:` meta (the URL is the path) and are restored as external, so a
+  reopened chip points outward rather than at a note. The cited extent ends at
+  the sentence's last marker when prose still follows it, keeping one extent
+  per sentence so spans never overlap.
+- **Velocity, measured rather than assumed:** page reads were parallelised at
+  concurrency two and the change was REVERTED. Three samples (15.5s / 12.3s /
+  12.4s) bracket the 11.8s sequential baseline: the leg moves ~3.4 MB, so it is
+  bandwidth-bound and two downloads share one pipe. Corpus-level parallelism
+  was measured at ~11% (Wikipedia 11.8s versus Wikidata 1.5s) and rejected
+  because it costs two guarantees S05 bought deliberately — the shared byte
+  ceiling stopping a later corpus from starting, and cancellation preventing
+  one from starting at all. The real lever is fetching LESS: `prop=extracts`
+  with `explaintext` returns the text directly, with the revision from the same
+  query, at a few KB instead of megabytes.
+- **Tests:** the owner's own sentence pinned as a regression (the extent stops
+  at the pill), a marker before punctuation still covering its sentence, and
+  the existing same-extent invariant still passing. Full result: 81 files,
+  1085 passed + 1 skipped; typecheck and build green.
+- **Docs:** the dated snapshot carries the three latency samples and names the
+  `extracts` change as the next lever; the AI note records both fixes.
+
 # Current checkpoint
 
 ```text
@@ -759,8 +789,9 @@ changed     : S01 contracts; S02 Wikipedia; S03 Wikidata/graph projection;
               S07b consulted-sources surface, attributed media, edition control;
               S07c one switch per verb + tool-driven vault read surfaced;
               S07d response-budget degradation (skip the page, keep the search);
-              S07e external citations, one call across every enabled source
-tests       : typecheck green; 80 files / 1012 pass / 1 skip; build green
+              S07e external citations, one call across every enabled source;
+              S07f citations persist, honest hover extent, velocity measured
+tests       : typecheck green; 81 files / 1085 pass / 1 skip; build green
 bench       : 2026-08-17, live, gemini-3.7-flash + fr.wikipedia + wikidata —
               one tool call, 5.6s, ~$0.0034 per exchange, French answer
 next action : execute S07f — represent TOOL activity in the request inspector

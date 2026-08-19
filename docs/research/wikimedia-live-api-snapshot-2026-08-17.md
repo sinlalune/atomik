@@ -236,3 +236,31 @@ unreadable. Two facts matter for anyone tuning these numbers:
 Latency follows size: 11.8s for the Wikipedia leg alone at limit 3. `reach`
 therefore buys breadth at a real time cost, which is an argument for `quick`
 being the honest default for conversational use.
+
+
+## Why the Wikipedia leg is slow — measured 2026-08-19 (S07f)
+
+The owner asked whether the fetches run in parallel. They do not, and making
+them parallel was tried and REVERTED, because the measurement says the
+constraint is bandwidth rather than latency.
+
+```text
+sequential page reads          11.8s   (2026-08-18 baseline)
+two page reads concurrently    15.5s / 12.3s / 12.4s
+```
+
+Three samples of the concurrent version bracket the sequential one. The leg
+moves ~3.4 MB for the Zidane article set; two downloads share one pipe, so
+overlapping them redistributes the same seconds. Running the CORPORA in
+parallel was measured separately and is worth ~11% (Wikipedia 11.8s against
+Wikidata 1.5s), which does not pay for what it costs: with every corpus
+dispatched at once, the shared byte ceiling can no longer stop a later corpus
+from starting, and cancellation can no longer prevent one from starting at
+all. Both guarantees were bought deliberately at S05.
+
+**The lever is fetching less, not fetching at once.** `with_html` returns a
+whole parsed article to keep a 6,000-character extract. The Action API's
+`prop=extracts` returns plain text directly (`explaintext`), with the revision
+available from the same query via `prop=revisions` — the same provenance this
+seat already records, at a few KB instead of megabytes. That is the change
+worth making, and it should take the leg from ~12s to well under a second.

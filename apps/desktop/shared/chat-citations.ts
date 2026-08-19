@@ -257,13 +257,34 @@ export function citedSentenceRange(
   // the full stop instead of leaving it outside the hover extent.
   let rangeTo = to
   if (!terminalBeforeMarker) {
-    rangeTo = text.length
+    let sentenceEnd = text.length
     for (let index = to; index < text.length; index += 1) {
       if (!isSentenceEnd(text, index)) continue
-      rangeTo = afterSentenceEnd(text, index)
+      sentenceEnd = afterSentenceEnd(text, index)
       break
     }
-    while (rangeTo > to && isSpace(text[rangeTo - 1])) rangeTo -= 1
+    while (sentenceEnd > to && isSpace(text[sentenceEnd - 1])) sentenceEnd -= 1
+
+    // S07f (owner bench): the extent stops at the sentence's LAST marker when
+    // real prose still follows it. A marker sitting mid-sentence otherwise
+    // lights the whole sentence — and when that sentence fills its paragraph,
+    // hovering reads as "this entire paragraph came from source 2" while the
+    // model only meant the part it had just written.
+    //
+    // It is the last marker rather than this one on purpose: every marker in
+    // a sentence must resolve to the SAME extent (S10g/S10i), or two markers
+    // would produce overlapping spans and the wrapper would nest them. A
+    // marker followed only by punctuation still closes the sentence, which is
+    // the ordinary case.
+    let lastMarkerEnd = to
+    MARKER_RE.lastIndex = 0
+    for (const match of text.slice(to, sentenceEnd).matchAll(MARKER_RE)) {
+      lastMarkerEnd = to + (match.index ?? 0) + match[0].length
+    }
+    const remainder = text
+      .slice(lastMarkerEnd, sentenceEnd)
+      .replace(/[\s.!?…»"”’')\]]/gu, '')
+    rangeTo = remainder.length > 0 ? lastMarkerEnd : sentenceEnd
   }
 
   return { from: rangeFrom, to: rangeTo }
