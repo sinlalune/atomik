@@ -16,6 +16,16 @@ timestamp: 2026-08-17T00:00:00Z
 
 ## What it owns
 
+- THE TRANSCRIPT'S LINK TO ITS TRACE (CP-MVP-011 S07g): `editor/chat-file.ts`
+  owns the chats convention, so the trace's ADDRESS lives here too —
+  `chatTraceFolder` / `chatTracePath` name `chats/<day>/<slug>-traces/
+  turn-NN.md` (zero-padded, `-2`/`-3` on a taken name), one level below where
+  `chatHistoryOf` walks, so a trace never lists as a chat. An answer heading
+  may now carry `<!-- trace:<path> -->` beside `sent:`/`run:`/`cited:`/
+  `packet:`; `parseTraceMeta` accepts only a `.md` path with no whitespace or
+  angle brackets, so a hand-mangled comment reads as absent rather than
+  sending the workspace somewhere. The record and the note it holds are the
+  AI area's: `shared/agent-trace.ts`.
 - EXTERNAL CITATION CHIPS (CP-MVP-011 S07e): `editor/citation-chips.ts`
   decorates markers for BOTH source kinds through the one marker parser and
   the one chip idiom. A vault chip keeps `data-citation` with its relative

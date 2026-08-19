@@ -173,6 +173,31 @@ timestamp: 2026-08-17T00:00:00Z
   sentence must resolve to the same extent (S10g/S10i), or two markers would
   produce overlapping spans and the wrapper would nest them. A marker followed
   only by punctuation still closes its sentence, which is the ordinary case.
+- THE AGENT TRACE, DURABLE BESIDE THE TRANSCRIPT (CP-MVP-011 S07g): the owner
+  benched the tool loop on 2026-08-18 and asked for a run to be auditable after
+  the session that produced it — architecture delegated, one shape given: *a
+  separate folder linked from the chat note, with a JSON block*.
+  `shared/agent-trace.ts` builds the record and the note (pure);
+  `renderer/src/workspace/agent-trace-note.ts` writes it through the injected
+  `createNote` verb — the same exclusive vault verb the transcript is born
+  with, so parents are made by the verb and a taken name retries instead of
+  clobbering. The note lands in `chats/<day>/<slug>-traces/turn-NN.md`, which
+  `chatHistoryOf` never lists (it walks `chats/` and its day folders, one level
+  each), and the answer's heading carries `<!-- trace:<path> -->` beside its
+  `run:`/`cited:`/`packet:` comments, so a reopened transcript still finds it.
+  **Two ledgers, two questions.** `.atomik/usage/private/actions.jsonl` stays
+  content-free telemetry answering "what did this cost"; the trace note answers
+  "what did THIS answer stand on" and therefore records the query the model
+  wrote, the corpus it reached, the revision it read and the licence it carried.
+  What it never records is the fetched PROSE — article extracts, packet
+  excerpts, the untrusted `content` handed to the model — because writing that
+  into the vault would make a durable copy of public material through the back
+  door, which is exactly what **Save as source** exists to do deliberately
+  (28 + ADR-015). Only an exchange with real tool activity earns a file; a
+  plain answer is already described by its own heading comments. A trace that
+  cannot be written returns null rather than throwing: the answer is the
+  user's work and must land, and the missing trace link beside a populated
+  consulted block is itself the visible signal.
 - SHARED DIALECT CODEC (CP-MVP-011 S06b): `electron-main/openai-tool-codec.ts`
   owns the `openai-chat-completions` wire grammar ONCE — schema emission, call
   parsing, the `role: "tool"` continuation, and usage accumulation. An adapter

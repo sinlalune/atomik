@@ -16,6 +16,12 @@ timestamp: 2026-08-17T00:00:00Z
 
 ## What it owns
 
+- TRACE AFFORDANCE ON AN ANSWER (CP-MVP-011 S07g): `icons.tsx` gains
+  `TraceIcon` (a receipt), and the answer's hover actions gain one
+  `icon-button chat-trace` beside insert and create-note. It reveals the
+  answer's agent-trace note through the ordinary `revealNote` workspace verb —
+  no new IPC, no new door, and it appears only when a trace was actually
+  written, so its absence beside a consulted block reads as "no audit here".
 - The CP-MVP-011 S01 tool boundary changes NO IPC yet. The required
   `GenerationAdapter.tools` declaration is a main-side capability gate:
   every adapter is explicitly final-only until its native tool-call codec is

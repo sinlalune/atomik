@@ -820,6 +820,16 @@ export function NoteAddIcon(): React.JSX.Element {
   )
 }
 
+/** Agent trace — a receipt: a document with ruled lines and a torn edge. */
+export function TraceIcon(): React.JSX.Element {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" strokeLinecap="round" aria-hidden="true">
+      <path d="M3.5 2.5h9v11l-1.5-1-1.5 1-1.5-1-1.5 1-1.5-1-1.5 1Z" />
+      <path d="M5.8 5.5h4.4M5.8 8h4.4" />
+    </svg>
+  )
+}
+
 /** Insert into note — arrow dropping between document lines. */
 export function InsertIcon(): React.JSX.Element {
   return (

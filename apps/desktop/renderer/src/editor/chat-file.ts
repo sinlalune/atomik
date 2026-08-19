@@ -49,6 +49,9 @@ export type ChatTurn = {
    *  reopen "what the vault contributed" after the tab was closed. The
    *  excerpts stay session-only: figures persist, prompts never do. */
   packet?: { stage: string; path: string }[]
+  /** CP-MVP-011 S07g: the answer's agent trace, as a vault path. The
+   *  transcript keeps the LINK; the record itself lives in its own note. */
+  trace?: string
 }
 
 export const CHATS_FOLDER = 'chats'
@@ -90,6 +93,38 @@ export function chatRelPath(
   const day = date.toISOString().slice(0, 10)
   const suffix = attempt > 1 ? `-${attempt}` : ''
   return `${CHATS_FOLDER}/${day}/${chatSlug(firstMessage)}${suffix}.md`
+}
+
+/**
+ * The trace folder for one transcript (S07g, the owner's shape: *a separate
+ * folder linked from the chat note*). It sits BESIDE the transcript, named
+ * after it — `chats/<day>/<slug>-traces/` — so the pairing survives being
+ * read in a file manager, and so `chatHistoryOf` (which walks `chats/` and
+ * its day folders, one level each) never mistakes a trace for a chat.
+ */
+export function chatTraceFolder(chatRelPath: string): string {
+  return chatRelPath.replace(/\.md$/i, '-traces')
+}
+
+/** One note per ANSWER turn — `turn-03.md`, zero-padded so the folder sorts
+ *  the way the conversation ran; `attempt > 1` suffixes, as chat paths do. */
+export function chatTracePath(
+  chatRelPath: string,
+  turnIndex: number,
+  attempt = 1
+): string {
+  const suffix = attempt > 1 ? `-${attempt}` : ''
+  const index = String(Math.max(0, Math.trunc(turnIndex))).padStart(2, '0')
+  return `${chatTraceFolder(chatRelPath)}/turn-${index}${suffix}.md`
+}
+
+/** A vault path is safe to carry in a `<!-- trace: … -->` comment only if it
+ *  cannot close the comment or smuggle a newline; anything else reads as
+ *  absent, exactly like a mangled `sent:`. */
+export function parseTraceMeta(raw: string): string | null {
+  const path = raw.trim()
+  if (path.length === 0 || path.length > 400) return null
+  return /^[^\s<>|"]+\.md$/i.test(path) ? path : null
 }
 
 const turnSection = (
@@ -246,6 +281,7 @@ export function parseChatTurns(content: string): ChatTurn[] {
     run?: RunMeta
     cited?: { number: number; path: string }[]
     packet?: { stage: string; path: string }[]
+    trace?: string
   } | null = null
   const flush = (): void => {
     if (!current) return
@@ -257,7 +293,8 @@ export function parseChatTurns(content: string): ChatTurn[] {
         ...(current.sent ? { sent: current.sent } : {}),
         ...(current.run ? { run: current.run } : {}),
         ...(current.cited ? { cited: current.cited } : {}),
-        ...(current.packet ? { packet: current.packet } : {})
+        ...(current.packet ? { packet: current.packet } : {}),
+        ...(current.trace ? { trace: current.trace } : {})
       })
     current = null
   }
@@ -282,17 +319,20 @@ export function parseChatTurns(content: string): ChatTurn[] {
       const runRaw = commentWith('run:')
       const citedRaw = commentWith('cited:')
       const packetRaw = commentWith('packet:')
+      const traceRaw = commentWith('trace:')
       const sent = sentRaw === null ? null : parseSentMeta(sentRaw)
       const run = runRaw === null ? null : parseRunMeta(runRaw)
       const cited = citedRaw === null ? null : parseCitedMeta(citedRaw)
       const packet = packetRaw === null ? null : parsePacketMeta(packetRaw)
+      const trace = traceRaw === null ? null : parseTraceMeta(traceRaw)
       current = {
         role: heading[1] as ChatRole,
         lines: [],
         ...(sent ? { sent } : {}),
         ...(run ? { run } : {}),
         ...(cited ? { cited } : {}),
-        ...(packet ? { packet } : {})
+        ...(packet ? { packet } : {}),
+        ...(trace ? { trace } : {})
       }
     } else if (current) {
       current.lines.push(line)

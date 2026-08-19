@@ -92,8 +92,26 @@ gesture previews an ordinary source dossier, deduplicates its canonical URL,
 records revision/access/licence data, copies durable media locally, and uses
 the existing source/vault write lifecycle with rollback.
 
+### The audit record names identities, never the fetched prose
+
+A run's agent trace is durable and lives in the vault beside the transcript it
+explains (`chats/<day>/<slug>-traces/turn-NN.md`, linked from the answer's
+heading). It is a different artifact from `.atomik/usage/private/actions.jsonl`,
+which stays content-free telemetry: an audit that cannot name the query the
+model wrote or the revision it read audits nothing.
+
+The line it does not cross is the prose. Article extracts, packet excerpts and
+the untrusted `content` a tool result carries are NEVER written to the trace —
+recording them would create a durable copy of public material as a side effect
+of consultation, which is precisely the promotion **Save as source** exists to
+make deliberately, with licence and revision. So the trace records what was
+ASKED (tool arguments), what was READ (URL, revision, licence, path, stage) and
+every FIGURE, and nothing else.
+
 ## Consequences
 
+- An answer produced through tools can be audited after the session that
+  produced it is gone, without consultation quietly becoming persistence.
 - The renderer and provider adapters cannot turn Wikimedia support into
   arbitrary network access.
 - The model chooses whether and what to search, while main retains authority

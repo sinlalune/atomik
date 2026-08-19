@@ -114,8 +114,11 @@ describe('the wiki tool control (CP-MVP-011 S07a)', () => {
     // The owner's ruling: "possibility to enable it". A thread must not reach
     // the network because it was opened.
     expect(view).toContain('const [wiki, setWiki] = useState(false)')
-    // `tools` rides the operation only while the toggle is on.
-    expect(view).toContain('...(wiki')
+    // `tools` rides the operation only while the toggle is on. S07g named
+    // the preference so the agent trace can record what the send carried;
+    // the conditional it guards is the same one.
+    expect(view).toContain('const toolPreference = wiki')
+    expect(view).toContain('...(toolPreference ? { tools: toolPreference } : {})')
     expect(view).toContain("mode: 'model' as const")
     expect(view).toMatch(/wikiReach,\s*\n\s*wikiSources/)
   })

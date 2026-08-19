@@ -12,6 +12,7 @@ atomik:
   base_commit: 783c7c6
   branch: path/cp-mvp-011
   writes:
+    - apps/desktop/shared/agent-trace.ts
     - apps/desktop/shared/wikimedia.ts
     - apps/desktop/shared/generation-tools.ts
     - apps/desktop/shared/chat-citations.ts
@@ -32,6 +33,7 @@ atomik:
     - apps/desktop/electron-preload/index.ts
     - apps/desktop/renderer/src/workspace/ChatView.tsx
     - apps/desktop/renderer/src/workspace/ConsultedBlock.tsx
+    - apps/desktop/renderer/src/workspace/agent-trace-note.ts
     - apps/desktop/renderer/index.html
     - apps/desktop/renderer/src/icons.tsx
     - apps/desktop/renderer/src/workspace/chat-run.ts
@@ -43,6 +45,7 @@ atomik:
     - docs/modules/atomik-desktop-ai.md
     - docs/modules/atomik-desktop-graph.md
     - docs/modules/atomik-desktop-sources.md
+    - docs/modules/atomik-desktop-editor.md
     - docs/modules/atomik-desktop-shell.md
     - docs/modules/atomik-desktop.md
     - docs/adr/ADR-015-bounded-wikimedia-grounding-and-model-tools.md
@@ -307,6 +310,9 @@ OPEN        provider-step position vs S07; the "luna" model id; whether
       every enabled source, and the image leading the block.
 - [x] S07f Citations that survive a tab switch, an honest hover extent, and
       the velocity question answered by measurement rather than intuition.
+- [x] S07g The agent trace, durable beside the transcript: the run becomes a
+      note in its own folder next to the chat, linked from the answer, with
+      one JSON block — the owner's shape, the architecture delegated.
 - [ ] S07 Augmented chat + external citations: the wiki control MIRRORS the
       vault tool — a per-thread enable toggle, a `reach` depth control, and
       four per-source switches (Wikipedia · Wikidata · Commons image ·
@@ -774,6 +780,57 @@ maxlag removed  1 tool call  · Wikidata ALIVE  ·  5.6s · $0.0034
 - **Docs:** the dated snapshot carries the three latency samples and names the
   `extracts` change as the next lever; the AI note records both fixes.
 
+## S07g work unit — complete 2026-08-19
+
+- **Owner ask that drove it:** the 2026-08-18 bench left the run invisible
+  after the fact. The owner DELEGATED the trace architecture and gave one
+  shape — a separate folder linked from the chat note, with a JSON block.
+  S07e recorded that shape as accepted and unbuilt; this unit builds it.
+- **Code:** `shared/agent-trace.ts` (pure) turns one finished exchange into a
+  record and a readable note; `renderer/src/workspace/agent-trace-note.ts`
+  writes it through an INJECTED `createNote` — the exclusive vault verb, so
+  parents are made by the verb and a taken name walks the same `-2`, `-3`
+  suffix ladder the transcript's birth uses. The note lands in
+  `chats/<day>/<slug>-traces/turn-NN.md`, one level below where `chatHistoryOf`
+  looks, so a trace can never be mistaken for a chat. The answer's heading
+  carries `<!-- trace:<path> -->` beside `run:`/`cited:`/`packet:`, and a
+  receipt button on the turn opens it. ChatView's tool preference became a
+  named `toolPreference` so the trace records what the send actually carried
+  rather than state re-read afterwards.
+- **The ruling this step needed, recorded in ADR-015:** two ledgers, two
+  questions. `.atomik/usage/private/actions.jsonl` stays content-free
+  telemetry ("what did this cost"); the trace note answers "what did THIS
+  answer stand on" and therefore records the query the model wrote, the
+  corpus, the revision and the licence. It NEVER records the fetched prose —
+  article extracts, packet excerpts, the untrusted `content` — because that
+  would make a durable copy of public material as a side effect of
+  consultation, the exact promotion S08's Save as source exists to make
+  deliberately.
+- **Deliberate limits:** only an exchange with real tool activity earns a
+  file (a plain answer is already described by its own heading comments), and
+  a trace that cannot be written returns null instead of throwing — the answer
+  is the user's work and must land; the missing trace button beside a
+  populated consulted block is itself the visible signal.
+- **Tests:** 18 new — the query is recorded verbatim, a failed call and its
+  error code survive, the distinctive fetched prose and packet excerpt appear
+  NOWHERE in the serialized note while every identity does, coverage terms
+  explain the escalation, a record stays valid with no packet and no usage,
+  the note round-trips, a mangled note reads as null, the folder never enters
+  the history menu, the `trace:` comment parses and a mangled path reads as
+  absent, and the writer retries a taken name, writes nothing without tools,
+  and loses the audit rather than the answer when the vault refuses. The S07a
+  assertion that pinned the inline `...(wiki` conditional was updated to the
+  named preference, same intent. Full result: 82 files, 1103 passed + 1
+  skipped; typecheck and build green.
+- **Declared writes widened, recorded here per `paths.md`:** two new files the
+  opening declaration could not have named — `shared/agent-trace.ts` (the pure
+  record and note) and `renderer/src/workspace/agent-trace-note.ts` (the IO
+  half) — plus `docs/modules/atomik-desktop-editor.md`, which owns the chats
+  convention the trace's address extends. All three are now in `writes:`.
+- **Not benched yet:** written and gated, not yet run in the real app on the
+  owner's provider — the request-inspector half of the 2026-08-18 bench is
+  still unbuilt, and the two want one bench together.
+
 # Current checkpoint
 
 ```text
@@ -790,8 +847,10 @@ changed     : S01 contracts; S02 Wikipedia; S03 Wikidata/graph projection;
               S07c one switch per verb + tool-driven vault read surfaced;
               S07d response-budget degradation (skip the page, keep the search);
               S07e external citations, one call across every enabled source;
-              S07f citations persist, honest hover extent, velocity measured
-tests       : typecheck green; 81 files / 1085 pass / 1 skip; build green
+              S07f citations persist, honest hover extent, velocity measured;
+              S07g agent trace persisted beside the transcript, linked from
+              the answer, prose-free by rule (ADR-015)
+tests       : typecheck green; 82 files / 1103 pass / 1 skip; build green
 bench       : 2026-08-17, live, gemini-3.7-flash + fr.wikipedia + wikidata —
               one tool call, 5.6s, ~$0.0034 per exchange, French answer
 reconciled  : 2026-08-19 on resume. S07f is DONE (656e6d8) and this line
@@ -799,17 +858,16 @@ reconciled  : 2026-08-19 on resume. S07f is DONE (656e6d8) and this line
               Verified on the rebased branch: clean tree, contains trunk tip
               80b131a, cairn-check OK (1 advisory: no audit for this head),
               typecheck + 81 files / 1085 pass / 1 skip + build all green
-next action : S07 is not closed. Two deliverables from the 2026-08-18 bench
-              survive S07f and are still unbuilt: TOOL activity in the request
-              inspector (the breakdown pills describe the pre-pass packet only)
-              and agent-trace persistence beside the transcript — the owner
-              delegated that architecture and suggested a separate folder
-              linked from the chat note with a JSON block, a shape accepted
-              and not yet built. A third, optional, comes from S07f's own
-              measurement: `prop=extracts&explaintext` fetches a few KB where
-              the current read moves ~3.4 MB, the only real velocity lever.
-              Owner picks the order; then S08 save-as-source, which also
-              brings navigation to a consulted URL.
+next action : S07g landed the trace half. What remains under S07 is the
+              REQUEST INSPECTOR: its breakdown pills still describe the
+              pre-pass packet only, so an answer that called three corpora
+              looks like it sent nothing but the packet. Build it against the
+              trace record S07g now writes, then bench both together in the
+              real app on the owner's provider — neither has been benched.
+              Optional, from S07f's measurement: `prop=extracts&explaintext`
+              fetches a few KB where the current read moves ~3.4 MB, the only
+              real velocity lever. Then S08 save-as-source, which also brings
+              navigation to a consulted URL.
 blockers    : none
 parallel    : none — CP-RICH-MARKDOWN merged as 80b131a and this branch is
               rebased onto it. No other path is running.

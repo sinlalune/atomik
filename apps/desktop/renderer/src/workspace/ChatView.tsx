@@ -77,6 +77,7 @@ import {
   BrainIcon,
   InsertIcon,
   NoteAddIcon,
+  TraceIcon,
   PlusIcon,
   PromptIcon,
   SendIcon
@@ -110,6 +111,7 @@ import {
   type ChatRun
 } from './chat-run'
 import { CHAT_LOG_A11Y } from './chat-presentation'
+import { persistAgentTrace } from './agent-trace-note'
 
 /**
  * The chat PANE (CP-MVP-008 S06c, owner redirect: "it should live in
@@ -983,6 +985,23 @@ export function ChatView({
         // a retry replays the trailing you-turn as the LIVE turn, not history
         const priorTurns = alreadyPersisted ? turns.slice(0, -1) : turns
         const thread = threadFromTurns(priorTurns)
+        // The renderer sends a PREFERENCE only: which augmentations are on
+        // and how deep. Main derives the allowed corpora, the result ceiling
+        // and the media rule from it (S07a), so a compromised renderer cannot
+        // widen its own reach. S07g names it: the agent trace records the
+        // preference the send actually carried, not one re-read from state
+        // after the fact.
+        const toolPreference = wiki
+          ? {
+              mode: 'model' as const,
+              // The vault VERB follows the vault switch: wiki alone does not
+              // hand the model the vault (owner bench 2026-08-18).
+              vault: grounding,
+              wikiLanguage: wikiLang,
+              wikiReach,
+              wikiSources
+            }
+          : null
         const operation = {
           ...prepared.operation,
           input,
@@ -990,23 +1009,7 @@ export function ChatView({
           // The renderer ASKS; main decides what the packet contains
           // and returns it on the bundle (S07).
           ...(grounding ? { grounding: { sensitivity } } : {}),
-          // The renderer sends a PREFERENCE only: which augmentations are on
-          // and how deep. Main derives the allowed corpora, the result
-          // ceiling and the media rule from it (S07a), so a compromised
-          // renderer cannot widen its own reach.
-          ...(wiki
-            ? {
-                tools: {
-                  mode: 'model' as const,
-                  // The vault VERB follows the vault switch: wiki alone does
-                  // not hand the model the vault (owner bench 2026-08-18).
-                  vault: grounding,
-                  wikiLanguage: wikiLang,
-                  wikiReach,
-                  wikiSources
-                }
-              }
-            : {})
+          ...(toolPreference ? { tools: toolPreference } : {})
         }
         // S07b4 (owner): the sent request, RETRACED — per-part pills
         // with token estimates ride the you-turn (session meta, like
@@ -1127,12 +1130,44 @@ export function ChatView({
                 : []),
               ...externalCited
             ])
+            // S07g (owner bench 2026-08-18, architecture delegated): the RUN
+            // becomes a note of its own beside the transcript — what the
+            // model asked each tool, what came back, and what it cost. It is
+            // written BEFORE the answer's turn because the turn carries the
+            // link to it, and only when tools actually ran: an exchange with
+            // no tool activity is already fully described by `sent`, `run`,
+            // `cited` and `packet` on its own headings.
+            const tracePath = await persistAgentTrace(
+              {
+                chat: fileRef.current,
+                turn: priorTurns.length + 1,
+                engine,
+                operationId: operation.id,
+                bundleId: result.id,
+                grounding: grounding ? { sensitivity } : null,
+                tools: toolPreference,
+                threadTurns: thread.length,
+                sent: sentParts ?? [],
+                packet: usedPacket,
+                executions: result.toolExecutions ?? [],
+                consulted: consultedByTurn.current.get(priorTurns.length + 1),
+                usage: result.usage,
+                billing: result.billing,
+                durationMs: result.durationMs,
+                actionTraceIds: result.actionTraceIds
+              },
+              (relPath, content) => window.atomik.createNote(relPath, content)
+            )
             await persistTurn(
               'atomik',
               answer,
               sentParts ? serializeSentMeta(sentParts) : undefined,
               usedPacket ? serializePacketMeta(usedPacket) : undefined,
-              [runMeta ?? undefined, citedMeta ? `cited:${citedMeta}` : undefined]
+              [
+                runMeta ?? undefined,
+                citedMeta ? `cited:${citedMeta}` : undefined,
+                tracePath ? `trace:${tracePath}` : undefined
+              ]
             )
             setTurns((current) => {
               metaByTurn.current.set(current.length, {
@@ -1147,7 +1182,14 @@ export function ChatView({
                   ? { costUsd: result.billing.estimatedAmount }
                   : {})
               })
-              return [...current, { role: 'atomik', text: answer }]
+              return [
+                ...current,
+                {
+                  role: 'atomik' as const,
+                  text: answer,
+                  ...(tracePath ? { trace: tracePath } : {})
+                }
+              ]
             })
             // S06c19: the conversation's RUNNING totals ride the tab
             // params — incremented per exchange, persisted with it
@@ -1551,6 +1593,21 @@ export function ChatView({
                 })()}
                 {turn.role === 'atomik' && (
                   <span className="chat-turn-actions">
+                    {turn.trace && (
+                      <button
+                        type="button"
+                        className="icon-button chat-trace"
+                        title="Open this answer's agent trace — the tools it called, what came back, what it cost"
+                        aria-label="Open the agent trace"
+                        onClick={() =>
+                          dispatch((state) =>
+                            revealNote(state, paneId, turn.trace as string)
+                          )
+                        }
+                      >
+                        <TraceIcon />
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="icon-button chat-insert"
