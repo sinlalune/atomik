@@ -794,14 +794,25 @@ changed     : S01 contracts; S02 Wikipedia; S03 Wikidata/graph projection;
 tests       : typecheck green; 81 files / 1085 pass / 1 skip; build green
 bench       : 2026-08-17, live, gemini-3.7-flash + fr.wikipedia + wikidata —
               one tool call, 5.6s, ~$0.0034 per exchange, French answer
-next action : execute S07f — represent TOOL activity in the request inspector
-              (the breakdown pills still describe the pre-pass packet only)
-              and persist the agent trace beside the transcript for audit,
-              both from the 2026-08-18 bench. Then S08 save-as-source, which
-              also brings navigation to a consulted URL
+reconciled  : 2026-08-19 on resume. S07f is DONE (656e6d8) and this line
+              still ordered it — the checkpoint-accuracy hole paths.md names.
+              Verified on the rebased branch: clean tree, contains trunk tip
+              80b131a, cairn-check OK (1 advisory: no audit for this head),
+              typecheck + 81 files / 1085 pass / 1 skip + build all green
+next action : S07 is not closed. Two deliverables from the 2026-08-18 bench
+              survive S07f and are still unbuilt: TOOL activity in the request
+              inspector (the breakdown pills describe the pre-pass packet only)
+              and agent-trace persistence beside the transcript — the owner
+              delegated that architecture and suggested a separate folder
+              linked from the chat note with a JSON block, a shape accepted
+              and not yet built. A third, optional, comes from S07f's own
+              measurement: `prop=extracts&explaintext` fetches a few KB where
+              the current read moves ~3.4 MB, the only real velocity lever.
+              Owner picks the order; then S08 save-as-source, which also
+              brings navigation to a consulted URL.
 blockers    : none
-parallel    : CP-RICH-MARKDOWN is running; styles.css and broad renderer/test/
-              docs surfaces overlap advisory-only. Rebase at step boundaries.
+parallel    : none — CP-RICH-MARKDOWN merged as 80b131a and this branch is
+              rebased onto it. No other path is running.
 ```
 
 # Blockers
