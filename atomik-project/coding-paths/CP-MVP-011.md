@@ -951,7 +951,12 @@ changed     : S01 contracts; S02 Wikipedia; S03 Wikidata/graph projection;
               answer, truncated/ambiguous warnings name what they mean;
               S07i the per-article budget SELECTS by lexical relevance
               instead of cutting the first 6 000 characters
-tests       : typecheck green; 83 files / 1119 pass / 1 skip; build green
+rebased     : 2026-08-20 onto trunk tip f58093e (the owner merged
+              CP-AI-CAPABILITIES mid-session). One conflict, in
+              `tests/chat-view.test.ts`: both paths opened a new describe
+              block at the same line. Both kept. Gates re-run on the REBASED
+              result, per the rule.
+tests       : typecheck green; 84 files / 1137 pass / 1 skip; build green
 bench       : 2026-08-20, live, google + fr.wikipedia + wikidata + wiktionary
               + Commons — one `search_wiki` call, 6.8s, 3 sources numbered
               [1][2][3], ~$0.00047, French answer; the trace note landed and
@@ -978,8 +983,11 @@ next action : re-bench S07h + S07i in the real app — every-turn traces, the
               opening check and an ADR-015 amendment. `prop=extracts` folds
               into that design rather than being bolted on here.
 blockers    : none
-parallel    : none — CP-RICH-MARKDOWN merged as 80b131a and this branch is
-              rebased onto it. No other path is running.
+parallel    : CP-MVP-012 branches from THIS path's head (399ea5e) rather than
+              the trunk, by owner ruling 2026-08-20, because it extends the
+              section selector and the trace introduced here. CP-MVP-012 MUST
+              NOT merge before this path does. CP-AI-CAPABILITIES and
+              CP-RICH-MARKDOWN have both merged; no other path is running.
 ```
 
 # Blockers
