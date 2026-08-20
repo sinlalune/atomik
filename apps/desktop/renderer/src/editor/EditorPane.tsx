@@ -105,11 +105,12 @@ const modeExtensions = (
   mode: 'live' | 'source',
   onFollowLink: (href: string) => void,
   onFollowRel: (relPath: string) => void,
+  onOpenAs: ((relPath: string, x: number, y: number) => void) | undefined,
   notePath: string,
   theme: RichTheme
 ): Extension =>
   mode === 'live'
-    ? livePreview({ onFollowLink, onFollowRel, notePath, theme })
+    ? livePreview({ onFollowLink, onFollowRel, onOpenAs, notePath, theme })
     : SOURCE_CHROME
 
 /** Vault tree for the "@" menu (bundles + linkable notes), freshly
@@ -130,6 +131,9 @@ export type EditorPaneProps = {
   onNoteCreated?: (relPath: string) => void
   /** Ctrl/Cmd+click on an internal link in live mode opens it here. */
   onFollowLink?: (relPath: string) => void
+  /** CP-OPEN-DOCK S02: Mod+click on a rel (note) pill opens the open-as
+   *  popover at the pill — the host owns the menu and the targets. */
+  onOpenAs?: (relPath: string, x: number, y: number) => void
   /** How EXTERNAL http(s) links open (S04d: live pills follow like
    *  read — the web is one tab away). Absent → the click stays inert. */
   onOpenWebUrl?: (url: string) => void
@@ -177,6 +181,7 @@ export function EditorPane({
   onModeChange,
   onNoteCreated,
   onFollowLink,
+  onOpenAs,
   onOpenWebUrl,
   saveMode = 'auto',
   onSaveModeToggle,
@@ -359,6 +364,15 @@ export function EditorPane({
   const followRelHandler = useRef((relPath: string) => {
     if (relPath.toLowerCase().endsWith('.md')) onFollowLinkRef.current?.(relPath)
   }).current
+  // CP-OPEN-DOCK S02: Mod+click on a rel pill reports it for the open-as
+  // popover — always the fresh closure, stable across reconfigures.
+  const openAsHandler = useRef((relPath: string, x: number, y: number) => {
+    onOpenAsRef.current?.(relPath, x, y)
+  }).current
+  const onOpenAsRef = useRef(onOpenAs)
+  useEffect(() => {
+    onOpenAsRef.current = onOpenAs
+  }, [onOpenAs])
 
   // The editor's dark theme follows the app theme (round-2 feedback:
   // explicit dark + pastels), not the mount-time OS query alone.
@@ -396,10 +410,17 @@ export function EditorPane({
     modeRef.current = mode
     viewRef.current?.dispatch({
       effects: previewCompartment.reconfigure(
-        modeExtensions(mode, followHandler, followRelHandler, note.relPath, {
-          name: appTheme,
-          scheme: editorDark ? 'dark' : 'light'
-        })
+        modeExtensions(
+          mode,
+          followHandler,
+          followRelHandler,
+          openAsHandler,
+          note.relPath,
+          {
+            name: appTheme,
+            scheme: editorDark ? 'dark' : 'light'
+          }
+        )
       )
     })
   }, [
@@ -408,6 +429,7 @@ export function EditorPane({
     followHandler,
     mode,
     note.relPath,
+    openAsHandler,
     previewCompartment,
     previewKey
   ])
@@ -478,6 +500,7 @@ export function EditorPane({
             modeRef.current,
             followHandler,
             followRelHandler,
+            openAsHandler,
             note.relPath,
             {
               name: appTheme,

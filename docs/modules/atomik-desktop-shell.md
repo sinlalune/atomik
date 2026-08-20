@@ -118,6 +118,13 @@ timestamp: 2026-08-17T00:00:00Z
   graph kind changes shared renderer classification and pill presentation, but
   no workspace view id, tab param, opening route, IPC channel, or preload
   authority. Raw web links and captured dossiers keep their existing doors.
+  CP-OPEN-DOCK S02 adds the ONE open-target model (contract 6): four targets
+  (`tab-current` / `tab-new` / `pane-right` / `pane-below`) compiled from the
+  existing primitives by `openNoteAt` in `workspace/model.ts`, with the
+  vocabulary, labels and shortcut grammar in `workspace/open-target.ts` and
+  the `OpenTargetMenu` popover as the discovery surface. No new IPC, no new
+  workspace shape — docking still reduces to `addTab` / `splitPane` /
+  `updateTabParams` sequences.
 - The Dev Docs tab (16 MVP slice): grouped docs tree + rendered Markdown
   with the bedrock diagrams inlined as SVG data URIs, reading the real
   files under `docs/`. `electron-main/dev-docs.ts` holds the pure logic —
@@ -320,3 +327,93 @@ about generation SHAPE:
   Live widgets and every React read consumer still use the same hydration
   ownership: timeout, theme change, rerender, and unmount abort and detach the
   old generation; late third-party output cannot publish into the replacement.
+
+## The open-target model (CP-OPEN-DOCK S02)
+
+- `workspace/open-target.ts` is the ONE vocabulary for opening a note from a
+  tree row, a link pill, or (S05) a tab move: `tab-current` / `tab-new` /
+  `pane-right` / `pane-below`, each with its label and shortcut hint
+  (`OPEN_TARGET_SPECS`) and a pure shortcut grammar (`openTargetForKey`:
+  Enter = here, Mod+Enter = new tab, Mod+Shift+Enter = pane right,
+  Mod+Alt+Enter = pane below).
+- `openNoteAt(state, paneId, relPath, scope, target)` in `workspace/model.ts`
+  compiles the four targets from existing primitives only: `updateTabParams`
+  (adoption), `addTab`, and the generalized `openNoteInNewPaneAt` (the S06b
+  convention function delegates to it with 'horizontal'). A chat scope keeps
+  its reveal convention for `tab-current` and splits VAULT-typed panes beside
+  the chat for the two pane targets. Ghost panes are identity.
+- `OpenTargetMenu` is the discoverable surface: Mod+click on a tree row or
+  rel pill opens a glass popover (36 tokens, `--z-menu`) whose four
+  `role="menuitem"` entries show their shortcuts; Escape/arrows work, the
+  first item is autofocused, and direct shortcuts (Mod+Enter / Shift / Alt,
+  plus 1-4 number keys) execute immediately when the menu is open. Plain
+  click, right-click, and Enter behavior are unchanged everywhere.
+- All four targets leave the workspace SHAPE alone — no new state fields, no
+  persistence change, no IPC. Docking (S03–S06) rides the same vocabulary.
+
+## Move and dock primitives (CP-OPEN-DOCK S03)
+
+- `pullTab(state, tabId)` is the ONE removal discipline now shared by
+  `closeTab`, `moveTab` and `dockTab`: same collapse rule (an emptied leaf
+  collapses into its sibling), same S06c12 guard (the last tree-bearing pane
+  empties in place instead of vanishing), same S06c11 total-collapse landing
+  (an empty VAULT-typed pane). `closeTab` behavior is unchanged — its 79
+  existing tests pass unmodified.
+- `moveTab(state, tabId, targetPaneId, index?)` is the only new primitive the
+  2026-07-25 brainstorm named: moves a tab into another pane at a clamped
+  index (append when absent), activates it there, focuses the target pane. A
+  same-pane reorder is a same-pane move; a no-op slot move is identity.
+- `dockTab(state, tabId, targetPaneId, side)` tears a tab out into a FRESH
+  pane on `left`/`right`/`top`/`bottom` of the target: left/right split
+  horizontally, top/bottom vertically, the fresh pane lands first or second
+  so the side is real. The fresh pane INHERITS the source pane's tree (a
+  project tab keeps its project panel; a chat tab a chat pane) and takes
+  focus. A vanished target (the pull collapsed it) never loses the tab.
+- Both compile to existing tree shapes — still no new state fields, no
+  persistence format change, no IPC.
+
+## Five-zone docking preview (CP-OPEN-DOCK S04)
+
+- `workspace/drop-zones.tsx` owns the pure five-zone geometry (`computeDockZone`)
+  and the translucent preview overlay (`DockPreview`). During dragover, hovering
+  within 25% of any outer boundary previews a split on that side (`top` / `bottom`
+  / `left` / `right`); hovering the inner 50% previews the `center` tab
+  destination. Corners resolve deterministically to the closest edge; zero or
+  negative dimensions fall back safely to `center`.
+- `DockPreview` is a purely visual, `aria-hidden="true"`, `pointer-events: none`
+  overlay that consumes bedrock 36 glass tokens (`--glass-pop`, `--accent`,
+  `--radius-lg`, `--shadow-pop`, with `@supports not (backdrop-filter)` fallback).
+  It renders the active destination boundary with a dashed accent frame and pill
+  label before the drop commits, and cleans up completely on cancel or dragleave.
+
+## Tree and tab docking (CP-OPEN-DOCK S05)
+
+- Tree-row dragging (`TREE_DRAG_MIME`) and tab dragging (`TAB_DRAG_MIME`) are
+  unified with five-zone docking. Dropping a tree row on a tabstrip opens it as a
+  new tab in that pane (`openNoteAt` `tab-new`); dropping on an outer pane zone
+  splits and docks a new note pane on that edge (`dockNote`).
+- Tabstrip drops support reordering within the same pane and moving across panes
+  with visual drop insertion indicators (`.tab.drop-before` / `.tab.drop-after`).
+  Holding `Alt` during a tab drop duplicates the tab into the target pane (`addTab`).
+- Keyboard equivalents are exposed directly on the tab titles: `Mod+Enter` moves/opens,
+  `Mod+Shift+Left`/`PageUp` and `Mod+Shift+Right`/`PageDown` reorder within the strip,
+  `Mod+Shift+Up`/`Down` and `Mod+Alt+Arrows` dock the tab into a new pane in all four
+  directions (`top`, `bottom`, `left`, `right`).
+
+## Pane-grip re-dock (CP-OPEN-DOCK S06)
+
+- Each pane header includes a six-dot grip handle (`.pane-grip`, `GripVerticalIcon`)
+  that is draggable (`PANE_DRAG_MIME`) and keyboard-operable.
+- Dragging a pane grip onto an edge zone of another pane invokes `dockPane(state, sourcePaneId, targetPaneId, side)`,
+  which tears the entire source pane (preserving its tabs, active tab, and tree configuration)
+  and docks it beside the target pane along the requested side.
+- In a two-pane workspace, dragging a pane grip to switch split orientation (horizontal ↔ vertical)
+  projects an accurate 1/2 rectangle preview spanning the full width/height of the workspace container
+  rather than a local 1/4 square, accurately matching the resulting collapsed-and-resplit layout.
+- Dragging a pane grip onto the center zone (or tabstrip) of another pane merges all tabs into
+  the target pane and closes the source pane (`mergePane`), inheriting tree configuration if the
+  target was untyped.
+- Keyboard equivalents on the pane grip (`Mod+Alt+Shift+Arrows`) re-dock the entire pane in any of the
+  four directions relative to the workspace.
+
+

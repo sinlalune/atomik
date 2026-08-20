@@ -538,6 +538,7 @@ body[data-maximized] .app-header {
   min-height: 0;
   min-width: 0;
   display: flex;
+  position: relative;
 }
 
 .workspace-loading {
@@ -673,6 +674,32 @@ body[data-maximized] .app-header {
   -webkit-app-region: no-drag;
 }
 
+/* CP-OPEN-DOCK S06: pane grip handle for dragging the whole pane */
+.tabstrip .pane-grip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 22px;
+  padding: 0;
+  margin: 0 1px;
+  color: var(--muted);
+  cursor: grab;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: none;
+  -webkit-app-region: no-drag;
+}
+
+.tabstrip .pane-grip:hover {
+  color: var(--fg);
+  background: var(--code-bg);
+}
+
+.tabstrip .pane-grip:active {
+  cursor: grabbing;
+}
+
 /* Dragging a maximized frameless window glitches under some window
    managers (owner bug report, WSLg): while maximized, the strip is a
    plain toolbar and every click lands where it looks. */
@@ -694,6 +721,22 @@ body[data-maximized] .tabstrip {
   border-radius: var(--radius-pill);
   white-space: nowrap;
   color: var(--muted);
+}
+
+.tab[draggable='true'] {
+  cursor: grab;
+}
+
+.tab[draggable='true']:active {
+  cursor: grabbing;
+}
+
+.tab.drop-before {
+  box-shadow: -2px 0 0 0 var(--accent);
+}
+
+.tab.drop-after {
+  box-shadow: 2px 0 0 0 var(--accent);
 }
 
 .tab:hover {
@@ -4708,6 +4751,160 @@ button svg {
 .tree-menu > button:focus-visible {
   background: var(--code-bg);
   color: var(--accent);
+}
+
+/* CP-OPEN-DOCK S02 — the open-as popover (contract 6): the 36 overlay
+   idiom — glass pop at --z-menu, one shadow, opaque fallback. The menu
+   items carry a kbd hint on the right, the discovery path for the
+   keyboard equivalents. */
+.open-target-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-menu);
+}
+
+.open-target-menu {
+  position: fixed;
+  z-index: var(--z-menu);
+  min-width: 200px;
+  max-width: 280px;
+  padding: var(--space-1);
+  background: var(--glass-pop);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop);
+  display: flex;
+  flex-direction: column;
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .open-target-menu {
+    background: var(--surface);
+  }
+}
+
+.open-target-head {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--space-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.open-target-menu > button {
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.open-target-menu > button:hover,
+.open-target-menu > button:focus-visible {
+  background: var(--code-bg);
+  color: var(--accent);
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.open-target-kbd {
+  font: inherit;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.open-target-menu > button:hover .open-target-kbd,
+.open-target-menu > button:focus-visible .open-target-kbd {
+  color: inherit;
+}
+
+/* CP-OPEN-DOCK S04 — five-zone docking preview overlay (contract 7).
+   Rendered during dragover with pointer-events: none so it never steals
+   drag events. Follows bedrock 36 glass chrome & tokens. */
+.dock-preview-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: var(--z-pop);
+  overflow: hidden;
+}
+
+.dock-preview {
+  position: absolute;
+  background: var(--glass-pop);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 2px dashed var(--accent);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop), inset 0 0 12px var(--glass-edge);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease-out;
+  box-sizing: border-box;
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .dock-preview {
+    background: var(--surface);
+  }
+}
+
+.dock-preview-label {
+  font-size: var(--fs-md);
+  font-weight: 500;
+  color: var(--accent);
+  background: var(--bg);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--accent);
+  box-shadow: var(--shadow-pop);
+}
+
+.dock-preview--center {
+  inset: var(--space-2);
+}
+
+.dock-preview--left {
+  top: var(--space-2);
+  bottom: var(--space-2);
+  left: var(--space-2);
+  width: calc(50% - var(--space-2));
+}
+
+.dock-preview--right {
+  top: var(--space-2);
+  bottom: var(--space-2);
+  right: var(--space-2);
+  width: calc(50% - var(--space-2));
+}
+
+.dock-preview--top {
+  left: var(--space-2);
+  right: var(--space-2);
+  top: var(--space-2);
+  height: calc(50% - var(--space-2));
+}
+
+.dock-preview--bottom {
+  left: var(--space-2);
+  right: var(--space-2);
+  bottom: var(--space-2);
+  height: calc(50% - var(--space-2));
 }
 
 .tree-menu-form {

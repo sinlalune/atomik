@@ -387,6 +387,18 @@ the ceiling is a decision rather than a measurement.
   type-prefixed hover title: “External web link” versus “Captured web source”.
   Authored link text and navigation targets remain untouched.
 
+## Pill open-as (CP-OPEN-DOCK S02)
+
+- `EdgeFollow` gains an optional `openAs(relPath, x, y)`: Mod+click on a
+  RESOLVED rel pill (wikilink or relative `.md` link) reports it to the
+  host's `OpenTargetMenu` instead of following. Plain left-click,
+  right-click-to-edit, and hash/mailto/external href behavior are untouched;
+  without a host callback Mod+click degrades to the plain click.
+- The widget reports the pill's own bottom-left rect, so the popover opens
+  where the user pointed. The host chain is `EditorPane.onOpenAs` →
+  `VaultView`/`ProjectView` (`onOpenAsNote`) → the pane's Workspace instance,
+  which owns the menu state and compiles the pick through `openNoteAt`.
+
 ## Chat citation decoration (CP-MVP-010 S08/S10i/S10j)
 
 - `renderer/src/editor/citation-chips.ts` is the DOM half of chat

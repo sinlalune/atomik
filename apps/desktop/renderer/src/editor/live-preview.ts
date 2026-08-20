@@ -503,6 +503,9 @@ class CheckboxWidget extends WidgetType {
 export type EdgeFollow = {
   href: (raw: string) => void
   rel: (relPath: string) => void
+  /** CP-OPEN-DOCK S02: Mod+click on a rel pill reports it for the
+   *  open-as popover (position = the pill's bottom-left). */
+  openAs?: (relPath: string, x: number, y: number) => void
 }
 
 const edgeFollowFacet = Facet.define<EdgeFollow, EdgeFollow | null>({
@@ -538,6 +541,37 @@ export const wikiCandidatesField = StateField.define<WikiCandidate[] | null>({
 })
 
 export type EdgeFollowTarget = { kind: 'href' | 'rel'; target: string } | null
+
+/** What a left mousedown on a pill means — pure so the modifier
+ *  grammar has regression tests that run without a DOM. */
+export type PillPointerAction = 'open-as' | 'follow' | 'ignore'
+
+export function pillPointerAction(input: {
+  button: number
+  metaKey: boolean
+  ctrlKey: boolean
+  /** The event landed on one of the pill's own buttons (+ / mark). */
+  onButton: boolean
+  kind: 'href' | 'rel'
+  target: string
+  /** The host wired the open-as popover (edgeFollowFacet.openAs). */
+  openAsWired: boolean
+}): PillPointerAction {
+  if (input.button !== 0) return 'ignore'
+  if (input.onButton) return 'ignore'
+  // CP-OPEN-DOCK S02: Mod+click on any note target (rel wikilink or .md href)
+  // asks "open as"; hash/mailto/external keep their plain behavior.
+  if ((input.metaKey || input.ctrlKey) && input.openAsWired) {
+    if (input.kind === 'rel') return 'open-as'
+    if (input.kind === 'href' && !/^(https?:|mailto:|#)/i.test(input.target)) {
+      return 'open-as'
+    }
+  }
+  // hash/mailto have no follow action — leave the click to CM
+  // (cursor placement = edit), never a consumed no-op (S04d)
+  if (input.kind === 'href' && /^(mailto:|#)/.test(input.target)) return 'ignore'
+  return 'follow'
+}
 
 class LinkPillWidget extends WidgetType {
   constructor(
@@ -597,15 +631,36 @@ class LinkPillWidget extends WidgetType {
     if (this.follow) {
       const target = this.follow
       pill.addEventListener('mousedown', (event) => {
-        if (event.button !== 0) return
-        if (event.target instanceof HTMLElement && event.target.closest('button')) return
-        // hash/mailto have no follow action — leave the click to CM
-        // (cursor placement = edit), never a consumed no-op (S04d)
-        if (target.kind === 'href' && /^(mailto:|#)/.test(target.target)) return
         const handlers = view.state.facet(edgeFollowFacet)
         if (!handlers) return
+        const action = pillPointerAction({
+          button: event.button,
+          metaKey: event.metaKey,
+          ctrlKey: event.ctrlKey,
+          onButton:
+            event.target instanceof HTMLElement &&
+            event.target.closest('button') !== null,
+          kind: target.kind,
+          target: target.target,
+          openAsWired: handlers.openAs !== undefined
+        })
+        if (action === 'ignore') return
         event.preventDefault()
         event.stopPropagation()
+        if (action === 'open-as' && handlers.openAs) {
+          const rect = wrap.getBoundingClientRect()
+          let relPath = target.target
+          if (target.kind === 'href') {
+            const currentNote = view.state.facet(notePathFacet)
+            if (currentNote && !/^(https?:|mailto:|#)/i.test(target.target)) {
+              relPath =
+                resolveRelativeTarget(currentNote, target.target) ??
+                target.target
+            }
+          }
+          handlers.openAs(relPath, rect.left, rect.bottom)
+          return
+        }
         if (target.kind === 'rel') handlers.rel(target.target)
         else handlers.href(target.target)
       })
@@ -1349,6 +1404,9 @@ export function livePreview(options?: {
   /** How an already-resolved vault path opens (wiki pill click, S04c);
    *  falls back to onFollowLink when absent. */
   onFollowRel?: (relPath: string) => void
+  /** CP-OPEN-DOCK S02: Mod+click on a rel pill opens the open-as popover
+   *  (host owns the menu). Absent → Mod+click behaves like a plain click. */
+  onOpenAs?: (relPath: string, x: number, y: number) => void
   /** Vault-relative note path; enables image embeds. */
   notePath?: string
   /** App theme snapshot; changing it rebuilds disposable rich widgets. */
@@ -1363,7 +1421,8 @@ export function livePreview(options?: {
     extensions.push(
       edgeFollowFacet.of({
         href: follow ?? (() => {}),
-        rel: options?.onFollowRel ?? follow ?? (() => {})
+        rel: options?.onFollowRel ?? follow ?? (() => {}),
+        ...(options?.onOpenAs ? { openAs: options.onOpenAs } : {})
       })
     )
   }
@@ -1381,7 +1440,16 @@ export function livePreview(options?: {
           if (pos === null) return false
           const href = linkHrefAt(view.state, pos)
           if (!href) return false
+          if (/^(https?:|mailto:|#)/i.test(href)) return false
           event.preventDefault()
+          if (options?.onOpenAs) {
+            let relPath = href
+            if (options.notePath) {
+              relPath = resolveRelativeTarget(options.notePath, href) ?? href
+            }
+            options.onOpenAs(relPath, event.clientX, event.clientY)
+            return true
+          }
           follow(href)
           return true
         }
