@@ -159,13 +159,14 @@ CP-AI-CAPABILITIES and CP-LANGUAGE-NOTES) are recorded in
 
 ```text
 base commit : 80b131a
-trunk pin   : 80b131a (worktree created from the trunk tip; no rebase needed yet)
+trunk pin   : f58093e (rebased after CP-AI-CAPABILITIES merged to trunk during
+              S01; no conflict — activation files are path-local)
 changed     : activation (path file + opening-check note + regenerated ACTIVE);
               S01 baseline pinned — Required docs read (03, 36, 13, 15, 35 +
               execution law), no code changed
-tests       : baseline bare gates PASS on the branch — cairn-check green
-              (3 advisory), typecheck, 998/998 tests (75 files, 1 skipped),
-              production build
+tests       : baseline bare gates PASS on the rebased branch — cairn-check
+              green (1 advisory: audit, expected), typecheck, 1016/1016 tests
+              (76 files, 1 skipped), production build
 next action : S02 — open-target model (contract 6)
 blockers    : none
 defect      : paths.md's worktree recipe line 2

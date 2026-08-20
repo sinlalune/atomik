@@ -92,3 +92,12 @@ with the 2026-07-25 DnD brainstorm — was confirmed, the owner answered:
 
 Opening check accepted. `CP-OPEN-DOCK` is ready for activation on branch
 `path/cp-open-dock` in its dedicated worktree, base commit `80b131a`.
+
+## Post-ceremony amendment (same day)
+
+While this check was being recorded, CP-AI-CAPABILITIES was closing in a
+parallel session and merged to the trunk (`f58093e`) before this path's S01
+baseline. The effective backlog is therefore OPEN-DOCK (running) →
+CP-LANGUAGE-NOTES → CP-PDF-READER — consistent with the owner's ruling above,
+with AI-CAPABILITIES already landed. The branch rebased onto `f58093e` and
+re-pinned its green baseline before any implementation step.
