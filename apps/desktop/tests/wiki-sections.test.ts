@@ -85,19 +85,71 @@ describe('choosing what to read of an article (CP-MVP-011 S07i)', () => {
     expect(selection.kept).toHaveLength(4)
   })
 
+  it('never spends the budget on the apparatus (S07j re-bench)', () => {
+    // The owner's second bench: "Réforme des retraites en France en 2010 —
+    // read (lead), Notes et références". A reference list repeats the page
+    // title in every citation, which is the densest possible match and the
+    // emptiest possible reading.
+    const withApparatus: WikiSection[] = [
+      { heading: '', text: 'Lead of the 2010 pension reform article.' },
+      {
+        heading: 'Notes et références',
+        text: 'Réforme des retraites, Le Monde, réforme des retraites, Libération, réforme des retraites.'
+      },
+      { heading: 'Voir aussi', text: 'Réforme des retraites en France en 2023.' },
+      { heading: 'Bibliographie', text: 'Ouvrage sur la réforme des retraites.' },
+      { heading: 'Contenu', text: 'Le texte recule l age de depart a 62 ans.' }
+    ]
+    const selection = selectWikiSections(withApparatus, 'réforme des retraites', 120)
+    expect(selection.kept).not.toContain('Notes et références')
+    expect(selection.kept).not.toContain('Voir aussi')
+    expect(selection.kept).not.toContain('Bibliographie')
+    expect(selection.kept).toEqual(['(lead)', 'Contenu'])
+  })
+
+  it('ignores a term that saturates the page, and ranks on what is left', () => {
+    // S07j's mean-share rule missed the owner's page: one discriminating term
+    // ("2010") pulled the average under the threshold while "réforme",
+    // "retraites", "des" and "en" still appeared everywhere. Per TERM now.
+    const pages: WikiSection[] = [
+      { heading: '', text: 'La réforme des retraites en France, lead.' },
+      { heading: 'Contexte', text: 'La réforme des retraites arrive en 2019 en France.' },
+      { heading: 'Mesures 2010', text: 'La réforme des retraites de 2010 en France recule l age.' },
+      { heading: 'Suites', text: 'La réforme des retraites reste contestee en France.' }
+    ]
+    const selection = selectWikiSections(
+      pages,
+      'réforme des retraites en France 2010',
+      110
+    )
+    expect(selection.focused).toBe(true)
+    // only "2010" discriminates, and it points at exactly one section
+    expect(selection.kept).toContain('Mesures 2010')
+  })
+
   it('stops ranking when the query matches the whole page (S07j)', () => {
     // Owner bench 2026-08-20: the model searched "réforme des retraites en
     // France en 2023" and got the article of that name, where every section
     // carries every query term. Ranking then measures keyword DENSITY, not
     // answering power — it picked §Manifestations over §Contenu. With no
     // signal to rank by, reading order is the honest answer.
+    // every section carries every query term: nothing left to rank on
     const onTopic: WikiSection[] = [
-      { heading: '', text: 'La réforme des retraites de 2023 en France, vue générale.' },
-      { heading: 'Contenu de la réforme', text: 'La réforme des retraites recule l age legal.' },
-      { heading: 'Contexte', text: 'La réforme des retraites en France arrive apres 2019.' },
+      {
+        heading: '',
+        text: 'La réforme des retraites en France en 2023, vue générale.'
+      },
+      {
+        heading: 'Contenu de la réforme',
+        text: 'La réforme des retraites en France en 2023 recule l age legal.'
+      },
+      {
+        heading: 'Contexte',
+        text: 'La réforme des retraites en France en 2023 succede a 2019.'
+      },
       {
         heading: 'Manifestations',
-        text: 'La réforme des retraites en France en 2023 provoque des manifestations contre la réforme des retraites, encore et encore, longuement.'
+        text: 'La réforme des retraites en France en 2023 provoque des manifestations contre la réforme des retraites en France en 2023, encore et encore, longuement.'
       }
     ]
     const selection = selectWikiSections(

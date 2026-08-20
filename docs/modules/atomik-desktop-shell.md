@@ -28,7 +28,12 @@ timestamp: 2026-08-17T00:00:00Z
   walk as fallback) and the per-article character budget is spent on the
   sections that score against the query, not on the first N characters. The
   scoring lives in `shared/wiki-sections.ts` (pure), so the main-side client
-  keeps only the HTML walk. Nothing about the trust boundary moves: same fixed
+  keeps only the HTML walk. What that scorer returns changed twice under the
+  owner's benches (S07j): apparatus sections — notes/références,
+  bibliographie, voir aussi, liens externes, annexes and their English forms —
+  never reach the budget, and query terms appearing in ≥ 80% of a page's
+  sections are treated as stopwords for that page. `sections.focused` reports
+  whether anything was left to rank on. Nothing about the trust boundary moves: same fixed
   hosts, same byte and request budgets, same abort signal.
 - THE IMAGE LEADS THE ANSWER (CP-MVP-011 S07h): `ConsultedMediaBlock` renders
   ABOVE `ClaimBody`; the consulted block keeps warnings, vault notes and

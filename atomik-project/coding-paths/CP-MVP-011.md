@@ -976,8 +976,21 @@ maxlag removed  1 tool call  · Wikidata ALIVE  ·  5.6s · $0.0034
   failure path traces and marks) plus 2 for saturation (reading order when the
   query matches the whole page; ranking still applies when it discriminates).
   Full result: 85 files, 1146 passed + 1 skipped; typecheck and build green.
-- **Not benched:** all three changes land on surfaces the owner just benched;
-  re-running the same conversation would show them.
+- **Re-benched the same day** (`macron-et-la-réforme-des-retraites-4`), and it
+  failed twice over — the finding, and the fix:
+  - The saturation rule did not trip. A MEAN share across query terms is the
+    wrong instrument: "2010" discriminated, dragging the average under the
+    threshold while "réforme", "des", "retraites" and "en" still appeared in
+    every section. The rule is per TERM now — a term in ≥ 80% of sections is a
+    stopword for this page and does not vote; when none survive, reading order
+    and `focused: false`.
+  - Worse, and unreported: `Réforme des retraites en France en 2010 — read
+    (lead), Notes et références`. The reference list won the entire budget,
+    because a bibliography repeats the page title in every citation. Apparatus
+    sections (notes/références, bibliographie, voir aussi, liens externes,
+    annexes, and their English forms) are dropped before scoring, and the
+    truncation figure is measured against what remained readable.
+  - Two more tests pin both. Full result: 85 files, 1148 passed + 1 skipped.
 
 # Current checkpoint
 
@@ -1010,7 +1023,7 @@ rebased     : 2026-08-20 onto trunk tip f58093e (the owner merged
               `tests/chat-view.test.ts`: both paths opened a new describe
               block at the same line. Both kept. Gates re-run on the REBASED
               result, per the rule.
-tests       : typecheck green; 85 files / 1146 pass / 1 skip; build green
+tests       : typecheck green; 85 files / 1148 pass / 1 skip; build green
 bench       : 2026-08-20 (second), `macron-et-la-réforme-des-retraites`, live
               on google — S07g/S07h/S07i all confirmed in the owner's own
               files; the two gaps it exposed became S07j. Earlier the same
@@ -1024,9 +1037,10 @@ reconciled  : 2026-08-19 on resume. S07f is DONE (656e6d8) and this line
               Verified on the rebased branch: clean tree, contains trunk tip
               80b131a, cairn-check OK (1 advisory: no audit for this head),
               typecheck + 81 files / 1085 pass / 1 skip + build all green
-next action : re-bench S07j — a transcript opened as a note must show no
-              comments, and a query that matches a whole page must say it
-              read from the top. Then the REQUEST INSPECTOR — its breakdown pills still describe
+next action : re-bench S07j again — the apparatus must never be selected, a
+              saturated query must say it read from the top, and a transcript
+              opened as a note must show no comments. Then the REQUEST
+              INSPECTOR — its breakdown pills still describe
               the pre-pass packet only, so an answer that called three corpora
               looks like it sent nothing but the packet; build it against the
               trace record. Then S08 save-as-source, which also brings

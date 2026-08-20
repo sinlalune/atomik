@@ -1,4 +1,4 @@
-import { BM25_B, BM25_K1, parseQuery, tokenize } from './retrieval-core'
+import { BM25_B, BM25_K1, foldTerm, parseQuery, tokenize } from './retrieval-core'
 
 /**
  * Choosing WHICH part of an article to read (CP-MVP-011 S07i).
@@ -29,21 +29,66 @@ export type WikiSection = {
 }
 
 /**
- * When most query terms appear in most sections, the query cannot discriminate
- * INSIDE this page — the classic case being a query that is the article's own
- * title ("réforme des retraites en France en 2023" against the article of that
- * name). Ranking then degenerates into keyword DENSITY: the longest section
- * that repeats the topic wins, which is not the same as the section that
- * answers. The owner's bench caught exactly this (2026-08-20): a question
- * about the reform selected §Manifestations et grèves over §Contenu.
+ * A term that appears in almost every section of a page is a STOPWORD FOR
+ * THIS PAGE: it says the article is about the subject, which we already knew,
+ * and it cannot say which part answers. Scoring it back in is what makes
+ * ranking degenerate into keyword DENSITY — the longest section that repeats
+ * the topic wins.
  *
- * The honest move is to say so and read from the top, which is what a person
- * does with a page that is entirely on topic.
+ * S07j tried to catch this with the MEAN share across query terms, and the
+ * owner's re-bench (2026-08-20, `macron-et-la-réforme-des-retraites-4`) showed
+ * why a mean is the wrong instrument: one discriminating term ("2010") drags
+ * the average under any threshold while "réforme", "des", "retraites" and "en"
+ * still saturate the page. The rule is per TERM now — drop the ones that
+ * cannot discriminate, rank on what is left, and when nothing is left, read
+ * from the top and say so.
  */
-const SATURATION_SHARE = 0.6
+const PAGE_STOPWORD_SHARE = 0.8
 
 /** Below this, ranking barely matters and the budget usually fits anyway. */
 const SATURATION_MIN_SECTIONS = 4
+
+/**
+ * The apparatus is not the article (S07j re-bench). "Notes et références" won
+ * the whole budget for `Réforme des retraites en France en 2010`, because a
+ * reference list repeats the page's title in every citation — the densest
+ * possible match, and the emptiest possible reading. Bibliographies, external
+ * links and see-also lists are the page's plumbing; the byte budget is for
+ * prose. `.reflist` chrome is already stripped upstream, but the SECTION
+ * survives with its leftovers.
+ */
+const APPARATUS_HEADINGS = new Set(
+  [
+    'notes',
+    'notes et references',
+    'note et references',
+    'references',
+    'notes and references',
+    'bibliographie',
+    'bibliography',
+    'voir aussi',
+    'see also',
+    'liens externes',
+    'external links',
+    'annexes',
+    'annexe',
+    'articles connexes',
+    'further reading',
+    'lectures complementaires',
+    'sources',
+    'works cited',
+    'pour approfondir'
+  ].map((heading) => heading)
+)
+
+/** Headings arrive with accents, case and stray punctuation. */
+export function isApparatusHeading(heading: string): boolean {
+  const normalized = foldTerm(heading)
+    .replace(/[^a-z0-9 ]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return APPARATUS_HEADINGS.has(normalized)
+}
 
 export type WikiSectionSelection = {
   /** Reading order preserved: sections compete on score, then go back into
@@ -110,12 +155,20 @@ function scoreSections(
   if (avgdl === 0) return unfocused
 
   const idf = new Map<string, number>()
-  const shares: number[] = []
+  const scoring: string[] = []
   for (const term of terms) {
     const df = bodies.filter((counts, index) =>
       counts.has(term) || headings[index]!.has(term)
     ).length
-    shares.push(df / sections.length)
+    // The page-stopword rule: a term in nearly every section carries no
+    // information about WHICH section, so it does not get to vote.
+    if (
+      sections.length >= SATURATION_MIN_SECTIONS &&
+      df / sections.length >= PAGE_STOPWORD_SHARE
+    ) {
+      continue
+    }
+    scoring.push(term)
     // The standard BM25 idf, floored: a term present in EVERY section still
     // contributes a little rather than turning negative.
     idf.set(
@@ -127,17 +180,16 @@ function scoreSections(
     )
   }
 
-  const meanShare = shares.reduce((sum, share) => sum + share, 0) / shares.length
-  if (sections.length >= SATURATION_MIN_SECTIONS && meanShare >= SATURATION_SHARE) {
-    return unfocused
-  }
+  // Every term saturated: the query is the page's own topic and has nothing
+  // left to say about its parts.
+  if (scoring.length === 0) return unfocused
 
   const scores = sections.map((_section, index) => {
     const body = bodies[index]!
     const heading = headings[index]!
     const dl = lengths[index]!
     let score = 0
-    for (const term of terms) {
+    for (const term of scoring) {
       const weight = idf.get(term)!
       const f = body.get(term) ?? 0
       if (f > 0) {
@@ -162,7 +214,10 @@ export function selectWikiSections(
   query: string,
   maxChars: number
 ): WikiSectionSelection {
-  const usable = sections.filter((section) => section.text.length > 0)
+  const usable = sections.filter(
+    (section) =>
+      section.text.length > 0 && !isApparatusHeading(section.heading)
+  )
   if (usable.length === 0) {
     return { text: '', truncated: false, kept: [], skipped: 0, focused: false }
   }
@@ -213,6 +268,9 @@ export function selectWikiSections(
   const kept = keptIndexes.map((index) =>
     usable[index]!.heading.length > 0 ? usable[index]!.heading : LEAD_LABEL
   )
+  // Measured against what was READABLE, not against the apparatus we refuse
+  // to spend the budget on — otherwise a page is reported as truncated for
+  // dropping its bibliography.
   const wholeLength = usable.reduce((sum, section) => sum + section.text.length, 0)
   return {
     text,

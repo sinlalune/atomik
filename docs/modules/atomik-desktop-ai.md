@@ -249,11 +249,20 @@ timestamp: 2026-08-17T00:00:00Z
   that name, where every section carries every query term. The idf collapses
   toward its floor and ranking becomes keyword DENSITY: §Manifestations et
   grèves won because it is long and repeats the topic, not because it answers
-  better. `SATURATION_SHARE` (0.6 of sections, for pages with at least four)
-  detects it and returns to reading order, and `focused: false` travels with
-  the result so the warning can say *"the query matched the whole page, so it
-  was read from the top rather than ranked"*. "We ranked" and "we gave up
-  ranking" are different claims about the same text.
+  better. The rule is PER TERM: a term appearing in ≥ 80% of a page's sections
+  is a stopword FOR THIS PAGE and does not get to vote; if none survive, the
+  article is read from the top and `focused: false` says so in the warning.
+  The first attempt used the MEAN share across terms and the owner's re-bench
+  refuted it in one line — a single discriminating term ("2010") drags the
+  average under any threshold while the topic words still saturate.
+- THE APPARATUS IS NOT THE ARTICLE (CP-MVP-011 S07j re-bench): the same trace
+  showed `Réforme des retraites en France en 2010 — read (lead), Notes et
+  références`. A reference list repeats the page's title in every citation:
+  the densest possible match and the emptiest possible reading. Sections whose
+  heading is bibliography, notes/references, see-also, external links or
+  annexes (French and English forms, accent- and case-folded) are dropped
+  before scoring, and the truncation figure is measured against what remained
+  readable — a page is not "truncated" for losing its bibliography.
 - A DEAD EXCHANGE LEAVES A RECORD (CP-MVP-011 S07j): a failed or cancelled run
   used to leave the question in the transcript and nothing else — the owner
   found a stray unanswered `## you` and could not tell a failure from a double
