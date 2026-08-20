@@ -1,4 +1,5 @@
 import type {
+  RichDiagnostic,
   RichRenderHandle,
   RichRenderRequest,
   RichRendererAdapter,
@@ -24,12 +25,37 @@ export type VegaView = {
   finalize(): unknown
 }
 
+/**
+ * Vega's logger shape (CP-RENDER-REPAIRS S02).
+ *
+ * Built HERE rather than imported from `vega`, so the capture stays in the
+ * pure, testable half of the adapter and needs no chart runtime to exercise.
+ * Vega treats any object with these methods as its logger; `level` doubles as
+ * getter and setter, returning the logger itself when it sets, which is what
+ * Vega's own factory does.
+ */
+export type VegaLogger = {
+  level(value?: number): VegaLogger | number
+  error(...args: unknown[]): void
+  warn(...args: unknown[]): void
+  info(...args: unknown[]): void
+  debug(...args: unknown[]): void
+}
+
 export type VegaLiteRuntime = {
-  compile(spec: Record<string, unknown>): { spec: unknown }
+  compile(
+    spec: Record<string, unknown>,
+    options?: { logger: VegaLogger }
+  ): { spec: unknown }
   parse(spec: unknown): unknown
   createView(
     runtime: unknown,
-    options: { renderer: 'svg'; loader: VegaLoader; hover: false }
+    options: {
+      renderer: 'svg'
+      loader: VegaLoader
+      hover: false
+      logger?: VegaLogger
+    }
   ): VegaView
 }
 
@@ -512,6 +538,66 @@ function chartDescription(
     : 'Rendered from authored Vega-Lite source.'
 }
 
+/**
+ * Vega diagnoses its own broken charts and nobody was listening
+ * (CP-RENDER-REPAIRS S02).
+ *
+ * The S03 bench produced a chart with correct inline data, a correct encoding,
+ * and no bars: a `bar` mark on a log scale, whose zero baseline a log scale
+ * refuses. Vega said so — `Log scale domain includes zero: [0,1800]` — into a
+ * logger the adapter never supplied, then rendered the empty chart anyway. The
+ * reader got a frame with axis titles and nothing in it.
+ *
+ * Warnings do NOT fail the render. A chart Vega is willing to draw still
+ * draws; the diagnostic rides beside it in the block's status line, which is
+ * the same slot a refusal already uses. `RichRenderHandle.diagnostics` was
+ * always the channel for this — the adapter simply returned `[]`.
+ */
+export function captureVegaLog(): {
+  logger: VegaLogger
+  messages: readonly string[]
+} {
+  const messages: string[] = []
+  const record = (...args: unknown[]): void => {
+    const text = args
+      .map((arg) => (typeof arg === 'string' ? arg : String(arg)))
+      .join(' ')
+      .trim()
+    // Vega repeats a warning per dataflow pulse; the reader needs it once.
+    if (text.length > 0 && !messages.includes(text)) messages.push(text)
+  }
+  let current = 3
+  const logger: VegaLogger = {
+    level(value?: number) {
+      if (value === undefined) return current
+      current = value
+      return logger
+    },
+    error: record,
+    warn: record,
+    info: () => {},
+    debug: () => {}
+  }
+  return { logger, messages }
+}
+
+/** One diagnostic carrying every distinct thing Vega said. */
+export function vegaDiagnosticsFrom(
+  messages: readonly string[],
+  sourceLength: number
+): RichDiagnostic[] {
+  if (messages.length === 0) return []
+  return [
+    {
+      from: 0,
+      to: sourceLength,
+      severity: 'warning',
+      message: messages.join(' · '),
+      source: 'vega-lite'
+    }
+  ]
+}
+
 export function createVegaLiteAdapter(
   loadRuntime: VegaLiteRuntimeLoader
 ): RichRendererAdapter {
@@ -534,7 +620,8 @@ export function createVegaLiteAdapter(
 
       const loaded = await runtime()
       throwIfAborted(request)
-      const compiled = loaded.compile(themed)
+      const log = captureVegaLog()
+      const compiled = loaded.compile(themed, { logger: log.logger })
       throwIfAborted(request)
       const vegaRuntime = loaded.parse(compiled.spec)
       throwIfAborted(request)
@@ -542,7 +629,8 @@ export function createVegaLiteAdapter(
       const view = loaded.createView(vegaRuntime, {
         renderer: 'svg',
         loader: denyAllVegaLoader(),
-        hover: false
+        hover: false,
+        logger: log.logger
       })
       let finalized = false
       const finalize = (): void => {
@@ -586,7 +674,7 @@ export function createVegaLiteAdapter(
       host.replaceChildren(node)
       let disposed = false
       return {
-        diagnostics: [],
+        diagnostics: vegaDiagnosticsFrom(log.messages, request.source.length),
         dispose() {
           if (disposed) return
           disposed = true

@@ -315,6 +315,29 @@ carries the decisions; the operational shape:
   byte-identical — an existing test pins it. Both change together or neither
   does. Capabilities sit BEFORE `# Rules` so `## Output` stays inside it.
 
+## Vega's own diagnosis reaches the reader (CP-RENDER-REPAIRS S02)
+
+The bench produced a chart with correct inline data, a correct encoding, and no
+bars. Vega had said why — `Log scale domain includes zero: [0,1800]` — into a
+logger the adapter never supplied, then drew the empty chart anyway.
+
+- `captureVegaLog()` builds a Vega-shaped logger in the PURE half of the
+  adapter, so the capture is unit-testable without a chart runtime. It
+  deduplicates: Vega repeats a warning once per dataflow pulse and the reader
+  needs it once.
+- The same sink goes to BOTH halves — Vega-Lite reports at compile time
+  (`y-scale's "zero" is dropped…`), Vega at run time (`Log scale domain
+  includes zero…`).
+- **A warning is not a refusal.** A chart Vega is willing to draw still draws;
+  the diagnostic rides beside it. Only the existing validation failures refuse.
+- Nothing new was built to display it. `RichRenderHandle.diagnostics` was
+  always the channel and `hydration.ts` already renders `diagnostics[0]` into
+  `[data-rich-status]` with its severity — the same slot a refusal uses. The
+  adapter had simply been returning `[]`.
+
+Mermaid was deliberately NOT audited for the same gap in this step; the owner
+scoped S02 to the defect the bench actually found.
+
 ## Display math delimiters no longer own their line (CP-RENDER-REPAIRS S01)
 
 `$$\begin{aligned}` — the LaTeX form, the form models emit by default, and the

@@ -8,13 +8,14 @@ atomik:
   id: CP-RENDER-REPAIRS
   status: running
   accepted: 2026-08-20
-  current_step: S02
+  current_step: S03
   base_commit: f58093e
   branch: path/cp-render-repairs
   writes:
     - apps/desktop/renderer/src/editor/rich-markdown/markdown-plugin.ts
     - apps/desktop/renderer/src/editor/rich-markdown/syntax.ts
     - apps/desktop/renderer/src/editor/rich-markdown/adapters/vega-lite-core.ts
+    - apps/desktop/renderer/src/editor/rich-markdown/adapters/vega-lite.ts
     - apps/desktop/renderer/src/editor/rich-markdown/adapters/mermaid-core.ts
     - apps/desktop/renderer/src/editor/rich-markdown/contracts.ts
     - apps/desktop/renderer/src/editor/chat-file.ts
@@ -111,7 +112,7 @@ every request. Repairing them is how those warnings get deleted.
 - [x] S01 Display math delimiters: both scanners, fixtures from the owner's
       real notes, then DELETE the trap clause the pin fires on and lower the
       block's size ceiling. Tests, docs, ledger.
-- [ ] S02 Vega warnings reach the block's status line. Tests, docs, ledger.
+- [x] S02 Vega warnings reach the block's status line. Tests, docs, ledger.
 - [ ] S03 `chatSlug` strips comments; reproduce-or-record the stamped-heading
       trigger. Tests, docs, ledger.
 - [ ] S04 Diagram exploration: natural width, scrolling container, expand
@@ -142,7 +143,24 @@ fixtures    : the owner's real note (vault-juju, 2026-08-17), including the
               have missed the indent.
 tests       : 4 new in rich-markdown.test.ts; 1 replaced in
               prompt-composition.test.ts. 1020 passing.
-next action : S02 — Vega warnings into [data-rich-status].
+S02         : captureVegaLog() builds a Vega-shaped sink in the PURE half of
+              the adapter — unit-testable with no chart runtime — and it
+              deduplicates, because Vega repeats a warning per dataflow pulse.
+              The same sink goes to compile (Vega-Lite's half) and to the View
+              (Vega's half). A warning is NOT a refusal: the chart still
+              mounts. Nothing new was built to show it —
+              RichRenderHandle.diagnostics was always the channel and
+              hydration.ts already paints diagnostics[0] into
+              [data-rich-status]; the adapter was returning [].
+              Mermaid deliberately not audited for the same gap (owner
+              scoped S02 to the defect the bench found).
+widening    : adapters/vega-lite.ts joined writes: on 2026-08-20 — the thin
+              loader is where the real vega-lite compile call lives, so the
+              logger could not reach it from core alone. cairn-check named
+              the file; declared rather than absorbed.
+tests       : 3 new. 1023 passing.
+next action : S03 — chatSlug strips <!--…-->, plus one reproduction attempt
+              on how a stamped heading reached the message text.
 blockers    : none
 ```
 

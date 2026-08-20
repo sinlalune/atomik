@@ -24,10 +24,12 @@ import {
   type MermaidRuntime
 } from '../renderer/src/editor/rich-markdown/adapters/mermaid-core'
 import {
+  captureVegaLog,
   createVegaLiteAdapter,
   themedVegaLiteSpec,
   validateVegaLiteSource,
   type VegaLiteRuntime,
+  type VegaLogger,
   type VegaView
 } from '../renderer/src/editor/rich-markdown/adapters/vega-lite-core'
 import {
@@ -1707,6 +1709,71 @@ describe('Vega-Lite adapter (CP-RICH-MARKDOWN S05)', () => {
         )
       )
     ).toMatchObject({ data: { values: { records: [{ x: 1, y: 2 }] } } })
+  })
+
+  /**
+   * CP-RENDER-REPAIRS S02 — Vega diagnoses its own broken charts and the
+   * adapter used to throw the diagnosis away.
+   */
+  it('carries what Vega said into the block diagnostics', async () => {
+    const fixture = fakeVega()
+    // Both halves report: Vega-Lite at compile, Vega at run.
+    fixture.compile.mockImplementation(
+      (spec: Record<string, unknown>, options?: { logger?: VegaLogger }) => {
+        options?.logger?.warn("y-scale's \"zero\" is dropped as it does not work with log scale.")
+        return { spec: { compiled: spec } }
+      }
+    )
+    fixture.createView.mockImplementation(
+      (_runtime: unknown, options: { logger?: VegaLogger }) => {
+        options.logger?.warn('Log scale domain includes zero: [0,1800]')
+        // Vega repeats per pulse; the reader needs it once.
+        options.logger?.warn('Log scale domain includes zero: [0,1800]')
+        return fixture.view
+      }
+    )
+    const handle = await createVegaLiteAdapter(async () => fixture.runtime).render(
+      emptyHost(),
+      vegaRequest()
+    )
+    expect(handle.diagnostics).toHaveLength(1)
+    expect(handle.diagnostics[0]).toMatchObject({
+      severity: 'warning',
+      source: 'vega-lite'
+    })
+    expect(handle.diagnostics[0]!.message).toContain('Log scale domain includes zero')
+    expect(handle.diagnostics[0]!.message).toContain('is dropped')
+    // Deduplicated, not repeated once per pulse.
+    expect(
+      handle.diagnostics[0]!.message.match(/Log scale domain/g)
+    ).toHaveLength(1)
+    handle.dispose()
+  })
+
+  it('captures a Vega log sink without needing Vega', () => {
+    // The sink is built in the pure half of the adapter precisely so this
+    // needs no chart runtime. `level` doubles as getter and setter and
+    // returns the logger when it sets, the way Vega's own factory behaves.
+    const log = captureVegaLog()
+    log.logger.warn('a', 1)
+    log.logger.error('b')
+    log.logger.warn('a', 1)
+    log.logger.info('ignored')
+    log.logger.debug('ignored')
+    expect(log.messages).toEqual(['a 1', 'b'])
+    expect(log.logger.level(2)).toBe(log.logger)
+    expect(log.logger.level()).toBe(2)
+  })
+
+  it('stays silent when Vega has nothing to say, and still renders', async () => {
+    const fixture = fakeVega()
+    const handle = await createVegaLiteAdapter(async () => fixture.runtime).render(
+      emptyHost(),
+      vegaRequest()
+    )
+    // A warning is not a refusal: the chart mounts either way.
+    expect(handle.diagnostics).toEqual([])
+    handle.dispose()
   })
 
   it('maps dark app tokens into site-owned chart defaults', async () => {
