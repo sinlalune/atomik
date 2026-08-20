@@ -18,7 +18,7 @@ stale. Deriving it is what lets every path merge itself: there is nothing here
 for two paths to disagree about.
 
 <!-- cairn:paths:begin -->
-- *(no path running)*
+- **CP-OPEN-DOCK** — Open-target model + five-zone drag/dock · branch `path/cp-open-dock` · base `80b131a`
 <!-- cairn:paths:end -->
 
 Next up: **CP-MVP-011** — Wikimedia augmentation over the same nodes/edges
