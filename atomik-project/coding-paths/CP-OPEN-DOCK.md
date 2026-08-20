@@ -130,7 +130,7 @@ CP-AI-CAPABILITIES and CP-LANGUAGE-NOTES) are recorded in
 
 # Execution
 
-- [ ] S01 Bootstrap + regression pins: create the isolated worktree, read
+- [x] S01 Bootstrap + regression pins: create the isolated worktree, read
       every Required document, verify the pinned trunk behavior, record
       overlap boundaries, and run the baseline gates.
 - [ ] S02 Open-target model (contract 6): pin the four targets and their
@@ -159,10 +159,21 @@ CP-AI-CAPABILITIES and CP-LANGUAGE-NOTES) are recorded in
 
 ```text
 base commit : 80b131a
-changed     : none yet (S01 opening)
-tests       : none yet
-next action : S01 — read Required docs, pin baseline behavior, run bare gates
+trunk pin   : 80b131a (worktree created from the trunk tip; no rebase needed yet)
+changed     : activation (path file + opening-check note + regenerated ACTIVE);
+              S01 baseline pinned — Required docs read (03, 36, 13, 15, 35 +
+              execution law), no code changed
+tests       : baseline bare gates PASS on the branch — cairn-check green
+              (3 advisory), typecheck, 998/998 tests (75 files, 1 skipped),
+              production build
+next action : S02 — open-target model (contract 6)
 blockers    : none
+defect      : paths.md's worktree recipe line 2
+              (`ln -s ../4tom1k/apps/desktop/node_modules apps/desktop/node_modules`)
+              resolves broken from the link's own directory; the real
+              convention in every existing worktree is
+              `../../../4tom1k/apps/desktop/node_modules`. Reported to the
+              owner — fix belongs to CP-OPS-001/paths.md, not this path.
 ```
 
 # Blockers
