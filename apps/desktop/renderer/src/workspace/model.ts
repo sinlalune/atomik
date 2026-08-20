@@ -928,23 +928,32 @@ export function activateTab(
  * by the sibling. The root leaf is the exception — it may stay empty (the
  * placeholder pane), so the tree never disappears.
  */
-export function closeTab(
-  state: WorkspaceState,
-  paneId: string,
-  tabId: string
-): WorkspaceState {
-  // S06c12: the last tree-bearing pane never collapses away — its
-  // last tab closing lands it on the vault tree instead
-  const closing = findLeaf(state.root, paneId)
+
+/** The result of pulling one tab out of the tree: the new root (null
+ *  when the whole workspace emptied) and the ORIGINAL source leaf. */
+type TabPull = { root: PaneNode | null; source: LeafNode }
+
+/** CP-OPEN-DOCK S03: the shared removal behind closeTab, moveTab and
+ *  dockTab — one collapse discipline for all three verbs. The last
+ *  tree-bearing pane never collapses away (S06c12): its last tab
+ *  pulling out lands it on the vault tree instead (S06c11). */
+function pullTab(state: WorkspaceState, tabId: string): TabPull | null {
+  let found: { leaf: LeafNode; index: number } | null = null
+  mapNode(state.root, (node) => {
+    if (!found && node.kind === 'leaf') {
+      const index = node.tabs.findIndex((tab) => tab.id === tabId)
+      if (index !== -1) found = { leaf: node, index }
+    }
+    return node
+  })
+  if (found === null) return null
+  const pulled: { leaf: LeafNode; index: number } = found
+  const { leaf, index } = pulled
   const keepInPlace =
-    closing !== null &&
-    isTreeBearingLeaf(closing) &&
-    treeBearingCount(state.root) === 1
+    isTreeBearingLeaf(leaf) && treeBearingCount(state.root) === 1
   const remove = (node: PaneNode): PaneNode | null => {
     if (node.kind === 'leaf') {
-      if (node.id !== paneId) return node
-      const index = node.tabs.findIndex((tab) => tab.id === tabId)
-      if (index === -1) return node
+      if (node.id !== leaf.id) return node
       const tabs = node.tabs.filter((tab) => tab.id !== tabId)
       if (tabs.length === 0) {
         return keepInPlace ? emptiedOntoVault(node) : null
@@ -964,11 +973,28 @@ export function closeTab(
     }
     return node
   }
+  return { root: remove(state.root), source: leaf }
+}
 
-  const removed = remove(state.root)
-  // total collapse (last tab anywhere): the workspace lands on an
-  // empty VAULT-TYPED pane — the tree stays available (S06c11)
-  const root = removed ?? { ...makeLeaf([]), tree: { kind: 'vault' } }
+/** Total collapse after a pull (the last tab anywhere left): the
+ *  workspace lands on an empty VAULT-TYPED pane (S06c11). */
+function landingRoot(root: PaneNode | null): PaneNode {
+  return root ?? { ...makeLeaf([]), tree: { kind: 'vault' } }
+}
+
+/**
+ * Removes a tab. A leaf left empty collapses: its parent split is replaced
+ * by the sibling. The root leaf is the exception — it may stay empty (the
+ * placeholder pane), so the tree never disappears.
+ */
+export function closeTab(
+  state: WorkspaceState,
+  paneId: string,
+  tabId: string
+): WorkspaceState {
+  const pulled = pullTab(state, tabId)
+  if (pulled === null || pulled.source.id !== paneId) return state
+  const root = landingRoot(pulled.root)
   if (root === state.root) return state
   const focusedPaneId = paneExists(root, state.focusedPaneId)
     ? state.focusedPaneId
@@ -976,6 +1002,97 @@ export function closeTab(
   const next = { ...state, root, focusedPaneId }
   // a removed leaf may have carried the only visible tree (S06c13)
   return leafCount(root) < leafCount(state.root)
+    ? ensureVisibleTree(next)
+    : next
+}
+
+/**
+ * CP-OPEN-DOCK S03: moves a tab into another pane at `index` (appended
+ * when absent) — the only new primitive the 2026-07-25 brainstorm
+ * named. Reorder within a strip is a same-pane move. The moved tab
+ * becomes the target pane's active tab; a no-op move (same position)
+ * is identity. An emptied source pane collapses by the shared closeTab
+ * discipline; a pull that would empty the workspace returns the state.
+ */
+export function moveTab(
+  state: WorkspaceState,
+  tabId: string,
+  targetPaneId: string,
+  index?: number
+): WorkspaceState {
+  const pulled = pullTab(state, tabId)
+  if (pulled === null || pulled.root === null) return state
+  const target = findLeaf(pulled.root, targetPaneId)
+  if (target === null) return state
+  const tab = pulled.source.tabs.find((candidate) => candidate.id === tabId)
+  if (tab === undefined) return state
+  // same-pane reorder to the same slot is a no-op — identity, no churn
+  const from = pulled.source.tabs.findIndex((candidate) => candidate.id === tabId)
+  const to = index === undefined ? target.tabs.length : Math.min(Math.max(index, 0), target.tabs.length)
+  if (target.id === pulled.source.id && from === to) return state
+  const root = mapNode(pulled.root, (node) =>
+    node.kind === 'leaf' && node.id === targetPaneId
+      ? {
+          ...node,
+          tabs: [
+            ...node.tabs.slice(0, to),
+            tab,
+            ...node.tabs.slice(to)
+          ],
+          activeTabId: tab.id
+        }
+      : node
+  )
+  const next = { ...state, root, focusedPaneId: targetPaneId }
+  return leafCount(root) < leafCount(state.root)
+    ? ensureVisibleTree(next)
+    : next
+}
+
+export type DockSide = 'left' | 'right' | 'top' | 'bottom'
+
+/**
+ * CP-OPEN-DOCK S03: tears a tab out of its pane into a FRESH pane on
+ * the given side of the target pane — the dock verb the DnD edge
+ * zones compile to. The fresh pane inherits the source pane's tree
+ * (a project tab keeps its project panel; a chat tab a chat pane) and
+ * takes focus. Sides map to split directions: left/right horizontal,
+ * top/bottom vertical; the fresh pane lands first or second so it
+ * really sits on the requested side. A vanished target (the pull
+ * collapsed it) is identity — the gesture is invalid, nothing moves.
+ */
+export function dockTab(
+  state: WorkspaceState,
+  tabId: string,
+  targetPaneId: string,
+  side: DockSide
+): WorkspaceState {
+  const pulled = pullTab(state, tabId)
+  if (pulled === null || pulled.root === null) return state
+  const target = findLeaf(pulled.root, targetPaneId)
+  if (target === null) return state
+  const tab = pulled.source.tabs.find((candidate) => candidate.id === tabId)
+  if (tab === undefined) return state
+  const direction: PaneDirection =
+    side === 'left' || side === 'right' ? 'horizontal' : 'vertical'
+  const tree = pulled.source.tree
+  const fresh: LeafNode =
+    tree !== undefined ? { ...makeLeaf([tab]), tree } : makeLeaf([tab])
+  const docked = mapNode(pulled.root, (node) =>
+    node.kind === 'leaf' && node.id === targetPaneId
+      ? {
+          kind: 'split' as const,
+          id: newId(),
+          direction,
+          fraction: 0.5,
+          first: side === 'left' || side === 'top' ? fresh : node,
+          second: side === 'left' || side === 'top' ? node : fresh
+        }
+      : node
+  )
+  if (docked === pulled.root) return state
+  const next = { ...state, root: docked, focusedPaneId: fresh.id }
+  return leafCount(docked) < leafCount(state.root)
     ? ensureVisibleTree(next)
     : next
 }

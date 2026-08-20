@@ -143,7 +143,7 @@ CP-AI-CAPABILITIES and CP-LANGUAGE-NOTES) are recorded in
       keyboard equivalents, implement the one contextual open-as interaction
       from tree rows and links plus the tab-move modifier, update
       shell/vault/editor notes, and checkpoint the ledger.
-- [ ] S03 Model primitives: pin move/reorder/tear-out invariants, implement
+- [x] S03 Model primitives: pin move/reorder/tear-out invariants, implement
       `moveTab` and `dockTab` (plus any discovered primitive) as pure ops with
       focused tests, update the shell note, and checkpoint the ledger.
 - [ ] S04 Five-zone drop component: pin zone computation, preview, cancel and
@@ -173,14 +173,19 @@ changed     : S01 activation + green baseline; S02 the open-target model —
               OpenTargetMenu popover, Mod+click + focused-row shortcuts in
               NoteTree, Mod+click on rel pills (live-preview EdgeFollow
               openAs, EditorPane/VaultView/ProjectView chain), styles.css
-              glass menu. Writes widened: OpenTargetMenu.tsx,
-              PaneTreePanel.tsx, ProjectView.tsx (advisory surface).
+              glass menu. S03 the move/dock primitives — pullTab becomes the
+              ONE removal discipline behind closeTab/moveTab/dockTab (closeTab
+              behavior preserved, its 79 tests unmodified), moveTab (clamped
+              index, activation, identity no-ops), dockTab (four real sides,
+              source-tree inheritance, no tab loss on vanished targets).
+              Writes widened: OpenTargetMenu.tsx, PaneTreePanel.tsx,
+              ProjectView.tsx (advisory surface).
               Tab-move MODIFIER entry point rides S05 with the DnD work —
               the vocabulary it reuses is pinned here.
-tests       : open-target 18/18 PASS (model + vocabulary + source
-              contracts); workspace-model 79/79 PASS (openNoteInNewPane
-              behavior preserved via delegation)
-next action : S03 — model primitives moveTab/dockTab
+tests       : open-target 28/28 PASS (S02 model + vocabulary + source
+              contracts; S03 moveTab/dockTab suites); workspace-model 79/79
+              PASS (closeTab refactor preserved every existing invariant)
+next action : S04 — five-zone drop component + smart preview
 blockers    : none
 defect      : paths.md's worktree recipe line 2
               (`ln -s ../4tom1k/apps/desktop/node_modules apps/desktop/node_modules`)

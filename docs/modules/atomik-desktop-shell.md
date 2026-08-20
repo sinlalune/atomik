@@ -349,3 +349,24 @@ about generation SHAPE:
   unchanged everywhere.
 - All four targets leave the workspace SHAPE alone — no new state fields, no
   persistence change, no IPC. Docking (S03–S06) rides the same vocabulary.
+
+## Move and dock primitives (CP-OPEN-DOCK S03)
+
+- `pullTab(state, tabId)` is the ONE removal discipline now shared by
+  `closeTab`, `moveTab` and `dockTab`: same collapse rule (an emptied leaf
+  collapses into its sibling), same S06c12 guard (the last tree-bearing pane
+  empties in place instead of vanishing), same S06c11 total-collapse landing
+  (an empty VAULT-typed pane). `closeTab` behavior is unchanged — its 79
+  existing tests pass unmodified.
+- `moveTab(state, tabId, targetPaneId, index?)` is the only new primitive the
+  2026-07-25 brainstorm named: moves a tab into another pane at a clamped
+  index (append when absent), activates it there, focuses the target pane. A
+  same-pane reorder is a same-pane move; a no-op slot move is identity.
+- `dockTab(state, tabId, targetPaneId, side)` tears a tab out into a FRESH
+  pane on `left`/`right`/`top`/`bottom` of the target: left/right split
+  horizontally, top/bottom vertically, the fresh pane lands first or second
+  so the side is real. The fresh pane INHERITS the source pane's tree (a
+  project tab keeps its project panel; a chat tab a chat pane) and takes
+  focus. A vanished target (the pull collapsed it) never loses the tab.
+- Both compile to existing tree shapes — still no new state fields, no
+  persistence format change, no IPC.
