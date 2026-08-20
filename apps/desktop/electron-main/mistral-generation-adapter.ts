@@ -48,8 +48,10 @@ export const GENERATION_PRICE_SNAPSHOT = {
   id: 'mistral.ai/pricing/api@2026-07-22'
 } as const
 
-/** Budgets in MAIN below renderer state (S01 pin; 06/33). */
-export const DEFAULT_MAX_OUTPUT_TOKENS = 2000
+/** Budgets in MAIN below renderer state (S01 pin; 06/33). Kept equal to
+ *  `PARAM_LIMITS.maxTokens.default` — main's ceiling and the renderer's
+ *  default are the same number seen from two sides, and a test pins it. */
+export const DEFAULT_MAX_OUTPUT_TOKENS = 5000
 export const DEFAULT_MAX_WALL_MS = 60_000
 /** Pre-flight input ceiling: 128K context minus output headroom. */
 const MAX_INPUT_TOKENS_ESTIMATE = 120_000

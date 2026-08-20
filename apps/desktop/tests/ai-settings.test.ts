@@ -93,6 +93,12 @@ describe('AI settings store (CP-MVP-005, CP-PROVIDERS S04) — multi-provider, m
     writeProviderKey(dir, 'anthropic', 'sk-ant-xxx')
     expect(resolveGenerationEngine(dir)).toBe('anthropic')
 
+    // CP-AI-CAPABILITIES S03 (owner directive 2026-08-20): with two keys and
+    // no explicit choice, google leads — the default engine is the one that
+    // gets asked for a diagram on a first run.
+    writeProviderKey(dir, 'google', 'AIza-xxx')
+    expect(resolveGenerationEngine(dir)).toBe('google')
+
     writeAiEngine(dir, 'openai')
     expect(resolveGenerationEngine(dir)).toBe('openai')
 

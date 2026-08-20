@@ -18,6 +18,12 @@ atomik:
     - apps/desktop/tests/system-plan.test.ts
     - apps/desktop/tests/prompts.test.ts
     - apps/desktop/renderer/src/workspace/ChatView.tsx
+    - apps/desktop/shared/generation-params.ts
+    - apps/desktop/electron-main/ai-settings.ts
+    - apps/desktop/electron-main/mistral-generation-adapter.ts
+    - apps/desktop/tests/gen-options.test.ts
+    - apps/desktop/tests/ai-settings.test.ts
+    - docs/modules/atomik-desktop-ai.md
     - apps/desktop/tests/prompt-composition.test.ts
     - apps/desktop/tests/chat-view.test.ts
     - docs/adr/ADR-015-ai-surface-capabilities.md
@@ -184,10 +190,20 @@ bench 2     : after 46e3814. The patch HELD — every display block in the new
                   zoom/pan/expand. styles.css:3708-3734 puts `overflow: auto`
                   on the container and `max-width: 100%` on the SVG, so it
                   never overflows and the scroll never engages.
-next action : bench rounds B (note conventions), C (pointing wikilinks) and
-              D (system-plan UI + sent-request inspector + cost verdict),
-              then closure. Defects 1a/3/4/5 are a follow-on labelled path —
-              owner decision pending on grouping.
+widening 2  : generation-params.ts, ai-settings.ts,
+              mistral-generation-adapter.ts and two tests added to writes:
+              on 2026-08-20. Owner directive after the bench: gemini 3.7
+              flash as the default engine, 5000 as the default output cap.
+              Both are bench consequences — the blocks make generations
+              longer, and 2000 truncated one mid-formula — but neither was in
+              the accepted scope, so they are recorded here rather than
+              folded in silently. docs/modules/atomik-desktop-ai.md joined
+              them — cairn-check named it, which is the check doing its job.
+accepted    : owner, 2026-08-20 — "bench is validated on my side".
+next action : closing ceremony, then rebase / bare gates / coherence audit /
+              journal / status: done / self-merge. Defects 1a/3/4/5 are a
+              follow-on labelled path, and its grouping is a question for
+              that path's OWN opening check, not for this one.
 blockers    : none — S03 needs the owner
 ```
 

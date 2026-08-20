@@ -263,6 +263,26 @@ cost is ever squeezed: two of the three describe defects that can be FIXED, and
 the drift tests fail the moment they are, which is what forces the block back
 down again.
 
+## Generation defaults follow the capability blocks (CP-AI-CAPABILITIES S03)
+
+Two owner directives on 2026-08-20, both downstream of what the blocks changed
+about generation SHAPE:
+
+- `PARAM_LIMITS.maxTokens.default` and `DEFAULT_MAX_OUTPUT_TOKENS` moved
+  2000 -> 5000, and a test now pins them EQUAL. They are one budget seen from
+  two sides — the renderer's "an absent field means this" and main's own
+  ceiling — and a drift between them is invisible until a reader gets an
+  unclosed fence. The bench cut a derivation off mid-formula at 2000; with the
+  capability blocks in place, long output is the expected shape, not bad luck.
+  A truncated response is worse than a short one, because the tail is an
+  unterminated `$$` or fence that renders as raw source.
+- `resolveGenerationEngine` now leads its fallback order with `google`
+  (`gemini-3.7-flash` is already that engine's `defaultModel`). The order only
+  matters when there is no explicit `generationEngine` and more than one key is
+  present, but that is exactly the first-run case, and the default engine is
+  the one that gets asked for a diagram before anyone has chosen anything. An
+  explicit choice in the settings file still wins.
+
 ## Rich Markdown projection lifecycle (CP-RICH-MARKDOWN S02)
 
 - `RichMarkdownBody` is the shared post-mount lifecycle boundary for every
