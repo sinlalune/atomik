@@ -67,19 +67,21 @@ function overlayFor(
 /**
  * Attaches an expand control to one rendered diagram block.
  *
- * `host` is the element holding the rendered SVG; `mountPoint` is where the
- * control is inserted — OUTSIDE the scrolling container on purpose, so it does
- * not slide away with the diagram it belongs to.
+ * `host` is the element holding the rendered SVG; `tools` is the shared
+ * control row, which lives OUTSIDE the diagram viewport on purpose so it does
+ * not pan away with the diagram it belongs to.
+ *
+ * `onOverlayChange` lets a canvas follow its diagram into the overlay and back
+ * — the same node is being moved, so whatever is driving its transform has to
+ * know where it went.
  */
 export function attachDiagramExpand(
   document: Document,
-  mountPoint: HTMLElement,
+  tools: HTMLElement,
   host: HTMLElement,
-  kind: string
+  kind: string,
+  onOverlayChange?: (expanded: boolean) => void
 ): DiagramExpander {
-  const tools = document.createElement('div')
-  tools.className = 'rich-diagram-tools'
-
   const button = document.createElement('button')
   button.type = 'button'
   button.className = 'rich-code-action'
@@ -88,7 +90,6 @@ export function attachDiagramExpand(
   button.setAttribute('aria-label', `Expand the ${kind} diagram`)
   button.title = `Expand the ${kind} diagram`
   tools.append(button)
-  mountPoint.append(tools)
 
   let open: { dialog: HTMLDialogElement; anchor: Comment } | null = null
 
@@ -122,6 +123,7 @@ export function attachDiagramExpand(
     anchor.remove()
     dialog.remove()
     if (typeof button.focus === 'function') button.focus()
+    onOverlayChange?.(false)
   }
 
   button.addEventListener('click', () => {
@@ -148,6 +150,7 @@ export function attachDiagramExpand(
       dialog.setAttribute('open', '')
     }
     open = { dialog, anchor }
+    onOverlayChange?.(true)
   })
 
   return {
@@ -155,7 +158,7 @@ export function attachDiagramExpand(
     dispose() {
       dismiss()
       restore()
-      tools.remove()
+      button.remove()
     }
   }
 }

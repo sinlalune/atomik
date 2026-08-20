@@ -315,6 +315,34 @@ carries the decisions; the operational shape:
   byte-identical — an existing test pins it. Both change together or neither
   does. Capabilities sit BEFORE `# Rules` so `## Output` stays inside it.
 
+## The diagram block is a canvas (CP-RENDER-REPAIRS S05)
+
+S04 gave a wide diagram its natural size and let the frame scroll. At the bench
+the owner said what they had wanted from the start: an infinite canvas inside
+the block, with the expand control kept. Pan and zoom were in the path's
+Deliberately excluded list, so the list was AMENDED — the exclusion was
+written down, so its removal is too.
+
+- `diagram-canvas.ts` holds two numbers and a scale, applied as a CSS
+  transform. Nothing re-parses, re-renders or re-sanitizes: the reader is
+  panning the same node `safeSvgNode` approved (13).
+- **A bare wheel still scrolls the note.** Zoom takes Ctrl or Cmd. A canvas
+  that eats the wheel makes a long note unreadable the moment a diagram is in
+  the way, and the reader is given no way to understand why. This is the one
+  behaviour to protect if the module is ever refactored, and it is pinned by a
+  test that asserts `defaultPrevented` is false without a modifier.
+- Inside the expand overlay a bare wheel DOES zoom, because no page sits behind
+  it to scroll. The difference rides on a data attribute on the viewport, so
+  the same canvas follows the diagram into the overlay via `retarget` — the
+  node is moved, not copied, so its controller has to move with it.
+- Every gesture has a control and a key: −, +, Fit; arrows pan, `+`/`-` zoom,
+  `0` fits. The viewport is `role="application"` with a label naming them (36).
+- `naturalSize` reads Mermaid's own `viewBox` before reaching for layout, so a
+  fit is computable without a rendered box — and returns null rather than
+  guessing when neither exists, because a wrong fit is worse than none.
+- Charts are deliberately NOT canvases. Pan and zoom are for spatial content;
+  a bar chart is not spatial, so vega-lite keeps S04's behaviour.
+
 ## Room to look at a diagram (CP-RENDER-REPAIRS S04)
 
 A wide Mermaid diagram arrived in a 560px note column at about a fifth of

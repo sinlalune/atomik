@@ -10,6 +10,10 @@ import {
   type RichRendererRegistry
 } from './registry'
 import {
+  attachDiagramCanvas,
+  type DiagramCanvas
+} from './diagram-canvas'
+import {
   attachDiagramExpand,
   isExpandableKind,
   type DiagramExpander
@@ -30,6 +34,8 @@ type ActiveBlock = BlockNodes & {
   timer: ReturnType<typeof setTimeout> | null
   /** Present only for a diagram that mounted (S04). */
   expander: DiagramExpander | null
+  /** Present only for a mermaid block that mounted (S05). */
+  canvas: DiagramCanvas | null
 }
 
 export type RichHydration = {
@@ -216,7 +222,8 @@ export function hydrateRichMarkdown(
       renderHost,
       handle: null,
       timer: null,
-      expander: null
+      expander: null,
+      canvas: null
     }
     blocks.push(block)
     showLoading(block, kind)
@@ -279,15 +286,35 @@ export function hydrateRichMarkdown(
       // the output container rather than inside it, so it does not slide away
       // with the diagram when the container scrolls.
       if (isExpandableKind(kind)) {
+        const doc = root.ownerDocument
+        const tools = doc.createElement('div')
+        tools.className = 'rich-diagram-tools'
+        nodes.element.insertBefore(tools, nodes.output)
+
+        // A mermaid block becomes a canvas (S05); a chart keeps S04's
+        // natural-width-and-scroll, because pan and zoom are for spatial
+        // content and a bar chart is not spatial.
+        if (kind === 'mermaid') {
+          block.canvas = attachDiagramCanvas(doc, tools, renderHost)
+        }
         block.expander = attachDiagramExpand(
-          root.ownerDocument,
-          nodes.element,
+          doc,
+          tools,
           renderHost,
-          kind
-        )
-        nodes.element.insertBefore(
-          block.expander.button.parentElement ?? block.expander.button,
-          nodes.output
+          kind,
+          (expanded) => {
+            // The SAME node moved into the overlay, so the canvas has to move
+            // with it — and a bare wheel may zoom there, since no page sits
+            // behind it to scroll.
+            const target = expanded
+              ? (doc.querySelector(
+                  '.rich-diagram-overlay-body'
+                ) as HTMLElement | null)
+              : renderHost
+            if (!target || !block.canvas) return
+            if (expanded) target.dataset['richCanvasBareWheel'] = ''
+            block.canvas.retarget(target)
+          }
         )
       }
     } catch (reason) {
@@ -318,6 +345,9 @@ export function hydrateRichMarkdown(
         // open overlay, and the handle's dispose() removes that node.
         block.expander?.dispose()
         block.expander = null
+        block.canvas?.dispose()
+        block.canvas = null
+        block.element.querySelector('.rich-diagram-tools')?.remove()
         block.handle?.dispose()
         block.handle = null
         if (block.output.contains(block.renderHost)) {

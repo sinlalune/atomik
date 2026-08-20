@@ -8,7 +8,7 @@ atomik:
   id: CP-RENDER-REPAIRS
   status: running
   accepted: 2026-08-20
-  current_step: S05
+  current_step: S06
   base_commit: f58093e
   branch: path/cp-render-repairs
   writes:
@@ -17,6 +17,7 @@ atomik:
     - apps/desktop/renderer/src/editor/rich-markdown/adapters/vega-lite-core.ts
     - apps/desktop/renderer/src/editor/rich-markdown/adapters/vega-lite.ts
     - apps/desktop/renderer/src/editor/rich-markdown/adapters/mermaid-core.ts
+    - apps/desktop/renderer/src/editor/rich-markdown/diagram-canvas.ts
     - apps/desktop/renderer/src/editor/rich-markdown/diagram-expand.ts
     - apps/desktop/renderer/src/editor/rich-markdown/hydration.ts
     - apps/desktop/renderer/src/editor/rich-markdown/contracts.ts
@@ -71,9 +72,14 @@ every request. Repairing them is how those warnings get deleted.
   and a focused test covers the stamped-heading input. Separately, an attempt
   to REPRODUCE how a stamped heading reached the message text — recorded
   either way, because an unreproduced trigger is not a fixed one.
-- A diagram keeps its natural width and its container scrolls; an expand
-  control opens it in a full-pane overlay. Keyboard reachable, dismissible,
-  and it must not trap focus.
+- A mermaid block is an infinite canvas: drag to pan, zoom about the pointer,
+  with visible controls, a reset, and keyboard equivalents. **The page must
+  still scroll** — a bare wheel over a diagram scrolls the note, as it does
+  today; zoom takes a modifier. The expand control stays and opens the same
+  canvas in a full-pane overlay, where a bare wheel MAY zoom because there is
+  no page behind it.
+- Charts keep S04's natural-width-and-scroll. Pan/zoom is for spatial content;
+  a bar chart is not spatial.
 - Owner bench in the real app, closing ceremony, rebase, bare gates, coherence
   audit, journal, `status: done`, self-merge.
 
@@ -99,8 +105,11 @@ every request. Repairing them is how those warnings get deleted.
 
 # Deliberately excluded
 
-- Zoom and pan. The owner chose natural-width scrolling plus an expand
-  overlay; wheel-zoom competes with page scroll and is not the ask.
+- (WAS: zoom and pan. AMENDED 2026-08-20 — see S05. The opening check offered
+  three shapes and the owner picked natural-width scrolling; at the S05 bench
+  they said the original intent was an infinite canvas inside the block, with
+  the expand control kept. Recorded as an amendment rather than absorbed: the
+  exclusion was written down, so its removal is too.)
 - Relaxing any Mermaid or SVG guard. `foreignobject` stays refused, so math
   inside a Mermaid label stays refused, and its prompt warning STAYS.
 - Fixing Vega-Lite's log-scale baseline. It is upstream behaviour; the repair
@@ -119,7 +128,13 @@ every request. Repairing them is how those warnings get deleted.
       trigger. Tests, docs, ledger.
 - [x] S04 Diagram exploration: natural width, scrolling container, expand
       overlay. Tests, docs, ledger.
-- [ ] S05 Owner bench + closure.
+- [x] S05a Owner bench round 1: math, Vega and chat accepted. Diagram
+      amended — see S05.
+- [x] S05 Diagram canvas: pan and zoom INSIDE the mermaid block, keeping the
+      expand control. Wheel zooms only with a modifier so the page still
+      scrolls; drag pans; visible controls and keyboard equivalents. Charts
+      keep S04's behaviour. Tests, docs, ledger.
+- [ ] S06 Owner bench + closure.
 
 # Current checkpoint
 
@@ -199,8 +214,25 @@ widening    : diagram-expand.ts (new) and hydration.ts joined writes: —
               Discovered by building it, declared when cairn-check said so.
               mermaid-core.ts was declared and never touched.
 tests       : 5 new. 1029 passing.
-next action : S05 — owner bench in the real app, then closure. This is the
-              step the owner asked to be present for.
+bench 1     : math, Vega and chat ACCEPTED by the owner. Diagram: keep the
+              expand button, but the original intent was an infinite canvas
+              INSIDE the block. Path amended (Deliberately excluded edited in
+              place, with the amendment recorded there).
+S05         : diagram-canvas.ts — two numbers and a scale, applied as a CSS
+              transform. No re-parse, no re-render, no re-sanitize: the reader
+              pans the node safeSvgNode approved.
+              THE ONE BEHAVIOUR TO PROTECT: a bare wheel still scrolls the
+              note; zoom takes Ctrl/Cmd. A canvas that eats the wheel makes a
+              long note unreadable with no explanation. Pinned by a test that
+              asserts defaultPrevented is false without a modifier. Inside the
+              overlay a bare wheel DOES zoom (nothing behind it) — the canvas
+              follows the moved node there via retarget().
+              Every gesture has a control and a key; viewport is
+              role="application" with a label naming them.
+              Charts are NOT canvases: pan/zoom is for spatial content.
+widening    : diagram-canvas.ts declared after cairn-check named it.
+tests       : 6 new (pure zoom/fit arithmetic + the wheel contract). 1035.
+next action : S06 — owner bench on the canvas, then closure.
 blockers    : none
 ```
 

@@ -277,6 +277,15 @@ defects are fixed, automatically, because the test makes deletion the only
 correct response. The two remaining traps describe Mermaid's and Vega-Lite's
 own behaviour, so they stay until those change upstream.
 
+## A mermaid block owns its wheel only on request (CP-RENDER-REPAIRS S05)
+
+`hydrateRichMarkdown` builds one shared control row per diagram block and hands
+it to both the canvas (mermaid only) and the expand control. The shell-level
+fact worth knowing: **a diagram never steals the page's scroll.** A bare wheel
+over a mermaid canvas scrolls the note exactly as it does over a paragraph;
+zoom requires Ctrl or Cmd. Only inside the expand overlay, where no page sits
+behind the diagram, does a bare wheel zoom.
+
 ## A diagram may take the whole pane (CP-RENDER-REPAIRS S04)
 
 `hydrateRichMarkdown` now attaches an Expand control to any `mermaid` or

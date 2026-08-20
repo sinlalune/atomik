@@ -24,6 +24,12 @@ import {
   type MermaidRuntime
 } from '../renderer/src/editor/rich-markdown/adapters/mermaid-core'
 import {
+  attachDiagramCanvas,
+  fitTransform,
+  naturalSize,
+  zoomAbout
+} from '../renderer/src/editor/rich-markdown/diagram-canvas'
+import {
   attachDiagramExpand,
   isExpandableKind
 } from '../renderer/src/editor/rich-markdown/diagram-expand'
@@ -366,9 +372,14 @@ describe('diagram expand control', () => {
       '[data-rich-render-host]'
     ) as unknown as HTMLElement
     host.innerHTML = svgFixture
+    // Hydration owns the shared control row (S05); the expander only adds its
+    // button to it, beside the canvas controls.
+    const tools = document.createElement('div')
+    tools.className = 'rich-diagram-tools'
+    element.insertBefore(tools, output)
     const expander = attachDiagramExpand(
       document as unknown as Document,
-      element,
+      tools,
       host,
       'mermaid'
     )
@@ -416,10 +427,11 @@ describe('diagram expand control', () => {
   it('mounts the control OUTSIDE the scrolling container', () => {
     // Inside it, the button would slide away with the diagram it belongs to.
     const { element, output, expander } = mounted()
-    const tools = element.querySelector('.rich-diagram-tools')
+    const tools = element.querySelector('.rich-diagram-tools')!
     expect(tools).not.toBeNull()
     expect(output.contains(tools as unknown as Node)).toBe(false)
     expect(expander.button.getAttribute('aria-label')).toContain('mermaid')
+    expect(tools.contains(expander.button)).toBe(true)
   })
 
   it('disposing while expanded puts the diagram back and clears the control', () => {
@@ -428,7 +440,129 @@ describe('diagram expand control', () => {
     expander.dispose()
     expect(document.querySelector('dialog.rich-diagram-overlay')).toBeNull()
     expect(host.querySelector('svg')).not.toBeNull()
-    expect(document.querySelector('.rich-diagram-tools')).toBeNull()
+    expect(document.querySelectorAll('.rich-diagram-tools button')).toHaveLength(0)
+  })
+})
+
+/**
+ * CP-RENDER-REPAIRS S05 — the diagram block is a canvas.
+ *
+ * The arithmetic is pure and tested directly; the wheel contract is tested
+ * through a real listener because it is a promise to the READER (the note
+ * still scrolls) rather than a calculation.
+ */
+describe('diagram canvas', () => {
+  it('zooms about a point, keeping what is under it in place', () => {
+    const start = { x: 0, y: 0, k: 1 }
+    const point = { x: 100, y: 50 }
+    const zoomed = zoomAbout(start, point, 2)
+    // The document point under the cursor before and after must be the same.
+    const before = {
+      x: (point.x - start.x) / start.k,
+      y: (point.y - start.y) / start.k
+    }
+    const after = {
+      x: (point.x - zoomed.x) / zoomed.k,
+      y: (point.y - zoomed.y) / zoomed.k
+    }
+    expect(after.x).toBeCloseTo(before.x, 6)
+    expect(after.y).toBeCloseTo(before.y, 6)
+    expect(zoomed.k).toBe(2)
+  })
+
+  it('clamps zoom rather than letting a diagram vanish or explode', () => {
+    expect(zoomAbout({ x: 0, y: 0, k: 0.1 }, { x: 0, y: 0 }, 0.1).k).toBe(0.1)
+    expect(zoomAbout({ x: 0, y: 0, k: 8 }, { x: 0, y: 0 }, 4).k).toBe(8)
+  })
+
+  it('fits by shrinking only, and centres what it fits', () => {
+    const wide = fitTransform({ width: 500, height: 400 }, { width: 1000, height: 200 })
+    expect(wide.k).toBe(0.5)
+    expect(wide.x).toBe(0)
+    expect(wide.y).toBe((400 - 200 * 0.5) / 2)
+
+    // A diagram smaller than its frame is centred at 1:1, never magnified.
+    const small = fitTransform({ width: 500, height: 400 }, { width: 100, height: 100 })
+    expect(small.k).toBe(1)
+    expect(small.x).toBe(200)
+  })
+
+  it('reads a natural size from the viewBox Mermaid already wrote', () => {
+    const { document } = parseHTML('<html><body></body></html>')
+    const svg = document.createElement('svg')
+    svg.setAttribute('viewBox', '0 0 640 480')
+    expect(naturalSize(svg as unknown as Element)).toEqual({
+      width: 640,
+      height: 480
+    })
+    const bare = document.createElement('svg')
+    // No viewBox and no layout: start at 1:1 rather than guess a fit.
+    expect(naturalSize(bare as unknown as Element)).toBeNull()
+  })
+
+  it('leaves a bare wheel to the page, and zooms only with a modifier', () => {
+    const { document } = parseHTML(
+      '<html><body><div id="tools"></div><div id="vp"><svg viewBox="0 0 100 100"></svg></div></body></html>'
+    )
+    const tools = document.querySelector('#tools') as unknown as HTMLElement
+    const viewport = document.querySelector('#vp') as unknown as HTMLElement
+    const canvas = attachDiagramCanvas(
+      document as unknown as Document,
+      tools,
+      viewport
+    )
+
+    const wheel = (init: Record<string, unknown>): boolean => {
+      const event = new document.defaultView!.Event('wheel', {
+        cancelable: true
+      }) as WheelEvent
+      Object.assign(event, { deltaY: -200, clientX: 0, clientY: 0, ...init })
+      viewport.dispatchEvent(event)
+      return event.defaultPrevented
+    }
+
+    // A note with a diagram in it must still scroll. This is the whole reason
+    // wheel-zoom was argued about at the opening check.
+    expect(wheel({})).toBe(false)
+    expect(wheel({ ctrlKey: true })).toBe(true)
+    expect(wheel({ metaKey: true })).toBe(true)
+
+    // …unless nothing is behind it: inside the overlay a bare wheel zooms.
+    viewport.dataset['richCanvasBareWheel'] = ''
+    expect(wheel({})).toBe(true)
+
+    canvas.dispose()
+    // Disposing gives the node back exactly as it was found.
+    expect(
+      (viewport.querySelector('svg') as unknown as HTMLElement).style.transform
+    ).toBe('')
+    expect(viewport.hasAttribute('data-rich-canvas')).toBe(false)
+  })
+
+  it('offers every gesture as a control and a key', () => {
+    const { document } = parseHTML(
+      '<html><body><div id="tools"></div><div id="vp"><svg viewBox="0 0 100 100"></svg></div></body></html>'
+    )
+    const tools = document.querySelector('#tools') as unknown as HTMLElement
+    const viewport = document.querySelector('#vp') as unknown as HTMLElement
+    const canvas = attachDiagramCanvas(
+      document as unknown as Document,
+      tools,
+      viewport
+    )
+    const labels = Array.from(tools.querySelectorAll('button')).map((button) =>
+      button.getAttribute('aria-label')
+    )
+    expect(labels).toEqual([
+      'Zoom out (−)',
+      'Zoom in (+)',
+      'Fit the diagram (0)'
+    ])
+    expect(viewport.getAttribute('role')).toBe('application')
+    expect(viewport.getAttribute('tabindex')).toBe('0')
+    expect(viewport.getAttribute('aria-label')).toContain('arrow keys')
+    canvas.dispose()
+    expect(tools.querySelectorAll('button')).toHaveLength(0)
   })
 })
 
