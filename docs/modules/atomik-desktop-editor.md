@@ -483,13 +483,15 @@ tokens forever to teach the model something untrue.
 The two surviving traps describe behaviour Atomik does not own — Mermaid's
 HTML-label override and Vega-Lite's bar baseline — which is why they stay.
 
-## Three rendering traps the model must be warned about (CP-AI-CAPABILITIES S03)
+## The capability bench found three rendering traps (CP-AI-CAPABILITIES S03)
 
 The first owner bench on REAL generations produced a chart with no data in it.
 The generated spec was correct — inline `data.values`, no `url`, four rows —
-and the block had done its job. The renderer had not. Three shapes now carry a
-warning in `rendering-capabilities`, because in all three a model writing
-perfectly reasonable source gets a reader who sees nothing:
+and the block had done its job. The renderer had not. Three shapes then gained
+a warning in `rendering-capabilities`, because in all three a model writing
+perfectly reasonable source got a reader who saw nothing. CP-RENDER-REPAIRS
+has since discharged the third; the history stays here without pretending the
+warning still ships:
 
 - **A `bar` mark on a log scale draws zero-height bars.** A bar's baseline is
   zero; zero is illegal on a log scale, so the scale collapses and takes the y
@@ -504,18 +506,19 @@ perfectly reasonable source gets a reader who sees nothing:
   which `safe-svg.ts` rejects outright — correctly, and not negotiable over
   untrusted note content. The reader loses the diagram, not just the formula.
   Formulas go in a math block BESIDE the diagram.
-- **A multi-line `$$` block only parses with `$$` alone on its own line.**
-  `markdown-plugin.ts` (`line.trim() !== '$$'`) and `syntax.ts`
-  (`trimmed !== '$$'`) both require it, so `$$\begin{aligned}` — the form
-  models emit by default — degrades to a paragraph in read mode AND live mode.
-  This one is a real renderer defect, warned about in the prompt as the cheap
-  half of the fix; the parser repair is its own path.
+- **Resolved by CP-RENDER-REPAIRS S01: a multi-line `$$` block used to require
+  `$$` alone on its own line.** `markdown-plugin.ts` and `syntax.ts` both
+  carried that rule, so `$$\begin{aligned}` — the form models emit by default
+  — degraded to a paragraph in read and live mode. Both scanners now share the
+  repaired grammar in `syntax.ts`; its drift pin fired and the warning was
+  deleted from the prompt block.
 
-**These warnings are pinned like every other claim in the block**, and pinned
-to the code that CAUSES them: `discoverDollarMath`, `safeSvgNode`, and
-Vega-Lite's own compiler. The day a trap is fixed, its test fails and the
-prompt must stop describing it — a block that keeps warning about a repaired
-defect burns tokens on every request to teach the model something untrue.
+**Those warnings were pinned like every other claim in the block**, to the
+code that caused them: `discoverDollarMath`, `safeSvgNode`, and Vega-Lite's own
+compiler. The math pin has now proved the direction: fixing the parser failed
+the test until the warning was deleted. The two surviving claims remain pinned
+to `safeSvgNode` and Vega-Lite's compiler so the prompt must stop describing
+them if their underlying behavior changes.
 Drift runs in both directions.
 
 The block grew 1,046 -> 1,572 chars (~+131 tokens/request) and the asserted

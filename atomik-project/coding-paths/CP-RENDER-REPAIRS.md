@@ -6,9 +6,9 @@ tags: [coding-path, renderer, math, mermaid, vega-lite, chat, repair]
 timestamp: 2026-08-20T00:00:00Z
 atomik:
   id: CP-RENDER-REPAIRS
-  status: running
+  status: done
   accepted: 2026-08-20
-  current_step: S06
+  current_step: done
   base_commit: f58093e
   branch: path/cp-render-repairs
   writes:
@@ -28,6 +28,7 @@ atomik:
     - apps/desktop/tests/rich-markdown.test.ts
     - apps/desktop/tests/prompt-composition.test.ts
     - apps/desktop/tests/chat-file.test.ts
+    - docs/adr/ADR-014-rich-markdown-renderers.md
     - docs/modules/atomik-desktop-editor.md
     - docs/modules/atomik-desktop-shell.md
     - atomik-project/coding-paths/CP-RENDER-REPAIRS.md
@@ -135,7 +136,7 @@ every request. Repairing them is how those warnings get deleted.
       expand control. Wheel zooms only with a modifier so the page still
       scrolls; drag pans; visible controls and keyboard equivalents. Charts
       keep S04's behaviour. Tests, docs, ledger.
-- [ ] S06 Owner bench + closure.
+- [x] S06 Owner bench + closure.
 
 # Current checkpoint
 
@@ -264,7 +265,29 @@ bench 3     : fit STILL off-centre. Root cause was not the arithmetic: the
               zoomed was pinned off-frame by the centring bug. To re-verify
               at the next bench rather than asserted here.
 tests       : 10 for S05 in total. 1037 passing.
-next action : S06 — owner bench on the fixed canvas, then closure.
+accepted    : owner, 2026-08-20 — "ok for all go for closure". This covered
+              the whole final checklist: Fit on wide and small diagrams,
+              modifier-wheel zoom, drag-pan, ordinary page scrolling,
+              expanded-canvas behavior, compact height and icon labels.
+              Closing ceremony recorded in
+              ../sessions/2026-08-20-cp-render-repairs-closing-ceremony.md.
+rebase      : 2026-08-20 onto trunk tip 7f8d026 after CP-OPEN-DOCK merged
+              during this closing ceremony. All eight commits replayed
+              without conflict; tests therefore cover the combined result.
+gates       : cairn-check OK; typecheck green; 78 files / 1101 pass / 1 skip;
+              production build green; real-Electron rich smoke green
+              (`firstRender=466ms`, `repeatRender=285ms`).
+closure doc : the audit caught ADR-014's stale delimiter sentence and the
+              editor note's historical "three warnings now" wording. Both
+              were corrected; ADR-014 now also records the host-owned canvas
+              lifecycle. Declared the ADR write rather than absorbing it.
+audit       : ../audits/cp-render-repairs-d44d381.md — drift noted,
+              proceeding. No conflicting architecture or duplicate work;
+              carries the imperative-icon vocabulary plus Cairn's ACTIVE.md
+              visibility and final done-branch contradictions as advisory
+              follow-ups for CP-OPS-001.
+journal     : ../log/2026-08-20-cp-render-repairs.md
+next action : none — path closed and ready to self-merge.
 blockers    : none
 ```
 

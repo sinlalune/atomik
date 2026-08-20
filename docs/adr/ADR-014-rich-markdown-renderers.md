@@ -120,9 +120,13 @@ An inline `$` opener is unescaped, is not part of `$$`, and is not followed by
 whitespace; its closer is unescaped, not part of `$$`, and not preceded by
 whitespace. Inline math cannot cross a newline. Markdown code spans, links, and
 fences keep their normal precedence. These rules avoid treating ordinary
-currency such as `cost $5 and tax` as math. Display delimiters either occupy
-their own lines or enclose the complete trimmed line. Unclosed or ambiguous
-delimiters remain literal source.
+currency such as `cost $5 and tax` as math. Display math on one line encloses
+the complete trimmed line. A multi-line display opener must start the trimmed
+line with `$$` but may carry expression text after it; its closer ends a later
+trimmed line with `$$` and may carry expression text before it. A `$$` in the
+middle of prose, an unclosed opener, or another ambiguous delimiter remains
+literal source. Read and live discovery share this grammar rather than
+maintaining parallel copies.
 
 Aliases are normalized case-insensitively from the first fence-info token.
 Unknown identifiers and any adapter added later keep the ordinary code
@@ -351,6 +355,16 @@ from authored accessibility metadata when available, otherwise a concise
 generated label plus the source fallback. Loading and failures announce a
 polite status without repeatedly speaking on theme-only rerenders. Keyboard
 users can reveal source, copy, wrap/expand, and reach diagnostic messages.
+
+Diagram exploration is host-owned chrome over the accepted projection, never
+another renderer. Mermaid pan/zoom applies a disposable CSS transform to the
+same SVG node `safe-svg.ts` approved; it does not parse, render, clone, or
+sanitize the source again. A bare wheel still scrolls the note and zoom takes
+Ctrl/Cmd; every pointer gesture has a named control and keyboard equivalent.
+Expand moves that same node into a native dialog and returns it on close or
+teardown, preserving its namespaced IDs and the hydrator's one-node lifecycle.
+Vega-Lite remains a natural-width scrolling chart rather than acquiring a
+spatial-canvas interaction model.
 
 ### 8. The renderer's environment is part of the contract (S07, owner bench)
 
