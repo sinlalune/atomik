@@ -107,6 +107,52 @@ describe('choosing what to read of an article (CP-MVP-011 S07i)', () => {
     expect(selection.kept).toEqual(['(lead)', 'Contenu'])
   })
 
+  it('does not pretend to rank when the query IS the page title', () => {
+    // Owner bench, third iteration (`macron-et-la-réforme-des-retraites-5`):
+    // the model searched "Réforme des retraites en France en 2023" and got the
+    // article of that name. Two term-frequency heuristics missed it — one
+    // surviving term ("2023", also in the winning heading) was enough to make
+    // the scorer confident, and §Manifestations et grèves took the budget for
+    // a third bench running. Asking the TITLE is the direct instrument.
+    const onTitle: WikiSection[] = [
+      { heading: '', text: 'Lead of the article.' },
+      { heading: 'Contexte', text: 'Le contexte de 2019 et la France.' },
+      { heading: 'Contenu', text: 'Le recul de l age legal.' },
+      {
+        heading: 'Manifestations et grèves en 2023',
+        text: 'Les manifestations de 2023 en France, longuement decrites, encore et encore, en France en 2023.'
+      }
+    ]
+    const selection = selectWikiSections(
+      onTitle,
+      'Réforme des retraites en France en 2023',
+      110,
+      'Réforme des retraites en France en 2023'
+    )
+    expect(selection.focused).toBe(false)
+    // reading order: the budget fills from the top, and the long section that
+    // repeats the topic no longer buys its way to the front
+    expect(selection.kept).toEqual(['(lead)', 'Contexte', 'Contenu'])
+    expect(selection.kept).not.toContain('Manifestations et grèves en 2023')
+  })
+
+  it('still ranks when the query goes BEYOND the title', () => {
+    const onTitle: WikiSection[] = [
+      { heading: '', text: 'Lead of the article.' },
+      { heading: 'Contexte', text: 'Le contexte de 2019.' },
+      { heading: 'Motion de censure', text: 'La motion de censure rejetee a neuf voix.' },
+      { heading: 'Manifestations', text: 'Les manifestations, longuement decrites.' }
+    ]
+    const selection = selectWikiSections(
+      onTitle,
+      'motion de censure',
+      110,
+      'Réforme des retraites en France en 2023'
+    )
+    expect(selection.focused).toBe(true)
+    expect(selection.kept).toContain('Motion de censure')
+  })
+
   it('ignores a term that saturates the page, and ranks on what is left', () => {
     // S07j's mean-share rule missed the owner's page: one discriminating term
     // ("2010") pulled the average under the threshold while "réforme",

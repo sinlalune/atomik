@@ -254,7 +254,14 @@ timestamp: 2026-08-17T00:00:00Z
   article is read from the top and `focused: false` says so in the warning.
   The first attempt used the MEAN share across terms and the owner's re-bench
   refuted it in one line — a single discriminating term ("2010") drags the
-  average under any threshold while the topic words still saturate.
+  average under any threshold while the topic words still saturate. The third
+  iteration refuted the per-term rule too: one surviving term ("2023", which
+  also sat in the winning heading) was enough to keep the scorer confident,
+  and §Manifestations et grèves took the budget for a third bench running. So
+  the page is asked DIRECTLY: when ≥ 80% of the query's terms appear in the
+  article TITLE, the query restates the subject and cannot rank its parts —
+  `TITLE_MATCH_SHARE`. Two indirect instruments failed before the direct one
+  was tried, which is the lesson worth keeping.
 - THE APPARATUS IS NOT THE ARTICLE (CP-MVP-011 S07j re-bench): the same trace
   showed `Réforme des retraites en France en 2010 — read (lead), Notes et
   références`. A reference list repeats the page's title in every citation:

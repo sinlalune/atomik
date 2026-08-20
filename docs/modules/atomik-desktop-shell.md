@@ -32,8 +32,11 @@ timestamp: 2026-08-17T00:00:00Z
   owner's benches (S07j): apparatus sections — notes/références,
   bibliographie, voir aussi, liens externes, annexes and their English forms —
   never reach the budget, and query terms appearing in ≥ 80% of a page's
-  sections are treated as stopwords for that page. `sections.focused` reports
-  whether anything was left to rank on. Nothing about the trust boundary moves: same fixed
+  sections are treated as stopwords for that page; and — the instrument that
+  finally worked — a query whose terms are ≥ 80% the article's own TITLE is
+  taken as unable to rank the page at all, so `wikipediaTextOfHtml` now
+  receives `page.title` beside the query. `sections.focused` reports whether
+  anything was left to rank on. Nothing about the trust boundary moves: same fixed
   hosts, same byte and request budgets, same abort signal.
 - THE IMAGE LEADS THE ANSWER (CP-MVP-011 S07h): `ConsultedMediaBlock` renders
   ABOVE `ClaimBody`; the consulted block keeps warnings, vault notes and

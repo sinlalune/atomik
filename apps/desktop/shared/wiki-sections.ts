@@ -45,6 +45,22 @@ export type WikiSection = {
  */
 const PAGE_STOPWORD_SHARE = 0.8
 
+/**
+ * The direct instrument, after two failed indirect ones (S07j, third
+ * iteration). If the query IS the article's title, there is by construction
+ * nothing to rank: every section of "Réforme des retraites en France en 2023"
+ * is about the réforme des retraites en France en 2023. Term-frequency
+ * heuristics kept missing this — a single surviving term ("france", "2023")
+ * is enough to make the scorer confident, and it hands the budget to whichever
+ * long section repeats that term, which is how §Manifestations et grèves won
+ * three benches in a row.
+ *
+ * So the title is asked directly: when this share of the query's terms appear
+ * in the page title, the query cannot discriminate inside the page, and the
+ * article is read from the top.
+ */
+const TITLE_MATCH_SHARE = 0.8
+
 /** Below this, ranking barely matters and the budget usually fits anyway. */
 const SATURATION_MIN_SECTIONS = 4
 
@@ -140,11 +156,18 @@ const termCounts = (text: string): Map<string, number> => {
  */
 function scoreSections(
   sections: readonly WikiSection[],
-  query: string
+  query: string,
+  title: string
 ): { scores: number[]; focused: boolean } {
   const unfocused = { scores: sections.map(() => 0), focused: false }
   const terms = parseQuery(query).terms
   if (terms.length === 0) return unfocused
+
+  const titleTerms = new Set(tokenize(title).map((token) => token.term))
+  if (titleTerms.size > 0) {
+    const inTitle = terms.filter((term) => titleTerms.has(term)).length
+    if (inTitle / terms.length >= TITLE_MATCH_SHARE) return unfocused
+  }
   const bodies = sections.map((section) => termCounts(section.text))
   const headings = sections.map((section) => termCounts(section.heading))
   const lengths = bodies.map((counts) =>
@@ -212,7 +235,10 @@ function scoreSections(
 export function selectWikiSections(
   sections: readonly WikiSection[],
   query: string,
-  maxChars: number
+  maxChars: number,
+  /** The page's own title. A query that merely restates it cannot rank its
+   *  sections — see TITLE_MATCH_SHARE. */
+  title = ''
 ): WikiSectionSelection {
   const usable = sections.filter(
     (section) =>
@@ -222,7 +248,7 @@ export function selectWikiSections(
     return { text: '', truncated: false, kept: [], skipped: 0, focused: false }
   }
 
-  const { scores, focused } = scoreSections(usable, query)
+  const { scores, focused } = scoreSections(usable, query, title)
   const hasLead = usable[0]!.heading.length === 0
   const chosen = new Map<number, string>()
   let budget = maxChars

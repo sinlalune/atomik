@@ -991,6 +991,18 @@ maxlag removed  1 tool call  · Wikidata ALIVE  ·  5.6s · $0.0034
     annexes, and their English forms) are dropped before scoring, and the
     truncation figure is measured against what remained readable.
   - Two more tests pin both. Full result: 85 files, 1148 passed + 1 skipped.
+- **Third iteration** (`macron-et-la-réforme-des-retraites-5`, checked at the
+  owner's invitation): the apparatus fix landed — the candidate pool fell from
+  14 sections to 12 — but §Manifestations et grèves STILL took the budget and
+  the warning still claimed to have ranked. One surviving term ("2023", which
+  also sits in that heading) was enough to keep the scorer confident. Two
+  indirect instruments had now failed, so the page is asked directly: when
+  ≥ 80% of the query's terms appear in the article TITLE, the query restates
+  the subject and cannot rank its parts (`TITLE_MATCH_SHARE`), and the article
+  is read from the top. Two more tests: the title case reads in document order
+  and never lets the long repetitive section in; a query that goes BEYOND the
+  title ("motion de censure") still ranks. Full result: 85 files, 1150 passed
+  + 1 skipped; typecheck and build green.
 
 # Current checkpoint
 
@@ -1023,7 +1035,7 @@ rebased     : 2026-08-20 onto trunk tip f58093e (the owner merged
               `tests/chat-view.test.ts`: both paths opened a new describe
               block at the same line. Both kept. Gates re-run on the REBASED
               result, per the rule.
-tests       : typecheck green; 85 files / 1148 pass / 1 skip; build green
+tests       : typecheck green; 85 files / 1150 pass / 1 skip; build green
 bench       : 2026-08-20 (second), `macron-et-la-réforme-des-retraites`, live
               on google — S07g/S07h/S07i all confirmed in the owner's own
               files; the two gaps it exposed became S07j. Earlier the same

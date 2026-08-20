@@ -725,7 +725,8 @@ function articleSectionsOf(root: Element): WikiSection[] {
 export function wikipediaTextOfHtml(
   html: string,
   maxChars: number = WIKIMEDIA_LIMITS.maxArticleTextChars,
-  query = ''
+  query = '',
+  title = ''
 ): {
   text: string
   truncated: boolean
@@ -746,7 +747,7 @@ export function wikipediaTextOfHtml(
   if (whole.length <= maxChars) {
     return { text: whole, truncated: false, kept: [], skipped: 0, focused: true }
   }
-  return selectWikiSections(articleSectionsOf(root), query, maxChars)
+  return selectWikiSections(articleSectionsOf(root), query, maxChars, title)
 }
 
 function canonicalWikipediaUrl(language: string, key: string): string {
@@ -1053,7 +1054,8 @@ export class WikimediaClient {
         const extracted = wikipediaTextOfHtml(
           page.html,
           this.limits.maxArticleTextChars,
-          request.query
+          request.query,
+          page.title
         )
         if (extracted.text.length === 0) {
           throw new WikimediaError('malformed', 'Wikipedia page contains no usable article text')
@@ -1118,7 +1120,7 @@ export class WikimediaClient {
                     .filter((article) => article.truncated)
                     .map((article) =>
                       article.sections.kept.length > 0
-                        ? `${article.source.title} — read ${article.sections.kept.join(', ')}; ${article.sections.skipped} other section${article.sections.skipped === 1 ? '' : 's'} did not fit the ${this.limits.maxArticleTextChars.toLocaleString('en-US')}-character budget.${article.sections.focused ? '' : ' The query matched the whole page, so it was read from the top rather than ranked.'}`
+                        ? `${article.source.title} — read ${article.sections.kept.join(', ')}; ${article.sections.skipped} other section${article.sections.skipped === 1 ? '' : 's'} did not fit the ${this.limits.maxArticleTextChars.toLocaleString('en-US')}-character budget.${article.sections.focused ? '' : ' The query could not tell this page\'s sections apart, so it was read from the top rather than ranked.'}`
                         : `${article.source.title} — read to the first ${this.limits.maxArticleTextChars.toLocaleString('en-US')} characters, the per-article text budget.`
                     )
                     .join(' ')
