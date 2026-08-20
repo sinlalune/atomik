@@ -312,7 +312,12 @@ export function hydrateRichMarkdown(
                 ) as HTMLElement | null)
               : renderHost
             if (!target || !block.canvas) return
-            if (expanded) target.dataset['richCanvasBareWheel'] = ''
+            if (expanded) {
+              target.dataset['richCanvasBareWheel'] = ''
+              // The overlay fills the pane; only a block canvas sizes itself
+              // to its diagram.
+              target.dataset['richCanvasFill'] = ''
+            }
             block.canvas.retarget(target)
           }
         )

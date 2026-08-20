@@ -25,6 +25,7 @@ import {
 } from '../renderer/src/editor/rich-markdown/adapters/mermaid-core'
 import {
   attachDiagramCanvas,
+  canvasHeight,
   fitTransform,
   naturalSize,
   zoomAbout
@@ -498,6 +499,46 @@ describe('diagram canvas', () => {
     const bare = document.createElement('svg')
     // No viewBox and no layout: start at 1:1 rather than guess a fit.
     expect(naturalSize(bare as unknown as Element)).toBeNull()
+  })
+
+  it('is only as tall as the diagram needs', () => {
+    // The bench: a two-node flowchart sat in 460px of emptiness because every
+    // canvas got the same fixed height.
+    expect(canvasHeight(760, { width: 200, height: 160 })).toBe(160)
+    // Something tiny still gets a usable box rather than a sliver.
+    expect(canvasHeight(760, { width: 100, height: 20 })).toBe(140)
+    // A tall diagram is bounded — one diagram must not own the whole note.
+    expect(canvasHeight(760, { width: 200, height: 4000 })).toBe(460)
+    // A WIDE diagram is measured at the scale it will be drawn at, not at 1:1.
+    expect(canvasHeight(400, { width: 1600, height: 800 })).toBe(200)
+    expect(canvasHeight(0, { width: 100, height: 100 })).toBe(140)
+  })
+
+  it('pins the SVG to its intrinsic size before transforming it', () => {
+    // Mermaid emits width="100%" + max-width, so the ELEMENT fills the
+    // container while the drawing sits inside it. Centring the element then
+    // shoves the drawing sideways — the defect the bench screenshotted.
+    const { document } = parseHTML(
+      '<html><body><div id="tools"></div><div id="vp"><svg width="100%" style="max-width: 640px" viewBox="0 0 640 480"></svg></div></body></html>'
+    )
+    const tools = document.querySelector('#tools') as unknown as HTMLElement
+    const viewport = document.querySelector('#vp') as unknown as HTMLElement
+    const svg = viewport.querySelector('svg') as unknown as HTMLElement
+    const canvas = attachDiagramCanvas(
+      document as unknown as Document,
+      tools,
+      viewport
+    )
+    expect(svg.style.width).toBe('640px')
+    expect(svg.style.height).toBe('480px')
+    expect(svg.style.maxWidth).toBe('none')
+
+    canvas.dispose()
+    // …and every one of those is handed back on the way out.
+    expect(svg.style.width).toBe('')
+    expect(svg.style.height).toBe('')
+    expect(svg.style.maxWidth).toBe('')
+    expect(viewport.style.height).toBe('')
   })
 
   it('leaves a bare wheel to the page, and zooms only with a modifier', () => {

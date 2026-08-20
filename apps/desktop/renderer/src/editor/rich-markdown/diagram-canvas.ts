@@ -23,6 +23,10 @@
 
 const MIN_SCALE = 0.1
 const MAX_SCALE = 8
+/** A canvas never gets shorter than this, or the controls dwarf the diagram. */
+const MIN_VIEWPORT_H = 140
+/** …nor taller, or one diagram owns the whole note. */
+const MAX_VIEWPORT_H = 460
 const WHEEL_STEP = 0.0015
 const BUTTON_STEP = 1.25
 const KEY_PAN = 48
@@ -79,6 +83,26 @@ export function naturalSize(
     return { width: rect.width, height: rect.height }
   }
   return null
+}
+
+/**
+ * A canvas is only as tall as the diagram needs (S05 bench).
+ *
+ * The first cut gave every diagram a fixed 460px viewport, so a two-node
+ * flowchart sat in an acre of emptiness. The height follows the diagram at the
+ * scale it will actually be drawn — width decides the scale, because a canvas
+ * is as wide as its column either way — bounded so it can neither vanish nor
+ * take the whole note.
+ */
+export function canvasHeight(
+  frameWidth: number,
+  content: { width: number; height: number }
+): number {
+  if (frameWidth <= 0 || content.width <= 0) return MIN_VIEWPORT_H
+  const scale = Math.min(1, frameWidth / content.width)
+  return Math.round(
+    Math.max(MIN_VIEWPORT_H, Math.min(MAX_VIEWPORT_H, content.height * scale))
+  )
 }
 
 /** The transform that centres `content` inside `frame`, never magnifying. */
@@ -142,10 +166,34 @@ export function attachDiagramCanvas(
       : { width: 0, height: 0 }
   }
 
+  /**
+   * Mermaid emits `width="100%"` with `style="max-width: Npx"`, so the SVG
+   * ELEMENT fills its container while the drawing sits inside it under the
+   * viewBox. Centring the element therefore centres a full-width box and
+   * shoves the drawing sideways — which is exactly what the bench saw. Pinning
+   * the element to its intrinsic size makes the element box and the drawing
+   * box the same thing, which is what the transform arithmetic assumes.
+   */
+  const normalize = (svg: SVGElement, content: { width: number; height: number }): void => {
+    svg.style.maxWidth = 'none'
+    svg.style.width = `${content.width}px`
+    svg.style.height = `${content.height}px`
+  }
+
   const reset = (): void => {
     const svg = svgOf()
     const content = svg ? naturalSize(svg) : null
-    transform = content ? fitTransform(frameSize(), content) : { x: 0, y: 0, k: 1 }
+    if (!svg || !content) {
+      transform = { x: 0, y: 0, k: 1 }
+      paint()
+      return
+    }
+    normalize(svg, content)
+    // A block canvas takes the diagram's height; the overlay fills the pane.
+    if (viewport.dataset['richCanvasFill'] !== '') {
+      viewport.style.height = `${canvasHeight(frameSize().width, content)}px`
+    }
+    transform = fitTransform(frameSize(), content)
     paint()
   }
 
@@ -279,6 +327,8 @@ export function attachDiagramCanvas(
       delete viewport.dataset['richCanvas']
       viewport = next
       viewport.dataset['richCanvas'] = ''
+      // The block canvas keeps no stale inline height once its diagram leaves.
+      if (viewport !== initialViewport) initialViewport.style.height = ''
       listen(viewport)
       reset()
     },
@@ -290,7 +340,14 @@ export function attachDiagramCanvas(
       viewport.removeAttribute('role')
       viewport.removeAttribute('aria-label')
       const svg = svgOf()
-      if (svg) svg.style.transform = ''
+      if (svg) {
+        svg.style.transform = ''
+        svg.style.transformOrigin = ''
+        svg.style.maxWidth = ''
+        svg.style.width = ''
+        svg.style.height = ''
+      }
+      viewport.style.height = ''
       zoomOut.remove()
       zoomIn.remove()
       fit.remove()

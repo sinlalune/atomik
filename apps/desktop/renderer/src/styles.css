@@ -3783,7 +3783,12 @@ button.relations-node:focus-visible {
 .rich-markdown-block[data-rich-kind='mermaid']
   [data-rich-render-host][data-rich-canvas] {
   position: relative;
-  height: min(60vh, 460px);
+  /* Height is written inline by the canvas, which knows how tall the diagram
+     actually is (S05 bench: a two-node flowchart had 460px of emptiness under
+     it). These bounds only matter before the first fit, and if the diagram's
+     size can never be determined. */
+  min-height: 140px;
+  max-height: 460px;
   overflow: hidden;
   touch-action: none;
   cursor: grab;

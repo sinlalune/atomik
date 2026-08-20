@@ -340,6 +340,20 @@ written down, so its removal is too.
 - `naturalSize` reads Mermaid's own `viewBox` before reaching for layout, so a
   fit is computable without a rendered box — and returns null rather than
   guessing when neither exists, because a wrong fit is worse than none.
+- **The SVG is pinned to its intrinsic size before any transform.** Mermaid
+  emits `width="100%"` with `style="max-width: Npx"`, so the ELEMENT fills its
+  container while the drawing sits inside it under the viewBox. Centring the
+  element therefore centres a full-width box and shoves the drawing sideways,
+  which is what the first bench round saw: Fit put a wide diagram in the
+  upper-left and a small one hard right. Setting `width`/`height` in pixels and
+  `max-width: none` makes the element box and the drawing box the same thing,
+  which is what the arithmetic assumed all along. Every one of those inline
+  styles is handed back on dispose.
+- **The canvas is only as tall as its diagram.** `canvasHeight` measures the
+  diagram at the scale it will actually be drawn — width decides the scale,
+  since the canvas is as wide as its column either way — bounded to
+  140–460px. The first cut gave everything 460px and a two-node flowchart sat
+  in an acre of emptiness. The overlay is exempt: it fills the pane.
 - Charts are deliberately NOT canvases. Pan and zoom are for spatial content;
   a bar chart is not spatial, so vega-lite keeps S04's behaviour.
 

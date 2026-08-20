@@ -232,7 +232,20 @@ S05         : diagram-canvas.ts — two numbers and a scale, applied as a CSS
               Charts are NOT canvases: pan/zoom is for spatial content.
 widening    : diagram-canvas.ts declared after cairn-check named it.
 tests       : 6 new (pure zoom/fit arithmetic + the wheel contract). 1035.
-next action : S06 — owner bench on the canvas, then closure.
+bench 2     : canvas accepted except two defects, both fixed in S05:
+                a Fit put a wide diagram upper-left and a small one hard
+                  right. ROOT CAUSE: mermaid emits width="100%" +
+                  style="max-width:Npx", so the SVG ELEMENT fills the
+                  container while the drawing sits inside it — centring the
+                  element centres a full-width box. The element is now pinned
+                  to its intrinsic size first, and the arithmetic that always
+                  assumed element==drawing is finally true. All inline styles
+                  handed back on dispose.
+                b a two-node flowchart sat in 460px of emptiness. canvasHeight
+                  now measures the diagram at the scale it will be drawn and
+                  bounds it 140-460px; the overlay is exempt and fills.
+tests       : 8 new in total for S05. 1037 passing.
+next action : S06 — owner bench on the fixed canvas, then closure.
 blockers    : none
 ```
 
