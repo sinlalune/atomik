@@ -8,7 +8,7 @@ atomik:
   id: CP-RENDER-REPAIRS
   status: running
   accepted: 2026-08-20
-  current_step: S03
+  current_step: S04
   base_commit: f58093e
   branch: path/cp-render-repairs
   writes:
@@ -113,7 +113,7 @@ every request. Repairing them is how those warnings get deleted.
       real notes, then DELETE the trap clause the pin fires on and lower the
       block's size ceiling. Tests, docs, ledger.
 - [x] S02 Vega warnings reach the block's status line. Tests, docs, ledger.
-- [ ] S03 `chatSlug` strips comments; reproduce-or-record the stamped-heading
+- [x] S03 `chatSlug` strips comments; reproduce-or-record the stamped-heading
       trigger. Tests, docs, ledger.
 - [ ] S04 Diagram exploration: natural width, scrolling container, expand
       overlay. Tests, docs, ledger.
@@ -159,8 +159,19 @@ widening    : adapters/vega-lite.ts joined writes: on 2026-08-20 — the thin
               logger could not reach it from core alone. cairn-check named
               the file; declared rather than absorbed.
 tests       : 3 new. 1023 passing.
-next action : S03 — chatSlug strips <!--…-->, plus one reproduction attempt
-              on how a stamped heading reached the message text.
+S03         : chatSlug strips HTML comments as a UNIT before anything else —
+              the same treatment graph-core.ts:109 already gave a heading
+              (CP-MVP-010 S07c). One defect class, now fixed at both layers.
+trace       : NEGATIVE, and recorded as such
+              (../sessions/2026-08-20-cp-render-repairs-s03-slug-trace.md).
+              No in-app path composes a stamped heading into the text that
+              names a new chat file: `send` takes the composer's contents,
+              `retry` never creates a file, and parseChatTurns consumes a
+              stamped heading into turn METADATA rather than turn text. It
+              was a paste. The fix is correct regardless, which is why it
+              was made rather than left to the trace staying true.
+tests       : 1 new (3 assertions incl. the real observed input). 1026.
+next action : S04 — natural width, scrolling container, expand overlay.
 blockers    : none
 ```
 

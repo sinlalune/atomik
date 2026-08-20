@@ -315,6 +315,27 @@ carries the decisions; the operational shape:
   byte-identical — an existing test pins it. Both change together or neither
   does. Capabilities sit BEFORE `# Rules` so `## Output` stays inside it.
 
+## The app's bookkeeping never names a file (CP-RENDER-REPAIRS S03)
+
+`chatSlug` stripped `<`, `>` and `#` one character at a time and never saw
+`<!-- … -->` as a unit, so a real file in the owner's vault ended up named
+`you-!---sent-system=2120-instruction=828.md`. It now strips comments first,
+the same treatment `graph-core.ts:109` already gives a heading before it
+becomes a title (CP-MVP-010 S07c). **One defect class, fixed at both layers**
+— worth remembering that fixing a strip in one place is a prompt to grep for
+the others.
+
+The trigger was traced rather than assumed, and the trace came back NEGATIVE:
+no in-app path composes a stamped heading into the text that names a new chat
+file. `send` takes the composer's contents; `retry` never creates a file and
+`parseChatTurns` consumes a stamped heading into turn METADATA rather than
+turn text. It was a paste — the full record is in
+`atomik-project/sessions/2026-08-20-cp-render-repairs-s03-slug-trace.md`.
+
+Deliberately not added: a guard that strips a leading `## you` from a pasted
+message. Pasting a transcript fragment is legitimate, and silently rewriting
+it would be worse than a cosmetic double heading.
+
 ## Vega's own diagnosis reaches the reader (CP-RENDER-REPAIRS S02)
 
 The bench produced a chart with correct inline data, a correct encoding, and no
