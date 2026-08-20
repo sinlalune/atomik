@@ -92,6 +92,19 @@ gesture previews an ordinary source dossier, deduplicates its canonical URL,
 records revision/access/licence data, copies durable media locally, and uses
 the existing source/vault write lifecycle with rollback.
 
+### A text budget selects; it does not truncate
+
+Bounding what a page contributes is not optional — a 200 000-character article
+cannot enter a prompt. But a positional cut ("the first 6 000 characters") is
+an arbitrary answer to a relevance question, and it fails silently: the reader
+is told the page was clipped, not that the part they asked about was dropped.
+
+So the budget is spent by the lexical scorer the vault already uses (BM25 over
+`retrieval-core`), scoring an article's sections against the query, with the
+lead always kept and capped. What was read and what was left out is reported
+with the result. This stays inside 33's evaluated lexical baseline; semantic
+selection would need embeddings, which are a separately evaluated M9 rung.
+
 ### The audit record names identities, never the fetched prose
 
 A run's agent trace is durable and lives in the vault beside the transcript it

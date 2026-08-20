@@ -584,6 +584,48 @@ describe('Wikipedia HTML extraction', () => {
       '<main><p>alpha beta gamma delta epsilon</p><nav>not content</nav></main>',
       18
     )
-    expect(result).toEqual({ text: 'alpha beta gamma', truncated: true })
+    // S07i: a page with nothing to compete against still spends the whole
+    // budget on its lead — the lead cap guards against crowding out an
+    // answer, not against being the only thing there is.
+    expect(result).toEqual({
+      text: 'alpha beta gamma',
+      truncated: true,
+      kept: ['(lead)'],
+      skipped: 0
+    })
+  })
+
+  it('spends the budget on the sections that answer, in reading order', () => {
+    // The owner's ruling (S07i): "we can't set a limit to a page if we have
+    // no tool to … assert that we have reached the part that fits the
+    // answer". Position is not relevance.
+    const html = [
+      '<main>',
+      '<p>Lead paragraph about a person, mostly biographical framing.</p>',
+      '<h2>Jeunesse</h2><p>Born somewhere, studied something, early life details.</p>',
+      '<h2>Carrière</h2><p>Worked here and there in various roles over years.</p>',
+      '<h2>Réforme des retraites</h2><p>The pension reform of 2023 raised the retirement age and provoked strikes.</p>',
+      '</main>'
+    ].join('')
+    const result = wikipediaTextOfHtml(html, 200, 'réforme des retraites')
+    expect(result.kept).toContain('Réforme des retraites')
+    expect(result.text).toContain('pension reform')
+    // the lead still leads, and the sections that lost are counted
+    expect(result.kept[0]).toBe('(lead)')
+    expect(result.skipped).toBeGreaterThan(0)
+    expect(result.truncated).toBe(true)
+  })
+
+  it('falls back to reading order when the query has no usable terms', () => {
+    const html = [
+      '<main>',
+      '<p>Lead paragraph.</p>',
+      '<h2>First</h2><p>First section body text here.</p>',
+      '<h2>Second</h2><p>Second section body text here.</p>',
+      '</main>'
+    ].join('')
+    const result = wikipediaTextOfHtml(html, 40, '   ')
+    expect(result.kept[0]).toBe('(lead)')
+    expect(result.text.startsWith('Lead paragraph.')).toBe(true)
   })
 })

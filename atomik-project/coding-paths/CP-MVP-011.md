@@ -13,6 +13,7 @@ atomik:
   branch: path/cp-mvp-011
   writes:
     - apps/desktop/shared/agent-trace.ts
+    - apps/desktop/shared/wiki-sections.ts
     - apps/desktop/shared/wikimedia.ts
     - apps/desktop/shared/generation-tools.ts
     - apps/desktop/shared/chat-citations.ts
@@ -316,6 +317,9 @@ OPEN        provider-step position vs S07; the "luna" model id; whether
 - [x] S07h The owner's first trace bench: trace every turn, the packet's
       excerpts inside the trace, a wikilink instead of a path, the image
       leading the answer, and two warnings that say something.
+- [x] S07i Relevance, not position: the per-article budget is spent by the
+      vault's own lexical scorer on the sections that answer the query, and
+      the result says what it read and what it left out.
 - [ ] S07 Augmented chat + external citations: the wiki control MIRRORS the
       vault tool — a per-thread enable toggle, a `reach` depth control, and
       four per-source switches (Wikipedia · Wikidata · Commons image ·
@@ -882,6 +886,47 @@ maxlag removed  1 tool call  · Wikidata ALIVE  ·  5.6s · $0.0034
   named `prop=extracts&explaintext` as the way to buy more text for fewer
   bytes.
 
+## S07i work unit — complete 2026-08-20
+
+- **Owner ruling, verbatim:** *"We cant set a limit to a page if we have no
+  tool to semanticaly or lexicaly assert that we have reach the part that fit
+  the answer"* — after reading the `truncated` warning in their own trace.
+  Correct, and it names a real defect: `maxArticleTextChars` cut the FIRST
+  6 000 characters of the flattened page, so a question about a 2023 pension
+  reform got the lead and the early biography, with a warning implying the
+  loss was incidental.
+- **Code:** `shared/wiki-sections.ts` (pure) scores sections with BM25 over
+  `retrieval-core`'s tokenizer — the vault's own scorer, same constants, same
+  folding, no new dependency and no embeddings (M9; 33's lexical baseline is
+  what this rung is measured against). The SECTION is the document and the
+  ARTICLE is the corpus, because an idf over all of Wikipedia says nothing
+  about which paragraph of this page answers. `wikipediaTextOfHtml` splits at
+  top-level headings (Parsoid `<section>` first, `h2/h3` walk as fallback),
+  takes the query, and returns `{text, truncated, kept, skipped}`; the lead is
+  always kept, capped at 40% of the budget, and reclaims what the competitors
+  do not spend. Winners return to READING order, each labelled with its
+  heading. `WikipediaArticle.sections` carries `{kept, skipped}` and the
+  warning names them.
+- **Deliberately NOT done here** (owner's scope call, 2026-08-20): the
+  Wikidata-first tree, sitelink routing to other Wikimedia projects, and
+  harvesting the source links on a page open as their own path. Two findings
+  recorded for its opening check: `wikipediaSitelinksOf` keeps only
+  `${lang}wiki` and `enwiki` and drops every other sitelink Wikidata returns,
+  and `REMOVE_FROM_ARTICLE` strips `.mw-references-wrap`/`.reflist`/
+  `.catlinks` before flattening to `textContent`, so no link of any kind
+  survives. The boundary that path must respect: handing the model a link
+  with its context stays inside ADR-015's fixed-host allowlist; FETCHING an
+  arbitrary reference is generic web retrieval — M7, bedrock 13.
+- **Tests:** 13 new — the answering section wins over the first one, the lead
+  always leads and is capped but reclaims unspent budget, kept sections come
+  back in reading order and carry their headings, a heading match outscores a
+  longer irrelevant body, an empty query falls back to reading order, a
+  fitting article reports nothing dropped, and an empty article survives.
+  Full result: 83 files, 1119 passed + 1 skipped; typecheck and build green.
+- **Not benched:** the selection changes what the model reads, so it wants a
+  real question against a long page — the owner's `réforme des retraites`
+  case is the obvious one.
+
 # Current checkpoint
 
 ```text
@@ -903,8 +948,10 @@ changed     : S01 contracts; S02 Wikipedia; S03 Wikidata/graph projection;
               the answer, public-prose-free by rule (ADR-015);
               S07h owner's first trace bench — every turn traced, packet
               excerpts inside the trace, wikilink not path, image leads the
-              answer, truncated/ambiguous warnings name what they mean
-tests       : typecheck green; 82 files / 1107 pass / 1 skip; build green
+              answer, truncated/ambiguous warnings name what they mean;
+              S07i the per-article budget SELECTS by lexical relevance
+              instead of cutting the first 6 000 characters
+tests       : typecheck green; 83 files / 1119 pass / 1 skip; build green
 bench       : 2026-08-20, live, google + fr.wikipedia + wikidata + wiktionary
               + Commons — one `search_wiki` call, 6.8s, 3 sources numbered
               [1][2][3], ~$0.00047, French answer; the trace note landed and
@@ -915,15 +962,21 @@ reconciled  : 2026-08-19 on resume. S07f is DONE (656e6d8) and this line
               Verified on the rebased branch: clean tree, contains trunk tip
               80b131a, cairn-check OK (1 advisory: no audit for this head),
               typecheck + 81 files / 1085 pass / 1 skip + build all green
-next action : re-bench S07h in the real app (every-turn traces, the wikilink
-              edge, the image above the prose, the two rewritten warnings),
+next action : re-bench S07h + S07i in the real app — every-turn traces, the
+              wikilink edge, the image above the prose, the rewritten
+              warnings, and a question whose answer lives deep in a long page
+              (`réforme des retraites`) to see selection beat position —
               then the REQUEST INSPECTOR — its breakdown pills still describe
               the pre-pass packet only, so an answer that called three corpora
               looks like it sent nothing but the packet; build it against the
-              trace record. Optional, and now visible in the owner's own
-              trace: `prop=extracts&explaintext` buys more article text for
-              fewer bytes than the 6 000-char cap allows today. Then S08
-              save-as-source, which also brings navigation to a consulted URL.
+              trace record. Then S08 save-as-source, which also brings
+              navigation to a consulted URL.
+              OUT OF THIS PATH, owner ruling 2026-08-20: the Wikidata-first
+              tree — hub entity, sitelink routing to the other Wikimedia
+              projects, page source links delivered with their context so the
+              agent can go further — opens as its own path with its own
+              opening check and an ADR-015 amendment. `prop=extracts` folds
+              into that design rather than being bolted on here.
 blockers    : none
 parallel    : none — CP-RICH-MARKDOWN merged as 80b131a and this branch is
               rebased onto it. No other path is running.

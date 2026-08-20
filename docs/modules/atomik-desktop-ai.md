@@ -225,6 +225,24 @@ timestamp: 2026-08-17T00:00:00Z
   the slots the reach gave it and the top-ranked one was taken. Said blankly
   it fires on every common name, so it now names the chosen entity with its
   QID and how many it beat.
+- THE BUDGET SELECTS, IT NO LONGER TRUNCATES (CP-MVP-011 S07i): the owner's
+  ruling after reading their own trace — *"We can't set a limit to a page if
+  we have no tool to semantically or lexically assert that we have reached the
+  part that fits the answer"*. `shared/wiki-sections.ts` scores an article's
+  sections against the query with BM25 over `retrieval-core`'s tokenizer —
+  the vault's own scorer, same constants, same folding, no embeddings (M9,
+  and 33's lexical baseline is what this rung is measured against). The
+  section is the document and the ARTICLE is the corpus: an idf computed over
+  all of Wikipedia would say nothing about which paragraph of this page
+  answers. The lead is always kept (it says who the article is about) but
+  capped at 40% of the budget so it cannot crowd out the answer, and unspent
+  budget flows back to it when nothing competes. Winners return to READING
+  order — an article served out of order reads as nonsense — each labelled
+  with its heading so mid-article prose is not mistaken for the article.
+  `WikipediaArticle.sections` carries `{kept, skipped}`, and the `truncated`
+  warning now says *"read (lead), Réforme des retraites; 14 other sections did
+  not fit the 6 000-character budget"* instead of confessing a clip. An
+  omission you can see is inspectable (26); "clipped" was not.
 - SHARED DIALECT CODEC (CP-MVP-011 S06b): `electron-main/openai-tool-codec.ts`
   owns the `openai-chat-completions` wire grammar ONCE — schema emission, call
   parsing, the `role: "tool"` continuation, and usage accumulation. An adapter

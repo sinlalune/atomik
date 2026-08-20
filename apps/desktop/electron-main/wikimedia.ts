@@ -23,6 +23,7 @@ import {
   type WikipediaArticle,
   type WiktionaryEtymology
 } from '../shared/wikimedia'
+import { selectWikiSections, type WikiSection } from '../shared/wiki-sections'
 
 /**
  * Main-side Wikimedia seat (CP-MVP-011 S02). Transport, clock and traces are
@@ -671,11 +672,61 @@ const REMOVE_FROM_ARTICLE = [
   '.printfooter'
 ]
 
-/** Hostile page HTML in, bounded plain article text out. */
+const cleanArticleText = (raw: string): string =>
+  raw
+    .replace(/\[[0-9]+\]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+/**
+ * The article, split at its top-level headings (S07i). Parsoid HTML nests
+ * each section in a `<section>` whose first child is the heading; older or
+ * stripped markup falls back to a flat walk over `h2` boundaries. Everything
+ * before the first heading is the LEAD, and it carries no heading.
+ */
+function articleSectionsOf(root: Element): WikiSection[] {
+  const sections: WikiSection[] = []
+  const push = (heading: string, raw: string): void => {
+    const text = cleanArticleText(raw)
+    if (text.length > 0) sections.push({ heading, text })
+  }
+  const nested = Array.from(root.querySelectorAll(':scope > section'))
+  if (nested.length > 1) {
+    for (const section of nested) {
+      const heading = section.querySelector('h2, h3, h4, h5, h6')
+      const title = cleanArticleText(heading?.textContent ?? '')
+      if (heading) heading.remove()
+      push(title, section.textContent ?? '')
+    }
+    return sections
+  }
+  let heading = ''
+  let buffer = ''
+  for (const node of Array.from(root.children)) {
+    if (/^H[23]$/.test(node.tagName)) {
+      push(heading, buffer)
+      heading = cleanArticleText(node.textContent ?? '')
+      buffer = ''
+      continue
+    }
+    buffer += ` ${node.textContent ?? ''}`
+  }
+  push(heading, buffer)
+  return sections
+}
+
+/**
+ * Hostile page HTML in, bounded plain article text out — bounded by RELEVANCE
+ * from S07i, not by position (owner: *"we can't set a limit to a page if we
+ * have no tool to … assert that we have reached the part that fits the
+ * answer"*). Pass the query and the budget is spent on the sections that
+ * answer it; omit it and the article reads from the top, as it always did.
+ */
 export function wikipediaTextOfHtml(
   html: string,
-  maxChars: number = WIKIMEDIA_LIMITS.maxArticleTextChars
-): { text: string; truncated: boolean } {
+  maxChars: number = WIKIMEDIA_LIMITS.maxArticleTextChars,
+  query = ''
+): { text: string; truncated: boolean; kept: string[]; skipped: number } {
   const { document } = parseHTML(`<html><body>${html}</body></html>`)
   const root =
     document.querySelector('#mw-content-text .mw-parser-output') ??
@@ -685,17 +736,11 @@ export function wikipediaTextOfHtml(
   for (const selector of REMOVE_FROM_ARTICLE) {
     for (const node of Array.from(root.querySelectorAll(selector))) node.remove()
   }
-  const normalized = (root.textContent ?? '')
-    .replace(/\[[0-9]+\]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-  if (normalized.length <= maxChars) return { text: normalized, truncated: false }
-  const clipped = normalized.slice(0, maxChars)
-  const lastSpace = clipped.lastIndexOf(' ')
-  return {
-    text: clipped.slice(0, lastSpace > maxChars * 0.8 ? lastSpace : maxChars).trimEnd(),
-    truncated: true
+  const whole = cleanArticleText(root.textContent ?? '')
+  if (whole.length <= maxChars) {
+    return { text: whole, truncated: false, kept: [], skipped: 0 }
   }
+  return selectWikiSections(articleSectionsOf(root), query, maxChars)
 }
 
 function canonicalWikipediaUrl(language: string, key: string): string {
@@ -1001,7 +1046,8 @@ export class WikimediaClient {
         }
         const extracted = wikipediaTextOfHtml(
           page.html,
-          this.limits.maxArticleTextChars
+          this.limits.maxArticleTextChars,
+          request.query
         )
         if (extracted.text.length === 0) {
           throw new WikimediaError('malformed', 'Wikipedia page contains no usable article text')
@@ -1012,6 +1058,7 @@ export class WikimediaClient {
           description: hit.description,
           text: extracted.text,
           truncated: extracted.truncated,
+          sections: { kept: extracted.kept, skipped: extracted.skipped },
           source: {
             project: 'wikipedia',
             language: request.language,
@@ -1054,10 +1101,17 @@ export class WikimediaClient {
             ? [
                 {
                   kind: 'truncated' as const,
-                  message: `${articles
+                  // S07i: the budget SELECTS now, so the warning names what
+                  // was read rather than confessing a cut. An omission you
+                  // can see is inspectable (26); "clipped" was not.
+                  message: articles
                     .filter((article) => article.truncated)
-                    .map((article) => article.source.title)
-                    .join(', ')} — read to the first ${this.limits.maxArticleTextChars.toLocaleString('en-US')} characters, the per-article text budget.`
+                    .map((article) =>
+                      article.sections.kept.length > 0
+                        ? `${article.source.title} — read ${article.sections.kept.join(', ')}; ${article.sections.skipped} other section${article.sections.skipped === 1 ? '' : 's'} did not fit the ${this.limits.maxArticleTextChars.toLocaleString('en-US')}-character budget.`
+                        : `${article.source.title} — read to the first ${this.limits.maxArticleTextChars.toLocaleString('en-US')} characters, the per-article text budget.`
+                    )
+                    .join(' ')
                 }
               ]
             : [])

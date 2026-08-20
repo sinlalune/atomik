@@ -98,9 +98,14 @@ export type WikipediaArticle = {
   kind: 'wikipedia-article'
   rank: number
   description: string | null
-  /** Bounded plain text derived from the consulted revision's page HTML. */
+  /** Bounded plain text derived from the consulted revision's page HTML.
+   *  S07i: bounded by RELEVANCE — the sections that scored against the query,
+   *  in reading order — not by the first N characters of the page. */
   text: string
   truncated: boolean
+  /** Which sections were read (`(lead)` for the untitled opening), and how
+   *  many the budget left out. Empty when the whole article fit. */
+  sections: { kept: string[]; skipped: number }
   source: WikimediaSource & { project: 'wikipedia' }
 }
 

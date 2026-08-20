@@ -16,6 +16,14 @@ timestamp: 2026-08-17T00:00:00Z
 
 ## What it owns
 
+- THE MAIN-SIDE READ IS NOW A SELECTION (CP-MVP-011 S07i): `wikipediaTextOfHtml`
+  takes the query and returns `{text, truncated, kept, skipped}` — the article
+  is split at its top-level headings (Parsoid `<section>` first, an `h2/h3`
+  walk as fallback) and the per-article character budget is spent on the
+  sections that score against the query, not on the first N characters. The
+  scoring lives in `shared/wiki-sections.ts` (pure), so the main-side client
+  keeps only the HTML walk. Nothing about the trust boundary moves: same fixed
+  hosts, same byte and request budgets, same abort signal.
 - THE IMAGE LEADS THE ANSWER (CP-MVP-011 S07h): `ConsultedMediaBlock` renders
   ABOVE `ClaimBody`; the consulted block keeps warnings, vault notes and
   sources below it. S07e had moved the image to the head of the consulted
