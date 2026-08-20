@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import type { PaneNode, WorkspaceState } from '../shared/ipc-contract'
+import { pillPointerAction } from '../renderer/src/editor/live-preview'
 import {
   addTab,
   activateTab,
@@ -278,6 +279,7 @@ describe('open-target surfaces (source contracts, CP-OPEN-DOCK S02)', () => {
     expect(menuSource).toContain('aria-label={`Open ${noteLabel} as`}')
     expect(menuSource).toContain('OPEN_TARGET_SPECS.map')
     expect(menuSource).toContain("event.key === 'Escape'")
+    expect(menuSource).toContain("openTargetForKey(event)")
     expect(menuSource).toContain("event.key === 'ArrowDown'")
     expect(menuSource).toContain("event.key === 'ArrowUp'")
   })
@@ -300,6 +302,64 @@ describe('open-target surfaces (source contracts, CP-OPEN-DOCK S02)', () => {
   it('the kbd hint keeps a quiet muted voice (state token, not a literal)', () => {
     const kbd = cssRule('.open-target-kbd')
     expect(kbd).toContain('var(--muted)')
+  })
+})
+
+describe('pill pointer grammar (CP-OPEN-DOCK S02, pinned after owner bench)', () => {
+  const base = {
+    button: 0,
+    metaKey: false,
+    ctrlKey: false,
+    onButton: false,
+    kind: 'rel' as const,
+    target: 'notes/plato.md',
+    openAsWired: true
+  }
+
+  it('Mod+click on a rel pill asks open-as (both modifier spellings)', () => {
+    expect(pillPointerAction({ ...base, metaKey: true })).toBe('open-as')
+    expect(pillPointerAction({ ...base, ctrlKey: true })).toBe('open-as')
+  })
+
+  it('a plain click on a rel pill follows', () => {
+    expect(pillPointerAction(base)).toBe('follow')
+  })
+
+  it('Mod+click on a relative .md href asks open-as', () => {
+    expect(
+      pillPointerAction({ ...base, metaKey: true, kind: 'href', target: 'other.md' })
+    ).toBe('open-as')
+  })
+
+  it('Mod+click on an external https link still follows (never asks open-as)', () => {
+    expect(
+      pillPointerAction({
+        ...base,
+        metaKey: true,
+        kind: 'href',
+        target: 'https://example.com'
+      })
+    ).toBe('follow')
+  })
+
+  it('Mod+click without a wired popover degrades to follow', () => {
+    expect(pillPointerAction({ ...base, metaKey: true, openAsWired: false })).toBe(
+      'follow'
+    )
+  })
+
+  it('hash and mailto hrefs stay inert whatever the modifier', () => {
+    expect(
+      pillPointerAction({ ...base, kind: 'href', target: '#heading' })
+    ).toBe('ignore')
+    expect(
+      pillPointerAction({ ...base, metaKey: true, kind: 'href', target: 'mailto:x@y.z' })
+    ).toBe('ignore')
+  })
+
+  it('right-clicks and the pill\'s own buttons are ignored', () => {
+    expect(pillPointerAction({ ...base, button: 2 })).toBe('ignore')
+    expect(pillPointerAction({ ...base, metaKey: true, onButton: true })).toBe('ignore')
   })
 })
 

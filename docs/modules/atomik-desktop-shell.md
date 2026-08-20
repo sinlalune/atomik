@@ -345,8 +345,9 @@ about generation SHAPE:
 - `OpenTargetMenu` is the discoverable surface: Mod+click on a tree row or
   rel pill opens a glass popover (36 tokens, `--z-menu`) whose four
   `role="menuitem"` entries show their shortcuts; Escape/arrows work, the
-  first item is autofocused. Plain click, right-click, and Enter behavior are
-  unchanged everywhere.
+  first item is autofocused, and direct shortcuts (Mod+Enter / Shift / Alt,
+  plus 1-4 number keys) execute immediately when the menu is open. Plain
+  click, right-click, and Enter behavior are unchanged everywhere.
 - All four targets leave the workspace SHAPE alone — no new state fields, no
   persistence change, no IPC. Docking (S03–S06) rides the same vocabulary.
 

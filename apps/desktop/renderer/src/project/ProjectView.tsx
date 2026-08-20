@@ -103,7 +103,7 @@ export function ProjectView({
     reset,
     lastRequested,
     onContentClick
-  } = useVaultNote(onNoteOpened, undefined, onOpenWebUrl)
+  } = useVaultNote(onNoteOpened, undefined, onOpenWebUrl, onOpenAsNote)
 
   const applyEditorSave = useCallback(
     (content: string, mtimeMs: number) => {

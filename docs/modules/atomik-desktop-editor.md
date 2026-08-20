@@ -390,13 +390,12 @@ the ceiling is a decision rather than a measurement.
 ## Pill open-as (CP-OPEN-DOCK S02)
 
 - `EdgeFollow` gains an optional `openAs(relPath, x, y)`: Mod+click on a
-  RESOLVED rel pill reports it to the host's `OpenTargetMenu` instead of
-  following. Plain left-click, right-click-to-edit, and hash/mailto/href
-  behavior are untouched; without a host callback Mod+click degrades to the
-  plain click.
+  RESOLVED rel pill (wikilink or relative `.md` link) reports it to the
+  host's `OpenTargetMenu` instead of following. Plain left-click,
+  right-click-to-edit, and hash/mailto/external href behavior are untouched;
+  without a host callback Mod+click degrades to the plain click.
 - The widget reports the pill's own bottom-left rect, so the popover opens
-  where the user pointed. Live mode only; read-mode anchors keep their
-  existing routes. The host chain is `EditorPane.onOpenAs` →
+  where the user pointed. The host chain is `EditorPane.onOpenAs` →
   `VaultView`/`ProjectView` (`onOpenAsNote`) → the pane's Workspace instance,
   which owns the menu state and compiles the pick through `openNoteAt`.
 

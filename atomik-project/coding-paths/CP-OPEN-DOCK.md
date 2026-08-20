@@ -23,6 +23,7 @@ atomik:
     - apps/desktop/renderer/src/editor/EditorPane.tsx
     - apps/desktop/renderer/src/editor/live-preview.ts
     - apps/desktop/renderer/src/vault/VaultView.tsx
+    - apps/desktop/renderer/src/vault/useVaultNote.ts
     - apps/desktop/renderer/src/editor/
     - apps/desktop/renderer/src/editor/link-pills.ts
     - apps/desktop/renderer/src/styles.css
@@ -178,13 +179,19 @@ changed     : S01 activation + green baseline; S02 the open-target model —
               behavior preserved, its 79 tests unmodified), moveTab (clamped
               index, activation, identity no-ops), dockTab (four real sides,
               source-tree inheritance, no tab loss on vanished targets).
+              Bench hardening (owner bench S02/S03): OpenTargetMenu executes
+              direct keyboard shortcuts (Mod+Enter, Mod+Shift+Enter,
+              Mod+Alt+Enter, 1-4, Enter on buttons), clamped menu bounds,
+              live-preview relative .md links support open-as, useVaultNote
+              read-mode onContentClick routes Mod+click to onOpenAsNote.
               Writes widened: OpenTargetMenu.tsx, PaneTreePanel.tsx,
-              ProjectView.tsx (advisory surface).
+              ProjectView.tsx, useVaultNote.ts (advisory surface).
               Tab-move MODIFIER entry point rides S05 with the DnD work —
               the vocabulary it reuses is pinned here.
-tests       : open-target 28/28 PASS (S02 model + vocabulary + source
-              contracts; S03 moveTab/dockTab suites); workspace-model 79/79
-              PASS (closeTab refactor preserved every existing invariant)
+tests       : open-target 35/35 PASS (S02 model + vocabulary + source
+              contracts + bench hardening; S03 moveTab/dockTab suites);
+              workspace-model 79/79 PASS (closeTab refactor preserved every
+              existing invariant); full suite 1051/1052 PASS
 next action : S04 — five-zone drop component + smart preview
 blockers    : none
 defect      : paths.md's worktree recipe line 2

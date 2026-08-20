@@ -397,6 +397,8 @@ timestamp: 2026-08-17T00:00:00Z
 - The row handlers are pure and host-fed (`onOpenAsMenu`, `onOpenAt`) —
   `NoteTree` never dispatches workspace state itself; `PaneTreePanel`
   threads the callbacks from the pane's Workspace instance.
+- In read mode, `useVaultNote.onContentClick` routes Mod+click on wikilinks
+  and relative `.md` anchors to `onOpenAsNote`, matching live mode.
 
 ## Rich Markdown read projection (CP-RICH-MARKDOWN S02)
 

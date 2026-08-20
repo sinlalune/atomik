@@ -32,7 +32,10 @@ export function useVaultNote(
   /** How EXTERNAL http(s) links open (S04b, owner report: the web
    *  dossier's "Original URL" was a dead click): the host opens a web
    *  tab. Absent → the click stays inert (never in-place navigation). */
-  onOpenWebUrl?: (url: string) => void
+  onOpenWebUrl?: (url: string) => void,
+  /** CP-OPEN-DOCK S02: Mod+click on a note link in read mode opens the
+   *  open-as popover at the pointer. */
+  onOpenAsNote?: (relPath: string, x: number, y: number) => void
 ): {
   note: VaultNoteFile | null
   html: string
@@ -202,6 +205,7 @@ export function useVaultNote(
     (event: React.MouseEvent<HTMLDivElement>) => {
       const anchor = (event.target as HTMLElement).closest('a')
       if (!anchor) return
+      const isMod = event.ctrlKey || event.metaKey
       // Wikilink pills (S03) carry href="#" — route them by their
       // resolved data-rel BEFORE the hash guard. Unresolved (broken
       // pill) stays inert: a diagnostic, never an auto-create.
@@ -209,7 +213,13 @@ export function useVaultNote(
       if (wiki !== null) {
         event.preventDefault()
         const rel = anchor.getAttribute('data-rel')
-        if (rel && rel.endsWith('.md')) openNote(rel)
+        if (rel && rel.endsWith('.md')) {
+          if (isMod && onOpenAsNote) {
+            onOpenAsNote(rel, event.clientX, event.clientY)
+            return
+          }
+          openNote(rel)
+        }
         return
       }
       const href = anchor.getAttribute('href') ?? ''
@@ -259,9 +269,15 @@ export function useVaultNote(
         onOpenSourceView(rel)
         return
       }
-      if (rel.endsWith('.md')) openNote(rel)
+      if (rel.endsWith('.md')) {
+        if (isMod && onOpenAsNote) {
+          onOpenAsNote(rel, event.clientX, event.clientY)
+          return
+        }
+        openNote(rel)
+      }
     },
-    [note, openNote, onOpenSourceView, onOpenWebUrl]
+    [note, openNote, onOpenSourceView, onOpenWebUrl, onOpenAsNote]
   )
 
   return {

@@ -88,7 +88,7 @@ export function VaultView({
     reset,
     lastRequested,
     onContentClick
-  } = useVaultNote(onNoteOpened, onOpenSourceImage, onOpenWebUrl)
+  } = useVaultNote(onNoteOpened, onOpenSourceImage, onOpenWebUrl, onOpenAsNote)
 
   const applyEditorSave = useCallback(
     (content: string, mtimeMs: number) => {
