@@ -371,3 +371,17 @@ about generation SHAPE:
   focus. A vanished target (the pull collapsed it) never loses the tab.
 - Both compile to existing tree shapes — still no new state fields, no
   persistence format change, no IPC.
+
+## Five-zone docking preview (CP-OPEN-DOCK S04)
+
+- `workspace/drop-zones.tsx` owns the pure five-zone geometry (`computeDockZone`)
+  and the translucent preview overlay (`DockPreview`). During dragover, hovering
+  within 25% of any outer boundary previews a split on that side (`top` / `bottom`
+  / `left` / `right`); hovering the inner 50% previews the `center` tab
+  destination. Corners resolve deterministically to the closest edge; zero or
+  negative dimensions fall back safely to `center`.
+- `DockPreview` is a purely visual, `aria-hidden="true"`, `pointer-events: none`
+  overlay that consumes bedrock 36 glass tokens (`--glass-pop`, `--accent`,
+  `--radius-lg`, `--shadow-pop`, with `@supports not (backdrop-filter)` fallback).
+  It renders the active destination boundary with a dashed accent frame and pill
+  label before the drop commits, and cleans up completely on cancel or dragleave.

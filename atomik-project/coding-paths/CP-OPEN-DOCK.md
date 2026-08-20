@@ -15,6 +15,7 @@ atomik:
     - apps/desktop/renderer/src/workspace/Workspace.tsx
     - apps/desktop/renderer/src/workspace/open-target.ts
     - apps/desktop/renderer/src/workspace/drop-zones.ts
+    - apps/desktop/renderer/src/workspace/DockPreview.tsx
     - apps/desktop/renderer/src/workspace/NewTabChooser.tsx
     - apps/desktop/renderer/src/workspace/OpenTargetMenu.tsx
     - apps/desktop/renderer/src/workspace/PaneTreePanel.tsx
@@ -147,7 +148,7 @@ CP-AI-CAPABILITIES and CP-LANGUAGE-NOTES) are recorded in
 - [x] S03 Model primitives: pin move/reorder/tear-out invariants, implement
       `moveTab` and `dockTab` (plus any discovered primitive) as pure ops with
       focused tests, update the shell note, and checkpoint the ledger.
-- [ ] S04 Five-zone drop component: pin zone computation, preview, cancel and
+- [x] S04 Five-zone drop component: pin zone computation, preview, cancel and
       invalid-drop cases; implement one shared drop-zone component and its
       translucent preview; update shell note/design evidence and checkpoint
       the ledger.
@@ -187,12 +188,14 @@ changed     : S01 activation + green baseline; S02 the open-target model —
               Writes widened: OpenTargetMenu.tsx, PaneTreePanel.tsx,
               ProjectView.tsx, useVaultNote.ts (advisory surface).
               Tab-move MODIFIER entry point rides S05 with the DnD work —
-              the vocabulary it reuses is pinned here.
-tests       : open-target 35/35 PASS (S02 model + vocabulary + source
-              contracts + bench hardening; S03 moveTab/dockTab suites);
-              workspace-model 79/79 PASS (closeTab refactor preserved every
-              existing invariant); full suite 1051/1052 PASS
-next action : S04 — five-zone drop component + smart preview
+              the vocabulary it reuses is pinned here. S04 five-zone docking
+              geometry & preview — computeDockZone (25% outer boundary vs 50%
+              center, corner resolution, clamping) in workspace/drop-zones.tsx,
+              DockPreview component with 36 glass/token styling & 5 distinct
+              zone geometries, pointer-events: none overlay discipline.
+tests       : drop-zones 14/14 PASS; open-target 35/35 PASS; workspace-model
+              79/79 PASS; full test suite 1065/1066 PASS
+next action : S05 — tree and tab docking
 blockers    : none
 defect      : paths.md's worktree recipe line 2
               (`ln -s ../4tom1k/apps/desktop/node_modules apps/desktop/node_modules`)

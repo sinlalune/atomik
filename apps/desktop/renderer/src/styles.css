@@ -4789,6 +4789,81 @@ button svg {
   color: inherit;
 }
 
+/* CP-OPEN-DOCK S04 — five-zone docking preview overlay (contract 7).
+   Rendered during dragover with pointer-events: none so it never steals
+   drag events. Follows bedrock 36 glass chrome & tokens. */
+.dock-preview-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: var(--z-pop);
+  overflow: hidden;
+}
+
+.dock-preview {
+  position: absolute;
+  background: var(--glass-pop);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 2px dashed var(--accent);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop), inset 0 0 12px var(--glass-edge);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease-out;
+  box-sizing: border-box;
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .dock-preview {
+    background: var(--surface);
+  }
+}
+
+.dock-preview-label {
+  font-size: var(--fs-md);
+  font-weight: 500;
+  color: var(--accent);
+  background: var(--bg);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--accent);
+  box-shadow: var(--shadow-pop);
+}
+
+.dock-preview--center {
+  inset: var(--space-2);
+}
+
+.dock-preview--left {
+  top: var(--space-2);
+  bottom: var(--space-2);
+  left: var(--space-2);
+  width: calc(50% - var(--space-2));
+}
+
+.dock-preview--right {
+  top: var(--space-2);
+  bottom: var(--space-2);
+  right: var(--space-2);
+  width: calc(50% - var(--space-2));
+}
+
+.dock-preview--top {
+  left: var(--space-2);
+  right: var(--space-2);
+  top: var(--space-2);
+  height: calc(50% - var(--space-2));
+}
+
+.dock-preview--bottom {
+  left: var(--space-2);
+  right: var(--space-2);
+  bottom: var(--space-2);
+  height: calc(50% - var(--space-2));
+}
+
 .tree-menu-form {
   display: flex;
   gap: 0.25rem;
