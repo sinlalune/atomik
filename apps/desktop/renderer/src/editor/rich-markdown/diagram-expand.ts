@@ -22,6 +22,8 @@
  * never stranded, not that focus is unmanaged.
  */
 
+import { diagramActionButton } from './diagram-action'
+
 const EXPANDABLE = new Set(['mermaid', 'vega-lite'])
 
 export function isExpandableKind(kind: string): boolean {
@@ -82,13 +84,12 @@ export function attachDiagramExpand(
   kind: string,
   onOverlayChange?: (expanded: boolean) => void
 ): DiagramExpander {
-  const button = document.createElement('button')
-  button.type = 'button'
-  button.className = 'rich-code-action'
-  button.dataset['richInteractive'] = ''
-  button.textContent = 'Expand'
-  button.setAttribute('aria-label', `Expand the ${kind} diagram`)
-  button.title = `Expand the ${kind} diagram`
+  const button = diagramActionButton(
+    document,
+    'expand',
+    'Expand',
+    `Expand the ${kind} diagram`
+  )
   tools.append(button)
 
   let open: { dialog: HTMLDialogElement; anchor: Comment } | null = null

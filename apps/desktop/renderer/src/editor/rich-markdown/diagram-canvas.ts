@@ -21,6 +21,8 @@
  * and a bar chart is not spatial — a vega-lite block keeps S04's behaviour.
  */
 
+import { diagramActionButton } from './diagram-action'
+
 const MIN_SCALE = 0.1
 const MAX_SCALE = 8
 /** A canvas never gets shorter than this, or the controls dwarf the diagram. */
@@ -43,21 +45,6 @@ type Transform = { x: number; y: number; k: number }
 
 const clampScale = (k: number): number =>
   Math.min(MAX_SCALE, Math.max(MIN_SCALE, k))
-
-function controlButton(
-  document: Document,
-  label: string,
-  title: string
-): HTMLButtonElement {
-  const button = document.createElement('button')
-  button.type = 'button'
-  button.className = 'rich-code-action'
-  button.dataset['richInteractive'] = ''
-  button.textContent = label
-  button.setAttribute('aria-label', title)
-  button.title = title
-  return button
-}
 
 /**
  * Natural size of the rendered diagram, in the units its transform works in.
@@ -178,6 +165,14 @@ export function attachDiagramCanvas(
     svg.style.maxWidth = 'none'
     svg.style.width = `${content.width}px`
     svg.style.height = `${content.height}px`
+    // `margin-inline: auto` from the S04 rule CENTRES the element on its own,
+    // and its selector outranks any this module could write, so the transform's
+    // centring landed on top of it and put the diagram against the right edge,
+    // clipped. Every property the transform depends on is therefore set INLINE,
+    // where no stylesheet can reach it. Found by reading specificity after the
+    // second bench round — the arithmetic was never wrong.
+    svg.style.margin = '0'
+    svg.style.display = 'block'
   }
 
   const reset = (): void => {
@@ -300,9 +295,9 @@ export function attachDiagramCanvas(
     element.removeEventListener('keydown', onKeyDown as EventListener)
   }
 
-  const zoomOut = controlButton(document, '−', 'Zoom out (−)')
-  const zoomIn = controlButton(document, '+', 'Zoom in (+)')
-  const fit = controlButton(document, 'Fit', 'Fit the diagram (0)')
+  const zoomOut = diagramActionButton(document, 'zoom-out', 'Zoom out', 'Zoom out (−)')
+  const zoomIn = diagramActionButton(document, 'zoom-in', 'Zoom in', 'Zoom in (+)')
+  const fit = diagramActionButton(document, 'fit', 'Fit', 'Fit the diagram (0)')
   zoomOut.addEventListener('click', () => zoomBy(1 / BUTTON_STEP))
   zoomIn.addEventListener('click', () => zoomBy(BUTTON_STEP))
   fit.addEventListener('click', () => reset())
@@ -346,6 +341,8 @@ export function attachDiagramCanvas(
         svg.style.maxWidth = ''
         svg.style.width = ''
         svg.style.height = ''
+        svg.style.margin = ''
+        svg.style.display = ''
       }
       viewport.style.height = ''
       zoomOut.remove()

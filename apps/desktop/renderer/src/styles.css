@@ -3836,6 +3836,47 @@ button.relations-node:focus-visible {
   margin-bottom: var(--space-1);
 }
 
+/* Owner directive (S05 bench): icon, label on hover. Four text buttons above a
+   diagram read as a sentence competing with the note; four icons read as a
+   toolbar and stay out of the way until wanted. The label is revealed on FOCUS
+   as well as hover, or it would exist only for people using a mouse (36). */
+.rich-diagram-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding-inline: var(--space-2);
+}
+
+.rich-diagram-action svg {
+  display: block;
+  flex: none;
+}
+
+.rich-diagram-action-label {
+  display: grid;
+  grid-template-columns: 0fr;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: grid-template-columns 120ms ease;
+}
+
+.rich-diagram-action-label::before {
+  content: '';
+  min-width: 0;
+}
+
+.rich-diagram-tools:hover .rich-diagram-action-label,
+.rich-diagram-action:hover .rich-diagram-action-label,
+.rich-diagram-action:focus-visible .rich-diagram-action-label {
+  grid-template-columns: 1fr;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rich-diagram-action-label {
+    transition: none;
+  }
+}
+
 .rich-diagram-overlay {
   width: min(96vw, 1600px);
   max-width: 96vw;

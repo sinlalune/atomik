@@ -404,8 +404,8 @@ describe('diagram expand control', () => {
 
     const dialog = document.querySelector('dialog.rich-diagram-overlay')
     expect(dialog).not.toBeNull()
-    expect(document.querySelectorAll('svg')).toHaveLength(1)
-    expect(dialog!.querySelector('svg')).toBe(original)
+    expect(document.querySelectorAll('svg:not([aria-hidden])')).toHaveLength(1)
+    expect(dialog!.querySelector('svg:not([aria-hidden])')).toBe(original)
     expect(host.querySelector('svg')).toBeNull()
   })
 
@@ -422,7 +422,7 @@ describe('diagram expand control', () => {
 
     expect(host.querySelector('svg')).toBe(original)
     expect(document.querySelector('dialog.rich-diagram-overlay')).toBeNull()
-    expect(document.querySelectorAll('svg')).toHaveLength(1)
+    expect(document.querySelectorAll('svg:not([aria-hidden])')).toHaveLength(1)
   })
 
   it('mounts the control OUTSIDE the scrolling container', () => {
@@ -591,14 +591,24 @@ describe('diagram canvas', () => {
       tools,
       viewport
     )
-    const labels = Array.from(tools.querySelectorAll('button')).map((button) =>
-      button.getAttribute('aria-label')
-    )
-    expect(labels).toEqual([
+    const buttons = Array.from(tools.querySelectorAll('button'))
+    expect(buttons.map((button) => button.getAttribute('aria-label'))).toEqual([
       'Zoom out (−)',
       'Zoom in (+)',
       'Fit the diagram (0)'
     ])
+    // Icon + a label revealed on hover (owner directive, S05 bench). The
+    // accessible name lives on the button ONCE: the icon is decorative and the
+    // visible label is aria-hidden, so a reader hears the name, not the name
+    // twice plus a drawing.
+    for (const button of buttons) {
+      expect(button.querySelector('svg')?.getAttribute('aria-hidden')).toBe(
+        'true'
+      )
+      const visible = button.querySelector('.rich-diagram-action-label')
+      expect(visible?.getAttribute('aria-hidden')).toBe('true')
+      expect(visible?.textContent?.length).toBeGreaterThan(0)
+    }
     expect(viewport.getAttribute('role')).toBe('application')
     expect(viewport.getAttribute('tabindex')).toBe('0')
     expect(viewport.getAttribute('aria-label')).toContain('arrow keys')

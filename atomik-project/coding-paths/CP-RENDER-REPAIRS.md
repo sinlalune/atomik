@@ -17,6 +17,7 @@ atomik:
     - apps/desktop/renderer/src/editor/rich-markdown/adapters/vega-lite-core.ts
     - apps/desktop/renderer/src/editor/rich-markdown/adapters/vega-lite.ts
     - apps/desktop/renderer/src/editor/rich-markdown/adapters/mermaid-core.ts
+    - apps/desktop/renderer/src/editor/rich-markdown/diagram-action.ts
     - apps/desktop/renderer/src/editor/rich-markdown/diagram-canvas.ts
     - apps/desktop/renderer/src/editor/rich-markdown/diagram-expand.ts
     - apps/desktop/renderer/src/editor/rich-markdown/hydration.ts
@@ -245,6 +246,24 @@ bench 2     : canvas accepted except two defects, both fixed in S05:
                   now measures the diagram at the scale it will be drawn and
                   bounds it 140-460px; the overlay is exempt and fills.
 tests       : 8 new in total for S05. 1037 passing.
+bench 3     : fit STILL off-centre. Root cause was not the arithmetic: the
+              S04 rule `… [data-rich-render-host] > svg { margin-inline:
+              auto }` outranks any attribute selector this module can write,
+              so CSS centred the element and the transform centred it AGAIN —
+              landing it against the right edge, clipped. Fixed by writing
+              width/height/max-width/margin/display INLINE, where no
+              stylesheet can reach them; all handed back on dispose.
+              General lesson recorded in the module note: a JS-driven
+              transform cannot share ownership of layout with a stylesheet.
+              Owner also asked for icon + hover label on the action buttons —
+              diagram-action.ts, shared by the canvas and the expand control.
+              Icon decorative, visible label aria-hidden, accessible name on
+              the button once; revealed on focus as well as hover.
+              Ctrl/Cmd+wheel zoom was ALREADY implemented in S05 and is
+              unchanged — it very likely looked dead because the diagram it
+              zoomed was pinned off-frame by the centring bug. To re-verify
+              at the next bench rather than asserted here.
+tests       : 10 for S05 in total. 1037 passing.
 next action : S06 — owner bench on the fixed canvas, then closure.
 blockers    : none
 ```

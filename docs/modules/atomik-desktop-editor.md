@@ -349,6 +349,20 @@ written down, so its removal is too.
   `max-width: none` makes the element box and the drawing box the same thing,
   which is what the arithmetic assumed all along. Every one of those inline
   styles is handed back on dispose.
+- **Everything the transform depends on is set INLINE.** The second bench
+  round still showed the diagram jammed against the right edge, clipped. The
+  arithmetic was never wrong: the S04 rule `… [data-rich-render-host] > svg {
+  margin-inline: auto }` centres the element on its own, and its selector
+  outranks any attribute selector this module can write, so CSS centred the
+  element and the transform centred it again. `width`, `height`, `max-width`,
+  `margin` and `display` are now written as inline styles, where no stylesheet
+  can reach them, and all of them are handed back on dispose. **The lesson is
+  general: a JS-driven transform cannot share ownership of layout with a
+  stylesheet.**
+- Controls are icon + a label revealed on hover and on FOCUS (owner directive,
+  S05 bench). The accessible name lives on the button once — the icon is
+  decorative, the visible label is `aria-hidden` — so a screen reader hears one
+  name rather than the name twice plus a drawing.
 - **The canvas is only as tall as its diagram.** `canvasHeight` measures the
   diagram at the scale it will actually be drawn — width decides the scale,
   since the canvas is as wide as its column either way — bounded to
