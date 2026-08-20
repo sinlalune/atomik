@@ -6,7 +6,7 @@ tags: [coding-path, feedback, workspace, tabs, panes, drag-and-drop, docking, ke
 timestamp: 2026-08-20T00:00:00Z
 atomik:
   id: CP-OPEN-DOCK
-  status: running
+  status: done
   current_step: S07
   base_commit: 80b131a
   branch: path/cp-open-dock
@@ -39,6 +39,11 @@ atomik:
     - atomik-project/coding-paths/ACTIVE.md
     - atomik-project/sessions/
     - atomik-project/sessions/2026-08-20-cp-open-dock-opening-check.md
+    - atomik-project/sessions/2026-08-20-cp-open-dock-closing-ceremony.md
+    - atomik-project/audits/
+    - atomik-project/audits/cp-open-dock-c927c03.md
+    - atomik-project/log/
+    - atomik-project/log/2026-08-20-cp-open-dock.md
 ---
 
 # Goal
@@ -157,7 +162,7 @@ CP-AI-CAPABILITIES and CP-LANGUAGE-NOTES) are recorded in
 - [x] S06 Pane-grip re-dock: pin grip identification and zone behavior,
       implement whole-pane re-dock plus its keyboard equivalent, update shell
       note and checkpoint the ledger.
-- [ ] S07 Integrated bench + closure: run responsive, keyboard, theme, cancel,
+- [x] S07 Integrated bench + closure: run responsive, keyboard, theme, cancel,
       and CDP-driven drag benches; complete owner acceptance and closing
       ceremony; rebase, run bare gates, produce the coherence audit and
       journal entry, mark the path done, and self-merge.
@@ -168,7 +173,7 @@ CP-AI-CAPABILITIES and CP-LANGUAGE-NOTES) are recorded in
 base commit : 80b131a
 trunk pin   : f58093e (rebased after CP-AI-CAPABILITIES merged to trunk during
               S01; no conflict — activation files are path-local)
-changed     : S01–S06 complete — the open-target model (openNoteAt, OpenTargetMenu,
+changed     : S01–S07 complete — the open-target model (openNoteAt, OpenTargetMenu,
               shortcuts), pure move/dock primitives (pullTab, moveTab, dockTab,
               dockNote, dockPane, mergePane), five-zone drop geometry and DockPreview
               overlay with workspace-level 1/2 rectangle spanning across perpendicular
@@ -176,9 +181,11 @@ changed     : S01–S06 complete — the open-target model (openNoteAt, OpenTarg
               tab and tree drag-and-drop, tabstrip pane grip handle (.pane-grip,
               GripVerticalIcon, PANE_DRAG_MIME), full keyboard equivalents
               (Mod+Shift+Arrows, Mod+Alt+Arrows, Mod+Alt+Shift+Arrows).
+              Owner bench and eyeball acceptance confirmed ("ok for me").
+              Coherence audit, closing ceremony, journal entry, and gates complete.
 tests       : vitest 1080/1081 PASS (78 test files, 1 skipped); ATOMIK_SMOKE=1 PASS;
               ATOMIK_SMOKE_RICH=1 PASS; typecheck PASS; production build PASS.
-next action : S07 — owner bench, testing & eyeball acceptance
+next action : self-merge to master
 blockers    : none
 ```
 
