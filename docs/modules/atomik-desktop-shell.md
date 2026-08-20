@@ -254,6 +254,15 @@ per chat send, +380 per note generation. If per-request cost is ever
 investigated, these are the first thing to look at and the easiest to cut — no
 code change, just a plan edit. ADR-015 carries the reasoning.
 
+S03's owner bench added a warning about three rendering traps, taking
+`rendering-capabilities` from 1,046 to 1,572 chars — roughly +131 tokens on
+every request, and the asserted ceiling from 1,400 to 1,700. The traps are
+worth their tokens because each one turns a correct-looking generation into a
+reader who sees nothing, but they are also the first thing to trim if per-send
+cost is ever squeezed: two of the three describe defects that can be FIXED, and
+the drift tests fail the moment they are, which is what forces the block back
+down again.
+
 ## Rich Markdown projection lifecycle (CP-RICH-MARKDOWN S02)
 
 - `RichMarkdownBody` is the shared post-mount lifecycle boundary for every

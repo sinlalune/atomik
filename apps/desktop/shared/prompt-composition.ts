@@ -106,6 +106,12 @@ export const CHAT_OUTPUT_BRIEF =
  * `tests/prompt-composition.test.ts`: the fences against `richKindForFence`,
  * the limits against `DEFAULT_RICH_LIMITS`. A wrong number here fails no build
  * on its own — it quietly teaches the model to write blocks the app refuses.
+ *
+ * The TRAPS bullet came out of the S03 owner bench, and each one names a shape
+ * the model actually produced or would produce, where the source looks valid
+ * and the reader still gets nothing. They are pinned like the rest — to
+ * `discoverDollarMath`, to `safeSvgNode`, and to Vega-Lite's own compiler —
+ * because the day a trap is FIXED, the block must stop describing it.
  */
 export const RENDERING_CAPABILITIES: readonly string[] = [
   'Your markdown is RENDERED, not shown as source.',
@@ -115,6 +121,7 @@ export const RENDERING_CAPABILITIES: readonly string[] = [
   'Code: any language fence; it is syntax-highlighted with copy and wrap controls.',
   'Reach for a diagram when STRUCTURE or FLOW is the point, a chart when the DATA is the point, and math when notation is clearer than a sentence. Never as decoration: a diagram that restates a sentence costs the reader time.',
   'These are hard limits, and breaking one shows the reader a visible error INSTEAD of your block. Vega-Lite: inline values only, at most 5000 rows; a `url` dataset, external actions, or a loader is refused before rendering. Mermaid: at most 200 edges, and no `click` directives, external links, HTML labels, or `%%{init}%%` configuration. Math: no resource commands.',
+  'Three traps where valid-looking source renders as nothing. A `bar` mark on a log scale collapses to zero-height bars, because a bar baseline is zero and a log scale refuses zero — put bars on a linear scale, and use `line` or `point` when the scale must be log. `$$...$$` inside a Mermaid label refuses the WHOLE diagram — keep labels plain text and put the formula in a math block beside it. A multi-line display block needs `$$` ALONE on its own line above and below; opening with `$$\\begin{aligned}` renders as raw text.',
   'An unknown fence language stays plain text. That is fine, not an error.'
 ]
 

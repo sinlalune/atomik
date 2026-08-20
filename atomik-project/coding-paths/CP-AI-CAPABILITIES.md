@@ -112,9 +112,11 @@ through the same registry, so anything the model emits WOULD render.
 - [x] S02 Pointing wikilinks in chat: reuse the vault's resolution pipeline,
       route `data-wiki` by resolved `data-rel`, keep unresolved inert, keep
       citation visibly distinct. Focused tests, docs, ledger.
-- [ ] S03 Owner bench on real generations + closure: acceptance, closing
-      ceremony, rebase, bare gates, coherence audit, journal, `status: done`,
-      self-merge.
+- [ ] S03 Owner bench on real generations + closure. Bench round 1 (2026-08-20)
+      found three rendering traps and they are warned about in the block, each
+      pinned to the code that causes it. Remaining: rounds B/C/D, acceptance,
+      closing ceremony, rebase, bare gates, coherence audit, journal,
+      `status: done`, self-merge.
 
 # Current checkpoint
 
@@ -145,10 +147,31 @@ tests       : prompt-composition 8 new; system-plan chat-plan expectation
               final markup), candidates from the vault root loaded ONCE per
               view rather than per streamed token, click routed by resolved
               data-rel AFTER citation, unresolved left inert.
-next action : S03 owner bench on REAL generations — does the model actually
-              reach for a diagram when structure is the point, and does it
-              stay inside the limits it was told? That is a bench, never a
-              gate: the drift tests can only prove the block says true things.
+bench 1     : 2026-08-20, lane ai-capabilities, vault
+              ~/vault-ai-capabilities-bench, gemini-3.7-flash. Round A ran.
+              The model DID reach for the right projection every time —
+              mermaid for structure, vega-lite with inline data.values for
+              data, display math for the derivation. The block works. What
+              broke was the RENDER, three ways:
+                1 bar mark on a log scale -> zero-height bars (upstream
+                  Vega-Lite; reproduced with plain vega/vega-lite, no
+                  Electron). `zero: false` does not rescue it.
+                2 `$$..$$` in a Mermaid label -> mermaid force-enables HTML
+                  labels, emits <foreignObject>, safe-svg refuses the WHOLE
+                  diagram. Answers the owner's question: no, KaTeX in mermaid
+                  boxes does not work today.
+                3 multi-line `$$` only parses with `$$` alone on its own
+                  line; `$$\begin{aligned}` degrades to raw text in BOTH read
+                  and live mode. A real renderer defect, found in the owner's
+                  own vault-juju note of 2026-08-17.
+              Owner ruling: patch the prompt for all three; the renderer
+              repair (3) and a surfaced Vega warning (1) come after.
+cost        : rendering-capabilities 1,046 -> 1,572 chars (~+131 tokens on
+              EVERY request). Ceiling raised 1,400 -> 1,700 deliberately —
+              the test comment demands that be a conversation, not a bump.
+next action : bench rounds B (note conventions), C (pointing wikilinks) and
+              D (system-plan UI + sent-request inspector + cost verdict),
+              then closure.
 blockers    : none — S03 needs the owner
 ```
 
