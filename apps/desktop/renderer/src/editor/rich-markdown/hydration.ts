@@ -9,6 +9,11 @@ import {
   defaultRichRendererRegistry,
   type RichRendererRegistry
 } from './registry'
+import {
+  attachDiagramExpand,
+  isExpandableKind,
+  type DiagramExpander
+} from './diagram-expand'
 import { richThemeFor } from './theme'
 
 type BlockNodes = {
@@ -23,6 +28,8 @@ type ActiveBlock = BlockNodes & {
   renderHost: HTMLElement
   handle: RichRenderHandle | null
   timer: ReturnType<typeof setTimeout> | null
+  /** Present only for a diagram that mounted (S04). */
+  expander: DiagramExpander | null
 }
 
 export type RichHydration = {
@@ -208,7 +215,8 @@ export function hydrateRichMarkdown(
       controller,
       renderHost,
       handle: null,
-      timer: null
+      timer: null,
+      expander: null
     }
     blocks.push(block)
     showLoading(block, kind)
@@ -266,6 +274,22 @@ export function hydrateRichMarkdown(
         return
       }
       showReady(block)
+      // S04: the control mounts only once a diagram actually rendered — a
+      // block showing its source has nothing to expand. It is inserted BEFORE
+      // the output container rather than inside it, so it does not slide away
+      // with the diagram when the container scrolls.
+      if (isExpandableKind(kind)) {
+        block.expander = attachDiagramExpand(
+          root.ownerDocument,
+          nodes.element,
+          renderHost,
+          kind
+        )
+        nodes.element.insertBefore(
+          block.expander.button.parentElement ?? block.expander.button,
+          nodes.output
+        )
+      }
     } catch (reason) {
       if (!disposed && !controller.signal.aborted) {
         showSource(nodes, `${kind}: ${errorText(reason)}; source shown.`)
@@ -290,6 +314,10 @@ export function hydrateRichMarkdown(
         if (block.timer !== null) clearTimeout(block.timer)
         block.timer = null
         block.controller.abort(new Error('Rich Markdown hydration disposed'))
+        // The expander first: it may be holding the rendered node inside an
+        // open overlay, and the handle's dispose() removes that node.
+        block.expander?.dispose()
+        block.expander = null
         block.handle?.dispose()
         block.handle = null
         if (block.output.contains(block.renderHost)) {

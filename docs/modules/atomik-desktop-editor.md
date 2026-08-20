@@ -315,6 +315,42 @@ carries the decisions; the operational shape:
   byte-identical — an existing test pins it. Both change together or neither
   does. Capabilities sit BEFORE `# Rules` so `## Output` stays inside it.
 
+## Room to look at a diagram (CP-RENDER-REPAIRS S04)
+
+A wide Mermaid diagram arrived in a 560px note column at about a fifth of
+legible size with nothing to grab. **The scroll affordance was already there
+and switched off by the rule beside it**: `overflow: auto` on the output
+container, `max-width: 100%` on the SVG, so the SVG was scaled to the column
+and never overflowed, so the container never had anything to scroll. Removing
+the cap bought panning for free.
+
+- `diagram-expand.ts` adds the second half: an Expand control opening the
+  diagram in a native `<dialog>` at up to 96vw. `max-width: 100%` returns only
+  INSIDE the overlay, where fitting the pane is the point.
+- **The node is MOVED, never cloned and never re-parsed.** `safeSvgNode` has
+  already sanitized it and rewritten its ids to be unique in the document; a
+  clone would put two elements carrying the same marker and clip-path ids into
+  one document, where `url(#id)` resolves to whichever comes first. A comment
+  node holds its place so it returns exactly where it was, not appended to the
+  end of a host that may have siblings (13 — the overlay shows what was
+  approved, byte for byte).
+- The control mounts OUTSIDE the scrolling container, or it would slide away
+  with the diagram it belongs to, and only after a diagram actually rendered —
+  a block showing its source has nothing to expand.
+- One dismissal path. Close, Escape and `dispose()` all route through
+  `dismiss()`; `restore()` clears its state first, so it is idempotent, which
+  matters because `dialog.close()` fires its `close` event asynchronously and
+  `dispose()` cannot wait for it.
+- Where `<dialog>` is unavailable (linkedom under test) the overlay still
+  mounts and still closes — it simply is not modal. That fallback is exercised
+  by the tests rather than assumed.
+
+On focus: `showModal()` contains focus while the overlay is open, which is what
+a modal is for, and returns it to the button that opened it. The path's
+acceptance line said the overlay "must not trap focus"; read as written that
+would forbid a modal, and the intent — never strand the reader — is met by
+Escape plus focus restoration. Recorded here rather than quietly reinterpreted.
+
 ## The app's bookkeeping never names a file (CP-RENDER-REPAIRS S03)
 
 `chatSlug` stripped `<`, `>` and `#` one character at a time and never saw

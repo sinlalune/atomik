@@ -3772,9 +3772,58 @@ button.relations-node:focus-visible {
   > svg {
   display: block;
   width: auto;
-  max-width: 100%;
   height: auto;
   margin-inline: auto;
+}
+
+/* CP-RENDER-REPAIRS S04. `max-width: 100%` used to sit here and quietly
+   disabled the `overflow: auto` on the container above: the SVG was scaled
+   down to the column width, so it never overflowed and there was never
+   anything to scroll. A wide diagram now keeps its own size and the container
+   does its job. `max-width: 100%` returns only inside the expanded overlay,
+   where fitting the pane is the point. */
+.rich-diagram-tools {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  margin-bottom: var(--space-1);
+}
+
+.rich-diagram-overlay {
+  width: min(96vw, 1600px);
+  max-width: 96vw;
+  height: min(92vh, 1200px);
+  padding: 0;
+  color: var(--fg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.rich-diagram-overlay::backdrop {
+  background: rgb(0 0 0 / 55%);
+}
+
+.rich-diagram-overlay-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.rich-diagram-overlay-body {
+  display: grid;
+  place-items: center;
+  height: calc(100% - (var(--control-h) + var(--space-4)));
+  padding: var(--space-3);
+  overflow: auto;
+}
+
+.rich-diagram-overlay-body > svg {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {

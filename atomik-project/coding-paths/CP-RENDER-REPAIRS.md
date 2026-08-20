@@ -8,7 +8,7 @@ atomik:
   id: CP-RENDER-REPAIRS
   status: running
   accepted: 2026-08-20
-  current_step: S04
+  current_step: S05
   base_commit: f58093e
   branch: path/cp-render-repairs
   writes:
@@ -17,6 +17,8 @@ atomik:
     - apps/desktop/renderer/src/editor/rich-markdown/adapters/vega-lite-core.ts
     - apps/desktop/renderer/src/editor/rich-markdown/adapters/vega-lite.ts
     - apps/desktop/renderer/src/editor/rich-markdown/adapters/mermaid-core.ts
+    - apps/desktop/renderer/src/editor/rich-markdown/diagram-expand.ts
+    - apps/desktop/renderer/src/editor/rich-markdown/hydration.ts
     - apps/desktop/renderer/src/editor/rich-markdown/contracts.ts
     - apps/desktop/renderer/src/editor/chat-file.ts
     - apps/desktop/renderer/src/styles.css
@@ -115,7 +117,7 @@ every request. Repairing them is how those warnings get deleted.
 - [x] S02 Vega warnings reach the block's status line. Tests, docs, ledger.
 - [x] S03 `chatSlug` strips comments; reproduce-or-record the stamped-heading
       trigger. Tests, docs, ledger.
-- [ ] S04 Diagram exploration: natural width, scrolling container, expand
+- [x] S04 Diagram exploration: natural width, scrolling container, expand
       overlay. Tests, docs, ledger.
 - [ ] S05 Owner bench + closure.
 
@@ -171,7 +173,34 @@ trace       : NEGATIVE, and recorded as such
               was a paste. The fix is correct regardless, which is why it
               was made rather than left to the trace staying true.
 tests       : 1 new (3 assertions incl. the real observed input). 1026.
-next action : S04 — natural width, scrolling container, expand overlay.
+S04         : dropped `max-width: 100%` from the block SVG — that one rule
+              was disabling the `overflow: auto` already on the container, so
+              panning came back for free. diagram-expand.ts adds the Expand
+              control and a native <dialog> overlay at up to 96vw.
+              The node is MOVED, not cloned: safeSvgNode already made its ids
+              unique in the document, and a clone would put two elements with
+              the same marker/clip-path ids in one document where url(#id)
+              takes whichever comes first. A comment node holds its place.
+              Control mounts OUTSIDE the scroll container and only after a
+              diagram actually rendered.
+              One dismissal path (Close / Esc / dispose all route through
+              dismiss(); restore() clears state first so it is idempotent —
+              dialog.close() fires 'close' asynchronously and dispose cannot
+              wait). No-<dialog> fallback is tested, not assumed.
+focus note  : showModal() CONTAINS focus while open and restores it to the
+              trigger. The DoD line said "must not trap focus"; read literally
+              that forbids a modal. Intent — never strand the reader — is met
+              by Esc + restoration. Flagged rather than reinterpreted quietly;
+              owner's call at the bench.
+widening    : diagram-expand.ts (new) and hydration.ts joined writes: —
+              the declared surface assumed mermaid-core.ts, but the control
+              belongs to BOTH diagram kinds and mounts generically after any
+              successful render, so hydration is its only correct home.
+              Discovered by building it, declared when cairn-check said so.
+              mermaid-core.ts was declared and never touched.
+tests       : 5 new. 1029 passing.
+next action : S05 — owner bench in the real app, then closure. This is the
+              step the owner asked to be present for.
 blockers    : none
 ```
 

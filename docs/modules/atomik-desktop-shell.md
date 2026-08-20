@@ -277,6 +277,17 @@ defects are fixed, automatically, because the test makes deletion the only
 correct response. The two remaining traps describe Mermaid's and Vega-Lite's
 own behaviour, so they stay until those change upstream.
 
+## A diagram may take the whole pane (CP-RENDER-REPAIRS S04)
+
+`hydrateRichMarkdown` now attaches an Expand control to any `mermaid` or
+`vega-lite` block that actually rendered, and the overlay is a native
+`<dialog>` appended to the document body. Two consequences for the shell:
+
+- The overlay lives OUTSIDE the editor's own DOM, so it is unaffected by pane
+  layout, and the rendered SVG is moved into it and back rather than copied.
+- A block showing its source gets no control — there is nothing to expand — so
+  the control's presence is also a signal that the render succeeded.
+
 ## Generation defaults follow the capability blocks (CP-AI-CAPABILITIES S03)
 
 Two owner directives on 2026-08-20, both downstream of what the blocks changed

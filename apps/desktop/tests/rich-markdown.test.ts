@@ -24,6 +24,10 @@ import {
   type MermaidRuntime
 } from '../renderer/src/editor/rich-markdown/adapters/mermaid-core'
 import {
+  attachDiagramExpand,
+  isExpandableKind
+} from '../renderer/src/editor/rich-markdown/diagram-expand'
+import {
   captureVegaLog,
   createVegaLiteAdapter,
   themedVegaLiteSpec,
@@ -334,6 +338,97 @@ describe('rich Markdown syntax discovery (ADR-014)', () => {
     expect(spans).toHaveLength(1)
     expect(spans[0]!.source).toContain('\\begin{aligned}')
     expect(spans[0]!.source).toContain('\\end{aligned}')
+  })
+})
+
+/**
+ * CP-RENDER-REPAIRS S04 — room to look at a diagram.
+ */
+describe('diagram expand control', () => {
+  const svgFixture =
+    '<svg xmlns="http://www.w3.org/2000/svg"><rect id="node" /></svg>'
+
+  function mounted(): {
+    document: Document
+    element: HTMLElement
+    output: HTMLElement
+    host: HTMLElement
+    expander: ReturnType<typeof attachDiagramExpand>
+  } {
+    const { document } = parseHTML(
+      '<html><body><div id="block"><div data-rich-output><div data-rich-render-host></div></div></div></body></html>'
+    )
+    const element = document.querySelector('#block') as unknown as HTMLElement
+    const output = document.querySelector(
+      '[data-rich-output]'
+    ) as unknown as HTMLElement
+    const host = document.querySelector(
+      '[data-rich-render-host]'
+    ) as unknown as HTMLElement
+    host.innerHTML = svgFixture
+    const expander = attachDiagramExpand(
+      document as unknown as Document,
+      element,
+      host,
+      'mermaid'
+    )
+    return { document, element, output, host, expander }
+  }
+
+  it('only offers itself for diagrams', () => {
+    expect(isExpandableKind('mermaid')).toBe(true)
+    expect(isExpandableKind('vega-lite')).toBe(true)
+    expect(isExpandableKind('math')).toBe(false)
+    expect(isExpandableKind('code')).toBe(false)
+  })
+
+  it('MOVES the sanitized node into the overlay rather than copying it', () => {
+    // A clone would put two elements carrying the same marker and clip-path
+    // ids into one document, where url(#id) resolves to whichever comes
+    // first. Moving the one node cannot collide with itself.
+    const { document, host, expander } = mounted()
+    const original = host.querySelector('svg')
+    expander.button.dispatchEvent(new document.defaultView!.Event('click'))
+
+    const dialog = document.querySelector('dialog.rich-diagram-overlay')
+    expect(dialog).not.toBeNull()
+    expect(document.querySelectorAll('svg')).toHaveLength(1)
+    expect(dialog!.querySelector('svg')).toBe(original)
+    expect(host.querySelector('svg')).toBeNull()
+  })
+
+  it('returns the node to where it was when the overlay closes', () => {
+    const { document, host, expander } = mounted()
+    const original = host.querySelector('svg')
+    expander.button.dispatchEvent(new document.defaultView!.Event('click'))
+    const dialog = document.querySelector(
+      'dialog.rich-diagram-overlay'
+    ) as unknown as HTMLDialogElement
+
+    const close = dialog.querySelector('button') as unknown as HTMLElement
+    close.dispatchEvent(new document.defaultView!.Event('click'))
+
+    expect(host.querySelector('svg')).toBe(original)
+    expect(document.querySelector('dialog.rich-diagram-overlay')).toBeNull()
+    expect(document.querySelectorAll('svg')).toHaveLength(1)
+  })
+
+  it('mounts the control OUTSIDE the scrolling container', () => {
+    // Inside it, the button would slide away with the diagram it belongs to.
+    const { element, output, expander } = mounted()
+    const tools = element.querySelector('.rich-diagram-tools')
+    expect(tools).not.toBeNull()
+    expect(output.contains(tools as unknown as Node)).toBe(false)
+    expect(expander.button.getAttribute('aria-label')).toContain('mermaid')
+  })
+
+  it('disposing while expanded puts the diagram back and clears the control', () => {
+    const { document, host, expander } = mounted()
+    expander.button.dispatchEvent(new document.defaultView!.Event('click'))
+    expander.dispose()
+    expect(document.querySelector('dialog.rich-diagram-overlay')).toBeNull()
+    expect(host.querySelector('svg')).not.toBeNull()
+    expect(document.querySelector('.rich-diagram-tools')).toBeNull()
   })
 })
 
