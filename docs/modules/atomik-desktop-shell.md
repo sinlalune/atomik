@@ -16,6 +16,11 @@ timestamp: 2026-08-17T00:00:00Z
 
 ## What it owns
 
+- THE TOOL PILL (CP-MVP-011 S07k): the request pills gain a `kind-tool` arm
+  that is a BUTTON, wearing the same recipe as the vault pill and opening a
+  `.chat-tool-calls` list under the turn — one row per call with the model's
+  own query, its results, chars and wall time, or its error. Pure renderer
+  state over data the bundle already returns; no IPC, no new door.
 - BENCH HYGIENE FOR MAIN-SIDE CHANGES (CP-MVP-011 S07j): a running
   `electron-vite dev` instance was observed serving a bench with main code
   compiled BEFORE the change under test — the main process had started five

@@ -41,6 +41,7 @@ atomik:
     - apps/desktop/renderer/src/icons.tsx
     - apps/desktop/renderer/src/workspace/chat-run.ts
     - apps/desktop/renderer/src/workspace/chat-presentation.ts
+    - apps/desktop/renderer/src/editor/request-breakdown.ts
     - apps/desktop/renderer/src/editor/citation-chips.ts
     - apps/desktop/renderer/src/editor/chat-file.ts
     - apps/desktop/renderer/src/styles.css
@@ -325,6 +326,9 @@ OPEN        provider-step position vs S07; the "luna" model id; whether
 - [x] S07j The bench that read the trace: stop ranking when the query cannot
       discriminate, stop rendering the app's own heading comments as prose,
       and leave a record when an exchange dies.
+- [x] S07k The request inspector learns about tools: the tool leg of the
+      request is measured, totalled, persisted and openable — the last
+      deliverable from the 2026-08-18 bench.
 - [ ] S07 Augmented chat + external citations: the wiki control MIRRORS the
       vault tool — a per-thread enable toggle, a `reach` depth control, and
       four per-source switches (Wikipedia · Wikidata · Commons image ·
@@ -1004,6 +1008,32 @@ maxlag removed  1 tool call  · Wikidata ALIVE  ·  5.6s · $0.0034
   title ("motion de censure") still ranks. Full result: 85 files, 1150 passed
   + 1 skipped; typecheck and build green.
 
+## S07k work unit — complete 2026-08-20
+
+- **The gap, from the 2026-08-18 bench:** the breakdown pills described the
+  pre-pass packet only. An answer that called three corpora looked like it had
+  sent nothing but the packet, and the header's "~N tok sent" disagreed with
+  the provider's reported input for no visible reason.
+- **Code:** `toolRequestParts` (pure, in `request-breakdown.ts`) turns each
+  execution into a part of the same shape as the others — label
+  `search_wiki · auto · 3 results`, chars as the executor measured them
+  returning to the model, `search_wiki · failed` when the call did not land.
+  They join the SAME breakdown the header totals and persist in `sent:` like
+  every other figure. The pill opens, as the vault pill does, onto each call
+  with the query THE MODEL WROTE, its result count, chars and wall time, or
+  its error. Calls attach to the QUESTION (their results are input); consulted
+  material stays with the answer.
+- **Tests:** 7 — the part's figures and label, a failed call counting no
+  phantom results, a vault call named by its own verb, the hover copy, the
+  parts reaching the totalled breakdown and the persisted meta, the pill
+  opening, and the calls attaching to the question rather than the answer.
+  Full result: 86 files, 1157 passed + 1 skipped; typecheck and build green.
+- **Declared writes widened:** `renderer/src/editor/request-breakdown.ts` —
+  the inspector's own module, which the opening declaration named only through
+  `chat-presentation.ts`. Same surface, one file further in.
+- **Not benched.** With S07j it wants one pass on a restarted dev server —
+  the round-6 trap is one commit above this in the ledger.
+
 # Current checkpoint
 
 ```text
@@ -1029,13 +1059,14 @@ changed     : S01 contracts; S02 Wikipedia; S03 Wikidata/graph projection;
               S07i the per-article budget SELECTS by lexical relevance
               instead of cutting the first 6 000 characters;
               S07j saturation fallback, html comments never render, and a
-              dead exchange leaves a trace + an unanswered marker
+              dead exchange leaves a trace + an unanswered marker;
+              S07k the request inspector accounts for the tool leg
 rebased     : 2026-08-20 onto trunk tip f58093e (the owner merged
               CP-AI-CAPABILITIES mid-session). One conflict, in
               `tests/chat-view.test.ts`: both paths opened a new describe
               block at the same line. Both kept. Gates re-run on the REBASED
               result, per the rule.
-tests       : typecheck green; 85 files / 1150 pass / 1 skip; build green
+tests       : typecheck green; 86 files / 1157 pass / 1 skip; build green
 bench       : 2026-08-20 (second), `macron-et-la-réforme-des-retraites`, live
               on google — S07g/S07h/S07i all confirmed in the owner's own
               files; the two gaps it exposed became S07j. Earlier the same
@@ -1065,10 +1096,12 @@ bench trap  : ROUND 6 (13:48) measured ROUND 5's code. The Electron main
 observed    : the lead carries the infobox as prose ("Loi retraites Données
               clés Autre(s) nom(s) LOI no 2023-270 …"). Useful data (official
               name, dates) in an ugly shape; not fixed, recorded for S09.
-next action : re-bench S07j again — the apparatus must never be selected, a
-              saturated query must say it read from the top, and a transcript
-              opened as a note must show no comments. Then the REQUEST
-              INSPECTOR — its breakdown pills still describe
+next action : RESTART the dev server, then bench S07j + S07k together — the
+              apparatus must never be selected, a saturated query must say it
+              read from the top, a transcript opened as a note must show no
+              comments, and the request pills must now carry a tool part that
+              opens onto the model's own query. S07 closes with that bench.
+              Then S08 save-as-source — its breakdown pills still describe
               the pre-pass packet only, so an answer that called three corpora
               looks like it sent nothing but the packet; build it against the
               trace record. Then S08 save-as-source, which also brings

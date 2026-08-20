@@ -26,6 +26,7 @@ export type RequestPartKind =
   | 'note-context'
   | 'template'
   | 'vault'
+  | 'tool'
 
 export type RequestPart = {
   kind: RequestPartKind
@@ -59,7 +60,47 @@ export const PART_DESCRIPTIONS: Record<RequestPartKind, string> = {
   template:
     'the fixed request scaffolding around your message and context — section headings, steps, and quoting rules the app always sends',
   vault:
-    'notes retrieved from your vault for THIS message — click the pill to see which ones, why each was chosen, and what was left out'
+    'notes retrieved from your vault for THIS message — click the pill to see which ones, why each was chosen, and what was left out',
+  tool:
+    'material a tool returned DURING the answer and sent back to the model — click the pill to see each call, what it asked, and what came back'
+}
+
+/**
+ * The tool leg of the request (CP-MVP-011 S07k).
+ *
+ * `requestBreakdown` describes the FIRST request, composed before the model
+ * has done anything. When the model then calls a tool, the result is appended
+ * to the conversation and travels back with the next turn — real input, paid
+ * for in tokens, and until now invisible in the inspector: an answer that
+ * read three corpora looked like it had sent nothing but the packet (owner
+ * bench, 2026-08-18).
+ *
+ * Figures only, like every other part. The chars are what the executor
+ * measured returning to the model, so the pill accounts for what was actually
+ * appended rather than for what was displayed.
+ */
+export function toolRequestParts(
+  executions: readonly {
+    call: { name: string; arguments: unknown }
+    result: { ok: boolean; stats: { resultCount: number; chars: number } }
+  }[]
+): RequestPart[] {
+  return executions.map((execution) => {
+    const args = (execution.call.arguments ?? {}) as Record<string, unknown>
+    const corpus = typeof args.corpus === 'string' ? args.corpus : null
+    const results = execution.result.stats.resultCount
+    const detail = execution.result.ok
+      ? [corpus, `${results} result${results === 1 ? '' : 's'}`]
+          .filter((piece): piece is string => piece !== null)
+          .join(' · ')
+      : 'failed'
+    return {
+      kind: 'tool' as const,
+      label: `${execution.call.name} · ${detail}`,
+      chars: execution.result.stats.chars,
+      tokensEst: estimateTokens(execution.result.stats.chars)
+    }
+  })
 }
 
 const estimateTokens = (chars: number): number =>

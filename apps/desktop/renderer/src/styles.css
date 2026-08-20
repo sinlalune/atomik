@@ -4228,6 +4228,12 @@ button svg {
   border-color: color-mix(in srgb, var(--ok-border) 70%, var(--accent));
 }
 
+/* S07k: so is the tool pill — outward material, so it borrows the info
+   border the way vault borrows the ok one. */
+.chat-request-pill.kind-tool {
+  border-color: color-mix(in srgb, var(--info-border) 70%, var(--accent));
+}
+
 .chat-request-pill-open {
   /* a BUTTON among spans: it has to wear the same recipe, not the
      browser's (owner bench round 6: "the pills doesnt look the same") */
@@ -5996,6 +6002,53 @@ button svg {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+}
+
+/* S07k: the tool leg of the request, opened from its pill — what the model
+   asked each tool and what came back. Same quiet register as the packet
+   detail beside it: this is provenance, not more prose. */
+.chat-tool-calls {
+  margin-top: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--code-bg);
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+
+.chat-tool-calls ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chat-tool-calls li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: baseline;
+}
+
+.chat-tool-call-name {
+  color: var(--accent);
+}
+
+.chat-tool-call-failed {
+  color: var(--danger, var(--accent));
+  text-decoration: line-through;
+}
+
+.chat-tool-call-query {
+  color: var(--text);
+}
+
+.chat-tool-call-meta {
+  margin-left: auto;
+  font-size: var(--fs-xs);
 }
 
 /* S07j: a question whose run died says so, quietly, where the answer would

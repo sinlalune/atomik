@@ -41,6 +41,7 @@ import { copyText } from '../editor/clipboard'
 import {
   PART_DESCRIPTIONS,
   requestBreakdown,
+  toolRequestParts,
   type RequestBreakdown,
   type RequestPartKind
 } from '../editor/request-breakdown'
@@ -70,6 +71,7 @@ import {
   type ConsultedMaterial
 } from '../../../shared/chat-citations'
 import { ConsultedBlock, ConsultedMediaBlock } from './ConsultedBlock'
+import type { GenerationToolExecution } from '../../../shared/generation-tools'
 import { serializePacketMeta } from '../../../shared/context-packet'
 import { applyCitationChips, type AppliedCitations } from '../editor/citation-chips'
 import {
@@ -541,6 +543,13 @@ export function ChatView({
   // packet beside it — the transcript keeps the prose; the excerpts and
   // thumbnails are not re-fetched when a chat is reopened.
   const consultedByTurn = useRef(new Map<number, ConsultedMaterial>())
+  // S07k: the CALLS themselves, as the inspector shows them — what was asked
+  // and what came back. Session-live like the packet: figures persist on the
+  // heading, the arguments and payloads do not.
+  const toolCallsByTurn = useRef(
+    new Map<number, readonly GenerationToolExecution[]>()
+  )
+  const [openToolsTurn, setOpenToolsTurn] = useState<number | null>(null)
   const [openPacketTurn, setOpenPacketTurn] = useState<number | null>(null)
   const [openBreakdownTurn, setOpenBreakdownTurn] = useState<number | null>(null)
   const [tree, setTree] = useState<VaultFolder | null>(null)
@@ -1049,6 +1058,10 @@ export function ChatView({
                 priorTurns.length + 1,
                 consultedMaterialOf(result.toolExecutions)
               )
+              // The CALLS, by contrast, belong to the request breakdown of the
+              // question that provoked them (S07k): their results were sent
+              // back to the model as input.
+              toolCallsByTurn.current.set(priorTurns.length, result.toolExecutions)
             }
             const answer =
               result.blocks.find((block) => block.role === 'answer')?.content ??
@@ -1078,15 +1091,24 @@ export function ChatView({
                     }
                   ]
                 : baseParts
+            // S07k: a tool result is input too — it travels back to the
+            // model on the next turn of the loop — so it earns its own pills
+            // rather than swelling the reported total from nowhere.
+            const withTools = [
+              ...(sentParts ?? []),
+              ...toolRequestParts(result.toolExecutions ?? [])
+            ]
+            const finalParts =
+              withTools.length > 0 ? withTools : sentParts
             // S08c (owner bench round 5): the LIVE breakdown is what the
             // turn displays, so it has to learn about the vault part
             // too — otherwise the header says "~273 tok sent" for a send
             // that carried a thousand.
-            if (baseBreakdown && sentParts && sentParts !== baseParts) {
+            if (baseBreakdown && finalParts && finalParts !== baseParts) {
               breakdownByTurn.current.set(priorTurns.length, {
                 ...baseBreakdown,
-                parts: sentParts,
-                totalTokensEst: sentParts.reduce(
+                parts: finalParts,
+                totalTokensEst: finalParts.reduce(
                   (sum, part) => sum + part.tokensEst,
                   0
                 )
@@ -1162,7 +1184,7 @@ export function ChatView({
             await persistTurn(
               'atomik',
               answer,
-              sentParts ? serializeSentMeta(sentParts) : undefined,
+              finalParts ? serializeSentMeta(finalParts) : undefined,
               usedPacket ? serializePacketMeta(usedPacket) : undefined,
               [
                 runMeta ?? undefined,
@@ -1741,7 +1763,31 @@ export function ChatView({
                       part.kind === 'vault'
                         ? packetByTurn.current.get(index)
                         : undefined
+                    // S07k: the tool pill opens the same way the vault pill
+                    // does — the calls belong to the request they explain.
+                    const calls =
+                      part.kind === 'tool'
+                        ? toolCallsByTurn.current.get(index)
+                        : undefined
                     const title = `${PART_DESCRIPTIONS[part.kind as RequestPartKind] ?? part.kind} · ${part.chars} chars · ~${part.tokensEst} tokens (estimated)`
+                    if (calls && calls.length > 0) {
+                      return (
+                        <button
+                          key={partIndex}
+                          type="button"
+                          className={`chat-request-pill kind-${part.kind} chat-request-pill-open`}
+                          aria-expanded={openToolsTurn === index}
+                          title={title}
+                          onClick={() =>
+                            setOpenToolsTurn((open) =>
+                              open === index ? null : index
+                            )
+                          }
+                        >
+                          {part.label} <b>~{part.tokensEst}</b>
+                        </button>
+                      )
+                    }
                     // The vault pill OPENS: the packet was compiled for
                     // this message, so its detail belongs here and
                     // nowhere else (S07b, owner bench).
@@ -1785,6 +1831,46 @@ export function ChatView({
                   )}
                 </div>
               )}
+              {openToolsTurn === index &&
+                (() => {
+                  const calls = toolCallsByTurn.current.get(index)
+                  if (!calls || calls.length === 0) return null
+                  return (
+                    <div className="chat-tool-calls">
+                      <ul>
+                        {calls.map((execution, callIndex) => {
+                          const args = (execution.call.arguments ??
+                            {}) as Record<string, unknown>
+                          const query =
+                            typeof args.query === 'string' ? args.query : ''
+                          const stats = execution.result.stats
+                          return (
+                            <li key={`${execution.call.id}-${callIndex}`}>
+                              <span
+                                className={`chat-tool-call-name${execution.result.ok ? '' : ' chat-tool-call-failed'}`}
+                              >
+                                {execution.call.name}
+                              </span>
+                              {/* The model WROTE this query — it is the thing
+                                  an inspector exists to show. */}
+                              {query && (
+                                <span className="chat-tool-call-query">
+                                  “{query}”
+                                </span>
+                              )}
+                              <span className="chat-tool-call-meta">
+                                {execution.result.ok
+                                  ? `${stats.resultCount} result${stats.resultCount === 1 ? '' : 's'} · ${stats.chars} chars · ${(stats.wallMs / 1000).toFixed(1)}s`
+                                  : (execution.result.error?.message ??
+                                    'failed')}
+                              </span>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+                  )
+                })()}
               {openPacketTurn === index &&
                 (() => {
                   const packet = packetByTurn.current.get(index)

@@ -279,6 +279,20 @@ timestamp: 2026-08-17T00:00:00Z
   pointing at no record claims a record exists). The turn shows a quiet line
   offering to open it. The recording is wrapped in its own catch — a failed
   record must never replace the failure the user needs to see.
+- THE INSPECTOR SEES THE TOOL LEG (CP-MVP-011 S07k): `requestBreakdown`
+  describes the FIRST request, composed before the model has done anything, so
+  an answer that read three corpora looked like it had sent nothing but the
+  packet (owner bench, 2026-08-18 — the last unbuilt S07 deliverable).
+  `toolRequestParts` turns each execution into a pill of the same kind as the
+  others — `search_wiki · auto · 3 results`, chars as the executor measured
+  them returning to the model, `search_wiki · failed` when it did not. They
+  join the SAME breakdown the header totals, so the "~N tok sent" figure stops
+  disagreeing with the reported usage, and they persist in the `sent:` meta
+  like every other figure. The pill OPENS, the way the vault pill opens its
+  packet: each call with the query THE MODEL WROTE, its result count, chars
+  and wall time, or its error. The calls attach to the QUESTION rather than to
+  the answer — their results were sent back as input — while the consulted
+  material stays with the answer that used it.
 - SHARED DIALECT CODEC (CP-MVP-011 S06b): `electron-main/openai-tool-codec.ts`
   owns the `openai-chat-completions` wire grammar ONCE — schema emission, call
   parsing, the `role: "tool"` continuation, and usage accumulation. An adapter

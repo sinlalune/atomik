@@ -16,6 +16,14 @@ timestamp: 2026-08-17T00:00:00Z
 
 ## What it owns
 
+- THE BREAKDOWN COUNTS THE TOOL LEG (CP-MVP-011 S07k):
+  `editor/request-breakdown.ts` gains a `tool` part kind and
+  `toolRequestParts`, pure like the rest of the module: one part per
+  execution, chars as the executor measured them returning to the model, and
+  the same chars/4 estimate every other part uses. `requestBreakdown` itself
+  is unchanged — it still describes the request composed BEFORE the model
+  acts; the tool parts are appended by the caller once the run reports what it
+  did, exactly as the `vault` part already was.
 - HTML COMMENTS ARE INVISIBLE (CP-MVP-011 S07j): `noteMarkdown()` runs with
   `html: false`, which ESCAPES html rather than dropping it — so every chat
   transcript opened as a note rendered its own `<!-- sent: … -->` heading
