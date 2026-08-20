@@ -469,12 +469,18 @@ function LeafPane({
   node,
   focused,
   rootLeafId,
+  showWorkspacePreview,
+  onDockPreviewChange,
   dispatch
 }: {
   node: Extract<PaneNode, { kind: 'leaf' }>
   focused: boolean
   /** The root leaf (when the root IS a leaf) can never be closed. */
   rootLeafId: string | null
+  showWorkspacePreview?: boolean
+  onDockPreviewChange?: (
+    info: { zone: DockZone; paneId: string; isPaneDrag: boolean } | null
+  ) => void
   dispatch: Dispatch
 }): React.JSX.Element {
   const active = node.tabs.find((tab) => tab.id === node.activeTabId)
@@ -1334,7 +1340,10 @@ function LeafPane({
           const hasTree = types.includes(TREE_DRAG_MIME)
           const hasPane = types.includes(PANE_DRAG_MIME)
           if (!hasTab && !hasTree && !hasPane) {
-            if (dockZone !== null) setDockZone(null)
+            if (dockZone !== null) {
+              setDockZone(null)
+              onDockPreviewChange?.(null)
+            }
             return
           }
           const container = paneContentRef.current
@@ -1343,13 +1352,17 @@ function LeafPane({
           const zone = computeDockZone(rect, event.clientX, event.clientY)
           // For chat pane with tree drop on center, let ChatView show context drop target
           if (hasTree && !hasTab && !hasPane && scope.kind === 'chat' && zone === 'center') {
-            if (dockZone !== null) setDockZone(null)
+            if (dockZone !== null) {
+              setDockZone(null)
+              onDockPreviewChange?.(null)
+            }
             return
           }
           event.preventDefault()
           event.dataTransfer.dropEffect = event.altKey ? 'copy' : 'move'
           if (zone !== dockZone) {
             setDockZone(zone)
+            onDockPreviewChange?.({ zone, paneId: node.id, isPaneDrag: hasPane })
           }
         }}
         onDragLeave={(event) => {
@@ -1358,6 +1371,7 @@ function LeafPane({
             !event.currentTarget.contains(event.relatedTarget as Node)
           ) {
             setDockZone(null)
+            onDockPreviewChange?.(null)
           }
         }}
         onDrop={(event) => {
@@ -1367,10 +1381,12 @@ function LeafPane({
           const hasPane = types.includes(PANE_DRAG_MIME)
           if (!hasTab && !hasTree && !hasPane) {
             setDockZone(null)
+            onDockPreviewChange?.(null)
             return
           }
           const zone = dockZone
           setDockZone(null)
+          onDockPreviewChange?.(null)
           if (!zone) return
 
           if (hasPane) {
@@ -1420,7 +1436,6 @@ function LeafPane({
               event.dataTransfer.getData(TREE_DRAG_MIME)
             )
             if (treePayload && treePayload.kind === 'note') {
-              event.preventDefault()
               if (zone === 'center') {
                 dispatch((state) =>
                   openNoteAt(
@@ -1446,7 +1461,7 @@ function LeafPane({
           }
         }}
       >
-        {dockZone && <DockPreview zone={dockZone} />}
+        {dockZone && !showWorkspacePreview && <DockPreview zone={dockZone} />}
         {/* S07b9 (owner): a CHAT pane offers no tree door — except as
             the SOLE survivor, where the tree must stay reachable
             (the S06c13 last-pane rule, now scoped to exactly that). */}
@@ -1536,11 +1551,17 @@ function SplitPaneView({
   node,
   focusedPaneId,
   rootLeafId,
+  showWorkspacePreview,
+  onDockPreviewChange,
   dispatch
 }: {
   node: Extract<PaneNode, { kind: 'split' }>
   focusedPaneId: string
   rootLeafId: string | null
+  showWorkspacePreview?: boolean
+  onDockPreviewChange?: (
+    info: { zone: DockZone; paneId: string; isPaneDrag: boolean } | null
+  ) => void
   dispatch: Dispatch
 }): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -1584,6 +1605,8 @@ function SplitPaneView({
           node={node.first}
           focusedPaneId={focusedPaneId}
           rootLeafId={rootLeafId}
+          showWorkspacePreview={showWorkspacePreview}
+          onDockPreviewChange={onDockPreviewChange}
           dispatch={dispatch}
         />
       </div>
@@ -1598,6 +1621,8 @@ function SplitPaneView({
           node={node.second}
           focusedPaneId={focusedPaneId}
           rootLeafId={rootLeafId}
+          showWorkspacePreview={showWorkspacePreview}
+          onDockPreviewChange={onDockPreviewChange}
           dispatch={dispatch}
         />
       </div>
@@ -1609,11 +1634,17 @@ function PaneNodeView({
   node,
   focusedPaneId,
   rootLeafId,
+  showWorkspacePreview,
+  onDockPreviewChange,
   dispatch
 }: {
   node: PaneNode
   focusedPaneId: string
   rootLeafId: string | null
+  showWorkspacePreview?: boolean
+  onDockPreviewChange?: (
+    info: { zone: DockZone; paneId: string; isPaneDrag: boolean } | null
+  ) => void
   dispatch: Dispatch
 }): React.JSX.Element {
   return node.kind === 'leaf' ? (
@@ -1621,6 +1652,8 @@ function PaneNodeView({
       node={node}
       focused={node.id === focusedPaneId}
       rootLeafId={rootLeafId}
+      showWorkspacePreview={showWorkspacePreview}
+      onDockPreviewChange={onDockPreviewChange}
       dispatch={dispatch}
     />
   ) : (
@@ -1628,6 +1661,8 @@ function PaneNodeView({
       node={node}
       focusedPaneId={focusedPaneId}
       rootLeafId={rootLeafId}
+      showWorkspacePreview={showWorkspacePreview}
+      onDockPreviewChange={onDockPreviewChange}
       dispatch={dispatch}
     />
   )
@@ -1637,6 +1672,11 @@ export function Workspace(): React.JSX.Element {
   const state = useWorkspace((store) => store.state)
   const load = useWorkspace((store) => store.load)
   const dispatch = useWorkspace((store) => store.dispatch)
+  const [workspaceDock, setWorkspaceDock] = useState<{
+    zone: DockZone
+    paneId: string
+    isPaneDrag: boolean
+  } | null>(null)
 
   useEffect(() => {
     void load()
@@ -1690,14 +1730,30 @@ export function Workspace(): React.JSX.Element {
 
   if (!state) return <p className="workspace-loading">loading workspace…</p>
 
+  const isTwoPanes =
+    state.root.kind === 'split' &&
+    state.root.first.kind === 'leaf' &&
+    state.root.second.kind === 'leaf'
+
+  const showWorkspacePreview =
+    workspaceDock !== null &&
+    workspaceDock.isPaneDrag &&
+    isTwoPanes &&
+    workspaceDock.zone !== 'center'
+
   return (
     <div className="workspace">
       <PaneNodeView
         node={state.root}
         focusedPaneId={state.focusedPaneId}
         rootLeafId={state.root.kind === 'leaf' ? state.root.id : null}
+        showWorkspacePreview={showWorkspacePreview}
+        onDockPreviewChange={setWorkspaceDock}
         dispatch={dispatch}
       />
+      {showWorkspacePreview && workspaceDock && (
+        <DockPreview zone={workspaceDock.zone} />
+      )}
     </div>
   )
 }

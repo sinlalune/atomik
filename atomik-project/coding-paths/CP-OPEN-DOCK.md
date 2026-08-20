@@ -171,7 +171,8 @@ trunk pin   : f58093e (rebased after CP-AI-CAPABILITIES merged to trunk during
 changed     : S01–S06 complete — the open-target model (openNoteAt, OpenTargetMenu,
               shortcuts), pure move/dock primitives (pullTab, moveTab, dockTab,
               dockNote, dockPane, mergePane), five-zone drop geometry and DockPreview
-              overlay, tabstrip drop indicators (.tab.drop-before / .drop-after),
+              overlay with workspace-level 1/2 rectangle spanning across perpendicular
+              splits, tabstrip drop indicators (.tab.drop-before / .drop-after),
               tab and tree drag-and-drop, tabstrip pane grip handle (.pane-grip,
               GripVerticalIcon, PANE_DRAG_MIME), full keyboard equivalents
               (Mod+Shift+Arrows, Mod+Alt+Arrows, Mod+Alt+Shift+Arrows).

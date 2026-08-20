@@ -407,9 +407,13 @@ about generation SHAPE:
 - Dragging a pane grip onto an edge zone of another pane invokes `dockPane(state, sourcePaneId, targetPaneId, side)`,
   which tears the entire source pane (preserving its tabs, active tab, and tree configuration)
   and docks it beside the target pane along the requested side.
+- In a two-pane workspace, dragging a pane grip to switch split orientation (horizontal ↔ vertical)
+  projects an accurate 1/2 rectangle preview spanning the full width/height of the workspace container
+  rather than a local 1/4 square, accurately matching the resulting collapsed-and-resplit layout.
 - Dragging a pane grip onto the center zone (or tabstrip) of another pane merges all tabs into
   the target pane and closes the source pane (`mergePane`), inheriting tree configuration if the
   target was untyped.
 - Keyboard equivalents on the pane grip (`Mod+Alt+Shift+Arrows`) re-dock the entire pane in any of the
   four directions relative to the workspace.
+
 
