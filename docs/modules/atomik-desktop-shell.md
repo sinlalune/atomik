@@ -16,6 +16,14 @@ timestamp: 2026-08-17T00:00:00Z
 
 ## What it owns
 
+- BENCH HYGIENE FOR MAIN-SIDE CHANGES (CP-MVP-011 S07j): a running
+  `electron-vite dev` instance was observed serving a bench with main code
+  compiled BEFORE the change under test — the main process had started five
+  minutes before the commit and had not restarted, so the bench faithfully
+  reproduced the previous round. Renderer edits hot-reload; do not assume the
+  same for `electron-main/` or the `shared/` modules it imports. Check
+  `ps -o lstart= -p <electron main pid>` against the commit time, or restart
+  the dev server, before reading a main-side bench as evidence.
 - A QUESTION THAT GOT NO ANSWER SAYS SO (CP-MVP-011 S07j): the chat pane
   renders a quiet `.chat-unanswered` line under a you-turn carrying an
   `unanswered:` marker, with a text button that reveals the failure's trace

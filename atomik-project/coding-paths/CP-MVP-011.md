@@ -1049,6 +1049,22 @@ reconciled  : 2026-08-19 on resume. S07f is DONE (656e6d8) and this line
               Verified on the rebased branch: clean tree, contains trunk tip
               80b131a, cairn-check OK (1 advisory: no audit for this head),
               typecheck + 81 files / 1085 pass / 1 skip + build all green
+bench trap  : ROUND 6 (13:48) measured ROUND 5's code. The Electron main
+              process serving it (PID 113855, cwd this worktree) started at
+              13:39:50 and never restarted; the title fix landed at 13:44:51.
+              Identical output was the correct behaviour of stale code, not a
+              failed fix. Before trusting any bench of a MAIN-side change:
+              `ps -o lstart= -p <electron main pid>` must be later than the
+              commit. Verified the fix instead against the real article,
+              fetched directly (`fr.wikipedia.org/api/rest_v1/page/html/…`):
+              query = title gives focused:false and reads (lead) · Contexte ·
+              Origine, évolution et chronologie du projet · Projet de réforme
+              présenté par le gouvernement, 8 skipped, with §Manifestations
+              gone; `motion de censure 49.3` still ranks and reads Aspects
+              juridiques · Procédure et calendrier.
+observed    : the lead carries the infobox as prose ("Loi retraites Données
+              clés Autre(s) nom(s) LOI no 2023-270 …"). Useful data (official
+              name, dates) in an ugly shape; not fixed, recorded for S09.
 next action : re-bench S07j again — the apparatus must never be selected, a
               saturated query must say it read from the top, and a transcript
               opened as a note must show no comments. Then the REQUEST
