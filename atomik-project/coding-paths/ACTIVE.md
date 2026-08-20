@@ -46,6 +46,7 @@ is mechanical (distinct channels appended).
 
 ## Done
 
+- [CP-AI-CAPABILITIES — AI capabilities: tell the model what the surface renders](./CP-AI-CAPABILITIES.md) — done 2026-08-20 (opening check: `../sessions/2026-08-19-cp-ai-capabilities-opening-check.md`; bench: `../sessions/2026-08-20-cp-ai-capabilities-s03-bench-round1.md`; closing ceremony: `../sessions/2026-08-20-cp-ai-capabilities-closing-ceremony.md`)
 - [CP-MVP-009 — Semantic graph foundation (M8 front half)](./CP-MVP-009.md) — done 2026-08-13 (acceptance: `../sessions/2026-08-13-cp-mvp-009-acceptance.md`; closing ceremony: `../sessions/2026-08-13-cp-mvp-009-closing-ceremony.md`)
 - [CP-MVP-008 — Real AI generation + the AI interaction pass (M2 completion)](./CP-MVP-008.md) — done 2026-08-04 (acceptance: `../sessions/2026-08-04-cp-mvp-008-acceptance.md`); [CP-MVP-007 — Tree file management (M1 friction pass)](./CP-MVP-007.md) — done 2026-07-21 (acceptance: `../sessions/2026-07-21-cp-mvp-007-acceptance.md`); [CP-MVP-006 — Web source tab (M5)](./CP-MVP-006.md) — done 2026-07-16 (acceptance: `../sessions/2026-07-16-cp-mvp-006-acceptance.md`); [CP-MVP-003 — PDF source tab (M4)](./CP-MVP-003.md) — done 2026-07-13 (acceptance: `../sessions/2026-07-13-cp-mvp-003-acceptance.md`); [CP-MVP-005 — Seats hardening](./CP-MVP-005.md) — done 2026-07-08 (acceptance: `../sessions/2026-07-08-cp-mvp-005-acceptance.md`); [CP-MVP-004](./CP-MVP-004.md) — done 2026-07-08; [CP-MVP-002](./CP-MVP-002.md) — done 2026-07-07; [CP-MVP-001](./CP-MVP-001.md) — done 2026-07-06
 

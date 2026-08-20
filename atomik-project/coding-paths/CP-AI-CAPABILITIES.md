@@ -6,9 +6,9 @@ tags: [coding-path, ai, prompt, renderer, wikilink, chat, capabilities]
 timestamp: 2026-08-19T00:00:00Z
 atomik:
   id: CP-AI-CAPABILITIES
-  status: running
+  status: done
   accepted: 2026-08-19
-  current_step: S03
+  current_step: done
   base_commit: 80b131a
   branch: path/cp-ai-capabilities
   writes:
@@ -118,7 +118,7 @@ through the same registry, so anything the model emits WOULD render.
 - [x] S02 Pointing wikilinks in chat: reuse the vault's resolution pipeline,
       route `data-wiki` by resolved `data-rel`, keep unresolved inert, keep
       citation visibly distinct. Focused tests, docs, ledger.
-- [ ] S03 Owner bench on real generations + closure. Bench round 1 (2026-08-20)
+- [x] S03 Owner bench on real generations + closure. Bench round 1 (2026-08-20)
       found three rendering traps and they are warned about in the block, each
       pinned to the code that causes it. Remaining: rounds B/C/D, acceptance,
       closing ceremony, rebase, bare gates, coherence audit, journal,
@@ -199,11 +199,15 @@ widening 2  : generation-params.ts, ai-settings.ts,
               the accepted scope, so they are recorded here rather than
               folded in silently. docs/modules/atomik-desktop-ai.md joined
               them — cairn-check named it, which is the check doing its job.
-accepted    : owner, 2026-08-20 — "bench is validated on my side".
-next action : closing ceremony, then rebase / bare gates / coherence audit /
-              journal / status: done / self-merge. Defects 1a/3/4/5 are a
-              follow-on labelled path, and its grouping is a question for
-              that path's OWN opening check, not for this one.
+accepted    : owner, 2026-08-20 — "bench is validated on my side", the whole
+              bench and not round A alone.
+defaults    : engine fallback leads with google/gemini-3.7-flash; output
+              budget 2000 -> 5000 in BOTH main and the renderer, pinned equal
+              by a test because they are one budget seen from two sides.
+next action : none — path closed. Closing ceremony recorded in
+              ../sessions/2026-08-20-cp-ai-capabilities-closing-ceremony.md.
+              Defects 1a/3/4/5 leave unfixed for a follow-on labelled path;
+              their grouping belongs to THAT path's opening check.
 blockers    : none — S03 needs the owner
 ```
 
