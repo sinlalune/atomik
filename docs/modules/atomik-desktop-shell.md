@@ -118,6 +118,13 @@ timestamp: 2026-08-17T00:00:00Z
   graph kind changes shared renderer classification and pill presentation, but
   no workspace view id, tab param, opening route, IPC channel, or preload
   authority. Raw web links and captured dossiers keep their existing doors.
+  CP-OPEN-DOCK S02 adds the ONE open-target model (contract 6): four targets
+  (`tab-current` / `tab-new` / `pane-right` / `pane-below`) compiled from the
+  existing primitives by `openNoteAt` in `workspace/model.ts`, with the
+  vocabulary, labels and shortcut grammar in `workspace/open-target.ts` and
+  the `OpenTargetMenu` popover as the discovery surface. No new IPC, no new
+  workspace shape — docking still reduces to `addTab` / `splitPane` /
+  `updateTabParams` sequences.
 - The Dev Docs tab (16 MVP slice): grouped docs tree + rendered Markdown
   with the bedrock diagrams inlined as SVG data URIs, reading the real
   files under `docs/`. `electron-main/dev-docs.ts` holds the pure logic —
@@ -320,3 +327,25 @@ about generation SHAPE:
   Live widgets and every React read consumer still use the same hydration
   ownership: timeout, theme change, rerender, and unmount abort and detach the
   old generation; late third-party output cannot publish into the replacement.
+
+## The open-target model (CP-OPEN-DOCK S02)
+
+- `workspace/open-target.ts` is the ONE vocabulary for opening a note from a
+  tree row, a link pill, or (S05) a tab move: `tab-current` / `tab-new` /
+  `pane-right` / `pane-below`, each with its label and shortcut hint
+  (`OPEN_TARGET_SPECS`) and a pure shortcut grammar (`openTargetForKey`:
+  Enter = here, Mod+Enter = new tab, Mod+Shift+Enter = pane right,
+  Mod+Alt+Enter = pane below).
+- `openNoteAt(state, paneId, relPath, scope, target)` in `workspace/model.ts`
+  compiles the four targets from existing primitives only: `updateTabParams`
+  (adoption), `addTab`, and the generalized `openNoteInNewPaneAt` (the S06b
+  convention function delegates to it with 'horizontal'). A chat scope keeps
+  its reveal convention for `tab-current` and splits VAULT-typed panes beside
+  the chat for the two pane targets. Ghost panes are identity.
+- `OpenTargetMenu` is the discoverable surface: Mod+click on a tree row or
+  rel pill opens a glass popover (36 tokens, `--z-menu`) whose four
+  `role="menuitem"` entries show their shortcuts; Escape/arrows work, the
+  first item is autofocused. Plain click, right-click, and Enter behavior are
+  unchanged everywhere.
+- All four targets leave the workspace SHAPE alone — no new state fields, no
+  persistence change, no IPC. Docking (S03–S06) rides the same vocabulary.

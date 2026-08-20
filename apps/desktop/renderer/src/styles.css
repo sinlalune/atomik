@@ -4710,6 +4710,85 @@ button svg {
   color: var(--accent);
 }
 
+/* CP-OPEN-DOCK S02 — the open-as popover (contract 6): the 36 overlay
+   idiom — glass pop at --z-menu, one shadow, opaque fallback. The menu
+   items carry a kbd hint on the right, the discovery path for the
+   keyboard equivalents. */
+.open-target-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-menu);
+}
+
+.open-target-menu {
+  position: fixed;
+  z-index: var(--z-menu);
+  min-width: 200px;
+  max-width: 280px;
+  padding: var(--space-1);
+  background: var(--glass-pop);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop);
+  display: flex;
+  flex-direction: column;
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .open-target-menu {
+    background: var(--surface);
+  }
+}
+
+.open-target-head {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--space-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.open-target-menu > button {
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.open-target-menu > button:hover,
+.open-target-menu > button:focus-visible {
+  background: var(--code-bg);
+  color: var(--accent);
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.open-target-kbd {
+  font: inherit;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.open-target-menu > button:hover .open-target-kbd,
+.open-target-menu > button:focus-visible .open-target-kbd {
+  color: inherit;
+}
+
 .tree-menu-form {
   display: flex;
   gap: 0.25rem;

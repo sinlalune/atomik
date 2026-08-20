@@ -16,7 +16,13 @@ atomik:
     - apps/desktop/renderer/src/workspace/open-target.ts
     - apps/desktop/renderer/src/workspace/drop-zones.ts
     - apps/desktop/renderer/src/workspace/NewTabChooser.tsx
+    - apps/desktop/renderer/src/workspace/OpenTargetMenu.tsx
+    - apps/desktop/renderer/src/workspace/PaneTreePanel.tsx
+    - apps/desktop/renderer/src/project/ProjectView.tsx
     - apps/desktop/renderer/src/vault/NoteTree.tsx
+    - apps/desktop/renderer/src/editor/EditorPane.tsx
+    - apps/desktop/renderer/src/editor/live-preview.ts
+    - apps/desktop/renderer/src/vault/VaultView.tsx
     - apps/desktop/renderer/src/editor/
     - apps/desktop/renderer/src/editor/link-pills.ts
     - apps/desktop/renderer/src/styles.css
@@ -133,7 +139,7 @@ CP-AI-CAPABILITIES and CP-LANGUAGE-NOTES) are recorded in
 - [x] S01 Bootstrap + regression pins: create the isolated worktree, read
       every Required document, verify the pinned trunk behavior, record
       overlap boundaries, and run the baseline gates.
-- [ ] S02 Open-target model (contract 6): pin the four targets and their
+- [x] S02 Open-target model (contract 6): pin the four targets and their
       keyboard equivalents, implement the one contextual open-as interaction
       from tree rows and links plus the tab-move modifier, update
       shell/vault/editor notes, and checkpoint the ledger.
@@ -161,13 +167,20 @@ CP-AI-CAPABILITIES and CP-LANGUAGE-NOTES) are recorded in
 base commit : 80b131a
 trunk pin   : f58093e (rebased after CP-AI-CAPABILITIES merged to trunk during
               S01; no conflict — activation files are path-local)
-changed     : activation (path file + opening-check note + regenerated ACTIVE);
-              S01 baseline pinned — Required docs read (03, 36, 13, 15, 35 +
-              execution law), no code changed
-tests       : baseline bare gates PASS on the rebased branch — cairn-check
-              green (1 advisory: audit, expected), typecheck, 1016/1016 tests
-              (76 files, 1 skipped), production build
-next action : S02 — open-target model (contract 6)
+changed     : S01 activation + green baseline; S02 the open-target model —
+              openNoteAt / openNoteInNewPaneAt in workspace/model.ts, the
+              open-target.ts vocabulary (specs + openTargetForKey grammar),
+              OpenTargetMenu popover, Mod+click + focused-row shortcuts in
+              NoteTree, Mod+click on rel pills (live-preview EdgeFollow
+              openAs, EditorPane/VaultView/ProjectView chain), styles.css
+              glass menu. Writes widened: OpenTargetMenu.tsx,
+              PaneTreePanel.tsx, ProjectView.tsx (advisory surface).
+              Tab-move MODIFIER entry point rides S05 with the DnD work —
+              the vocabulary it reuses is pinned here.
+tests       : open-target 18/18 PASS (model + vocabulary + source
+              contracts); workspace-model 79/79 PASS (openNoteInNewPane
+              behavior preserved via delegation)
+next action : S03 — model primitives moveTab/dockTab
 blockers    : none
 defect      : paths.md's worktree recipe line 2
               (`ln -s ../4tom1k/apps/desktop/node_modules apps/desktop/node_modules`)

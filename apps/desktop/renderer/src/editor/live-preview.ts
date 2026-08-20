@@ -503,6 +503,9 @@ class CheckboxWidget extends WidgetType {
 export type EdgeFollow = {
   href: (raw: string) => void
   rel: (relPath: string) => void
+  /** CP-OPEN-DOCK S02: Mod+click on a rel pill reports it for the
+   *  open-as popover (position = the pill's bottom-left). */
+  openAs?: (relPath: string, x: number, y: number) => void
 }
 
 const edgeFollowFacet = Facet.define<EdgeFollow, EdgeFollow | null>({
@@ -599,11 +602,25 @@ class LinkPillWidget extends WidgetType {
       pill.addEventListener('mousedown', (event) => {
         if (event.button !== 0) return
         if (event.target instanceof HTMLElement && event.target.closest('button')) return
+        const handlers = view.state.facet(edgeFollowFacet)
+        if (!handlers) return
+        // CP-OPEN-DOCK S02: Mod+click opens the open-as popover for
+        // resolved note pills; hash/mailto/href targets keep their
+        // plain behavior.
+        if (
+          (event.metaKey || event.ctrlKey) &&
+          target.kind === 'rel' &&
+          handlers.openAs
+        ) {
+          event.preventDefault()
+          event.stopPropagation()
+          const rect = wrap.getBoundingClientRect()
+          handlers.openAs(target.target, rect.left, rect.bottom)
+          return
+        }
         // hash/mailto have no follow action — leave the click to CM
         // (cursor placement = edit), never a consumed no-op (S04d)
         if (target.kind === 'href' && /^(mailto:|#)/.test(target.target)) return
-        const handlers = view.state.facet(edgeFollowFacet)
-        if (!handlers) return
         event.preventDefault()
         event.stopPropagation()
         if (target.kind === 'rel') handlers.rel(target.target)
@@ -1349,6 +1366,9 @@ export function livePreview(options?: {
   /** How an already-resolved vault path opens (wiki pill click, S04c);
    *  falls back to onFollowLink when absent. */
   onFollowRel?: (relPath: string) => void
+  /** CP-OPEN-DOCK S02: Mod+click on a rel pill opens the open-as popover
+   *  (host owns the menu). Absent → Mod+click behaves like a plain click. */
+  onOpenAs?: (relPath: string, x: number, y: number) => void
   /** Vault-relative note path; enables image embeds. */
   notePath?: string
   /** App theme snapshot; changing it rebuilds disposable rich widgets. */
@@ -1363,7 +1383,8 @@ export function livePreview(options?: {
     extensions.push(
       edgeFollowFacet.of({
         href: follow ?? (() => {}),
-        rel: options?.onFollowRel ?? follow ?? (() => {})
+        rel: options?.onFollowRel ?? follow ?? (() => {}),
+        ...(options?.onOpenAs ? { openAs: options.onOpenAs } : {})
       })
     )
   }

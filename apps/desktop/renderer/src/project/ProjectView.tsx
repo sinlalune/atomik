@@ -34,6 +34,8 @@ export type ProjectViewProps = {
   onSaveModeToggle?: () => void
   /** Opens an external http(s) link in a web tab (S04b). */
   onOpenWebUrl?: (url: string) => void
+  /** CP-OPEN-DOCK S02: Mod+click on a note pill opens the open-as popover. */
+  onOpenAsNote?: (relPath: string, x: number, y: number) => void
   /** Keys this tab's ‹ › navigation trail (the tab id). */
   historyKey?: string
   /** Opens (or focuses) the chat pane (S06c — the AI selection menu). */
@@ -77,6 +79,7 @@ export function ProjectView({
   saveMode = 'auto',
   onSaveModeToggle,
   onOpenWebUrl,
+  onOpenAsNote,
   historyKey,
   onOpenChat,
   onAddChatContext,
@@ -338,6 +341,7 @@ export function ProjectView({
             onModeChange={onModeChange}
             onNoteCreated={guardedOpen}
             onFollowLink={guardedOpen}
+            onOpenAs={onOpenAsNote}
             onOpenWebUrl={onOpenWebUrl}
             saveMode={saveMode}
             onSaveModeToggle={onSaveModeToggle}

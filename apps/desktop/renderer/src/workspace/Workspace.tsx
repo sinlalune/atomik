@@ -28,6 +28,7 @@ import {
   makeTab,
   noteModeOf,
   hasChatTab,
+  openNoteAt,
   paneCount,
   openChatPane,
   openChatTranscript,
@@ -76,6 +77,8 @@ import { ChatView } from './ChatView'
 import { chatHistoryOf, chatRenameTarget } from '../editor/chat-file'
 import { TREE_DRAG_MIME } from '../vault/tree-menu'
 import { PaneTreePanel } from './PaneTreePanel'
+import { OpenTargetMenu } from './OpenTargetMenu'
+import type { OpenTarget } from './open-target'
 import { ChatIcon, HistoryIcon, NoteAddIcon, SidebarToggleIcon } from '../icons'
 import { useWorkspace } from './store'
 
@@ -166,6 +169,7 @@ function TabContent({
   onOpenChat,
   onAddChatContext,
   onQuickNote,
+  onOpenAsNote,
   dispatch
 }: {
   tab: WorkspaceTab
@@ -181,6 +185,8 @@ function TabContent({
   onAddChatContext: (entry: string) => void
   /** Creates a blank provisional note, optionally replacing a chooser tab. */
   onQuickNote: (replaceTabId?: string) => void
+  /** CP-OPEN-DOCK S02: Mod+click on a note pill opens the open-as popover. */
+  onOpenAsNote?: (relPath: string, x: number, y: number) => void
   dispatch: Dispatch
 }): React.JSX.Element {
   const closeThisTab = (): void => {
@@ -319,6 +325,7 @@ function TabContent({
         registerGuard={registerGuard}
         onOpenChat={onOpenChat}
         onAddChatContext={onAddChatContext}
+        onOpenAsNote={onOpenAsNote}
         mode={mode}
         onModeChange={onModeChange}
         saveMode={saveMode}
@@ -398,6 +405,7 @@ function TabContent({
         projectPath={tab.params?.['projectPath']}
         notePath={tab.params?.['notePath']}
         onCloseTab={closeThisTab}
+        onOpenAsNote={onOpenAsNote}
         onProjectOpened={(project) =>
           // opening a project TYPES the pane (S07d): its tree panel
           // becomes the project tree until explicitly switched back
@@ -635,6 +643,24 @@ function LeafPane({
       addTab(state, node.id, makeTab('source-image', { dossierPath }))
     )
   }
+
+  // CP-OPEN-DOCK S02 — the one open-target model (contract 6): Mod+click
+  // on a tree row or note pill asks "open as…" through the OpenTargetMenu;
+  // a focused row's shortcut (Mod+Enter / +Shift / +Alt) picks directly.
+  // Both compile to the pure openNoteAt, which routes like
+  // openNoteFromTree: current tab adopts, new tab lands beside, and the
+  // pane targets split with the caller's scope (chat → vault beside).
+  const [openAsMenu, setOpenAsMenu] = useState<{
+    relPath: string
+    x: number
+    y: number
+  } | null>(null)
+  const openAt = (relPath: string, target: OpenTarget): void => {
+    setOpenAsMenu(null)
+    dispatch((state) => openNoteAt(state, node.id, relPath, scope, target))
+  }
+  const openAsAt = (relPath: string, x: number, y: number): void =>
+    setOpenAsMenu({ relPath, x, y })
   const openDocFromTree = (relPath: string): void => {
     if (active && active.view === 'dev-docs') {
       dispatch((state) => updateTabParams(state, active.id, { docPath: relPath }))
@@ -948,6 +974,8 @@ function LeafPane({
             dispatch((state) => setPaneTreeScope(state, node.id, nextScope))
           }
           onOpenNote={openNoteFromTree}
+          onOpenAsMenu={openAsAt}
+          onOpenAt={openAt}
           onOpenSource={openSourceFromTree}
           onOpenDoc={openDocFromTree}
           onDeleted={(relPath) =>
@@ -983,6 +1011,7 @@ function LeafPane({
             onOpenChat={openChat}
             onAddChatContext={addChatCtx}
             onQuickNote={createQuickNote}
+            onOpenAsNote={openAsAt}
             dispatch={dispatch}
           />
         ) : untyped ? (
@@ -1016,6 +1045,17 @@ function LeafPane({
           />
         )}
       </div>
+      {openAsMenu && (
+        <OpenTargetMenu
+          x={openAsMenu.x}
+          y={openAsMenu.y}
+          noteLabel={noteDisplayName(
+            openAsMenu.relPath.split('/').pop() ?? openAsMenu.relPath
+          )}
+          onPick={(target) => openAt(openAsMenu.relPath, target)}
+          onClose={() => setOpenAsMenu(null)}
+        />
+      )}
     </section>
   )
 }

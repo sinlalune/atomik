@@ -35,6 +35,7 @@ import {
   type PaneTreeScope,
   type SaveMode
 } from './model'
+import type { OpenTarget } from './open-target'
 
 /**
  * The pane's ONE tree panel (S07d, owner directive): pane chrome typed
@@ -61,6 +62,10 @@ export type PaneTreePanelProps = {
   onScopeChange: (scope: PaneTreeScope) => void
   /** Route a note to a note tab (active one when it is a note view). */
   onOpenNote: (relPath: string) => void
+  /** CP-OPEN-DOCK S02: Mod+click on a note row opens the open-as popover. */
+  onOpenAsMenu?: (relPath: string, x: number, y: number) => void
+  /** CP-OPEN-DOCK S02: open-target keyboard shortcut on a focused row. */
+  onOpenAt?: (relPath: string, target: OpenTarget) => void
   /** Route a dossier to a source tab. */
   onOpenSource: (dossierPath: string) => void
   /** Route a doc to a dev-docs tab (docs panes, S07e). */
@@ -200,6 +205,8 @@ export function PaneTreePanel({
   onPatch,
   onScopeChange,
   onOpenNote,
+  onOpenAsMenu,
+  onOpenAt,
   onOpenSource,
   onOpenDoc,
   onDeleted
@@ -620,6 +627,8 @@ export function PaneTreePanel({
                   onNoteMenu={(relPath, x, y) =>
                     setTreeMenu({ kind: 'note', relPath, x, y })
                   }
+                  onOpenAsMenu={onOpenAsMenu}
+                  onOpenAt={onOpenAt}
                   onDropNode={dropNode}
                 />
               )

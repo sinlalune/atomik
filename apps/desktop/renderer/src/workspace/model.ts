@@ -5,6 +5,7 @@ import type {
   WorkspaceTab
 } from '../../../shared/ipc-contract'
 import { parseOpenFolders, serializeOpenFolders } from '../vault/tree-fold'
+import type { OpenTarget } from './open-target'
 
 /**
  * Pure workspace-layout operations — the incubating workspace-core kernel
@@ -411,7 +412,24 @@ export function openNoteInNewPane(
   relPath: string,
   scope: PaneTreeScope
 ): WorkspaceState {
-  const split = splitPane(state, paneId, 'horizontal')
+  return openNoteInNewPaneAt(state, paneId, relPath, scope, 'horizontal')
+}
+
+/**
+ * CP-OPEN-DOCK S02: the generalized sibling of openNoteInNewPane —
+ * same typing/tree-hidden convention, explicit split direction. The
+ * two open-target pane destinations ('pane-right' / 'pane-below')
+ * compile here; the S06b convention function delegates with
+ * 'horizontal', so its tested behavior is unchanged.
+ */
+export function openNoteInNewPaneAt(
+  state: WorkspaceState,
+  paneId: string,
+  relPath: string,
+  scope: PaneTreeScope,
+  direction: PaneDirection
+): WorkspaceState {
+  const split = splitPane(state, paneId, direction)
   if (split === state) return state
   const newPaneId = split.focusedPaneId
   // the new pane exists to SHOW the note — its tree starts hidden
@@ -421,15 +439,64 @@ export function openNoteInNewPane(
     newPaneId,
     { off: '1' }
   )
-  const tab =
-    scope.kind === 'project'
-      ? makeTab('project', {
-          projectPath: scope.projectPath,
-          ...(scope.projectTitle ? { projectTitle: scope.projectTitle } : {}),
-          notePath: relPath
-        })
-      : makeTab('vault', { notePath: relPath })
-  return addTab(typed, newPaneId, tab)
+  return addTab(typed, newPaneId, noteTabForScope(scope, relPath))
+}
+
+/** The note tab a given pane scope serves (mirrors the tree-routing
+ *  convention: project panes open project note tabs, everything else
+ *  a vault tab). */
+function noteTabForScope(scope: PaneTreeScope, relPath: string): WorkspaceTab {
+  if (scope.kind === 'project') {
+    return makeTab('project', {
+      projectPath: scope.projectPath,
+      ...(scope.projectTitle ? { projectTitle: scope.projectTitle } : {}),
+      notePath: relPath
+    })
+  }
+  return makeTab('vault', { notePath: relPath })
+}
+
+/**
+ * CP-OPEN-DOCK S02 — the one contextual open-target model (contract 6).
+ * Compiles the four targets from the existing primitives:
+ *
+ *   tab-current   the caller pane's ACTIVE note view adopts the note
+ *                 (chat panes keep their reveal convention: the note
+ *                 activates where it is open, else splits beside)
+ *   tab-new       a fresh note tab in the caller pane
+ *   pane-right    openNoteInNewPaneAt 'horizontal'
+ *   pane-below    openNoteInNewPaneAt 'vertical'
+ *
+ * A chat scope splits into a VAULT-typed pane (a note beside the chat
+ * is a vault note, S06b). Ghost panes return the state untouched.
+ */
+export function openNoteAt(
+  state: WorkspaceState,
+  paneId: string,
+  relPath: string,
+  scope: PaneTreeScope,
+  target: OpenTarget
+): WorkspaceState {
+  if (target === 'tab-new') {
+    return addTab(state, paneId, noteTabForScope(scope, relPath))
+  }
+  if (target === 'pane-right') {
+    const splitScope = scope.kind === 'chat' ? { kind: 'vault' as const } : scope
+    return openNoteInNewPaneAt(state, paneId, relPath, splitScope, 'horizontal')
+  }
+  if (target === 'pane-below') {
+    const splitScope = scope.kind === 'chat' ? { kind: 'vault' as const } : scope
+    return openNoteInNewPaneAt(state, paneId, relPath, splitScope, 'vertical')
+  }
+  // tab-current
+  if (scope.kind === 'chat') return revealNote(state, paneId, relPath)
+  const pane = findLeaf(state.root, paneId)
+  if (pane === null) return state
+  const active = pane.tabs.find((tab) => tab.id === pane.activeTabId)
+  if (active !== undefined && (active.view === 'vault' || active.view === 'project')) {
+    return updateTabParams(state, active.id, { notePath: relPath })
+  }
+  return addTab(state, paneId, noteTabForScope(scope, relPath))
 }
 
 /**

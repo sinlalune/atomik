@@ -385,6 +385,19 @@ timestamp: 2026-08-17T00:00:00Z
   additional backlink still requires confirmation. Success, same-name H1, or
   decline clears the flag, so later title edits never create a rename loop.
 
+## Tree rows open through one target model (CP-OPEN-DOCK S02)
+
+- A note row (and the index/log pills) now understands the four open
+  targets from `workspace/open-target.ts`: a plain click keeps today's
+  routing (the active note view adopts, else a fresh note tab), Mod+click
+  reports the row for the `OpenTargetMenu` popover, and a focused row's
+  Mod+Enter / Mod+Shift+Enter / Mod+Alt+Enter pick new tab / pane right /
+  pane below through the shared `openTargetForKey` grammar. Enter stays the
+  native click. Right-click and Shift+F10 menus are unchanged.
+- The row handlers are pure and host-fed (`onOpenAsMenu`, `onOpenAt`) —
+  `NoteTree` never dispatches workspace state itself; `PaneTreePanel`
+  threads the callbacks from the pane's Workspace instance.
+
 ## Rich Markdown read projection (CP-RICH-MARKDOWN S02)
 
 - `VaultView` and `ProjectView` now mount read HTML through the shared

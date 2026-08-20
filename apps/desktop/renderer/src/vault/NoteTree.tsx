@@ -3,6 +3,7 @@ import type { VaultFolder } from '../../../shared/ipc-contract'
 import { EyeIcon, EyeOffIcon } from '../icons'
 import { noteDisplayName, splitPillNotes } from './scope'
 import { TREE_DRAG_MIME, type TreeDragSource } from './tree-menu'
+import { openTargetForKey, type OpenTarget } from '../workspace/open-target'
 
 /** The payload riding a tree-node drag; null when it isn't ours. */
 export function parseTreeDrag(data: string): TreeDragSource | null {
@@ -36,6 +37,8 @@ export function NoteTree({
   onFolderToggle,
   onFolderMenu,
   onNoteMenu,
+  onOpenAsMenu,
+  onOpenAt,
   onDropNode
 }: {
   folder: VaultFolder
@@ -50,6 +53,12 @@ export function NoteTree({
   onFolderMenu?: (relPath: string, x: number, y: number) => void
   /** Same for note nodes (S03: delete). */
   onNoteMenu?: (relPath: string, x: number, y: number) => void
+  /** CP-OPEN-DOCK S02: Mod+click on a note opens the open-as popover. */
+  onOpenAsMenu?: (relPath: string, x: number, y: number) => void
+  /** CP-OPEN-DOCK S02: open-target keyboard shortcut on a focused row
+   *  (Enter stays the native click; Mod+Enter = new tab, Mod+Shift+
+   *  Enter = pane right, Mod+Alt+Enter = pane below). */
+  onOpenAt?: (relPath: string, target: OpenTarget) => void
   /** Drop a dragged node onto a folder (S06) — the host runs the SAME
    *  previewed Move flow as the menu; providing this enables dragging. */
   onDropNode?: (source: TreeDragSource, destFolderRelPath: string) => void
@@ -93,6 +102,40 @@ export function NoteTree({
         }
       : {}
 
+  // CP-OPEN-DOCK S02: Mod+click routes to the open-as popover; a plain
+  // click keeps today's behavior (open in the current tab).
+  const openClick = (relPath: string) => (event: React.MouseEvent): void => {
+    if ((event.metaKey || event.ctrlKey) && onOpenAsMenu) {
+      event.preventDefault()
+      onOpenAsMenu(relPath, event.clientX, event.clientY)
+      return
+    }
+    onOpen(relPath)
+  }
+
+  // Enter (no modifier) stays the button's native click = open here.
+  const openKeys = (relPath: string) => (event: React.KeyboardEvent): void => {
+    const openAt = onOpenAt
+    if (!openAt) return
+    const target = openTargetForKey(event)
+    if (target !== null) {
+      event.preventDefault()
+      openAt(relPath, target)
+    }
+  }
+
+  const menuKeys =
+    (relPath: string, openMenu: (relPath: string, x: number, y: number) => void) =>
+    (event: React.KeyboardEvent): void => {
+      if (event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey)) {
+        event.preventDefault()
+        const rect = event.currentTarget.getBoundingClientRect()
+        openMenu(relPath, rect.left + 16, rect.bottom)
+        return
+      }
+      openKeys(relPath)(event)
+    }
+
   return (
     <>
       {pills.length > 0 && (
@@ -103,7 +146,8 @@ export function NoteTree({
               type="button"
               className={`pill${pill.relPath === activePath ? ' active' : ''}`}
               title={pill.relPath}
-              onClick={() => onOpen(pill.relPath)}
+              onClick={openClick(pill.relPath)}
+              onKeyDown={openKeys(pill.relPath)}
             >
               {noteDisplayName(pill.name)}
             </button>
@@ -169,6 +213,8 @@ export function NoteTree({
                 onFolderToggle={onFolderToggle}
                 onFolderMenu={onFolderMenu}
                 onNoteMenu={onNoteMenu}
+                onOpenAsMenu={onOpenAsMenu}
+                onOpenAt={onOpenAt}
                 onDropNode={onDropNode}
               />
             </details>
@@ -181,7 +227,7 @@ export function NoteTree({
               className={note.relPath === activePath ? 'active' : ''}
               title={note.relPath}
               {...dragProps({ kind: 'note', relPath: note.relPath })}
-              onClick={() => onOpen(note.relPath)}
+              onClick={openClick(note.relPath)}
               onContextMenu={
                 onNoteMenu
                   ? (event) => {
@@ -193,17 +239,8 @@ export function NoteTree({
               }
               onKeyDown={
                 onNoteMenu
-                  ? (event) => {
-                      if (
-                        event.key === 'ContextMenu' ||
-                        (event.key === 'F10' && event.shiftKey)
-                      ) {
-                        event.preventDefault()
-                        const rect = event.currentTarget.getBoundingClientRect()
-                        onNoteMenu(note.relPath, rect.left + 16, rect.bottom)
-                      }
-                    }
-                  : undefined
+                  ? menuKeys(note.relPath, onNoteMenu)
+                  : openKeys(note.relPath)
               }
             >
               {noteDisplayName(note.name)}
