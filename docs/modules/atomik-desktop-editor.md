@@ -315,6 +315,38 @@ carries the decisions; the operational shape:
   byte-identical — an existing test pins it. Both change together or neither
   does. Capabilities sit BEFORE `# Rules` so `## Output` stays inside it.
 
+## Display math delimiters no longer own their line (CP-RENDER-REPAIRS S01)
+
+`$$\begin{aligned}` — the LaTeX form, the form models emit by default, and the
+form in the owner's own vault — used to degrade to a paragraph. Both scanners
+required the delimiter to stand alone (`markdown-plugin.ts`: `line.trim() !==
+'$$'`; `syntax.ts`: `trimmed !== '$$'`), so read mode and live mode failed
+identically.
+
+- The shape now lives in ONE place — `displayMathOpen`, `displayMathClose` and
+  `joinDisplayMath` in `syntax.ts` — and both scanners call it. The two carried
+  their own copy of the rule before, which is exactly how they came to be wrong
+  in the same way; one definition cannot disagree with itself.
+- **The delimiter must still START its line.** That is the whole guard against
+  a false positive, and `$$` mid-prose stays inert. An opener with no closing
+  line stays prose too.
+- `displayMathOnLine` is still tried FIRST: a line that opens and closes on its
+  own is complete, not an opener.
+- Fixtures are the owner's real note (`vault-juju`, 2026-08-17), including the
+  two-space-indented case inside a list item. An invented fixture would not
+  have caught the indent.
+
+**This step discharged an obligation, and that is the pattern worth keeping.**
+CP-AI-CAPABILITIES had warned the model about this defect in a prompt block
+that ships on every request, and pinned the warning to `discoverDollarMath`.
+Repairing the parser made that pin FAIL — by design. The answer was to delete
+the clause and lower the block's asserted ceiling (1,700 -> 1,450), never to
+loosen the assertion. A prompt that keeps describing a repaired defect burns
+tokens forever to teach the model something untrue.
+
+The two surviving traps describe behaviour Atomik does not own — Mermaid's
+HTML-label override and Vega-Lite's bar baseline — which is why they stay.
+
 ## Three rendering traps the model must be warned about (CP-AI-CAPABILITIES S03)
 
 The first owner bench on REAL generations produced a chart with no data in it.

@@ -270,6 +270,13 @@ cost is ever squeezed: two of the three describe defects that can be FIXED, and
 the drift tests fail the moment they are, which is what forces the block back
 down again.
 
+**That mechanism has now run once.** CP-RENDER-REPAIRS S01 repaired the `$$`
+parser, the drift pin failed on the next test run, and the clause came out of
+the block — ceiling back down 1,700 -> 1,450. Per-request cost falls as
+defects are fixed, automatically, because the test makes deletion the only
+correct response. The two remaining traps describe Mermaid's and Vega-Lite's
+own behaviour, so they stay until those change upstream.
+
 ## Generation defaults follow the capability blocks (CP-AI-CAPABILITIES S03)
 
 Two owner directives on 2026-08-20, both downstream of what the blocks changed

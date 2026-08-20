@@ -75,6 +75,50 @@ export function displayMathOnLine(line: string): string | null {
   return content.trim().length > 0 ? content : null
 }
 
+/**
+ * The two halves of a MULTI-LINE display block (CP-RENDER-REPAIRS S01).
+ *
+ * Both scanners used to require the delimiter to own its line
+ * (`trimmed !== '$$'`), so `$$\begin{aligned}` — the form LaTeX writes, the
+ * form models emit by default, and the form in the owner's own vault — fell
+ * through to a paragraph in read mode AND live mode. The delimiter still has
+ * to start the line, which is what keeps a `$$` in the middle of prose from
+ * opening anything; what it no longer has to do is stand alone on it.
+ *
+ * These live beside `displayMathOnLine` and are shared by both scanners on
+ * purpose: the two drifted identically once because each carried its own copy
+ * of the rule, and one definition cannot disagree with itself.
+ *
+ * `displayMathOnLine` is tried FIRST everywhere — a line that opens and closes
+ * on its own is complete, not an opener.
+ */
+export function displayMathOpen(line: string): string | null {
+  const trimmed = line.trim()
+  if (!trimmed.startsWith('$$')) return null
+  return trimmed.slice(2)
+}
+
+/** Closing half: a line ENDING in `$$`. Returns what precedes the delimiter. */
+export function displayMathClose(line: string): string | null {
+  const trimmed = line.trim()
+  if (trimmed.length < 2 || !trimmed.endsWith('$$')) return null
+  return trimmed.slice(0, -2)
+}
+
+/** Joins an opener's trailing text, the untouched middle, and a closer's
+ *  leading text into the expression a renderer receives. */
+export function joinDisplayMath(
+  openTail: string,
+  middle: readonly string[],
+  closeHead: string
+): string {
+  return [openTail, ...middle, closeHead]
+    .filter((part, index, all) =>
+      index === 0 || index === all.length - 1 ? part.trim().length > 0 : true
+    )
+    .join('\n')
+}
+
 export type SourceRange = { from: number; to: number }
 
 export type DollarMathSpan = SourceRange & {
@@ -146,18 +190,24 @@ export function discoverDollarMath(
       displayLines.add(index)
       continue
     }
-    if (trimmed !== '$$') continue
+    const openTail = displayMathOpen(line.text)
+    if (openTail === null) continue
 
     let close = index + 1
-    while (close < lines.length && lines[close]!.text.trim() !== '$$') {
+    while (close < lines.length && displayMathClose(lines[close]!.text) === null) {
       close += 1
     }
     if (close >= lines.length) continue
     const closing = lines[close]!
+    const middle = lines.slice(index + 1, close).map((between) => between.text)
     spans.push({
       from: line.from,
       to: closing.to,
-      source: source.slice(line.next, closing.from).replace(/\r?\n$/, ''),
+      source: joinDisplayMath(
+        openTail,
+        middle,
+        displayMathClose(closing.text) ?? ''
+      ),
       display: true
     })
     for (let covered = index; covered <= close; covered += 1) {

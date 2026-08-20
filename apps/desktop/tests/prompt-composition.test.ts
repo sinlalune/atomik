@@ -99,26 +99,20 @@ describe('rendering-capabilities block (CP-AI-CAPABILITIES S01)', () => {
 describe('bench traps stay pinned to the code (CP-AI-CAPABILITIES S03)', () => {
   const block = BUILTIN_BLOCK_DEFAULTS['rendering-capabilities']
 
-  it('a multi-line $$ block really does need $$ alone on its own line', () => {
-    // The exact shape the model emitted on 2026-08-17, shown to the owner as
-    // raw text: content on the opening line, closed at the end of the last.
-    const inlineOpener = [
-      '$$\\begin{aligned}',
-      'a &= b \\\\',
-      'c &= d',
-      '\\end{aligned}$$'
-    ].join('\n')
+  it('no longer warns about multi-line $$ — the parser was repaired', () => {
+    // CP-RENDER-REPAIRS S01 discharged this one. The pin FIRED when the
+    // parser was fixed, and the answer was to delete the clause rather than
+    // loosen the assertion (CP-AI-CAPABILITIES coherence audit). This test is
+    // what remains of it: proof that the warning went away with the defect,
+    // so the block never keeps teaching the model something untrue.
+    const repaired = ['$$\\begin{aligned}', 'a &= b', '\\end{aligned}$$'].join('\n')
     expect(
-      discoverDollarMath(inlineOpener).filter((span) => span.display)
-    ).toHaveLength(0)
+      discoverDollarMath(repaired).filter((span) => span.display)
+    ).toHaveLength(1)
 
-    // …and the form the block tells the model to write DOES resolve.
-    const ownLine = ['$$', '\\begin{aligned}', 'a &= b', '\\end{aligned}', '$$'].join('\n')
-    const display = discoverDollarMath(ownLine).filter((span) => span.display)
-    expect(display).toHaveLength(1)
-    expect(display[0]!.source).toContain('\\begin{aligned}')
-
-    expect(block).toContain('ALONE on its own line')
+    expect(block).not.toContain('ALONE on its own line')
+    expect(block).not.toContain('renders as raw text')
+    expect(block).toContain('Two traps')
   })
 
   it('math in a Mermaid label really does refuse the whole diagram', () => {
@@ -209,7 +203,7 @@ describe('capability block cost (CP-AI-CAPABILITIES S01)', () => {
     // about cost, not a number to quietly raise.
     const rendering = BUILTIN_BLOCK_DEFAULTS['rendering-capabilities'].length
     const conventions = BUILTIN_BLOCK_DEFAULTS['note-conventions'].length
-    expect(rendering).toBeLessThan(1_700)
+    expect(rendering).toBeLessThan(1_450)
     expect(conventions).toBeLessThan(700)
     expect(RENDERING_CAPABILITIES.length).toBeGreaterThan(0)
     expect(NOTE_CONVENTIONS.length).toBeGreaterThan(0)

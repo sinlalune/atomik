@@ -288,6 +288,51 @@ describe('rich Markdown syntax discovery (ADR-014)', () => {
   it('leaves unclosed display delimiters and ordinary currency literal', () => {
     expect(discoverDollarMath('price $5 and tax\n$$\nno close\n')).toEqual([])
   })
+
+  /**
+   * CP-RENDER-REPAIRS S01. The delimiters no longer have to own their line.
+   * The fixture is the owner's REAL note (vault-juju, 2026-08-17) — the shape
+   * that rendered as raw text in front of them, not an invented one.
+   */
+  it('opens a display block on `$$` followed by content, LaTeX style', () => {
+    const source = [
+      '$$\\begin{aligned}',
+      'a &= b \\\\',
+      'c &= d',
+      '\\end{aligned}$$'
+    ].join('\n')
+    const spans = discoverDollarMath(source).filter((span) => span.display)
+    expect(spans).toHaveLength(1)
+    expect(spans[0]!.from).toBe(0)
+    expect(spans[0]!.to).toBe(source.length)
+    expect(spans[0]!.source).toBe(
+      '\\begin{aligned}\na &= b \\\\\nc &= d\n\\end{aligned}'
+    )
+  })
+
+  it('still reads the delimiters-alone form, and reads it identically', () => {
+    const inline = discoverDollarMath('$$\\begin{x}\nbody\n\\end{x}$$')
+    const alone = discoverDollarMath('$$\n\\begin{x}\nbody\n\\end{x}\n$$')
+    expect(alone[0]!.source).toBe(inline[0]!.source)
+  })
+
+  it('keeps prose inert: an opener must START its line and must close', () => {
+    // `$$` mid-sentence is what the line-start rule protects, and it is the
+    // only thing standing between this relaxation and a false positive.
+    expect(discoverDollarMath('costs $$5 today\nand $$7 tomorrow\n')).toEqual(
+      []
+    )
+    expect(discoverDollarMath('$$\\begin{aligned}\nnever closed\n')).toEqual([])
+  })
+
+  it('accepts an indented block inside a list item', () => {
+    // The owner's note had it two spaces deep under a bullet.
+    const source = '* **System (2.3):**\n  $$\\begin{aligned}\n  x &= 1\n  \\end{aligned}$$\n'
+    const spans = discoverDollarMath(source).filter((span) => span.display)
+    expect(spans).toHaveLength(1)
+    expect(spans[0]!.source).toContain('\\begin{aligned}')
+    expect(spans[0]!.source).toContain('\\end{aligned}')
+  })
 })
 
 describe('rich renderer registry', () => {
