@@ -26,15 +26,20 @@ import type {
  *
  * ```text
  * RECORDED   what was ASKED (tool arguments), what was READ (identities:
- *            url, revision, licence, path, stage), and every FIGURE
- * NEVER      the fetched prose itself — article extracts, packet excerpts,
- *            the untrusted `content` a tool result carries to the model
+ *            url, revision, licence, path, stage), every FIGURE, and the
+ *            vault EXCERPTS the packet actually sent
+ * NEVER      the fetched PUBLIC prose — article extracts, the untrusted
+ *            `content` a tool result carries to the model
  * ```
  *
  * That boundary is not squeamishness, it is 28 + ADR-015: consultation is
  * TRANSIENT. Writing the extract into the vault would make a durable copy of
  * public material through the back door, which is exactly what **Save as
- * source** (S08) exists to do deliberately, with revision and licence.
+ * source** (S08) exists to do deliberately, with revision and licence. A
+ * packet excerpt is the opposite case and the line falls the other way
+ * (S07h, owner): it is the user's own note, quoted from a file already in
+ * this vault, so recording what was sent duplicates nothing and is the only
+ * way to answer "what did it actually read of mine?" after the tab closed.
  */
 
 /** One model-requested call, as the audit sees it. */
@@ -79,7 +84,17 @@ export type AgentTraceRecord = {
     candidates: number
     selected: number
     contextTokens: number
-    entries: { path: string; stage: string; reason: string; tokens: number }[]
+    entries: {
+      path: string
+      stage: string
+      reason: string
+      tokens: number
+      /** S07h (owner: *"why not bringing packets… in a different folder?"*):
+       *  the excerpt is the user's OWN note text, already durable one folder
+       *  away. Keeping it here costs nothing epistemically and makes the turn
+       *  legible — unlike fetched public prose, which the rule above bars. */
+      excerpt: string
+    }[]
     omitted: { path: string; reason: string }[]
   } | null
   calls: AgentTraceCall[]
@@ -169,7 +184,8 @@ export function agentTraceRecordOf(input: AgentTraceInput): AgentTraceRecord {
               path: entry.path,
               stage: entry.stage,
               reason: entry.reason,
-              tokens: entry.tokens
+              tokens: entry.tokens,
+              excerpt: entry.excerpt
             })),
             omitted: input.packet.omitted.map((entry) => ({
               path: entry.path,
@@ -221,6 +237,15 @@ export function agentTraceRecordOf(input: AgentTraceInput): AgentTraceRecord {
 
 const AGENT_TRACE_NOTE_TYPE = 'Atomik Agent Trace'
 
+/** `chats/2026-08-20/emmanuel-macron.md` → `emmanuel-macron`. */
+const chatName = (chatRelPath: string): string =>
+  (chatRelPath.split('/').pop() ?? chatRelPath).replace(/\.md$/i, '')
+
+/** A wikilink target is the vault path without its extension; a `/`-bearing
+ *  target resolves against the exact path, so two `turn-03` never collide. */
+export const wikiTargetOf = (relPath: string): string =>
+  relPath.replace(/\.md$/i, '')
+
 /** The fence a reader — human or machine — looks for. */
 export const AGENT_TRACE_FENCE = '```json'
 
@@ -240,12 +265,21 @@ export function serializeAgentTraceNote(record: AgentTraceRecord): string {
     `engine: ${record.engine}`,
     '---',
     '',
-    `# Agent trace — [${record.chat}](<${record.chat}>)`,
+    // The H1 is the note's NAME everywhere the graph shows one, so it stays
+    // plain text: an H1 with a markdown link inside it made every pill and
+    // relation sentence read `[chats/…](<chats/…>)` (S07h).
+    `# Agent trace — ${chatName(record.chat)} · turn ${record.turn}`,
+    '',
+    // ...and the link to the transcript is a WIKILINK on its own line, so the
+    // trace is a node the graph can reach rather than a string in a file
+    // (owner, S07h: *"maybe wikilink better?"*; ADR-011).
+    `Chat: [[${wikiTargetOf(record.chat)}]]`,
     '',
     'What the answer in that transcript actually did: the tools the model',
-    'chose, the arguments it wrote, what came back, and what it cost. The',
-    'fetched text itself is NOT here — consultation stays transient, and',
-    '**Save as source** is the gesture that makes material durable.',
+    'chose, the arguments it wrote, what came back, and what it cost — plus',
+    'the vault excerpts the packet sent. The fetched PUBLIC text is NOT here:',
+    'consultation stays transient, and **Save as source** is the gesture that',
+    'makes external material durable.',
     '',
     AGENT_TRACE_FENCE,
     JSON.stringify(record, null, 2),

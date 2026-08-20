@@ -5998,9 +5998,16 @@ button svg {
   gap: var(--space-2);
 }
 
-/* S07e: the image leads the block rather than trailing the source list —
-   it is the most legible thing an augmented answer produced, and it read as
-   an afterthought at the bottom. */
+/* S07h: the image leads the ANSWER (owner bench: "photo still after text").
+   Leading the consulted block was still last on screen, because the block
+   follows the prose and the citation footer. It sits above the first sentence
+   now, sized as an illustration rather than a hero. */
+.chat-consulted-media-lead {
+  margin-block: var(--space-1) var(--space-2);
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+
 .chat-consulted-media li {
   display: flex;
   flex-direction: column;

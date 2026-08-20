@@ -198,6 +198,33 @@ timestamp: 2026-08-17T00:00:00Z
   cannot be written returns null rather than throwing: the answer is the
   user's work and must land, and the missing trace link beside a populated
   consulted block is itself the visible signal.
+- THE TRACE AFTER THE OWNER'S FIRST BENCH (CP-MVP-011 S07h): four rulings from
+  reading the owner's own `chats/2026-08-20/emmanuel-macron.md` and its trace.
+  (1) EVERY answered turn is traced. The rule "only exchanges with tool
+  activity" was refuted by turn 1 of that very file — *"Je ne trouve aucune
+  information…"*, no tools, no trace, and the exchange most worth auditing had
+  no record. A trail with holes reads as a bug. (2) The packet's EXCERPTS ride
+  the trace. The no-prose rule bars fetched PUBLIC text; a vault excerpt is the
+  user's own note quoted from a file one folder away, so recording it
+  duplicates nothing and is the only way to see what was read of your own
+  vault after the tab closed. (3) The transcript links its trace as a
+  WIKILINK, `<!-- trace:[[chats/…/turn-03]] -->`: `parseEdges` skips fenced
+  blocks and code spans but NOT html comments, so the trace becomes a graph
+  node while staying invisible in the render — and stays out of the thread
+  history a visible link line would join. `parseTraceMeta` still reads the
+  S07g bare path, and only the wikilink form may omit `.md`. (4) The trace
+  note's H1 is plain text (`Agent trace — <chat> · turn N`) with the wikilink
+  on its own line: an H1 containing a markdown link had become the note's
+  TITLE in every pill and relation sentence.
+- WHAT A WARNING HAS TO SAY (CP-MVP-011 S07h): the owner read two warnings in
+  their trace and could act on neither. `truncated` now names the articles and
+  the cap they hit (`maxArticleTextChars`, 6 000) instead of "one or more
+  articles were clipped" — the cap is a deliberate prompt budget, and seeing
+  WHICH page lost its tail is what makes it arguable. `ambiguous` never meant
+  "this entity is doubtful": Wikidata's search returned more candidates than
+  the slots the reach gave it and the top-ranked one was taken. Said blankly
+  it fires on every common name, so it now names the chosen entity with its
+  QID and how many it beat.
 - SHARED DIALECT CODEC (CP-MVP-011 S06b): `electron-main/openai-tool-codec.ts`
   owns the `openai-chat-completions` wire grammar ONCE — schema emission, call
   parsing, the `role: "tool"` continuation, and usage accumulation. An adapter

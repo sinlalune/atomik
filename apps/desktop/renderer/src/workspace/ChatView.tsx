@@ -25,6 +25,7 @@ import {
   parseChatTurns,
   serializeRunMeta,
   serializeSentMeta,
+  serializeTraceMeta,
   threadFromTurns,
   withSentMetaOnLastYou,
   type ChatTurn
@@ -68,7 +69,7 @@ import {
   type CitationSource,
   type ConsultedMaterial
 } from '../../../shared/chat-citations'
-import { ConsultedBlock } from './ConsultedBlock'
+import { ConsultedBlock, ConsultedMediaBlock } from './ConsultedBlock'
 import { serializePacketMeta } from '../../../shared/context-packet'
 import { applyCitationChips, type AppliedCitations } from '../editor/citation-chips'
 import {
@@ -1166,7 +1167,7 @@ export function ChatView({
               [
                 runMeta ?? undefined,
                 citedMeta ? `cited:${citedMeta}` : undefined,
-                tracePath ? `trace:${tracePath}` : undefined
+                tracePath ? `trace:${serializeTraceMeta(tracePath)}` : undefined
               ]
             )
             setTurns((current) => {
@@ -1629,6 +1630,11 @@ export function ChatView({
                   </span>
                 )}
               </header>
+              {/* S07h (owner bench: "photo still after text"): the image
+                  leads the ANSWER, not the provenance block that follows it. */}
+              <ConsultedMediaBlock
+                media={consultedByTurn.current.get(index)?.media ?? []}
+              />
               <ClaimBody
                 text={turn.text}
                 meta={meta}
@@ -1640,10 +1646,12 @@ export function ChatView({
               {(() => {
                 const consulted = consultedByTurn.current.get(index)
                 if (!consulted) return null
+                // the media now leads the answer above; this block is the
+                // provenance that follows it
                 if (
                   consulted.sources.length === 0 &&
-                  consulted.media.length === 0 &&
-                  consulted.notes.length === 0
+                  consulted.notes.length === 0 &&
+                  consulted.warnings.length === 0
                 ) {
                   return null
                 }

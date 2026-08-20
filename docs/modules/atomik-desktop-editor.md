@@ -24,8 +24,14 @@ timestamp: 2026-08-17T00:00:00Z
   may now carry `<!-- trace:<path> -->` beside `sent:`/`run:`/`cited:`/
   `packet:`; `parseTraceMeta` accepts only a `.md` path with no whitespace or
   angle brackets, so a hand-mangled comment reads as absent rather than
-  sending the workspace somewhere. The record and the note it holds are the
-  AI area's: `shared/agent-trace.ts`.
+  sending the workspace somewhere. S07h makes the payload a WIKILINK —
+  `serializeTraceMeta` writes `[[chats/…/turn-03]]` — because `parseEdges`
+  skips fenced blocks and code spans but not html comments, so the trace
+  becomes a graph edge from the transcript while staying invisible in the
+  render and out of the thread history sent back to the model. The parser
+  still accepts the S07g bare path, and only the wikilink form may omit `.md`
+  (a bare `x.txt` stays wrong instead of becoming `x.txt.md`). The record and
+  the note it holds are the AI area's: `shared/agent-trace.ts`.
 - EXTERNAL CITATION CHIPS (CP-MVP-011 S07e): `editor/citation-chips.ts`
   decorates markers for BOTH source kinds through the one marker parser and
   the one chip idiom. A vault chip keeps `data-citation` with its relative

@@ -166,6 +166,25 @@ describe('the consulted-sources surface (CP-MVP-011 S07b)', () => {
     expect(view).toContain('consultedMaterialOf(result.toolExecutions)')
   })
 
+  it('leads the ANSWER with the image, not the provenance block (S07h)', () => {
+    // Owner bench, twice: "would want it first and well presented", then
+    // "photo still after text". S07e put it first INSIDE the consulted block,
+    // which still renders after the prose and the citation footer.
+    const media = view.indexOf('<ConsultedMediaBlock')
+    const body = view.indexOf('<ClaimBody')
+    const block = view.indexOf('<ConsultedBlock')
+    expect(media).toBeGreaterThan(-1)
+    expect(media).toBeLessThan(body)
+    expect(body).toBeLessThan(block)
+    const consulted = readFileSync(
+      new URL('../renderer/src/workspace/ConsultedBlock.tsx', import.meta.url),
+      'utf8'
+    )
+    // the provenance block no longer renders media itself
+    const blockStart = consulted.indexOf('export function ConsultedBlock(')
+    expect(consulted.slice(blockStart)).not.toContain('material.media')
+  })
+
   it('keeps attribution beside the image rather than in a tooltip', () => {
     expect(block).toContain('chat-consulted-credit')
     expect(block).toMatch(/\{item\.creator\}/)

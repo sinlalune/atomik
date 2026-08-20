@@ -55,10 +55,12 @@ export type AgentTracePersistInput = {
 /**
  * Returns the trace's vault path, or null when there is nothing to audit.
  *
- * WHEN: only an exchange with real tool activity earns a file. A plain answer
- * is already fully described by the `sent` / `run` / `cited` / `packet`
- * comments on its own headings; a folder of near-empty notes beside every
- * transcript would be noise the owner has to delete.
+ * WHEN: EVERY answered turn, from S07h. The first rule was "only exchanges
+ * with tool activity", and the owner's own bench refuted it in one file: turn
+ * 1 answered *"Je ne trouve aucune information…"* with no tools and therefore
+ * no trace — the exchange most worth auditing was the one with no record. An
+ * audit trail with holes reads as a bug, and a no-tool turn still carries its
+ * packet, its cost and the preference it ran under.
  *
  * FAILURE: a trace that cannot be written returns null instead of throwing.
  * The answer is the user's work and must land; the audit is not worth losing
@@ -72,7 +74,7 @@ export async function persistAgentTrace(
    *  rules above are unit-tested rather than asserted against source text. */
   createNote: (relPath: string, content: string) => Promise<unknown>
 ): Promise<string | null> {
-  if (input.chat === null || input.executions.length === 0) return null
+  if (input.chat === null) return null
   const record = agentTraceRecordOf({
     chat: input.chat,
     turn: input.turn,

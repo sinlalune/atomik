@@ -118,13 +118,31 @@ export function chatTracePath(
   return `${chatTraceFolder(chatRelPath)}/turn-${index}${suffix}.md`
 }
 
-/** A vault path is safe to carry in a `<!-- trace: … -->` comment only if it
- *  cannot close the comment or smuggle a newline; anything else reads as
- *  absent, exactly like a mangled `sent:`. */
+/**
+ * The link to a turn's agent trace, as a WIKILINK (S07h, owner: *"in chat log
+ * we mention the path of the trace but maybe wikilink better?"*). A bare path
+ * is a string; `[[path]]` is an EDGE — `parseEdges` skips fenced blocks and
+ * code spans but not HTML comments, so the trace becomes a node the graph can
+ * reach while staying invisible in the rendered transcript. Invisible matters
+ * twice: a visible link line would also travel back to the model as history.
+ */
+export function serializeTraceMeta(relPath: string): string {
+  return `[[${relPath.replace(/\.md$/i, '')}]]`
+}
+
+/** Lenient inverse, accepting the S07g bare path too — transcripts written
+ *  before the wikilink still resolve. A path that could close the comment or
+ *  smuggle a newline reads as absent, exactly like a mangled `sent:`. */
 export function parseTraceMeta(raw: string): string | null {
-  const path = raw.trim()
+  const trimmed = raw.trim()
+  const wiki = /^\[\[(.+?)\]\]$/.exec(trimmed)
+  const path = wiki ? wiki[1]!.trim() : trimmed
   if (path.length === 0 || path.length > 400) return null
-  return /^[^\s<>|"]+\.md$/i.test(path) ? path : null
+  // Only the WIKILINK form may omit the extension — that is its convention.
+  // A bare path is taken literally, so `x.txt` stays wrong instead of
+  // becoming `x.txt.md`.
+  const withMd = wiki && !/\.md$/i.test(path) ? `${path}.md` : path
+  return /^[^\s<>|"[\]]+\.md$/i.test(withMd) ? withMd : null
 }
 
 const turnSection = (

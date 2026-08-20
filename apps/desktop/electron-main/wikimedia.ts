@@ -1046,11 +1046,18 @@ export class WikimediaClient {
         media: [],
         warnings: [
           ...warnings,
+          // S07h (owner: *"why articles clipped?"*): a warning that names no
+          // article and no number cannot be acted on. Name both — the cap is
+          // a deliberate prompt budget, not a network failure, and seeing
+          // WHICH page lost its tail is what makes it arguable.
           ...(articles.some((article) => article.truncated)
             ? [
                 {
                   kind: 'truncated' as const,
-                  message: 'One or more articles were clipped to the text budget.'
+                  message: `${articles
+                    .filter((article) => article.truncated)
+                    .map((article) => article.source.title)
+                    .join(', ')} — read to the first ${this.limits.maxArticleTextChars.toLocaleString('en-US')} characters, the per-article text budget.`
                 }
               ]
             : [])
@@ -1190,12 +1197,22 @@ export class WikimediaClient {
           this.limits
         )
       )
+      // S07h (owner: *"what means ambiguous for wikidata?"*). It never meant
+      // "this entity is doubtful": the search returned more candidates than
+      // the slots we gave it, and we took the top-ranked one. Said blankly it
+      // fires on every common name and teaches the reader to ignore it — so
+      // it now names the entity that WAS chosen and what it beat.
+      const chosen = entities[0]
+      const candidates = `${searched.hits.length}${searched.hasMore ? '+' : ''}`
       const warnings: WikimediaWarning[] =
-        searched.hasMore || hits.length > 1
+        (searched.hasMore || searched.hits.length > 1) && chosen !== undefined
           ? [
               {
                 kind: 'ambiguous',
-                message: 'Wikidata returned multiple ranked entity candidates.'
+                message:
+                  hits.length > 1
+                    ? `Kept the top ${hits.length} of ${candidates} candidates; first is ${chosen.label} (${chosen.id}).`
+                    : `Ranked first of ${candidates} candidates: ${chosen.label} (${chosen.id}).`
               }
             ]
           : []

@@ -31,6 +31,45 @@ function revisionLabel(source: ConsultedSource): string {
     : `as of ${source.revision.slice(0, 10)}`
 }
 
+/**
+ * The image, LEADING the answer (S07h).
+ *
+ * S07e moved it to the head of the consulted block and the owner benched it
+ * again: *"photo still after text"*. It was — the block itself renders after
+ * the prose and after the citation footer, so "first inside the block" was
+ * still last on screen. A portrait that illustrates an answer belongs where
+ * the reader meets it, above the first sentence; the provenance list stays
+ * below, where provenance belongs. Attribution rides with the image, never in
+ * a tooltip: a credit one hover away is a credit not given.
+ */
+export function ConsultedMediaBlock({
+  media
+}: {
+  media: ConsultedMaterial['media']
+}): React.JSX.Element | null {
+  if (media.length === 0) return null
+  return (
+    <ul className="chat-consulted-media chat-consulted-media-lead">
+      {media.map((item) => (
+        <li key={item.url}>
+          <img
+            src={item.thumbnailUrl}
+            alt={item.title}
+            loading="lazy"
+            {...(item.width > 0 && item.height > 0
+              ? { width: item.width, height: item.height }
+              : {})}
+          />
+          <span className="chat-consulted-credit">
+            <span className="chat-consulted-file">{item.title}</span>
+            {item.creator} · {item.license.name}
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export function ConsultedBlock({
   material,
   onCopy,
@@ -42,32 +81,6 @@ export function ConsultedBlock({
 }): React.JSX.Element {
   return (
     <section className="chat-consulted" aria-label="Consulted sources">
-      {/* S07e: the image LEADS. It is the most legible thing an augmented
-          answer produced, and trailing the source list made it read as an
-          afterthought — the owner's words: "would want it first and well
-          presented". Attribution rides with it, never in a tooltip: a credit
-          one hover away is a credit not given. */}
-      {material.media.length > 0 && (
-        <ul className="chat-consulted-media">
-          {material.media.map((item) => (
-            <li key={item.url}>
-              <img
-                src={item.thumbnailUrl}
-                alt={item.title}
-                loading="lazy"
-                {...(item.width > 0 && item.height > 0
-                  ? { width: item.width, height: item.height }
-                  : {})}
-              />
-              <span className="chat-consulted-credit">
-                <span className="chat-consulted-file">{item.title}</span>
-                {item.creator} · {item.license.name}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-
       {material.warnings.length > 0 && (
         <ul className="chat-consulted-warnings">
           {material.warnings.map((warning) => (

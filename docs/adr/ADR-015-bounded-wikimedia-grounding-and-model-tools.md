@@ -100,13 +100,22 @@ heading). It is a different artifact from `.atomik/usage/private/actions.jsonl`,
 which stays content-free telemetry: an audit that cannot name the query the
 model wrote or the revision it read audits nothing.
 
-The line it does not cross is the prose. Article extracts, packet excerpts and
+It covers EVERY answered turn, including one that called no tool: an audit
+trail with holes is worse than none, and the turn that found nothing is often
+the one worth reading.
+
+The line it does not cross is the PUBLIC prose. Article extracts, packet excerpts and
 the untrusted `content` a tool result carries are NEVER written to the trace —
 recording them would create a durable copy of public material as a side effect
 of consultation, which is precisely the promotion **Save as source** exists to
-make deliberately, with licence and revision. So the trace records what was
-ASKED (tool arguments), what was READ (URL, revision, licence, path, stage) and
-every FIGURE, and nothing else.
+make deliberately, with licence and revision.
+
+A vault packet excerpt is the opposite case and the line falls the other way:
+it is the user's own note, quoted from a file already in this vault, so the
+trace keeps it — it is the only way to answer "what did it read of mine?"
+after the session ended. So the trace records what was ASKED (tool arguments),
+what was READ (URL, revision, licence, path, stage), the vault text actually
+sent, and every FIGURE — and no fetched public prose.
 
 ## Consequences
 

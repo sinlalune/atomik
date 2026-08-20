@@ -12,7 +12,8 @@ import {
   chatTracePath,
   chatHistoryOf,
   parseChatTurns,
-  parseTraceMeta
+  parseTraceMeta,
+  serializeTraceMeta
 } from '../renderer/src/editor/chat-file'
 
 const view = readFileSync(
@@ -174,20 +175,27 @@ describe('the agent trace record (CP-MVP-011 S07g)', () => {
     expect(record.calls[0]!.stats.bytes).toBe(3_400_000)
   })
 
-  it('never keeps the fetched prose or the packet excerpts', () => {
+  it('never keeps the fetched PUBLIC prose', () => {
     // ADR-015: consultation is transient. A durable copy of public material
     // is what Save as source exists to make, deliberately and with licence.
     const note = serializeAgentTraceNote(agentTraceRecordOf(baseInput()))
     expect(note).not.toContain(FETCHED_PROSE)
     expect(note).not.toContain('DISTINCTIVE-EXTRACT')
-    expect(note).not.toContain(PACKET_EXCERPT)
-    expect(note).not.toContain('DISTINCTIVE-EXCERPT')
     // ...while the IDENTITIES that make it checkable are all there.
     expect(note).toContain('https://fr.wikipedia.org/wiki/Biologie')
     expect(note).toContain('238521024')
     expect(note).toContain('CC BY-SA 4.0')
     expect(note).toContain('A. Photographer')
     expect(note).toContain('notes/bio.md')
+  })
+
+  it('DOES keep the vault excerpt it sent — that note is already yours', () => {
+    // S07h, the owner's question: the line falls the other way for the
+    // packet. Quoting a note that lives one folder away duplicates nothing,
+    // and it is the only way to see what was actually read of your own vault
+    // once the tab is closed.
+    const note = serializeAgentTraceNote(agentTraceRecordOf(baseInput()))
+    expect(note).toContain(PACKET_EXCERPT)
   })
 
   it('keeps the coverage terms that explain why it went outside', () => {
@@ -198,7 +206,13 @@ describe('the agent trace record (CP-MVP-011 S07g)', () => {
       missingTerms: ['cellule']
     })
     expect(record.packet?.entries).toEqual([
-      { path: 'notes/bio.md', stage: 'lexical', reason: 'matched biologie', tokens: 240 }
+      {
+        path: 'notes/bio.md',
+        stage: 'lexical',
+        reason: 'matched biologie',
+        tokens: 240,
+        excerpt: PACKET_EXCERPT
+      }
     ])
     expect(record.packet?.omitted).toEqual([
       { path: 'chats/2026-08-19/x.md', reason: 'dialogue' }
@@ -217,6 +231,15 @@ describe('the agent trace record (CP-MVP-011 S07g)', () => {
     expect(record.billing).toBeNull()
     expect(record.durationMs).toBeNull()
     expect(record.calls).toHaveLength(2)
+  })
+
+  it('names itself in plain text and links its chat as a wikilink', () => {
+    // S07h: an H1 with a markdown link inside it became the note's TITLE in
+    // every pill and relation sentence — `[chats/…](<chats/…>)` as a name.
+    const note = serializeAgentTraceNote(agentTraceRecordOf(baseInput()))
+    expect(note).toContain('# Agent trace — biologie · turn 1')
+    expect(note).not.toContain('# Agent trace — [')
+    expect(note).toContain('Chat: [[chats/2026-08-19/biologie]]')
   })
 
   it('round-trips through the note as one JSON block', () => {
@@ -322,6 +345,27 @@ describe('the transcript links its trace (CP-MVP-011 S07g)', () => {
     expect(parseTraceMeta('a<script>.md')).toBeNull()
     expect(parseTraceMeta('')).toBeNull()
   })
+
+  it('writes the link as a WIKILINK and still reads the S07g bare path', () => {
+    // S07h (owner): a path is a string, `[[path]]` is an edge — parseEdges
+    // skips fences and code spans, not HTML comments, so the trace becomes a
+    // node the graph can reach while staying invisible in the transcript.
+    expect(serializeTraceMeta('chats/2026-08-19/biologie-traces/turn-01.md')).toBe(
+      '[[chats/2026-08-19/biologie-traces/turn-01]]'
+    )
+    expect(parseTraceMeta('[[chats/2026-08-19/biologie-traces/turn-01]]')).toBe(
+      'chats/2026-08-19/biologie-traces/turn-01.md'
+    )
+    // the transcripts already on disk keep resolving
+    expect(parseTraceMeta('chats/2026-08-19/biologie-traces/turn-01.md')).toBe(
+      'chats/2026-08-19/biologie-traces/turn-01.md'
+    )
+    expect(
+      parseChatTurns(
+        '## atomik <!-- trace:[[chats/2026-08-19/biologie-traces/turn-01]] -->\n\nanswer\n'
+      )[0]?.trace
+    ).toBe('chats/2026-08-19/biologie-traces/turn-01.md')
+  })
 })
 
 describe('writing the trace (CP-MVP-011 S07g)', () => {
@@ -345,16 +389,19 @@ describe('writing the trace (CP-MVP-011 S07g)', () => {
     expect(written[0]!.content).toContain('"name": "search_wiki"')
   })
 
-  it('writes nothing when no tool ran — the turn already describes itself', async () => {
-    let calls = 0
+  it('traces a turn that called NO tool — the one the owner had no record of', async () => {
+    // S07h: the first exchange of the owner's bench answered "je ne trouve
+    // aucune information" with no tools, and got no trace. That was the turn
+    // most worth auditing.
+    const written: string[] = []
     const path = await persistAgentTrace(
       persistInput({ executions: [] }) as never,
-      async () => {
-        calls += 1
+      async (relPath) => {
+        written.push(relPath)
       }
     )
-    expect(path).toBeNull()
-    expect(calls).toBe(0)
+    expect(path).toBe('chats/2026-08-19/biologie-traces/turn-01.md')
+    expect(written).toHaveLength(1)
   })
 
   it('writes nothing before the transcript exists', async () => {
@@ -392,7 +439,9 @@ describe('the chat view wires the trace (CP-MVP-011 S07g)', () => {
     const turn = view.indexOf("await persistTurn(\n              'atomik'")
     expect(write).toBeGreaterThan(-1)
     expect(turn).toBeGreaterThan(write)
-    expect(view).toContain('tracePath ? `trace:${tracePath}` : undefined')
+    expect(view).toContain(
+      'tracePath ? `trace:${serializeTraceMeta(tracePath)}` : undefined'
+    )
   })
 
   it('records the preference the send actually carried', () => {

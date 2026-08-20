@@ -313,6 +313,9 @@ OPEN        provider-step position vs S07; the "luna" model id; whether
 - [x] S07g The agent trace, durable beside the transcript: the run becomes a
       note in its own folder next to the chat, linked from the answer, with
       one JSON block — the owner's shape, the architecture delegated.
+- [x] S07h The owner's first trace bench: trace every turn, the packet's
+      excerpts inside the trace, a wikilink instead of a path, the image
+      leading the answer, and two warnings that say something.
 - [ ] S07 Augmented chat + external citations: the wiki control MIRRORS the
       vault tool — a per-thread enable toggle, a `reach` depth control, and
       four per-source switches (Wikipedia · Wikidata · Commons image ·
@@ -831,6 +834,54 @@ maxlag removed  1 tool call  · Wikidata ALIVE  ·  5.6s · $0.0034
   owner's provider — the request-inspector half of the 2026-08-18 bench is
   still unbuilt, and the two want one bench together.
 
+## S07h work unit — complete 2026-08-20
+
+- **Owner bench, verbatim:** *"Why not trace for every turn? why not bringing
+  packets temporary in a different folder? Also in chat log, we mention the
+  path of the trace but maybe wikilink better? … photo still after text …
+  why articles clipped? what means ambiguous for wikidata?"* — benched live on
+  `google`, against `vault-juju/chats/2026-08-20/emmanuel-macron.md` and its
+  `emmanuel-macron-traces/turn-03.md`, both read directly before answering.
+- **Every turn is traced.** The S07g rule ("only exchanges with tool
+  activity") was refuted by turn 1 of the owner's own file: no tools, so no
+  trace, on the exchange most worth auditing — *"Je ne trouve aucune
+  information concernant Emmanuel Macron dans les notes de référence"*.
+- **Packet excerpts ride the trace** (owner chose one file per turn over a
+  separate packets folder). The no-prose rule bars fetched PUBLIC text; a
+  vault excerpt is the user's own note quoted from a file one folder away, so
+  it duplicates nothing and is the only way to see what was read of your own
+  vault after the tab closed. ADR-015 now states both halves of the line.
+- **The link is a wikilink.** `<!-- trace:[[chats/…/turn-03]] -->`:
+  `parseEdges` skips fenced blocks and code spans but NOT html comments, so
+  the trace becomes a graph node while staying invisible in the render — and
+  stays out of the thread history a visible link line would join.
+  `parseTraceMeta` still reads the S07g bare path; only the wikilink form may
+  omit `.md` (a bare `x.txt` stays wrong instead of becoming `x.txt.md`).
+- **The trace note's H1 is plain text** with the chat wikilink on its own
+  line. Found while answering, not reported: an H1 containing a markdown link
+  had become the note's TITLE everywhere the graph shows one.
+- **The image leads the ANSWER** (`ConsultedMediaBlock` above `ClaimBody`).
+  S07e's claim that "the image leads" was true only inside the consulted
+  block, which renders after the prose AND after the citation footer — so
+  first-in-the-block was still last on screen.
+- **Two warnings that say something.** `truncated` names the articles and the
+  cap they hit (`maxArticleTextChars`, 6 000 — the fr Macron article is
+  hundreds of thousands of characters, so the model read its head).
+  `ambiguous` never meant "this entity is doubtful": Wikidata returned more
+  candidates than the reach's slots and the top-ranked one was taken; it now
+  names the chosen entity with its QID and how many it beat.
+- **Tests:** 21 in the trace file (up from 18) plus one in the chat view — the
+  wikilink round-trips and the bare path still resolves, a no-tool turn IS
+  traced, the excerpt is kept while the fetched prose still cannot appear, the
+  H1 is plain and the chat link is a wikilink, and the media block renders
+  before the answer body while the consulted block no longer holds media. The
+  Wikidata ambiguity assertion was rewritten for the new message. Full result:
+  82 files, 1107 passed + 1 skipped; typecheck and build green.
+- **Open, unanswered by the owner:** whether 6 000 chars per article is still
+  the right budget now that its cost in answer depth is visible — S07f already
+  named `prop=extracts&explaintext` as the way to buy more text for fewer
+  bytes.
+
 # Current checkpoint
 
 ```text
@@ -849,25 +900,30 @@ changed     : S01 contracts; S02 Wikipedia; S03 Wikidata/graph projection;
               S07e external citations, one call across every enabled source;
               S07f citations persist, honest hover extent, velocity measured;
               S07g agent trace persisted beside the transcript, linked from
-              the answer, prose-free by rule (ADR-015)
-tests       : typecheck green; 82 files / 1103 pass / 1 skip; build green
-bench       : 2026-08-17, live, gemini-3.7-flash + fr.wikipedia + wikidata —
-              one tool call, 5.6s, ~$0.0034 per exchange, French answer
+              the answer, public-prose-free by rule (ADR-015);
+              S07h owner's first trace bench — every turn traced, packet
+              excerpts inside the trace, wikilink not path, image leads the
+              answer, truncated/ambiguous warnings name what they mean
+tests       : typecheck green; 82 files / 1107 pass / 1 skip; build green
+bench       : 2026-08-20, live, google + fr.wikipedia + wikidata + wiktionary
+              + Commons — one `search_wiki` call, 6.8s, 3 sources numbered
+              [1][2][3], ~$0.00047, French answer; the trace note landed and
+              the owner read it. Findings became S07h. Earlier: 2026-08-17,
+              gemini-3.7-flash, one call, 5.6s, ~$0.0034
 reconciled  : 2026-08-19 on resume. S07f is DONE (656e6d8) and this line
               still ordered it — the checkpoint-accuracy hole paths.md names.
               Verified on the rebased branch: clean tree, contains trunk tip
               80b131a, cairn-check OK (1 advisory: no audit for this head),
               typecheck + 81 files / 1085 pass / 1 skip + build all green
-next action : S07g landed the trace half. What remains under S07 is the
-              REQUEST INSPECTOR: its breakdown pills still describe the
-              pre-pass packet only, so an answer that called three corpora
-              looks like it sent nothing but the packet. Build it against the
-              trace record S07g now writes, then bench both together in the
-              real app on the owner's provider — neither has been benched.
-              Optional, from S07f's measurement: `prop=extracts&explaintext`
-              fetches a few KB where the current read moves ~3.4 MB, the only
-              real velocity lever. Then S08 save-as-source, which also brings
-              navigation to a consulted URL.
+next action : re-bench S07h in the real app (every-turn traces, the wikilink
+              edge, the image above the prose, the two rewritten warnings),
+              then the REQUEST INSPECTOR — its breakdown pills still describe
+              the pre-pass packet only, so an answer that called three corpora
+              looks like it sent nothing but the packet; build it against the
+              trace record. Optional, and now visible in the owner's own
+              trace: `prop=extracts&explaintext` buys more article text for
+              fewer bytes than the 6 000-char cap allows today. Then S08
+              save-as-source, which also brings navigation to a consulted URL.
 blockers    : none
 parallel    : none — CP-RICH-MARKDOWN merged as 80b131a and this branch is
               rebased onto it. No other path is running.

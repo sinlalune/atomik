@@ -191,12 +191,12 @@ describe('Wikidata live seat', () => {
       { id: 'Q4817196', rank: 4 },
       { id: 'Q9121', rank: 5 }
     ])
-    expect(bundle.warnings).toEqual([
-      {
-        kind: 'ambiguous',
-        message: 'Wikidata returned multiple ranked entity candidates.'
-      }
-    ])
+    // S07h (owner: "what means ambiguous for wikidata?") — the warning names
+    // the entity that WAS chosen and how many it beat, so a reader can judge
+    // the pick instead of being told a search happened.
+    expect(bundle.warnings).toHaveLength(1)
+    expect(bundle.warnings[0]!.kind).toBe('ambiguous')
+    expect(bundle.warnings[0]!.message).toMatch(/^Kept the top 5 of 5\+ candidates; first is .+ \(Q16766305\)\.$/)
   })
 
   it('maps Action API maxlag and omitted entities to typed failures', async () => {

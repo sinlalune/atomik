@@ -16,6 +16,14 @@ timestamp: 2026-08-17T00:00:00Z
 
 ## What it owns
 
+- THE IMAGE LEADS THE ANSWER (CP-MVP-011 S07h): `ConsultedMediaBlock` renders
+  ABOVE `ClaimBody`; the consulted block keeps warnings, vault notes and
+  sources below it. S07e had moved the image to the head of the consulted
+  block and the owner benched it again — *"photo still after text"* — because
+  the block itself follows the prose and the citation footer, so "first inside
+  the block" was still last on screen. The illustration meets the reader above
+  the first sentence; provenance stays where provenance belongs. Attribution
+  still rides with the image rather than in a tooltip.
 - TRACE AFFORDANCE ON AN ANSWER (CP-MVP-011 S07g): `icons.tsx` gains
   `TraceIcon` (a receipt), and the answer's hover actions gain one
   `icon-button chat-trace` beside insert and create-note. It reveals the
