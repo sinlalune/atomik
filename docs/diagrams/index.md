@@ -21,22 +21,23 @@ Initialized 2026-07-05 at corpus v0.6. This folder is the visual projection of t
 | D05 | `D05_truth_label_mechanics.svg` | Mechanical truth labeling | 06, 28 | labeling rule or label set changes | current @ v0.6 |
 | D06 | `D06_retrieval_execution_ladder.svg` | Retrieval and execution ladder | 00, 33 | ladder rungs change | current @ v0.6 |
 | D07 | `D07_three_planes.svg` | The three planes | 35 | plane definitions change | current @ v0.6 |
-| D08 | `D08_bootstrap_protocol.svg` | Coding agent bootstrap protocol | 22 | protocol steps change | current @ v0.6 |
+| D08 | `D08_bootstrap_protocol.svg` | Coding agent bootstrap protocol | 22 | protocol steps change | current @ CP-OPS-001 S08 |
 | D09 | `D09_dual_plane_repository.svg` | Dual-plane repository | 35, ADR-009 | repository layout changes | current @ v0.6 |
 | D10 | `D10_roadmap_m0_m13.svg` | Roadmap M0–M13 | 18 | milestones or center of gravity change | current @ v0.6 |
 | D11 | `D11_note_lifecycle.svg` | Note lifecycle | 11 | lifecycle states change | current @ v0.6 |
 | D12 | `D12_reuse_loop.svg` | The reuse loop | 02, 20 | proposal mechanism changes | current @ v0.6 |
-| D13 | `D13_concurrent_execution_lanes.svg` | Concurrent execution lanes | 35, `atomik-project/coding-paths/paths.md` | lane kinds, ownership map, or gate steps change | current @ CP-OPS-001 S03 |
-| D14 | `D14_cairn_protocol_workflow.svg` | The Cairn protocol — full workflow | 22, 35, `atomik-project/coding-paths/paths.md` | a role, a lifecycle stage, a gate step, or the blocking/advisory split changes | current @ CP-OPS-001 S04d |
+| D13 | `D13_concurrent_execution_lanes.svg` | Concurrent coding paths with trunk registration | 35, `atomik-project/coding-paths/paths.md` | registration, ownership, parallelism, or merge mechanics change | current @ CP-OPS-001 S08 |
+| D14 | `D14_cairn_protocol_workflow.svg` | The Cairn protocol — full workflow | 22, 35, `atomik-project/coding-paths/paths.md` | a role, a lifecycle stage, a gate step, or the blocking/advisory split changes | current @ CP-OPS-001 S08 |
 | D15 | `D15_retrieval_workflow.svg` | Retrieval over the graph — question to grounded answer | 26, 33, `docs/modules/atomik-desktop-vault.md`, `docs/modules/atomik-desktop-ai.md` | a ladder rung, a packet field, a subject rule, a reach, or the coverage branch changes — and whenever the evaluation numbers on it are re-measured | current @ CP-MVP-010 S10 |
 
 D14 and D15 are GENERATED — edit `tools/gen-d14-workflow.py` /
 `tools/gen-d15-retrieval-workflow.py` and re-run them, never the SVG
-by hand. The generator asserts its own geometry (no box overlaps, nothing out of
+by hand. The generator writes into its CURRENT worktree (never a hard-coded
+checkout) and asserts its own geometry (no box overlaps, nothing out of
 bounds, and every loop label's full text extent clear of every box); both checks
 caught real placement bugs that hand-authoring had shipped. D13 remains the
-close-up of the lane/gate mechanics; D14 is the whole lifecycle including the
-ceremonies, CI, and the loops between them.
+close-up of registration, parallel ownership and self-merge; D14 is the whole
+lifecycle including the ceremonies, CI, and the loops between them.
 
 D15's generator carries the same discipline one step further: it asserts that
 every line of text FITS its box and that no drawn point leaves the canvas.

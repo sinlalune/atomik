@@ -26,7 +26,7 @@ These run locally with the same command CI runs. The exit code is the verdict â€
 never pipe gate output through `grep` or `head`.
 
 ```bash
-npm run cairn-check     # protocol: 7 blocking rules, 4 advisory
+npm run cairn-check     # protocol: 8 blocking rules, 4 advisory
 npm run cairn-active    # regenerate the running-paths view (never edit it)
 npm run cairn-audit     # scaffold the coherence audit before merging
 npm run typecheck && npm test && npm run build
@@ -35,6 +35,8 @@ npm run typecheck && npm test && npm run build
 ## Absolute rules (survive even a truncated read)
 
 - No implementation work outside an accepted coding path (`docs/bedrock/35_35-coding-path-execution-state.md`).
+- After opening acceptance, register the running path declaration and generated
+  `ACTIVE.md` on the trunk before creating its implementation worktree.
 - Never invent architecture outside `docs/bedrock/`; decisions live in `docs/adr/`.
 - Every executed step updates code, tests, docs, and the path's own work ledger
   in the same work unit.

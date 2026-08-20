@@ -45,6 +45,7 @@
     "invariants": [
       "Navigate Bedrock for knowledge; follow a Coding Path for execution; persist progress in the Work Ledger; generate a brief only as a portable view of that state.",
       "Never begin implementation without an accepted coding path; propose one first if none exists.",
+      "After opening acceptance, register the running path declaration on the trunk and regenerate ACTIVE.md before creating its implementation worktree.",
       "Never silently invent architecture outside the bedrock.",
       "Read every Required document of the active path; honor Conditional triggers; respect Deliberately excluded entries.",
       "Verify repository reality against the ledger before executing; reconcile mismatches explicitly.",
@@ -79,7 +80,8 @@ Coding Path    = what this task will change, in what order, and where it stands
 2. Read atomik-project/coding-paths/paths.md — how work runs: parallel
    paths, one per worktree, each merging itself.
 3. Open atomik-project/coding-paths/ACTIVE.md and follow it to YOUR path.
-   Several may be running; you own exactly one.
+   Several may be running; you own exactly one. Its global entry exists because
+   accepted running paths register on the trunk before their branches diverge.
 4. Verify reality against the Work Ledger:
    git status, base commit, dirty files, test state.
    If they disagree, reconcile and record the correction before anything else.
@@ -122,7 +124,16 @@ path marked `done` without its session note fails the protocol check.
 
 1. **CLOSING ceremony**, run when a path closes, before it merges (with its acceptance): present the owner a compact RECALL derived from repo metadata (register, ledgers, acceptance records, log — never from conversation memory): everything done, the backlog as it stands, what comes next, and what the agent believes needs challenging or completing. Then manage the roadmap backlog through prompted exchange. Answers are promoted into a session note; roadmap (18) amendments stay owner-gated — propose, never apply silently.
 2. **OPENING check**, run when a path is about to activate — drafting and executing happen in the SAME session, since nobody drafts a path for someone else to pick up: walk the FEATURES INSIDE that path with the owner — one quick prompted confirmation per major feature ("this is what I am about to implement, this way — still your vision?"). Deltas amend the path BEFORE its base commit pins; answers are recorded in the path file and its session note. Activation still requires the owner's explicit acceptance.
-3. Then propose/adjust the path — from a roadmap milestone if it is numbered, from its subject if it is labelled — using the template in `24_24-doc-templates.md`, and begin at S01. Activating or closing a path with no recorded ceremony is invalid, and the closing half of that is machine-checked.
+3. Then propose/adjust the path — from a roadmap milestone if it is numbered,
+   from its subject if it is labelled — using the template in
+   `24_24-doc-templates.md`. After explicit acceptance, land a
+   **registration-only trunk commit** containing the accepted path declaration
+   (`status: running`, `branch`, pre-registration `base_commit`) and regenerated
+   `ACTIVE.md`. It contains no implementation. Create the worktree from that
+   commit and begin at S01. Cairn blocks new path branches whose declaration is
+   absent from the trunk; CP-OPS-001, CP-MVP-011 and CP-MVP-012 are the finite
+   pre-rule exceptions. Activating or closing a path with no recorded ceremony
+   is invalid, and the closing half is machine-checked.
 
 An in-app "ceremony tab" (path state as an interactive projection, 35) is a recorded candidate (`atomik-project/brainstorm/2026-07-21-ceremony-tab.md`); until it exists, the ceremonies live in prompted exchange + session notes.
 

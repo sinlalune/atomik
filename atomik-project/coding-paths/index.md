@@ -16,13 +16,17 @@ Paths are opened just-in-time, when their milestone becomes next:
 - seed from the milestone section of 18 and the coding path template in 24
 - pass the coverage audit: every bedrock page accounted for at least once
 - SEVERAL paths run at once (revised 2026-08-14, owner: *"every workstation or dev should be able to merge into master"*) — one worktree and one branch each, every path merging ITSELF after its own closing ceremony. No integration parent, no integrator. Numbered paths (`CP-MVP-010`) come from the roadmap and hold a row below; labelled paths (`CP-SETTINGS`) are named for their subject and hold none. Convention: [paths.md](./paths.md)
+- after opening acceptance, land the accepted `status: running` declaration and
+  regenerated `ACTIVE.md` in a registration-only trunk commit, then create the
+  implementation worktree from it; this table maps milestones and records
+  integrated outcomes, while `ACTIVE.md` alone is the live status authority
 - never widen a closing path to absorb the next milestone — open a new one (thinness rule)
 
 Late paths are better paths: they inherit module notes, friction records from the daily-use gate, and the architecture as actually built — none of which exist yet.
 
 ## Register
 
-| milestone | scope | path | status |
+| milestone | scope | path | outcome record |
 |---|---|---|---|
 | M0–M2 | shell · vault · AI patch loop | CP-MVP-001 | done (2026-07-06) |
 | M3 | capture sources + local speech baseline | CP-MVP-002 | done (2026-07-07) |
@@ -36,10 +40,11 @@ Late paths are better paths: they inherit module notes, friction records from th
 | M7 | live verification provider | — | not opened |
 | M8 (front half) | semantic graph foundation — ADR-011 grammar, pills everywhere, nodes/edges index, typed backlinks | [CP-MVP-009](./CP-MVP-009.md) | done (2026-08-13, [acceptance](../sessions/2026-08-13-cp-mvp-009-acceptance.md) · [closing](../sessions/2026-08-13-cp-mvp-009-closing-ceremony.md)) |
 | M8 (retrieval) | graph retrieval — lexical BM25 baseline + link expansion, context packets, retrieval traces, vault-grounded chat | [CP-MVP-010](./CP-MVP-010.md) | done (2026-08-17, [acceptance](../sessions/2026-08-17-cp-mvp-010-acceptance.md) · [closing](../sessions/2026-08-17-cp-mvp-010-closing-ceremony.md)) |
-| M8/M10 (augmentation) | Wikimedia augmentation — Wikipedia extract · Wikidata entity into the same nodes/edges tables · Commons P18 · Wiktionary etymology · the model-driven tool loop · web citations · save-as-source | CP-MVP-011 | reserved; next after CP-MVP-010, with a short opening check (rulings already recorded in the 010 [opening check](../sessions/2026-08-16-cp-mvp-010-opening-check.md)) |
+| M8/M10 (augmentation) | Wikimedia augmentation — Wikipedia extract · Wikidata entity into the same nodes/edges tables · Commons P18 · Wiktionary etymology · the model-driven tool loop · web citations · save-as-source | CP-MVP-011 | opened 2026-08-17; outcome pending — live state in [ACTIVE](./ACTIVE.md) |
+| M8/M10 (Wikimedia link graph) | Wikidata-first hub · contextual outward links · six further Wikimedia corpora · bounded model-chosen hops | CP-MVP-012 | opened 2026-08-20; outcome pending — depends on CP-MVP-011; live state in [ACTIVE](./ACTIVE.md) |
 | — (process) | Cairn — parallel paths, self-merge, and the CI that enforces it | [CP-OPS-001](./CP-OPS-001.md) | **running** (accepted 2026-08-14, [opening check](../sessions/2026-08-14-cp-ops-001-opening-check.md)) |
 | — (labelled) | provider expansion + settings menu — OpenRouter gateway, direct adapters (OpenAI, Anthropic, DeepSeek, Google Gemini, Mistral), multi-provider settings panel | [CP-PROVIDERS](./CP-PROVIDERS.md) | done (2026-08-16, [acceptance](../sessions/2026-08-16-cp-providers-acceptance.md) · [closing](../sessions/2026-08-16-cp-providers-closing-ceremony.md)) |
-| — (labelled) | rich Markdown — KaTeX math, secure Mermaid and Vega-Lite projections, broad fenced-code highlighting, decoration-only diagnostics | [CP-RICH-MARKDOWN](./CP-RICH-MARKDOWN.md) | **running** (accepted 2026-08-17, [opening check](../sessions/2026-08-17-cp-rich-markdown-opening-check.md)) on `path/cp-rich-markdown` |
+| — (labelled) | rich Markdown — KaTeX math, secure Mermaid and Vega-Lite projections, broad fenced-code highlighting, decoration-only diagnostics | [CP-RICH-MARKDOWN](./CP-RICH-MARKDOWN.md) | done 2026-08-19 ([closing](../sessions/2026-08-17-cp-rich-markdown-closing-ceremony.md)) |
 | M9 | measured local assistance + autocomplete | — | not opened |
 | M10 | public knowledge + dictionary MVP | — | not opened |
 | M11 | truth maintenance + cost dashboard | — | not opened |

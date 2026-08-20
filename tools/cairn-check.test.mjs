@@ -16,9 +16,12 @@ import {
   areaOf,
   evaluate,
   globToRegExp,
+  isCommitPin,
   isPathBranch,
   matchesAny,
+  pathFrontmatterErrors,
   porcelainPaths,
+  registrationMatches,
   readFrontmatter,
   stripCode
 } from './cairn-check.mjs'
@@ -41,6 +44,7 @@ const run = (changed, branch, paths = [A_PATH], extra = {}) =>
     paths,
     resolveFile: () => true,
     trunkContained: true,
+    registrationState: 'registered',
     ceremonyFor: () => true,
     ...extra
   })
@@ -65,6 +69,58 @@ test('a running path with no base commit is blocked', () => {
   assert.ok(
     found.some((f) => f.rule === 'branch-path' && f.message.includes('atomik.base_commit'))
   )
+})
+
+/**
+ * A path file added only on its own branch cannot contribute to the trunk's
+ * global ACTIVE.md projection. Registration is therefore a trunk fact, not a
+ * promise in the branch: new paths are blocked until the same accepted
+ * identity/status/branch/base tuple exists on the trunk. Paths that were
+ * already running when this rule landed are finite, visible migration cases.
+ */
+test('an unregistered path branch is blocked; a grandfathered one is advisory', () => {
+  const missing = run(['README.md'], 'path/cp-mvp-010', [A_PATH], {
+    registrationState: 'missing'
+  })
+  assert.ok(rules(missing, 'blocking').includes('registration'))
+
+  const grandfathered = run(['README.md'], 'path/cp-mvp-010', [A_PATH], {
+    registrationState: 'grandfathered'
+  })
+  assert.ok(!rules(grandfathered, 'blocking').includes('registration'))
+  assert.ok(rules(grandfathered, 'advisory').includes('registration'))
+
+  const registered = run(['README.md'], 'path/cp-mvp-010', [A_PATH])
+  assert.ok(!rules(registered, 'blocking').includes('registration'))
+})
+
+test('a trunk registration must match the path identity, running state and branch', () => {
+  const registered = [
+    '---',
+    'title: Registered path',
+    'atomik:',
+    '  id: CP-MVP-010',
+    '  status: running',
+    '  branch: path/cp-mvp-010',
+    '  base_commit: abc1234',
+    '---',
+    ''
+  ].join('\n')
+
+  assert.ok(registrationMatches(registered, 'CP-MVP-010', 'path/cp-mvp-010', 'abc1234'))
+  assert.ok(!registrationMatches(registered, 'CP-MVP-011', 'path/cp-mvp-010', 'abc1234'))
+  assert.ok(!registrationMatches(registered, 'CP-MVP-010', 'path/cp-other', 'abc1234'))
+  assert.ok(!registrationMatches(registered, 'CP-MVP-010', 'path/cp-mvp-010', 'def5678'))
+  assert.ok(!registrationMatches(registered.replace('status: running', 'status: draft'), 'CP-MVP-010', 'path/cp-mvp-010', 'abc1234'))
+  assert.ok(!registrationMatches('not frontmatter', 'CP-MVP-010', 'path/cp-mvp-010', 'abc1234'))
+})
+
+test('base commits are real-looking Git pins, not YAML null strings', () => {
+  assert.ok(isCommitPin('70f7e27'))
+  assert.ok(isCommitPin('70f7e27aabbccddeeff001122334455667788990'))
+  assert.ok(!isCommitPin('null'))
+  assert.ok(!isCommitPin('HEAD'))
+  assert.ok(!isCommitPin(undefined))
 })
 
 /**
@@ -244,6 +300,19 @@ test('frontmatter: yaml nesting, json bedrock blocks, and garbage', () => {
 
   assert.equal(readFrontmatter('no frontmatter here'), null)
   assert.equal(readFrontmatter('---\n{ broken json\n---\n').error, 'unparseable JSON frontmatter')
+})
+
+test('running path schema requires the fields the global projection consumes', () => {
+  assert.deepEqual(pathFrontmatterErrors(A_PATH.front), [])
+  assert.ok(pathFrontmatterErrors({ id: 'CP-X', status: 'running' }).some(
+    (error) => error.includes('atomik.branch')
+  ))
+  assert.ok(pathFrontmatterErrors({ id: 'CP-X', status: 'running', branch: 'path/cp-x' }).some(
+    (error) => error.includes('atomik.base_commit')
+  ))
+  assert.ok(pathFrontmatterErrors({
+    id: 'CP-X', status: 'running', branch: 'path/cp-x', base_commit: 'null'
+  }).some((error) => error.includes('Git hash')))
 })
 
 test('area mapping routes source to its module note', () => {

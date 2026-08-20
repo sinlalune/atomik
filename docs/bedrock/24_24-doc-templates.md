@@ -508,7 +508,7 @@ atomik:
   id: CP-MVP-000            # numbered = roadmap · labelled = CP-SUBJECT
   status: draft             # draft | running | blocked | done | archived
   current_step: S01
-  base_commit: null         # pins at activation
+  base_commit: null         # trunk tip before the registration-only commit
   branch: path/cp-mvp-000   # required once status is `running`
   writes:                   # ADVISORY — an overlap signal, never a lock
     - path/to/expected/surface
@@ -519,8 +519,8 @@ atomik:
 
 # Definition of done
 
-- Module notes, learning notes (first-use rule, 17), log.md, and this
-  ledger updated at every step.
+- Module notes, learning notes (first-use rule, 17), and this ledger updated at
+  every step; one journal file is written under `atomik-project/log/` at merge.
 
 # Documentation coverage
 
@@ -550,6 +550,21 @@ blockers    :
 ````
 
 The `Current checkpoint` section is the Work Ledger. An optional `CP-XXX.state.json` sidecar may mirror it for tooling under the standard sidecar rule.
+
+### Registration before implementation
+
+The accepted template does not first appear on its own branch. From a clean,
+current trunk:
+
+1. pin `base_commit` to the current trunk tip;
+2. set `status: running` and the final `branch` name;
+3. land the path file, opening-check session note, and regenerated `ACTIVE.md`
+   as a registration-only trunk commit (no implementation);
+4. create the worktree/branch from that commit and begin S01.
+
+This ordering is machine-checked for new `path/*` branches. It is what lets a
+generated trunk view see all parallel paths. CP-OPS-001, CP-MVP-011 and
+CP-MVP-012 are the finite grandfathered paths that predate the rule.
 
 ### Gate discipline
 

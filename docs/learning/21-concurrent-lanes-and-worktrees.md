@@ -1,55 +1,51 @@
 ---
 type: Atomik Learning Note
-title: 'Learning: running several agents at once — worktrees, one writer per tree, and the state you forget is shared'
-description: Beginner-first walkthrough of CP-OPS-001 step zero — why a Git worktree is not enough to run the same desktop app twice, which state is already isolated by accident and which is silently shared, and why the prose you write about the code conflicts more often than the code itself.
+title: 'Learning: running several agents at once — worktrees, registration, and the state you forget is shared'
+description: Beginner-first walkthrough of CP-OPS-001 — runtime isolation, one writer per tree, why a generated view cannot see sibling branches, and the small trunk registration that makes parallel work globally visible.
 tags: [learning]
 timestamp: 2026-08-14T00:00:00Z
 ---
 
-# Learning: running several agents at once — worktrees, one writer per tree, and the state you forget is shared
+# Learning: running several agents at once — worktrees, registration, and the state you forget is shared
 
-*Covers CP-OPS-001 S01–S03 (2026-08-14). First-use rule (17): this is the
-first time the project runs more than one execution lane at a time, and
-the first time two instances of the desktop app are expected to be alive
-together. Written before the pilot, from the audit that preceded it.*
+*Covers CP-OPS-001 S01–S08 (2026-08-14–20). First-use rule (17): this is the
+first time the project runs several coding paths and desktop instances at once.
+It now includes what the pilot taught after the initial design landed.*
 
 ## Who this is for and what you can do afterwards
 
-You have a repository with a disciplined single-track workflow and you
-want two or three agents working in it at once. Afterwards you will know
-the three questions to ask before you allow that — who writes which
-files, which runtime resources are shared, and where the merge actually
-happens — and why the answers are usually not the ones you expect.
+You have a repository with a disciplined single-track workflow and want several
+agents working in it at once. Afterwards you will know the four questions that
+matter: who writes which files, which runtime resources are shared, where each
+merge happens, and whether the global status view can actually see every path.
 
 ## A worktree is cheap; what it isolates is not obvious
 
 ```bash
-git worktree add ../repo-lane-b -b lane/b master
+git worktree add ../repo-path-b -b path/b master
 ```
 
-That gives you a second checkout sharing one `.git`. Two agents can now
-edit without touching each other's files. It does NOT give you:
+That gives you a second checkout sharing one `.git`. Two agents can now edit
+without touching each other's files. It does NOT give you:
 
 - **`node_modules`** — a worktree starts empty. Symlink it or install it.
-- **A fresh base** — `git worktree add` from a remote branch gives you
-  whatever the remote last saw. Branch from your LOCAL `master` when the
-  local branch is ahead, which it usually is while you are working.
-- **Isolated runtime state** — and this is where the real bug lives.
+- **A fresh base** — branch from local `master`, not a stale remote-tracking
+  ref, when local trunk is ahead.
+- **Isolated runtime state** — and this is where the first real bug lived.
+- **A global branch view** — one checkout cannot read files added only on a
+  sibling branch.
 
 ## The state you forget is shared
 
-Atomik's own state was already safe, by an accident of design worth
-copying: `resolveStateDir` puts `.atomik/` **beside the checkout**, so a
-worktree gets its own workspace layout, settings, index and traces for
-free. State stored relative to the project isolates itself.
+Atomik's project-relative state was already safe by a useful accident:
+`resolveStateDir` puts `.atomik/` beside the checkout, so each worktree gets its
+own workspace layout, settings, index and traces.
 
-State stored relative to the USER does not. Electron keeps a `userData`
-profile keyed on the application name — cookies, `localStorage`, the
-network and GPU caches, the web-view partition. Two checkouts, two
-branches, two processes… one profile directory. The failure is not a
-crash; it is two apps quietly corrupting each other's caches and sharing
-one cookie jar, which for an app with a web-source tab means one lane's
-logins leak into the other's.
+State stored relative to the USER is different. Electron keeps a `userData`
+profile keyed on the application name — cookies, `localStorage`, network and
+GPU caches, web-view partitions. Two checkouts and two processes would still
+share one profile. The failure is not necessarily a crash; it can be two apps
+quietly corrupting caches or sharing logins.
 
 ```ts
 // electron-main/lane.ts — claimed at module scope, before app ready
@@ -57,59 +53,81 @@ const lane = resolveLaneRuntime(process.env, app.getPath('userData'))
 if (lane.userDataDir) app.setPath('userData', lane.userDataDir)
 ```
 
-The general rule: before running two copies of anything, list every
-resource keyed on *the machine or the user* rather than *the directory*.
-For a desktop app that is typically the profile directory, fixed TCP
-ports, OS-level single-instance locks, notification identifiers, and
-anything under `~/.config`. Ports were the easy half here — the capture
-server already fell back to an ephemeral port when its preferred one was
-busy, so a lane just asks for the ephemeral one directly instead of
-racing and losing first.
+Before running two copies of anything, list every resource keyed on the machine
+or user rather than the directory: profiles, fixed ports, single-instance
+locks, notification identifiers, and configuration directories.
 
-## The unglamorous finding: prose conflicts more than code
+## Prose conflicts more than code
 
-The audit expected the merge pain to be in the source. It was not. Two
-lanes adding different features rarely touch the same function. But this
-project's protocol obliges every executed step to update the module note
-in the same work unit — and the module note was one 1689-line file. Every
-lane, every step, same file, same end. Guaranteed conflict, and the worst
-kind: prose merges cannot be resolved mechanically, because two paragraphs
-that both describe "what the app owns" have no ordering that a tool can
-infer.
+The audit expected merge pain in source files. Instead, the protocol forced
+every path to update one 1,689-line module note. Different features rarely edit
+the same function; every feature edited the same prose file.
 
-The fix is structural, not procedural: split the shared document until
-each concurrent writer has its own. Here that meant one note per area
-(shell, vault, AI, editor, sources, graph) plus a root note holding the
-cross-cutting contracts, with a rule about who writes which:
+The structural repair was one module note per area plus a root index. The same
+move removed the append-only journal hotspot:
 
 ```text
-lane-owned        its ledger, its code, its tests, its area note
-integrator-owned  ACTIVE.md, the register, log.md, the root module note
+path-owned        evolving ledger, code, tests, area note, journal entry
+generated         ACTIVE.md, from path declarations already on the trunk
+historical map    roadmap register; not the live running-state authority
 ```
 
-Append-only files deserve the same suspicion. A project log where every
-step appends one entry at the end is a merge conflict in every single
-merge. Making it record *integrated* work only — with per-lane progress
-living in per-lane ledgers — removes the conflict without losing
-anything, because the log was already an integrated narrative.
+The journal became one file per merged path under `atomik-project/log/`.
+Pre-merge progress stays in the path ledger.
+
+## The subtler failure: correct projection, incomplete inputs
+
+The first `cairn-active` implementation was deterministic and tested. It read
+every `CP-*.md` in the current checkout, selected `status: running`, sorted the
+rows, and regenerated `ACTIVE.md`. Cairn proved the output matched those files.
+
+It still lied about the repository.
+
+On 2026-08-20 trunk said no path was running while four clean worktrees each
+carried a running path. Their path files had been created on their own branches,
+so they were not ancestors of trunk or one another:
+
+```text
+trunk                 sees paths merged before the split
+path/A                sees trunk + CP-A
+path/B                sees trunk + CP-B
+no ordinary checkout sees CP-A + CP-B until both merge
+```
+
+This is why more guidance is insufficient. The generator had no missing-file
+bug; the input genuinely did not exist in its tree. The repair changes the
+ordering:
+
+```text
+opening accepted
+  -> registration-only trunk commit (CP-X.md + generated ACTIVE, no code)
+  -> branch/worktree FROM that commit
+  -> implementation begins
+```
+
+The registration serializes a few seconds of metadata, just as the rebase gate
+serializes a few seconds of merge. Work remains parallel. A Cairn blocking rule
+checks that each new path branch has a matching `running` declaration on trunk.
+Only CP-OPS-001, CP-MVP-011 and CP-MVP-012 are grandfathered because they were
+already running when the defect was observed.
 
 ## What we deliberately did not build
 
-No scheduler, no lock service, no validation command, no database. The
-first version is a Markdown convention plus Git, because the project's
-own doctrine (bedrock 35) says structure is added only when real
-multi-path work demonstrates the need — and at the time of writing, no
-two lanes had ever run. The declaration a lane makes about which files
-it will touch is likewise **advisory**: a signal at open and a check at
-the gate, never a lock. A root cause is discovered, not declared, and a
-convention that forbids what debugging requires gets ignored rather than
-followed.
+No scheduler, lock service, daemon, branch-discovery API, or database. The
+system remains Markdown + Git + a dependency-free validator. The validator was
+added only after the workflow audit found mechanically checkable failures; the
+registration rule was added only after real parallel work demonstrated that
+derivation alone was insufficient.
 
-## Checklist before you allow a second writer
+Declared write surfaces remain **advisory**. They signal overlap but never lock
+files: a root cause is discovered, not declared.
 
-1. Which files does the protocol force EVERY writer to touch? Split them.
+## Checklist before you allow another writer
+
+1. Which files does the protocol force every writer to touch? Split them.
 2. Which runtime state is keyed on the user rather than the directory?
    Namespace it.
-3. Who owns the merge, and does anyone else write the coordination files?
-4. What is the smallest thing you can ship and pilot before writing it
-   into the constitution?
+3. Is the accepted path registered on trunk before its branch diverges?
+4. Can the global view be reproduced from trunk files alone?
+5. Does each path own its merge after ceremony, rebase, gates, and audit?
+6. What is the smallest mechanism real evidence justifies?

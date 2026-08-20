@@ -1,7 +1,7 @@
 ---
 type: Atomik Path Convention
 title: Parallel coding paths — one path per worktree, every path merges itself
-description: How several devs or agents work at once without a gatekeeper. N coding paths run in parallel, each in its own worktree, each merging into the trunk on its own after its closing ceremony. Provisional and execution-plane only until CP-OPS-001 S06 ratifies it.
+description: How several devs or agents work at once without a gatekeeper. Accepted paths register on the trunk, run in parallel in isolated worktrees, and merge themselves after their closing ceremonies.
 tags: [paths, concurrency, worktree, self-merge, ci, process]
 timestamp: 2026-08-14T00:00:00Z
 ---
@@ -10,17 +10,17 @@ timestamp: 2026-08-14T00:00:00Z
 
 ![The Cairn protocol — full workflow (D14)](../../docs/diagrams/D14_cairn_protocol_workflow.svg)
 
-**Status: PROVISIONAL.** The working convention, landed by CP-OPS-001. It is not
-in `docs/bedrock/` and has no ADR yet: bedrock 35 §Start as one file says
-structure is added only when real multi-path work demonstrates the need. S05
-pilots it; S06 promotes what survived. It is nonetheless BINDING while it
-stands — work runs on what is written here, never on a conversation.
+**Status: ACCEPTED operating detail under ADR-012.** CP-OPS-001 S06 ratified
+the model after its first pilot; S08 amends the opening order after real
+parallel work exposed the checkout-local visibility hole. Work runs on what is
+written here, never on a conversation.
 
 ## The model
 
 ```text
 N coding paths, running at the same time
 one path      = one worktree = one branch = one writer
+every opening = one registration-only trunk commit BEFORE the branch
 each path merges ITSELF into the trunk
 no integrator, no parent, no gatekeeper
 ```
@@ -62,7 +62,8 @@ handoff the earlier draft assumed.
 
 1. Run the OPENING CHECK with the owner — feature by feature, recorded in a
    session note. Activation needs explicit acceptance.
-2. Create the path file from the template in bedrock 24:
+2. From a clean, current trunk, create the accepted path file from the template
+   in bedrock 24:
 
 ```yaml
 atomik:
@@ -76,16 +77,39 @@ atomik:
     - docs/modules/atomik-desktop-graph.md
 ```
 
-   **Status vocabulary.** `running` means "on its own branch, in its own
-   worktree" and requires a `branch` — that pairing is what the generated view
-   and the CI rules key on. `active` is reserved for the one bootstrap-exception
-   path that ran on the trunk before this convention existed (CP-OPS-001); no
-   path opened from now on should use it. `done` requires a ceremony session
+   `base_commit` is the trunk tip immediately BEFORE this registration. Run
+   `npm run cairn-active` and `npm run cairn-check`, then land ONLY the accepted
+   path declaration and regenerated view on the trunk (directly or through the
+   host's required short PR). No product code enters this commit. This tiny
+   serialized transition is the price of a durable global portfolio: every
+   workstation and CI can now see the path before its branch diverges.
+
+   **Status vocabulary.** `running` means "registered on the trunk, then on its
+   own branch and worktree" and requires `branch` + `base_commit`. That tuple is
+   what the generated view and CI key on. `active` is reserved for the one
+   bootstrap-exception path that began on the trunk before this convention
+   existed (CP-OPS-001); no new path uses it. `done` requires a ceremony session
    note. `draft`, `blocked` and `archived` carry no branch obligations.
 
-3. Create the worktree and its runtime isolation (below).
+3. Create the worktree FROM THE REGISTRATION COMMIT and its runtime isolation
+   (below). Cairn blocks a new `path/*` branch when its matching `running`
+   declaration is absent from the trunk. CP-OPS-001, CP-MVP-011 and CP-MVP-012
+   are the finite grandfathered set because they were already running when the
+   defect was found; the exemption is named in code and is never copied.
 4. Execute bedrock 22's protocol one step at a time — code, tests, docs and the
    ledger in the same work unit.
+
+### Why registration is a commit, not more guidance
+
+`cairn-active` reads files in ONE checkout. Before this rule, a new path file
+was first committed on its own branch. The trunk and every sibling branch were
+therefore unable to see it; on 2026-08-20 the generated trunk view passed its
+freshness check while saying no path was running, although four clean worktrees
+declared `status: running`. The view was internally current and globally false.
+
+No instruction can make one Git tree read files that exist only in unrelated
+trees. Registration changes where the stable identity tuple lives; derivation
+then works as designed. The evolving ledger remains branch-owned.
 
 ### `writes:` is advisory
 
@@ -183,6 +207,12 @@ What remains genuinely hand-written — bedrock pages, ADRs, per-area module
 notes, each path's own file — is per-file by construction, so two paths editing
 different ones never meet.
 
+The stable part of each path file is GLOBAL before work starts: its accepted
+`id` / `status` / `branch` / `base_commit` tuple is registered on the trunk.
+The path branch then owns the evolving checklist and Work Ledger. Without that
+ordering, `ACTIVE.md` is only a projection of whichever branches happen to be
+ancestors of the current checkout — not a portfolio view.
+
 ### Hot files that still conflict
 
 `apps/desktop/electron-main/index.ts` (~1900 lines) and
@@ -201,6 +231,8 @@ npm run cairn-check:test                       # the validator's own tests
 ```text
 BLOCKING   branch → path (a path/* branch is declared by a running path
                           carrying a base_commit)
+           trunk registration — that accepted running declaration already
+                          exists on the trunk before implementation starts
            rebase gate — a path branch contains the trunk tip
            a path marked done has a closing-ceremony session note
            source changed ⇒ a module note AND a coding path changed
@@ -253,7 +285,8 @@ S08.
 ## Holes still open
 
 The workflow audit (drawing D14) found four missing guards. Self-merge closed
-two of them by construction. Two remain:
+two of them by construction. Checkpoint drift was discovered later, so three
+open holes are recorded here:
 
 1. **Abandoned paths have no terminal status.** A path that dies keeps
    `status: running` and poisons the generated views. Needs an `archived`
@@ -270,7 +303,13 @@ two of them by construction. Two remain:
    checkable question. Candidate mitigation, no more than that: require the
    checkpoint's `base commit` line to match the branch's actual base.
 
-## Open questions the pilot must answer
+Closed by CP-OPS-001 S08 (2026-08-20): **running-path visibility**. Deriving
+`ACTIVE.md` from path files did not help when the files existed only on sibling
+branches. The accepted declaration now lands on the trunk before branching,
+and a new blocking rule checks that fact. Guidance alone could not repair a
+missing Git ancestor.
+
+## Questions still open after the pilot
 
 - What is the minimal path status lifecycle beyond `running` / `done`?
 - How precise must a declared write surface be before it stops being useful?

@@ -6,10 +6,31 @@ tags: [coding-path, process, concurrency, paths, worktree, self-merge, ci, ops]
 timestamp: 2026-08-14T00:00:00Z
 atomik:
   id: CP-OPS-001
-  status: active
+  status: running
   accepted: 2026-08-14
-  current_step: S05
-  base_commit: 70f7e27
+  current_step: closing
+  base_commit: cc78d2f
+  branch: path/cp-ops-001
+  writes:
+    - AGENTS.md
+    - tools/cairn-active.mjs
+    - tools/cairn-active.test.mjs
+    - tools/cairn-check.mjs
+    - tools/cairn-check.test.mjs
+    - tools/gen-d14-workflow.py
+    - docs/bedrock/22_22-agent-handoff.md
+    - docs/bedrock/24_24-doc-templates.md
+    - docs/bedrock/35_35-coding-path-execution-state.md
+    - docs/adr/ADR-012-parallel-paths-self-merge.md
+    - docs/diagrams/D08_bootstrap_protocol.svg
+    - docs/diagrams/D13_concurrent_execution_lanes.svg
+    - docs/diagrams/D14_cairn_protocol_workflow.svg
+    - docs/diagrams/index.md
+    - docs/learning/21-concurrent-lanes-and-worktrees.md
+    - atomik-project/coding-paths/paths.md
+    - atomik-project/coding-paths/ACTIVE.md
+    - atomik-project/coding-paths/index.md
+    - atomik-project/coding-paths/CP-OPS-001.md
 ---
 
 # Goal
@@ -238,7 +259,7 @@ lanes — providers and settings share `ai-settings.ts`, `ipc-contract.ts` and
       (`../brainstorm/2026-08-15-layered-depth-reader.md`) with its three
       artifacts, since the reader is a candidate Atomik surface rather than a
       Cairn decision.
-- [~] S05 PILOT — IN PROGRESS since 2026-08-16, and in the vocabulary that
+- [x] S05 PILOT — COMPLETE 2026-08-16, and in the vocabulary that
       survived S04e: two PATHS, not two lanes. Both halves of the opening are
       real: **CP-MVP-010** (retrieval over the graph, numbered) and
       **CP-PROVIDERS** (provider expansion + settings, labelled) each ran their
@@ -246,10 +267,10 @@ lanes — providers and settings share `ai-settings.ts`, `ipc-contract.ts` and
       worktree and branch (`path/cp-mvp-010`, `path/cp-providers`) on the same
       day. That is the first time the convention has actually carried two
       writers at once — the gap ADR-012 names as its own biggest unknown.
-      REMAINING for S05: carry whichever finishes first through the full
-      sequence — closing ceremony → rebase → CI green on the rebased result →
-      coherence audit → `status: done` → self-merge — since nothing has yet
-      exercised the merge half. First pilot finding already landed, below.
+      CP-PROVIDERS completed the full closing sequence and landed at `99cac04`
+      on 2026-08-16; CP-MVP-010 followed at `783c7c6` on 2026-08-17. Feedback,
+      rich Markdown, AI capabilities, Open Dock and renderer repairs then
+      repeated it. The merge half is no longer hypothetical.
 - [x] S06 RATIFIED (owner, 2026-08-15: *"the pilot will serve to fine tune but
       we are not going back to single path so why not ammend now?"* — and the
       deferral did not survive the question). Bedrock 35 §Start as one file
@@ -293,53 +314,64 @@ lanes — providers and settings share `ai-settings.ts`, `ipc-contract.ts` and
       advisory asked for the wrong module note — and an advisory that points
       at the wrong file teaches people to ignore advisories. A map that names
       areas must grow when an area appears; two cases pin it.
+- [x] S08 PILOT FINDING 2 — register before branching. On 2026-08-20 the
+      trunk's generated `ACTIVE.md` said "no path running" while
+      four clean worktrees carried `status: running`. The generator only read
+      path files in its checkout; those files had been created on sibling
+      branches, so neither trunk nor siblings could see them. Repair the
+      lifecycle: after opening acceptance, land a registration-only trunk
+      commit containing the accepted path declaration and regenerated global
+      view, then create the worktree from that commit. Add a blocking branch
+      check for registration, with a finite grandfather list for CP-OPS-001,
+      CP-MVP-011 and CP-MVP-012; update the protocol, ADR, diagrams, learning
+      note and this ledger. Move CP-OPS itself off its bootstrap trunk exception
+      into `path/cp-ops-001` before writing the repair.
 
 # Current checkpoint
 
 ```text
-base commit : 70f7e27 (S01–S04f + S06 merged to the trunk: 92f25cb, 4ff81af)
-current step: S05 in progress (both paths opened; the merge half untested),
-              S06 done, S07 done
-changed     : tools/cairn-check.mjs (porcelainPaths — the S07 fix)
-              tools/cairn-check.test.mjs (+2 cases)
-              atomik-project/coding-paths/{CP-OPS-001.md,ACTIVE.md}
-tests       : 773/64 app pass + 27/27 validator (node --test, was 25);
-              typecheck, tests, build, cairn-check all green, each run BARE,
-              verdict from the exit code (24 gate discipline)
-next action : S05's remaining half — the first SELF-MERGE. Whichever of
-              CP-MVP-010 / CP-PROVIDERS reaches its closing ceremony first
-              runs ceremony → rebase → CI green on the rebased result →
-              `npm run cairn-audit` filled in → status: done → merge, and
-              whatever that costs is what S05 has to report.
-blockers    : none
+original base: 70f7e27 — S01–S07 began as the one bootstrap exception on trunk
+branch base : cc78d2f — CP-OPS moved into `path/cp-ops-001` before S08; the
+              owner was actively merging other paths into the trunk, so the
+              exception had outlived its reason
+current step: S08 complete; CP-OPS is ready for its closing ceremony
+evidence    : trunk `ACTIVE.md` passed Cairn while saying no path was running;
+              four clean worktrees carried `status: running`. During the
+              diagnosis CP-OPEN-DOCK and CP-RENDER-REPAIRS completed ceremony
+              and self-merged, proving that merges work while discovery does not.
+changed     : opening order now ceremony → registration-only trunk commit →
+              branch/worktree; Cairn blocks an unregistered new path branch;
+              running schema requires branch + base; CP-OPS-001 / MVP-011 /
+              MVP-012 are the finite grandfather list. AGENTS, bedrock 22/24/35,
+              ADR-012, paths.md, ACTIVE, the roadmap register, learning note 21
+              and D08/D13/D14 all project the same rule.
+views       : ACTIVE's marked block was regenerated. Its surrounding migration
+              prose and coding-paths/index.md were deliberately updated: ACTIVE
+              is the live authority; the register maps milestones and records
+              integrated outcomes. diagrams/index.md changed because all three
+              refresh triggers fired.
+generator   : D14's generator was also hard-coded to the owner's main checkout,
+              so running it from a worktree silently wrote the wrong tree. It
+              now resolves its own repository. XML validation then found the
+              existing unescaped `path/<id>` text; regenerated output is valid.
+tests       : Cairn self-tests green (31 cases across 2 files); cairn-check OK
+              with expected advisories only; SVG XML green and D14 geometry
+              asserts 14 boxes / 2 labels; typecheck green; 78 test files /
+              1101 pass / 1 skip; production build green. Gates ran bare.
+next action : fetch/reconcile remote state, commit S08 explicitly, publish the
+              safe completed trunk and this path branch. Before merge: owner
+              closing ceremony, rebase on the then-current trunk, gates again,
+              coherence audit, journal, status done, self-merge.
+blockers    : none for S08. Merge correctly waits for CP-OPS closing ceremony.
 ```
 
-Ledger drift noted 2026-08-15, REPAIRED 2026-08-16: this checkpoint kept
-describing step zero in lane vocabulary — first five steps after the lane layer
-was removed, then two more after S06 ratified its removal — while the tree it
-listed had long since been committed. It was repaired only because a human
-asked; nothing in Cairn noticed, because the validator checks that a path file
-CHANGED when source changed, never whether its checkpoint is TRUE. The hole is
-recorded in `paths.md` §Holes, and this is now its second dated instance on the
-same path: evidence for the mitigation candidate (require the checkpoint's
-`base commit` line to match the branch's actual base) rather than proof that
-prose can be policed.
-
-Step zero (S01–S04) is complete. NOT done and deliberately so: no bedrock
-page, no ADR, and `AGENTS.md` are untouched — S06 territory, owner-gated,
-written from what the pilot actually costs.
-
-Deviations recorded: (a) S01's two-instance run is unpinned until two lanes
-exist; (b) D13 projects `paths.md` rather than a bedrock page, which the
-diagram register normally expects — it re-points at bedrock 35 when S06
-promotes the mechanism; (c) the working tree also carries files from a
-concurrent session (`docs/index.md`, `docs/research/openrouter-vs-direct-
-providers.md`) and the owner's own `atomik-project/projects/test/dfdf.md`;
-they are untouched by this path and must be staged separately (22 §staging
-discipline).
+This is CP-OPS's third observed prose-checkpoint drift. Cairn can prove that a
+ledger changed, never that its sentences remain true. S08 fixes the mechanically
+checkable portfolio input rather than pretending prose can be policed. Closing
+this long-lived bootstrap path after S08 is the practical mitigation for its
+own checkpoint exposure.
 
 # Blockers
 
-None. Recorded risk: another session was writing in this working tree earlier
-today (HEAD moved 8f9f792 → 70f7e27 mid-analysis). Step zero is deliberately
-serial in the main tree for exactly that reason — lanes open only at S05.
+None for the completed S08 work unit. The path cannot merge before its closing
+ceremony, by design.

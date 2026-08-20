@@ -2,9 +2,9 @@
  * Tests for the derived lane list — `node --test 'tools/**\/*.test.mjs'`.
  *
  * The point of deriving this block is that the contradiction it used to be
- * exposed to becomes impossible. These cases pin the two properties that
- * claim rests on: the output depends ONLY on the path files, and it is
- * deterministic regardless of the order they are read in.
+ * exposed to becomes impossible — once every accepted declaration has been
+ * registered on the trunk. These cases pin the projection itself; the
+ * separate Cairn registration rule pins the completeness of its inputs.
  */
 import assert from 'node:assert/strict'
 import { test } from 'node:test'

@@ -5,14 +5,15 @@
  * The owner's challenge (2026-08-14): "if an agent is merging it can
  * reconstruct those files on the go". Correct — and reconstructing beats
  * locking. Every path already declares its status, branch and base, so the
- * running list is a PROJECTION of those files rather than a source. Derive it
- * and there is nothing to merge: the one genuine failure mode (two paths
- * editing the shared view and merging cleanly into a contradiction) becomes
- * impossible instead of forbidden.
+ * running list is a PROJECTION of those files rather than a source. Since
+ * CP-OPS-001 S08, an accepted path declaration lands on the trunk BEFORE its
+ * worktree branches. That registration is the missing precondition: without
+ * it, this generator can be perfectly current for one checkout while being
+ * globally false about sibling branches it cannot see.
  *
  * This matters more since the integrator was removed. With every path merging
- * itself, deriving is the only thing keeping shared files unshared — there is
- * no longer a person whose job it is to write them.
+ * itself, registration + derivation are what keep the global view complete
+ * without giving one person ownership of it.
  *
  * Same doctrine the app already applies to its own views: files hold the
  * state, the view arranges references to it, and closing the view loses
