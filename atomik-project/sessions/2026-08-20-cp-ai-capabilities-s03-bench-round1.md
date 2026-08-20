@@ -131,3 +131,73 @@ raised deliberately and recorded here rather than bumped quietly.
 Rounds B (note conventions), C (pointing wikilinks, the S02 work), and D
 (system-plan UI, sent-request inspector, the owner's keep-or-cut verdict on the
 doubled system message) have not run.
+
+# Round 2 — the patch works, and two more defects surfaced
+
+Same lane and vault, after `46e3814`.
+
+## The prompt patch held
+
+Every display block in the round-2 generation is written the way the block now
+instructs — `$$` alone on its own line, above and below:
+
+```text
+$$
+S_i = \frac{e^{z_i}}{\sum_{k=1}^K e^{z_k}}
+$$
+```
+
+The one block the owner saw rendered raw is the LAST one in the response:
+
+```text
+427: **Matrix (Layer-Wide) Form:**
+429: $$\begin{bmatrix} z_1^{[1]} \\ z_2^{[1]} \\ \vdots \\ z_{n^{[1]}}^{[
+```
+
+Cut mid-expression, never closed. `max tokens` was 2000 and the response hit
+it. So this is truncation, not the trap returning: instruction adherence
+decays in the tail, and an unclosed `$$` renders raw no matter what the parser
+does. Raise the ceiling before reading anything into a truncated tail.
+
+## Defect 4 — the chat filename carries the app's own bookkeeping
+
+```text
+chats/2026-08-20/you-!---sent-system=2120-instruction=828.md
+```
+
+`chatSlug` (`chat-file.ts:69`) drops `<`, `>` and `#` one character at a time
+and never treats `<!-- … -->` as a unit, so a message carrying a stamped
+heading becomes a filename made of token counts.
+
+This is the SAME defect class CP-MVP-010 S07c already fixed one layer up:
+`graph-core.ts:109` strips `<!--…-->` from a heading before it becomes a title,
+with a comment explaining that the stamp is machine bookkeeping and not part of
+anyone's title. The slug path was missed. Fixing `chatSlug` the same way is
+correct regardless of how the stamp got into the text.
+
+How it got there is a separate question and NOT proven. The file carries two
+headings — an empty `## you`, then `## you <!-- sent: system=2646|… -->` with
+the body — which is what `newChatFileContent` produces when the passed `text`
+already begins with a stamped heading. The name's counts (2120/828) are from an
+EARLIER send than the file's (2646/904). The owner's split view had the chat
+SOURCE open in the left pane, so a paste from there is the likeliest trigger.
+Reproduce before treating it as an app-side leak.
+
+## Defect 5 — a large diagram is shrunk to unreadable, with no way to explore it
+
+The neural-net diagram rendered at roughly a fifth of legible size in a 560px
+note column. There is no zoom, no pan, no expand — `mermaid-core.ts` has no
+affordance at all.
+
+The cause is one CSS pair fighting itself (`styles.css:3708-3734`):
+
+```css
+> [data-rich-output] { overflow: auto; }      /* the container CAN scroll */
+[data-rich-render-host] > svg { max-width: 100%; height: auto; }
+```
+
+The SVG is capped at the container's width, so it never overflows, so the
+`overflow: auto` never engages. The scroll affordance is already there and is
+disabled by the rule beside it. Letting a diagram keep its natural width would
+buy panning for nothing; a fit/actual-size toggle and an expand overlay are the
+real fix, and belong with the other renderer repairs.

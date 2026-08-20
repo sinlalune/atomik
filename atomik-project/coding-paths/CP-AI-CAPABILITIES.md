@@ -169,9 +169,25 @@ bench 1     : 2026-08-20, lane ai-capabilities, vault
 cost        : rendering-capabilities 1,046 -> 1,572 chars (~+131 tokens on
               EVERY request). Ceiling raised 1,400 -> 1,700 deliberately —
               the test comment demands that be a conversation, not a bump.
+bench 2     : after 46e3814. The patch HELD — every display block in the new
+              generation writes `$$` alone on its own line. The one block the
+              owner saw raw is the truncated tail (max tokens 2000, cut
+              mid-expression, never closed), not the trap returning.
+              Two more defects, both outside this path:
+                4 chatSlug does not strip `<!--…-->`, so a chat filename can
+                  be made of token counts
+                  (`you-!---sent-system=2120-instruction=828.md`). SAME class
+                  CP-MVP-010 S07c fixed in graph-core.ts:109; the slug path
+                  was missed. How the stamp reached the text is unproven —
+                  a paste from the source pane is the likeliest trigger.
+                5 a large mermaid diagram is shrunk to unreadable with no
+                  zoom/pan/expand. styles.css:3708-3734 puts `overflow: auto`
+                  on the container and `max-width: 100%` on the SVG, so it
+                  never overflows and the scroll never engages.
 next action : bench rounds B (note conventions), C (pointing wikilinks) and
               D (system-plan UI + sent-request inspector + cost verdict),
-              then closure.
+              then closure. Defects 1a/3/4/5 are a follow-on labelled path —
+              owner decision pending on grouping.
 blockers    : none — S03 needs the owner
 ```
 
