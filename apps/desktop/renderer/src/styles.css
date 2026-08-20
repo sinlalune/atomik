@@ -673,6 +673,32 @@ body[data-maximized] .app-header {
   -webkit-app-region: no-drag;
 }
 
+/* CP-OPEN-DOCK S06: pane grip handle for dragging the whole pane */
+.tabstrip .pane-grip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 22px;
+  padding: 0;
+  margin: 0 1px;
+  color: var(--muted);
+  cursor: grab;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: none;
+  -webkit-app-region: no-drag;
+}
+
+.tabstrip .pane-grip:hover {
+  color: var(--fg);
+  background: var(--code-bg);
+}
+
+.tabstrip .pane-grip:active {
+  cursor: grabbing;
+}
+
 /* Dragging a maximized frameless window glitches under some window
    managers (owner bug report, WSLg): while maximized, the strip is a
    plain toolbar and every click lands where it looks. */
@@ -694,6 +720,22 @@ body[data-maximized] .tabstrip {
   border-radius: var(--radius-pill);
   white-space: nowrap;
   color: var(--muted);
+}
+
+.tab[draggable='true'] {
+  cursor: grab;
+}
+
+.tab[draggable='true']:active {
+  cursor: grabbing;
+}
+
+.tab.drop-before {
+  box-shadow: -2px 0 0 0 var(--accent);
+}
+
+.tab.drop-after {
+  box-shadow: 2px 0 0 0 var(--accent);
 }
 
 .tab:hover {

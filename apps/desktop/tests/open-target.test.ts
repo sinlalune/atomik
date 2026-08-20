@@ -6,9 +6,12 @@ import {
   addTab,
   activateTab,
   createDefaultState,
+  dockNote,
+  dockPane,
   dockTab,
   firstLeafId,
   makeTab,
+  mergePane,
   moveTab,
   openNoteAt,
   openNoteInNewPane,
@@ -504,5 +507,106 @@ describe('dockTab — the tear-out primitive (CP-OPEN-DOCK S03)', () => {
     const fresh = leaves(next.root)[1]!
     expect(fresh.tabs[0]!.id).toBe(soleTab.id)
     expect(leaves(next.root)[0]!.tabs).toHaveLength(0)
+  })
+})
+
+describe('dockNote — fresh note edge docking (CP-OPEN-DOCK S05)', () => {
+  it('docks a note in a new pane on the specified side and types it with scope', () => {
+    const state = createDefaultState('')
+    const paneId = paneIdOf(state)
+    const next = dockNote(state, paneId, 'notes/plato.md', { kind: 'vault' }, 'right')
+    expect(leaves(next.root)).toHaveLength(2)
+    const [left, right] = leaves(next.root)
+    expect(left!.id).toBe(paneId)
+    expect(right!.tabs[0]!.params?.['notePath']).toBe('notes/plato.md')
+    expect(right!.tree).toEqual({ kind: 'vault', off: '1' })
+    expect(next.focusedPaneId).toBe(right!.id)
+  })
+
+  it('docks a note with project scope correctly', () => {
+    const state = createDefaultState('')
+    const paneId = paneIdOf(state)
+    const scope = { kind: 'project' as const, projectPath: 'projects/alpha', projectTitle: 'Alpha' }
+    const next = dockNote(state, paneId, 'projects/alpha/todo.md', scope, 'bottom')
+    const [, bottom] = leaves(next.root)
+    expect(bottom!.tree).toEqual({ kind: 'project', projectPath: 'projects/alpha', projectTitle: 'Alpha', off: '1' })
+    expect(bottom!.tabs[0]!.view).toBe('project')
+    expect(bottom!.tabs[0]!.params?.['notePath']).toBe('projects/alpha/todo.md')
+    expect(next.focusedPaneId).toBe(bottom!.id)
+  })
+
+  it('is identity when target pane is missing', () => {
+    const state = createDefaultState('')
+    expect(dockNote(state, 'ghost', 'notes/plato.md', { kind: 'vault' }, 'right')).toBe(state)
+  })
+})
+
+describe('dockPane — whole pane re-docking (CP-OPEN-DOCK S06)', () => {
+  function twoPaneFixture(): { state: WorkspaceState; leftId: string; rightId: string } {
+    let state = createDefaultState('')
+    const leftId = paneIdOf(state)
+    state = splitPane(state, leftId, 'horizontal')
+    const rightId = state.focusedPaneId
+    state = addTab(state, leftId, makeTab('vault', { notePath: 'left-note.md' }))
+    state = addTab(state, rightId, makeTab('vault', { notePath: 'right-note.md' }))
+    return { state, leftId, rightId }
+  }
+
+  it('re-docks a pane to the opposite side of another pane', () => {
+    const { state, leftId, rightId } = twoPaneFixture()
+    // Re-dock left pane to the right of right pane
+    const next = dockPane(state, leftId, rightId, 'right')
+    const [first, second] = leaves(next.root)
+    expect(first!.id).toBe(rightId)
+    expect(second!.id).toBe(leftId)
+    expect(next.focusedPaneId).toBe(leftId)
+  })
+
+  it('re-docks a pane to the bottom of another pane (changes direction to vertical)', () => {
+    const { state, leftId, rightId } = twoPaneFixture()
+    const next = dockPane(state, leftId, rightId, 'bottom')
+    expect(next.root.kind).toBe('split')
+    const split = next.root as Extract<PaneNode, { kind: 'split' }>
+    expect(split.direction).toBe('vertical')
+    expect(split.first.id).toBe(rightId)
+    expect(split.second.id).toBe(leftId)
+  })
+
+  it('falls back to other leaf when targetPaneId equals sourcePaneId', () => {
+    const { state, leftId, rightId } = twoPaneFixture()
+    const next = dockPane(state, leftId, leftId, 'bottom')
+    const [top, bottom] = leaves(next.root)
+    expect(top!.id).toBe(rightId)
+    expect(bottom!.id).toBe(leftId)
+  })
+
+  it('is identity on a single pane workspace', () => {
+    const state = createDefaultState('')
+    const paneId = paneIdOf(state)
+    expect(dockPane(state, paneId, paneId, 'right')).toBe(state)
+  })
+})
+
+describe('mergePane — merging whole pane into target pane (CP-OPEN-DOCK S06)', () => {
+  it('moves all tabs from source into target and closes source pane', () => {
+    let state = createDefaultState('')
+    const leftId = paneIdOf(state)
+    state = splitPane(state, leftId, 'horizontal')
+    const rightId = state.focusedPaneId
+    state = addTab(state, leftId, makeTab('vault', { notePath: 'tab1.md' }))
+    state = addTab(state, leftId, makeTab('vault', { notePath: 'tab2.md' }))
+    state = addTab(state, rightId, makeTab('vault', { notePath: 'tab3.md' }))
+
+    const next = mergePane(state, leftId, rightId)
+    expect(leaves(next.root)).toHaveLength(1)
+    const remaining = leaves(next.root)[0]!
+    expect(remaining.id).toBe(rightId)
+    expect(remaining.tabs.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('is identity when source and target are the same', () => {
+    const state = createDefaultState('')
+    const paneId = paneIdOf(state)
+    expect(mergePane(state, paneId, paneId)).toBe(state)
   })
 })

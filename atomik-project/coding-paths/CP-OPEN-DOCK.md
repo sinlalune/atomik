@@ -7,7 +7,7 @@ timestamp: 2026-08-20T00:00:00Z
 atomik:
   id: CP-OPEN-DOCK
   status: running
-  current_step: S01
+  current_step: S07
   base_commit: 80b131a
   branch: path/cp-open-dock
   writes:
@@ -27,6 +27,7 @@ atomik:
     - apps/desktop/renderer/src/vault/useVaultNote.ts
     - apps/desktop/renderer/src/editor/
     - apps/desktop/renderer/src/editor/link-pills.ts
+    - apps/desktop/renderer/src/icons.tsx
     - apps/desktop/renderer/src/styles.css
     - apps/desktop/tests/workspace-model.test.ts
     - apps/desktop/tests/open-target.test.ts
@@ -38,8 +39,6 @@ atomik:
     - atomik-project/coding-paths/ACTIVE.md
     - atomik-project/sessions/
     - atomik-project/sessions/2026-08-20-cp-open-dock-opening-check.md
-    - atomik-project/audits/
-    - atomik-project/log/
 ---
 
 # Goal
@@ -152,10 +151,10 @@ CP-AI-CAPABILITIES and CP-LANGUAGE-NOTES) are recorded in
       invalid-drop cases; implement one shared drop-zone component and its
       translucent preview; update shell note/design evidence and checkpoint
       the ledger.
-- [ ] S05 Tree and tab docking: wire tree-row drops to tabstrips and edge
+- [x] S05 Tree and tab docking: wire tree-row drops to tabstrips and edge
       zones, tab reorder/move/tear-out, and the keyboard equivalent for every
       move; update vault/shell notes and checkpoint the ledger.
-- [ ] S06 Pane-grip re-dock: pin grip identification and zone behavior,
+- [x] S06 Pane-grip re-dock: pin grip identification and zone behavior,
       implement whole-pane re-dock plus its keyboard equivalent, update shell
       note and checkpoint the ledger.
 - [ ] S07 Integrated bench + closure: run responsive, keyboard, theme, cancel,
@@ -169,40 +168,17 @@ CP-AI-CAPABILITIES and CP-LANGUAGE-NOTES) are recorded in
 base commit : 80b131a
 trunk pin   : f58093e (rebased after CP-AI-CAPABILITIES merged to trunk during
               S01; no conflict — activation files are path-local)
-changed     : S01 activation + green baseline; S02 the open-target model —
-              openNoteAt / openNoteInNewPaneAt in workspace/model.ts, the
-              open-target.ts vocabulary (specs + openTargetForKey grammar),
-              OpenTargetMenu popover, Mod+click + focused-row shortcuts in
-              NoteTree, Mod+click on rel pills (live-preview EdgeFollow
-              openAs, EditorPane/VaultView/ProjectView chain), styles.css
-              glass menu. S03 the move/dock primitives — pullTab becomes the
-              ONE removal discipline behind closeTab/moveTab/dockTab (closeTab
-              behavior preserved, its 79 tests unmodified), moveTab (clamped
-              index, activation, identity no-ops), dockTab (four real sides,
-              source-tree inheritance, no tab loss on vanished targets).
-              Bench hardening (owner bench S02/S03): OpenTargetMenu executes
-              direct keyboard shortcuts (Mod+Enter, Mod+Shift+Enter,
-              Mod+Alt+Enter, 1-4, Enter on buttons), clamped menu bounds,
-              live-preview relative .md links support open-as, useVaultNote
-              read-mode onContentClick routes Mod+click to onOpenAsNote.
-              Writes widened: OpenTargetMenu.tsx, PaneTreePanel.tsx,
-              ProjectView.tsx, useVaultNote.ts (advisory surface).
-              Tab-move MODIFIER entry point rides S05 with the DnD work —
-              the vocabulary it reuses is pinned here. S04 five-zone docking
-              geometry & preview — computeDockZone (25% outer boundary vs 50%
-              center, corner resolution, clamping) in workspace/drop-zones.tsx,
-              DockPreview component with 36 glass/token styling & 5 distinct
-              zone geometries, pointer-events: none overlay discipline.
-tests       : drop-zones 14/14 PASS; open-target 35/35 PASS; workspace-model
-              79/79 PASS; full test suite 1065/1066 PASS
-next action : S05 — tree and tab docking
+changed     : S01–S06 complete — the open-target model (openNoteAt, OpenTargetMenu,
+              shortcuts), pure move/dock primitives (pullTab, moveTab, dockTab,
+              dockNote, dockPane, mergePane), five-zone drop geometry and DockPreview
+              overlay, tabstrip drop indicators (.tab.drop-before / .drop-after),
+              tab and tree drag-and-drop, tabstrip pane grip handle (.pane-grip,
+              GripVerticalIcon, PANE_DRAG_MIME), full keyboard equivalents
+              (Mod+Shift+Arrows, Mod+Alt+Arrows, Mod+Alt+Shift+Arrows).
+tests       : vitest 1080/1081 PASS (78 test files, 1 skipped); ATOMIK_SMOKE=1 PASS;
+              ATOMIK_SMOKE_RICH=1 PASS; typecheck PASS; production build PASS.
+next action : S07 — owner bench, testing & eyeball acceptance
 blockers    : none
-defect      : paths.md's worktree recipe line 2
-              (`ln -s ../4tom1k/apps/desktop/node_modules apps/desktop/node_modules`)
-              resolves broken from the link's own directory; the real
-              convention in every existing worktree is
-              `../../../4tom1k/apps/desktop/node_modules`. Reported to the
-              owner — fix belongs to CP-OPS-001/paths.md, not this path.
 ```
 
 # Blockers

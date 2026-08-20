@@ -4,6 +4,12 @@ import {
   computeDockZone,
   dockZoneLabel,
   DOCK_EDGE_FRACTION,
+  PANE_DRAG_MIME,
+  parsePaneDrag,
+  parseTabDrag,
+  serializePaneDrag,
+  serializeTabDrag,
+  TAB_DRAG_MIME,
   type DockZone
 } from '../renderer/src/workspace/drop-zones'
 
@@ -97,7 +103,46 @@ describe('computeDockZone — five-zone geometry (CP-OPEN-DOCK S04)', () => {
   })
 })
 
-describe('drop-zones surfaces (source contracts, CP-OPEN-DOCK S04)', () => {
+describe('drag payloads — MIME serialization & parsing (CP-OPEN-DOCK S05, S06)', () => {
+  it('TAB_DRAG_MIME payload round-trips with full parameters', () => {
+    expect(TAB_DRAG_MIME).toBe('application/x-atomik-workspace-tab')
+    const payload = {
+      tabId: 'tab_1',
+      paneId: 'pane_1',
+      view: 'vault',
+      params: { notePath: 'notes/test.md' }
+    }
+    const serialized = serializeTabDrag(payload)
+    const parsed = parseTabDrag(serialized)
+    expect(parsed).toEqual(payload)
+  })
+
+  it('parseTabDrag safely rejects malformed or invalid inputs', () => {
+    expect(parseTabDrag('')).toBeNull()
+    expect(parseTabDrag('not json')).toBeNull()
+    expect(parseTabDrag('123')).toBeNull()
+    expect(parseTabDrag('{}')).toBeNull()
+    expect(parseTabDrag(JSON.stringify({ tabId: '' }))).toBeNull()
+    expect(parseTabDrag(JSON.stringify({ tabId: 't1' }))).toBeNull()
+  })
+
+  it('PANE_DRAG_MIME payload round-trips correctly', () => {
+    expect(PANE_DRAG_MIME).toBe('application/x-atomik-workspace-pane')
+    const payload = { paneId: 'pane_xyz' }
+    const serialized = serializePaneDrag(payload)
+    const parsed = parsePaneDrag(serialized)
+    expect(parsed).toEqual(payload)
+  })
+
+  it('parsePaneDrag safely rejects malformed or invalid inputs', () => {
+    expect(parsePaneDrag('')).toBeNull()
+    expect(parsePaneDrag('[]')).toBeNull()
+    expect(parsePaneDrag(JSON.stringify({}))).toBeNull()
+    expect(parsePaneDrag(JSON.stringify({ paneId: '' }))).toBeNull()
+  })
+})
+
+describe('drop-zones surfaces (source contracts, CP-OPEN-DOCK S04, S06)', () => {
   const tsxSource = readFileSync(
     new URL('../renderer/src/workspace/DockPreview.tsx', import.meta.url),
     'utf8'
@@ -145,5 +190,11 @@ describe('drop-zones surfaces (source contracts, CP-OPEN-DOCK S04)', () => {
     expect(right).toContain('width: calc(50% - var(--space-2))')
     expect(top).toContain('height: calc(50% - var(--space-2))')
     expect(bottom).toContain('height: calc(50% - var(--space-2))')
+  })
+
+  it('tabstrip pane-grip has grab cursor and no-drag region', () => {
+    const grip = cssRule('.tabstrip .pane-grip')
+    expect(grip).toContain('cursor: grab')
+    expect(grip).toContain('-webkit-app-region: no-drag')
   })
 })

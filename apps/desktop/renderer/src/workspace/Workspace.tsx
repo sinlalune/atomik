@@ -8,6 +8,7 @@ import { DevDocs } from '../dev-docs/DevDocs'
 import { frameCoalesced } from './frame-coalesce'
 import {
   CloseIcon,
+  GripVerticalIcon,
   PlusIcon,
   SplitHorizontalIcon,
   SplitVerticalIcon
@@ -25,7 +26,12 @@ import {
   closePane,
   closeTab,
   closeTabsWithin,
+  dockNote,
+  dockPane,
+  dockTab,
   makeTab,
+  mergePane,
+  moveTab,
   noteModeOf,
   hasChatTab,
   openNoteAt,
@@ -76,9 +82,23 @@ import {
 import { ChatView } from './ChatView'
 import { chatHistoryOf, chatRenameTarget } from '../editor/chat-file'
 import { TREE_DRAG_MIME } from '../vault/tree-menu'
+import { parseTreeDrag } from '../vault/NoteTree'
 import { PaneTreePanel } from './PaneTreePanel'
 import { OpenTargetMenu } from './OpenTargetMenu'
-import type { OpenTarget } from './open-target'
+import { openTargetForKey, type OpenTarget } from './open-target'
+import {
+  DockPreview
+} from './DockPreview'
+import {
+  computeDockZone,
+  PANE_DRAG_MIME,
+  parsePaneDrag,
+  parseTabDrag,
+  serializePaneDrag,
+  serializeTabDrag,
+  TAB_DRAG_MIME,
+  type DockZone
+} from './drop-zones'
 import { ChatIcon, HistoryIcon, NoteAddIcon, SidebarToggleIcon } from '../icons'
 import { useWorkspace } from './store'
 
@@ -650,17 +670,42 @@ function LeafPane({
   // Both compile to the pure openNoteAt, which routes like
   // openNoteFromTree: current tab adopts, new tab lands beside, and the
   // pane targets split with the caller's scope (chat → vault beside).
+  // S05: tab moves also enter here (Mod+click on tab or keyboard equivalents).
   const [openAsMenu, setOpenAsMenu] = useState<{
     relPath: string
     x: number
     y: number
+    tabId?: string
   } | null>(null)
   const openAt = (relPath: string, target: OpenTarget): void => {
+    const currentMenu = openAsMenu
     setOpenAsMenu(null)
+    if (currentMenu?.tabId) {
+      const tabId = currentMenu.tabId
+      if (target === 'tab-current') {
+        dispatch((state) => activateTab(state, node.id, tabId))
+      } else if (target === 'tab-new') {
+        dispatch((state) => moveTab(state, tabId, node.id))
+      } else if (target === 'pane-right') {
+        dispatch((state) => dockTab(state, tabId, node.id, 'right'))
+      } else if (target === 'pane-below') {
+        dispatch((state) => dockTab(state, tabId, node.id, 'bottom'))
+      }
+      return
+    }
     dispatch((state) => openNoteAt(state, node.id, relPath, scope, target))
   }
   const openAsAt = (relPath: string, x: number, y: number): void =>
     setOpenAsMenu({ relPath, x, y })
+
+  // CP-OPEN-DOCK S04/S05: 5-zone drop docking & tab reorder state
+  const [dockZone, setDockZone] = useState<DockZone | null>(null)
+  const paneContentRef = useRef<HTMLDivElement>(null)
+  const [dragOverTabIndex, setDragOverTabIndex] = useState<{
+    index: number
+    after: boolean
+  } | null>(null)
+
   const openDocFromTree = (relPath: string): void => {
     if (active && active.view === 'dev-docs') {
       dispatch((state) => updateTabParams(state, active.id, { docPath: relPath }))
@@ -730,6 +775,47 @@ function LeafPane({
       onPointerDownCapture={() => dispatch((state) => setFocus(state, node.id))}
     >
       <header className="tabstrip">
+        {/* CP-OPEN-DOCK S06: pane grip handle for dragging the whole pane */}
+        <button
+          type="button"
+          className="pane-grip"
+          draggable={true}
+          title="Drag pane to re-dock (Ctrl+Alt+Shift+Arrows)"
+          aria-label="Drag pane"
+          onDragStart={(event) => {
+            event.dataTransfer.setData(
+              PANE_DRAG_MIME,
+              serializePaneDrag({ paneId: node.id })
+            )
+            event.dataTransfer.effectAllowed = 'move'
+          }}
+          onDragEnd={() => {
+            setDockZone(null)
+          }}
+          onKeyDown={(event) => {
+            if (
+              (event.metaKey || event.ctrlKey) &&
+              event.altKey &&
+              event.shiftKey
+            ) {
+              if (event.key === 'ArrowLeft') {
+                event.preventDefault()
+                dispatch((state) => dockPane(state, node.id, node.id, 'left'))
+              } else if (event.key === 'ArrowRight') {
+                event.preventDefault()
+                dispatch((state) => dockPane(state, node.id, node.id, 'right'))
+              } else if (event.key === 'ArrowUp') {
+                event.preventDefault()
+                dispatch((state) => dockPane(state, node.id, node.id, 'top'))
+              } else if (event.key === 'ArrowDown') {
+                event.preventDefault()
+                dispatch((state) => dockPane(state, node.id, node.id, 'bottom'))
+              }
+            }
+          }}
+        >
+          <GripVerticalIcon />
+        </button>
         <div
           className="tabstrip-tabs"
           onWheel={(event) => {
@@ -742,81 +828,337 @@ function LeafPane({
               event.currentTarget.scrollLeft += event.deltaY
             }
           }}
+          onDragOver={(event) => {
+            const types = event.dataTransfer.types
+            if (
+              types.includes(TAB_DRAG_MIME) ||
+              types.includes(TREE_DRAG_MIME) ||
+              types.includes(PANE_DRAG_MIME)
+            ) {
+              event.preventDefault()
+              event.dataTransfer.dropEffect = event.altKey ? 'copy' : 'move'
+            }
+          }}
+          onDrop={(event) => {
+            setDragOverTabIndex(null)
+            const types = event.dataTransfer.types
+            if (types.includes(PANE_DRAG_MIME)) {
+              event.preventDefault()
+              const panePayload = parsePaneDrag(
+                event.dataTransfer.getData(PANE_DRAG_MIME)
+              )
+              if (panePayload && panePayload.paneId !== node.id) {
+                dispatch((state) => mergePane(state, panePayload.paneId, node.id))
+              }
+            } else if (types.includes(TAB_DRAG_MIME)) {
+              event.preventDefault()
+              const tabPayload = parseTabDrag(
+                event.dataTransfer.getData(TAB_DRAG_MIME)
+              )
+              if (tabPayload) {
+                if (event.altKey) {
+                  dispatch((state) =>
+                    addTab(
+                      state,
+                      node.id,
+                      makeTab(tabPayload.view ?? 'vault', tabPayload.params)
+                    )
+                  )
+                } else {
+                  dispatch((state) => moveTab(state, tabPayload.tabId, node.id))
+                }
+              }
+            } else if (types.includes(TREE_DRAG_MIME)) {
+              event.preventDefault()
+              const treePayload = parseTreeDrag(
+                event.dataTransfer.getData(TREE_DRAG_MIME)
+              )
+              if (treePayload && treePayload.kind === 'note') {
+                dispatch((state) =>
+                  openNoteAt(state, node.id, treePayload.relPath, scope, 'tab-new')
+                )
+              }
+            }
+          }}
         >
-          {node.tabs.map((tab) => (
-            <span
-              key={tab.id}
-              className={`tab${tab.id === node.activeTabId ? ' active' : ''}`}
-              // S06c5: a note-bearing TAB drags like a tree row — its
-              // note drops into the chat as context ('copy': adding a
-              // context never consumes its source)
-              {...(tabDragSource(tab)
-                ? {
-                    draggable: true,
-                    onDragStart: (event: React.DragEvent) => {
-                      event.dataTransfer.setData(
-                        TREE_DRAG_MIME,
-                        JSON.stringify(tabDragSource(tab))
+          {node.tabs.map((tab, tabIndex) => {
+            const isDropTarget = dragOverTabIndex?.index === tabIndex
+            const dropClass = isDropTarget
+              ? dragOverTabIndex.after
+                ? ' drop-after'
+                : ' drop-before'
+              : ''
+            return (
+              <span
+                key={tab.id}
+                className={`tab${tab.id === node.activeTabId ? ' active' : ''}${dropClass}`}
+                draggable={true}
+                onDragStart={(event: React.DragEvent) => {
+                  const payload = {
+                    tabId: tab.id,
+                    paneId: node.id,
+                    view: tab.view,
+                    params: tab.params
+                  }
+                  event.dataTransfer.setData(
+                    TAB_DRAG_MIME,
+                    serializeTabDrag(payload)
+                  )
+                  const dragSource = tabDragSource(tab)
+                  if (dragSource) {
+                    event.dataTransfer.setData(
+                      TREE_DRAG_MIME,
+                      JSON.stringify(dragSource)
+                    )
+                  }
+                  event.dataTransfer.effectAllowed = 'copyMove'
+                }}
+                onDragEnd={() => {
+                  setDragOverTabIndex(null)
+                  setDockZone(null)
+                }}
+                onDragOver={(event: React.DragEvent) => {
+                  const types = event.dataTransfer.types
+                  if (
+                    !types.includes(TAB_DRAG_MIME) &&
+                    !types.includes(TREE_DRAG_MIME)
+                  ) {
+                    return
+                  }
+                  event.preventDefault()
+                  event.stopPropagation()
+                  event.dataTransfer.dropEffect = event.altKey ? 'copy' : 'move'
+                  const rect = event.currentTarget.getBoundingClientRect()
+                  const after = event.clientX > rect.left + rect.width / 2
+                  setDragOverTabIndex({ index: tabIndex, after })
+                }}
+                onDragLeave={() => {
+                  setDragOverTabIndex((current) =>
+                    current?.index === tabIndex ? null : current
+                  )
+                }}
+                onDrop={(event: React.DragEvent) => {
+                  const types = event.dataTransfer.types
+                  if (
+                    !types.includes(TAB_DRAG_MIME) &&
+                    !types.includes(TREE_DRAG_MIME)
+                  ) {
+                    return
+                  }
+                  event.preventDefault()
+                  event.stopPropagation()
+                  const dropInfo = dragOverTabIndex
+                  setDragOverTabIndex(null)
+                  const targetIdx = dropInfo
+                    ? dropInfo.after
+                      ? dropInfo.index + 1
+                      : dropInfo.index
+                    : tabIndex
+
+                  if (types.includes(TAB_DRAG_MIME)) {
+                    const tabPayload = parseTabDrag(
+                      event.dataTransfer.getData(TAB_DRAG_MIME)
+                    )
+                    if (tabPayload) {
+                      if (event.altKey) {
+                        dispatch((state) =>
+                          addTab(
+                            state,
+                            node.id,
+                            makeTab(
+                              tabPayload.view ?? 'vault',
+                              tabPayload.params
+                            )
+                          )
+                        )
+                      } else {
+                        dispatch((state) =>
+                          moveTab(
+                            state,
+                            tabPayload.tabId,
+                            node.id,
+                            targetIdx
+                          )
+                        )
+                      }
+                    }
+                  } else if (types.includes(TREE_DRAG_MIME)) {
+                    const treePayload = parseTreeDrag(
+                      event.dataTransfer.getData(TREE_DRAG_MIME)
+                    )
+                    if (treePayload && treePayload.kind === 'note') {
+                      dispatch((state) =>
+                        openNoteAt(
+                          state,
+                          node.id,
+                          treePayload.relPath,
+                          scope,
+                          'tab-new'
+                        )
                       )
-                      event.dataTransfer.effectAllowed = 'copy'
                     }
                   }
-                : {})}
-            >
-              {renamingTab?.tabId === tab.id ? (
-                <input
-                  className="tab-rename"
-                  value={renamingTab.value}
-                  aria-label="Rename chat"
-                  autoFocus
-                  onChange={(event) =>
-                    setRenamingTab({ tabId: tab.id, value: event.target.value })
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') commitRename(tab, renamingTab.value)
-                    if (event.key === 'Escape') setRenamingTab(null)
-                  }}
-                  onBlur={() => commitRename(tab, renamingTab.value)}
-                />
-              ) : (
-                <button
-                  type="button"
-                  className="tab-title"
-                  title={
-                    tab.view === 'chat' && tab.params?.['file']
-                      ? `${tab.params['file']} — double-click renames`
-                      : (tab.params?.['notePath'] ??
-                        tab.params?.['dossierPath'] ??
-                        tab.params?.['docPath'] ??
-                        tab.params?.['url'] ??
-                        tab.view)
-                  }
-                  onClick={() => dispatch((state) => activateTab(state, node.id, tab.id))}
-                  onDoubleClick={() => {
-                    // chat transcripts rename in place (S06c3); a chat
-                    // with no file yet has nothing to rename
-                    if (tab.view === 'chat' && tab.params?.['file']) {
-                      setRenamingTab({ tabId: tab.id, value: tabLabel(tab) })
-                    }
-                  }}
-                >
-                  {tabLabel(tab)}
-                </button>
-              )}
-              <button
-                type="button"
-                className="tab-close"
-                aria-label="Close tab"
-                title="Close tab"
-                onClick={() => {
-                  destroyTabView(tab)
-                  dispatch((state) => closeTab(state, node.id, tab.id))
                 }}
               >
-                <CloseIcon />
-              </button>
-            </span>
-          ))}
+                {renamingTab?.tabId === tab.id ? (
+                  <input
+                    className="tab-rename"
+                    value={renamingTab.value}
+                    aria-label="Rename chat"
+                    autoFocus
+                    onChange={(event) =>
+                      setRenamingTab({ tabId: tab.id, value: event.target.value })
+                    }
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') commitRename(tab, renamingTab.value)
+                      if (event.key === 'Escape') setRenamingTab(null)
+                    }}
+                    onBlur={() => commitRename(tab, renamingTab.value)}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    className="tab-title"
+                    title={
+                      tab.view === 'chat' && tab.params?.['file']
+                        ? `${tab.params['file']} — double-click renames`
+                        : (tab.params?.['notePath'] ??
+                          tab.params?.['dossierPath'] ??
+                          tab.params?.['docPath'] ??
+                          tab.params?.['url'] ??
+                          tab.view)
+                    }
+                    onClick={(event) => {
+                      if (event.metaKey || event.ctrlKey) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        setOpenAsMenu({
+                          relPath:
+                            tab.params?.['notePath'] ??
+                            tab.params?.['dossierPath'] ??
+                            tab.params?.['docPath'] ??
+                            tab.view,
+                          x: event.clientX,
+                          y: event.clientY,
+                          tabId: tab.id
+                        })
+                        return
+                      }
+                      dispatch((state) => activateTab(state, node.id, tab.id))
+                    }}
+                    onDoubleClick={() => {
+                      // chat transcripts rename in place (S06c3); a chat
+                      // with no file yet has nothing to rename
+                      if (tab.view === 'chat' && tab.params?.['file']) {
+                        setRenamingTab({ tabId: tab.id, value: tabLabel(tab) })
+                      }
+                    }}
+                    onKeyDown={(event) => {
+                      const target = openTargetForKey(event)
+                      if (target !== null) {
+                        event.preventDefault()
+                        if (target === 'tab-current') {
+                          dispatch((state) => activateTab(state, node.id, tab.id))
+                        } else if (target === 'tab-new') {
+                          dispatch((state) => moveTab(state, tab.id, node.id))
+                        } else if (target === 'pane-right') {
+                          dispatch((state) => dockTab(state, tab.id, node.id, 'right'))
+                        } else if (target === 'pane-below') {
+                          dispatch((state) => dockTab(state, tab.id, node.id, 'bottom'))
+                        }
+                        return
+                      }
+                      if (
+                        (event.metaKey || event.ctrlKey) &&
+                        event.shiftKey &&
+                        (event.key === 'ArrowLeft' || event.key === 'PageUp')
+                      ) {
+                        event.preventDefault()
+                        const currentIdx = node.tabs.findIndex((t) => t.id === tab.id)
+                        if (currentIdx > 0) {
+                          dispatch((state) =>
+                            moveTab(state, tab.id, node.id, currentIdx - 1)
+                          )
+                        }
+                        return
+                      }
+                      if (
+                        (event.metaKey || event.ctrlKey) &&
+                        event.shiftKey &&
+                        (event.key === 'ArrowRight' || event.key === 'PageDown')
+                      ) {
+                        event.preventDefault()
+                        const currentIdx = node.tabs.findIndex((t) => t.id === tab.id)
+                        if (currentIdx >= 0 && currentIdx < node.tabs.length - 1) {
+                          dispatch((state) =>
+                            moveTab(state, tab.id, node.id, currentIdx + 1)
+                          )
+                        }
+                        return
+                      }
+                      if (
+                        (event.metaKey || event.ctrlKey) &&
+                        event.shiftKey &&
+                        event.key === 'ArrowUp'
+                      ) {
+                        event.preventDefault()
+                        dispatch((state) => dockTab(state, tab.id, node.id, 'top'))
+                        return
+                      }
+                      if (
+                        (event.metaKey || event.ctrlKey) &&
+                        event.shiftKey &&
+                        event.key === 'ArrowDown'
+                      ) {
+                        event.preventDefault()
+                        dispatch((state) => dockTab(state, tab.id, node.id, 'bottom'))
+                        return
+                      }
+                      if (
+                        (event.metaKey || event.ctrlKey) &&
+                        event.altKey
+                      ) {
+                        if (event.key === 'ArrowLeft') {
+                          event.preventDefault()
+                          dispatch((state) => dockTab(state, tab.id, node.id, 'left'))
+                          return
+                        }
+                        if (event.key === 'ArrowRight') {
+                          event.preventDefault()
+                          dispatch((state) => dockTab(state, tab.id, node.id, 'right'))
+                          return
+                        }
+                        if (event.key === 'ArrowUp') {
+                          event.preventDefault()
+                          dispatch((state) => dockTab(state, tab.id, node.id, 'top'))
+                          return
+                        }
+                        if (event.key === 'ArrowDown') {
+                          event.preventDefault()
+                          dispatch((state) => dockTab(state, tab.id, node.id, 'bottom'))
+                          return
+                        }
+                      }
+                    }}
+                  >
+                    {tabLabel(tab)}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="tab-close"
+                  aria-label="Close tab"
+                  title="Close tab"
+                  onClick={() => {
+                    destroyTabView(tab)
+                    dispatch((state) => closeTab(state, node.id, tab.id))
+                  }}
+                >
+                  <CloseIcon />
+                </button>
+              </span>
+            )
+          })}
           <button
             type="button"
             className="tab-new"
@@ -983,7 +1325,128 @@ function LeafPane({
           }
         />
       )}
-      <div className="pane-content">
+      <div
+        ref={paneContentRef}
+        className="pane-content"
+        onDragOver={(event) => {
+          const types = event.dataTransfer.types
+          const hasTab = types.includes(TAB_DRAG_MIME)
+          const hasTree = types.includes(TREE_DRAG_MIME)
+          const hasPane = types.includes(PANE_DRAG_MIME)
+          if (!hasTab && !hasTree && !hasPane) {
+            if (dockZone !== null) setDockZone(null)
+            return
+          }
+          const container = paneContentRef.current
+          if (!container) return
+          const rect = container.getBoundingClientRect()
+          const zone = computeDockZone(rect, event.clientX, event.clientY)
+          // For chat pane with tree drop on center, let ChatView show context drop target
+          if (hasTree && !hasTab && !hasPane && scope.kind === 'chat' && zone === 'center') {
+            if (dockZone !== null) setDockZone(null)
+            return
+          }
+          event.preventDefault()
+          event.dataTransfer.dropEffect = event.altKey ? 'copy' : 'move'
+          if (zone !== dockZone) {
+            setDockZone(zone)
+          }
+        }}
+        onDragLeave={(event) => {
+          if (
+            event.currentTarget === event.target ||
+            !event.currentTarget.contains(event.relatedTarget as Node)
+          ) {
+            setDockZone(null)
+          }
+        }}
+        onDrop={(event) => {
+          const types = event.dataTransfer.types
+          const hasTab = types.includes(TAB_DRAG_MIME)
+          const hasTree = types.includes(TREE_DRAG_MIME)
+          const hasPane = types.includes(PANE_DRAG_MIME)
+          if (!hasTab && !hasTree && !hasPane) {
+            setDockZone(null)
+            return
+          }
+          const zone = dockZone
+          setDockZone(null)
+          if (!zone) return
+
+          if (hasPane) {
+            event.preventDefault()
+            const panePayload = parsePaneDrag(
+              event.dataTransfer.getData(PANE_DRAG_MIME)
+            )
+            if (panePayload) {
+              if (zone === 'center') {
+                if (panePayload.paneId !== node.id) {
+                  dispatch((state) => mergePane(state, panePayload.paneId, node.id))
+                }
+              } else {
+                dispatch((state) =>
+                  dockPane(state, panePayload.paneId, node.id, zone)
+                )
+              }
+            }
+          } else if (hasTab) {
+            event.preventDefault()
+            const tabPayload = parseTabDrag(
+              event.dataTransfer.getData(TAB_DRAG_MIME)
+            )
+            if (tabPayload) {
+              if (event.altKey) {
+                dispatch((state) =>
+                  addTab(
+                    state,
+                    node.id,
+                    makeTab(tabPayload.view ?? 'vault', tabPayload.params)
+                  )
+                )
+              } else {
+                if (zone === 'center') {
+                  dispatch((state) =>
+                    moveTab(state, tabPayload.tabId, node.id)
+                  )
+                } else {
+                  dispatch((state) =>
+                    dockTab(state, tabPayload.tabId, node.id, zone)
+                  )
+                }
+              }
+            }
+          } else if (hasTree) {
+            const treePayload = parseTreeDrag(
+              event.dataTransfer.getData(TREE_DRAG_MIME)
+            )
+            if (treePayload && treePayload.kind === 'note') {
+              event.preventDefault()
+              if (zone === 'center') {
+                dispatch((state) =>
+                  openNoteAt(
+                    state,
+                    node.id,
+                    treePayload.relPath,
+                    scope,
+                    'tab-new'
+                  )
+                )
+              } else {
+                dispatch((state) =>
+                  dockNote(
+                    state,
+                    node.id,
+                    treePayload.relPath,
+                    scope,
+                    zone
+                  )
+                )
+              }
+            }
+          }
+        }}
+      >
+        {dockZone && <DockPreview zone={dockZone} />}
         {/* S07b9 (owner): a CHAT pane offers no tree door — except as
             the SOLE survivor, where the tree must stay reachable
             (the S06c13 last-pane rule, now scoped to exactly that). */}
@@ -1049,9 +1512,18 @@ function LeafPane({
         <OpenTargetMenu
           x={openAsMenu.x}
           y={openAsMenu.y}
-          noteLabel={noteDisplayName(
-            openAsMenu.relPath.split('/').pop() ?? openAsMenu.relPath
-          )}
+          noteLabel={
+            openAsMenu.tabId
+              ? tabLabel(
+                  node.tabs.find((t) => t.id === openAsMenu.tabId) ?? {
+                    id: openAsMenu.tabId,
+                    view: openAsMenu.relPath
+                  }
+                )
+              : noteDisplayName(
+                  openAsMenu.relPath.split('/').pop() ?? openAsMenu.relPath
+                )
+          }
           onPick={(target) => openAt(openAsMenu.relPath, target)}
           onClose={() => setOpenAsMenu(null)}
         />

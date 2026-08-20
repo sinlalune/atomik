@@ -385,3 +385,31 @@ about generation SHAPE:
   `--radius-lg`, `--shadow-pop`, with `@supports not (backdrop-filter)` fallback).
   It renders the active destination boundary with a dashed accent frame and pill
   label before the drop commits, and cleans up completely on cancel or dragleave.
+
+## Tree and tab docking (CP-OPEN-DOCK S05)
+
+- Tree-row dragging (`TREE_DRAG_MIME`) and tab dragging (`TAB_DRAG_MIME`) are
+  unified with five-zone docking. Dropping a tree row on a tabstrip opens it as a
+  new tab in that pane (`openNoteAt` `tab-new`); dropping on an outer pane zone
+  splits and docks a new note pane on that edge (`dockNote`).
+- Tabstrip drops support reordering within the same pane and moving across panes
+  with visual drop insertion indicators (`.tab.drop-before` / `.tab.drop-after`).
+  Holding `Alt` during a tab drop duplicates the tab into the target pane (`addTab`).
+- Keyboard equivalents are exposed directly on the tab titles: `Mod+Enter` moves/opens,
+  `Mod+Shift+Left`/`PageUp` and `Mod+Shift+Right`/`PageDown` reorder within the strip,
+  `Mod+Shift+Up`/`Down` and `Mod+Alt+Arrows` dock the tab into a new pane in all four
+  directions (`top`, `bottom`, `left`, `right`).
+
+## Pane-grip re-dock (CP-OPEN-DOCK S06)
+
+- Each pane header includes a six-dot grip handle (`.pane-grip`, `GripVerticalIcon`)
+  that is draggable (`PANE_DRAG_MIME`) and keyboard-operable.
+- Dragging a pane grip onto an edge zone of another pane invokes `dockPane(state, sourcePaneId, targetPaneId, side)`,
+  which tears the entire source pane (preserving its tabs, active tab, and tree configuration)
+  and docks it beside the target pane along the requested side.
+- Dragging a pane grip onto the center zone (or tabstrip) of another pane merges all tabs into
+  the target pane and closes the source pane (`mergePane`), inheriting tree configuration if the
+  target was untyped.
+- Keyboard equivalents on the pane grip (`Mod+Alt+Shift+Arrows`) re-dock the entire pane in any of the
+  four directions relative to the workspace.
+

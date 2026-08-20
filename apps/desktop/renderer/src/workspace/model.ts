@@ -429,17 +429,13 @@ export function openNoteInNewPaneAt(
   scope: PaneTreeScope,
   direction: PaneDirection
 ): WorkspaceState {
-  const split = splitPane(state, paneId, direction)
-  if (split === state) return state
-  const newPaneId = split.focusedPaneId
-  // the new pane exists to SHOW the note — its tree starts hidden
-  // (one toggle away), so the note keeps the width the split gave it
-  const typed = updatePaneTree(
-    setPaneTreeScope(split, newPaneId, scope),
-    newPaneId,
-    { off: '1' }
+  return dockNote(
+    state,
+    paneId,
+    relPath,
+    scope,
+    direction === 'horizontal' ? 'right' : 'bottom'
   )
-  return addTab(typed, newPaneId, noteTabForScope(scope, relPath))
 }
 
 /** The note tab a given pane scope serves (mirrors the tree-routing
@@ -1052,6 +1048,55 @@ export function moveTab(
 export type DockSide = 'left' | 'right' | 'top' | 'bottom'
 
 /**
+ * CP-OPEN-DOCK S05: docks a fresh note tab into a NEW pane on the
+ * given side ('left' | 'right' | 'top' | 'bottom') of targetPaneId.
+ * The new pane is typed with scope (tree.off = '1'), takes focus,
+ * and splits in the requested direction with fresh as first (left/top)
+ * or second (right/bottom).
+ */
+export function dockNote(
+  state: WorkspaceState,
+  targetPaneId: string,
+  relPath: string,
+  scope: PaneTreeScope,
+  side: DockSide
+): WorkspaceState {
+  const target = findLeaf(state.root, targetPaneId)
+  if (target === null) return state
+  const direction: PaneDirection =
+    side === 'left' || side === 'right' ? 'horizontal' : 'vertical'
+  const tab = noteTabForScope(scope, relPath)
+  const fresh: LeafNode = {
+    ...makeLeaf([tab]),
+    tree:
+      scope.kind === 'project'
+        ? {
+            kind: 'project',
+            projectPath: scope.projectPath,
+            ...(scope.projectTitle ? { projectTitle: scope.projectTitle } : {}),
+            off: '1'
+          }
+        : scope.kind === 'docs'
+          ? { kind: 'docs', off: '1' }
+          : { kind: 'vault', off: '1' }
+  }
+  const docked = mapNode(state.root, (node) =>
+    node.kind === 'leaf' && node.id === targetPaneId
+      ? {
+          kind: 'split' as const,
+          id: newId(),
+          direction,
+          fraction: 0.5,
+          first: side === 'left' || side === 'top' ? fresh : node,
+          second: side === 'left' || side === 'top' ? node : fresh
+        }
+      : node
+  )
+  if (docked === state.root) return state
+  return { ...state, root: docked, focusedPaneId: fresh.id }
+}
+
+/**
  * CP-OPEN-DOCK S03: tears a tab out of its pane into a FRESH pane on
  * the given side of the target pane — the dock verb the DnD edge
  * zones compile to. The fresh pane inherits the source pane's tree
@@ -1095,6 +1140,103 @@ export function dockTab(
   return leafCount(docked) < leafCount(state.root)
     ? ensureVisibleTree(next)
     : next
+}
+
+/**
+ * CP-OPEN-DOCK S06: re-docks an entire pane (sourcePaneId) to the given
+ * side ('left' | 'right' | 'top' | 'bottom') of targetPaneId.
+ * The source pane keeps all its tabs, activeTabId, and tree configuration.
+ * If sourcePaneId === targetPaneId or target is not provided, it targets the
+ * first other leaf in the workspace. If no other leaf exists, returns state.
+ */
+export function dockPane(
+  state: WorkspaceState,
+  sourcePaneId: string,
+  targetPaneId: string,
+  side: DockSide
+): WorkspaceState {
+  let effectiveTarget = targetPaneId
+  if (sourcePaneId === effectiveTarget) {
+    const other = firstOtherLeaf(state.root, sourcePaneId)
+    if (!other) return state
+    effectiveTarget = other.id
+  }
+  const source = findLeaf(state.root, sourcePaneId)
+  if (source === null) return state
+
+  // Remove source leaf from tree (collapses its parent split to sibling)
+  const remove = (node: PaneNode): PaneNode | null => {
+    if (node.kind === 'leaf') return node.id === sourcePaneId ? null : node
+    const first = remove(node.first)
+    const second = remove(node.second)
+    if (first === null) return second
+    if (second === null) return first
+    if (first !== node.first || second !== node.second) {
+      return { ...node, first, second }
+    }
+    return node
+  }
+
+  const removed = remove(state.root)
+  if (removed === null) return state
+
+  const target = findLeaf(removed, effectiveTarget)
+  if (target === null) return state
+
+  const direction: PaneDirection =
+    side === 'left' || side === 'right' ? 'horizontal' : 'vertical'
+
+  const docked = mapNode(removed, (node) =>
+    node.kind === 'leaf' && node.id === effectiveTarget
+      ? {
+          kind: 'split' as const,
+          id: newId(),
+          direction,
+          fraction: 0.5,
+          first: side === 'left' || side === 'top' ? source : node,
+          second: side === 'left' || side === 'top' ? node : source
+        }
+      : node
+  )
+  if (docked === removed) return state
+  const next = { ...state, root: docked, focusedPaneId: source.id }
+  return ensureVisibleTree(next)
+}
+
+function firstOtherLeaf(node: PaneNode, excludePaneId: string): LeafNode | null {
+  if (node.kind === 'leaf') {
+    return node.id !== excludePaneId ? node : null
+  }
+  return (
+    firstOtherLeaf(node.first, excludePaneId) ??
+    firstOtherLeaf(node.second, excludePaneId)
+  )
+}
+
+/**
+ * CP-OPEN-DOCK S06: merges all tabs from sourcePaneId into targetPaneId
+ * and closes sourcePaneId.
+ */
+export function mergePane(
+  state: WorkspaceState,
+  sourcePaneId: string,
+  targetPaneId: string
+): WorkspaceState {
+  if (sourcePaneId === targetPaneId) return state
+  const source = findLeaf(state.root, sourcePaneId)
+  if (source === null) return state
+  let current = state
+  const target = findLeaf(current.root, targetPaneId)
+  if (target && target.tree === undefined && source.tree !== undefined) {
+    current = updatePaneTree(current, targetPaneId, source.tree)
+  }
+  for (const tab of source.tabs) {
+    current = moveTab(current, tab.id, targetPaneId)
+  }
+  if (findLeaf(current.root, sourcePaneId) !== null) {
+    current = closePane(current, sourcePaneId)
+  }
+  return ensureVisibleTree(current)
 }
 
 function paneExists(node: PaneNode, paneId: string): boolean {

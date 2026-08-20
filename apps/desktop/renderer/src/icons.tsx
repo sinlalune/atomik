@@ -1,5 +1,25 @@
 /** Tiny inline SVG icons — self-contained (CSP: no external assets). */
 
+/** Six dots (2x3) drag grip handle (CP-OPEN-DOCK S06). */
+export function GripVerticalIcon(): React.JSX.Element {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <circle cx="5.5" cy="4" r="1.2" />
+      <circle cx="10.5" cy="4" r="1.2" />
+      <circle cx="5.5" cy="8" r="1.2" />
+      <circle cx="10.5" cy="8" r="1.2" />
+      <circle cx="5.5" cy="12" r="1.2" />
+      <circle cx="10.5" cy="12" r="1.2" />
+    </svg>
+  )
+}
+
 /** Panel with a bottom band — "dock the panel at the bottom". */
 export function DockBottomIcon(): React.JSX.Element {
   return (
