@@ -1,5 +1,12 @@
 import type MarkdownIt from 'markdown-it'
-import { displayMathOnLine, inlineMathClose, richKindForFence } from './syntax'
+import {
+  displayMathClose,
+  displayMathOnLine,
+  displayMathOpen,
+  inlineMathClose,
+  joinDisplayMath,
+  richKindForFence
+} from './syntax'
 
 const labelFor = (kind: 'math' | 'mermaid' | 'vega-lite' | 'code'): string => {
   switch (kind) {
@@ -80,24 +87,36 @@ export function richMarkdownPlaceholders(md: MarkdownIt): void {
         state.line = startLine + 1
         return true
       }
-      if (line.trim() !== '$$') return false
+      // A MULTI-LINE block. The delimiter must start the line — that is what
+      // keeps a `$$` mid-prose inert — but it no longer has to stand alone on
+      // it, so `$$\begin{aligned}` opens a block like every other Markdown
+      // tool (CP-RENDER-REPAIRS S01). The shape lives in `syntax.ts` so read
+      // mode and live mode cannot drift apart again.
+      const openTail = displayMathOpen(line)
+      if (openTail === null) return false
+
+      const lineTextAt = (at: number): string =>
+        state.src.slice(state.bMarks[at]! + state.tShift[at]!, state.eMarks[at]!)
 
       let closeLine = startLine + 1
       while (closeLine < endLine) {
-        const closeStart =
-          state.bMarks[closeLine]! + state.tShift[closeLine]!
-        const closeFinish = state.eMarks[closeLine]!
-        if (state.src.slice(closeStart, closeFinish).trim() === '$$') break
+        if (displayMathClose(lineTextAt(closeLine)) !== null) break
         closeLine += 1
       }
       if (closeLine >= endLine) return false
       if (silent) return true
 
-      const contentStart = state.bMarks[startLine + 1]!
-      const contentEnd = state.bMarks[closeLine]!
+      const middle: string[] = []
+      for (let at = startLine + 1; at < closeLine; at += 1) {
+        middle.push(lineTextAt(at))
+      }
       const token = state.push('atomik_math_block', '', 0)
       token.block = true
-      token.content = state.src.slice(contentStart, contentEnd).replace(/\n$/, '')
+      token.content = joinDisplayMath(
+        openTail,
+        middle,
+        displayMathClose(lineTextAt(closeLine)) ?? ''
+      )
       token.map = [startLine, closeLine + 1]
       token.meta = { info: 'display' }
       state.line = closeLine + 1

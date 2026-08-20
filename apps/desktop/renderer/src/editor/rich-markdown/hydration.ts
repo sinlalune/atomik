@@ -9,6 +9,15 @@ import {
   defaultRichRendererRegistry,
   type RichRendererRegistry
 } from './registry'
+import {
+  attachDiagramCanvas,
+  type DiagramCanvas
+} from './diagram-canvas'
+import {
+  attachDiagramExpand,
+  isExpandableKind,
+  type DiagramExpander
+} from './diagram-expand'
 import { richThemeFor } from './theme'
 
 type BlockNodes = {
@@ -23,6 +32,10 @@ type ActiveBlock = BlockNodes & {
   renderHost: HTMLElement
   handle: RichRenderHandle | null
   timer: ReturnType<typeof setTimeout> | null
+  /** Present only for a diagram that mounted (S04). */
+  expander: DiagramExpander | null
+  /** Present only for a mermaid block that mounted (S05). */
+  canvas: DiagramCanvas | null
 }
 
 export type RichHydration = {
@@ -208,7 +221,9 @@ export function hydrateRichMarkdown(
       controller,
       renderHost,
       handle: null,
-      timer: null
+      timer: null,
+      expander: null,
+      canvas: null
     }
     blocks.push(block)
     showLoading(block, kind)
@@ -266,6 +281,47 @@ export function hydrateRichMarkdown(
         return
       }
       showReady(block)
+      // S04: the control mounts only once a diagram actually rendered — a
+      // block showing its source has nothing to expand. It is inserted BEFORE
+      // the output container rather than inside it, so it does not slide away
+      // with the diagram when the container scrolls.
+      if (isExpandableKind(kind)) {
+        const doc = root.ownerDocument
+        const tools = doc.createElement('div')
+        tools.className = 'rich-diagram-tools'
+        nodes.element.insertBefore(tools, nodes.output)
+
+        // A mermaid block becomes a canvas (S05); a chart keeps S04's
+        // natural-width-and-scroll, because pan and zoom are for spatial
+        // content and a bar chart is not spatial.
+        if (kind === 'mermaid') {
+          block.canvas = attachDiagramCanvas(doc, tools, renderHost)
+        }
+        block.expander = attachDiagramExpand(
+          doc,
+          tools,
+          renderHost,
+          kind,
+          (expanded) => {
+            // The SAME node moved into the overlay, so the canvas has to move
+            // with it — and a bare wheel may zoom there, since no page sits
+            // behind it to scroll.
+            const target = expanded
+              ? (doc.querySelector(
+                  '.rich-diagram-overlay-body'
+                ) as HTMLElement | null)
+              : renderHost
+            if (!target || !block.canvas) return
+            if (expanded) {
+              target.dataset['richCanvasBareWheel'] = ''
+              // The overlay fills the pane; only a block canvas sizes itself
+              // to its diagram.
+              target.dataset['richCanvasFill'] = ''
+            }
+            block.canvas.retarget(target)
+          }
+        )
+      }
     } catch (reason) {
       if (!disposed && !controller.signal.aborted) {
         showSource(nodes, `${kind}: ${errorText(reason)}; source shown.`)
@@ -290,6 +346,13 @@ export function hydrateRichMarkdown(
         if (block.timer !== null) clearTimeout(block.timer)
         block.timer = null
         block.controller.abort(new Error('Rich Markdown hydration disposed'))
+        // The expander first: it may be holding the rendered node inside an
+        // open overlay, and the handle's dispose() removes that node.
+        block.expander?.dispose()
+        block.expander = null
+        block.canvas?.dispose()
+        block.canvas = null
+        block.element.querySelector('.rich-diagram-tools')?.remove()
         block.handle?.dispose()
         block.handle = null
         if (block.output.contains(block.renderHost)) {

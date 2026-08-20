@@ -24,10 +24,23 @@ import {
   type MermaidRuntime
 } from '../renderer/src/editor/rich-markdown/adapters/mermaid-core'
 import {
+  attachDiagramCanvas,
+  canvasHeight,
+  fitTransform,
+  naturalSize,
+  zoomAbout
+} from '../renderer/src/editor/rich-markdown/diagram-canvas'
+import {
+  attachDiagramExpand,
+  isExpandableKind
+} from '../renderer/src/editor/rich-markdown/diagram-expand'
+import {
+  captureVegaLog,
   createVegaLiteAdapter,
   themedVegaLiteSpec,
   validateVegaLiteSource,
   type VegaLiteRuntime,
+  type VegaLogger,
   type VegaView
 } from '../renderer/src/editor/rich-markdown/adapters/vega-lite-core'
 import {
@@ -287,6 +300,320 @@ describe('rich Markdown syntax discovery (ADR-014)', () => {
 
   it('leaves unclosed display delimiters and ordinary currency literal', () => {
     expect(discoverDollarMath('price $5 and tax\n$$\nno close\n')).toEqual([])
+  })
+
+  /**
+   * CP-RENDER-REPAIRS S01. The delimiters no longer have to own their line.
+   * The fixture is the owner's REAL note (vault-juju, 2026-08-17) — the shape
+   * that rendered as raw text in front of them, not an invented one.
+   */
+  it('opens a display block on `$$` followed by content, LaTeX style', () => {
+    const source = [
+      '$$\\begin{aligned}',
+      'a &= b \\\\',
+      'c &= d',
+      '\\end{aligned}$$'
+    ].join('\n')
+    const spans = discoverDollarMath(source).filter((span) => span.display)
+    expect(spans).toHaveLength(1)
+    expect(spans[0]!.from).toBe(0)
+    expect(spans[0]!.to).toBe(source.length)
+    expect(spans[0]!.source).toBe(
+      '\\begin{aligned}\na &= b \\\\\nc &= d\n\\end{aligned}'
+    )
+  })
+
+  it('still reads the delimiters-alone form, and reads it identically', () => {
+    const inline = discoverDollarMath('$$\\begin{x}\nbody\n\\end{x}$$')
+    const alone = discoverDollarMath('$$\n\\begin{x}\nbody\n\\end{x}\n$$')
+    expect(alone[0]!.source).toBe(inline[0]!.source)
+  })
+
+  it('keeps prose inert: an opener must START its line and must close', () => {
+    // `$$` mid-sentence is what the line-start rule protects, and it is the
+    // only thing standing between this relaxation and a false positive.
+    expect(discoverDollarMath('costs $$5 today\nand $$7 tomorrow\n')).toEqual(
+      []
+    )
+    expect(discoverDollarMath('$$\\begin{aligned}\nnever closed\n')).toEqual([])
+  })
+
+  it('accepts an indented block inside a list item', () => {
+    // The owner's note had it two spaces deep under a bullet.
+    const source = '* **System (2.3):**\n  $$\\begin{aligned}\n  x &= 1\n  \\end{aligned}$$\n'
+    const spans = discoverDollarMath(source).filter((span) => span.display)
+    expect(spans).toHaveLength(1)
+    expect(spans[0]!.source).toContain('\\begin{aligned}')
+    expect(spans[0]!.source).toContain('\\end{aligned}')
+  })
+})
+
+/**
+ * CP-RENDER-REPAIRS S04 — room to look at a diagram.
+ */
+describe('diagram expand control', () => {
+  const svgFixture =
+    '<svg xmlns="http://www.w3.org/2000/svg"><rect id="node" /></svg>'
+
+  function mounted(): {
+    document: Document
+    element: HTMLElement
+    output: HTMLElement
+    host: HTMLElement
+    expander: ReturnType<typeof attachDiagramExpand>
+  } {
+    const { document } = parseHTML(
+      '<html><body><div id="block"><div data-rich-output><div data-rich-render-host></div></div></div></body></html>'
+    )
+    const element = document.querySelector('#block') as unknown as HTMLElement
+    const output = document.querySelector(
+      '[data-rich-output]'
+    ) as unknown as HTMLElement
+    const host = document.querySelector(
+      '[data-rich-render-host]'
+    ) as unknown as HTMLElement
+    host.innerHTML = svgFixture
+    // Hydration owns the shared control row (S05); the expander only adds its
+    // button to it, beside the canvas controls.
+    const tools = document.createElement('div')
+    tools.className = 'rich-diagram-tools'
+    element.insertBefore(tools, output)
+    const expander = attachDiagramExpand(
+      document as unknown as Document,
+      tools,
+      host,
+      'mermaid'
+    )
+    return { document, element, output, host, expander }
+  }
+
+  it('only offers itself for diagrams', () => {
+    expect(isExpandableKind('mermaid')).toBe(true)
+    expect(isExpandableKind('vega-lite')).toBe(true)
+    expect(isExpandableKind('math')).toBe(false)
+    expect(isExpandableKind('code')).toBe(false)
+  })
+
+  it('MOVES the sanitized node into the overlay rather than copying it', () => {
+    // A clone would put two elements carrying the same marker and clip-path
+    // ids into one document, where url(#id) resolves to whichever comes
+    // first. Moving the one node cannot collide with itself.
+    const { document, host, expander } = mounted()
+    const original = host.querySelector('svg')
+    expander.button.dispatchEvent(new document.defaultView!.Event('click'))
+
+    const dialog = document.querySelector('dialog.rich-diagram-overlay')
+    expect(dialog).not.toBeNull()
+    expect(document.querySelectorAll('svg:not([aria-hidden])')).toHaveLength(1)
+    expect(dialog!.querySelector('svg:not([aria-hidden])')).toBe(original)
+    expect(host.querySelector('svg')).toBeNull()
+  })
+
+  it('returns the node to where it was when the overlay closes', () => {
+    const { document, host, expander } = mounted()
+    const original = host.querySelector('svg')
+    expander.button.dispatchEvent(new document.defaultView!.Event('click'))
+    const dialog = document.querySelector(
+      'dialog.rich-diagram-overlay'
+    ) as unknown as HTMLDialogElement
+
+    const close = dialog.querySelector('button') as unknown as HTMLElement
+    close.dispatchEvent(new document.defaultView!.Event('click'))
+
+    expect(host.querySelector('svg')).toBe(original)
+    expect(document.querySelector('dialog.rich-diagram-overlay')).toBeNull()
+    expect(document.querySelectorAll('svg:not([aria-hidden])')).toHaveLength(1)
+  })
+
+  it('mounts the control OUTSIDE the scrolling container', () => {
+    // Inside it, the button would slide away with the diagram it belongs to.
+    const { element, output, expander } = mounted()
+    const tools = element.querySelector('.rich-diagram-tools')!
+    expect(tools).not.toBeNull()
+    expect(output.contains(tools as unknown as Node)).toBe(false)
+    expect(expander.button.getAttribute('aria-label')).toContain('mermaid')
+    expect(tools.contains(expander.button)).toBe(true)
+  })
+
+  it('disposing while expanded puts the diagram back and clears the control', () => {
+    const { document, host, expander } = mounted()
+    expander.button.dispatchEvent(new document.defaultView!.Event('click'))
+    expander.dispose()
+    expect(document.querySelector('dialog.rich-diagram-overlay')).toBeNull()
+    expect(host.querySelector('svg')).not.toBeNull()
+    expect(document.querySelectorAll('.rich-diagram-tools button')).toHaveLength(0)
+  })
+})
+
+/**
+ * CP-RENDER-REPAIRS S05 — the diagram block is a canvas.
+ *
+ * The arithmetic is pure and tested directly; the wheel contract is tested
+ * through a real listener because it is a promise to the READER (the note
+ * still scrolls) rather than a calculation.
+ */
+describe('diagram canvas', () => {
+  it('zooms about a point, keeping what is under it in place', () => {
+    const start = { x: 0, y: 0, k: 1 }
+    const point = { x: 100, y: 50 }
+    const zoomed = zoomAbout(start, point, 2)
+    // The document point under the cursor before and after must be the same.
+    const before = {
+      x: (point.x - start.x) / start.k,
+      y: (point.y - start.y) / start.k
+    }
+    const after = {
+      x: (point.x - zoomed.x) / zoomed.k,
+      y: (point.y - zoomed.y) / zoomed.k
+    }
+    expect(after.x).toBeCloseTo(before.x, 6)
+    expect(after.y).toBeCloseTo(before.y, 6)
+    expect(zoomed.k).toBe(2)
+  })
+
+  it('clamps zoom rather than letting a diagram vanish or explode', () => {
+    expect(zoomAbout({ x: 0, y: 0, k: 0.1 }, { x: 0, y: 0 }, 0.1).k).toBe(0.1)
+    expect(zoomAbout({ x: 0, y: 0, k: 8 }, { x: 0, y: 0 }, 4).k).toBe(8)
+  })
+
+  it('fits by shrinking only, and centres what it fits', () => {
+    const wide = fitTransform({ width: 500, height: 400 }, { width: 1000, height: 200 })
+    expect(wide.k).toBe(0.5)
+    expect(wide.x).toBe(0)
+    expect(wide.y).toBe((400 - 200 * 0.5) / 2)
+
+    // A diagram smaller than its frame is centred at 1:1, never magnified.
+    const small = fitTransform({ width: 500, height: 400 }, { width: 100, height: 100 })
+    expect(small.k).toBe(1)
+    expect(small.x).toBe(200)
+  })
+
+  it('reads a natural size from the viewBox Mermaid already wrote', () => {
+    const { document } = parseHTML('<html><body></body></html>')
+    const svg = document.createElement('svg')
+    svg.setAttribute('viewBox', '0 0 640 480')
+    expect(naturalSize(svg as unknown as Element)).toEqual({
+      width: 640,
+      height: 480
+    })
+    const bare = document.createElement('svg')
+    // No viewBox and no layout: start at 1:1 rather than guess a fit.
+    expect(naturalSize(bare as unknown as Element)).toBeNull()
+  })
+
+  it('is only as tall as the diagram needs', () => {
+    // The bench: a two-node flowchart sat in 460px of emptiness because every
+    // canvas got the same fixed height.
+    expect(canvasHeight(760, { width: 200, height: 160 })).toBe(160)
+    // Something tiny still gets a usable box rather than a sliver.
+    expect(canvasHeight(760, { width: 100, height: 20 })).toBe(140)
+    // A tall diagram is bounded — one diagram must not own the whole note.
+    expect(canvasHeight(760, { width: 200, height: 4000 })).toBe(460)
+    // A WIDE diagram is measured at the scale it will be drawn at, not at 1:1.
+    expect(canvasHeight(400, { width: 1600, height: 800 })).toBe(200)
+    expect(canvasHeight(0, { width: 100, height: 100 })).toBe(140)
+  })
+
+  it('pins the SVG to its intrinsic size before transforming it', () => {
+    // Mermaid emits width="100%" + max-width, so the ELEMENT fills the
+    // container while the drawing sits inside it. Centring the element then
+    // shoves the drawing sideways — the defect the bench screenshotted.
+    const { document } = parseHTML(
+      '<html><body><div id="tools"></div><div id="vp"><svg width="100%" style="max-width: 640px" viewBox="0 0 640 480"></svg></div></body></html>'
+    )
+    const tools = document.querySelector('#tools') as unknown as HTMLElement
+    const viewport = document.querySelector('#vp') as unknown as HTMLElement
+    const svg = viewport.querySelector('svg') as unknown as HTMLElement
+    const canvas = attachDiagramCanvas(
+      document as unknown as Document,
+      tools,
+      viewport
+    )
+    expect(svg.style.width).toBe('640px')
+    expect(svg.style.height).toBe('480px')
+    expect(svg.style.maxWidth).toBe('none')
+
+    canvas.dispose()
+    // …and every one of those is handed back on the way out.
+    expect(svg.style.width).toBe('')
+    expect(svg.style.height).toBe('')
+    expect(svg.style.maxWidth).toBe('')
+    expect(viewport.style.height).toBe('')
+  })
+
+  it('leaves a bare wheel to the page, and zooms only with a modifier', () => {
+    const { document } = parseHTML(
+      '<html><body><div id="tools"></div><div id="vp"><svg viewBox="0 0 100 100"></svg></div></body></html>'
+    )
+    const tools = document.querySelector('#tools') as unknown as HTMLElement
+    const viewport = document.querySelector('#vp') as unknown as HTMLElement
+    const canvas = attachDiagramCanvas(
+      document as unknown as Document,
+      tools,
+      viewport
+    )
+
+    const wheel = (init: Record<string, unknown>): boolean => {
+      const event = new document.defaultView!.Event('wheel', {
+        cancelable: true
+      }) as WheelEvent
+      Object.assign(event, { deltaY: -200, clientX: 0, clientY: 0, ...init })
+      viewport.dispatchEvent(event)
+      return event.defaultPrevented
+    }
+
+    // A note with a diagram in it must still scroll. This is the whole reason
+    // wheel-zoom was argued about at the opening check.
+    expect(wheel({})).toBe(false)
+    expect(wheel({ ctrlKey: true })).toBe(true)
+    expect(wheel({ metaKey: true })).toBe(true)
+
+    // …unless nothing is behind it: inside the overlay a bare wheel zooms.
+    viewport.dataset['richCanvasBareWheel'] = ''
+    expect(wheel({})).toBe(true)
+
+    canvas.dispose()
+    // Disposing gives the node back exactly as it was found.
+    expect(
+      (viewport.querySelector('svg') as unknown as HTMLElement).style.transform
+    ).toBe('')
+    expect(viewport.hasAttribute('data-rich-canvas')).toBe(false)
+  })
+
+  it('offers every gesture as a control and a key', () => {
+    const { document } = parseHTML(
+      '<html><body><div id="tools"></div><div id="vp"><svg viewBox="0 0 100 100"></svg></div></body></html>'
+    )
+    const tools = document.querySelector('#tools') as unknown as HTMLElement
+    const viewport = document.querySelector('#vp') as unknown as HTMLElement
+    const canvas = attachDiagramCanvas(
+      document as unknown as Document,
+      tools,
+      viewport
+    )
+    const buttons = Array.from(tools.querySelectorAll('button'))
+    expect(buttons.map((button) => button.getAttribute('aria-label'))).toEqual([
+      'Zoom out (−)',
+      'Zoom in (+)',
+      'Fit the diagram (0)'
+    ])
+    // Icon + a label revealed on hover (owner directive, S05 bench). The
+    // accessible name lives on the button ONCE: the icon is decorative and the
+    // visible label is aria-hidden, so a reader hears the name, not the name
+    // twice plus a drawing.
+    for (const button of buttons) {
+      expect(button.querySelector('svg')?.getAttribute('aria-hidden')).toBe(
+        'true'
+      )
+      const visible = button.querySelector('.rich-diagram-action-label')
+      expect(visible?.getAttribute('aria-hidden')).toBe('true')
+      expect(visible?.textContent?.length).toBeGreaterThan(0)
+    }
+    expect(viewport.getAttribute('role')).toBe('application')
+    expect(viewport.getAttribute('tabindex')).toBe('0')
+    expect(viewport.getAttribute('aria-label')).toContain('arrow keys')
+    canvas.dispose()
+    expect(tools.querySelectorAll('button')).toHaveLength(0)
   })
 })
 
@@ -1662,6 +1989,71 @@ describe('Vega-Lite adapter (CP-RICH-MARKDOWN S05)', () => {
         )
       )
     ).toMatchObject({ data: { values: { records: [{ x: 1, y: 2 }] } } })
+  })
+
+  /**
+   * CP-RENDER-REPAIRS S02 — Vega diagnoses its own broken charts and the
+   * adapter used to throw the diagnosis away.
+   */
+  it('carries what Vega said into the block diagnostics', async () => {
+    const fixture = fakeVega()
+    // Both halves report: Vega-Lite at compile, Vega at run.
+    fixture.compile.mockImplementation(
+      (spec: Record<string, unknown>, options?: { logger?: VegaLogger }) => {
+        options?.logger?.warn("y-scale's \"zero\" is dropped as it does not work with log scale.")
+        return { spec: { compiled: spec } }
+      }
+    )
+    fixture.createView.mockImplementation(
+      (_runtime: unknown, options: { logger?: VegaLogger }) => {
+        options.logger?.warn('Log scale domain includes zero: [0,1800]')
+        // Vega repeats per pulse; the reader needs it once.
+        options.logger?.warn('Log scale domain includes zero: [0,1800]')
+        return fixture.view
+      }
+    )
+    const handle = await createVegaLiteAdapter(async () => fixture.runtime).render(
+      emptyHost(),
+      vegaRequest()
+    )
+    expect(handle.diagnostics).toHaveLength(1)
+    expect(handle.diagnostics[0]).toMatchObject({
+      severity: 'warning',
+      source: 'vega-lite'
+    })
+    expect(handle.diagnostics[0]!.message).toContain('Log scale domain includes zero')
+    expect(handle.diagnostics[0]!.message).toContain('is dropped')
+    // Deduplicated, not repeated once per pulse.
+    expect(
+      handle.diagnostics[0]!.message.match(/Log scale domain/g)
+    ).toHaveLength(1)
+    handle.dispose()
+  })
+
+  it('captures a Vega log sink without needing Vega', () => {
+    // The sink is built in the pure half of the adapter precisely so this
+    // needs no chart runtime. `level` doubles as getter and setter and
+    // returns the logger when it sets, the way Vega's own factory behaves.
+    const log = captureVegaLog()
+    log.logger.warn('a', 1)
+    log.logger.error('b')
+    log.logger.warn('a', 1)
+    log.logger.info('ignored')
+    log.logger.debug('ignored')
+    expect(log.messages).toEqual(['a 1', 'b'])
+    expect(log.logger.level(2)).toBe(log.logger)
+    expect(log.logger.level()).toBe(2)
+  })
+
+  it('stays silent when Vega has nothing to say, and still renders', async () => {
+    const fixture = fakeVega()
+    const handle = await createVegaLiteAdapter(async () => fixture.runtime).render(
+      emptyHost(),
+      vegaRequest()
+    )
+    // A warning is not a refusal: the chart mounts either way.
+    expect(handle.diagnostics).toEqual([])
+    handle.dispose()
   })
 
   it('maps dark app tokens into site-owned chart defaults', async () => {

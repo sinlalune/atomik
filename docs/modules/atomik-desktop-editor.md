@@ -315,13 +315,183 @@ carries the decisions; the operational shape:
   byte-identical — an existing test pins it. Both change together or neither
   does. Capabilities sit BEFORE `# Rules` so `## Output` stays inside it.
 
-## Three rendering traps the model must be warned about (CP-AI-CAPABILITIES S03)
+## The diagram block is a canvas (CP-RENDER-REPAIRS S05)
+
+S04 gave a wide diagram its natural size and let the frame scroll. At the bench
+the owner said what they had wanted from the start: an infinite canvas inside
+the block, with the expand control kept. Pan and zoom were in the path's
+Deliberately excluded list, so the list was AMENDED — the exclusion was
+written down, so its removal is too.
+
+- `diagram-canvas.ts` holds two numbers and a scale, applied as a CSS
+  transform. Nothing re-parses, re-renders or re-sanitizes: the reader is
+  panning the same node `safeSvgNode` approved (13).
+- **A bare wheel still scrolls the note.** Zoom takes Ctrl or Cmd. A canvas
+  that eats the wheel makes a long note unreadable the moment a diagram is in
+  the way, and the reader is given no way to understand why. This is the one
+  behaviour to protect if the module is ever refactored, and it is pinned by a
+  test that asserts `defaultPrevented` is false without a modifier.
+- Inside the expand overlay a bare wheel DOES zoom, because no page sits behind
+  it to scroll. The difference rides on a data attribute on the viewport, so
+  the same canvas follows the diagram into the overlay via `retarget` — the
+  node is moved, not copied, so its controller has to move with it.
+- Every gesture has a control and a key: −, +, Fit; arrows pan, `+`/`-` zoom,
+  `0` fits. The viewport is `role="application"` with a label naming them (36).
+- `naturalSize` reads Mermaid's own `viewBox` before reaching for layout, so a
+  fit is computable without a rendered box — and returns null rather than
+  guessing when neither exists, because a wrong fit is worse than none.
+- **The SVG is pinned to its intrinsic size before any transform.** Mermaid
+  emits `width="100%"` with `style="max-width: Npx"`, so the ELEMENT fills its
+  container while the drawing sits inside it under the viewBox. Centring the
+  element therefore centres a full-width box and shoves the drawing sideways,
+  which is what the first bench round saw: Fit put a wide diagram in the
+  upper-left and a small one hard right. Setting `width`/`height` in pixels and
+  `max-width: none` makes the element box and the drawing box the same thing,
+  which is what the arithmetic assumed all along. Every one of those inline
+  styles is handed back on dispose.
+- **Everything the transform depends on is set INLINE.** The second bench
+  round still showed the diagram jammed against the right edge, clipped. The
+  arithmetic was never wrong: the S04 rule `… [data-rich-render-host] > svg {
+  margin-inline: auto }` centres the element on its own, and its selector
+  outranks any attribute selector this module can write, so CSS centred the
+  element and the transform centred it again. `width`, `height`, `max-width`,
+  `margin` and `display` are now written as inline styles, where no stylesheet
+  can reach them, and all of them are handed back on dispose. **The lesson is
+  general: a JS-driven transform cannot share ownership of layout with a
+  stylesheet.**
+- Controls are icon + a label revealed on hover and on FOCUS (owner directive,
+  S05 bench). The accessible name lives on the button once — the icon is
+  decorative, the visible label is `aria-hidden` — so a screen reader hears one
+  name rather than the name twice plus a drawing.
+- **The canvas is only as tall as its diagram.** `canvasHeight` measures the
+  diagram at the scale it will actually be drawn — width decides the scale,
+  since the canvas is as wide as its column either way — bounded to
+  140–460px. The first cut gave everything 460px and a two-node flowchart sat
+  in an acre of emptiness. The overlay is exempt: it fills the pane.
+- Charts are deliberately NOT canvases. Pan and zoom are for spatial content;
+  a bar chart is not spatial, so vega-lite keeps S04's behaviour.
+
+## Room to look at a diagram (CP-RENDER-REPAIRS S04)
+
+A wide Mermaid diagram arrived in a 560px note column at about a fifth of
+legible size with nothing to grab. **The scroll affordance was already there
+and switched off by the rule beside it**: `overflow: auto` on the output
+container, `max-width: 100%` on the SVG, so the SVG was scaled to the column
+and never overflowed, so the container never had anything to scroll. Removing
+the cap bought panning for free.
+
+- `diagram-expand.ts` adds the second half: an Expand control opening the
+  diagram in a native `<dialog>` at up to 96vw. `max-width: 100%` returns only
+  INSIDE the overlay, where fitting the pane is the point.
+- **The node is MOVED, never cloned and never re-parsed.** `safeSvgNode` has
+  already sanitized it and rewritten its ids to be unique in the document; a
+  clone would put two elements carrying the same marker and clip-path ids into
+  one document, where `url(#id)` resolves to whichever comes first. A comment
+  node holds its place so it returns exactly where it was, not appended to the
+  end of a host that may have siblings (13 — the overlay shows what was
+  approved, byte for byte).
+- The control mounts OUTSIDE the scrolling container, or it would slide away
+  with the diagram it belongs to, and only after a diagram actually rendered —
+  a block showing its source has nothing to expand.
+- One dismissal path. Close, Escape and `dispose()` all route through
+  `dismiss()`; `restore()` clears its state first, so it is idempotent, which
+  matters because `dialog.close()` fires its `close` event asynchronously and
+  `dispose()` cannot wait for it.
+- Where `<dialog>` is unavailable (linkedom under test) the overlay still
+  mounts and still closes — it simply is not modal. That fallback is exercised
+  by the tests rather than assumed.
+
+On focus: `showModal()` contains focus while the overlay is open, which is what
+a modal is for, and returns it to the button that opened it. The path's
+acceptance line said the overlay "must not trap focus"; read as written that
+would forbid a modal, and the intent — never strand the reader — is met by
+Escape plus focus restoration. Recorded here rather than quietly reinterpreted.
+
+## The app's bookkeeping never names a file (CP-RENDER-REPAIRS S03)
+
+`chatSlug` stripped `<`, `>` and `#` one character at a time and never saw
+`<!-- … -->` as a unit, so a real file in the owner's vault ended up named
+`you-!---sent-system=2120-instruction=828.md`. It now strips comments first,
+the same treatment `graph-core.ts:109` already gives a heading before it
+becomes a title (CP-MVP-010 S07c). **One defect class, fixed at both layers**
+— worth remembering that fixing a strip in one place is a prompt to grep for
+the others.
+
+The trigger was traced rather than assumed, and the trace came back NEGATIVE:
+no in-app path composes a stamped heading into the text that names a new chat
+file. `send` takes the composer's contents; `retry` never creates a file and
+`parseChatTurns` consumes a stamped heading into turn METADATA rather than
+turn text. It was a paste — the full record is in
+`atomik-project/sessions/2026-08-20-cp-render-repairs-s03-slug-trace.md`.
+
+Deliberately not added: a guard that strips a leading `## you` from a pasted
+message. Pasting a transcript fragment is legitimate, and silently rewriting
+it would be worse than a cosmetic double heading.
+
+## Vega's own diagnosis reaches the reader (CP-RENDER-REPAIRS S02)
+
+The bench produced a chart with correct inline data, a correct encoding, and no
+bars. Vega had said why — `Log scale domain includes zero: [0,1800]` — into a
+logger the adapter never supplied, then drew the empty chart anyway.
+
+- `captureVegaLog()` builds a Vega-shaped logger in the PURE half of the
+  adapter, so the capture is unit-testable without a chart runtime. It
+  deduplicates: Vega repeats a warning once per dataflow pulse and the reader
+  needs it once.
+- The same sink goes to BOTH halves — Vega-Lite reports at compile time
+  (`y-scale's "zero" is dropped…`), Vega at run time (`Log scale domain
+  includes zero…`).
+- **A warning is not a refusal.** A chart Vega is willing to draw still draws;
+  the diagnostic rides beside it. Only the existing validation failures refuse.
+- Nothing new was built to display it. `RichRenderHandle.diagnostics` was
+  always the channel and `hydration.ts` already renders `diagnostics[0]` into
+  `[data-rich-status]` with its severity — the same slot a refusal uses. The
+  adapter had simply been returning `[]`.
+
+Mermaid was deliberately NOT audited for the same gap in this step; the owner
+scoped S02 to the defect the bench actually found.
+
+## Display math delimiters no longer own their line (CP-RENDER-REPAIRS S01)
+
+`$$\begin{aligned}` — the LaTeX form, the form models emit by default, and the
+form in the owner's own vault — used to degrade to a paragraph. Both scanners
+required the delimiter to stand alone (`markdown-plugin.ts`: `line.trim() !==
+'$$'`; `syntax.ts`: `trimmed !== '$$'`), so read mode and live mode failed
+identically.
+
+- The shape now lives in ONE place — `displayMathOpen`, `displayMathClose` and
+  `joinDisplayMath` in `syntax.ts` — and both scanners call it. The two carried
+  their own copy of the rule before, which is exactly how they came to be wrong
+  in the same way; one definition cannot disagree with itself.
+- **The delimiter must still START its line.** That is the whole guard against
+  a false positive, and `$$` mid-prose stays inert. An opener with no closing
+  line stays prose too.
+- `displayMathOnLine` is still tried FIRST: a line that opens and closes on its
+  own is complete, not an opener.
+- Fixtures are the owner's real note (`vault-juju`, 2026-08-17), including the
+  two-space-indented case inside a list item. An invented fixture would not
+  have caught the indent.
+
+**This step discharged an obligation, and that is the pattern worth keeping.**
+CP-AI-CAPABILITIES had warned the model about this defect in a prompt block
+that ships on every request, and pinned the warning to `discoverDollarMath`.
+Repairing the parser made that pin FAIL — by design. The answer was to delete
+the clause and lower the block's asserted ceiling (1,700 -> 1,450), never to
+loosen the assertion. A prompt that keeps describing a repaired defect burns
+tokens forever to teach the model something untrue.
+
+The two surviving traps describe behaviour Atomik does not own — Mermaid's
+HTML-label override and Vega-Lite's bar baseline — which is why they stay.
+
+## The capability bench found three rendering traps (CP-AI-CAPABILITIES S03)
 
 The first owner bench on REAL generations produced a chart with no data in it.
 The generated spec was correct — inline `data.values`, no `url`, four rows —
-and the block had done its job. The renderer had not. Three shapes now carry a
-warning in `rendering-capabilities`, because in all three a model writing
-perfectly reasonable source gets a reader who sees nothing:
+and the block had done its job. The renderer had not. Three shapes then gained
+a warning in `rendering-capabilities`, because in all three a model writing
+perfectly reasonable source got a reader who saw nothing. CP-RENDER-REPAIRS
+has since discharged the third; the history stays here without pretending the
+warning still ships:
 
 - **A `bar` mark on a log scale draws zero-height bars.** A bar's baseline is
   zero; zero is illegal on a log scale, so the scale collapses and takes the y
@@ -336,18 +506,19 @@ perfectly reasonable source gets a reader who sees nothing:
   which `safe-svg.ts` rejects outright — correctly, and not negotiable over
   untrusted note content. The reader loses the diagram, not just the formula.
   Formulas go in a math block BESIDE the diagram.
-- **A multi-line `$$` block only parses with `$$` alone on its own line.**
-  `markdown-plugin.ts` (`line.trim() !== '$$'`) and `syntax.ts`
-  (`trimmed !== '$$'`) both require it, so `$$\begin{aligned}` — the form
-  models emit by default — degrades to a paragraph in read mode AND live mode.
-  This one is a real renderer defect, warned about in the prompt as the cheap
-  half of the fix; the parser repair is its own path.
+- **Resolved by CP-RENDER-REPAIRS S01: a multi-line `$$` block used to require
+  `$$` alone on its own line.** `markdown-plugin.ts` and `syntax.ts` both
+  carried that rule, so `$$\begin{aligned}` — the form models emit by default
+  — degraded to a paragraph in read and live mode. Both scanners now share the
+  repaired grammar in `syntax.ts`; its drift pin fired and the warning was
+  deleted from the prompt block.
 
-**These warnings are pinned like every other claim in the block**, and pinned
-to the code that CAUSES them: `discoverDollarMath`, `safeSvgNode`, and
-Vega-Lite's own compiler. The day a trap is fixed, its test fails and the
-prompt must stop describing it — a block that keeps warning about a repaired
-defect burns tokens on every request to teach the model something untrue.
+**Those warnings were pinned like every other claim in the block**, to the
+code that caused them: `discoverDollarMath`, `safeSvgNode`, and Vega-Lite's own
+compiler. The math pin has now proved the direction: fixing the parser failed
+the test until the warning was deleted. The two surviving claims remain pinned
+to `safeSvgNode` and Vega-Lite's compiler so the prompt must stop describing
+them if their underlying behavior changes.
 Drift runs in both directions.
 
 The block grew 1,046 -> 1,572 chars (~+131 tokens/request) and the asserted

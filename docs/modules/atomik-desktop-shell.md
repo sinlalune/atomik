@@ -270,6 +270,33 @@ cost is ever squeezed: two of the three describe defects that can be FIXED, and
 the drift tests fail the moment they are, which is what forces the block back
 down again.
 
+**That mechanism has now run once.** CP-RENDER-REPAIRS S01 repaired the `$$`
+parser, the drift pin failed on the next test run, and the clause came out of
+the block — ceiling back down 1,700 -> 1,450. Per-request cost falls as
+defects are fixed, automatically, because the test makes deletion the only
+correct response. The two remaining traps describe Mermaid's and Vega-Lite's
+own behaviour, so they stay until those change upstream.
+
+## A mermaid block owns its wheel only on request (CP-RENDER-REPAIRS S05)
+
+`hydrateRichMarkdown` builds one shared control row per diagram block and hands
+it to both the canvas (mermaid only) and the expand control. The shell-level
+fact worth knowing: **a diagram never steals the page's scroll.** A bare wheel
+over a mermaid canvas scrolls the note exactly as it does over a paragraph;
+zoom requires Ctrl or Cmd. Only inside the expand overlay, where no page sits
+behind the diagram, does a bare wheel zoom.
+
+## A diagram may take the whole pane (CP-RENDER-REPAIRS S04)
+
+`hydrateRichMarkdown` now attaches an Expand control to any `mermaid` or
+`vega-lite` block that actually rendered, and the overlay is a native
+`<dialog>` appended to the document body. Two consequences for the shell:
+
+- The overlay lives OUTSIDE the editor's own DOM, so it is unaffected by pane
+  layout, and the rendered SVG is moved into it and back rather than copied.
+- A block showing its source gets no control — there is nothing to expand — so
+  the control's presence is also a signal that the render succeeded.
+
 ## Generation defaults follow the capability blocks (CP-AI-CAPABILITIES S03)
 
 Two owner directives on 2026-08-20, both downstream of what the blocks changed

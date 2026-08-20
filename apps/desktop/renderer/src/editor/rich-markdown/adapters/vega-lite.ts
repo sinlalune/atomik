@@ -12,7 +12,14 @@ export async function loadVegaLiteRuntime(): Promise<VegaLiteRuntime> {
     import('vega-interpreter')
   ])
   return {
-    compile: (spec) => vegaLite.compile(spec as unknown as TopLevelSpec),
+    // The logger is what turns Vega's own diagnosis into something the reader
+    // can see (S02). Vega-Lite reports at COMPILE time ("y-scale's zero is
+    // dropped…"), Vega at RUN time ("Log scale domain includes zero…"), so
+    // both halves take the same sink.
+    compile: (spec, options) =>
+      vegaLite.compile(spec as unknown as TopLevelSpec, {
+        ...(options?.logger ? { logger: options.logger as never } : {})
+      }),
     // `ast: true` keeps Vega's expressions as a parsed tree instead of
     // compiling them into JavaScript source. Vega's default path ends in
     // `Function(...)`, which the renderer's `script-src 'self'` CSP refuses

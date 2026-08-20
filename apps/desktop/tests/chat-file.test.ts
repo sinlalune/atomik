@@ -33,6 +33,30 @@ describe('chat file naming (S01 pin: chats/YYYY-MM-DD-<slug>.md)', () => {
     )
   })
 
+  /**
+   * CP-RENDER-REPAIRS S03. The observed file was real:
+   * `chats/2026-08-20/you-!---sent-system=2120-instruction=828.md`.
+   * `chatSlug` dropped `<`, `>` and `#` one character at a time and never saw
+   * the comment as a unit, so the app's own bookkeeping became the name.
+   */
+  it('never lets the app own bookkeeping into a file name', () => {
+    const stamped =
+      '## you <!-- sent: system=2120|instruction=828:your message|template=25 -->\n\nGenerate a NOTE for each.'
+    expect(chatSlug(stamped)).toBe('you-generate-a-note-for-each')
+    expect(chatSlug(stamped)).not.toContain('sent')
+    expect(chatSlug(stamped)).not.toContain('828')
+
+    // A comment on its own leaves nothing to name with, and the fallback
+    // holds rather than producing a file called `--`.
+    expect(chatSlug('<!-- sent: system=1|instruction=2 -->')).toBe('chat')
+
+    // The same treatment graph-core.ts already gives a heading before it
+    // becomes a title (CP-MVP-010 S07c) — one defect class, both layers.
+    expect(chatSlug('Why <!-- note -->does this matter?')).toBe(
+      'why-does-this-matter'
+    )
+  })
+
   it('builds per-date folder paths (S07b2: day = folder, title date-free); collisions retry with a numeric suffix', () => {
     expect(chatRelPath(DAY, 'What is attention?')).toBe(
       'chats/2026-07-23/what-is-attention.md'

@@ -63,11 +63,28 @@ export const CHAT_THREAD_MAX_TURN_CHARS = 8000
 const stripLinks = (text: string): string =>
   text.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
 
+/**
+ * HTML comments are the app's own bookkeeping, never part of a name
+ * (CP-RENDER-REPAIRS S03).
+ *
+ * A chat turn heading carries `<!-- sent: system=2120|instruction=828… -->`,
+ * and `chatSlug` dropped `<`, `>` and `#` one character at a time without ever
+ * seeing the comment as a unit. The result was a real file in the owner's
+ * vault named `you-!---sent-system=2120-instruction=828.md`.
+ *
+ * The same defect class was already fixed one layer up: `graph-core.ts` strips
+ * exactly this before a heading becomes a title (CP-MVP-010 S07c), with the
+ * same reasoning. The slug path was simply missed. Stripping here is correct
+ * however the stamp reached the text.
+ */
+const stripComments = (text: string): string =>
+  text.replace(/<!--[\s\S]*?-->/g, ' ')
+
 /** File-name slug from the first message (the subject names the chat,
  *  the S05 selection-names-the-note precedent): fs/link-hostile
  *  characters dropped, lowercased, dashed, capped. */
 export function chatSlug(firstMessage: string): string {
-  const slug = stripLinks(firstMessage)
+  const slug = stripLinks(stripComments(firstMessage))
     .replace(/[\\/:*?"<>|#^[\]{}()\n\r\t.]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()

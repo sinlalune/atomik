@@ -3772,9 +3772,146 @@ button.relations-node:focus-visible {
   > svg {
   display: block;
   width: auto;
-  max-width: 100%;
   height: auto;
   margin-inline: auto;
+}
+
+/* CP-RENDER-REPAIRS S05: a mermaid block is a CANVAS with a bounded viewport,
+   not a strip that grows with its diagram. `touch-action: none` is what lets
+   drag-to-pan work on a trackpad without the surface trying to scroll at the
+   same time. A chart keeps S04's behaviour and is untouched here. */
+.rich-markdown-block[data-rich-kind='mermaid']
+  [data-rich-render-host][data-rich-canvas] {
+  position: relative;
+  /* Height is written inline by the canvas, which knows how tall the diagram
+     actually is (S05 bench: a two-node flowchart had 460px of emptiness under
+     it). These bounds only matter before the first fit, and if the diagram's
+     size can never be determined. */
+  min-height: 140px;
+  max-height: 460px;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+}
+
+.rich-markdown-block[data-rich-kind='mermaid']
+  [data-rich-render-host][data-rich-canvas-dragging] {
+  cursor: grabbing;
+}
+
+[data-rich-canvas]:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
+
+[data-rich-canvas] > svg {
+  /* The transform is written inline by the canvas; nothing here may fight it,
+     so the fit-to-column rules deliberately do not apply inside a canvas. */
+  max-width: none;
+  margin-inline: 0;
+}
+
+.rich-diagram-overlay-body[data-rich-canvas] {
+  place-items: stretch;
+  position: relative;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+}
+
+.rich-diagram-overlay-body[data-rich-canvas] > svg {
+  max-width: none;
+}
+
+/* CP-RENDER-REPAIRS S04. `max-width: 100%` used to sit here and quietly
+   disabled the `overflow: auto` on the container above: the SVG was scaled
+   down to the column width, so it never overflowed and there was never
+   anything to scroll. A wide diagram now keeps its own size and the container
+   does its job. `max-width: 100%` returns only inside the expanded overlay,
+   where fitting the pane is the point. */
+.rich-diagram-tools {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  margin-bottom: var(--space-1);
+}
+
+/* Owner directive (S05 bench): icon, label on hover. Four text buttons above a
+   diagram read as a sentence competing with the note; four icons read as a
+   toolbar and stay out of the way until wanted. The label is revealed on FOCUS
+   as well as hover, or it would exist only for people using a mouse (36). */
+.rich-diagram-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding-inline: var(--space-2);
+}
+
+.rich-diagram-action svg {
+  display: block;
+  flex: none;
+}
+
+.rich-diagram-action-label {
+  display: grid;
+  grid-template-columns: 0fr;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: grid-template-columns 120ms ease;
+}
+
+.rich-diagram-action-label::before {
+  content: '';
+  min-width: 0;
+}
+
+.rich-diagram-tools:hover .rich-diagram-action-label,
+.rich-diagram-action:hover .rich-diagram-action-label,
+.rich-diagram-action:focus-visible .rich-diagram-action-label {
+  grid-template-columns: 1fr;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rich-diagram-action-label {
+    transition: none;
+  }
+}
+
+.rich-diagram-overlay {
+  width: min(96vw, 1600px);
+  max-width: 96vw;
+  height: min(92vh, 1200px);
+  padding: 0;
+  color: var(--fg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.rich-diagram-overlay::backdrop {
+  background: rgb(0 0 0 / 55%);
+}
+
+.rich-diagram-overlay-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.rich-diagram-overlay-body {
+  display: grid;
+  place-items: center;
+  height: calc(100% - (var(--control-h) + var(--space-4)));
+  padding: var(--space-3);
+  overflow: auto;
+}
+
+.rich-diagram-overlay-body > svg {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {
