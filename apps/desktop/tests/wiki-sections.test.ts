@@ -85,12 +85,44 @@ describe('choosing what to read of an article (CP-MVP-011 S07i)', () => {
     expect(selection.kept).toHaveLength(4)
   })
 
+  it('stops ranking when the query matches the whole page (S07j)', () => {
+    // Owner bench 2026-08-20: the model searched "réforme des retraites en
+    // France en 2023" and got the article of that name, where every section
+    // carries every query term. Ranking then measures keyword DENSITY, not
+    // answering power — it picked §Manifestations over §Contenu. With no
+    // signal to rank by, reading order is the honest answer.
+    const onTopic: WikiSection[] = [
+      { heading: '', text: 'La réforme des retraites de 2023 en France, vue générale.' },
+      { heading: 'Contenu de la réforme', text: 'La réforme des retraites recule l age legal.' },
+      { heading: 'Contexte', text: 'La réforme des retraites en France arrive apres 2019.' },
+      {
+        heading: 'Manifestations',
+        text: 'La réforme des retraites en France en 2023 provoque des manifestations contre la réforme des retraites, encore et encore, longuement.'
+      }
+    ]
+    const selection = selectWikiSections(
+      onTopic,
+      'réforme des retraites en France en 2023',
+      120
+    )
+    expect(selection.focused).toBe(false)
+    // reading order, so the section right after the lead wins the budget
+    expect(selection.kept).toEqual(['(lead)', 'Contenu de la réforme'])
+  })
+
+  it('still ranks when the query DOES discriminate inside the page', () => {
+    const selection = selectWikiSections(sections, 'réforme des retraites', 160)
+    expect(selection.focused).toBe(true)
+    expect(selection.kept).toContain('Réforme des retraites')
+  })
+
   it('survives an empty article', () => {
     expect(selectWikiSections([], 'anything', 100)).toEqual({
       text: '',
       truncated: false,
       kept: [],
-      skipped: 0
+      skipped: 0,
+      focused: false
     })
   })
 })

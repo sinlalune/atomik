@@ -105,7 +105,13 @@ export type WikipediaArticle = {
   truncated: boolean
   /** Which sections were read (`(lead)` for the untitled opening), and how
    *  many the budget left out. Empty when the whole article fit. */
-  sections: { kept: string[]; skipped: number }
+  sections: {
+    kept: string[]
+    skipped: number
+    /** False when the query matched the whole page and ranking was abandoned
+     *  for reading order (S07j, owner bench) — a claim about HOW it was read. */
+    focused: boolean
+  }
   source: WikimediaSource & { project: 'wikipedia' }
 }
 

@@ -726,7 +726,13 @@ export function wikipediaTextOfHtml(
   html: string,
   maxChars: number = WIKIMEDIA_LIMITS.maxArticleTextChars,
   query = ''
-): { text: string; truncated: boolean; kept: string[]; skipped: number } {
+): {
+  text: string
+  truncated: boolean
+  kept: string[]
+  skipped: number
+  focused: boolean
+} {
   const { document } = parseHTML(`<html><body>${html}</body></html>`)
   const root =
     document.querySelector('#mw-content-text .mw-parser-output') ??
@@ -738,7 +744,7 @@ export function wikipediaTextOfHtml(
   }
   const whole = cleanArticleText(root.textContent ?? '')
   if (whole.length <= maxChars) {
-    return { text: whole, truncated: false, kept: [], skipped: 0 }
+    return { text: whole, truncated: false, kept: [], skipped: 0, focused: true }
   }
   return selectWikiSections(articleSectionsOf(root), query, maxChars)
 }
@@ -1058,7 +1064,11 @@ export class WikimediaClient {
           description: hit.description,
           text: extracted.text,
           truncated: extracted.truncated,
-          sections: { kept: extracted.kept, skipped: extracted.skipped },
+          sections: {
+            kept: extracted.kept,
+            skipped: extracted.skipped,
+            focused: extracted.focused
+          },
           source: {
             project: 'wikipedia',
             language: request.language,
@@ -1108,7 +1118,7 @@ export class WikimediaClient {
                     .filter((article) => article.truncated)
                     .map((article) =>
                       article.sections.kept.length > 0
-                        ? `${article.source.title} — read ${article.sections.kept.join(', ')}; ${article.sections.skipped} other section${article.sections.skipped === 1 ? '' : 's'} did not fit the ${this.limits.maxArticleTextChars.toLocaleString('en-US')}-character budget.`
+                        ? `${article.source.title} — read ${article.sections.kept.join(', ')}; ${article.sections.skipped} other section${article.sections.skipped === 1 ? '' : 's'} did not fit the ${this.limits.maxArticleTextChars.toLocaleString('en-US')}-character budget.${article.sections.focused ? '' : ' The query matched the whole page, so it was read from the top rather than ranked.'}`
                         : `${article.source.title} — read to the first ${this.limits.maxArticleTextChars.toLocaleString('en-US')} characters, the per-article text budget.`
                     )
                     .join(' ')

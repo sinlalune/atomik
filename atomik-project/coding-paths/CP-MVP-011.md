@@ -14,6 +14,8 @@ atomik:
   writes:
     - apps/desktop/shared/agent-trace.ts
     - apps/desktop/shared/wiki-sections.ts
+    - apps/desktop/shared/html-comments.ts
+    - apps/desktop/renderer/src/editor/note-markdown.ts
     - apps/desktop/shared/wikimedia.ts
     - apps/desktop/shared/generation-tools.ts
     - apps/desktop/shared/chat-citations.ts
@@ -320,6 +322,9 @@ OPEN        provider-step position vs S07; the "luna" model id; whether
 - [x] S07i Relevance, not position: the per-article budget is spent by the
       vault's own lexical scorer on the sections that answer the query, and
       the result says what it read and what it left out.
+- [x] S07j The bench that read the trace: stop ranking when the query cannot
+      discriminate, stop rendering the app's own heading comments as prose,
+      and leave a record when an exchange dies.
 - [ ] S07 Augmented chat + external citations: the wiki control MIRRORS the
       vault tool — a per-thread enable toggle, a `reach` depth control, and
       four per-source switches (Wikipedia · Wikidata · Commons image ·
@@ -927,6 +932,53 @@ maxlag removed  1 tool call  · Wikidata ALIVE  ·  5.6s · $0.0034
   real question against a long page — the owner's `réforme des retraites`
   case is the obvious one.
 
+## S07j work unit — complete 2026-08-20
+
+- **Owner bench** on `chats/2026-08-20/macron-et-la-réforme-des-retraites.md`,
+  three exchanges, live on `google`. Verified from the owner's own files: every
+  answered turn traced (turn-02 with `calls: []` — the hole the first bench
+  found), wikilink comments, plain H1 plus `Chat: [[…]]`, accented paths
+  round-tripping, and S07i reporting *"read (lead), Manifestations et grèves
+  en 2023; 12 other sections did not fit"*. Verdict: *"seems ok for me"* —
+  with two things it did not cover.
+- **Ranking that could not rank.** The model searched *"réforme des retraites
+  en France en 2023"* and got the article of that name. Every section carries
+  every query term, so the idf collapses and ranking measures keyword DENSITY
+  — §Manifestations et grèves beat §Contenu because it is long and repeats the
+  topic. `SATURATION_SHARE` (0.6 of sections, four sections minimum) detects
+  the case and returns to reading order; `focused: false` travels with the
+  article so the warning says the page was read from the top rather than
+  ranked. The owner's instruction on being shown this: *"now"*.
+- **The app's bookkeeping rendered as prose.** `noteMarkdown()` runs
+  `html: false`, which ESCAPES comments instead of dropping them, so every
+  transcript opened as a note displayed `you <!-- sent: system=2646… -->`.
+  `shared/html-comments.ts` strips comments from the source before parsing,
+  skipping fences and inline code so a note teaching html comments still can.
+  `html: true` would have hidden them and opened the door 13 keeps shut.
+  Pre-existing since CP-MVP-008's `sent:` idiom; S07g's `trace:` comment made
+  it impossible to ignore.
+- **The stray `## you`, explained and recorded.** Two identical questions, the
+  first with no answer: the design deliberately keeps a question whose run
+  failed or was cancelled, but nothing said so. The trace record gained
+  `outcome`, the failure path writes one with the error, the you-turn is
+  stamped `unanswered:[[…]]` when a trace actually landed (a marker pointing
+  at no record would claim a record exists), and the turn shows a quiet line
+  offering to open it. The recording sits in its own catch: a failed record
+  must never replace the failure the user needs to see.
+- **Declared writes widened:** `shared/html-comments.ts` and
+  `renderer/src/editor/note-markdown.ts`. The latter is note RENDERING, which
+  this path's excluded list assigned to CP-RICH-MARKDOWN — that path has
+  merged, and the defect is this path's own comment idiom leaking, so the fix
+  belongs here rather than in a path that no longer exists.
+- **Tests:** 7 new for comment stripping and the failure record (the heading
+  bookkeeping never renders, a fence or code span keeps its example, a
+  multi-line comment swallows a fence marker, raw html is still escaped, the
+  failure path traces and marks) plus 2 for saturation (reading order when the
+  query matches the whole page; ranking still applies when it discriminates).
+  Full result: 85 files, 1146 passed + 1 skipped; typecheck and build green.
+- **Not benched:** all three changes land on surfaces the owner just benched;
+  re-running the same conversation would show them.
+
 # Current checkpoint
 
 ```text
@@ -950,14 +1002,19 @@ changed     : S01 contracts; S02 Wikipedia; S03 Wikidata/graph projection;
               excerpts inside the trace, wikilink not path, image leads the
               answer, truncated/ambiguous warnings name what they mean;
               S07i the per-article budget SELECTS by lexical relevance
-              instead of cutting the first 6 000 characters
+              instead of cutting the first 6 000 characters;
+              S07j saturation fallback, html comments never render, and a
+              dead exchange leaves a trace + an unanswered marker
 rebased     : 2026-08-20 onto trunk tip f58093e (the owner merged
               CP-AI-CAPABILITIES mid-session). One conflict, in
               `tests/chat-view.test.ts`: both paths opened a new describe
               block at the same line. Both kept. Gates re-run on the REBASED
               result, per the rule.
-tests       : typecheck green; 84 files / 1137 pass / 1 skip; build green
-bench       : 2026-08-20, live, google + fr.wikipedia + wikidata + wiktionary
+tests       : typecheck green; 85 files / 1146 pass / 1 skip; build green
+bench       : 2026-08-20 (second), `macron-et-la-réforme-des-retraites`, live
+              on google — S07g/S07h/S07i all confirmed in the owner's own
+              files; the two gaps it exposed became S07j. Earlier the same
+              day, live, google + fr.wikipedia + wikidata + wiktionary
               + Commons — one `search_wiki` call, 6.8s, 3 sources numbered
               [1][2][3], ~$0.00047, French answer; the trace note landed and
               the owner read it. Findings became S07h. Earlier: 2026-08-17,
@@ -967,11 +1024,9 @@ reconciled  : 2026-08-19 on resume. S07f is DONE (656e6d8) and this line
               Verified on the rebased branch: clean tree, contains trunk tip
               80b131a, cairn-check OK (1 advisory: no audit for this head),
               typecheck + 81 files / 1085 pass / 1 skip + build all green
-next action : re-bench S07h + S07i in the real app — every-turn traces, the
-              wikilink edge, the image above the prose, the rewritten
-              warnings, and a question whose answer lives deep in a long page
-              (`réforme des retraites`) to see selection beat position —
-              then the REQUEST INSPECTOR — its breakdown pills still describe
+next action : re-bench S07j — a transcript opened as a note must show no
+              comments, and a query that matches a whole page must say it
+              read from the top. Then the REQUEST INSPECTOR — its breakdown pills still describe
               the pre-pass packet only, so an answer that called three corpora
               looks like it sent nothing but the packet; build it against the
               trace record. Then S08 save-as-source, which also brings

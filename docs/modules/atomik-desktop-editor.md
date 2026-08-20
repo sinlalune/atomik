@@ -16,6 +16,16 @@ timestamp: 2026-08-17T00:00:00Z
 
 ## What it owns
 
+- HTML COMMENTS ARE INVISIBLE (CP-MVP-011 S07j): `noteMarkdown()` runs with
+  `html: false`, which ESCAPES html rather than dropping it — so every chat
+  transcript opened as a note rendered its own `<!-- sent: … -->` heading
+  bookkeeping as prose (owner bench screenshot, 2026-08-20). A core rule
+  strips comments from the source before parsing, via
+  `shared/html-comments.ts`, which skips fenced blocks and inline code so a
+  note TEACHING html comments can still show one. Turning `html: true` on
+  would have hidden them and let model output inject raw markup (13) — the
+  wrong fix for the right symptom. The comment payload still reaches
+  `parseEdges`, which reads the raw file, so the `trace:[[…]]` edge survives.
 - THE TRANSCRIPT'S LINK TO ITS TRACE (CP-MVP-011 S07g): `editor/chat-file.ts`
   owns the chats convention, so the trace's ADDRESS lives here too —
   `chatTraceFolder` / `chatTracePath` name `chats/<day>/<slug>-traces/

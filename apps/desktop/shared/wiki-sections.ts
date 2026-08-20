@@ -28,6 +28,23 @@ export type WikiSection = {
   text: string
 }
 
+/**
+ * When most query terms appear in most sections, the query cannot discriminate
+ * INSIDE this page — the classic case being a query that is the article's own
+ * title ("réforme des retraites en France en 2023" against the article of that
+ * name). Ranking then degenerates into keyword DENSITY: the longest section
+ * that repeats the topic wins, which is not the same as the section that
+ * answers. The owner's bench caught exactly this (2026-08-20): a question
+ * about the reform selected §Manifestations et grèves over §Contenu.
+ *
+ * The honest move is to say so and read from the top, which is what a person
+ * does with a page that is entirely on topic.
+ */
+const SATURATION_SHARE = 0.6
+
+/** Below this, ranking barely matters and the budget usually fits anyway. */
+const SATURATION_MIN_SECTIONS = 4
+
 export type WikiSectionSelection = {
   /** Reading order preserved: sections compete on score, then go back into
    *  document order, because an article read out of order reads as nonsense. */
@@ -38,6 +55,11 @@ export type WikiSectionSelection = {
   kept: string[]
   /** How many sections the budget or the scorer left out. */
   skipped: number
+  /** False when the query could not discriminate inside this page, so the
+   *  article was read from the top rather than ranked — see SATURATION_SHARE.
+   *  Reported rather than hidden: "we ranked" and "we gave up ranking" are
+   *  different claims about the same text. */
+  focused: boolean
 }
 
 /** The lead identifies the subject, so it is never scored out — but it is
@@ -74,9 +96,10 @@ const termCounts = (text: string): Map<string, number> => {
 function scoreSections(
   sections: readonly WikiSection[],
   query: string
-): number[] {
+): { scores: number[]; focused: boolean } {
+  const unfocused = { scores: sections.map(() => 0), focused: false }
   const terms = parseQuery(query).terms
-  if (terms.length === 0) return sections.map(() => 0)
+  if (terms.length === 0) return unfocused
   const bodies = sections.map((section) => termCounts(section.text))
   const headings = sections.map((section) => termCounts(section.heading))
   const lengths = bodies.map((counts) =>
@@ -84,13 +107,15 @@ function scoreSections(
   )
   const total = lengths.reduce((sum, length) => sum + length, 0)
   const avgdl = sections.length > 0 ? total / sections.length : 0
-  if (avgdl === 0) return sections.map(() => 0)
+  if (avgdl === 0) return unfocused
 
   const idf = new Map<string, number>()
+  const shares: number[] = []
   for (const term of terms) {
     const df = bodies.filter((counts, index) =>
       counts.has(term) || headings[index]!.has(term)
     ).length
+    shares.push(df / sections.length)
     // The standard BM25 idf, floored: a term present in EVERY section still
     // contributes a little rather than turning negative.
     idf.set(
@@ -102,7 +127,12 @@ function scoreSections(
     )
   }
 
-  return sections.map((_section, index) => {
+  const meanShare = shares.reduce((sum, share) => sum + share, 0) / shares.length
+  if (sections.length >= SATURATION_MIN_SECTIONS && meanShare >= SATURATION_SHARE) {
+    return unfocused
+  }
+
+  const scores = sections.map((_section, index) => {
     const body = bodies[index]!
     const heading = headings[index]!
     const dl = lengths[index]!
@@ -118,6 +148,7 @@ function scoreSections(
     }
     return score
   })
+  return { scores, focused: true }
 }
 
 /**
@@ -132,9 +163,11 @@ export function selectWikiSections(
   maxChars: number
 ): WikiSectionSelection {
   const usable = sections.filter((section) => section.text.length > 0)
-  if (usable.length === 0) return { text: '', truncated: false, kept: [], skipped: 0 }
+  if (usable.length === 0) {
+    return { text: '', truncated: false, kept: [], skipped: 0, focused: false }
+  }
 
-  const scores = scoreSections(usable, query)
+  const { scores, focused } = scoreSections(usable, query)
   const hasLead = usable[0]!.heading.length === 0
   const chosen = new Map<number, string>()
   let budget = maxChars
@@ -185,6 +218,7 @@ export function selectWikiSections(
     text,
     truncated: text.length < wholeLength,
     kept,
-    skipped: usable.length - keptIndexes.length
+    skipped: usable.length - keptIndexes.length,
+    focused
   }
 }

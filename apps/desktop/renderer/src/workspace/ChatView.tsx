@@ -1206,6 +1206,56 @@ export function ChatView({
           } catch (reason) {
             run.error = String(reason)
             setError(String(reason))
+            // S07j (owner bench): a failed or cancelled run used to leave the
+            // question in the transcript with nothing to say what happened —
+            // the owner found a stray duplicate `## you` and could not tell
+            // whether it had failed or double-fired. It gets a trace like any
+            // other turn, and the question is MARKED as unanswered so the
+            // transcript itself carries the fact.
+            try {
+              const failedTrace = await persistAgentTrace(
+                {
+                  chat: fileRef.current,
+                  turn: priorTurns.length,
+                  engine,
+                  operationId: operation.id,
+                  bundleId: '',
+                  grounding: grounding ? { sensitivity } : null,
+                  tools: toolPreference,
+                  threadTurns: thread.length,
+                  sent: breakdownByTurn.current.get(priorTurns.length)?.parts ?? [],
+                  executions: [],
+                  actionTraceIds: [],
+                  outcome: { status: 'failed', error: String(reason) }
+                },
+                (relPath, content) => window.atomik.createNote(relPath, content)
+              )
+              const existing = fileRef.current
+              // No trace, no marker: a marker pointing nowhere is worse than
+              // none, because it claims a record exists.
+              if (existing && failedTrace) {
+                const note = await window.atomik.readNote(existing)
+                await window.atomik.writeNote(
+                  existing,
+                  withSentMetaOnLastYou(note.content, null, [
+                    `unanswered:${serializeTraceMeta(failedTrace)}`
+                  ]),
+                  note.mtimeMs
+                )
+              }
+              if (failedTrace) {
+                setTurns((current) =>
+                  current.map((turn, index) =>
+                    index === current.length - 1 && turn.role === 'you'
+                      ? { ...turn, unanswered: failedTrace }
+                      : turn
+                  )
+                )
+              }
+            } catch {
+              /* the error banner is already up; a failed record must not
+                 replace the failure the user actually needs to see */
+            }
           }
         })()
         registerChatRun(tab.id, run)
@@ -1635,6 +1685,23 @@ export function ChatView({
               <ConsultedMediaBlock
                 media={consultedByTurn.current.get(index)?.media ?? []}
               />
+              {turn.role === 'you' && turn.unanswered && (
+                <p className="chat-unanswered">
+                  This question got no answer — the run failed or was
+                  cancelled.{' '}
+                  <button
+                    type="button"
+                    className="chat-unanswered-open"
+                    onClick={() =>
+                      dispatch((state) =>
+                        revealNote(state, paneId, turn.unanswered as string)
+                      )
+                    }
+                  >
+                    open its trace
+                  </button>
+                </p>
+              )}
               <ClaimBody
                 text={turn.text}
                 meta={meta}

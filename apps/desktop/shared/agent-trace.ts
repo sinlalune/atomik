@@ -116,6 +116,11 @@ export type AgentTraceRecord = {
   usage: { inputTokens: number; outputTokens: number; basis: string } | null
   billing: { currency: string; estimatedAmount: number; basis: string } | null
   durationMs: number | null
+  /** S07j (owner bench): an exchange that FAILED or was cancelled leaves a
+   *  question in the transcript and, until now, nothing else — the owner
+   *  found a duplicate `## you` with no answer and no way to learn why. A
+   *  trace is written for those too; this is what happened to it. */
+  outcome: { status: 'completed' | 'failed'; error?: string }
   /** The private ledger's ids for the same exchange — the two records join
    *  here, one-way: the audit points at telemetry, never the reverse. */
   actionTraceIds: string[]
@@ -139,6 +144,8 @@ export type AgentTraceInput = {
   billing?: { currency: string; estimatedAmount: number; basis: string }
   durationMs?: number
   actionTraceIds: readonly string[]
+  /** Omitted means completed — the ordinary case stays quiet. */
+  outcome?: { status: 'completed' | 'failed'; error?: string }
 }
 
 /**
@@ -231,7 +238,8 @@ export function agentTraceRecordOf(input: AgentTraceInput): AgentTraceRecord {
     usage: input.usage ?? null,
     billing: input.billing ?? null,
     durationMs: input.durationMs ?? null,
-    actionTraceIds: [...input.actionTraceIds]
+    actionTraceIds: [...input.actionTraceIds],
+    outcome: input.outcome ?? { status: 'completed' }
   }
 }
 
@@ -275,6 +283,15 @@ export function serializeAgentTraceNote(record: AgentTraceRecord): string {
     // (owner, S07h: *"maybe wikilink better?"*; ADR-011).
     `Chat: [[${wikiTargetOf(record.chat)}]]`,
     '',
+    ...(record.outcome.status === 'failed'
+      ? [
+          `**This exchange did not complete.**${record.outcome.error ? ` ${record.outcome.error}` : ''}`,
+          '',
+          'The question stayed in the transcript with no answer under it. What',
+          'follows is what had been prepared and what, if anything, ran.',
+          ''
+        ]
+      : []),
     'What the answer in that transcript actually did: the tools the model',
     'chose, the arguments it wrote, what came back, and what it cost — plus',
     'the vault excerpts the packet sent. The fetched PUBLIC text is NOT here:',

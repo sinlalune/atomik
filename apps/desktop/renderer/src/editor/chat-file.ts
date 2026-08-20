@@ -52,6 +52,9 @@ export type ChatTurn = {
   /** CP-MVP-011 S07g: the answer's agent trace, as a vault path. The
    *  transcript keeps the LINK; the record itself lives in its own note. */
   trace?: string
+  /** CP-MVP-011 S07j: this QUESTION got no answer — the run failed or was
+   *  cancelled. The value is the trace that says what happened. */
+  unanswered?: string
 }
 
 export const CHATS_FOLDER = 'chats'
@@ -234,7 +237,7 @@ export function parseSentMeta(raw: string): SentPart[] | null {
  *  called by the ANSWER's write, so one write persists both. */
 export function withSentMetaOnLastYou(
   content: string,
-  meta: string,
+  meta: string | null,
   extra?: readonly (string | null | undefined)[]
 ): string {
   const headings = [...content.matchAll(/^##[ \t]+you[ \t]*(?:<!--.*?-->)*[ \t]*$/gm)]
@@ -243,7 +246,9 @@ export function withSentMetaOnLastYou(
   const start = last.index
   // S08d: a you-heading may carry its packet beside its breakdown, so
   // the vault pill still opens after the tab is closed and reopened.
-  const comments = [`sent: ${meta}`, ...(extra ?? [])]
+  // S07j: a FAILED run stamps the you-turn with `unanswered:` and may have no
+  // breakdown to record, so the sent meta became optional.
+  const comments = [meta === null ? null : `sent: ${meta}`, ...(extra ?? [])]
     .filter((comment): comment is string => Boolean(comment))
     .map((comment) => ` <!-- ${comment} -->`)
     .join('')
@@ -300,6 +305,7 @@ export function parseChatTurns(content: string): ChatTurn[] {
     cited?: { number: number; path: string }[]
     packet?: { stage: string; path: string }[]
     trace?: string
+    unanswered?: string
   } | null = null
   const flush = (): void => {
     if (!current) return
@@ -312,7 +318,8 @@ export function parseChatTurns(content: string): ChatTurn[] {
         ...(current.run ? { run: current.run } : {}),
         ...(current.cited ? { cited: current.cited } : {}),
         ...(current.packet ? { packet: current.packet } : {}),
-        ...(current.trace ? { trace: current.trace } : {})
+        ...(current.trace ? { trace: current.trace } : {}),
+        ...(current.unanswered ? { unanswered: current.unanswered } : {})
       })
     current = null
   }
@@ -338,11 +345,14 @@ export function parseChatTurns(content: string): ChatTurn[] {
       const citedRaw = commentWith('cited:')
       const packetRaw = commentWith('packet:')
       const traceRaw = commentWith('trace:')
+      const unansweredRaw = commentWith('unanswered:')
       const sent = sentRaw === null ? null : parseSentMeta(sentRaw)
       const run = runRaw === null ? null : parseRunMeta(runRaw)
       const cited = citedRaw === null ? null : parseCitedMeta(citedRaw)
       const packet = packetRaw === null ? null : parsePacketMeta(packetRaw)
       const trace = traceRaw === null ? null : parseTraceMeta(traceRaw)
+      const unanswered =
+        unansweredRaw === null ? null : parseTraceMeta(unansweredRaw)
       current = {
         role: heading[1] as ChatRole,
         lines: [],
@@ -350,7 +360,8 @@ export function parseChatTurns(content: string): ChatTurn[] {
         ...(run ? { run } : {}),
         ...(cited ? { cited } : {}),
         ...(packet ? { packet } : {}),
-        ...(trace ? { trace } : {})
+        ...(trace ? { trace } : {}),
+        ...(unanswered ? { unanswered } : {})
       }
     } else if (current) {
       current.lines.push(line)

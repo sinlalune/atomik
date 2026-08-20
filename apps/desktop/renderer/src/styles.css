@@ -5998,6 +5998,25 @@ button svg {
   gap: var(--space-2);
 }
 
+/* S07j: a question whose run died says so, quietly, where the answer would
+   have been — the owner found a stray unanswered `## you` and had no way to
+   tell a failure from a double send. */
+.chat-unanswered {
+  margin: var(--space-1) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+
+.chat-unanswered-open {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 /* S07h: the image leads the ANSWER (owner bench: "photo still after text").
    Leading the consulted block was still last on screen, because the block
    follows the prose and the citation footer. It sits above the first sentence

@@ -243,6 +243,26 @@ timestamp: 2026-08-17T00:00:00Z
   warning now says *"read (lead), Réforme des retraites; 14 other sections did
   not fit the 6 000-character budget"* instead of confessing a clip. An
   omission you can see is inspectable (26); "clipped" was not.
+- WHEN THE QUERY CANNOT DISCRIMINATE (CP-MVP-011 S07j): S07i's scorer
+  degenerates in one case the owner's bench hit immediately — the model
+  searched *"réforme des retraites en France en 2023"* and got the article of
+  that name, where every section carries every query term. The idf collapses
+  toward its floor and ranking becomes keyword DENSITY: §Manifestations et
+  grèves won because it is long and repeats the topic, not because it answers
+  better. `SATURATION_SHARE` (0.6 of sections, for pages with at least four)
+  detects it and returns to reading order, and `focused: false` travels with
+  the result so the warning can say *"the query matched the whole page, so it
+  was read from the top rather than ranked"*. "We ranked" and "we gave up
+  ranking" are different claims about the same text.
+- A DEAD EXCHANGE LEAVES A RECORD (CP-MVP-011 S07j): a failed or cancelled run
+  used to leave the question in the transcript and nothing else — the owner
+  found a stray unanswered `## you` and could not tell a failure from a double
+  send. The trace record gained `outcome`, the renderer writes one on the
+  failure path with the error, and the you-turn is stamped
+  `<!-- unanswered:[[…]] -->` (only when a trace actually landed: a marker
+  pointing at no record claims a record exists). The turn shows a quiet line
+  offering to open it. The recording is wrapped in its own catch — a failed
+  record must never replace the failure the user needs to see.
 - SHARED DIALECT CODEC (CP-MVP-011 S06b): `electron-main/openai-tool-codec.ts`
   owns the `openai-chat-completions` wire grammar ONCE — schema emission, call
   parsing, the `role: "tool"` continuation, and usage accumulation. An adapter

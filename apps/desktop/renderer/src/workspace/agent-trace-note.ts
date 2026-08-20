@@ -49,6 +49,7 @@ export type AgentTracePersistInput = {
   billing?: { currency: string; estimatedAmount: number; basis: string }
   durationMs?: number
   actionTraceIds: readonly string[]
+  outcome?: { status: 'completed' | 'failed'; error?: string }
   now?: () => Date
 }
 
@@ -92,7 +93,8 @@ export async function persistAgentTrace(
     ...(input.usage ? { usage: input.usage } : {}),
     ...(input.billing ? { billing: input.billing } : {}),
     ...(input.durationMs !== undefined ? { durationMs: input.durationMs } : {}),
-    actionTraceIds: input.actionTraceIds
+    actionTraceIds: input.actionTraceIds,
+    ...(input.outcome ? { outcome: input.outcome } : {})
   })
   const content = serializeAgentTraceNote(record)
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {

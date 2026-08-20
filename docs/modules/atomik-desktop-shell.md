@@ -16,6 +16,12 @@ timestamp: 2026-08-17T00:00:00Z
 
 ## What it owns
 
+- A QUESTION THAT GOT NO ANSWER SAYS SO (CP-MVP-011 S07j): the chat pane
+  renders a quiet `.chat-unanswered` line under a you-turn carrying an
+  `unanswered:` marker, with a text button that reveals the failure's trace
+  through the ordinary `revealNote` verb. The marker is written only when the
+  failure trace actually landed. Main is untouched: this is renderer state
+  plus one existing vault write.
 - THE MAIN-SIDE READ IS NOW A SELECTION (CP-MVP-011 S07i): `wikipediaTextOfHtml`
   takes the query and returns `{text, truncated, kept, skipped}` — the article
   is split at its top-level headings (Parsoid `<section>` first, an `h2/h3`

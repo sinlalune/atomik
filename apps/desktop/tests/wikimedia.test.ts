@@ -591,7 +591,10 @@ describe('Wikipedia HTML extraction', () => {
       text: 'alpha beta gamma',
       truncated: true,
       kept: ['(lead)'],
-      skipped: 0
+      skipped: 0,
+      // no query, so nothing was ranked — `focused` is a claim about HOW it
+      // was read, and with no query the honest claim is "not ranked"
+      focused: false
     })
   })
 

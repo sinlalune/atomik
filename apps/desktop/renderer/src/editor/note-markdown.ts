@@ -2,6 +2,7 @@ import MarkdownIt from 'markdown-it'
 import { matchDecorationAt, matchWikilinkAt, type EdgeDecoration } from '../../../shared/edge-grammar'
 import { classifyLinkKind, linkKindDescription } from './link-pills'
 import { richMarkdownPlaceholders } from './rich-markdown/markdown-plugin'
+import { stripHtmlComments } from '../../../shared/html-comments'
 
 /**
  * The ONE note renderer (CP-MVP-008 S05g, owner: "task list doesnt
@@ -182,6 +183,13 @@ function semanticEdges(md: MarkdownIt): void {
 
 export function noteMarkdown(): MarkdownIt {
   const md = new MarkdownIt({ html: false, linkify: false, breaks: true })
+  // S07j (owner bench): `html: false` ESCAPES comments instead of dropping
+  // them, so a chat transcript rendered its own `<!-- sent: … -->` heading
+  // bookkeeping as prose. Strip them from the source — turning `html` on to
+  // hide them would let model output inject raw markup (13).
+  md.core.ruler.before('normalize', 'atomik_strip_comments', (state) => {
+    if (state.src.includes('<!--')) state.src = stripHtmlComments(state.src)
+  })
   richMarkdownPlaceholders(md)
   taskLists(md)
   sourceGaps(md)
