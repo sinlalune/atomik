@@ -288,6 +288,92 @@ carries the decisions; the operational shape:
   rewritten to install the engine surface the adapter talks to. **Renderer
   coverage is not evidence of rendering** — bench in the real app, early.
 
+## The model is told what the surface can do (CP-AI-CAPABILITIES S01)
+
+- `shared/prompt-composition.ts` gained two ordinary plan blocks:
+  `rendering-capabilities` (in BOTH default plans) and `note-conventions` (note
+  plan only). They are `BUILTIN_BLOCK_IDS` entries like any other — composed
+  through the plan, individually overridable, named in the system-plan UI,
+  verbatim in the sent-request inspector. No new prompt mechanism.
+- The renderers were hydrated in chat, inline AI and the AI note preview since
+  CP-RICH-MARKDOWN S02, but NOTHING told the model they existed. ADR-015 has
+  the reasoning; the operational rule is that the refusal half of the block
+  earns its tokens as much as the capability half — a model that does not know
+  Vega takes inline data only writes a `url` dataset the reader never sees.
+- `note-conventions` stays OUT of chat on purpose: authoring a typed edge is a
+  note act. Chat may point at a note with a plain `[[wikilink]]` (S02), which
+  is a different affordance from citation and must stay visibly so.
+- **The block text is pinned to the code**, not maintained by memory.
+  `tests/prompt-composition.test.ts` checks every fence identifier against
+  `richKindForFence` and every limit against `DEFAULT_RICH_LIMITS`, because a
+  wrong number in a prompt fails no build — it teaches the model to write
+  blocks the app refuses. Validated by changing a number and watching it fail.
+- Cost is measured, not assumed: +262 tokens per chat send, +380 per note
+  generation, roughly doubling the system message. A size ceiling is asserted
+  in the same test file, so growing it is a decision rather than a drift.
+- The legacy `composeSystemPrompt` template and `DEFAULT_SYSTEM_PLAN` must stay
+  byte-identical — an existing test pins it. Both change together or neither
+  does. Capabilities sit BEFORE `# Rules` so `## Output` stays inside it.
+
+## Three rendering traps the model must be warned about (CP-AI-CAPABILITIES S03)
+
+The first owner bench on REAL generations produced a chart with no data in it.
+The generated spec was correct — inline `data.values`, no `url`, four rows —
+and the block had done its job. The renderer had not. Three shapes now carry a
+warning in `rendering-capabilities`, because in all three a model writing
+perfectly reasonable source gets a reader who sees nothing:
+
+- **A `bar` mark on a log scale draws zero-height bars.** A bar's baseline is
+  zero; zero is illegal on a log scale, so the scale collapses and takes the y
+  tick labels with it. Vega-Lite logs `Log scale domain includes zero` and
+  renders anyway. `"zero": false` does NOT rescue it — Vega-Lite drops that
+  property on log scales. Bars belong on a linear scale; `line` and `point`
+  work on log. Reproduced outside Electron with plain `vega`/`vega-lite`, so
+  it is upstream behaviour, not an Atomik defect.
+- **`$$…$$` inside a Mermaid label refuses the WHOLE diagram.** Mermaid 11
+  force-enables HTML labels when it detects math (`if (hasKatex(textContent))
+  { useHtmlLabels = true }`) and emits the label inside a `<foreignObject>`,
+  which `safe-svg.ts` rejects outright — correctly, and not negotiable over
+  untrusted note content. The reader loses the diagram, not just the formula.
+  Formulas go in a math block BESIDE the diagram.
+- **A multi-line `$$` block only parses with `$$` alone on its own line.**
+  `markdown-plugin.ts` (`line.trim() !== '$$'`) and `syntax.ts`
+  (`trimmed !== '$$'`) both require it, so `$$\begin{aligned}` — the form
+  models emit by default — degrades to a paragraph in read mode AND live mode.
+  This one is a real renderer defect, warned about in the prompt as the cheap
+  half of the fix; the parser repair is its own path.
+
+**These warnings are pinned like every other claim in the block**, and pinned
+to the code that CAUSES them: `discoverDollarMath`, `safeSvgNode`, and
+Vega-Lite's own compiler. The day a trap is fixed, its test fails and the
+prompt must stop describing it — a block that keeps warning about a repaired
+defect burns tokens on every request to teach the model something untrue.
+Drift runs in both directions.
+
+The block grew 1,046 -> 1,572 chars (~+131 tokens/request) and the asserted
+ceiling was raised 1,400 -> 1,700 with the owner's agreement, per the rule that
+the ceiling is a decision rather than a measurement.
+
+## Pointing wikilinks in chat (CP-AI-CAPABILITIES S02)
+
+- A chat answer may POINT at a note with a plain `[[wikilink]]`. Pointing is
+  NOT citing: citation keeps its numbered marker and chip, because the owner
+  ruled at the CP-MVP-010 bench that a citation must not borrow the link pill.
+  Two affordances, deliberately distinct, and the click handler routes
+  `a[data-citation]` first and returns before considering `a[data-wiki]`.
+- Resolution REUSES the vault pipeline — `readGraphIndex` →
+  `wikiCandidatesFor` → `resolveWikiTarget` → `decorateWikiLinks` — rather than
+  growing a DOM-shaped twin of the string decorator. Decoration happens on the
+  HTML string BEFORE mounting, so citation chips and rich-markdown hydration
+  still run over final markup; re-writing `innerHTML` afterwards would destroy
+  both.
+- Candidates are built from the vault root (`''`): a conversation has no
+  subject note, so there is no sibling to prefer. They load ONCE per view —
+  an answer streams, and an IPC round trip per chunk would be absurd. Until
+  they arrive the pill renders unresolved and simply does not navigate.
+- An unresolved target stays the inert broken pill: a diagnostic, never an
+  auto-create. Same rule as the vault.
+
 ## Web-link pill identity (CP-FEEDBACK S05)
 
 - Read and live still ask the shared `graph-core` classifier; neither surface

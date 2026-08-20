@@ -8,6 +8,8 @@ import type {
   WorkspaceTab
 } from '../../../shared/ipc-contract'
 import { applyChatAtPick, chatAtItems, type ChatAtItem } from '../editor/chat-at'
+import { decorateWikiLinks } from '../editor/link-pills'
+import { resolveWikiTarget, wikiCandidatesFor, type WikiCandidate } from '../../../shared/graph-core'
 import { parseTreeDrag } from '../vault/NoteTree'
 import { TREE_DRAG_MIME } from '../vault/tree-menu'
 import {
@@ -190,10 +192,19 @@ function ClaimBody({
   // afterwards, like claim marks. A citation is not a link that happens
   // to be short, so it does not borrow the link pill.
   const [citations, setCitations] = useState<AppliedCitations | null>(null)
+  const wikiCandidates = useWikiCandidates()
   useEffect(() => {
     const container = ref.current
     if (!container) return
-    container.innerHTML = md.render(text)
+    // Pointing wikilinks resolve on the HTML STRING, before it is mounted, so
+    // the citation chips and the rich-markdown hydration below still run over
+    // final markup — re-writing innerHTML afterwards would destroy both.
+    const rendered = md.render(text)
+    container.innerHTML = wikiCandidates
+      ? decorateWikiLinks(rendered, (target) =>
+          resolveWikiTarget(wikiCandidates, target)
+        )
+      : rendered
     // CLAIM MARKS ARE OFF IN CHAT (S10f, owner ruling 2026-08-16: "I
     // think we should disable claims for now untill we find a better
     // solution later on the truth lens path"). Three bench rounds in a
@@ -223,7 +234,7 @@ function ClaimBody({
     )
     const hydration = hydrateRichMarkdown(container)
     return () => hydration.dispose()
-  }, [text, meta, sources])
+  }, [text, meta, sources, wikiCandidates])
   const body = (
     <div
       ref={ref}
@@ -237,6 +248,18 @@ function ClaimBody({
         if (citation) {
           event.preventDefault()
           onOpenSource(citation.dataset['citation'] as string)
+          return
+        }
+        // A POINTING wikilink (S02). Same routing rule as the vault: go by the
+        // RESOLVED `data-rel`; an unresolved pill stays inert — a diagnostic,
+        // never an auto-create.
+        const wiki = (event.target as HTMLElement).closest<HTMLElement>(
+          'a[data-wiki]'
+        )
+        if (wiki) {
+          event.preventDefault()
+          const rel = wiki.dataset['rel']
+          if (rel && rel.endsWith('.md')) onOpenSource(rel)
         }
         // The claim-mark handler went with the overlay (S10f): there is
         // nothing to click when nothing is marked, and a citation now
@@ -280,6 +303,47 @@ function ClaimBody({
 }
 
 const md = noteMarkdown()
+
+/**
+ * Wikilink candidates for CHAT (CP-AI-CAPABILITIES S02).
+ *
+ * The model may POINT at a note with a plain `[[wikilink]]` — a different act
+ * from citing, which keeps its numbered marker and chip (bedrock 28, and the
+ * owner's CP-MVP-010 bench ruling that a citation must not borrow the link
+ * pill). Pointing had no mechanism: chat's click handler routed only
+ * `a[data-citation]`, so a wikilink rendered `href="#"` and did nothing.
+ *
+ * Resolution reuses the vault's pipeline rather than growing a second one —
+ * `readGraphIndex` -> `wikiCandidatesFor` -> `resolveWikiTarget` ->
+ * `decorateWikiLinks`. A conversation has no subject note, so candidates are
+ * built from the vault root (`''`): there is no sibling to prefer.
+ *
+ * Loaded ONCE per view, not per token: an answer streams, and an IPC round
+ * trip per chunk would be absurd. Until it resolves, wikilinks render as the
+ * ordinary unresolved pill and simply do not navigate yet.
+ */
+function useWikiCandidates(): readonly WikiCandidate[] | null {
+  const [candidates, setCandidates] = useState<readonly WikiCandidate[] | null>(
+    null
+  )
+  useEffect(() => {
+    let cancelled = false
+    window.atomik.readGraphIndex().then(
+      (index) => {
+        if (!cancelled) setCandidates(wikiCandidatesFor('', index.nodes))
+      },
+      () => {
+        // No index is not an error here: pointing degrades to an inert pill,
+        // exactly as an unresolved target does.
+        if (!cancelled) setCandidates([])
+      }
+    )
+    return () => {
+      cancelled = true
+    }
+  }, [])
+  return candidates
+}
 
 /** What a send reads: a mounted surface (editable editors first) or a
  *  read-only note loaded on demand — the picklist covers every open

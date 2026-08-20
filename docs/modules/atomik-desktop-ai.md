@@ -27,6 +27,21 @@ timestamp: 2026-08-14T00:00:00Z
   Panel UI: one chip per claim, [source] opens the anchor in the editor
   (select + scroll), [challenge] qualifies the claim inside the editable
   proposal — the repair patch preview accepted through the normal path.
+- OUTPUT BUDGET, one number seen from two sides (CP-AI-CAPABILITIES S03,
+  owner directive 2026-08-20): `PARAM_LIMITS.maxTokens.default` (renderer:
+  what an absent field means) and `DEFAULT_MAX_OUTPUT_TOKENS` (main: the
+  ceiling actually applied) are both 5000 and are pinned EQUAL by a test.
+  They were 2000, and the bench cut a derivation off mid-formula — which is
+  the failure mode that matters here: a truncated response is worse than a
+  short one, because its tail is an unterminated `$$` or fence that reaches
+  the reader as raw source. With the capability blocks telling the model it
+  may emit diagrams, charts and derivations, long output is the expected
+  shape rather than an outlier, so the budget follows the prompt.
+- DEFAULT ENGINE (same directive): `resolveGenerationEngine` leads its
+  key-scan with `google`, whose `defaultModel` is `gemini-3.7-flash`. The
+  order only decides anything when no explicit `generationEngine` is stored
+  AND several provider keys exist — the first-run case, and the one where
+  nobody has chosen the engine that will be asked for a diagram.
 - URL provenance on web-reader evidence (09/28, CP-MVP-006 S06):
   `electron-main/web-provenance.ts` resolves a `sources/web/<slug>/
   reader.md` selection to its dossier's identity (original_url,

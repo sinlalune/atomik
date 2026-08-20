@@ -83,6 +83,10 @@ describe('composeSystemFromPlan (S07b8 — the system message as an ordered plan
     // the chat plan is what the UI shows: literal chip ids
     expect(defaultSystemPlan('chat')).toEqual([
       { kind: 'builtin', id: 'identity' },
+      // CP-AI-CAPABILITIES S01: chat renders rich markdown too, so it is told
+      // so. `note-conventions` is deliberately absent — authoring a typed edge
+      // is a note act, not something a conversation asserts into the graph.
+      { kind: 'builtin', id: 'rendering-capabilities' },
       { kind: 'builtin', id: 'grounding-rules-chat' },
       { kind: 'builtin', id: 'output-chat' },
       { kind: 'builtin', id: 'closing-rule' }

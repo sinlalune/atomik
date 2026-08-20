@@ -116,6 +116,8 @@ const BLOCK_LABELS: Record<SystemPlanBlockId, string> = {
   identity: 'identity',
   'grounding-rules': 'grounding rules',
   'grounding-rules-chat': 'grounding · chat',
+  'rendering-capabilities': 'capabilities · rendering',
+  'note-conventions': 'note conventions',
   output: 'output brief',
   'output-replace-selection': 'output · replace',
   'output-append': 'output · append',

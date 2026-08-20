@@ -601,11 +601,20 @@ export function estimateCostUsdForModel(
   return Number(amount.toFixed(6))
 }
 
-/** UI + validation bounds; defaults are what an absent field means. */
+/**
+ * UI + validation bounds; defaults are what an absent field means.
+ *
+ * `maxTokens` moved 2000 -> 5000 on 2026-08-20 (owner directive). The
+ * CP-AI-CAPABILITIES S03 bench cut a generation off mid-formula at 2000, and
+ * that is now the expected shape rather than an unlucky one: the capability
+ * blocks push the model toward diagrams, charts and derivations, which are
+ * long. A truncated response is worse than a short one — it leaves an
+ * unclosed fence or `$$` that renders as raw source.
+ */
 export const PARAM_LIMITS = {
   temperature: { min: 0, max: 1.5, default: 0.2 },
   topP: { min: 0, max: 1, default: 1 },
-  maxTokens: { min: 16, max: 8192, default: 2000 }
+  maxTokens: { min: 16, max: 8192, default: 5000 }
 } as const
 
 export type GenerationParams = {

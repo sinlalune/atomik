@@ -167,19 +167,28 @@ export function resolveSelectedModel(stateDir: string, engine: AiEngine): string
   return defaultModelForEngine(engine)
 }
 
-/** Explicit choice first; else first provider with an active key; else 'mock'. */
+/**
+ * Explicit choice first; else first provider with an active key; else 'mock'.
+ *
+ * `google` leads the fallback order (owner directive, 2026-08-20, after the
+ * CP-AI-CAPABILITIES S03 bench ran entirely on `gemini-3.7-flash`): with the
+ * capability blocks in place the default engine is the one that will be asked
+ * for diagrams, charts and math on a first run, and that choice should not
+ * depend on which key happens to be alphabetically lucky. An explicit
+ * `generationEngine` in the settings file still wins over the whole list.
+ */
 export function resolveGenerationEngine(stateDir: string): AiEngine {
   const file = readSettingsFile(stateDir)
   if (file.generationEngine && ENGINES.has(file.generationEngine)) {
     return file.generationEngine
   }
   const providers: AiProviderKeyId[] = [
+    'google',
     'mistral',
     'openrouter',
     'openai',
     'anthropic',
-    'deepseek',
-    'google'
+    'deepseek'
   ]
   for (const provider of providers) {
     if (readProviderKey(stateDir, provider) !== null) {

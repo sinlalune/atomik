@@ -57,6 +57,8 @@ export const BUILTIN_BLOCK_IDS = [
   'identity',
   'grounding-rules',
   'grounding-rules-chat',
+  'rendering-capabilities',
+  'note-conventions',
   'output-replace-selection',
   'output-append',
   'output-new-note',
@@ -87,6 +89,56 @@ export const CHAT_GROUNDING_RULES: readonly string[] = [
 export const CHAT_OUTPUT_BRIEF =
   'Answer the question conversationally in plain markdown — direct and concise, structured only as much as the answer needs; when asked to draft note content, shape it to drop cleanly into the note.'
 
+/**
+ * What the SURFACE can do (CP-AI-CAPABILITIES S01).
+ *
+ * Chat, inline AI and the AI note preview all hydrate through the rich
+ * Markdown registry, so a `mermaid` fence the model emits DOES render. Until
+ * this block existed nothing said so: a grep of the whole prompt surface for
+ * mermaid/vega/katex/math/diagram/chart returned nothing, and the renderers
+ * CP-RICH-MARKDOWN shipped went unused by the only writer in the system.
+ *
+ * The refusal half matters as much as the capability half. A model that does
+ * not know Vega-Lite takes inline data only writes a `url` dataset, and the
+ * reader gets a visible error instead of a chart — worse than no chart.
+ *
+ * Every identifier and number here is pinned to its source of truth by
+ * `tests/prompt-composition.test.ts`: the fences against `richKindForFence`,
+ * the limits against `DEFAULT_RICH_LIMITS`. A wrong number here fails no build
+ * on its own — it quietly teaches the model to write blocks the app refuses.
+ *
+ * The TRAPS bullet came out of the S03 owner bench, and each one names a shape
+ * the model actually produced or would produce, where the source looks valid
+ * and the reader still gets nothing. They are pinned like the rest — to
+ * `discoverDollarMath`, to `safeSvgNode`, and to Vega-Lite's own compiler —
+ * because the day a trap is FIXED, the block must stop describing it.
+ */
+export const RENDERING_CAPABILITIES: readonly string[] = [
+  'Your markdown is RENDERED, not shown as source.',
+  'Math: `$inline$`, `$$display$$`, or a `math` fence (`latex`, `tex` and `katex` are the same renderer).',
+  'Diagrams: a `mermaid` fence.',
+  'Charts: a `vega-lite` fence (`vegalite` and `vl` are the same renderer) — JSON with inline `data.values` only.',
+  'Code: any language fence; it is syntax-highlighted with copy and wrap controls.',
+  'Reach for a diagram when STRUCTURE or FLOW is the point, a chart when the DATA is the point, and math when notation is clearer than a sentence. Never as decoration: a diagram that restates a sentence costs the reader time.',
+  'These are hard limits, and breaking one shows the reader a visible error INSTEAD of your block. Vega-Lite: inline values only, at most 5000 rows; a `url` dataset, external actions, or a loader is refused before rendering. Mermaid: at most 200 edges, and no `click` directives, external links, HTML labels, or `%%{init}%%` configuration. Math: no resource commands.',
+  'Three traps where valid-looking source renders as nothing. A `bar` mark on a log scale collapses to zero-height bars, because a bar baseline is zero and a log scale refuses zero — put bars on a linear scale, and use `line` or `point` when the scale must be log. `$$...$$` inside a Mermaid label refuses the WHOLE diagram — keep labels plain text and put the formula in a math block beside it. A multi-line display block needs `$$` ALONE on its own line above and below; opening with `$$\\begin{aligned}` renders as raw text.',
+  'An unknown fence language stays plain text. That is fine, not an error.'
+]
+
+/**
+ * How a NOTE is written (CP-AI-CAPABILITIES S01) — note generation only.
+ *
+ * Deliberately absent from the chat plan: authoring a typed edge is a
+ * note-authoring act, and a chat answer emitting `[[Attention]]{depends-on}`
+ * would assert an edge into the graph from a conversation that is not a note.
+ * Chat may still POINT at a note with a plain `[[wikilink]]`.
+ */
+export const NOTE_CONVENTIONS: readonly string[] = [
+  'Link a note with `[[Note title]]`. Type the relation when it is real and specific — `[[Attention]]{depends-on}`, or `[[target]]{^label}` for the reverse direction. An untyped `[[link]]` is always acceptable: a wrong label is worse than none.',
+  'Do not write YAML frontmatter unless the instruction asks for it. Existing frontmatter is preserved byte for byte, and inventing keys is not your call.',
+  'The markdown file IS the artifact. Write what reads well as plain text.'
+]
+
 /** Each block's default = EXACTLY what composes without an override. */
 export const BUILTIN_BLOCK_DEFAULTS: Record<BuiltinBlockId, string> = {
   identity: BUILT_IN_IDENTITY,
@@ -94,6 +146,8 @@ export const BUILTIN_BLOCK_DEFAULTS: Record<BuiltinBlockId, string> = {
   'grounding-rules-chat': CHAT_GROUNDING_RULES.map((rule) => `- ${rule}`).join(
     '\n'
   ),
+  'rendering-capabilities': RENDERING_CAPABILITIES.map((rule) => `- ${rule}`).join('\n'),
+  'note-conventions': NOTE_CONVENTIONS.map((rule) => `- ${rule}`).join('\n'),
   'output-replace-selection': `- ${DESTINATION_BRIEF['replace-selection']}`,
   'output-append': `- ${DESTINATION_BRIEF.append}`,
   'output-new-note': `- ${DESTINATION_BRIEF['new-note']}`,
@@ -126,6 +180,8 @@ export type WireSystemPlanEntry =
 
 export const DEFAULT_SYSTEM_PLAN: ReadonlyArray<WireSystemPlanEntry> = [
   { block: 'identity' },
+  { block: 'rendering-capabilities' },
+  { block: 'note-conventions' },
   { block: 'grounding-rules' },
   { block: 'output' },
   { block: 'closing-rule' }
@@ -136,6 +192,7 @@ export const DEFAULT_SYSTEM_PLAN: ReadonlyArray<WireSystemPlanEntry> = [
  *  NAME in the plan, swappable like any other. */
 export const DEFAULT_CHAT_SYSTEM_PLAN: ReadonlyArray<WireSystemPlanEntry> = [
   { block: 'identity' },
+  { block: 'rendering-capabilities' },
   { block: 'grounding-rules-chat' },
   { block: 'output-chat' },
   { block: 'closing-rule' }
@@ -147,6 +204,8 @@ const blockHeadingFor: Partial<Record<SystemPlanBlockId, string[]>> = {
   identity: ['# Role', ''],
   'grounding-rules': ['# Rules', '', '## Grounding', ''],
   'grounding-rules-chat': ['# Rules', '', '## Grounding', ''],
+  'rendering-capabilities': ['# Capabilities', '', '## Rendering', ''],
+  'note-conventions': ['## Note conventions', ''],
   output: ['## Output', ''],
   'output-chat': ['## Output', ''],
   'output-replace-selection': ['## Output', ''],
@@ -309,6 +368,16 @@ export function composeSystemPrompt(
     '# Role',
     '',
     identity && identity.length > 0 ? identity : block('identity'),
+    '',
+    '# Capabilities',
+    '',
+    '## Rendering',
+    '',
+    block('rendering-capabilities'),
+    '',
+    '## Note conventions',
+    '',
+    block('note-conventions'),
     '',
     '# Rules',
     '',
