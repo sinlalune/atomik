@@ -20,9 +20,15 @@ which made this file a guaranteed merge conflict for every concurrent lane.
 It is now an index over per-area notes plus the cross-cutting contracts below.
 
 ```text
-area note   what an AREA owns        — a lane appends here
-root note   cross-cutting contracts  — the integrator appends here
+area note   what an AREA owns        — the path touching that area appends here
+root note   cross-cutting contracts  — any path appends here
 ```
+
+> Wording repaired 2026-08-24 (CP-OPS-002 S05, found while indexing this
+> directory). It said "a lane appends here / the integrator appends here"; ADR-012
+> removed both the lane layer and the integrator, so the sentence described a
+> structure that no longer exists. The directory map is
+> [index.md](./index.md).
 
 | area | covers |
 |---|---|

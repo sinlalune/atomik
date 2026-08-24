@@ -2,9 +2,9 @@
 
 Progressive-disclosure map of the docs plane. The constitution lives in `bedrock/`; start at [00 — orientation](bedrock/00_00-orientation.md), or open [index.html](index.html) for the offline Dev Docs viewer.
 
-- `bedrock/` — pages 00–36, the durable architecture; `bedrock/archive/` holds superseded drafts
-- `adr/` — accepted decision records; numbers are stable and may be reserved by parallel paths
-- `modules/` — module learning notes (contracts), populated during implementation
+- `bedrock/` — pages 00–36, the durable architecture; start at [bedrock/index.md](bedrock/index.md); `bedrock/archive/` holds superseded drafts
+- `adr/` — accepted decision records, indexed at [adr/index.md](adr/index.md); numbers are stable and may be reserved by parallel paths
+- `modules/` — module notes (contracts) per area, indexed at [modules/index.md](modules/index.md), populated during implementation
 - `research/` — dated external evidence and investigation records; volatile facts carry a checked-at date and recheck triggers
 - `cairn/` — the working protocol explained for people outside this repo: what the files are, who owns which, and how parallel paths merge (`ADR-012`, `atomik-project/coding-paths/paths.md`)
 - `learning/` — beginner-first layer: technologies, concepts, and methodology taught from zero so the owner can take over any brick

@@ -95,6 +95,8 @@ const PATH_STATUSES = ['draft', 'active', 'blocked', 'done', 'archived', 'runnin
 const PATH_BRANCH_STATUSES = ['running', 'done']
 const SESSION_DIR = 'atomik-project/sessions'
 const HISTORY_DIR = `${PATH_DIR}/history`
+const ADR_DIR = 'docs/adr'
+const ADR_STATUSES = ['proposed', 'accepted', 'superseded', 'rejected']
 
 /**
  * A path file is MANDATORY reading for whoever resumes that path, and it grows
@@ -191,9 +193,14 @@ export function parseWrites(text) {
   const out = []
   for (const line of block[1].split('\n')) {
     const item = line.match(/^[ \t]*-[ \t]*(\S.*?)[ \t]*$/)
-    if (item) out.push(item[1])
+    // A trailing comment on an ITEM is the same trap F9 fixed on the `writes:`
+    // line itself, one line lower: `- docs/adr/**   # every ADR` declared the
+    // surface `docs/adr/**   # every ADR`, which matches nothing, so the path
+    // silently declared less than it said. Found live on 2026-08-24 (CP-OPS-002
+    // S05) when a widened declaration kept reporting drift.
+    if (item) out.push(item[1].replace(/\s+#.*$/, '').trim())
   }
-  return out
+  return out.filter(Boolean)
 }
 
 export function isCommitPin(value) {
@@ -227,6 +234,40 @@ export function pathFrontmatterErrors(front) {
   }
   if (front.status === 'running' && !isCommitPin(front.base_commit)) {
     errors.push('status "running" requires atomik.base_commit as a 7–40 digit Git hash')
+  }
+  return errors
+}
+
+/**
+ * ADRs are canonical decisions — `decision-drift` points at them, bedrock pages
+ * cite them, and until 2026-08-24 not one of the fifteen was machine-readable
+ * (audit F5). Frontmatter validation used to stop at the execution plane, so the
+ * plane holding the ARCHITECTURE was the unchecked one.
+ *
+ * Two halves must agree. The frontmatter is what tools read; the `Status:` line
+ * under the heading is what a human reads. A record whose two halves disagree
+ * about whether a decision is accepted is worse than one that never claimed to
+ * be readable, so the mismatch is an error rather than a preference.
+ *
+ * `bodyStatus` is `null` when the document has no `Status:` line, which is not a
+ * finding: the check is that the two agree, not that both exist.
+ */
+export function adrFrontmatterErrors(front, file, bodyStatus = null) {
+  if (!front) return ['missing adr: frontmatter block']
+  const errors = []
+  const expected = /^docs\/adr\/(ADR-\d{3})-/.exec(file)?.[1]
+
+  if (!front.id) errors.push('missing adr.id')
+  else if (expected && front.id !== expected) {
+    errors.push(`adr.id "${front.id}" does not match the file name (${expected})`)
+  }
+  if (!ADR_STATUSES.includes(front.status)) {
+    errors.push(`status "${front.status}" is outside the vocabulary (${ADR_STATUSES.join(' | ')})`)
+  } else if (bodyStatus && bodyStatus !== front.status) {
+    errors.push(`adr.status "${front.status}" contradicts the document's own "Status: ${bodyStatus}"`)
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(front.date))) {
+    errors.push('adr.date must be an ISO date (YYYY-MM-DD)')
   }
   return errors
 }
@@ -709,6 +750,23 @@ function hasCeremony(pathId) {
   return ceremonyFromSessions(loadSessions(), pathId)
 }
 
+function loadAdrs() {
+  if (!existsSync(join(REPO, ADR_DIR))) return []
+  return readdirSync(join(REPO, ADR_DIR))
+    .filter((file) => file.startsWith('ADR-') && file.endsWith('.md'))
+    .map((file) => {
+      const rel = `${ADR_DIR}/${file}`
+      const text = readFileSync(join(REPO, rel), 'utf8')
+      const parsed = readFrontmatter(text)
+      return {
+        file: rel,
+        front: parsed?.data?.adr ?? null,
+        bodyStatus: /^Status:\s*(\S+)/m.exec(text)?.[1] ?? null,
+        parseError: parsed?.error ?? null
+      }
+    })
+}
+
 function loadPaths() {
   if (!existsSync(join(REPO, PATH_DIR))) return []
   return readdirSync(join(REPO, PATH_DIR))
@@ -780,6 +838,16 @@ function corpusFindings(branch) {
         rule: 'schema',
         message: `${path.file}: ${error}`
       })
+    }
+  }
+
+  for (const adr of loadAdrs()) {
+    if (adr.parseError) {
+      findings.push({ level: 'blocking', rule: 'schema', message: `${adr.file}: ${adr.parseError}` })
+      continue
+    }
+    for (const error of adrFrontmatterErrors(adr.front, adr.file, adr.bodyStatus)) {
+      findings.push({ level: 'blocking', rule: 'schema', message: `${adr.file}: ${error}` })
     }
   }
 

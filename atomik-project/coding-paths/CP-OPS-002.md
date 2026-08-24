@@ -20,8 +20,11 @@ atomik:
     - cairn.config.json
     - .github/workflows/cairn.yml
     - docs/cairn/**
-    - docs/adr/ADR-016-cairn-enforcement-integrity.md
-    - docs/adr/ADR-017-path-lifecycle.md
+    - docs/adr/**              # S05 backfills frontmatter across every ADR
+    - docs/bedrock/index.md
+    - docs/modules/**
+    - docs/index.md
+    - atomik-project/index.md
     - docs/bedrock/24_24-doc-templates.md
     - docs/bedrock/index.md
     - docs/modules/index.md
@@ -173,13 +176,38 @@ single path file exceeded 23 k. Not a defect; a boundary set before it was hit.
 - Round 3's register row C7 said `ledger-size` did not exist in code. True when written,
   false now — the row is corrected and §2.3's rule table regenerated from the live source.
 
-### S05 — Backfill OKF *(closes F5, medium)*
+### S05 — Backfill OKF *(closes F5, medium)* — **COMPLETE**
 
-- `index.md` for `docs/bedrock/`, `docs/adr/`, `docs/modules/`, `atomik-project/sessions/`,
-  `atomik-project/audits/` — bedrock 26 routes agents through the nearest index and the
-  three most-read directories have none.
-- Frontmatter for all 15 ADRs.
-- Extend schema validation beyond `coding-paths/`.
+Bedrock 26 says *"an agent should read the nearest relevant `index.md` before opening many
+files"*, and the three directories `AGENTS.md` routes every agent into had none. The
+progressive-disclosure contract was unimplemented at its own entry points, which forces
+the flat full-directory reads it exists to prevent — and feeds F4.
+
+- **Five indexes**: `docs/bedrock/` (37 pages, one line each from their own frontmatter,
+  plus the four entry points and the status vocabulary), `docs/adr/` (16 records with
+  status and date), `docs/modules/` (the six area notes and the `AREA_MAP` that routes a
+  source change to one), `atomik-project/sessions/` (the ceremony schema and a
+  ceremonies-by-path table), `atomik-project/audits/` (nine records with their verdicts).
+  `docs/index.md` and `atomik-project/index.md` now route into them.
+- **Frontmatter across all 16 ADRs** — `type` / `title` / `description` / `tags` /
+  `timestamp` plus an `adr:` block (`id`, `status`, `date`). Descriptions were written
+  from each record's own Decision section, not from its title.
+- **Schema validation reaches the decision plane.** `adrFrontmatterErrors()` is blocking
+  and corpus-scoped like its path counterpart: the id must match the file name, the status
+  must be in vocabulary, the date must be ISO, and **the frontmatter status must agree with
+  the document's own `Status:` line**. A record whose two halves disagree is worse than one
+  that never claimed to be readable. Four tests.
+- **The sessions index states an asymmetry rather than hiding it**: sixteen closing notes
+  carry the declaration because a blocking gate reads them; most opening checks do not,
+  because nothing reads those. Marked *(undeclared)* per row. No mass edit was made — that
+  is a decision, not a backfill.
+- **A second trap of the F9 family, found live.** A trailing comment on a `writes:`
+  ITEM became part of the glob, so the widened declaration above kept reporting drift and
+  the path silently declared less than it said. `parseWrites()` now strips it, with a
+  test. F9 fixed the same trap one line higher, on the `writes:` key itself.
+- **Coherence repair found while indexing**: `docs/modules/atomik-desktop.md` still said
+  *"a lane appends here / the integrator appends here"*. ADR-012 removed both. Repaired
+  with a dated note. This is the deliberate `single-truth` advisory on that file.
 
 ### S06 — Retire the drifted page *(closes F6, medium)*
 
@@ -316,12 +344,13 @@ brief names — and fix what the pilot finds before merging.
 | Status | `running` on `path/cp-ops-002` |
 | Base commit | `7aa3b1d` — registered on the trunk by `df875e6` before this branch existed |
 | Branch | `path/cp-ops-002`, worktree `../4tom1k-cp-ops-002`, `node_modules` symlinked |
-| Steps complete | **S00** — the four enforcement repairs adopted into the path (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` |
-| Remaining | S05, S06, S06c, S06d, S07a, S07, S08, S09 (S03 withdrawn by owner ruling; S06b rescoped and delivered inside S07 + S08 by ruling 9) |
+| Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane |
+| Remaining | S06, S06c, S06d, S07a, S07, S08, S09 (S03 withdrawn by owner ruling; S06b rescoped and delivered inside S07 + S08 by ruling 9) |
 | Opening check | accepted 2026-08-24, eight rulings ([note](../sessions/2026-08-24-cp-ops-002-opening-check.md)) |
-| Gates at S04 | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 54/54 |
+| Gates at S05 | `cairn-check` OK (3 advisory: no coherence audit for this head; the deliberate `single-truth` edit below; declared-writes widening recorded) · validator suite 59/59 |
 | Scope note | protocol tooling and doctrine only; no product code, so `npm test` / `typecheck` / `build` are untouched by this step |
 | Widening | `writes:` gained `atomik-project/briefs/cp-ops-002-handoff.md` at S01 — the per-step handoff brief is required by bedrock 22 and the original declaration simply omitted it |
-| Next action | S05 — backfill OKF: `index.md` for `docs/bedrock/`, `docs/adr/`, `docs/modules/`, `atomik-project/sessions/`, `atomik-project/audits/`; frontmatter for all 15 ADRs; extend schema validation beyond `coding-paths/` |
+| Next action | S06 — retire the drifted page: `docs/cairn/index.html` teaches the rejected integrator model at ten sites; rewrite it against ADR-012 or replace it with a generated view, and give both HTML pages a dated status banner naming the ADR they render |
+| Widening (S05) | `writes:` gained `docs/adr/**`, `docs/bedrock/index.md`, `docs/modules/**`, `docs/index.md`, `atomik-project/index.md` — S05 was always the OKF backfill; the declaration named only the two ADRs this path authors. Deliberate `single-truth` edit: `docs/modules/atomik-desktop.md`, one stale sentence naming the removed integrator |
 | Amendments | **2026-08-24, owner ruling 9** — S06b rescoped from "configure branch protection" to "declare the enforcement tier"; its deliverables move into S07 (specification + operator guide) and S08 (`enforcement` config field, generated header line, tier-0/1 `cairn-init`). This repository stays at tier 1, declared ([note](../sessions/2026-08-24-cp-ops-002-s06b-rescope.md)) |
 | Blockers | none. Nothing now waits on host configuration |

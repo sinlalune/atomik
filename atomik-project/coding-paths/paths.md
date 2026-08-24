@@ -383,7 +383,8 @@ BLOCKING   branch → path (a path/* branch is declared by a running path
            rebase gate — a path branch contains the trunk tip
            a path marked done has a closing-ceremony session note
            source changed ⇒ a module note AND a coding path changed
-           path frontmatter parses, statuses in vocabulary
+           path AND ADR frontmatter parse, statuses in vocabulary,
+                          an ADR id matching its file and its two halves agreeing
            relative links in docs/ and atomik-project/ resolve
            derived views current (trunk only)
 

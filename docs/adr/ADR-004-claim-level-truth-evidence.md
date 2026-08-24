@@ -1,3 +1,15 @@
+---
+type: Atomik ADR
+title: 'ADR-004: Claim-level truth, evidence, and epistemic status'
+description: Truth is carried per claim rather than per file: file authority, claim status and evidence anchors are distinct, and nothing is asserted beyond what its evidence supports.
+tags: [adr, truth, claims, evidence, epistemics, verification]
+timestamp: 2026-06-22T00:00:00Z
+adr:
+  id: ADR-004
+  status: accepted
+  date: 2026-06-22
+---
+
 # ADR-004: Claim-level truth, evidence, and epistemic status
 
 Status: accepted

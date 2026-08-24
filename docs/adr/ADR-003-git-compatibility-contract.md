@@ -1,3 +1,15 @@
+---
+type: Atomik ADR
+title: 'ADR-003: Git compatibility contract'
+description: Atomik is Git-compatible, not Git-dependent: canonical knowledge stays human-readable and diffable, rebuildable state is disposable, and opening a vault never rewrites files.
+tags: [adr, git, files, cache, diff, compatibility]
+timestamp: 2026-06-17T00:00:00Z
+adr:
+  id: ADR-003
+  status: accepted
+  date: 2026-06-17
+---
+
 # ADR-003: Git compatibility contract
 
 Status: accepted

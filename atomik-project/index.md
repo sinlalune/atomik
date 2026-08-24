@@ -15,8 +15,9 @@ This folder is an ordinary Atomik project bundle living beside the code plane in
 - `log.md` — chronological history of this plane.
 - `brainstorm/` — explicitly provisional thinking. Nothing here is a decision.
 - `briefs/` — generated handoff snapshots. Disposable; regenerated from path state.
-- `coding-paths/` — the execution-state plane. Start at [ACTIVE.md](./coding-paths/ACTIVE.md); the milestone → path register is [coding-paths/index.md](./coding-paths/index.md).
-- `sessions/` — optional session notes.
+- `coding-paths/` — the execution-state plane. Start at [ACTIVE.md](./coding-paths/ACTIVE.md); the milestone → path register is [coding-paths/index.md](./coding-paths/index.md), and completed steps roll into [coding-paths/history/](./coding-paths/history/index.md).
+- `sessions/` — ceremonies, owner rulings and bench passes, kept verbatim. Index: [sessions/index.md](./sessions/index.md).
+- `audits/` — one coherence audit per path merge; advisory by design. Index: [audits/index.md](./audits/index.md).
 - `sources/` — optional imported specs and references as source dossiers.
 
 ## Recently promoted decisions

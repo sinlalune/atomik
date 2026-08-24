@@ -1,11 +1,11 @@
 ---
 type: Atomik Brief
-title: Handoff — CP-OPS-002 S04 complete, ready for S05
+title: Handoff — CP-OPS-002 S05 complete, ready for S06
 timestamp: 2026-08-24T00:00:00Z
 atomik:
   path: CP-OPS-002
   branch: path/cp-ops-002
-  completed_step: S04
+  completed_step: S05
 ---
 
 # Resume CP-OPS-002 here
@@ -17,46 +17,52 @@ atomik:
   checkout.
 - Registered at `base_commit: 7aa3b1d` by the trunk commit `df875e6` before this
   branch existed; `dd6e76a` is S00.
-- Gates at S04: `npm run cairn-check` OK with one advisory — no coherence audit
-  for this head, which is expected until the pre-merge audit. Validator suite
-  `npm run cairn-check:test` 54/54.
+- Gates at S05: `npm run cairn-check` OK with two advisories — no coherence audit
+  for this head (expected until the pre-merge audit), and one deliberate
+  `single-truth` edit recorded in the ledger. Validator suite
+  `npm run cairn-check:test` 59/59.
 - `typecheck` / `test` / `build` are not run for this step and their verdicts are
   not claimed: this path writes protocol tooling and doctrine only, and touched
   no product code.
 
 ## What the completed step changed
 
-**S04 — the ledger has a boundary** (audit finding F4).
+**S05 — OKF backfill** (closes audit finding F5). Bedrock 26 routes agents through
+the nearest `index.md`, and the three directories `AGENTS.md` sends every agent
+into — bedrock, adr, modules — had none.
 
-- **Convention** in `paths.md` § *The ledger has a boundary*: completed steps roll
-  into `atomik-project/coding-paths/history/<id>-S0N.md`, one file per major step,
-  sub-steps beside the step they belong to. The path file keeps its declaration, a
-  one-line index per step, the ledger, the next action and blockers.
-- **The move is verbatim** — cut and paste, never summarize. Summarizing at rollup
-  time would quietly rewrite the record, which is the one thing a ledger may not do.
-- **CP-MVP-008 migrated as the proof**: ~23.5 k tokens to ~4.7 k across seven step
-  records. Verified line-for-line: the 1,621 non-empty lines of its Execution
-  section are byte-identical to what `history/` now holds.
-- **`ledger-size`** — advisory, diff-scoped, budget 10,000 tokens, on the reasoning
-  that a path file should not cost more than the whole mandatory entry chain
-  (~9.3 k). Corpus-scoped would nag about the same historical files on every run.
-  Four tests, one pinning `approxTokens()` to the same words × 4/3 proxy the F4
-  table used so findings and the audit record are comparable numbers.
-- Round 3's C7 row (`ledger-size` "does not exist in code") corrected, and §2.3's
-  rule table regenerated from the live source — it now carries 20 rows.
-- Bedrock deliberately untouched: `AGENTS.md` puts operating detail in `paths.md`,
-  which may change without amending a bedrock page.
+- **Five indexes**: `docs/bedrock/index.md` (37 pages, one line each drawn from
+  their own frontmatter, plus the four entry points and the status vocabulary),
+  `docs/adr/index.md` (16 records, status and date), `docs/modules/index.md` (six
+  area notes plus the `AREA_MAP` that routes a source change to one),
+  `atomik-project/sessions/index.md` (the ceremony schema and a ceremonies-by-path
+  table), `atomik-project/audits/index.md` (nine records and their verdicts).
+  `docs/index.md` and `atomik-project/index.md` route into them.
+- **Frontmatter on all 16 ADRs**, with an `adr:` block (`id`, `status`, `date`).
+  Descriptions were written from each record's Decision section, not its title.
+- **`adrFrontmatterErrors()`** — blocking, corpus-scoped, mirroring the path
+  validator: id matches the file name, status in vocabulary, ISO date, and the
+  frontmatter status must agree with the document's own `Status:` line.
+- **A second F9-family trap, found live**: a trailing comment on a `writes:` ITEM
+  became part of the glob, so a widened declaration kept reporting scope drift.
+  `parseWrites()` strips it now.
+- Repaired one stale sentence in `docs/modules/atomik-desktop.md` naming the
+  removed integrator — this is the deliberate `single-truth` advisory.
 
-**Only `CP-MVP-010.md` (~11.3 k) is over budget now**, and it is `done`. Nothing
-forces it: the rule fires for whoever next edits that file.
+**Known asymmetry, recorded not fixed**: sixteen closing notes declare
+`ceremony: closing` because a blocking gate reads them; most opening checks carry
+no `ceremony: opening` because nothing reads those. The sessions index marks each
+*(undeclared)*. Backfilling them is a decision, not a chore — it was left for the
+owner.
 
 ## Next action
 
-**S05 — backfill OKF** (closes F5). `index.md` for `docs/bedrock/`, `docs/adr/`,
-`docs/modules/`, `atomik-project/sessions/` and `atomik-project/audits/` — bedrock
-26 routes agents through the nearest index and the most-read directories have
-none. Frontmatter for all 15 ADRs (16 now, counting ADR-016). Extend schema
-validation beyond `coding-paths/`.
+**S06 — retire the drifted page** (closes F6). `docs/cairn/index.html` still teaches
+the rejected integrator model at ten sites. Rewrite it against ADR-012, or replace
+it with a generated view of the specification, and give both HTML pages a dated
+status banner naming the ADR they render — the page drifted silently because
+nothing on it claimed a vintage. `workflow.html` is clean and byte-identical to
+master; it needs the banner, not a rewrite.
 
 ## Blockers and decisions still open
 
