@@ -2,6 +2,7 @@
 
 Status: accepted
 Date: 2026-08-24
+Amended: 2026-08-24 (§3 — enforcement tiers; host protection is a repository property, not a protocol requirement)
 Amends: ADR-012 (parallel coding paths, self-merge, and a protocol check in CI)
 
 ## Context
@@ -79,16 +80,42 @@ The nested form is rejected, not accepted-for-compatibility: accepting both
 would make the ratified form a preference instead of a schema, and the corpus
 of sixteen backfilled notes already uses the ratified one.
 
-### 3. CI runs on path branches, and observes rather than prevents until branch protection exists
+### 3. CI runs on path branches, and enforcement is DECLARED in three tiers
 
 `cairn.yml` triggers on `push` to `master` and `path/**`, with a `concurrency`
 group so push-per-commit does not multiply runs. A local `git merge` still
-bypasses CI entirely — that is how all six merges in this repository happened —
-so until the owner configures branch protection on `master` requiring
-`cairn-check` and `gates`, **every document must say CI observes, and must not
-claim it prevents**. The residual is tracked as CP-OPS-002 S06b. An honest
+bypasses CI entirely — that is how all six merges in this repository happened.
+
+An earlier version of this clause said every document must describe CI as
+*observing* **until branch protection lands**, which framed host protection as
+inevitable and made it part of standing the protocol up. Amended on the owner's
+ruling of 2026-08-24
+([note](../../atomik-project/sessions/2026-08-24-cp-ops-002-s06b-rescope.md)),
+after the concern that it *"makes the protocol complicated to setup for
+adoption"*. Enforcement is three tiers, and only the first is required:
+
+```text
+tier 0  local      npm run cairn-check          zero setup, no host, no account
+tier 1  ci         .github/workflows/cairn.yml  one file — CI OBSERVES
+tier 2  protected  a trunk ruleset              host-specific — CI PREVENTS
+```
+
+Tier 0 carries nearly all the value, and it is where this ADR's other decisions
+live: branch→path, trunk registration, the rebase gate, the ceremony gate and
+link integrity all run with no host at all. **Tier 2 is a declared property of a
+repository, never a requirement of the protocol.**
+
+The claim is therefore generated rather than written: `cairn.config.json`
+declares `"enforcement"`, and `cairn-check` prints it in its header, so no
+document can assert prevention that is not installed. That failure — a published
+rule the implementation does not honour — is exactly F13, repaired in decision 2
+of this same ADR. A setup step performed once, invisibly, in someone else's web
+UI would have reintroduced it at the level of the whole protocol. An honest
 description of a partial guard is worth more than a confident description of a
 guard that is not there.
+
+This repository is **tier 1**, declared. Tier 2 scales with the number of writers
+on a shared trunk, not with the protocol.
 
 ### 4. `writes:` is read from the frontmatter block only
 
@@ -127,6 +154,9 @@ graph. What changed is that these facts are now actually consulted.
   `ceremony:` and `path:` must carry no inline comment. Stated in bedrock 24 and
   guarded by a test that parses the shipped template itself: the documentation
   is now executable, which is the only durable defence against F13 recurring.
+- Adoption elsewhere requires no account and no host configuration: `cairn-init`
+  scaffolds tiers 0 and 1, and the tier-2 ruleset ships as a copy-paste payload in
+  the operator guide rather than as a click-path anyone must follow.
 - Documents that predate the ratified schema (the two Cairn research records,
   the round-3 deliverables) carry a dated banner rather than a silent edit. They
   are records of what was proposed; the banner keeps them from being mistaken
