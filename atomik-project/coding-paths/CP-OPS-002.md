@@ -227,11 +227,24 @@ why not but maybe add a blocking gate."* Three answers, all landed.
   `docs/fixtures/`, `docs/agents/`. Every meaningful folder in `docs/` and
   `atomik-project/` now has one. `atomik-project/sources/` is empty and
   `atomik-project/projects/` holds one file — an index over nothing is noise.
-- **No per-folder `log.md`, and it is a decision, not an omission.** Recorded in both plane
-  indexes. Bedrock 26 offers a folder two conventions; the map is stable and single-writer,
-  the log is append-only and shared by every path touching that folder — which is exactly
-  the collision that froze `atomik-project/log.md`. Recency already has two answers, Git
-  history and the per-path journal; a third could only drift from them.
+- **The OKF guideline on folder logs is stated, not overridden.** Bedrock 26 gives a
+  meaningful folder both `index.md` and `log.md`. The convention has taken exactly one
+  amendment in this repository, and it was about CONCURRENCY, not size: several paths
+  appending to one journal collided, so `log.md` was frozen and the journal became one
+  file per entry under `log/`. A shared log takes that shape; a folder log was never
+  decided against.
+
+  > **Retraction, same day, owner correction.** The first version of this step recorded
+  > "no per-folder `log.md`" as a *decision* in both plane indexes, reasoning from the
+  > collision that froze the journal. The owner: *"once again there was no decision made
+  > against log file size — we just split it for multilane amendment and now it is in
+  > /log folder, we just need to respect OKF guideline."* Correct on both counts. Nobody
+  > took that decision, and an agent writing doctrine on its own authority is exactly what
+  > `AGENTS.md` forbids and what this path exists to stop. Retracted in `docs/index.md`
+  > and `atomik-project/index.md`, each carrying a dated correction line rather than a
+  > silent edit. **This is the second time in this path that a plausible rationale was
+  > mistaken for a decision on record** — F4's own first draft claimed `log.md` was frozen
+  > for context cost. Same file, same wrong reason, twice.
 
 ### S06 — Retire the drifted page *(closes F6, medium)*
 

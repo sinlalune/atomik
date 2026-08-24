@@ -15,14 +15,21 @@ Progressive-disclosure map of the docs plane. The constitution lives in `bedrock
 - `CHANGELOG_v0_4 / v0_5 / v0_6` — release records
 - `docs_source.json` · `index.html` — generated Dev Docs artifacts
 
-Every meaningful folder here carries an `index.md`; **none carries a per-folder
-`log.md`, and that is a decision, not an omission** (2026-08-24, CP-OPS-002 S05b).
-Bedrock 26 offers both conventions — a map and a recency feed. The map is stable
-and single-writer, so it is worth having everywhere. A per-folder log is neither:
-it is append-only and every path touching that folder would append to the same
-file, which is exactly the collision that got `atomik-project/log.md` frozen and
-replaced by one file per entry. Recency is already answered twice — by Git history
-and by the per-path journal — so a third answer could only drift from the other
-two. `docs/log.md` predates this and is retained as an archive.
+OKF, [bedrock 26](bedrock/26_26-okf-agent-context.md): a meaningful folder carries
+`index.md` (what is inside and why it matters) and `log.md` (recent meaningful
+changes in that scope). Every meaningful folder here now carries the first;
+`log.md` at this level is the docs-plane log, last written 2026-07-06.
+
+**A shared log is one file per entry.** That is the only amendment the convention
+has taken, and it was made for CONCURRENCY, not for size: when several paths append
+to one log they collide, so `atomik-project/log.md` was frozen and the journal moved
+to `atomik-project/log/YYYY-MM-DD-<path-id>.md`. Two paths writing two files never
+conflict. Nothing was ever decided against folder logs, and a folder that needs one
+gets it in that shape.
+
+*(Correction, 2026-08-24: an earlier version of this paragraph declared "no
+per-folder `log.md`" as a decision. No such decision was ever taken — the agent
+wrote doctrine on its own authority, which `AGENTS.md` forbids. Retracted; the OKF
+guideline above stands.)*
 
 Rules: durable decisions live here or in `adr/`; provisional thinking lives in `../atomik-project/brainstorm/`; every core change updates its documentation in the same work unit (15, 17).
