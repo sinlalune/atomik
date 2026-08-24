@@ -29,7 +29,9 @@ This folder is an ordinary Atomik project bundle living beside the code plane in
 [Bedrock 26](../docs/bedrock/26_26-okf-agent-context.md) gives a meaningful folder
 two conventions: `index.md` says what is inside and why it matters, `log.md` records
 recent meaningful changes in that scope. An agent reads the nearest index before
-opening many files, and the log when recency matters.
+opening many files, and the log when recency matters. **Every folder in this plane
+now carries both** (CP-OPS-002 S05c), each log seeded from that folder's real Git
+history and appended newest-first in the work unit that makes the change.
 
 The convention has taken exactly one amendment here, and it was about CONCURRENCY,
 not size: several paths appending to one journal collided, so `log.md` was frozen as
