@@ -1,13 +1,13 @@
-<svg width="680" height="660" viewBox="0 0 680 660" xmlns="http://www.w3.org/2000/svg" role="img">
+<svg width="680" height="780" viewBox="0 0 680 780" xmlns="http://www.w3.org/2000/svg" role="img">
   <title>Coding agent bootstrap and fresh-session protocol</title>
-  <desc>Every session resolves its trunk-registered path, verifies repository reality against the Work Ledger, executes one step, persists code, tests, docs, ledger and handoff brief, then commits and pushes before offering the next step in a fresh session.</desc>
+  <desc>Every session resolves its trunk-registered path, verifies repository reality against the Work Ledger, executes one step, persists code, tests, docs, ledger and handoff brief, then commits and pushes before offering the next step in a fresh session. After the path finally merges, another checkout verifies the remote merge and clean secondary worktree, removes that worktree without force, and retains its branch.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
       <path d="M2 1L8 5L2 9" fill="none" stroke="#5F5E5A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
     <style>text{font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}.th{font-size:14px;font-weight:500}.ts{font-size:12px;font-weight:400}</style>
   </defs>
-  <rect x="0" y="0" width="680" height="660" fill="#FFFFFF"/>
+  <rect x="0" y="0" width="680" height="780" fill="#FFFFFF"/>
 
   <rect x="180" y="32" width="320" height="52" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
   <text class="th" x="340" y="49" text-anchor="middle" dominant-baseline="central" fill="#444441">Read AGENTS.md</text>
@@ -48,4 +48,10 @@
   <text class="th" x="340" y="602" text-anchor="middle" fill="#633806">Agent offers: continue here or fresh session?</text>
   <text class="ts" x="340" y="624" text-anchor="middle" fill="#5F5E5A">fresh session restarts at the top; the owner supplies no recap</text>
   <text class="ts" x="340" y="643" text-anchor="middle" fill="#5F5E5A">the coding path remains running</text>
+
+  <line x1="80" y1="668" x2="600" y2="668" stroke="#D3D1C7" stroke-width="1" stroke-dasharray="4 4"/>
+  <rect x="180" y="690" width="320" height="66" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+  <text class="th" x="340" y="707" text-anchor="middle" dominant-baseline="central" fill="#712B13">After final merge: retire worktree</text>
+  <text class="ts" x="340" y="726" text-anchor="middle" dominant-baseline="central" fill="#993C1D">verify remote merge · require clean checkout</text>
+  <text class="ts" x="340" y="741" text-anchor="middle" dominant-baseline="central" fill="#993C1D">remove without force · retain branch history</text>
 </svg>

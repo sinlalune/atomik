@@ -8,7 +8,7 @@ atomik:
   id: CP-WORKTREE-CLEANUP
   status: running
   accepted: 2026-08-24
-  current_step: S01
+  current_step: S02
   base_commit: 41d661b
   branch: path/cp-worktree-cleanup
   writes:
@@ -91,7 +91,7 @@ verified before the recoverable local directory is removed.
 
 # Execution
 
-- [ ] S01 PROJECT THE RULE — add verified, non-forced post-merge worktree
+- [x] S01 PROJECT THE RULE — add verified, non-forced post-merge worktree
       cleanup to every authoritative/projection surface; refresh D08/D14 and
       the guide; persist the step brief and run gates.
 - [ ] S02 CLOSE AND DOGFOOD — record acceptance, rebase/current-trunk proof,
@@ -102,14 +102,25 @@ verified before the recoverable local directory is removed.
 
 ```text
 base commit : 41d661b — CP-OPS-001 merged and verified online
-current step: S01 ready
+current step: S01 complete in this work unit; ready for S02
 owner ruling: remove the worktree folder after merge
 interpretation: only after origin/master contains the merge; exact clean
                 secondary worktree; no force; branch history retained
-tests       : registration-only work unit; Cairn before commit
-remote      : registration commit must land and be pushed on master before the
-              path branch starts
-next action : register this declaration on master, then execute S01
+changed     : bootloader + paths + bedrock 22/24/35 + ADR-012 + learning note
+              + workflow guide + D08/D14 + diagram register + handoff brief
+shared view : docs/diagrams/index.md deliberately refreshed by hand because
+              the D08/D14 lifecycle refresh trigger fired; it is not ACTIVE.md
+tests       : Cairn passed (3 expected pre-closure advisories); D14 geometry
+              15 boxes/2 loop labels; D08/D14 XML + diff check; typecheck;
+              78 test files, 1101 pass/1 skip; production build — all passed
+remote      : push this coherent S01 commit immediately to
+              origin/path/cp-worktree-cleanup; incomplete until it succeeds
+session     : safe boundary after successful push; S02 may close in this
+              temporary worktree because it must dogfood its own cleanup
+cleanup plan: after verified origin/master merge, remove
+              /tmp/4tom1k-cp-worktree-cleanup without force; retain branches
+next action : S02 closing ceremony, rebase proof, audit, journal, done state,
+              full gates, self-merge, remote verification and dogfood cleanup
 blockers    : none
 ```
 

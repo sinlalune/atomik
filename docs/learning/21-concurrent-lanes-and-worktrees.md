@@ -1,14 +1,14 @@
 ---
 type: Atomik Learning Note
 title: 'Learning: running several agents at once — worktrees, registration, and the state you forget is shared'
-description: Beginner-first walkthrough of CP-OPS-001 — runtime isolation, one writer per tree, why a generated view cannot see sibling branches, and the small trunk registration that makes parallel work globally visible.
+description: Beginner-first walkthrough of parallel path execution — runtime isolation, trunk registration, remote step checkpoints, and safe disposal of a clean secondary worktree after its merge is verified.
 tags: [learning]
 timestamp: 2026-08-14T00:00:00Z
 ---
 
 # Learning: running several agents at once — worktrees, registration, and the state you forget is shared
 
-*Covers CP-OPS-001 S01–S11 (2026-08-14–24). First-use rule (17): this is the
+*Covers CP-OPS-001 S01–S11 and CP-WORKTREE-CLEANUP S01 (2026-08-14–24). First-use rule (17): this is the
 first time the project runs several coding paths and desktop instances at once.
 It now includes what the pilot taught after the initial design landed.*
 
@@ -164,12 +164,35 @@ The ceremony rule remains independent: `done` without a closing session note
 still blocks. One combined test now pins both sides so the validator cannot
 again make its required terminal state impossible.
 
-The same closure exposed a practical distinction in handoff durability. A
-pushed branch is recoverable even if a worktree disappears, but a worktree
-under `/tmp` is still a poor place to propose an ordinary fresh session. Prefer
-a durable worktree; when the only remaining action is closure, finish in the
-current session and remove the temporary checkout after the merged trunk is
-verified online.
+## A merged branch is durable; its checkout is disposable
+
+Fresh-session handoff and path closure point in opposite directions. While a
+path is running, the next chat should reuse the same worktree. Once the path is
+merged, its pushed branch and trunk history are sufficient for recovery, so a
+secondary checkout should not linger merely because nobody retired it.
+
+The safe order matters:
+
+```text
+merge path -> push trunk -> verify exact merge on origin/master
+  -> from another checkout, resolve exact path in git worktree list
+  -> require empty Git status
+  -> git worktree remove <exact-path>       # no --force
+  -> verify registration + folder are gone
+  -> retain local and remote path branches
+```
+
+This is narrower than deleting a branch. The worktree is a local directory;
+the branch is the requested online history. Never remove the main/owner
+worktree or a dirty checkout. Non-forced removal is useful precisely because
+it refuses to hide uncommitted state. If any proof or removal fails, leave the
+directory intact and say `merge complete; cleanup incomplete`.
+
+CI cannot enforce this honestly: after the merge, a hosted job cannot see a
+developer's local worktree registration or folder. The repository records the
+rule and the intended target; live Git checks and the path-closure report prove
+the machine-local outcome. CP-WORKTREE-CLEANUP itself closes by exercising
+that sequence on its temporary worktree.
 
 ## What we deliberately did not build
 
@@ -194,4 +217,6 @@ files: a root cause is discovered, not declared.
 7. Could the next session resume from the ledger and handoff brief without an
    owner recap?
 8. Can the path's own final `done` transition pass every gate it requires?
-9. What is the smallest mechanism real evidence justifies?
+9. After remote merge proof, was the exact clean secondary worktree removed
+   without force while its branch was retained?
+10. What is the smallest mechanism real evidence justifies?

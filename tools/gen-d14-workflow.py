@@ -5,7 +5,7 @@ with a label overlapping a box because it was hand-placed.
 """
 from pathlib import Path
 
-W, H = 800, 1300
+W, H = 800, 1380
 COLS = [
     ("Owner / PO", "#FAEEDA", "#854F0B", "#633806"),
     ("Path (dev or agent)", "#EEEDFE", "#534AB7", "#3C3489"),
@@ -43,7 +43,11 @@ box(1, 960, 104, "THE PATH MERGES ITSELF", [
     "  result, never a stale branch 5 merge — no gatekeeper",
 ], span=2)
 box(0, 1098, 50, "Trunk — always shippable", ["the owner dogfoods this state"], span=3)
-box(0, 1172, 46, "Friction report", ["opens a labelled path"])
+box(1, 1172, 66, "Retire merged worktree", [
+    "verify origin/master + clean checkout",
+    "non-forced remove · branch retained",
+])
+box(0, 1262, 46, "Friction report", ["opens a labelled path"])
 
 # ---- flow -----------------------------------------------------------------
 MID2 = X[0] + (CW * 2 + GAP) / 2   # centre of a two-column span
@@ -57,6 +61,7 @@ straight = [
     (CX[2], 764, CX[2], 782),    # gates job -> cairn job
     (MID2, 936, MID2, 956),      # ceremony -> merge
     (MID2, 1064, MID2, 1094),    # merge -> trunk
+    (MID2, 1148, CX[1], 1168),   # verified remote trunk -> cleanup
 ]
 for a in straight:
     arrows.append((*a, "flow"))
@@ -69,8 +74,8 @@ elbow = [
     [(CX[1], 704), (CX[1], 708), (CX[2], 708), (CX[2], 710)],
     # CI -> closing ceremony
     [(CX[2], 852), (CX[2], 864), (MID2, 864), (MID2, 874)],
-    # trunk -> friction report
-    [(CX[0], 1148), (CX[0], 1168)],
+    # cleanup -> friction report
+    [(CX[1], 1238), (CX[1], 1248), (CX[0], 1248), (CX[0], 1258)],
 ]
 for pts in elbow:
     arrows.append((pts, None, None, None, "elbow"))
@@ -84,7 +89,7 @@ loops = [
     # friction report back into a new path. The label rides the vertical run:
     # placed beside the friction box it overlapped it, which anchor-only
     # geometry checks do not catch.
-    ([(X[0], 1195), (10, 1195), (10, 189), (X[0], 189)], "feedback preempts", 16, 700, "start"),
+    ([(X[0], 1285), (10, 1285), (10, 189), (X[0], 189)], "feedback preempts", 16, 735, "start"),
 ]
 
 svg = []
@@ -94,8 +99,9 @@ svg.append(
     '<desc>Role swimlanes: the owner runs the ceremonies and reports friction; the path author '
     'registers the accepted declaration on the trunk, then executes one step at a time in an '
     'isolated worktree; every completed step is committed, pushed and offered as a fresh-session '
-    'boundary; an open pull request runs product and protocol gates; each path merges itself. Feedback '
-    'preempts the roadmap and no integrator exists.</desc>'
+    'boundary; an open pull request runs product and protocol gates; each path merges itself, verifies '
+    'the remote trunk, then removes its exact clean secondary worktree without deleting the branch. '
+    'Feedback preempts the roadmap and no integrator exists.</desc>'
     '<defs>'
     '<marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" '
     'orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#5F5E5A" '

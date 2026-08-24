@@ -24,6 +24,7 @@ every opening = one registration-only trunk commit BEFORE the branch
 every commit  = one immediate remote checkpoint on its owning branch
 every step    = one safe boundary between chat sessions
 each path merges ITSELF into the trunk
+every closure = remote merge verified + clean secondary worktree removed
 no integrator, no parent, no gatekeeper
 ```
 
@@ -208,6 +209,8 @@ conversation memory never wins.
 3  CI GREEN on the rebased result, never on a stale branch
 4  COHERENCE AUDIT — recorded, advisory (below)
 5  the path sets its own status: done, and merges
+6  the pushed merge is verified on the remote trunk; the exact clean
+   secondary worktree is removed without force, while its branch is retained
 ```
 
 Step 2 is what makes a gatekeeper unnecessary. Requiring the branch to contain
@@ -243,6 +246,35 @@ its verdict never blocks            — findings are advisory, read by a human
 `npm run cairn-audit` scaffolds the record; the agent fills it in. One file per
 audit under `atomik-project/audits/`, so two paths auditing at once never
 conflict.
+
+### Cleanup is the final local transition
+
+The branch is durable history; its worktree is a disposable working copy.
+Cleanup happens only after the merge commit has been pushed and verified on
+the remote trunk. From the main/owner worktree or another surviving checkout:
+
+```bash
+git fetch origin master
+git merge-base --is-ancestor <merge-commit> origin/master
+git worktree list --porcelain
+git -C <exact-secondary-worktree> status --porcelain=v1
+git worktree remove <exact-secondary-worktree>
+git worktree list --porcelain
+test ! -e <exact-secondary-worktree>
+```
+
+The status command must print nothing, and the exact target must be a
+secondary checkout registered by `git worktree list` for the path that just
+merged. Run removal from outside that worktree. Never target the main/owner
+worktree, never pass `--force`, and never treat worktree cleanup as permission
+to delete the local or remote path branch. The retained branch preserves the
+online per-step history requested by the owner.
+
+If remote verification, cleanliness, removal, or the final absence check
+fails, report **merge complete; cleanup incomplete** and leave the directory
+intact for inspection. This machine-local transition cannot be honestly
+enforced by repository CI after the checkout disappears, so it is an absolute
+operating rule and a required path-closure report, not a Cairn blocking rule.
 
 ## Nothing is shared, so nothing needs a gatekeeper
 
