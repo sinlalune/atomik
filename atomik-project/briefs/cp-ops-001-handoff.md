@@ -1,11 +1,11 @@
 ---
 type: Atomik Brief
-title: Handoff — CP-OPS-001 S09 complete, ready for closing ceremony
+title: Handoff — CP-OPS-001 S10 complete, ready for integration
 timestamp: 2026-08-24T00:00:00Z
 atomik:
   path: CP-OPS-001
   branch: path/cp-ops-001
-  completed_step: S09
+  completed_step: S10
 ---
 
 # Resume CP-OPS-001 here
@@ -15,9 +15,9 @@ atomik:
 - Worktree: `/tmp/4tom1k-cp-ops-001`.
 - Branch/upstream: `path/cp-ops-001` tracking
   `origin/path/cp-ops-001`.
-- Prior published head: `6deb103`. The S09 completed-step commit is the direct
-  successor containing this brief. On resume, fetch and require clean
-  `HEAD == @{upstream}` before treating S09 as complete.
+- Prior published head: `9ea45db`. The S10 ceremony commit is the direct
+  successor containing this brief. Before integration, fetch and require clean
+  `HEAD == @{upstream}` before treating S10 as complete.
 - Gates on the S09 work unit: Cairn validator self-tests passed; `cairn-check`
   passed with only the expected coherence-audit, grandfathered-registration,
   and diagrams-index advisories; D08/D14 XML and D14 geometry passed;
@@ -25,6 +25,14 @@ atomik:
   the production build passed.
 
 ## What the completed step changed
+
+S10 records the owner's explicit acceptance and decision to complete closure in
+this session because the restored worktree lives under `/tmp`. The Git worktree
+is clean; its temporary location is the continuity concern. The closing record
+contains the repository recall, surviving invariants, known boundaries, and the
+no-roadmap-change ruling.
+
+S09 previously promoted the owner's continuity ruling into the protocol:
 
 S09 promotes the owner's continuity ruling into the protocol:
 
@@ -46,17 +54,16 @@ the durable checkpoint, not that activity view.
 
 ## Next action
 
-Run the CP-OPS-001 closing ceremony with the owner and record it. Then fetch the
-current trunk, record the old path head, rebase onto `master`, and record the new
-head. If published commits changed, update the path branch with
+Fetch the current trunk, record the old path head, rebase onto `master`, and
+record the new head. If published commits changed, update the path branch with
 `git push --force-with-lease`. Run all gates on the rebased result, generate the
 coherence audit, write the one-file journal entry, set this path `done`,
-self-merge, and immediately push `master`.
+self-merge, immediately push `master`, and remove the temporary worktree only
+after remote verification.
 
 ## Blockers and decisions still open
 
-No implementation blocker. The mandatory closing ceremony is the next protocol
-boundary; it is not implied by completing S09.
+No blocker and no owner decision pending. The closing ceremony is accepted.
 
 ## Resume instruction for the agent
 

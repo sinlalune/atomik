@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-001
   status: running
   accepted: 2026-08-14
-  current_step: closing
+  current_step: S11
   base_commit: cc78d2f
   branch: path/cp-ops-001
   writes:
@@ -36,6 +36,9 @@ atomik:
     - atomik-project/briefs/index.md
     - atomik-project/briefs/cp-ops-001-handoff.md
     - atomik-project/sessions/2026-08-24-cp-ops-001-s09-step-session-boundary.md
+    - atomik-project/sessions/2026-08-24-cp-ops-001-closing-ceremony.md
+    - atomik-project/audits/cp-ops-001-*.md
+    - atomik-project/log/2026-08-24-cp-ops-001.md
 ---
 
 # Goal
@@ -346,6 +349,17 @@ lanes — providers and settings share `ai-settings.ts`, `ipc-contract.ts` and
       `sessions/2026-08-24-cp-ops-001-s09-step-session-boundary.md`; bedrock,
       template, ADR, guide, learning note, D08/D14 and this ledger project the
       same rule.
+- [x] S10 CLOSING CEREMONY — accepted by the owner on 2026-08-24. The earlier
+      portfolio verdict *"ok for all go for closure"* was followed by the
+      explicit session choice *"its better if we close here directly cause its
+      in tmp directory not clean"*. Git is clean; the operational concern is
+      valid because this restored worktree lives under `/tmp`. The repository
+      recall, surviving invariants, known boundaries, no-roadmap-change ruling,
+      and verdict are recorded in the path-specific closing session note.
+- [ ] S11 INTEGRATION — rebase/contain current master, run every gate on that
+      result, fill the coherence audit, write the one-file journal entry, set
+      this path done, regenerate global state, push the path commit, self-merge,
+      push master, and remove the temporary worktree.
 
 # Current checkpoint
 
@@ -355,7 +369,7 @@ branch base : cc78d2f — CP-OPS moved into `path/cp-ops-001` before S08; the
               owner was actively merging other paths into the trunk, so the
               exception had outlived its reason
 prior remote: 6deb103 — clean and equal to origin/path/cp-ops-001 before S09
-current step: S09 complete; CP-OPS is ready for its closing ceremony
+current step: S10 complete; owner accepted closure; S11 integration is next
 evidence    : owner corrected "close the path" to "close the chat/session" and
               added "push after evry commit so we have an online log". The
               verbatim ruling is in the S09 session record. GitHub documents
@@ -379,15 +393,14 @@ tests       : Cairn self-tests green; cairn-check OK with expected advisories
               typecheck green; 78 test files / 1101 pass / 1 skip; production
               build green. Gates ran bare.
 remote      : origin/path/cp-ops-001 contains the completed-step commit that
-              carries this checkpoint and cp-ops-001-handoff.md; the completion
-              report names its immutable hash.
-session     : safe fresh-session boundary after that push. A new session uses
-              this worktree, branch, ledger and rolling brief without an owner
-              recap; the coding path remains running.
-next action : owner closing ceremony; fetch/rebase onto current master; record
-              old/new heads and force-with-lease only if rewritten; rerun gates,
-              coherence audit, journal, status done, self-merge, push master.
-blockers    : none. Merge correctly waits for CP-OPS closing ceremony.
+              carries the S10 ceremony record, this checkpoint and the rolling
+              handoff brief; the completion report names its immutable hash.
+session     : owner chose to continue here because this clean worktree is under
+              /tmp. Remove it after the merged trunk is verified online.
+next action : verify/rebase onto current master; record old/new heads and use
+              force-with-lease only if rewritten; rerun gates, coherence audit,
+              journal, status done, self-merge, push master, remove worktree.
+blockers    : none. Closing ceremony is accepted and recorded.
 ```
 
 This is CP-OPS's third observed prose-checkpoint drift. Cairn can prove that a
@@ -398,5 +411,4 @@ can enter closure without carrying its chat history into the next context.
 
 # Blockers
 
-None for the completed S09 work unit. The path cannot merge before its closing
-ceremony, by design.
+None. The closing ceremony is complete; S11 performs the mechanical closure.
