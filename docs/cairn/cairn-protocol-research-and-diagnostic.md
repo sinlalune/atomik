@@ -13,6 +13,15 @@ atomik:
 
 # Cairn Protocol: Evidence-Anchored Research, Audit, Diagnostic & Production Specification
 
+> **Superseded on the ceremony schema (2026-08-24, CP-OPS-002 S01).** This
+> record proposes `atomik: { path, ceremony: closing }`. What shipped, and what
+> `ceremonyFromSessions()` reads, is ROOT-LEVEL `path:` / `ceremony:` — the
+> nested form returns `false` from the live parser and would fail the blocking
+> `ceremony` gate. The schema is pinned in
+> [bedrock 24](../bedrock/24_24-doc-templates.md#session-note-and-ceremony-template)
+> and settled by [ADR-016](../adr/ADR-016-cairn-enforcement-integrity.md). The
+> rest of this record stands as the research it was.
+
 **Document Version:** `2.0.0-PROD-SPEC`  
 **Classification:** Scientific Research & Protocol Engineering Report  
 **Date:** 2026-08-24  

@@ -11,6 +11,7 @@
  * FAIL it, and in the neighbouring state that should not.
  */
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import {
   areaOf,
@@ -481,6 +482,61 @@ test('done with only an opening check on record is blocked', () => {
     ceremonyFor: (id) => ceremonyFromSessions(sessions, id)
   })
   assert.ok(rules(found, 'blocking').includes('ceremony'))
+})
+
+
+/* ------------------------------------------------------------------ *
+ * F13 — the PUBLISHED schema must be the one the parser reads
+ *
+ * The D1 operator guide prescribed `atomik: { path, ceremony }`, which the
+ * reader files under the `atomik` section and never sees at the root. The
+ * `ceremony` rule is BLOCKING, so an operator following the published guide
+ * would have failed the merge of the path that note was written to close
+ * (audit 2026-08-24, F13; ADR-016).
+ *
+ * These read the SHIPPED template rather than a copy of it: a restatement is
+ * what drifted, so the test refuses to restate.
+ * ------------------------------------------------------------------ */
+
+/** The frontmatter of the first ```md fence under a named section heading. */
+function shippedTemplate(file, heading) {
+  const text = readFileSync(new URL(`../${file}`, import.meta.url), 'utf8')
+  const section = text.slice(text.indexOf(heading))
+  const open = section.indexOf('```md\n')
+  const body = section.slice(open + '```md\n'.length)
+  return body.slice(0, body.indexOf('```'))
+}
+
+test('the nested ceremony form the guide once prescribed declares nothing', () => {
+  const nested = [
+    '---', 'type: Atomik Session Record', 'atomik:',
+    '  path: CP-MVP-010', '  ceremony: closing', '---', '', '# closing ceremony', ''
+  ].join('\n')
+
+  const note = readFrontmatter(nested).data
+  assert.equal(note.path, undefined)                     // it landed in `atomik`
+  assert.deepEqual(note.atomik, { path: 'CP-MVP-010', ceremony: 'closing' })
+  assert.equal(ceremonyFromSessions([note], 'CP-MVP-010'), false)
+})
+
+test('the ceremony template shipped in bedrock 24 satisfies the gate', () => {
+  const note = readFrontmatter(
+    shippedTemplate('docs/bedrock/24_24-doc-templates.md', '## Session note and ceremony template')
+  ).data
+
+  assert.equal(note.path, 'CP-EXAMPLE-001')
+  assert.equal(ceremonyFromSessions([note], 'CP-EXAMPLE-001'), true)
+})
+
+test('an inline comment on ceremony: is part of the value, so it declares nothing', () => {
+  // The scalar reader takes values verbatim to end of line. This is why the
+  // template carries no `# opening | closing` hint on the key itself.
+  const commented = readFrontmatter(
+    ['---', 'path: CP-MVP-010', 'ceremony: closing   # opening | closing', '---', ''].join('\n')
+  ).data
+
+  assert.equal(commented.ceremony, 'closing   # opening | closing')
+  assert.equal(ceremonyFromSessions([commented], 'CP-MVP-010'), false)
 })
 
 

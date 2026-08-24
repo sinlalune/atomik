@@ -64,7 +64,9 @@ someone else to pick up later — the owner's observation, and it removes the
 handoff the earlier draft assumed.
 
 1. Run the OPENING CHECK with the owner — feature by feature, recorded in a
-   session note. Activation needs explicit acceptance.
+   session note carrying root-level `path:` and `ceremony: opening` frontmatter
+   ([schema](../../docs/bedrock/24_24-doc-templates.md#session-note-and-ceremony-template)).
+   Activation needs explicit acceptance.
 2. From a clean, current trunk, create the accepted path file from the template
    in bedrock 24:
 
@@ -81,11 +83,24 @@ atomik:
 ```
 
    `base_commit` is the trunk tip immediately BEFORE this registration. Run
-   `npm run cairn-active` and `npm run cairn-check`, then land ONLY the accepted
-   path declaration and regenerated view on the trunk (directly or through the
-   host's required short PR). No product code enters this commit. This tiny
-   serialized transition is the price of a durable global portfolio: every
-   workstation and CI can now see the path before its branch diverges.
+   `npm run cairn-active` and `npm run cairn-check`, then land a **metadata-only**
+   commit on the trunk (directly or through the host's required short PR): the
+   accepted path declaration, the regenerated view, and the opening-check session
+   note that justifies the activation. **No implementation of any kind** enters
+   this commit. This tiny serialized transition is the price of a durable global
+   portfolio: every workstation and CI can now see the path before its branch
+   diverges.
+
+   This page previously said *only* the declaration and the view, while bedrock
+   24 named the session note too — and the repository's last real registration
+   (`9040417`) followed bedrock. `AGENTS.md` requires such a disagreement to be
+   reported, and the audit did (2026-08-24, F15). The rule is **metadata-only**,
+   not a file count: a count is arbitrary and would fail a legitimate
+   registration that also fixed a typo in the agenda it cites, while
+   "implementation in a registration commit" is the thing that actually breaks
+   the ordering. Settled in
+   [ADR-016](../../docs/adr/ADR-016-cairn-enforcement-integrity.md); both pages
+   now say it the same way.
 
    **Status vocabulary.** `running` means "registered on the trunk, then on its
    own branch and worktree" and requires `branch` + `base_commit`. That tuple is
@@ -205,6 +220,7 @@ conversation memory never wins.
 
 ```text
 1  CLOSING CEREMONY — the owner accepts the work, recorded in a session note
+                      declaring root-level `path:` + `ceremony: closing`
 2  REBASE on the trunk — enforced, not remembered (below)
 3  CI GREEN on the rebased result, never on a stale branch
 4  COHERENCE AUDIT — recorded, advisory (below)

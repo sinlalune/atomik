@@ -30,6 +30,7 @@ atomik:
     - atomik-project/coding-paths/CP-OPS-002.md
     - atomik-project/coding-paths/index.md
     - atomik-project/sessions/**
+    - atomik-project/briefs/cp-ops-002-handoff.md
     - atomik-project/audits/index.md
     - atomik-project/log/**
 ---
@@ -48,8 +49,9 @@ wearing six faces: **Cairn writes rules forward and never drains the state that 
 them.** Three checks currently report `OK` over conditions that are false on this trunk.
 
 Ordering follows severity, not narrative. Enforcement integrity came first, because every
-later step lands through the gates that were not gating — S01 and S02 are already done for
-that reason. What remains is portability and hygiene.
+later step lands through the gates that were not gating — S00 adopted the four mechanical
+repairs and S01 closed the schema and doctrine drift around them. What remains is the
+ledger boundary, the OKF backfill, portability, and the greenfield pilot.
 
 ## Steps
 
@@ -108,14 +110,29 @@ the rule-table generator and its four guards, the audit record carrying F1–F15
 deliverables, and `index.html` restored behind a SUPERSEDED banner with `workflow.html`
 byte-identical to master (ruling 4).
 
-### S01 — Schema and doctrine fixes *(rulings 2 and 3)*
+### S01 — Schema and doctrine fixes *(rulings 2 and 3)* — **COMPLETE**
 
-- pin the **root-level** session ceremony schema (`path:` / `ceremony:`) in
-  `docs/bedrock/24_24-doc-templates.md`, and correct the D1 operator guide, which
-  prescribes a nested form the live parser rejects *(F13)*;
-- amend `atomik-project/coding-paths/paths.md` so a registration commit is
-  **metadata-only** rather than "exactly two files", resolving the reported doctrine
-  conflict with bedrock 24 *(F15)*.
+- the **root-level** session ceremony schema (`path:` / `ceremony:`) is pinned once, in
+  `docs/bedrock/24_24-doc-templates.md` § *Session note and ceremony template*, together
+  with the two reader properties it depends on: no inline comment on either key, and
+  nothing else in the note is read by the gate *(F13)*;
+- the D1 operator guide is corrected at both ceremony sites and at its registration step,
+  and carries a dated interim banner naming ADR-016 and its S07 replacement. The two
+  earlier research records, which propose the same nested form, carry a dated
+  ceremony-schema banner instead of a silent edit — they are records of a proposal, not
+  instructions;
+- `atomik-project/coding-paths/paths.md` now states a registration commit is
+  **metadata-only** — declaration, regenerated view, opening-check note, and no
+  implementation of any kind — resolving the doctrine conflict `AGENTS.md` requires to be
+  reported *(F15)*. Bedrock 24 says it identically;
+- `ADR-016 — Cairn enforcement integrity` records the whole set (F1, F2, F8, F9, F13,
+  F15), including why the nested ceremony form is rejected rather than
+  accepted-for-compatibility, and why the registration rule is an invariant rather than a
+  file count;
+- three regression tests. Two are the durable half: the shipped bedrock 24 template is
+  parsed by the test itself and must satisfy `ceremonyFromSessions()`, so the
+  documentation is executable and F13 cannot recur by restatement; the third pins the
+  inline-comment trap that would otherwise reintroduce it. Suite 50/50.
 
 ### S03 — ~~Drain the grandfather set~~ — **owner-ruled, withdrawn**
 
@@ -227,14 +244,14 @@ brief names — and fix what the pilot finds before merging.
 
 | Field | Value |
 | :-- | :-- |
-| Status | draft — awaiting owner opening check |
-| Base commit | not yet registered |
-| Branch | not yet created |
-| Steps complete | **S00** — the four repairs adopted into the path and pushed |
-| Remaining | S04, S05, S06, S06b, S07, S08, S09 (S03 withdrawn by owner ruling) |
-| Gates | `cairn-check` OK; validator suite 47/47 |
-| Base commit | not yet registered; trunk is `7aa3b1d`, unchanged |
+| Status | `running` on `path/cp-ops-002` |
+| Base commit | `7aa3b1d` — registered on the trunk by `df875e6` before this branch existed |
+| Branch | `path/cp-ops-002`, worktree `../4tom1k-cp-ops-002`, `node_modules` symlinked |
+| Steps complete | **S00** — the four enforcement repairs adopted into the path (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 |
+| Remaining | S04, S05, S06, S06b, S06c, S06d, S07a, S07, S08, S09 (S03 withdrawn by owner ruling) |
 | Opening check | accepted 2026-08-24, eight rulings ([note](../sessions/2026-08-24-cp-ops-002-opening-check.md)) |
-| Next action | S01 — pin the root-level ceremony schema in bedrock 24, correct the D1 operator guide, amend `paths.md` to metadata-only registration, with ADR-016 beside them |
-| Worktree | `../4tom1k-cp-ops-002`, `node_modules` symlinked |
-| Gates at S00 | `cairn-check` OK (2 advisory: no upstream yet, no audit yet) · 47/47 tests |
+| Gates at S01 | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 50/50 |
+| Scope note | protocol tooling and doctrine only; no product code, so `npm test` / `typecheck` / `build` are untouched by this step |
+| Widening | `writes:` gained `atomik-project/briefs/cp-ops-002-handoff.md` at S01 — the per-step handoff brief is required by bedrock 22 and the original declaration simply omitted it |
+| Next action | S04 — bound the ledger: roll completed steps into `atomik-project/coding-paths/history/<id>-S0N.md`, migrate `CP-MVP-008` (23.5 k tokens) as the proof, add the advisory `ledger-size` rule |
+| Blockers | none. S06b waits on the owner configuring branch protection on `master`; it does not block any other step |
