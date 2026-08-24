@@ -44,8 +44,11 @@
       "A coding path references complete documents; it never replaces them with compressed summaries.",
       "Every relevant document is either selected or explicitly excluded with a reason; hidden omission is forbidden.",
       "Progress persists in files, never only in a conversation thread.",
+      "An accepted running path is registered on the trunk before its implementation branch diverges, so portfolio views are globally complete rather than checkout-local.",
       "A context window is an execution buffer, not durable memory.",
       "A brief is a generated, disposable view of path state, never the primary memory.",
+      "Every completed step has a remote commit and is therefore a safe boundary between chat sessions.",
+      "The agent offers that boundary proactively; a new session resumes the next action without requiring the owner to restate context.",
       "Interactive path artifacts are projections; updating them patches the path file.",
       "The design remains correct regardless of any provider's session, context, or instruction-size limits; such figures are never load-bearing."
     ]
@@ -105,7 +108,15 @@ It is:
 no durable state is lost
 every omitted area is visible, with a reason
 exact context can be reloaded at any time from files
+every completed work unit can be recovered from its pushed branch
 ```
+
+The practical unit is deliberately smaller than a path. A path may span many
+steps and sessions, but each completed step refreshes its checkpoint and
+path-specific handoff brief, commits them with the work, and pushes immediately.
+The agent then offers to execute the next step in a fresh session. Context-window
+pressure becomes a cheap scheduling choice instead of a reason to compress or
+re-explain the project.
 
 ## Coding path anatomy
 
@@ -117,9 +128,10 @@ type: Atomik Coding Path
 title: Implement project bundle open/create
 atomik:
   id: CP-EXAMPLE-001
-  status: active            # draft | active | blocked | done | archived
+  status: running           # draft | running | blocked | done | archived
   current_step: S03
   base_commit: 7c91e20
+  branch: path/cp-example-001
 ---
 
 # Goal
@@ -172,8 +184,10 @@ The Work Ledger is the checkpoint that survives compaction, session ends, and de
 base commit
 changed files
 test state (unit / integration, passing or not run)
+remote branch and pushed commit
 next action
 blockers and pending decisions
+whether this is a verified fresh-session boundary
 ```
 
 An optional machine sidecar (`CP-XXX.state.json`) may mirror the checkpoint for tooling, following the standard sidecar rule: precision and performance support only, never the sole home of the state.
@@ -186,12 +200,22 @@ quick task
 
 larger work
   several coding paths running AT THE SAME TIME
+  accepted declaration lands on the trunk BEFORE implementation branches
   one path = one worktree = one branch = one writer
   each path merges ITSELF; there is no integrator
 
 every new session
-  resumes from the persisted checkpoint
+  resolves its path from the current worktree branch
+  resumes from the persisted checkpoint + path-specific handoff brief
   never reconstructs progress from conversation history
+  never asks the owner for a recap unless durable repository state conflicts
+
+every completed step
+  code + tests + docs + ledger + handoff brief form one work unit
+  relevant gates run bare
+  commit is pushed immediately to the path branch
+  agent proactively offers: continue here OR next step in a fresh session
+  choosing fresh ends the chat, not the still-running path
 ```
 
 Paths are the unit of parallelism, not a layer beneath one. Numbered paths
@@ -204,17 +228,27 @@ the trunk tip, and the gates are green on the *rebased* result. Requiring the
 trunk tip serializes the merge without serializing the work, which is what makes
 a gatekeeper unnecessary.
 
-Nothing may be shared between two paths. Views over the whole — what is running,
-the register's status column, the index over module notes — are GENERATED from
-the path files; the journal is one file per entry. Deriving a view is strictly
-better than forbidding edits to it: it makes the conflicting state impossible
-rather than illegal.
+The opening has one equally small serialized transition. After explicit owner
+acceptance, the path's stable identity tuple (`id`, `status: running`, `branch`,
+pre-registration `base_commit`) and the regenerated running-path view land in a
+registration-only trunk commit. The implementation worktree branches from that
+commit. This is execution metadata, not implementation work. It is necessary
+because Git branches cannot see files added only on sibling branches: deriving
+`ACTIVE.md` without registering its inputs produced a view that was locally
+current and globally false on 2026-08-20.
+
+Nothing evolving may be shared between two paths. Each path file is unique, and
+its stable opening declaration is registered globally before the branch owns
+the evolving checklist and Work Ledger. Views over the whole — especially what
+is running — are GENERATED from the trunk-registered declarations; the journal
+is one file per entry. Registration makes the input complete; derivation keeps
+the output single-sourced.
 
 The operating detail is `atomik-project/coding-paths/paths.md`, which is
 execution-plane and may change without amending this page. `ADR-012` records the
-decision and the evidence behind it, including what remains unproven: as of
-2026-08-15 the model is written, enforced in CI, and has not yet run two paths
-in parallel.
+decision and evidence. The 2026-08-16 pilot proved parallel execution and
+self-merge; the 2026-08-20 amendment added trunk registration after the pilot
+showed that checkout-local path files could not support a global derived view.
 
 The step-by-step re-entry procedure is `22_22-agent-handoff.md`, which is now a bootstrap protocol rather than a static recipe.
 
@@ -222,10 +256,11 @@ The step-by-step re-entry procedure is `22_22-agent-handoff.md`, which is now a 
 
 `coding-paths/index.md` maps every roadmap milestone to a path status — running, reserved, or not yet opened. Paths are created just-in-time from the milestone and the template, never speculatively; no milestone is silently unassigned. The completeness rule is fractal: the roadmap accounts for the vision, the register accounts for the roadmap, and each path accounts for its own documents.
 
-Several paths may be running at once, so the register's status column and the
-running-paths view in `ACTIVE.md` are DERIVED from the path files rather than
-maintained by hand — each path already declares its own status, branch and base
-commit, which makes any hand-written summary a second source of truth.
+Several paths may be running at once, so the running-paths view in `ACTIVE.md`
+is DERIVED from the trunk-registered path files rather than maintained by hand.
+The milestone register maps roadmap scope to paths and records integrated
+outcomes; it is not the live running-state authority. A hand-written live
+summary would be a second source of truth.
 
 ## Interactive artifacts are projections
 
@@ -291,6 +326,21 @@ The decision record is `ADR-009`.
 ## Lifecycle and Git
 
 Coding paths are committed by default. A finished path moves to `status: done`, then `archived` (or `coding-paths/archive/`) — demotion, never deletion, consistent with the note lifecycle in `11_11-markdown-page-model.md`. Ledger updates should be small appends; one executed step should read as one meaningful diff.
+
+Every commit is also pushed immediately to the branch it belongs to. This gives
+each step a remote recovery point. On GitHub, repository Activity records push
+events separately from commit metadata; the normal commit view still shows the
+commit's dates rather than replacing them with a push timestamp. Activity is a
+useful online timeline, not a promised permanent audit archive. A local commit
+whose push failed is not a completed work unit and must be reported that way.
+
+If the closing rebase rewrites commits that were already published, the path
+records its pre/post heads and updates its remote with
+`git push --force-with-lease`; blind force is forbidden. The final merge commit
+is pushed to the trunk immediately. A local validator can detect that HEAD is
+currently ahead of its upstream, but cannot reconstruct whether several old
+commits were once pushed individually and later batched; remote cadence remains
+an operating invariant with an advisory check, not a blocking repository rule.
 
 ## Start as one file
 

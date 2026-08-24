@@ -82,17 +82,29 @@ export const SINGLE_TRUTH = [
  */
 export const JOURNAL = 'atomik-project/log.md'
 
-/** The running-paths view in ACTIVE.md is DERIVED from the path files by
- *  tools/cairn-active.mjs, so there is nothing to merge and the cross-line
- *  contradiction above becomes impossible rather than forbidden. With no
- *  integrator, deriving is the ONLY thing keeping shared files unshared. */
+/** The running-paths view in ACTIVE.md is DERIVED from path declarations
+ *  registered on the trunk before implementation branches. Registration makes
+ *  the inputs globally complete; tools/cairn-active.mjs keeps the output
+ *  single-sourced. Both halves are required when there is no integrator. */
 export const ACTIVE_FILE = 'atomik-project/coding-paths/ACTIVE.md'
 export const PATHS_BEGIN = '<!-- cairn:paths:begin -->'
 export const PATHS_END = '<!-- cairn:paths:end -->'
 
 const PATH_DIR = 'atomik-project/coding-paths'
 const PATH_STATUSES = ['draft', 'active', 'blocked', 'done', 'archived', 'running']
+const PATH_BRANCH_STATUSES = ['running', 'done']
 const SESSION_DIR = 'atomik-project/sessions'
+
+/**
+ * These paths were already running before trunk registration became a rule.
+ * They cannot be made historically registered without rewriting their base;
+ * keep the migration finite and named instead of adding a general bypass.
+ */
+export const LEGACY_UNREGISTERED_PATHS = new Set([
+  'CP-OPS-001',
+  'CP-MVP-011',
+  'CP-MVP-012'
+])
 
 /* ------------------------------------------------------------------ *
  * pure helpers — everything below takes data, so it is testable
@@ -131,6 +143,41 @@ export function readFrontmatter(text) {
     }
   }
   return { kind: 'yaml', data }
+}
+
+export function isCommitPin(value) {
+  return typeof value === 'string' && /^[0-9a-f]{7,40}$/i.test(value)
+}
+
+/** The stable identity tuple that must already exist on the trunk before a
+ * path starts implementation. The evolving ledger stays on the path branch;
+ * status, branch and base are the small global registration projection. */
+export function registrationMatches(text, id, branch, baseCommit) {
+  const front = readFrontmatter(text)?.data?.atomik
+  return Boolean(
+    front &&
+    front.id === id &&
+    front.status === 'running' &&
+    front.branch === branch &&
+    isCommitPin(baseCommit) &&
+    front.base_commit === baseCommit
+  )
+}
+
+export function pathFrontmatterErrors(front) {
+  if (!front) return ['missing atomik: frontmatter block']
+  const errors = []
+  if (!front.id) errors.push('missing atomik.id')
+  if (!PATH_STATUSES.includes(front.status)) {
+    errors.push(`status "${front.status}" is outside the vocabulary (${PATH_STATUSES.join(' | ')})`)
+  }
+  if (front.status === 'running' && !front.branch) {
+    errors.push('status "running" requires atomik.branch')
+  }
+  if (front.status === 'running' && !isCommitPin(front.base_commit)) {
+    errors.push('status "running" requires atomik.base_commit as a 7–40 digit Git hash')
+  }
+  return errors
 }
 
 /** A path branch is `path/<id>`; everything else (master, a bootstrap branch)
@@ -227,7 +274,16 @@ export function areaOf(file) {
  * diff; `paths` is the parsed coding-path corpus; `branch` is the current
  * branch name.
  */
-export function evaluate({ changed, branch, paths, resolveFile, trunkContained, ceremonyFor }) {
+export function evaluate({
+  changed,
+  branch,
+  paths,
+  resolveFile,
+  trunkContained,
+  registrationState,
+  remoteCheckpoint,
+  ceremonyFor
+}) {
   const findings = []
   const add = (level, rule, message) => findings.push({ level, rule, message })
   const touched = (prefix) => changed.filter((file) => file.startsWith(prefix))
@@ -239,15 +295,42 @@ export function evaluate({ changed, branch, paths, resolveFile, trunkContained, 
     if (!match) {
       add('blocking', 'branch-path',
         `branch "${branch}" has no coding path declaring it (expected a file in ${PATH_DIR}/ with atomik.branch: ${branch})`)
-    } else if (match.front.status !== 'running') {
+    } else if (!PATH_BRANCH_STATUSES.includes(match.front.status)) {
       add('blocking', 'branch-path',
-        `${match.file} declares this branch but its status is "${match.front.status}" — a path being worked must be "running"`)
-    } else if (!match.front.base_commit) {
-      add('blocking', 'branch-path', `${match.file} is missing atomik.base_commit`)
+        `${match.file} declares this branch but its status is "${match.front.status}" — a path branch must be "running" or in its final "done" transition`)
+    } else if (!isCommitPin(match.front.base_commit)) {
+      add('blocking', 'branch-path', `${match.file} needs atomik.base_commit as a 7–40 digit Git hash`)
     }
   }
 
-  // 2. the rebase gate (owner directive: "the rebase need should be an
+  // 2. trunk registration --------------------------------------------
+  // ACTIVE.md is a projection of path files ON THE TRUNK. A path file
+  // created only on its own branch is invisible to the trunk and to every
+  // sibling branch, so the projection can be internally current and globally
+  // false. New paths land a registration-only trunk commit before branching.
+  if (onPath && match) {
+    if (registrationState === 'missing') {
+      add('blocking', 'registration',
+        `${match.file} is not registered as running on the trunk — land the accepted path declaration and regenerate ACTIVE.md before implementation`)
+    } else if (registrationState === 'grandfathered') {
+      add('advisory', 'registration',
+        `${match.front.id} predates trunk registration and is explicitly grandfathered — do not copy this exception to a new path`)
+    }
+  }
+
+  // Every commit is pushed immediately so each completed work unit has an
+  // online recovery point and a host-visible push event. This is
+  // ADVISORY: a final ref can reveal that HEAD is unpublished now, but cannot
+  // prove whether older commits were pushed one-by-one or later as a batch.
+  if (onPath && remoteCheckpoint?.state === 'missing') {
+    add('advisory', 'remote-checkpoint',
+      `branch "${branch}" has no upstream — push every commit and set origin/${branch} as upstream before reporting the step complete`)
+  } else if (onPath && remoteCheckpoint?.state === 'unpushed') {
+    add('advisory', 'remote-checkpoint',
+      `HEAD is not contained in ${remoteCheckpoint.upstream} — push this commit before reporting the step complete or offering an ordinary fresh-session handoff`)
+  }
+
+  // 3. the rebase gate (owner directive: "the rebase need should be an
   //    automated gate"). Every path merges ITSELF, so nothing else stops a
   //    stale branch from landing on a trunk it never saw. Objective, and one
   //    command fixes it — it serializes the MERGE, never the WORK.
@@ -256,7 +339,7 @@ export function evaluate({ changed, branch, paths, resolveFile, trunkContained, 
       `branch "${branch}" does not contain the trunk tip — rebase before merging, and let CI run on the REBASED result, not a stale branch`)
   }
 
-  // 3. the closing ceremony is the only human guard left once the integrator
+  // 4. the closing ceremony is the only human guard left once the integrator
   //    is gone, so a path claiming done must show its session note.
   //
   //    Scoped to paths touched by THIS change, deliberately. Checking the whole
@@ -378,6 +461,64 @@ function trunkContained(trunkRef) {
   }
 }
 
+/**
+ * The global running-path view is only as complete as the path declarations
+ * already present on the trunk. `null` means the trunk ref is unavailable;
+ * that must not become a false failure in a detached or partial checkout.
+ */
+function pathRegistrationState(trunkRef, branch, paths) {
+  if (!isPathBranch(branch)) return null
+  const match = paths.find((path) => path.front?.branch === branch)
+  const id = match?.front?.id
+  if (!match || !id) return null
+  if (LEGACY_UNREGISTERED_PATHS.has(id)) return 'grandfathered'
+
+  try {
+    git(['rev-parse', '--verify', trunkRef])
+  } catch {
+    return null
+  }
+
+  try {
+    const text = execFileSync('git', ['show', `${trunkRef}:${match.file}`], {
+      cwd: REPO,
+      encoding: 'utf8'
+    })
+    return registrationMatches(text, id, branch, match.front.base_commit) ? 'registered' : 'missing'
+  } catch {
+    return 'missing'
+  }
+}
+
+/**
+ * Is the current path HEAD present on its configured upstream?
+ *
+ * This deliberately reads local remote-tracking refs and performs no network
+ * operation. `git push` updates that ref; a later session may fetch before
+ * checking. The result can identify a CURRENT missing checkpoint, never prove
+ * the historical timing of older pushes.
+ */
+function pathRemoteCheckpoint(branch) {
+  if (!isPathBranch(branch)) return null
+
+  let upstream
+  try {
+    upstream = git(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'])
+  } catch {
+    return { state: 'missing', upstream: null }
+  }
+
+  try {
+    execFileSync('git', ['merge-base', '--is-ancestor', 'HEAD', upstream], {
+      cwd: REPO,
+      stdio: 'ignore'
+    })
+    return { state: 'published', upstream }
+  } catch {
+    return { state: 'unpushed', upstream }
+  }
+}
+
 /** A closing ceremony leaves a session note naming the path. */
 function hasCeremony(pathId) {
   try {
@@ -458,18 +599,11 @@ function corpusFindings(branch) {
       findings.push({ level: 'blocking', rule: 'schema', message: `${path.file}: ${path.parseError}` })
       continue
     }
-    if (!path.front) {
-      findings.push({ level: 'blocking', rule: 'schema', message: `${path.file}: no atomik: frontmatter block` })
-      continue
-    }
-    if (!path.front.id) {
-      findings.push({ level: 'blocking', rule: 'schema', message: `${path.file}: missing atomik.id` })
-    }
-    if (!PATH_STATUSES.includes(path.front.status)) {
+    for (const error of pathFrontmatterErrors(path.front)) {
       findings.push({
         level: 'blocking',
         rule: 'schema',
-        message: `${path.file}: status "${path.front.status}" is outside the vocabulary (${PATH_STATUSES.join(' | ')})`
+        message: `${path.file}: ${error}`
       })
     }
   }
@@ -508,14 +642,18 @@ function main() {
 
   const branch = git(['rev-parse', '--abbrev-ref', 'HEAD'])
   const changed = changedFiles(base)
+  const paths = loadPaths()
+  const trunkRef = base ?? 'master'
   const findings = [
     ...corpusFindings(branch),
     ...evaluate({
       changed,
       branch,
-      paths: loadPaths(),
+      paths,
       resolveFile: (file) => existsSync(join(REPO, file)),
-      trunkContained: trunkContained(base ?? 'master'),
+      trunkContained: trunkContained(trunkRef),
+      registrationState: pathRegistrationState(trunkRef, branch, paths),
+      remoteCheckpoint: pathRemoteCheckpoint(branch),
       ceremonyFor: hasCeremony
     })
   ]

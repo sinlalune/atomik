@@ -2,6 +2,8 @@
 
 Status: accepted
 Date: 2026-08-15
+Amended: 2026-08-20 (register accepted paths on the trunk before branching)
+Amended: 2026-08-24 (remote checkpoint and fresh-session boundary per step)
 Amends: ADR-009 (durable coding paths, work ledger, dual-plane repository)
 
 ## Context
@@ -33,7 +35,10 @@ merge gate left no artifact.
    branch (`path/<id>`) = one writer. No parent path, no lane layer, no
    integrator. Numbered paths (`CP-MVP-010`) come from a roadmap milestone and
    hold a register row; labelled paths (`CP-SETTINGS`) are named for their
-   subject and hold none. Both are ordinary accepted paths.
+   subject and hold none. Both are ordinary accepted paths. After opening
+   acceptance, the stable path declaration lands in a registration-only trunk
+   commit before its implementation worktree branches. The evolving ledger
+   remains branch-owned.
 2. **Every path merges itself**, once its closing ceremony is recorded, its
    branch contains the trunk tip, the gates are green on the *rebased* result,
    and a coherence audit is recorded. The path sets its own `status: done` in
@@ -41,9 +46,11 @@ merge gate left no artifact.
 3. **The rebase gate replaces the gatekeeper.** Requiring the trunk tip
    serializes the *merge* — seconds — without serializing the *work*. This is
    blocking and machine-checked.
-4. **Nothing is shared between two paths.** Views over the whole are DERIVED
-   from the path files (the running-paths view, the register's status column,
-   the index over module notes); the journal is one file per entry under
+4. **Nothing evolving is shared between two paths.** Views over the whole are
+   DERIVED from trunk-registered path declarations (the running-paths view and
+   the index over module notes); the roadmap register maps scope and records
+   integrated outcomes instead of acting as the live status authority. The
+   journal is one file per entry under
    `atomik-project/log/`, with the former single `log.md` frozen as an archive
    and deliberately not migrated. Deriving a view is strictly better than
    forbidding edits to it: it makes the conflicting state impossible rather
@@ -61,6 +68,14 @@ merge gate left no artifact.
    rebased diff against the bedrock, the ADRs and the path's declared coverage;
    CI checks only that a filled record exists. A deterministic gate on a
    non-deterministic activity; its verdict never blocks.
+8. **Every commit is a remote checkpoint; every completed step is a session
+   boundary.** The work unit includes code, tests, documentation, Work Ledger
+   and the path-specific handoff brief. Its commit is pushed immediately to
+   the owning branch and is not reported complete until that push succeeds.
+   The agent then proactively offers to continue the next step in a fresh
+   session. That session resolves the same path from its worktree and resumes
+   from repository state without an owner rebrief; the path itself remains
+   `running`.
 
 ## Evidence
 
@@ -84,6 +99,18 @@ them lost. That is why this ADR exists in the shape it does.
   no dev-port configuration, so two worktrees shared one Electron profile —
   one cookie jar, one `localStorage`, one GPU cache. Closed by
   `electron-main/lane.ts` before any parallel work was possible.
+- **A generated view can be correct for one tree and false for the repository.**
+  On 2026-08-20 trunk `ACTIVE.md` passed its freshness check and said no path
+  was running while four clean sibling worktrees declared `status: running`.
+  `cairn-active` could only read files in its checkout; the path files had been
+  added after the branches diverged. No stronger instruction can make one Git
+  tree see an unrelated tree. Registration moves the stable input onto the
+  trunk before work starts; a blocking check prevents recurrence.
+- **The durable checkpoint existed locally but the online chronology did not.**
+  A commit time says when a Git object was made, not when it reached the host,
+  and a long chat could carry several complete steps before any remote recovery
+  point existed. The 2026-08-24 owner ruling couples commit with immediate push
+  and makes the already-durable step boundary an explicit fresh-session offer.
 
 ## Consequences
 
@@ -99,6 +126,24 @@ agent, and if that audit never catches anything a human would have missed it
 should be deleted rather than kept as decoration. The owner becomes the
 bottleneck for ceremonies, accepted deliberately.
 
+Opening is now serialized for one small metadata commit as well. This is a
+coordination cost, but it contains no product code and removes the need for a
+registry service, branch scan, or integrator. A workstation that cannot land
+the registration cannot honestly claim that the path is globally running.
+
+Every step now triggers a remote push and potentially CI when a pull request is
+open, increasing visible activity and pipeline use. Accepted: the benefit is an
+online recovery point and a host-visible push event at the same granularity as
+the Work Ledger. GitHub Activity is useful timeline evidence, not a promised
+permanent audit archive; the branch history is the durable checkpoint.
+The path-specific handoff brief adds a small derived-file diff to every step so
+a fresh session needs no prompt recap from the owner.
+
+Publishing early means a closing rebase may rewrite a public path branch. When
+it does, the old and new heads are recorded and the update uses
+`--force-with-lease`; blind force remains forbidden. The final merged commits
+are durable on trunk and GitHub Activity records the push/force-push events.
+
 ## Known gaps at acceptance
 
 Recorded rather than hidden; none is a reason to defer the decision.
@@ -111,8 +156,16 @@ Recorded rather than hidden; none is a reason to defer the decision.
 3. Checkpoint *accuracy* is unchecked, and cannot be: "is this prose still
    true?" is not a checkable question. Found the honest way — CP-OPS-001's own
    checkpoint had gone stale five steps after the model changed.
-4. **The model has never run two paths in parallel.** It is written, enforced
-   in CI, and unproven. The pilot (CP-OPS-001 S05) is what tests it.
+4. **Resolved 2026-08-16:** the model had not run two paths in parallel. The
+   pilot did; CP-PROVIDERS and CP-MVP-010 both completed the self-merge flow.
+5. **Resolved 2026-08-20:** running paths were invisible until merge because
+   their declarations lived only on their branches. Registration-before-branch
+   plus the new Cairn rule closes this gap for every new path.
+6. Immediate push cadence cannot be reconstructed from the final local refs:
+   after a late batch push, HEAD looks published even though earlier commits
+   were not pushed immediately. Cairn therefore warns about a currently
+   unpublished HEAD but does not claim to prove history; the Git host's activity
+   log is the dated evidence.
 
 ## Migration / rollback
 
@@ -121,6 +174,11 @@ rewriting recorded history to fit a newer convention would be worse than the
 convention. Existing closed paths are untouched, and the ceremony check is
 scoped to the change that closes a path so history is never punished for a
 convention that postdates it.
+
+CP-OPS-001, CP-MVP-011 and CP-MVP-012 were already running when trunk
+registration was introduced. They are a finite, named grandfather list in the
+validator; no status or date creates a reusable escape hatch. The exception can
+be deleted once those branches have merged.
 
 Rollback is cheap: the convention is one execution-plane file plus three
 dependency-free scripts. Removing them returns the repository to serial

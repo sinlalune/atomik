@@ -39,16 +39,21 @@
       "executed path steps",
       "updated work ledger",
       "code + tests + docs in one work unit",
+      "pushed remote checkpoint for every commit",
+      "path-specific handoff brief refreshed at every completed step",
       "one journal file per merged step",
-      "generated brief on handoff only"
+      "fresh-session proposal after every completed step"
     ],
     "invariants": [
-      "Navigate Bedrock for knowledge; follow a Coding Path for execution; persist progress in the Work Ledger; generate a brief only as a portable view of that state.",
+      "Navigate Bedrock for knowledge; follow a Coding Path for execution; persist progress in the Work Ledger; keep the path-specific handoff brief only as a portable view of that state.",
       "Never begin implementation without an accepted coding path; propose one first if none exists.",
+      "After opening acceptance, register the running path declaration on the trunk and regenerate ACTIVE.md before creating its implementation worktree.",
       "Never silently invent architecture outside the bedrock.",
       "Read every Required document of the active path; honor Conditional triggers; respect Deliberately excluded entries.",
       "Verify repository reality against the ledger before executing; reconcile mismatches explicitly.",
       "Every executed step updates code, tests, documentation and the ledger in the same work unit; the journal is written once, at merge.",
+      "Every commit is pushed immediately to its owning branch; an unpushed step is locally implemented, not complete.",
+      "Every completed step is a safe chat boundary; the agent proactively offers a fresh session, and the next session resumes without an owner rebrief.",
       "Do not hide canonical knowledge or execution state in caches, embeddings, or chat memory.",
       "Provider keys and private context stay behind typed secure boundaries.",
       "Emit a minimal ActionTrace from the first AI mock; no raw prompt/output telemetry by default.",
@@ -79,7 +84,8 @@ Coding Path    = what this task will change, in what order, and where it stands
 2. Read atomik-project/coding-paths/paths.md — how work runs: parallel
    paths, one per worktree, each merging itself.
 3. Open atomik-project/coding-paths/ACTIVE.md and follow it to YOUR path.
-   Several may be running; you own exactly one.
+   Several may be running; you own exactly one. Its global entry exists because
+   accepted running paths register on the trunk before their branches diverge.
 4. Verify reality against the Work Ledger:
    git status, base commit, dirty files, test state.
    If they disagree, reconcile and record the correction before anything else.
@@ -92,13 +98,24 @@ Coding Path    = what this task will change, in what order, and where it stands
    update the affected module AREA note and any other affected docs,
    and when the step first mobilizes a technology or pattern,
    add or extend the matching docs/learning/ note (17 first-use rule).
+   Refresh `atomik-project/briefs/<path-id>-handoff.md` from that ledger so
+   the completed step is already a portable session boundary.
    The journal is written at MERGE time, one file per entry in
    atomik-project/log/ — never appended to the frozen log.md.
-10. Before merging: closing ceremony recorded, rebase onto the trunk, gates
+10. Run the relevant gates bare, commit the complete work unit, and push that
+    commit immediately to its owning branch. A step is not complete until the
+    push succeeds. Report its remote commit and proactively offer to end this
+    chat and execute the next step in a fresh session. The path remains
+    `running`; this is not its closing ceremony.
+11. When a fresh session is chosen, end only after the pushed checkpoint is
+    verified. The next session in the same worktree resolves the path from the
+    branch, reads its ledger and path-specific handoff brief, reconciles reality,
+    and begins `next action` without asking the owner to restate context.
+12. Before merging: closing ceremony recorded, rebase onto the trunk, gates
     green on the REBASED result, coherence audit recorded, status: done in
-    the same change. Then merge — nobody approves it; the gates did.
-11. Generate a brief into atomik-project/briefs/ ONLY when handing work
-    to another session, agent, or person.
+    the same change. If the rebase rewrote published commits, push the rebased
+    path with `--force-with-lease`, recording the old and new heads; then merge
+    and immediately push the trunk — nobody approves it; the gates did.
 ```
 
 The mechanical half of this is enforced rather than remembered: `npm run
@@ -122,7 +139,16 @@ path marked `done` without its session note fails the protocol check.
 
 1. **CLOSING ceremony**, run when a path closes, before it merges (with its acceptance): present the owner a compact RECALL derived from repo metadata (register, ledgers, acceptance records, log — never from conversation memory): everything done, the backlog as it stands, what comes next, and what the agent believes needs challenging or completing. Then manage the roadmap backlog through prompted exchange. Answers are promoted into a session note; roadmap (18) amendments stay owner-gated — propose, never apply silently.
 2. **OPENING check**, run when a path is about to activate — drafting and executing happen in the SAME session, since nobody drafts a path for someone else to pick up: walk the FEATURES INSIDE that path with the owner — one quick prompted confirmation per major feature ("this is what I am about to implement, this way — still your vision?"). Deltas amend the path BEFORE its base commit pins; answers are recorded in the path file and its session note. Activation still requires the owner's explicit acceptance.
-3. Then propose/adjust the path — from a roadmap milestone if it is numbered, from its subject if it is labelled — using the template in `24_24-doc-templates.md`, and begin at S01. Activating or closing a path with no recorded ceremony is invalid, and the closing half of that is machine-checked.
+3. Then propose/adjust the path — from a roadmap milestone if it is numbered,
+   from its subject if it is labelled — using the template in
+   `24_24-doc-templates.md`. After explicit acceptance, land a
+   **registration-only trunk commit** containing the accepted path declaration
+   (`status: running`, `branch`, pre-registration `base_commit`) and regenerated
+   `ACTIVE.md`. It contains no implementation. Create the worktree from that
+   commit and begin at S01. Cairn blocks new path branches whose declaration is
+   absent from the trunk; CP-OPS-001, CP-MVP-011 and CP-MVP-012 are the finite
+   pre-rule exceptions. Activating or closing a path with no recorded ceremony
+   is invalid, and the closing half is machine-checked.
 
 An in-app "ceremony tab" (path state as an interactive projection, 35) is a recorded candidate (`atomik-project/brainstorm/2026-07-21-ceremony-tab.md`); until it exists, the ceremonies live in prompted exchange + session notes.
 
@@ -146,6 +172,15 @@ owner experiments are bench inputs
   an owner-reported external-tool experiment is a first-class bench
   input: pin the exact artifact, version, and configuration before
   comparing anything against it
+
+step/session boundary (owner directive 2026-08-24)
+  commit + successful push = completed work unit;
+  after every completed step, agent names the remote commit and offers
+  "continue here" or "fresh session for <next action>";
+  the fresh session reads branch + ledger + handoff brief and starts directly;
+  owner supplies no recap, transcript, prompt paste, or repeated decision;
+  if durable state conflicts, the agent reconciles files instead of asking the
+  owner to reconstruct the previous context window
 ```
 
 ## Standing prohibitions
@@ -167,4 +202,8 @@ no mass file rewrites on app open
 
 ## Completion report
 
-When reporting a step or path as done, follow the final response requirement of `agent_documentation_contract.md`, which now includes the updated coding path step and Work Ledger state.
+When reporting a step or path as done, follow the final response requirement of
+`agent_documentation_contract.md`, which includes the updated coding path step
+and Work Ledger state. A step report also names the successfully pushed commit
+and offers the fresh-session boundary; without the push it must say
+"implemented locally, not complete."
