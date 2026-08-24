@@ -342,6 +342,17 @@ currently ahead of its upstream, but cannot reconstruct whether several old
 commits were once pushed individually and later batched; remote cadence remains
 an operating invariant with an advisory check, not a blocking repository rule.
 
+After that merge commit is verified on the remote trunk, the path's working
+copy has finished its lifecycle. From another checkout, resolve the exact
+secondary worktree, require an empty Git status, remove it with non-forced
+`git worktree remove`, and verify its folder and worktree registration are
+gone. Never remove the main/owner or a dirty worktree. Folder cleanup is not
+branch deletion: keep the local and remote path branch as the online history
+unless the owner separately decides otherwise. If cleanup cannot complete,
+leave the checkout intact and report the cleanup failure separately from the
+already-pushed merge. This post-merge filesystem fact is an operating
+invariant, not something repository CI can observe honestly.
+
 ## Start as one file
 
 The cheapest sufficient path applies to this mechanism itself. The Coding Path begins as a single Markdown file and a nine-step protocol. No framework, no runner, no database. Structure is added only when real multi-path work demonstrates the need.

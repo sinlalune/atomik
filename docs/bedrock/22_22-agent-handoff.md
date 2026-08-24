@@ -42,7 +42,8 @@
       "pushed remote checkpoint for every commit",
       "path-specific handoff brief refreshed at every completed step",
       "one journal file per merged step",
-      "fresh-session proposal after every completed step"
+      "fresh-session proposal after every completed step",
+      "verified remote merge followed by non-forced removal of the clean secondary worktree"
     ],
     "invariants": [
       "Navigate Bedrock for knowledge; follow a Coding Path for execution; persist progress in the Work Ledger; keep the path-specific handoff brief only as a portable view of that state.",
@@ -54,6 +55,7 @@
       "Every executed step updates code, tests, documentation and the ledger in the same work unit; the journal is written once, at merge.",
       "Every commit is pushed immediately to its owning branch; an unpushed step is locally implemented, not complete.",
       "Every completed step is a safe chat boundary; the agent proactively offers a fresh session, and the next session resumes without an owner rebrief.",
+      "After a merge is verified on the remote trunk, remove the exact clean secondary worktree without force from another checkout; retain the path branch.",
       "Do not hide canonical knowledge or execution state in caches, embeddings, or chat memory.",
       "Provider keys and private context stay behind typed secure boundaries.",
       "Emit a minimal ActionTrace from the first AI mock; no raw prompt/output telemetry by default.",
@@ -115,7 +117,14 @@ Coding Path    = what this task will change, in what order, and where it stands
     green on the REBASED result, coherence audit recorded, status: done in
     the same change. If the rebase rewrote published commits, push the rebased
     path with `--force-with-lease`, recording the old and new heads; then merge
-    and immediately push the trunk — nobody approves it; the gates did.
+    and immediately push the trunk — nobody approves it; the gates did. Verify
+    that exact merge commit on the remote trunk. From another checkout, resolve
+    the path's exact secondary worktree with `git worktree list`, require its
+    Git status to be empty, remove it with non-forced `git worktree remove`,
+    and verify both its registration and folder are gone. Never remove the
+    main/owner or a dirty worktree; retain the local and remote path branch.
+    If cleanup fails, report the merge complete and cleanup incomplete, leaving
+    the checkout intact.
 ```
 
 The mechanical half of this is enforced rather than remembered: `npm run
@@ -181,6 +190,13 @@ step/session boundary (owner directive 2026-08-24)
   owner supplies no recap, transcript, prompt paste, or repeated decision;
   if durable state conflicts, the agent reconciles files instead of asking the
   owner to reconstruct the previous context window
+
+path/checkout boundary (owner directive 2026-08-24)
+  a fresh chat reuses the worktree while the path is running;
+  a completed path does the opposite: merge + push + remote verification first,
+  then clean-status proof + non-forced removal of its secondary worktree;
+  cleanup runs from another checkout and never targets the main/owner worktree;
+  removing the folder never implies deleting the retained path branch
 ```
 
 ## Standing prohibitions
@@ -206,4 +222,6 @@ When reporting a step or path as done, follow the final response requirement of
 `agent_documentation_contract.md`, which includes the updated coding path step
 and Work Ledger state. A step report also names the successfully pushed commit
 and offers the fresh-session boundary; without the push it must say
-"implemented locally, not complete."
+"implemented locally, not complete." A path-closure report additionally names
+the remote merge verification and the exact worktree-cleanup verdict; a failed
+cleanup is reported separately and does not rewrite a successful merge.

@@ -4,6 +4,7 @@ Status: accepted
 Date: 2026-08-15
 Amended: 2026-08-20 (register accepted paths on the trunk before branching)
 Amended: 2026-08-24 (remote checkpoint and fresh-session boundary per step)
+Amended: 2026-08-24 (verified post-merge cleanup of the path worktree)
 Amends: ADR-009 (durable coding paths, work ledger, dual-plane repository)
 
 ## Context
@@ -76,6 +77,14 @@ merge gate left no artifact.
    session. That session resolves the same path from its worktree and resumes
    from repository state without an owner rebrief; the path itself remains
    `running`.
+9. **A merged path retires its secondary worktree but retains its branch.**
+   Only after the merge commit is pushed and verified on the remote trunk does
+   another checkout resolve the exact path worktree, require it to be Git-clean,
+   remove it without `--force`, and verify its registration and directory are
+   gone. The main/owner and dirty worktrees are never targets. Failure leaves
+   the checkout intact and is reported as cleanup incomplete; it does not
+   falsify the successful merge. Branch deletion is a separate decision, so
+   the local and remote path branch remain as the online step history.
 
 ## Evidence
 
@@ -111,6 +120,11 @@ them lost. That is why this ADR exists in the shape it does.
   and a long chat could carry several complete steps before any remote recovery
   point existed. The 2026-08-24 owner ruling couples commit with immediate push
   and makes the already-durable step boundary an explicit fresh-session offer.
+- **The branch was durable after merge but its checkout was not retired.** The
+  CP-OPS-001 closure proved a temporary worktree could be safely removed once
+  its merge was visible on `origin/master`, while retaining the published path
+  branch. The owner's 2026-08-24 correction makes that demonstrated cleanup the
+  last lifecycle transition for every future path.
 
 ## Consequences
 
@@ -144,6 +158,11 @@ it does, the old and new heads are recorded and the update uses
 `--force-with-lease`; blind force remains forbidden. The final merged commits
 are durable on trunk and GitHub Activity records the push/force-push events.
 
+Completed worktrees no longer accumulate as stale local folders. The price is
+one final machine-local safety check after the repository work is already
+merged. Non-forced removal deliberately fails closed when local state remains,
+and retaining the branch preserves both recovery and the requested online log.
+
 ## Known gaps at acceptance
 
 Recorded rather than hidden; none is a reason to defer the decision.
@@ -166,6 +185,11 @@ Recorded rather than hidden; none is a reason to defer the decision.
    were not pushed immediately. Cairn therefore warns about a currently
    unpublished HEAD but does not claim to prove history; the Git host's activity
    log is the dated evidence.
+7. Post-merge worktree cleanup cannot be enforced by repository CI because the
+   target checkout is machine-local and the operation happens after the final
+   path commit. The protocol requires live remote/cleanliness/absence proofs
+   and an explicit closure report; it does not pretend those proofs are durable
+   repository state.
 
 ## Migration / rollback
 
@@ -174,6 +198,11 @@ rewriting recorded history to fit a newer convention would be worse than the
 convention. Existing closed paths are untouched, and the ceremony check is
 scoped to the change that closes a path so history is never punished for a
 convention that postdates it.
+
+The cleanup amendment is forward-only: no historical worktree is deleted by
+migration, and no local or remote path branch is removed. Rolling it back means
+leaving secondary worktrees registered after merge; all Git history remains
+unchanged either way.
 
 CP-OPS-001, CP-MVP-011 and CP-MVP-012 were already running when trunk
 registration was introduced. They are a finite, named grandfather list in the

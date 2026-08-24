@@ -51,6 +51,10 @@ npm run typecheck && npm test && npm run build
   time. `atomik-project/log.md` is a FROZEN archive — never append to it.
 - A path branch is `path/<id>`, in its own worktree, with one writer. Run the
   app there with `ATOMIK_LANE=<slug>` so two instances never share a profile.
+- After a path merge is pushed and verified on the remote trunk, resolve its
+  exact secondary worktree, require it to be Git-clean, and remove it without
+  `--force` from another checkout. Never remove the main/owner worktree or a
+  dirty checkout; worktree removal does not delete the retained path branch.
 - Electron/IPC work obeys `docs/bedrock/13_13-electron-security.md`; provider keys never enter the renderer.
 - UI work obeys `docs/bedrock/36_36-ui-design-system.md`: tokens, themes, glass rules, and accessibility floors — read it before touching renderer markup or styles.
 - AI writes are proposed patches with preview; no silent file mutation; no mass rewrites.

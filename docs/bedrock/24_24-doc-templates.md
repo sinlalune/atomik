@@ -522,7 +522,9 @@ atomik:
 - Module notes, learning notes (first-use rule, 17), and this ledger updated at
   every step; the path-specific handoff brief is refreshed, and the completed
   work-unit commit is pushed immediately. One journal file is written under
-  `atomik-project/log/` at merge.
+  `atomik-project/log/` at merge. After the pushed merge is verified on the
+  remote trunk, the exact clean secondary worktree is removed without force;
+  the path branch is retained.
 
 # Documentation coverage
 
@@ -546,6 +548,8 @@ changed     :
 tests       :
 remote      : origin/path/<id> contains the completed-step commit
 session     : safe boundary; next session starts at `next action`
+cleanup plan: after remote merge proof, remove exact clean secondary worktree;
+              retain local and remote path branches
 next action :
 blockers    :
 ```
@@ -623,6 +627,26 @@ On acceptance, the chat ends. A new session in the same worktree follows the
 normal bootstrap, reads the path-specific handoff brief, and proceeds without
 an owner recap. If the owner continues in the current session, the same durable
 boundary remains available later.
+
+### Post-merge worktree cleanup
+
+A worktree is reused across fresh sessions only while its path is running. At
+closure, first merge, push the trunk, and prove the exact merge commit is an
+ancestor of the remote trunk. Then, from the main/owner worktree or another
+surviving checkout:
+
+1. resolve the exact secondary checkout with `git worktree list --porcelain`;
+2. require `git -C <exact-path> status --porcelain=v1` to print nothing;
+3. run `git worktree remove <exact-path>` without `--force`;
+4. verify the registration and directory are both absent.
+
+The main/owner worktree and dirty worktrees are never removal targets. Local
+and remote path branches remain unless a separate owner decision explicitly
+deletes them. A failure leaves the checkout intact and is reported as
+`merge complete; cleanup incomplete`. Because the filesystem result exists
+after the path's final repository commit and is machine-local, the closure
+report and live `git worktree list` are its evidence; do not invent a CI rule
+that claims to observe it.
 
 ### Gate discipline
 
