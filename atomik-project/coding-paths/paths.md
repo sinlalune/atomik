@@ -320,6 +320,46 @@ The path branch then owns the evolving checklist and Work Ledger. Without that
 ordering, `ACTIVE.md` is only a projection of whichever branches happen to be
 ancestors of the current checkout — not a portfolio view.
 
+### The ledger has a boundary
+
+A path file is MANDATORY reading for whoever resumes that path, and it only ever
+grows: every step appends. CP-MVP-008 reached ~23.5 k tokens while the entry chain
+that must be read before opening any path file at all — `AGENTS.md`, this page,
+`ACTIVE.md`, bedrock 22 and 00 — costs ~9.3 k (audit 2026-08-24, F4). A path file
+that costs more than the whole entry chain has stopped being a ledger and become an
+archive.
+
+This is NOT the return of the `log.md` bottleneck. That file was frozen so parallel
+paths stop colliding on one file, and it worked. This is an independent observation
+that happens to concern size, and it is treated as a boundary, not a defect.
+
+```text
+CP-MVP-008.md                    declaration · step index · ledger · next action
+history/CP-MVP-008-S04.md        the full record of S04 and its sub-steps
+```
+
+- **Roll completed steps into `atomik-project/coding-paths/history/<id>-S0N.md`**,
+  one file per major step, sub-steps with the step they belong to.
+- **The move is VERBATIM.** Cut and paste, never summarize. A rolled step reads
+  exactly as it did in the path file; what stays behind is one index line per step
+  with a link. Summarizing at rollup time would quietly rewrite the record, which
+  is the one thing a ledger may not do. Deixis is the one casualty — an entry
+  saying "the checkpoint below" now points at another file — so each record's
+  header says where "below" went rather than editing the entry to match.
+- **What stays**: the declaration, the step index, the Work Ledger, the next
+  action, blockers. Everything a resuming session needs before it needs detail.
+- **When**: at any step boundary once the file is over budget, and at closure. It
+  is never urgent — `ledger-size` is advisory.
+
+`cairn-check` reports `ledger-size` when a path file **in the diff** exceeds
+10,000 tokens (`LEDGER_TOKEN_BUDGET`). Diff-scoped on purpose: a corpus sweep would
+report the same historical files on every run for months, and a check that cries
+wolf is a check people switch off. It speaks to whoever is already editing the
+file, who is the only one who can act on it.
+
+CP-MVP-008 is the migrated proof: ~23.5 k tokens to ~4.7 k, with its seven step
+records under [`history/`](./history/index.md) holding what moved.
+
 ### Hot files that still conflict
 
 `apps/desktop/electron-main/index.ts` (~1900 lines) and
@@ -350,6 +390,7 @@ BLOCKING   branch → path (a path/* branch is declared by a running path
 ADVISORY   coherence audit missing for this head
            remote checkpoint — path HEAD is not yet on its upstream branch
            scope drift vs declared writes:
+           ledger size — a path file in the diff is over its token budget
            area note untouched while its source changed
            bedrock changed with no ADR beside it
 ```
