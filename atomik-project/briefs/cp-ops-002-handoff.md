@@ -1,11 +1,11 @@
 ---
 type: Atomik Brief
-title: Handoff — CP-OPS-002 S05b complete, ready for S06
+title: Handoff — CP-OPS-002 S05c complete, ready for S06
 timestamp: 2026-08-24T00:00:00Z
 atomik:
   path: CP-OPS-002
   branch: path/cp-ops-002
-  completed_step: S05b
+  completed_step: S05c
 ---
 
 # Resume CP-OPS-002 here
@@ -17,7 +17,7 @@ atomik:
   checkout.
 - Registered at `base_commit: 7aa3b1d` by the trunk commit `df875e6` before this
   branch existed; `dd6e76a` is S00.
-- Gates at S05b: `npm run cairn-check` OK with one advisory — no coherence audit
+- Gates at S05c: `npm run cairn-check` OK with one advisory — no coherence audit
   for this head, expected until the pre-merge audit. Validator suite
   `npm run cairn-check:test` 65/65.
 - `typecheck` / `test` / `build` are not run for this step and their verdicts are
@@ -31,7 +31,13 @@ atomik:
 all 16 ADRs, and `adrFrontmatterErrors()` — blocking, corpus-scoped, requiring the
 frontmatter status to agree with the document's own `Status:` line.
 
-**S05b** answered three owner questions from that report:
+**S05c** completed the OKF pair on the owner's directive: eighteen folder logs,
+each seeded from that folder's real Git history (15 most recent commits, merges
+omitted), plus the two `index.md` files that were missing under
+`atomik-project/projects/` and `sources/`. Every meaningful folder in both planes
+now carries `index.md` + `log.md`.
+
+**S05b** answered three owner questions from the S05 report:
 
 - **The opening check is BLOCKING now.** F2 repaired the closing gate and left its
   twin a convention, so a path could be registered, branched and worked with no

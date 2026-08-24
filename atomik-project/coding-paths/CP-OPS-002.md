@@ -21,6 +21,9 @@ atomik:
     - .github/workflows/cairn.yml
     - docs/index.md
     - docs/**/index.md         # S05/S05b backfill the OKF entry points
+    - docs/**/log.md           # S05c: the other half of the OKF folder pair
+    - atomik-project/**/index.md
+    - atomik-project/**/log.md
     - docs/cairn/**
     - docs/adr/**              # S05 backfills frontmatter across every ADR
     - docs/modules/**
@@ -246,6 +249,28 @@ why not but maybe add a blocking gate."* Three answers, all landed.
   > mistaken for a decision on record** — F4's own first draft claimed `log.md` was frozen
   > for context cost. Same file, same wrong reason, twice.
 
+### S05c — Log everywhere *(owner directive 2026-08-24)* — **COMPLETE**
+
+Owner, after the retraction: *"LOG EVERYWHERE AND GO NEXT."*
+
+OKF gives a meaningful folder both halves of a pair, and this repository had been
+carrying only one. Eighteen folder logs, each **seeded from that folder's real Git
+history** — the fifteen most recent commits that touched it, newest first, merges
+omitted because a merge names the path rather than the change. Nothing invented, and
+nothing back-dated: where the history is two commits, the log has two entries.
+
+- `docs/`: `adr`, `bedrock`, `cairn`, `contracts`, `diagrams`, `fixtures`, `learning`,
+  `modules`, `research`, `agents`.
+- `atomik-project/`: `audits`, `brainstorm`, `briefs`, `coding-paths`,
+  `coding-paths/history`, `sessions`, `projects`, `sources`.
+- `atomik-project/projects/` and `sources/` gained the missing `index.md` too — a log
+  linking a map that does not exist is a broken link, and `cairn-check` said so.
+- `docs/log.md` records the change at the plane level without inventing the month of
+  entries it never had.
+- Each log states the append rule and the escape hatch: if two paths ever collide on
+  one of these files, it takes the amendment the journal already took — one file per
+  entry in a `log/` subfolder, a CONCURRENCY fix, never a size one.
+
 ### S06 — Retire the drifted page *(closes F6, medium)*
 
 - `docs/cairn/index.html` teaches the integrator model at ten sites. Rewrite against
@@ -381,10 +406,10 @@ brief names — and fix what the pilot finds before merging.
 | Status | `running` on `path/cp-ops-002` |
 | Base commit | `7aa3b1d` — registered on the trunk by `df875e6` before this branch existed |
 | Branch | `path/cp-ops-002`, worktree `../4tom1k-cp-ops-002`, `node_modules` symlinked |
-| Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane (`3df9073`) · **S05b** — the opening check gated, five more indexes, the per-folder-log decision recorded |
+| Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane (`3df9073`) · **S05b** — the opening check gated, five more indexes (`d6b29f1`), the invented folder-log decision retracted on owner correction (`360f2be`) · **S05c** — the OKF pair completed: eighteen folder logs seeded from real Git history |
 | Remaining | S06, S06c, S06d, S07a, S07, S08, S09 (S03 withdrawn by owner ruling; S06b rescoped and delivered inside S07 + S08 by ruling 9) |
 | Opening check | accepted 2026-08-24, eight rulings ([note](../sessions/2026-08-24-cp-ops-002-opening-check.md)) |
-| Gates at S05b | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 65/65 |
+| Gates at S05c | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 65/65 |
 | Scope note | protocol tooling and doctrine only; no product code, so `npm test` / `typecheck` / `build` are untouched by this step |
 | Widening | `writes:` gained `atomik-project/briefs/cp-ops-002-handoff.md` at S01 — the per-step handoff brief is required by bedrock 22 and the original declaration simply omitted it |
 | Next action | S06 — retire the drifted page: `docs/cairn/index.html` teaches the rejected integrator model at ten sites; rewrite it against ADR-012 or replace it with a generated view, and give both HTML pages a dated status banner naming the ADR they render |

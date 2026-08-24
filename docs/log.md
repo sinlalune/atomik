@@ -1,5 +1,19 @@
 # Log — documentation plane
 
+Recent meaningful changes to the docs plane as a whole. Per-folder history now
+lives beside each folder's map — `adr/log.md`, `bedrock/log.md`, `modules/log.md`
+and the rest — seeded 2026-08-24 from Git and appended in the work unit that makes
+the change (OKF, bedrock 26).
+
+## 2026-08-24
+
+- Every meaningful folder in this plane gained the OKF pair: `index.md` (the map)
+  and `log.md` (recent changes in that scope). CP-OPS-002 S05/S05b/S05c.
+- All 16 ADRs gained frontmatter, and `cairn-check` now validates it: id matches
+  the file name, status in vocabulary, ISO date, and the frontmatter status must
+  agree with the document's own `Status:` line.
+- The entries below this line predate the folder logs and are left as written.
+
 ## 2026-07-06
 
 - First module learning note added: `modules/atomik-desktop.md` (CP-MVP-001 S02 — Electron shell, secure split, typed bridge; dated dependency facts inside).

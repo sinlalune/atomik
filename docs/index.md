@@ -17,8 +17,10 @@ Progressive-disclosure map of the docs plane. The constitution lives in `bedrock
 
 OKF, [bedrock 26](bedrock/26_26-okf-agent-context.md): a meaningful folder carries
 `index.md` (what is inside and why it matters) and `log.md` (recent meaningful
-changes in that scope). Every meaningful folder here now carries the first;
-`log.md` at this level is the docs-plane log, last written 2026-07-06.
+changes in that scope). **Every folder listed above now carries both** (CP-OPS-002
+S05c); `log.md` at this level covers the plane as a whole. Each folder log was
+seeded from that folder's real Git history, and is appended newest-first in the
+work unit that makes the change.
 
 **A shared log is one file per entry.** That is the only amendment the convention
 has taken, and it was made for CONCURRENCY, not for size: when several paths append
