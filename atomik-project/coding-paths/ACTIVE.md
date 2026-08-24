@@ -18,7 +18,7 @@ and `cairn-check` fails when the trunk projection is stale. Registration makes
 the inputs globally complete; derivation keeps the output single-sourced.
 
 <!-- cairn:paths:begin -->
-- **CP-WORKTREE-CLEANUP** — Remove a path worktree after its merge is verified online · branch `path/cp-worktree-cleanup` · base `41d661b`
+- *(no path running)*
 <!-- cairn:paths:end -->
 
 ## Grandfathered in flight
@@ -34,6 +34,7 @@ merge; no new path may copy the exception.
 
 ## Done
 
+- [CP-WORKTREE-CLEANUP — retire a merged path's clean secondary worktree while retaining its branch](./CP-WORKTREE-CLEANUP.md) — done 2026-08-24 ([opening check](../sessions/2026-08-24-cp-worktree-cleanup-opening-check.md) · [closing](../sessions/2026-08-24-cp-worktree-cleanup-closing-ceremony.md))
 - [CP-RENDER-REPAIRS — math, Vega, chat slug and diagram canvas repairs](./CP-RENDER-REPAIRS.md) — done 2026-08-20 (merge `cc78d2f`)
 - [CP-OPEN-DOCK — open-target interaction and five-zone docking](./CP-OPEN-DOCK.md) — done 2026-08-20 (merge `7f8d026`)
 - [CP-AI-CAPABILITIES — AI capabilities: tell the model what the surface renders](./CP-AI-CAPABILITIES.md) — done 2026-08-20 (opening check: `../sessions/2026-08-19-cp-ai-capabilities-opening-check.md`; bench: `../sessions/2026-08-20-cp-ai-capabilities-s03-bench-round1.md`; closing ceremony: `../sessions/2026-08-20-cp-ai-capabilities-closing-ceremony.md`)
@@ -46,6 +47,9 @@ merge; no new path may copy the exception.
 - A path is one worktree, one branch (`path/<id>`), one writer. It merges itself
   once its closing ceremony is recorded, it contains the trunk tip, and CI is
   green on the rebased result.
+- After its pushed merge is verified on the remote trunk, its exact clean
+  secondary worktree is removed without force from another checkout; the path
+  branch remains as online history.
 - After opening acceptance, the path declaration and this regenerated view land
   in a registration-only trunk commit BEFORE the implementation worktree
   branches. Cairn blocks new paths that skip it.
