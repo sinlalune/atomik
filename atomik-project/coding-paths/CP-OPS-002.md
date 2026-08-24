@@ -14,6 +14,7 @@ atomik:
     - tools/cairn-check.test.mjs
     - tools/cairn-active.mjs
     - tools/cairn-audit.mjs
+    - tools/cairn-audit.test.mjs
     - tools/cairn-rules.mjs
     - tools/cairn-rules.test.mjs
     - tools/cairn-new.mjs
@@ -343,16 +344,33 @@ Tier 2 scales with the number of writers on a shared trunk, not with the protoco
 writer dogfooding their own trunk is guarded by the ceremonies and the local gates, and
 bypass was always one command away regardless.
 
-### S06c — Bind the coherence audit to the HEAD it reviewed *(ruling 7, F12)*
+### S06c — Bind the coherence audit to the HEAD it reviewed *(ruling 7, F12)* — **COMPLETE**
 
-`cairn-audit` names a record for the current HEAD; committing it moves HEAD, so `--check`
-can never match. All nine existing audits name a different commit from the one containing
-them — seven exactly the parent.
+`cairn-audit` named a record for the current HEAD; committing it moves HEAD, so `--check`
+could never match the commit that contains the record.
 
-- `--check` accepts a record naming HEAD **or any ancestor within this path's own commits**.
-- Formalises what the nine files already do accidentally: no renaming, no migration, and
-  every existing audit becomes retroactively valid.
-- Regression test: a committed audit naming the parent commit satisfies `--check`.
+- `--check` now accepts a record naming HEAD **or any commit this path itself contributed**
+  — `git rev-list HEAD --not <trunk>`, the same trunk ref `cairn-check` uses, threaded
+  through so a `--base` run judges against the same tree. No renaming, no migration.
+- **The bound is the point.** A record naming an arbitrary trunk ancestor proves nothing
+  about this branch, and one belonging to another path is refused outright: the file name
+  carries the path id, so that is checked rather than assumed. An unreadable trunk ref
+  falls back to HEAD alone — the old, stricter behaviour, never a silently wider one.
+- `--check` on a non-path branch now says *nothing to check* and exits 0, matching what the
+  scaffold half already did for anyone running the command to see what it does.
+- Seven regression tests, including the parent-naming case the nine records already have.
+
+> **Correction to ruling 7's premise, verified rather than repeated.** The ruling said this
+> "formalises what the nine files already do accidentally… every existing audit becomes
+> retroactively valid." Checked against the repository: **seven** name a commit their own
+> branch still contains. Two do not — `cp-ai-capabilities-9007e07` and
+> `cp-render-repairs-d44d381` name a head the closing rebase rewrote, which exists as a
+> loose object and is on no branch and not an ancestor of the trunk.
+>
+> Declining those two is correct, not a gap. `paths.md` requires the audit to run **after
+> the rebase**, on the result that will land; a record naming a pre-rebase head reviewed a
+> diff that no longer exists. The rule now says so instead of accepting it. Pinned by a
+> test naming both records.
 
 ### S06d — Drain the leftovers *(ruling 8)*
 
@@ -427,13 +445,13 @@ brief names — and fix what the pilot finds before merging.
 | Status | `running` on `path/cp-ops-002` |
 | Base commit | `7aa3b1d` — registered on the trunk by `df875e6` before this branch existed |
 | Branch | `path/cp-ops-002`, worktree `../4tom1k-cp-ops-002`, `node_modules` symlinked |
-| Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane (`3df9073`) · **S05b** — the opening check gated, five more indexes (`d6b29f1`), the invented folder-log decision retracted on owner correction (`360f2be`) · **S05c** — the OKF pair completed: eighteen folder logs seeded from real Git history (`468bc24`) · **S06** — `index.html` rewritten against ADR-012, both HTML pages dated |
-| Remaining | S06c, S06d, S07a, S07, S08, S09 (S03 withdrawn by owner ruling; S06b rescoped and delivered inside S07 + S08 by ruling 9) |
+| Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane (`3df9073`) · **S05b** — the opening check gated, five more indexes (`d6b29f1`), the invented folder-log decision retracted on owner correction (`360f2be`) · **S05c** — the OKF pair completed: eighteen folder logs seeded from real Git history (`468bc24`) · **S06** — `index.html` rewritten against ADR-012, both HTML pages dated (`2a5ef35`) · **S06c** — the coherence audit bound to the commits its path contributed |
+| Remaining | S06d, S07a, S07, S08, S09 (S03 withdrawn by owner ruling; S06b rescoped and delivered inside S07 + S08 by ruling 9) |
 | Opening check | accepted 2026-08-24, eight rulings ([note](../sessions/2026-08-24-cp-ops-002-opening-check.md)) |
-| Gates at S06 | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 65/65 · both HTML pages parse with no unclosed tags |
+| Gates at S06c | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 72/72 |
 | Scope note | protocol tooling and doctrine only; no product code, so `npm test` / `typecheck` / `build` are untouched by this step |
 | Widening | `writes:` gained `atomik-project/briefs/cp-ops-002-handoff.md` at S01 — the per-step handoff brief is required by bedrock 22 and the original declaration simply omitted it |
-| Next action | S06c — bind the coherence audit to the HEAD it reviewed: `--check` accepts a record naming HEAD or any ancestor within this path's own commits, which is what all nine existing audits already do accidentally |
+| Next action | S06d — drain the leftovers: remove the six secondary worktrees for already-merged paths and the orphan `registration/cp-worktree-cleanup` branch (F7), and make `isFilled()` require a verdict and one non-empty findings section rather than the placeholder's absence (F10) |
 | Widening (S05) | `writes:` gained `docs/adr/**`, `docs/bedrock/index.md`, `docs/modules/**`, `docs/index.md`, `atomik-project/index.md` — S05 was always the OKF backfill; the declaration named only the two ADRs this path authors. Deliberate `single-truth` edit: `docs/modules/atomik-desktop.md`, one stale sentence naming the removed integrator |
 | Amendments | **2026-08-24, owner ruling 9** — S06b rescoped from "configure branch protection" to "declare the enforcement tier"; its deliverables move into S07 (specification + operator guide) and S08 (`enforcement` config field, generated header line, tier-0/1 `cairn-init`). This repository stays at tier 1, declared ([note](../sessions/2026-08-24-cp-ops-002-s06b-rescope.md)) |
 | Blockers | none. Nothing now waits on host configuration |

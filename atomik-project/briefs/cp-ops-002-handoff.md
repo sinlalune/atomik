@@ -1,11 +1,11 @@
 ---
 type: Atomik Brief
-title: Handoff — CP-OPS-002 S06 complete, ready for S06c
+title: Handoff — CP-OPS-002 S06c complete, ready for S06d
 timestamp: 2026-08-24T00:00:00Z
 atomik:
   path: CP-OPS-002
   branch: path/cp-ops-002
-  completed_step: S06
+  completed_step: S06c
 ---
 
 # Resume CP-OPS-002 here
@@ -17,9 +17,9 @@ atomik:
   checkout.
 - Registered at `base_commit: 7aa3b1d` by the trunk commit `df875e6` before this
   branch existed; `dd6e76a` is S00.
-- Gates at S06: `npm run cairn-check` OK with one advisory — no coherence audit
+- Gates at S06c: `npm run cairn-check` OK with one advisory — no coherence audit
   for this head, expected until the pre-merge audit. Validator suite
-  `npm run cairn-check:test` 65/65.
+  `npm run cairn-check:test` 72/72.
 - `typecheck` / `test` / `build` are not run for this step and their verdicts are
   not claimed: this path writes protocol tooling and doctrine only, and touched
   no product code.
@@ -30,6 +30,20 @@ atomik:
 `docs/modules`, `atomik-project/sessions`, `atomik-project/audits`), frontmatter on
 all 16 ADRs, and `adrFrontmatterErrors()` — blocking, corpus-scoped, requiring the
 frontmatter status to agree with the document's own `Status:` line.
+
+**S06c** bound the coherence audit to the commits its path contributed.
+`cairn-audit --check` accepts a record naming HEAD or any commit from
+`git rev-list HEAD --not <trunk>` — the same trunk ref `cairn-check` uses,
+threaded through. A record naming an arbitrary trunk ancestor proves nothing
+about the branch, and one belonging to another path is refused by name. Seven
+tests, in a new `tools/cairn-audit.test.mjs`.
+
+**Verified rather than repeated**: ruling 7 said every existing audit becomes
+retroactively valid. Seven of nine do. `cp-ai-capabilities-9007e07` and
+`cp-render-repairs-d44d381` name a head the closing rebase rewrote — on no branch,
+not an ancestor of the trunk. Declining those is correct: `paths.md` requires the
+audit to run after the rebase, so a record naming a pre-rebase head reviewed a diff
+that no longer exists.
 
 **S06** retired the drifted page. `docs/cairn/index.html` taught the rejected
 integrator model at ten sites; it now renders ADR-012 — two roles and the job the
@@ -71,14 +85,16 @@ now carries `index.md` + `log.md`.
 
 ## Next action
 
-**S06c — bind the coherence audit to the HEAD it reviewed** (ruling 7, F12).
-`cairn-audit` names a record for the current HEAD; committing that record moves
-HEAD, so `--check` can never match. All nine existing audits name a different
-commit from the one containing them — seven exactly the parent. Make `--check`
-accept a record naming HEAD **or any ancestor within this path's own commits**,
-which formalises what the nine files already do accidentally: no renaming, no
-migration, every existing audit retroactively valid. Regression test: a committed
-audit naming the parent commit satisfies `--check`.
+**S06d — drain the leftovers** (ruling 8).
+
+- **F7** — remove the six secondary worktrees for already-merged paths, following
+  the verified sequence in `paths.md` (remote merge proof → clean status → non-forced
+  removal → absence check, run from another checkout, never the owner's), and delete
+  the orphan `registration/cp-worktree-cleanup` branch.
+- **F10** — `isFilled()` currently passes any text without the placeholder string.
+  Require a verdict from the stated vocabulary and at least one non-empty findings
+  section, so a missing audit, a scaffold and a hollowed-out record stop looking the
+  same.
 
 ## Blockers and decisions still open
 

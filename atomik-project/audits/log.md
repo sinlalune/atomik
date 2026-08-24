@@ -22,6 +22,11 @@ per entry in a `log/` subfolder — which was a concurrency fix, never a size on
 
 ## 2026-08-24
 
+- `S06c` `cairn-audit --check` now accepts a record naming HEAD **or any commit this
+  path contributed**, so a committed audit can finally satisfy the check it was written
+  for. Seven of the nine records here are retroactively valid; two name a pre-rebase head
+  the closing rebase rewrote, and are correctly declined.
+
 - `3df9073` CP-OPS-002 S05: backfill OKF — five indexes, ADR frontmatter, schema over the decision plane
 - `170d6fe` CP-WORKTREE-CLEANUP S02: close and dogfood worktree retirement
 - `23c1422` CP-OPS-001 S11: close path and repair done-state gate
