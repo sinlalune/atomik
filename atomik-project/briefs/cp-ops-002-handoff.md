@@ -44,10 +44,12 @@ frontmatter status to agree with the document's own `Status:` line.
   they merge. **If either path rebases onto this trunk before adding those keys, it
   sees an advisory, never a failed build.**
 - **Five more indexes** (`docs/cairn`, `research`, `contracts`, `fixtures`,
-  `agents`), and **no per-folder `log.md` — recorded as a decision** in both plane
-  indexes: a map is stable and single-writer, an append-only log shared by every
-  path touching a folder is the collision that froze `atomik-project/log.md`, and
-  recency already has two answers (Git history, the per-path journal).
+  `agents`). On folder logs, both plane indexes now state the OKF guideline
+  (bedrock 26: a meaningful folder carries `index.md` and `log.md`) and the one
+  amendment it has taken here — a SHARED log is one file per entry, made for
+  concurrency, not size. **Retracted the same day**: the first version declared
+  "no per-folder `log.md`" as a decision. Nobody took that decision; the agent
+  wrote doctrine on its own authority. Both files carry a dated correction line.
 
 ## Next action
 
