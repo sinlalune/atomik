@@ -92,6 +92,7 @@ export const PATHS_END = '<!-- cairn:paths:end -->'
 
 const PATH_DIR = 'atomik-project/coding-paths'
 const PATH_STATUSES = ['draft', 'active', 'blocked', 'done', 'archived', 'running']
+const PATH_BRANCH_STATUSES = ['running', 'done']
 const SESSION_DIR = 'atomik-project/sessions'
 
 /**
@@ -294,9 +295,9 @@ export function evaluate({
     if (!match) {
       add('blocking', 'branch-path',
         `branch "${branch}" has no coding path declaring it (expected a file in ${PATH_DIR}/ with atomik.branch: ${branch})`)
-    } else if (match.front.status !== 'running') {
+    } else if (!PATH_BRANCH_STATUSES.includes(match.front.status)) {
       add('blocking', 'branch-path',
-        `${match.file} declares this branch but its status is "${match.front.status}" — a path being worked must be "running"`)
+        `${match.file} declares this branch but its status is "${match.front.status}" — a path branch must be "running" or in its final "done" transition`)
     } else if (!isCommitPin(match.front.base_commit)) {
       add('blocking', 'branch-path', `${match.file} needs atomik.base_commit as a 7–40 digit Git hash`)
     }

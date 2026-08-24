@@ -6,9 +6,9 @@ tags: [coding-path, process, concurrency, paths, worktree, self-merge, ci, ops]
 timestamp: 2026-08-14T00:00:00Z
 atomik:
   id: CP-OPS-001
-  status: running
+  status: done
   accepted: 2026-08-14
-  current_step: S11
+  current_step: done
   base_commit: cc78d2f
   branch: path/cp-ops-001
   writes:
@@ -37,7 +37,7 @@ atomik:
     - atomik-project/briefs/cp-ops-001-handoff.md
     - atomik-project/sessions/2026-08-24-cp-ops-001-s09-step-session-boundary.md
     - atomik-project/sessions/2026-08-24-cp-ops-001-closing-ceremony.md
-    - atomik-project/audits/cp-ops-001-*.md
+    - atomik-project/audits/cp-ops-001-a495095.md
     - atomik-project/log/2026-08-24-cp-ops-001.md
 ---
 
@@ -356,10 +356,19 @@ lanes — providers and settings share `ai-settings.ts`, `ipc-contract.ts` and
       valid because this restored worktree lives under `/tmp`. The repository
       recall, surviving invariants, known boundaries, no-roadmap-change ruling,
       and verdict are recorded in the path-specific closing session note.
-- [ ] S11 INTEGRATION — rebase/contain current master, run every gate on that
-      result, fill the coherence audit, write the one-file journal entry, set
-      this path done, regenerate global state, push the path commit, self-merge,
-      push master, and remove the temporary worktree.
+- [x] S11 INTEGRATION — current master `cc78d2f` was already contained; the
+      mandatory rebase was a no-op (`a495095` before and after), so no published
+      hash was rewritten. The coherence audit reproduced the final contradiction
+      carried by CP-RENDER-REPAIRS: `paths.md` requires `status: done` on the
+      path branch, while Cairn allowed only `running` there. `branch-path` now
+      accepts the final `done` transition, with a combined test proving that a
+      recorded ceremony passes and a missing ceremony still blocks. The filled
+      audit, learning update, one-file journal, done status, regenerated global
+      view and outcome row land together. Cairn self-tests/check, typecheck,
+      78 test files / 1101 pass / 1 skip, production build, SVG XML and D14
+      geometry are green on the rebased result. The published closure commit is
+      ready to self-merge; the temporary worktree is removed only after the
+      remote trunk is verified.
 
 # Current checkpoint
 
@@ -369,46 +378,49 @@ branch base : cc78d2f — CP-OPS moved into `path/cp-ops-001` before S08; the
               owner was actively merging other paths into the trunk, so the
               exception had outlived its reason
 prior remote: 6deb103 — clean and equal to origin/path/cp-ops-001 before S09
-current step: S10 complete; owner accepted closure; S11 integration is next
+current step: S11 complete; path done and ready to self-merge
 evidence    : owner corrected "close the path" to "close the chat/session" and
               added "push after evry commit so we have an online log". The
               verbatim ruling is in the S09 session record. GitHub documents
               Activity as showing pushes and force-pushes separately from
               commit metadata; that view is timeline evidence, not the durable
               checkpoint or a promised permanent audit archive.
-changed     : every coherent step now updates code/tests/docs/ledger plus one
-              rolling path brief, runs gates bare, commits, pushes immediately,
-              reports its remote commit, and offers the recorded next action in
-              a fresh session. The path stays running. Push failure means local,
-              incomplete work. A rewritten public path is updated only with
-              force-with-lease and recorded old/new heads.
-validator   : Cairn adds the advisory `remote-checkpoint` when a path has no
-              upstream or its current HEAD is absent from that upstream. It
-              deliberately does not claim to prove historical push cadence.
-views       : AGENTS, paths, bedrock 17/22/24/35, ADR-012, learning note 21,
-              brief template/index, Cairn guide, D08 and generated D14 project
-              the same remote-checkpoint/session-boundary rule.
-tests       : Cairn self-tests green; cairn-check OK with expected advisories
-              only; SVG XML green and D14 geometry asserts 14 boxes / 2 labels;
-              typecheck green; 78 test files / 1101 pass / 1 skip; production
-              build green. Gates ran bare.
+changed     : S08 registers accepted paths on trunk before branching; S09 makes
+              each commit a remote checkpoint and each completed step a safe
+              chat boundary; S10 records owner acceptance; S11 repairs Cairn's
+              impossible final done-state gate and persists closure artifacts.
+validator   : registration is blocking except for the finite three-path
+              migration; unpublished HEAD is advisory; `branch-path` accepts
+              running work plus the final done transition, while ceremony
+              remains an independent blocking guard.
+rebase      : master/origin-master cc78d2f; pre-head a495095; post-head a495095;
+              already current, no rewrite and no force-push required.
+audit       : ../audits/cp-ops-001-a495095.md — drift noted and repaired before
+              merge; no duplicate product work or unrecorded architecture.
+views       : ACTIVE regenerated from done state; index outcome updated; AGENTS,
+              paths, bedrock 17/22/24/35, ADR-012, learning note 21, brief
+              template/index, Cairn guide and D08/D13/D14 are aligned.
+tests       : Cairn self-tests/check green; SVG XML green and D14 geometry
+              asserts 14 boxes / 2 labels; typecheck green; 78 test files /
+              1101 pass / 1 skip; production build green. The first sandboxed
+              test attempt was denied loopback binds; the bare escalated rerun
+              passed every test.
+journal     : ../log/2026-08-24-cp-ops-001.md
 remote      : origin/path/cp-ops-001 contains the completed-step commit that
-              carries the S10 ceremony record, this checkpoint and the rolling
-              handoff brief; the completion report names its immutable hash.
-session     : owner chose to continue here because this clean worktree is under
-              /tmp. Remove it after the merged trunk is verified online.
-next action : verify/rebase onto current master; record old/new heads and use
-              force-with-lease only if rewritten; rerun gates, coherence audit,
-              journal, status done, self-merge, push master, remove worktree.
-blockers    : none. Closing ceremony is accepted and recorded.
+              carries this final checkpoint, audit, journal and rolling brief;
+              the completion report names its immutable hash.
+session     : owner chose closure here because the clean worktree is under /tmp.
+next action : self-merge to master, push master immediately, verify the remote
+              merge, then remove /tmp/4tom1k-cp-ops-001.
+blockers    : none.
 ```
 
 This is CP-OPS's third observed prose-checkpoint drift. Cairn can prove that a
 ledger changed, never that its sentences remain true. S08 fixed the mechanically
 checkable portfolio input rather than pretending prose can be policed. S09 adds
-the rolling per-path brief and pushed session boundary so this long-lived path
-can enter closure without carrying its chat history into the next context.
+the rolling per-path brief and pushed session boundary; S11 proves the terminal
+state can pass the protocol's own gate before this bootstrap path leaves it.
 
 # Blockers
 
-None. The closing ceremony is complete; S11 performs the mechanical closure.
+None. Path closed and ready to self-merge.

@@ -8,7 +8,7 @@ timestamp: 2026-08-14T00:00:00Z
 
 # Learning: running several agents at once — worktrees, registration, and the state you forget is shared
 
-*Covers CP-OPS-001 S01–S09 (2026-08-14–24). First-use rule (17): this is the
+*Covers CP-OPS-001 S01–S11 (2026-08-14–24). First-use rule (17): this is the
 first time the project runs several coding paths and desktop instances at once.
 It now includes what the pilot taught after the initial design landed.*
 
@@ -147,6 +147,30 @@ refuses to overwrite remote work you have not seen, while blind `--force` does
 not. The final merge records the rebased history; GitHub Activity records the
 push and force-push events.
 
+## The closing transition must pass its own gate
+
+The renderer-repairs audit found a self-contradiction that only appears at the
+last moment:
+
+```text
+protocol says  set status: done on the path branch, then merge
+validator said every path branch must have status: running
+result          the required final state failed branch-path
+```
+
+CP-OPS reproduced it during its own closure. The correct branch vocabulary is
+`running` while work continues and `done` during the final recorded transition.
+The ceremony rule remains independent: `done` without a closing session note
+still blocks. One combined test now pins both sides so the validator cannot
+again make its required terminal state impossible.
+
+The same closure exposed a practical distinction in handoff durability. A
+pushed branch is recoverable even if a worktree disappears, but a worktree
+under `/tmp` is still a poor place to propose an ordinary fresh session. Prefer
+a durable worktree; when the only remaining action is closure, finish in the
+current session and remove the temporary checkout after the merged trunk is
+verified online.
+
 ## What we deliberately did not build
 
 No scheduler, lock service, daemon, branch-discovery API, or database. The
@@ -169,4 +193,5 @@ files: a root cause is discovered, not declared.
 6. Is every local commit already present on the path's upstream branch?
 7. Could the next session resume from the ledger and handoff brief without an
    owner recap?
-8. What is the smallest mechanism real evidence justifies?
+8. Can the path's own final `done` transition pass every gate it requires?
+9. What is the smallest mechanism real evidence justifies?

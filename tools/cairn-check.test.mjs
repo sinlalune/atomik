@@ -57,10 +57,26 @@ test('a path branch with no coding path declaring it is blocked', () => {
   assert.ok(rules(found, 'blocking').includes('branch-path'))
 })
 
-test('a declared path that is not running is blocked', () => {
+test('a declared path that is neither running nor closing as done is blocked', () => {
   const stale = { ...A_PATH, front: { ...A_PATH.front, status: 'draft' } }
   const found = run(['README.md'], 'path/cp-mvp-010', [stale])
   assert.ok(rules(found, 'blocking').includes('branch-path'))
+})
+
+test('a done path may finish on its own branch when its ceremony is recorded', () => {
+  const done = { ...A_PATH, front: { ...A_PATH.front, status: 'done' } }
+  const closing = [done.file, 'atomik-project/sessions/cp-mvp-010-closing.md']
+
+  const recorded = run(closing, 'path/cp-mvp-010', [done], {
+    ceremonyFor: () => true
+  })
+  assert.ok(!rules(recorded, 'blocking').includes('branch-path'))
+  assert.ok(!rules(recorded, 'blocking').includes('ceremony'))
+
+  const missing = run(closing, 'path/cp-mvp-010', [done], {
+    ceremonyFor: () => false
+  })
+  assert.ok(rules(missing, 'blocking').includes('ceremony'))
 })
 
 test('a running path with no base commit is blocked', () => {
