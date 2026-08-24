@@ -64,9 +64,13 @@ and that claim is corrected in the round-3 register (C7).
 
 ## Blockers and decisions still open
 
-- None blocking. **S06b** waits on the owner configuring GitHub branch protection
-  on `master` requiring `cairn-check` and `gates`; the agent cannot set it from
-  the repository, and no other step depends on it.
+- None. Nothing in this path waits on host configuration any more: **owner ruling
+  9 (2026-08-24)** rescoped S06b from "configure branch protection" to "declare
+  the enforcement tier"
+  ([note](../sessions/2026-08-24-cp-ops-002-s06b-rescope.md)). Its deliverables
+  live in S07 (three-tier prose, optional `gh api` ruleset payload) and S08
+  (`enforcement` field in `cairn.config.json`, generated `cairn-check` header
+  line, tier-0/1 `cairn-init`). This repository is tier 1, declared.
 - **S07a** must land `ADR-017` before the specification (S07) can describe the
   lifecycle: round 3's D2 §2.2 still declares `done` terminal, contradicting
   bedrock 35, and is to be marked *proposed* until the ADR settles it.

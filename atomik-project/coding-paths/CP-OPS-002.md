@@ -168,12 +168,49 @@ a single path file exceeds 23 k. Not a defect; a boundary worth setting before i
 - Give both HTML pages a dated status banner naming the ADR they render. The page drifted
   silently because nothing on it claimed a vintage.
 
-### S06b — Close the F8 residual — **branch protection** *(ruling 6)*
+### S06b — Close the F8 residual — **declare the enforcement tier** *(ruling 6, rescoped by ruling 9)*
 
-The owner will configure GitHub branch protection on `master` requiring `cairn-check` and
-`gates`; the agent cannot set it from the repository. Until it is on, the specification
-states that CI **observes** rather than prevents. This step records the configuration and
-updates the specification once it is live.
+**Owner ruling 9 (2026-08-24), amending ruling 6** — recorded in
+[the rescope note](../sessions/2026-08-24-cp-ops-002-s06b-rescope.md). Ruling 6 made host
+branch protection the way to close F8. The owner opened the ruleset form, and stopped:
+*"I am a little worried that it makes the protocol complicated to setup for adoption."*
+
+That is a scope error in the protocol, not a cost to absorb. Branch protection is not part
+of Cairn; it is the third of three enforcement tiers, and only the first is required:
+
+```text
+tier 0  local   npm run cairn-check          zero setup, no host, no account
+tier 1  ci      .github/workflows/cairn.yml  one file — CI OBSERVES
+tier 2  protected  a trunk ruleset           host-specific — CI PREVENTS
+```
+
+Nearly all the value is tier 0, which is where the protocol's own claim already lives:
+*"these run locally with the same command CI runs."* An adopter with no GitHub account
+still gets branch→path, trunk registration, the rebase gate, the ceremony gate, link
+integrity and the derived views.
+
+The protocol argument is the stronger one. A setup step performed once, in someone else's
+web UI, invisibly, will be skipped — and the specification would go on asserting that CI
+prevents merges. That is F13's species exactly: **a published rule the implementation does
+not honour**. Tier 2 must therefore be a declared property of a repository, never a
+requirement of the protocol.
+
+Deliverables, placed where their homes are built rather than in an empty step of their own:
+
+- **S07** — the specification documents all three tiers, one line each on what that tier
+  can and cannot prevent, and states tier 2 as a repository property. The operator guide
+  carries the tier-2 ruleset as a JSON payload plus one `gh api` command: copy-paste, not
+  a click-path, and explicitly skippable.
+- **S08** — `cairn.config.json` gains `"enforcement": "local" | "ci" | "protected"`, and
+  `cairn-check` prints it in its header line
+  (`cairn-check — branch path/cp-ops-002, enforcement: ci (observes)`), so the honest
+  claim is GENERATED and cannot drift from the repository it describes. `cairn-init`
+  scaffolds tiers 0 and 1 only — nothing to click, no account, no host.
+
+**This repository stays at tier 1**, declared, with its ruleset page deliberately empty.
+Tier 2 scales with the number of writers on a shared trunk, not with the protocol: one
+writer dogfooding their own trunk is guarded by the ceremonies and the local gates, and
+bypass was always one command away regardless.
 
 ### S06c — Bind the coherence audit to the HEAD it reviewed *(ruling 7, F12)*
 
@@ -216,17 +253,29 @@ statuses, never transitions.
   `schema`, rejected by `branch-path`, reserved for a path that is now closed.
 - State the F8 workflow decision and the CP-MVP-011/012 migration window as *properties*,
   not omissions.
-- Step-by-step operator guide for someone who does not already know the protocol.
+- **The three enforcement tiers** (S06b): `local` / `ci` / `protected`, one line each on
+  what the tier can and cannot prevent, with tier 2 stated as a property of a repository
+  and never a requirement of the protocol. The claim about CI is made per tier, so no
+  document asserts prevention that is not installed.
+- Step-by-step operator guide for someone who does not already know the protocol —
+  carrying the optional tier-2 ruleset as a JSON payload and one `gh api` command, marked
+  skippable.
 
 ### S08 — Extract Cairn from Atomik
 
 Cairn is not portable today: `cairn-check.mjs` hardcodes `atomik-project/`, `apps/`,
 `AREA_MAP`, and the grandfather set.
 
-- `cairn.config.json` — plane roots, source roots, area map, trunk name.
+- `cairn.config.json` — plane roots, source roots, area map, trunk name, and
+  `"enforcement": "local" | "ci" | "protected"` (S06b).
+- `cairn-check` prints the declared tier in its header line, so "CI observes" versus "CI
+  prevents" is generated from the repository rather than written into prose that drifts.
 - `tools/cairn-new.mjs` — registration commit and worktree in one command, so the
   registration precondition stops depending on memory.
-- `cairn-init` seed template + the ex-nihilo bootstrap prompt.
+- `cairn-init` seed template + the ex-nihilo bootstrap prompt. It scaffolds **tiers 0 and
+  1 only**: the validator, the config, the docs skeleton and the workflow file. No host
+  configuration, no account, nothing to click — adoption must not require someone else's
+  web UI.
 
 ### S09 — Greenfield pilot, coherence audit, closing ceremony, self-merge
 
@@ -248,10 +297,11 @@ brief names — and fix what the pilot finds before merging.
 | Base commit | `7aa3b1d` — registered on the trunk by `df875e6` before this branch existed |
 | Branch | `path/cp-ops-002`, worktree `../4tom1k-cp-ops-002`, `node_modules` symlinked |
 | Steps complete | **S00** — the four enforcement repairs adopted into the path (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 |
-| Remaining | S04, S05, S06, S06b, S06c, S06d, S07a, S07, S08, S09 (S03 withdrawn by owner ruling) |
+| Remaining | S04, S05, S06, S06c, S06d, S07a, S07, S08, S09 (S03 withdrawn by owner ruling; S06b rescoped and delivered inside S07 + S08 by ruling 9) |
 | Opening check | accepted 2026-08-24, eight rulings ([note](../sessions/2026-08-24-cp-ops-002-opening-check.md)) |
 | Gates at S01 | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 50/50 |
 | Scope note | protocol tooling and doctrine only; no product code, so `npm test` / `typecheck` / `build` are untouched by this step |
 | Widening | `writes:` gained `atomik-project/briefs/cp-ops-002-handoff.md` at S01 — the per-step handoff brief is required by bedrock 22 and the original declaration simply omitted it |
 | Next action | S04 — bound the ledger: roll completed steps into `atomik-project/coding-paths/history/<id>-S0N.md`, migrate `CP-MVP-008` (23.5 k tokens) as the proof, add the advisory `ledger-size` rule |
-| Blockers | none. S06b waits on the owner configuring branch protection on `master`; it does not block any other step |
+| Amendments | **2026-08-24, owner ruling 9** — S06b rescoped from "configure branch protection" to "declare the enforcement tier"; its deliverables move into S07 (specification + operator guide) and S08 (`enforcement` config field, generated header line, tier-0/1 `cairn-init`). This repository stays at tier 1, declared ([note](../sessions/2026-08-24-cp-ops-002-s06b-rescope.md)) |
+| Blockers | none. Nothing now waits on host configuration |
