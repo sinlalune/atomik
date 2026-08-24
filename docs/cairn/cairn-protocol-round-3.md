@@ -28,7 +28,7 @@ This register documents every discrepancy identified and verified across the syn
 | Item | What Previous Draft Stated | What is Actually True in the Repository | Reproduction & Proof Command |
 | :--- | :--- | :--- | :--- |
 | **C1: Rebase Gate in CI (F1)** | Presented F1 as an open failure mode where CI silently passed detached checkouts. | **Repaired in working tree.** `resolveBranch()` consults `GITHUB_HEAD_REF` and `git symbolic-ref`. `branch-identity` fails closed on guarded roots (`apps/`). `.github/workflows/cairn.yml` checks out PR HEAD sha. | `git checkout --detach path/cp-mvp-011 && node tools/cairn-check.mjs --base master`<br>$\rightarrow$ `[branch-identity] detached checkout: ... every path rule was SKIPPED` (Exit 1) |
-| **C2: Ceremony Gate (F2)** | Presented F2 as an open tautology matching filenames, while §3.1 listed frontmatter checking. | **Repaired in working tree.** `hasCeremony()` requires `atomik: { path: <id>, ceremony: closing }` in session frontmatter. 16 session notes backfilled. | `npm run cairn-check:test`<br>$\rightarrow$ `✔ done with only an opening check on record is blocked` |
+| **C2: Ceremony Gate (F2)** | Presented F2 as an open tautology matching filenames, while §3.1 listed frontmatter checking. | **Repaired in working tree.** `hasCeremony()` requires ROOT-LEVEL `path: <id>` and `ceremony: closing` in session frontmatter. 16 session notes backfilled. | `npm run cairn-check:test`<br>$\rightarrow$ `✔ done with only an opening check on record is blocked` |
 | **C3: Path Branch CI Triggers (F8)** | Missed F8 (CI never ran on path branches; local merges meant zero PR runs). | **Repaired in working tree.** `.github/workflows/cairn.yml` now triggers on `push: branches: [master, 'path/**']` with concurrency cancellation. | `git log --format='%s' --all \| grep -c '^Merge pull request'` $\rightarrow$ `0`<br>`git diff .github/workflows/cairn.yml` confirms `'path/**'` trigger. |
 | **C4: `writes:` Parsing (F9)** | Missed F9 (regex parsed past `---` into body list and failed on trailing comments in YAML). | **Repaired in working tree.** `parseWrites()` scopes to frontmatter block and tolerates trailing comments. | `npm run cairn-check:test`<br>$\rightarrow$ `✔ a writes: list survives the trailing comment the template shows` |
 | **C5: Visibility Hole (F3)** | Proposed an immediate blocking repair for `CP-MVP-011` / `CP-MVP-012`. | **Owner-ruled, closed without separate repair.** `LEGACY_UNREGISTERED_PATHS` drains naturally when CP-MVP-011/012 merge under CP-OPS-001. | Documented in `cairn-audit-2026-08-24.md` §2.3. |
@@ -41,10 +41,21 @@ This register documents every discrepancy identified and verified across the syn
 | **C12: Lexicon "Cairn" Citation Gap** | Cited `docs/bedrock/00_00-orientation.md` for "Cairn", which contains 0 mentions. | **Repaired.** Documented gap: protocol name had no prior canonical definition in repo. D2 now defines it canonically; D3 cites D2. Verified all other rows. | `grep -c -i "cairn" docs/bedrock/00_00-orientation.md` $\rightarrow$ `0`<br>`grep -c -i "cairn" docs/bedrock/35_35-coding-path-execution-state.md` $\rightarrow$ `0` |
 | **C13: Missing Path Lifecycle in D2** | D2 provided only a rule catalog and omitted the path lifecycle state machine. | **Repaired.** Added Section 2.2 detailing status vocabulary, legal transitions, field invariants, and explicitly documented the open hole for abandoned paths. | `tools/cairn-check.mjs:pathFrontmatterErrors`<br>`atomik-project/coding-paths/paths.md` §"Holes still open" |
 | **C14: Generator Table Pipe Escaping** | Generator emitted unescaped `\|` in table cells, breaking Markdown table parsing unless hand-fixed. | **Repaired.** `tools/cairn-rules.mjs` escapes inner `\|` as `\\\|`. Added `tools/cairn-rules.test.mjs` to guard generator against drift permanently. | `npm run cairn-check:test`<br>$\rightarrow$ `✔ cairn-rules: emitted table rows have exact 5 columns and no unescaped inner pipes` |
+| **C15: Nested Ceremony Schema (F13)** | D1 (and `CP-OPS-002` S02) prescribed `atomik: { path, ceremony: closing }`, a form the live parser reads as `false`. An operator following this guide would have failed a *blocking* gate on the merge it was closing. | **Repaired in CP-OPS-002 S01.** Root-level `path:` / `ceremony:` is what ships and what all 16 backfilled notes carry. The schema is now pinned once in [bedrock 24](../bedrock/24_24-doc-templates.md#session-note-and-ceremony-template) and settled by [ADR-016](../adr/ADR-016-cairn-enforcement-integrity.md); D1 and D2 point at it instead of restating it. | `npm run cairn-check:test`<br>$\rightarrow$ `✔ the nested ceremony form the guide once prescribed declares nothing` |
 
 ---
 
 ## D1 — Corrected Operator Guide
+
+> **Status: interim, corrected 2026-08-24 (CP-OPS-002 S01).** The ceremony
+> schema and the registration-commit contents in this guide were wrong when it
+> was written (audit findings F13 and F15) and are repaired below against
+> [ADR-016](../adr/ADR-016-cairn-enforcement-integrity.md). The schema itself is
+> pinned in
+> [bedrock 24](../bedrock/24_24-doc-templates.md#session-note-and-ceremony-template);
+> where this page and a bedrock page disagree, bedrock wins and the
+> disagreement is a defect to report. CP-OPS-002 S07 replaces this guide with
+> `docs/cairn/specification.md` and a step-by-step operator guide.
 
 This guide is the canonical day-to-day reference for human owners and coding agents executing work under the Cairn Protocol.
 
@@ -60,7 +71,7 @@ sequenceDiagram
 
     Note over Owner,Agent: PHASE 1: OPENING & REGISTRATION
     Owner->>Agent: Opening Check (Refine scope, invariants & features)
-    Agent->>Agent: Record session note with atomik.ceremony: opening
+    Agent->>Agent: Record session note with root-level ceremony: opening
     Agent->>Trunk: Create CP-<ID>.md (status: running, base_commit: <master-sha>)
     Agent->>Trunk: Run npm run cairn-active && npm run cairn-check
     Agent->>Trunk: Commit metadata-only registration commit to master
@@ -79,7 +90,7 @@ sequenceDiagram
 
     Note over Owner,Trunk: PHASE 3: CLOSING & SELF-MERGE
     Owner->>Agent: Closing Ceremony (Review completed features & roadmap)
-    Agent->>Agent: Record session note with atomik.ceremony: closing
+    Agent->>Agent: Record session note with root-level ceremony: closing
     Agent->>WT: Rebase branch onto latest origin/master (git rebase origin/master)
     Agent->>WT: Run bare gates on rebased HEAD
     Agent->>WT: Scaffold & fill coherence audit (npm run cairn-audit)
@@ -93,12 +104,14 @@ sequenceDiagram
 ---
 
 ### Step 1: Opening a Path
-1. **Interactive Opening Check:** Walk feature-by-feature with the owner. Record the outcome in `atomik-project/sessions/YYYY-MM-DD-<id>-opening-check.md`:
+1. **Interactive Opening Check:** Walk feature-by-feature with the owner. Record the outcome in `atomik-project/sessions/YYYY-MM-DD-<id>-opening-check.md`, with `path:` and `ceremony:` as ROOT-LEVEL frontmatter keys ([schema](../bedrock/24_24-doc-templates.md#session-note-and-ceremony-template)):
    ```yaml
    ---
-   atomik:
-     path: CP-EXAMPLE-001
-     ceremony: opening
+   type: Atomik Session Record
+   title: CP-EXAMPLE-001 opening check
+   path: CP-EXAMPLE-001
+   branch: path/cp-example-001
+   ceremony: opening
    ---
    ```
 2. **Author Path File:** Create `atomik-project/coding-paths/CP-EXAMPLE-001.md` with initial registration frontmatter:
@@ -116,9 +129,11 @@ sequenceDiagram
        - docs/modules/atomik-desktop-editor.md
    ---
    ```
-3. **Register on Trunk:** From clean `master`, run `npm run cairn-active` and `npm run cairn-check`. Commit *only* the path file and `ACTIVE.md`:
+3. **Register on Trunk:** From clean `master`, run `npm run cairn-active` and `npm run cairn-check`. Commit METADATA ONLY — the path declaration, the regenerated view, and the opening-check note that justifies the activation. No implementation of any kind:
    ```bash
-   git add atomik-project/coding-paths/CP-EXAMPLE-001.md atomik-project/coding-paths/ACTIVE.md
+   git add atomik-project/coding-paths/CP-EXAMPLE-001.md \
+           atomik-project/coding-paths/ACTIVE.md \
+           atomik-project/sessions/2026-01-01-cp-example-001-opening-check.md
    git commit -m "chore(cairn): register CP-EXAMPLE-001 on master"
    git push origin master
    ```
@@ -152,12 +167,14 @@ sequenceDiagram
 
 ### Step 3: Closing Ceremony & Self-Merge
 
-1. **Closing Ceremony:** Review completed scope with owner. Record session note in `atomik-project/sessions/YYYY-MM-DD-cp-example-001-closing-ceremony.md`:
+1. **Closing Ceremony:** Review completed scope with owner. Record session note in `atomik-project/sessions/YYYY-MM-DD-cp-example-001-closing-ceremony.md`, again with ROOT-LEVEL keys — the `ceremony` rule is blocking, and the nested form returns `false` from the live parser:
    ```yaml
    ---
-   atomik:
-     path: CP-EXAMPLE-001
-     ceremony: closing
+   type: Atomik Session Record
+   title: CP-EXAMPLE-001 closing ceremony
+   path: CP-EXAMPLE-001
+   branch: path/cp-example-001
+   ceremony: closing
    ---
    ```
 2. **Rebase onto Trunk:**
@@ -256,7 +273,7 @@ stateDiagram-v2
 | `draft` | A proposed path under drafting. No branch or worktree obligations. | `atomik.id`, `atomik.status` | *None* | `tools/cairn-check.mjs:schema` |
 | `running` | An accepted path registered on trunk and executing in its isolated worktree. | `atomik.id`, `atomik.status`, `atomik.branch`, `atomik.base_commit` | Status must be `running`, `base_commit` must be 7–40 char hex pin | `tools/cairn-check.mjs:schema`, `branch-path`, `registration` |
 | `blocked` | Execution temporarily halted. Carries no branch obligations while blocked. | `atomik.id`, `atomik.status` | *None* | `tools/cairn-check.mjs:schema` |
-| `done` | Path execution complete, accepted by owner, rebased, audited, and merged into master. **Terminal state.** | `atomik.id`, `atomik.status` *(historical paths like CP-MVP-001/002/005 carry no branch field and pass schema)* | When checked out on `path/*`, status must be `done`, `base_commit` must be pinned | `tools/cairn-check.mjs:schema`, `ceremony` *(Session note with `atomik.ceremony: closing`)* |
+| `done` | Path execution complete, accepted by owner, rebased, audited, and merged into master. **Terminal state.** | `atomik.id`, `atomik.status` *(historical paths like CP-MVP-001/002/005 carry no branch field and pass schema)* | When checked out on `path/*`, status must be `done`, `base_commit` must be pinned | `tools/cairn-check.mjs:schema`, `ceremony` *(Session note with root-level `ceremony: closing`)* |
 | `archived` | Path scope superseded, retired, or preserved as historical record. **Terminal state.** | `atomik.id`, `atomik.status` | *None* | `tools/cairn-check.mjs:schema` |
 | `active` | **Dead status vocabulary.** Reserved only for historical CP-OPS-001 bootstrap. Rejected for new paths. | Accepted by `PATH_STATUSES` | Rejected by `PATH_BRANCH_STATUSES` | `tools/cairn-check.mjs:branch-path` *(Rejects `active` on path branches)* |
 
