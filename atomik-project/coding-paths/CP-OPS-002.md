@@ -29,6 +29,8 @@ atomik:
     - atomik-project/coding-paths/paths.md
     - atomik-project/coding-paths/CP-OPS-002.md
     - atomik-project/coding-paths/index.md
+    - atomik-project/coding-paths/history/**
+    - atomik-project/coding-paths/CP-MVP-008.md
     - atomik-project/sessions/**
     - atomik-project/briefs/cp-ops-002-handoff.md
     - atomik-project/audits/index.md
@@ -142,16 +144,34 @@ S07: state the migration window as a property in the specification, and delete
 `LEGACY_UNREGISTERED_PATHS` when it empties so the exception does not outlive the
 migration by inattention.
 
-### S04 — Bound the ledger *(F4, medium — advisory)*
+### S04 — Bound the ledger *(F4, medium — advisory)* — **COMPLETE**
 
 `log.md` was frozen so parallel paths stop colliding on one file, not for context cost —
-that succeeded. Separately, the live path corpus (~85 k tokens) now has no upper bound and
-a single path file exceeds 23 k. Not a defect; a boundary worth setting before it is hit.
+that succeeded. Separately, the live path corpus (~85 k tokens) had no upper bound and a
+single path file exceeded 23 k. Not a defect; a boundary set before it was hit.
 
-- A path file keeps declaration, current ledger, next action. Completed steps roll to
-  `atomik-project/coding-paths/history/<id>-S0N.md`, linked.
-- Migrate `CP-MVP-008` (23.5 k tokens) first as the proof.
-- Advisory `ledger-size` rule so the next one is noticed early.
+- **The convention** is in `paths.md` § *The ledger has a boundary*: completed steps roll
+  into `atomik-project/coding-paths/history/<id>-S0N.md`, one file per major step with
+  sub-steps beside the step they belong to. The path file keeps its declaration, a one-line
+  index per step, the Work Ledger, the next action and blockers.
+- **The move is VERBATIM** — cut and paste, never summarize. Summarizing at rollup time
+  would quietly rewrite the record, which is the one thing a ledger may not do. It is the
+  property that makes rolling safe, so it is stated in the convention, in the index, and in
+  the header of every record.
+- **`CP-MVP-008` migrated as the proof**: ~23.5 k tokens to ~4.7 k, seven step records
+  under `history/`. Verified line-for-line — the 1,621 non-empty lines of its Execution
+  section are byte-identical to what the records now hold.
+- **`ledger-size`** is advisory and DIFF-SCOPED, over a 10,000-token budget: a path file
+  should not cost more than the entire mandatory entry chain (~9.3 k). A corpus sweep would
+  report the same four historical files on every run for months, and a check that cries
+  wolf is a check people switch off. Four tests, including one pinning `approxTokens()` to
+  the same words × 4/3 proxy the F4 table used, so a finding and the audit record are
+  comparable numbers.
+- Bedrock is untouched on purpose: `AGENTS.md` says bedrock states the doctrine while
+  `paths.md` carries the operating detail and may change without amending a bedrock page.
+  A ledger rotation convention is operating detail.
+- Round 3's register row C7 said `ledger-size` did not exist in code. True when written,
+  false now — the row is corrected and §2.3's rule table regenerated from the live source.
 
 ### S05 — Backfill OKF *(closes F5, medium)*
 
@@ -296,12 +316,12 @@ brief names — and fix what the pilot finds before merging.
 | Status | `running` on `path/cp-ops-002` |
 | Base commit | `7aa3b1d` — registered on the trunk by `df875e6` before this branch existed |
 | Branch | `path/cp-ops-002`, worktree `../4tom1k-cp-ops-002`, `node_modules` symlinked |
-| Steps complete | **S00** — the four enforcement repairs adopted into the path (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 |
-| Remaining | S04, S05, S06, S06c, S06d, S07a, S07, S08, S09 (S03 withdrawn by owner ruling; S06b rescoped and delivered inside S07 + S08 by ruling 9) |
+| Steps complete | **S00** — the four enforcement repairs adopted into the path (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` |
+| Remaining | S05, S06, S06c, S06d, S07a, S07, S08, S09 (S03 withdrawn by owner ruling; S06b rescoped and delivered inside S07 + S08 by ruling 9) |
 | Opening check | accepted 2026-08-24, eight rulings ([note](../sessions/2026-08-24-cp-ops-002-opening-check.md)) |
-| Gates at S01 | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 50/50 |
+| Gates at S04 | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 54/54 |
 | Scope note | protocol tooling and doctrine only; no product code, so `npm test` / `typecheck` / `build` are untouched by this step |
 | Widening | `writes:` gained `atomik-project/briefs/cp-ops-002-handoff.md` at S01 — the per-step handoff brief is required by bedrock 22 and the original declaration simply omitted it |
-| Next action | S04 — bound the ledger: roll completed steps into `atomik-project/coding-paths/history/<id>-S0N.md`, migrate `CP-MVP-008` (23.5 k tokens) as the proof, add the advisory `ledger-size` rule |
+| Next action | S05 — backfill OKF: `index.md` for `docs/bedrock/`, `docs/adr/`, `docs/modules/`, `atomik-project/sessions/`, `atomik-project/audits/`; frontmatter for all 15 ADRs; extend schema validation beyond `coding-paths/` |
 | Amendments | **2026-08-24, owner ruling 9** — S06b rescoped from "configure branch protection" to "declare the enforcement tier"; its deliverables move into S07 (specification + operator guide) and S08 (`enforcement` config field, generated header line, tier-0/1 `cairn-init`). This repository stays at tier 1, declared ([note](../sessions/2026-08-24-cp-ops-002-s06b-rescope.md)) |
 | Blockers | none. Nothing now waits on host configuration |

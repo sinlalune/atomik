@@ -1,11 +1,11 @@
 ---
 type: Atomik Brief
-title: Handoff — CP-OPS-002 S01 complete, ready for S04
+title: Handoff — CP-OPS-002 S04 complete, ready for S05
 timestamp: 2026-08-24T00:00:00Z
 atomik:
   path: CP-OPS-002
   branch: path/cp-ops-002
-  completed_step: S01
+  completed_step: S04
 ---
 
 # Resume CP-OPS-002 here
@@ -17,50 +17,46 @@ atomik:
   checkout.
 - Registered at `base_commit: 7aa3b1d` by the trunk commit `df875e6` before this
   branch existed; `dd6e76a` is S00.
-- Gates at S01: `npm run cairn-check` OK with one advisory — no coherence audit
+- Gates at S04: `npm run cairn-check` OK with one advisory — no coherence audit
   for this head, which is expected until the pre-merge audit. Validator suite
-  `npm run cairn-check:test` 50/50.
+  `npm run cairn-check:test` 54/54.
 - `typecheck` / `test` / `build` are not run for this step and their verdicts are
   not claimed: this path writes protocol tooling and doctrine only, and touched
   no product code.
 
 ## What the completed step changed
 
-S01 closed the two documentation defects that would have made the S00 repairs
-mislead the first operator who followed them.
+**S04 — the ledger has a boundary** (audit finding F4).
 
-- **Ceremony schema (F13).** Pinned once in
-  `docs/bedrock/24_24-doc-templates.md` § *Session note and ceremony template*:
-  root-level `path:` and `ceremony:`, exact id match, no inline comment on either
-  key. The nested `atomik: { path, ceremony }` form the D1 guide prescribed
-  returns `false` from the live parser, and the `ceremony` rule is blocking — an
-  operator following the guide would have failed the merge of the path that note
-  was written to close.
-- **D1 and the research records.** Corrected at both ceremony sites and at the
-  registration step, with a dated interim banner naming ADR-016 and the S07
-  replacement. The two earlier research records carry a ceremony-schema banner
-  rather than a silent edit; they record a proposal, not instructions.
-- **Registration doctrine (F15).** `paths.md` and bedrock 24 now say the same
-  thing: a registration commit is METADATA-ONLY — declaration, regenerated view,
-  opening-check note — and carries no implementation of any kind. The invariant
-  is "no implementation", never a file count.
-- **ADR-016 — Cairn enforcement integrity.** Records F1, F2, F8, F9, F13 and F15
-  as one decision, including why the nested form is rejected rather than accepted
-  for compatibility, and why CI must be described as *observing* until branch
-  protection exists (S06b).
-- **Three regression tests.** The durable one parses the template shipped in
-  bedrock 24 and requires it to satisfy `ceremonyFromSessions()`, so the
-  documentation is executable; a second pins that the nested form declares
-  nothing; a third pins the inline-comment trap.
+- **Convention** in `paths.md` § *The ledger has a boundary*: completed steps roll
+  into `atomik-project/coding-paths/history/<id>-S0N.md`, one file per major step,
+  sub-steps beside the step they belong to. The path file keeps its declaration, a
+  one-line index per step, the ledger, the next action and blockers.
+- **The move is verbatim** — cut and paste, never summarize. Summarizing at rollup
+  time would quietly rewrite the record, which is the one thing a ledger may not do.
+- **CP-MVP-008 migrated as the proof**: ~23.5 k tokens to ~4.7 k across seven step
+  records. Verified line-for-line: the 1,621 non-empty lines of its Execution
+  section are byte-identical to what `history/` now holds.
+- **`ledger-size`** — advisory, diff-scoped, budget 10,000 tokens, on the reasoning
+  that a path file should not cost more than the whole mandatory entry chain
+  (~9.3 k). Corpus-scoped would nag about the same historical files on every run.
+  Four tests, one pinning `approxTokens()` to the same words × 4/3 proxy the F4
+  table used so findings and the audit record are comparable numbers.
+- Round 3's C7 row (`ledger-size` "does not exist in code") corrected, and §2.3's
+  rule table regenerated from the live source — it now carries 20 rows.
+- Bedrock deliberately untouched: `AGENTS.md` puts operating detail in `paths.md`,
+  which may change without amending a bedrock page.
+
+**Only `CP-MVP-010.md` (~11.3 k) is over budget now**, and it is `done`. Nothing
+forces it: the rule fires for whoever next edits that file.
 
 ## Next action
 
-**S04 — bound the ledger** (F4, advisory). Roll completed steps out of live path
-files into `atomik-project/coding-paths/history/<id>-S0N.md` with links back,
-migrate `CP-MVP-008` (23.5 k tokens) first as the proof, and add an advisory
-`ledger-size` rule so the next oversized ledger is noticed early. Note that
-`ledger-size` does not exist in `cairn-check.mjs` today — round 3 claimed it did,
-and that claim is corrected in the round-3 register (C7).
+**S05 — backfill OKF** (closes F5). `index.md` for `docs/bedrock/`, `docs/adr/`,
+`docs/modules/`, `atomik-project/sessions/` and `atomik-project/audits/` — bedrock
+26 routes agents through the nearest index and the most-read directories have
+none. Frontmatter for all 15 ADRs (16 now, counting ADR-016). Extend schema
+validation beyond `coding-paths/`.
 
 ## Blockers and decisions still open
 

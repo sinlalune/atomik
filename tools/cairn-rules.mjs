@@ -75,6 +75,10 @@ export const RULE_METADATA = {
     condition: 'Subsystem source changed without touching matching area module note',
     enforcing: "areaOf(file) => changed.includes(note)"
   },
+  'ledger-size': {
+    condition: 'A path file in the diff exceeds the ledger token budget',
+    enforcing: 'changed.includes(path.file) && path.tokens > LEDGER_TOKEN_BUDGET'
+  },
   'scope-drift': {
     condition: 'Changed files outside path frontmatter declared writes: patterns',
     enforcing: "!matchesAny(file, declaredWrites)"

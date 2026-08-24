@@ -14,12 +14,14 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import {
+  approxTokens,
   areaOf,
   ceremonyFromSessions,
   evaluate,
   globToRegExp,
   isCommitPin,
   isPathBranch,
+  LEDGER_TOKEN_BUDGET,
   matchesAny,
   parseWrites,
   pathFrontmatterErrors,
@@ -484,6 +486,49 @@ test('done with only an opening check on record is blocked', () => {
   assert.ok(rules(found, 'blocking').includes('ceremony'))
 })
 
+
+/* ------------------------------------------------------------------ *
+ * F4 — the ledger has a boundary, and it is ADVISORY
+ *
+ * A path file is mandatory reading for whoever resumes that path and grows
+ * with every step. CP-MVP-008 reached ~23.5 k tokens while the whole entry
+ * chain before it costs ~9.3 k (audit 2026-08-24, F4). The rule speaks only
+ * to the person already editing the file: a corpus sweep would report the
+ * same historical files on every run, and that is how a check gets switched
+ * off.
+ * ------------------------------------------------------------------ */
+
+const OVERSIZED = {
+  ...A_PATH,
+  tokens: LEDGER_TOKEN_BUDGET + 1
+}
+
+test('an oversized path file in the diff advises rolling steps into history', () => {
+  const found = run([OVERSIZED.file], 'path/cp-mvp-010', [OVERSIZED])
+
+  assert.ok(rules(found, 'advisory').includes('ledger-size'))
+  // it must never stop a step: the file is large, not wrong
+  assert.deepEqual(rules(found, 'blocking'), [])
+})
+
+test('an oversized path file nobody touched stays silent', () => {
+  const found = run(['docs/index.md'], 'path/cp-mvp-010', [OVERSIZED])
+  assert.ok(!rules(found, 'advisory').includes('ledger-size'))
+})
+
+test('a path file under the budget raises nothing', () => {
+  const small = { ...A_PATH, tokens: LEDGER_TOKEN_BUDGET }
+  const found = run([small.file], 'path/cp-mvp-010', [small])
+  assert.ok(!rules(found, 'advisory').includes('ledger-size'))
+})
+
+test('approxTokens uses the proxy the audit used', () => {
+  // words x 4/3 — the F4 table's own arithmetic, so a finding and the record
+  // are comparable numbers rather than two disagreeing measurements.
+  assert.equal(approxTokens('one two three'), 4)
+  assert.equal(approxTokens(''), 0)
+  assert.equal(approxTokens('   \n  '), 0)
+})
 
 /* ------------------------------------------------------------------ *
  * F13 — the PUBLISHED schema must be the one the parser reads

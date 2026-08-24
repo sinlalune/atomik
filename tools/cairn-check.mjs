@@ -94,6 +94,22 @@ const PATH_DIR = 'atomik-project/coding-paths'
 const PATH_STATUSES = ['draft', 'active', 'blocked', 'done', 'archived', 'running']
 const PATH_BRANCH_STATUSES = ['running', 'done']
 const SESSION_DIR = 'atomik-project/sessions'
+const HISTORY_DIR = `${PATH_DIR}/history`
+
+/**
+ * A path file is MANDATORY reading for whoever resumes that path, and it grows
+ * monotonically: every step appends. The entry chain a resuming agent must read
+ * before opening any path file at all — AGENTS.md, paths.md, ACTIVE.md, bedrock
+ * 22 and 00 — costs about 9.3 k tokens (audit 2026-08-24, F4). A single path
+ * file that costs more than the entire entry chain has stopped being a ledger
+ * and become an archive, so that is the budget.
+ *
+ * Advisory, and scoped to the diff. A corpus sweep would report the same four
+ * historical files on every run for months, and a check that cries wolf is a
+ * check people switch off (`paths.md`). This one speaks to the person already
+ * editing the file, who is the only one who can act on it.
+ */
+export const LEDGER_TOKEN_BUDGET = 10_000
 
 /**
  * These paths were already running before trunk registration became a rule.
@@ -333,6 +349,18 @@ export function stripCode(text) {
     .replace(/`[^`\n]*`/g, '')
 }
 
+/**
+ * Rough token count, deliberately the SAME proxy the audit used (words x 4/3),
+ * so a finding here and the F4 table are comparable numbers rather than two
+ * measurements of the same file that disagree. Exact tokenisation depends on a
+ * model nobody here is running; the boundary is an order of magnitude, not a
+ * threshold to tune.
+ */
+export function approxTokens(text) {
+  const words = text.split(/\s+/).filter(Boolean).length
+  return Math.round((words * 4) / 3)
+}
+
 export function areaOf(file) {
   for (const [pattern, area] of AREA_MAP) if (pattern.test(file)) return area
   return null
@@ -494,6 +522,19 @@ export function evaluate({
         add('advisory', 'scope-drift',
           `${drift.length} file(s) outside the declared writes: ${drift.slice(0, 6).join(', ')}${drift.length > 6 ? ' …' : ''} — record the widening in the ledger; a root cause is discovered, not declared`)
       }
+    }
+  }
+
+  // 5b. ledger size (advisory) ----------------------------------------
+  // Completed steps roll into atomik-project/coding-paths/history/<id>-S0N.md,
+  // linked rather than inlined, leaving the path file holding its declaration,
+  // its index over those records, its ledger and its next action. Nothing is
+  // summarized in that move; it is a move.
+  for (const path of paths) {
+    if (!changed.includes(path.file) || !path.tokens) continue
+    if (path.tokens > LEDGER_TOKEN_BUDGET) {
+      add('advisory', 'ledger-size',
+        `${path.file} is ~${path.tokens} tokens, over the ${LEDGER_TOKEN_BUDGET} budget — roll its completed steps into ${HISTORY_DIR}/<id>-S0N.md, verbatim and linked, leaving the declaration, the index, the ledger and the next action`)
     }
   }
 
@@ -677,7 +718,13 @@ function loadPaths() {
       const text = readFileSync(join(REPO, rel), 'utf8')
       const parsed = readFrontmatter(text)
       const front = parsed?.data?.atomik ?? null
-      return { file: rel, front, writes: parseWrites(text), parseError: parsed?.error ?? null }
+      return {
+        file: rel,
+        front,
+        writes: parseWrites(text),
+        tokens: approxTokens(text),
+        parseError: parsed?.error ?? null
+      }
     })
 }
 
