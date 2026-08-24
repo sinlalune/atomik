@@ -18,6 +18,7 @@ import {
   approxTokens,
   areaOf,
   ceremonyFromSessions,
+  openingFromSessions,
   evaluate,
   globToRegExp,
   isCommitPin,
@@ -53,6 +54,7 @@ const run = (changed, branch, paths = [A_PATH], extra = {}) =>
     trunkContained: true,
     registrationState: 'registered',
     ceremonyFor: () => true,
+    openingFor: () => true,
     ...extra
   })
 
@@ -487,6 +489,68 @@ test('done with only an opening check on record is blocked', () => {
   assert.ok(rules(found, 'blocking').includes('ceremony'))
 })
 
+
+/* ------------------------------------------------------------------ *
+ * The OPENING check is gated too (owner directive 2026-08-24)
+ *
+ * F2 repaired the closing gate and left its twin a convention, so a path could
+ * be registered, branched and worked with no recorded acceptance at all. Both
+ * halves are now declared the same way and matched on the exact id.
+ * ------------------------------------------------------------------ */
+
+test('a closing ceremony is not an opening check', () => {
+  const closing = [{ path: 'CP-MVP-010', ceremony: 'closing' }]
+  assert.equal(openingFromSessions(closing, 'CP-MVP-010'), false)
+
+  const both = [...closing, { path: 'CP-MVP-010', ceremony: 'opening' }]
+  assert.equal(openingFromSessions(both, 'CP-MVP-010'), true)
+  // and the id still has to match exactly
+  assert.equal(openingFromSessions(both, 'CP-MVP-0100'), false)
+})
+
+test('a running path with no recorded opening check is blocked', () => {
+  const found = run([A_PATH.file], 'path/cp-mvp-010', [A_PATH], {
+    openingFor: () => false
+  })
+  assert.ok(rules(found, 'blocking').includes('opening-ceremony'))
+})
+
+test('a running path with its opening check on record passes', () => {
+  const found = run([A_PATH.file], 'path/cp-mvp-010', [A_PATH], {
+    openingFor: (id) => openingFromSessions([{ path: id, ceremony: 'opening' }], id)
+  })
+  assert.ok(!rules(found, 'blocking').includes('opening-ceremony'))
+})
+
+test('a path this change does not touch is never examined', () => {
+  // The eight paths that closed before session notes existed must stay
+  // untouched: a change that does not touch them cannot make them wrong.
+  const found = run(['docs/index.md'], 'path/cp-mvp-010', [A_PATH], {
+    openingFor: () => false
+  })
+  assert.ok(!rules(found, 'blocking').includes('opening-ceremony'))
+})
+
+test('a path that is not running is out of scope for the opening gate', () => {
+  const done = { ...A_PATH, front: { ...A_PATH.front, status: 'done' } }
+  const found = run([done.file], 'path/cp-mvp-010', [done], {
+    openingFor: () => false,
+    ceremonyFor: () => true
+  })
+  assert.ok(!rules(found, 'blocking').includes('opening-ceremony'))
+})
+
+test('the two in-flight paths that predate the schema are advisory, not blocked', () => {
+  const legacy = {
+    ...A_PATH,
+    file: 'atomik-project/coding-paths/CP-MVP-011.md',
+    front: { ...A_PATH.front, id: 'CP-MVP-011', branch: 'path/cp-mvp-011' }
+  }
+  const found = run([legacy.file], 'path/cp-mvp-011', [legacy], { openingFor: () => false })
+
+  assert.ok(!rules(found, 'blocking').includes('opening-ceremony'))
+  assert.ok(rules(found, 'advisory').includes('opening-ceremony'))
+})
 
 /* ------------------------------------------------------------------ *
  * F5 — frontmatter validation reaches the plane that holds decisions

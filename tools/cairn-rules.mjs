@@ -59,6 +59,10 @@ export const RULE_METADATA = {
     condition: 'Path branch does not contain latest trunk tip (stale branch)',
     enforcing: "trunkContained(trunkRef) === false"
   },
+  'opening-ceremony': {
+    condition: 'Path declared running without an opening-check session note',
+    enforcing: "!openingFor(pathId) via session frontmatter { path, ceremony: 'opening' }"
+  },
   'ceremony': {
     condition: 'Path marked done without closing ceremony session note frontmatter',
     enforcing: "!ceremonyFor(pathId) via session frontmatter { path, ceremony: 'closing' }"

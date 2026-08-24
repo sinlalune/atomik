@@ -19,16 +19,13 @@ atomik:
     - tools/cairn-new.mjs
     - cairn.config.json
     - .github/workflows/cairn.yml
+    - docs/index.md
+    - docs/**/index.md         # S05/S05b backfill the OKF entry points
     - docs/cairn/**
     - docs/adr/**              # S05 backfills frontmatter across every ADR
-    - docs/bedrock/index.md
     - docs/modules/**
-    - docs/index.md
-    - atomik-project/index.md
     - docs/bedrock/24_24-doc-templates.md
-    - docs/bedrock/index.md
-    - docs/modules/index.md
-    - docs/adr/index.md
+    - atomik-project/index.md
     - atomik-project/coding-paths/paths.md
     - atomik-project/coding-paths/CP-OPS-002.md
     - atomik-project/coding-paths/index.md
@@ -209,6 +206,33 @@ the flat full-directory reads it exists to prevent — and feeds F4.
   *"a lane appends here / the integrator appends here"*. ADR-012 removed both. Repaired
   with a dated note. This is the deliberate `single-truth` advisory on that file.
 
+### S05b — Gate the opening check, finish the OKF backfill *(owner directive 2026-08-24)* — **COMPLETE**
+
+Owner, reading the S05 report: *"we don't have index in all folder in /docs is that a
+decision to not have a log file also on all folders? ... ceremony opening, back filling
+why not but maybe add a blocking gate."* Three answers, all landed.
+
+- **The opening check is now BLOCKING.** F2 repaired the closing gate and left its twin a
+  convention, so a path could be registered, branched and worked with no recorded
+  acceptance at all — the ceremony `paths.md` calls the activation gate was the one
+  nothing checked. `openingFromSessions()` mirrors its closing counterpart, scoped to a
+  path file IN THE DIFF declaring `running`, so the eight paths that opened before session
+  notes existed are never examined. Eleven opening notes backfilled with the declaration.
+  Seven tests.
+- **The exception is finite and named.** `LEGACY_UNDECLARED_OPENINGS` holds CP-MVP-011 and
+  CP-MVP-012: both have a real opening note, neither declares it, and both live on branches
+  this checkout must not write. They get an advisory telling them how to clear it — two
+  keys in the note they already have — and the set drains when they merge.
+- **Five more indexes**: `docs/cairn/`, `docs/research/`, `docs/contracts/`,
+  `docs/fixtures/`, `docs/agents/`. Every meaningful folder in `docs/` and
+  `atomik-project/` now has one. `atomik-project/sources/` is empty and
+  `atomik-project/projects/` holds one file — an index over nothing is noise.
+- **No per-folder `log.md`, and it is a decision, not an omission.** Recorded in both plane
+  indexes. Bedrock 26 offers a folder two conventions; the map is stable and single-writer,
+  the log is append-only and shared by every path touching that folder — which is exactly
+  the collision that froze `atomik-project/log.md`. Recency already has two answers, Git
+  history and the per-path journal; a third could only drift from them.
+
 ### S06 — Retire the drifted page *(closes F6, medium)*
 
 - `docs/cairn/index.html` teaches the integrator model at ten sites. Rewrite against
@@ -344,10 +368,10 @@ brief names — and fix what the pilot finds before merging.
 | Status | `running` on `path/cp-ops-002` |
 | Base commit | `7aa3b1d` — registered on the trunk by `df875e6` before this branch existed |
 | Branch | `path/cp-ops-002`, worktree `../4tom1k-cp-ops-002`, `node_modules` symlinked |
-| Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane |
+| Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane (`3df9073`) · **S05b** — the opening check gated, five more indexes, the per-folder-log decision recorded |
 | Remaining | S06, S06c, S06d, S07a, S07, S08, S09 (S03 withdrawn by owner ruling; S06b rescoped and delivered inside S07 + S08 by ruling 9) |
 | Opening check | accepted 2026-08-24, eight rulings ([note](../sessions/2026-08-24-cp-ops-002-opening-check.md)) |
-| Gates at S05 | `cairn-check` OK (3 advisory: no coherence audit for this head; the deliberate `single-truth` edit below; declared-writes widening recorded) · validator suite 59/59 |
+| Gates at S05b | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 65/65 |
 | Scope note | protocol tooling and doctrine only; no product code, so `npm test` / `typecheck` / `build` are untouched by this step |
 | Widening | `writes:` gained `atomik-project/briefs/cp-ops-002-handoff.md` at S01 — the per-step handoff brief is required by bedrock 22 and the original declaration simply omitted it |
 | Next action | S06 — retire the drifted page: `docs/cairn/index.html` teaches the rejected integrator model at ten sites; rewrite it against ADR-012 or replace it with a generated view, and give both HTML pages a dated status banner naming the ADR they render |

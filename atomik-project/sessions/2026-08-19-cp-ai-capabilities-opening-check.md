@@ -5,6 +5,7 @@ timestamp: 2026-08-19T00:00:00Z
 tags: [opening-check, ai, prompt, capabilities, wikilink]
 path: CP-AI-CAPABILITIES
 branch: path/cp-ai-capabilities
+ceremony: opening
 ---
 
 # CP-AI-CAPABILITIES opening check

@@ -2,6 +2,9 @@
 type: Atomik Session Record
 title: CP-OPEN-DOCK opening check — open-target model + five-zone drag/dock, backlog reordered
 timestamp: 2026-08-20T00:00:00Z
+path: CP-OPEN-DOCK
+branch: path/cp-open-dock
+ceremony: opening
 ---
 
 # CP-OPEN-DOCK opening check (2026-08-20)
