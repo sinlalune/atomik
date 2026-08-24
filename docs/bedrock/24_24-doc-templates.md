@@ -520,7 +520,9 @@ atomik:
 # Definition of done
 
 - Module notes, learning notes (first-use rule, 17), and this ledger updated at
-  every step; one journal file is written under `atomik-project/log/` at merge.
+  every step; the path-specific handoff brief is refreshed, and the completed
+  work-unit commit is pushed immediately. One journal file is written under
+  `atomik-project/log/` at merge.
 
 # Documentation coverage
 
@@ -542,6 +544,8 @@ atomik:
 base commit :
 changed     :
 tests       :
+remote      : origin/path/<id> contains the completed-step commit
+session     : safe boundary; next session starts at `next action`
 next action :
 blockers    :
 ```
@@ -550,6 +554,46 @@ blockers    :
 ````
 
 The `Current checkpoint` section is the Work Ledger. An optional `CP-XXX.state.json` sidecar may mirror it for tooling under the standard sidecar rule.
+
+## Path handoff brief template
+
+One path owns one rolling generated view at
+`atomik-project/briefs/<path-id>-handoff.md`. Refresh it from the Work Ledger in
+every completed step's work unit; Git history retains the earlier projections.
+
+```md
+---
+type: Atomik Brief
+title: Handoff — CP-EXAMPLE-001 S03 complete, ready for S04
+timestamp: YYYY-MM-DDT00:00:00Z
+atomik:
+  path: CP-EXAMPLE-001
+  branch: path/cp-example-001
+  completed_step: S03
+---
+
+# Resume CP-EXAMPLE-001 here
+
+## Repository state
+
+- Worktree and branch
+- Completed-step commit and remote branch
+- Gate verdicts
+
+## What the completed step changed
+
+## Next action
+
+## Blockers and decisions still open
+
+## Resume instruction for the agent
+
+Resolve the path from this worktree's branch, verify the ledger against Git,
+then execute `next action`. Do not ask the owner to restate the prior session.
+```
+
+The brief never replaces the path file. If either differs from Git reality, the
+new session reconciles the Work Ledger first and regenerates this view.
 
 ### Registration before implementation
 
@@ -565,6 +609,20 @@ current trunk:
 This ordering is machine-checked for new `path/*` branches. It is what lets a
 generated trunk view see all parallel paths. CP-OPS-001, CP-MVP-011 and
 CP-MVP-012 are the finite grandfathered paths that predate the rule.
+
+### Step completion and session boundary
+
+After every step: run gates bare, commit the code/tests/docs/ledger/brief work
+unit, and immediately push it to `origin/path/<id>`. A push failure leaves the
+step locally implemented but incomplete. Once the upstream contains HEAD, the
+agent reports the remote commit and proactively offers to execute `next action`
+in a fresh session. The path remains `running`; no ceremony or status change is
+implied.
+
+On acceptance, the chat ends. A new session in the same worktree follows the
+normal bootstrap, reads the path-specific handoff brief, and proceeds without
+an owner recap. If the owner continues in the current session, the same durable
+boundary remains available later.
 
 ### Gate discipline
 

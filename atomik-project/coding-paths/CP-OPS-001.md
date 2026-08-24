@@ -21,7 +21,9 @@ atomik:
     - docs/bedrock/22_22-agent-handoff.md
     - docs/bedrock/24_24-doc-templates.md
     - docs/bedrock/35_35-coding-path-execution-state.md
+    - docs/bedrock/17_17-self-evolving-docs.md
     - docs/adr/ADR-012-parallel-paths-self-merge.md
+    - docs/cairn/workflow.html
     - docs/diagrams/D08_bootstrap_protocol.svg
     - docs/diagrams/D13_concurrent_execution_lanes.svg
     - docs/diagrams/D14_cairn_protocol_workflow.svg
@@ -31,6 +33,9 @@ atomik:
     - atomik-project/coding-paths/ACTIVE.md
     - atomik-project/coding-paths/index.md
     - atomik-project/coding-paths/CP-OPS-001.md
+    - atomik-project/briefs/index.md
+    - atomik-project/briefs/cp-ops-001-handoff.md
+    - atomik-project/sessions/2026-08-24-cp-ops-001-s09-step-session-boundary.md
 ---
 
 # Goal
@@ -326,6 +331,21 @@ lanes — providers and settings share `ai-settings.ts`, `ipc-contract.ts` and
       CP-MVP-011 and CP-MVP-012; update the protocol, ADR, diagrams, learning
       note and this ledger. Move CP-OPS itself off its bootstrap trunk exception
       into `path/cp-ops-001` before writing the repair.
+- [x] S09 OWNER CONTINUITY RULING — one completed step is one pushed remote
+      checkpoint and one safe boundary between chats (2026-08-24). The path
+      stays `running`: code + tests + docs + ledger + its rolling handoff brief
+      land together, gates run bare, the commit is pushed immediately, and only
+      then does the agent report completion and proactively offer to execute the
+      recorded next action in a fresh session. The new session resolves this
+      path from its worktree branch and resumes without an owner recap. Cairn
+      adds an advisory for a path HEAD absent from its upstream; it cannot prove
+      historical push cadence after a later batch catches up, so the operating
+      rule is mandatory without pretending it satisfies the blocking-rule test.
+      A closing rebase records old/new heads and publishes with
+      `--force-with-lease`, never blind force. Owner words are preserved in
+      `sessions/2026-08-24-cp-ops-001-s09-step-session-boundary.md`; bedrock,
+      template, ADR, guide, learning note, D08/D14 and this ledger project the
+      same rule.
 
 # Current checkpoint
 
@@ -334,44 +354,49 @@ original base: 70f7e27 — S01–S07 began as the one bootstrap exception on tru
 branch base : cc78d2f — CP-OPS moved into `path/cp-ops-001` before S08; the
               owner was actively merging other paths into the trunk, so the
               exception had outlived its reason
-current step: S08 complete; CP-OPS is ready for its closing ceremony
-evidence    : trunk `ACTIVE.md` passed Cairn while saying no path was running;
-              four clean worktrees carried `status: running`. During the
-              diagnosis CP-OPEN-DOCK and CP-RENDER-REPAIRS completed ceremony
-              and self-merged, proving that merges work while discovery does not.
-changed     : opening order now ceremony → registration-only trunk commit →
-              branch/worktree; Cairn blocks an unregistered new path branch;
-              running schema requires branch + base; CP-OPS-001 / MVP-011 /
-              MVP-012 are the finite grandfather list. AGENTS, bedrock 22/24/35,
-              ADR-012, paths.md, ACTIVE, the roadmap register, learning note 21
-              and D08/D13/D14 all project the same rule.
-views       : ACTIVE's marked block was regenerated. Its surrounding migration
-              prose and coding-paths/index.md were deliberately updated: ACTIVE
-              is the live authority; the register maps milestones and records
-              integrated outcomes. diagrams/index.md changed because all three
-              refresh triggers fired.
-generator   : D14's generator was also hard-coded to the owner's main checkout,
-              so running it from a worktree silently wrote the wrong tree. It
-              now resolves its own repository. XML validation then found the
-              existing unescaped `path/<id>` text; regenerated output is valid.
-tests       : Cairn self-tests green (31 cases across 2 files); cairn-check OK
-              with expected advisories only; SVG XML green and D14 geometry
-              asserts 14 boxes / 2 labels; typecheck green; 78 test files /
-              1101 pass / 1 skip; production build green. Gates ran bare.
-next action : fetch/reconcile remote state, commit S08 explicitly, publish the
-              safe completed trunk and this path branch. Before merge: owner
-              closing ceremony, rebase on the then-current trunk, gates again,
-              coherence audit, journal, status done, self-merge.
-blockers    : none for S08. Merge correctly waits for CP-OPS closing ceremony.
+prior remote: 6deb103 — clean and equal to origin/path/cp-ops-001 before S09
+current step: S09 complete; CP-OPS is ready for its closing ceremony
+evidence    : owner corrected "close the path" to "close the chat/session" and
+              added "push after evry commit so we have an online log". The
+              verbatim ruling is in the S09 session record. GitHub documents
+              Activity as showing pushes and force-pushes separately from
+              commit metadata; that view is timeline evidence, not the durable
+              checkpoint or a promised permanent audit archive.
+changed     : every coherent step now updates code/tests/docs/ledger plus one
+              rolling path brief, runs gates bare, commits, pushes immediately,
+              reports its remote commit, and offers the recorded next action in
+              a fresh session. The path stays running. Push failure means local,
+              incomplete work. A rewritten public path is updated only with
+              force-with-lease and recorded old/new heads.
+validator   : Cairn adds the advisory `remote-checkpoint` when a path has no
+              upstream or its current HEAD is absent from that upstream. It
+              deliberately does not claim to prove historical push cadence.
+views       : AGENTS, paths, bedrock 17/22/24/35, ADR-012, learning note 21,
+              brief template/index, Cairn guide, D08 and generated D14 project
+              the same remote-checkpoint/session-boundary rule.
+tests       : Cairn self-tests green; cairn-check OK with expected advisories
+              only; SVG XML green and D14 geometry asserts 14 boxes / 2 labels;
+              typecheck green; 78 test files / 1101 pass / 1 skip; production
+              build green. Gates ran bare.
+remote      : origin/path/cp-ops-001 contains the completed-step commit that
+              carries this checkpoint and cp-ops-001-handoff.md; the completion
+              report names its immutable hash.
+session     : safe fresh-session boundary after that push. A new session uses
+              this worktree, branch, ledger and rolling brief without an owner
+              recap; the coding path remains running.
+next action : owner closing ceremony; fetch/rebase onto current master; record
+              old/new heads and force-with-lease only if rewritten; rerun gates,
+              coherence audit, journal, status done, self-merge, push master.
+blockers    : none. Merge correctly waits for CP-OPS closing ceremony.
 ```
 
 This is CP-OPS's third observed prose-checkpoint drift. Cairn can prove that a
-ledger changed, never that its sentences remain true. S08 fixes the mechanically
-checkable portfolio input rather than pretending prose can be policed. Closing
-this long-lived bootstrap path after S08 is the practical mitigation for its
-own checkpoint exposure.
+ledger changed, never that its sentences remain true. S08 fixed the mechanically
+checkable portfolio input rather than pretending prose can be policed. S09 adds
+the rolling per-path brief and pushed session boundary so this long-lived path
+can enter closure without carrying its chat history into the next context.
 
 # Blockers
 
-None for the completed S08 work unit. The path cannot merge before its closing
+None for the completed S09 work unit. The path cannot merge before its closing
 ceremony, by design.

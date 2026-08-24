@@ -31,11 +31,11 @@ box(0, 160, 58, "Opening check", ["feature by feature, with the owner", "-> sess
 box(1, 240, 66, "Register on the trunk", ["accepted path file + generated ACTIVE", "metadata only · no implementation"])
 box(1, 328, 66, "Path opened", ["numbered = roadmap · labelled = the rest", "branch path/&lt;id&gt; · base · declared writes"])
 box(1, 416, 50, "Worktree + ATOMIK_LANE", ["one writer per working tree"])
-box(1, 488, 66, "Execute ONE step", ["code + tests + area note + ledger", "in the same work unit"])
+box(1, 488, 66, "Execute ONE step", ["code · tests · docs · ledger · brief", "one coherent work unit"])
 box(1, 576, 46, "Gates bare, locally", ["exit code is the verdict"])
-box(1, 646, 46, "Push -> pull request", [])
+box(1, 646, 58, "Commit + push EVERY step", ["online activity · open PR -> CI"])
 box(2, 714, 50, "Gates job", ["typecheck · tests · build"])
-box(2, 786, 66, "cairn-check job", ["8 blocking · 4 advisory", "registration + REBASE GATE"])
+box(2, 786, 66, "cairn-check job", ["8 blocking · 5 advisory", "registration + rebase + remote"])
 box(0, 878, 58, "Closing ceremony", ["the owner accepts the work", "-> session note (checked by CI)"], span=2)
 box(1, 960, 104, "THE PATH MERGES ITSELF", [
     "1 rebase onto the trunk        3 coherence audit, recorded",
@@ -53,7 +53,7 @@ straight = [
     (CX[1], 394, CX[1], 412),    # path opened -> worktree
     (CX[1], 466, CX[1], 484),    # worktree -> step
     (CX[1], 554, CX[1], 572),    # step -> gates
-    (CX[1], 622, CX[1], 642),    # gates -> PR
+    (CX[1], 622, CX[1], 642),    # gates -> commit/push
     (CX[2], 764, CX[2], 782),    # gates job -> cairn job
     (MID2, 936, MID2, 956),      # ceremony -> merge
     (MID2, 1064, MID2, 1094),    # merge -> trunk
@@ -65,8 +65,8 @@ for a in straight:
 elbow = [
     # opening check -> trunk registration
     [(MID2, 218), (MID2, 228), (CX[1], 228), (CX[1], 236)],
-    # PR -> CI gates job
-    [(CX[1], 692), (CX[1], 702), (CX[2], 702), (CX[2], 710)],
+    # pushed step -> CI gates job when the path has an open pull request
+    [(CX[1], 704), (CX[1], 708), (CX[2], 708), (CX[2], 710)],
     # CI -> closing ceremony
     [(CX[2], 852), (CX[2], 864), (MID2, 864), (MID2, 874)],
     # trunk -> friction report
@@ -77,9 +77,10 @@ for pts in elbow:
 
 # loops
 loops = [
-    # next step: back up the right edge of the path column
-    ([(X[1] + CW, 511), (X[1] + CW + 10, 511), (X[1] + CW + 10, 599), (X[1] + CW, 599)],
-     "next step", X[1] + CW + 14, 555, "start"),
+    # after a pushed, green step: continue in this chat or resume the next
+    # action from the ledger + brief in a fresh session.
+    ([(X[2] + CW, 819), (790, 819), (790, 521), (X[1] + CW, 521)],
+     "next step · fresh session offered", 782, 620, "end"),
     # friction report back into a new path. The label rides the vertical run:
     # placed beside the friction box it overlapped it, which anchor-only
     # geometry checks do not catch.
@@ -92,7 +93,8 @@ svg.append(
     '<title>The Cairn protocol — full workflow</title>'
     '<desc>Role swimlanes: the owner runs the ceremonies and reports friction; the path author '
     'registers the accepted declaration on the trunk, then executes one step at a time in an '
-    'isolated worktree; CI runs product and protocol gates; each path merges itself. Feedback '
+    'isolated worktree; every completed step is committed, pushed and offered as a fresh-session '
+    'boundary; an open pull request runs product and protocol gates; each path merges itself. Feedback '
     'preempts the roadmap and no integrator exists.</desc>'
     '<defs>'
     '<marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" '

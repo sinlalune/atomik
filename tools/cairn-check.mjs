@@ -280,6 +280,7 @@ export function evaluate({
   resolveFile,
   trunkContained,
   registrationState,
+  remoteCheckpoint,
   ceremonyFor
 }) {
   const findings = []
@@ -314,6 +315,18 @@ export function evaluate({
       add('advisory', 'registration',
         `${match.front.id} predates trunk registration and is explicitly grandfathered — do not copy this exception to a new path`)
     }
+  }
+
+  // Every commit is pushed immediately so each completed work unit has an
+  // online recovery point and a host-visible push event. This is
+  // ADVISORY: a final ref can reveal that HEAD is unpublished now, but cannot
+  // prove whether older commits were pushed one-by-one or later as a batch.
+  if (onPath && remoteCheckpoint?.state === 'missing') {
+    add('advisory', 'remote-checkpoint',
+      `branch "${branch}" has no upstream — push every commit and set origin/${branch} as upstream before reporting the step complete`)
+  } else if (onPath && remoteCheckpoint?.state === 'unpushed') {
+    add('advisory', 'remote-checkpoint',
+      `HEAD is not contained in ${remoteCheckpoint.upstream} — push this commit before reporting the step complete or offering an ordinary fresh-session handoff`)
   }
 
   // 3. the rebase gate (owner directive: "the rebase need should be an
@@ -476,6 +489,35 @@ function pathRegistrationState(trunkRef, branch, paths) {
   }
 }
 
+/**
+ * Is the current path HEAD present on its configured upstream?
+ *
+ * This deliberately reads local remote-tracking refs and performs no network
+ * operation. `git push` updates that ref; a later session may fetch before
+ * checking. The result can identify a CURRENT missing checkpoint, never prove
+ * the historical timing of older pushes.
+ */
+function pathRemoteCheckpoint(branch) {
+  if (!isPathBranch(branch)) return null
+
+  let upstream
+  try {
+    upstream = git(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'])
+  } catch {
+    return { state: 'missing', upstream: null }
+  }
+
+  try {
+    execFileSync('git', ['merge-base', '--is-ancestor', 'HEAD', upstream], {
+      cwd: REPO,
+      stdio: 'ignore'
+    })
+    return { state: 'published', upstream }
+  } catch {
+    return { state: 'unpushed', upstream }
+  }
+}
+
 /** A closing ceremony leaves a session note naming the path. */
 function hasCeremony(pathId) {
   try {
@@ -610,6 +652,7 @@ function main() {
       resolveFile: (file) => existsSync(join(REPO, file)),
       trunkContained: trunkContained(trunkRef),
       registrationState: pathRegistrationState(trunkRef, branch, paths),
+      remoteCheckpoint: pathRemoteCheckpoint(branch),
       ceremonyFor: hasCeremony
     })
   ]

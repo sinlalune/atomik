@@ -47,6 +47,8 @@
       "An accepted running path is registered on the trunk before its implementation branch diverges, so portfolio views are globally complete rather than checkout-local.",
       "A context window is an execution buffer, not durable memory.",
       "A brief is a generated, disposable view of path state, never the primary memory.",
+      "Every completed step has a remote commit and is therefore a safe boundary between chat sessions.",
+      "The agent offers that boundary proactively; a new session resumes the next action without requiring the owner to restate context.",
       "Interactive path artifacts are projections; updating them patches the path file.",
       "The design remains correct regardless of any provider's session, context, or instruction-size limits; such figures are never load-bearing."
     ]
@@ -106,7 +108,15 @@ It is:
 no durable state is lost
 every omitted area is visible, with a reason
 exact context can be reloaded at any time from files
+every completed work unit can be recovered from its pushed branch
 ```
+
+The practical unit is deliberately smaller than a path. A path may span many
+steps and sessions, but each completed step refreshes its checkpoint and
+path-specific handoff brief, commits them with the work, and pushes immediately.
+The agent then offers to execute the next step in a fresh session. Context-window
+pressure becomes a cheap scheduling choice instead of a reason to compress or
+re-explain the project.
 
 ## Coding path anatomy
 
@@ -174,8 +184,10 @@ The Work Ledger is the checkpoint that survives compaction, session ends, and de
 base commit
 changed files
 test state (unit / integration, passing or not run)
+remote branch and pushed commit
 next action
 blockers and pending decisions
+whether this is a verified fresh-session boundary
 ```
 
 An optional machine sidecar (`CP-XXX.state.json`) may mirror the checkpoint for tooling, following the standard sidecar rule: precision and performance support only, never the sole home of the state.
@@ -193,8 +205,17 @@ larger work
   each path merges ITSELF; there is no integrator
 
 every new session
-  resumes from the persisted checkpoint
+  resolves its path from the current worktree branch
+  resumes from the persisted checkpoint + path-specific handoff brief
   never reconstructs progress from conversation history
+  never asks the owner for a recap unless durable repository state conflicts
+
+every completed step
+  code + tests + docs + ledger + handoff brief form one work unit
+  relevant gates run bare
+  commit is pushed immediately to the path branch
+  agent proactively offers: continue here OR next step in a fresh session
+  choosing fresh ends the chat, not the still-running path
 ```
 
 Paths are the unit of parallelism, not a layer beneath one. Numbered paths
@@ -305,6 +326,21 @@ The decision record is `ADR-009`.
 ## Lifecycle and Git
 
 Coding paths are committed by default. A finished path moves to `status: done`, then `archived` (or `coding-paths/archive/`) — demotion, never deletion, consistent with the note lifecycle in `11_11-markdown-page-model.md`. Ledger updates should be small appends; one executed step should read as one meaningful diff.
+
+Every commit is also pushed immediately to the branch it belongs to. This gives
+each step a remote recovery point. On GitHub, repository Activity records push
+events separately from commit metadata; the normal commit view still shows the
+commit's dates rather than replacing them with a push timestamp. Activity is a
+useful online timeline, not a promised permanent audit archive. A local commit
+whose push failed is not a completed work unit and must be reported that way.
+
+If the closing rebase rewrites commits that were already published, the path
+records its pre/post heads and updates its remote with
+`git push --force-with-lease`; blind force is forbidden. The final merge commit
+is pushed to the trunk immediately. A local validator can detect that HEAD is
+currently ahead of its upstream, but cannot reconstruct whether several old
+commits were once pushed individually and later batched; remote cadence remains
+an operating invariant with an advisory check, not a blocking repository rule.
 
 ## Start as one file
 

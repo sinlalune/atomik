@@ -26,7 +26,7 @@ These run locally with the same command CI runs. The exit code is the verdict â€
 never pipe gate output through `grep` or `head`.
 
 ```bash
-npm run cairn-check     # protocol: 8 blocking rules, 4 advisory
+npm run cairn-check     # protocol: 8 blocking rules, 5 advisory
 npm run cairn-active    # regenerate the running-paths view (never edit it)
 npm run cairn-audit     # scaffold the coherence audit before merging
 npm run typecheck && npm test && npm run build
@@ -40,6 +40,13 @@ npm run typecheck && npm test && npm run build
 - Never invent architecture outside `docs/bedrock/`; decisions live in `docs/adr/`.
 - Every executed step updates code, tests, docs, and the path's own work ledger
   in the same work unit.
+- Every commit is pushed immediately to the branch it belongs to. A step is not
+  complete until its commit is online; Cairn warns when a path HEAD is ahead of
+  its upstream.
+- Every completed step is a safe session boundary. Refresh the path's handoff
+  brief in that work unit, then proactively offer a fresh session; the next
+  session resumes from the same worktree, ledger, and brief without an owner
+  rebrief. This ends a chat, never the still-running coding path.
 - The journal is ONE FILE PER ENTRY in `atomik-project/log/`, written at merge
   time. `atomik-project/log.md` is a FROZEN archive â€” never append to it.
 - A path branch is `path/<id>`, in its own worktree, with one writer. Run the
@@ -59,4 +66,6 @@ atomik-project/  knowledge + execution plane (brainstorm/ is provisional)
 .atomik/         rebuildable only; never canonical
 ```
 
-Generate a brief into `atomik-project/briefs/` only when handing work to another session or agent.
+Keep one path-specific handoff brief under `atomik-project/briefs/`, refreshed
+from the ledger at each completed step. It is a disposable view, never primary
+memory.

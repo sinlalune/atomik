@@ -39,17 +39,21 @@
       "executed path steps",
       "updated work ledger",
       "code + tests + docs in one work unit",
+      "pushed remote checkpoint for every commit",
+      "path-specific handoff brief refreshed at every completed step",
       "one journal file per merged step",
-      "generated brief on handoff only"
+      "fresh-session proposal after every completed step"
     ],
     "invariants": [
-      "Navigate Bedrock for knowledge; follow a Coding Path for execution; persist progress in the Work Ledger; generate a brief only as a portable view of that state.",
+      "Navigate Bedrock for knowledge; follow a Coding Path for execution; persist progress in the Work Ledger; keep the path-specific handoff brief only as a portable view of that state.",
       "Never begin implementation without an accepted coding path; propose one first if none exists.",
       "After opening acceptance, register the running path declaration on the trunk and regenerate ACTIVE.md before creating its implementation worktree.",
       "Never silently invent architecture outside the bedrock.",
       "Read every Required document of the active path; honor Conditional triggers; respect Deliberately excluded entries.",
       "Verify repository reality against the ledger before executing; reconcile mismatches explicitly.",
       "Every executed step updates code, tests, documentation and the ledger in the same work unit; the journal is written once, at merge.",
+      "Every commit is pushed immediately to its owning branch; an unpushed step is locally implemented, not complete.",
+      "Every completed step is a safe chat boundary; the agent proactively offers a fresh session, and the next session resumes without an owner rebrief.",
       "Do not hide canonical knowledge or execution state in caches, embeddings, or chat memory.",
       "Provider keys and private context stay behind typed secure boundaries.",
       "Emit a minimal ActionTrace from the first AI mock; no raw prompt/output telemetry by default.",
@@ -94,13 +98,24 @@ Coding Path    = what this task will change, in what order, and where it stands
    update the affected module AREA note and any other affected docs,
    and when the step first mobilizes a technology or pattern,
    add or extend the matching docs/learning/ note (17 first-use rule).
+   Refresh `atomik-project/briefs/<path-id>-handoff.md` from that ledger so
+   the completed step is already a portable session boundary.
    The journal is written at MERGE time, one file per entry in
    atomik-project/log/ — never appended to the frozen log.md.
-10. Before merging: closing ceremony recorded, rebase onto the trunk, gates
+10. Run the relevant gates bare, commit the complete work unit, and push that
+    commit immediately to its owning branch. A step is not complete until the
+    push succeeds. Report its remote commit and proactively offer to end this
+    chat and execute the next step in a fresh session. The path remains
+    `running`; this is not its closing ceremony.
+11. When a fresh session is chosen, end only after the pushed checkpoint is
+    verified. The next session in the same worktree resolves the path from the
+    branch, reads its ledger and path-specific handoff brief, reconciles reality,
+    and begins `next action` without asking the owner to restate context.
+12. Before merging: closing ceremony recorded, rebase onto the trunk, gates
     green on the REBASED result, coherence audit recorded, status: done in
-    the same change. Then merge — nobody approves it; the gates did.
-11. Generate a brief into atomik-project/briefs/ ONLY when handing work
-    to another session, agent, or person.
+    the same change. If the rebase rewrote published commits, push the rebased
+    path with `--force-with-lease`, recording the old and new heads; then merge
+    and immediately push the trunk — nobody approves it; the gates did.
 ```
 
 The mechanical half of this is enforced rather than remembered: `npm run
@@ -157,6 +172,15 @@ owner experiments are bench inputs
   an owner-reported external-tool experiment is a first-class bench
   input: pin the exact artifact, version, and configuration before
   comparing anything against it
+
+step/session boundary (owner directive 2026-08-24)
+  commit + successful push = completed work unit;
+  after every completed step, agent names the remote commit and offers
+  "continue here" or "fresh session for <next action>";
+  the fresh session reads branch + ledger + handoff brief and starts directly;
+  owner supplies no recap, transcript, prompt paste, or repeated decision;
+  if durable state conflicts, the agent reconciles files instead of asking the
+  owner to reconstruct the previous context window
 ```
 
 ## Standing prohibitions
@@ -178,4 +202,8 @@ no mass file rewrites on app open
 
 ## Completion report
 
-When reporting a step or path as done, follow the final response requirement of `agent_documentation_contract.md`, which now includes the updated coding path step and Work Ledger state.
+When reporting a step or path as done, follow the final response requirement of
+`agent_documentation_contract.md`, which includes the updated coding path step
+and Work Ledger state. A step report also names the successfully pushed commit
+and offers the fresh-session boundary; without the push it must say
+"implemented locally, not complete."

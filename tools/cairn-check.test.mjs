@@ -115,6 +115,32 @@ test('a trunk registration must match the path identity, running state and branc
   assert.ok(!registrationMatches('not frontmatter', 'CP-MVP-010', 'path/cp-mvp-010', 'abc1234'))
 })
 
+test('an unpublished path HEAD is advisory; a published HEAD and trunk are quiet', () => {
+  const missing = run(['README.md'], 'path/cp-mvp-010', [A_PATH], {
+    remoteCheckpoint: { state: 'missing', upstream: null }
+  })
+  assert.ok(rules(missing, 'advisory').includes('remote-checkpoint'))
+  assert.ok(!rules(missing, 'blocking').includes('remote-checkpoint'))
+
+  const unpushed = run(['README.md'], 'path/cp-mvp-010', [A_PATH], {
+    remoteCheckpoint: { state: 'unpushed', upstream: 'origin/path/cp-mvp-010' }
+  })
+  assert.ok(rules(unpushed, 'advisory').includes('remote-checkpoint'))
+  assert.ok(unpushed.some(
+    (finding) => finding.rule === 'remote-checkpoint' && finding.message.includes('origin/path/cp-mvp-010')
+  ))
+
+  const published = run(['README.md'], 'path/cp-mvp-010', [A_PATH], {
+    remoteCheckpoint: { state: 'published', upstream: 'origin/path/cp-mvp-010' }
+  })
+  assert.ok(!rules(published, 'advisory').includes('remote-checkpoint'))
+
+  const trunk = run(['README.md'], 'master', [A_PATH], {
+    remoteCheckpoint: { state: 'unpushed', upstream: 'origin/master' }
+  })
+  assert.ok(!rules(trunk, 'advisory').includes('remote-checkpoint'))
+})
+
 test('base commits are real-looking Git pins, not YAML null strings', () => {
   assert.ok(isCommitPin('70f7e27'))
   assert.ok(isCommitPin('70f7e27aabbccddeeff001122334455667788990'))

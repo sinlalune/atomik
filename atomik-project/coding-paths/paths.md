@@ -21,6 +21,8 @@ written here, never on a conversation.
 N coding paths, running at the same time
 one path      = one worktree = one branch = one writer
 every opening = one registration-only trunk commit BEFORE the branch
+every commit  = one immediate remote checkpoint on its owning branch
+every step    = one safe boundary between chat sessions
 each path merges ITSELF into the trunk
 no integrator, no parent, no gatekeeper
 ```
@@ -96,8 +98,9 @@ atomik:
    declaration is absent from the trunk. CP-OPS-001, CP-MVP-011 and CP-MVP-012
    are the finite grandfathered set because they were already running when the
    defect was found; the exemption is named in code and is never copied.
-4. Execute bedrock 22's protocol one step at a time — code, tests, docs and the
-   ledger in the same work unit.
+4. Execute bedrock 22's protocol one step at a time — code, tests, docs, the
+   ledger and the path-specific handoff brief in the same work unit. Run the
+   gates, commit, and push that commit immediately. Only then is the step done.
 
 ### Why registration is a commit, not more guidance
 
@@ -140,6 +143,62 @@ ln -s ../4tom1k/apps/desktop/node_modules apps/desktop/node_modules
 Branch from local `master`, never `origin/master` when the local branch is
 ahead. Run the app with `ATOMIK_LANE=<slug> ATOMIK_LANE_PORT=<port> npm run dev`
 so two instances never share one Electron profile (`electron-main/lane.ts`).
+
+## Every commit is a remote checkpoint
+
+Owner directive (2026-08-24): *"push after evry commit so we have an online
+log"*. Commit and push are therefore one completion unit:
+
+```text
+change code + tests + docs + ledger + handoff brief
+  -> run the relevant gates bare
+  -> commit the coherent work unit
+  -> push immediately to that commit's owning branch
+  -> only now report the step complete
+```
+
+For implementation work that branch is `origin/path/<id>`. Registration-only
+and final merge commits belong to the trunk and are pushed there immediately.
+If the push fails, the agent reports **implemented locally, not complete**, puts
+the failure in the checkpoint, and does not recommend an ordinary session
+handoff. An emergency handoff remains possible when the owner explicitly
+chooses it.
+
+`cairn-check` warns when a path HEAD is absent from its configured upstream. It
+cannot prove historical cadence once several commits are eventually pushed
+together. On GitHub, the repository Activity view records direct pushes and
+force-pushes separately from commit metadata; the commit list still shows the
+commit's own dates, not a replacement "push date". Treat the remote branch as
+the durable checkpoint and Activity as a useful online timeline, not as a
+promised permanent audit archive. That is why remote cadence is an absolute
+operating rule and an advisory check, not a blocking repository-integrity rule.
+See [GitHub's Activity view documentation](https://docs.github.com/en/repositories/viewing-activity-and-data-for-your-repository/using-the-activity-view-to-see-changes-to-a-repository).
+
+If a closing rebase rewrites already-published path commits, publish the
+rebased head with `git push --force-with-lease`, never blind `--force`, and
+record the pre-rebase and post-rebase heads in the Work Ledger or coherence
+audit. GitHub Activity then shows the force-push event, while the final merged
+history carries the rebased commits.
+
+## Every completed step is a session boundary
+
+A coding path may span many sessions; a chat should not have to. After every
+completed-and-pushed step, the agent proactively offers a fresh-session
+boundary. This is a session handoff, **not** a closing ceremony and not a path
+status transition.
+
+Before making the offer, the same work unit refreshes
+`atomik-project/briefs/<path-id>-handoff.md` from the path ledger. The completion
+report names the pushed commit, the gate verdict, the next action, and asks
+whether to continue here or start that next action in a fresh session. If the
+owner chooses fresh, the current chat ends. A new session opened in the same
+worktree identifies the path from its branch, reads `AGENTS.md` -> `paths.md`
+-> `ACTIVE.md` -> the path ledger -> its handoff brief, verifies reality, and
+continues without asking the owner to reconstruct prior context.
+
+The path file remains primary. If the generated brief and repository reality
+disagree, the new session reconciles the ledger and regenerates the brief;
+conversation memory never wins.
 
 ## Merging — every path merges itself
 
@@ -241,6 +300,7 @@ BLOCKING   branch → path (a path/* branch is declared by a running path
            derived views current (trunk only)
 
 ADVISORY   coherence audit missing for this head
+           remote checkpoint — path HEAD is not yet on its upstream branch
            scope drift vs declared writes:
            area note untouched while its source changed
            bedrock changed with no ADR beside it

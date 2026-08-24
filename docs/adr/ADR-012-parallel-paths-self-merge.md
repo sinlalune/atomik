@@ -3,6 +3,7 @@
 Status: accepted
 Date: 2026-08-15
 Amended: 2026-08-20 (register accepted paths on the trunk before branching)
+Amended: 2026-08-24 (remote checkpoint and fresh-session boundary per step)
 Amends: ADR-009 (durable coding paths, work ledger, dual-plane repository)
 
 ## Context
@@ -67,6 +68,14 @@ merge gate left no artifact.
    rebased diff against the bedrock, the ADRs and the path's declared coverage;
    CI checks only that a filled record exists. A deterministic gate on a
    non-deterministic activity; its verdict never blocks.
+8. **Every commit is a remote checkpoint; every completed step is a session
+   boundary.** The work unit includes code, tests, documentation, Work Ledger
+   and the path-specific handoff brief. Its commit is pushed immediately to
+   the owning branch and is not reported complete until that push succeeds.
+   The agent then proactively offers to continue the next step in a fresh
+   session. That session resolves the same path from its worktree and resumes
+   from repository state without an owner rebrief; the path itself remains
+   `running`.
 
 ## Evidence
 
@@ -97,6 +106,11 @@ them lost. That is why this ADR exists in the shape it does.
   added after the branches diverged. No stronger instruction can make one Git
   tree see an unrelated tree. Registration moves the stable input onto the
   trunk before work starts; a blocking check prevents recurrence.
+- **The durable checkpoint existed locally but the online chronology did not.**
+  A commit time says when a Git object was made, not when it reached the host,
+  and a long chat could carry several complete steps before any remote recovery
+  point existed. The 2026-08-24 owner ruling couples commit with immediate push
+  and makes the already-durable step boundary an explicit fresh-session offer.
 
 ## Consequences
 
@@ -117,6 +131,19 @@ coordination cost, but it contains no product code and removes the need for a
 registry service, branch scan, or integrator. A workstation that cannot land
 the registration cannot honestly claim that the path is globally running.
 
+Every step now triggers a remote push and potentially CI when a pull request is
+open, increasing visible activity and pipeline use. Accepted: the benefit is an
+online recovery point and a host-visible push event at the same granularity as
+the Work Ledger. GitHub Activity is useful timeline evidence, not a promised
+permanent audit archive; the branch history is the durable checkpoint.
+The path-specific handoff brief adds a small derived-file diff to every step so
+a fresh session needs no prompt recap from the owner.
+
+Publishing early means a closing rebase may rewrite a public path branch. When
+it does, the old and new heads are recorded and the update uses
+`--force-with-lease`; blind force remains forbidden. The final merged commits
+are durable on trunk and GitHub Activity records the push/force-push events.
+
 ## Known gaps at acceptance
 
 Recorded rather than hidden; none is a reason to defer the decision.
@@ -134,6 +161,11 @@ Recorded rather than hidden; none is a reason to defer the decision.
 5. **Resolved 2026-08-20:** running paths were invisible until merge because
    their declarations lived only on their branches. Registration-before-branch
    plus the new Cairn rule closes this gap for every new path.
+6. Immediate push cadence cannot be reconstructed from the final local refs:
+   after a late batch push, HEAD looks published even though earlier commits
+   were not pushed immediately. Cairn therefore warns about a currently
+   unpublished HEAD but does not claim to prove history; the Git host's activity
+   log is the dated evidence.
 
 ## Migration / rollback
 

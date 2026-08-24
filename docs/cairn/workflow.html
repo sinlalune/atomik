@@ -230,6 +230,8 @@
         <pre><code>base commit : 70f7e27
 changed     : electron-main/lane.ts (new), tests/lane.test.ts
 tests       : 773/64 pass — typecheck, build, protocol green
+remote      : origin/path/cp-ops-001 contains the step commit
+session     : safe boundary; fresh session may start at next action
 next action : split the module note per area
 blockers    : none</code></pre>
         <div class="p" style="margin-top:.8rem">Rewritten at every step. It is why three workstations work: pull, read five lines, continue. It is also why an interrupted agent session costs nothing — the context window was never the memory.</div>
@@ -256,7 +258,7 @@ blockers    : none</code></pre>
     <div class="blk" data-role="auto" id="b-enforce" data-level="1" hidden>
       <span class="role-tag">Automated · the split that keeps checks alive</span>
       <div class="syn">Rules that leave the repository objectively wrong fail the build; everything requiring judgment only speaks up.</div>
-      <div class="p"><strong>Blocking</strong> — branch has a path · rebase gate · ceremony recorded · code and docs in one commit · metadata parses · links resolve · generated views current. <strong>Advisory</strong> — coherence audit · scope drift · stale contract note · decision drift.</div>
+      <div class="p"><strong>Blocking</strong> — branch has a path · trunk registration · rebase gate · ceremony recorded · code and docs in one commit · metadata parses · links resolve · generated views current. <strong>Advisory</strong> — coherence audit · unpublished remote checkpoint · scope drift · stale contract note · decision drift.</div>
       <div class="callout" style="background:var(--auto-bg); border-left-color: var(--auto)"><div class="p">A false blocking verdict costs more than a missed one — it teaches people to route around the check, after which it catches nothing.</div></div>
     </div>
   </div>
@@ -288,6 +290,8 @@ blockers    : none</code></pre>
 Absolute rules that survive a truncated read:
 - no work outside an accepted path
 - every step: code + tests + docs + checkpoint, one commit
+- every commit: push immediately; no push means not complete
+- every completed step: agent offers a fresh session
 - progress persists in files, never in a conversation</code></pre>
           <div class="p" style="margin-top:.8rem">Keep it under a page. The moment it starts containing knowledge instead of pointing at it, it becomes a second source of truth.</div>
         </div>
@@ -332,7 +336,7 @@ Absolute rules that survive a truncated read:
       <div>
         <h3>Open the path and its worktree</h3>
         <div class="actors"><span class="key agent">AGENT</span></div>
-        <div class="p">The agent writes the path file — id, status, base commit, branch, and the <button class="x" data-role="file" data-open="b-writes" aria-expanded="false">surfaces it expects to touch</button> — then creates a separate working copy so this work can run beside others.</div>
+        <div class="p">The agent writes the path file — id, status, base commit, branch, and the <button class="x" data-role="file" data-open="b-writes" aria-expanded="false">surfaces it expects to touch</button> — and lands that accepted declaration plus the generated running-path view in a metadata-only trunk commit. It then creates a separate working copy from that registration so every branch can see that the path exists.</div>
         <div class="blk" data-role="file" id="b-writes" data-level="1" hidden>
           <span class="role-tag">Artifact · declared writes</span>
           <div class="syn">A declaration of expected reach — an overlap signal when the path opens and a comparison at merge time, never a lock.</div>
@@ -350,7 +354,7 @@ cd ../proj-cp-mvp-010 &amp;&amp; ln -s ../proj/node_modules node_modules</code><
       <div>
         <h3>Execute one step</h3>
         <div class="actors"><span class="key agent">AGENT</span></div>
-        <div class="p">The repeating unit, and the heart of the framework. One step means: change the code, change the tests, <button class="x" data-role="agent" data-open="b-docs" aria-expanded="false">change the documentation</button>, update the checkpoint — <button class="x" data-role="agent" data-open="b-unit" aria-expanded="false">all in the same commit</button>. Then run the gates locally, bare.</div>
+        <div class="p">The repeating unit, and the heart of the framework. One step means: change the code, change the tests, <button class="x" data-role="agent" data-open="b-docs" aria-expanded="false">change the documentation</button>, update the checkpoint and the path's rolling handoff brief — <button class="x" data-role="agent" data-open="b-unit" aria-expanded="false">all in the same commit</button>. Run the gates locally, bare, then push immediately.</div>
         <div class="blk" data-role="agent" id="b-docs" data-level="1" hidden>
           <span class="role-tag">Agent · what documentation means here</span>
           <div class="syn">Three kinds, each triggered by a different thing, and none of them optional.</div>
@@ -368,8 +372,9 @@ cd ../proj-cp-mvp-010 &amp;&amp; ln -s ../proj/node_modules node_modules</code><
           <div class="syn">Anything left for later drifts immediately, so "done" is defined as all four landing together.</div>
           <div class="p">This is one of the few rules a pipeline can check mechanically — source changed, so a module note and a checkpoint must have changed too — which is why it is enforced rather than encouraged. It also makes "done" stop being a judgment call: either the commit contains all four or it does not.</div>
           <div class="p">Gates run <em>bare</em>: the exit code is the verdict, never a grep over the output. A pipe once swallowed a failing type-check and shipped a white screen.</div>
+          <div class="p">The commit is pushed before completion is reported. Once it is online, the agent proactively offers to execute the recorded next action in a fresh session. The path stays open; only the chat ends, and the owner supplies no recap.</div>
         </div>
-        <div class="out"><b>produces</b> a commit, an updated checkpoint · <b>skip parts and</b> the docs describe a system that no longer exists</div>
+        <div class="out"><b>produces</b> a pushed commit, checkpoint and fresh-session boundary · <b>skip parts and</b> the docs describe a system that no longer exists</div>
       </div>
     </div>
 
@@ -392,16 +397,16 @@ cd ../proj-cp-mvp-010 &amp;&amp; ln -s ../proj/node_modules node_modules</code><
     <div class="step">
       <div class="stepnum">06</div>
       <div>
-        <h3>Push — the pipeline answers two questions</h3>
-        <div class="actors"><span class="key auto">AUTOMATED</span></div>
-        <div class="p">Two jobs, deliberately separate, because a red build and a broken protocol need different fixes: <strong>does the software work</strong> (type-check, tests, build) and <strong>was the protocol followed</strong> (the check, including <button class="x" data-role="auto" data-open="b-rebase" aria-expanded="false">the rebase gate</button>).</div>
+        <h3>Every commit is pushed — the pipeline answers two questions</h3>
+        <div class="actors"><span class="key agent">AGENT</span><span class="key auto">AUTOMATED</span></div>
+        <div class="p">The push is the remote recovery point and adds a GitHub Activity event separate from the commit's own timestamp. With an open pull request—or on a trunk push—the configured workflow starts two deliberately separate jobs, because a red build and a broken protocol need different fixes: <strong>does the software work</strong> (type-check, tests, build) and <strong>was the protocol followed</strong> (the check, including <button class="x" data-role="auto" data-open="b-rebase" aria-expanded="false">the rebase gate</button>).</div>
         <div class="blk" data-role="auto" id="b-rebase" data-level="1" hidden>
           <span class="role-tag">Automated · the rebase gate</span>
           <div class="syn">A branch must already contain the tip of the trunk before it may merge — which serializes merging without serializing work.</div>
           <div class="p">This is the mechanism that makes a gatekeeper unnecessary. Two paths run for two days in parallel; whoever merges second pays a rebase and a re-run, which takes minutes. With a human gatekeeper, every merge instead waits on one person's attention.</div>
           <div class="p">The re-run matters as much as the rebase: CI must be green on the <em>rebased</em> result, not on a stale branch that was green against a trunk that has since moved.</div>
         </div>
-        <div class="out"><b>produces</b> two verdicts · <b>skip it and</b> the rules are enforced by whoever remembers them</div>
+        <div class="out"><b>produces</b> an online checkpoint and two verdicts · <b>skip it and</b> the next session depends on this machine</div>
       </div>
     </div>
 
@@ -512,7 +517,7 @@ cd ../proj-cp-mvp-010 &amp;&amp; ln -s ../proj/node_modules node_modules</code><
     <figure class="figure">
       <svg viewBox="0 0 780 980" role="img" aria-labelledby="lt ld">
         <title id="lt">The Cairn daily loop</title>
-        <desc id="ld">A repository is initialized, then the human decides what to work on and runs an opening check. The agent opens a path and its worktree, executes one step at a time, and bench rounds with the human feed corrections back into the steps. Pushing runs two automated jobs; a closing ceremony with the human accepts the work; then the path rebases, audits, and merges itself into the trunk. Friction with the trunk opens a new path.</desc>
+        <desc id="ld">A repository is initialized, then the human decides what to work on and runs an opening check. The agent registers and opens a path, executes one step at a time, pushes every completed-step commit, and offers the next step in a fresh session without an owner recap. An open pull request or trunk push runs the configured automated jobs; a closing ceremony accepts the path; then it rebases, audits, and merges itself into the trunk. Friction with the trunk opens a new path.</desc>
         <defs><marker id="l-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
 
         <g class="wire">
@@ -554,7 +559,7 @@ cd ../proj-cp-mvp-010 &amp;&amp; ln -s ../proj/node_modules node_modules</code><
           <rect class="fa" x="180" y="336" width="420" height="74" rx="9"/>
           <text class="t-ink" x="390" y="357" text-anchor="middle" font-size="13" font-weight="600">04 · Execute ONE step</text>
           <text class="t-soft" x="390" y="375" text-anchor="middle" font-size="11">code + tests + docs + figure + checkpoint</text>
-          <text class="t-faint" x="390" y="392" text-anchor="middle" font-size="10.5">one commit · gates run bare</text>
+          <text class="t-faint" x="390" y="392" text-anchor="middle" font-size="10.5">one commit · gates bare · push immediately</text>
 
           <rect class="fh" x="180" y="432" width="420" height="54" rx="9"/>
           <text class="t-ink" x="390" y="452" text-anchor="middle" font-size="13" font-weight="600">05 · Bench round</text>
@@ -563,7 +568,7 @@ cd ../proj-cp-mvp-010 &amp;&amp; ln -s ../proj/node_modules node_modules</code><
           <rect class="fm" x="180" y="508" width="420" height="74" rx="9"/>
           <text class="t-ink" x="390" y="529" text-anchor="middle" font-size="13" font-weight="600">06 · Push — two verdicts</text>
           <text class="t-soft" x="390" y="547" text-anchor="middle" font-size="11">does it work · was the protocol followed</text>
-          <text class="t-faint" x="390" y="564" text-anchor="middle" font-size="10.5">7 blocking · 4 advisory · incl. the rebase gate</text>
+          <text class="t-faint" x="390" y="564" text-anchor="middle" font-size="10.5">8 blocking · 5 advisory · rebase + remote checkpoint</text>
 
           <rect class="fh" x="180" y="604" width="420" height="64" rx="9"/>
           <text class="t-ink" x="390" y="624" text-anchor="middle" font-size="13" font-weight="600">07 · Closing ceremony</text>
@@ -581,7 +586,7 @@ cd ../proj-cp-mvp-010 &amp;&amp; ln -s ../proj/node_modules node_modules</code><
           <text class="t-soft" x="390" y="834" text-anchor="middle" font-size="11">the human uses this state, and says what rubs</text>
         </g>
       </svg>
-      <figcaption>Two mandatory human moments per path — the opening check and the closing ceremony — plus as many bench rounds as the work deserves. Everything between the push and the trunk is automated.</figcaption>
+      <figcaption>Two mandatory human moments per path — the opening check and the closing ceremony. Every completed step is pushed and may hand its next action to a fresh session; the path remains running.</figcaption>
     </figure>
   </div>
 </section>
@@ -590,8 +595,8 @@ cd ../proj-cp-mvp-010 &amp;&amp; ln -s ../proj/node_modules node_modules</code><
 
 <footer>
   <div class="wrap col">
-    <div class="p"><strong>Where this stands.</strong> Cairn is mid-pilot: the convention lives in the repository it governs and has not been promoted into that project's constitution, because a protocol that has not yet run twice in parallel has not earned permanence.</div>
-    <div class="p" style="margin-top:.9rem">Two known gaps, stated rather than hidden: an abandoned path keeps its running status and lingers in the generated views, and a path's recorded base commit is checked for presence but not accuracy.</div>
+    <div class="p"><strong>Where this stands.</strong> Cairn is accepted under ADR-012 and has carried multiple paths through self-merge. Its rules continue to change only when real execution exposes a gap.</div>
+    <div class="p" style="margin-top:.9rem">Known limits remain explicit: abandoned-path lifecycle, base/checkpoint prose accuracy, and the fact that local refs can detect a currently unpushed HEAD but cannot prove historical one-push-per-commit cadence.</div>
   </div>
 </footer>
 

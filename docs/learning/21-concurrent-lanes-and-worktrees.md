@@ -8,7 +8,7 @@ timestamp: 2026-08-14T00:00:00Z
 
 # Learning: running several agents at once — worktrees, registration, and the state you forget is shared
 
-*Covers CP-OPS-001 S01–S08 (2026-08-14–20). First-use rule (17): this is the
+*Covers CP-OPS-001 S01–S09 (2026-08-14–24). First-use rule (17): this is the
 first time the project runs several coding paths and desktop instances at once.
 It now includes what the pilot taught after the initial design landed.*
 
@@ -111,6 +111,42 @@ checks that each new path branch has a matching `running` declaration on trunk.
 Only CP-OPS-001, CP-MVP-011 and CP-MVP-012 are grandfathered because they were
 already running when the defect was observed.
 
+## A path is not a context window
+
+A path is the durable unit of work; a chat is only the execution buffer for one
+part of it. Letting a chat accumulate five finished steps makes the next
+context window expensive for no architectural benefit.
+
+The useful boundary already exists: the end of a coherent step.
+
+```text
+finish one step
+  -> code + tests + docs + ledger + handoff brief
+  -> gates bare
+  -> commit
+  -> push immediately
+  -> agent offers: continue here OR next step in a fresh session
+```
+
+Choosing fresh does not close the path. The next session opens in the same
+worktree, derives the path from the branch, verifies Git against the Work
+Ledger, reads `briefs/<path-id>-handoff.md`, and starts the recorded next
+action. The owner does not have to paste a transcript or explain what happened.
+
+The push is part of completion for two different reasons. First, another
+machine can recover the exact finished step. Second, GitHub Activity records a
+push event separately from commit metadata; the normal commit timestamp remains
+the commit's own timestamp. Treat Activity as a useful online timeline, not a
+permanent audit archive. Cairn can warn when local HEAD is ahead of the upstream;
+it cannot prove later that three commits were pushed one-by-one rather than in
+a batch.
+
+A final rebase changes the hashes of commits already published on the path
+branch. Record the old and new heads, then use `--force-with-lease`: the lease
+refuses to overwrite remote work you have not seen, while blind `--force` does
+not. The final merge records the rebased history; GitHub Activity records the
+push and force-push events.
+
 ## What we deliberately did not build
 
 No scheduler, lock service, daemon, branch-discovery API, or database. The
@@ -130,4 +166,7 @@ files: a root cause is discovered, not declared.
 3. Is the accepted path registered on trunk before its branch diverges?
 4. Can the global view be reproduced from trunk files alone?
 5. Does each path own its merge after ceremony, rebase, gates, and audit?
-6. What is the smallest mechanism real evidence justifies?
+6. Is every local commit already present on the path's upstream branch?
+7. Could the next session resume from the ledger and handoff brief without an
+   owner recap?
+8. What is the smallest mechanism real evidence justifies?
