@@ -858,7 +858,7 @@ function loadPaths() {
 
 /** Schema + link integrity over the whole corpus, not just the diff: these
  *  are cheap and catching them late is the expensive part. */
-function corpusFindings(branch) {
+function corpusFindings(branch, trunkRef = 'master') {
   const findings = []
 
   // The derived running-paths view must match the path files it projects.
@@ -884,7 +884,7 @@ function corpusFindings(branch) {
   // may check that the record EXISTS but must never depend on its verdict.
   if (isPathBranch(branch)) {
     try {
-      execFileSync('node', [join(REPO, 'tools/cairn-audit.mjs'), '--check'], {
+      execFileSync('node', [join(REPO, 'tools/cairn-audit.mjs'), '--check', '--base', trunkRef], {
         cwd: REPO,
         stdio: 'pipe'
       })
@@ -964,7 +964,7 @@ function main() {
   const paths = loadPaths()
   const trunkRef = base ?? 'master'
   const findings = [
-    ...corpusFindings(branch),
+    ...corpusFindings(branch, trunkRef),
     ...evaluate({
       changed,
       branch,

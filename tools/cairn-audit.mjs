@@ -22,8 +22,8 @@
  * agent's job — an unfilled record is visible as unfilled, which is the point:
  * a missing audit and a lazy audit should not look the same.
  *
- *   node tools/cairn-audit.mjs                 # scaffold for the current branch
- *   node tools/cairn-audit.mjs --check <sha>   # exit 1 if no record for <sha>
+ *   node tools/cairn-audit.mjs                        # scaffold for the current branch
+ *   node tools/cairn-audit.mjs --check [--base <ref>] # exit 1 if this path has none
  */
 
 import { execFileSync } from 'node:child_process'
@@ -107,8 +107,55 @@ function git(args) {
   return execFileSync('git', args, { cwd: REPO, encoding: 'utf8' }).trim()
 }
 
-export function findAudit(files, head) {
-  return files.find((file) => file.includes(head.slice(0, 7)))
+/** The trunk to measure this path against — the same ref cairn-check uses. */
+function base() {
+  const argv = process.argv
+  return argv.includes('--base') ? argv[argv.indexOf('--base') + 1] : 'master'
+}
+
+/** Commits on this branch and not on the trunk. A missing or unreadable trunk
+ *  ref is an ANSWER, not a crash: fall back to HEAD alone, which is the old,
+ *  stricter behaviour rather than a silently wider one. */
+function revListOwn(trunkRef) {
+  try {
+    return git(['rev-list', 'HEAD', '--not', trunkRef])
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * Which commits may a record legitimately name?
+ *
+ * The scaffold is stamped with the head it was written for — and then COMMITTING
+ * it moves the head, so the record can never name the commit that contains it.
+ * `--check` therefore never matched: all nine records in this repository name a
+ * different commit from the one holding them, seven of them exactly the parent
+ * (audit 2026-08-24, finding F12).
+ *
+ * The fix is not to rename anything. A record naming HEAD **or any commit this
+ * path itself contributed** is describing work this branch actually did, which is
+ * what the check is for. Every existing record becomes valid without migration,
+ * because that is what they were already doing accidentally.
+ *
+ * The bound matters: `git rev-list HEAD --not <trunk>` is exactly this path's own
+ * commits. A record naming an arbitrary trunk ancestor would prove nothing about
+ * this branch, and one belonging to a DIFFERENT path is refused outright — the
+ * file name carries the path id, so that is checked rather than assumed.
+ */
+export function findAudit(files, shas, pathId) {
+  const acceptable = new Set(shas.map((sha) => auditName(pathId, sha)))
+  return files.find((file) => acceptable.has(file))
+}
+
+/** This path's own commits, newest first, HEAD included. Pure: it takes the
+ *  `git rev-list` output rather than running Git, so the rule is testable. */
+export function ownCommits(revListOutput, head) {
+  const listed = String(revListOutput || '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+  return listed.includes(head) ? listed : [head, ...listed]
 }
 
 function currentPath(branch) {
@@ -127,10 +174,19 @@ function main() {
   mkdirSync(dir, { recursive: true })
   const existing = readdirSync(dir).filter((f) => f.endsWith('.md'))
 
+  const front = currentPath(branch)
+
   if (process.argv.includes('--check')) {
-    const found = findAudit(existing, head)
+    if (!front) {
+      console.log(`cairn-audit — nothing to check: "${branch}" is not a path branch`)
+      process.exit(0)
+    }
+    const candidates = ownCommits(revListOwn(base()), head)
+    const found = findAudit(existing, candidates, front.id)
     if (!found) {
-      console.error(`cairn-audit — no coherence audit for ${head.slice(0, 7)}. Run: npm run cairn-audit`)
+      console.error(
+        `cairn-audit — no coherence audit for ${front.id} naming ${head.slice(0, 7)} ` +
+        `or any of this path's ${candidates.length - 1} earlier commit(s). Run: npm run cairn-audit`)
       process.exit(1)
     }
     if (!isFilled(readFileSync(join(dir, found), 'utf8'))) {
@@ -141,7 +197,6 @@ function main() {
     process.exit(0)
   }
 
-  const front = currentPath(branch)
   if (!front) {
     // Not an error: an audit only has meaning on a path branch. Failing here
     // would mean the command documented in AGENTS.md exits non-zero for anyone
