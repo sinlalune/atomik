@@ -66,7 +66,15 @@ handoff the earlier draft assumed.
 1. Run the OPENING CHECK with the owner — feature by feature, recorded in a
    session note carrying root-level `path:` and `ceremony: opening` frontmatter
    ([schema](../../docs/bedrock/24_24-doc-templates.md#session-note-and-ceremony-template)).
-   Activation needs explicit acceptance.
+   Activation needs explicit acceptance, and this is **blocking**: a path file in
+   a change that declares `status: running` with no such note fails `cairn-check`
+   (owner directive 2026-08-24). Both ceremonies are gated now — the closing half
+   guards the merge, the opening half guards the activation, and a path could
+   previously be registered, branched and worked with no recorded acceptance at
+   all. CP-MVP-011 and CP-MVP-012 are the finite exception, advisory rather than
+   blocking, because their real opening notes predate the declared schema and live
+   on branches this checkout must not write; each clears itself by adding two keys
+   to the note it already has.
 2. From a clean, current trunk, create the accepted path file from the template
    in bedrock 24:
 
@@ -381,6 +389,7 @@ BLOCKING   branch → path (a path/* branch is declared by a running path
            trunk registration — that accepted running declaration already
                           exists on the trunk before implementation starts
            rebase gate — a path branch contains the trunk tip
+           a path marked running has an opening-check session note
            a path marked done has a closing-ceremony session note
            source changed ⇒ a module note AND a coding path changed
            path AND ADR frontmatter parse, statuses in vocabulary,

@@ -1,11 +1,11 @@
 ---
 type: Atomik Brief
-title: Handoff — CP-OPS-002 S05 complete, ready for S06
+title: Handoff — CP-OPS-002 S05b complete, ready for S06
 timestamp: 2026-08-24T00:00:00Z
 atomik:
   path: CP-OPS-002
   branch: path/cp-ops-002
-  completed_step: S05
+  completed_step: S05b
 ---
 
 # Resume CP-OPS-002 here
@@ -17,43 +17,37 @@ atomik:
   checkout.
 - Registered at `base_commit: 7aa3b1d` by the trunk commit `df875e6` before this
   branch existed; `dd6e76a` is S00.
-- Gates at S05: `npm run cairn-check` OK with two advisories — no coherence audit
-  for this head (expected until the pre-merge audit), and one deliberate
-  `single-truth` edit recorded in the ledger. Validator suite
-  `npm run cairn-check:test` 59/59.
+- Gates at S05b: `npm run cairn-check` OK with one advisory — no coherence audit
+  for this head, expected until the pre-merge audit. Validator suite
+  `npm run cairn-check:test` 65/65.
 - `typecheck` / `test` / `build` are not run for this step and their verdicts are
   not claimed: this path writes protocol tooling and doctrine only, and touched
   no product code.
 
 ## What the completed step changed
 
-**S05 — OKF backfill** (closes audit finding F5). Bedrock 26 routes agents through
-the nearest `index.md`, and the three directories `AGENTS.md` sends every agent
-into — bedrock, adr, modules — had none.
+**S05** closed audit finding F5: five indexes (`docs/bedrock`, `docs/adr`,
+`docs/modules`, `atomik-project/sessions`, `atomik-project/audits`), frontmatter on
+all 16 ADRs, and `adrFrontmatterErrors()` — blocking, corpus-scoped, requiring the
+frontmatter status to agree with the document's own `Status:` line.
 
-- **Five indexes**: `docs/bedrock/index.md` (37 pages, one line each drawn from
-  their own frontmatter, plus the four entry points and the status vocabulary),
-  `docs/adr/index.md` (16 records, status and date), `docs/modules/index.md` (six
-  area notes plus the `AREA_MAP` that routes a source change to one),
-  `atomik-project/sessions/index.md` (the ceremony schema and a ceremonies-by-path
-  table), `atomik-project/audits/index.md` (nine records and their verdicts).
-  `docs/index.md` and `atomik-project/index.md` route into them.
-- **Frontmatter on all 16 ADRs**, with an `adr:` block (`id`, `status`, `date`).
-  Descriptions were written from each record's Decision section, not its title.
-- **`adrFrontmatterErrors()`** — blocking, corpus-scoped, mirroring the path
-  validator: id matches the file name, status in vocabulary, ISO date, and the
-  frontmatter status must agree with the document's own `Status:` line.
-- **A second F9-family trap, found live**: a trailing comment on a `writes:` ITEM
-  became part of the glob, so a widened declaration kept reporting scope drift.
-  `parseWrites()` strips it now.
-- Repaired one stale sentence in `docs/modules/atomik-desktop.md` naming the
-  removed integrator — this is the deliberate `single-truth` advisory.
+**S05b** answered three owner questions from that report:
 
-**Known asymmetry, recorded not fixed**: sixteen closing notes declare
-`ceremony: closing` because a blocking gate reads them; most opening checks carry
-no `ceremony: opening` because nothing reads those. The sessions index marks each
-*(undeclared)*. Backfilling them is a decision, not a chore — it was left for the
-owner.
+- **The opening check is BLOCKING now.** F2 repaired the closing gate and left its
+  twin a convention, so a path could be registered, branched and worked with no
+  recorded acceptance at all. `openingFromSessions()` mirrors the closing gate,
+  scoped to a path file in the diff declaring `running`; eleven opening notes were
+  backfilled with `path:` + `ceremony: opening`. Seven tests.
+- **`LEGACY_UNDECLARED_OPENINGS`** — CP-MVP-011 and CP-MVP-012 only. Both have a
+  real opening note that predates the schema, on branches this checkout must not
+  write. Advisory, with the two keys they need in the message; the set drains when
+  they merge. **If either path rebases onto this trunk before adding those keys, it
+  sees an advisory, never a failed build.**
+- **Five more indexes** (`docs/cairn`, `research`, `contracts`, `fixtures`,
+  `agents`), and **no per-folder `log.md` — recorded as a decision** in both plane
+  indexes: a map is stable and single-writer, an append-only log shared by every
+  path touching a folder is the collision that froze `atomik-project/log.md`, and
+  recency already has two answers (Git history, the per-path journal).
 
 ## Next action
 

@@ -37,10 +37,18 @@ made it a tautology: an opening-check note exists from a path's first hour, so t
 rule verified that a path had been OPENED and reported that as proof it was CLOSED
 (audit 2026-08-24, F2 · [ADR-016](../../docs/adr/ADR-016-cairn-enforcement-integrity.md)).
 
-**Asymmetry, stated rather than hidden.** Sixteen closure notes were backfilled with
-the declaration because a gate reads them. Opening checks are not machine-checked,
-so most older ones carry no `ceremony: opening` key and are marked *(undeclared)*
-below; new ones declare it. Nothing depends on it today.
+**Both halves are gated.** The closing ceremony guards the merge; the opening check
+guards the activation. `cairn-check` blocks a path file in a change that declares
+`status: running` with no note declaring `ceremony: opening` for its id — until
+2026-08-24 that half was a convention only, so a path could be registered, branched
+and worked with no recorded acceptance at all (owner directive; CP-OPS-002 S05b).
+Eleven opening checks were backfilled with the declaration in that step, alongside
+the sixteen closure notes backfilled at F2.
+
+CP-MVP-011 and CP-MVP-012 are the finite exception, advisory rather than blocking:
+their opening notes are real but predate the schema and live on their own branches,
+which this checkout must not write. Each clears itself by adding two keys to the
+note it already has, and the exception drains when they merge.
 
 A mid-path note that is not a ceremony carries `path:` and deliberately **no**
 `ceremony:` key — for example the
@@ -50,28 +58,29 @@ A mid-path note that is not a ceremony carries `path:` and deliberately **no**
 
 | Path | Opening | Closing |
 | :-- | :-- | :-- |
-| CP-AI-CAPABILITIES | [opening](./2026-08-19-cp-ai-capabilities-opening-check.md) *(undeclared)* | [closing](./2026-08-20-cp-ai-capabilities-closing-ceremony.md) |
-| CP-FEEDBACK | [opening](./2026-08-16-cp-feedback-opening-check.md) *(undeclared)* | [closing](./2026-08-16-cp-feedback-closing-ceremony.md) |
+| CP-AI-CAPABILITIES | [opening](./2026-08-19-cp-ai-capabilities-opening-check.md) | [closing](./2026-08-20-cp-ai-capabilities-closing-ceremony.md) |
+| CP-FEEDBACK | [opening](./2026-08-16-cp-feedback-opening-check.md) | [closing](./2026-08-16-cp-feedback-closing-ceremony.md) |
 | CP-MVP-003 | — | [closing](./2026-07-13-cp-mvp-003-acceptance.md) |
 | CP-MVP-004 | — | [closing](./2026-07-07-cp-mvp-004-acceptance.md) |
 | CP-MVP-005 | — | [closing](./2026-07-08-cp-mvp-005-acceptance.md) |
 | CP-MVP-006 | — | [closing](./2026-07-16-cp-mvp-006-acceptance.md) |
 | CP-MVP-007 | — | [closing](./2026-07-21-cp-mvp-007-acceptance.md) |
 | CP-MVP-008 | — | [closing](./2026-08-04-cp-mvp-008-closing-ceremony.md) |
-| CP-MVP-009 | [opening](./2026-08-04-cp-mvp-009-opening-check.md) *(undeclared)* | [closing](./2026-08-13-cp-mvp-009-closing-ceremony.md) |
-| CP-MVP-010 | [opening](./2026-08-16-cp-mvp-010-opening-check.md) *(undeclared)* | [closing](./2026-08-17-cp-mvp-010-closing-ceremony.md) |
-| CP-OPEN-DOCK | [opening](./2026-08-20-cp-open-dock-opening-check.md) *(undeclared)* | [closing](./2026-08-20-cp-open-dock-closing-ceremony.md) |
-| CP-OPS-001 | [opening](./2026-08-14-cp-ops-001-opening-check.md) *(undeclared)* | [closing](./2026-08-24-cp-ops-001-closing-ceremony.md) |
+| CP-MVP-009 | [opening](./2026-08-04-cp-mvp-009-opening-check.md) | [closing](./2026-08-13-cp-mvp-009-closing-ceremony.md) |
+| CP-MVP-010 | [opening](./2026-08-16-cp-mvp-010-opening-check.md) | [closing](./2026-08-17-cp-mvp-010-closing-ceremony.md) |
+| CP-OPEN-DOCK | [opening](./2026-08-20-cp-open-dock-opening-check.md) | [closing](./2026-08-20-cp-open-dock-closing-ceremony.md) |
+| CP-OPS-001 | [opening](./2026-08-14-cp-ops-001-opening-check.md) | [closing](./2026-08-24-cp-ops-001-closing-ceremony.md) |
 | CP-OPS-002 | [opening](./2026-08-24-cp-ops-002-opening-check.md) | — |
-| CP-PROVIDERS | [opening](./2026-08-16-cp-providers-opening-check.md) *(undeclared)* | [closing](./2026-08-16-cp-providers-closing-ceremony.md) |
-| CP-RENDER-REPAIRS | [opening](./2026-08-20-cp-render-repairs-opening-check.md) *(undeclared)* | [closing](./2026-08-20-cp-render-repairs-closing-ceremony.md) |
-| CP-RICH-MARKDOWN | [opening](./2026-08-17-cp-rich-markdown-opening-check.md) *(undeclared)* | [closing](./2026-08-17-cp-rich-markdown-closing-ceremony.md) |
-| CP-WORKTREE-CLEANUP | [opening](./2026-08-24-cp-worktree-cleanup-opening-check.md) *(undeclared)* | [closing](./2026-08-24-cp-worktree-cleanup-closing-ceremony.md) |
+| CP-PROVIDERS | [opening](./2026-08-16-cp-providers-opening-check.md) | [closing](./2026-08-16-cp-providers-closing-ceremony.md) |
+| CP-RENDER-REPAIRS | [opening](./2026-08-20-cp-render-repairs-opening-check.md) | [closing](./2026-08-20-cp-render-repairs-closing-ceremony.md) |
+| CP-RICH-MARKDOWN | [opening](./2026-08-17-cp-rich-markdown-opening-check.md) | [closing](./2026-08-17-cp-rich-markdown-closing-ceremony.md) |
+| CP-WORKTREE-CLEANUP | [opening](./2026-08-24-cp-worktree-cleanup-opening-check.md) | [closing](./2026-08-24-cp-worktree-cleanup-closing-ceremony.md) |
 
-Early paths (CP-MVP-001/002) closed before session notes were a rule; the
-`ceremony` gate is scoped to the paths a change touches for exactly that reason —
-punishing history for a convention it predates is the fastest way to get a check
-switched off.
+Eight early paths (CP-MVP-001 through 008) opened before session notes were a rule
+and have no opening note at all. Both ceremony gates are scoped to the paths a
+change TOUCHES for exactly that reason: a change that does not touch them cannot
+make them wrong, and punishing history for a convention it predates is the fastest
+way to get a check switched off.
 
 ## Everything else
 

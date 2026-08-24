@@ -2,6 +2,9 @@
 type: Atomik Session Record
 title: CP-MVP-010 opening check — the whole retrieval vision ruled in, then split in two; chat RAG is the first consumer; pure-TS BM25 overrides the SQLite pin
 timestamp: 2026-08-16T00:00:00Z
+path: CP-MVP-010
+branch: path/cp-mvp-010
+ceremony: opening
 ---
 
 # CP-MVP-010 opening check (2026-08-16)

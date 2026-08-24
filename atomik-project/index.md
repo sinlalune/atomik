@@ -24,6 +24,16 @@ This folder is an ordinary Atomik project bundle living beside the code plane in
 
 - 2026-07-16 — **One surface, two layers**: the scene editor and the freeform drawing layer share one editing surface with two entity kinds — bound entities (Scene-IR-backed; the DSL is the serialization of the bound layer) and free ink (sidecar drawing file; no claims) — connected by a promotion gradient and a detachment path. Accepted as [ADR-010](../docs/adr/ADR-010-one-surface-two-layers.md); reserved doctrine added to bedrock 19 and 21; origin pack in [sessions/2026-07-16-one-surface-two-layers/](./sessions/2026-07-16-one-surface-two-layers/one_surface_two_layers_amendment_pack.md).
 
+## Indexes yes, per-folder logs no
+
+Recorded 2026-08-24 (CP-OPS-002 S05b) so the question does not come back. Bedrock
+26 offers a folder two conventions, `index.md` and `log.md`. Every meaningful
+folder here has the first and none has the second: a map is stable and has one
+writer, while a per-folder log is append-only and shared by every path that
+touches the folder — the collision that froze `log.md` and replaced it with one
+file per entry under [`log/`](./log/index.md). Git history and that journal
+already answer recency; a third answer could only drift from the other two.
+
 ## Ground rules
 
 - Bedrock and ADRs stay canonical under `docs/`; promotion from `brainstorm/` goes through reviewed patches.

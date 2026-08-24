@@ -15,4 +15,14 @@ Progressive-disclosure map of the docs plane. The constitution lives in `bedrock
 - `CHANGELOG_v0_4 / v0_5 / v0_6` — release records
 - `docs_source.json` · `index.html` — generated Dev Docs artifacts
 
+Every meaningful folder here carries an `index.md`; **none carries a per-folder
+`log.md`, and that is a decision, not an omission** (2026-08-24, CP-OPS-002 S05b).
+Bedrock 26 offers both conventions — a map and a recency feed. The map is stable
+and single-writer, so it is worth having everywhere. A per-folder log is neither:
+it is append-only and every path touching that folder would append to the same
+file, which is exactly the collision that got `atomik-project/log.md` frozen and
+replaced by one file per entry. Recency is already answered twice — by Git history
+and by the per-path journal — so a third answer could only drift from the other
+two. `docs/log.md` predates this and is retained as an archive.
+
 Rules: durable decisions live here or in `adr/`; provisional thinking lives in `../atomik-project/brainstorm/`; every core change updates its documentation in the same work unit (15, 17).

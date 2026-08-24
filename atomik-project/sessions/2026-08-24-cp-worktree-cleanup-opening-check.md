@@ -5,6 +5,7 @@ timestamp: 2026-08-24T00:00:00Z
 tags: [opening-check, worktree, cleanup, self-merge, git]
 path: CP-WORKTREE-CLEANUP
 branch: path/cp-worktree-cleanup
+ceremony: opening
 ---
 
 # CP-WORKTREE-CLEANUP opening check

@@ -124,6 +124,19 @@ export const LEGACY_UNREGISTERED_PATHS = new Set([
   'CP-MVP-012'
 ])
 
+/**
+ * Paths whose opening check was recorded BEFORE ceremonies were declared in
+ * frontmatter, and whose session notes live on their own branches where this
+ * checkout may not write (one writer per working tree).
+ *
+ * Both have a real opening-check note; neither declares it yet. Blocking them
+ * would fail an in-flight path for a convention that postdates its ceremony —
+ * the exact "punishing history" failure that gets a validator switched off. The
+ * set is finite and named, it drains when those two paths merge, and any path in
+ * it clears itself by adding two keys to the note it already has.
+ */
+export const LEGACY_UNDECLARED_OPENINGS = new Set(['CP-MVP-011', 'CP-MVP-012'])
+
 /* ------------------------------------------------------------------ *
  * pure helpers — everything below takes data, so it is testable
  * ------------------------------------------------------------------ */
@@ -421,6 +434,7 @@ export function evaluate({
   registrationState,
   remoteCheckpoint,
   ceremonyFor,
+  openingFor,
   branchSource = 'symbolic-ref'
 }) {
   const findings = []
@@ -516,6 +530,32 @@ export function evaluate({
         add('blocking', 'ceremony',
           `${path.file} is marked done with no session note declaring \`path: ${path.front.id}\` and \`ceremony: closing\` — closing a path without a recorded ceremony is invalid`)
       }
+    }
+  }
+
+  // 4b. the OPENING check — the other half of the same guard.
+  //
+  //     `paths.md` requires the owner's explicit acceptance before a path
+  //     activates, recorded in a session note. Until now nothing checked it: F2
+  //     repaired the closing gate and left its twin a convention, so a path
+  //     could be registered, branched and worked with no recorded acceptance.
+  //     Owner directive 2026-08-24: "ceremony opening, backfilling why not but
+  //     maybe add a blocking gate."
+  //
+  //     Scoped to a path file IN THE DIFF declaring `running`, so the eight
+  //     paths that closed before session notes existed are never examined.
+  if (openingFor) {
+    for (const path of paths) {
+      if (path.front?.status !== 'running' || !changed.includes(path.file)) continue
+      const id = path.front.id
+      if (openingFor(id)) continue
+      if (LEGACY_UNDECLARED_OPENINGS.has(id)) {
+        add('advisory', 'opening-ceremony',
+          `${path.file} predates the declared ceremony schema — add \`path: ${id}\` and \`ceremony: opening\` to its existing opening-check note to clear this, and do not copy the exception`)
+        continue
+      }
+      add('blocking', 'opening-ceremony',
+        `${path.file} is running with no session note declaring \`path: ${id}\` and \`ceremony: opening\` — a path activates on the owner's recorded acceptance, never on a conversation`)
     }
   }
 
@@ -712,6 +752,18 @@ function pathRemoteCheckpoint(branch) {
 }
 
 /**
+ * Does a ceremony of this KIND exist for this path?
+ *
+ * Both halves are declared the same way, in root-level frontmatter, and matched
+ * on the exact path id (bedrock 24 § Session note and ceremony template).
+ */
+export function ceremonyOfKind(sessions, pathId, kind) {
+  return sessions.some(
+    (note) => note?.path === pathId && String(note?.ceremony).toLowerCase() === kind
+  )
+}
+
+/**
  * Does a CLOSING ceremony exist for this path?
  *
  * This used to substring-match session FILENAMES. `paths.md` requires an
@@ -731,9 +783,23 @@ function pathRemoteCheckpoint(branch) {
  * CP-MVP-001 is never satisfied by a note about CP-MVP-0010.
  */
 export function ceremonyFromSessions(sessions, pathId) {
-  return sessions.some(
-    (note) => note?.path === pathId && String(note?.ceremony).toLowerCase() === 'closing'
-  )
+  return ceremonyOfKind(sessions, pathId, 'closing')
+}
+
+/**
+ * Does an OPENING check exist for this path?
+ *
+ * `paths.md`: activation needs the owner's explicit acceptance, recorded in a
+ * session note. That was the one ceremony nothing checked — the closing gate was
+ * repaired at F2 while its twin stayed a convention, so a path could be
+ * registered, branched and worked with no recorded acceptance at all.
+ *
+ * Scoped like the closing gate: it fires only on a path file IN THE DIFF that
+ * declares `running`. The eight paths that predate session notes are never
+ * examined, because a change that does not touch them cannot make them wrong.
+ */
+export function openingFromSessions(sessions, pathId) {
+  return ceremonyOfKind(sessions, pathId, 'opening')
 }
 
 function loadSessions() {
@@ -748,6 +814,10 @@ function loadSessions() {
 
 function hasCeremony(pathId) {
   return ceremonyFromSessions(loadSessions(), pathId)
+}
+
+function hasOpening(pathId) {
+  return openingFromSessions(loadSessions(), pathId)
 }
 
 function loadAdrs() {
@@ -904,6 +974,7 @@ function main() {
       registrationState: pathRegistrationState(trunkRef, branch, paths),
       remoteCheckpoint: pathRemoteCheckpoint(branch),
       ceremonyFor: hasCeremony,
+      openingFor: hasOpening,
       branchSource
     })
   ]
