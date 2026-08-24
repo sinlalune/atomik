@@ -53,7 +53,7 @@ that reason. What remains is portability and hygiene.
 
 ## Steps
 
-### S01 — Restore the rebase gate in CI — **implemented locally, uncommitted**
+#### Landed in S00 — Restore the rebase gate in CI
 
 Repaired directly at the owner's instruction before this path was opened. `resolveBranch()`
 asks the host before the checkout; a new `branch-identity` rule fails closed when the
@@ -61,20 +61,20 @@ branch is undeterminable and guarded roots changed; `cairn.yml` checks out the p
 request HEAD sha so the gate judges the commit that lands rather than a merge preview
 that contains the base by construction. Four regression tests.
 
-### S02 — Make the closing ceremony identifiable — **implemented locally, uncommitted**
+#### Landed in S00 — Make the closing ceremony identifiable
 
 Repaired with S01. Ceremonies are declared in frontmatter (`path:` + `ceremony: closing`)
 and matched on exact path id; sixteen closure notes backfilled; three regression tests.
 No grandfather set was added.
 
-### S02b — CI runs on path branches — **implemented locally, uncommitted** *(F8)*
+#### Landed in S00 — CI runs on path branches *(F8)*
 
 Found after S01/S02: CI triggered on `push: master` and `pull_request` only, and every
 path in this repository merges with a LOCAL merge commit — zero pull requests in history.
 So no path-scoped rule had ever executed in CI. `push` now includes `'path/**'`, with a
 `concurrency` group so a push-per-commit does not multiply runs.
 
-### S02c — `writes:` parsed from the frontmatter — **implemented locally, uncommitted** *(F9)*
+#### Landed in S00 — `writes:` parsed from the frontmatter *(F9)*
 
 The scan read the whole document, consumed `---` as a write surface, and refused the
 trailing comment that the bedrock 24 template itself shows — so a path copied faithfully
@@ -95,13 +95,20 @@ from the template declared nothing and silently disabled `scope-drift`.
 > The opening ceremony ratifies the set and the worktree adopts it; nothing is complete
 > until then.
 
-### S00 — Adopt the local repairs *(ruling 1)*
+### S00 — Adopt the local repairs *(ruling 1)* — **COMPLETE**
 
-The stash carries F1/F2/F8/F9 into this worktree and they land here as S01–S02c, run
-through the protocol they repair rather than around it. Until that commit is pushed they
-are **implemented locally, uncommitted, not complete**.
+The stash carried F1/F2/F8/F9 into this worktree and they land here, run through the
+protocol they repair rather than around it. This is the first commit on a `path/*` branch
+in this repository whose push will be seen by CI.
 
-Also in this step, from ruling 2 and ruling 3:
+Contents: `resolveBranch()` + the fail-closed `branch-identity` rule (F1), frontmatter-based
+`ceremonyFromSessions()` + 16 backfilled closure notes (F2), `push: path/**` with a
+concurrency group and the PR-head checkout (F1/F8), frontmatter-scoped `parseWrites()` (F9),
+the rule-table generator and its four guards, the audit record carrying F1–F15, the round-3
+deliverables, and `index.html` restored behind a SUPERSEDED banner with `workflow.html`
+byte-identical to master (ruling 4).
+
+### S01 — Schema and doctrine fixes *(rulings 2 and 3)*
 
 - pin the **root-level** session ceremony schema (`path:` / `ceremony:`) in
   `docs/bedrock/24_24-doc-templates.md`, and correct the D1 operator guide, which
@@ -223,9 +230,11 @@ brief names — and fix what the pilot finds before merging.
 | Status | draft — awaiting owner opening check |
 | Base commit | not yet registered |
 | Branch | not yet created |
-| Steps complete | **none** — S01/S02/S02b/S02c are implemented locally and uncommitted |
+| Steps complete | **S00** — the four repairs adopted into the path and pushed |
 | Remaining | S04, S05, S06, S06b, S07, S08, S09 (S03 withdrawn by owner ruling) |
 | Gates | `cairn-check` OK; validator suite 47/47 |
 | Base commit | not yet registered; trunk is `7aa3b1d`, unchanged |
 | Opening check | accepted 2026-08-24, eight rulings ([note](../sessions/2026-08-24-cp-ops-002-opening-check.md)) |
-| Next action | S00 — pop the stash in the worktree, land F1/F2/F8/F9 + schema and doctrine fixes, push |
+| Next action | S01 — pin the root-level ceremony schema in bedrock 24, correct the D1 operator guide, amend `paths.md` to metadata-only registration, with ADR-016 beside them |
+| Worktree | `../4tom1k-cp-ops-002`, `node_modules` symlinked |
+| Gates at S00 | `cairn-check` OK (2 advisory: no upstream yet, no audit yet) · 47/47 tests |

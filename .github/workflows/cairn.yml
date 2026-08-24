@@ -11,10 +11,29 @@
 # shipped because `typecheck | grep | head` swallowed a failing status).
 name: cairn
 
+# WHEN this runs is half the enforcement. Until 2026-08-24 it ran on `push:
+# master` and `pull_request` only — and every path in this repository has
+# merged with a LOCAL merge commit, never a pull request (`git log --merges`:
+# six "Merge CP-*", zero "Merge pull request"). So `pull_request` never fired,
+# `path/*` pushes fired nothing, and the only run happened on the trunk AFTER
+# the merge had already landed.
+#
+# The consequence: every path-scoped rule — branch→path, trunk registration,
+# the rebase gate, the remote checkpoint, scope drift, the coherence audit —
+# had never once executed in CI. The gate that `paths.md` calls "what makes a
+# gatekeeper unnecessary" could only ever observe a merge, not prevent one
+# (audit 2026-08-24, finding F8).
 on:
   push:
-    branches: [master]
+    branches: [master, 'path/**']
   pull_request:
+
+# Every commit is pushed immediately (owner directive 2026-08-24), so a path
+# generates many runs. Supersede rather than queue them: the newest head of a
+# branch is the only one whose verdict matters.
+concurrency:
+  group: cairn-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   gates:
@@ -40,6 +59,13 @@ jobs:
           # cairn-check compares the branch against its merge-base, so it
           # needs history rather than the default shallow clone.
           fetch-depth: 0
+          # On a pull_request, the DEFAULT ref is the merge preview — a merge
+          # of this branch into the base. That commit contains the base tip by
+          # construction, so the rebase gate would pass on every stale branch
+          # without proving anything. Check out the pull request HEAD instead,
+          # so the gate judges the branch that will actually land. Empty on a
+          # push event, where the default ref is already correct.
+          ref: ${{ github.event.pull_request.head.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22

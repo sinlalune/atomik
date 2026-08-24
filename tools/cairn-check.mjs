@@ -145,6 +145,41 @@ export function readFrontmatter(text) {
   return { kind: 'yaml', data }
 }
 
+/**
+ * `writes:` is a YAML list, which the scalar frontmatter reader above skips.
+ *
+ * Two bugs the first version had, both from scanning the WHOLE document with
+ * `/\n\s*writes:\s*\n((?:\s*-\s*\S.*\n)+)/` (audit 2026-08-24, finding F9):
+ *
+ *   1. `---` satisfies `\s*-\s*\S.*`, so the frontmatter TERMINATOR was
+ *      consumed as a write surface — every path silently declared a `"--"`
+ *      entry — and the scan then ran on into the document body, where any
+ *      opening bullet list would have become declared surfaces too. No path
+ *      leaked past the terminator yet; it was luck, not design.
+ *   2. `writes:\s*\n` refuses a trailing comment, and the template in
+ *      bedrock 24 / paths.md writes exactly that:
+ *      `writes:   # ADVISORY — a signal, never a lock`.
+ *      A path copied from the documented template parsed as ZERO declared
+ *      surfaces, which silently disables the scope-drift check.
+ *
+ * Scoping the scan to the frontmatter fixes both: the terminator is no longer
+ * inside the searched text, so it cannot be read as a list item.
+ */
+export function parseWrites(text) {
+  if (!text.startsWith('---\n')) return []
+  const end = text.indexOf('\n---', 4)
+  if (end === -1) return []
+  const front = text.slice(4, end)
+  const block = front.match(/(?:^|\n)[ \t]*writes:[^\n]*\n((?:[ \t]*-[ \t]*\S.*(?:\n|$))+)/)
+  if (!block) return []
+  const out = []
+  for (const line of block[1].split('\n')) {
+    const item = line.match(/^[ \t]*-[ \t]*(\S.*?)[ \t]*$/)
+    if (item) out.push(item[1])
+  }
+  return out
+}
+
 export function isCommitPin(value) {
   return typeof value === 'string' && /^[0-9a-f]{7,40}$/i.test(value)
 }
@@ -187,6 +222,40 @@ export function pathFrontmatterErrors(front) {
 export function isPathBranch(branch) {
   return typeof branch === 'string' && /^path\/[a-z0-9][a-z0-9._/-]*$/.test(branch)
 }
+
+/**
+ * WHICH BRANCH IS THIS? Every path-scoped rule is guarded by
+ * `isPathBranch(branch)`, so a wrong answer here does not produce a wrong
+ * verdict — it produces NO verdict, silently.
+ *
+ * `git rev-parse --abbrev-ref HEAD` returns the literal string "HEAD" in a
+ * detached checkout, and `actions/checkout` detaches on every
+ * `pull_request` event. Six rules therefore went quiet in exactly the CI run
+ * that was supposed to enforce them: `branch-path`, `registration`, `rebase`,
+ * `remote-checkpoint`, `scope-drift` and `coherence-audit`. A stale, never
+ * registered path branch carrying 96 changed source files was reported
+ * "OK — protocol satisfied" (audit 2026-08-24, finding F1).
+ *
+ * The host knows what the checkout does not, so ask it first. Order is
+ * deliberate: an explicit flag beats CI environment, CI beats Git, and Git's
+ * detached answer is kept only so the caller can tell that it IS detached.
+ */
+export function resolveBranch({ flag, env = {}, symbolicRef, abbrevRef }) {
+  if (flag) return { branch: flag, source: 'flag' }
+  // pull_request: the SOURCE branch of the PR, which is the path branch.
+  if (env.GITHUB_HEAD_REF) return { branch: env.GITHUB_HEAD_REF, source: 'github-head-ref' }
+  // push: the branch pushed to. On a pull_request this is "<n>/merge", which
+  // names the merge preview rather than any branch — never trust it there.
+  if (env.GITHUB_REF_NAME && !/^\d+\/(merge|head)$/.test(env.GITHUB_REF_NAME)) {
+    return { branch: env.GITHUB_REF_NAME, source: 'github-ref-name' }
+  }
+  if (symbolicRef) return { branch: symbolicRef, source: 'symbolic-ref' }
+  return { branch: abbrevRef ?? 'HEAD', source: 'detached' }
+}
+
+/** Roots where an unenforced protocol leaves something WRONG in the repo
+ *  rather than merely unconventional — the admission test for blocking. */
+export const GUARDED_ROOTS = ['apps/', 'packages/', 'shared/']
 
 /** Minimal glob: `**` spans separators, `*` does not. Enough for the
  *  `writes:` surfaces people actually declare, and small enough to trust. */
@@ -282,13 +351,37 @@ export function evaluate({
   trunkContained,
   registrationState,
   remoteCheckpoint,
-  ceremonyFor
+  ceremonyFor,
+  branchSource = 'symbolic-ref'
 }) {
   const findings = []
   const add = (level, rule, message) => findings.push({ level, rule, message })
   const touched = (prefix) => changed.filter((file) => file.startsWith(prefix))
   const onPath = isPathBranch(branch)
   const match = paths.find((p) => p.front?.branch === branch)
+
+  // 0. branch identity — FAIL CLOSED ---------------------------------
+  // A check that cannot name the branch cannot run the rules that protect
+  // the trunk, and silence is indistinguishable from a pass. Reporting "OK"
+  // there is worse than reporting nothing: it certifies a claim nobody
+  // checked. Blocking only where an unenforced protocol leaves the repository
+  // WRONG — source landing without a registered, rebased path — and advisory
+  // elsewhere, so a detached docs-only or tag build is not punished for the
+  // way it was checked out.
+  if (branchSource === 'detached') {
+    const guarded = changed.filter((file) => GUARDED_ROOTS.some((root) => file.startsWith(root)))
+    const how =
+      'resolve it from GITHUB_HEAD_REF, `git symbolic-ref --short HEAD`, or pass --branch <name>; ' +
+      'in GitHub Actions also check out the pull request HEAD sha, because the default merge ref ' +
+      'contains the base by construction and makes the rebase gate pass without proving anything'
+    if (guarded.length > 0) {
+      add('blocking', 'branch-identity',
+        `detached checkout: the branch cannot be identified, so every path rule was SKIPPED while ${guarded.length} guarded file(s) changed — ${how}`)
+    } else {
+      add('advisory', 'branch-identity',
+        `detached checkout: path rules were skipped because the branch could not be identified — ${how}`)
+    }
+  }
 
   // 1. branch → path -------------------------------------------------
   if (onPath) {
@@ -352,7 +445,7 @@ export function evaluate({
       if (path.front?.status !== 'done' || !changed.includes(path.file)) continue
       if (!ceremonyFor(path.front.id)) {
         add('blocking', 'ceremony',
-          `${path.file} is marked done with no session note naming ${path.front.id} — closing a path without a recorded ceremony is invalid`)
+          `${path.file} is marked done with no session note declaring \`path: ${path.front.id}\` and \`ceremony: closing\` — closing a path without a recorded ceremony is invalid`)
       }
     }
   }
@@ -422,6 +515,23 @@ function git(args) {
 }
 
 /** Raw stdout — for output whose LEADING whitespace is data, not padding. */
+/** Same, but a failure is an ANSWER (`null`), not an exception: a detached
+ *  HEAD has no symbolic ref, and that fact is what the caller needs. */
+function gitOrNull(args) {
+  try {
+    // stderr is PIPED, not inherited: "ref HEAD is not a symbolic ref" is the
+    // expected answer in a detached checkout, and printing it as an error
+    // above a clean verdict teaches people to ignore the output.
+    return execFileSync('git', args, {
+      cwd: REPO,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe']
+    }).trim()
+  } catch {
+    return null
+  }
+}
+
 function gitRaw(args) {
   return execFileSync('git', args, { cwd: REPO, encoding: 'utf8' })
 }
@@ -519,16 +629,43 @@ function pathRemoteCheckpoint(branch) {
   }
 }
 
-/** A closing ceremony leaves a session note naming the path. */
-function hasCeremony(pathId) {
+/**
+ * Does a CLOSING ceremony exist for this path?
+ *
+ * This used to substring-match session FILENAMES. `paths.md` requires an
+ * opening check, recorded in a session note, before a path may branch — so a
+ * matching filename exists from the path's first hour, and the rule could not
+ * return a finding for any path that followed the protocol. It verified that
+ * the path was OPENED and reported that as proof it was CLOSED (audit
+ * 2026-08-24, finding F2). With the integrator gone this is the only human
+ * guard left on a merge, and it was a tautology.
+ *
+ * A ceremony is now DECLARED, in frontmatter, by the note that is one:
+ *
+ *     path: CP-MVP-010
+ *     ceremony: closing
+ *
+ * Filename substrings are not a schema. `path` must match exactly so that
+ * CP-MVP-001 is never satisfied by a note about CP-MVP-0010.
+ */
+export function ceremonyFromSessions(sessions, pathId) {
+  return sessions.some(
+    (note) => note?.path === pathId && String(note?.ceremony).toLowerCase() === 'closing'
+  )
+}
+
+function loadSessions() {
   try {
-    const id = pathId.toLowerCase()
-    return readdirSync(join(REPO, SESSION_DIR)).some(
-      (file) => file.toLowerCase().includes(id) && file.endsWith('.md')
-    )
+    return readdirSync(join(REPO, SESSION_DIR))
+      .filter((file) => file.endsWith('.md'))
+      .map((file) => readFrontmatter(readFileSync(join(REPO, SESSION_DIR, file), 'utf8'))?.data ?? {})
   } catch {
-    return false
+    return []
   }
+}
+
+function hasCeremony(pathId) {
+  return ceremonyFromSessions(loadSessions(), pathId)
 }
 
 function loadPaths() {
@@ -540,16 +677,7 @@ function loadPaths() {
       const text = readFileSync(join(REPO, rel), 'utf8')
       const parsed = readFrontmatter(text)
       const front = parsed?.data?.atomik ?? null
-      // `writes:` is a YAML list, which the scalar reader above skips
-      const writes = []
-      const block = text.match(/\n\s*writes:\s*\n((?:\s*-\s*\S.*\n)+)/)
-      if (block) {
-        for (const line of block[1].split('\n')) {
-          const item = line.match(/^\s*-\s*(\S.*?)\s*$/)
-          if (item) writes.push(item[1])
-        }
-      }
-      return { file: rel, front, writes, parseError: parsed?.error ?? null }
+      return { file: rel, front, writes: parseWrites(text), parseError: parsed?.error ?? null }
     })
 }
 
@@ -639,8 +767,14 @@ function main() {
   const argv = process.argv.slice(2)
   const base = argv.includes('--base') ? argv[argv.indexOf('--base') + 1] : null
   const asJson = argv.includes('--json')
+  const flag = argv.includes('--branch') ? argv[argv.indexOf('--branch') + 1] : null
 
-  const branch = git(['rev-parse', '--abbrev-ref', 'HEAD'])
+  const { branch, source: branchSource } = resolveBranch({
+    flag,
+    env: process.env,
+    symbolicRef: gitOrNull(['symbolic-ref', '--short', 'HEAD']),
+    abbrevRef: git(['rev-parse', '--abbrev-ref', 'HEAD'])
+  })
   const changed = changedFiles(base)
   const paths = loadPaths()
   const trunkRef = base ?? 'master'
@@ -654,7 +788,8 @@ function main() {
       trunkContained: trunkContained(trunkRef),
       registrationState: pathRegistrationState(trunkRef, branch, paths),
       remoteCheckpoint: pathRemoteCheckpoint(branch),
-      ceremonyFor: hasCeremony
+      ceremonyFor: hasCeremony,
+      branchSource
     })
   ]
 

@@ -2,6 +2,8 @@
 type: Atomik Session Record
 title: CP-MVP-009 closing ceremony — deviations ruled by the agent at the owner's delegation; next path = the M8 back half (retrieval over the graph)
 timestamp: 2026-08-13T00:00:00Z
+path: CP-MVP-009
+ceremony: closing
 ---
 
 # CP-MVP-009 closing ceremony (2026-08-13)
