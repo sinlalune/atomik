@@ -18,7 +18,7 @@ and `cairn-check` fails when the trunk projection is stale. Registration makes
 the inputs globally complete; derivation keeps the output single-sourced.
 
 <!-- cairn:paths:begin -->
-- *(no path running)*
+- **CP-WORKTREE-CLEANUP** — Remove a path worktree after its merge is verified online · branch `path/cp-worktree-cleanup` · base `41d661b`
 <!-- cairn:paths:end -->
 
 ## Grandfathered in flight
