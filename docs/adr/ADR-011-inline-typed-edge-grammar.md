@@ -1,3 +1,15 @@
+---
+type: Atomik ADR
+title: 'ADR-011: Inline typed edge grammar — `[[target]]{label}`'
+description: A typed edge is authored inline as a link immediately followed by a decoration, so the semantic graph is written in ordinary prose rather than in a separate structure.
+tags: [adr, graph, wikilink, typed-edge, grammar, semantics]
+timestamp: 2026-08-04T00:00:00Z
+adr:
+  id: ADR-011
+  status: accepted
+  date: 2026-08-04
+---
+
 # ADR-011: Inline typed edge grammar — `[[target]]{label}`
 
 Status: accepted

@@ -296,7 +296,7 @@ The following table is generated directly from the live validation engine via [`
 | **Blocking** | `rebase` | diff | Path branch does not contain latest trunk tip (stale branch) | `trunkContained(trunkRef) === false` |
 | **Blocking** | `registration` | diff | Path declaration tuple (id, running, branch, base) missing from trunk | `pathRegistrationState() === 'missing' (blocking) or 'grandfathered' (advisory)` |
 | **Blocking** | `same-work-unit` | diff | Source changed without accompanying module note and coding path update | `touched('apps/') => touched('docs/modules/') && touched(PATH_DIR)` |
-| **Blocking** | `schema` | corpus | Path frontmatter fails YAML/JSON parsing or status outside vocabulary | `pathFrontmatterErrors(front)` |
+| **Blocking** | `schema` | corpus | Path or ADR frontmatter fails parsing, or an id/status/date is outside vocabulary | `pathFrontmatterErrors(front) + adrFrontmatterErrors(front, file, bodyStatus)` |
 | *Advisory* | `area-note` | diff | Subsystem source changed without touching matching area module note | `areaOf(file) => changed.includes(note)` |
 | *Advisory* | `branch-identity` | diff | Detached checkout where branch cannot be identified from host or git ref | `branchSource === 'detached' (blocking on guarded roots, advisory on others)` |
 | *Advisory* | `coherence-audit` | corpus | Path rebased HEAD lacks filled coherence audit record in atomik-project/audits/ | `tools/cairn-audit.mjs --check` |

@@ -1,3 +1,15 @@
+---
+type: Atomik ADR
+title: 'ADR-015: The model is told what the surface it writes into can do'
+description: Rendering capabilities and note conventions are stated to the model as ordinary composable plan blocks, including the refusals, so it writes inside the limits the surface actually has.
+tags: [adr, ai, prompts, capabilities, rendering, system-plan]
+timestamp: 2026-08-19T00:00:00Z
+adr:
+  id: ADR-015
+  status: accepted
+  date: 2026-08-19
+---
+
 # ADR-015: The model is told what the surface it writes into can do
 
 Status: accepted

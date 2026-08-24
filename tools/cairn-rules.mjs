@@ -96,8 +96,8 @@ export const RULE_METADATA = {
     enforcing: "tools/cairn-audit.mjs --check"
   },
   'schema': {
-    condition: 'Path frontmatter fails YAML/JSON parsing or status outside vocabulary',
-    enforcing: "pathFrontmatterErrors(front)"
+    condition: 'Path or ADR frontmatter fails parsing, or an id/status/date is outside vocabulary',
+    enforcing: "pathFrontmatterErrors(front) + adrFrontmatterErrors(front, file, bodyStatus)"
   },
   'links': {
     condition: 'Relative Markdown link points to non-existent target (code fences stripped)',

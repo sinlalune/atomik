@@ -14,6 +14,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import {
+  adrFrontmatterErrors,
   approxTokens,
   areaOf,
   ceremonyFromSessions,
@@ -488,6 +489,43 @@ test('done with only an opening check on record is blocked', () => {
 
 
 /* ------------------------------------------------------------------ *
+ * F5 — frontmatter validation reaches the plane that holds decisions
+ *
+ * pathFrontmatterErrors() guarded the execution plane while docs/adr/ — the
+ * canonical decisions that `decision-drift` points at — had no frontmatter at
+ * all, and nothing to check it with (audit 2026-08-24, F5).
+ * ------------------------------------------------------------------ */
+
+const AN_ADR = 'docs/adr/ADR-012-parallel-paths-self-merge.md'
+const ADR_FRONT = { id: 'ADR-012', status: 'accepted', date: '2026-08-15' }
+
+test('a well-formed ADR raises nothing', () => {
+  assert.deepEqual(adrFrontmatterErrors(ADR_FRONT, AN_ADR, 'accepted'), [])
+  // no Status: line in the body is not a finding — the rule is that the two agree
+  assert.deepEqual(adrFrontmatterErrors(ADR_FRONT, AN_ADR, null), [])
+})
+
+test('an ADR whose two halves disagree about its status is caught', () => {
+  const errors = adrFrontmatterErrors(ADR_FRONT, AN_ADR, 'superseded')
+  assert.equal(errors.length, 1)
+  assert.match(errors[0], /contradicts the document's own/)
+})
+
+test('an ADR id must match its file name', () => {
+  const errors = adrFrontmatterErrors({ ...ADR_FRONT, id: 'ADR-011' }, AN_ADR, 'accepted')
+  assert.match(errors[0], /does not match the file name/)
+})
+
+test('an ADR needs a frontmatter block, a known status and an ISO date', () => {
+  assert.deepEqual(adrFrontmatterErrors(null, AN_ADR), ['missing adr: frontmatter block'])
+
+  const bad = adrFrontmatterErrors({ id: 'ADR-012', status: 'ratified', date: 'August' }, AN_ADR)
+  assert.equal(bad.length, 2)
+  assert.match(bad[0], /outside the vocabulary/)
+  assert.match(bad[1], /ISO date/)
+})
+
+/* ------------------------------------------------------------------ *
  * F4 — the ledger has a boundary, and it is ADVISORY
  *
  * A path file is mandatory reading for whoever resumes that path and grows
@@ -610,6 +648,18 @@ test('a writes: list survives the trailing comment the template shows', () => {
     '---', '', '# Title', ''
   ].join('\n')
   assert.deepEqual(parseWrites(doc), ['apps/desktop/a.ts'])
+})
+
+test('a trailing comment on a writes: ITEM is not part of the surface', () => {
+  const doc = [
+    '---', 'atomik:', '  writes:',
+    '    - docs/adr/**              # every ADR, backfilled at S05',
+    '    - apps/desktop/a.ts',
+    '---', ''
+  ].join('\n')
+  // The same trap F9 fixed one line higher: the comment became part of the glob,
+  // so a widened declaration kept reporting scope drift (found live, CP-OPS-002 S05).
+  assert.deepEqual(parseWrites(doc), ['docs/adr/**', 'apps/desktop/a.ts'])
 })
 
 test('no writes: block, or no frontmatter, declares nothing', () => {

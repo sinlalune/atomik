@@ -1,3 +1,15 @@
+---
+type: Atomik ADR
+title: 'ADR-010: One surface, two layers — bound scenes and free ink'
+description: One editing surface carries two entity kinds: bound scenes serialized as DSL lines in a fenced block, and free ink held in a sidecar drawing file with no semantics and no claims.
+tags: [adr, canvas, scene, ink, dsl, editor]
+timestamp: 2026-07-15T00:00:00Z
+adr:
+  id: ADR-010
+  status: accepted
+  date: 2026-07-15
+---
+
 # ADR-010: One surface, two layers — bound scenes and free ink
 
 Status: accepted

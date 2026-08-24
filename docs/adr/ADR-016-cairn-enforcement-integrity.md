@@ -1,3 +1,15 @@
+---
+type: Atomik ADR
+title: 'ADR-016: Cairn enforcement integrity — the gates must judge what they claim to judge'
+description: Repairs the checks that reported OK over false conditions: rules fail closed when they cannot name their subject, ceremonies are declared in root-level frontmatter, and enforcement is declared in three tiers.
+tags: [adr, cairn, enforcement, ci, ceremony, protocol, tiers]
+timestamp: 2026-08-24T00:00:00Z
+adr:
+  id: ADR-016
+  status: accepted
+  date: 2026-08-24
+---
+
 # ADR-016: Cairn enforcement integrity — the gates must judge what they claim to judge
 
 Status: accepted

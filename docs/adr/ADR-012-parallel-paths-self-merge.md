@@ -1,3 +1,15 @@
+---
+type: Atomik ADR
+title: 'ADR-012: Parallel coding paths, self-merge, and a protocol check in CI'
+description: Coding paths become the unit of parallelism — one path, one worktree, one branch, one writer — every path merges itself after a rebase gate and recorded ceremony, and there is no integrator.
+tags: [adr, paths, concurrency, worktree, self-merge, ci, cairn]
+timestamp: 2026-08-15T00:00:00Z
+adr:
+  id: ADR-012
+  status: accepted
+  date: 2026-08-15
+---
+
 # ADR-012: Parallel coding paths, self-merge, and a protocol check in CI
 
 Status: accepted

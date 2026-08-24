@@ -1,3 +1,15 @@
+---
+type: Atomik ADR
+title: 'ADR-005: Live web grounding is transient verification, not canonical knowledge ingestion'
+description: Provider-grounded output is a transient verification and display object for the prompting user; it is never a source dossier and never a licence to crawl or import.
+tags: [adr, web, grounding, verification, provenance, privacy]
+timestamp: 2026-06-22T00:00:00Z
+adr:
+  id: ADR-005
+  status: accepted
+  date: 2026-06-22
+---
+
 # ADR-005: Live web grounding is transient verification, not canonical knowledge ingestion
 
 Status: accepted
