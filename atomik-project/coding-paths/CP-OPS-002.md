@@ -271,12 +271,33 @@ nothing back-dated: where the history is two commits, the log has two entries.
   one of these files, it takes the amendment the journal already took — one file per
   entry in a `log/` subfolder, a CONCURRENCY fix, never a size one.
 
-### S06 — Retire the drifted page *(closes F6, medium)*
+### S06 — Retire the drifted page *(closes F6, medium)* — **COMPLETE**
 
-- `docs/cairn/index.html` teaches the integrator model at ten sites. Rewrite against
-  ADR-012, or replace it with a generated view of the specification.
-- Give both HTML pages a dated status banner naming the ADR they render. The page drifted
-  silently because nothing on it claimed a vintage.
+Rewritten rather than replaced by a generated view: the specification it would be generated
+from does not exist until S07, and a page that teaches a rejected model for another two
+steps is the defect, not the plan.
+
+- **`docs/cairn/index.html` now renders ADR-012.** *Three roles* became **two roles and the
+  job the third one used to do** — the integrator's work split three ways: shared files are
+  derived so they cannot contradict, the mechanical rules are a script, and architectural
+  drift is read by an agent whose findings never block. *One parent, N lanes, one gate*
+  became **N paths, each merging itself**, with a redrawn flow diagram: three paths opening
+  from a registration commit, each passing its own rebase → checks → ceremony → self-merge
+  back onto the trunk, and nothing between them.
+- **The enforcement table is the real one**: the blocking and advisory rules as implemented,
+  including the opening check, the ledger boundary, and the schema rule now covering
+  decision records. The old table listed nine, several of which had changed name or meaning.
+- **The three-tier note lands here too** (S06b): adoption needs only the local command; CI
+  *observes*; a trunk rule *prevents*; and the third is a property of one repository, never
+  a requirement. A page claiming prevention it has not installed is the same defect as a
+  rule certifying what it never checked.
+- **Both pages carry a dated status banner** naming the ADRs they render. `index.html`
+  drifted for ten days because nothing on it claimed a vintage — the banner repairs the
+  *class*, not just this instance. `workflow.html` was verified unchanged: it never taught
+  the integrator model.
+- The four-merge experiment, the blocking-rule admission test and the "a false blocking
+  verdict costs more than a missed one" evidence are kept verbatim. They were always true
+  and are the best content on the page.
 
 ### S06b — Close the F8 residual — **declare the enforcement tier** *(ruling 6, rescoped by ruling 9)*
 
@@ -406,13 +427,13 @@ brief names — and fix what the pilot finds before merging.
 | Status | `running` on `path/cp-ops-002` |
 | Base commit | `7aa3b1d` — registered on the trunk by `df875e6` before this branch existed |
 | Branch | `path/cp-ops-002`, worktree `../4tom1k-cp-ops-002`, `node_modules` symlinked |
-| Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane (`3df9073`) · **S05b** — the opening check gated, five more indexes (`d6b29f1`), the invented folder-log decision retracted on owner correction (`360f2be`) · **S05c** — the OKF pair completed: eighteen folder logs seeded from real Git history |
-| Remaining | S06, S06c, S06d, S07a, S07, S08, S09 (S03 withdrawn by owner ruling; S06b rescoped and delivered inside S07 + S08 by ruling 9) |
+| Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane (`3df9073`) · **S05b** — the opening check gated, five more indexes (`d6b29f1`), the invented folder-log decision retracted on owner correction (`360f2be`) · **S05c** — the OKF pair completed: eighteen folder logs seeded from real Git history (`468bc24`) · **S06** — `index.html` rewritten against ADR-012, both HTML pages dated |
+| Remaining | S06c, S06d, S07a, S07, S08, S09 (S03 withdrawn by owner ruling; S06b rescoped and delivered inside S07 + S08 by ruling 9) |
 | Opening check | accepted 2026-08-24, eight rulings ([note](../sessions/2026-08-24-cp-ops-002-opening-check.md)) |
-| Gates at S05c | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 65/65 |
+| Gates at S06 | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 65/65 · both HTML pages parse with no unclosed tags |
 | Scope note | protocol tooling and doctrine only; no product code, so `npm test` / `typecheck` / `build` are untouched by this step |
 | Widening | `writes:` gained `atomik-project/briefs/cp-ops-002-handoff.md` at S01 — the per-step handoff brief is required by bedrock 22 and the original declaration simply omitted it |
-| Next action | S06 — retire the drifted page: `docs/cairn/index.html` teaches the rejected integrator model at ten sites; rewrite it against ADR-012 or replace it with a generated view, and give both HTML pages a dated status banner naming the ADR they render |
+| Next action | S06c — bind the coherence audit to the HEAD it reviewed: `--check` accepts a record naming HEAD or any ancestor within this path's own commits, which is what all nine existing audits already do accidentally |
 | Widening (S05) | `writes:` gained `docs/adr/**`, `docs/bedrock/index.md`, `docs/modules/**`, `docs/index.md`, `atomik-project/index.md` — S05 was always the OKF backfill; the declaration named only the two ADRs this path authors. Deliberate `single-truth` edit: `docs/modules/atomik-desktop.md`, one stale sentence naming the removed integrator |
 | Amendments | **2026-08-24, owner ruling 9** — S06b rescoped from "configure branch protection" to "declare the enforcement tier"; its deliverables move into S07 (specification + operator guide) and S08 (`enforcement` config field, generated header line, tier-0/1 `cairn-init`). This repository stays at tier 1, declared ([note](../sessions/2026-08-24-cp-ops-002-s06b-rescope.md)) |
 | Blockers | none. Nothing now waits on host configuration |

@@ -169,7 +169,32 @@
 
   footer { border-top: 1px solid var(--rule-2); background: var(--sunk); padding: clamp(2rem,5vw,3.2rem) 0; font-size: .92rem; color: var(--soft); }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+  /* Every rendered page states its vintage: the sibling page taught a rejected
+     model for ten days because nothing on it claimed a date. */
+  .vintage {
+    background: var(--sunk); color: var(--soft);
+    border-bottom: 1px solid var(--rule-2);
+    padding: .9rem 0; font-size: .88rem; line-height: 1.55;
+  }
+  .vintage p { margin: 0; }
+  .vintage strong { color: var(--ink); }
+  .vintage code {
+    background: var(--paper, #fff); color: var(--ink);
+    padding: .08em .35em; border-radius: 3px; border: 1px solid var(--rule-2);
+  }
 </style>
+
+<div class="vintage" role="note" aria-label="Document status">
+  <div class="wrap">
+    <p><strong>Current as of 2026-08-24.</strong> This page renders
+    <code>ADR-012</code> (parallel paths, self-merge) and <code>ADR-016</code>
+    (enforcement integrity). The authoritative text is
+    <code>atomik-project/coding-paths/paths.md</code>; where this page and that
+    file disagree, the file wins. Verified against the protocol at CP-OPS-002 S06 —
+    unchanged, and it never taught the integrator model its sibling page did.</p>
+  </div>
+</div>
 
 <header class="mast">
   <div class="wrap col">

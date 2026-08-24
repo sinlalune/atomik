@@ -29,8 +29,17 @@ CP-OPS-002 S07 and become the entry point.
   F1–F15, each finding reproduced by a named command. It is what CP-OPS-002 executes.
 - [cairn-opening-check-agenda.md](./cairn-opening-check-agenda.md) — the eight
   decisions put to the owner before CP-OPS-002 could be registered.
-- [workflow.html](./workflow.html) — the workflow rendered for reading outside the
-  repository.
+- [index.html](./index.html) — Cairn explained to someone outside this repository:
+  the two roles, N paths each merging itself, statements of record, and the twenty
+  rules the checker actually implements. Rewritten at CP-OPS-002 S06 against
+  ADR-012; it had taught the rejected integrator model at ten sites.
+- [workflow.html](./workflow.html) — the same protocol day to day: who acts at each
+  moment and which file holds the answer afterwards.
+
+Both HTML pages carry a **dated status banner** naming the ADRs they render.
+`index.html` drifted for ten days without anyone noticing precisely because
+nothing on it claimed a vintage; a rendered page that cannot be dated cannot be
+audited.
 
 ## Dated records of a proposal — read as history
 
@@ -48,5 +57,3 @@ one look inevitable.
   is *proposed* until ADR-017 settles the lifecycle.
 - [cairn-round-3-brief.md](./cairn-round-3-brief.md) ·
   [cairn-round-4-brief.md](./cairn-round-4-brief.md) — the briefs those rounds answered.
-- [index.html](./index.html) — **superseded**: it teaches the integrator model that
-  ADR-012 rejected. Retained behind a banner; CP-OPS-002 S06 retires it.
