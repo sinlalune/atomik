@@ -22,6 +22,12 @@ per entry in a `log/` subfolder — which was a concurrency fix, never a size on
 
 ## 2026-08-24
 
+- `S06` `index.html` rewritten against ADR-012 — the integrator model it taught at
+  ten sites replaced by two roles and N paths each merging itself; enforcement table
+  regenerated against the rules that exist; both HTML pages given a dated status
+  banner naming the ADRs they render, because the page drifted unnoticed for ten days
+  with no vintage on it.
+
 - `d6b29f1` CP-OPS-002 S05b: gate the opening check, finish the OKF backfill
 - `3df9073` CP-OPS-002 S05: backfill OKF — five indexes, ADR frontmatter, schema over the decision plane
 - `7e04288` CP-OPS-002 S04: bound the ledger — history/ rollup and an advisory ledger-size

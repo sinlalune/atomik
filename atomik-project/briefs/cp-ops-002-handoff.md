@@ -1,11 +1,11 @@
 ---
 type: Atomik Brief
-title: Handoff — CP-OPS-002 S05c complete, ready for S06
+title: Handoff — CP-OPS-002 S06 complete, ready for S06c
 timestamp: 2026-08-24T00:00:00Z
 atomik:
   path: CP-OPS-002
   branch: path/cp-ops-002
-  completed_step: S05c
+  completed_step: S06
 ---
 
 # Resume CP-OPS-002 here
@@ -17,7 +17,7 @@ atomik:
   checkout.
 - Registered at `base_commit: 7aa3b1d` by the trunk commit `df875e6` before this
   branch existed; `dd6e76a` is S00.
-- Gates at S05c: `npm run cairn-check` OK with one advisory — no coherence audit
+- Gates at S06: `npm run cairn-check` OK with one advisory — no coherence audit
   for this head, expected until the pre-merge audit. Validator suite
   `npm run cairn-check:test` 65/65.
 - `typecheck` / `test` / `build` are not run for this step and their verdicts are
@@ -30,6 +30,18 @@ atomik:
 `docs/modules`, `atomik-project/sessions`, `atomik-project/audits`), frontmatter on
 all 16 ADRs, and `adrFrontmatterErrors()` — blocking, corpus-scoped, requiring the
 frontmatter status to agree with the document's own `Status:` line.
+
+**S06** retired the drifted page. `docs/cairn/index.html` taught the rejected
+integrator model at ten sites; it now renders ADR-012 — two roles and the job the
+third one used to do, N paths each merging itself with a redrawn flow diagram, and
+an enforcement table listing the rules that actually exist rather than the nine it
+described. Both HTML pages carry a dated status banner naming the ADRs they render:
+the page drifted for ten days because nothing on it claimed a vintage, so the banner
+repairs the class, not the instance. `workflow.html` was verified unchanged.
+
+Rewritten rather than replaced by a generated view — the specification it would be
+generated from does not exist until S07, and leaving a rejected model rendered for
+two more steps was the worse option.
 
 **S05c** completed the OKF pair on the owner's directive: eighteen folder logs,
 each seeded from that folder's real Git history (15 most recent commits, merges
@@ -59,12 +71,14 @@ now carries `index.md` + `log.md`.
 
 ## Next action
 
-**S06 — retire the drifted page** (closes F6). `docs/cairn/index.html` still teaches
-the rejected integrator model at ten sites. Rewrite it against ADR-012, or replace
-it with a generated view of the specification, and give both HTML pages a dated
-status banner naming the ADR they render — the page drifted silently because
-nothing on it claimed a vintage. `workflow.html` is clean and byte-identical to
-master; it needs the banner, not a rewrite.
+**S06c — bind the coherence audit to the HEAD it reviewed** (ruling 7, F12).
+`cairn-audit` names a record for the current HEAD; committing that record moves
+HEAD, so `--check` can never match. All nine existing audits name a different
+commit from the one containing them — seven exactly the parent. Make `--check`
+accept a record naming HEAD **or any ancestor within this path's own commits**,
+which formalises what the nine files already do accidentally: no renaming, no
+migration, every existing audit retroactively valid. Regression test: a committed
+audit naming the parent commit satisfies `--check`.
 
 ## Blockers and decisions still open
 
