@@ -3,8 +3,9 @@ type: Atomik Session Record
 title: CP-AI-CAPABILITIES closing ceremony — the model was told, and it listened
 timestamp: 2026-08-20T00:00:00Z
 tags: [closing-ceremony, ai, prompt, capabilities, wikilink, bench]
-path: CP-AI-CAPABILITIES
 branch: path/cp-ai-capabilities
+path: CP-AI-CAPABILITIES
+ceremony: closing
 ---
 
 # CP-AI-CAPABILITIES closing ceremony

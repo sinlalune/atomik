@@ -14,15 +14,18 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   areaOf,
+  ceremonyFromSessions,
   evaluate,
   globToRegExp,
   isCommitPin,
   isPathBranch,
   matchesAny,
+  parseWrites,
   pathFrontmatterErrors,
   porcelainPaths,
-  registrationMatches,
   readFrontmatter,
+  registrationMatches,
+  resolveBranch,
   stripCode
 } from './cairn-check.mjs'
 
@@ -385,4 +388,131 @@ test('porcelain paths: renames report the new path, noise is dropped', () => {
   assert.deepEqual(porcelainPaths('R  docs/old.md -> docs/new.md\n'), ['docs/new.md'])
   assert.deepEqual(porcelainPaths(''), [])
   assert.deepEqual(porcelainPaths('\n\n'), [])
+})
+
+
+/* ------------------------------------------------------------------ *
+ * F1 — a check that cannot name the branch must not report OK
+ *
+ * `git rev-parse --abbrev-ref HEAD` answers "HEAD" in a detached checkout,
+ * and actions/checkout detaches on every pull_request. Six path rules went
+ * silent in exactly the run meant to enforce them, and the validator printed
+ * "OK — protocol satisfied" over a stale, unregistered branch carrying 96
+ * changed source files (audit 2026-08-24, F1).
+ * ------------------------------------------------------------------ */
+
+test('branch resolution prefers the host over the checkout', () => {
+  // The CI case that was broken: detached, but GITHUB_HEAD_REF knows the name.
+  assert.deepEqual(
+    resolveBranch({ env: { GITHUB_HEAD_REF: 'path/cp-mvp-011' }, symbolicRef: null, abbrevRef: 'HEAD' }),
+    { branch: 'path/cp-mvp-011', source: 'github-head-ref' }
+  )
+  // An explicit flag outranks everything, so the rules stay testable.
+  assert.equal(
+    resolveBranch({ flag: 'path/x', env: { GITHUB_HEAD_REF: 'path/y' } }).branch,
+    'path/x'
+  )
+  // A push event names a real branch.
+  assert.deepEqual(
+    resolveBranch({ env: { GITHUB_REF_NAME: 'master' }, symbolicRef: null, abbrevRef: 'HEAD' }),
+    { branch: 'master', source: 'github-ref-name' }
+  )
+  // "<n>/merge" is the merge preview, not a branch — never trust it.
+  assert.equal(
+    resolveBranch({ env: { GITHUB_REF_NAME: '42/merge' }, symbolicRef: null, abbrevRef: 'HEAD' }).source,
+    'detached'
+  )
+  // Ordinary local run.
+  assert.deepEqual(
+    resolveBranch({ env: {}, symbolicRef: 'master', abbrevRef: 'master' }),
+    { branch: 'master', source: 'symbolic-ref' }
+  )
+})
+
+test('a detached checkout changing source is BLOCKED, never silently OK', () => {
+  const found = run(['apps/desktop/electron-main/index.ts', 'docs/modules/atomik-desktop-shell.md',
+    'atomik-project/coding-paths/CP-MVP-010.md'], 'HEAD', [A_PATH], { branchSource: 'detached' })
+  assert.ok(rules(found, 'blocking').includes('branch-identity'),
+    'source changed while every path rule was skipped — that must fail, not pass')
+})
+
+test('a detached checkout touching no guarded root is advisory only', () => {
+  // A docs-only or tag build must not be punished for how it was checked out:
+  // a false blocking verdict costs more than a missed one.
+  const found = run(['docs/index.md'], 'HEAD', [A_PATH], { branchSource: 'detached' })
+  assert.deepEqual(rules(found, 'blocking'), [])
+  assert.ok(rules(found, 'advisory').includes('branch-identity'))
+})
+
+test('a normally resolved branch raises no identity finding', () => {
+  const found = run(['docs/index.md'], 'path/cp-mvp-010')
+  assert.ok(![...rules(found, 'blocking'), ...rules(found, 'advisory')].includes('branch-identity'))
+})
+
+/* ------------------------------------------------------------------ *
+ * F2 — the closing ceremony must be declared, not inferred from a filename
+ *
+ * paths.md requires an OPENING check note before a path may branch, so the
+ * old filename substring always matched and the rule could not fail for any
+ * compliant path (audit 2026-08-24, F2).
+ * ------------------------------------------------------------------ */
+
+test('an opening check is not a closing ceremony', () => {
+  const opening = [{ path: 'CP-MVP-010', ceremony: 'opening' }]
+  assert.equal(ceremonyFromSessions(opening, 'CP-MVP-010'), false)
+
+  const closing = [...opening, { path: 'CP-MVP-010', ceremony: 'closing' }]
+  assert.equal(ceremonyFromSessions(closing, 'CP-MVP-010'), true)
+})
+
+test('a ceremony note belongs to exactly one path', () => {
+  const notes = [{ path: 'CP-MVP-0010', ceremony: 'closing' }]
+  // substring matching made CP-MVP-001 pass on CP-MVP-0010's note
+  assert.equal(ceremonyFromSessions(notes, 'CP-MVP-001'), false)
+  // an undeclared note proves nothing
+  assert.equal(ceremonyFromSessions([{ path: 'CP-MVP-001' }], 'CP-MVP-001'), false)
+  assert.equal(ceremonyFromSessions([], 'CP-MVP-001'), false)
+})
+
+test('done with only an opening check on record is blocked', () => {
+  const done = { ...A_PATH, front: { ...A_PATH.front, status: 'done' } }
+  const sessions = [{ path: 'CP-MVP-010', ceremony: 'opening' }]
+  const found = run([done.file], 'path/cp-mvp-010', [done], {
+    ceremonyFor: (id) => ceremonyFromSessions(sessions, id)
+  })
+  assert.ok(rules(found, 'blocking').includes('ceremony'))
+})
+
+
+/* ------------------------------------------------------------------ *
+ * F9 — `writes:` is parsed from the FRONTMATTER, not the document
+ * ------------------------------------------------------------------ */
+
+test('the frontmatter terminator is not a write surface', () => {
+  const doc = [
+    '---', 'atomik:', '  id: CP-X', '  writes:',
+    '    - apps/desktop/a.ts', '    - apps/desktop/b.ts',
+    '---', '', '# Title', '', '- a body bullet', '- another body bullet', ''
+  ].join('\n')
+  // The old scan consumed `---` as an entry and then ran into the body.
+  assert.deepEqual(parseWrites(doc), ['apps/desktop/a.ts', 'apps/desktop/b.ts'])
+})
+
+test('a writes: list survives the trailing comment the template shows', () => {
+  // bedrock 24 / paths.md write it exactly this way; the old regex demanded
+  // `writes:` be followed immediately by a newline and parsed ZERO entries,
+  // which silently switches scope-drift off for any path copied from the doc.
+  const doc = [
+    '---', 'atomik:', '  id: CP-X',
+    '  writes:                    # ADVISORY — a signal, never a lock',
+    '    - apps/desktop/a.ts',
+    '---', '', '# Title', ''
+  ].join('\n')
+  assert.deepEqual(parseWrites(doc), ['apps/desktop/a.ts'])
+})
+
+test('no writes: block, or no frontmatter, declares nothing', () => {
+  assert.deepEqual(parseWrites('---\natomik:\n  id: CP-X\n---\n\n- bullet\n'), [])
+  assert.deepEqual(parseWrites('# just a document\n\n- bullet\n'), [])
+  assert.deepEqual(parseWrites(''), [])
 })

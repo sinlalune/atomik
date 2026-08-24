@@ -1,4 +1,4 @@
-<title>Cairn Protocol</title>
+<title>Cairn Protocol (SUPERSEDED — see ADR-012)</title>
 <style>
   :root {
     --ground: #f5f5f3;
@@ -332,7 +332,34 @@
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
   }
+  .superseded {
+    background: #7f1d1d; color: #fee2e2;
+    border-bottom: 3px solid #dc2626;
+    padding: 1.1rem 0; font-size: .95rem; line-height: 1.55;
+  }
+  .superseded p { margin: 0 0 .6rem; }
+  .superseded p:last-child { margin-bottom: 0; }
+  .superseded strong { color: #fff; }
+  .superseded code {
+    background: rgba(0,0,0,.28); color: #fecaca;
+    padding: .08em .35em; border-radius: 3px;
+  }
+
 </style>
+
+<div class="superseded" role="note" aria-label="Superseded document notice">
+  <div class="wrap">
+    <p><strong>SUPERSEDED &mdash; 2026-08-24.</strong> This page describes the <em>integrator</em> model:
+    an integration parent, delivery lanes, and a single gate through which every lane merges.
+    That model was <strong>rejected by the owner on 2026-08-14</strong> and replaced by
+    <code>ADR-012</code>: one path = one worktree = one branch = one writer, and
+    <strong>every path merges itself</strong>. There is no integrator, no parent, and no gatekeeper.</p>
+    <p>Retained as history, not as doctrine. For the current protocol read
+    <code>atomik-project/coding-paths/paths.md</code>,
+    <code>docs/adr/ADR-012-parallel-paths-self-merge.md</code>, and
+    <code>docs/cairn/workflow.html</code> (which is current).</p>
+  </div>
+</div>
 
 <header class="mast">
   <div class="wrap">

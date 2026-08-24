@@ -2,6 +2,8 @@
 type: Atomik Session Record
 title: CP-MVP-008 closing ceremony — recall, backlog rulings, next path confirmed (semantic graph)
 timestamp: 2026-08-04T00:00:00Z
+path: CP-MVP-008
+ceremony: closing
 ---
 
 # CP-MVP-008 closing ceremony (2026-08-04)

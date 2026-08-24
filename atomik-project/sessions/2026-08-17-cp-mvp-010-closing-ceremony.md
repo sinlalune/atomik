@@ -2,6 +2,8 @@
 type: Atomik Session Record
 title: CP-MVP-010 closing ceremony — retrieval accepted; CP-MVP-011 remains next; no roadmap amendment
 timestamp: 2026-08-17T00:00:00Z
+path: CP-MVP-010
+ceremony: closing
 ---
 
 # CP-MVP-010 closing ceremony (2026-08-17)

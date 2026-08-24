@@ -2,6 +2,8 @@
 type: Atomik Session Record
 title: CP-MVP-005 acceptance run — seats hardening
 timestamp: 2026-07-08T15:10:00Z
+path: CP-MVP-005
+ceremony: closing
 ---
 
 # CP-MVP-005 acceptance (2026-07-08)
