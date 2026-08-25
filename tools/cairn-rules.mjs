@@ -95,6 +95,10 @@ export const RULE_METADATA = {
     condition: 'ACTIVE.md running-paths block does not match trunk path files',
     enforcing: "tools/cairn-active.mjs --check"
   },
+  'path-staleness': {
+    condition: 'A path declaring running whose branch has had no commit for longer than the declared window',
+    enforcing: 'staleRunningPaths(corpus, branchAges(corpus)) — advisory always; an unresolvable branch reports nothing'
+  },
   'coherence-audit': {
     condition: 'Path rebased HEAD lacks filled coherence audit record in atomik-project/audits/',
     enforcing: "tools/cairn-audit.mjs --check"

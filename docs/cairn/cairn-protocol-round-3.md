@@ -42,6 +42,7 @@ This register documents every discrepancy identified and verified across the syn
 | **C13: Missing Path Lifecycle in D2** | D2 provided only a rule catalog and omitted the path lifecycle state machine. | **Repaired.** Added Section 2.2 detailing status vocabulary, legal transitions, field invariants, and explicitly documented the open hole for abandoned paths. | `tools/cairn-check.mjs:pathFrontmatterErrors`<br>`atomik-project/coding-paths/paths.md` §"Holes still open" |
 | **C14: Generator Table Pipe Escaping** | Generator emitted unescaped `\|` in table cells, breaking Markdown table parsing unless hand-fixed. | **Repaired.** `tools/cairn-rules.mjs` escapes inner `\|` as `\\\|`. Added `tools/cairn-rules.test.mjs` to guard generator against drift permanently. | `npm run cairn-check:test`<br>$\rightarrow$ `✔ cairn-rules: emitted table rows have exact 5 columns and no unescaped inner pipes` |
 | **C15: Nested Ceremony Schema (F13)** | D1 (and `CP-OPS-002` S02) prescribed `atomik: { path, ceremony: closing }`, a form the live parser reads as `false`. An operator following this guide would have failed a *blocking* gate on the merge it was closing. | **Repaired in CP-OPS-002 S01.** Root-level `path:` / `ceremony:` is what ships and what all 16 backfilled notes carry. The schema is now pinned once in [bedrock 24](../bedrock/24_24-doc-templates.md#session-note-and-ceremony-template) and settled by [ADR-016](../adr/ADR-016-cairn-enforcement-integrity.md); D1 and D2 point at it instead of restating it. | `npm run cairn-check:test`<br>$\rightarrow$ `✔ the nested ceremony form the guide once prescribed declares nothing` |
+| **C16: Path Lifecycle (F11/F15)** | D2 §2.2 declared `done` **terminal** and drew `running → archived` as the only abandonment edge, contradicting bedrock 35 and ADR-012, and listed `active` as live-but-dead vocabulary. | **Settled by [ADR-017](../adr/ADR-017-coding-path-lifecycle.md) (CP-OPS-002 S07a, 2026-08-25).** `archived` is the single terminal state, reached from `done` by demotion and from `running` by abandonment; `active` is removed from `PATH_STATUSES`; §2.2 now documents the accepted outcome instead of proposing a machine of its own. | `npm run cairn-check:test`<br>$\rightarrow$ `✔ active is out of the status vocabulary (F11)` · `✔ a running path whose branch has gone quiet is reported` |
 
 ---
 
@@ -251,6 +252,17 @@ test ! -e ../4tom1k-cp-example-001
 
 ### 2.2 Path Lifecycle & State Transitions
 
+> **Status: accepted outcome, 2026-08-25 (CP-OPS-002 S07a).** This section was
+> marked *proposed* by owner ruling 5: it declared `done` **terminal** and drew
+> `running → archived` as the only abandonment edge, which contradicted
+> [bedrock 35](../bedrock/35_35-coding-path-execution-state.md) (*"a finished
+> path moves to `status: done`, then `archived` — demotion, never deletion"*)
+> and [ADR-012](../adr/ADR-012-parallel-paths-self-merge.md), which records that
+> abandoned paths have no terminal transition at all. **D2 invented a lifecycle
+> the repository had not accepted** (audit F15). It is settled by
+> [ADR-017](../adr/ADR-017-coding-path-lifecycle.md) and rewritten below to
+> document that outcome; the ADR, not this page, is the source.
+
 A Coding Path is the primary unit of execution. Its state is governed by frontmatter in `atomik-project/coding-paths/CP-*.md`:
 
 ```mermaid
@@ -260,11 +272,17 @@ stateDiagram-v2
     running --> running: Step Execution Loop (Ledger + Code + Tests in 1 unit)
     running --> blocked: Dependency / External Blocker Encountered
     blocked --> running: Blocker Resolved
-    running --> done: Closing Ceremony Note + Rebase + Audit (Terminal Success)
-    running --> archived: Abandoned / Deprecated (Open Gap: Unenforced)
-    done --> [*]
+    running --> done: Closing Ceremony Note + Rebase + Audit (Accepted & Merged)
+    done --> archived: Demotion off the running portfolio (retained as history)
+    running --> archived: Abandonment — reason in the path ledger, no ceremony
     archived --> [*]
 ```
+
+`done` is a **completion**, not an end: it asserts that the work was accepted,
+rebased, audited and merged. `archived` is the single terminal state, and an
+abandoned path exits through the same door rather than through a fifth word —
+it never passes through `done`, because `done` claims a merge that did not
+happen. What separates the two roads is the record, not the vocabulary.
 
 #### Status Vocabulary & Invariants
 
@@ -273,12 +291,23 @@ stateDiagram-v2
 | `draft` | A proposed path under drafting. No branch or worktree obligations. | `atomik.id`, `atomik.status` | *None* | `tools/cairn-check.mjs:schema` |
 | `running` | An accepted path registered on trunk and executing in its isolated worktree. | `atomik.id`, `atomik.status`, `atomik.branch`, `atomik.base_commit` | Status must be `running`, `base_commit` must be 7–40 char hex pin | `tools/cairn-check.mjs:schema`, `branch-path`, `registration` |
 | `blocked` | Execution temporarily halted. Carries no branch obligations while blocked. | `atomik.id`, `atomik.status` | *None* | `tools/cairn-check.mjs:schema` |
-| `done` | Path execution complete, accepted by owner, rebased, audited, and merged into master. **Terminal state.** | `atomik.id`, `atomik.status` *(historical paths like CP-MVP-001/002/005 carry no branch field and pass schema)* | When checked out on `path/*`, status must be `done`, `base_commit` must be pinned | `tools/cairn-check.mjs:schema`, `ceremony` *(Session note with root-level `ceremony: closing`)* |
-| `archived` | Path scope superseded, retired, or preserved as historical record. **Terminal state.** | `atomik.id`, `atomik.status` | *None* | `tools/cairn-check.mjs:schema` |
-| `active` | **Dead status vocabulary.** Reserved only for historical CP-OPS-001 bootstrap. Rejected for new paths. | Accepted by `PATH_STATUSES` | Rejected by `PATH_BRANCH_STATUSES` | `tools/cairn-check.mjs:branch-path` *(Rejects `active` on path branches)* |
+| `done` | Path execution complete, accepted by owner, rebased, audited, and merged into master. A completion, **not** terminal — it is demoted to `archived` once it stops being current reading. | `atomik.id`, `atomik.status` *(historical paths like CP-MVP-001/002/005 carry no branch field and pass schema)* | When checked out on `path/*`, status must be `done`, `base_commit` must be pinned | `tools/cairn-check.mjs:schema`, `ceremony` *(Session note with root-level `ceremony: closing`)* |
+| `archived` | Path scope superseded, retired, abandoned, or preserved as historical record. **The single terminal state**, reached from `done` (demotion) or from `running` (abandonment). | `atomik.id`, `atomik.status` | *None* | `tools/cairn-check.mjs:schema` |
+
+*`active` was removed from the vocabulary by [ADR-017](../adr/ADR-017-coding-path-lifecycle.md) §3. It was accepted by `PATH_STATUSES` and rejected by `PATH_BRANCH_STATUSES`, so a path declaring it passed `schema` and then failed `branch-path` with a message about a different problem (F11). No path file declared it.*
+
+#### What a gate can and cannot check
+
+A validator run sees **one commit**, so it reads the state a file declares now
+and has never seen a transition. The machine above is doctrine for the people
+and agents executing it; what CI enforces is the set of per-state invariants in
+the table above, each a fact about one file. ADR-017 §4 states this explicitly
+so that no later document claims Cairn "enforces the lifecycle" — that claim
+would be a fresh instance of F13, a published rule the implementation does not
+honour.
 
 #### Documented Lifecycle Gaps
-* **Abandoned Path GC:** Currently, an abandoned path with `status: running` on trunk has no automated timeout or reaper transition, requiring manual promotion to `status: archived`.
+* **Abandoned Path GC — closed 2026-08-25.** ADR-017 §2 gives abandonment the transition `running → archived`, and §5 adds the advisory `path-staleness` finding so a path needing it is noticed: a `running` path whose branch has had no commit for longer than the declared window (14 days) is reported, with the two ways out. It is advisory permanently — a parked path is not a wrong path, and a build that failed for it would teach people to lie about status. A branch the checkout cannot resolve reports nothing.
 
 ---
 
@@ -304,6 +333,7 @@ The following table is generated directly from the live validation engine via [`
 | *Advisory* | `decision-drift` | diff | docs/bedrock changed without an ADR in the same changeset | `touched('docs/bedrock/') => touched('docs/adr/')` |
 | *Advisory* | `ledger-size` | diff | A path file in the diff exceeds the ledger token budget | `changed.includes(path.file) && path.tokens > LEDGER_TOKEN_BUDGET` |
 | *Advisory* | `opening-ceremony` | diff | Path declared running without an opening-check session note | `!openingFor(pathId) via session frontmatter { path, ceremony: 'opening' }` |
+| *Advisory* | `path-staleness` | corpus | A path declaring running whose branch has had no commit for longer than the declared window | `staleRunningPaths(corpus, branchAges(corpus)) — advisory always; an unresolvable branch reports nothing` |
 | *Advisory* | `registration` | diff | Path declaration tuple (id, running, branch, base) missing from trunk | `pathRegistrationState() === 'missing' (blocking) or 'grandfathered' (advisory)` |
 | *Advisory* | `remote-checkpoint` | diff | Local path HEAD not present on upstream tracking branch | `pathRemoteCheckpoint(branch).state === 'missing' \| 'unpushed'` |
 | *Advisory* | `scope-drift` | diff | Changed files outside path frontmatter declared writes: patterns | `!matchesAny(file, declaredWrites)` |

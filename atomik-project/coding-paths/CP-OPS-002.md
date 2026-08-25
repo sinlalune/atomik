@@ -450,16 +450,56 @@ any path containing a space, a quote, a backslash or a non-ASCII byte, and
 > spent, and the archive still reads true in the past tense where a renamed file would
 > have made it read false in the present. The content survives in Git at `51c0940`.
 
-### S07a — ADR-017, the path lifecycle *(ruling 5, F11 + F15)*
+### S07a — ADR-017, the path lifecycle *(ruling 5, F11 + F15)* — **COMPLETE**
 
-Round 3's D2 declared `done` terminal and drew `running → archived`, contradicting bedrock
-35 (*"a finished path moves to `done`, then `archived` — demotion, never deletion"*) and
-ADR-012 (abandoned paths have no terminal transition). The validator checks current
-statuses, never transitions.
+Three documents described one state machine and no two agreed. Bedrock 35 said a finished
+path moves to `done`, **then** `archived` — demotion, never deletion. Round 3's D2 §2.2
+declared `done` **terminal** and drew `running → archived` as the only abandonment edge.
+ADR-012 recorded that abandoned paths have no terminal transition at all. `AGENTS.md` calls
+that a defect to report; the audit reported it (F15), and the owner ruled that a
+specification may not settle it — an ADR must.
 
-- `ADR-017` settles `done → archived`, gives abandoned paths a terminal transition, and
-  retires `active` from the vocabulary.
-- D2 §2.2 is marked **proposed** until the ADR lands, then documents its outcome.
+- **`archived` is the single terminal state.** Bedrock wins, because `AGENTS.md` says
+  bedrock states the doctrine while `paths.md` carries operating detail. `done` means
+  accepted, rebased, audited and merged — a completion, not an end; `archived` means off
+  the portfolio, retained as history.
+- **Abandonment is `running → archived`, and it takes no new word.** An abandoned path
+  exits the door a finished one eventually uses, and never passes through `done`, because
+  `done` asserts a merge that did not happen. An `abandoned` status was rejected: a fifth
+  word for an existing shelf, which every consumer would then special-case into behaving
+  exactly like `archived`. **The closing ceremony is not side-stepped** — that gate keys on
+  `done`, and archiving claims the opposite, so it is a different destination rather than a
+  cheaper route to the same one.
+- **`active` is retired** (F11). It was accepted by `schema` and rejected by `branch-path`,
+  so a path declaring it failed with a message about a different problem. No path file
+  declared it, so this deletes dead vocabulary rather than migrating anything.
+- **The honest half, stated so no later document can claim more.** A validator run sees ONE
+  commit: it reads the state a file declares now and has never seen a transition. So the
+  machine is doctrine, and what CI enforces is the set of per-state INVARIANTS, each a fact
+  about one file — all of which already existed. **This ADR adds no blocking rule**, and
+  that is a decision: *"which state was this in last week"* fails the first half of the
+  admission test. A specification that said Cairn "enforces the path lifecycle" would be a
+  fresh F13.
+- **Staleness closes the other half of ADR-012's hole.** That hole was two things — no
+  terminal transition, and nothing noticing a path that needs one. The advisory
+  `path-staleness` rule reports a `running` path whose branch has had no commit for longer
+  than the declared window (14 days), naming both ways out. Advisory permanently: a parked
+  path is not a wrong path, and a build that failed for one would teach people to lie about
+  status rather than to archive. The window is a **declared property of a repository**, the
+  shape enforcement tiers took in ADR-016 §3, and it becomes configurable at S08.
+- **Unknown reports nothing.** A branch the checkout cannot resolve — a shallow CI clone, a
+  path whose branch lives on another machine — produces no finding. Unknown must never read
+  as stale for the same reason it must never read as fresh. Pinned by a test over `null`,
+  `undefined`, `NaN` and absence.
+- **Documents corrected, not restated.** D2 §2.2 carries a dated banner and documents the
+  accepted outcome, its vocabulary table loses the `active` row and its "Documented
+  Lifecycle Gaps" entry is marked closed; the corrections register gains C16; §2.3's rule
+  table is regenerated from the live source. `paths.md` states the vocabulary by reference
+  to the ADR and moves hole 1 into its closed list, leaving **two** open. `index.html`
+  names ADR-017 in its banner and carries the new rule. **Bedrock is untouched on purpose**
+  — the ADR ratifies what bedrock 35 already said, and amending a page to agree with itself
+  would be noise.
+- Four regression tests. Suite 77 → 81.
 
 ### S07 — Specification and lexicon
 
@@ -516,14 +556,14 @@ brief names — and fix what the pilot finds before merging.
 | Status | `running` on `path/cp-ops-002` |
 | Base commit | `7aa3b1d` — registered on the trunk by `df875e6` before this branch existed |
 | Branch | `path/cp-ops-002`, worktree `../4tom1k-cp-ops-002`, `node_modules` symlinked |
-| Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane (`3df9073`) · **S05b** — the opening check gated, five more indexes (`d6b29f1`), the invented folder-log decision retracted on owner correction (`360f2be`) · **S05c** — the OKF pair completed: eighteen folder logs seeded from real Git history (`468bc24`) · **S06** — `index.html` rewritten against ADR-012, both HTML pages dated (`2a5ef35`) · **S06c** — the coherence audit bound to the commits its path contributed (`de4e0fa`) · **S06d** — the six stale worktrees and the orphan registration branch drained, `isFilled()` given something to measure, and a C-quoted path stopped hiding from the blocking rules |
-| Remaining | S07a, S07, S08, S09 (S03 withdrawn by owner ruling; S06b rescoped and delivered inside S07 + S08 by ruling 9) |
+| Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane (`3df9073`) · **S05b** — the opening check gated, five more indexes (`d6b29f1`), the invented folder-log decision retracted on owner correction (`360f2be`) · **S05c** — the OKF pair completed: eighteen folder logs seeded from real Git history (`468bc24`) · **S06** — `index.html` rewritten against ADR-012, both HTML pages dated (`2a5ef35`) · **S06c** — the coherence audit bound to the commits its path contributed (`de4e0fa`) · **S06d** — the six stale worktrees and the orphan registration branch drained, `isFilled()` given something to measure, and a C-quoted path stopped hiding from the blocking rules (`9cbe605`, `6fa33e7`) · **S07a** — ADR-017 settles the path lifecycle; `active` retired, abandonment given a door, staleness noticed without blocking |
+| Remaining | S07, S08, S09 (S03 withdrawn by owner ruling; S06b rescoped and delivered inside S07 + S08 by ruling 9) |
 | Opening check | accepted 2026-08-24, eight rulings ([note](../sessions/2026-08-24-cp-ops-002-opening-check.md)) |
-| Gates at S06d | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · `--base origin/master` OK (2 advisory, the second being the deliberate S05 `single-truth` edit) · validator suite 77/77 |
+| Gates at S07a | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 81/81 |
 | Scope note | protocol tooling and doctrine only; no product code, so `npm test` / `typecheck` / `build` are untouched by this step |
 | Widening | `writes:` gained `atomik-project/briefs/cp-ops-002-handoff.md` at S01 — the per-step handoff brief is required by bedrock 22 and the original declaration simply omitted it. **Widened again at S06d** to `atomik-project/briefs/**`: F7's residue lives in that folder, and `scope-drift` said so the moment the owner ruled on `feedback on  MVP-001.md`. Recorded here and kept going, which is what `paths.md` asks of a widening |
-| Next action | S07a — `ADR-017`, the path lifecycle (ruling 5, F11 + F15): settle `done → archived`, give abandoned paths a terminal transition, retire `active` from the vocabulary, and mark round 3's D2 §2.2 *proposed* until it lands. It blocks S07, which cannot describe a lifecycle the ADRs still contradict |
+| Next action | S07 — the specification and lexicon: `docs/cairn/specification.md` (planes, the ADR-017 lifecycle by reference, the rule table generated from `cairn-check.mjs`, the blocking-rule admission test, the three enforcement tiers with tier 2 as a repository property, the CP-MVP-011/012 migration window as a property), `docs/cairn/lexicon.md` (one definition per term, each pointing at the file that enforces it; a term with no enforcing file marked aspirational), and the step-by-step operator guide carrying the optional tier-2 ruleset as a copy-paste `gh api` payload |
 | Widening (S05) | `writes:` gained `docs/adr/**`, `docs/bedrock/index.md`, `docs/modules/**`, `docs/index.md`, `atomik-project/index.md` — S05 was always the OKF backfill; the declaration named only the two ADRs this path authors. Deliberate `single-truth` edit: `docs/modules/atomik-desktop.md`, one stale sentence naming the removed integrator |
 | Amendments | **2026-08-24, owner ruling 9** — S06b rescoped from "configure branch protection" to "declare the enforcement tier"; its deliverables move into S07 (specification + operator guide) and S08 (`enforcement` config field, generated header line, tier-0/1 `cairn-init`). This repository stays at tier 1, declared ([note](../sessions/2026-08-24-cp-ops-002-s06b-rescope.md)) |
-| Blockers | none. Nothing now waits on host configuration |
+| Blockers | none. Nothing now waits on host configuration, and S07a's dependency is discharged: the lifecycle is settled, so the specification can describe it by reference |
 | Machine-local state (S06d) | `git worktree list` holds four entries — the owner's trunk, `cp-mvp-011`, `cp-mvp-012` and this path. Ten `path/*` branches retained; `registration/cp-worktree-cleanup` deleted as merged. This transition cannot be enforced by repository CI after the checkout disappears, so `paths.md` requires it to be REPORTED, which is what this row is |

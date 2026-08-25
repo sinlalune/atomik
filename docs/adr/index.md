@@ -63,3 +63,5 @@ with no ADR beside it raises the advisory `decision-drift`.
   Rendering capabilities and note conventions are stated to the model as ordinary composable plan blocks, including the refusals, so it writes inside the limits the surface actually has.
 - **[ADR-016 — Cairn enforcement integrity — the gates must judge what they claim to judge](./ADR-016-cairn-enforcement-integrity.md)** · accepted · 2026-08-24
   Repairs the checks that reported OK over false conditions: rules fail closed when they cannot name their subject, ceremonies are declared in root-level frontmatter, and enforcement is declared in three tiers.
+- **[ADR-017 — The coding-path lifecycle — `archived` is the terminal state, and an abandoned path has a way out](./ADR-017-coding-path-lifecycle.md)** · accepted · 2026-08-25
+  `done` is a completion and `archived` the single terminal state, reached by demotion from `done` or by abandonment from `running`; `active` is retired, and a quiet path is noticed by an advisory signal rather than a gate.

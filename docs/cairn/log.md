@@ -20,6 +20,13 @@ remains the complete record; this is the readable one. If two paths ever start
 colliding on this file, it takes the amendment the journal already took — one file
 per entry in a `log/` subfolder — which was a concurrency fix, never a size one.
 
+## 2026-08-25
+
+- `S07a` D2 §2.2 stops proposing a lifecycle of its own: a dated banner, the accepted
+  ADR-017 outcome, the `active` row removed, the abandoned-path gap marked closed, and
+  §2.3's rule table regenerated with `path-staleness`. Corrections register gains C16.
+  `index.html` names ADR-017 in its banner and carries the new advisory rule.
+
 ## 2026-08-24
 
 - `S06` `index.html` rewritten against ADR-012 — the integrator model it taught at

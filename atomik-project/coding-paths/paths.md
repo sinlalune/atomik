@@ -110,12 +110,18 @@ atomik:
    [ADR-016](../../docs/adr/ADR-016-cairn-enforcement-integrity.md); both pages
    now say it the same way.
 
-   **Status vocabulary.** `running` means "registered on the trunk, then on its
-   own branch and worktree" and requires `branch` + `base_commit`. That tuple is
-   what the generated view and CI key on. `active` is reserved for the one
-   bootstrap-exception path that began on the trunk before this convention
-   existed (CP-OPS-001); no new path uses it. `done` requires a ceremony session
-   note. `draft`, `blocked` and `archived` carry no branch obligations.
+   **Status vocabulary.** Settled by
+   [ADR-017](../../docs/adr/ADR-017-coding-path-lifecycle.md). `running` means
+   "registered on the trunk, then on its own branch and worktree" and requires
+   `branch` + `base_commit`. That tuple is what the generated view and CI key on.
+   `done` requires a ceremony session note and means accepted, rebased, audited
+   and merged — a completion, not an end. `archived` is the single TERMINAL
+   state, reached from `done` by demotion and from `running` by abandonment; an
+   abandoned path never passes through `done`, because `done` claims a merge that
+   did not happen. `draft`, `blocked` and `archived` carry no branch obligations.
+   `active` is gone: it was accepted by `schema` and rejected by `branch-path`,
+   so a path declaring it failed with a message about a different problem, and
+   its reservation for CP-OPS-001 was spent when that path reached `done`.
 
 3. Create the worktree FROM THE REGISTRATION COMMIT and its runtime isolation
    (below). Cairn blocks a new `path/*` branch when its matching `running`
@@ -401,6 +407,8 @@ ADVISORY   coherence audit missing for this head
            remote checkpoint — path HEAD is not yet on its upstream branch
            scope drift vs declared writes:
            ledger size — a path file in the diff is over its token budget
+           path staleness — a running path's branch has gone quiet past the
+                          declared window; push the work, or archive the path
            area note untouched while its source changed
            bedrock changed with no ADR beside it
 ```
@@ -444,16 +452,13 @@ S08.
 ## Holes still open
 
 The workflow audit (drawing D14) found four missing guards. Self-merge closed
-two of them by construction. Checkpoint drift was discovered later, so three
-open holes are recorded here:
+two of them by construction. Checkpoint drift was discovered later, and the
+abandoned-path hole closed at CP-OPS-002 S07a, so **two** open holes remain:
 
-1. **Abandoned paths have no terminal status.** A path that dies keeps
-   `status: running` and poisons the generated views. Needs an `archived`
-   transition and something that notices staleness.
-2. **`base_commit` accuracy is unchecked** — presence is verified, truth is not.
+1. **`base_commit` accuracy is unchecked** — presence is verified, truth is not.
    Partly mitigated by the rebase gate, which checks the branch against the
    trunk directly rather than trusting the recorded base.
-3. **Checkpoint accuracy is unchecked.** The validator verifies that a path file
+2. **Checkpoint accuracy is unchecked.** The validator verifies that a path file
    CHANGED when source changed; it cannot tell whether the checkpoint inside it
    is still true. Found the honest way, on 2026-08-15: CP-OPS-001's own
    checkpoint still described step zero in lane vocabulary five steps after the
@@ -461,6 +466,18 @@ open holes are recorded here:
    cannot mechanically defend, because "is this prose still accurate?" is not a
    checkable question. Candidate mitigation, no more than that: require the
    checkpoint's `base commit` line to match the branch's actual base.
+
+Closed by CP-OPS-002 S07a (2026-08-25): **abandoned paths had no terminal
+status**, so a path that died kept `status: running` and poisoned the generated
+views. [ADR-017](../../docs/adr/ADR-017-coding-path-lifecycle.md) gives
+abandonment the transition `running → archived` — the same shelf a finished path
+is demoted to, with no fifth word added — and adds the advisory `path-staleness`
+finding for the other half of the hole: a `running` path whose branch has had no
+commit for longer than the declared window (14 days) is reported, with the two
+ways out. Advisory permanently, because a parked path is not a wrong path and a
+build that failed for one would teach people to lie about status rather than to
+archive. A branch this checkout cannot resolve reports nothing: unknown must
+never read as stale.
 
 Closed by CP-OPS-001 S08 (2026-08-20): **running-path visibility**. Deriving
 `ACTIVE.md` from path files did not help when the files existed only on sibling
