@@ -297,6 +297,64 @@ replaced by **`docs/cairn/handbook.md`** and **`docs/cairn/handbook.html`**.
   this document is about.
 - Suite 83/83, unchanged: the redo is documentation and one constant.
 
+### S07d — The binding names, and the document read downward *(owner, 2026-08-25)* — **COMPLETE**
+
+Two owner corrections, one after the other.
+
+**`atomik-project/` was being taught as if it were the protocol.** *"you use reference of
+/atomik-project when it should be /project right ? because it is gonna be apply to any kind of
+project"* — correct, and it is the same defect class this path exists to close, pointed at the
+handbook itself: a document about portability was writing this repository's binding into the
+protocol's prose.
+
+- The handbook now writes **`project/`** for the execution-state plane root, with a
+  **Notation** section stating that Cairn talks about roles and each repository binds them to
+  its own names. Three places keep the real name on purpose and say why: **links**, which are
+  addresses and must resolve; the **generated rule catalogue**, which prints whatever the
+  validator has compiled in; and the **declared properties** section, which is where
+  repository-specific facts belong.
+- **The frontmatter namespace key is a binding too**, and it is the one that could not be
+  genericised: the parser reads `atomik:` hardcoded. Publishing `cairn:` while the parser looks
+  for `atomik:` would be *a published rule the implementation does not honour* — the exact
+  failure the surrounding page is about. So the real key is shown, with the reason.
+- The generated catalogue gained a line under it: its messages name this repository's bindings
+  **because the validator has them compiled in**, and that is the clearest available statement
+  of what S08 has left to do. Until those are configuration, Cairn is this repository's protocol
+  that *could* be portable — not a portable protocol.
+
+**The handbook is one stance, and the owner asked for its inverse.** *"you made the document
+from foundation to cairn, which is a stance, but what would it look like from cairn to it
+foundation elements manipulated, create a second file"*.
+
+`docs/cairn/anatomy.md` + `anatomy.html` — **Cairn taken apart**.
+
+- **The inversion is structural, not a reordering.** The handbook is organised by *concept*;
+  this is organised by **primitive**, so every rule touching the commit graph sits together
+  regardless of which feature it belongs to. That grouping is the value: it shows how few things
+  the protocol touches and exactly where each one runs out.
+- **The claim it makes:** Cairn manipulates seven primitives and nothing else — the commit
+  graph, refs, the filesystem, file content, exit codes, the host environment, wall-clock time.
+  Each construct is reduced to its exact predicate (`merge-base(trunk, HEAD) == trunk`;
+  `∃ file with root-level path == <id> AND ceremony == <kind>`; `changed ∖ declared globs`) with
+  what it reads, its verdict, and a **cannot** line naming where the primitive gives out.
+- **The eighth input is a human judgement, and the central move is what happens to it**: every
+  judgement is reduced to primitive 4, a file. An owner's acceptance becomes two metadata keys;
+  an agent's architectural read becomes a record naming an outcome. That is what lets a protocol
+  built for human decisions run in a script containing no intelligence — and it fixes the
+  ceiling, which is why judgement-derived rules are advisory and existence-derived rules block.
+- **The negative space is a section of its own**: eight primitives Cairn had available and
+  refused, each with the reason — a model inside a gate, git hooks, server-side state, a lock on
+  declared surfaces, timestamps as ordering authority, rewriting history to fit a later rule,
+  summarising a rolled step, and a person as gatekeeper.
+- **Two payoff tables the upward reading cannot produce.** All eighteen rules with their
+  primitive, operation and verdict on one screen — showing that **nothing in the blocking set
+  requires judgement**, which is the admission test applied eighteen times. And the **seams**:
+  seven names, all inputs rather than logic, which is the honest measure of the distance to
+  portability and makes it S08's checklist.
+- The page reuses the handbook's theme with the accent shifted, so the pair reads as one set
+  while the direction is legible at a glance, and adds two components the downward reading needs
+  — a monospace `operation` block and a `cannot` rule.
+
 ### S08 — Extract Cairn from Atomik
 
 Cairn is not portable today: `cairn-check.mjs` hardcodes `atomik-project/`, `apps/`,
@@ -332,10 +390,10 @@ brief names — and fix what the pilot finds before merging.
 | Status | `running` on `path/cp-ops-002` |
 | Base commit | `7aa3b1d` — registered on the trunk by `df875e6` before this branch existed |
 | Branch | `path/cp-ops-002`, worktree `../4tom1k-cp-ops-002`, `node_modules` symlinked |
-| Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane (`3df9073`) · **S05b** — the opening check gated, five more indexes (`d6b29f1`), the invented folder-log decision retracted on owner correction (`360f2be`) · **S05c** — the OKF pair completed: eighteen folder logs seeded from real Git history (`468bc24`) · **S06** — `index.html` rewritten against ADR-012, both HTML pages dated (`2a5ef35`) · **S06c** — the coherence audit bound to the commits its path contributed (`de4e0fa`) · **S06d** — the six stale worktrees and the orphan registration branch drained, `isFilled()` given something to measure, and a C-quoted path stopped hiding from the blocking rules (`9cbe605`, `6fa33e7`) · **S07a** — ADR-017 settles the path lifecycle; `active` retired, abandonment given a door, staleness noticed without blocking (`b4ef361`) · **S07** — the primer, the specification and the lexicon, written from zero for a scientist audience on the owner's amendment; the rule catalogue spliced and test-pinned (`1db06de`) · **S07b** — the primer rendered as a shareable page in the house style (`a585ca3`) · **S07c** — redo on owner correction: one universal handbook, in its own theme |
+| Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane (`3df9073`) · **S05b** — the opening check gated, five more indexes (`d6b29f1`), the invented folder-log decision retracted on owner correction (`360f2be`) · **S05c** — the OKF pair completed: eighteen folder logs seeded from real Git history (`468bc24`) · **S06** — `index.html` rewritten against ADR-012, both HTML pages dated (`2a5ef35`) · **S06c** — the coherence audit bound to the commits its path contributed (`de4e0fa`) · **S06d** — the six stale worktrees and the orphan registration branch drained, `isFilled()` given something to measure, and a C-quoted path stopped hiding from the blocking rules (`9cbe605`, `6fa33e7`) · **S07a** — ADR-017 settles the path lifecycle; `active` retired, abandonment given a door, staleness noticed without blocking (`b4ef361`) · **S07** — the primer, the specification and the lexicon, written from zero for a scientist audience on the owner's amendment; the rule catalogue spliced and test-pinned (`1db06de`) · **S07b** — the primer rendered as a shareable page in the house style (`a585ca3`) · **S07c** — redo on owner correction: one universal handbook, in its own theme (`697778a`) · **S07d** — the binding names genericised to `project/`, and `anatomy.md` — the same material read downward |
 | Remaining | S08, S09 (S03 withdrawn by owner ruling; S06b rescoped and delivered inside S07 + S08 by ruling 9) |
 | Opening check | accepted 2026-08-24, eight rulings ([note](../sessions/2026-08-24-cp-ops-002-opening-check.md)) |
-| Gates at S07c | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 83/83 · HTML structure parser-validated · rolled records verified verbatim against `HEAD` by extraction and comparison |
+| Gates at S07d | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 83/83 · HTML structure parser-validated · rolled records verified verbatim against `HEAD` by extraction and comparison |
 | Ledger rolled (S07c) | `ledger-size` fired at ~11 k tokens against the 10 k budget while this file was being edited — which is the only moment the rule is useful, and it worked. S00, S01, S03, S04, S05 (+S05b, S05c) and S06 (+S06b, S06c, S06d) moved **verbatim** into [`history/`](./history/index.md), leaving one index line each. Verified by extracting each record's body and confirming it appears unchanged in `HEAD`. Two mechanical adjustments are named in every record header rather than made silently: deixis is left alone, and relative-link depth is repointed one level, because a link is an address rather than content and the same target must keep resolving |
 | Scope note | protocol tooling and doctrine only; no product code, so `npm test` / `typecheck` / `build` are untouched by this step |
 | Widening | `writes:` gained `atomik-project/briefs/cp-ops-002-handoff.md` at S01 — the per-step handoff brief is required by bedrock 22 and the original declaration simply omitted it. **Widened again at S06d** to `atomik-project/briefs/**`: F7's residue lives in that folder, and `scope-drift` said so the moment the owner ruled on `feedback on  MVP-001.md`. Recorded here and kept going, which is what `paths.md` asks of a widening |

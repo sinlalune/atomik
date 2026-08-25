@@ -16,7 +16,8 @@ timestamp: 2026-08-25T00:00:00Z
 > [`ADR-017`](../adr/ADR-017-coding-path-lifecycle.md), together with the operating
 > detail in [`paths.md`](../../atomik-project/coding-paths/paths.md). Where this page
 > and an ADR disagree, the ADR wins and the disagreement is a defect to report.
-> [`handbook.html`](./handbook.html) is this document rendered.
+> [`handbook.html`](./handbook.html) is this document rendered, and
+> [`anatomy.md`](./anatomy.md) is the same material read from the other end.
 
 ## How to read this
 
@@ -37,6 +38,31 @@ normative statement.
 
 Nothing here is decorative. Every rule is stated with the specific failure that
 produced it, because a rule without its failure is a rule people quietly drop.
+
+## Notation — the names that are yours, not Cairn's
+
+Cairn is meant to run in any repository, so the protocol talks about **roles**,
+and each repository binds them to its own directory names:
+
+```text
+project/     the execution-state plane root — paths, sessions, audits, briefs,
+             the journal. THIS repository binds it to `atomik-project/`.
+docs/        the knowledge plane root. Unchanged here, but equally a binding.
+apps/ …      the SOURCE roots the guarded rules apply to. This repository binds
+             them to `apps/`, `packages/`, `shared/`.
+```
+
+Read `project/` below as *"whatever this repository calls its execution-state
+plane"*. Two places deliberately show the real name instead:
+
+- **Links** point at this repository's actual files, because a link has to
+  resolve. `../../atomik-project/coding-paths/paths.md` is an address, not a
+  claim about the protocol.
+- **[§11.1](#111-the-rule-catalogue)** is generated from the validator's own
+  source, so it prints whatever that source has compiled in. Today that is this
+  repository's bindings, hardcoded — which is precisely why the bindings are
+  listed as **aspirational** in [§11.2](#112-lexicon) rather than described as
+  configuration that already exists.
 
 ```text
  1  What a project actually is             7  The path lifecycle
@@ -81,12 +107,12 @@ one is untrustworthy:
 | Plane | Lives in | Lifetime |
 | :-- | :-- | :-- |
 | Knowledge | `docs/` | durable — what *should* be true |
-| Execution state | `atomik-project/` | durable — what is being done, and what was done |
+| Execution state | `project/` | durable — what is being done, and what was done |
 | Ephemeral context | the conversation | **evaporates** |
 
 There is a second, different split — the repository is *dual*-plane: a code plane
 (`apps/`, `packages/`, `shared/`, `docs/`) and a knowledge-plus-execution plane
-(`atomik-project/`). These are two decompositions of the same repository and
+(`project/`). These are two decompositions of the same repository and
 conflating them is a recurring source of confusion. `apps/` is **not** a third
 conceptual plane; it is one half of the repository split.
 
@@ -162,6 +188,12 @@ atomik:
   base_commit: 70f7e27       # the trunk tip immediately BEFORE registration
   branch: path/cp-mvp-010
 ```
+
+The block's key — `atomik:` — is this repository's namespace, and is a binding
+like the directory names. The validator reads it hardcoded today, so this document
+shows the real key rather than a generic one: publishing `cairn:` here while the
+parser looks for `atomik:` would be exactly the defect [§3](#35-in-cairn--documentation-the-tests-can-read)
+is about.
 
 `base_commit` pins the exact state the work started from. Because a commit id
 fingerprints its whole history, that single short string is an unambiguous
@@ -501,18 +533,18 @@ own stopped being shared:
 ACTIVE.md              GENERATED from the path declarations on the trunk
 register status        GENERATED from the same source
 the root module note   an index over the per-area notes
-the journal            ONE FILE PER ENTRY under atomik-project/log/
+the journal            ONE FILE PER ENTRY under project/log/
 ```
 
-`atomik-project/log.md` is **frozen** as a historical archive and never appended
-to; new entries land as `atomik-project/log/YYYY-MM-DD-<path-id>.md`.
+`project/log.md` is **frozen** as a historical archive and never appended to; new
+entries land as `project/log/YYYY-MM-DD-<path-id>.md`.
 
 Editing a generated file by hand is reported as an advisory finding: Git will
 merge two such edits cleanly and nobody will have checked the resulting claim. It
 is advisory rather than blocking because a deliberate edit is sometimes right —
 the ledger then has to say why.
 
-Every meaningful folder in `docs/` and `atomik-project/` carries both halves of a
+Every meaningful folder in `docs/` and `project/` carries both halves of a
 pair: an `index.md` (a map, read before opening many files) and a `log.md` (recent
 meaningful changes, read when recency matters). What remains genuinely
 hand-written — architecture pages, decision records, per-area notes, each path's
@@ -574,7 +606,7 @@ is what makes it real rather than aspirational, **the subset a script can check.
 ## 6.2 IN CAIRN — the coding path and its ledger
 
 Nothing is implemented outside an accepted **coding path**: one file in
-`atomik-project/coding-paths/CP-<ID>.md` carrying the identity tuple from
+`project/coding-paths/CP-<ID>.md` carrying the identity tuple from
 [§2.3](#23-in-cairn--the-identity-tuple-and-base_commit), a step list, a **work
 ledger**, the next action, and any blockers.
 
@@ -603,7 +635,7 @@ that actually collide.
 **The ledger has a size boundary.** A path file only grows, and when it costs more
 to read than the entire required reading before it, it has stopped being a ledger
 and become an archive. Completed steps roll into
-`atomik-project/coding-paths/history/<id>-S0N.md`, one file per major step, and
+`project/coding-paths/history/<id>-S0N.md`, one file per major step, and
 **the move is verbatim** — cut and paste, never summarise. Summarising at rollup
 time would quietly rewrite the record, which is the one thing a ledger may not do.
 The finding is advisory and scoped to files already in the change, because a
@@ -620,7 +652,7 @@ Two moments require a human and must leave a written artefact. Both are
 | **Opening check** | before the work is activated | the owner accepted this work, item by item |
 | **Closing ceremony** | before the work merges | the owner accepts the result |
 
-Each is a note in `atomik-project/sessions/` whose **root-level** metadata declares
+Each is a note in `project/sessions/` whose **root-level** metadata declares
 it:
 
 ```md
@@ -709,7 +741,7 @@ its verdict never blocks            findings are advisory, read by a human
 ```
 
 `npm run cairn-audit` scaffolds the record; the agent fills it in. One file per
-audit under `atomik-project/audits/`, named `<path-id>-<commit>.md`, so two paths
+audit under `project/audits/`, named `<path-id>-<commit>.md`, so two paths
 auditing at once never conflict.
 
 A record satisfies the check when it names **HEAD or any commit this path itself
@@ -800,9 +832,9 @@ here requires an account.
 ### Step 1 — Open the path
 
 1. Run the **opening check** with the owner, item by item. Record it as a session
-   note in `atomik-project/sessions/` with root-level `path:` and
+   note in `project/sessions/` with root-level `path:` and
    `ceremony: opening`. Activation needs explicit acceptance — this is blocking.
-2. From a clean, current trunk, write `atomik-project/coding-paths/CP-<ID>.md`.
+2. From a clean, current trunk, write `project/coding-paths/CP-<ID>.md`.
    `base_commit` is the trunk tip **immediately before** this registration.
 3. Regenerate the derived view and check:
 
@@ -836,7 +868,7 @@ git commit
 git push origin path/cp-<id>                     # immediately — the step is not done until this lands
 ```
 
-Refresh `atomik-project/briefs/<path-id>-handoff.md` from the ledger in that same
+Refresh `project/briefs/<path-id>-handoff.md` from the ledger in that same
 commit. Every completed, pushed step is a safe boundary between working sessions:
 a new session in the same worktree reads `AGENTS.md` → `paths.md` → the running
 view → the path ledger → the brief, verifies reality against Git, and continues
@@ -886,6 +918,11 @@ operating rule and a required closure report rather than a blocking rule.
 Stated as properties rather than omitted, because a document that hides its own
 configuration is committing the defect it warns about.
 
+- **Plane and source bindings.** The execution-state plane root is
+  `atomik-project/`; the knowledge plane root is `docs/`; the guarded source roots
+  are `apps/`, `packages/`, `shared/`; the frontmatter namespace key is `atomik:`.
+  All four are **hardcoded in the validator**, not configuration — see
+  [§11.2](#112-lexicon).
 - **Enforcement tier: 1 (`ci`).** CI observes. No trunk ruleset is installed, and
   the tier-2 payload in [§12](#12-appendix--the-optional-tier-2-ruleset) is
   deliberately not applied.
@@ -982,6 +1019,12 @@ because someone forgot to regenerate it.
 | *Advisory* | `single-truth` | diff | Manual edits to shared/derived statements of record | `SINGLE_TRUTH.includes(file)` |
 <!-- cairn:rules:end -->
 
+The rule messages above name this repository's **bindings** — `atomik-project/`,
+`apps/` — because the validator has them compiled in. That is the honest output of
+a generated table, and it is the clearest possible statement of what S08 has left
+to do: until those become configuration, Cairn is this repository's protocol that
+*could* be portable, not a portable protocol.
+
 ## 11.2 Lexicon
 
 One line each. Three markers appear:
@@ -1042,7 +1085,7 @@ does not exist.
 | **Filled** | A record that names an outcome from the vocabulary and answers at least one of its own questions. | `fillErrors()` |
 | **Derived view** | A file generated from other files, so nobody edits it and nobody collides on it. | `derived-view` — **blocking on the trunk** |
 | **Statement of record** | A shared or generated file a hand edit would quietly falsify. | `single-truth` — advisory |
-| **Journal** | One file per entry under `atomik-project/log/`. `log.md` is frozen. | convention |
+| **Journal** | One file per entry under `project/log/`. `log.md` is frozen. | convention |
 | **OKF pair** | Every meaningful folder carries an `index.md` and a `log.md`. | `links` — **blocking** |
 | **Blocking** | The build fails; nothing lands until it is fixed. | exit code |
 | **Advisory** | It prints, a human reads it, the work continues. Where every judgement call lives. | exit code |
@@ -1056,7 +1099,7 @@ does not exist.
 
 | Term | Meaning | Status |
 | :-- | :-- | :-- |
-| **`cairn.config.json`** | Plane roots, source roots, area map, trunk name, and the declared enforcement tier. | **ASPIRATIONAL** — the validator hardcodes these today. |
+| **`cairn.config.json`** | Plane roots, source roots, area map, trunk name, the frontmatter namespace key, and the declared enforcement tier. | **ASPIRATIONAL** — every one of these is hardcoded in the validator today. This is what stands between Cairn and being portable at all. |
 | **Generated enforcement header** | `cairn-check` printing the declared tier, so no document can claim prevention that is not installed. | **ASPIRATIONAL** — depends on the config file. |
 | **`cairn-new`** | Registration commit and worktree in one command, so the precondition stops depending on memory. | **ASPIRATIONAL** |
 | **`cairn-init`** | Scaffold a new repository at tiers 0 and 1: validator, config, docs skeleton, workflow file. | **ASPIRATIONAL** |
@@ -1108,6 +1151,10 @@ prints keeps telling the truth.
 ## See also
 
 - [`handbook.html`](./handbook.html) — this document, rendered.
+- [`anatomy.md`](./anatomy.md) — the same material read **downward**: each Cairn
+  construct reduced to the primitive it manipulates and the predicate it evaluates,
+  organised by primitive rather than by feature. Ends with the whole protocol in one
+  table, the primitives Cairn refuses, and the seams a port has to cut.
 - [`index.html`](./index.html) — a short visual overview of the protocol.
 - [`paths.md`](../../atomik-project/coding-paths/paths.md) — the operating detail,
   which may change without amending an architecture page.

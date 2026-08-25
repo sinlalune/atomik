@@ -1,0 +1,956 @@
+<title>Cairn Anatomy</title>
+<style>
+  /* ============================================================
+     Cairn anatomy — the handbook theme, one accent shifted.
+     Minimal, modern, built for dense text alternating with
+     diagrams, code and reference tables. No serif, one accent,
+     everything else is spacing and hairlines.
+     ============================================================ */
+
+  :root {
+    --ground:   #fcfcfd;
+    --surface:  #ffffff;
+    --panel:    #f4f6f8;
+    --panel-2:  #eef1f4;
+    --ink:      #14171a;
+    --ink-mid:  #454d55;
+    --ink-dim:  #737c85;
+    --line:     #e3e7ea;
+    --line-2:   #ced4d9;
+
+    --accent:      #7a4bbd;
+    --accent-tint: #f4eefb;
+    --accent-line: #ddc9f2;
+
+    --warn:      #b45309;
+    --warn-tint: #fdf4e7;
+    --stop:      #b4322a;
+    --stop-tint: #fdf1ef;
+    --ok:        #1f7a52;
+    --ok-tint:   #ecf6f1;
+
+    --sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+    --measure: 72ch;
+    --nav-w: 15.5rem;
+    --radius: 6px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:   #0e1013;
+      --surface:  #14171b;
+      --panel:    #191d22;
+      --panel-2:  #1f242a;
+      --ink:      #e7eaed;
+      --ink-mid:  #b3bcc4;
+      --ink-dim:  #8a939b;
+      --line:     #242a30;
+      --line-2:   #343b43;
+
+      --accent:      #b799ea;
+      --accent-tint: #1e1830;
+      --accent-line: #3a2c5c;
+
+      --warn:      #e0a458;
+      --warn-tint: #241d12;
+      --stop:      #e08a80;
+      --stop-tint: #251715;
+      --ok:        #63b491;
+      --ok-tint:   #12211b;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:   #0e1013;
+    --surface:  #14171b;
+    --panel:    #191d22;
+    --panel-2:  #1f242a;
+    --ink:      #e7eaed;
+    --ink-mid:  #b3bcc4;
+    --ink-dim:  #8a939b;
+    --line:     #242a30;
+    --line-2:   #343b43;
+
+    --accent:      #b799ea;
+    --accent-tint: #1e1830;
+    --accent-line: #3a2c5c;
+
+    --warn:      #e0a458;
+    --warn-tint: #241d12;
+    --stop:      #e08a80;
+    --stop-tint: #251715;
+    --ok:        #63b491;
+    --ok-tint:   #12211b;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* ---------- shell ---------- */
+
+  .shell {
+    max-width: 84rem;
+    margin: 0 auto;
+    padding: 0 clamp(1.1rem, 3.5vw, 2.5rem);
+  }
+  .layout { display: block; }
+
+  @media (min-width: 68rem) {
+    .layout {
+      display: grid;
+      grid-template-columns: var(--nav-w) minmax(0, 1fr);
+      gap: clamp(2rem, 5vw, 4.5rem);
+      align-items: start;
+    }
+    nav.toc { position: sticky; top: 0; max-height: 100vh; overflow-y: auto; padding: 2.5rem 0 3rem; }
+    nav.toc details { display: contents; }
+    nav.toc summary { display: none; }
+  }
+
+  main { min-width: 0; padding-bottom: 6rem; }
+
+  /* ---------- masthead ---------- */
+
+  .mast {
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .mast .inner { padding: clamp(3rem, 8vw, 5rem) 0 clamp(2rem, 5vw, 3rem); max-width: var(--measure); }
+  .tag {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 1.1rem;
+  }
+  h1 {
+    font-size: clamp(2.2rem, 5.5vw, 3.4rem);
+    line-height: 1.06;
+    letter-spacing: -0.025em;
+    font-weight: 620;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .sub {
+    font-size: clamp(1.02rem, 2vw, 1.18rem);
+    line-height: 1.55;
+    color: var(--ink-mid);
+    margin: 1.2rem 0 0;
+    max-width: 56ch;
+  }
+
+  /* ---------- vintage strip ---------- */
+
+  .vintage {
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+    font-size: 0.85rem;
+    line-height: 1.55;
+    color: var(--ink-mid);
+  }
+  .vintage .inner { padding: 0.85rem 0; max-width: 78ch; }
+  .vintage p { margin: 0; }
+  .vintage strong { color: var(--ink); font-weight: 620; }
+
+  /* ---------- nav ---------- */
+
+  nav.toc { font-size: 0.875rem; }
+  nav.toc > details {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    padding: 0.75rem 1rem;
+    margin: 1.5rem 0;
+  }
+  nav.toc summary {
+    cursor: pointer;
+    font-weight: 620;
+    font-size: 0.9rem;
+  }
+  nav.toc .navtitle {
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin: 0 0 0.9rem;
+    display: none;
+  }
+  @media (min-width: 68rem) { nav.toc .navtitle { display: block; } }
+  nav.toc ol { list-style: none; margin: 0; padding: 0; }
+  nav.toc li { margin: 0; }
+  nav.toc a {
+    display: flex;
+    gap: 0.6rem;
+    padding: 0.3rem 0;
+    color: var(--ink-mid);
+    text-decoration: none;
+    border-radius: 3px;
+  }
+  nav.toc a:hover { color: var(--accent); }
+  nav.toc a .num {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--ink-dim);
+    flex: none;
+    min-width: 1.4rem;
+  }
+  nav.toc a:hover .num { color: var(--accent); }
+
+  /* ---------- sections ---------- */
+
+  section { padding: clamp(2.2rem, 5vw, 3.4rem) 0 0; scroll-margin-top: 1.5rem; }
+  section > * { max-width: var(--measure); }
+  section > .wide, section > figure, section > .tablewrap { max-width: 100%; }
+
+  h2 {
+    font-size: clamp(1.5rem, 3vw, 1.95rem);
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    font-weight: 620;
+    margin: 0 0 1.4rem;
+    padding-bottom: 0.9rem;
+    border-bottom: 1px solid var(--line-2);
+    max-width: 100%;
+  }
+  h2 .num {
+    font-family: var(--mono);
+    font-size: 0.72em;
+    color: var(--ink-dim);
+    letter-spacing: 0;
+    margin-right: 0.7rem;
+    font-weight: 400;
+  }
+  h3 {
+    font-size: 1.06rem;
+    font-weight: 620;
+    letter-spacing: -0.005em;
+    margin: 2.4rem 0 0.8rem;
+  }
+  h4 {
+    font-size: 0.95rem;
+    font-weight: 620;
+    margin: 1.8rem 0 0.6rem;
+  }
+
+  p { margin: 0 0 1.05rem; }
+  ul, ol { margin: 0 0 1.05rem; padding-left: 1.3rem; }
+  li { margin-bottom: 0.4rem; }
+  li:last-child { margin-bottom: 0; }
+  strong { font-weight: 620; }
+  em { font-style: italic; color: var(--ink-mid); }
+  a { color: var(--accent); text-underline-offset: 0.18em; }
+  a:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 2.5rem 0; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.86em;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 0.08em 0.34em;
+  }
+
+  pre {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    line-height: 1.62;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 1rem 1.15rem;
+    overflow-x: auto;
+    margin: 1.3rem 0;
+  }
+  pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+  /* ---------- the alternation: CONCEPT vs IN CAIRN ---------- */
+
+  .mode {
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0.55rem;
+  }
+  .mode::before {
+    content: "";
+    width: 1.6rem;
+    height: 1px;
+    background: currentColor;
+  }
+  .concept > .mode { color: var(--ink-dim); }
+
+  /* a construct taken apart: the operation, in the primitive's own terms */
+  .op {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    line-height: 1.7;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 0.85rem 1.1rem;
+    margin: 1.2rem 0;
+    overflow-x: auto;
+  }
+  .op b { color: var(--accent); font-weight: 400; display: inline-block; min-width: 6.5rem; }
+  .cannot {
+    border-left: 3px solid var(--line-2);
+    padding: 0.15rem 0 0.15rem 1.1rem;
+    margin: 1.2rem 0;
+    color: var(--ink-mid);
+    font-size: 0.95rem;
+  }
+  .cannot b { color: var(--ink); font-weight: 620; }
+
+  .cairn {
+    background: var(--accent-tint);
+    border: 1px solid var(--accent-line);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 1.35rem 1.5rem;
+    margin: 1.6rem 0;
+    max-width: var(--measure);
+  }
+  .cairn > .mode { color: var(--accent); }
+  .cairn > h3 { margin-top: 0; }
+  .cairn > :last-child { margin-bottom: 0; }
+  .cairn pre { background: var(--surface); border-color: var(--accent-line); }
+  .cairn code { background: var(--surface); border-color: var(--accent-line); }
+
+  /* ---------- callouts ---------- */
+
+  .key {
+    border-left: 3px solid var(--accent);
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    padding: 1.1rem 1.3rem;
+    margin: 1.5rem 0;
+    font-size: 1.05rem;
+    line-height: 1.5;
+    font-weight: 500;
+  }
+  .key p { margin: 0; }
+  .key p + p { margin-top: 0.7rem; }
+
+  .failure {
+    background: var(--stop-tint);
+    border: 1px solid var(--stop);
+    border-radius: var(--radius);
+    padding: 1.05rem 1.25rem;
+    margin: 1.5rem 0;
+    font-size: 0.94rem;
+  }
+  .failure .label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 0.64rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--stop);
+    margin-bottom: 0.55rem;
+  }
+  .failure p:last-child { margin-bottom: 0; }
+
+  /* ---------- chips ---------- */
+
+  .chip {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    padding: 0.16em 0.5em;
+    border-radius: 3px;
+    white-space: nowrap;
+    vertical-align: 0.08em;
+  }
+  .chip.block { background: var(--stop-tint); color: var(--stop); border: 1px solid var(--stop); }
+  .chip.adv   { background: var(--warn-tint); color: var(--warn); border: 1px solid var(--warn); }
+  .chip.asp   { background: var(--panel-2); color: var(--ink-dim); border: 1px solid var(--line-2); }
+
+  /* ---------- figures & diagrams ---------- */
+
+  figure { margin: 1.8rem 0; }
+  .diagram {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 1.4rem 1.2rem;
+    overflow-x: auto;
+  }
+  .diagram svg { display: block; width: 100%; height: auto; min-width: 30rem; }
+  figcaption {
+    font-size: 0.83rem;
+    color: var(--ink-dim);
+    margin-top: 0.7rem;
+    max-width: var(--measure);
+  }
+  /* var() does not resolve inside SVG presentation attributes — use CSS */
+  .d-line   { stroke: var(--line-2); fill: none; stroke-width: 1.4; }
+  .d-accent { stroke: var(--accent); fill: none; stroke-width: 1.6; }
+  .d-box    { fill: var(--panel); stroke: var(--line-2); stroke-width: 1.2; }
+  .d-box-a  { fill: var(--accent-tint); stroke: var(--accent); stroke-width: 1.3; }
+  .d-box-s  { fill: var(--stop-tint); stroke: var(--stop); stroke-width: 1.2; }
+  .d-box-o  { fill: var(--ok-tint); stroke: var(--ok); stroke-width: 1.2; }
+  .d-fill-a { fill: var(--accent); }
+  .d-t      { fill: var(--ink); font-family: var(--sans); font-size: 12px; }
+  .d-t-m    { fill: var(--ink-mid); font-family: var(--sans); font-size: 11.5px; }
+  .d-t-d    { fill: var(--ink-dim); font-family: var(--sans); font-size: 10.5px; }
+  .d-mono   { font-family: var(--mono); font-size: 11px; fill: var(--ink); }
+  .d-mono-d { font-family: var(--mono); font-size: 10px; fill: var(--ink-dim); }
+
+  /* ---------- tables ---------- */
+
+  .tablewrap {
+    overflow-x: auto;
+    margin: 1.6rem 0;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+  table { border-collapse: collapse; width: 100%; min-width: 30rem; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 0.7rem 1rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  thead th {
+    font-family: var(--mono);
+    font-weight: 400;
+    font-size: 0.66rem;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    background: var(--panel);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.term { font-weight: 620; }
+  td .mono, td.mono { font-family: var(--mono); font-size: 0.84rem; }
+  table.rules td:nth-child(2) { font-family: var(--mono); font-size: 0.82rem; white-space: nowrap; }
+  table.rules td:nth-child(5) { font-family: var(--mono); font-size: 0.78rem; color: var(--ink-mid); }
+
+  /* ---------- steps ---------- */
+
+  ol.steps { list-style: none; padding: 0; counter-reset: s; margin: 1.4rem 0; }
+  ol.steps > li {
+    counter-increment: s;
+    position: relative;
+    padding-left: 2.6rem;
+    margin-bottom: 1.4rem;
+  }
+  ol.steps > li::before {
+    content: counter(s);
+    position: absolute;
+    left: 0;
+    top: 0.05rem;
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 1px solid var(--line-2);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--accent);
+    background: var(--surface);
+  }
+
+  footer {
+    border-top: 1px solid var(--line-2);
+    background: var(--panel);
+    margin-top: 4rem;
+    padding: clamp(2.2rem, 5vw, 3.5rem) 0;
+    font-size: 0.9rem;
+    color: var(--ink-mid);
+  }
+  footer h2 { font-size: 1.15rem; border: 0; padding: 0; margin-bottom: 1rem; }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+<div class="vintage">
+  <div class="shell"><div class="inner">
+    <p><strong>Current as of 2026-08-25.</strong> Rendered from
+    <code>docs/cairn/anatomy.md</code>, which is the source of truth. The companion
+    read in the other direction is <code>docs/cairn/handbook.md</code> — start there
+    if you are new to the protocol.</p>
+  </div></div>
+</div>
+
+<header class="mast">
+  <div class="shell"><div class="inner">
+    <p class="tag">Anatomy · read downward</p>
+    <h1>Cairn, taken apart.</h1>
+    <p class="sub">Every construct reduced to the primitive it manipulates and the exact predicate it
+    evaluates — organised by primitive, not by feature, so you can see how few things the
+    protocol actually touches and precisely where each one runs out.</p>
+  </div></div>
+</header>
+
+<div class="shell">
+<div class="layout">
+
+<nav class="toc" aria-label="Contents">
+  <details open>
+    <summary>Contents</summary>
+    <p class="navtitle">Contents</p>
+    <ol>
+      <li><a href="#dir"><span class="num">—</span><span>Two directions</span></a></li>
+      <li><a href="#s0"><span class="num">0</span><span>The primitive set</span></a></li>
+      <li><a href="#s1"><span class="num">1</span><span>The commit graph</span></a></li>
+      <li><a href="#s2"><span class="num">2</span><span>Refs</span></a></li>
+      <li><a href="#s3"><span class="num">3</span><span>The filesystem</span></a></li>
+      <li><a href="#s4"><span class="num">4</span><span>File content</span></a></li>
+      <li><a href="#s5"><span class="num">5</span><span>Exit codes</span></a></li>
+      <li><a href="#s6"><span class="num">6</span><span>The host environment</span></a></li>
+      <li><a href="#s7"><span class="num">7</span><span>What Cairn refuses</span></a></li>
+      <li><a href="#s8"><span class="num">8</span><span>The whole protocol, in one table</span></a></li>
+      <li><a href="#s9"><span class="num">9</span><span>The seams</span></a></li>
+    </ol>
+  </details>
+</nav>
+
+<main>
+
+<section id="dir">
+  <h2>Two directions through the same material</h2>
+  <p>The handbook goes <strong>upward</strong>: here is a general practice, explained from
+  nothing; here is how Cairn uses it. It is for someone arriving with no protocol in mind.</p>
+  <p>This document goes <strong>downward</strong>: here is Cairn; here is what it is
+  <em>made of</em>.</p>
+<pre><code>handbook    concept ──► implementation      arrive knowing nothing, leave knowing both
+anatomy     construct ──► primitive         arrive facing Cairn, leave able to rebuild it</code></pre>
+  <p>The inversion is not a reordering. The handbook is organised by <strong>concept</strong>;
+  this is organised by <strong>primitive</strong>, so every rule that touches the commit graph
+  sits together regardless of which feature it belongs to. That grouping is the whole value: it
+  shows how few things the protocol actually touches, exactly where each one runs out, and —
+  because the seams become visible — what a port has to cut.</p>
+  <p>Read it if you are evaluating Cairn, porting it, extending it, or debugging a rule that
+  fired when you did not expect it.</p>
+</section>
+
+<section id="s0">
+  <h2><span class="num">0</span>The complete primitive set</h2>
+  <p>Cairn manipulates <strong>seven</strong> things, and nothing else.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>#</th><th>Primitive</th><th>What it can answer</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">1</td><td class="term">The commit graph</td><td>is X an ancestor of Y; which commits are on this side and not that one</td></tr>
+        <tr><td class="mono">2</td><td class="term">Refs</td><td>what does this name point at; does this name resolve at all</td></tr>
+        <tr><td class="mono">3</td><td class="term">The filesystem</td><td>does this path exist; what is in this directory</td></tr>
+        <tr><td class="mono">4</td><td class="term">File content</td><td>what does this text say; what does its one metadata block declare</td></tr>
+        <tr><td class="mono">5</td><td class="term">Process exit codes</td><td>did this command succeed</td></tr>
+        <tr><td class="mono">6</td><td class="term">The host environment</td><td>what did the runner put in these variables</td></tr>
+        <tr><td class="mono">7</td><td class="term">Wall-clock time</td><td>how long ago</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>There is an eighth input that is not mechanical at all — <strong>a human's
+  judgement</strong> — and the single most important structural move in the protocol is what it
+  does with it:</p>
+  <div class="key">
+    <p>Every human judgement is reduced to primitive 4. An owner's acceptance becomes a file
+    with two metadata keys. An agent's architectural read becomes a file naming an outcome.
+    Neither the acceptance nor the read is checkable; the <em>file</em> is.</p>
+  </div>
+  <p>That reduction is what lets a protocol built for human decisions run in a script containing
+  no intelligence. It also fixes the ceiling: the check can prove the judgement was recorded,
+  never that it was any good. Cairn states that ceiling rather than blurring it, which is why
+  judgement-derived rules are advisory and existence-derived rules are blocking.</p>
+</section>
+
+<section id="s1">
+  <h2><span class="num">1</span>The commit graph</h2>
+  <p>Ancestry, and nothing else. No content, no order in time, no authorship.</p>
+
+  <h3>1.1 The rebase gate</h3>
+  <div class="op"><b>operation</b>merge-base(trunk_tip, HEAD) == trunk_tip<br><b>reads</b>two commits<br><b>verdict</b><span class="chip block">Blocking</span></div>
+  <p>This is the whole of "the branch is up to date". One graph query, objective, with exactly
+  one fix. That combination is why the rule that makes an integrator unnecessary can be a gate
+  at all.</p>
+  <div class="cannot"><b>Cannot:</b> tell you whether the rebase was done <em>well</em> —
+  whether conflicts were resolved correctly, whether the result still makes sense. Ancestry is a
+  containment fact; correctness is checked by the test suite, which is a different primitive.</div>
+  <p><strong>Unknown is not stale.</strong> If the trunk ref will not resolve — a fresh clone, a
+  shallow checkout — the answer is <code>null</code>, not <code>false</code>. A gate that failed
+  because it could not see would fail for a reason its author cannot fix.</p>
+
+  <h3>1.2 Trunk registration</h3>
+  <div class="op"><b>operation</b>git show &lt;trunk&gt;:&lt;path-file&gt; → parse → does the tuple match?<br><b>reads</b>one file, at one commit, on another branch<br><b>verdict</b><span class="chip block">Blocking</span> (advisory for a finite, named legacy set)</div>
+  <p>The subtle part is <em>where</em> it reads. The question is not "does this file exist" but
+  "does this file exist <strong>at the trunk ref</strong>", which is a graph-and-content query
+  the working directory cannot answer. That is precisely why the rule exists: a checkout can only
+  list its own files, so a view built from them is locally consistent and globally false.</p>
+  <div class="cannot"><b>Cannot:</b> tell you the registration was honest — only that the tuple
+  is present on the trunk and matches.</div>
+
+  <h3>1.3 Binding an audit to the work it reviewed</h3>
+  <div class="op"><b>operation</b>rev-list HEAD --not &lt;trunk&gt; → this path's own commits<br><b></b>audit name ∈ { &lt;path-id&gt;-&lt;sha7&gt; : sha ∈ that set ∪ {HEAD} }<br><b>reads</b>the graph, plus one directory listing<br><b>verdict</b><span class="chip adv">Advisory</span></div>
+  <p>An audit record is stamped with the head it was written for — and committing it moves the
+  head, so a naive equality check could never match. Widening it to <em>any commit this path
+  contributed</em> fixes that without renaming anything.</p>
+  <p><strong>The bound is the point.</strong> A record naming an arbitrary trunk ancestor proves
+  nothing about this branch. The set difference is what makes "this path's own work" a computable
+  object.</p>
+
+  <h3>1.4 base_commit</h3>
+  <div class="op"><b>operation</b>/^[0-9a-f]{7,40}$/<br><b>reads</b>one string<br><b>verdict</b><span class="chip block">Blocking</span> — on the SHAPE only</div>
+  <p>The pin's <em>presence</em> is checked. Its <em>truth</em> — that this really was the trunk
+  tip before registration — is not, and could be: it is a graph query. It is listed as a known
+  limit rather than quietly assumed, and it is partly mitigated because the rebase gate compares
+  against the trunk directly instead of trusting the record.</p>
+</section>
+
+<section id="s2">
+  <h2><span class="num">2</span>Refs</h2>
+  <p>A ref is a name pointing at a commit. Cairn asks three things of them: what does this one
+  point at, does it resolve at all, and how old is what it points at.</p>
+
+  <h3>2.1 Branch → path</h3>
+  <div class="op"><b>operation</b>branch name → key into the path corpus → status ∈ {running, done}<br><b>reads</b>one ref name, every path file's metadata<br><b>verdict</b><span class="chip block">Blocking</span></div>
+  <p>The branch name is a <strong>join key</strong>. That is the entire binding between the
+  execution plane and Git, and it is why the naming convention is not cosmetic.</p>
+
+  <h3>2.2 Naming the branch at all</h3>
+  <div class="op"><b>operation</b>flag → host env var → symbolic-ref → abbrev-ref<br><b></b>if all fail: "detached"<br><b>reads</b>the environment and one ref<br><b>verdict</b><span class="chip block">Blocking</span> when guarded source changed, else <span class="chip adv">Advisory</span></div>
+  <p>This is the primitive underneath every other branch rule, and it was the protocol's most
+  expensive defect.</p>
+  <div class="failure">
+    <span class="label">This actually happened here</span>
+    <p>A detached checkout has no branch name; every branch-scoped rule therefore had nothing to
+    key on and <strong>skipped in silence</strong>. Nothing printed. Six rules were inert in
+    exactly the environment they existed for.</p>
+  </div>
+  <p>The repair is a resolution order — ask the host before the checkout — and a
+  <strong>fail-closed</strong> verdict when the name is unavailable while guarded code changed.
+  It is advisory otherwise, because a documentation-only build in a detached checkout is not
+  wrong and a false blocking verdict costs more than a missed one.</p>
+  <div class="key"><p>A rule that cannot identify its subject must say so, not pass. Silence and
+  success are indistinguishable to a reader.</p></div>
+
+  <h3>2.3 The remote checkpoint</h3>
+  <div class="op"><b>operation</b>rev-parse @{upstream} → does it resolve?<br><b></b>merge-base --is-ancestor HEAD &lt;upstream&gt;<br><b>reads</b>two refs<br><b>verdict</b><span class="chip adv">Advisory</span></div>
+  <p>"Is my work anywhere other than this machine?" reduces to an ancestry test against the
+  tracking ref.</p>
+  <div class="cannot"><b>Cannot:</b> prove <em>cadence</em>. Once several commits are eventually
+  pushed together the graph looks identical to one that was pushed commit by commit. Push events
+  are recorded by the host's activity view, not by the repository — which is exactly why
+  push-per-commit is an absolute operating rule and only an advisory check. A rule that cannot see
+  the thing it wants must not pretend to enforce it.</div>
+
+  <h3>2.4 Staleness</h3>
+  <div class="op"><b>operation</b>log -1 --format=%ct &lt;branch&gt; → (now − t) / 86400 &gt; window<br><b>reads</b>one ref, one integer, the clock<br><b>verdict</b><span class="chip adv">Advisory</span>, permanently</div>
+  <p>The only rule that consults wall-clock time. A branch this checkout cannot resolve produces
+  <strong>no finding at all</strong> — not a stale one. Unknown must never read as stale, for the
+  same reason it must never read as fresh.</p>
+  <p>Advisory is structural, not timidity: a parked path is not a wrong path, and a build that
+  failed for one would teach people to lie about status rather than archive.</p>
+</section>
+
+<section id="s3">
+  <h2><span class="num">3</span>The filesystem</h2>
+  <p>Path existence and directory listing. Cairn leans on this more than on Git, and one of its
+  central guarantees is not Git's at all.</p>
+
+  <h3>3.1 One writer per working directory</h3>
+  <div class="op"><b>operation</b>none — this is a PROPERTY, not a check<br><b>verdict</b>absolute operating rule</div>
+  <p>Two processes editing one directory is a filesystem race, and no amount of documentation
+  makes it safe. The answer is not a rule but a <strong>topology</strong>: one worktree per path,
+  so two writers never share a directory.</p>
+  <div class="key"><p>The clearest case in the protocol of preferring a structure that makes a
+  failure impossible over a check that detects it.</p></div>
+
+  <h3>3.2 Collision avoidance by naming</h3>
+  <p>The same move, applied to files. Two paths appending to one journal collide on every line;
+  the same journal as one file per entry never collides at all. Audit records carry the path id
+  and the commit. Rolled step records carry the path id and the step.</p>
+  <p><strong>No locking anywhere in Cairn.</strong> Where concurrency could bite, the namespace is
+  partitioned so that two writers cannot address the same file.</p>
+
+  <h3>3.3 Link integrity</h3>
+  <div class="op"><b>operation</b>strip code fences → resolve each relative link → existsSync<br><b>reads</b>every Markdown file in both plane roots<br><b>verdict</b><span class="chip block">Blocking</span></div>
+  <p>The strip is the interesting half.</p>
+  <div class="failure">
+    <span class="label">This actually happened here</span>
+    <p>The first run reported 34 broken links that were not broken: architecture pages
+    <em>illustrating</em> a folder layout inside code blocks. Had it stayed that way the validator
+    would have been switched off within the week.</p>
+  </div>
+  <div class="cannot"><b>Cannot:</b> tell you the link points at the <em>right</em> thing, or that
+  an anchor inside the target exists. Existence is all the filesystem offers.</div>
+
+  <h3>3.4 Worktree cleanup</h3>
+  <div class="op"><b>operation</b>is-ancestor(merge, origin/trunk)<br><b></b>→ worktree registered? → status --porcelain empty?<br><b></b>→ remove without --force → absent?<br><b>verdict</b>required REPORT, not a Cairn rule</div>
+  <p>Deliberately not a rule. The checkout it verifies is gone by the time repository automation
+  could look, so a check would be structurally unable to run. It is an absolute operating rule
+  with a mandated report — <strong>merge complete; cleanup incomplete</strong> — instead of a gate
+  that could only ever lie.</p>
+</section>
+
+<section id="s4">
+  <h2><span class="num">4</span>File content</h2>
+  <p>Text, and one metadata block per file. This is where every human judgement lands, and it
+  carries more of the protocol than the other six primitives together.</p>
+
+  <h3>4.1 One parser, five consumers</h3>
+  <div class="op"><b>operation</b>frontmatter → { key: scalar, section: { key: scalar } }<br><b>reads</b>the head of a file<br><b>verdict</b><span class="chip block">Blocking</span></div>
+  <p>One deliberately small reader — no dependency, values taken verbatim to end of line — serves
+  path files, decision records, session notes, audit records and briefs. That "verbatim to end of
+  line" has a sharp edge, and it is documented rather than smoothed:
+  <code>ceremony: closing   # done</code> declares the value <code>closing   # done</code> and
+  satisfies nothing.</p>
+  <p>Smoothing it would mean a comment-aware parser and a dependency, for a protocol whose selling
+  point is that a sceptic can read the validator in one sitting. The edge is stated instead, and a
+  test parses the <em>published template</em> so the documentation cannot drift away from the
+  parser.</p>
+
+  <h3>4.2 Human acceptance, reduced</h3>
+  <div class="op"><b>operation</b>∃ file in sessions/ with root-level path == &lt;id&gt; AND ceremony == &lt;kind&gt;<br><b>reads</b>a directory listing plus each file's metadata<br><b>verdict</b><span class="chip block">Blocking</span>, both ceremonies</div>
+  <p>This is the reduction in its most compact form. "Did the owner accept this?" is not
+  checkable. "Is there a file that says so, keyed to this exact path id?" is.</p>
+  <div class="failure">
+    <span class="label">This actually happened here</span>
+    <p>An earlier version matched a <strong>filename</strong> containing the path id — but the
+    <em>opening</em> note contains the id too, and exists from the work's first hour.</p>
+    <p>The check meant to prove closure was proving activation, and it passed every time. A check
+    can be running, and green, and evaluating the wrong proposition.</p>
+  </div>
+  <p>Exact-id matching matters for the same reason: a substring match makes
+  <code>CP-MVP-0010</code> close <code>CP-MVP-001</code>.</p>
+
+  <h3>4.3 The identity tuple</h3>
+  <div class="op"><b>operation</b>id present · status ∈ vocabulary · running ⇒ branch + base_commit<br><b>reads</b>one metadata block<br><b>verdict</b><span class="chip block">Blocking</span></div>
+  <p>Five fields, checked per state. This is the whole of what automation knows about a path's
+  lifecycle — see <a href="#s6">§6.3</a> for what that forecloses.</p>
+
+  <h3>4.4 Declared write surfaces</h3>
+  <div class="op"><b>operation</b>changed paths ∖ { p : ∃ glob ∈ writes:, glob matches p }<br><b>reads</b>the metadata block and the diff<br><b>verdict</b><span class="chip adv">Advisory</span></div>
+  <p>A set difference, reported and never enforced. It is a <strong>signal, not a lock</strong>,
+  because a root cause is discovered rather than declared.</p>
+  <p>Two parsing traps were found live here, one line apart, and both are the same species: the
+  reader consumed the <code>---</code> terminator as a surface, and a trailing comment on an item
+  became part of the glob. Each silently reduced the declaration to something that matched
+  nothing, so the rule went quiet while appearing to run.</p>
+
+  <h3>4.5 Ledger size</h3>
+  <div class="op"><b>operation</b>words × 4/3 &gt; budget, for path files IN THE DIFF<br><b>reads</b>one file's text<br><b>verdict</b><span class="chip adv">Advisory</span></div>
+  <p>A word count standing in for a reading cost. Scoped to the diff on purpose: a corpus sweep
+  would report the same historical files every run for months, and it speaks only to whoever is
+  already editing the file — the one person who can act.</p>
+
+  <h3>4.6 "Filled"</h3>
+  <div class="op"><b>operation</b>¬contains(placeholder)<br><b></b>∧ verdict names an outcome in the vocabulary<br><b></b>∧ ≥1 findings section has a non-empty body<br><b>reads</b>one file<br><b>verdict</b><span class="chip adv">Advisory</span></div>
+  <p>The most interesting predicate in the protocol, because its subject is <em>whether an agent
+  did the thinking</em> — and the original version measured a <strong>deletion</strong>: remove
+  the placeholder string and an empty file passed.</p>
+  <p>The repair asks the two things a deterministic check honestly can: the record
+  <strong>names</strong> an outcome, and it <strong>answers</strong> at least one of its own
+  questions. It deliberately does not judge the answers. That is the non-deterministic half, and
+  keeping it out of the predicate is the entire design.</p>
+  <p>The vocabulary is matched by <strong>stem</strong>, not exact phrase, because a real record
+  says <em>"drift noted, repaired before merge"</em> — it names an outcome and then says what
+  happened to it. An exact-match rule would have declined a substantive audit.</p>
+
+  <h3>4.7 Generated content</h3>
+  <div class="op"><b>operation</b>regenerate → compare to what the file ships → equal?<br><b>verdict</b><span class="chip block">Blocking</span> for the derived view; a TEST for the rule catalogue</div>
+  <p>Two instances of one idea. The running-paths view is regenerated from path declarations and
+  compared. The rule catalogue in the handbook is regenerated from the validator's own source and
+  compared <strong>by the test suite</strong>. A hand edit to a shared statement of record is only
+  advisory, because a deliberate edit is sometimes right — the ledger then has to say why.</p>
+
+  <h3>4.8 What content cannot do</h3>
+  <p>The protocol's deepest limit lives here. <code>same-work-unit</code> proves a path file
+  <strong>changed</strong> when source changed. It cannot prove the prose inside it became
+  <em>true</em>.</p>
+  <div class="failure">
+    <span class="label">This actually happened here</span>
+    <p>A path's checkpoint still described its first step in vocabulary that had been removed five
+    steps earlier. <em>"Is this prose still accurate?"</em> is not a question any primitive
+    answers, and the protocol says so instead of implying otherwise.</p>
+  </div>
+</section>
+
+<section id="s5">
+  <h2><span class="num">5</span>Exit codes</h2>
+  <p>One bit, and the entire blocking/advisory design is a decision about who is allowed to set
+  it.</p>
+  <div class="op"><b>blocking</b>contributes to a non-zero exit<br><b>advisory</b>prints; never contributes</div>
+  <p>The admission test — objectively checkable <strong>and</strong> breaking it leaves something
+  wrong in the repository — is really a rule about which findings may touch this one bit. The
+  asymmetry behind it: a false blocking verdict costs far more than a missed one, because a gate
+  that stops legitimate work teaches people to route around it, and then you have lost the gate
+  <em>and</em> its information.</p>
+
+  <h3>5.2 Bare</h3>
+  <p>A pipeline reports the status of its <strong>last</strong> command. Piping a gate through a
+  filter discards the failing status of the thing you were checking.</p>
+  <div class="failure">
+    <span class="label">This actually happened here</span>
+    <p>A broken build shipped on 2026-07-16 with the gate reporting green, because a check was
+    piped through <code>grep</code> and <code>head</code>.</p>
+  </div>
+  <p>The mitigation is a rule about shell composition, not about the checks: the exit code is the
+  verdict, so nothing may stand between the command and it.</p>
+
+  <h3>5.3 Two exit codes, not one</h3>
+  <p><em>Does the software work</em> and <em>was the protocol followed</em> are separate jobs, so
+  a red run says <em>which</em> failed. Collapsing them would lose the only information the bit
+  carries.</p>
+
+  <div class="cannot"><b>Cannot express:</b> degree, cause, or partial credit. Everything nuanced
+  has to live in the printed output — which is why advisory findings carry the fix in the message,
+  and why the coherence audit is a <em>file</em> rather than a status.</div>
+</section>
+
+<section id="s6">
+  <h2><span class="num">6</span>The host environment</h2>
+  <p>The least trustworthy primitive, and treated accordingly.</p>
+
+  <h3>6.1 Variables the runner sets</h3>
+  <p>The host knows what the checkout does not. A merge-preview ref names a merge of this branch
+  into the base, and that preview <strong>contains the base by construction</strong> — so a rebase
+  gate judging it would pass on every stale branch while proving nothing. Rejecting that shape is
+  a one-line guard against a rule that would have looked like it worked.</p>
+
+  <h3>6.2 The tier ladder is about the host, not the protocol</h3>
+<pre><code>tier 0  local      no host at all              nothing prevented by force
+tier 1  ci         a workflow file             CI OBSERVES
+tier 2  protected  a trunk ruleset             CI PREVENTS</code></pre>
+  <p>Each tier is a statement about <em>where the check runs and what the host will do about the
+  result</em>. Only tier 0 depends on nothing.</p>
+  <div class="key">
+    <p>Tier 2 is a property of a repository, never a requirement of the protocol. A setup step
+    performed once, invisibly, in a web interface will be skipped by the next adopter — and the
+    documentation would go on claiming a guard that is not installed.</p>
+  </div>
+  <p>The honest claim therefore has to be <strong>generated</strong>: the configuration declares
+  the tier and the validator prints it. Until that exists, the tier is stated in prose, which is
+  exactly the drift risk the generated line removes.</p>
+
+  <h3>6.3 What one commit cannot show</h3>
+  <p>A validator run sees <strong>one commit</strong>. It reads the status a file declares
+  <em>now</em>; it has never seen a transition. A rule that inferred one would be wrong the first
+  time a file was created already complete.</p>
+  <p>So the lifecycle state machine is doctrine for the people executing it, and what is enforced
+  is the set of <strong>per-state invariants</strong> — each a fact about one file. Cairn does not
+  enforce the lifecycle, and no document may say it does.</p>
+</section>
+
+<section id="s7">
+  <h2><span class="num">7</span>What Cairn refuses to use</h2>
+  <p>The negative space is as informative as the mechanism. Each of these was available and
+  rejected for a stated reason.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Refused</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td class="term">A language model inside a gate</td><td>Non-deterministic, costs money, needs credentials automation should not hold. The judgement is produced by an agent; the gate checks only that a record <strong>exists and is filled</strong>.</td></tr>
+        <tr><td class="term">Git hooks</td><td>Local, bypassable, invisible to everyone else, and absent from the repository's verdict. A guard nobody can see is not a guard.</td></tr>
+        <tr><td class="term">Server-side state</td><td>The protocol must deliver most of its value at tier 0 — no host, no account, no network. Anything stored outside the repository breaks that.</td></tr>
+        <tr><td class="term">A lock on declared surfaces</td><td>Declaring <code>writes:</code> a lock would punish the normal case: a root cause is discovered, not declared. It is a signal, and widening is recorded rather than prevented.</td></tr>
+        <tr><td class="term">Timestamps as ordering authority</td><td>File times and commit dates are writable and say nothing reliable about sequence. Order comes from the commit graph. Time is used for exactly one advisory finding.</td></tr>
+        <tr><td class="term">Rewriting history to fit a new convention</td><td>Roughly 300 journal entries were <strong>frozen</strong> rather than migrated. Rewriting a record to match a rule invented later is worse than the inconsistency.</td></tr>
+        <tr><td class="term">Summarising a rolled ledger step</td><td>The move to <code>history/</code> is verbatim. Summarising at rollup time would quietly rewrite the record — the one thing a ledger may not do.</td></tr>
+        <tr><td class="term">A person as gatekeeper</td><td>Rejected by the owner and independently by the evidence: the integrator left no artifact and marked nothing integrated. Both holes vanish when each path merges itself.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="s8">
+  <h2><span class="num">8</span>The whole protocol, in one table</h2>
+  <p>Every rule, the primitive it touches, and what it evaluates. This is the payoff of reading
+  downward — the protocol is smaller than its documentation.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Rule</th><th>Primitive</th><th>Operation</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">branch-identity</td><td>host env, refs</td><td>can the branch be named at all</td><td><span class="chip block">Blocking</span> on guarded source</td></tr>
+        <tr><td class="mono">branch-path</td><td>refs, content</td><td>branch name joins to a path declaring it</td><td><span class="chip block">Blocking</span></td></tr>
+        <tr><td class="mono">registration</td><td>graph, content</td><td>the tuple exists at the trunk ref</td><td><span class="chip block">Blocking</span></td></tr>
+        <tr><td class="mono">rebase</td><td>graph</td><td>merge-base(trunk, HEAD) == trunk</td><td><span class="chip block">Blocking</span></td></tr>
+        <tr><td class="mono">opening-ceremony</td><td>filesystem, content</td><td>a note declares path + ceremony: opening</td><td><span class="chip block">Blocking</span></td></tr>
+        <tr><td class="mono">ceremony</td><td>filesystem, content</td><td>a note declares path + ceremony: closing</td><td><span class="chip block">Blocking</span></td></tr>
+        <tr><td class="mono">same-work-unit</td><td>filesystem</td><td>source changed ⇒ a module note and a path file changed</td><td><span class="chip block">Blocking</span></td></tr>
+        <tr><td class="mono">schema</td><td>content</td><td>metadata parses; ids, statuses and dates in vocabulary</td><td><span class="chip block">Blocking</span></td></tr>
+        <tr><td class="mono">links</td><td>filesystem, content</td><td>every relative link resolves, code fences stripped</td><td><span class="chip block">Blocking</span></td></tr>
+        <tr><td class="mono">derived-view</td><td>content</td><td>the generated block equals its regeneration</td><td><span class="chip block">Blocking</span> on the trunk</td></tr>
+        <tr><td class="mono">remote-checkpoint</td><td>refs</td><td>HEAD is an ancestor of its upstream</td><td><span class="chip adv">Advisory</span></td></tr>
+        <tr><td class="mono">coherence-audit</td><td>graph, filesystem, content</td><td>a filled record names a commit this path contributed</td><td><span class="chip adv">Advisory</span></td></tr>
+        <tr><td class="mono">scope-drift</td><td>content</td><td>changed paths ∖ declared globs</td><td><span class="chip adv">Advisory</span></td></tr>
+        <tr><td class="mono">ledger-size</td><td>content</td><td>words × 4/3 over budget, diff-scoped</td><td><span class="chip adv">Advisory</span></td></tr>
+        <tr><td class="mono">path-staleness</td><td>refs, time</td><td>branch tip older than the window</td><td><span class="chip adv">Advisory</span></td></tr>
+        <tr><td class="mono">single-truth</td><td>filesystem</td><td>a hand edit to a generated or shared file</td><td><span class="chip adv">Advisory</span></td></tr>
+        <tr><td class="mono">area-note</td><td>filesystem</td><td>subsystem source changed without its area note</td><td><span class="chip adv">Advisory</span></td></tr>
+        <tr><td class="mono">decision-drift</td><td>filesystem</td><td>architecture changed with no decision record beside it</td><td><span class="chip adv">Advisory</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="key">
+    <p>Ten rules can fail a build. Every one is a fact about ancestry, a name, a file's existence,
+    or a metadata field. <strong>Nothing in the blocking set requires judgement</strong> — and
+    that is not an accident. It is the admission test, applied eighteen times.</p>
+  </div>
+</section>
+
+<section id="s9">
+  <h2><span class="num">9</span>The seams — what a port has to cut</h2>
+  <p>Reading downward makes the project-specific inputs obvious, because they are the only places
+  where a primitive is given a <em>name</em> rather than a <em>shape</em>.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Bound today</th><th>Should be</th><th>Where it is hardcoded</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">atomik-project/</td><td>the execution-state plane root</td><td>the path, session, audit and journal constants</td></tr>
+        <tr><td class="mono">docs/</td><td>the knowledge plane root</td><td>the decision-record and module-note constants</td></tr>
+        <tr><td class="mono">apps/ packages/ shared/</td><td>the guarded source roots</td><td class="mono">GUARDED_ROOTS</td></tr>
+        <tr><td class="mono">the area map</td><td>source path → area note</td><td class="mono">AREA_MAP</td></tr>
+        <tr><td class="mono">master</td><td>the trunk ref</td><td>a default argument</td></tr>
+        <tr><td class="mono">atomik:</td><td>the metadata namespace key</td><td>the frontmatter readers</td></tr>
+        <tr><td class="mono">two legacy path ids</td><td>the migration set, which drains</td><td>named constants</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Everything else is Git and the filesystem, which every repository already has. That is the
+  honest measure of how far Cairn is from portable: <strong>seven names</strong>, all of them
+  inputs rather than logic. Extracting them is what the configuration file is for, and until it
+  exists the protocol is this repository's, not anyone's.</p>
+  <p>The handbook writes <code>project/</code> for the first of those, precisely so the prose stops
+  teaching a binding as if it were the protocol.</p>
+</section>
+
+</main>
+</div>
+</div>
+
+<footer>
+  <div class="shell">
+    <h2>The other direction</h2>
+    <p><code>docs/cairn/handbook.md</code> — the same material read upward: a concept explained
+    from nothing, then Cairn's use of it. Start there if you are new to the protocol.</p>
+    <p><code>docs/cairn/anatomy.md</code> — the source of truth for this page.</p>
+    <p><code>docs/cairn/index.html</code> — a short visual overview of the protocol.</p>
+  </div>
+</footer>

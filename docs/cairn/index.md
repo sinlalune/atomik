@@ -34,6 +34,13 @@ explains it to people outside the repository, and holds the audits that repaired
 - [**handbook.html**](./handbook.html) — the same document, rendered, in its own
   minimal theme. **This is the page to send to someone outside the repository.**
   Markdown remains the source of truth and the thing CI checks.
+- [**anatomy.md**](./anatomy.md) · [**anatomy.html**](./anatomy.html) — the same
+  material read **downward**. The handbook goes concept → implementation; this goes
+  construct → primitive, and is organised **by primitive rather than by feature**, so
+  every rule touching the commit graph sits together. It ends with the whole protocol
+  in one table, the primitives Cairn deliberately refuses, and the seven names a port
+  has to cut. Read it to evaluate, port, extend or debug the protocol rather than to
+  learn it.
 
 ## Live
 

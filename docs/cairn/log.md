@@ -22,6 +22,19 @@ per entry in a `log/` subfolder — which was a concurrency fix, never a size on
 
 ## 2026-08-25
 
+- `S07d` Two owner corrections. **The bindings**: the handbook was writing
+  `atomik-project/` into the protocol's prose, so a document about portability was teaching this
+  repository's name as if it were Cairn. It now writes `project/`, with a Notation section
+  saying the protocol talks about roles and each repository binds them; links, the generated
+  catalogue and the declared-properties section keep the real name and say why. The frontmatter
+  namespace key stays `atomik:` because the parser reads it hardcoded — publishing `cairn:`
+  would be a published rule the implementation does not honour. **The inverse document**:
+  `anatomy.md` + `anatomy.html` read the same material downward, organised **by primitive
+  rather than by feature**. Seven primitives and nothing else; every construct reduced to its
+  exact predicate with a `cannot` line; every human judgement reduced to a file; a section on
+  the eight primitives Cairn refuses; and two tables the upward reading cannot produce — all
+  eighteen rules on one screen, and the seven names a port has to cut.
+
 - `S07c` **Redo on owner correction.** `foundations.md`, `specification.md`, `lexicon.md` and
   `foundations.html` are replaced by one `handbook.md` + `handbook.html`. The owner had said the
   work *could* reach a researcher; that was read as *write it for a researcher*, and the whole
