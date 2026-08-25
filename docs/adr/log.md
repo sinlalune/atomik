@@ -20,6 +20,15 @@ remains the complete record; this is the readable one. If two paths ever start
 colliding on this file, it takes the amendment the journal already took — one file
 per entry in a `log/` subfolder — which was a concurrency fix, never a size one.
 
+## 2026-08-25
+
+- `S07a` `ADR-017` settles the path lifecycle three documents described differently:
+  `archived` is the single terminal state and the exit an abandoned path takes too
+  (`running → archived`, no fifth word), `done` is a completion rather than an end,
+  `active` leaves the vocabulary, and staleness is noticed by an advisory signal.
+  It also states the honest limit — a validator sees one commit, so transitions are
+  doctrine and only per-state invariants are enforced.
+
 ## 2026-08-24
 
 - `3df9073` CP-OPS-002 S05: backfill OKF — five indexes, ADR frontmatter, schema over the decision plane

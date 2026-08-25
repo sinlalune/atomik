@@ -22,6 +22,11 @@ per entry in a `log/` subfolder — which was a concurrency fix, never a size on
 
 ## 2026-08-25
 
+- `S07a` ADR-017 settles the path lifecycle: `archived` is the single terminal state and
+  the exit an abandoned path takes too, `active` leaves the vocabulary, and the advisory
+  `path-staleness` rule notices a running path whose branch has gone quiet. `paths.md`
+  states the vocabulary by reference and moves hole 1 to its closed list — two remain.
+
 - `S06d` CP-OPS-002: drain the leftovers — six stale secondary worktrees removed for
   already-merged paths and the orphan `registration/cp-worktree-cleanup` branch deleted,
   with every `path/*` branch retained.

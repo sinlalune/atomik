@@ -1,11 +1,11 @@
 ---
 type: Atomik Brief
-title: Handoff — CP-OPS-002 S06d complete, ready for S07a
+title: Handoff — CP-OPS-002 S07a complete, ready for S07
 timestamp: 2026-08-25T00:00:00Z
 atomik:
   path: CP-OPS-002
   branch: path/cp-ops-002
-  completed_step: S06d
+  completed_step: S07a
 ---
 
 # Resume CP-OPS-002 here
@@ -21,15 +21,44 @@ atomik:
   grandfathered in-flight paths (`cp-mvp-011`, `cp-mvp-012`) and this one. S06d
   removed six. All ten `path/*` branches are retained; only the spent
   `registration/cp-worktree-cleanup` ref was deleted.
-- Gates at S06d: `npm run cairn-check` OK with one advisory — no coherence audit
-  for this head, expected until the pre-merge audit. `--base origin/master` OK
-  with two, the second being the deliberate S05 `single-truth` edit. Validator
-  suite `npm run cairn-check:test` 77/77.
+- Gates at S07a: `npm run cairn-check` OK with one advisory — no coherence audit
+  for this head, expected until the pre-merge audit. Validator suite
+  `npm run cairn-check:test` 81/81.
 - `typecheck` / `test` / `build` are not run for this step and their verdicts are
   not claimed: this path writes protocol tooling and doctrine only, and touched
   no product code.
 
 ## What the completed step changed
+
+**S07a — ADR-017, the coding-path lifecycle** (ruling 5, F11 + F15). Three
+documents described one state machine and no two agreed: bedrock 35 said
+`done` **then** `archived`; round 3's D2 §2.2 declared `done` terminal and drew
+`running → archived` as the only abandonment edge; ADR-012 recorded that
+abandoned paths have no terminal transition at all.
+
+- **`archived` is the single terminal state.** Bedrock wins — it states the
+  doctrine while `paths.md` carries operating detail. `done` is a completion
+  (accepted, rebased, audited, merged), not an end.
+- **Abandonment is `running → archived`, with no new word.** An abandoned path
+  never passes through `done`, because `done` asserts a merge that did not
+  happen. The closing ceremony is not side-stepped: that gate keys on `done`, and
+  archiving is a different destination rather than a cheaper route to it.
+- **`active` is retired** — accepted by `schema`, rejected by `branch-path`, so a
+  path declaring it failed with a message about a different problem. None did.
+- **No blocking rule was added, deliberately.** A validator run sees one commit
+  and has never seen a transition, so the machine is doctrine and only the
+  per-state invariants are enforced. A document claiming Cairn "enforces the
+  lifecycle" would be a fresh F13.
+- **Advisory `path-staleness`** closes the other half of ADR-012's hole: a
+  `running` path whose branch has been quiet longer than the declared window
+  (14 days, configurable at S08) is reported with both ways out. An unresolvable
+  branch reports nothing — unknown must not read as stale.
+- D2 §2.2, the corrections register (C16), §2.3's regenerated rule table,
+  `paths.md` (vocabulary by reference; hole 1 closed, two remain) and
+  `index.html` all updated. Bedrock untouched: the ADR ratifies what it says.
+- Four tests, suite 77 → 81.
+
+## What earlier steps changed
 
 **S06d** drained the two low-severity leftovers (ruling 8). Both are this path's
 thesis in miniature: a rule written with its predecessor state never drained (F7),
@@ -86,20 +115,24 @@ frontmatter and `adrFrontmatterErrors()`.
 
 ## Next action
 
-**S07a — `ADR-017`, the path lifecycle** (ruling 5, F11 + F15).
+**S07 — the specification and lexicon.** Its dependency is discharged: ADR-017
+settled the lifecycle, so the specification describes it by reference rather
+than inventing one.
 
-Round 3's D2 §2.2 declares `done` terminal and draws `running → archived`,
-contradicting bedrock 35 (*"a finished path moves to `done`, then `archived` —
-demotion, never deletion"*) and ADR-012, which leaves abandoned paths with no
-terminal transition at all. The validator checks current statuses and never
-transitions.
-
-- `ADR-017` settles `done → archived`, gives abandoned paths a terminal
-  transition, and retires `active` from the vocabulary (F11 — accepted by
-  `schema`, rejected by `branch-path`, reserved for a path that is now closed).
-- D2 §2.2 is marked **proposed** until the ADR lands, then documents its outcome.
-- It blocks S07: the specification cannot describe a lifecycle the ADRs still
-  contradict.
+- `docs/cairn/specification.md`: the planes (three conceptual, two repository —
+  the audit found these routinely conflated), the ADR-017 lifecycle and status
+  vocabulary, the full rule table generated from `cairn-check.mjs` so the count
+  cannot go stale, and the blocking-rule admission test.
+- `docs/cairn/lexicon.md`: one definition per term, each pointing at the file
+  that enforces it. A term with no enforcing file is marked aspirational.
+- **The three enforcement tiers** (S06b, ruling 9): `local` / `ci` / `protected`,
+  one line each on what the tier can and cannot prevent, with tier 2 stated as a
+  property of a repository and never a requirement of the protocol.
+- State the F8 workflow decision and the CP-MVP-011/012 migration window as
+  *properties*, not omissions.
+- A step-by-step operator guide for someone who does not know the protocol,
+  carrying the optional tier-2 ruleset as a JSON payload plus one `gh api`
+  command — copy-paste, not a click-path, and explicitly skippable.
 
 ## Blockers and decisions still open
 

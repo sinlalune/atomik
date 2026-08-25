@@ -91,7 +91,14 @@ export const PATHS_BEGIN = '<!-- cairn:paths:begin -->'
 export const PATHS_END = '<!-- cairn:paths:end -->'
 
 const PATH_DIR = 'atomik-project/coding-paths'
-const PATH_STATUSES = ['draft', 'active', 'blocked', 'done', 'archived', 'running']
+/** ADR-017: `archived` is the single terminal state and the exit for an
+ *  abandoned path too, so `active` is gone. It was accepted here and rejected
+ *  by PATH_BRANCH_STATUSES, which meant a path declaring it passed `schema`
+ *  and then failed `branch-path` with a message about a different problem
+ *  (audit 2026-08-24, F11). Its reservation for CP-OPS-001 was spent when that
+ *  path reached `done`, and no path file declares it — this deletes dead
+ *  vocabulary rather than migrating anything. */
+const PATH_STATUSES = ['draft', 'blocked', 'running', 'done', 'archived']
 const PATH_BRANCH_STATUSES = ['running', 'done']
 const SESSION_DIR = 'atomik-project/sessions'
 const HISTORY_DIR = `${PATH_DIR}/history`
@@ -112,6 +119,20 @@ const ADR_STATUSES = ['proposed', 'accepted', 'superseded', 'rejected']
  * editing the file, who is the only one who can act on it.
  */
 export const LEDGER_TOKEN_BUDGET = 10_000
+
+/**
+ * ADR-012's first open hole was two things: an abandoned path had no terminal
+ * transition, and nothing noticed it needed one. ADR-017 supplies the
+ * transition (`running → archived`, no new vocabulary) and this is the notice.
+ *
+ * ADVISORY, permanently. A slow path is not a wrong path — one can be parked
+ * for a fortnight while its owner ships something else — and a build that
+ * failed for it would teach people to lie about status rather than to archive.
+ * The window is a declared property of a REPOSITORY, not a truth about
+ * software, the same shape enforcement tiers took in ADR-016 §3; it becomes
+ * configurable when `cairn.config.json` lands.
+ */
+export const PATH_STALE_DAYS = 14
 
 /**
  * These paths were already running before trunk registration became a rule.
@@ -434,6 +455,29 @@ export function approxTokens(text) {
 export function areaOf(file) {
   for (const [pattern, area] of AREA_MAP) if (pattern.test(file)) return area
   return null
+}
+
+/**
+ * Which `running` paths have gone quiet (ADR-017 decision 5).
+ *
+ * Pure: it takes the ages rather than running Git, so the rule is testable and
+ * the one judgment it makes — how long is too long — stays a single number.
+ *
+ * `ages` maps a branch to days since its last commit. A branch that is ABSENT,
+ * `null` or `undefined` reports NOTHING: a shallow CI clone and a path whose
+ * branch lives on another machine both look like that, and unknown must never
+ * read as stale for exactly the reason it must never read as fresh.
+ */
+export function staleRunningPaths(paths, ages, budgetDays = PATH_STALE_DAYS) {
+  const out = []
+  for (const path of paths) {
+    const front = path.front
+    if (front?.status !== 'running' || !front.branch) continue
+    const days = ages?.[front.branch]
+    if (typeof days !== 'number' || !Number.isFinite(days)) continue
+    if (days > budgetDays) out.push({ id: front.id, branch: front.branch, days })
+  }
+  return out.sort((a, b) => b.days - a.days)
 }
 
 /**
@@ -877,6 +921,30 @@ function loadPaths() {
     })
 }
 
+/** Days since the last commit on each declared path branch, for
+ *  `staleRunningPaths`. A branch this checkout cannot resolve is simply
+ *  ABSENT from the result rather than being given a number — the caller
+ *  treats missing as "no opinion", never as stale. */
+function branchAges(paths) {
+  const ages = {}
+  const now = Date.now()
+  for (const path of paths) {
+    const branch = path.front?.branch
+    if (!branch || branch in ages) continue
+    try {
+      const at = execFileSync('git', ['log', '-1', '--format=%ct', branch], {
+        cwd: REPO,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore']
+      }).trim()
+      if (at) ages[branch] = Math.floor((now - Number(at) * 1000) / 86_400_000)
+    } catch {
+      // unresolvable branch: no entry, no opinion
+    }
+  }
+  return ages
+}
+
 /** Schema + link integrity over the whole corpus, not just the diff: these
  *  are cheap and catching them late is the expensive part. */
 function corpusFindings(branch, trunkRef = 'master') {
@@ -918,7 +986,18 @@ function corpusFindings(branch, trunkRef = 'master') {
     }
   }
 
-  for (const path of loadPaths()) {
+  // A `running` path that has gone quiet needs a push or an archive (ADR-017).
+  // Advisory forever: see PATH_STALE_DAYS.
+  const corpus = loadPaths()
+  for (const stale of staleRunningPaths(corpus, branchAges(corpus))) {
+    findings.push({
+      level: 'advisory',
+      rule: 'path-staleness',
+      message: `${stale.id} declares running but ${stale.branch} has had no commit for ${stale.days} days (> ${PATH_STALE_DAYS}) — push the work, or move it to archived`
+    })
+  }
+
+  for (const path of corpus) {
     if (path.parseError) {
       findings.push({ level: 'blocking', rule: 'schema', message: `${path.file}: ${path.parseError}` })
       continue

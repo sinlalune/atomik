@@ -351,9 +351,9 @@
 
 <div class="vintage" role="note" aria-label="Document status">
   <div class="wrap">
-    <p><strong>Current as of 2026-08-24.</strong> This page renders
-    <code>ADR-012</code> (parallel paths, self-merge) and <code>ADR-016</code>
-    (enforcement integrity). The authoritative text is
+    <p><strong>Current as of 2026-08-25.</strong> This page renders
+    <code>ADR-012</code> (parallel paths, self-merge), <code>ADR-016</code>
+    (enforcement integrity) and <code>ADR-017</code> (the path lifecycle). The authoritative text is
     <code>atomik-project/coding-paths/paths.md</code>; where this page and that
     file disagree, the file wins.
     <br>Rewritten at CP-OPS-002 S06: until 2026-08-24 it taught the
@@ -602,6 +602,7 @@
             <tr><td><span class="chip note">Advisory</span></td><td class="term">Coherence audit</td><td>no filled audit record for the head about to merge</td></tr>
             <tr><td><span class="chip note">Advisory</span></td><td class="term">Scope drift</td><td>the diff reaches outside what the path declared — reported, never blocked</td></tr>
             <tr><td><span class="chip note">Advisory</span></td><td class="term">Ledger size</td><td>a plan in the diff costs more to read than the whole entry chain before it</td></tr>
+            <tr><td><span class="chip note">Advisory</span></td><td class="term">Path staleness</td><td>a plan says it is running but its branch has gone quiet past the declared window — push the work, or retire the plan. A parked plan is not a wrong plan, so this can never block</td></tr>
             <tr><td><span class="chip note">Advisory</span></td><td class="term">Statement of record</td><td>a hand edit to a file that is generated or shared — Git will merge it; nobody checked the claim</td></tr>
             <tr><td><span class="chip note">Advisory</span></td><td class="term">Stale contract</td><td>an area's code changed but its contract note didn't</td></tr>
             <tr><td><span class="chip note">Advisory</span></td><td class="term">Decision drift</td><td>architecture changed with no decision record beside it</td></tr>

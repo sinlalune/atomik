@@ -27,10 +27,12 @@ import {
   matchesAny,
   parseWrites,
   pathFrontmatterErrors,
+  PATH_STALE_DAYS,
   porcelainPaths,
   readFrontmatter,
   registrationMatches,
   resolveBranch,
+  staleRunningPaths,
   stripCode
 } from './cairn-check.mjs'
 
@@ -760,4 +762,67 @@ test('no writes: block, or no frontmatter, declares nothing', () => {
   assert.deepEqual(parseWrites('---\natomik:\n  id: CP-X\n---\n\n- bullet\n'), [])
   assert.deepEqual(parseWrites('# just a document\n\n- bullet\n'), [])
   assert.deepEqual(parseWrites(''), [])
+})
+
+
+/* ------------------------------------------------------------------ *
+ * ADR-017 — the coding-path lifecycle
+ *
+ * `archived` is the single terminal state and the exit an abandoned path
+ * takes too; `active` is retired; and the hole ADR-012 recorded — nothing
+ * notices a path that needs archiving — is closed by an ADVISORY signal,
+ * never a blocking one.
+ * ------------------------------------------------------------------ */
+
+const running = (id, branch) => ({
+  file: `atomik-project/coding-paths/${id}.md`,
+  front: { id, status: 'running', branch, base_commit: '7aa3b1d' },
+  writes: []
+})
+
+test('active is out of the status vocabulary (F11)', () => {
+  // It was accepted by schema and rejected by branch-path, so a path
+  // declaring it failed with a message about a different problem.
+  const errors = pathFrontmatterErrors({ id: 'CP-X', status: 'active' })
+  assert.equal(errors.length, 1)
+  assert.match(errors[0], /outside the vocabulary/)
+  assert.doesNotMatch(errors[0], /active \|/)
+  // the states the lifecycle actually has all pass
+  for (const status of ['draft', 'blocked', 'archived'])
+    assert.deepEqual(pathFrontmatterErrors({ id: 'CP-X', status }), [])
+})
+
+test('a running path whose branch has gone quiet is reported', () => {
+  const paths = [running('CP-A', 'path/cp-a'), running('CP-B', 'path/cp-b')]
+  const stale = staleRunningPaths(paths, { 'path/cp-a': 30, 'path/cp-b': 2 })
+  assert.deepEqual(stale, [{ id: 'CP-A', branch: 'path/cp-a', days: 30 }])
+  // the budget is a boundary, not a trap: exactly at the window is not stale
+  assert.deepEqual(staleRunningPaths(paths, { 'path/cp-a': PATH_STALE_DAYS }), [])
+  assert.equal(staleRunningPaths(paths, { 'path/cp-a': PATH_STALE_DAYS + 1 }).length, 1)
+})
+
+test('an unresolvable branch reports nothing, never staleness', () => {
+  // A shallow CI clone and a path whose branch lives on another machine both
+  // look like this. Unknown must not read as stale, for the same reason it
+  // must not read as fresh.
+  const paths = [running('CP-A', 'path/cp-a')]
+  assert.deepEqual(staleRunningPaths(paths, {}), [])
+  assert.deepEqual(staleRunningPaths(paths, { 'path/cp-a': null }), [])
+  assert.deepEqual(staleRunningPaths(paths, { 'path/cp-a': undefined }), [])
+  assert.deepEqual(staleRunningPaths(paths, { 'path/cp-a': NaN }), [])
+})
+
+test('only running paths can be stale, and the oldest is reported first', () => {
+  // A done or archived path has already left the portfolio; an archived one is
+  // the RESOLUTION this rule points at, so reporting it would never end.
+  const done = { file: 'f', front: { id: 'CP-D', status: 'done', branch: 'path/cp-d' }, writes: [] }
+  const archived = { file: 'f', front: { id: 'CP-Z', status: 'archived', branch: 'path/cp-z' }, writes: [] }
+  const noBranch = { file: 'f', front: { id: 'CP-N', status: 'running' }, writes: [] }
+  const ages = { 'path/cp-d': 400, 'path/cp-z': 400, 'path/cp-a': 20, 'path/cp-b': 90 }
+  assert.deepEqual(staleRunningPaths([done, archived, noBranch], ages), [])
+  assert.deepEqual(
+    staleRunningPaths([running('CP-A', 'path/cp-a'), running('CP-B', 'path/cp-b')], ages)
+      .map((s) => s.id),
+    ['CP-B', 'CP-A']
+  )
 })
