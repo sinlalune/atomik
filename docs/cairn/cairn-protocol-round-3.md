@@ -55,8 +55,9 @@ This register documents every discrepancy identified and verified across the syn
 > pinned in
 > [bedrock 24](../bedrock/24_24-doc-templates.md#session-note-and-ceremony-template);
 > where this page and a bedrock page disagree, bedrock wins and the
-> disagreement is a defect to report. CP-OPS-002 S07 replaces this guide with
-> [`docs/cairn/handbook.md`](./handbook.md), which carries the operator guide.
+> disagreement is a defect to report. The canonical replacement is the
+> [Cairn specification project](./specification/index.md), whose operator
+> sequence and reference pages supersede this interim guide.
 
 This guide is the canonical day-to-day reference for human owners and coding agents executing work under the Cairn Protocol.
 

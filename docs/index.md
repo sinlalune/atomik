@@ -6,7 +6,7 @@ Progressive-disclosure map of the docs plane. The constitution lives in `bedrock
 - `adr/` — accepted decision records, indexed at [adr/index.md](adr/index.md); numbers are stable and may be reserved by parallel paths
 - `modules/` — module notes (contracts) per area, indexed at [modules/index.md](modules/index.md), populated during implementation
 - `research/` — dated external evidence and investigation records; volatile facts carry a checked-at date and recheck triggers
-- `cairn/` — the working protocol explained for people outside this repo: what the files are, who owns which, and how parallel paths merge (`ADR-012`, `atomik-project/coding-paths/paths.md`)
+- `cairn/` — the canonical Cairn specification project and its universal three-pane HTML edition; start at [cairn/specification/index.md](cairn/specification/index.md)
 - `learning/` — beginner-first layer: technologies, concepts, and methodology taught from zero so the owner can take over any brick
 - `agents/` — agent documentation contract; first prompt for chat-based sessions
 - `contracts/` — machine-readable contract mirrors (JSON)
