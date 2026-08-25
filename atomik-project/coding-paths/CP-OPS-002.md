@@ -36,7 +36,7 @@ atomik:
     - atomik-project/coding-paths/history/**
     - atomik-project/coding-paths/CP-MVP-008.md
     - atomik-project/sessions/**
-    - atomik-project/briefs/cp-ops-002-handoff.md
+    - atomik-project/briefs/**            # S06d: the F7 residue lives here too
     - atomik-project/audits/index.md
     - atomik-project/log/**
 ---
@@ -412,12 +412,43 @@ never drained** (F7), and **a check measures something adjacent to what it claim
 - Four regression tests, including the hollowed-out record the old rule accepted and the
   qualified verdict an exact-match rule would have refused. Suite 72 → 76.
 
-> **Left deliberately: `atomik-project/briefs/feedback on  MVP-001.md`.** F7 names it too —
-> a double space in the filename, no frontmatter — and it is the one item in the finding
-> that is not mine to drain. It is the owner's own raw feedback, and `atomik-project/log.md`
-> — the FROZEN archive that may never be rewritten — cites it by that exact name. Renaming
-> it would break a reference in a file the protocol forbids repairing, to fix something
-> F7 itself classes as *unconventional, not wrong*. It needs an owner call, not an agent's.
+**Found by draining it: a quoted path is invisible to the blocking rules.** Deleting
+`feedback on  MVP-001.md` made `scope-drift` report it as outside a `writes:` surface that
+plainly covers it. The declaration was not the problem. `git status --porcelain` **C-quotes**
+any path containing a space, a quote, a backslash or a non-ASCII byte, and
+`porcelainPaths()` never unquoted: every rule downstream was reading
+`"atomik-project/briefs/feedback on  MVP-001.md"` — with the quotation marks in the string.
+
+- **It is not an advisory-only defect.** A quoted path starts with `"`, so it matches no
+  `writes:` glob, no `AREA_MAP` pattern and no `GUARDED_ROOTS` prefix. A source file whose
+  name contains a space was counted as changed and then invisible to every rule that asks
+  *which* file it is — `same-work-unit` and `branch-identity` included, both **blocking**.
+  The function's own comment already said *"every rule downstream reads this list, blocking
+  ones included"*; it was right about the stakes and wrong about the coverage.
+- **The fix is `-z`, not an unquoter.** Git escapes non-ASCII bytes octally (`\303\251`
+  for `é`), so unquoting means reassembling UTF-8 from octal — a decoder to get wrong, in a
+  script whose whole claim is that a sceptic can read it in one sitting. `-z` asks Git not
+  to quote at all: NUL-separated records, paths verbatim. **Both halves** of `changedFiles()`
+  take it, because `git diff --name-only` quotes identically and that half is the one CI runs.
+- Rename and copy records carry the NEW path with the ORIGINAL in the following NUL field;
+  the original is skipped, since reporting it would name a path that no longer exists.
+- Three regression tests, including the guarded-root assertion the quoted form defeated.
+  Suite 76 → 77.
+- **The same file broke tooling twice.** The audit's own method note records a `find` loop
+  splitting that filename into three and miscounting three of eight directories. It was
+  read then as a lesson about fragile shell; it was also a live defect in the validator,
+  sitting one function away, unnoticed for as long as the double space existed.
+
+> **`atomik-project/briefs/feedback on  MVP-001.md` — deleted on owner directive.** F7
+> names it too: a double space in the filename, no frontmatter. It was raised rather than
+> drained because it is the owner's own raw feedback and `atomik-project/log.md` — the
+> FROZEN archive that may never be rewritten — cites it by that exact name, so a rename
+> would break a reference in a file the protocol forbids repairing. The owner ruled the
+> third way (2026-08-25): *"feedback on MVP-001 => you can delete"*. Deletion rather than
+> rename is the coherent choice, because the frozen entry records that the feedback was
+> **taken up** — every item in it shipped as pre-S02 dogfooding units — so the file was
+> spent, and the archive still reads true in the past tense where a renamed file would
+> have made it read false in the present. The content survives in Git at `51c0940`.
 
 ### S07a — ADR-017, the path lifecycle *(ruling 5, F11 + F15)*
 
@@ -485,12 +516,12 @@ brief names — and fix what the pilot finds before merging.
 | Status | `running` on `path/cp-ops-002` |
 | Base commit | `7aa3b1d` — registered on the trunk by `df875e6` before this branch existed |
 | Branch | `path/cp-ops-002`, worktree `../4tom1k-cp-ops-002`, `node_modules` symlinked |
-| Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane (`3df9073`) · **S05b** — the opening check gated, five more indexes (`d6b29f1`), the invented folder-log decision retracted on owner correction (`360f2be`) · **S05c** — the OKF pair completed: eighteen folder logs seeded from real Git history (`468bc24`) · **S06** — `index.html` rewritten against ADR-012, both HTML pages dated (`2a5ef35`) · **S06c** — the coherence audit bound to the commits its path contributed (`de4e0fa`) · **S06d** — the six stale worktrees and the orphan registration branch drained, `isFilled()` given something to measure |
+| Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane (`3df9073`) · **S05b** — the opening check gated, five more indexes (`d6b29f1`), the invented folder-log decision retracted on owner correction (`360f2be`) · **S05c** — the OKF pair completed: eighteen folder logs seeded from real Git history (`468bc24`) · **S06** — `index.html` rewritten against ADR-012, both HTML pages dated (`2a5ef35`) · **S06c** — the coherence audit bound to the commits its path contributed (`de4e0fa`) · **S06d** — the six stale worktrees and the orphan registration branch drained, `isFilled()` given something to measure, and a C-quoted path stopped hiding from the blocking rules |
 | Remaining | S07a, S07, S08, S09 (S03 withdrawn by owner ruling; S06b rescoped and delivered inside S07 + S08 by ruling 9) |
 | Opening check | accepted 2026-08-24, eight rulings ([note](../sessions/2026-08-24-cp-ops-002-opening-check.md)) |
-| Gates at S06d | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 76/76 |
+| Gates at S06d | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · `--base origin/master` OK (2 advisory, the second being the deliberate S05 `single-truth` edit) · validator suite 77/77 |
 | Scope note | protocol tooling and doctrine only; no product code, so `npm test` / `typecheck` / `build` are untouched by this step |
-| Widening | `writes:` gained `atomik-project/briefs/cp-ops-002-handoff.md` at S01 — the per-step handoff brief is required by bedrock 22 and the original declaration simply omitted it |
+| Widening | `writes:` gained `atomik-project/briefs/cp-ops-002-handoff.md` at S01 — the per-step handoff brief is required by bedrock 22 and the original declaration simply omitted it. **Widened again at S06d** to `atomik-project/briefs/**`: F7's residue lives in that folder, and `scope-drift` said so the moment the owner ruled on `feedback on  MVP-001.md`. Recorded here and kept going, which is what `paths.md` asks of a widening |
 | Next action | S07a — `ADR-017`, the path lifecycle (ruling 5, F11 + F15): settle `done → archived`, give abandoned paths a terminal transition, retire `active` from the vocabulary, and mark round 3's D2 §2.2 *proposed* until it lands. It blocks S07, which cannot describe a lifecycle the ADRs still contradict |
 | Widening (S05) | `writes:` gained `docs/adr/**`, `docs/bedrock/index.md`, `docs/modules/**`, `docs/index.md`, `atomik-project/index.md` — S05 was always the OKF backfill; the declaration named only the two ADRs this path authors. Deliberate `single-truth` edit: `docs/modules/atomik-desktop.md`, one stale sentence naming the removed integrator |
 | Amendments | **2026-08-24, owner ruling 9** — S06b rescoped from "configure branch protection" to "declare the enforcement tier"; its deliverables move into S07 (specification + operator guide) and S08 (`enforcement` config field, generated header line, tier-0/1 `cairn-init`). This repository stays at tier 1, declared ([note](../sessions/2026-08-24-cp-ops-002-s06b-rescope.md)) |
