@@ -22,21 +22,18 @@ explains it to people outside the repository, and holds the audits that repaired
 
 ## Start here
 
-Three documents, written to be read in this order. The first assumes nothing.
-
-- [**foundations.md**](./foundations.md) — the concepts from zero, for someone who
-  writes real code but has never worked inside a production engineering setup:
-  version control, tests, continuous integration, and why a protocol sits on top of
-  them. Teaches the general practice first so the specification can stay short.
-- [**specification.md**](./specification.md) — Cairn itself, normatively: the
-  planes, the coding-path lifecycle, the ordering rules, the full rule catalogue
-  **generated from the validator's own source**, the three enforcement tiers, this
-  repository's declared properties, the known limits, and a step-by-step operator
-  guide with the optional tier-2 ruleset as a copy-paste payload.
-- [**lexicon.md**](./lexicon.md) — every term with a plain gloss beside the precise
-  definition and the file that enforces it. Terms with nothing behind them yet are
-  marked **ASPIRATIONAL** in their own section, so nobody mistakes a plan for a
-  mechanism.
+- [**handbook.md**](./handbook.md) — **the single entry point.** One document that
+  alternates between two modes: **CONCEPT**, a piece of general software practice
+  explained from nothing and true of any project, and **IN CAIRN**, exactly how this
+  protocol implements that idea, which file enforces it, and the failure that made it
+  necessary. Read straight through to learn the practice and the protocol together;
+  read only the IN CAIRN blocks if you already know the practice — they are
+  self-contained and carry every normative statement. It ends with the operator guide,
+  this repository's declared properties, the known limits, the rule catalogue
+  **generated from the validator's own source**, and the lexicon.
+- [**handbook.html**](./handbook.html) — the same document, rendered, in its own
+  minimal theme. **This is the page to send to someone outside the repository.**
+  Markdown remains the source of truth and the thing CI checks.
 
 ## Live
 
@@ -45,9 +42,6 @@ Three documents, written to be read in this order. The first assumes nothing.
   F1–F15, each finding reproduced by a named command. It is what CP-OPS-002 executes.
 - [cairn-opening-check-agenda.md](./cairn-opening-check-agenda.md) — the eight
   decisions put to the owner before CP-OPS-002 could be registered.
-- [foundations.html](./foundations.html) — the primer, rendered, with a glossary
-  appendix. **This is the page to send to someone outside the repository** who needs the
-  concepts before the protocol. Markdown remains the source of truth.
 - [index.html](./index.html) — Cairn explained to someone outside this repository:
   the two roles, N paths each merging itself, statements of record, and the twenty
   rules the checker actually implements. Rewritten at CP-OPS-002 S06 against
@@ -55,7 +49,7 @@ Three documents, written to be read in this order. The first assumes nothing.
 - [workflow.html](./workflow.html) — the same protocol day to day: who acts at each
   moment and which file holds the answer afterwards.
 
-All three HTML pages carry a **dated status banner** naming what they render.
+Every HTML page here carries a **dated status banner** naming what it renders.
 `index.html` drifted for ten days without anyone noticing precisely because
 nothing on it claimed a vintage; a rendered page that cannot be dated cannot be
 audited.
@@ -75,6 +69,6 @@ one look inevitable.
   D4. D1's ceremony and registration steps were corrected at CP-OPS-002 S01; D2 §2.2
   documented the accepted outcome once [ADR-017](../adr/ADR-017-coding-path-lifecycle.md)
   settled the lifecycle at S07a. D1 and D2 are superseded as instructions by
-  [specification.md](./specification.md) and its operator guide.
+  [handbook.md](./handbook.md) and its operator guide.
 - [cairn-round-3-brief.md](./cairn-round-3-brief.md) ·
   [cairn-round-4-brief.md](./cairn-round-4-brief.md) — the briefs those rounds answered.

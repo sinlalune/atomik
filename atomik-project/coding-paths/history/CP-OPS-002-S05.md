@@ -1,0 +1,126 @@
+---
+type: Atomik Coding Path History
+title: CP-OPS-002 S05 — Backfill OKF — indexes, ADR frontmatter, the gated opening check, logs everywhere
+description: Completed-step record rolled out of CP-OPS-002.md at CP-OPS-002 S07c. Verbatim; nothing summarized.
+tags: [coding-path, history, cp-ops-002]
+timestamp: 2026-08-25T00:00:00Z
+path: CP-OPS-002
+step: S05
+---
+
+# CP-OPS-002 S05 — Backfill OKF — indexes, ADR frontmatter, the gated opening check, logs everywhere
+
+Rolled out of [CP-OPS-002.md](../CP-OPS-002.md) at CP-OPS-002 S07c, VERBATIM:
+moved, never summarized. The live path file keeps its declaration, its index over
+these records, its Work Ledger and its next action; the execution detail lives
+here. The convention is in [paths.md](../paths.md#the-ledger-has-a-boundary).
+
+Two mechanical adjustments were unavoidable and are named rather than made
+silently. **Deixis**: text saying "below", "this ledger" or "the checkpoint" was
+written when these entries sat in the path file and points at the Work Ledger in
+[CP-OPS-002.md](../CP-OPS-002.md); repairing it in place would have made the
+record no longer verbatim. **Link depth**: a relative link is an address, not
+content — moving the file one directory down changes the address of the *same*
+target, so `../sessions/…` became `../../sessions/…`. The characters differ; the
+reference does not. Leaving them would have preserved the characters and broken
+the reference, which is the opposite of faithful.
+
+Entries in this record: S05, S05b and S05c.
+
+---
+
+### S05 — Backfill OKF *(closes F5, medium)* — **COMPLETE**
+
+Bedrock 26 says *"an agent should read the nearest relevant `index.md` before opening many
+files"*, and the three directories `AGENTS.md` routes every agent into had none. The
+progressive-disclosure contract was unimplemented at its own entry points, which forces
+the flat full-directory reads it exists to prevent — and feeds F4.
+
+- **Five indexes**: `docs/bedrock/` (37 pages, one line each from their own frontmatter,
+  plus the four entry points and the status vocabulary), `docs/adr/` (16 records with
+  status and date), `docs/modules/` (the six area notes and the `AREA_MAP` that routes a
+  source change to one), `atomik-project/sessions/` (the ceremony schema and a
+  ceremonies-by-path table), `atomik-project/audits/` (nine records with their verdicts).
+  `docs/index.md` and `atomik-project/index.md` now route into them.
+- **Frontmatter across all 16 ADRs** — `type` / `title` / `description` / `tags` /
+  `timestamp` plus an `adr:` block (`id`, `status`, `date`). Descriptions were written
+  from each record's own Decision section, not from its title.
+- **Schema validation reaches the decision plane.** `adrFrontmatterErrors()` is blocking
+  and corpus-scoped like its path counterpart: the id must match the file name, the status
+  must be in vocabulary, the date must be ISO, and **the frontmatter status must agree with
+  the document's own `Status:` line**. A record whose two halves disagree is worse than one
+  that never claimed to be readable. Four tests.
+- **The sessions index states an asymmetry rather than hiding it**: sixteen closing notes
+  carry the declaration because a blocking gate reads them; most opening checks do not,
+  because nothing reads those. Marked *(undeclared)* per row. No mass edit was made — that
+  is a decision, not a backfill.
+- **A second trap of the F9 family, found live.** A trailing comment on a `writes:`
+  ITEM became part of the glob, so the widened declaration above kept reporting drift and
+  the path silently declared less than it said. `parseWrites()` now strips it, with a
+  test. F9 fixed the same trap one line higher, on the `writes:` key itself.
+- **Coherence repair found while indexing**: `docs/modules/atomik-desktop.md` still said
+  *"a lane appends here / the integrator appends here"*. ADR-012 removed both. Repaired
+  with a dated note. This is the deliberate `single-truth` advisory on that file.
+
+### S05b — Gate the opening check, finish the OKF backfill *(owner directive 2026-08-24)* — **COMPLETE**
+
+Owner, reading the S05 report: *"we don't have index in all folder in /docs is that a
+decision to not have a log file also on all folders? ... ceremony opening, back filling
+why not but maybe add a blocking gate."* Three answers, all landed.
+
+- **The opening check is now BLOCKING.** F2 repaired the closing gate and left its twin a
+  convention, so a path could be registered, branched and worked with no recorded
+  acceptance at all — the ceremony `paths.md` calls the activation gate was the one
+  nothing checked. `openingFromSessions()` mirrors its closing counterpart, scoped to a
+  path file IN THE DIFF declaring `running`, so the eight paths that opened before session
+  notes existed are never examined. Eleven opening notes backfilled with the declaration.
+  Seven tests.
+- **The exception is finite and named.** `LEGACY_UNDECLARED_OPENINGS` holds CP-MVP-011 and
+  CP-MVP-012: both have a real opening note, neither declares it, and both live on branches
+  this checkout must not write. They get an advisory telling them how to clear it — two
+  keys in the note they already have — and the set drains when they merge.
+- **Five more indexes**: `docs/cairn/`, `docs/research/`, `docs/contracts/`,
+  `docs/fixtures/`, `docs/agents/`. Every meaningful folder in `docs/` and
+  `atomik-project/` now has one. `atomik-project/sources/` is empty and
+  `atomik-project/projects/` holds one file — an index over nothing is noise.
+- **The OKF guideline on folder logs is stated, not overridden.** Bedrock 26 gives a
+  meaningful folder both `index.md` and `log.md`. The convention has taken exactly one
+  amendment in this repository, and it was about CONCURRENCY, not size: several paths
+  appending to one journal collided, so `log.md` was frozen and the journal became one
+  file per entry under `log/`. A shared log takes that shape; a folder log was never
+  decided against.
+
+  > **Retraction, same day, owner correction.** The first version of this step recorded
+  > "no per-folder `log.md`" as a *decision* in both plane indexes, reasoning from the
+  > collision that froze the journal. The owner: *"once again there was no decision made
+  > against log file size — we just split it for multilane amendment and now it is in
+  > /log folder, we just need to respect OKF guideline."* Correct on both counts. Nobody
+  > took that decision, and an agent writing doctrine on its own authority is exactly what
+  > `AGENTS.md` forbids and what this path exists to stop. Retracted in `docs/index.md`
+  > and `atomik-project/index.md`, each carrying a dated correction line rather than a
+  > silent edit. **This is the second time in this path that a plausible rationale was
+  > mistaken for a decision on record** — F4's own first draft claimed `log.md` was frozen
+  > for context cost. Same file, same wrong reason, twice.
+
+### S05c — Log everywhere *(owner directive 2026-08-24)* — **COMPLETE**
+
+Owner, after the retraction: *"LOG EVERYWHERE AND GO NEXT."*
+
+OKF gives a meaningful folder both halves of a pair, and this repository had been
+carrying only one. Eighteen folder logs, each **seeded from that folder's real Git
+history** — the fifteen most recent commits that touched it, newest first, merges
+omitted because a merge names the path rather than the change. Nothing invented, and
+nothing back-dated: where the history is two commits, the log has two entries.
+
+- `docs/`: `adr`, `bedrock`, `cairn`, `contracts`, `diagrams`, `fixtures`, `learning`,
+  `modules`, `research`, `agents`.
+- `atomik-project/`: `audits`, `brainstorm`, `briefs`, `coding-paths`,
+  `coding-paths/history`, `sessions`, `projects`, `sources`.
+- `atomik-project/projects/` and `sources/` gained the missing `index.md` too — a log
+  linking a map that does not exist is a broken link, and `cairn-check` said so.
+- `docs/log.md` records the change at the plane level without inventing the month of
+  entries it never had.
+- Each log states the append rule and the escape hatch: if two paths ever collide on
+  one of these files, it takes the amendment the journal already took — one file per
+  entry in a `log/` subfolder, a CONCURRENCY fix, never a size one.
+

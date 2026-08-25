@@ -22,6 +22,11 @@ per entry in a `log/` subfolder — which was a concurrency fix, never a size on
 
 ## 2026-08-25
 
+- `S07c` The three Cairn documents become one handbook (owner correction), and this path's own
+  ledger is rolled: `ledger-size` fired at ~11 k tokens while the file was being edited, so
+  S00–S06d moved **verbatim** into `history/`, verified by extraction against `HEAD`. The path
+  file is back to ~5.7 k. The rule fired at the only moment it is useful, and it worked.
+
 - `S07` CP-OPS-002: the Cairn primer, specification and lexicon land in `docs/cairn/`.
   The specification supersedes round 3's D1 operator guide and D2 draft as instructions.
 

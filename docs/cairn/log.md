@@ -22,6 +22,17 @@ per entry in a `log/` subfolder — which was a concurrency fix, never a size on
 
 ## 2026-08-25
 
+- `S07c` **Redo on owner correction.** `foundations.md`, `specification.md`, `lexicon.md` and
+  `foundations.html` are replaced by one `handbook.md` + `handbook.html`. The owner had said the
+  work *could* reach a researcher; that was read as *write it for a researcher*, and the whole
+  explanatory apparatus was built from research-world concepts — making a document that claimed
+  to teach from zero **depend on** a background. The analogies are **removed, not replaced**:
+  substituting another profession's would reproduce the defect with a different dependency. The
+  text now stands on concrete software situations, this repository's own dated failures, and
+  diagrams. One file, alternating `CONCEPT` and `IN CAIRN` blocks, with the IN CAIRN blocks
+  self-contained and carrying every normative statement. New minimal theme built for a long
+  dense reference rather than reusing `index.html`'s house style, with five inline SVG diagrams.
+
 - `S07b` `foundations.html` renders the primer in the house style of `index.html`, with the
   analogy given its own two-column component (*in your world* → *in software*, seven of
   them) and each repository failure its own visually distinct block — evidence, not

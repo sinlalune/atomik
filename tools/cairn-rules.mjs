@@ -14,12 +14,12 @@ import { fileURLToPath } from 'node:url'
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const CHECK_FILE = join(REPO, 'tools/cairn-check.mjs')
 
-/** The specification carries the generated catalogue between these markers.
+/** The handbook carries the generated catalogue between these markers.
  *  A table written by hand is how a document comes to list rules that do not
  *  exist — the defect this generator was built for. The splice makes the
  *  regeneration one command, and the test makes the shipped table executable:
- *  a specification that has drifted from the validator fails the build. */
-export const SPEC_FILE = 'docs/cairn/specification.md'
+ *  a handbook that has drifted from the validator fails the build. */
+export const SPEC_FILE = 'docs/cairn/handbook.md'
 export const TABLE_BEGIN = '<!-- cairn:rules:begin -->'
 export const TABLE_END = '<!-- cairn:rules:end -->'
 

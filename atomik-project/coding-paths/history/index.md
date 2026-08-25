@@ -27,6 +27,21 @@ that is how they were worked and how they read. Naming is `<path-id>-S0N.md`.
 
 ## Records
 
+### CP-OPS-002 — Cairn 2.0
+
+Rolled 2026-08-25 at S07c, when `ledger-size` fired on the live file (~11 k tokens
+against a 10 k budget) while it was being edited — which is exactly who the rule is
+meant to speak to. Two mechanical adjustments are named in each record's header:
+deixis, left alone; and relative-link depth, repointed one level because a link is an
+address rather than content, and the same target must keep resolving.
+
+- [S00 — Adopt the local repairs](./CP-OPS-002-S00.md) · the four enforcement repairs and the status correction
+- [S01 — Schema and doctrine fixes](./CP-OPS-002-S01.md) · the ceremony schema pinned, ADR-016
+- [S03 — Drain the grandfather set](./CP-OPS-002-S03.md) · owner-ruled, withdrawn
+- [S04 — Bound the ledger](./CP-OPS-002-S04.md) · this convention, and the rule that produced this rollup
+- [S05 — Backfill OKF](./CP-OPS-002-S05.md) · with S05b and S05c
+- [S06 — Retire the drifted page](./CP-OPS-002-S06.md) · with S06b, S06c and S06d
+
 ### CP-MVP-008 — Real AI generation + the AI interaction pass (M2 completion)
 
 Rolled 2026-08-24. The path file went from ~23.5 k tokens to ~4.7 k; the execution
