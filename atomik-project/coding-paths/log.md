@@ -22,6 +22,9 @@ per entry in a `log/` subfolder — which was a concurrency fix, never a size on
 
 ## 2026-08-25
 
+- `S07` CP-OPS-002: the Cairn primer, specification and lexicon land in `docs/cairn/`.
+  The specification supersedes round 3's D1 operator guide and D2 draft as instructions.
+
 - `S07a` ADR-017 settles the path lifecycle: `archived` is the single terminal state and
   the exit an abandoned path takes too, `active` leaves the vocabulary, and the advisory
   `path-staleness` rule notices a running path whose branch has gone quiet. `paths.md`

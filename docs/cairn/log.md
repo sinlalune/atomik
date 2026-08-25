@@ -22,6 +22,17 @@ per entry in a `log/` subfolder — which was a concurrency fix, never a size on
 
 ## 2026-08-25
 
+- `S07` Three documents, on the owner's pedagogical amendment. `foundations.md` teaches
+  version control, tests, CI and the reason for a protocol **from zero**, for someone who
+  writes real code but has never worked in a production setup — every mechanism bridged to
+  a rigour the reader already practises (a unit test is a positive control, TDD is
+  preregistration, a generated file is a figure you do not edit in Illustrator) and taught
+  through a failure this repository actually had. `specification.md` is normative and
+  points into it at every section. `lexicon.md` glosses 60 terms and marks the four with
+  nothing behind them yet as ASPIRATIONAL. The rule catalogue is spliced by
+  `cairn-rules.mjs --write` and pinned by a test, so the page warning about hand-written
+  rule tables can no longer carry one.
+
 - `S07a` D2 §2.2 stops proposing a lifecycle of its own: a dated banner, the accepted
   ADR-017 outcome, the `active` row removed, the abandoned-path gap marked closed, and
   §2.3's rule table regenerated with `path-staleness`. Corrections register gains C16.
