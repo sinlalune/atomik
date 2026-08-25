@@ -646,4 +646,5 @@ so the header line `cairn-check` prints keeps telling the truth.
 - [`foundations.md`](./foundations.md) — the concepts, from zero.
 - [`lexicon.md`](./lexicon.md) — every term, glossed and traced to its enforcing file.
 - [`atomik-project/coding-paths/paths.md`](../../atomik-project/coding-paths/paths.md) — the operating detail, which may change without amending a bedrock page.
+- [`foundations.html`](./foundations.html) — the primer, rendered, with a glossary appendix.
 - [`index.html`](./index.html) — the rendered overview.

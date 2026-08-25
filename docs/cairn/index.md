@@ -45,6 +45,9 @@ Three documents, written to be read in this order. The first assumes nothing.
   F1–F15, each finding reproduced by a named command. It is what CP-OPS-002 executes.
 - [cairn-opening-check-agenda.md](./cairn-opening-check-agenda.md) — the eight
   decisions put to the owner before CP-OPS-002 could be registered.
+- [foundations.html](./foundations.html) — the primer, rendered, with a glossary
+  appendix. **This is the page to send to someone outside the repository** who needs the
+  concepts before the protocol. Markdown remains the source of truth.
 - [index.html](./index.html) — Cairn explained to someone outside this repository:
   the two roles, N paths each merging itself, statements of record, and the twenty
   rules the checker actually implements. Rewritten at CP-OPS-002 S06 against
@@ -52,7 +55,7 @@ Three documents, written to be read in this order. The first assumes nothing.
 - [workflow.html](./workflow.html) — the same protocol day to day: who acts at each
   moment and which file holds the answer afterwards.
 
-Both HTML pages carry a **dated status banner** naming the ADRs they render.
+All three HTML pages carry a **dated status banner** naming what they render.
 `index.html` drifted for ten days without anyone noticing precisely because
 nothing on it claimed a vintage; a rendered page that cannot be dated cannot be
 audited.

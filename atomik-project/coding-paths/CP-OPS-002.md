@@ -584,11 +584,28 @@ a specification, which is what a single teach-and-specify document would have co
 
 </details>
 
-### S07b — The rendered page
+### S07b — The rendered page — **COMPLETE**
 
 The three documents are Markdown, which is what CI checks and what the repository keeps.
-The owner shares this work outside the repository, so one rendered page in the house style
-of `index.html` carries the primer with the lexicon as a glossary appendix.
+The owner shares this work outside the repository, so `docs/cairn/foundations.html` renders
+the primer in the house style of `index.html` — same tokens, same light/dark handling, same
+dated status banner naming what it renders and which file wins on disagreement.
+
+- **The analogy gets a component, because it is the spine of the argument.** Every bridge
+  is a two-column `.bridge` element — *in your world* → *in software* — so the translation
+  is a visible structure rather than a sentence a skimming reader loses. Seven of them: the
+  lab notebook, the parallel experimental arm, the positive control, preregistration,
+  instrument QC, the figure you do not edit in Illustrator, exclusion criteria versus flags.
+- **Failures get their own component too.** Four `.scar` blocks carry the CI that never ran
+  on the branches its rules were about, the ceremony gate that proved the wrong
+  proposition, the piped gate that shipped a broken build, and the 34 links that were not
+  broken. They are visually distinct from the teaching because they are evidence, not
+  illustration — and a primer of invented examples would have taught the same words and
+  none of the fear.
+- **The glossary appendix** carries the lexicon's plain-language column, thirty terms, with
+  the blocking/advisory chips where they apply. The full lexicon with enforcing files stays
+  in Markdown; the page says so rather than pretending to be complete.
+- Structure validated by parser (no unclosed or mismatched tags); links resolve.
 
 ### S08 — Extract Cairn from Atomik
 
@@ -625,13 +642,13 @@ brief names — and fix what the pilot finds before merging.
 | Status | `running` on `path/cp-ops-002` |
 | Base commit | `7aa3b1d` — registered on the trunk by `df875e6` before this branch existed |
 | Branch | `path/cp-ops-002`, worktree `../4tom1k-cp-ops-002`, `node_modules` symlinked |
-| Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane (`3df9073`) · **S05b** — the opening check gated, five more indexes (`d6b29f1`), the invented folder-log decision retracted on owner correction (`360f2be`) · **S05c** — the OKF pair completed: eighteen folder logs seeded from real Git history (`468bc24`) · **S06** — `index.html` rewritten against ADR-012, both HTML pages dated (`2a5ef35`) · **S06c** — the coherence audit bound to the commits its path contributed (`de4e0fa`) · **S06d** — the six stale worktrees and the orphan registration branch drained, `isFilled()` given something to measure, and a C-quoted path stopped hiding from the blocking rules (`9cbe605`, `6fa33e7`) · **S07a** — ADR-017 settles the path lifecycle; `active` retired, abandonment given a door, staleness noticed without blocking (`b4ef361`) · **S07** — the primer, the specification and the lexicon, written from zero for a scientist audience on the owner's amendment; the rule catalogue spliced and test-pinned |
-| Remaining | S07b, S08, S09 (S03 withdrawn by owner ruling; S06b rescoped and delivered inside S07 + S08 by ruling 9) |
+| Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane (`3df9073`) · **S05b** — the opening check gated, five more indexes (`d6b29f1`), the invented folder-log decision retracted on owner correction (`360f2be`) · **S05c** — the OKF pair completed: eighteen folder logs seeded from real Git history (`468bc24`) · **S06** — `index.html` rewritten against ADR-012, both HTML pages dated (`2a5ef35`) · **S06c** — the coherence audit bound to the commits its path contributed (`de4e0fa`) · **S06d** — the six stale worktrees and the orphan registration branch drained, `isFilled()` given something to measure, and a C-quoted path stopped hiding from the blocking rules (`9cbe605`, `6fa33e7`) · **S07a** — ADR-017 settles the path lifecycle; `active` retired, abandonment given a door, staleness noticed without blocking (`b4ef361`) · **S07** — the primer, the specification and the lexicon, written from zero for a scientist audience on the owner's amendment; the rule catalogue spliced and test-pinned (`1db06de`) · **S07b** — the primer rendered as a shareable page in the house style |
+| Remaining | S08, S09 (S03 withdrawn by owner ruling; S06b rescoped and delivered inside S07 + S08 by ruling 9) |
 | Opening check | accepted 2026-08-24, eight rulings ([note](../sessions/2026-08-24-cp-ops-002-opening-check.md)) |
-| Gates at S07 | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 83/83 |
+| Gates at S07b | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 83/83 · HTML structure parser-validated |
 | Scope note | protocol tooling and doctrine only; no product code, so `npm test` / `typecheck` / `build` are untouched by this step |
 | Widening | `writes:` gained `atomik-project/briefs/cp-ops-002-handoff.md` at S01 — the per-step handoff brief is required by bedrock 22 and the original declaration simply omitted it. **Widened again at S06d** to `atomik-project/briefs/**`: F7's residue lives in that folder, and `scope-drift` said so the moment the owner ruled on `feedback on  MVP-001.md`. Recorded here and kept going, which is what `paths.md` asks of a widening |
-| Next action | S07b — render the primer as one HTML page in the house style of `docs/cairn/index.html`, with the lexicon's plain-language column as a glossary appendix and a dated status banner. Markdown stays the source of truth and the thing CI checks; the page is what the owner sends outside the repository |
+| Next action | S08 — extract Cairn from Atomik: `cairn.config.json` (plane roots, source roots, area map, trunk name, and `enforcement`), the generated `cairn-check` header line that makes the tier claim un-driftable, `tools/cairn-new.mjs` (registration commit + worktree in one command), and a `cairn-init` seed scaffolding **tiers 0 and 1 only** — no host, no account, nothing to click. The lexicon already marks all four **ASPIRATIONAL**, so S08 is what drains that section |
 | Superseded next action (S07, done) | the specification and lexicon: `docs/cairn/specification.md` (planes, the ADR-017 lifecycle by reference, the rule table generated from `cairn-check.mjs`, the blocking-rule admission test, the three enforcement tiers with tier 2 as a repository property, the CP-MVP-011/012 migration window as a property), `docs/cairn/lexicon.md` (one definition per term, each pointing at the file that enforces it; a term with no enforcing file marked aspirational), and the step-by-step operator guide carrying the optional tier-2 ruleset as a copy-paste `gh api` payload |
 | Widening (S05) | `writes:` gained `docs/adr/**`, `docs/bedrock/index.md`, `docs/modules/**`, `docs/index.md`, `atomik-project/index.md` — S05 was always the OKF backfill; the declaration named only the two ADRs this path authors. Deliberate `single-truth` edit: `docs/modules/atomik-desktop.md`, one stale sentence naming the removed integrator |
 | Amendments (S07) | **2026-08-25, owner** — S07 widened from "specification and lexicon" to a three-document set with a **pedagogical** remit: a from-zero primer (`foundations.md`) for a named non-engineer audience, a normative specification that points into it, and a lexicon carrying both registers. Structure and depth chosen with the owner before writing. Adds S07b, the rendered page |

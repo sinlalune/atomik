@@ -338,4 +338,5 @@ remove.
 
 - [`foundations.md`](./foundations.md) — the concepts, from zero.
 - [`specification.md`](./specification.md) — the normative rules.
+- [`foundations.html`](./foundations.html) — the primer, rendered, with a glossary appendix.
 - [`index.html`](./index.html) — the rendered overview.
