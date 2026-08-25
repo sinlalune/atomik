@@ -6,7 +6,21 @@
  */
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { extractRules, generateMarkdownTable, RULE_METADATA } from './cairn-rules.mjs'
+import { readFileSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import {
+  extractRules,
+  generateMarkdownTable,
+  RULE_METADATA,
+  SPEC_FILE,
+  spliceTable,
+  TABLE_BEGIN,
+  TABLE_END,
+  tableIn
+} from './cairn-rules.mjs'
+
+const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 const MOCK_SOURCE = `
 function evaluate() {
@@ -60,4 +74,39 @@ test('cairn-rules: emitted table rows have exact 5 columns and no unescaped inne
     assert.equal(unescapedPipeCount, 6, `Row must have 5 columns (6 delimiter pipes): ${row}`)
   }
   delete RULE_METADATA['pipe-rule']
+})
+
+
+/* ------------------------------------------------------------------ *
+ * The shipped specification must carry the GENERATED catalogue
+ *
+ * A rule table written by hand is how a document comes to list checks that
+ * do not exist — round 3's register recorded exactly that (`ledger-size`
+ * listed as live while no code implemented it). Generating it removes the
+ * possibility; testing the SHIPPED file removes the possibility of forgetting
+ * to regenerate. This is the same defence that makes the ceremony template in
+ * bedrock 24 executable: documentation a test can read cannot quietly drift.
+ * ------------------------------------------------------------------ */
+
+test('cairn-rules: the specification ships the current catalogue', () => {
+  const spec = readFileSync(join(REPO, SPEC_FILE), 'utf8')
+  const shipped = tableIn(spec)
+  assert.ok(shipped, `${SPEC_FILE} has no ${TABLE_BEGIN} / ${TABLE_END} splice point`)
+  const current = generateMarkdownTable(readFileSync(join(REPO, 'tools/cairn-check.mjs'), 'utf8'))
+  assert.equal(
+    shipped,
+    current.trim(),
+    `${SPEC_FILE} is out of date — run \`node tools/cairn-rules.mjs --write\``
+  )
+})
+
+test('cairn-rules: splicing replaces only what is between the markers', () => {
+  const doc = `before\n${TABLE_BEGIN}\nold table\n${TABLE_END}\nafter\n`
+  const out = spliceTable(doc, 'new table')
+  assert.equal(out, `before\n${TABLE_BEGIN}\nnew table\n${TABLE_END}\nafter\n`)
+  assert.equal(tableIn(out), 'new table')
+  // a document with no splice point is an ERROR, never a silent append: a
+  // catalogue written somewhere the reader is not looking is worse than none
+  assert.throws(() => spliceTable('no markers here', 'x'), /splice point/)
+  assert.equal(tableIn('no markers here'), null)
 })

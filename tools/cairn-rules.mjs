@@ -7,12 +7,21 @@
  * and descriptions cannot drift.
  */
 
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const CHECK_FILE = join(REPO, 'tools/cairn-check.mjs')
+
+/** The specification carries the generated catalogue between these markers.
+ *  A table written by hand is how a document comes to list rules that do not
+ *  exist — the defect this generator was built for. The splice makes the
+ *  regeneration one command, and the test makes the shipped table executable:
+ *  a specification that has drifted from the validator fails the build. */
+export const SPEC_FILE = 'docs/cairn/specification.md'
+export const TABLE_BEGIN = '<!-- cairn:rules:begin -->'
+export const TABLE_END = '<!-- cairn:rules:end -->'
 
 export function extractRules(source) {
   const rules = []
@@ -141,9 +150,34 @@ export function generateMarkdownTable(source) {
   return md
 }
 
+/** The text currently sitting between the markers, or null when the document
+ *  carries no splice point. Pure, so the test can read the shipped file. */
+export function tableIn(doc) {
+  const from = doc.indexOf(TABLE_BEGIN)
+  const to = doc.indexOf(TABLE_END)
+  if (from === -1 || to === -1 || to < from) return null
+  return doc.slice(from + TABLE_BEGIN.length, to).trim()
+}
+
+export function spliceTable(doc, table) {
+  const from = doc.indexOf(TABLE_BEGIN)
+  const to = doc.indexOf(TABLE_END)
+  if (from === -1 || to === -1 || to < from) {
+    throw new Error(`no ${TABLE_BEGIN} / ${TABLE_END} splice point in the document`)
+  }
+  return `${doc.slice(0, from + TABLE_BEGIN.length)}\n${table.trim()}\n${doc.slice(to)}`
+}
+
 function main() {
   const source = readFileSync(CHECK_FILE, 'utf8')
-  console.log(generateMarkdownTable(source))
+  const table = generateMarkdownTable(source)
+  if (!process.argv.includes('--write')) {
+    console.log(table)
+    return
+  }
+  const specPath = join(REPO, SPEC_FILE)
+  writeFileSync(specPath, spliceTable(readFileSync(specPath, 'utf8'), table), 'utf8')
+  console.log(`cairn-rules — rewrote the catalogue in ${SPEC_FILE}`)
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

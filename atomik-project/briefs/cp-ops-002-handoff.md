@@ -1,11 +1,11 @@
 ---
 type: Atomik Brief
-title: Handoff — CP-OPS-002 S07a complete, ready for S07
+title: Handoff — CP-OPS-002 S07 complete, ready for S07b
 timestamp: 2026-08-25T00:00:00Z
 atomik:
   path: CP-OPS-002
   branch: path/cp-ops-002
-  completed_step: S07a
+  completed_step: S07
 ---
 
 # Resume CP-OPS-002 here
@@ -21,14 +21,45 @@ atomik:
   grandfathered in-flight paths (`cp-mvp-011`, `cp-mvp-012`) and this one. S06d
   removed six. All ten `path/*` branches are retained; only the spent
   `registration/cp-worktree-cleanup` ref was deleted.
-- Gates at S07a: `npm run cairn-check` OK with one advisory — no coherence audit
+- Gates at S07: `npm run cairn-check` OK with one advisory — no coherence audit
   for this head, expected until the pre-merge audit. Validator suite
-  `npm run cairn-check:test` 81/81.
+  `npm run cairn-check:test` 83/83.
 - `typecheck` / `test` / `build` are not run for this step and their verdicts are
   not claimed: this path writes protocol tooling and doctrine only, and touched
   no product code.
 
 ## What the completed step changed
+
+**S07 — the specification, the lexicon, and the primer that makes them
+readable.** Widened by the owner on 2026-08-25 from two documents to three, with
+a pedagogical remit and a named audience: a medical researcher whose PhD was on
+medical BERT. Structure and depth were chosen with the owner before writing —
+separate primer, normative spec pointing into it, lexicon carrying both
+registers, **from zero including version control**.
+
+- **`docs/cairn/foundations.md`** — the primer. Version control, tests, CI, and
+  why a protocol sits on top of the tools. Each mechanism is bridged to a rigour
+  the reader already practises (a unit test is a positive control; TDD is
+  preregistration; a generated file is a figure you do not edit in Illustrator)
+  and taught through a failure this repository actually had, named and dated.
+- **`docs/cairn/specification.md`** — normative. Planes, the ADR-017 lifecycle
+  with its honest limit, concurrency, the three ordering rules each with the
+  observed failure that produced it, ceremonies, "nothing is shared", the
+  enforcement tiers, the generated catalogue, the coherence audit, this
+  repository's declared properties, the two known limits, a five-step operator
+  guide, and the skippable tier-2 `gh api` payload. Every section links back to
+  the primer.
+- **`docs/cairn/lexicon.md`** — 60 terms: general practice, Cairn vocabulary,
+  and **terms with nothing behind them yet**, marked ASPIRATIONAL with the step
+  they land in.
+- **The catalogue is spliced and test-pinned.** `cairn-rules.mjs --write`
+  rewrites the table between markers, and a test compares the shipped table
+  against the generator on every CI run, so the document that warns about
+  hand-written rule tables cannot carry one. Suite 81 → 83.
+- It supersedes round 3's D1 operator guide and D2 draft **as instructions**;
+  both remain as dated records of a proposal.
+
+## What earlier steps changed
 
 **S07a — ADR-017, the coding-path lifecycle** (ruling 5, F11 + F15). Three
 documents described one state machine and no two agreed: bedrock 35 said
@@ -114,6 +145,15 @@ folder-log decision on owner correction. **S05** closed F5 with five indexes, AD
 frontmatter and `adrFrontmatterErrors()`.
 
 ## Next action
+
+**S07b — the rendered page.** The three documents are Markdown, which is what CI
+checks and what the repository keeps. The owner shares this work outside the
+repository, so S07b renders the primer as one HTML page in the house style of
+`docs/cairn/index.html` — the lexicon's plain-language column as a glossary
+appendix, a dated status banner naming what it renders, and links back to the
+Markdown as the source of truth.
+
+## Superseded next action (S07, complete)
 
 **S07 — the specification and lexicon.** Its dependency is discharged: ADR-017
 settled the lifecycle, so the specification describes it by reference rather

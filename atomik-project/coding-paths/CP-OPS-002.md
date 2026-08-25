@@ -501,7 +501,68 @@ specification may not settle it — an ADR must.
   would be noise.
 - Four regression tests. Suite 77 → 81.
 
-### S07 — Specification and lexicon
+### S07 — Specification, lexicon, and the primer that makes them readable — **COMPLETE**
+
+> **Owner amendment, 2026-08-25.** *"I want you to write the specification and lexicon…
+> with a very pedagogical approach as much on the conceptual part… as in the practical
+> implementation part, like if scientists that do most of the time R and python on
+> prototype, notebook, and data analysis will welcome the production environment of
+> software dev as a comforting robust zone where terms and design is for growth and not
+> like a stressing place where everything is new and too abstract."* Named audience: a
+> medical researcher whose PhD was on medical BERT, pre-ChatGPT. Structure chosen with the
+> owner: a separate primer, a normative specification that points into it, and a lexicon
+> carrying both registers; depth calibrated **from zero, including version control**.
+
+Three documents, each honest about its job. The specification never stops being usable as
+a specification, which is what a single teach-and-specify document would have cost.
+
+- **`docs/cairn/foundations.md`** — the primer, from zero. Version control (a commit is a
+  snapshot whose hash covers its whole ancestry; a branch is a movable pointer; a conflict
+  is Git refusing to guess), tests (unit, regression, TDD), continuous integration, working
+  in parallel, and why a protocol sits on top of the tools. It ends on the three things
+  worth taking if the reader takes nothing else.
+- **The bridges are load-bearing, not decoration.** A unit test is a positive control; a
+  regression test is a scar turned into a guardrail; **TDD is preregistration** — you write
+  the success criterion before you have the thing that must satisfy it, so you cannot move
+  the goalposts; CI is instrument QC that runs before every batch; blocking versus advisory
+  is exclusion criteria versus flags for manual review; **a generated file is a figure you
+  do not edit in Illustrator.** Each maps a mechanism onto a rigour this reader already
+  practises, so the vocabulary lands as recognition rather than as novelty.
+- **The emotional claim is stated outright**, because the tooling never says it: none of
+  this exists to slow you down — it exists so you can change things without being afraid,
+  the way a held-out test set lets you tune aggressively without fooling yourself.
+- **Every mechanism is taught through a failure this repository actually had**, named and
+  dated: the piped gate that shipped a broken build (2026-07-16), the CI that never ran on
+  the branches its rules were about (F8), the ceremony gate that proved a path had been
+  *opened* while claiming it had been *closed* (F2), the derived view that was internally
+  current and globally false (2026-08-20), the 34 links that were not broken. A primer of
+  invented examples would have taught the same words and none of the fear.
+- **`docs/cairn/specification.md`** — normative. Planes (three conceptual, two repository —
+  the audit found these routinely conflated), the ADR-017 lifecycle and status vocabulary
+  with its honest limit (*a validator sees one commit, so the machine is doctrine and only
+  the per-state invariants are enforced*), concurrency, the three ordering rules each with
+  the observed failure that produced it, ceremonies, "nothing is shared", the enforcement
+  tiers, the generated rule catalogue, the coherence audit, this repository's declared
+  properties, the two known limits, a five-step operator guide, and the tier-2 ruleset as a
+  skippable `gh api` payload. Every section carries a `→ foundations §x` pointer.
+- **`docs/cairn/lexicon.md`** — 60 terms in three sections: general practice, Cairn
+  vocabulary, and **terms with nothing behind them yet**. Each entry is a plain gloss, a
+  precise definition, and the enforcing file. The third section is the point: `cairn.config.json`,
+  `cairn-init`, `cairn-new` and the generated enforcement header are marked **ASPIRATIONAL**
+  with the step they land in, so nobody mistakes a plan for a mechanism. A vocabulary that
+  hides which of its words are backed by code is how a protocol comes to describe a system
+  that does not exist.
+- **The catalogue is spliced, not pasted.** `cairn-rules.mjs --write` rewrites the table
+  between markers in the specification, and **a test compares the shipped table against the
+  generator on every CI run**. The document that warns about hand-written rule tables is now
+  incapable of carrying one — the same defence that makes the bedrock 24 ceremony template
+  executable. Round 3's register recorded exactly this failure (C7: `ledger-size` listed as
+  live while no code implemented it).
+- Two regression tests for the splice. Suite 81 → 83.
+
+<details>
+<summary><strong>S07 — the scope as accepted at the opening check, every item delivered</strong></summary>
+
 
 - `docs/cairn/specification.md`: planes (three conceptual, two repository — the audit
   found these routinely conflated), lifecycle, status vocabulary, the full rule table
@@ -520,6 +581,14 @@ specification may not settle it — an ADR must.
 - Step-by-step operator guide for someone who does not already know the protocol —
   carrying the optional tier-2 ruleset as a JSON payload and one `gh api` command, marked
   skippable.
+
+</details>
+
+### S07b — The rendered page
+
+The three documents are Markdown, which is what CI checks and what the repository keeps.
+The owner shares this work outside the repository, so one rendered page in the house style
+of `index.html` carries the primer with the lexicon as a glossary appendix.
 
 ### S08 — Extract Cairn from Atomik
 
@@ -556,14 +625,16 @@ brief names — and fix what the pilot finds before merging.
 | Status | `running` on `path/cp-ops-002` |
 | Base commit | `7aa3b1d` — registered on the trunk by `df875e6` before this branch existed |
 | Branch | `path/cp-ops-002`, worktree `../4tom1k-cp-ops-002`, `node_modules` symlinked |
-| Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane (`3df9073`) · **S05b** — the opening check gated, five more indexes (`d6b29f1`), the invented folder-log decision retracted on owner correction (`360f2be`) · **S05c** — the OKF pair completed: eighteen folder logs seeded from real Git history (`468bc24`) · **S06** — `index.html` rewritten against ADR-012, both HTML pages dated (`2a5ef35`) · **S06c** — the coherence audit bound to the commits its path contributed (`de4e0fa`) · **S06d** — the six stale worktrees and the orphan registration branch drained, `isFilled()` given something to measure, and a C-quoted path stopped hiding from the blocking rules (`9cbe605`, `6fa33e7`) · **S07a** — ADR-017 settles the path lifecycle; `active` retired, abandonment given a door, staleness noticed without blocking |
-| Remaining | S07, S08, S09 (S03 withdrawn by owner ruling; S06b rescoped and delivered inside S07 + S08 by ruling 9) |
+| Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane (`3df9073`) · **S05b** — the opening check gated, five more indexes (`d6b29f1`), the invented folder-log decision retracted on owner correction (`360f2be`) · **S05c** — the OKF pair completed: eighteen folder logs seeded from real Git history (`468bc24`) · **S06** — `index.html` rewritten against ADR-012, both HTML pages dated (`2a5ef35`) · **S06c** — the coherence audit bound to the commits its path contributed (`de4e0fa`) · **S06d** — the six stale worktrees and the orphan registration branch drained, `isFilled()` given something to measure, and a C-quoted path stopped hiding from the blocking rules (`9cbe605`, `6fa33e7`) · **S07a** — ADR-017 settles the path lifecycle; `active` retired, abandonment given a door, staleness noticed without blocking (`b4ef361`) · **S07** — the primer, the specification and the lexicon, written from zero for a scientist audience on the owner's amendment; the rule catalogue spliced and test-pinned |
+| Remaining | S07b, S08, S09 (S03 withdrawn by owner ruling; S06b rescoped and delivered inside S07 + S08 by ruling 9) |
 | Opening check | accepted 2026-08-24, eight rulings ([note](../sessions/2026-08-24-cp-ops-002-opening-check.md)) |
-| Gates at S07a | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 81/81 |
+| Gates at S07 | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 83/83 |
 | Scope note | protocol tooling and doctrine only; no product code, so `npm test` / `typecheck` / `build` are untouched by this step |
 | Widening | `writes:` gained `atomik-project/briefs/cp-ops-002-handoff.md` at S01 — the per-step handoff brief is required by bedrock 22 and the original declaration simply omitted it. **Widened again at S06d** to `atomik-project/briefs/**`: F7's residue lives in that folder, and `scope-drift` said so the moment the owner ruled on `feedback on  MVP-001.md`. Recorded here and kept going, which is what `paths.md` asks of a widening |
-| Next action | S07 — the specification and lexicon: `docs/cairn/specification.md` (planes, the ADR-017 lifecycle by reference, the rule table generated from `cairn-check.mjs`, the blocking-rule admission test, the three enforcement tiers with tier 2 as a repository property, the CP-MVP-011/012 migration window as a property), `docs/cairn/lexicon.md` (one definition per term, each pointing at the file that enforces it; a term with no enforcing file marked aspirational), and the step-by-step operator guide carrying the optional tier-2 ruleset as a copy-paste `gh api` payload |
+| Next action | S07b — render the primer as one HTML page in the house style of `docs/cairn/index.html`, with the lexicon's plain-language column as a glossary appendix and a dated status banner. Markdown stays the source of truth and the thing CI checks; the page is what the owner sends outside the repository |
+| Superseded next action (S07, done) | the specification and lexicon: `docs/cairn/specification.md` (planes, the ADR-017 lifecycle by reference, the rule table generated from `cairn-check.mjs`, the blocking-rule admission test, the three enforcement tiers with tier 2 as a repository property, the CP-MVP-011/012 migration window as a property), `docs/cairn/lexicon.md` (one definition per term, each pointing at the file that enforces it; a term with no enforcing file marked aspirational), and the step-by-step operator guide carrying the optional tier-2 ruleset as a copy-paste `gh api` payload |
 | Widening (S05) | `writes:` gained `docs/adr/**`, `docs/bedrock/index.md`, `docs/modules/**`, `docs/index.md`, `atomik-project/index.md` — S05 was always the OKF backfill; the declaration named only the two ADRs this path authors. Deliberate `single-truth` edit: `docs/modules/atomik-desktop.md`, one stale sentence naming the removed integrator |
+| Amendments (S07) | **2026-08-25, owner** — S07 widened from "specification and lexicon" to a three-document set with a **pedagogical** remit: a from-zero primer (`foundations.md`) for a named non-engineer audience, a normative specification that points into it, and a lexicon carrying both registers. Structure and depth chosen with the owner before writing. Adds S07b, the rendered page |
 | Amendments | **2026-08-24, owner ruling 9** — S06b rescoped from "configure branch protection" to "declare the enforcement tier"; its deliverables move into S07 (specification + operator guide) and S08 (`enforcement` config field, generated header line, tier-0/1 `cairn-init`). This repository stays at tier 1, declared ([note](../sessions/2026-08-24-cp-ops-002-s06b-rescope.md)) |
 | Blockers | none. Nothing now waits on host configuration, and S07a's dependency is discharged: the lifecycle is settled, so the specification can describe it by reference |
 | Machine-local state (S06d) | `git worktree list` holds four entries — the owner's trunk, `cp-mvp-011`, `cp-mvp-012` and this path. Ten `path/*` branches retained; `registration/cp-worktree-cleanup` deleted as merged. This transition cannot be enforced by repository CI after the checkout disappears, so `paths.md` requires it to be REPORTED, which is what this row is |

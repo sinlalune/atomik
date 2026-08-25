@@ -19,8 +19,24 @@ worktree, each merging itself, with the mechanical half enforced by
 [22](../bedrock/22_22-agent-handoff.md) / [24](../bedrock/24_24-doc-templates.md) /
 [35](../bedrock/35_35-coding-path-execution-state.md) (doctrine). This directory
 explains it to people outside the repository, and holds the audits that repaired it.
-`docs/cairn/specification.md` and a step-by-step operator guide arrive at
-CP-OPS-002 S07 and become the entry point.
+
+## Start here
+
+Three documents, written to be read in this order. The first assumes nothing.
+
+- [**foundations.md**](./foundations.md) — the concepts from zero, for someone who
+  writes real code but has never worked inside a production engineering setup:
+  version control, tests, continuous integration, and why a protocol sits on top of
+  them. Teaches the general practice first so the specification can stay short.
+- [**specification.md**](./specification.md) — Cairn itself, normatively: the
+  planes, the coding-path lifecycle, the ordering rules, the full rule catalogue
+  **generated from the validator's own source**, the three enforcement tiers, this
+  repository's declared properties, the known limits, and a step-by-step operator
+  guide with the optional tier-2 ruleset as a copy-paste payload.
+- [**lexicon.md**](./lexicon.md) — every term with a plain gloss beside the precise
+  definition and the file that enforces it. Terms with nothing behind them yet are
+  marked **ASPIRATIONAL** in their own section, so nobody mistakes a plan for a
+  mechanism.
 
 ## Live
 
@@ -54,6 +70,8 @@ one look inevitable.
   deliverables: corrections register C1–C15, the interim operator guide D1, the
   specification draft D2 with its generated rule table, the lexicon D3, the init kit
   D4. D1's ceremony and registration steps were corrected at CP-OPS-002 S01; D2 §2.2
-  is *proposed* until ADR-017 settles the lifecycle.
+  documented the accepted outcome once [ADR-017](../adr/ADR-017-coding-path-lifecycle.md)
+  settled the lifecycle at S07a. D1 and D2 are superseded as instructions by
+  [specification.md](./specification.md) and its operator guide.
 - [cairn-round-3-brief.md](./cairn-round-3-brief.md) ·
   [cairn-round-4-brief.md](./cairn-round-4-brief.md) — the briefs those rounds answered.
