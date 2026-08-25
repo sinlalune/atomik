@@ -10,7 +10,15 @@
  */
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { auditName, findAudit, isFilled, ownCommits } from './cairn-audit.mjs'
+import {
+  auditName,
+  auditTemplate,
+  fillErrors,
+  findAudit,
+  findingsSections,
+  isFilled,
+  ownCommits
+} from './cairn-audit.mjs'
 
 const PATH = 'CP-MVP-010'
 const HEAD = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
@@ -64,6 +72,91 @@ test('a record naming a pre-rebase commit the rebase rewrote is refused', () => 
 })
 
 test('a record naming a valid commit but still a scaffold does not count', () => {
-  assert.equal(isFilled('verdict: TO BE FILLED BY THE AUDITING AGENT'), false)
-  assert.equal(isFilled('verdict: clean'), true)
+  const scaffold = auditTemplate({
+    pathId: PATH,
+    branch: 'path/cp-mvp-010',
+    head: HEAD,
+    base: TRUNK
+  })
+  assert.equal(isFilled(scaffold), false)
+  assert.ok(fillErrors(scaffold).includes('still carries the scaffold placeholder'))
+})
+
+// ---------------------------------------------------------------------------
+// F10 — "filled" used to mean "the placeholder string is absent", which
+// measured a DELETION rather than an audit. A missing record, an untouched
+// scaffold and a hollowed-out one must not look the same.
+// ---------------------------------------------------------------------------
+
+/** A record with the shape the template produces, parameterised where the
+ *  rule looks. */
+function record({ verdict = 'clean', answers = ['No.', '', '', ''] } = {}) {
+  const questions = [
+    'Does the diff contradict an accepted decision?',
+    'Does it duplicate something another running path is building?',
+    'Did it introduce architecture that belongs in an ADR and has none?',
+    'Is anything now documented in two places that will drift apart?'
+  ]
+  return `---
+type: Atomik Coherence Audit
+title: Coherence audit — ${PATH}
+timestamp: 2026-08-25T00:00:00.000Z
+atomik:
+  path: ${PATH}
+  branch: path/cp-mvp-010
+  head: ${HEAD}
+  base: ${TRUNK}
+  verdict: ${verdict}
+---
+
+# Coherence audit
+
+## What to read
+
+- the rebased diff for this branch
+
+## Findings
+
+${questions.map((q, i) => `### ${q}\n\n${answers[i]}\n`).join('\n')}
+## Verdict
+
+**${verdict}**
+`
+}
+
+test('a hollowed-out record — placeholder deleted, nothing written — does not count', () => {
+  const hollow = record({ answers: ['', '', '', ''] })
+  assert.ok(!hollow.includes('TO BE FILLED BY THE AUDITING AGENT'))
+  assert.equal(isFilled(hollow), false)
+  assert.deepEqual(fillErrors(hollow), ['no findings section has been answered'])
+  // one answered question is enough: the rule asks whether the agent answered
+  // its own questions, never whether the answers are any good
+  assert.equal(isFilled(record()), true)
+})
+
+test('the verdict must name an outcome from the stated vocabulary', () => {
+  assert.equal(isFilled(record({ verdict: 'looks fine to me' })), false)
+  assert.equal(isFilled(record({ verdict: '' })), false)
+  assert.deepEqual(fillErrors(record({ verdict: '' })), ['no `verdict:` in its frontmatter'])
+  for (const stated of ['clean', 'drift noted, proceeding', 'needs a conversation before merge'])
+    assert.equal(isFilled(record({ verdict: stated })), true, stated)
+})
+
+test('a verdict may QUALIFY one of the three, because a real record does', () => {
+  // CP-OPS-001's audit says "drift noted, repaired before merge" — it names the
+  // second outcome and then says what happened to it. Refusing a substantive
+  // record over a suffix would be exactly the false verdict this repository
+  // says costs more than a missed one.
+  assert.equal(isFilled(record({ verdict: 'drift noted, repaired before merge' })), true)
+  assert.equal(isFilled(record({ verdict: 'Clean' })), true)
+})
+
+test('findingsSections reads only the Findings block', () => {
+  const sections = findingsSections(record({ answers: ['No.', 'No.', 'No.', 'No.'] }))
+  assert.equal(sections.length, 4)
+  assert.equal(sections[0].heading, 'Does the diff contradict an accepted decision?')
+  assert.equal(sections[0].body, 'No.')
+  // the `## Verdict` heading ends the block; its prose is not a finding
+  assert.ok(!sections.some((s) => s.body.includes('**No.**')))
+  assert.deepEqual(findingsSections('# a record with no Findings section at all'), [])
 })

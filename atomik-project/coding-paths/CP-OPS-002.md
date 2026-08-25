@@ -372,12 +372,52 @@ could never match the commit that contains the record.
 > diff that no longer exists. The rule now says so instead of accepting it. Pinned by a
 > test naming both records.
 
-### S06d — Drain the leftovers *(ruling 8)*
+### S06d — Drain the leftovers *(ruling 8)* — **COMPLETE**
 
-- **F7** — remove six secondary worktrees for already-merged paths, following the verified
-  sequence in `paths.md`; delete the orphan `registration/cp-worktree-cleanup` branch.
-- **F10** — `isFilled()` requires more than the placeholder's absence: a verdict and at
-  least one non-empty findings section.
+The two low-severity findings left over once the enforcement repairs landed. Both are the
+path's own thesis in miniature: **a rule was written and the state that predates it was
+never drained** (F7), and **a check measures something adjacent to what it claims** (F10).
+
+- **F7 — the six stale worktrees are gone, their branches retained.** `cp-ai-capabilities`,
+  `cp-feedback`, `cp-mvp-010`, `cp-open-dock`, `cp-render-repairs` and `cp-rich-markdown`
+  each ran the full sequence `paths.md` prescribes, and each step was *checked*, not
+  assumed: the branch head is an ancestor of `origin/master` after a fresh
+  `git fetch origin master`; the target is a registered SECONDARY worktree in
+  `git worktree list --porcelain`; `git status --porcelain=v1` prints nothing; removal
+  without `--force`, run from this checkout rather than from the target or the owner's;
+  then deregistration, absence on disk, and the branch still resolving afterwards.
+  `git worktree list` now holds exactly four entries — the owner's trunk, the two
+  grandfathered in-flight paths, and this one — while all ten `path/*` branches survive
+  as the online per-step history the owner asked for.
+- **The orphan `registration/cp-worktree-cleanup` is deleted** with `git branch -d`, not
+  `-D`: the merged-ancestor test is Git's own, so the deletion is the check rather than
+  something done after one. Its commit `9040417` — the repository's last real registration
+  and the precedent S01 cites — remains in the trunk's history; only the spent ref is gone.
+- **F10 — `isFilled()` measured a deletion.** `!text.includes(PLACEHOLDER)` passed an empty
+  file: delete the placeholder string and a hollowed-out record was indistinguishable from a
+  real audit. It is replaced by `fillErrors()`, which asks the two things a deterministic
+  gate honestly can — the record NAMES an outcome from the stated vocabulary, and it ANSWERS
+  at least one of its own findings questions — and reports *which* is missing rather than
+  one flat "still a scaffold". `isFilled()` survives as `fillErrors(text).length === 0`.
+- **The vocabulary is matched by STEM, and that is a finding, not a convenience.** The
+  template states three outcomes; CP-OPS-001's record says *"drift noted, repaired before
+  merge"*, which names the second and then says what happened to it. An exact-phrase rule
+  would have declined a substantive audit — the false blocking verdict this repository
+  says costs more than a missed one. Checked before writing the rule rather than after:
+  **all nine existing records pass**, four answered questions each, and the untouched
+  scaffold fails on two counts.
+- **What it deliberately does not ask** is whether the answers are any good. That is the
+  non-deterministic judgment the whole split exists to keep out of a gate, and it is why the
+  rule stays advisory with a human reading the findings.
+- Four regression tests, including the hollowed-out record the old rule accepted and the
+  qualified verdict an exact-match rule would have refused. Suite 72 → 76.
+
+> **Left deliberately: `atomik-project/briefs/feedback on  MVP-001.md`.** F7 names it too —
+> a double space in the filename, no frontmatter — and it is the one item in the finding
+> that is not mine to drain. It is the owner's own raw feedback, and `atomik-project/log.md`
+> — the FROZEN archive that may never be rewritten — cites it by that exact name. Renaming
+> it would break a reference in a file the protocol forbids repairing, to fix something
+> F7 itself classes as *unconventional, not wrong*. It needs an owner call, not an agent's.
 
 ### S07a — ADR-017, the path lifecycle *(ruling 5, F11 + F15)*
 
@@ -445,13 +485,14 @@ brief names — and fix what the pilot finds before merging.
 | Status | `running` on `path/cp-ops-002` |
 | Base commit | `7aa3b1d` — registered on the trunk by `df875e6` before this branch existed |
 | Branch | `path/cp-ops-002`, worktree `../4tom1k-cp-ops-002`, `node_modules` symlinked |
-| Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane (`3df9073`) · **S05b** — the opening check gated, five more indexes (`d6b29f1`), the invented folder-log decision retracted on owner correction (`360f2be`) · **S05c** — the OKF pair completed: eighteen folder logs seeded from real Git history (`468bc24`) · **S06** — `index.html` rewritten against ADR-012, both HTML pages dated (`2a5ef35`) · **S06c** — the coherence audit bound to the commits its path contributed |
-| Remaining | S06d, S07a, S07, S08, S09 (S03 withdrawn by owner ruling; S06b rescoped and delivered inside S07 + S08 by ruling 9) |
+| Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane (`3df9073`) · **S05b** — the opening check gated, five more indexes (`d6b29f1`), the invented folder-log decision retracted on owner correction (`360f2be`) · **S05c** — the OKF pair completed: eighteen folder logs seeded from real Git history (`468bc24`) · **S06** — `index.html` rewritten against ADR-012, both HTML pages dated (`2a5ef35`) · **S06c** — the coherence audit bound to the commits its path contributed (`de4e0fa`) · **S06d** — the six stale worktrees and the orphan registration branch drained, `isFilled()` given something to measure |
+| Remaining | S07a, S07, S08, S09 (S03 withdrawn by owner ruling; S06b rescoped and delivered inside S07 + S08 by ruling 9) |
 | Opening check | accepted 2026-08-24, eight rulings ([note](../sessions/2026-08-24-cp-ops-002-opening-check.md)) |
-| Gates at S06c | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 72/72 |
+| Gates at S06d | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 76/76 |
 | Scope note | protocol tooling and doctrine only; no product code, so `npm test` / `typecheck` / `build` are untouched by this step |
 | Widening | `writes:` gained `atomik-project/briefs/cp-ops-002-handoff.md` at S01 — the per-step handoff brief is required by bedrock 22 and the original declaration simply omitted it |
-| Next action | S06d — drain the leftovers: remove the six secondary worktrees for already-merged paths and the orphan `registration/cp-worktree-cleanup` branch (F7), and make `isFilled()` require a verdict and one non-empty findings section rather than the placeholder's absence (F10) |
+| Next action | S07a — `ADR-017`, the path lifecycle (ruling 5, F11 + F15): settle `done → archived`, give abandoned paths a terminal transition, retire `active` from the vocabulary, and mark round 3's D2 §2.2 *proposed* until it lands. It blocks S07, which cannot describe a lifecycle the ADRs still contradict |
 | Widening (S05) | `writes:` gained `docs/adr/**`, `docs/bedrock/index.md`, `docs/modules/**`, `docs/index.md`, `atomik-project/index.md` — S05 was always the OKF backfill; the declaration named only the two ADRs this path authors. Deliberate `single-truth` edit: `docs/modules/atomik-desktop.md`, one stale sentence naming the removed integrator |
 | Amendments | **2026-08-24, owner ruling 9** — S06b rescoped from "configure branch protection" to "declare the enforcement tier"; its deliverables move into S07 (specification + operator guide) and S08 (`enforcement` config field, generated header line, tier-0/1 `cairn-init`). This repository stays at tier 1, declared ([note](../sessions/2026-08-24-cp-ops-002-s06b-rescope.md)) |
 | Blockers | none. Nothing now waits on host configuration |
+| Machine-local state (S06d) | `git worktree list` holds four entries — the owner's trunk, `cp-mvp-011`, `cp-mvp-012` and this path. Ten `path/*` branches retained; `registration/cp-worktree-cleanup` deleted as merged. This transition cannot be enforced by repository CI after the checkout disappears, so `paths.md` requires it to be REPORTED, which is what this row is |

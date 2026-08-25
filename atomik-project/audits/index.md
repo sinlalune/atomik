@@ -23,7 +23,10 @@ its verdict never blocks          findings are advisory, read by a human
 `npm run cairn-audit` scaffolds a record; the agent fills it in. **One file per
 audit**, named `<path-id>-<head>.md`, so two paths auditing at once never collide.
 The advisory `coherence-audit` rule reports a missing or unfilled record for the
-current head. Convention:
+current head. **Unfilled** means what an agent can be held to deterministically: the
+record must name an outcome from the vocabulary below and answer at least one of its own
+findings questions. It is never a judgment about the answers — that is the human's read,
+and the reason the verdict does not block. Convention:
 [paths.md](../coding-paths/paths.md#the-coherence-audit-is-automated-its-verdict-is-not).
 
 `paths.md` asked whether this ceremony earns its place — whether it finds anything

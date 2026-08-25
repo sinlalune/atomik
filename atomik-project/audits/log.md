@@ -20,6 +20,15 @@ remains the complete record; this is the readable one. If two paths ever start
 colliding on this file, it takes the amendment the journal already took — one file
 per entry in a `log/` subfolder — which was a concurrency fix, never a size one.
 
+## 2026-08-25
+
+- `S06d` "filled" stops meaning "the placeholder string is absent". `fillErrors()` requires
+  the record to NAME an outcome from the stated vocabulary and to ANSWER at least one of its
+  own findings questions, so a hollowed-out record no longer looks like a real audit. All
+  nine records here pass unchanged; the verdict is matched by stem, because CP-OPS-001's
+  *"drift noted, repaired before merge"* qualifies an outcome rather than departing from
+  the set.
+
 ## 2026-08-24
 
 - `S06c` `cairn-audit --check` now accepts a record naming HEAD **or any commit this
