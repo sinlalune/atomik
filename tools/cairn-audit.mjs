@@ -20,7 +20,9 @@
  * This script writes the empty record, stamped with the head commit it belongs
  * to, so the check has something objective to look for. Filling it in is the
  * agent's job — an unfilled record is visible as unfilled, which is the point:
- * a missing audit and a lazy audit should not look the same.
+ * a missing audit and a lazy audit should not look the same. `fillErrors()` is
+ * what makes that true of a HOLLOWED-OUT record too: deleting the placeholder
+ * is a deletion, not an audit (F10).
  *
  *   node tools/cairn-audit.mjs                        # scaffold for the current branch
  *   node tools/cairn-audit.mjs --check [--base <ref>] # exit 1 if this path has none
@@ -97,10 +99,80 @@ ${PLACEHOLDER}
 `
 }
 
+/**
+ * The verdict vocabulary the template states, as STEMS rather than exact
+ * phrases. The three outcomes are `clean`, `drift noted, proceeding` and
+ * `needs a conversation before merge`; CP-OPS-001's record says *"drift noted,
+ * repaired before merge"*, which names the second outcome and then says what
+ * happened to it. Refusing that record would be a false verdict about a real
+ * audit, and this repository's own rule is that a false verdict costs more
+ * than a missed one. A record must NAME one of the three; it may qualify it.
+ */
+export const VERDICT_STEMS = ['clean', 'drift noted', 'needs a conversation']
+
+/** The body of a `## <name>` section, up to the next `##` heading. */
+export function sectionBody(text, name) {
+  const from = text.search(new RegExp(`^## ${name}\\s*$`, 'm'))
+  if (from === -1) return null
+  const after = text.slice(from)
+  const rest = after.slice(after.indexOf('\n') + 1)
+  const to = rest.search(/^## /m)
+  return to === -1 ? rest : rest.slice(0, to)
+}
+
+/** The `###` questions under `## Findings`, each with whatever was written
+ *  beneath it. Pure string work, so the rule is testable without a record on
+ *  disk. */
+export function findingsSections(text) {
+  const block = sectionBody(text, 'Findings')
+  if (block === null) return []
+  return block
+    .split(/^### +/m)
+    .slice(1)
+    .map((chunk) => {
+      const nl = chunk.indexOf('\n')
+      return {
+        heading: (nl === -1 ? chunk : chunk.slice(0, nl)).trim(),
+        body: (nl === -1 ? '' : chunk.slice(nl + 1)).trim()
+      }
+    })
+}
+
+/**
+ * Why this is more than `!text.includes(PLACEHOLDER)` (audit 2026-08-24, F10).
+ *
+ * The old rule measured a DELETION: remove the placeholder string and an empty
+ * file passed. This is the one check whose subject is whether an agent did the
+ * thinking, so a missing audit, an untouched scaffold and a hollowed-out record
+ * must not all look the same.
+ *
+ * What it can honestly ask for is that the record NAMES an outcome from the
+ * stated vocabulary and ANSWERS at least one of its own questions. It cannot
+ * ask whether the answers are any good — that is the judgment the whole rule is
+ * built to keep out of a deterministic gate, and it stays advisory precisely
+ * because a human reads the findings.
+ */
+export function fillErrors(text) {
+  const errors = []
+  if (text.includes(PLACEHOLDER)) errors.push('still carries the scaffold placeholder')
+
+  const verdict = String(readFrontmatter(text)?.data?.atomik?.verdict ?? '').trim()
+  if (!verdict) errors.push('no `verdict:` in its frontmatter')
+  else if (!VERDICT_STEMS.some((stem) => verdict.toLowerCase().startsWith(stem)))
+    errors.push(
+      `verdict "${verdict}" names none of: ${VERDICT_STEMS.join(' · ')}`)
+
+  const answered = findingsSections(text).filter((s) => s.body !== '')
+  if (answered.length === 0) errors.push('no findings section has been answered')
+
+  return errors
+}
+
 /** A record counts only when the agent has actually filled it in — a missing
- *  audit and an untouched scaffold must not look the same. */
+ *  audit, an untouched scaffold and a hollowed-out record must not look the
+ *  same. */
 export function isFilled(text) {
-  return !text.includes(PLACEHOLDER)
+  return fillErrors(text).length === 0
 }
 
 function git(args) {
@@ -189,8 +261,9 @@ function main() {
         `or any of this path's ${candidates.length - 1} earlier commit(s). Run: npm run cairn-audit`)
       process.exit(1)
     }
-    if (!isFilled(readFileSync(join(dir, found), 'utf8'))) {
-      console.error(`cairn-audit — ${found} is still a scaffold; the agent has not filled it in`)
+    const unfilled = fillErrors(readFileSync(join(dir, found), 'utf8'))
+    if (unfilled.length) {
+      console.error(`cairn-audit — ${found} is not a completed audit: ${unfilled.join('; ')}`)
       process.exit(1)
     }
     console.log(`cairn-audit — ${found} present and filled`)
