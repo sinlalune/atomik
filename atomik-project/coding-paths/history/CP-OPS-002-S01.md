@@ -1,0 +1,55 @@
+---
+type: Atomik Coding Path History
+title: CP-OPS-002 S01 — Schema and doctrine fixes — the ceremony schema pinned, ADR-016
+description: Completed-step record rolled out of CP-OPS-002.md at CP-OPS-002 S07c. Verbatim; nothing summarized.
+tags: [coding-path, history, cp-ops-002]
+timestamp: 2026-08-25T00:00:00Z
+path: CP-OPS-002
+step: S01
+---
+
+# CP-OPS-002 S01 — Schema and doctrine fixes — the ceremony schema pinned, ADR-016
+
+Rolled out of [CP-OPS-002.md](../CP-OPS-002.md) at CP-OPS-002 S07c, VERBATIM:
+moved, never summarized. The live path file keeps its declaration, its index over
+these records, its Work Ledger and its next action; the execution detail lives
+here. The convention is in [paths.md](../paths.md#the-ledger-has-a-boundary).
+
+Two mechanical adjustments were unavoidable and are named rather than made
+silently. **Deixis**: text saying "below", "this ledger" or "the checkpoint" was
+written when these entries sat in the path file and points at the Work Ledger in
+[CP-OPS-002.md](../CP-OPS-002.md); repairing it in place would have made the
+record no longer verbatim. **Link depth**: a relative link is an address, not
+content — moving the file one directory down changes the address of the *same*
+target, so `../sessions/…` became `../../sessions/…`. The characters differ; the
+reference does not. Leaving them would have preserved the characters and broken
+the reference, which is the opposite of faithful.
+
+Entries in this record: S01.
+
+---
+
+### S01 — Schema and doctrine fixes *(rulings 2 and 3)* — **COMPLETE**
+
+- the **root-level** session ceremony schema (`path:` / `ceremony:`) is pinned once, in
+  `docs/bedrock/24_24-doc-templates.md` § *Session note and ceremony template*, together
+  with the two reader properties it depends on: no inline comment on either key, and
+  nothing else in the note is read by the gate *(F13)*;
+- the D1 operator guide is corrected at both ceremony sites and at its registration step,
+  and carries a dated interim banner naming ADR-016 and its S07 replacement. The two
+  earlier research records, which propose the same nested form, carry a dated
+  ceremony-schema banner instead of a silent edit — they are records of a proposal, not
+  instructions;
+- `atomik-project/coding-paths/paths.md` now states a registration commit is
+  **metadata-only** — declaration, regenerated view, opening-check note, and no
+  implementation of any kind — resolving the doctrine conflict `AGENTS.md` requires to be
+  reported *(F15)*. Bedrock 24 says it identically;
+- `ADR-016 — Cairn enforcement integrity` records the whole set (F1, F2, F8, F9, F13,
+  F15), including why the nested ceremony form is rejected rather than
+  accepted-for-compatibility, and why the registration rule is an invariant rather than a
+  file count;
+- three regression tests. Two are the durable half: the shipped bedrock 24 template is
+  parsed by the test itself and must satisfy `ceremonyFromSessions()`, so the
+  documentation is executable and F13 cannot recur by restatement; the third pins the
+  inline-comment trap that would otherwise reintroduce it. Suite 50/50.
+

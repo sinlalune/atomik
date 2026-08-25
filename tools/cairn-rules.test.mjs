@@ -78,7 +78,7 @@ test('cairn-rules: emitted table rows have exact 5 columns and no unescaped inne
 
 
 /* ------------------------------------------------------------------ *
- * The shipped specification must carry the GENERATED catalogue
+ * The shipped handbook must carry the GENERATED catalogue
  *
  * A rule table written by hand is how a document comes to list checks that
  * do not exist — round 3's register recorded exactly that (`ledger-size`
@@ -88,9 +88,9 @@ test('cairn-rules: emitted table rows have exact 5 columns and no unescaped inne
  * bedrock 24 executable: documentation a test can read cannot quietly drift.
  * ------------------------------------------------------------------ */
 
-test('cairn-rules: the specification ships the current catalogue', () => {
-  const spec = readFileSync(join(REPO, SPEC_FILE), 'utf8')
-  const shipped = tableIn(spec)
+test('cairn-rules: the handbook ships the current catalogue', () => {
+  const doc = readFileSync(join(REPO, SPEC_FILE), 'utf8')
+  const shipped = tableIn(doc)
   assert.ok(shipped, `${SPEC_FILE} has no ${TABLE_BEGIN} / ${TABLE_END} splice point`)
   const current = generateMarkdownTable(readFileSync(join(REPO, 'tools/cairn-check.mjs'), 'utf8'))
   assert.equal(

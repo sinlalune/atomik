@@ -61,394 +61,19 @@ ledger boundary, the OKF backfill, portability, and the greenfield pilot.
 
 ## Steps
 
-#### Landed in S00 — Restore the rebase gate in CI
+#### Completed steps — rolled to `history/`, verbatim
 
-Repaired directly at the owner's instruction before this path was opened. `resolveBranch()`
-asks the host before the checkout; a new `branch-identity` rule fails closed when the
-branch is undeterminable and guarded roots changed; `cairn.yml` checks out the pull
-request HEAD sha so the gate judges the commit that lands rather than a merge preview
-that contains the base by construction. Four regression tests.
+Rolled at S07c when `ledger-size` fired on this file (~11 k tokens, budget 10 k). The
+move is cut-and-paste, never a summary: each record below reads exactly as it did here.
+Convention: [paths.md](./paths.md#the-ledger-has-a-boundary) · index:
+[history/](./history/index.md).
 
-#### Landed in S00 — Make the closing ceremony identifiable
-
-Repaired with S01. Ceremonies are declared in frontmatter (`path:` + `ceremony: closing`)
-and matched on exact path id; sixteen closure notes backfilled; three regression tests.
-No grandfather set was added.
-
-#### Landed in S00 — CI runs on path branches *(F8)*
-
-Found after S01/S02: CI triggered on `push: master` and `pull_request` only, and every
-path in this repository merges with a LOCAL merge commit — zero pull requests in history.
-So no path-scoped rule had ever executed in CI. `push` now includes `'path/**'`, with a
-`concurrency` group so a push-per-commit does not multiply runs.
-
-#### Landed in S00 — `writes:` parsed from the frontmatter *(F9)*
-
-The scan read the whole document, consumed `---` as a write surface, and refused the
-trailing comment that the bedrock 24 template itself shows — so a path copied faithfully
-from the template declared nothing and silently disabled `scope-drift`.
-
-> **Status correction (third-party coherence audit, 2026-08-24).** An earlier version of
-> this file marked S01/S02/S02b/S02c **DONE** and said they "landed on the trunk". Git
-> disproves it: `HEAD` and `origin/master` are both `7aa3b1d` and every one of those
-> changes is an uncommitted working-tree modification.
->
-> Under Cairn's own completion definition — *"a step is not complete until its commit is
-> online"* — the honest status is **implemented locally, uncommitted, not complete,
-> awaiting adoption by the accepted path.**
->
-> This is the most consequential incoherence the audit found, and it was in the execution
-> plane rather than the documents: a path file claiming landed work that does not exist is
-> exactly the failure the protocol is built to prevent, written by the audit that named it.
-> The opening ceremony ratifies the set and the worktree adopts it; nothing is complete
-> until then.
-
-### S00 — Adopt the local repairs *(ruling 1)* — **COMPLETE**
-
-The stash carried F1/F2/F8/F9 into this worktree and they land here, run through the
-protocol they repair rather than around it. This is the first commit on a `path/*` branch
-in this repository whose push will be seen by CI.
-
-Contents: `resolveBranch()` + the fail-closed `branch-identity` rule (F1), frontmatter-based
-`ceremonyFromSessions()` + 16 backfilled closure notes (F2), `push: path/**` with a
-concurrency group and the PR-head checkout (F1/F8), frontmatter-scoped `parseWrites()` (F9),
-the rule-table generator and its four guards, the audit record carrying F1–F15, the round-3
-deliverables, and `index.html` restored behind a SUPERSEDED banner with `workflow.html`
-byte-identical to master (ruling 4).
-
-### S01 — Schema and doctrine fixes *(rulings 2 and 3)* — **COMPLETE**
-
-- the **root-level** session ceremony schema (`path:` / `ceremony:`) is pinned once, in
-  `docs/bedrock/24_24-doc-templates.md` § *Session note and ceremony template*, together
-  with the two reader properties it depends on: no inline comment on either key, and
-  nothing else in the note is read by the gate *(F13)*;
-- the D1 operator guide is corrected at both ceremony sites and at its registration step,
-  and carries a dated interim banner naming ADR-016 and its S07 replacement. The two
-  earlier research records, which propose the same nested form, carry a dated
-  ceremony-schema banner instead of a silent edit — they are records of a proposal, not
-  instructions;
-- `atomik-project/coding-paths/paths.md` now states a registration commit is
-  **metadata-only** — declaration, regenerated view, opening-check note, and no
-  implementation of any kind — resolving the doctrine conflict `AGENTS.md` requires to be
-  reported *(F15)*. Bedrock 24 says it identically;
-- `ADR-016 — Cairn enforcement integrity` records the whole set (F1, F2, F8, F9, F13,
-  F15), including why the nested ceremony form is rejected rather than
-  accepted-for-compatibility, and why the registration rule is an invariant rather than a
-  file count;
-- three regression tests. Two are the durable half: the shipped bedrock 24 template is
-  parsed by the test itself and must satisfy `ceremonyFromSessions()`, so the
-  documentation is executable and F13 cannot recur by restatement; the third pins the
-  inline-comment trap that would otherwise reintroduce it. Suite 50/50.
-
-### S03 — ~~Drain the grandfather set~~ — **owner-ruled, withdrawn**
-
-Owner ruling (2026-08-24): CP-OPS-001 resolves this in the normal course. The set is
-finite and drains when CP-MVP-011 and CP-MVP-012 land. Remaining residue, folded into
-S07: state the migration window as a property in the specification, and delete
-`LEGACY_UNREGISTERED_PATHS` when it empties so the exception does not outlive the
-migration by inattention.
-
-### S04 — Bound the ledger *(F4, medium — advisory)* — **COMPLETE**
-
-`log.md` was frozen so parallel paths stop colliding on one file, not for context cost —
-that succeeded. Separately, the live path corpus (~85 k tokens) had no upper bound and a
-single path file exceeded 23 k. Not a defect; a boundary set before it was hit.
-
-- **The convention** is in `paths.md` § *The ledger has a boundary*: completed steps roll
-  into `atomik-project/coding-paths/history/<id>-S0N.md`, one file per major step with
-  sub-steps beside the step they belong to. The path file keeps its declaration, a one-line
-  index per step, the Work Ledger, the next action and blockers.
-- **The move is VERBATIM** — cut and paste, never summarize. Summarizing at rollup time
-  would quietly rewrite the record, which is the one thing a ledger may not do. It is the
-  property that makes rolling safe, so it is stated in the convention, in the index, and in
-  the header of every record.
-- **`CP-MVP-008` migrated as the proof**: ~23.5 k tokens to ~4.7 k, seven step records
-  under `history/`. Verified line-for-line — the 1,621 non-empty lines of its Execution
-  section are byte-identical to what the records now hold.
-- **`ledger-size`** is advisory and DIFF-SCOPED, over a 10,000-token budget: a path file
-  should not cost more than the entire mandatory entry chain (~9.3 k). A corpus sweep would
-  report the same four historical files on every run for months, and a check that cries
-  wolf is a check people switch off. Four tests, including one pinning `approxTokens()` to
-  the same words × 4/3 proxy the F4 table used, so a finding and the audit record are
-  comparable numbers.
-- Bedrock is untouched on purpose: `AGENTS.md` says bedrock states the doctrine while
-  `paths.md` carries the operating detail and may change without amending a bedrock page.
-  A ledger rotation convention is operating detail.
-- Round 3's register row C7 said `ledger-size` did not exist in code. True when written,
-  false now — the row is corrected and §2.3's rule table regenerated from the live source.
-
-### S05 — Backfill OKF *(closes F5, medium)* — **COMPLETE**
-
-Bedrock 26 says *"an agent should read the nearest relevant `index.md` before opening many
-files"*, and the three directories `AGENTS.md` routes every agent into had none. The
-progressive-disclosure contract was unimplemented at its own entry points, which forces
-the flat full-directory reads it exists to prevent — and feeds F4.
-
-- **Five indexes**: `docs/bedrock/` (37 pages, one line each from their own frontmatter,
-  plus the four entry points and the status vocabulary), `docs/adr/` (16 records with
-  status and date), `docs/modules/` (the six area notes and the `AREA_MAP` that routes a
-  source change to one), `atomik-project/sessions/` (the ceremony schema and a
-  ceremonies-by-path table), `atomik-project/audits/` (nine records with their verdicts).
-  `docs/index.md` and `atomik-project/index.md` now route into them.
-- **Frontmatter across all 16 ADRs** — `type` / `title` / `description` / `tags` /
-  `timestamp` plus an `adr:` block (`id`, `status`, `date`). Descriptions were written
-  from each record's own Decision section, not from its title.
-- **Schema validation reaches the decision plane.** `adrFrontmatterErrors()` is blocking
-  and corpus-scoped like its path counterpart: the id must match the file name, the status
-  must be in vocabulary, the date must be ISO, and **the frontmatter status must agree with
-  the document's own `Status:` line**. A record whose two halves disagree is worse than one
-  that never claimed to be readable. Four tests.
-- **The sessions index states an asymmetry rather than hiding it**: sixteen closing notes
-  carry the declaration because a blocking gate reads them; most opening checks do not,
-  because nothing reads those. Marked *(undeclared)* per row. No mass edit was made — that
-  is a decision, not a backfill.
-- **A second trap of the F9 family, found live.** A trailing comment on a `writes:`
-  ITEM became part of the glob, so the widened declaration above kept reporting drift and
-  the path silently declared less than it said. `parseWrites()` now strips it, with a
-  test. F9 fixed the same trap one line higher, on the `writes:` key itself.
-- **Coherence repair found while indexing**: `docs/modules/atomik-desktop.md` still said
-  *"a lane appends here / the integrator appends here"*. ADR-012 removed both. Repaired
-  with a dated note. This is the deliberate `single-truth` advisory on that file.
-
-### S05b — Gate the opening check, finish the OKF backfill *(owner directive 2026-08-24)* — **COMPLETE**
-
-Owner, reading the S05 report: *"we don't have index in all folder in /docs is that a
-decision to not have a log file also on all folders? ... ceremony opening, back filling
-why not but maybe add a blocking gate."* Three answers, all landed.
-
-- **The opening check is now BLOCKING.** F2 repaired the closing gate and left its twin a
-  convention, so a path could be registered, branched and worked with no recorded
-  acceptance at all — the ceremony `paths.md` calls the activation gate was the one
-  nothing checked. `openingFromSessions()` mirrors its closing counterpart, scoped to a
-  path file IN THE DIFF declaring `running`, so the eight paths that opened before session
-  notes existed are never examined. Eleven opening notes backfilled with the declaration.
-  Seven tests.
-- **The exception is finite and named.** `LEGACY_UNDECLARED_OPENINGS` holds CP-MVP-011 and
-  CP-MVP-012: both have a real opening note, neither declares it, and both live on branches
-  this checkout must not write. They get an advisory telling them how to clear it — two
-  keys in the note they already have — and the set drains when they merge.
-- **Five more indexes**: `docs/cairn/`, `docs/research/`, `docs/contracts/`,
-  `docs/fixtures/`, `docs/agents/`. Every meaningful folder in `docs/` and
-  `atomik-project/` now has one. `atomik-project/sources/` is empty and
-  `atomik-project/projects/` holds one file — an index over nothing is noise.
-- **The OKF guideline on folder logs is stated, not overridden.** Bedrock 26 gives a
-  meaningful folder both `index.md` and `log.md`. The convention has taken exactly one
-  amendment in this repository, and it was about CONCURRENCY, not size: several paths
-  appending to one journal collided, so `log.md` was frozen and the journal became one
-  file per entry under `log/`. A shared log takes that shape; a folder log was never
-  decided against.
-
-  > **Retraction, same day, owner correction.** The first version of this step recorded
-  > "no per-folder `log.md`" as a *decision* in both plane indexes, reasoning from the
-  > collision that froze the journal. The owner: *"once again there was no decision made
-  > against log file size — we just split it for multilane amendment and now it is in
-  > /log folder, we just need to respect OKF guideline."* Correct on both counts. Nobody
-  > took that decision, and an agent writing doctrine on its own authority is exactly what
-  > `AGENTS.md` forbids and what this path exists to stop. Retracted in `docs/index.md`
-  > and `atomik-project/index.md`, each carrying a dated correction line rather than a
-  > silent edit. **This is the second time in this path that a plausible rationale was
-  > mistaken for a decision on record** — F4's own first draft claimed `log.md` was frozen
-  > for context cost. Same file, same wrong reason, twice.
-
-### S05c — Log everywhere *(owner directive 2026-08-24)* — **COMPLETE**
-
-Owner, after the retraction: *"LOG EVERYWHERE AND GO NEXT."*
-
-OKF gives a meaningful folder both halves of a pair, and this repository had been
-carrying only one. Eighteen folder logs, each **seeded from that folder's real Git
-history** — the fifteen most recent commits that touched it, newest first, merges
-omitted because a merge names the path rather than the change. Nothing invented, and
-nothing back-dated: where the history is two commits, the log has two entries.
-
-- `docs/`: `adr`, `bedrock`, `cairn`, `contracts`, `diagrams`, `fixtures`, `learning`,
-  `modules`, `research`, `agents`.
-- `atomik-project/`: `audits`, `brainstorm`, `briefs`, `coding-paths`,
-  `coding-paths/history`, `sessions`, `projects`, `sources`.
-- `atomik-project/projects/` and `sources/` gained the missing `index.md` too — a log
-  linking a map that does not exist is a broken link, and `cairn-check` said so.
-- `docs/log.md` records the change at the plane level without inventing the month of
-  entries it never had.
-- Each log states the append rule and the escape hatch: if two paths ever collide on
-  one of these files, it takes the amendment the journal already took — one file per
-  entry in a `log/` subfolder, a CONCURRENCY fix, never a size one.
-
-### S06 — Retire the drifted page *(closes F6, medium)* — **COMPLETE**
-
-Rewritten rather than replaced by a generated view: the specification it would be generated
-from does not exist until S07, and a page that teaches a rejected model for another two
-steps is the defect, not the plan.
-
-- **`docs/cairn/index.html` now renders ADR-012.** *Three roles* became **two roles and the
-  job the third one used to do** — the integrator's work split three ways: shared files are
-  derived so they cannot contradict, the mechanical rules are a script, and architectural
-  drift is read by an agent whose findings never block. *One parent, N lanes, one gate*
-  became **N paths, each merging itself**, with a redrawn flow diagram: three paths opening
-  from a registration commit, each passing its own rebase → checks → ceremony → self-merge
-  back onto the trunk, and nothing between them.
-- **The enforcement table is the real one**: the blocking and advisory rules as implemented,
-  including the opening check, the ledger boundary, and the schema rule now covering
-  decision records. The old table listed nine, several of which had changed name or meaning.
-- **The three-tier note lands here too** (S06b): adoption needs only the local command; CI
-  *observes*; a trunk rule *prevents*; and the third is a property of one repository, never
-  a requirement. A page claiming prevention it has not installed is the same defect as a
-  rule certifying what it never checked.
-- **Both pages carry a dated status banner** naming the ADRs they render. `index.html`
-  drifted for ten days because nothing on it claimed a vintage — the banner repairs the
-  *class*, not just this instance. `workflow.html` was verified unchanged: it never taught
-  the integrator model.
-- The four-merge experiment, the blocking-rule admission test and the "a false blocking
-  verdict costs more than a missed one" evidence are kept verbatim. They were always true
-  and are the best content on the page.
-
-### S06b — Close the F8 residual — **declare the enforcement tier** *(ruling 6, rescoped by ruling 9)*
-
-**Owner ruling 9 (2026-08-24), amending ruling 6** — recorded in
-[the rescope note](../sessions/2026-08-24-cp-ops-002-s06b-rescope.md). Ruling 6 made host
-branch protection the way to close F8. The owner opened the ruleset form, and stopped:
-*"I am a little worried that it makes the protocol complicated to setup for adoption."*
-
-That is a scope error in the protocol, not a cost to absorb. Branch protection is not part
-of Cairn; it is the third of three enforcement tiers, and only the first is required:
-
-```text
-tier 0  local   npm run cairn-check          zero setup, no host, no account
-tier 1  ci      .github/workflows/cairn.yml  one file — CI OBSERVES
-tier 2  protected  a trunk ruleset           host-specific — CI PREVENTS
-```
-
-Nearly all the value is tier 0, which is where the protocol's own claim already lives:
-*"these run locally with the same command CI runs."* An adopter with no GitHub account
-still gets branch→path, trunk registration, the rebase gate, the ceremony gate, link
-integrity and the derived views.
-
-The protocol argument is the stronger one. A setup step performed once, in someone else's
-web UI, invisibly, will be skipped — and the specification would go on asserting that CI
-prevents merges. That is F13's species exactly: **a published rule the implementation does
-not honour**. Tier 2 must therefore be a declared property of a repository, never a
-requirement of the protocol.
-
-Deliverables, placed where their homes are built rather than in an empty step of their own:
-
-- **S07** — the specification documents all three tiers, one line each on what that tier
-  can and cannot prevent, and states tier 2 as a repository property. The operator guide
-  carries the tier-2 ruleset as a JSON payload plus one `gh api` command: copy-paste, not
-  a click-path, and explicitly skippable.
-- **S08** — `cairn.config.json` gains `"enforcement": "local" | "ci" | "protected"`, and
-  `cairn-check` prints it in its header line
-  (`cairn-check — branch path/cp-ops-002, enforcement: ci (observes)`), so the honest
-  claim is GENERATED and cannot drift from the repository it describes. `cairn-init`
-  scaffolds tiers 0 and 1 only — nothing to click, no account, no host.
-
-**This repository stays at tier 1**, declared, with its ruleset page deliberately empty.
-Tier 2 scales with the number of writers on a shared trunk, not with the protocol: one
-writer dogfooding their own trunk is guarded by the ceremonies and the local gates, and
-bypass was always one command away regardless.
-
-### S06c — Bind the coherence audit to the HEAD it reviewed *(ruling 7, F12)* — **COMPLETE**
-
-`cairn-audit` named a record for the current HEAD; committing it moves HEAD, so `--check`
-could never match the commit that contains the record.
-
-- `--check` now accepts a record naming HEAD **or any commit this path itself contributed**
-  — `git rev-list HEAD --not <trunk>`, the same trunk ref `cairn-check` uses, threaded
-  through so a `--base` run judges against the same tree. No renaming, no migration.
-- **The bound is the point.** A record naming an arbitrary trunk ancestor proves nothing
-  about this branch, and one belonging to another path is refused outright: the file name
-  carries the path id, so that is checked rather than assumed. An unreadable trunk ref
-  falls back to HEAD alone — the old, stricter behaviour, never a silently wider one.
-- `--check` on a non-path branch now says *nothing to check* and exits 0, matching what the
-  scaffold half already did for anyone running the command to see what it does.
-- Seven regression tests, including the parent-naming case the nine records already have.
-
-> **Correction to ruling 7's premise, verified rather than repeated.** The ruling said this
-> "formalises what the nine files already do accidentally… every existing audit becomes
-> retroactively valid." Checked against the repository: **seven** name a commit their own
-> branch still contains. Two do not — `cp-ai-capabilities-9007e07` and
-> `cp-render-repairs-d44d381` name a head the closing rebase rewrote, which exists as a
-> loose object and is on no branch and not an ancestor of the trunk.
->
-> Declining those two is correct, not a gap. `paths.md` requires the audit to run **after
-> the rebase**, on the result that will land; a record naming a pre-rebase head reviewed a
-> diff that no longer exists. The rule now says so instead of accepting it. Pinned by a
-> test naming both records.
-
-### S06d — Drain the leftovers *(ruling 8)* — **COMPLETE**
-
-The two low-severity findings left over once the enforcement repairs landed. Both are the
-path's own thesis in miniature: **a rule was written and the state that predates it was
-never drained** (F7), and **a check measures something adjacent to what it claims** (F10).
-
-- **F7 — the six stale worktrees are gone, their branches retained.** `cp-ai-capabilities`,
-  `cp-feedback`, `cp-mvp-010`, `cp-open-dock`, `cp-render-repairs` and `cp-rich-markdown`
-  each ran the full sequence `paths.md` prescribes, and each step was *checked*, not
-  assumed: the branch head is an ancestor of `origin/master` after a fresh
-  `git fetch origin master`; the target is a registered SECONDARY worktree in
-  `git worktree list --porcelain`; `git status --porcelain=v1` prints nothing; removal
-  without `--force`, run from this checkout rather than from the target or the owner's;
-  then deregistration, absence on disk, and the branch still resolving afterwards.
-  `git worktree list` now holds exactly four entries — the owner's trunk, the two
-  grandfathered in-flight paths, and this one — while all ten `path/*` branches survive
-  as the online per-step history the owner asked for.
-- **The orphan `registration/cp-worktree-cleanup` is deleted** with `git branch -d`, not
-  `-D`: the merged-ancestor test is Git's own, so the deletion is the check rather than
-  something done after one. Its commit `9040417` — the repository's last real registration
-  and the precedent S01 cites — remains in the trunk's history; only the spent ref is gone.
-- **F10 — `isFilled()` measured a deletion.** `!text.includes(PLACEHOLDER)` passed an empty
-  file: delete the placeholder string and a hollowed-out record was indistinguishable from a
-  real audit. It is replaced by `fillErrors()`, which asks the two things a deterministic
-  gate honestly can — the record NAMES an outcome from the stated vocabulary, and it ANSWERS
-  at least one of its own findings questions — and reports *which* is missing rather than
-  one flat "still a scaffold". `isFilled()` survives as `fillErrors(text).length === 0`.
-- **The vocabulary is matched by STEM, and that is a finding, not a convenience.** The
-  template states three outcomes; CP-OPS-001's record says *"drift noted, repaired before
-  merge"*, which names the second and then says what happened to it. An exact-phrase rule
-  would have declined a substantive audit — the false blocking verdict this repository
-  says costs more than a missed one. Checked before writing the rule rather than after:
-  **all nine existing records pass**, four answered questions each, and the untouched
-  scaffold fails on two counts.
-- **What it deliberately does not ask** is whether the answers are any good. That is the
-  non-deterministic judgment the whole split exists to keep out of a gate, and it is why the
-  rule stays advisory with a human reading the findings.
-- Four regression tests, including the hollowed-out record the old rule accepted and the
-  qualified verdict an exact-match rule would have refused. Suite 72 → 76.
-
-**Found by draining it: a quoted path is invisible to the blocking rules.** Deleting
-`feedback on  MVP-001.md` made `scope-drift` report it as outside a `writes:` surface that
-plainly covers it. The declaration was not the problem. `git status --porcelain` **C-quotes**
-any path containing a space, a quote, a backslash or a non-ASCII byte, and
-`porcelainPaths()` never unquoted: every rule downstream was reading
-`"atomik-project/briefs/feedback on  MVP-001.md"` — with the quotation marks in the string.
-
-- **It is not an advisory-only defect.** A quoted path starts with `"`, so it matches no
-  `writes:` glob, no `AREA_MAP` pattern and no `GUARDED_ROOTS` prefix. A source file whose
-  name contains a space was counted as changed and then invisible to every rule that asks
-  *which* file it is — `same-work-unit` and `branch-identity` included, both **blocking**.
-  The function's own comment already said *"every rule downstream reads this list, blocking
-  ones included"*; it was right about the stakes and wrong about the coverage.
-- **The fix is `-z`, not an unquoter.** Git escapes non-ASCII bytes octally (`\303\251`
-  for `é`), so unquoting means reassembling UTF-8 from octal — a decoder to get wrong, in a
-  script whose whole claim is that a sceptic can read it in one sitting. `-z` asks Git not
-  to quote at all: NUL-separated records, paths verbatim. **Both halves** of `changedFiles()`
-  take it, because `git diff --name-only` quotes identically and that half is the one CI runs.
-- Rename and copy records carry the NEW path with the ORIGINAL in the following NUL field;
-  the original is skipped, since reporting it would name a path that no longer exists.
-- Three regression tests, including the guarded-root assertion the quoted form defeated.
-  Suite 76 → 77.
-- **The same file broke tooling twice.** The audit's own method note records a `find` loop
-  splitting that filename into three and miscounting three of eight directories. It was
-  read then as a lesson about fragile shell; it was also a live defect in the validator,
-  sitting one function away, unnoticed for as long as the double space existed.
-
-> **`atomik-project/briefs/feedback on  MVP-001.md` — deleted on owner directive.** F7
-> names it too: a double space in the filename, no frontmatter. It was raised rather than
-> drained because it is the owner's own raw feedback and `atomik-project/log.md` — the
-> FROZEN archive that may never be rewritten — cites it by that exact name, so a rename
-> would break a reference in a file the protocol forbids repairing. The owner ruled the
-> third way (2026-08-25): *"feedback on MVP-001 => you can delete"*. Deletion rather than
-> rename is the coherent choice, because the frozen entry records that the feedback was
-> **taken up** — every item in it shipped as pre-S02 dogfooding units — so the file was
-> spent, and the archive still reads true in the past tense where a renamed file would
-> have made it read false in the present. The content survives in Git at `51c0940`.
+- **[S00](./history/CP-OPS-002-S00.md)** — Adopt the local repairs — the four enforcement repairs, and how they landed
+- **[S01](./history/CP-OPS-002-S01.md)** — Schema and doctrine fixes — the ceremony schema pinned, ADR-016
+- **[S03](./history/CP-OPS-002-S03.md)** — Drain the grandfather set — owner-ruled, withdrawn
+- **[S04](./history/CP-OPS-002-S04.md)** — Bound the ledger — the history/ rollup convention and advisory ledger-size
+- **[S05](./history/CP-OPS-002-S05.md)** — Backfill OKF — indexes, ADR frontmatter, the gated opening check, logs everywhere
+- **[S06](./history/CP-OPS-002-S06.md)** — Retire the drifted page, declare the enforcement tier, bind the audit, drain the leftovers
 
 ### S07a — ADR-017, the path lifecycle *(ruling 5, F11 + F15)* — **COMPLETE**
 
@@ -501,7 +126,23 @@ specification may not settle it — an ADR must.
   would be noise.
 - Four regression tests. Suite 77 → 81.
 
-### S07 — Specification, lexicon, and the primer that makes them readable — **COMPLETE**
+### S07 — Specification, lexicon, and the primer that makes them readable — **SUPERSEDED by S07c**
+
+> **Owner correction, 2026-08-25.** *"I never asked you to write specifically for researchers,
+> I said i could land on researcher hands, it needs to be universal without borrowing concept
+> from research worlds. Redo everything. Also I finally prefer to have one extended and
+> exhaustive pedagogical file that alternate with cairn and foundation on whats it stands."*
+>
+> Two errors, and the first is the instructive one. The owner said the work **could** reach a
+> researcher; the agent heard **write it for a researcher** and built the entire explanatory
+> apparatus out of research-world concepts — positive controls, preregistration, instrument QC,
+> held-out sets. That is not a tone slip: it makes the document **depend on** a reader having
+> that background, which is the opposite of universal, and it does so while claiming to teach
+> from zero. **A stated possibility was read as a specification.** The second error is
+> structural and was the agent's own recommendation, chosen by the owner from the options the
+> agent offered: three documents where one was wanted.
+>
+> The record of what was written is kept in this entry rather than deleted. S07c is the redo.
 
 > **Owner amendment, 2026-08-25.** *"I want you to write the specification and lexicon…
 > with a very pedagogical approach as much on the conceptual part… as in the practical
@@ -584,7 +225,14 @@ a specification, which is what a single teach-and-specify document would have co
 
 </details>
 
-### S07b — The rendered page — **COMPLETE**
+### S07b — The rendered page — **SUPERSEDED by S07c**
+
+> Superseded with S07 above. Its page reused `index.html`'s design tokens, which the owner also
+> rejected: *"Don't reuse de design system from precedent html file make one new clear and
+> minimalistic moderne theme, that fit with dense content and multi support explanation
+> (diagram, code blocks etc,..)"*. Reusing the house style was the safe choice and the wrong
+> one — the earlier page is a short visual overview and this is a long reference document; the
+> two have different jobs and should not share a layout.
 
 The three documents are Markdown, which is what CI checks and what the repository keeps.
 The owner shares this work outside the repository, so `docs/cairn/foundations.html` renders
@@ -606,6 +254,48 @@ dated status banner naming what it renders and which file wins on disagreement.
   the blocking/advisory chips where they apply. The full lexicon with enforcing files stays
   in Markdown; the page says so rather than pretending to be complete.
 - Structure validated by parser (no unclosed or mismatched tags); links resolve.
+
+### S07c — Redo: one handbook, universal, in its own theme *(owner correction)* — **COMPLETE**
+
+`foundations.md`, `specification.md`, `lexicon.md` and `foundations.html` are deleted and
+replaced by **`docs/cairn/handbook.md`** and **`docs/cairn/handbook.html`**.
+
+- **One document, two modes, alternating.** Each part is a `CONCEPT` block — a piece of general
+  software practice explained from nothing, true of any project — immediately followed by an
+  `IN CAIRN` block giving this protocol's implementation, the enforcing file, and the failure
+  that made it necessary. The alternation is stated as a reading contract at the top: read
+  straight through for both, or read only the `IN CAIRN` blocks, which are self-contained and
+  carry **every** normative statement. That is what made merging the specification into the
+  teaching safe — the normative layer stays extractable rather than dissolving into prose.
+- **Universal, with the analogies removed rather than replaced.** Every research-world concept
+  is gone. Nothing takes their place: the explanations now stand on concrete software
+  situations, the actual failures, and diagrams. Substituting a different profession's
+  analogies would have reproduced the defect with a different dependency — the fix is for the
+  text to require no outside vocabulary at all.
+- **The repository's own failures do the teaching**, and they are the one thing the redo kept
+  intact: the automation that never ran on the branches its rules were about, the ceremony gate
+  that proved a path had been *opened* while claiming it had been *closed*, the piped gate that
+  shipped a broken build, the derived view that was internally current and globally false, the
+  34 links that were not broken. They are evidence, they are dated, and they belong to this
+  repository rather than to any reader's background.
+- **Exhaustive.** Twelve parts: what a project is · version control · tests · automation and
+  gates · working in parallel · the protocol layer · the lifecycle · the operator guide · this
+  repository's declared properties · the known limits · the reference (generated rule catalogue
+  + full lexicon) · the skippable tier-2 ruleset.
+- **A new theme, built for this document.** Sans throughout, one accent, hairline rules, sticky
+  contents column, and a design whose primary job is making the two modes legible at a glance —
+  `CONCEPT` on the page ground, `IN CAIRN` in an accented panel. Four inline SVG diagrams
+  replace ASCII where a picture carries more: the commit chain and hash propagation, branch
+  divergence, the three enforcement states, and the lifecycle machine. Plus a fifth for the
+  parallel-paths flow — registration commits on the trunk, three paths running at once, each
+  merging itself. Theme-aware in light and dark, structure parser-validated.
+- **The generator follows the file.** `SPEC_FILE` now points at `handbook.md`, so the test that
+  compares the shipped rule catalogue against the validator's source still runs on every CI run.
+  The HTML renders that catalogue as 18 unique rules with a footnote for the three that carry
+  both a blocking and an advisory form, and states plainly that the Markdown is the
+  authoritative copy — a rendered table that claimed to be generated would be the exact defect
+  this document is about.
+- Suite 83/83, unchanged: the redo is documentation and one constant.
 
 ### S08 — Extract Cairn from Atomik
 
@@ -642,15 +332,17 @@ brief names — and fix what the pilot finds before merging.
 | Status | `running` on `path/cp-ops-002` |
 | Base commit | `7aa3b1d` — registered on the trunk by `df875e6` before this branch existed |
 | Branch | `path/cp-ops-002`, worktree `../4tom1k-cp-ops-002`, `node_modules` symlinked |
-| Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane (`3df9073`) · **S05b** — the opening check gated, five more indexes (`d6b29f1`), the invented folder-log decision retracted on owner correction (`360f2be`) · **S05c** — the OKF pair completed: eighteen folder logs seeded from real Git history (`468bc24`) · **S06** — `index.html` rewritten against ADR-012, both HTML pages dated (`2a5ef35`) · **S06c** — the coherence audit bound to the commits its path contributed (`de4e0fa`) · **S06d** — the six stale worktrees and the orphan registration branch drained, `isFilled()` given something to measure, and a C-quoted path stopped hiding from the blocking rules (`9cbe605`, `6fa33e7`) · **S07a** — ADR-017 settles the path lifecycle; `active` retired, abandonment given a door, staleness noticed without blocking (`b4ef361`) · **S07** — the primer, the specification and the lexicon, written from zero for a scientist audience on the owner's amendment; the rule catalogue spliced and test-pinned (`1db06de`) · **S07b** — the primer rendered as a shareable page in the house style |
+| Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane (`3df9073`) · **S05b** — the opening check gated, five more indexes (`d6b29f1`), the invented folder-log decision retracted on owner correction (`360f2be`) · **S05c** — the OKF pair completed: eighteen folder logs seeded from real Git history (`468bc24`) · **S06** — `index.html` rewritten against ADR-012, both HTML pages dated (`2a5ef35`) · **S06c** — the coherence audit bound to the commits its path contributed (`de4e0fa`) · **S06d** — the six stale worktrees and the orphan registration branch drained, `isFilled()` given something to measure, and a C-quoted path stopped hiding from the blocking rules (`9cbe605`, `6fa33e7`) · **S07a** — ADR-017 settles the path lifecycle; `active` retired, abandonment given a door, staleness noticed without blocking (`b4ef361`) · **S07** — the primer, the specification and the lexicon, written from zero for a scientist audience on the owner's amendment; the rule catalogue spliced and test-pinned (`1db06de`) · **S07b** — the primer rendered as a shareable page in the house style (`a585ca3`) · **S07c** — redo on owner correction: one universal handbook, in its own theme |
 | Remaining | S08, S09 (S03 withdrawn by owner ruling; S06b rescoped and delivered inside S07 + S08 by ruling 9) |
 | Opening check | accepted 2026-08-24, eight rulings ([note](../sessions/2026-08-24-cp-ops-002-opening-check.md)) |
-| Gates at S07b | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 83/83 · HTML structure parser-validated |
+| Gates at S07c | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 83/83 · HTML structure parser-validated · rolled records verified verbatim against `HEAD` by extraction and comparison |
+| Ledger rolled (S07c) | `ledger-size` fired at ~11 k tokens against the 10 k budget while this file was being edited — which is the only moment the rule is useful, and it worked. S00, S01, S03, S04, S05 (+S05b, S05c) and S06 (+S06b, S06c, S06d) moved **verbatim** into [`history/`](./history/index.md), leaving one index line each. Verified by extracting each record's body and confirming it appears unchanged in `HEAD`. Two mechanical adjustments are named in every record header rather than made silently: deixis is left alone, and relative-link depth is repointed one level, because a link is an address rather than content and the same target must keep resolving |
 | Scope note | protocol tooling and doctrine only; no product code, so `npm test` / `typecheck` / `build` are untouched by this step |
 | Widening | `writes:` gained `atomik-project/briefs/cp-ops-002-handoff.md` at S01 — the per-step handoff brief is required by bedrock 22 and the original declaration simply omitted it. **Widened again at S06d** to `atomik-project/briefs/**`: F7's residue lives in that folder, and `scope-drift` said so the moment the owner ruled on `feedback on  MVP-001.md`. Recorded here and kept going, which is what `paths.md` asks of a widening |
 | Next action | S08 — extract Cairn from Atomik: `cairn.config.json` (plane roots, source roots, area map, trunk name, and `enforcement`), the generated `cairn-check` header line that makes the tier claim un-driftable, `tools/cairn-new.mjs` (registration commit + worktree in one command), and a `cairn-init` seed scaffolding **tiers 0 and 1 only** — no host, no account, nothing to click. The lexicon already marks all four **ASPIRATIONAL**, so S08 is what drains that section |
 | Superseded next action (S07, done) | the specification and lexicon: `docs/cairn/specification.md` (planes, the ADR-017 lifecycle by reference, the rule table generated from `cairn-check.mjs`, the blocking-rule admission test, the three enforcement tiers with tier 2 as a repository property, the CP-MVP-011/012 migration window as a property), `docs/cairn/lexicon.md` (one definition per term, each pointing at the file that enforces it; a term with no enforcing file marked aspirational), and the step-by-step operator guide carrying the optional tier-2 ruleset as a copy-paste `gh api` payload |
 | Widening (S05) | `writes:` gained `docs/adr/**`, `docs/bedrock/index.md`, `docs/modules/**`, `docs/index.md`, `atomik-project/index.md` — S05 was always the OKF backfill; the declaration named only the two ADRs this path authors. Deliberate `single-truth` edit: `docs/modules/atomik-desktop.md`, one stale sentence naming the removed integrator |
+| Corrections (S07c) | **2026-08-25, owner** — S07 and S07b redone. *"It needs to be universal without borrowing concept from research worlds"*: a stated possibility (this **could** reach a researcher) had been read as a specification, and the whole explanatory apparatus was built on research-world concepts, making a document that claimed to teach from zero **depend on** a background. Also: one file instead of three, alternating concept and protocol; and a new theme rather than the earlier page's house style. Analogies were **removed, not replaced** — substituting another profession's would reproduce the defect with a different dependency |
 | Amendments (S07) | **2026-08-25, owner** — S07 widened from "specification and lexicon" to a three-document set with a **pedagogical** remit: a from-zero primer (`foundations.md`) for a named non-engineer audience, a normative specification that points into it, and a lexicon carrying both registers. Structure and depth chosen with the owner before writing. Adds S07b, the rendered page |
 | Amendments | **2026-08-24, owner ruling 9** — S06b rescoped from "configure branch protection" to "declare the enforcement tier"; its deliverables move into S07 (specification + operator guide) and S08 (`enforcement` config field, generated header line, tier-0/1 `cairn-init`). This repository stays at tier 1, declared ([note](../sessions/2026-08-24-cp-ops-002-s06b-rescope.md)) |
 | Blockers | none. Nothing now waits on host configuration, and S07a's dependency is discharged: the lifecycle is settled, so the specification can describe it by reference |
