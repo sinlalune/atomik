@@ -1,81 +1,71 @@
 ---
 type: Atomik Index
-title: Cairn — the protocol, its audits, and the records that produced it
-description: What each file in this directory is, which are live doctrine and which are dated records of a proposal, and where the protocol itself actually lives.
-tags: [cairn, protocol, index, audit, okf]
-timestamp: 2026-08-24T00:00:00Z
+title: Cairn — canonical specification, implementation records, and audits
+description: The entry map for the canonical Cairn specification project, its universal standalone reader, live protocol records, and dated design history.
+tags: [cairn, protocol, specification, index, audit, okf]
+timestamp: 2026-08-25T00:00:00Z
 ---
 
 # Cairn
 
-Cairn is the protocol this repository runs on: parallel coding paths, one per
-worktree, each merging itself, with the mechanical half enforced by
-[`tools/cairn-check.mjs`](../../tools/cairn-check.mjs) rather than remembered.
-
-**The protocol is not defined here.** It lives in
-[`atomik-project/coding-paths/paths.md`](../../atomik-project/coding-paths/paths.md)
-(operating detail), [ADR-012](../adr/ADR-012-parallel-paths-self-merge.md) and
-[ADR-016](../adr/ADR-016-cairn-enforcement-integrity.md) (decisions), and bedrock
-[22](../bedrock/22_22-agent-handoff.md) / [24](../bedrock/24_24-doc-templates.md) /
-[35](../bedrock/35_35-coding-path-execution-state.md) (doctrine). This directory
-explains it to people outside the repository, and holds the audits that repaired it.
+Cairn is a repository-native protocol for parallel coding paths: one path, one
+branch, one worktree, one writer; durable step checkpoints; recorded opening and
+closing decisions; deterministic gates; and self-merge on the current trunk.
 
 ## Start here
 
-- [**handbook.md**](./handbook.md) — **the single entry point.** One document that
-  alternates between two modes: **CONCEPT**, a piece of general software practice
-  explained from nothing and true of any project, and **IN CAIRN**, exactly how this
-  protocol implements that idea, which file enforces it, and the failure that made it
-  necessary. Read straight through to learn the practice and the protocol together;
-  read only the IN CAIRN blocks if you already know the practice — they are
-  self-contained and carry every normative statement. It ends with the operator guide,
-  this repository's declared properties, the known limits, the rule catalogue
-  **generated from the validator's own source**, and the lexicon.
-- [**handbook.html**](./handbook.html) — the same document, rendered, in its own
-  minimal theme. **This is the page to send to someone outside the repository.**
-  Markdown remains the source of truth and the thing CI checks.
-- [**anatomy.md**](./anatomy.md) · [**anatomy.html**](./anatomy.html) — the same
-  material read **downward**. The handbook goes concept → implementation; this goes
-  construct → primitive, and is organised **by primitive rather than by feature**, so
-  every rule touching the commit graph sits together. It ends with the whole protocol
-  in one table, the primitives Cairn deliberately refuses, and the seven names a port
-  has to cut. Read it to evaluate, port, extend or debug the protocol rather than to
-  learn it.
+- [**Canonical specification project**](./specification/index.md) — the normative
+  entry point. It begins with the whole protocol, then moves through the project
+  model, path record, lifecycle, opening, execution, parallelism, closure,
+  enforcement, operations, and limits. Prerequisite concepts are explained at
+  first use and link to deeper foundation notes. Copy-ready implementation
+  references live beside them.
+- [**Universal HTML edition**](./specification.html) — the complete standalone
+  reader to share outside the repository. It has a project tree on the left, the
+  top-down specification in the centre, and contextual foundation/reference
+  notes in a right-hand pane. It is self-contained, responsive, keyboard
+  operable, theme-aware, printable, and usable without network access.
 
-## Live
+`docs/cairn/specification/` is itself an Atomik-ready project. Open that folder:
+`index.md` is the main reading surface, `foundations/` and `reference/` form the
+tree, and ordinary Markdown links can open the deeper note beside the canonical
+document. The HTML packages the same reading model into one file.
 
-- [cairn.md](./cairn.md) — the brief that started the extraction work.
-- [cairn-audit-2026-08-24.md](./cairn-audit-2026-08-24.md) — the audit of record,
-  F1–F15, each finding reproduced by a named command. It is what CP-OPS-002 executes.
-- [cairn-opening-check-agenda.md](./cairn-opening-check-agenda.md) — the eight
-  decisions put to the owner before CP-OPS-002 could be registered.
-- [index.html](./index.html) — Cairn explained to someone outside this repository:
-  the two roles, N paths each merging itself, statements of record, and the twenty
-  rules the checker actually implements. Rewritten at CP-OPS-002 S06 against
-  ADR-012; it had taught the rejected integrator model at ten sites.
-- [workflow.html](./workflow.html) — the same protocol day to day: who acts at each
-  moment and which file holds the answer afterwards.
+## Canonical sources and implementation
 
-Every HTML page here carries a **dated status banner** naming what it renders.
-`index.html` drifted for ten days without anyone noticing precisely because
-nothing on it claimed a vintage; a rendered page that cannot be dated cannot be
-audited.
+- [specification/index.md](./specification/index.md) — protocol semantics and
+  every normative rule.
+- [specification/foundations/](./specification/foundations/index.md) — newcomer
+  explanations; they clarify but do not add requirements.
+- [specification/reference/](./specification/reference/index.md) — canonical
+  layout, templates, configuration, commands, and glossary.
+- [`tools/cairn-check.mjs`](../../tools/cairn-check.mjs) — deterministic checker.
+- [`tools/cairn-rules.mjs`](../../tools/cairn-rules.mjs) — generates the rule
+  catalogue embedded in the canonical Markdown specification.
+- [`project/coding-paths/paths.md`](../../atomik-project/coding-paths/paths.md) —
+  this repository's live operating detail and configured bindings.
+- [ADR-012](../adr/ADR-012-parallel-paths-self-merge.md),
+  [ADR-016](../adr/ADR-016-cairn-enforcement-integrity.md), and
+  [ADR-017](../adr/ADR-017-coding-path-lifecycle.md) — the decisions governing
+  this implementation.
 
-## Dated records of a proposal — read as history
+## Other live views
 
-Each carries a banner saying what it got wrong and where the ratified version is.
-They are kept because deleting the record of a rejected proposal makes the accepted
-one look inevitable.
+- [index.html](./index.html) — compact visual overview.
+- [workflow.html](./workflow.html) — day-to-day role and handoff sequence.
+- [cairn.md](./cairn.md) — extraction brief.
+- [cairn-audit-2026-08-24.md](./cairn-audit-2026-08-24.md) — evidence-anchored
+  implementation audit.
+- [cairn-opening-check-agenda.md](./cairn-opening-check-agenda.md) — accepted
+  execution agenda for the current extraction path.
 
-- [cairn-protocol-research-and-diagnostic.md](./cairn-protocol-research-and-diagnostic.md)
-  and [round 2](./cairn-protocol-research-and-diagnostic-round-2.md) — the first two
-  research passes. Both propose a nested ceremony schema the live parser rejects (F13).
-- [cairn-protocol-round-3.md](./cairn-protocol-round-3.md) — the round-3
-  deliverables: corrections register C1–C15, the interim operator guide D1, the
-  specification draft D2 with its generated rule table, the lexicon D3, the init kit
-  D4. D1's ceremony and registration steps were corrected at CP-OPS-002 S01; D2 §2.2
-  documented the accepted outcome once [ADR-017](../adr/ADR-017-coding-path-lifecycle.md)
-  settled the lifecycle at S07a. D1 and D2 are superseded as instructions by
-  [handbook.md](./handbook.md) and its operator guide.
-- [cairn-round-3-brief.md](./cairn-round-3-brief.md) ·
-  [cairn-round-4-brief.md](./cairn-round-4-brief.md) — the briefs those rounds answered.
+## Dated design records
+
+The research and round documents below are retained as design history. They are
+not operator instructions and do not override the canonical specification.
+
+- [Initial diagnostic](./cairn-protocol-research-and-diagnostic.md)
+- [Second diagnostic](./cairn-protocol-research-and-diagnostic-round-2.md)
+- [Round-three deliverables](./cairn-protocol-round-3.md)
+- [Round-three brief](./cairn-round-3-brief.md)
+- [Round-four brief](./cairn-round-4-brief.md)

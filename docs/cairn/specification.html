@@ -1,0 +1,1739 @@
+<!doctype html>
+<html lang="en" class="no-js" data-theme="day">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="The canonical Cairn protocol specification: big picture first, implementation detail second, with foundations available in a contextual reading pane.">
+  <meta name="color-scheme" content="light dark">
+  <title>Cairn — canonical protocol specification</title>
+  <script>
+    document.documentElement.classList.remove('no-js')
+    document.documentElement.classList.add('js')
+    try {
+      const saved = localStorage.getItem('cairn-spec-theme')
+      if (saved === 'day' || saved === 'night') document.documentElement.dataset.theme = saved
+      else if (matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.dataset.theme = 'night'
+    } catch (_) {}
+  </script>
+  <style>
+    /*
+      Cairn Study Desk — a standalone pedagogical system.
+
+      Three deliberately different surfaces:
+        atlas  = dark structural navigation
+        paper  = quiet long-form specification
+        lens   = warm contextual explanation
+
+      The reader is self-contained, offline, printable, keyboard-operable, and
+      built around progressive disclosure across stable reading surfaces.
+    */
+    :root {
+      --atlas: #173235;
+      --atlas-deep: #102629;
+      --atlas-text: #ecf5ef;
+      --atlas-muted: #9db6ad;
+      --atlas-line: #315055;
+      --canvas: #e8ede7;
+      --paper: #fffdf7;
+      --paper-2: #f7f2e8;
+      --ink: #1c292c;
+      --ink-soft: #526064;
+      --ink-faint: #7a8586;
+      --line: #d9ddd5;
+      --line-strong: #bcc8c0;
+      --coral: #dd6048;
+      --coral-soft: #fbe9e3;
+      --teal: #167c78;
+      --teal-soft: #e3f2ee;
+      --gold: #b77b13;
+      --gold-soft: #fff1c9;
+      --blue: #3e65b5;
+      --blue-soft: #e9effc;
+      --red: #a33d35;
+      --red-soft: #f8e9e5;
+      --green: #287153;
+      --green-soft: #e3f1e8;
+      --code: #17282e;
+      --code-ink: #eaf4ef;
+      --focus: #ffb846;
+      --header-h: 4rem;
+      --tree-w: 18.5rem;
+      --lens-w: 25rem;
+      --measure: 76ch;
+      --radius-sm: .45rem;
+      --radius-md: .8rem;
+      --radius-lg: 1.25rem;
+      --shadow-paper: 0 1px 0 rgba(20, 41, 42, .05), 0 18px 50px rgba(25, 48, 44, .09);
+      --shadow-float: 0 22px 70px rgba(8, 25, 26, .28);
+      --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --serif: Iowan Old Style, Charter, "Bitstream Charter", Georgia, serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    :root[data-theme="night"] {
+      --atlas: #101f22;
+      --atlas-deep: #091719;
+      --atlas-text: #edf5f0;
+      --atlas-muted: #91aaa1;
+      --atlas-line: #294247;
+      --canvas: #10191b;
+      --paper: #192325;
+      --paper-2: #202c2d;
+      --ink: #edf2ec;
+      --ink-soft: #bbc7c3;
+      --ink-faint: #8f9d99;
+      --line: #334244;
+      --line-strong: #4a5e5e;
+      --coral: #f18a70;
+      --coral-soft: #3a2926;
+      --teal: #69c7ba;
+      --teal-soft: #1d3735;
+      --gold: #e8bd67;
+      --gold-soft: #392f1e;
+      --blue: #91afe9;
+      --blue-soft: #26334b;
+      --red: #ef9b8e;
+      --red-soft: #3b2826;
+      --green: #83cda7;
+      --green-soft: #20372c;
+      --code: #0c171b;
+      --code-ink: #e8f1ed;
+      --focus: #ffd070;
+      --shadow-paper: 0 1px 0 rgba(255, 255, 255, .02), 0 18px 50px rgba(0, 0, 0, .2);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--canvas);
+      color: var(--ink);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.65;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    button, input { font: inherit; }
+    button { color: inherit; }
+    a { color: var(--teal); text-underline-offset: .18em; }
+    a:hover { text-decoration-thickness: 2px; }
+    :focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 3px;
+      border-radius: .2rem;
+    }
+    .skip-link {
+      position: fixed;
+      z-index: 100;
+      left: 1rem;
+      top: -5rem;
+      background: var(--paper);
+      color: var(--ink);
+      padding: .65rem 1rem;
+      border: 2px solid var(--focus);
+      border-radius: .5rem;
+    }
+    .skip-link:focus { top: 1rem; }
+
+    .topbar {
+      height: var(--header-h);
+      display: grid;
+      grid-template-columns: var(--tree-w) minmax(0, 1fr) auto;
+      align-items: stretch;
+      background: var(--paper);
+      border-bottom: 1px solid var(--line);
+      position: relative;
+      z-index: 30;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: .7rem;
+      padding: 0 1.15rem;
+      background: var(--atlas-deep);
+      color: var(--atlas-text);
+      border-right: 1px solid var(--atlas-line);
+    }
+    .brand-mark { width: 1.6rem; height: 1.7rem; flex: none; }
+    .brand-copy { min-width: 0; }
+    .brand-name {
+      display: block;
+      font: 700 .88rem/1 var(--sans);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .brand-kind {
+      display: block;
+      color: var(--atlas-muted);
+      font: .67rem/1.2 var(--mono);
+      margin-top: .25rem;
+    }
+    .crumbs {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: .55rem;
+      padding: 0 clamp(1rem, 3vw, 2rem);
+      color: var(--ink-soft);
+      font-size: .83rem;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .crumbs strong { color: var(--ink); overflow: hidden; text-overflow: ellipsis; }
+    .slash { color: var(--line-strong); }
+    .top-actions { display: flex; align-items: center; gap: .4rem; padding: 0 .8rem; }
+    .icon-button {
+      width: 2.35rem;
+      height: 2.35rem;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: var(--paper-2);
+      cursor: pointer;
+    }
+    .icon-button:hover { border-color: var(--teal); color: var(--teal); }
+    .icon-button svg { width: 1.05rem; height: 1.05rem; fill: none; stroke: currentColor; stroke-width: 1.7; }
+    .tree-toggle { display: none; }
+    .version-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      height: 2.15rem;
+      padding: 0 .7rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--paper);
+      color: var(--ink-soft);
+      font: .68rem/1 var(--mono);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+    .version-badge::before { content: ""; width: .48rem; height: .48rem; border-radius: 50%; background: var(--green); }
+
+    .progress-track { position: absolute; left: var(--tree-w); right: 0; bottom: -1px; height: 2px; background: transparent; }
+    .progress-bar { display: block; width: 0; height: 100%; background: linear-gradient(90deg, var(--teal), var(--coral)); transition: width .15s linear; }
+
+    .workspace {
+      height: calc(100% - var(--header-h));
+      display: grid;
+      grid-template-columns: var(--tree-w) minmax(0, 1fr) 0;
+      transition: grid-template-columns .32s cubic-bezier(.2,.75,.25,1);
+    }
+    body.note-open .workspace { grid-template-columns: var(--tree-w) minmax(0, 1fr) var(--lens-w); }
+
+    .tree-panel {
+      min-width: 0;
+      overflow: hidden;
+      background: var(--atlas);
+      color: var(--atlas-text);
+      border-right: 1px solid var(--atlas-line);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 20;
+    }
+    .tree-head { padding: 1.2rem 1rem .75rem; }
+    .tree-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      color: var(--atlas-muted);
+      font: .65rem/1 var(--mono);
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      margin-bottom: .75rem;
+    }
+    .tree-search {
+      width: 100%;
+      height: 2.35rem;
+      padding: 0 .8rem 0 2.15rem;
+      color: var(--atlas-text);
+      background: var(--atlas-deep);
+      border: 1px solid var(--atlas-line);
+      border-radius: .55rem;
+      outline: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%239db6ad' stroke-width='1.5'%3E%3Ccircle cx='7' cy='7' r='4.25'/%3E%3Cpath d='m10.2 10.2 3 3'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: .72rem center;
+      background-size: .9rem;
+      font-size: .78rem;
+    }
+    .tree-search::placeholder { color: var(--atlas-muted); }
+    .tree-search:focus { border-color: var(--focus); }
+    .tree-scroll { flex: 1; overflow-y: auto; padding: .1rem .65rem 1.4rem; scrollbar-color: var(--atlas-line) transparent; }
+    .tree-group { margin: .35rem 0 .8rem; }
+    .tree-group summary {
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: .45rem;
+      min-height: 2rem;
+      padding: 0 .55rem;
+      color: var(--atlas-muted);
+      font: 700 .64rem/1 var(--mono);
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+    .tree-group summary::-webkit-details-marker { display: none; }
+    .tree-group summary::before { content: "›"; font-size: 1rem; transform: rotate(0deg); transition: transform .15s; }
+    .tree-group[open] summary::before { transform: rotate(90deg); }
+    .tree-list { list-style: none; margin: 0; padding: 0; }
+    .tree-list li { margin: 0; }
+    .tree-link {
+      display: grid;
+      grid-template-columns: 1.15rem minmax(0, 1fr) auto;
+      align-items: center;
+      gap: .45rem;
+      width: 100%;
+      min-height: 2.05rem;
+      padding: .34rem .55rem;
+      color: var(--atlas-text);
+      text-decoration: none;
+      border: 0;
+      border-radius: .45rem;
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+      font-size: .78rem;
+      line-height: 1.25;
+    }
+    .tree-link:hover { background: rgba(255,255,255,.07); }
+    .tree-link[aria-current="location"] { background: rgba(255,255,255,.12); color: #fff; }
+    .tree-link[aria-current="location"] .tree-icon { color: var(--focus); }
+    .tree-icon { width: 1rem; height: 1rem; color: var(--atlas-muted); }
+    .tree-icon svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.5; }
+    .tree-ext { color: var(--atlas-muted); font: .58rem/1 var(--mono); text-transform: uppercase; }
+    .tree-foot {
+      padding: .85rem 1rem 1rem;
+      border-top: 1px solid var(--atlas-line);
+      color: var(--atlas-muted);
+      font-size: .7rem;
+      line-height: 1.45;
+    }
+    .tree-foot strong { display: block; color: var(--atlas-text); margin-bottom: .2rem; }
+
+    .reading-pane {
+      min-width: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      position: relative;
+      scroll-behavior: smooth;
+      scrollbar-color: var(--line-strong) transparent;
+    }
+    .reading-stage { max-width: 74rem; margin: 0 auto; padding: 2.2rem clamp(1rem, 4vw, 4.6rem) 7rem; }
+    .paper {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-paper);
+      overflow: hidden;
+    }
+    .hero {
+      position: relative;
+      padding: clamp(2.2rem, 7vw, 5rem) clamp(1.25rem, 6vw, 5.6rem) clamp(2rem, 5vw, 4rem);
+      background:
+        radial-gradient(circle at 86% 10%, color-mix(in srgb, var(--gold) 18%, transparent), transparent 28rem),
+        linear-gradient(135deg, var(--paper) 62%, var(--teal-soft));
+      border-bottom: 1px solid var(--line);
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      width: 8rem;
+      height: 8rem;
+      right: 4.5rem;
+      top: 3rem;
+      border: 1px solid color-mix(in srgb, var(--teal) 28%, transparent);
+      border-radius: 50%;
+      box-shadow: 0 0 0 1.5rem color-mix(in srgb, var(--teal) 6%, transparent), 0 0 0 3rem color-mix(in srgb, var(--teal) 3%, transparent);
+      pointer-events: none;
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: .55rem;
+      color: var(--coral);
+      font: 700 .68rem/1 var(--mono);
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before { content: ""; width: 1.8rem; height: 2px; background: currentColor; }
+    h1 {
+      max-width: 15ch;
+      margin: 1.2rem 0 1rem;
+      font: 650 clamp(2.6rem, 7vw, 5.2rem)/.98 var(--serif);
+      letter-spacing: -.045em;
+      text-wrap: balance;
+    }
+    .hero-lead {
+      max-width: 59ch;
+      margin: 0;
+      color: var(--ink-soft);
+      font: 1.08rem/1.72 var(--sans);
+    }
+    .hero-contract {
+      max-width: 51rem;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: .8rem 1rem;
+      margin-top: 2rem;
+      padding: 1.15rem 1.25rem;
+      border: 1px solid color-mix(in srgb, var(--teal) 35%, var(--line));
+      border-radius: var(--radius-md);
+      background: color-mix(in srgb, var(--paper) 84%, var(--teal-soft));
+    }
+    .hero-contract .label { color: var(--teal); font: 700 .65rem/1.4 var(--mono); letter-spacing: .1em; text-transform: uppercase; padding-top: .16rem; }
+    .hero-contract p { margin: 0; font: 600 1rem/1.5 var(--serif); }
+    .read-paths { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.4rem; }
+    .read-paths a, .read-paths button {
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      padding: .55rem .75rem;
+      border: 1px solid var(--line-strong);
+      border-radius: 999px;
+      background: var(--paper);
+      color: var(--ink);
+      text-decoration: none;
+      cursor: pointer;
+      font: 700 .72rem/1 var(--sans);
+    }
+    .read-paths a:hover, .read-paths button:hover { border-color: var(--teal); color: var(--teal); }
+
+    .article { padding: 0 clamp(1.25rem, 6vw, 5.6rem) 5rem; }
+    .chapter {
+      max-width: var(--measure);
+      margin: 0 auto;
+      padding: clamp(3.4rem, 8vw, 6.4rem) 0 0;
+      scroll-margin-top: 2rem;
+    }
+    .chapter.wide { max-width: 58rem; }
+    .chapter-head { display: grid; grid-template-columns: 3.2rem minmax(0,1fr); gap: 1rem; margin-bottom: 1.7rem; }
+    .chapter-num {
+      width: 2.65rem;
+      height: 2.65rem;
+      display: grid;
+      place-items: center;
+      border-radius: .75rem;
+      color: var(--paper);
+      background: var(--teal);
+      font: 700 .75rem/1 var(--mono);
+      box-shadow: .35rem .35rem 0 var(--teal-soft);
+    }
+    .chapter:nth-of-type(4n+2) .chapter-num { background: var(--coral); box-shadow: .35rem .35rem 0 var(--coral-soft); }
+    .chapter:nth-of-type(4n+3) .chapter-num { background: var(--blue); box-shadow: .35rem .35rem 0 var(--blue-soft); }
+    .chapter:nth-of-type(4n) .chapter-num { background: var(--gold); box-shadow: .35rem .35rem 0 var(--gold-soft); }
+    h2 { margin: 0; font: 650 clamp(1.75rem, 4vw, 2.65rem)/1.08 var(--serif); letter-spacing: -.025em; text-wrap: balance; }
+    .chapter-kicker { margin: .42rem 0 0; color: var(--ink-faint); font: 700 .67rem/1.3 var(--mono); letter-spacing: .09em; text-transform: uppercase; }
+    h3 { margin: 2.5rem 0 .75rem; font: 650 1.25rem/1.25 var(--serif); letter-spacing: -.01em; }
+    h4 { margin: 1.8rem 0 .55rem; font: 750 .82rem/1.3 var(--sans); letter-spacing: .06em; text-transform: uppercase; }
+    p { margin: 0 0 1.05rem; }
+    ul, ol { margin: 0 0 1.15rem; padding-left: 1.35rem; }
+    li { margin: .38rem 0; }
+    strong { font-weight: 750; }
+    .lead { color: var(--ink-soft); font: 1.08rem/1.72 var(--sans); }
+    .serif-lead { font: 1.22rem/1.66 var(--serif); }
+    code {
+      font-family: var(--mono);
+      font-size: .86em;
+      padding: .08em .32em;
+      border-radius: .3rem;
+      background: var(--paper-2);
+      border: 1px solid var(--line);
+    }
+    pre {
+      position: relative;
+      margin: 1.35rem 0;
+      padding: 1.2rem 1.3rem;
+      overflow-x: auto;
+      border: 0;
+      border-radius: var(--radius-md);
+      background: var(--code);
+      color: var(--code-ink);
+      font: .8rem/1.68 var(--mono);
+      tab-size: 2;
+    }
+    pre code { padding: 0; border: 0; background: transparent; color: inherit; font-size: inherit; }
+    .copy-code {
+      position: absolute;
+      top: .55rem;
+      right: .55rem;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: .4rem;
+      background: rgba(255,255,255,.08);
+      color: var(--code-ink);
+      padding: .32rem .5rem;
+      cursor: pointer;
+      font: .63rem/1 var(--mono);
+    }
+    .copy-code:hover { background: rgba(255,255,255,.15); }
+    blockquote {
+      margin: 1.6rem 0;
+      padding: 1.2rem 1.3rem 1.2rem 1.5rem;
+      border-left: .3rem solid var(--coral);
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      background: var(--coral-soft);
+      font: 650 1.08rem/1.55 var(--serif);
+    }
+    blockquote p:last-child { margin-bottom: 0; }
+
+    .explain-link {
+      display: inline-flex;
+      align-items: baseline;
+      gap: .32rem;
+      padding: 0;
+      border: 0;
+      border-bottom: 1px dashed currentColor;
+      background: transparent;
+      color: var(--teal);
+      cursor: pointer;
+      font: inherit;
+      text-decoration: none;
+    }
+    .explain-link::after { content: "↗"; font: .67em/1 var(--mono); }
+    .foundation-ribbon {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: .55rem;
+      margin: 1.5rem 0;
+      padding: .8rem 1rem;
+      border: 1px solid color-mix(in srgb, var(--gold) 35%, var(--line));
+      border-radius: .7rem;
+      background: var(--gold-soft);
+      color: color-mix(in srgb, var(--ink) 82%, var(--gold));
+      font-size: .82rem;
+    }
+    .foundation-ribbon strong { font: 700 .63rem/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+    .foundation-ribbon .explain-link { color: inherit; }
+
+    .rule-card, .why-card, .limit-card {
+      margin: 1.4rem 0;
+      padding: 1.15rem 1.25rem;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+    }
+    .rule-card { background: var(--teal-soft); border-color: color-mix(in srgb, var(--teal) 35%, var(--line)); }
+    .why-card { background: var(--gold-soft); border-color: color-mix(in srgb, var(--gold) 35%, var(--line)); }
+    .limit-card { background: var(--red-soft); border-color: color-mix(in srgb, var(--red) 28%, var(--line)); }
+    .card-label { display: block; margin-bottom: .55rem; font: 800 .63rem/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+    .rule-card .card-label { color: var(--teal); }
+    .why-card .card-label { color: var(--gold); }
+    .limit-card .card-label { color: var(--red); }
+    .rule-card > :last-child, .why-card > :last-child, .limit-card > :last-child { margin-bottom: 0; }
+
+    .cards { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: .8rem; margin: 1.4rem 0; }
+    .mini-card { padding: 1rem; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--paper-2); }
+    button.mini-card { color: inherit; font-family: inherit; text-align: left; cursor: pointer; }
+    button.mini-card:hover { border-color: var(--teal); transform: translateY(-1px); }
+    .mini-card .mini-num { color: var(--coral); font: 800 .65rem/1 var(--mono); }
+    .mini-card h3 { margin: .55rem 0 .45rem; font-size: 1.03rem; }
+    .mini-card p { margin: 0; color: var(--ink-soft); font-size: .83rem; line-height: 1.55; }
+
+    .phase-map {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap: .5rem;
+      margin: 1.5rem 0 2rem;
+    }
+    .phase {
+      position: relative;
+      min-height: 7.3rem;
+      padding: 1rem .9rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: var(--paper);
+    }
+    .phase::after { content: "→"; position: absolute; right: -.58rem; top: 2.7rem; z-index: 2; color: var(--ink-faint); font-weight: 800; }
+    .phase:last-child::after { display: none; }
+    .phase b { display: block; color: var(--teal); font: 800 .63rem/1 var(--mono); letter-spacing: .09em; text-transform: uppercase; }
+    .phase strong { display: block; margin: .55rem 0 .3rem; font: 650 .96rem/1.2 var(--serif); }
+    .phase span { display: block; color: var(--ink-soft); font-size: .73rem; line-height: 1.45; }
+
+    .flow-svg { width: 100%; height: auto; display: block; margin: 1.6rem 0; color: var(--ink); }
+    .flow-svg text { font-family: var(--sans); fill: currentColor; }
+    .flow-svg .small { font-family: var(--mono); font-size: 10px; fill: var(--ink-soft); }
+    .flow-svg .label { font-size: 12px; font-weight: 750; }
+    .flow-svg .line { fill: none; stroke: var(--line-strong); stroke-width: 2; }
+    .flow-svg .accent-line { fill: none; stroke: var(--teal); stroke-width: 3; }
+    .flow-svg .node { fill: var(--paper); stroke: var(--line-strong); stroke-width: 1.5; }
+    .flow-svg .node-accent { fill: var(--teal-soft); stroke: var(--teal); stroke-width: 1.5; }
+    .flow-svg .node-human { fill: var(--gold-soft); stroke: var(--gold); stroke-width: 1.5; }
+
+    .status-flow { display: flex; flex-wrap: wrap; align-items: center; gap: .55rem; margin: 1.3rem 0; }
+    .status { padding: .52rem .7rem; border: 1px solid var(--line-strong); border-radius: .55rem; background: var(--paper-2); font: 700 .75rem/1 var(--mono); }
+    .status.running { border-color: var(--teal); background: var(--teal-soft); color: var(--teal); }
+    .status.done { border-color: var(--green); background: var(--green-soft); color: var(--green); }
+    .status.archived { color: var(--ink-faint); }
+    .status.blocked { border-color: var(--gold); background: var(--gold-soft); color: var(--gold); }
+    .arrow { color: var(--ink-faint); font-weight: 800; }
+
+    .table-wrap { width: 100%; overflow-x: auto; margin: 1.3rem 0; border: 1px solid var(--line); border-radius: var(--radius-md); }
+    table { width: 100%; border-collapse: collapse; font-size: .8rem; line-height: 1.5; }
+    th { background: var(--paper-2); color: var(--ink-soft); font: 800 .62rem/1.25 var(--mono); letter-spacing: .08em; text-transform: uppercase; text-align: left; }
+    th, td { padding: .75rem .8rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+    tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: color-mix(in srgb, var(--teal-soft) 40%, transparent); }
+    td code { white-space: nowrap; }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: .3rem;
+      padding: .28rem .45rem;
+      border-radius: 999px;
+      font: 800 .59rem/1 var(--mono);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .chip.blocking { color: var(--red); background: var(--red-soft); border: 1px solid color-mix(in srgb, var(--red) 30%, transparent); }
+    .chip.advisory { color: var(--gold); background: var(--gold-soft); border: 1px solid color-mix(in srgb, var(--gold) 30%, transparent); }
+    .chip.human { color: var(--blue); background: var(--blue-soft); border: 1px solid color-mix(in srgb, var(--blue) 30%, transparent); }
+
+    .context-pane {
+      min-width: 0;
+      width: var(--lens-w);
+      overflow: hidden;
+      background: var(--gold-soft);
+      border-left: 1px solid color-mix(in srgb, var(--gold) 32%, var(--line));
+      transform: translateX(1rem);
+      opacity: 0;
+      visibility: hidden;
+      transition: transform .32s cubic-bezier(.2,.75,.25,1), opacity .2s, visibility 0s .32s;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 25;
+    }
+    body.note-open .context-pane { transform: translateX(0); opacity: 1; visibility: visible; transition-delay: 0s; }
+    .context-head {
+      flex: none;
+      min-height: 4.3rem;
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      padding: .8rem 1rem;
+      border-bottom: 1px solid color-mix(in srgb, var(--gold) 30%, var(--line));
+      background: color-mix(in srgb, var(--gold-soft) 80%, var(--paper));
+    }
+    .context-heading { min-width: 0; flex: 1; }
+    .context-kind { display: block; color: var(--gold); font: 800 .6rem/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+    .context-title { display: block; margin-top: .3rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 650 1rem/1.1 var(--serif); }
+    .context-close { background: color-mix(in srgb, var(--paper) 55%, transparent); border-color: color-mix(in srgb, var(--gold) 32%, var(--line)); }
+    .context-body { flex: 1; overflow-y: auto; padding: 1.35rem 1.25rem 3rem; scrollbar-color: color-mix(in srgb, var(--gold) 45%, transparent) transparent; }
+    .context-body h2 { font-size: 1.7rem; margin-bottom: 1rem; }
+    .context-body h3 { font-size: 1.08rem; margin-top: 1.8rem; }
+    .context-body p, .context-body li { font-size: .86rem; line-height: 1.62; }
+    .context-body pre { font-size: .7rem; }
+    .context-source {
+      display: inline-flex;
+      margin-top: 1.2rem;
+      padding: .48rem .65rem;
+      border: 1px solid color-mix(in srgb, var(--gold) 38%, var(--line));
+      border-radius: .5rem;
+      background: color-mix(in srgb, var(--paper) 52%, transparent);
+      color: var(--ink);
+      font: 700 .69rem/1.2 var(--sans);
+      text-decoration: none;
+    }
+    .context-source:hover { border-color: var(--gold); }
+
+    .foundation-library { max-width: 64rem; margin: 3rem auto 0; padding: 2rem; background: var(--paper); border: 1px solid var(--line); }
+    .foundation-library > h2 { margin-bottom: 2rem; }
+    .foundation-card { padding: 2rem 0; border-top: 1px solid var(--line); scroll-margin-top: 5rem; }
+    .foundation-card:first-of-type { border-top: 0; }
+    .js .foundation-library { display: none; }
+
+    .footer-note { max-width: var(--measure); margin: 4rem auto 0; padding-top: 1.5rem; border-top: 1px solid var(--line); color: var(--ink-faint); font-size: .76rem; }
+
+    .scrim { display: none; }
+
+    @media (max-width: 72rem) {
+      body.note-open .workspace { grid-template-columns: var(--tree-w) minmax(0, 1fr); }
+      .context-pane {
+        position: fixed;
+        top: var(--header-h);
+        right: 0;
+        bottom: 0;
+        width: min(var(--lens-w), calc(100vw - 2rem));
+        box-shadow: var(--shadow-float);
+      }
+      body.note-open .scrim { display: block; position: fixed; inset: var(--header-h) 0 0 0; z-index: 24; background: rgba(7, 20, 21, .38); border: 0; }
+    }
+
+    @media (max-width: 52rem) {
+      .topbar { grid-template-columns: auto minmax(0,1fr) auto; }
+      .brand { width: 3.9rem; justify-content: center; padding: 0; }
+      .brand-copy { display: none; }
+      .tree-toggle { display: inline-grid; }
+      .version-badge { display: none; }
+      .progress-track { left: 0; }
+      .workspace, body.note-open .workspace { grid-template-columns: 1fr; }
+      .tree-panel {
+        position: fixed;
+        top: var(--header-h);
+        left: 0;
+        bottom: 0;
+        width: min(var(--tree-w), calc(100vw - 2rem));
+        transform: translateX(-102%);
+        transition: transform .25s ease;
+        box-shadow: var(--shadow-float);
+      }
+      body.tree-open .tree-panel { transform: translateX(0); }
+      body.tree-open .scrim { display: block; position: fixed; inset: var(--header-h) 0 0 0; z-index: 19; background: rgba(7, 20, 21, .45); border: 0; }
+      .reading-stage { padding: 1rem .6rem 4rem; }
+      .paper { border-radius: .8rem; }
+      .hero { padding: 2.5rem 1.25rem 2.2rem; }
+      .hero::before { display: none; }
+      .article { padding: 0 1.15rem 3.5rem; }
+      .chapter { padding-top: 4rem; }
+      .cards { grid-template-columns: 1fr; }
+      .phase-map { grid-template-columns: 1fr 1fr; }
+      .phase:nth-child(2)::after { display: none; }
+      .crumbs { padding: 0 .75rem; }
+    }
+
+    @media (max-width: 34rem) {
+      .top-actions { padding: 0 .45rem; }
+      .phase-map { grid-template-columns: 1fr; }
+      .phase::after { display: none; }
+      .chapter-head { grid-template-columns: 2.6rem minmax(0,1fr); gap: .7rem; }
+      .chapter-num { width: 2.25rem; height: 2.25rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .001ms !important; animation-duration: .001ms !important; }
+    }
+
+    @media print {
+      @page { margin: 15mm; }
+      html, body { height: auto; overflow: visible; background: #fff; color: #111; }
+      .topbar, .tree-panel, .context-pane, .scrim, .copy-code, .read-paths { display: none !important; }
+      .workspace, body.note-open .workspace { display: block; height: auto; }
+      .reading-pane { overflow: visible; }
+      .reading-stage { max-width: none; padding: 0; }
+      .paper { border: 0; box-shadow: none; }
+      .hero { padding: 0 0 1.5rem; background: none; }
+      .article { padding: 0; }
+      .chapter { break-inside: avoid-page; padding-top: 2rem; }
+      .js .foundation-library { display: block; break-before: page; }
+      a { color: inherit; }
+      pre { white-space: pre-wrap; }
+    }
+  </style>
+</head>
+<body data-cairn-spec-version="1.0">
+  <a class="skip-link" href="#specification">Skip to the specification</a>
+
+  <header class="topbar">
+    <div class="brand" aria-label="Cairn specification">
+      <svg class="brand-mark" viewBox="0 0 28 30" aria-hidden="true">
+        <path d="M7 24.5h14" stroke="#ecf5ef" stroke-width="2" stroke-linecap="round"/>
+        <path d="M9 18.5h10a2 2 0 0 1 2 2v1H7v-1a2 2 0 0 1 2-2Z" fill="#dd6048"/>
+        <path d="M11 11.5h6a2 2 0 0 1 2 2v2H9v-2a2 2 0 0 1 2-2Z" fill="#ffcf78"/>
+        <path d="M13 5.5h2a2 2 0 0 1 2 2v1h-6v-1a2 2 0 0 1 2-2Z" fill="#69c7ba"/>
+      </svg>
+      <span class="brand-copy"><span class="brand-name">Cairn</span><span class="brand-kind">protocol atlas</span></span>
+    </div>
+    <div class="crumbs" aria-label="Current document">
+      <span>specification</span><span class="slash">/</span><strong id="current-crumb">big picture</strong>
+    </div>
+    <div class="top-actions">
+      <span class="version-badge">Canonical · v1.0</span>
+      <button class="icon-button tree-toggle" id="tree-toggle" type="button" aria-label="Open specification tree" title="Open specification tree" aria-expanded="false">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/></svg>
+      </button>
+      <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch to night theme" title="Switch color theme" aria-pressed="false">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.7v2M10 15.3v2M2.7 10h2M15.3 10h2M4.85 4.85l1.4 1.4M13.75 13.75l1.4 1.4M15.15 4.85l-1.4 1.4M6.25 13.75l-1.4 1.4"/><circle cx="10" cy="10" r="3.1"/></svg>
+      </button>
+    </div>
+    <div class="progress-track" aria-hidden="true"><span class="progress-bar" id="progress-bar"></span></div>
+  </header>
+
+  <div class="workspace">
+    <aside class="tree-panel" id="tree-panel">
+      <div class="tree-head">
+        <div class="tree-label"><span>Project tree</span><span>14 chapters</span></div>
+        <label>
+          <span class="skip-link">Filter the specification tree</span>
+          <input class="tree-search" id="tree-search" type="search" placeholder="Find a chapter or note…" autocomplete="off">
+        </label>
+      </div>
+      <nav class="tree-scroll" aria-label="Specification tree">
+        <details class="tree-group" open>
+          <summary>Canonical specification</summary>
+          <ol class="tree-list">
+            <li><a class="tree-link section-link" href="#big-picture" data-section-link="big-picture"><span class="tree-icon"><svg viewBox="0 0 16 16"><path d="M3 2.5h7l3 3v8H3z"/><path d="M10 2.5v3h3"/></svg></span><span>Big picture</span><span class="tree-ext">01</span></a></li>
+            <li><a class="tree-link section-link" href="#project-model" data-section-link="project-model"><span class="tree-icon"><svg viewBox="0 0 16 16"><path d="M2.5 4.5h4l1-1.5h6v10h-11z"/></svg></span><span>Project model</span><span class="tree-ext">02</span></a></li>
+            <li><a class="tree-link section-link" href="#coding-path" data-section-link="coding-path"><span class="tree-icon"><svg viewBox="0 0 16 16"><path d="M3 2.5h10v11H3zM5.5 6h5M5.5 9h5"/></svg></span><span>Coding path</span><span class="tree-ext">03</span></a></li>
+            <li><a class="tree-link section-link" href="#lifecycle" data-section-link="lifecycle"><span class="tree-icon"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5"/><path d="M8 3v3l2 2"/></svg></span><span>Lifecycle</span><span class="tree-ext">04</span></a></li>
+            <li><a class="tree-link section-link" href="#opening" data-section-link="opening"><span class="tree-icon"><svg viewBox="0 0 16 16"><path d="M3 13V3h7l3 3v7zM10 3v3h3"/><path d="m5.5 9 1.3 1.3L10.5 7"/></svg></span><span>Opening a path</span><span class="tree-ext">05</span></a></li>
+            <li><a class="tree-link section-link" href="#execution" data-section-link="execution"><span class="tree-icon"><svg viewBox="0 0 16 16"><path d="M4 2.5h8v11H4zM6.5 6h3M6.5 9h3"/></svg></span><span>Execution</span><span class="tree-ext">06</span></a></li>
+            <li><a class="tree-link section-link" href="#parallel" data-section-link="parallel"><span class="tree-icon"><svg viewBox="0 0 16 16"><path d="M8 2.5v3M8 5.5H4v3M8 5.5h4v3M4 8.5v5M12 8.5v5"/></svg></span><span>Parallel paths</span><span class="tree-ext">07</span></a></li>
+            <li><a class="tree-link section-link" href="#closing" data-section-link="closing"><span class="tree-icon"><svg viewBox="0 0 16 16"><path d="M3 8h7M8 5l3 3-3 3"/><path d="M12 3h1.5v10H12"/></svg></span><span>Closing &amp; self-merge</span><span class="tree-ext">08</span></a></li>
+            <li><a class="tree-link section-link" href="#human-records" data-section-link="human-records"><span class="tree-icon"><svg viewBox="0 0 16 16"><circle cx="6" cy="5" r="2"/><path d="M2.5 12c.5-2 1.7-3 3.5-3s3 1 3.5 3M11 5h2.5M11 8h2.5M11 11h2.5"/></svg></span><span>Human records</span><span class="tree-ext">09</span></a></li>
+            <li><a class="tree-link section-link" href="#enforcement" data-section-link="enforcement"><span class="tree-icon"><svg viewBox="0 0 16 16"><path d="M8 2.5 13 4v3.5c0 3-2 5-5 6-3-1-5-3-5-6V4z"/><path d="m5.5 8 1.5 1.5 3.5-3.5"/></svg></span><span>Enforcement</span><span class="tree-ext">10</span></a></li>
+            <li><a class="tree-link section-link" href="#operator" data-section-link="operator"><span class="tree-icon"><svg viewBox="0 0 16 16"><path d="m3 4 3 3-3 3M7.5 11h5"/></svg></span><span>Operator sequence</span><span class="tree-ext">11</span></a></li>
+            <li><a class="tree-link section-link" href="#guarantees" data-section-link="guarantees"><span class="tree-icon"><svg viewBox="0 0 16 16"><path d="M8 2.5 13 5v3c0 2.8-1.8 4.6-5 5.5C4.8 12.6 3 10.8 3 8V5z"/></svg></span><span>Guarantees &amp; limits</span><span class="tree-ext">12</span></a></li>
+            <li><a class="tree-link section-link" href="#rules" data-section-link="rules"><span class="tree-icon"><svg viewBox="0 0 16 16"><path d="M3 3h10v10H3zM5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><span>Rule catalogue</span><span class="tree-ext">13</span></a></li>
+            <li><a class="tree-link section-link" href="#map" data-section-link="map"><span class="tree-icon"><svg viewBox="0 0 16 16"><path d="m2.5 4 3-1.5L10.5 4l3-1.5v9.5l-3 1.5-5-1.5-3 1.5zM5.5 2.5V12M10.5 4v9.5"/></svg></span><span>Reading map</span><span class="tree-ext">14</span></a></li>
+          </ol>
+        </details>
+
+        <details class="tree-group" open>
+          <summary>Foundations</summary>
+          <ul class="tree-list">
+            <li><button class="tree-link note-link" type="button" data-note="note-git"><span class="tree-icon"><svg viewBox="0 0 16 16"><path d="M4 3v7a3 3 0 0 0 3 3h5M4 3l-2 2M4 3l2 2M10 7l2-2 2 2"/></svg></span><span>Git &amp; history</span><span class="tree-ext">md</span></button></li>
+            <li><button class="tree-link note-link" type="button" data-note="note-durable"><span class="tree-icon"><svg viewBox="0 0 16 16"><ellipse cx="8" cy="4" rx="5" ry="2"/><path d="M3 4v4c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8v4c0 1.1 2.2 2 5 2s5-.9 5-2V8"/></svg></span><span>Durable state</span><span class="tree-ext">md</span></button></li>
+            <li><button class="tree-link note-link" type="button" data-note="note-metadata"><span class="tree-icon"><svg viewBox="0 0 16 16"><path d="M3 2.5h10v11H3zM5 5h6M5 8h2M9 8h2M5 11h6"/></svg></span><span>Metadata &amp; records</span><span class="tree-ext">md</span></button></li>
+            <li><button class="tree-link note-link" type="button" data-note="note-quality"><span class="tree-icon"><svg viewBox="0 0 16 16"><path d="m3 8 3 3 7-7"/></svg></span><span>Quality &amp; gates</span><span class="tree-ext">md</span></button></li>
+            <li><button class="tree-link note-link" type="button" data-note="note-parallel"><span class="tree-icon"><svg viewBox="0 0 16 16"><path d="M3 3v10M13 3v10M3 6h4l2 4h4"/></svg></span><span>Parallel work</span><span class="tree-ext">md</span></button></li>
+          </ul>
+        </details>
+
+        <details class="tree-group" open>
+          <summary>Implementation reference</summary>
+          <ul class="tree-list">
+            <li><button class="tree-link note-link" type="button" data-note="note-layout"><span class="tree-icon"><svg viewBox="0 0 16 16"><path d="M2.5 4.5h4l1-1.5h6v10h-11z"/></svg></span><span>Repository layout</span><span class="tree-ext">ref</span></button></li>
+            <li><button class="tree-link note-link" type="button" data-note="note-path-template"><span class="tree-icon"><svg viewBox="0 0 16 16"><path d="M3 2.5h10v11H3zM5.5 6h5M5.5 9h5"/></svg></span><span>Path template</span><span class="tree-ext">ref</span></button></li>
+            <li><button class="tree-link note-link" type="button" data-note="note-human-template"><span class="tree-icon"><svg viewBox="0 0 16 16"><path d="M3 2.5h10v11H3zM5 5h6M5 8h6M5 11h4"/></svg></span><span>Human records</span><span class="tree-ext">ref</span></button></li>
+            <li><button class="tree-link note-link" type="button" data-note="note-config"><span class="tree-icon"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2"/><path d="M8 2.5v2M8 11.5v2M2.5 8h2M11.5 8h2M4.1 4.1l1.4 1.4M10.5 10.5l1.4 1.4M11.9 4.1l-1.4 1.4M5.5 10.5l-1.4 1.4"/></svg></span><span>Configuration</span><span class="tree-ext">ref</span></button></li>
+            <li><button class="tree-link note-link" type="button" data-note="note-operations"><span class="tree-icon"><svg viewBox="0 0 16 16"><path d="m3 4 3 3-3 3M7.5 11h5"/></svg></span><span>Operations</span><span class="tree-ext">ref</span></button></li>
+            <li><button class="tree-link note-link" type="button" data-note="note-glossary"><span class="tree-icon"><svg viewBox="0 0 16 16"><path d="M3 2.5h4.5A2.5 2.5 0 0 1 10 5v8H5.5A2.5 2.5 0 0 0 3 15zM13 2.5h-2"/></svg></span><span>Glossary</span><span class="tree-ext">ref</span></button></li>
+          </ul>
+        </details>
+      </nav>
+      <div class="tree-foot"><strong>Atomik-ready project</strong>Open <code>docs/cairn/specification/</code>. Its folders become this tree; links can open beside <code>index.md</code>.</div>
+    </aside>
+
+    <main class="reading-pane" id="specification" tabindex="-1">
+      <div class="reading-stage">
+        <article class="paper">
+          <header class="hero" id="big-picture" data-section data-label="Big picture">
+            <span class="eyebrow">Canonical protocol · v1.0</span>
+            <h1>Cairn, from intent to integrated work.</h1>
+            <p class="hero-lead">A repository-native protocol for running several bounded coding paths in parallel while keeping every decision, checkpoint, gate, and handoff durable enough to survive the current conversation.</p>
+            <div class="hero-contract">
+              <span class="label">Core invariant</span>
+              <p>One coding path = one branch = one worktree = one writer.</p>
+            </div>
+            <div class="read-paths" aria-label="Reading choices">
+              <a href="#project-model">Read the specification <span aria-hidden="true">↓</span></a>
+              <button type="button" data-note="note-git">New to Git? Open the primer <span aria-hidden="true">↗</span></button>
+              <button type="button" data-note="note-layout">See the complete file tree <span aria-hidden="true">↗</span></button>
+            </div>
+
+            <div class="phase-map" aria-label="Cairn workflow at a glance">
+              <div class="phase"><b>01 · Accept</b><strong>Opening check</strong><span>Bound the outcome and record the owner's acceptance.</span></div>
+              <div class="phase"><b>02 · Publish</b><strong>Register</strong><span>Put stable metadata on the trunk before branching.</span></div>
+              <div class="phase"><b>03 · Isolate</b><strong>Execute</strong><span>One worktree, one writer, pushed step checkpoints.</span></div>
+              <div class="phase"><b>04 · Integrate</b><strong>Self-merge</strong><span>Close, rebase, verify, audit, merge, and clean.</span></div>
+            </div>
+
+            <svg class="flow-svg" viewBox="0 0 850 250" role="img" aria-labelledby="flow-title flow-desc">
+              <title id="flow-title">The complete Cairn flow</title>
+              <desc id="flow-desc">Intent passes through an opening acceptance, trunk registration, isolated parallel work, closing acceptance, rebase and gates, then self-merge and cleanup.</desc>
+              <defs><marker id="arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--teal)"/></marker></defs>
+              <path class="accent-line" marker-end="url(#arrowhead)" d="M82 77H190"/>
+              <path class="accent-line" marker-end="url(#arrowhead)" d="M305 77H413"/>
+              <path class="accent-line" marker-end="url(#arrowhead)" d="M528 77H636"/>
+              <path class="accent-line" marker-end="url(#arrowhead)" d="M749 77H815"/>
+              <rect class="node-human" x="10" y="46" width="72" height="62" rx="12"/>
+              <text class="label" x="46" y="72" text-anchor="middle">OPEN</text><text class="small" x="46" y="90" text-anchor="middle">accept</text>
+              <rect class="node-accent" x="190" y="46" width="115" height="62" rx="12"/>
+              <text class="label" x="247" y="72" text-anchor="middle">REGISTER</text><text class="small" x="247" y="90" text-anchor="middle">trunk metadata</text>
+              <rect class="node" x="413" y="46" width="115" height="62" rx="12"/>
+              <text class="label" x="470" y="72" text-anchor="middle">EXECUTE</text><text class="small" x="470" y="90" text-anchor="middle">step + push</text>
+              <rect class="node-human" x="636" y="46" width="113" height="62" rx="12"/>
+              <text class="label" x="692" y="72" text-anchor="middle">CLOSE</text><text class="small" x="692" y="90" text-anchor="middle">accept result</text>
+              <rect class="node-accent" x="778" y="46" width="65" height="62" rx="12"/>
+              <text class="label" x="810" y="72" text-anchor="middle">MERGE</text><text class="small" x="810" y="90" text-anchor="middle">self</text>
+              <path class="line" d="M413 156H528"/><path class="line" d="M413 184H528"/><path class="line" d="M413 212H528"/>
+              <circle class="node" cx="405" cy="156" r="7"/><circle class="node" cx="536" cy="156" r="7"/>
+              <circle class="node" cx="405" cy="184" r="7"/><circle class="node" cx="536" cy="184" r="7"/>
+              <circle class="node" cx="405" cy="212" r="7"/><circle class="node" cx="536" cy="212" r="7"/>
+              <text class="small" x="470" y="149" text-anchor="middle">path A · own worktree</text>
+              <text class="small" x="470" y="177" text-anchor="middle">path B · own worktree</text>
+              <text class="small" x="470" y="205" text-anchor="middle">path C · own worktree</text>
+            </svg>
+
+            <div class="cards">
+              <div class="mini-card"><span class="mini-num">OWNER</span><h3>Intent and acceptance</h3><p>Accepts the bounded path before it starts and the delivered result before it merges.</p></div>
+              <div class="mini-card"><span class="mini-num">WRITER</span><h3>One path end to end</h3><p>Owns its worktree, implementation, tests, documentation, ledger, audit, and self-merge.</p></div>
+              <div class="mini-card"><span class="mini-num">CHECKER</span><h3>Mechanical evidence</h3><p>Evaluates files, metadata, ancestry, and exit codes; never pretends to make a human judgement.</p></div>
+            </div>
+          </header>
+
+          <div class="article">
+            <section class="chapter" id="project-model" data-section data-label="Project model">
+              <div class="chapter-head"><span class="chapter-num">02</span><div><h2>The project model</h2><p class="chapter-kicker">Put each kind of state in a durable, navigable home</p></div></div>
+              <p class="serif-lead">Cairn starts by distinguishing the knowledge that defines a system, the execution state that moves one task forward, and the temporary context of the current conversation.</p>
+
+              <div class="foundation-ribbon"><strong>Foundation</strong><span>Why a file can be durable without being true:</span><a class="explain-link" href="#note-durable" data-note="note-durable">durable state, canonical sources, and generated views</a></div>
+
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Plane</th><th>Canonical home</th><th>Question</th><th>Lifetime</th></tr></thead>
+                  <tbody>
+                    <tr><td><strong>Knowledge</strong></td><td><code>docs/</code></td><td>What should the system be, and why?</td><td>Durable</td></tr>
+                    <tr><td><strong>Execution state</strong></td><td><code>project/</code></td><td>What is this bounded task changing, and where does it stand?</td><td>Durable</td></tr>
+                    <tr><td><strong>Ephemeral context</strong></td><td>conversation or process memory</td><td>What is being considered right now?</td><td>Temporary</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <blockquote><p>Progress, acceptance, decisions, and next actions must be persisted in files. Conversation memory must not be their only home.</p></blockquote>
+
+              <h3>Canonical repository shape</h3>
+              <p>The protocol names roles, then <code>cairn.config.json</code> binds those roles to a repository. These are the canonical defaults:</p>
+<pre><code>repository/
+├── AGENTS.md
+├── cairn.config.json
+├── src/ …
+├── docs/
+│   ├── architecture/
+│   ├── adr/
+│   └── modules/
+└── project/
+    ├── index.md
+    ├── coding-paths/
+    │   ├── index.md
+    │   ├── ACTIVE.md          # generated
+    │   ├── CP-EXAMPLE-001.md # path + ledger
+    │   └── history/
+    ├── sessions/
+    ├── audits/
+    ├── briefs/
+    └── log/                  # one file per merge</code></pre>
+              <p><button class="explain-link" type="button" data-note="note-layout">Open the annotated directory tree and filename conventions</button></p>
+
+              <h3>Four ownership classes</h3>
+              <div class="cards">
+                <div class="mini-card"><span class="mini-num">CANONICAL</span><h3>Edited deliberately</h3><p>Architecture, ADRs, and module notes change when their represented decision or contract changes.</p></div>
+                <div class="mini-card"><span class="mini-num">PATH-OWNED</span><h3>One active writer</h3><p>A path and its handoff brief belong to exactly one branch and writer.</p></div>
+                <div class="mini-card"><span class="mini-num">GENERATED</span><h3>Never hand-maintained</h3><p>Views such as <code>ACTIVE.md</code> are regenerated from canonical inputs.</p></div>
+              </div>
+              <div class="rule-card"><span class="card-label">Namespace rule</span><p>Audits, sessions, journal entries, and rolled ledger steps use uniquely named files. Several paths must not append to one shared mutable record.</p></div>
+            </section>
+
+            <section class="chapter" id="coding-path" data-section data-label="Coding path">
+              <div class="chapter-head"><span class="chapter-num">03</span><div><h2>The coding path</h2><p class="chapter-kicker">One bounded task, fully reconstructible from one durable record</p></div></div>
+              <p class="serif-lead">A coding path is not merely a checklist. It binds an accepted outcome to a Git identity, governing documents, execution steps, a live ledger, and an exact next action.</p>
+
+              <h3>Identity tuple</h3>
+<pre><code>cairn:
+  id: CP-EXAMPLE-001
+  status: running
+  current_step: S02
+  base_commit: a1b2c3d
+  branch: path/cp-example-001
+  writes:
+    - src/example/**
+    - docs/modules/example.md</code></pre>
+              <p><button class="explain-link" type="button" data-note="note-metadata">What frontmatter is, why exact ids matter, and how tools read it</button></p>
+
+              <div class="why-card"><span class="card-label">Why <code>base_commit</code> matters</span><p>A commit id identifies the entire project snapshot and its ancestry. Recording the trunk tip immediately before registration pins the state against which the path was accepted.</p></div>
+
+              <h3>Documentation coverage</h3>
+              <p>Every path classifies relevant documents instead of silently skipping them:</p>
+              <div class="table-wrap">
+                <table><thead><tr><th>Class</th><th>Meaning</th></tr></thead><tbody>
+                  <tr><td><strong>Required</strong></td><td>Read before execution.</td></tr>
+                  <tr><td><strong>Conditional</strong></td><td>Read when a named trigger occurs.</td></tr>
+                  <tr><td><strong>Deliberately excluded</strong></td><td>Outside scope, with a reason.</td></tr>
+                </tbody></table>
+              </div>
+
+              <h3><code>writes:</code> is a signal, not a lock</h3>
+              <p>The declared surfaces reveal likely overlap and allow a final diff-versus-scope review. A root cause is discovered, not fully known in advance. When work widens, the writer records the new surface and governing documentation, then continues.</p>
+
+              <h3>Ledger and handoff</h3>
+              <p>The <strong>work ledger</strong> records each executed step, checks, decisions, remote commit, next action, and blockers as the work happens. A handoff brief is a shorter projection refreshed from that ledger. If the brief, path, and Git disagree, Git grounds the correction and the ledger is reconciled.</p>
+              <div class="rule-card"><span class="card-label">Reading boundary</span><p>When the live path becomes too expensive to read, completed major steps move to <code>history/&lt;id&gt;-SNN.md</code> verbatim. The live file keeps the declaration, index, checkpoint, next action, and blockers.</p></div>
+              <p><button class="explain-link" type="button" data-note="note-path-template">Open the complete copy-ready path template</button></p>
+            </section>
+
+            <section class="chapter" id="lifecycle" data-section data-label="Lifecycle">
+              <div class="chapter-head"><span class="chapter-num">04</span><div><h2>Lifecycle</h2><p class="chapter-kicker">Five states, two exits, and honest mechanical limits</p></div></div>
+
+              <div class="status-flow" aria-label="Ordinary coding path lifecycle">
+                <span class="status">draft</span><span class="arrow">→</span><span class="status running">running</span><span class="arrow">→</span><span class="status done">done</span><span class="arrow">→</span><span class="status archived">archived</span>
+              </div>
+              <div class="status-flow" aria-label="Blocked and abandoned path transitions">
+                <span class="status running">running</span><span class="arrow">↔</span><span class="status blocked">blocked</span><span class="arrow"> · </span><span class="status running">running</span><span class="arrow">→</span><span class="status archived">archived</span><span class="tree-ext">abandonment</span>
+              </div>
+
+              <div class="table-wrap">
+                <table><thead><tr><th>Status</th><th>Meaning</th><th>Mechanical invariant</th></tr></thead><tbody>
+                  <tr><td><code>draft</code></td><td>Proposed, not accepted.</td><td>Identity and proposed scope.</td></tr>
+                  <tr><td><code>running</code></td><td>Accepted, registered, executing in isolation.</td><td>Branch, base commit, opening record, trunk registration.</td></tr>
+                  <tr><td><code>blocked</code></td><td>Waiting on a named condition.</td><td>Blocker and route to resume; no active branch obligation.</td></tr>
+                  <tr><td><code>done</code></td><td>Accepted, rebased, audited, and merged.</td><td>Closing record.</td></tr>
+                  <tr><td><code>archived</code></td><td>Off the live portfolio, retained as history.</td><td>Reason for archival.</td></tr>
+                </tbody></table>
+              </div>
+
+              <p><code>archived</code> is the single terminal state. Completed work normally moves <code>done → archived</code>. Abandoned work moves <code>running → archived</code> without claiming the merge represented by <code>done</code>.</p>
+              <div class="limit-card"><span class="card-label">Honest limit</span><p>A validator normally sees one repository snapshot. It can enforce the invariant of the state declared now; it cannot claim to have observed the transition from yesterday's state.</p></div>
+              <p>A resolvable running branch that stays quiet past the configured window receives an advisory notice. Age alone must not fail an unrelated build.</p>
+            </section>
+
+            <section class="chapter" id="opening" data-section data-label="Opening a path">
+              <div class="chapter-head"><span class="chapter-num">05</span><div><h2>Opening a path</h2><p class="chapter-kicker">Accept first, publish the identity, then diverge</p></div></div>
+              <p class="serif-lead">Opening turns an agreed intention into globally visible execution state. The order is load-bearing.</p>
+
+              <ol>
+                <li><strong>Bound the outcome.</strong> Name the major features, definition of done, governing documents, expected writes, and exclusions.</li>
+                <li><strong>Run the opening check.</strong> The owner accepts or amends the path item by item.</li>
+                <li><strong>Write the opening record.</strong> It declares the exact path id and <code>ceremony: opening</code>.</li>
+                <li><strong>Pin the identity tuple.</strong> Set <code>status: running</code>, branch, and the trunk tip immediately before registration.</li>
+                <li><strong>Regenerate and check.</strong> Produce <code>ACTIVE.md</code> from the registered paths and run the local checker.</li>
+                <li><strong>Publish metadata only.</strong> Commit and push the declaration, active view, and opening record to the trunk. No implementation.</li>
+                <li><strong>Create isolation.</strong> Only now create the path branch and worktree from that registration commit.</li>
+              </ol>
+
+<pre><code>path: CP-EXAMPLE-001
+ceremony: opening</code></pre>
+              <p>The fields are root-level and the path id is matched exactly. The filename helps a person navigate; declared metadata establishes identity and kind.</p>
+              <p><button class="explain-link" type="button" data-note="note-human-template">Open the complete opening and closing record templates</button></p>
+
+              <div class="why-card"><span class="card-label">Why registration precedes the branch</span><p>A checkout cannot scan files that exist only on sibling branches. Publishing the stable identity on the common trunk makes the running portfolio globally visible before private histories diverge.</p></div>
+              <div class="rule-card"><span class="card-label">Registration rule</span><p>The commit is metadata-only, not an arbitrary file count. It may repair metadata needed for coherence; it must contain no implementation.</p></div>
+            </section>
+
+            <section class="chapter" id="execution" data-section data-label="Execution">
+              <div class="chapter-head"><span class="chapter-num">06</span><div><h2>Executing a path</h2><p class="chapter-kicker">One coherent step becomes one remote recovery point</p></div></div>
+
+              <h3>Create the isolated worktree</h3>
+<pre><code>git worktree add ../repo-cp-example-001 \
+  -b path/cp-example-001 main
+cd ../repo-cp-example-001</code></pre>
+              <p>No second writer modifies that filesystem. If the application uses mutable runtime resources, the path also receives its own profile, port, cache, database, or socket.</p>
+              <div class="foundation-ribbon"><strong>Foundation</strong><span>Branches isolate committed history; worktrees isolate live files.</span><button class="explain-link" type="button" data-note="note-git">See branch, rebase, remote, and worktree visually</button></div>
+
+              <h3>One step is one work unit</h3>
+<pre><code>implementation
+  + tests
+  + affected architecture/module documentation
+  + path ledger checkpoint
+  + refreshed handoff brief</code></pre>
+              <p>The unit should express one reviewable idea and leave the repository at a safe recovery point. Stage explicit files rather than an undifferentiated working tree.</p>
+
+              <h3>Run gates bare</h3>
+<pre><code>npm run cairn-check
+npm run typecheck && npm test && npm run build</code></pre>
+              <p>A gate's process exit code is its verdict. Do not pipe the first run through a filter that can replace that status.</p>
+              <div class="foundation-ribbon"><strong>Foundation</strong><a class="explain-link" href="#note-quality" data-note="note-quality">Tests, exit codes, continuous integration, blocking, and advisory — from zero</a></div>
+
+              <h3>Commit and push form one completion unit</h3>
+              <ol>
+                <li>Commit the coherent step on its path branch.</li>
+                <li>Push the commit immediately to the branch's upstream.</li>
+                <li>Record that remote commit in the ledger.</li>
+                <li>Only then report the step complete.</li>
+              </ol>
+              <blockquote><p>If pushing fails, the honest state is “implemented locally, not complete.”</p></blockquote>
+              <p>Every completed, pushed step is a safe session boundary. A fresh session reads the bootloader, active paths, path ledger, and handoff brief; checks them against Git; and begins the recorded next action without an oral recap.</p>
+            </section>
+
+            <section class="chapter wide" id="parallel" data-section data-label="Parallel paths">
+              <div class="chapter-head"><span class="chapter-num">07</span><div><h2>Parallel paths</h2><p class="chapter-kicker">Parallel work, structurally separate; integration, briefly ordered</p></div></div>
+              <p class="serif-lead">Cairn removes the permanent integrator by giving each path exclusive ownership and making the merge preconditions mechanical.</p>
+
+              <svg class="flow-svg" viewBox="0 0 900 330" role="img" aria-labelledby="parallel-title parallel-desc">
+                <title id="parallel-title">Three Cairn paths running in parallel and self-merging</title>
+                <desc id="parallel-desc">The trunk receives registration commits, three branches execute separately, then each contains the current trunk and merges itself in sequence.</desc>
+                <defs><marker id="parallel-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--teal)"/></marker></defs>
+                <path class="accent-line" marker-end="url(#parallel-arrow)" d="M55 165H845"/>
+                <text class="label" x="55" y="142">TRUNK</text>
+                <circle cx="145" cy="165" r="8" fill="var(--coral)"/><circle cx="245" cy="165" r="8" fill="var(--coral)"/><circle cx="345" cy="165" r="8" fill="var(--coral)"/>
+                <text class="small" x="145" y="188" text-anchor="middle">register A</text><text class="small" x="245" y="188" text-anchor="middle">register B</text><text class="small" x="345" y="188" text-anchor="middle">register C</text>
+                <path class="line" d="M145 165C175 165 175 50 220 50H560C590 50 600 165 630 165"/>
+                <path class="line" d="M245 165C275 165 275 95 320 95H650C680 95 690 165 720 165"/>
+                <path class="line" d="M345 165C375 165 375 280 420 280H735C765 280 780 165 810 165"/>
+                <rect class="node" x="230" y="28" width="310" height="44" rx="10"/><text class="label" x="385" y="54" text-anchor="middle">PATH A · WORKTREE A · WRITER A</text>
+                <rect class="node" x="330" y="73" width="310" height="44" rx="10"/><text class="label" x="485" y="99" text-anchor="middle">PATH B · WORKTREE B · WRITER B</text>
+                <rect class="node" x="430" y="258" width="290" height="44" rx="10"/><text class="label" x="575" y="284" text-anchor="middle">PATH C · WORKTREE C · WRITER C</text>
+                <text class="small" x="630" y="143" text-anchor="middle">self-merge A</text><text class="small" x="720" y="143" text-anchor="middle">self-merge B</text><text class="small" x="810" y="143" text-anchor="middle">self-merge C</text>
+              </svg>
+
+              <div class="foundation-ribbon"><strong>Foundation</strong><a class="explain-link" href="#note-parallel" data-note="note-parallel">Why one shared status file can become wrong even when Git merges it cleanly</a></div>
+
+              <h3>Avoid shared evolving files</h3>
+              <div class="cards">
+                <div class="mini-card"><span class="mini-num">GENERATE</span><h3>Aggregate views</h3><p><code>ACTIVE.md</code> is regenerated from registered path declarations. Writers edit inputs, never the view.</p></div>
+                <div class="mini-card"><span class="mini-num">PARTITION</span><h3>Append-only records</h3><p>Journal entries, audits, sessions, and rolled steps receive path-specific filenames.</p></div>
+                <div class="mini-card"><span class="mini-num">SIGNAL</span><h3>Expected overlap</h3><p><code>writes:</code> reveals likely collision but remains advisory so discovery can widen honestly.</p></div>
+              </div>
+
+              <h3>Serialise integration, not work</h3>
+              <p>Paths execute together. When one merges, the next rebases on the new trunk and reruns its gates. The protocol serialises a short integration boundary instead of appointing a person to serialise all work.</p>
+            </section>
+
+            <section class="chapter" id="closing" data-section data-label="Closing and self-merge">
+              <div class="chapter-head"><span class="chapter-num">08</span><div><h2>Closing and self-merge</h2><p class="chapter-kicker">Human acceptance, current ancestry, green gates, recorded judgement</p></div></div>
+              <p class="serif-lead">Closing converts branch-owned execution state into an accepted trunk result. Each condition leaves a durable artifact or an objective verdict.</p>
+
+              <ol>
+                <li><strong>Closing ceremony.</strong> The owner accepts the delivered result in a record declaring <code>ceremony: closing</code>.</li>
+                <li><strong>Rebase.</strong> Replay the path on the current trunk so path <code>HEAD</code> contains the trunk tip.</li>
+                <li><strong>Quality gates.</strong> Run protocol and product checks on that rebased result.</li>
+                <li><strong>Coherence audit.</strong> Review the diff against accepted architecture, ADRs, coverage, and overlapping paths.</li>
+                <li><strong>Complete the record.</strong> Set <code>status: done</code> in the merge unit.</li>
+                <li><strong>Self-merge.</strong> Merge the path into the trunk and push the trunk immediately.</li>
+                <li><strong>Verify and clean.</strong> Prove the remote merge, then remove the exact clean secondary worktree from another checkout.</li>
+              </ol>
+
+              <h3>The rebase gate</h3>
+<pre><code>current trunk tip is an ancestor of path HEAD</code></pre>
+              <p>A rebase produces new commit ids. When the old path commits were already pushed, use <code>--force-with-lease</code>, record the pre- and post-rebase heads, and never use blind <code>--force</code>.</p>
+              <button class="explain-link" type="button" data-note="note-git">Open the rebase and ancestry explanation</button>
+
+              <h3>The coherence audit</h3>
+              <p>A reviewer or agent produces the judgement. The checker verifies only that a filled record is bound to the path's own work. Its verdict remains advisory because architecture cannot be reduced to a deterministic exit code.</p>
+              <button class="explain-link" type="button" data-note="note-audit">See how judgement and mechanical proof are separated</button>
+
+              <h3>Safe cleanup</h3>
+              <p>Cleanup begins only after the merge commit is proven on the remote trunk. From another checkout, resolve the exact secondary worktree, require an empty Git status, remove it without <code>--force</code>, and verify its folder and registration are absent.</p>
+              <div class="rule-card"><span class="card-label">Branch retention</span><p>The worktree is disposable. The local and remote path branch should remain as the online per-step history. Worktree removal and branch deletion are separate decisions.</p></div>
+              <blockquote><p>If cleanup fails after a proven merge: “merge complete; cleanup incomplete.” Leave the directory intact.</p></blockquote>
+            </section>
+
+            <section class="chapter" id="human-records" data-section data-label="Human records">
+              <div class="chapter-head"><span class="chapter-num">09</span><div><h2>Human records</h2><p class="chapter-kicker">Persist judgement without pretending to automate it</p></div></div>
+
+              <p class="serif-lead">Cairn turns an acceptance or architectural read into an inspectable file, then limits the checker to facts that file can honestly support.</p>
+
+              <h3>Ceremony identity</h3>
+<pre><code>path: CP-EXAMPLE-001
+ceremony: closing</code></pre>
+              <p>The two fields are root-level and matched exactly. A filename remains a navigation aid; metadata defines the proposition. The opening and closing records contain the decision, responses, amendments, and remaining direction in human-readable Markdown.</p>
+
+              <h3>Architecture decisions</h3>
+              <p>Accepted doctrine belongs in <code>docs/architecture/</code>. A change to that doctrine should carry an ADR in <code>docs/adr/</code>. A coding path executes accepted architecture; it must not hide a new architectural decision only in its ledger.</p>
+
+              <h3>Journal entry</h3>
+              <p>At merge time, the path creates one entry under <code>project/log/YYYY-MM-DD-&lt;path-id&gt;.md</code>. It names the integrated outcome and links to the path, closing record, audit, and decisions. One path writes one file, so parallel merges do not append to the same document.</p>
+              <p><button class="explain-link" type="button" data-note="note-human-template">Open all three record templates</button></p>
+            </section>
+
+            <section class="chapter wide" id="enforcement" data-section data-label="Enforcement">
+              <div class="chapter-head"><span class="chapter-num">10</span><div><h2>Enforcement model</h2><p class="chapter-kicker">Block only on objective repository facts</p></div></div>
+
+              <div class="cards">
+                <div class="mini-card"><span class="chip blocking">Blocking</span><h3>Non-zero exit</h3><p>The condition is objective and its violation leaves the repository mechanically wrong.</p></div>
+                <div class="mini-card"><span class="chip advisory">Advisory</span><h3>Visible signal</h3><p>The finding may involve judgement, preference, age, likely scope, or an incomplete observer.</p></div>
+                <div class="mini-card"><span class="chip human">Human</span><h3>Recorded decision</h3><p>A person or agent judges; automation checks only identity, existence, binding, and minimum completeness.</p></div>
+              </div>
+
+              <blockquote><p>A rule may block only when the condition is objectively checkable <em>and</em> violating it leaves the repository in a mechanically wrong state.</p></blockquote>
+
+              <h3>Three enforcement tiers</h3>
+              <div class="table-wrap">
+                <table><thead><tr><th>Tier</th><th>Installed mechanism</th><th>Honest claim</th></tr></thead><tbody>
+                  <tr><td><code>local</code></td><td>Local command only</td><td>The checker reports; no host is required.</td></tr>
+                  <tr><td><code>ci</code></td><td>Workflow on trunk and <code>path/**</code></td><td>CI observes and publishes; a direct merge may bypass it.</td></tr>
+                  <tr><td><code>protected</code></td><td>Host requires the CI checks</td><td>The host prevents a failing change from merging.</td></tr>
+                </tbody></table>
+              </div>
+              <p>Only <code>local</code> is required. The checker prints the configured tier so documentation never claims prevention when the host only observes.</p>
+              <button class="explain-link" type="button" data-note="note-config">Open the canonical <code>cairn.config.json</code></button>
+
+              <h3>Mechanical input boundary</h3>
+              <p>The checker may use Git refs and ancestry, filesystem paths, frontmatter fields, changed-file sets, globs, exit codes, declared host variables, and wall-clock age for advisory notices. A non-deterministic model verdict must not control a blocking exit.</p>
+
+              <h3>Unknown is not success</h3>
+              <p>If a guarded rule cannot identify the subject it must report that condition instead of silently skipping. When missing information is legitimate, unknown stays unknown: an unresolvable branch is neither stale nor fresh.</p>
+
+              <h3>Executable documentation</h3>
+              <p>Derived facts should be generated. Published templates should be parsed by tests. The detailed rule table in the Markdown source is generated from the checker and compared by the test suite.</p>
+            </section>
+
+            <section class="chapter" id="operator" data-section data-label="Operator sequence">
+              <div class="chapter-head"><span class="chapter-num">11</span><div><h2>Operator sequence</h2><p class="chapter-kicker">The compact daily route after the model is understood</p></div></div>
+
+              <h3>Open</h3>
+<pre><code>opening check
+  → opening record
+  → running path declaration on current trunk
+  → regenerate ACTIVE.md
+  → cairn-check
+  → metadata-only registration commit
+  → push trunk
+  → create branch + worktree</code></pre>
+
+              <h3>Execute each step</h3>
+<pre><code>code + tests + docs + ledger + handoff brief
+  → run gates bare
+  → commit explicit files
+  → push immediately
+  → record remote checkpoint
+  → continue or resume next step in a fresh session</code></pre>
+
+              <h3>Close</h3>
+<pre><code>closing ceremony
+  → rebase on current trunk
+  → product gates + cairn-check
+  → coherence audit
+  → status: done
+  → push path
+  → self-merge + push trunk
+  → verify remote merge
+  → remove exact clean worktree without force
+  → retain branch</code></pre>
+              <p><button class="explain-link" type="button" data-note="note-operations">Open the copy-ready Git and Cairn commands</button></p>
+            </section>
+
+            <section class="chapter" id="guarantees" data-section data-label="Guarantees and limits">
+              <div class="chapter-head"><span class="chapter-num">12</span><div><h2>Guarantees and limits</h2><p class="chapter-kicker">State the strongest supported fact — no more, no less</p></div></div>
+
+              <h3>What conformance gives you</h3>
+              <ul>
+                <li>Every implementation belongs to an accepted, bounded path.</li>
+                <li>Every running path is visible from the trunk before its branch diverges.</li>
+                <li>Parallel writers do not share a working directory.</li>
+                <li>Every completed step has local and remote Git recovery points.</li>
+                <li>Every session can resume from durable repository state.</li>
+                <li>Owner acceptance is recorded at opening and closing.</li>
+                <li>Integration begins only from a path containing the current trunk tip.</li>
+                <li>Mechanical facts and human judgements remain visibly distinct.</li>
+                <li>Portfolio views derive from path-owned records.</li>
+                <li>Merge verification and local cleanup end with explicit outcomes.</li>
+              </ul>
+
+              <h3>What Cairn does not prove</h3>
+              <div class="limit-card"><span class="card-label">Boundary of evidence</span><ul>
+                <li>that an acceptance was wise or an audit conclusion was correct;</li>
+                <li>that checkpoint prose is accurate merely because its file changed;</li>
+                <li>that a recorded base commit describes the intended moment unless explicitly validated;</li>
+                <li>that every commit was pushed immediately — the final graph cannot reconstruct push cadence;</li>
+                <li>that a deleted worktree was clean after repository CI can no longer observe it;</li>
+                <li>that a green test suite covers a behaviour nobody thought to test.</li>
+              </ul></div>
+              <p>These are boundaries, not hidden promises. Cairn records the strongest fact its inputs support and leaves judgement visible where judgement remains.</p>
+            </section>
+
+            <section class="chapter wide" id="rules" data-section data-label="Rule catalogue">
+              <div class="chapter-head"><span class="chapter-num">13</span><div><h2>Rule catalogue</h2><p class="chapter-kicker">Eighteen named checks, grouped by effect</p></div></div>
+              <p>This HTML table presents one row per rule name. The canonical Markdown table is generated from the checker source and may show the same name at two levels when context changes its effect.</p>
+
+              <div class="table-wrap">
+                <table id="rule-table">
+                  <thead><tr><th>Rule</th><th>What it asks</th><th>Effect</th></tr></thead>
+                  <tbody>
+                    <tr data-rule="branch-identity"><td><code>branch-identity</code></td><td>Can the branch-scoped checker identify its subject?</td><td><span class="chip blocking">Blocking</span> guarded source · otherwise <span class="chip advisory">Advisory</span></td></tr>
+                    <tr data-rule="branch-path"><td><code>branch-path</code></td><td>Does this path branch join to a conforming path declaration?</td><td><span class="chip blocking">Blocking</span></td></tr>
+                    <tr data-rule="registration"><td><code>registration</code></td><td>Does the matching running identity tuple exist on the trunk?</td><td><span class="chip blocking">Blocking</span> · declared migration <span class="chip advisory">Advisory</span></td></tr>
+                    <tr data-rule="rebase"><td><code>rebase</code></td><td>Is the current trunk tip an ancestor of path <code>HEAD</code>?</td><td><span class="chip blocking">Blocking</span></td></tr>
+                    <tr data-rule="opening-ceremony"><td><code>opening-ceremony</code></td><td>Does a running path have its exact opening record?</td><td><span class="chip blocking">Blocking</span> · declared migration <span class="chip advisory">Advisory</span></td></tr>
+                    <tr data-rule="ceremony"><td><code>ceremony</code></td><td>Does a done path have its exact closing record?</td><td><span class="chip blocking">Blocking</span></td></tr>
+                    <tr data-rule="same-work-unit"><td><code>same-work-unit</code></td><td>Did guarded source change with its module note and coding path?</td><td><span class="chip blocking">Blocking</span></td></tr>
+                    <tr data-rule="schema"><td><code>schema</code></td><td>Do path and decision records parse and use allowed identities, states, and dates?</td><td><span class="chip blocking">Blocking</span></td></tr>
+                    <tr data-rule="links"><td><code>links</code></td><td>Do relative documentation links resolve after examples are excluded?</td><td><span class="chip blocking">Blocking</span></td></tr>
+                    <tr data-rule="derived-view"><td><code>derived-view</code></td><td>Does the generated running-path block equal its regeneration?</td><td><span class="chip blocking">Blocking</span> on trunk</td></tr>
+                    <tr data-rule="remote-checkpoint"><td><code>remote-checkpoint</code></td><td>Is local path <code>HEAD</code> present on its upstream branch?</td><td><span class="chip advisory">Advisory</span></td></tr>
+                    <tr data-rule="coherence-audit"><td><code>coherence-audit</code></td><td>Does a filled audit bind to a commit contributed by this path?</td><td><span class="chip advisory">Advisory</span></td></tr>
+                    <tr data-rule="scope-drift"><td><code>scope-drift</code></td><td>Which changed files fall outside the declared <code>writes:</code> globs?</td><td><span class="chip advisory">Advisory</span></td></tr>
+                    <tr data-rule="ledger-size"><td><code>ledger-size</code></td><td>Does a changed live path exceed its configured reading budget?</td><td><span class="chip advisory">Advisory</span></td></tr>
+                    <tr data-rule="path-staleness"><td><code>path-staleness</code></td><td>Has a resolvable running branch been quiet beyond the configured window?</td><td><span class="chip advisory">Advisory</span></td></tr>
+                    <tr data-rule="single-truth"><td><code>single-truth</code></td><td>Was a generated or shared statement of record hand-edited?</td><td><span class="chip advisory">Advisory</span></td></tr>
+                    <tr data-rule="area-note"><td><code>area-note</code></td><td>Did a configured source area change without its module note?</td><td><span class="chip advisory">Advisory</span></td></tr>
+                    <tr data-rule="decision-drift"><td><code>decision-drift</code></td><td>Did accepted architecture change without an ADR beside it?</td><td><span class="chip advisory">Advisory</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="chapter" id="map" data-section data-label="Reading map">
+              <div class="chapter-head"><span class="chapter-num">14</span><div><h2>Reading and implementation map</h2><p class="chapter-kicker">Deepen one concept or reconstruct the entire protocol</p></div></div>
+
+              <h3>Learn at the point of need</h3>
+              <div class="cards">
+                <button class="mini-card note-link" type="button" data-note="note-git"><span class="mini-num">FOUNDATION</span><h3>Git and history</h3><p>Repository, commit, branch, remote, merge, rebase, worktree.</p></button>
+                <button class="mini-card note-link" type="button" data-note="note-quality"><span class="mini-num">FOUNDATION</span><h3>Quality and gates</h3><p>Tests, exit codes, CI, blocking and advisory.</p></button>
+                <button class="mini-card note-link" type="button" data-note="note-parallel"><span class="mini-num">FOUNDATION</span><h3>Parallel work</h3><p>Ownership, namespaces, generated aggregates, integration.</p></button>
+              </div>
+
+              <h3>Reconstruct or operate</h3>
+              <div class="cards">
+                <button class="mini-card note-link" type="button" data-note="note-layout"><span class="mini-num">REFERENCE</span><h3>File tree</h3><p>Every folder, name, owner, and derived relation.</p></button>
+                <button class="mini-card note-link" type="button" data-note="note-path-template"><span class="mini-num">REFERENCE</span><h3>Path schema</h3><p>The complete path, coverage, steps, ledger, and checkpoint.</p></button>
+                <button class="mini-card note-link" type="button" data-note="note-operations"><span class="mini-num">REFERENCE</span><h3>Commands</h3><p>Register, isolate, checkpoint, rebase, merge, verify, clean.</p></button>
+              </div>
+
+              <p class="footer-note"><strong>Canonical source:</strong> <a href="./specification/index.md">docs/cairn/specification/index.md</a>. This self-contained HTML file packages the same top-down model and its contextual notes for offline reading and sharing. The Markdown project remains the editable source and the form Atomik opens natively.</p>
+            </section>
+          </div>
+        </article>
+        <section class="foundation-library" id="foundation-library" aria-labelledby="foundation-library-title">
+          <h2 id="foundation-library-title">Foundation and reference library</h2>
+          <p>JavaScript is unavailable, so the contextual notes are shown in sequence. The canonical specification remains above.</p>
+          <article class="foundation-card" id="note-git" data-kind="Foundation" data-title="Git and project history">
+            <h2>Git and project history</h2>
+            <p>A <strong>repository</strong> is a project folder plus a Git history database. Git saves the project as linked snapshots called <strong>commits</strong>, not as a pile of renamed copies.</p>
+            <h3>Commit and hash</h3>
+            <p>A commit stores every tracked file, a message, metadata, and a link to its parent. Its identifier is computed from that material, so one short id identifies both the snapshot and the history behind it.</p>
+<pre><code>a1b2c3d ──► d4e5f6a ──► 7a8b9c0
+  setup        parse         display</code></pre>
+            <h3>Branch and trunk</h3>
+            <p>A branch is a movable name pointing at one commit. The shared main branch is the <strong>trunk</strong>. Cairn gives each path its own branch, conventionally <code>path/&lt;id&gt;</code>.</p>
+            <h3>Remote and push</h3>
+            <p>A commit exists on the current machine. A remote is another reachable copy of the repository. Pushing creates the remote recovery point Cairn requires before a step is complete.</p>
+            <h3>Merge, conflict, and rebase</h3>
+            <p>A merge combines two histories. A conflict is Git refusing to guess when both sides changed the same region. A rebase replays path commits on top of a newer trunk, producing new ids; Cairn uses it to ensure the path contains the current trunk before self-merge.</p>
+            <h3>Worktree</h3>
+            <p>A worktree is a second working directory for another branch of the same repository. It isolates live files and uncommitted changes. Runtime ports, profiles, caches, and databases may still need their own identity.</p>
+            <a class="context-source" href="./specification/foundations/git-and-history.md">Open the complete Markdown foundation ↗</a>
+          </article>
+
+          <article class="foundation-card" id="note-durable" data-kind="Foundation" data-title="Durable project state">
+            <h2>Durable project state</h2>
+            <p>Code describes machine behaviour. It does not automatically preserve why a choice was made, what is partly complete, or what the next session must do. Cairn puts those answers in version-controlled files.</p>
+            <h3>Three planes</h3>
+<pre><code>knowledge plane         architecture, decisions, module notes
+execution-state plane   paths, ledgers, sessions, audits, briefs
+ephemeral context       one conversation or running process</code></pre>
+            <h3>Three authority shapes</h3>
+            <p><strong>Canonical files</strong> are intentionally edited when their represented state changes. <strong>Generated views</strong> are rebuilt from canonical inputs and never repaired independently. <strong>Disposable projections</strong>, such as handoff briefs, accelerate reading but can always be recreated from the ledger.</p>
+            <h3>Durable is not true</h3>
+            <p>Git proves that text was recorded in a snapshot. It does not prove the text is accurate. Tests, evidence, review, and later correction still decide that. Cairn never promotes file existence into a semantic guarantee it cannot support.</p>
+            <h3>Progressive disclosure</h3>
+<pre><code>AGENTS.md
+  → project/index.md
+  → active path
+  → one path ledger
+  → only the governing documents it names</code></pre>
+            <a class="context-source" href="./specification/foundations/durable-state.md">Open the complete Markdown foundation ↗</a>
+          </article>
+
+          <article class="foundation-card" id="note-metadata" data-kind="Foundation" data-title="Metadata and machine-readable records">
+            <h2>Metadata and records</h2>
+            <p>Markdown remains readable as plain text. <strong>Frontmatter</strong> adds a small machine-readable block at the start:</p>
+<pre><code>---
+type: Cairn Session Record
+title: CP-EXAMPLE-001 closing ceremony
+path: CP-EXAMPLE-001
+ceremony: closing
+---</code></pre>
+            <h3>Schema, not style</h3>
+            <p>A schema defines field locations and allowed values. Root-level <code>path:</code> and <code>ceremony:</code> are part of the ceremony contract. Exact matching prevents one path id from satisfying a record about another.</p>
+            <h3>Judgement becomes an artifact</h3>
+            <p>“The owner accepts this” cannot be recomputed by a script. “A record for this exact path declares the acceptance” can. Cairn checks the latter and leaves the quality of the former to people.</p>
+            <h3>Executable documentation</h3>
+            <p>A published template should be parsed by a test. A published table that can be derived should be generated. This makes the documentation and implementation fail together instead of drifting silently.</p>
+            <a class="context-source" href="./specification/foundations/metadata-and-records.md">Open the complete Markdown foundation ↗</a>
+          </article>
+
+          <article class="foundation-card" id="note-quality" data-kind="Foundation" data-title="Tests, automation, and gates">
+            <h2>Tests, automation, and gates</h2>
+            <h3>Test</h3>
+            <p>A test runs code and checks an expected answer. A regression test preserves an identified behaviour or edge case. A green suite means every implemented check passed; it does not cover cases nobody thought to express.</p>
+            <h3>Exit code</h3>
+<pre><code>0       success
+nonzero failure or another exceptional outcome</code></pre>
+            <p>Automation uses this integer as the verdict. A shell pipeline may expose the final filter's code rather than the check's, so Cairn gates run directly before output is filtered.</p>
+            <h3>Continuous integration</h3>
+            <p>CI checks out the repository in a clean environment and runs the checks for relevant changes. This tests reproducibility and removes “remember to run it” from the workflow.</p>
+            <h3>Blocking and advisory</h3>
+            <p>A blocking finding changes the exit code and must be objectively checkable. An advisory finding stays visible without stopping work. Importance does not decide the tier; the strength of evidence does.</p>
+            <h3>Deployment tiers</h3>
+<pre><code>local       checker runs without a host
+ci          remote runner publishes the verdict
+protected   host requires the verdict before merge</code></pre>
+            <a class="context-source" href="./specification/foundations/quality-and-gates.md">Open the complete Markdown foundation ↗</a>
+          </article>
+
+          <article class="foundation-card" id="note-parallel" data-kind="Foundation" data-title="Parallel work by structure">
+            <h2>Parallel work by structure</h2>
+            <p>Branches isolate committed histories. Worktrees isolate live files. Runtime identities isolate mutable ports, profiles, caches, and databases.</p>
+            <h3>The shared-summary trap</h3>
+            <p>Two writers can update different lines of one status file and Git can merge both edits cleanly into a summary that contradicts itself. No syntax or conflict detector can recognize that cross-line semantic failure.</p>
+            <h3>Generate or partition</h3>
+            <p>Cairn generates aggregate views from path-owned declarations. For append-oriented records it partitions the namespace: one journal entry, audit, session record, or rolled step per owning path.</p>
+            <h3>Register identity before divergence</h3>
+            <p>A checkout cannot scan files that exist only on sibling branches. The stable path tuple is published on the common trunk before its implementation branch exists, so every checkout can discover the work.</p>
+            <h3>Order only integration</h3>
+            <p>Paths work in parallel. They merge in sequence because each next path rebases on the newest trunk and reruns its checks. Seconds of integration are serial; days of work are not.</p>
+            <a class="context-source" href="./specification/foundations/parallel-work.md">Open the complete Markdown foundation ↗</a>
+          </article>
+
+          <article class="foundation-card" id="note-audit" data-kind="Foundation" data-title="How the coherence audit stays honest">
+            <h2>How the coherence audit stays honest</h2>
+            <p>Architectural coherence matters, but it is a judgement rather than a stable function of bytes. Cairn splits the activity from the deterministic check around it.</p>
+<pre><code>reviewer or agent
+  reads the rebased diff + architecture + ADRs + coverage
+  → writes a path-and-commit-bound judgement
+
+checker
+  verifies identity + binding + outcome + substantive answer
+  → never decides whether the conclusion is wise</code></pre>
+            <h3>Why the verdict is advisory</h3>
+            <p>A blocking model verdict could vary between runs, require credentials, and prevent legitimate work without a mechanical repair. A filled audit is still valuable: it makes the judgement inspectable and gives the owner a concrete finding to challenge.</p>
+            <h3>Minimum record</h3>
+            <ul><li>exact path and branch;</li><li>a commit from that path's own work;</li><li>an allowed outcome;</li><li>at least one substantive response to the audit prompts.</li></ul>
+            <a class="context-source" href="./specification/reference/human-records.md">Open the audit template ↗</a>
+          </article>
+
+          <article class="foundation-card" id="note-layout" data-kind="Reference" data-title="Canonical repository layout">
+            <h2>Canonical repository layout</h2>
+<pre><code>repository/
+├── AGENTS.md
+├── cairn.config.json
+├── src/ …
+├── docs/
+│   ├── architecture/
+│   ├── adr/
+│   └── modules/
+└── project/
+    ├── index.md
+    ├── coding-paths/
+    │   ├── index.md
+    │   ├── ACTIVE.md
+    │   ├── CP-EXAMPLE-001.md
+    │   └── history/CP-EXAMPLE-001-S01.md
+    ├── sessions/YYYY-MM-DD-cp-example-001-opening.md
+    ├── audits/cp-example-001-a1b2c3d.md
+    ├── briefs/cp-example-001-handoff.md
+    └── log/YYYY-MM-DD-cp-example-001.md</code></pre>
+            <h3>Naming</h3>
+            <ul><li><code>CP-ROADMAP-010</code> for roadmap-numbered work;</li><li><code>CP-SEARCH</code> for named bounded work;</li><li><code>path/cp-search</code> for its branch;</li><li>path id + date or commit in append-only record filenames.</li></ul>
+            <h3>Ownership</h3>
+            <p>One path writer owns its path and brief. Generators own derived views. Architecture and ADRs change deliberately. Sessions, audits, history, and journal entries receive unique filenames instead of shared append points.</p>
+            <a class="context-source" href="./specification/reference/repository-layout.md">Open the annotated Markdown layout ↗</a>
+          </article>
+
+          <article class="foundation-card" id="note-path-template" data-kind="Reference" data-title="Coding-path template">
+            <h2>Coding-path template</h2>
+<pre><code>---
+type: Cairn Coding Path
+title: Short outcome-oriented title
+description: One sentence stating the bounded result.
+cairn:
+  id: CP-EXAMPLE-001
+  status: draft
+  current_step: S01
+  base_commit: null
+  branch: path/cp-example-001
+  writes:
+    - src/example/**
+    - docs/modules/example.md
+---
+
+# CP-EXAMPLE-001 — Short title
+
+## Goal
+## Definition of done
+
+## Documentation coverage
+### Required
+### Conditional
+### Deliberately excluded
+
+## Execution
+- [ ] S01 — first coherent result
+- [ ] S02 — second coherent result
+
+## Work ledger
+### S01 — title
+#### Intent
+#### Work
+#### Verification
+#### Checkpoint
+
+## Current checkpoint
+base commit :
+branch      :
+remote      :
+gates       :
+session     :
+next action :
+blockers    :
+cleanup plan:
+
+## Blockers</code></pre>
+            <p>Activation changes the status to <code>running</code> and pins the base. Completion changes it to <code>done</code> in the merge unit. Abandonment goes directly to <code>archived</code>.</p>
+            <a class="context-source" href="./specification/reference/path-template.md">Open the complete copy-ready Markdown template ↗</a>
+          </article>
+
+          <article class="foundation-card" id="note-human-template" data-kind="Reference" data-title="Opening, closing, and audit records">
+            <h2>Human record templates</h2>
+            <h3>Opening</h3>
+<pre><code>---
+type: Cairn Session Record
+title: CP-EXAMPLE-001 opening check
+path: CP-EXAMPLE-001
+branch: path/cp-example-001
+ceremony: opening
+---
+
+## Proposed outcome
+## Feature checks
+## Scope and exclusions
+## Decision
+Accepted for registration: yes | no</code></pre>
+            <h3>Closing</h3>
+<pre><code>---
+type: Cairn Session Record
+title: CP-EXAMPLE-001 closing ceremony
+path: CP-EXAMPLE-001
+branch: path/cp-example-001
+ceremony: closing
+---
+
+## Recall
+## Owner review
+## Decision
+Accepted for closure: yes | no</code></pre>
+            <h3>Coherence audit</h3>
+<pre><code>cairn:
+  path: CP-EXAMPLE-001
+  branch: path/cp-example-001
+  head: a1b2c3d4e5f6
+  base: origin/main
+  verdict: clean</code></pre>
+            <p>The audit answers prompts about decision conflicts, duplicated work, undocumented architecture, and statements with two sources of truth.</p>
+            <a class="context-source" href="./specification/reference/human-records.md">Open all complete record templates ↗</a>
+          </article>
+
+          <article class="foundation-card" id="note-config" data-kind="Reference" data-title="cairn.config.json">
+            <h2><code>cairn.config.json</code></h2>
+<pre><code>{
+  "$schema": "./tools/cairn-config.schema.json",
+  "version": 1,
+  "trunk": "main",
+  "enforcement": "local",
+  "metadataNamespace": "cairn",
+  "roots": {
+    "project": "project",
+    "architecture": "docs/architecture",
+    "decisions": "docs/adr",
+    "modules": "docs/modules",
+    "source": ["src"]
+  },
+  "areas": [
+    { "match": "src/**", "note": "docs/modules/core.md" }
+  ],
+  "staleAfterDays": 14
+}</code></pre>
+            <p>Configuration binds protocol roles to repository names. It must not change semantics. The checker validates the file, uses its roots and trunk everywhere, and prints the declared enforcement tier.</p>
+            <a class="context-source" href="./specification/reference/configuration.md">Open field-by-field configuration reference ↗</a>
+          </article>
+
+          <article class="foundation-card" id="note-operations" data-kind="Reference" data-title="Cairn operations">
+            <h2>Cairn operations</h2>
+            <h3>Register</h3>
+<pre><code>git switch main
+npm run cairn-active
+npm run cairn-check
+git add project/coding-paths/CP-EXAMPLE-001.md
+git add project/coding-paths/ACTIVE.md
+git add project/sessions/YYYY-MM-DD-cp-example-001-opening.md
+git commit -m "Register CP-EXAMPLE-001 before branching"
+git push origin main</code></pre>
+            <h3>Complete a step</h3>
+<pre><code>npm run cairn-check
+npm run typecheck && npm test && npm run build
+git add &lt;explicit work-unit paths&gt;
+git commit -m "CP-EXAMPLE-001 S01: coherent outcome"
+git push origin path/cp-example-001</code></pre>
+            <h3>Rebase and self-merge</h3>
+<pre><code>git fetch origin main
+git rebase origin/main
+npm run cairn-check -- --base origin/main
+npm run typecheck && npm test && npm run build
+npm run cairn-audit
+# fill audit, set status: done, commit and push
+git switch main
+git merge --no-ff path/cp-example-001
+git push origin main</code></pre>
+            <h3>Verify and remove</h3>
+<pre><code>git fetch origin main
+git merge-base --is-ancestor &lt;merge&gt; origin/main
+git worktree list --porcelain
+git -C /exact/path status --porcelain=v1
+git worktree remove /exact/path
+test ! -e /exact/path</code></pre>
+            <a class="context-source" href="./specification/reference/operations.md">Open the complete command reference and safety notes ↗</a>
+          </article>
+
+          <article class="foundation-card" id="note-glossary" data-kind="Reference" data-title="Essential glossary">
+            <h2>Essential glossary</h2>
+            <div class="table-wrap"><table><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody>
+              <tr><td><strong>Coding path</strong></td><td>One accepted bounded task represented by a path file.</td></tr>
+              <tr><td><strong>Identity tuple</strong></td><td>Path id, status, branch, and base commit registered on the trunk.</td></tr>
+              <tr><td><strong>Work ledger</strong></td><td>Append-only execution record inside the path.</td></tr>
+              <tr><td><strong>Checkpoint</strong></td><td>Current verified state, remote commit, next action, and blockers.</td></tr>
+              <tr><td><strong>Registration</strong></td><td>Metadata-only trunk commit publishing a running path before branching.</td></tr>
+              <tr><td><strong>Rebase gate</strong></td><td>Requirement that path <code>HEAD</code> contain the current trunk tip.</td></tr>
+              <tr><td><strong>Self-merge</strong></td><td>The path integrates its own accepted and verified result.</td></tr>
+              <tr><td><strong>Generated view</strong></td><td>A file derived deterministically from canonical inputs.</td></tr>
+              <tr><td><strong>Blocking</strong></td><td>Objective finding that contributes to a non-zero exit.</td></tr>
+              <tr><td><strong>Advisory</strong></td><td>Visible finding that never changes the exit code.</td></tr>
+            </tbody></table></div>
+            <a class="context-source" href="./specification/reference/glossary.md">Open the complete glossary ↗</a>
+          </article>
+        </section>
+      </div>
+    </main>
+
+    <button class="scrim" id="scrim" type="button" aria-label="Close open panel" title="Close open panel"></button>
+
+    <aside class="context-pane" id="context-pane" aria-label="Contextual explanation" aria-hidden="true">
+      <div class="context-head">
+        <div class="context-heading"><span class="context-kind" id="context-kind">Foundation</span><strong class="context-title" id="context-title">Choose a linked concept</strong></div>
+        <button class="icon-button context-close" id="context-close" type="button" aria-label="Close contextual explanation" title="Close contextual explanation">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15"/></svg>
+        </button>
+      </div>
+      <div class="context-body" id="context-body" tabindex="-1"></div>
+    </aside>
+  </div>
+
+  <script>
+    (() => {
+      const body = document.body
+      const root = document.documentElement
+      const reading = document.getElementById('specification')
+      const contextPane = document.getElementById('context-pane')
+      const contextBody = document.getElementById('context-body')
+      const contextTitle = document.getElementById('context-title')
+      const contextKind = document.getElementById('context-kind')
+      const contextClose = document.getElementById('context-close')
+      const treeToggle = document.getElementById('tree-toggle')
+      const themeToggle = document.getElementById('theme-toggle')
+      const treeSearch = document.getElementById('tree-search')
+      const scrim = document.getElementById('scrim')
+      const progressBar = document.getElementById('progress-bar')
+      const currentCrumb = document.getElementById('current-crumb')
+      let lastTrigger = null
+
+      function setTheme(theme) {
+        root.dataset.theme = theme
+        const night = theme === 'night'
+        themeToggle.setAttribute('aria-pressed', String(night))
+        themeToggle.setAttribute('aria-label', night ? 'Switch to day theme' : 'Switch to night theme')
+        try { localStorage.setItem('cairn-spec-theme', theme) } catch (_) {}
+      }
+      setTheme(root.dataset.theme || 'day')
+      themeToggle.addEventListener('click', () => setTheme(root.dataset.theme === 'night' ? 'day' : 'night'))
+
+      function openNote(id, trigger) {
+        const source = document.getElementById(id)
+        if (!source) return
+        lastTrigger = trigger || document.activeElement
+        contextKind.textContent = source.dataset.kind || 'Foundation'
+        contextTitle.textContent = source.dataset.title || source.querySelector('h2')?.textContent || 'Explanation'
+        contextBody.innerHTML = source.innerHTML
+        contextBody.querySelectorAll('[id]').forEach((node) => node.removeAttribute('id'))
+        body.classList.add('note-open')
+        body.classList.remove('tree-open')
+        contextPane.setAttribute('aria-hidden', 'false')
+        treeToggle.setAttribute('aria-expanded', 'false')
+        contextClose.focus()
+      }
+      function closeNote({ restore = true } = {}) {
+        body.classList.remove('note-open')
+        contextPane.setAttribute('aria-hidden', 'true')
+        if (restore && lastTrigger && typeof lastTrigger.focus === 'function') lastTrigger.focus()
+      }
+      document.addEventListener('click', (event) => {
+        const trigger = event.target.closest('[data-note]')
+        if (!trigger) return
+        event.preventDefault()
+        openNote(trigger.dataset.note, trigger)
+      })
+      contextClose.addEventListener('click', () => closeNote())
+
+      treeToggle.addEventListener('click', () => {
+        const open = !body.classList.contains('tree-open')
+        body.classList.toggle('tree-open', open)
+        body.classList.remove('note-open')
+        contextPane.setAttribute('aria-hidden', 'true')
+        treeToggle.setAttribute('aria-expanded', String(open))
+      })
+      scrim.addEventListener('click', () => {
+        closeNote({ restore: false })
+        body.classList.remove('tree-open')
+        treeToggle.setAttribute('aria-expanded', 'false')
+      })
+      document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return
+        if (body.classList.contains('note-open')) closeNote()
+        else if (body.classList.contains('tree-open')) {
+          body.classList.remove('tree-open')
+          treeToggle.setAttribute('aria-expanded', 'false')
+          treeToggle.focus()
+        }
+      })
+
+      document.querySelectorAll('.section-link').forEach((link) => {
+        link.addEventListener('click', () => {
+          body.classList.remove('tree-open')
+          treeToggle.setAttribute('aria-expanded', 'false')
+        })
+      })
+
+      treeSearch.addEventListener('input', () => {
+        const query = treeSearch.value.trim().toLowerCase()
+        document.querySelectorAll('.tree-list li').forEach((item) => {
+          item.hidden = query !== '' && !item.textContent.toLowerCase().includes(query)
+        })
+        document.querySelectorAll('.tree-group').forEach((group) => {
+          if (query) group.open = true
+          group.hidden = [...group.querySelectorAll('.tree-list li')].every((item) => item.hidden)
+        })
+      })
+
+      const sections = [...document.querySelectorAll('[data-section]')]
+      const sectionLinks = new Map([...document.querySelectorAll('[data-section-link]')].map((link) => [link.dataset.sectionLink, link]))
+      const observer = new IntersectionObserver((entries) => {
+        const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]
+        if (!visible) return
+        const id = visible.target.id
+        sectionLinks.forEach((link, key) => link.removeAttribute('aria-current'))
+        const active = sectionLinks.get(id)
+        if (active) active.setAttribute('aria-current', 'location')
+        currentCrumb.textContent = visible.target.dataset.label || visible.target.querySelector('h2')?.textContent || id
+      }, { root: reading, rootMargin: '-18% 0px -68% 0px', threshold: [0, .1, .5] })
+      sections.forEach((section) => observer.observe(section))
+
+      reading.addEventListener('scroll', () => {
+        const max = reading.scrollHeight - reading.clientHeight
+        progressBar.style.width = `${max > 0 ? Math.min(100, (reading.scrollTop / max) * 100) : 0}%`
+      }, { passive: true })
+
+      document.querySelectorAll('pre').forEach((pre) => {
+        const button = document.createElement('button')
+        button.type = 'button'
+        button.className = 'copy-code'
+        button.textContent = 'copy'
+        button.setAttribute('aria-label', 'Copy code block')
+        button.title = 'Copy code block'
+        pre.append(button)
+      })
+      document.addEventListener('click', async (event) => {
+        const button = event.target.closest('.copy-code')
+        if (!button) return
+        const pre = button.closest('pre')
+        const text = pre?.querySelector('code')?.innerText || ''
+        try {
+          await navigator.clipboard.writeText(text)
+          button.textContent = 'copied'
+          setTimeout(() => { button.textContent = 'copy' }, 1200)
+        } catch (_) { button.textContent = 'select' }
+      })
+
+      const initial = location.hash.slice(1)
+      if (initial && document.getElementById(initial)?.classList.contains('foundation-card')) {
+        openNote(initial, null)
+      }
+    })()
+  </script>
+</body>
+</html>

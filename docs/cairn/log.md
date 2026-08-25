@@ -22,6 +22,22 @@ per entry in a `log/` subfolder — which was a concurrency fix, never a size on
 
 ## 2026-08-25
 
+- `S07e` **Canonical top-down rewrite on owner correction.** The competing
+  `handbook.*` and `anatomy.*` pairs are removed. They shared one design system
+  despite needing a new pedagogical one, and both organised the reader around
+  foundations before Cairn was fully visible. Their replacement is one
+  specification project under `specification/`: a normative `index.md` that
+  gives the complete protocol first, five linked newcomer foundations opened at
+  the point of need, and six copy-ready implementation references. The source
+  uses generic canonical names (`project/`, `docs/architecture/`, `main`,
+  `cairn:`) and contains no origin story, incident, migration, or repository-
+  specific exception. `specification.html` packages the same hierarchy into a
+  self-contained three-pane study desk: dark project tree, paper reading surface,
+  and a warm contextual lens that opens on the right. The theme, component
+  grammar, typography, information architecture, and interaction model are new;
+  the page is responsive, keyboard-operable, theme-aware, printable, and has a
+  no-JavaScript sequential fallback.
+
 - `S07d` Two owner corrections. **The bindings**: the handbook was writing
   `atomik-project/` into the protocol's prose, so a document about portability was teaching this
   repository's name as if it were Cairn. It now writes `project/`, with a Notation section

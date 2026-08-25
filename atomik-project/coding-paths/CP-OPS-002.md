@@ -17,6 +17,7 @@ atomik:
     - tools/cairn-audit.test.mjs
     - tools/cairn-rules.mjs
     - tools/cairn-rules.test.mjs
+    - tools/cairn-spec.test.mjs
     - tools/cairn-new.mjs
     - cairn.config.json
     - .github/workflows/cairn.yml
@@ -255,7 +256,7 @@ dated status banner naming what it renders and which file wins on disagreement.
   in Markdown; the page says so rather than pretending to be complete.
 - Structure validated by parser (no unclosed or mismatched tags); links resolve.
 
-### S07c — Redo: one handbook, universal, in its own theme *(owner correction)* — **COMPLETE**
+### S07c — Redo: one handbook, universal, in its own theme *(owner correction)* — **SUPERSEDED by S07e**
 
 `foundations.md`, `specification.md`, `lexicon.md` and `foundations.html` are deleted and
 replaced by **`docs/cairn/handbook.md`** and **`docs/cairn/handbook.html`**.
@@ -297,7 +298,7 @@ replaced by **`docs/cairn/handbook.md`** and **`docs/cairn/handbook.html`**.
   this document is about.
 - Suite 83/83, unchanged: the redo is documentation and one constant.
 
-### S07d — The binding names, and the document read downward *(owner, 2026-08-25)* — **COMPLETE**
+### S07d — The binding names, and the document read downward *(owner, 2026-08-25)* — **SUPERSEDED by S07e**
 
 Two owner corrections, one after the other.
 
@@ -355,6 +356,56 @@ foundation elements manipulated, create a second file"*.
   while the direction is legible at a glance, and adds two components the downward reading needs
   — a monospace `operation` block and a `cannot` rule.
 
+### S07e — Canonical top-down specification project and universal reader *(owner correction)* — **COMPLETE**
+
+> **Owner correction, 2026-08-25.** *"First of all, You use in both version the same
+> theme and design system since I told you to build a new one that fit more pedagogical
+> content. Then you produce an inversed specification of Cairn, talking about its
+> foundation and superficially linking it to Cairn… Make a specification of Cairn where
+> prior foundation concept manipulated are explained at the right time and for new
+> comers… The structure should be top down, with an emphasis of sharing the big picture
+> for then detailing the implementation. This is a canonical document, don't refer to
+> any past project or issues that resulted in new rules."*
+
+The correction changes the information architecture, source shape, and visual system — not
+just the order of existing sections.
+
+- **One canonical specification replaces two competing readings.** `handbook.md/html` and
+  `anatomy.md/html` are deleted. The first made readers assemble Cairn from general concepts;
+  the second inverted it into primitives and only then surfaced the protocol. Both answered a
+  different question from the one asked. The replacement is
+  `docs/cairn/specification/index.md`: Cairn's outcome, complete flow and three roles first;
+  project model, records, lifecycle and each phase next; enforcement, operations, guarantees
+  and rule catalogue last.
+- **Foundations arrive at first use, without becoming a second specification.** Five notes
+  under `specification/foundations/` explain Git, durable state, metadata, quality gates and
+  parallel work from zero. Six notes under `specification/reference/` carry the canonical
+  layout, copy-ready path and human-record templates, configuration, operations and glossary.
+  The main file explicitly owns every normative statement; linked notes clarify it and add no
+  rules. In Atomik, opening `docs/cairn/specification/` gives the requested project tree and
+  lets those links open beside `index.md`.
+- **Canonical, reconstructible names.** The specification uses the portable defaults
+  `project/`, `docs/architecture/`, `docs/adr/`, `docs/modules/`, `main`, `path/<id>`,
+  `cairn:` and `cairn.config.json`, then provides the whole repository tree, filename
+  conventions, ownership table, record schemas and commands. Its normative prose contains no
+  Atomik binding, path id from this repository, origin story, dated incident, legacy path, or
+  justification by past failure. Each rule is stated as what Cairn is and why its structure
+  follows.
+- **One universal HTML file, with a genuinely new pedagogical system.**
+  `docs/cairn/specification.html` is a self-contained three-pane “study desk”: a dark atlas/tree
+  at left, an opaque paper reading surface in the centre, and a warm contextual lens that opens
+  explanations or copy-ready references at right. It is not the old sans/one-accent handbook
+  recoloured: it has a new serif/sans/mono hierarchy, three surface identities, chapter blocks,
+  phase maps, rule/why/limit cards, embedded diagrams, scroll progress, tree filtering, contextual
+  drawers, code-copy controls, day/night themes and a print edition. Responsive drawers,
+  keyboard/Escape handling, named controls, focus treatment, reduced-motion handling and a
+  no-JavaScript sequential library make the interaction portable as well as the file.
+- **The documentation stays executable.** `SPEC_FILE` now points to the canonical
+  `specification/index.md`; its catalogue remains generated from the checker. A new specification
+  test pins the top-down heading order, portable vocabulary, every context-link target, every
+  tree target, exact equality between implemented and rendered HTML rule names, the three-pane
+  self-contained contract, and inline JavaScript syntax. Validator suite 83 → 90.
+
 ### S08 — Extract Cairn from Atomik
 
 Cairn is not portable today: `cairn-check.mjs` hardcodes `atomik-project/`, `apps/`,
@@ -390,14 +441,16 @@ brief names — and fix what the pilot finds before merging.
 | Status | `running` on `path/cp-ops-002` |
 | Base commit | `7aa3b1d` — registered on the trunk by `df875e6` before this branch existed |
 | Branch | `path/cp-ops-002`, worktree `../4tom1k-cp-ops-002`, `node_modules` symlinked |
-| Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane (`3df9073`) · **S05b** — the opening check gated, five more indexes (`d6b29f1`), the invented folder-log decision retracted on owner correction (`360f2be`) · **S05c** — the OKF pair completed: eighteen folder logs seeded from real Git history (`468bc24`) · **S06** — `index.html` rewritten against ADR-012, both HTML pages dated (`2a5ef35`) · **S06c** — the coherence audit bound to the commits its path contributed (`de4e0fa`) · **S06d** — the six stale worktrees and the orphan registration branch drained, `isFilled()` given something to measure, and a C-quoted path stopped hiding from the blocking rules (`9cbe605`, `6fa33e7`) · **S07a** — ADR-017 settles the path lifecycle; `active` retired, abandonment given a door, staleness noticed without blocking (`b4ef361`) · **S07** — the primer, the specification and the lexicon, written from zero for a scientist audience on the owner's amendment; the rule catalogue spliced and test-pinned (`1db06de`) · **S07b** — the primer rendered as a shareable page in the house style (`a585ca3`) · **S07c** — redo on owner correction: one universal handbook, in its own theme (`697778a`) · **S07d** — the binding names genericised to `project/`, and `anatomy.md` — the same material read downward |
+| Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane (`3df9073`) · **S05b** — the opening check gated, five more indexes (`d6b29f1`), the invented folder-log decision retracted on owner correction (`360f2be`) · **S05c** — the OKF pair completed: eighteen folder logs seeded from real Git history (`468bc24`) · **S06** — `index.html` rewritten against ADR-012, both HTML pages dated (`2a5ef35`) · **S06c** — the coherence audit bound to the commits its path contributed (`de4e0fa`) · **S06d** — the six stale worktrees and the orphan registration branch drained, `isFilled()` given something to measure, and a C-quoted path stopped hiding from the blocking rules (`9cbe605`, `6fa33e7`) · **S07a** — ADR-017 settles the path lifecycle; `active` retired, abandonment given a door, staleness noticed without blocking (`b4ef361`) · **S07 / S07b / S07c / S07d** — superseded specification attempts retained in this ledger · **S07e** — one canonical top-down specification project, linked newcomer foundations and implementation references, plus one self-contained three-pane universal reader |
 | Remaining | S08, S09 (S03 withdrawn by owner ruling; S06b rescoped and delivered inside S07 + S08 by ruling 9) |
 | Opening check | accepted 2026-08-24, eight rulings ([note](../sessions/2026-08-24-cp-ops-002-opening-check.md)) |
-| Gates at S07d | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 83/83 · HTML structure parser-validated · rolled records verified verbatim against `HEAD` by extraction and comparison |
+| Gates at S07e | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 90/90 · canonical catalogue generator current · HTML structure parser-validated · self-contained/targets/rules/inline-script contracts test-pinned · `npm run typecheck` PASS · product suite 1,101 passed / 1 skipped (1,102 total) · `npm run build` PASS |
 | Ledger rolled (S07c) | `ledger-size` fired at ~11 k tokens against the 10 k budget while this file was being edited — which is the only moment the rule is useful, and it worked. S00, S01, S03, S04, S05 (+S05b, S05c) and S06 (+S06b, S06c, S06d) moved **verbatim** into [`history/`](./history/index.md), leaving one index line each. Verified by extracting each record's body and confirming it appears unchanged in `HEAD`. Two mechanical adjustments are named in every record header rather than made silently: deixis is left alone, and relative-link depth is repointed one level, because a link is an address rather than content and the same target must keep resolving |
-| Scope note | protocol tooling and doctrine only; no product code, so `npm test` / `typecheck` / `build` are untouched by this step |
+| Scope note | protocol tooling and doctrine only; no product code changed. The full `typecheck`, product `test`, and production `build` gates were nevertheless run and passed at the completed-step boundary |
 | Widening | `writes:` gained `atomik-project/briefs/cp-ops-002-handoff.md` at S01 — the per-step handoff brief is required by bedrock 22 and the original declaration simply omitted it. **Widened again at S06d** to `atomik-project/briefs/**`: F7's residue lives in that folder, and `scope-drift` said so the moment the owner ruled on `feedback on  MVP-001.md`. Recorded here and kept going, which is what `paths.md` asks of a widening |
-| Next action | S08 — extract Cairn from Atomik: `cairn.config.json` (plane roots, source roots, area map, trunk name, and `enforcement`), the generated `cairn-check` header line that makes the tier claim un-driftable, `tools/cairn-new.mjs` (registration commit + worktree in one command), and a `cairn-init` seed scaffolding **tiers 0 and 1 only** — no host, no account, nothing to click. The lexicon already marks all four **ASPIRATIONAL**, so S08 is what drains that section |
+| Widening (S07e) | `writes:` gained `tools/cairn-spec.test.mjs`: the universal reader's tree, contextual-note bindings, embedded rule catalogue and inline interaction code need an executable contract, and the original declaration could not name a file invented by this correction |
+| Corrections (S07e) | **2026-08-25, owner** — S07c and S07d superseded. Two differently directed documents shared one design system instead of receiving a new pedagogical one; the downward version reduced Cairn to foundations instead of specifying Cairn top down and explaining foundations when first manipulated. Replaced by one canonical, history-free specification project and one universal three-pane reader; no alternate normative reading remains |
+| Next action | S08 — make the canonical bindings specified at S07e executable: `cairn.config.json` (plane roots, source roots, area map, metadata namespace, trunk name, staleness window and `enforcement`), the generated `cairn-check` header line that makes the tier claim un-driftable, `tools/cairn-new.mjs` (registration commit + worktree in one command), and a `cairn-init` seed scaffolding **tiers 0 and 1 only** — no host, no account, nothing to click |
 | Superseded next action (S07, done) | the specification and lexicon: `docs/cairn/specification.md` (planes, the ADR-017 lifecycle by reference, the rule table generated from `cairn-check.mjs`, the blocking-rule admission test, the three enforcement tiers with tier 2 as a repository property, the CP-MVP-011/012 migration window as a property), `docs/cairn/lexicon.md` (one definition per term, each pointing at the file that enforces it; a term with no enforcing file marked aspirational), and the step-by-step operator guide carrying the optional tier-2 ruleset as a copy-paste `gh api` payload |
 | Widening (S05) | `writes:` gained `docs/adr/**`, `docs/bedrock/index.md`, `docs/modules/**`, `docs/index.md`, `atomik-project/index.md` — S05 was always the OKF backfill; the declaration named only the two ADRs this path authors. Deliberate `single-truth` edit: `docs/modules/atomik-desktop.md`, one stale sentence naming the removed integrator |
 | Corrections (S07c) | **2026-08-25, owner** — S07 and S07b redone. *"It needs to be universal without borrowing concept from research worlds"*: a stated possibility (this **could** reach a researcher) had been read as a specification, and the whole explanatory apparatus was built on research-world concepts, making a document that claimed to teach from zero **depend on** a background. Also: one file instead of three, alternating concept and protocol; and a new theme rather than the earlier page's house style. Analogies were **removed, not replaced** — substituting another profession's would reproduce the defect with a different dependency |

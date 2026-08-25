@@ -14,12 +14,12 @@ import { fileURLToPath } from 'node:url'
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const CHECK_FILE = join(REPO, 'tools/cairn-check.mjs')
 
-/** The handbook carries the generated catalogue between these markers.
+/** The canonical specification carries the generated catalogue between these markers.
  *  A table written by hand is how a document comes to list rules that do not
  *  exist — the defect this generator was built for. The splice makes the
  *  regeneration one command, and the test makes the shipped table executable:
- *  a handbook that has drifted from the validator fails the build. */
-export const SPEC_FILE = 'docs/cairn/handbook.md'
+ *  a specification that has drifted from the validator fails the build. */
+export const SPEC_FILE = 'docs/cairn/specification/index.md'
 export const TABLE_BEGIN = '<!-- cairn:rules:begin -->'
 export const TABLE_END = '<!-- cairn:rules:end -->'
 
@@ -58,7 +58,7 @@ export const RULE_METADATA = {
   },
   'registration': {
     condition: 'Path declaration tuple (id, running, branch, base) missing from trunk',
-    enforcing: "pathRegistrationState() === 'missing' (blocking) or 'grandfathered' (advisory)"
+    enforcing: "pathRegistrationState() === 'missing' (blocking) or declared migration exception (advisory)"
   },
   'remote-checkpoint': {
     condition: 'Local path HEAD not present on upstream tracking branch',
@@ -82,7 +82,7 @@ export const RULE_METADATA = {
   },
   'same-work-unit': {
     condition: 'Source changed without accompanying module note and coding path update',
-    enforcing: "touched('apps/') => touched('docs/modules/') && touched(PATH_DIR)"
+    enforcing: 'touched(sourceRoots) => touched(moduleNotes) && touched(pathDirectory)'
   },
   'area-note': {
     condition: 'Subsystem source changed without touching matching area module note',
@@ -97,8 +97,8 @@ export const RULE_METADATA = {
     enforcing: "!matchesAny(file, declaredWrites)"
   },
   'decision-drift': {
-    condition: 'docs/bedrock changed without an ADR in the same changeset',
-    enforcing: "touched('docs/bedrock/') => touched('docs/adr/')"
+    condition: 'Configured architecture changed without an ADR in the same changeset',
+    enforcing: 'touched(architectureRoot) => touched(decisionRoot)'
   },
   'derived-view': {
     condition: 'ACTIVE.md running-paths block does not match trunk path files',
@@ -109,8 +109,8 @@ export const RULE_METADATA = {
     enforcing: 'staleRunningPaths(corpus, branchAges(corpus)) — advisory always; an unresolvable branch reports nothing'
   },
   'coherence-audit': {
-    condition: 'Path rebased HEAD lacks filled coherence audit record in atomik-project/audits/',
-    enforcing: "tools/cairn-audit.mjs --check"
+    condition: 'Path rebased HEAD lacks a filled, correctly bound coherence-audit record',
+    enforcing: 'cairn-audit --check in the configured audit directory'
   },
   'schema': {
     condition: 'Path or ADR frontmatter fails parsing, or an id/status/date is outside vocabulary',

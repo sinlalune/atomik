@@ -1,132 +1,96 @@
 ---
 type: Atomik Brief
-title: Handoff — CP-OPS-002 S07d complete, ready for S08
+title: Handoff — CP-OPS-002 S07e complete, ready for S08
 timestamp: 2026-08-25T00:00:00Z
 atomik:
   path: CP-OPS-002
   branch: path/cp-ops-002
-  completed_step: S07d
+  completed_step: S07e
 ---
 
 # Resume CP-OPS-002 here
 
 ## Repository state
 
-- Worktree `../4tom1k-cp-ops-002` (this checkout), branch `path/cp-ops-002`
-  tracking `origin/path/cp-ops-002`. `node_modules` is symlinked from the main
-  checkout.
-- Registered at `base_commit: 7aa3b1d` by the trunk commit `df875e6` before this
-  branch existed; `dd6e76a` is S00.
-- `git worktree list` holds four entries — the owner's trunk, the two
-  grandfathered in-flight paths (`cp-mvp-011`, `cp-mvp-012`) and this one. All ten
-  `path/*` branches are retained.
-- Gates at S07d: `npm run cairn-check` OK with one advisory — no coherence audit
-  for this head, expected until the pre-merge audit. Validator suite
-  `npm run cairn-check:test` 83/83. HTML structure parser-validated.
-- `typecheck` / `test` / `build` are not run and their verdicts are not claimed:
-  this path writes protocol tooling and doctrine only, and touches no product code.
-- **The path file was rolled at S07c** and is back to ~5.7 k tokens. S00 through
-  S06d live in [`history/`](../coding-paths/history/index.md), verbatim.
+- Worktree `../4tom1k-cp-ops-002` (this checkout), branch
+  `path/cp-ops-002`, tracking `origin/path/cp-ops-002`.
+- Registered at `base_commit: 7aa3b1d` by trunk commit `df875e6` before
+  this branch existed.
+- Latest completed step: **S07e**. Gates at the work-unit boundary:
+  `npm run cairn-check` OK with one expected pre-merge advisory (no coherence
+  audit for this head), `npm run cairn-check:test` **90/90**, canonical rule
+  catalogue current, HTML structure parser-valid, and the self-contained/tree/
+  context/rule/inline-script contracts test-pinned. `npm run typecheck` passed;
+  the product suite passed **1,101** tests with **1 skipped** (1,102 total); and
+  `npm run build` passed.
+- The path file remains under its 10 k token boundary. Earlier S00–S06d records
+  live verbatim under [`history/`](../coding-paths/history/index.md).
 
-## What the completed step changed
+## What S07e changed
 
-**S07d — the binding names, and the document read downward.** Two owner
-corrections.
+The owner rejected both surviving S07 readings and their shared visual system.
+The fix is structural.
 
-- **`project/`, not `atomik-project/`.** The handbook was writing this
-  repository's binding into the protocol's prose — a document about portability
-  teaching a local name as if it were Cairn. It now uses `project/` with a
-  **Notation** section: the protocol talks about roles, each repository binds
-  them. Links, the generated catalogue and the declared-properties section keep
-  the real name and say why. The frontmatter namespace key stays `atomik:`
-  because the parser reads it hardcoded — publishing `cairn:` would be a
-  published rule the implementation does not honour.
-- **`anatomy.md` + `anatomy.html`** — the same material read **downward**.
-  Organised by **primitive rather than by feature**: seven primitives and nothing
-  else, every construct reduced to its exact predicate with a `cannot` line
-  naming where the primitive gives out, every human judgement reduced to a file,
-  a section on the eight primitives Cairn refuses, and two tables the upward
-  reading cannot produce — all eighteen rules on one screen (nothing in the
-  blocking set requires judgement) and the **seven names a port has to cut**,
-  which is S08's checklist.
-
-## Superseded — what S07c changed
-
-**S07c — the redo, on owner correction.** S07 and S07b are superseded.
-
-> *"I never asked you to write specifically for researchers, I said i could land on
-> researcher hands, it needs to be universal without borrowing concept from research
-> worlds. Redo everything."*
-
-- **The error worth remembering:** the owner stated a *possibility* — this could
-  reach a researcher — and it was read as a *specification*. The whole explanatory
-  apparatus was then built from research-world concepts, which made a document
-  claiming to teach from zero **depend on** a background. The analogies were
-  **removed, not replaced**: substituting another profession's would reproduce the
-  defect with a different dependency.
-- **One file, not three.** `foundations.md`, `specification.md`, `lexicon.md` and
-  `foundations.html` are deleted; `docs/cairn/handbook.md` and
-  `docs/cairn/handbook.html` replace them. Each part is a `CONCEPT` block —
-  general software practice from nothing — immediately followed by an `IN CAIRN`
-  block with the implementation, the enforcing file, and the failure that made it
-  necessary. **The IN CAIRN blocks are self-contained and carry every normative
-  statement**, which is what made merging the specification into the teaching safe.
-- **The teaching rests on this repository's own dated failures** and on diagrams:
-  the automation that never ran where its rules applied, the ceremony gate that
-  proved the wrong proposition, the piped gate that shipped a broken build, the
-  derived view that was internally current and globally false, the 34 links that
-  were not broken.
-- **A new theme**, built for a long dense reference rather than reusing
-  `index.html`'s house style — sans throughout, one accent, sticky contents, and
-  five inline SVG diagrams (commit chain and hash propagation, branch divergence,
-  the three enforcement states, parallel paths with self-merge, the lifecycle).
-- **`SPEC_FILE` follows the file**, so the test comparing the shipped rule
-  catalogue against the validator's source still runs on every CI run.
-- **The ledger was rolled**, because `ledger-size` fired at ~11 k tokens while
-  this file was being edited — the only moment the rule is useful. S00–S06d moved
-  verbatim into `history/`, verified by extracting each record and comparing
-  against `HEAD`. Two mechanical adjustments are named in every record header
-  rather than made silently: deixis is left alone; relative-link depth is
-  repointed one level, because a link is an address rather than content.
+- **One canonical top-down source.** `docs/cairn/handbook.*` and
+  `docs/cairn/anatomy.*` are deleted. The normative entry point is now
+  [`docs/cairn/specification/index.md`](../../docs/cairn/specification/index.md):
+  the full Cairn outcome and flow first, then project model, records, lifecycle,
+  opening, execution, parallelism, closing, human records, enforcement,
+  operations, guarantees, and the generated rule catalogue.
+- **Foundations at the point of use.** Five linked notes teach Git, durable
+  state, metadata, gates, and parallel work from zero. Six reference notes carry
+  the canonical file tree, full path and ceremony/audit templates,
+  `cairn.config.json`, copy-ready operations, and glossary. Requirements remain
+  in the main file; the linked notes clarify without becoming another spec.
+- **Canonical portable vocabulary.** The specification uses `project/`,
+  `docs/architecture/`, `docs/adr/`, `docs/modules/`, `main`, `path/<id>`,
+  `cairn:` and `cairn.config.json`. It contains no Atomik binding, local path id,
+  origin story, dated incident, migration exception, or rule justified by a
+  historical failure. It gives enough names, schemas, ownership, commands, and
+  file layout to reconstruct the protocol.
+- **Atomik project and universal reader.** Opening
+  `docs/cairn/specification/` in Atomik gives `index.md` as the main surface and
+  its `foundations/` / `reference/` tree as linked side material.
+  [`specification.html`](../../docs/cairn/specification.html) packages that model
+  into one offline file: dark atlas tree at left, paper specification in the
+  centre, warm contextual lens at right. The entire design system and component
+  grammar are new, with responsive drawers, keyboard and Escape handling,
+  accessible names/focus, tree filtering, scroll progress, code copy, day/night,
+  print, reduced-motion, and no-JavaScript modes.
+- **Executable documentation.** `tools/cairn-rules.mjs` now writes into the
+  canonical specification. `tools/cairn-spec.test.mjs` pins top-down order,
+  portable naming, context/tree target completeness, HTML rule parity with the
+  checker, self-containment, three panes, and JavaScript syntax.
 
 ## Where the path stands
 
-Steps complete: **S00** enforcement repairs · **S01** ceremony schema and ADR-016 ·
-**S04** the ledger boundary · **S05 / S05b / S05c** the OKF backfill, the gated
-opening check, folder logs · **S06** the drifted page retired · **S06c** the
-coherence audit bound to its own commits · **S06d** stale worktrees drained,
-`isFilled()` given something to measure, a C-quoted path stopped hiding from the
-blocking rules · **S07a** ADR-017, the path lifecycle · **S07 / S07b** superseded ·
-**S07c** the handbook. S03 was withdrawn by owner ruling; S06b was rescoped by
-ruling 9 and delivered inside the handbook.
+Complete: **S00**, **S01**, **S04**, **S05/S05b/S05c**,
+**S06/S06c/S06d**, **S07a**, and **S07e**. S07 through S07d are preserved as
+superseded attempts in the path ledger. S03 was withdrawn by owner ruling.
 
 Remaining: **S08**, **S09**.
 
 ## Next action
 
-**S08 — extract Cairn from Atomik.** The validator hardcodes `atomik-project/`,
-`apps/`, its area map and its grandfather sets, so it is not portable today.
+**S08 — make the canonical Cairn bindings executable.** The specification now
+defines the portable surface; the checker still carries repository-specific
+constants.
 
-- `cairn.config.json` — plane roots, source roots, area map, trunk name, and
+- `cairn.config.json` — project/knowledge/source roots, area map, metadata
+  namespace, trunk name, staleness window, and
   `"enforcement": "local" | "ci" | "protected"`.
-- `cairn-check` prints the declared tier in its header line, so "CI observes"
-  versus "CI prevents" is **generated** from the repository rather than written
-  into prose that drifts.
-- `tools/cairn-new.mjs` — registration commit and worktree in one command, so
-  the registration precondition stops depending on memory.
-- A `cairn-init` seed plus the ex-nihilo bootstrap prompt, scaffolding **tiers 0
-  and 1 only**: validator, config, docs skeleton, workflow file. No host
-  configuration, no account, nothing to click.
-
-The handbook's *"terms with nothing behind them yet"* table lists exactly these
-four as **ASPIRATIONAL**. S08 is what drains it, and that table is the checklist.
+- `cairn-check` reads those bindings and prints the declared tier in its header,
+  so observation versus prevention is generated from real configuration.
+- `tools/cairn-new.mjs` — opening registration commit and worktree creation in
+  one command, preserving the required order.
+- A `cairn-init` seed plus ex-nihilo bootstrap prompt, scaffolding tiers 0 and 1
+  only: validator, config, documentation skeleton, and workflow. No account or
+  host configuration required.
 
 ## Blockers and decisions still open
 
-- None. Nothing waits on host configuration: **owner ruling 9 (2026-08-24)**
-  rescoped S06b from "configure branch protection" to "declare the enforcement
-  tier" ([note](../sessions/2026-08-24-cp-ops-002-s06b-rescope.md)). This
-  repository is tier 1, declared.
+- None. S08 implements the already-specified defaults; it does not need a new
+  architecture ruling before work begins.
 
 ## Resume instruction for the agent
 
