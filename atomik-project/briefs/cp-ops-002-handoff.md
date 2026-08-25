@@ -22,8 +22,9 @@ atomik:
   removed six. All ten `path/*` branches are retained; only the spent
   `registration/cp-worktree-cleanup` ref was deleted.
 - Gates at S06d: `npm run cairn-check` OK with one advisory — no coherence audit
-  for this head, expected until the pre-merge audit. Validator suite
-  `npm run cairn-check:test` 76/76.
+  for this head, expected until the pre-merge audit. `--base origin/master` OK
+  with two, the second being the deliberate S05 `single-truth` edit. Validator
+  suite `npm run cairn-check:test` 77/77.
 - `typecheck` / `test` / `build` are not run for this step and their verdicts are
   not claimed: this path writes protocol tooling and doctrine only, and touched
   no product code.
@@ -53,10 +54,25 @@ and a check measuring something adjacent to what it claims (F10).
   written: all nine existing records pass, four answered questions each; the
   untouched scaffold fails on two counts.
 
-**Left deliberately**: `atomik-project/briefs/feedback on  MVP-001.md`, also named
-by F7. It is the owner's raw feedback, and the FROZEN `atomik-project/log.md` cites
-it by that exact name — renaming it would break a reference in a file the protocol
-forbids repairing. Owner call, not an agent's.
+**Found by draining it — a C-quoted path was invisible to the BLOCKING rules.**
+Deleting the file made `scope-drift` report it as outside a `writes:` surface that
+covers it. `git status --porcelain` C-quotes any path with a space, a quote, a
+backslash or a non-ASCII byte, and `porcelainPaths()` never unquoted — so every
+rule downstream read the path *with the quotation marks in the string*. A quoted
+path matches no `writes:` glob, no `AREA_MAP` pattern and no `GUARDED_ROOTS`
+prefix, so a source file whose name contains a space was counted as changed and
+then invisible to `same-work-unit` and `branch-identity`, both blocking. Fixed
+with `-z` on **both** halves of `changedFiles()` — `git diff --name-only` quotes
+identically and that half is the one CI runs — rather than with an unquoter, since
+Git escapes non-ASCII octally and a UTF-8 decoder does not belong in this script.
+Three tests, suite 76 → 77.
+
+**`atomik-project/briefs/feedback on  MVP-001.md` — deleted on owner directive**
+(2026-08-25: *"feedback on MVP-001 => you can delete"*), closing the last item F7
+named. It was raised rather than drained because the FROZEN `atomik-project/log.md`
+cites it by that exact name; deletion keeps that entry true in the past tense —
+it records the feedback as taken up, and every item in it shipped — where a rename
+would have made it point at nothing. Content survives in Git at `51c0940`.
 
 **Earlier steps**, newest first: **S06c** bound `cairn-audit --check` to the commits
 its path contributed (`git rev-list HEAD --not <trunk>`), refusing a record that

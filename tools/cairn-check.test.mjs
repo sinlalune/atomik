@@ -45,6 +45,9 @@ const A_PATH = {
   writes: ['apps/desktop/electron-main/graph-index.ts', 'docs/modules/atomik-desktop-graph.md']
 }
 
+/** `git status --porcelain -z` output: NUL-terminated records, never quoted. */
+const z = (...records) => records.map((r) => `${r}\0`).join('')
+
 const run = (changed, branch, paths = [A_PATH], extra = {}) =>
   evaluate({
     changed,
@@ -378,11 +381,15 @@ test('area mapping routes source to its module note', () => {
   assert.equal(areaOf('docs/index.md'), null)
 })
 
-test('porcelain paths survive an unstaged first line', () => {
+test('porcelain paths survive an unstaged first record', () => {
   // The bug this covers: trimming the whole stdout before slicing eats the
   // leading space of ` M path`, and with it the path's first character —
   // every rule downstream then reads `tomik-project/…` (CP-MVP-010 S01).
-  const raw = ' M atomik-project/coding-paths/CP-MVP-010.md\n?? docs/adr/ADR-013.md\nA  apps/desktop/shared/retrieval-core.ts\n'
+  const raw = z(
+    ' M atomik-project/coding-paths/CP-MVP-010.md',
+    '?? docs/adr/ADR-013.md',
+    'A  apps/desktop/shared/retrieval-core.ts'
+  )
   assert.deepEqual(porcelainPaths(raw), [
     'atomik-project/coding-paths/CP-MVP-010.md',
     'docs/adr/ADR-013.md',
@@ -391,9 +398,32 @@ test('porcelain paths survive an unstaged first line', () => {
 })
 
 test('porcelain paths: renames report the new path, noise is dropped', () => {
-  assert.deepEqual(porcelainPaths('R  docs/old.md -> docs/new.md\n'), ['docs/new.md'])
+  // -z puts the NEW path in the record and the ORIGINAL in the next field.
+  // The original is not a changed file: reporting it would name a path that
+  // no longer exists.
+  assert.deepEqual(porcelainPaths(z('R  docs/new.md', 'docs/old.md')), ['docs/new.md'])
+  assert.deepEqual(
+    porcelainPaths(z('C  docs/copy.md', 'docs/src.md', ' M docs/after.md')),
+    ['docs/copy.md', 'docs/after.md']
+  )
   assert.deepEqual(porcelainPaths(''), [])
-  assert.deepEqual(porcelainPaths('\n\n'), [])
+  assert.deepEqual(porcelainPaths(z('', '')), [])
+})
+
+test('a path with a space is read whole, not quoted (CP-OPS-002 S06d)', () => {
+  // The readable porcelain C-QUOTES such a path — `"briefs/feedback on  MVP-001.md"`,
+  // quotes included — and that string matches no writes: glob, no guarded root
+  // and no area pattern. A source file whose name contains a space was counted
+  // as changed and then invisible to every rule that asks WHICH file it is,
+  // `same-work-unit` included. -z is why this now holds.
+  const spaced = 'atomik-project/briefs/feedback on  MVP-001.md'
+  assert.deepEqual(porcelainPaths(z(`D  ${spaced}`)), [spaced])
+  assert.deepEqual(porcelainPaths(z('A  apps/desktop/electron-main/two words.ts')), [
+    'apps/desktop/electron-main/two words.ts'
+  ])
+  // and the guarded-root test that the quoted form defeated now passes
+  assert.ok(porcelainPaths(z('A  apps/desktop/electron-main/two words.ts'))[0]
+    .startsWith('apps/'))
 })
 
 

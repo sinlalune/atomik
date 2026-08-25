@@ -354,27 +354,43 @@ export function matchesAny(file, patterns) {
   return patterns.some((pattern) => globToRegExp(pattern).test(file))
 }
 
-/** The paths in `git status --porcelain` output.
+/** The paths in `git status --porcelain -z` output.
  *
  *  The status field is TWO columns and a space, so the path starts at index
- *  3 — which is why the raw stdout must NOT be trimmed first. Trimming eats
- *  the leading space of an UNSTAGED line (`" M path"`) and `slice(3)` then
- *  eats the path's own first character: found on CP-MVP-010 S01, where
- *  scope-drift reported `tomik-project/coding-paths/CP-MVP-010.md` and the
- *  missing `a` also defeated the `startsWith(PATH_DIR)` exemption. Every
- *  rule downstream reads this list, blocking ones included.
+ *  3 — which is why a record must NOT be trimmed first. Trimming eats the
+ *  leading space of an UNSTAGED record (`" M path"`) and `slice(3)` then eats
+ *  the path's own first character: found on CP-MVP-010 S01, where scope-drift
+ *  reported `tomik-project/coding-paths/CP-MVP-010.md` and the missing `a`
+ *  also defeated the `startsWith(PATH_DIR)` exemption. Every rule downstream
+ *  reads this list, BLOCKING ones included — which is why the second bug in
+ *  this function was worth more than the advisory that revealed it.
  *
- *  A rename line carries `old -> new`; the NEW path is the changed one. */
+ *  **Why `-z`.** The human-readable porcelain C-QUOTES any path with a space,
+ *  a quote, a backslash or a non-ASCII byte: `"briefs/feedback on  MVP-001.md"`,
+ *  quotes included. That string starts with `"`, so it matches no `writes:`
+ *  glob, no `startsWith('apps/')` guarded root and no area pattern — a source
+ *  file whose name contains a space was INVISIBLE to `same-work-unit` and
+ *  `branch-identity` while still being counted as changed. Found on CP-OPS-002
+ *  S06d, by the one file in this repository that has such a name, which had
+ *  already broken a `find` loop in the audit that named it.
+ *
+ *  Unquoting is the wrong fix: `\303\251` for `é` means reassembling UTF-8
+ *  from octal escapes, which is a decoder to get wrong. `-z` asks Git not to
+ *  quote at all — records separated by NUL, paths verbatim.
+ *
+ *  A rename or copy record carries the NEW path, with the ORIGINAL following
+ *  in the next NUL field. The original is not a changed file of its own, so it
+ *  is skipped; reading it as one would report a path that no longer exists. */
 export function porcelainPaths(raw) {
-  return raw
-    .split('\n')
-    .filter((line) => line.length > 3)
-    .map((line) => {
-      const entry = line.slice(3).trim()
-      const arrow = entry.indexOf(' -> ')
-      return arrow === -1 ? entry : entry.slice(arrow + 4)
-    })
-    .filter(Boolean)
+  const fields = String(raw).split('\0')
+  const out = []
+  for (let i = 0; i < fields.length; i += 1) {
+    const record = fields[i]
+    if (record.length <= 3) continue
+    out.push(record.slice(3))
+    if (/[RC]/.test(record.slice(0, 2))) i += 1
+  }
+  return out.filter(Boolean)
 }
 
 /** Which module area note a source file belongs to. Used ADVISORY only:
@@ -659,10 +675,15 @@ function gitRaw(args) {
 }
 
 function changedFiles(base) {
-  const working = porcelainPaths(gitRaw(['status', '--porcelain']))
+  // -z on BOTH halves: the readable forms C-quote any path with a space or a
+  // non-ASCII byte, and a quoted path matches no glob and no guarded root (see
+  // porcelainPaths). The --base half is the one CI runs, so it had the same
+  // hole. NUL separation also removes the "is a newline in this name?" question
+  // rather than answering it.
+  const working = porcelainPaths(gitRaw(['status', '--porcelain', '-z']))
   if (base) {
     const merge = git(['merge-base', base, 'HEAD'])
-    const committed = git(['diff', '--name-only', `${merge}..HEAD`]).split('\n')
+    const committed = gitRaw(['diff', '--name-only', '-z', `${merge}..HEAD`]).split('\0')
     return [...new Set([...committed, ...working].filter(Boolean))]
   }
   return working
