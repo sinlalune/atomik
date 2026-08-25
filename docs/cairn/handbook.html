@@ -535,6 +535,26 @@
   statement.</p>
   <p>Nothing here is decorative. Every rule is stated with the specific failure that
   produced it, because a rule without its failure is a rule people quietly drop.</p>
+
+  <h3>Notation — the names that are yours, not Cairn's</h3>
+  <p>Cairn is meant to run in any repository, so the protocol talks about <strong>roles</strong>,
+  and each repository binds them to its own directory names:</p>
+<pre><code>project/     the execution-state plane root — paths, sessions, audits, briefs,
+             the journal. THIS repository binds it to `atomik-project/`.
+docs/        the knowledge plane root. Unchanged here, but equally a binding.
+apps/ …      the SOURCE roots the guarded rules apply to. This repository binds
+             them to `apps/`, `packages/`, `shared/`.</code></pre>
+  <p>Read <code>project/</code> below as <em>"whatever this repository calls its
+  execution-state plane"</em>. Two places deliberately show the real name instead: the
+  <strong>rule catalogue</strong> in <a href="#s11">§11.1</a>, which is generated from the
+  validator's own source and therefore prints whatever that source has compiled in; and any
+  file path used as an address rather than as a claim about the protocol.</p>
+  <div class="key">
+    <p>All four bindings — both plane roots, the source roots, and the frontmatter namespace
+    key — are <strong>hardcoded in the validator today</strong>. That is why they appear as
+    <span class="chip asp">Aspirational</span> configuration in <a href="#s11">§11.2</a>
+    rather than as configuration that already exists.</p>
+  </div>
 </section>
 
 <section id="s1">
@@ -566,7 +586,7 @@ what evaporates    anything that was only ever said</code></pre>
         <thead><tr><th>Plane</th><th>Lives in</th><th>Lifetime</th></tr></thead>
         <tbody>
           <tr><td class="term">Knowledge</td><td class="mono">docs/</td><td>durable — what <em>should</em> be true</td></tr>
-          <tr><td class="term">Execution state</td><td class="mono">atomik-project/</td><td>durable — what is being done, and what was done</td></tr>
+          <tr><td class="term">Execution state</td><td class="mono">project/</td><td>durable — what is being done, and what was done</td></tr>
           <tr><td class="term">Ephemeral context</td><td>the conversation</td><td><strong>evaporates</strong></td></tr>
         </tbody>
       </table>
@@ -574,7 +594,7 @@ what evaporates    anything that was only ever said</code></pre>
     <p>There is a second, different split — the repository is <em>dual</em>-plane: a code
     plane (<code>apps/</code>, <code>packages/</code>, <code>shared/</code>,
     <code>docs/</code>) and a knowledge-plus-execution plane
-    (<code>atomik-project/</code>). These are two decompositions of the same repository, and
+    (<code>project/</code>). These are two decompositions of the same repository, and
     conflating them is a recurring source of confusion. <code>apps/</code> is
     <strong>not</strong> a third conceptual plane; it is one half of the repository split.</p>
     <div class="key">
@@ -658,6 +678,11 @@ report_final_REALLY.py</code></pre>
   status: running
   base_commit: 70f7e27       # the trunk tip immediately BEFORE registration
   branch: path/cp-mvp-010</code></pre>
+    <p>The block's key — <code>atomik:</code> — is this repository's namespace, and is a
+    binding like the directory names. The validator reads it hardcoded today, so this document
+    shows the real key rather than a generic one: publishing <code>cairn:</code> here while the
+    parser looks for <code>atomik:</code> would be exactly the defect this protocol is built
+    against.</p>
     <p><code>base_commit</code> pins the exact state the work started from. Because a commit
     id fingerprints its whole history, that one short string is an unambiguous reference to
     <em>everything</em> the work assumed — not a date, not a version number, not a
@@ -1009,10 +1034,10 @@ cairn    was the protocol followed?        cairn-check</code></pre>
 <pre><code>ACTIVE.md              GENERATED from the path declarations on the trunk
 register status        GENERATED from the same source
 the root module note   an index over the per-area notes
-the journal            ONE FILE PER ENTRY under atomik-project/log/</code></pre>
-    <p><code>atomik-project/log.md</code> is <strong>frozen</strong> as a historical archive
+the journal            ONE FILE PER ENTRY under project/log/</code></pre>
+    <p><code>project/log.md</code> is <strong>frozen</strong> as a historical archive
     and never appended to; new entries land as
-    <code>atomik-project/log/YYYY-MM-DD-&lt;path-id&gt;.md</code>.</p>
+    <code>project/log/YYYY-MM-DD-&lt;path-id&gt;.md</code>.</p>
     <p>Editing a generated file by hand is reported <span class="chip adv">Advisory</span>:
     Git will merge two such edits cleanly and nobody will have checked the resulting claim. It
     is advisory rather than blocking because a deliberate edit is sometimes right — the ledger
@@ -1428,6 +1453,11 @@ test ! -e &lt;exact-secondary-worktree&gt;</code></pre>
   <p>Stated as properties rather than omitted, because a document that hides its own
   configuration is committing the defect it warns about.</p>
   <ul>
+    <li><strong>Plane and source bindings.</strong> The execution-state plane root is
+    <code>atomik-project/</code>; the knowledge plane root is <code>docs/</code>; the guarded
+    source roots are <code>apps/</code>, <code>packages/</code>, <code>shared/</code>; the
+    frontmatter namespace key is <code>atomik:</code>. All four are <strong>hardcoded in the
+    validator</strong>, not configuration.</li>
     <li><strong>Enforcement tier: 1 (<code>ci</code>).</strong> CI observes. No trunk ruleset is
     installed, and the tier-2 payload in <a href="#s12">§12</a> is deliberately not applied.</li>
     <li><strong>Every merge in this repository's history is a local merge commit.</strong> There
@@ -1586,7 +1616,7 @@ npm run cairn-check:test                       # the validator's own tests</code
     <table>
       <thead><tr><th>Term</th><th>Meaning</th><th>Status</th></tr></thead>
       <tbody>
-        <tr><td class="term">cairn.config.json</td><td>Plane roots, source roots, area map, trunk name, and the declared enforcement tier.</td><td><span class="chip asp">Aspirational</span></td></tr>
+        <tr><td class="term">cairn.config.json</td><td>Plane roots, source roots, area map, trunk name, the frontmatter namespace key, and the declared enforcement tier. Every one is hardcoded today — this is what stands between Cairn and being portable at all.</td><td><span class="chip asp">Aspirational</span></td></tr>
         <tr><td class="term">Generated enforcement header</td><td>The validator printing the declared tier, so no document can claim prevention that is not installed.</td><td><span class="chip asp">Aspirational</span></td></tr>
         <tr><td class="term">cairn-new</td><td>Registration commit and worktree in one command, so the precondition stops depending on memory.</td><td><span class="chip asp">Aspirational</span></td></tr>
         <tr><td class="term">cairn-init</td><td>Scaffold a new repository at tiers 0 and 1: validator, config, docs skeleton, workflow file.</td><td><span class="chip asp">Aspirational</span></td></tr>
@@ -1639,6 +1669,9 @@ JSON</code></pre>
     <h2>Where this lives</h2>
     <p><code>docs/cairn/handbook.md</code> — the source of truth for this page, and the file the
     automation checks.</p>
+    <p><code>docs/cairn/anatomy.md</code> — the same material read <strong>downward</strong>:
+    each construct reduced to the primitive it manipulates, organised by primitive rather than by
+    feature, ending with the whole protocol in one table and the seams a port has to cut.</p>
     <p><code>docs/cairn/index.html</code> — a shorter visual overview of the protocol.</p>
     <p><code>AGENTS.md</code> — the entry point an agent or a new contributor reads first.</p>
   </div>

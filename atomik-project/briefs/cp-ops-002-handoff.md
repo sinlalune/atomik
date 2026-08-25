@@ -1,11 +1,11 @@
 ---
 type: Atomik Brief
-title: Handoff — CP-OPS-002 S07c complete, ready for S08
+title: Handoff — CP-OPS-002 S07d complete, ready for S08
 timestamp: 2026-08-25T00:00:00Z
 atomik:
   path: CP-OPS-002
   branch: path/cp-ops-002
-  completed_step: S07c
+  completed_step: S07d
 ---
 
 # Resume CP-OPS-002 here
@@ -20,7 +20,7 @@ atomik:
 - `git worktree list` holds four entries — the owner's trunk, the two
   grandfathered in-flight paths (`cp-mvp-011`, `cp-mvp-012`) and this one. All ten
   `path/*` branches are retained.
-- Gates at S07c: `npm run cairn-check` OK with one advisory — no coherence audit
+- Gates at S07d: `npm run cairn-check` OK with one advisory — no coherence audit
   for this head, expected until the pre-merge audit. Validator suite
   `npm run cairn-check:test` 83/83. HTML structure parser-validated.
 - `typecheck` / `test` / `build` are not run and their verdicts are not claimed:
@@ -29,6 +29,28 @@ atomik:
   S06d live in [`history/`](../coding-paths/history/index.md), verbatim.
 
 ## What the completed step changed
+
+**S07d — the binding names, and the document read downward.** Two owner
+corrections.
+
+- **`project/`, not `atomik-project/`.** The handbook was writing this
+  repository's binding into the protocol's prose — a document about portability
+  teaching a local name as if it were Cairn. It now uses `project/` with a
+  **Notation** section: the protocol talks about roles, each repository binds
+  them. Links, the generated catalogue and the declared-properties section keep
+  the real name and say why. The frontmatter namespace key stays `atomik:`
+  because the parser reads it hardcoded — publishing `cairn:` would be a
+  published rule the implementation does not honour.
+- **`anatomy.md` + `anatomy.html`** — the same material read **downward**.
+  Organised by **primitive rather than by feature**: seven primitives and nothing
+  else, every construct reduced to its exact predicate with a `cannot` line
+  naming where the primitive gives out, every human judgement reduced to a file,
+  a section on the eight primitives Cairn refuses, and two tables the upward
+  reading cannot produce — all eighteen rules on one screen (nothing in the
+  blocking set requires judgement) and the **seven names a port has to cut**,
+  which is S08's checklist.
+
+## Superseded — what S07c changed
 
 **S07c — the redo, on owner correction.** S07 and S07b are superseded.
 
