@@ -13,6 +13,10 @@ timestamp: 2026-08-25T00:00:00Z
 > teaches the general practice first and the Cairn protocol second, so the
 > specification can stay short. Where this page and the specification disagree
 > about Cairn, the specification wins and the disagreement is a defect to report.
+>
+> **[`foundations.html`](./foundations.html) renders this page** with a glossary
+> appendix — that is the version to send to someone outside the repository. This
+> Markdown is the source of truth and the thing CI checks.
 
 ## Who this is for
 
@@ -634,6 +638,8 @@ project will tell you what it is rather than making you remember.
   enforcement tiers, and a step-by-step operator guide.
 - [`lexicon.md`](./lexicon.md) — every term, with a plain-language gloss beside
   the precise definition and the file that enforces it.
+- [`foundations.html`](./foundations.html) — this page, rendered, with a
+  glossary appendix. The shareable version.
 - [`index.html`](./index.html) — the same protocol as a rendered page.
 - [`../../AGENTS.md`](../../AGENTS.md) — the entry point an agent or a new
   contributor actually reads first.

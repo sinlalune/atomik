@@ -1,11 +1,11 @@
 ---
 type: Atomik Brief
-title: Handoff — CP-OPS-002 S07 complete, ready for S07b
+title: Handoff — CP-OPS-002 S07b complete, ready for S08
 timestamp: 2026-08-25T00:00:00Z
 atomik:
   path: CP-OPS-002
   branch: path/cp-ops-002
-  completed_step: S07
+  completed_step: S07b
 ---
 
 # Resume CP-OPS-002 here
@@ -21,7 +21,7 @@ atomik:
   grandfathered in-flight paths (`cp-mvp-011`, `cp-mvp-012`) and this one. S06d
   removed six. All ten `path/*` branches are retained; only the spent
   `registration/cp-worktree-cleanup` ref was deleted.
-- Gates at S07: `npm run cairn-check` OK with one advisory — no coherence audit
+- Gates at S07b: `npm run cairn-check` OK with one advisory — no coherence audit
   for this head, expected until the pre-merge audit. Validator suite
   `npm run cairn-check:test` 83/83.
 - `typecheck` / `test` / `build` are not run for this step and their verdicts are
@@ -29,6 +29,23 @@ atomik:
   no product code.
 
 ## What the completed step changed
+
+**S07b — the rendered page.** `docs/cairn/foundations.html` renders the primer in
+the house style of `index.html`: same design tokens, same light/dark handling,
+same dated status banner naming what it renders and which file wins if they
+disagree. Markdown stays the source of truth and the thing CI checks.
+
+- **The analogy gets its own component**, because it is the spine of the
+  argument — a two-column *in your world* → *in software* block, seven of them.
+- **Failures get a visually distinct component** too: four blocks carrying the CI
+  that never ran where its rules applied, the ceremony gate that proved the wrong
+  proposition, the piped gate that shipped a broken build, and the 34 links that
+  were not broken. They are evidence, not illustration.
+- **Glossary appendix** from the lexicon's plain-language column, thirty terms.
+  The full lexicon with enforcing files stays in Markdown, and the page says so.
+- HTML structure parser-validated; all links resolve.
+
+## What earlier steps changed
 
 **S07 — the specification, the lexicon, and the primer that makes them
 readable.** Widened by the owner on 2026-08-25 from two documents to three, with
@@ -145,6 +162,25 @@ folder-log decision on owner correction. **S05** closed F5 with five indexes, AD
 frontmatter and `adrFrontmatterErrors()`.
 
 ## Next action
+
+**S08 — extract Cairn from Atomik.** The validator hardcodes `atomik-project/`,
+`apps/`, its area map and its grandfather sets, so it is not portable today.
+
+- `cairn.config.json` — plane roots, source roots, area map, trunk name, and
+  `"enforcement": "local" | "ci" | "protected"`.
+- `cairn-check` prints the declared tier in its header line, so "CI observes"
+  versus "CI prevents" is **generated** from the repository rather than written
+  into prose that drifts.
+- `tools/cairn-new.mjs` — registration commit and worktree in one command, so
+  the registration precondition stops depending on memory.
+- A `cairn-init` seed plus the ex-nihilo bootstrap prompt, scaffolding **tiers 0
+  and 1 only**: validator, config, docs skeleton, workflow file. No host
+  configuration, no account, nothing to click.
+
+`lexicon.md` §C already marks all four **ASPIRATIONAL** with the step they land
+in. S08 is what drains that section — and the lexicon is the checklist.
+
+## Superseded next action (S07b, complete)
 
 **S07b — the rendered page.** The three documents are Markdown, which is what CI
 checks and what the repository keeps. The owner shares this work outside the

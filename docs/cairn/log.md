@@ -22,6 +22,12 @@ per entry in a `log/` subfolder — which was a concurrency fix, never a size on
 
 ## 2026-08-25
 
+- `S07b` `foundations.html` renders the primer in the house style of `index.html`, with the
+  analogy given its own two-column component (*in your world* → *in software*, seven of
+  them) and each repository failure its own visually distinct block — evidence, not
+  illustration. Glossary appendix from the lexicon's plain-language column. Dated banner
+  naming what it renders and which file wins on disagreement.
+
 - `S07` Three documents, on the owner's pedagogical amendment. `foundations.md` teaches
   version control, tests, CI and the reason for a protocol **from zero**, for someone who
   writes real code but has never worked in a production setup — every mechanism bridged to
