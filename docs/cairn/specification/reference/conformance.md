@@ -34,14 +34,16 @@ For each row it records `pass`, `fail`, `inconclusive`, `host-dependent`, or
 - [ ] One writer assignment per writable worktree is visible.
 - [ ] Each completed work unit updates code, tests, documents, ledger, and
       handoff together where relevant.
-- [ ] Each work unit declares a type, and its type's required parts moved
-      together.
+- [ ] Each work unit declares a `cairn-unit` block with a step, a ledger
+      ordinal, a type from the vocabulary, and a verification result.
+- [ ] Each work unit's type's required parts actually moved together.
 - [ ] Each completed work unit is committed and pushed immediately.
 - [ ] Incomplete work under review is a pushed commit carrying
       `Cairn-Provisional:`, not an uncommitted working tree.
-- [ ] Every ledger-named checkpoint is reachable from
-      `refs/cairn/checkpoints/<path-id>/<n>` before any rewriting push, or the
-      repository forbids rewriting pushes on path branches.
+- [ ] Every declared unit except the newest resolves a retention ref at
+      `refs/cairn/checkpoints/<path-id>/<unit>`, or the repository forbids
+      rewriting pushes on path branches.
+- [ ] Those refs are pushed, so retention survives the machine that wrote it.
 - [ ] No retention ref has been moved or deleted while its path record is
       retained.
 - [ ] The handoff brief carries `checkpoint`, `checkpoint_pushed`,

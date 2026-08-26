@@ -31,6 +31,7 @@ import {
   matchesAny,
   nameStatusMutations,
   parseWrites,
+  parseWorkUnits,
   pathFrontmatterErrors,
   PATH_STALE_DAYS,
   porcelainPaths,
@@ -40,7 +41,12 @@ import {
   resolveBranch,
   staleRunningPaths,
   stripCode,
-  transitionErrors
+  transitionErrors,
+  retentionDue,
+  workUnitErrors,
+  CHECKPOINT_REF_PREFIX,
+  PROVISIONAL_TRAILER,
+  WORK_UNIT_TYPES
 } from './cairn-check.mjs'
 
 const A_PATH = {
@@ -1104,4 +1110,191 @@ test('only running paths can be stale, and the oldest is reported first', () => 
       .map((s) => s.id),
     ['CP-B', 'CP-A']
   )
+})
+
+/* ------------------------------------------------------------------ *
+ * v0.2 — the limited frontmatter grammar
+ * ------------------------------------------------------------------ */
+
+const V02_RECORD = `---
+ceremony: closing
+accepted_roles: [reviewer, auditor]
+advisory_disposition:
+  - rule: scope-drift
+    disposition: accepted
+    reason: the wider root cause is declared in writes: at this same commit
+  - rule: path-staleness
+    disposition: deferred
+    owner: participant-id
+cairn:
+  id: CP-EXAMPLE-001
+  status: running
+  writes:
+    - src/**   # a trailing comment
+    - docs/modules/example.md
+  governs:
+    - docs/architecture/example.md@89ab
+---
+body`
+
+test('the frontmatter reader parses flow lists, block lists, and lists of maps', () => {
+  const { data } = readFrontmatter(V02_RECORD)
+  assert.deepEqual(data.accepted_roles, ['reviewer', 'auditor'])
+  assert.deepEqual(data.cairn.writes, ['src/**', 'docs/modules/example.md'])
+  assert.deepEqual(data.cairn.governs, ['docs/architecture/example.md@89ab'])
+  assert.equal(data.advisory_disposition.length, 2)
+  assert.deepEqual(data.advisory_disposition[0], {
+    rule: 'scope-drift',
+    disposition: 'accepted',
+    reason: 'the wider root cause is declared in writes: at this same commit'
+  })
+  assert.equal(data.advisory_disposition[1].owner, 'participant-id')
+})
+
+test('lists do not leak into the scalars that follow them', () => {
+  const { data } = readFrontmatter(V02_RECORD)
+  assert.equal(data.cairn.id, 'CP-EXAMPLE-001')
+  assert.equal(data.cairn.status, 'running')
+  assert.equal(data.ceremony, 'closing')
+})
+
+test('the extended reader leaves parseWrites and quoted scalars alone', () => {
+  assert.deepEqual(parseWrites(V02_RECORD), ['src/**', 'docs/modules/example.md'])
+  const quoted = readFrontmatter("---\ntitle: 'ADR-018: a title with a colon'\n---\nx")
+  assert.equal(quoted.data.title, "'ADR-018: a title with a colon'")
+})
+
+/* ------------------------------------------------------------------ *
+ * v0.2 — typed work units
+ * ------------------------------------------------------------------ */
+
+const LEDGER = `### S01 — first
+
+\`\`\`cairn-unit
+step: S01
+unit: 01
+type: implementation
+verified: cairn-check, test
+\`\`\`
+
+### S02 — second
+
+\`\`\`cairn-unit
+step: S02
+unit: 02
+type: documentation
+verified: cairn-check
+\`\`\`
+`
+
+const UNIT_PATH = {
+  ...A_PATH,
+  front: { ...A_PATH.front, id: 'CP-MVP-010' }
+}
+
+test('a cairn-unit block is read from the ledger, and a bad type is rejected', () => {
+  const units = parseWorkUnits(LEDGER)
+  assert.equal(units.length, 2)
+  assert.deepEqual(units.map((u) => u.type), ['implementation', 'documentation'])
+  assert.deepEqual(workUnitErrors(units[0]), [])
+  assert.ok(workUnitErrors({ step: 'S03', unit: '03', type: 'refactor' }).length > 0)
+  assert.ok(WORK_UNIT_TYPES.includes('repair'))
+})
+
+test('a changed path record with no cairn-unit block is blocked', () => {
+  const found = run([UNIT_PATH.file], 'path/cp-mvp-010', [UNIT_PATH], { workUnits: [] })
+  assert.ok(rules(found, 'blocking').includes('work-unit'))
+})
+
+test('a path record that did not change is not asked for a work unit', () => {
+  const found = run(['README.md'], 'path/cp-mvp-010', [UNIT_PATH], { workUnits: [] })
+  assert.ok(!rules(found, 'blocking').includes('work-unit'))
+})
+
+test('an invalid declared type blocks even when a block is present', () => {
+  const found = run([UNIT_PATH.file], 'path/cp-mvp-010', [UNIT_PATH], {
+    workUnits: [{ step: 'S01', unit: '01', type: 'refactor', verified: 'all' }]
+  })
+  assert.ok(rules(found, 'blocking').includes('work-unit'))
+})
+
+/* ------------------------------------------------------------------ *
+ * v0.2 — checkpoint retention
+ * ------------------------------------------------------------------ */
+
+const ref = (n) => `${CHECKPOINT_REF_PREFIX}/cp-mvp-010/${n}`
+const UNITS = parseWorkUnits(LEDGER)
+
+test('retention exempts only the newest unit, because its ref is written after the commit', () => {
+  assert.deepEqual(retentionDue(UNITS).map((u) => u.unit), ['01'])
+  assert.deepEqual(retentionDue([UNITS[0]]).map((u) => u.unit), [])
+})
+
+test('a completed unit with no retention ref is blocked', () => {
+  const found = run([UNIT_PATH.file], 'path/cp-mvp-010', [UNIT_PATH], {
+    workUnits: UNITS,
+    retainedRefs: new Map()
+  })
+  assert.ok(rules(found, 'blocking').includes('checkpoint-retention'))
+})
+
+test('a retained completed unit passes, and the newest one is only advised', () => {
+  const found = run([UNIT_PATH.file], 'path/cp-mvp-010', [UNIT_PATH], {
+    workUnits: UNITS,
+    retainedRefs: new Map([[ref('01'), CANDIDATE]])
+  })
+  assert.ok(!rules(found, 'blocking').includes('checkpoint-retention'))
+  assert.ok(rules(found, 'advisory').includes('checkpoint-retention'))
+})
+
+test('unreadable retention refs are inconclusive and non-zero, never a pass', () => {
+  const found = run([UNIT_PATH.file], 'path/cp-mvp-010', [UNIT_PATH], {
+    workUnits: UNITS,
+    retainedRefs: null
+  })
+  const retention = found.filter((f) => f.rule === 'checkpoint-retention')
+  assert.equal(retention.length, 1)
+  assert.equal(retention[0].level, 'blocking')
+  assert.equal(retention[0].outcome, 'inconclusive')
+})
+
+/* ------------------------------------------------------------------ *
+ * v0.2 — provisional commits
+ * ------------------------------------------------------------------ */
+
+const READY_PATH = {
+  ...A_PATH,
+  front: { ...A_PATH.front, status: 'ready', subject_commit: CANDIDATE }
+}
+
+test('a candidate still containing a provisional commit is blocked', () => {
+  const found = run([READY_PATH.file], 'path/cp-mvp-010', [READY_PATH], {
+    previousPaths: new Map([[READY_PATH.file, A_PATH.front]]),
+    provisionalInCandidate: ['1a2b3c4']
+  })
+  assert.ok(rules(found, 'blocking').includes('provisional'))
+})
+
+test('a folded candidate carries no provisional finding', () => {
+  const found = run([READY_PATH.file], 'path/cp-mvp-010', [READY_PATH], {
+    previousPaths: new Map([[READY_PATH.file, A_PATH.front]]),
+    provisionalInCandidate: []
+  })
+  assert.ok(!rules(found, 'blocking').includes('provisional'))
+})
+
+test('an unreadable candidate range is inconclusive, not silent', () => {
+  const found = run([READY_PATH.file], 'path/cp-mvp-010', [READY_PATH], {
+    previousPaths: new Map([[READY_PATH.file, A_PATH.front]]),
+    provisionalInCandidate: null
+  })
+  const provisional = found.filter((f) => f.rule === 'provisional')
+  assert.equal(provisional[0].outcome, 'inconclusive')
+})
+
+test('a provisional HEAD is durable work, advised rather than forbidden', () => {
+  const found = run(['src/x.ts'], 'path/cp-mvp-010', [UNIT_PATH], { headProvisional: true })
+  assert.ok(rules(found, 'advisory').includes('provisional'))
+  assert.ok(!rules(found, 'blocking').includes('provisional'))
+  assert.equal(PROVISIONAL_TRAILER, 'Cairn-Provisional')
 })

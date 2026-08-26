@@ -1,11 +1,11 @@
 ---
 type: Atomik Brief
-title: Handoff — CP-OPS-002 S07g complete; the Cairn v0.2 specification has landed
+title: Handoff — CP-OPS-002 S07h complete; the first two v0.2 predicates are enforced
 timestamp: 2026-08-26T00:00:00Z
 atomik:
   path: CP-OPS-002
   branch: path/cp-ops-002
-  candidate_step: S08
+  candidate_step: S07i
 ---
 
 # Resume CP-OPS-002 here
@@ -52,6 +52,60 @@ conformance-matrix row whose reference-tools column says `not implemented`.
 
 Concept budget held at 66. Suite 118 → 123.
 
+## What S07h landed — the first v0.2 predicates
+
+S07g corrected the specification and implemented nothing, by instruction. S07h
+begins closing that gap in the order the review ranked it: the two P0 items
+first, because those are where the protocol was breaking its own promises.
+
+- The frontmatter reader now parses flow lists, block lists, and lists of maps —
+  a named limited grammar, zero dependencies, so the `cairn-init` kit stays
+  installable in a repository with no network.
+- The ledger gained a `cairn-unit` block declaring step, **ledger ordinal**,
+  type, and verification. The ordinal rather than an object id, because a block
+  cannot truthfully name the commit that does not exist yet;
+  `refs/cairn/checkpoints/<path-id>/<unit>` supplies the hash afterwards.
+- `work-unit` (blocking) — a changed path record must carry a block with a valid
+  type.
+- `checkpoint-retention` (blocking + advisory) — every declared unit except the
+  newest must resolve a local retention ref; unreadable refs are inconclusive
+  and non-zero.
+- `provisional` (blocking + advisory) — a ready path whose candidate range still
+  contains a `Cairn-Provisional:` commit is blocked.
+
+This repository migrated onto its own rules: units 01 and 02 are retained at
+`e787174` and `d1f3830`, and unit 03 is this step. Checker suite 76 → 91, full
+suite 123 → 138.
+
+## S07i — the record predicates
+
+Next, the P1 group, all of which reach back over existing records and therefore
+need the declared, self-deleting migration exception you chose:
+
+- `scope-digest` — resolve `scope_ref`, digest the section, compare opening to
+  closing. The CP-OPS-002 opening record is immutable and has no digest, so it
+  goes in the exception set.
+- field-level `closure-surface` — extend the existing file-level restriction to
+  compare frontmatter fields and prove the ledger only grew.
+- `acceptance-drift` — trunk delta from the recorded base against
+  `writes:` ∪ `governs:`.
+- `advisory-disposition` — set equality against the advisories raised at the
+  candidate.
+- `role-collapse` (advisory) — same actor recorded both acceptances.
+- `scope-drift` — promote to blocking unless `writes:` moved in the same commit.
+
+## S07j — routes, brief schema, redaction
+
+- `route` — vocabulary, the five full-route triggers, one-way escalation.
+- `foundation` — write surface confined to `docs/**` plus draft path records.
+- `brief-schema` — the frontmatter fields and seven capped sections.
+- `redaction` — every `[redacted: <id>]` marker resolves to a redaction record.
+
+Three rows stay unimplemented after all of it, and should: repair procedures
+(no predicate exists), the answerable-alone contract (a judgement and a
+benchmark), and the temporal half of retention (unobservable to a validator
+that sees one commit).
+
 ## S08 — extract Cairn from Atomik
 
 `cairn-check.mjs` still hardcodes `atomik-project/`, `apps/`, `AREA_MAP`, and
@@ -67,10 +121,10 @@ the grandfather set. S08 delivers:
 - `cairn-init` — a tier-0/1 seed: validator, config, docs skeleton, workflow.
   No host configuration, nothing to click.
 
-**The standing constraint from S07g.** Fourteen conformance rows say `not
-implemented` on purpose. They move to `implemented` only when a predicate
-actually exists, in this path or a successor. Marking a row without landing its
-mechanism reproduces the exact failure the v0.2 revision was written to correct.
+**The standing constraint.** A conformance row moves off `not implemented` only
+when a predicate actually exists, and moves to *partially* implemented when only
+part of one does. Marking a row without landing its mechanism reproduces the
+exact failure the v0.2 revision was written to correct.
 
 ## Verification contract
 
@@ -83,6 +137,6 @@ string, the concept budget, and the nineteen resolved items.
 ## Resume instruction
 
 Resolve the path from this worktree, compare this brief with the work ledger and
-Git status, and continue from S08. The v0.2 review and its resolution are
+Git status, and continue from S07i. The v0.2 review and its resolution are
 recorded in the S07g ledger entry and in ADR-019; do not ask the user to restate
 either.
