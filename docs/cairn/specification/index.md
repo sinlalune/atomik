@@ -3,12 +3,12 @@ type: Cairn Specification
 title: Cairn — canonical protocol specification
 description: A precise, newcomer-accessible specification of Cairn as a repository-native team protocol with durable, remotely resumable coding paths.
 tags: [cairn, specification, protocol, team, coding-path, git, ci]
-timestamp: 2026-08-25T00:00:00Z
+timestamp: 2026-08-26T00:00:00Z
 cairn:
   article: specification
   kind: specification
   status: canonical
-  version: 0.1
+  version: 0.2
 ---
 
 # Cairn
@@ -20,8 +20,8 @@ inspected, checked, handed over, resumed from a
 [remote checkpoint](./concepts/remote-checkpoint.md), and integrated without
 reconstructing a conversation.
 
-This document is the canonical Cairn v0.1 specification. “Canonical” means it is
-the authoritative statement of the protocol. “v0.1” means its current
+This document is the canonical Cairn v0.2 specification. “Canonical” means it is
+the authoritative statement of the protocol. “v0.2” means its current
 [conformance profile](./concepts/conformance.md) is deliberately narrow: Cairn
 is ready to evaluate as a trusted-team coordination and project-memory
 protocol, but it does not yet claim general-purpose governance or adversarial
@@ -29,9 +29,10 @@ security.
 
 The specification is written as a learning route. It begins with the small
 ideas that make work durable, combines them into one coding path, then adds
-parallel work, evidence, closure, integration, and governance. Every specialised
-[Git](./concepts/git.md) or Cairn term links to one article in the
-[concept index](./concepts/index.md).
+routes, parallel work, evidence, closure, integration, repair, and governance.
+Every specialised [Git](./concepts/git.md) or Cairn term links to one article in
+the [concept index](./concepts/index.md), which separates the vocabulary Cairn
+borrows from the concepts Cairn defines.
 The [implementation reference](./reference/index.md) contains exact trees,
 schemas, templates, and command sequences. Concept and reference articles
 explain this page; they do not silently create additional requirements.
@@ -43,13 +44,18 @@ express requirements:
 - **SHOULD / SHOULD NOT** — the default, with any departure recorded;
 - **MAY** — optional.
 
+Every requirement below appears as one row of the
+[conformance matrix](#current-conformance), which states separately whether the
+reference tools check it. A requirement is canonical whether or not a tool
+enforces it; a claim that a tool enforces it is only made where one does.
+
 ## Begin with work that survives
 
-A [file](./concepts/file.md) is durable when it remains available after the
-current person, agent, process, or conversation ends. A
+A [file](./concepts/project-memory.md) is durable when it remains available
+after the current person, agent, process, or conversation ends. A
 [repository](./concepts/repository.md) is a directory whose history is recorded
 by [Git](./concepts/git.md). A [commit](./concepts/commit.md) is one named
-snapshot in that history, and a [commit hash](./concepts/commit-hash.md)
+snapshot in that history, and its [object id](./concepts/commit-hash.md)
 identifies that snapshot and the history leading to it.
 
 Cairn uses those ordinary objects as
@@ -67,6 +73,10 @@ The answers MUST live in repository files and Git history. A chat, local process
 memory, private note, or unpushed checkout MAY help current work, but MUST NOT be
 the only location of a completed decision, checkpoint, or next action.
 
+That last sentence is the protocol's whole thesis, and it decides several rules
+later in this document. Where a rule would leave important state only in a
+working tree, the rule is wrong, not the thesis.
+
 ### The complete protocol in one view
 
 In ordinary language: agree on one change, make that work visible to the team,
@@ -77,15 +87,19 @@ a precise name:
 | What the team does | Cairn name introduced here |
 | :-- | :-- |
 | Agree on the outcome, boundaries, and first writer | [opening acceptance](./concepts/opening-acceptance.md) |
+| Fix the accepted definition of done so it cannot move | [scope digest](./concepts/scope-digest.md) |
 | Publish the accepted plan before implementation starts | [trunk registration](./concepts/trunk-registration.md) |
 | Give the change its own visible history and editable directory | path [branch](./concepts/branch.md) and [worktree](./concepts/worktree.md) |
-| Advance implementation, tests, documents, and progress together | [work unit](./concepts/work-unit.md), [work ledger](./concepts/work-ledger.md), and [handoff](./concepts/handoff.md) |
+| Advance implementation, tests, documents, and progress together | [work unit](./concepts/work-unit.md), [work ledger](./concepts/work-ledger.md), and [handoff brief](./concepts/handoff.md) |
 | Publish every completed piece so another participant can resume it | [remote checkpoint](./concepts/remote-checkpoint.md) |
+| Publish incomplete work without calling it complete | [provisional commit](./concepts/provisional-commit.md) |
+| Keep every published checkpoint reachable after a rewrite | [checkpoint retention](./concepts/checkpoint-retention.md) |
 | Reapply the work to the newest shared base | [rebase](./concepts/rebase.md) |
 | Name the exact product result being proposed | [implementation candidate](./concepts/implementation-candidate.md) |
 | Check that exact result against software and project knowledge | [automated checks](./concepts/cairn-checker.md) and [coherence audit](./concepts/coherence-audit.md) |
 | Record an authorised decision about that exact result | [closing acceptance](./concepts/closing-acceptance.md) |
 | Add only records about the accepted result | [administrative closure](./concepts/administrative-closure.md), producing the [ready state](./concepts/ready-state.md) |
+| Decide whether that acceptance survives a moved trunk | [acceptance drift](./concepts/acceptance-drift.md) |
 | Carry the checked result into shared history without changing it | [integration transport](./concepts/integration-transport.md) |
 | Record that the accepted result is now on the [shared trunk](./concepts/trunk.md) | [done state](./concepts/done-state.md) |
 
@@ -104,6 +118,7 @@ route from accepted intent to integration. It has:
 - one stable identifier, such as `CP-SEARCH`;
 - one [path record](./concepts/path-record.md), such as
   `project/coding-paths/CP-SEARCH.md`;
+- one declared [route](./concepts/lightweight-path.md);
 - one [branch](./concepts/branch.md), such as `path/cp-search`;
 - one dedicated [worktree](./concepts/worktree.md);
 - one [assigned writer](./concepts/writer-assignment.md) for that writable
@@ -143,7 +158,16 @@ therefore not permanently owned by the person or agent that opened it.
 A Git worktree provides filesystem isolation; it does not establish exclusive
 ownership. [Writer assignment](./concepts/writer-assignment.md) is a team
 responsibility. Repositories needing a stronger guarantee require a lease or
-allocator outside the v0.1 reference tools.
+allocator outside the v0.2 reference tools.
+
+Acceptance records MUST name the roles the accepting actor held on that path.
+Where one actor recorded both the opening and the closing acceptance, that is
+permitted and MUST be visible in the record; the checker reports it as an
+[advisory finding](./concepts/advisory-finding.md). Cairn does not forbid the
+collapse, because the setup most likely to adopt it first is one developer with
+several agents. It refuses to let the collapse be invisible: a self-issued
+signature that says so is a known weakness, and a self-issued signature that
+does not is a false assurance.
 
 ### The path record
 
@@ -153,13 +177,13 @@ The canonical path filename is:
 project/coding-paths/CP-<ID>.md
 ```
 
-Its [Markdown](./concepts/markdown.md)
-[frontmatter](./concepts/frontmatter.md) begins with an exact machine-readable
-[schema](./concepts/schema.md):
+Its [Markdown frontmatter](./concepts/frontmatter.md) begins with an exact
+machine-readable [schema](./concepts/schema.md):
 
 ```yaml
 cairn:
   id: CP-EXAMPLE-001
+  route: lightweight
   status: running
   current_step: S02
   base_commit: 0123456789abcdef0123456789abcdef01234567
@@ -168,11 +192,15 @@ cairn:
   writes:
     - src/example/**
     - docs/modules/example.md
+  governs:
+    - docs/architecture/example.md@89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
+    - docs/adr/ADR-004-example.md@cdefcdefcdefcdefcdefcdefcdefcdefcdefcdef
 ```
 
 The path MUST describe:
 
 - its intended outcome and definition of done;
+- its declared route;
 - ordered, independently checkable steps;
 - governing and conditional documents;
 - deliberately excluded material;
@@ -184,13 +212,23 @@ The identifier MUST use `CP-<UPPERCASE-ID>`, the filename MUST be
 `<ID>.md`, and the branch MUST be `path/<lowercase-id>`. Identifiers and branch
 names MUST be unique and MUST NOT be reused for unrelated work.
 
-The `writes:` list is a [declared write surface](./concepts/declared-write-surface.md).
-It makes likely overlap visible. It is an advisory signal, not a filesystem
-lock: a path may discover a necessary wider change, record why, update the
-declaration, and continue.
+### Two declared surfaces
+
+`writes:` is a [declared write surface](./concepts/declared-write-surface.md):
+the paths this work expects to change. `governs:` is its counterpart, the
+declared read surface: the documents this work is bound by, each pinned as
+`path@<object-id>` so that *which* version governed is a fact rather than a
+recollection.
+
+Neither is a filesystem lock. A path may discover a necessary wider change and
+continue. What it MUST NOT do is continue with a stale declaration: writing
+outside `writes:` is permitted only when the same work unit updates the
+declaration and records the reason in the ledger. Drift without that update
+blocks, because both surfaces feed the [acceptance-drift](./concepts/acceptance-drift.md)
+predicate, and a surface that no longer describes the work quietly weakens every
+answer computed from it.
 
 The full copy-ready form is the [coding-path template](./reference/path-template.md).
-
 ### The repository around the path
 
 A Cairn repository separates four things before naming their folders:
@@ -318,8 +356,19 @@ repository/
             └── <project-descriptor>.json
 ```
 
+Cairn also claims one ref namespace outside the working tree:
+
+```text
+refs/cairn/checkpoints/<path-id>/<n>
+```
+
+These [retention refs](./concepts/checkpoint-retention.md) keep every checkpoint
+the ledger names reachable after a path branch is rewritten. They are files in
+no directory listing, and a repository that forgets they exist will
+garbage-collect exactly the history its ledger promised.
+
 `cairn.config.json` is the specified portable binding file. It is part of the
-protocol layout but is not yet loaded or installed by the v0.1 reference tools.
+protocol layout but is not yet loaded or installed by the v0.2 reference tools.
 
 The protocol role name for the execution plane is `project/`. The current
 reference tools bind that role to `atomik-project/` and bind
@@ -328,20 +377,140 @@ configuration will make those bindings selectable. The exact installed tree,
 file roles, naming rules, and portable mapping are in the
 [repository-layout reference](./reference/repository-layout.md).
 
+## Choose the route the change earns
+
+Not every bounded change deserves the same ceremony. A protocol that demands
+nine artifacts for a one-line fix teaches people to route around it, and a
+protocol routed around enforces nothing at all. Operational cost is therefore
+part of correctness, and the route is the field that prices it.
+
+Every path MUST declare `route:`. Three routes are specified here; a fourth is
+named and deliberately unimplemented.
+
+### `lightweight` — the default
+
+The [lightweight path](./concepts/lightweight-path.md) is what an ordinary
+bounded change uses. It keeps every artifact that carries durable meaning and
+combines the ones that ceremony alone separates:
+
+- the path record, with id, route, branch, base, `writes:`, `governs:`, and a
+  definition of done;
+- opening acceptance **recorded inside the path record**, with the same fields
+  and the same [scope digest](./concepts/scope-digest.md) a separate session
+  record would carry;
+- a [handoff brief](./concepts/handoff.md) meeting the full answerable-alone
+  contract;
+- remote checkpoints and [checkpoint retention](./concepts/checkpoint-retention.md);
+- [closing acceptance](./concepts/closing-acceptance.md) naming the exact
+  candidate, its scope digest, and its base, with the coherence questions
+  **answered inline** rather than in a separate audit file;
+- one [journal](./concepts/journal.md) entry at integration.
+
+What a lightweight path MUST NOT drop is exactness. The candidate is still one
+[object id](./concepts/commit-hash.md); acceptance still names it; the ledger
+still records what happened. Fewer files, not weaker facts.
+
+### `full` — required, not merely available
+
+A path MUST declare `route: full` when any of these is true:
+
+1. it changes the [control plane](./concepts/control-plane.md);
+2. it changes [architecture](./concepts/architecture.md) or a
+   [decision record](./concepts/decision-record.md);
+3. its `writes:` declaration covers more than one implemented area;
+4. it is expected to span more than one work unit;
+5. repository policy designates the area or the change high-risk.
+
+The full route separates what lightweight combines: an opening session record,
+a standalone [coherence audit](./concepts/coherence-audit.md) bound to the
+candidate, a standalone closing record, and an
+[administrative closure](./concepts/administrative-closure.md) commit distinct
+from the candidate.
+
+Escalation is one-way. A lightweight path that meets any trigger MUST escalate
+before its next checkpoint and record the trigger in its ledger. A path MUST NOT
+declare itself down a route: a change does not become small by being called
+small, and self-declared smallness is exactly the bypass the trigger list
+exists to remove.
+
+### `foundation` — the repository's own first hour
+
+A protocol that begins at accepted intent has nothing to say about where
+accepted intent comes from. That is the wrong hour to leave undescribed:
+ideation is where context loss hurts most, because nothing mechanical catches
+it. A compiler catches a broken call and a test catches a broken behaviour, but
+nothing at all catches a document that quietly contradicts the one written three
+sessions ago.
+
+A [foundation path](./concepts/foundation-path.md) is the same protocol pointed
+at documents. It declares:
+
+| Property | Value |
+| :-- | :-- |
+| write surface | `docs/**` plus `draft` path records under `project/coding-paths/` |
+| work-unit type | `foundation` — documents and their indexes, plus the ledger entry |
+| verification | `links`, `schema`, and a coherence audit |
+| governing documents | pinned as `path@<object-id>` |
+
+Its verification adds no gate. All three checks already exist as corpus rules,
+which is the point: the origin phase is brought inside the protocol without
+inventing enforcement for it.
+
+Its deliverable has two halves. The first is the foundational text —
+architecture, constraints, decisions already made. The second is a roadmap of
+[`draft`](./concepts/draft-state.md) path records: one per bounded piece of the
+intended product, each complete enough to be reviewed, none yet accepted. They
+wait for [opening acceptance](./concepts/opening-acceptance.md), and
+`draft → running` is a transition the lifecycle already allows.
+
+Because a foundation path pins its governing documents at exact object ids,
+every scope digest computed by the paths it produces is cheap: the text those
+digests cover is already fixed at a known id.
+
+**The adoption variant.** A brownfield repository has the opposite problem —
+plenty of system, no records. An adoption path is a foundation path whose work
+units back-document what already exists: one
+[module note](./concepts/module-note.md) per implemented area, describing the
+area as it is rather than as it should be, plus the decisions that are already
+load-bearing whether or not anyone wrote them down. The deliverable is the same
+governing document set and roadmap. Its purpose is narrower: to give an existing
+repository a legal entry point, so that its first Cairn change is not also its
+first record.
+
+### `emergency` — named, not specified
+
+An [emergency path](./concepts/emergency-path.md) would defer evidence for
+urgent work. Cairn v0.2 does not specify it, and it is not a synonym for
+`lightweight`: lightweight reduces ceremony for work that was always small,
+while an emergency route defers evidence for work that may be large. Until it is
+specified, urgent work uses an ordinary route, and “urgent” is not permission to
+omit state silently.
 ## Make progress resumable
 
 A [work unit](./concepts/work-unit.md) is the smallest completed change Cairn
-recognises. One work unit contains, where relevant:
+recognises. Every work unit MUST declare a **type**, and the type fixes exactly
+which parts move together:
 
-- implementation;
-- tests;
-- affected architecture, decision, and module documentation;
-- one appended [work-ledger](./concepts/work-ledger.md) entry;
-- a refreshed handoff brief;
-- verification results.
+| Type | Parts that MUST move together |
+| :-- | :-- |
+| `implementation` | source, its tests, the affected [module note](./concepts/module-note.md), ledger entry, brief |
+| `documentation` | the documents and their indexes, ledger entry, brief |
+| `decision` | the [decision record](./concepts/decision-record.md), every document it amends, ledger entry, brief |
+| `foundation` | documents plus `draft` path records, ledger entry, brief |
+| `repair` | the corrective change, any superseding record owed, a ledger entry naming the violation, brief |
+| `closure` | only the [administrative closure](./concepts/administrative-closure.md) surface |
 
-These parts MUST move together. Source changed without its affected tests,
-documents, or path state is not a completed Cairn work unit.
+Every type MUST include the appended ledger entry, the refreshed handoff brief,
+and a recorded verification result. No type may omit those three.
+
+The typing is not bureaucracy; it is what makes “where relevant” checkable. An
+untyped rule that demands documentation from every unit demands it from a typo
+fix too, and what a writer — human or agent — learns from that rule is to
+manufacture a meaningless documentation delta until the gate goes quiet. A typed
+rule asks each unit only for the parts its own kind actually has.
+
+Source changed without its affected tests, documents, or path state is not a
+completed Cairn work unit.
 
 ### Check the work before calling it complete
 
@@ -350,32 +519,145 @@ observed. A process [exit code](./concepts/exit-code.md) is zero for success and
 non-zero for failure. Gates MUST be run directly so their exit code remains the
 verdict; output MUST NOT be filtered in a way that hides or replaces it.
 
-If a work unit is explicitly delivered for a user or reviewer to test before it
-is accepted, it remains an uncommitted and unpushed candidate during that
-inspection. It MUST NOT be reported as complete. After an explicit pass, the
-writer commits it and pushes it immediately. A failed review returns the work
-unit to execution.
+### Publish incomplete work as a provisional commit
 
-This inspection rule is distinct from final closing acceptance: a step review
-accepts that work unit for checkpointing; closing acceptance later names the
-exact final implementation commit.
+Work that is not yet a completed unit — mid-refactor, failing, or waiting for a
+user or reviewer to test it — MUST NOT be left only in a
+[working tree](./concepts/worktree.md). It is committed and pushed to the remote
+path branch as a [provisional commit](./concepts/provisional-commit.md), marked
+with the trailer:
+
+```text
+Cairn-Provisional: <reason>
+```
+
+A rule that kept such work uncommitted and unpushed would forbid publishing the
+single most losable state in the whole protocol — an agent's working tree,
+mid-session — in order to protect the word “complete”. The mark protects the
+word instead. The work becomes durable, and nothing has to pretend it is
+finished.
+
+A provisional commit is a durable object and **not** a
+[remote checkpoint](./concepts/remote-checkpoint.md). It MUST NOT be reported as
+a completed work unit, MUST NOT be named as a resume point in a brief, and MUST
+NOT be proposed as an [implementation candidate](./concepts/implementation-candidate.md).
+
+Provisional commits are excluded from candidate identity. Before candidate `C`
+is produced, every provisional commit between the base and `C` MUST be folded
+into the completed work unit it was drafting: the content survives, the marker
+does not. Work delivered for inspection follows the same route — pushed
+provisionally, inspected at that exact object id, folded once it passes.
 
 ### Commit and push form one completed checkpoint
 
 A local commit is not yet shared. A [remote](./concepts/remote.md) is a shared
-copy of the repository reached through Git. [Push](./concepts/push.md) publishes
-local commits to it; [fetch](./concepts/fetch.md) retrieves remote refs without
-changing the current working files.
+copy of the repository reached through Git.
+[Push](./concepts/fetch-and-push.md) publishes local commits to it; fetch
+retrieves remote refs without changing the current working files.
 
 Every completed work unit MUST become one coherent commit and MUST be pushed
-immediately to its remote path branch. Only then is it a
-[remote checkpoint](./concepts/remote-checkpoint.md). The ledger and handoff
-brief MUST name that exact checkpoint and the next action.
+immediately to its remote path branch. Only then is it a remote checkpoint. The
+ledger and handoff brief MUST name that exact checkpoint and the next action.
 
 Any authorised participant can then fetch the branch, open the path record,
 read its governing documents and ledger, verify the checkpoint, and continue
 from the stated next action. “Implemented locally” and “completed” are not
 synonyms.
+
+### Retain every checkpoint the ledger names
+
+The ledger names its checkpoints by object id and promises that another
+participant can fetch one and resume from it. A [rebase](./concepts/rebase.md)
+reconstructs commits on a newer base and changes their ids; publishing the
+result replaces the remote branch and leaves those ids resolving to nothing.
+Rebase-before-close therefore attacks resumability directly, and it does so at
+the exact moment the ledger is most complete.
+
+Before any rewriting push of a path branch, every commit the ledger names MUST
+already be reachable from a retention ref on the same remote:
+
+```text
+refs/cairn/checkpoints/<path-id>/<n>
+```
+
+`<n>` is the ledger's own ordinal for that checkpoint, so a ledger entry and its
+retained ref name the same thing. Retention refs are append-only: once pushed, a
+ref MUST NOT be moved or deleted while the path record is retained.
+
+A repository that will not maintain that namespace has exactly one other
+conforming option: forbid rewriting pushes on path branches entirely and reach a
+current base by [merge](./concepts/merge.md) instead. Rewriting without
+retention is not a third option.
+
+### The handoff brief is a contract
+
+The brief is the document a new participant reads first and, for the first
+several minutes, the only one they have read. That makes it the protocol's
+bootstrap contract, and a bootstrap contract with no specified fields is not a
+contract.
+
+The brief lives at `project/briefs/<lowercase-id>-handoff.md`. Its frontmatter
+MUST carry:
+
+```yaml
+checkpoint: <full object id of the last completed work unit>
+checkpoint_pushed: true
+base_commit: <full object id>
+trunk_seen: <full object id of the trunk tip last fetched>
+writes:
+  - src/example/**
+governs:
+  - docs/architecture/example.md@89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
+verify:
+  - npm run cairn-check
+  - npm test
+budget_tokens: 1200
+```
+
+Its body MUST hold seven capped sections, and no others: **outcome**, **state**,
+**next action**, **blockers**, **tried and rejected**, **reading order**, and
+**verification**. The whole brief SHOULD fit inside `budget_tokens`, whose
+default is 1200; a brief that cannot say where a path stands in that budget is
+describing a path that has lost its shape.
+
+#### The answerable-alone contract
+
+A reader holding only `AGENTS.md` and the brief — no ledger, no conversation, no
+prior session — MUST be able to state:
+
+1. the outcome this path is for;
+2. the exact commit to resume from;
+3. the single next action;
+4. what the path may write;
+5. what it must read, and at which object id;
+6. what is blocking, if anything;
+7. what has already been tried and rejected;
+8. the exact commands that verify the checkpoint.
+
+If answering any of these requires opening the ledger, **the brief has failed**,
+and refreshing it is part of the next work unit.
+
+The brief is mutable and rewritten at every work unit; the
+[work ledger](./concepts/work-ledger.md) is the append-only history. They are
+not two copies of one thing. The ledger grows without bound and records
+everything that happened; the brief stays small and records the situation now.
+Neither can do the other's job, and a brief that only makes sense to someone who
+has read the ledger has quietly become a second ledger.
+
+The complete field list, caps, and template are in the
+[handoff-brief reference](./reference/handoff-brief.md).
+
+#### Cold resume is the measurement
+
+The answerable-alone contract is also how Cairn is measured. A **cold resume**
+places a participant with no prior context in front of `AGENTS.md`, the brief,
+and the repository at the named checkpoint, and asks them to perform the next
+action. Success rate and time-to-first-correct-action are the pilot's primary
+metric, ahead of ceremony time or artifact count: a protocol whose briefs cannot
+be resumed cold has failed at the thing it exists for, however cheap its
+ceremony is.
+
+### The ledger boundary
 
 The work ledger is append-only in protocol semantics. Completed ledger sections
 MAY move byte-for-byte into uniquely named files under
@@ -384,10 +666,9 @@ Summarising a rolled entry is not equivalent to retaining it. The reference
 checker protects existing history records from rewrite, but does not yet prove
 that live ledger text remains a byte prefix or was rolled verbatim; the
 [conformance matrix](#current-conformance) states this limit explicitly.
-
 ## Let paths work beside one another
 
-A [working tree](./concepts/working-tree.md) is the checked-out files a process
+A [working tree](./concepts/worktree.md) is the checked-out files a process
 can edit. A Git worktree gives another working tree for the same repository.
 Each running, blocked, or ready path MUST retain its branch and base commit, and
 its remote path branch MUST retain its latest completed checkpoint.
@@ -413,7 +694,9 @@ writer per writable worktree.
 Running path branches are required because they carry resumable checkpoints.
 After integration, retaining the path branch is optional if every path commit is
 proved reachable from the remote trunk. Deleting a branch name does not delete
-commits already reachable from that trunk.
+commits already reachable from that trunk. [Retention refs](./concepts/checkpoint-retention.md)
+are a separate promise and are not released by integration: they are removed
+only when the path record itself is no longer retained.
 
 ## Separate evidence from judgement
 
@@ -469,21 +752,46 @@ followed by [trunk registration](./concepts/trunk-registration.md).
 ### Opening acceptance
 
 Before implementation, the team MUST review the proposed outcome, definition of
-done, steps, governing documents, expected write surfaces, exclusions, and
-initial writer assignment. An authorised participant records the decision:
+done, route, steps, governing documents, expected write surfaces, exclusions,
+and initial writer assignment. An authorised participant records the decision:
 
 ```yaml
 path: CP-EXAMPLE-001
 ceremony: opening
 decision: accepted
 accepted_by: participant-id
+accepted_roles: [initiator, reviewer]
 accepted_at: 2026-01-15T09:00:00Z
 scope_ref: project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
+scope_digest: sha256:9f2c4b1d…
 ```
 
-The repository's governance decides who is authorised. Cairn does not require
-one permanent owner. The initiator, reviewer, writer, and integrator may be
-different developers or agents, subject to repository policy.
+On the `lightweight` route this block lives in the path record itself; on the
+`full` route it is a separate session record. The fields are identical either
+way.
+
+### Bind the scope, not a pointer to it
+
+`scope_ref` is a file path and a heading — a mutable pointer. Implementation is
+bound to an object id and cannot quietly become something else; scope, as a
+pointer alone, can. The definition of done could be rewritten after acceptance
+and before closure, and every record would still look valid.
+
+The opening record therefore MUST carry a **[scope digest](./concepts/scope-digest.md)**:
+a digest of the exact text `scope_ref` resolves to at the registration commit —
+the named heading and its body up to the next heading of the same or higher
+level, normalised for line endings and trailing whitespace, with no other
+transformation.
+
+[Closing acceptance](./concepts/closing-acceptance.md) MUST re-compute that
+digest from the same `scope_ref` at candidate `C` and record the result. If the
+digests differ, the definition of done moved after it was accepted, and closing
+MUST NOT proceed on the original acceptance. The path either restores the
+accepted text or records a **scope amendment**: a new opening acceptance, with a
+new digest, naming the record it supersedes.
+
+The digest algorithm is named in the record and MUST be a full digest, never a
+prefix.
 
 ### Registration before branching
 
@@ -504,7 +812,6 @@ The path MUST exist on the remote trunk before implementation begins. A
 protected host profile therefore needs a registration-aware transport; it MUST
 NOT require the not-yet-landed declaration as a precondition for landing that
 same declaration.
-
 ## Close one exact implementation candidate
 
 Closure is about an immutable identity, not whichever files happen to be at
@@ -513,19 +820,36 @@ is the exact commit `C` proposed as the product result.
 
 ### Produce and audit candidate C
 
-1. Fetch the remote trunk.
-2. [Rebase](./concepts/rebase.md) the path onto it, resolving every conflict.
-3. Complete any required user inspection before checkpointing.
-4. Commit and push the resulting implementation candidate `C`.
-5. Run product checks and the Cairn checker against exactly `C`.
-6. Perform a [coherence audit](./concepts/coherence-audit.md) of exactly `C`.
-7. If a finding changes implementation, create a new candidate and repeat.
+1. Fetch the remote trunk and record its tip as `T`.
+2. Retain every ledger-named checkpoint under `refs/cairn/checkpoints/` and push
+   those refs.
+3. [Rebase](./concepts/rebase.md) the path onto `T`, resolving every conflict.
+4. Fold every provisional commit into the completed work unit it was drafting.
+5. Commit and push the resulting implementation candidate `C`.
+6. Run product checks and the Cairn checker against exactly `C`.
+7. Perform a [coherence audit](./concepts/coherence-audit.md) of exactly `C`,
+   read against the documents pinned in `governs:`.
+8. If a finding changes implementation, create a new candidate and repeat.
+
+Steps 2 and 4 are not housekeeping. Without step 2 the rebase orphans the
+history the ledger promises; without step 4 the accepted candidate contains
+commits that were marked incomplete.
 
 A rebase reconstructs path commits on a newer base and therefore normally
-changes their hashes. Acceptance or audit of a pre-rebase commit cannot certify
-the rebased result.
+changes their object ids. Acceptance or audit of a pre-rebase commit cannot
+certify the rebased result.
 
-The audit record MUST use the full candidate hash in both its filename and
+### Identify commits by full object id
+
+Every candidate-bound record names commits by their **full object id in the
+repository's configured object format** — never by a prefix. Cairn deliberately
+does not say “forty hexadecimal characters”: Git's object format is
+configurable, SHA-1 produces forty hex characters and SHA-256 produces
+sixty-four, and a protocol that fixes the first excludes the second for no
+protocol reason. The requirement is *full and unabbreviated*; the length follows
+from the repository.
+
+The audit record MUST use the full candidate id in both its filename and
 metadata:
 
 ```text
@@ -545,6 +869,9 @@ The audit records a reasoned judgement. The checker can prove that the record
 exists, is complete, names `C`, and is not later rewritten; it cannot prove that
 the judgement is wise.
 
+On the `lightweight` route the same questions are answered inside the closing
+record rather than in a separate file. The questions do not change.
+
 ### Accept candidate C
 
 An authorised reviewer performs [closing acceptance](./concepts/closing-acceptance.md)
@@ -554,16 +881,44 @@ of the same candidate. The record MUST declare:
 path: CP-EXAMPLE-001
 ceremony: closing
 subject_commit: fedcba9876543210fedcba9876543210fedcba98
+base: 0123456789abcdef0123456789abcdef01234567
 accepted_by: participant-id
+accepted_roles: [reviewer, auditor]
 accepted_at: 2026-01-15T14:30:00Z
 decision: accepted
 scope_ref: project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
-advisory_disposition: "fixed: none; accepted: scope-drift; deferred: none"
+scope_digest: sha256:9f2c4b1d…
+advisory_disposition:
+  - rule: scope-drift
+    disposition: accepted
+    reason: the wider root cause is declared in writes: at this same commit
+  - rule: path-staleness
+    disposition: deferred
+    reason: parked during the dependency freeze
+    owner: participant-id
+    follow_up: CP-EXAMPLE-002
 ```
 
-The subject hash MUST be all 40 hexadecimal characters. The accepted scope MUST
-be identifiable. Every advisory MUST be recorded as fixed, accepted, or
-deferred with a reason.
+Acceptance binds three things, because an acceptance that binds only the first
+is weaker than it looks:
+
+- **the result** — `subject_commit`, which MUST equal the audit's subject;
+- **the scope** — `scope_ref` plus `scope_digest`, which MUST equal the digest
+  recorded at opening;
+- **the base** — `base: T`, the trunk tip the candidate was rebased onto, which
+  is what [acceptance drift](./concepts/acceptance-drift.md) later tests.
+
+### Advisories are dispositions, not a sentence
+
+`advisory_disposition` MUST be a list of entries, each naming a `rule`, a
+`disposition` of `fixed`, `accepted`, or `deferred`, and a `reason`. A deferral
+MUST also name an `owner` and a `follow_up`. The list MUST correspond exactly to
+the advisories the checker raised at `C` — no invented entries, no omissions.
+
+Set equality against the findings at `C` is a predicate. A free-text sentence is
+not: as one string, “every advisory MUST be recorded” cannot be checked at all,
+and a reviewer who writes `accepted: none` over three live advisories produces a
+record that reads as complete and is false.
 
 ### Add only administrative closure
 
@@ -573,14 +928,32 @@ commit `A`:
 
 ```text
 C  exact implementation candidate
-└─ A  path status ready + audit + closing record + refreshed handoff
+└─ A  path status ready + audit + closing record + refreshed brief pointer
 ```
 
-`A` MUST change only the configured closure surfaces: the path record, its
-handoff brief, the exact audit, and the exact closing record. Product source,
-tests, architecture, and implementation documentation MUST NOT change after
-acceptance. The path record declares `status: ready` and
-`subject_commit: C`. The final protocol check runs on `A`, then `A` is pushed.
+`A` is restricted **field by field**, not file by file. It MAY add the exact
+audit record and the exact closing record. Within the path record it MAY change
+only:
+
+- `status`, set to `ready`;
+- `subject_commit`, set to `C`;
+- one appended work-ledger entry.
+
+Within the handoff brief it MAY change only the checkpoint pointer and the
+fields that follow from it.
+
+Everything else MUST NOT change: the definition of done, `scope_ref`, `writes:`,
+`governs:`, the step plan, product source, tests, architecture, and
+implementation documentation.
+
+A file-level restriction would not be a restriction. The definition of done
+lives inside the path record, and so do both declared surfaces — so a closure
+commit permitted to “change the path record” is permitted to rewrite the
+standard its own acceptance was measured against, after the measurement. On the
+`lightweight` route `A` MAY share `C`'s commit where the transport can still
+bind acceptance to an exact id; the field restriction is unchanged.
+
+The final protocol check runs on `A`, then `A` is pushed.
 
 If implementation changes after `C`, even during conflict resolution or audit
 repair, `C` is no longer the candidate. Return the path to `running`, produce a
@@ -588,7 +961,6 @@ new candidate, and repeat audit and acceptance.
 
 The complete schemas are in [human records](./reference/human-records.md); the
 command sequence is in [operations](./reference/operations.md).
-
 ## Integrate without claiming the future
 
 [Ready](./concepts/ready-state.md) and [done](./concepts/done-state.md) name
@@ -621,25 +993,65 @@ The integrating unit MUST:
 5. land that exact checked candidate;
 6. be fetched back and proved reachable from the remote trunk.
 
-If the trunk moved in a way that changes the candidate, the path returns to
-`running` and repeats closure. A local merge preview is not proof that the host
-accepted the same commit.
+### Decide drift by predicate, not by equality
+
+Between acceptance and integration the trunk moves from `T` — the base recorded
+in the closing record — to some `T'`. Something has to decide whether the
+acceptance survives.
+
+It MUST NOT be `T' == T`. That rule is the obvious one and it is a livelock: it
+makes integration first-come-first-served, so every landing invalidates every
+other open acceptance, and each path must re-rebase, re-audit, and re-accept. If
+audit and acceptance together take longer than the trunk's landing interval,
+nothing ever closes — and the repositories where that is true are exactly the
+busy ones the protocol is for.
+
+The narrower question is the right one. An acceptance is a judgement about a
+diff read against a body of knowledge, and it is threatened only if the trunk
+moved underneath that reading:
+
+> **Drift predicate.** An acceptance remains valid while the trunk delta from
+> `T` to `T'` touches no file matched by the union of the path's `writes:` and
+> `governs:` declarations.
+
+- **`writes:`** — the surface the candidate changed. A trunk change there means
+  the merged result is not the audited result.
+- **`governs:`** — the documents the audit reasoned from, pinned at object ids.
+  A trunk change there means the audit's reference frame moved even though the
+  diff did not.
+
+If the delta touches neither, the path integrates the accepted candidate
+unchanged. If it touches either, the acceptance is invalidated: the path returns
+to `running`, rebases onto `T'`, produces a new candidate, and repeats audit and
+acceptance.
+
+Two paths writing genuinely disjoint surfaces do not invalidate each other. Two
+paths writing the same surface always do, whether or not Git would have reported
+a [conflict](./concepts/conflict.md). Path matching is a proxy for semantic
+overlap and is stated as one: a trunk change outside both declarations can still
+break the candidate, and the product checks run at integration are what catch
+the rest.
 
 After remote verification, another checkout MAY remove the secondary worktree
 only when its exact path is known and it is Git-clean. It MUST NOT use force or
 remove the primary checkout. Branch cleanup is optional once reachability from
-the remote trunk is proved.
+the remote trunk is proved; retention refs are not removed by integration.
 
 ## Keep lifecycle statements truthful
 
 The [lifecycle](./concepts/lifecycle.md) records facts rather than intentions:
 
 ```text
-draft → running ↔ blocked → ready → done → archived
-           │          ▲       │
-           └──────────┘       └→ running
+                    ┌──────────────────────────┐
+                    ▼                          │
+draft ──────► running ──────► ready ──────► done ──────► archived
+                 │  ▲           │  ▲                        ▲
+                 ▼  │           ▼  │                        │
+              blocked ◄─────────┘  └────────────────────────┘
+                 │                                          │
+                 └──────────────────────────────────────────┘
 
-draft | running | blocked → archived
+draft ────────────────────────────────────────────────────► archived
 ```
 
 | State | Exact meaning | Required identity |
@@ -647,7 +1059,7 @@ draft | running | blocked → archived
 | [`draft`](./concepts/draft-state.md) | proposed, not registered for execution | id |
 | [`running`](./concepts/running-state.md) | accepted, registered, and executable | id, branch, base commit, writer |
 | [`blocked`](./concepts/blocked-state.md) | paused by a named condition | the running identity plus blocker and unblock condition |
-| [`ready`](./concepts/ready-state.md) | exact `C` audited and accepted; not integrated | running identity plus full subject commit |
+| [`ready`](./concepts/ready-state.md) | exact `C` audited and accepted; not integrated | running identity plus full subject object id |
 | [`done`](./concepts/done-state.md) | accepted candidate integrated on the trunk | subject commit and `resolution: completed` |
 | [`archived`](./concepts/archived-state.md) | terminal retained record | `resolution: completed \| abandoned \| superseded` |
 
@@ -657,15 +1069,30 @@ Allowed transitions are:
 draft   → running | archived
 running → blocked | ready | archived
 blocked → running | archived
-ready   → done | running
+ready   → running | blocked | done
 done    → archived
-archived → archived
+archived → (terminal)
 ```
 
-Self-transitions are allowed while ordinary fields advance. An unintegrated path
-archives as `abandoned` or `superseded`, never `completed`. A completed path
-archives as `completed`. `blocked` retains its branch and base commit because
-dormant work needs more traceability, not less.
+Three edges deserve their reasons stated, because the diagram and the table must
+agree in both directions:
+
+- **`ready → blocked` exists.** Acceptance stalls. A candidate audited and
+  waiting on an unavailable reviewer is blocked on a named condition, and saying
+  so is more useful than a `ready` that quietly ages.
+- **`blocked → ready` does not exist.** Reaching `ready` requires producing and
+  auditing a candidate, which is execution. An unblocked path returns to
+  `running` and reaches `ready` from there.
+- **`archived → archived` is not a transition.** An unchanged state is not an
+  event. A validator comparing two commits will often see a record that declared
+  `archived` before and declares it now; it MUST accept that for every state,
+  provided the state's required identity fields are present and, for `archived`,
+  its `resolution` is unchanged. The same holds for any other unchanged state
+  while ordinary fields advance.
+
+An unintegrated path archives as `abandoned` or `superseded`, never `completed`.
+A completed path archives as `completed`. `blocked` retains its branch and base
+commit because dormant work needs more traceability, not less.
 
 The ready state exists on the path branch. The trunk may observe `running → done`
 when it integrates a branch whose ready state was never previously present on
@@ -676,6 +1103,11 @@ When a required earlier state is unavailable, transition validation is
 inconclusive and blocks. Path declarations are retained; they are archived
 rather than deleted.
 
+The honest limit is worth stating in the same breath. A validator run sees
+**one commit**: it reads the state a record declares now and compares it with
+one comparison ref. It has never watched a path move. What a checker enforces is
+the per-state invariants plus single-step transitions against an available
+comparison ref — never “which state was this in last week”.
 ## Preserve records without overstating Git
 
 [Record integrity](./concepts/record-integrity.md) applies to sessions, audits,
@@ -689,14 +1121,67 @@ The [journal](./concepts/journal.md) uses one file per integrated outcome under
 repository uses them.
 
 Git provides [tamper evidence](./concepts/tamper-evidence.md) relative to a
-previously known hash: rewriting an ancestor changes descendant hashes. Git
+previously known object id: rewriting an ancestor changes descendant ids. Git
 alone is not an immutable audit log. Protected refs, signatures, or an external
 anchor are needed when the threat model includes authorised writers rewriting
 history.
 
+### Redaction
+
+Immutability and disclosure eventually collide. A secret, a credential, or
+personal data lands inside a record that may never be edited: deleting the
+record destroys history, and leaving it publishes the secret for as long as the
+repository exists. Redaction is the single sanctioned exception, and it is a
+ceremony rather than an edit.
+
+1. **Rotate first.** Revoke and replace the exposed credential. Redaction
+   removes text from a file; it does not un-disclose anything already read,
+   cloned, or mirrored. A redaction performed *instead of* a rotation is
+   theatre, and MUST NOT be recorded as remediation.
+2. **Write a redaction record**, itself immutable, under `project/sessions/`. It
+   MUST name the affected record, its object id before redaction, the class of
+   content, the authorising participant, the rotation evidence, and the date. It
+   MUST NOT quote the content it exists to remove.
+3. **Replace the content in place** with `[redacted: <redaction-record-id>]`, in
+   a commit that touches nothing else. The record's identity, structure, and
+   every other statement survive.
+4. **Rewrite history only as a separate decision.** If the object must also
+   leave Git history, that is its own work unit: it updates every retention ref
+   and every ledger reference to a rewritten object id, and the redaction record
+   names both the old and the new ids.
+
+A completed redaction proves that the repository no longer serves the text. It
+never proves that the disclosure was contained.
+
+## Repair a path that broke protocol
+
+Real deployments live here. A protocol with no repair procedure has one implicit
+instruction for a path that has already violated a rule — tidy the history until
+the rule appears satisfied — which destroys exactly the evidence the protocol
+exists to keep.
+
+Repair is a work unit like any other. It declares `type: repair`, appends a
+ledger entry naming the violation, and never edits history into a cleaner shape.
+Where a record is owed, repair supersedes it rather than replacing it.
+
+| Violation | Repair |
+| :-- | :-- |
+| Branch created before registration | Do not delete the branch. Register retroactively in a `repair` unit whose ledger entry names the omission; set `base_commit` to the actual branch point rather than a convenient one. |
+| Implementation changed after acceptance | The candidate is void. Return to `running`, produce a new candidate, and supersede the closing record with one naming the new object id. The original acceptance is retained. |
+| An immutable record was edited | The edit cannot be undone by another edit. Add a superseding correction record naming both object ids and stating what was changed, and record the violation in the ledger. |
+| Branch force-pushed without retention | Recover the orphaned commits from reflog or any surviving ref and push them to `refs/cairn/checkpoints/` immediately. Ledger entries naming commits that cannot be recovered are marked `unrecoverable`, never deleted. |
+| A path branch declared `done` | Return the declaration to `ready` in a `repair` unit and re-run integration through the declared transport. `done` on a branch is a claim about the trunk that the branch cannot make. |
+| Scope digest mismatch at closing | Either restore the accepted text or record a scope amendment — a new opening acceptance with a new digest, naming the record it supersedes — then re-close. |
+| Work outside `writes:` already committed | Update the declaration and record the reason in the same repair unit. A widening that is recorded is ordinary; one that is hidden is the violation. |
+| Secret committed to an immutable record | Follow the redaction ceremony above, beginning with rotation. |
+
+Two rules govern every row. A repair MUST leave the violation visible in the
+ledger, and a repair MUST NOT be the same work unit as the work that caused it.
+
+The [repair reference](./reference/repair.md) carries the command sequences.
 ## State the trust and enforcement boundary
 
-Cairn v0.1 assumes collaborating writers. Its local and CI mechanisms protect
+Cairn v0.2 assumes collaborating writers. Its local and CI mechanisms protect
 against accidental omission, coordination errors, stale bases, malformed
 records, and silent loss of execution state. They are not an adversarial
 security boundary.
@@ -726,6 +1211,21 @@ lands or how a locally created merge commit obtains checks. A protected profile
 must name and test its transport instead of relying on a generic branch-setting
 claim.
 
+### Collapsed roles are a stated property
+
+A path has five role-bearing positions: initiator, writer, reviewer, auditor,
+and integrator. A solo developer working with agents holds all five, which makes
+closing acceptance a signature the signer issued to themselves.
+
+Cairn permits that and requires it to be legible. Acceptance records name the
+roles the actor held, and the checker raises an advisory when one actor recorded
+both the opening and the closing acceptance for a path. A repository whose paths
+routinely show one actor in every role has a real property of its governance,
+and MUST NOT claim an enforcement profile above `local` on the strength of those
+acceptances alone. The distinction that matters is not between separation and
+collapse; it is between a weakness that is written down and one that is
+invisible until an incident finds it.
+
 The versioned [configuration reference](./reference/configuration.md) specifies
 portable role bindings. The current reference checker remains bound to one
 repository layout and a deliberately limited frontmatter subset; it does not
@@ -733,47 +1233,83 @@ yet implement that portable configuration contract. A conforming portable
 implementation MUST either use a standard YAML parser or publish and validate a
 distinct format without calling it full YAML.
 
+## Deliberate non-goals
+
+These are decisions, not omissions. Each is something a reader could reasonably
+expect Cairn to do, and each is refused for a stated reason.
+
+| Non-goal | Reason |
+| :-- | :-- |
+| **Requiring `T' == T` at integration** | The obvious fix for trunk drift is first-come-first-served: every landing invalidates every other open acceptance, and if audit and acceptance take longer than the trunk's landing interval, nothing ever closes. The [drift predicate](#decide-drift-by-predicate-not-by-equality) replaces it. |
+| **Defending against an authorised writer** | Every mechanism here is a repository file or a Git predicate, and a participant who can change all of them can change the thing that evaluates the change. Cairn protects against omission, staleness, and coordination error. Protected refs, signatures, or an external anchor are what a hostile-writer threat model needs. |
+| **Resolving semantic conflicts** | Cairn reports overlap through declared surfaces and refuses to guess. Whether two changes mean the same thing is a judgement, and the protocol routes it to the [coherence audit](./concepts/coherence-audit.md) rather than pretending a path predicate answers it. |
+| **A writer lease or allocator** | One writer per writable worktree is a team responsibility, not a lock. A real lease needs a coordination service outside the repository, which would make Cairn depend on infrastructure it currently does not need. |
+| **Judging the quality of a judgement** | The checker proves that an audit exists, is complete, names the right object, and was not rewritten. It cannot prove the auditor was right, and the specification never implies that a passing gate is an endorsement. |
+| **Undoing disclosure** | Redaction removes text from a repository. It does not un-disclose anything already read, cloned, or mirrored, and it is never remediation on its own. |
+| **Cross-repository paths** | A path is bounded by one repository's trunk, refs, and records. Coordinating one outcome across several repositories needs a shared identity and transport that Cairn does not define. |
+| **Enforcing route selection** | `route:` is declared by the initiator. The full-route triggers are structural proxies, and a single-file change to one area can still be the most dangerous change of the quarter. Escalation is required and one-way; correct initial selection is not mechanically established. |
+| **Specifying the emergency route** | Naming it without specifying it is deliberate. A half-defined exception is worse than none, because it becomes the route anything urgent claims. |
+| **Byte-level proof that a ledger was rolled verbatim** | Stated as a requirement, unimplemented in the reference tools, and listed as such in the matrix below rather than quietly dropped. |
+
 ## Current conformance
 
 [Conformance](./concepts/conformance.md) distinguishes the protocol from one
 implementation. A requirement can be canonical before the reference tools
-implement it, but its status must be visible.
+implement it, but its status must be visible — in this table, beside the claim,
+not in a separate document a reader may never open.
 
-| Capability | Protocol v0.1 | Reference tools | Additional dependency |
+| Capability | Protocol v0.2 | Reference tools | Additional dependency |
 | :-- | :-- | :-- | :-- |
 | Path record, branch identity, registration, and remote checkpoints | required | implemented, with repository-specific bindings | remote Git |
 | Full opening decision, actor, time, scope, and authority schema | required | **partially implemented**; path and ceremony presence are checked | repository governance |
 | Multiple team participants and checkpoint handoff | required | records support it; writer exclusivity is operational | team assignment policy |
 | `running`, `blocked`, `ready`, `done`, `archived` lifecycle | required | transition and state checks implemented for observable changes | complete comparison ref |
+| `ready → blocked` and unchanged-state acceptance | required | **not implemented**; the installed transition table predates both | transition-table update |
 | Exact-candidate audit and closing acceptance | required | implemented | authorised reviewer |
+| Full object id in the repository's configured format | required | **partially implemented**; the installed checker matches a forty-character form | object-format-aware identity check |
 | Fail-closed critical inconclusive outcomes | required | implemented | complete trunk and comparison refs |
 | Existing session, audit, history, and journal immutability | required | implemented for new or changed records | complete comparison ref |
+| Checkpoint retention refs before any rewriting push | required | **not implemented** | ref namespace, push permission, ledger-to-ref mapping |
+| Marked provisional commits excluded from candidate identity | required | **not implemented** | commit-trailer parsing and fold verification |
+| Handoff-brief field schema and answerable-alone contract | required | **not implemented** | brief schema and a cold-resume harness |
+| Field-level administrative closure surface | required | **partially implemented**; the installed rule restricts files, not fields | field-level diff comparison |
+| Scope digest recorded at opening and re-verified at closing | required | **not implemented** | digest computation over a resolved section |
+| Candidate base `T` and the acceptance-drift predicate | required | **not implemented** | trunk delta computation against `writes:` and `governs:` |
+| Structured `advisory_disposition` matching findings at `C` | required | **not implemented** | checker finding set exported for comparison |
+| Recorded roles and the collapsed-actor advisory | required | **not implemented** | role fields in acceptance records |
+| `scope-drift` blocking unless the declaration moves in the same commit | required | **not implemented**; the installed rule is advisory | same-commit declaration comparison |
+| Typed work units keyed to their required parts | required | **not implemented**; the installed rule demands one fixed set | work-unit type in the ledger schema |
+| `lightweight` default route and one-way escalation | required | **not implemented** | route field, trigger evaluation |
+| `foundation` and adoption routes | required | **not implemented**; its three checks exist and are not yet bound to a route | route field |
+| Repair procedures for protocol violations | required | **not implemented**; procedural, with no predicate proposed | none — repair is recorded, not gated |
+| Redaction ceremony | required | **not implemented** | redaction record schema |
 | Live-ledger prefix and verbatim-roll proof | required | **not implemented** | explicit ledger markers/schema |
 | Versioned portable configuration and schema migration | required for portable profile | **not implemented** | configuration loader and migrations |
 | Exact protected integration transport | required for protected profile | **not installed or tested** | repository-host adapter |
 | Independently protected control plane | required for protected profile | **not installed or tested** | host ownership/approval policy |
 | Transactional `init`, `new`, and `close` commands | required before general release | **not implemented** | command tooling |
-| [Lightweight path](./concepts/lightweight-path.md) | required before general release | **not implemented** | policy and measured thresholds |
-| [Emergency path](./concepts/emergency-path.md) | required before general release | **not implemented** | incident policy and retrospective |
-| Operational-cost pilot | required before general release | **not run** | representative team |
+| [Emergency path](./concepts/emergency-path.md) | deliberately unspecified | **not implemented** | incident policy and retrospective |
+| Cold-resume pilot | required before general release | **not run** | representative team |
 
 The current supported claim is therefore:
 
-> Cairn v0.1 is a local-first coordination and project-memory protocol for a
+> Cairn v0.2 is a local-first coordination and project-memory protocol for a
 > team of trusted developers and coding agents working through remote Git
 > branches. Its reference tools enforce a substantial but incomplete subset of
 > the protocol. It is not yet a general-purpose merge, governance, or security
 > system.
 
-Operational cost is part of correctness. A pilot SHOULD measure ceremony time,
-ignored advisories, integration retries, documentation churn, checkpoint
-recovery time, and bypass pressure before a team widens its claims.
-
+Operational cost is part of correctness. A pilot SHOULD measure cold-resume
+success first, then ceremony time, ignored advisories, integration retries,
+documentation churn, and bypass pressure, before a team widens its claims.
 ## Implemented rule catalogue
 
 This catalogue is generated from the reference checker. It inventories
 implemented predicates; it does not make unimplemented protocol requirements
-disappear and does not prove that a judgement-bearing record is correct.
+disappear and does not prove that a judgement-bearing record is correct. Read it
+beside the matrix above: the matrix names what the protocol requires, this table
+names what one implementation currently checks, and the gap between them is the
+honest state of the work.
 
 <!-- cairn:rules:begin -->
 | Level | Rule Name | Scope | Trigger Condition | Enforcing Logic |
@@ -806,17 +1342,20 @@ disappear and does not prove that a judgement-bearing record is correct.
 
 ## Continue through the wiki
 
-The [concept index](./concepts/index.md) offers two routes: the same
-simple-to-complex sequence used here and an alphabetical catalogue. Each article
-defines one object, explains why Cairn uses it, states what it does not prove,
-and links to related objects.
+The [concept index](./concepts/index.md) separates the vocabulary Cairn borrows
+from Git and ordinary practice from the concepts Cairn defines, then offers both
+a simple-to-complex route and an alphabetical catalogue. Each article defines one
+object, explains why Cairn uses it, states what it does not prove, and links to
+related objects.
 
 Use the reference when reconstructing or operating a repository:
 
 - [repository layout](./reference/repository-layout.md);
 - [coding-path template](./reference/path-template.md);
+- [handoff-brief contract](./reference/handoff-brief.md);
 - [opening, closing, and audit records](./reference/human-records.md);
 - [operating sequence](./reference/operations.md);
+- [repair procedures](./reference/repair.md);
 - [configuration and portability status](./reference/configuration.md);
 - [conformance checklist](./reference/conformance.md).
 

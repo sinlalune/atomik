@@ -3,7 +3,7 @@ type: Atomik Index
 title: Coding path step history
 description: Completed steps rolled out of live path files, verbatim and linked, so a path file keeps its declaration, its ledger and its next action.
 tags: [coding-path, history, ledger, okf]
-timestamp: 2026-08-24T00:00:00Z
+timestamp: 2026-08-26T00:00:00Z
 ---
 
 # Coding path step history
@@ -41,6 +41,17 @@ address rather than content, and the same target must keep resolving.
 - [S04 — Bound the ledger](./CP-OPS-002-S04.md) · this convention, and the rule that produced this rollup
 - [S05 — Backfill OKF](./CP-OPS-002-S05.md) · with S05b and S05c
 - [S06 — Retire the drifted page](./CP-OPS-002-S06.md) · with S06b, S06c and S06d
+
+Rolled again 2026-08-26 at S07g, when `ledger-size` fired a second time. The six
+specification steps below include four superseded attempts, kept rather than deleted:
+what was tried and why it was redone is the part a later reader needs most.
+
+- [S07a — ADR-017, the path lifecycle](./CP-OPS-002-S07a.md) · `archived` terminal, abandonment given a door, staleness advisory
+- [S07 — Specification, lexicon, and primer](./CP-OPS-002-S07.md) · superseded by S07c
+- [S07b — The rendered page](./CP-OPS-002-S07b.md) · superseded by S07c
+- [S07c — Redo: one universal handbook](./CP-OPS-002-S07c.md) · superseded by S07e
+- [S07d — Binding names, read downward](./CP-OPS-002-S07d.md) · superseded by S07e
+- [S07e — Canonical specification project and universal reader](./CP-OPS-002-S07e.md) · the shape that held
 
 ### CP-MVP-008 — Real AI generation + the AI interaction pass (M2 completion)
 

@@ -1,11 +1,11 @@
 ---
 type: Atomik Brief
-title: Handoff — CP-OPS-002 S07f landed; S07g is the Cairn v0.2 specification revision
+title: Handoff — CP-OPS-002 S07g complete; the Cairn v0.2 specification has landed
 timestamp: 2026-08-26T00:00:00Z
 atomik:
   path: CP-OPS-002
   branch: path/cp-ops-002
-  candidate_step: S07g
+  candidate_step: S08
 ---
 
 # Resume CP-OPS-002 here
@@ -15,75 +15,74 @@ atomik:
 - Worktree `../4tom1k-cp-ops-002`, branch `path/cp-ops-002`, tracking
   `origin/path/cp-ops-002`.
 - Registered at `base_commit: 7aa3b1d` by trunk commit `df875e6`.
-- **S07f is a completed remote checkpoint.** The user passed the candidate on
-  2026-08-26 and chose to land it separately so the v0.2 revision that follows
-  reads as its own diff.
-- `ADR-018` deliberately remains `proposed`. S07g's brief contradicts two of its
-  operating rules — force-push after rebase, and pre-acceptance work staying
-  unpushed — so accepting it before that revision would ratify text about to be
-  amended.
+- **S07f** landed the canonical specification project and candidate-bound
+  closure. **S07g** revised that specification to v0.2. Both are completed
+  remote checkpoints.
+- `ADR-018` and `ADR-019` are both `proposed`. ADR-018 stays proposed because
+  v0.2 amends two of its operating rules; ADR-019 records that amendment.
 
-## What S07f landed
+## What S07g landed
 
-- Candidate-bound closure: audit and closing acceptance bind the same exact
-  implementation commit; `ready` is a path-branch fact and `done` is written
-  only by trunk integration; exactly one allowlisted administrative closure
-  commit may follow the candidate.
-- Fail-closed critical gates: registration, registration parent, rebase,
-  transition, acceptance, and record integrity return non-zero for both `fail`
-  and `inconclusive`.
-- The canonical specification project: `docs/cairn/specification/index.md` plus
-  65 concept articles and six reference articles, rendered by
-  `tools/cairn-spec-build.mjs` into one deterministic, self-contained
-  `docs/cairn/specification.html` embedding 74 articles.
-- Cairn stays a team protocol: several developers and several agents per
-  developer, one assigned writer per writable worktree at a time, writer change
-  at a pushed checkpoint, no permanent central integrator.
+The Cairn specification is now v0.2, revised against a nineteen-item external
+review supplied by the user. **Specification text only** — no checker rule was
+implemented, by explicit instruction, and every added requirement carries a
+conformance-matrix row whose reference-tools column says `not implemented`.
 
-## S07g — the Cairn v0.2 revision
+- **Checkpoint retention** under `refs/cairn/checkpoints/<path-id>/<n>` before
+  any rewriting push, because rebase-before-close orphaned every checkpoint the
+  ledger named.
+- **Provisional commits** — pushed, marked `Cairn-Provisional:`, never a
+  checkpoint or resume point, folded before the candidate exists — replacing the
+  rule that kept the most losable state in the protocol unpushed.
+- **The handoff-brief contract**: frontmatter fields, seven capped sections, a
+  ~1200-token budget, eight answerable-alone questions, and cold resume as the
+  pilot's primary metric.
+- **Field-level closure**, **scope digests**, **candidate base `T`** with an
+  **acceptance-drift** predicate over `writes:` ∪ `governs:`, **structured
+  advisory dispositions**, **recorded roles** with a collapsed-actor advisory,
+  and **blocking scope drift** unless the declaration moves in the same commit.
+- **The lightweight route as the default**, with `route: full` required by five
+  named triggers and one-way escalation — the counterweight to nine tightenings.
+- **Typed work units**, **repair procedures**, and a **redaction ceremony**.
+- **Object-format-agnostic identity**, a **reconciled lifecycle** table and
+  diagram, and the **Git glossary split** from Cairn concepts with no article
+  added.
+- **Foundation and adoption paths** for a repository's own first hour and for
+  brownfield entry.
 
-The user supplied an external nineteen-item review brief. The deliverable is
-**specification text only**; no checker rule is implemented in this step.
+Concept budget held at 66. Suite 118 → 123.
 
-Every item must end either resolved in normative text or listed under a
-*Deliberate non-goals* section with a stated reason. Every added requirement
-gains a conformance-matrix row with an honest reference-tools column. Net
-concept count must stay at or under 66 — the wiki currently holds 65 concept
-articles, and four thin Git-glossary articles are merged to pay for the new
-normative objects.
+## S08 — extract Cairn from Atomik
 
-Item groups, in the brief's own order:
+`cairn-check.mjs` still hardcodes `atomik-project/`, `apps/`, `AREA_MAP`, and
+the grandfather set. S08 delivers:
 
-- **P0 (broken promises).** Checkpoint retention under `refs/cairn/checkpoints/`
-  before any force-push; a pushed, marked provisional commit excluded from
-  candidate identity; a fully specified handoff-brief contract with an
-  answerable-alone test and a cold-resume benchmark.
-- **P1 (records mean what they claim).** Field-level closure surface; scope
-  digest recorded at opening and re-verified at closing; candidate base `T` plus
-  a drift predicate over `writes:`/`governs:`; structured advisory dispositions;
-  per-role actor identity as an advisory; `scope-drift` blocking unless the
-  declaration moves in the same commit.
-- **P2 (adoption and cost).** Lightweight path becomes the default with full
-  ceremony opt-in; typed work units; repair procedures; a redaction ceremony.
-- **P3 (editorial).** Hash-algorithm agnostic identity; diagram and transition
-  table reconciled both ways; the Git glossary split from Cairn concepts without
-  adding an article.
-- **Origin gap.** A foundation path for a repository's own first hour, plus an
-  adoption-path variant for brownfield repositories.
+- `cairn.config.json` — plane roots, source roots, area map, trunk name, and
+  `"enforcement": "local" | "ci" | "protected"`, plus the v0.2 fields the
+  configuration reference now specifies (`defaultRoute`,
+  `checkpointRetentionRef`, `scopeDigestAlgorithm`, `briefBudgetTokens`);
+- `cairn-check` printing the declared tier in its header line, so "CI observes"
+  versus "CI prevents" is generated rather than written into drifting prose;
+- `tools/cairn-new.mjs` — registration commit and worktree in one command;
+- `cairn-init` — a tier-0/1 seed: validator, config, docs skeleton, workflow.
+  No host configuration, nothing to click.
 
-Three explicit prohibitions: do not fix trunk drift with `remote_trunk == T` at
-integration; do not ship P1 without P2-10; do not implement checker rules.
+**The standing constraint from S07g.** Fourteen conformance rows say `not
+implemented` on purpose. They move to `implemented` only when a predicate
+actually exists, in this path or a successor. Marking a row without landing its
+mechanism reproduces the exact failure the v0.2 revision was written to correct.
 
-## Verification contract for S07g
+## Verification contract
 
 `npm run cairn-spec:build` must reproduce the checked-in HTML byte-for-byte, and
 `npm run cairn-check:test`, `npm run cairn-check`, `npm run typecheck`,
-`npm test`, and `npm run build` must all pass before the step is complete.
-`tools/cairn-spec.test.mjs` pins section headings and the `v0.1` string, so the
-executable documentation contract moves with the specification.
+`npm test`, and `npm run build` must all pass before a step is complete.
+`tools/cairn-spec.test.mjs` pins the section headings, the `v0.2` version
+string, the concept budget, and the nineteen resolved items.
 
 ## Resume instruction
 
 Resolve the path from this worktree, compare this brief with the work ledger and
-Git status, and continue from S07g. The nineteen-item brief is recorded in the
-S07g ledger entry; do not ask the user to restate it.
+Git status, and continue from S08. The v0.2 review and its resolution are
+recorded in the S07g ledger entry and in ADR-019; do not ask the user to restate
+either.

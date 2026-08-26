@@ -1,9 +1,9 @@
 ---
 type: Cairn Reference
 title: Cairn operations
-description: Manual command sequences for registration, remote checkpoints, exact-candidate closure, integration verification, and safe worktree cleanup.
+description: Manual command sequences for registration, remote checkpoints, provisional commits, checkpoint retention, exact-candidate closure, integration verification, and safe worktree cleanup.
 tags: [cairn, reference, commands, worktree, merge, cleanup]
-timestamp: 2026-08-25T00:00:00Z
+timestamp: 2026-08-26T00:00:00Z
 ---
 
 # Cairn operations
@@ -63,10 +63,8 @@ Assign one writer to this writable worktree.
 
 ## Complete one work unit
 
-First update implementation, tests, affected documents, the path ledger, and
-handoff brief. If the delivery requires user testing before checkpointing,
-leave it uncommitted and unpushed, present it for inspection, and continue only
-after explicit pass.
+First update the parts the work unit's declared type requires, plus the path
+ledger and handoff brief.
 
 Then:
 
@@ -87,21 +85,69 @@ git fetch origin path/cp-example-001
 git merge-base --is-ancestor HEAD origin/path/cp-example-001
 ```
 
-The final command must exit zero before the step is called complete.
+The final command must exit zero before the step is called complete. Then record
+the checkpoint in the ledger and retain it:
+
+```bash
+git push origin HEAD:refs/cairn/checkpoints/cp-example-001/01
+git ls-remote origin 'refs/cairn/checkpoints/cp-example-001/*'
+```
+
+The ordinal matches the ledger's own numbering for this checkpoint.
+
+## Publish incomplete work
+
+Work that is not a completed unit — mid-refactor, failing, or awaiting a user's
+inspection — is pushed rather than held on disk:
+
+```bash
+git add -A
+git commit -m "CP-EXAMPLE-001: WIP search index
+
+Cairn-Provisional: awaiting user inspection of the ranking change"
+git push origin path/cp-example-001
+git rev-parse HEAD
+```
+
+Present that exact object id for inspection. A provisional commit is never
+reported as a completed checkpoint and never named as a resume point. After the
+inspection passes, fold it into the work unit it was drafting:
+
+```bash
+git reset --soft <last-checkpoint>
+git commit -m "CP-EXAMPLE-001 S02: coherent outcome"
+```
+
+Folding rewrites published commits, so every ledger-named checkpoint must
+already be retained before the force push that follows.
 
 ## Produce implementation candidate C
 
-Record the current checkpoint, then rebase:
+Retain every ledger-named checkpoint **before** the rebase, because the rebase is
+what orphans them:
+
+```bash
+git ls-remote origin 'refs/cairn/checkpoints/cp-example-001/*'
+# push any ledger-named checkpoint that is missing from that list
+git push origin <checkpoint-oid>:refs/cairn/checkpoints/cp-example-001/<n>
+```
+
+Record the trunk tip as `T`, then rebase onto it:
 
 ```bash
 git fetch origin main
+git rev-parse origin/main    # this is T; record it in the closing record
 git rebase origin/main
 ```
 
-Resolve conflicts and finish any final implementation. If user inspection is
-required, obtain the pass before committing those final changes. Commit only
-when the worktree contains candidate changes; otherwise the rebased `HEAD` is
-already the candidate. Record `C`, publish it, and run all checks against it:
+Resolve conflicts, fold every remaining provisional commit, and finish any final
+implementation. Commit only when the worktree contains candidate changes;
+otherwise the rebased `HEAD` is already the candidate. Confirm no provisional
+marker survives, then record `C`, publish it, and run all checks against it:
+
+```bash
+git log origin/main..HEAD --grep='Cairn-Provisional' --oneline    # must print nothing
+```
 
 ```bash
 # if final candidate changes are present:
@@ -123,17 +169,32 @@ output of `git rev-parse HEAD` is `C`.
 npm run cairn-audit -- --subject <C> --branch path/cp-example-001
 ```
 
-Fill the generated full-hash audit record. An authorised reviewer inspects
-exactly `C` and creates the closing acceptance record with the same hash and a
-disposition for every advisory.
+Fill the generated audit record, whose filename and metadata carry the full
+object id of `C`. Read the candidate against the documents pinned in `governs:`,
+at their pinned ids.
+
+An authorised reviewer inspects exactly `C` and creates the closing acceptance
+record naming the same object id, the base `T`, the roles the reviewer held, the
+re-computed scope digest, and one structured entry per advisory raised at `C`:
+
+```bash
+sed -n '/^## Definition of done$/,/^## /p' \
+  atomik-project/coding-paths/CP-EXAMPLE-001.md | sha256sum
+npm run cairn-check -- --base origin/main   # the advisories to disposition
+```
+
+If the digest differs from the one recorded at opening, stop: the definition of
+done moved after acceptance. Restore it or record a scope amendment.
 
 If implementation changes, stop: commit a new `C`, rerun all checks, generate a
 new audit file, and obtain new acceptance.
 
 ## Create administrative commit A
 
-Set the path to `status: ready` and `subject_commit: <C>`. Refresh the handoff.
-Stage only the four closure surfaces:
+Set the path to `status: ready` and `subject_commit: <C>`, append one ledger
+entry, and move the brief's checkpoint pointer. Change no other field of the path
+record — not the definition of done, not `scope_ref`, not `writes:`, not
+`governs:`, not the step plan. Stage only the four closure surfaces:
 
 ```bash
 git add atomik-project/coding-paths/CP-EXAMPLE-001.md
@@ -148,6 +209,24 @@ git push origin path/cp-example-001
 
 The count must be exactly one. The checker must report no implementation change
 after acceptance. The resulting commit is `A`.
+
+## Check acceptance drift, then integrate
+
+Before integrating, test whether the acceptance still holds. `T` is the base
+recorded in the closing record:
+
+```bash
+git fetch origin main
+git diff --name-only <T> origin/main
+```
+
+Compare that file list with the union of the path's `writes:` and `governs:`
+declarations. If nothing matches, the acceptance survives and integration
+proceeds. If anything matches, return the path to `running`, rebase onto the new
+tip, and repeat audit and acceptance.
+
+Do **not** require `origin/main` to equal `T`. That rule makes every landing
+invalidate every other open acceptance, and on a busy trunk nothing ever closes.
 
 ## Integrate the exact ready tip
 
@@ -215,12 +294,19 @@ after every path commit is proved reachable from the remote trunk.
 ## Report partial outcomes precisely
 
 ```text
-implemented locally, awaiting user pass
+provisional commit pushed, awaiting user pass
 accepted work unit, commit not yet pushed
+checkpoint pushed, retention ref not written
 path ready, not integrated
+path ready, acceptance invalidated by trunk drift
 integration candidate checked, remote push failed
 remote integration complete, cleanup incomplete
 ```
+
+## Repair after a violation
+
+When a rule has already been broken, do not tidy the history until it looks
+satisfied. The [repair procedures](./repair.md) give the sequence for each case.
 
 Return to [the full protocol](../index.md) or the
 [integration-transport concept](../concepts/integration-transport.md).

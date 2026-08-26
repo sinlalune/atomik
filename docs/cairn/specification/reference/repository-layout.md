@@ -1,9 +1,9 @@
 ---
 type: Cairn Reference
 title: Repository layout and reference binding
-description: The complete Cairn-owned directory tree, installed v0.1 bindings, file roles, identifiers, and ownership conventions.
+description: The complete Cairn-owned directory tree and ref namespace, installed reference bindings, file roles, identifiers, and ownership conventions.
 tags: [cairn, reference, repository, layout, naming]
-timestamp: 2026-08-25T00:00:00Z
+timestamp: 2026-08-26T00:00:00Z
 ---
 
 # Repository layout and reference binding
@@ -12,10 +12,10 @@ The [specification](../index.md#the-repository-around-the-path) defines roles
 before paths: application source, the Cairn
 [control plane](../concepts/control-plane.md), durable project knowledge, and
 durable execution state. A portable implementation may bind those roles to
-different names. The v0.1 tools in this repository do not yet load that
+different names. The reference tools in this repository do not yet load that
 configuration, so an operator also needs the exact installed binding below.
 
-## Installed v0.1 tree
+## Installed reference tree
 
 This tree is exhaustive for active Cairn-defined files and folder roles in the
 reference repository. Angle brackets mark repeatable names. Application code,
@@ -125,7 +125,7 @@ repository/
 repository does not currently contain it. Repeatable records may be absent when
 no event of that kind exists; their directory, index, and folder log still name
 the role. `cairn.config.json` is not shown because it is a specified portability
-target, not an installed v0.1 file.
+target, not an installed reference file.
 
 ## What every part does
 
@@ -168,9 +168,32 @@ views, mutable navigation, provisional knowledge, and immutable event records.
 Independent events receive independent files so parallel paths do not append to
 one shared record.
 
+## The Cairn ref namespace
+
+Not everything Cairn owns is a file. One ref namespace lives outside every
+working tree and outside every directory listing:
+
+```text
+refs/cairn/checkpoints/<path-id>/<n>
+```
+
+Each ref pins one ledger-named checkpoint so that a rewriting push cannot orphan
+it. `<n>` is the ledger's own ordinal for that checkpoint. The refs are
+append-only for the life of the path record, and they are not released by
+integration.
+
+```bash
+git ls-remote origin 'refs/cairn/checkpoints/*'
+```
+
+A repository that clones with a restricted refspec, or a mirror that copies only
+`refs/heads/*`, will silently lose this namespace. Fetch configuration is part of
+conforming to [checkpoint retention](../concepts/checkpoint-retention.md), not an
+optional convenience.
+
 ## Portable roles and installed names
 
-| Protocol role | Installed v0.1 binding | Intended configuration field |
+| Protocol role | Installed reference binding | Intended configuration field |
 | :-- | :-- | :-- |
 | execution-state plane | `atomik-project/` | `roots.project` |
 | accepted architecture | `docs/bedrock/` | `roots.architecture` |

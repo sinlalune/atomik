@@ -28,5 +28,5 @@ authorised participant both the work and the information needed to resume it.
 A repository can contain contradictory or stale files. Canonical ownership,
 checks, and review are still required.
 
-Related: [Git](./git.md), [working tree](./working-tree.md),
+Related: [Git](./git.md), [working tree and worktree](./worktree.md),
 [project memory](./project-memory.md).

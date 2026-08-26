@@ -3,7 +3,7 @@ type: Cairn Concept
 title: Integration transport
 description: The defined mechanism that checks and lands an exact candidate on the remote trunk.
 tags: [cairn, concept, integration, governance]
-timestamp: 2026-08-25T00:00:00Z
+timestamp: 2026-08-26T00:00:00Z
 ---
 
 # Integration transport
@@ -20,13 +20,19 @@ while integrating, and prove the landed result remotely. A checked local merge,
 a host-managed queue, a candidate-ref fast-forward, or a trusted bot can qualify
 only when the repository implements and tests the whole route.
 
-Registration needs a corresponding route that avoids requiring a path to
-already exist on trunk before its declaration can land.
+What the transport MUST NOT do is require the trunk to be unchanged since the
+candidate was accepted. Equality with the accepted base is the obvious rule and
+a livelock: see [acceptance drift](./acceptance-drift.md) for the predicate that
+replaces it, and why.
+
+Registration needs a corresponding route that avoids requiring a path to already
+exist on trunk before its declaration can land.
 
 ## It does not prove
 
-A branch-protection switch or passing status on a different commit is not a
+A branch-protection switch or a passing status on a different commit is not a
 transport.
 
-Related: [merge](./merge.md), [trunk registration](./trunk-registration.md),
+Related: [merge](./merge.md), [acceptance drift](./acceptance-drift.md),
+[trunk registration](./trunk-registration.md),
 [enforcement profile](./enforcement-profile.md).

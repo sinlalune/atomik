@@ -3,7 +3,7 @@ type: Atomik Index
 title: Cairn — canonical specification, implementation records, and audits
 description: The entry map for Cairn's canonical team-protocol specification, concept wiki, implementation reference, universal reader, and dated design records.
 tags: [cairn, protocol, specification, index, audit, okf]
-timestamp: 2026-08-25T00:00:00Z
+timestamp: 2026-08-26T00:00:00Z
 ---
 
 # Cairn
@@ -16,11 +16,13 @@ integration transport; there is no standing central integrator.
 
 ## Start here
 
-- [Canonical specification](./specification/index.md) — the authoritative v0.1
-  protocol, taught from simple durable objects through paths, team concurrency,
-  exact-candidate closure, lifecycle, governance, and conformance.
-- [Concept wiki](./specification/concepts/index.md) — one article for every
-  specialised Git or Cairn concept used by the specification.
+- [Canonical specification](./specification/index.md) — the authoritative v0.2
+  protocol, taught from simple durable objects through paths, routes, team
+  concurrency, exact-candidate closure, lifecycle, repair, governance, and
+  conformance.
+- [Concept wiki](./specification/concepts/index.md) — one article per
+  specialised idea, with the twenty-one borrowed Git and general-practice terms
+  kept separate from the forty-five concepts Cairn defines.
 - [Implementation reference](./specification/reference/index.md) — exact layout,
   templates, record schemas, commands, configuration status, and conformance
   checklist.
@@ -45,6 +47,9 @@ same navigation as the standalone HTML reader.
   catalogue.
 - [ADR-018](../adr/ADR-018-cairn-candidate-bound-closure.md) — proposed
   candidate-bound closure and team enforcement boundary.
+- [ADR-019](../adr/ADR-019-cairn-v0-2-revision.md) — proposed v0.2 revision:
+  retention, provisional commits, the brief contract, scope digests, the drift
+  predicate, and the lightweight default.
 - [Live operating detail](../../atomik-project/coding-paths/paths.md) — the
   current repository's configured workflow.
 

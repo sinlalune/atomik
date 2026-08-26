@@ -1,9 +1,9 @@
 ---
 type: Cairn Concept
 title: Work ledger
-description: The append-only execution account inside a coding path.
+description: The append-only execution history inside a coding path, and the counterpart to the mutable handoff brief.
 tags: [cairn, concept, execution, record]
-timestamp: 2026-08-25T00:00:00Z
+timestamp: 2026-08-26T00:00:00Z
 ---
 
 # Work ledger
@@ -14,18 +14,33 @@ and will do next.
 
 ## In Cairn
 
-Every work unit appends an entry in the same commit as its code, tests, and
-documents. If the live path grows too large, a completed step moves
-byte-for-byte into the portable role path
-`project/coding-paths/history/<ID>-SNN.md` and the path keeps a link. The
-[reference binding](../reference/repository-layout.md#portable-roles-and-installed-names)
+Every [work unit](./work-unit.md) appends an entry in the same commit as its
+code, tests, and documents. The entry names the unit's declared type, the exact
+checkpoint [object id](./commit-hash.md) it produced, and its verification
+result.
+
+The ledger and the [handoff brief](./handoff.md) divide one job. The ledger is
+append-only history and grows without bound; the brief is rewritten at every
+work unit and stays small enough to read cold. Neither substitutes for the
+other, and a brief that can only be understood by also reading the ledger has
+failed its own contract.
+
+Because the ledger names checkpoints by object id, those commits must stay
+reachable: any rewriting push requires
+[checkpoint retention](./checkpoint-retention.md) first, or the ledger's
+promises become dangling references.
+
+If the live path grows too large, a completed step moves byte-for-byte into the
+portable role path `project/coding-paths/history/<ID>-SNN.md` and the path keeps
+a link. The [reference binding](../reference/repository-layout.md#portable-roles-and-installed-names)
 uses `atomik-project/coding-paths/history/`.
 
 ## It does not prove
 
 The reference checker prevents an existing rolled-history file from being
-rewritten, but it does not yet prove that live ledger content was preserved as
-a prefix or rolled verbatim. That remains a visible conformance gap.
+rewritten, but it does not yet prove that live ledger content was preserved as a
+prefix or rolled verbatim. That remains a visible conformance gap.
 
-Related: [work unit](./work-unit.md), [record integrity](./record-integrity.md),
-[handoff](./handoff.md).
+Related: [work unit](./work-unit.md), [handoff brief](./handoff.md),
+[checkpoint retention](./checkpoint-retention.md),
+[record integrity](./record-integrity.md).
