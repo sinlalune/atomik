@@ -851,6 +851,30 @@ export function workUnitErrors(unit) {
   return errors
 }
 
+/**
+ * Commits on the path branch that were completed work and were never retained.
+ *
+ * `retentionDue` asks whether each DECLARED unit has a ref. That is not the same
+ * question as whether every completed commit is retained, and the difference is
+ * where a real violation hid: a ref can be moved to a newer commit, leaving the
+ * commit it used to name unretained while every declared unit still resolves.
+ * Found the hard way, by doing exactly that in this repository.
+ *
+ * The range starts at the oldest retained checkpoint, because commits older than
+ * the convention cannot be judged by it. HEAD is exempt for the same reason the
+ * newest unit is: its ref is written after the commit that declares it.
+ */
+export function unretainedCheckpoints(commits, retained, provisional = new Set(), head = null) {
+  const retainedSet = new Set(retained)
+  if (retainedSet.size === 0) return []
+  const oldest = commits.findIndex((commit) => retainedSet.has(commit))
+  if (oldest === -1) return []
+  return commits
+    .slice(oldest)
+    .filter((commit) =>
+      commit !== head && !retainedSet.has(commit) && !provisional.has(commit))
+}
+
 /** Which declared units must already be retained. The newest unit is exempt
  *  because its ref is written immediately AFTER the commit that declares it —
  *  checking it here would fail every gate run that precedes its own push. The
@@ -1155,7 +1179,10 @@ export function evaluate({
   migrationExempt = V02_MIGRATION_PATHS,
   migrationStale = [],
   briefFor = null,
-  redactionRecordExists = null
+  redactionRecordExists = null,
+  pathCommits = null,
+  provisionalCommitOids = new Set(),
+  head = null
 }) {
   const findings = []
   const add = (level, rule, message, outcome = level === 'advisory' ? 'advisory' : 'fail') =>
@@ -1485,6 +1512,19 @@ export function evaluate({
     if (newest && retainedRefs != null && !retainedRefs.has(newestRef)) {
       add('advisory', 'checkpoint-retention',
         `unit ${newest.unit} has no retention ref yet — write ${newestRef} once this commit exists, before the next rebase`)
+    }
+
+    // Every declared unit resolving a ref is NOT the same as every completed
+    // commit being retained: a ref moved forward leaves the commit it used to
+    // name unretained while every unit still checks out.
+    if (pathCommits != null && retainedRefs != null) {
+      const orphaned = unretainedCheckpoints(
+        pathCommits, retainedRefs.values(), provisionalCommitOids, head
+      )
+      if (orphaned.length > 0) {
+        add('blocking', 'checkpoint-retention',
+          `${orphaned.length} completed commit(s) on this branch are retained by no ref (${orphaned.slice(0, 3).map((oid) => oid.slice(0, 7)).join(', ')}) — a retention ref that moved leaves the commit it used to name orphaned, which is what retention exists to prevent`)
+      }
     }
   }
 
@@ -2003,6 +2043,24 @@ function provisionalCommits(from, to) {
   return raw.split('\n').map((line) => line.trim()).filter(Boolean)
 }
 
+/** Path-branch commits, oldest first, from the registered base to HEAD. */
+function branchCommits(base) {
+  if (!isCommitPin(base)) return null
+  const raw = gitOrNull(['log', '--format=%H', '--reverse', `${base}..HEAD`])
+  if (raw == null) return null
+  return raw.split('\n').map((line) => line.trim()).filter(Boolean)
+}
+
+/** Commits that announced themselves incomplete, and so are not checkpoints. */
+function provisionalOids(base) {
+  if (!isCommitPin(base)) return new Set()
+  const raw = gitOrNull([
+    'log', '--format=%H', `--grep=^${PROVISIONAL_TRAILER}:`, `${base}..HEAD`
+  ])
+  if (raw == null) return new Set()
+  return new Set(raw.split('\n').map((line) => line.trim()).filter(Boolean))
+}
+
 function headCarriesProvisionalTrailer() {
   const raw = gitOrNull(['log', '-1', '--format=%B', 'HEAD'])
   return raw != null && new RegExp(`^${PROVISIONAL_TRAILER}:`, 'm').test(raw)
@@ -2359,6 +2417,9 @@ function main() {
       briefFor: briefRecord,
       redactionRecordExists: redactionIndex(),
       retainedRefs: retainedCheckpointRefs(pathForBranch?.front?.id),
+      pathCommits: pathForBranch ? branchCommits(pathForBranch.front?.base_commit) : null,
+      provisionalCommitOids: provisionalOids(pathForBranch?.front?.base_commit),
+      head: gitOrNull(['rev-parse', 'HEAD']),
       provisionalInCandidate: pathForBranch
         ? provisionalCommits(pathForBranch.front?.base_commit, pathForBranch.front?.subject_commit)
         : [],

@@ -76,6 +76,24 @@ Ledger entries naming commits that cannot be recovered are marked
 `unrecoverable` — never deleted. A ledger that quietly loses the entries it can
 no longer resolve is worse than one that admits a gap.
 
+## A retention ref was moved
+
+Every declared unit still resolves a ref, so the per-unit check reports nothing.
+The commit the ref used to name is the evidence.
+
+```bash
+git for-each-ref refs/cairn/checkpoints/cp-example-001
+git log --format='%H %s' <base>..HEAD
+# any commit in that range that is neither retained, nor provisional, nor HEAD
+git update-ref refs/cairn/checkpoints/cp-example-001/<n> <original-oid>
+git update-ref refs/cairn/checkpoints/cp-example-001/<n+1> <moved-onto-oid>
+```
+
+Restore the ref to the commit it originally named, then give the commit it was
+moved onto its own ordinal and its own ledger entry. A moved ref usually means a
+completed work unit was shipped under the previous unit's block, so there are
+two facts to repair rather than one.
+
 ## A path branch declared `done`
 
 `done` is a claim about the trunk, and a branch cannot make it.

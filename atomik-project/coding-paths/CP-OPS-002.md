@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-002
   route: full            # control plane + decision plane; escalation is one-way
   status: running
-  current_step: S07j
+  current_step: S07k
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
   writes:                    # ADVISORY — a signal, never a lock
@@ -441,6 +441,58 @@ The adoption group, and the last of the fourteen rows that could be reached at a
   archiving event. Fixed with the reason recorded rather than the symptom silenced.
 - Fifteen regression tests; checker suite 110 → 125, full suite 157 → 172.
 
+### S07k — Repair: a retention ref was moved, and the rule could not see it — **COMPLETE**
+
+```cairn-unit
+step: S07j
+unit: 06
+type: implementation
+verified: cairn-check, cairn-check:test, typecheck, test, build
+```
+
+```cairn-unit
+step: S07k
+unit: 07
+type: repair
+verified: cairn-check, cairn-check:test, typecheck, test, build
+```
+
+**The violation.** S07j landed as `0711bc6` and was retained as unit 05. A follow-up commit
+`8f84024` reconciled the checker's lifecycle table, and the retention ref for unit 05 was
+**force-moved** onto it. That is forbidden by the rule written earlier in this same path —
+*once written, a ref MUST NOT be moved or deleted while the path record is retained* — and
+it left `0711bc6` retained by nothing. Nothing was lost, because the commit is still
+reachable from the branch; the promise was broken, not the history.
+
+Two separate failures, and the second is the instructive one.
+
+- **The act.** A completed work unit was shipped under the previous unit's block instead of
+  its own, and its checkpoint was retained by moving an existing ref rather than writing a
+  new one. Convenience, at the exact moment the protocol asks for a new ordinal.
+- **The blind spot.** `checkpoint-retention` asked whether every DECLARED unit resolves a
+  ref. After the move, every declared unit still resolved one — so the gate reported OK over
+  an orphaned checkpoint. The rule was checking the ledger's claims rather than the branch's
+  facts, and those are not the same question.
+
+**The repair, following [operations](../../docs/cairn/specification/reference/repair.md).**
+Ref 05 restored to `0711bc6`. `8f84024` retained as unit 06, which is what it always should
+have been: a completed work unit with its own ordinal. This entry is unit 07, a separate
+`repair` unit, because a repair must never be the same work unit as the work that caused it.
+
+**The rule now sees it.** `unretainedCheckpoints` walks the branch from the oldest retained
+commit to `HEAD` and reports any commit that is neither retained, nor marked provisional,
+nor `HEAD` itself. Run against the broken state it named `0711bc6` immediately. The range
+starts at the oldest retained commit because commits predating the convention cannot be
+judged by it, and `HEAD` is exempt for the same reason the newest unit is — its ref is
+written after the commit that declares it.
+
+**Ref append-only remains partly unprovable, and the matrix says so.** A validator that
+sees one commit cannot observe a ref moving; it can only observe the orphan a move leaves
+behind. That is a strictly weaker guarantee than the specification states, and closing the
+gap this far is not the same as closing it.
+
+- Four regression tests; checker suite 125 → 129, full suite 172 → 176.
+
 ### S08 — Extract Cairn from Atomik
 
 Cairn is not portable today: `cairn-check.mjs` hardcodes `atomik-project/`, `apps/`,
@@ -477,7 +529,7 @@ brief names — and fix what the pilot finds before merging.
 | Base commit | `7aa3b1d` — registered on the trunk by `df875e6` before this branch existed |
 | Branch | `path/cp-ops-002`, worktree `../4tom1k-cp-ops-002`, `node_modules` symlinked |
 | Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane (`3df9073`) · **S05b** — the opening check gated, five more indexes (`d6b29f1`), the invented folder-log decision retracted on owner correction (`360f2be`) · **S05c** — the OKF pair completed: eighteen folder logs seeded from real Git history (`468bc24`) · **S06** — `index.html` rewritten against ADR-012, both HTML pages dated (`2a5ef35`) · **S06c** — the coherence audit bound to the commits its path contributed (`de4e0fa`) · **S06d** — the six stale worktrees and the orphan registration branch drained, `isFilled()` given something to measure, and a C-quoted path stopped hiding from the blocking rules (`9cbe605`, `6fa33e7`) · **S07a** — ADR-017 settles the path lifecycle; `active` retired, abandonment given a door, staleness noticed without blocking (`b4ef361`) · **S07 / S07b / S07c / S07d** — superseded specification attempts retained in this ledger · **S07e** — one canonical top-down specification project, linked newcomer foundations and implementation references, plus one self-contained three-pane universal reader · **S07f** — candidate-bound closure, truthful team lifecycle, the canonical concept wiki and the deterministic equal-pane universal reader, passed by the user and landed as its own checkpoint · **S07g** — the Cairn v0.2 revision: nineteen review items resolved in normative text, concept budget held at 66, ADR-019 proposed |
-| Remaining | S07j (routes, brief schema, redaction), then S08 and S09 (S03 withdrawn by owner ruling; S06b rescoped across S07 + S08 by ruling 9). S08 now also owns the v0.2 predicates: fourteen conformance rows say `not implemented` on purpose |
+| Remaining | S08 and S09 (S03 withdrawn by owner ruling; S06b rescoped across S07 + S08 by ruling 9). S08 now also owns the v0.2 predicates: fourteen conformance rows say `not implemented` on purpose |
 | Opening check | accepted 2026-08-24, eight rulings ([note](../sessions/2026-08-24-cp-ops-002-opening-check.md)) |
 | Gates at S07e | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 90/90 · canonical catalogue generator current · HTML structure parser-validated · self-contained/targets/rules/inline-script contracts test-pinned · `npm run typecheck` PASS · product suite 1,101 passed / 1 skipped (1,102 total) · `npm run build` PASS |
 | Ledger rolled (S07c) | `ledger-size` fired at ~11 k tokens against the 10 k budget while this file was being edited — which is the only moment the rule is useful, and it worked. S00, S01, S03, S04, S05 (+S05b, S05c) and S06 (+S06b, S06c, S06d) moved **verbatim** into [`history/`](./history/index.md), leaving one index line each. Verified by extracting each record's body and confirming it appears unchanged in `HEAD`. Two mechanical adjustments are named in every record header rather than made silently: deixis is left alone, and relative-link depth is repointed one level, because a link is an address rather than content and the same target must keep resolving |

@@ -43,6 +43,7 @@ import {
   stripCode,
   transitionErrors,
   retentionDue,
+  unretainedCheckpoints,
   workUnitErrors,
   resolveScopeSection,
   scopeDigest,
@@ -1801,4 +1802,45 @@ test('an unchanged archived state is no event, but its resolution is terminal', 
     transitionErrors(archived, { status: 'archived', resolution: 'superseded' })
       .some((error) => /resolution is terminal/.test(error))
   )
+})
+
+/* ------------------------------------------------------------------ *
+ * v0.2 — a retention ref that MOVED leaves an orphan behind
+ * ------------------------------------------------------------------ */
+
+const CHAIN = ['c1', 'c2', 'c3', 'c4']
+
+test('retention is judged from the oldest retained commit, never before it', () => {
+  // Commits older than the convention cannot be judged by it.
+  assert.deepEqual(
+    unretainedCheckpoints(CHAIN, ['c2', 'c3'], new Set(), 'c4'),
+    []
+  )
+  assert.deepEqual(unretainedCheckpoints(CHAIN, [], new Set(), 'c4'), [])
+})
+
+test('a ref moved forward orphans the commit it used to name', () => {
+  // Every DECLARED unit still resolves a ref, which is why the per-unit check
+  // cannot see this. The commit that lost its ref can.
+  assert.deepEqual(
+    unretainedCheckpoints(CHAIN, ['c1', 'c4'], new Set(), 'c4'),
+    ['c2', 'c3']
+  )
+})
+
+test('provisional commits and HEAD are not orphans', () => {
+  assert.deepEqual(
+    unretainedCheckpoints(CHAIN, ['c1'], new Set(['c2', 'c3']), 'c4'),
+    []
+  )
+})
+
+test('an orphaned checkpoint blocks the gate', () => {
+  const found = run([UNIT_PATH.file], 'path/cp-mvp-010', [UNIT_PATH], {
+    workUnits: UNITS,
+    retainedRefs: new Map([[ref('01'), 'c1'], [ref('02'), 'c4']]),
+    pathCommits: CHAIN,
+    head: 'c4'
+  })
+  assert.ok(rules(found, 'blocking').includes('checkpoint-retention'))
 })
