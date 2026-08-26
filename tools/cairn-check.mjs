@@ -159,6 +159,31 @@ export const LEGACY_UNREGISTERED_PATHS = new Set([
  */
 export const LEGACY_UNDECLARED_OPENINGS = new Set(['CP-MVP-011', 'CP-MVP-012'])
 
+/**
+ * A work unit declares what kind of change it is, and the kind fixes which
+ * parts had to move together. The untyped rule demanded a module note from a
+ * documentation fix, and what that teaches a writer — person or agent — is to
+ * produce an empty documentation delta until the gate goes quiet.
+ */
+export const WORK_UNIT_TYPES = [
+  'implementation',
+  'documentation',
+  'decision',
+  'foundation',
+  'repair',
+  'closure'
+]
+
+/** The retention ref namespace. `<n>` is the ledger's own ordinal for the
+ *  unit, so a ledger entry and its retained ref name the same thing without
+ *  the entry having to contain an object id it cannot know until after it is
+ *  committed. */
+export const CHECKPOINT_REF_PREFIX = 'refs/cairn/checkpoints'
+
+/** The trailer that marks a pushed commit as deliberately incomplete. */
+export const PROVISIONAL_TRAILER = 'Cairn-Provisional'
+
+
 /* ------------------------------------------------------------------ *
  * pure helpers — everything below takes data, so it is testable
  * ------------------------------------------------------------------ */
@@ -167,6 +192,39 @@ export const LEGACY_UNDECLARED_OPENINGS = new Set(['CP-MVP-011', 'CP-MVP-012'])
  *  We only need a few scalar keys, so this stays a line reader rather than a
  *  YAML dependency — and it reports what it could not parse instead of
  *  guessing. */
+/** A deliberately small frontmatter grammar, named rather than called YAML.
+ *
+ *  It reads exactly the shapes Cairn's own records use: scalars, one level of
+ *  nested map, block lists of scalars, block lists of maps, and inline flow
+ *  lists. It does not read anchors, multi-line scalars, tags, or arbitrary
+ *  nesting, and it never will — a validator that silently half-parses a
+ *  construct is worse than one that refuses it, because the half it drops is
+ *  invisible. The specification requires a limited reader to say so instead of
+ *  borrowing YAML's name; this is that reader.
+ *
+ *  Scalar values are trimmed and otherwise untouched: quotes are NOT stripped,
+ *  because several records carry a colon inside a quoted title and the existing
+ *  gates compare those strings byte-for-byte. */
+export function frontmatterScalar(value) {
+  return value.trim()
+}
+
+/** A list ITEM may carry a trailing comment, which is the same trap that made
+ *  `- docs/adr/**   # every ADR` declare a surface matching nothing (F9, and
+ *  again live on 2026-08-24). Strip it here so every list in the block behaves
+ *  the way `writes:` was taught to. */
+function listScalar(value) {
+  return value.replace(/\s+#.*$/, '').trim()
+}
+
+function flowList(value) {
+  const inner = value.slice(1, value.lastIndexOf(']'))
+  return inner
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
 export function readFrontmatter(text) {
   if (!text.startsWith('---\n')) return null
   const end = text.indexOf('\n---', 4)
@@ -181,18 +239,70 @@ export function readFrontmatter(text) {
   }
   const data = {}
   let section = null
+  // A key whose value is empty is not yet a map or a list: the next line
+  // decides. Holding it as `pending` is what lets one reader accept both
+  // `writes:` followed by items and `cairn:` followed by fields.
+  let pending = null
+  let list = null
+
   for (const line of raw.split('\n')) {
     if (!line.trim() || line.trimStart().startsWith('#')) continue
-    const indented = /^\s/.test(line)
-    const match = line.match(/^\s*([A-Za-z_][\w-]*)\s*:\s*(.*)$/)
-    if (!match) continue
-    const [, key, value] = match
-    if (!indented) {
-      section = value.trim() === '' ? key : null
-      if (section) data[key] = {}
-      else data[key] = value.trim()
-    } else if (section) {
-      data[section][key] = value.trim()
+    const indent = line.length - line.trimStart().length
+
+    const dash = line.match(/^\s*-\s*(.*)$/)
+    if (dash) {
+      if (list == null) {
+        if (pending == null) continue
+        list = { array: [], indent, current: null }
+        pending.target[pending.key] = list.array
+        pending = null
+      } else if (indent !== list.indent) {
+        continue
+      }
+      const body = dash[1].trim()
+      const pair = body.match(/^([A-Za-z_][\w-]*)\s*:\s*(.*)$/)
+      if (pair) {
+        list.current = { [pair[1]]: frontmatterScalar(pair[2]) }
+        list.array.push(list.current)
+      } else if (body) {
+        list.array.push(listScalar(body))
+        list.current = null
+      }
+      continue
+    }
+
+    const pair = line.match(/^\s*([A-Za-z_][\w-]*)\s*:\s*(.*)$/)
+    if (!pair) continue
+    const [, key, rawValue] = pair
+
+    // A key indented deeper than the dashes belongs to the map item above it.
+    if (list && list.current && indent > list.indent) {
+      list.current[key] = frontmatterScalar(rawValue)
+      continue
+    }
+    list = null
+
+    const value = rawValue.trim()
+    const target = indent === 0 ? data : section ? data[section] : null
+    if (target == null || typeof target !== 'object' || Array.isArray(target)) continue
+
+    if (indent === 0) section = null
+    if (value === '') {
+      // A key with no value is not yet anything. At the top level it opens a
+      // map, because that is how `cairn:` has always behaved and gates read
+      // `data.cairn.id`. Nested, it stays the empty STRING it used to be — a
+      // record with a blank `verdict:` must still report a missing verdict
+      // rather than an object. Either way a following `- ` item replaces it
+      // with the list it turned out to be.
+      target[key] = indent === 0 ? {} : ''
+      pending = { target, key, indent }
+      if (indent === 0) section = key
+    } else if (value.startsWith('[')) {
+      target[key] = flowList(value)
+      pending = null
+    } else {
+      target[key] = value
+      pending = null
     }
   }
   return { kind: 'yaml', data }
@@ -616,6 +726,67 @@ export function stripCode(text) {
  * model nobody here is running; the boundary is an order of magnitude, not a
  * threshold to tune.
  */
+/**
+ * A completed work unit declares itself in a fenced `cairn-unit` block inside
+ * its ledger entry:
+ *
+ * ```cairn-unit
+ * step: S07h
+ * unit: 08
+ * type: implementation
+ * verified: cairn-check, typecheck, test, build
+ * ```
+ *
+ * `unit` is an ordinal, not an object id, and that is the whole trick. The
+ * commit a unit produces does not exist while the unit is being written, so a
+ * block naming its own hash could never be written truthfully. The ordinal is
+ * knowable in advance; `refs/cairn/checkpoints/<path-id>/<unit>` supplies the
+ * hash afterwards. The ledger says which unit, the ref says which commit, and
+ * neither has to lie about the other.
+ */
+export function parseWorkUnits(text) {
+  const units = []
+  const blocks = text.matchAll(/^```cairn-unit[ \t]*\n([\s\S]*?)^```[ \t]*$/gm)
+  for (const block of blocks) {
+    const unit = {}
+    for (const line of block[1].split('\n')) {
+      const pair = line.match(/^\s*([A-Za-z_][\w-]*)\s*:\s*(.*)$/)
+      if (pair) unit[pair[1]] = pair[2].trim()
+    }
+    units.push(unit)
+  }
+  return units
+}
+
+export function workUnitErrors(unit) {
+  const errors = []
+  if (!unit.step) errors.push('a cairn-unit block needs step')
+  if (!/^\d{1,4}$/.test(unit.unit ?? '')) {
+    errors.push(`a cairn-unit block needs unit as a ledger ordinal, got "${unit.unit ?? ''}"`)
+  }
+  if (!WORK_UNIT_TYPES.includes(unit.type)) {
+    errors.push(
+      `work-unit type "${unit.type ?? ''}" is outside ${WORK_UNIT_TYPES.join(' | ')}`
+    )
+  }
+  if (!unit.verified) errors.push('a cairn-unit block needs verified')
+  return errors
+}
+
+/** Which declared units must already be retained. The newest unit is exempt
+ *  because its ref is written immediately AFTER the commit that declares it —
+ *  checking it here would fail every gate run that precedes its own push. The
+ *  guarantee that matters is unaffected: retention must exist before the NEXT
+ *  rewriting push, and by then the unit is no longer the newest. */
+export function retentionDue(units) {
+  const ordinals = units
+    .map((unit) => Number.parseInt(unit.unit, 10))
+    .filter((value) => Number.isInteger(value))
+  if (ordinals.length === 0) return []
+  const newest = Math.max(...ordinals)
+  return units.filter((unit) => Number.parseInt(unit.unit, 10) < newest)
+}
+
 export function approxTokens(text) {
   const words = text.split(/\s+/).filter(Boolean).length
   return Math.round((words * 4) / 3)
@@ -669,7 +840,11 @@ export function evaluate({
   openingFor,
   previousPaths = new Map(),
   immutableMutations = [],
-  branchSource = 'symbolic-ref'
+  branchSource = 'symbolic-ref',
+  workUnits = null,
+  retainedRefs = new Map(),
+  provisionalInCandidate = [],
+  headProvisional = false
 }) {
   const findings = []
   const add = (level, rule, message, outcome = level === 'advisory' ? 'advisory' : 'fail') =>
@@ -931,6 +1106,75 @@ export function evaluate({
     }
   }
 
+  // 7. typed work units ----------------------------------------------
+  // "Code, tests and documents move together" is the right instinct and the
+  // wrong rule: applied to every unit it demands a module note from a typo
+  // fix, and the lesson a writer takes from that is to manufacture a
+  // documentation delta rather than a coherent one. The declared type makes
+  // the requirement exact instead of universal.
+  if (onPath && match && workUnits != null) {
+    if (changed.includes(match.file) && workUnits.length === 0) {
+      add('blocking', 'work-unit',
+        `${match.file} changed with no \`cairn-unit\` block — every completed work unit declares its step, ledger ordinal, type (${WORK_UNIT_TYPES.join(' | ')}) and verification`)
+    }
+    for (const unit of workUnits) {
+      for (const error of workUnitErrors(unit)) {
+        add('blocking', 'work-unit', `${match.file}: ${error}`)
+      }
+    }
+  }
+
+  // 8. checkpoint retention — FAIL CLOSED ------------------------------
+  // The ledger names its checkpoints and promises another participant can
+  // fetch one and resume. A rebase changes every object id and the force-push
+  // that follows leaves those promises resolving to nothing — which is not a
+  // corner case, it is the central claim failing at the moment the ledger is
+  // most complete. The newest unit is exempt because its ref is written
+  // immediately after the commit declaring it; every older one must already
+  // be reachable.
+  if (onPath && match && workUnits != null) {
+    const id = String(match.front.id ?? '').toLowerCase()
+    for (const unit of retentionDue(workUnits)) {
+      const ref = `${CHECKPOINT_REF_PREFIX}/${id}/${unit.unit}`
+      if (retainedRefs == null) {
+        add('blocking', 'checkpoint-retention',
+          `cannot list ${CHECKPOINT_REF_PREFIX}/${id}/* — fetch the retention namespace and rerun the gate; missing evidence is not a pass`,
+          'inconclusive')
+        break
+      }
+      if (!retainedRefs.has(ref)) {
+        add('blocking', 'checkpoint-retention',
+          `${match.file} declares unit ${unit.unit} (${unit.step}) with no retention ref at ${ref} — create it before any rewriting push, or the next rebase orphans that checkpoint`)
+      }
+    }
+    const newest = workUnits.at(-1)
+    const newestRef = newest ? `${CHECKPOINT_REF_PREFIX}/${id}/${newest.unit}` : null
+    if (newest && retainedRefs != null && !retainedRefs.has(newestRef)) {
+      add('advisory', 'checkpoint-retention',
+        `unit ${newest.unit} has no retention ref yet — write ${newestRef} once this commit exists, before the next rebase`)
+    }
+  }
+
+  // 8b. provisional commits --------------------------------------------
+  // Incomplete work is pushed rather than held in a working tree, because a
+  // working tree is the one place the protocol cannot recover from. The mark
+  // is what keeps "complete" meaning something — so a candidate containing a
+  // marked commit is a candidate containing work nobody claimed was finished.
+  if (onPath && match && match.front.status === 'ready') {
+    if (provisionalInCandidate == null) {
+      add('blocking', 'provisional',
+        `cannot read the commit range for ${match.front.id} — fetch the complete path history and rerun the gate`,
+        'inconclusive')
+    } else if (provisionalInCandidate.length > 0) {
+      add('blocking', 'provisional',
+        `${provisionalInCandidate.length} commit(s) between the base and the candidate still carry ${PROVISIONAL_TRAILER}: — fold each into the work unit it was drafting before proposing a candidate (${provisionalInCandidate.slice(0, 3).join(', ')})`)
+    }
+  }
+  if (onPath && headProvisional) {
+    add('advisory', 'provisional',
+      `HEAD carries ${PROVISIONAL_TRAILER}: — this commit is durable but is not a checkpoint, must not be named as a resume point, and must be folded before a candidate`)
+  }
+
   // 6. decision drift (advisory) --------------------------------------
   if (touched('docs/bedrock/').length > 0 && touched('docs/adr/').length === 0) {
     add('advisory', 'decision-drift',
@@ -1161,6 +1405,42 @@ function pathRegistrationState(trunkRef, branch, paths) {
  * checking. The result can identify a CURRENT missing checkpoint, never prove
  * the historical timing of older pushes.
  */
+/** Local retention refs for one path, as ref → object id.
+ *
+ *  Deliberately LOCAL. `git ls-remote` would prove the ref reached the remote
+ *  and would also make the gate depend on the network, so a plane ride or a
+ *  restricted runner would turn a protocol failure into a protocol pass. The
+ *  ref is written locally and pushed in the same breath; `remote-checkpoint`
+ *  already carries the separate, advisory question of what the remote has. */
+function retainedCheckpointRefs(pathId) {
+  if (!pathId) return new Map()
+  const prefix = `${CHECKPOINT_REF_PREFIX}/${String(pathId).toLowerCase()}`
+  const raw = gitOrNull(['for-each-ref', '--format=%(refname) %(objectname)', prefix])
+  if (raw == null) return null
+  const refs = new Map()
+  for (const line of raw.split('\n')) {
+    const [ref, oid] = line.trim().split(/\s+/)
+    if (ref && oid) refs.set(ref, oid)
+  }
+  return refs
+}
+
+/** Commits between the recorded base and the proposed candidate that still
+ *  announce themselves as incomplete. */
+function provisionalCommits(from, to) {
+  if (!isCommitPin(from) || !isCommitPin(to)) return []
+  const raw = gitOrNull([
+    'log', '--format=%h', `--grep=^${PROVISIONAL_TRAILER}:`, `${from}..${to}`
+  ])
+  if (raw == null) return null
+  return raw.split('\n').map((line) => line.trim()).filter(Boolean)
+}
+
+function headCarriesProvisionalTrailer() {
+  const raw = gitOrNull(['log', '-1', '--format=%B', 'HEAD'])
+  return raw != null && new RegExp(`^${PROVISIONAL_TRAILER}:`, 'm').test(raw)
+}
+
 function pathRemoteCheckpoint(branch) {
   if (!isPathBranch(branch)) return null
 
@@ -1463,6 +1743,7 @@ function main() {
   })
   const changed = changedFiles(base)
   const paths = loadPaths()
+  const pathForBranch = paths.find((path) => path.front?.branch === branch) ?? null
   const trunkRef = base ?? 'master'
   const previousRef = comparisonRef(base, explicitPrevious)
   const stateChanged = previousRef ? changedFiles(previousRef) : changed
@@ -1488,7 +1769,13 @@ function main() {
       openingFor: hasOpening,
       previousPaths: previousPathStates(paths, previousRef),
       immutableMutations: immutableRecordMutations(recordRef),
-      branchSource
+      branchSource,
+      workUnits: pathForBranch ? parseWorkUnits(readFileSync(join(REPO, pathForBranch.file), 'utf8')) : null,
+      retainedRefs: retainedCheckpointRefs(pathForBranch?.front?.id),
+      provisionalInCandidate: pathForBranch
+        ? provisionalCommits(pathForBranch.front?.base_commit, pathForBranch.front?.subject_commit)
+        : [],
+      headProvisional: headCarriesProvisionalTrailer()
     })
   ]
 

@@ -503,6 +503,26 @@ which parts move together:
 Every type MUST include the appended ledger entry, the refreshed handoff brief,
 and a recorded verification result. No type may omit those three.
 
+The ledger entry declares the unit in a fenced `cairn-unit` block:
+
+````text
+```cairn-unit
+step: S02
+unit: 07
+type: implementation
+verified: cairn-check, typecheck, test, build
+```
+````
+
+`unit` is a **ledger ordinal, not an object id**, and that is deliberate. The
+commit a work unit produces does not exist while the unit is being written, so a
+block naming its own object id could never be written truthfully — the same
+self-reference that [administrative closure](./concepts/administrative-closure.md)
+solves with a following commit. The ordinal is knowable in advance, and
+`refs/cairn/checkpoints/<path-id>/<unit>` supplies the object id afterwards. The
+ledger says which unit; the ref says which commit; neither has to lie about the
+other.
+
 The typing is not bureaucracy; it is what makes “where relevant” checkable. An
 untyped rule that demands documentation from every unit demands it from a typo
 fix too, and what a writer — human or agent — learns from that rule is to
@@ -580,9 +600,16 @@ already be reachable from a retention ref on the same remote:
 refs/cairn/checkpoints/<path-id>/<n>
 ```
 
-`<n>` is the ledger's own ordinal for that checkpoint, so a ledger entry and its
-retained ref name the same thing. Retention refs are append-only: once pushed, a
-ref MUST NOT be moved or deleted while the path record is retained.
+`<n>` is the `unit` ordinal declared by the ledger entry, so a ledger entry and
+its retained ref name the same thing. Retention refs are append-only: once
+written, a ref MUST NOT be moved or deleted while the path record is retained.
+
+A validator sees one commit and cannot observe "before the push". What it can
+require is that every declared unit **except the newest** is already retained:
+the newest unit's ref is written immediately after the commit that declares it,
+and by the time the next unit exists it is no longer newest. That is the same
+guarantee reached by a checkable route — retention is in place before the next
+rewriting push, which is the only moment it matters.
 
 A repository that will not maintain that namespace has exactly one other
 conforming option: forbid rewriting pushes on path branches entirely and reach a
@@ -1269,8 +1296,8 @@ not in a separate document a reader may never open.
 | Full object id in the repository's configured format | required | **partially implemented**; the installed checker matches a forty-character form | object-format-aware identity check |
 | Fail-closed critical inconclusive outcomes | required | implemented | complete trunk and comparison refs |
 | Existing session, audit, history, and journal immutability | required | implemented for new or changed records | complete comparison ref |
-| Checkpoint retention refs before any rewriting push | required | **not implemented** | ref namespace, push permission, ledger-to-ref mapping |
-| Marked provisional commits excluded from candidate identity | required | **not implemented** | commit-trailer parsing and fold verification |
+| Checkpoint retention refs before any rewriting push | required | **partially implemented**; every declared unit except the newest must resolve a local retention ref | remote push of the namespace; the temporal “before the push” property is not observable |
+| Marked provisional commits excluded from candidate identity | required | implemented; a ready path whose candidate range still contains a marked commit is blocked | the fold itself is not verified to preserve content |
 | Handoff-brief field schema and answerable-alone contract | required | **not implemented** | brief schema and a cold-resume harness |
 | Field-level administrative closure surface | required | **partially implemented**; the installed rule restricts files, not fields | field-level diff comparison |
 | Scope digest recorded at opening and re-verified at closing | required | **not implemented** | digest computation over a resolved section |
@@ -1278,7 +1305,7 @@ not in a separate document a reader may never open.
 | Structured `advisory_disposition` matching findings at `C` | required | **not implemented** | checker finding set exported for comparison |
 | Recorded roles and the collapsed-actor advisory | required | **not implemented** | role fields in acceptance records |
 | `scope-drift` blocking unless the declaration moves in the same commit | required | **not implemented**; the installed rule is advisory | same-commit declaration comparison |
-| Typed work units keyed to their required parts | required | **not implemented**; the installed rule demands one fixed set | work-unit type in the ledger schema |
+| Typed work units keyed to their required parts | required | **partially implemented**; the `cairn-unit` block and its type vocabulary are checked | `same-work-unit` does not yet key its requirement to the declared type |
 | `lightweight` default route and one-way escalation | required | **not implemented** | route field, trigger evaluation |
 | `foundation` and adoption routes | required | **not implemented**; its three checks exist and are not yet bound to a route | route field |
 | Repair procedures for protocol violations | required | **not implemented**; procedural, with no predicate proposed | none — repair is recorded, not gated |
@@ -1317,10 +1344,12 @@ honest state of the work.
 | **Blocking** | `acceptance` | diff | Ready/done path lacks exact-commit acceptance or changed implementation after acceptance | `closingAcceptanceErrors(record, pathId) + pathClosureState(path, record)` |
 | **Blocking** | `branch-identity` | diff | Detached checkout where branch cannot be identified from host or git ref | `branchSource === 'detached' (blocking on guarded roots, advisory on others)` |
 | **Blocking** | `branch-path` | diff | Path branch not declared by a running path file, or missing base_commit | `isPathBranch(branch) && (!match \|\| !PATH_BRANCH_STATUSES.includes(status) \|\| !isCommitPin(base))` |
+| **Blocking** | `checkpoint-retention` | diff | A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint | `retentionDue(units) => retainedRefs.has(refs/cairn/checkpoints/<id>/<n>) (newest unit advisory)` |
 | **Blocking** | `coherence-audit` | corpus | Ready path lacks a filled coherence audit bound to its exact subject_commit | `cairn-audit --check --subject path.subject_commit` |
 | **Blocking** | `derived-view` | corpus | ACTIVE.md running-paths block does not match trunk path files | `tools/cairn-active.mjs --check` |
 | **Blocking** | `links` | corpus | Relative Markdown link points to non-existent target (code fences stripped) | `stripCode(text) => !existsSync(target)` |
 | **Blocking** | `opening-ceremony` | diff | Path declared running without an opening-check session note | `!openingFor(pathId) via session frontmatter { path, ceremony: 'opening' }` |
+| **Blocking** | `provisional` | diff | A proposed candidate still contains commits marked Cairn-Provisional, or HEAD is itself provisional | `git log --grep=^Cairn-Provisional: base..subject_commit (blocking on a ready path, advisory at HEAD)` |
 | **Blocking** | `rebase` | diff | Path branch does not contain latest trunk tip (stale branch) | `trunkContained(trunkRef) === false` |
 | **Blocking** | `record-integrity` | diff | Existing session, audit, journal, or rolled-history record was modified, renamed, or deleted | `immutableRecordMutations(previousRef) + isImmutableRecord(file)` |
 | **Blocking** | `registration` | diff | Path declaration tuple (id, running, branch, base) missing from trunk | `pathRegistrationState() === 'missing' (blocking) or declared migration exception (advisory)` |
@@ -1328,12 +1357,15 @@ honest state of the work.
 | **Blocking** | `same-work-unit` | diff | Source changed without accompanying module note and coding path update | `touched(GUARDED_ROOTS) => touched(docs/modules/) && touched(PATH_DIR)` |
 | **Blocking** | `schema` | corpus | Path or ADR frontmatter fails parsing, or an id/status/date is outside vocabulary | `pathFrontmatterErrors(front) + adrFrontmatterErrors(front, file, bodyStatus)` |
 | **Blocking** | `transition` | diff | Changed path state is not an allowed lifecycle transition, or prior state is unavailable | `transitionErrors(previous, current, onPathBranch)` |
+| **Blocking** | `work-unit` | diff | A changed path record carries no `cairn-unit` block, or one declares an unknown type | `parseWorkUnits(record) => workUnitErrors(unit) over WORK_UNIT_TYPES` |
 | *Advisory* | `area-note` | diff | Subsystem source changed without touching matching area module note | `areaOf(file) => changed.includes(note)` |
 | *Advisory* | `branch-identity` | diff | Detached checkout where branch cannot be identified from host or git ref | `branchSource === 'detached' (blocking on guarded roots, advisory on others)` |
+| *Advisory* | `checkpoint-retention` | diff | A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint | `retentionDue(units) => retainedRefs.has(refs/cairn/checkpoints/<id>/<n>) (newest unit advisory)` |
 | *Advisory* | `decision-drift` | diff | Configured architecture changed without an ADR in the same changeset | `touched(architectureRoot) => touched(decisionRoot)` |
 | *Advisory* | `ledger-size` | diff | A path file in the diff exceeds the ledger token budget | `changed.includes(path.file) && path.tokens > LEDGER_TOKEN_BUDGET` |
 | *Advisory* | `opening-ceremony` | diff | Path declared running without an opening-check session note | `!openingFor(pathId) via session frontmatter { path, ceremony: 'opening' }` |
 | *Advisory* | `path-staleness` | corpus | A path declaring running whose branch has had no commit for longer than the declared window | `staleRunningPaths(corpus, branchAges(corpus)) — advisory always; an unresolvable branch reports nothing` |
+| *Advisory* | `provisional` | diff | A proposed candidate still contains commits marked Cairn-Provisional, or HEAD is itself provisional | `git log --grep=^Cairn-Provisional: base..subject_commit (blocking on a ready path, advisory at HEAD)` |
 | *Advisory* | `registration` | diff | Path declaration tuple (id, running, branch, base) missing from trunk | `pathRegistrationState() === 'missing' (blocking) or declared migration exception (advisory)` |
 | *Advisory* | `remote-checkpoint` | diff | Local path HEAD not present on upstream tracking branch | `pathRemoteCheckpoint(branch).state === 'missing' \| 'unpushed'` |
 | *Advisory* | `scope-drift` | diff | Changed files outside path frontmatter declared writes: patterns | `!matchesAny(file, declaredWrites)` |

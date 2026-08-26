@@ -87,6 +87,13 @@ Convention: [paths.md](./paths.md#the-ledger-has-a-boundary) · index:
 
 ### S07f — Candidate-bound closure and truthful team lifecycle — **COMPLETE**
 
+```cairn-unit
+step: S07f
+unit: 01
+type: implementation
+verified: cairn-check, cairn-check:test, typecheck, test, build
+```
+
 An external senior review of the same protocol state found that Cairn's durable path and
 checkpoint model was strong, while several closure and enforcement claims exceeded their
 predicates. The user rejected the reviewer's suggested one-owner scope: Cairn remains for
@@ -165,6 +172,13 @@ its own reviewable diff rather than as one undifferentiated delivery.
 
 ### S07g — Cairn v0.2: close the gaps between the promises and the predicates — **COMPLETE**
 
+```cairn-unit
+step: S07g
+unit: 02
+type: documentation
+verified: cairn-check, cairn-check:test, typecheck, test, build
+```
+
 A nineteen-item external review of the v0.1 specification, delivered by the user. Every
 item is now resolved in normative text or listed under *Deliberate non-goals* with a
 reason; none is deferred silently. **Specification text only** — no checker rule was
@@ -241,6 +255,68 @@ that lies about a mechanism is the exact failure this revision exists to remove.
 - **ADR-019** records the decisions and amends ADR-018 on the two rules v0.2 contradicts.
   It stays `proposed`. Five regression tests added to the executable documentation
   contract; suite 118 → 123.
+
+### S07h — The v0.2 predicates, part one: the parser, the typed ledger, and the two P0 gates — **COMPLETE**
+
+```cairn-unit
+step: S07h
+unit: 03
+type: implementation
+verified: cairn-check, cairn-check:test, typecheck, test, build
+```
+
+S07g corrected the specification and deliberately implemented nothing. This step begins
+closing that gap, in the order the review ranked it: the two P0 items first, because they
+are the ones where the protocol was breaking its own promises rather than merely failing
+to check them.
+
+- **The frontmatter reader grew a named grammar rather than a dependency.** v0.2 records
+  carry flow lists (`accepted_roles`), block lists (`governs`) and lists of maps
+  (`advisory_disposition`); the old reader handled scalars and one nested map. It now reads
+  exactly the shapes Cairn's own records use and refuses the rest, which is what the
+  specification requires of a limited reader that declines to borrow YAML's name. Zero
+  dependencies, so the S08 `cairn-init` kit stays installable in a repository with no
+  network. One real behaviour change surfaced from the existing suite and was fixed rather
+  than papered over: a nested key with an empty value must stay the empty string, or a
+  blank `verdict:` in an audit record reports as an object instead of as missing.
+- **The ledger gained a machine-readable unit block**, and its design is the interesting
+  part. A block naming its own commit hash could never be written truthfully — the commit
+  does not exist while the unit is being written, which is the same self-reference
+  administrative closure solves with a following commit. So the block declares a **ledger
+  ordinal**, and `refs/cairn/checkpoints/<path-id>/<unit>` supplies the hash afterwards.
+  The ledger says which unit, the ref says which commit, and neither has to lie.
+- **`work-unit` (blocking)** — a changed path record must carry a `cairn-unit` block, and
+  every block must declare a step, an ordinal, a type from the six-word vocabulary, and a
+  verification result. `same-work-unit` does **not** yet key its requirement to the type;
+  the matrix says so rather than claiming the whole item.
+- **`checkpoint-retention` (blocking, with an advisory tail)** — every declared unit except
+  the newest must resolve a local retention ref. The newest is exempt because its ref is
+  written immediately after the commit that declares it, so checking it would fail every
+  gate run that precedes its own push; by the time the next unit exists it is no longer
+  newest, which delivers the guarantee that actually matters — retention is in place before
+  the next rewriting push. Unreadable refs are `inconclusive` and non-zero.
+- **Deliberately local.** `git ls-remote` would prove the ref reached the remote and would
+  also make the gate depend on the network, so a restricted runner or a plane ride would
+  turn a protocol failure into a protocol pass. The ref is written locally and pushed in
+  the same breath; `remote-checkpoint` already carries the separate advisory question of
+  what the remote holds.
+- **`provisional` (blocking, with an advisory tail)** — a ready path whose candidate range
+  still contains a commit trailered `Cairn-Provisional:` is blocked, because a candidate
+  containing marked-incomplete work is a candidate containing work nobody claimed was
+  finished. An unreadable range is inconclusive. At HEAD the same trailer is advisory: that
+  commit is durable and legitimate, it is simply not a checkpoint.
+- **Migration, named rather than hidden.** The S07f and S07g entries in this live ledger
+  gained unit blocks retroactively, and the ordinal series starts at S07f because that is
+  where the convention starts. This is a legitimate edit: the live path record advances
+  with every work unit, and `record-integrity` protects sessions, audits, journal entries
+  and rolled history — not the live ledger. Units 01 and 02 were retained at their real
+  commits before this step's gates were run.
+- **No migration exception set was added, because none is needed yet.** `work-unit` is
+  diff-scoped, so it asks nothing of ledger entries that predate it, and retention only
+  checks units that declare a block. The declared, self-deleting exception lands with the
+  scope-digest and route rules, which do reach back over existing state.
+- Fifteen regression tests; checker suite 76 → 91, full protocol/specification suite
+  123 → 138.
 
 ### S08 — Extract Cairn from Atomik
 

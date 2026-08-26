@@ -89,11 +89,15 @@ The final command must exit zero before the step is called complete. Then record
 the checkpoint in the ledger and retain it:
 
 ```bash
-git push origin HEAD:refs/cairn/checkpoints/cp-example-001/01
-git ls-remote origin 'refs/cairn/checkpoints/cp-example-001/*'
+git update-ref refs/cairn/checkpoints/cp-example-001/01 HEAD
+git push origin refs/cairn/checkpoints/cp-example-001/01
+git for-each-ref refs/cairn/checkpoints/cp-example-001
 ```
 
-The ordinal matches the ledger's own numbering for this checkpoint.
+The ordinal is the `unit:` value in that entry's `cairn-unit` block. The local
+ref is what the gate reads — deliberately, so a restricted runner or an offline
+checkout cannot turn a protocol failure into a protocol pass. The push is what
+makes it survive the machine.
 
 ## Publish incomplete work
 
@@ -127,9 +131,10 @@ Retain every ledger-named checkpoint **before** the rebase, because the rebase i
 what orphans them:
 
 ```bash
-git ls-remote origin 'refs/cairn/checkpoints/cp-example-001/*'
-# push any ledger-named checkpoint that is missing from that list
-git push origin <checkpoint-oid>:refs/cairn/checkpoints/cp-example-001/<n>
+npm run cairn-check   # blocks on any declared unit that is not yet retained
+git for-each-ref refs/cairn/checkpoints/cp-example-001
+git update-ref refs/cairn/checkpoints/cp-example-001/<unit> <checkpoint-oid>
+git push origin refs/cairn/checkpoints/cp-example-001/<unit>
 ```
 
 Record the trunk tip as `T`, then rebase onto it:

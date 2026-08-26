@@ -48,6 +48,18 @@ export function extractRules(source) {
 }
 
 export const RULE_METADATA = {
+  'work-unit': {
+    condition: 'A changed path record carries no `cairn-unit` block, or one declares an unknown type',
+    enforcing: 'parseWorkUnits(record) => workUnitErrors(unit) over WORK_UNIT_TYPES'
+  },
+  'checkpoint-retention': {
+    condition: 'A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint',
+    enforcing: 'retentionDue(units) => retainedRefs.has(refs/cairn/checkpoints/<id>/<n>) (newest unit advisory)'
+  },
+  'provisional': {
+    condition: 'A proposed candidate still contains commits marked Cairn-Provisional, or HEAD is itself provisional',
+    enforcing: "git log --grep=^Cairn-Provisional: base..subject_commit (blocking on a ready path, advisory at HEAD)"
+  },
   'branch-identity': {
     condition: 'Detached checkout where branch cannot be identified from host or git ref',
     enforcing: "branchSource === 'detached' (blocking on guarded roots, advisory on others)"

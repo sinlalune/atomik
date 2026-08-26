@@ -1454,6 +1454,22 @@ which parts move together:</p>
 </table>
 <p>Every type MUST include the appended ledger entry, the refreshed handoff brief,
 and a recorded verification result. No type may omit those three.</p>
+<p>The ledger entry declares the unit in a fenced <code>cairn-unit</code> block:</p>
+<pre><code class="language-text">```cairn-unit
+step: S02
+unit: 07
+type: implementation
+verified: cairn-check, typecheck, test, build
+```
+</code></pre>
+<p><code>unit</code> is a <strong>ledger ordinal, not an object id</strong>, and that is deliberate. The
+commit a work unit produces does not exist while the unit is being written, so a
+block naming its own object id could never be written truthfully — the same
+self-reference that <a href="#article-concept-administrative-closure" data-article="concept-administrative-closure" data-anchor="" class="wiki-link">administrative closure</a>
+solves with a following commit. The ordinal is knowable in advance, and
+<code>refs/cairn/checkpoints/&lt;path-id&gt;/&lt;unit&gt;</code> supplies the object id afterwards. The
+ledger says which unit; the ref says which commit; neither has to lie about the
+other.</p>
 <p>The typing is not bureaucracy; it is what makes “where relevant” checkable. An
 untyped rule that demands documentation from every unit demands it from a typo
 fix too, and what a writer — human or agent — learns from that rule is to
@@ -1511,9 +1527,15 @@ the exact moment the ledger is most complete.</p>
 already be reachable from a retention ref on the same remote:</p>
 <pre><code class="language-text">refs/cairn/checkpoints/&lt;path-id&gt;/&lt;n&gt;
 </code></pre>
-<p><code>&lt;n&gt;</code> is the ledger’s own ordinal for that checkpoint, so a ledger entry and its
-retained ref name the same thing. Retention refs are append-only: once pushed, a
-ref MUST NOT be moved or deleted while the path record is retained.</p>
+<p><code>&lt;n&gt;</code> is the <code>unit</code> ordinal declared by the ledger entry, so a ledger entry and
+its retained ref name the same thing. Retention refs are append-only: once
+written, a ref MUST NOT be moved or deleted while the path record is retained.</p>
+<p>A validator sees one commit and cannot observe “before the push”. What it can
+require is that every declared unit <strong>except the newest</strong> is already retained:
+the newest unit’s ref is written immediately after the commit that declares it,
+and by the time the next unit exists it is no longer newest. That is the same
+guarantee reached by a checkable route — retention is in place before the next
+rewriting push, which is the only moment it matters.</p>
 <p>A repository that will not maintain that namespace has exactly one other
 conforming option: forbid rewriting pushes on path branches entirely and reach a
 current base by <a href="#article-concept-merge" data-article="concept-merge" data-anchor="" class="wiki-link">merge</a> instead. Rewriting without
@@ -2265,14 +2287,14 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Checkpoint retention refs before any rewriting push</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">ref namespace, push permission, ledger-to-ref mapping</td>
+<td style="text-align:left"><strong>partially implemented</strong>; every declared unit except the newest must resolve a local retention ref</td>
+<td style="text-align:left">remote push of the namespace; the temporal “before the push” property is not observable</td>
 </tr>
 <tr>
 <td style="text-align:left">Marked provisional commits excluded from candidate identity</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">commit-trailer parsing and fold verification</td>
+<td style="text-align:left">implemented; a ready path whose candidate range still contains a marked commit is blocked</td>
+<td style="text-align:left">the fold itself is not verified to preserve content</td>
 </tr>
 <tr>
 <td style="text-align:left">Handoff-brief field schema and answerable-alone contract</td>
@@ -2319,8 +2341,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Typed work units keyed to their required parts</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong>; the installed rule demands one fixed set</td>
-<td style="text-align:left">work-unit type in the ledger schema</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the <code>cairn-unit</code> block and its type vocabulary are checked</td>
+<td style="text-align:left"><code>same-work-unit</code> does not yet key its requirement to the declared type</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>lightweight</code> default route and one-way escalation</td>
@@ -2438,6 +2460,12 @@ honest state of the work.</p>
 <td style="text-align:left">Path branch not declared by a running path file, or missing base_commit</td>
 <td style="text-align:left"><code>isPathBranch(branch) &amp;&amp; (!match || !PATH_BRANCH_STATUSES.includes(status) || !isCommitPin(base))</code></td>
 </tr>
+<tr data-rule="checkpoint-retention" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>checkpoint-retention</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint</td>
+<td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory)</code></td>
+</tr>
 <tr data-rule="coherence-audit" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>coherence-audit</code></td>
 <td style="text-align:left">corpus</td>
@@ -2461,6 +2489,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Path declared running without an opening-check session note</td>
 <td style="text-align:left"><code>!openingFor(pathId) via session frontmatter { path, ceremony: 'opening' }</code></td>
+</tr>
+<tr data-rule="provisional" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>provisional</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A proposed candidate still contains commits marked Cairn-Provisional, or HEAD is itself provisional</td>
+<td style="text-align:left"><code>git log --grep=^Cairn-Provisional: base..subject_commit (blocking on a ready path, advisory at HEAD)</code></td>
 </tr>
 <tr data-rule="rebase" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>rebase</code></td>
@@ -2504,6 +2538,12 @@ honest state of the work.</p>
 <td style="text-align:left">Changed path state is not an allowed lifecycle transition, or prior state is unavailable</td>
 <td style="text-align:left"><code>transitionErrors(previous, current, onPathBranch)</code></td>
 </tr>
+<tr data-rule="work-unit" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>work-unit</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A changed path record carries no <code>cairn-unit</code> block, or one declares an unknown type</td>
+<td style="text-align:left"><code>parseWorkUnits(record) =&gt; workUnitErrors(unit) over WORK_UNIT_TYPES</code></td>
+</tr>
 <tr data-rule="area-note" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>area-note</code></td>
 <td style="text-align:left">diff</td>
@@ -2515,6 +2555,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Detached checkout where branch cannot be identified from host or git ref</td>
 <td style="text-align:left"><code>branchSource === 'detached' (blocking on guarded roots, advisory on others)</code></td>
+</tr>
+<tr data-rule="checkpoint-retention" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>checkpoint-retention</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint</td>
+<td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory)</code></td>
 </tr>
 <tr data-rule="decision-drift" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>decision-drift</code></td>
@@ -2539,6 +2585,12 @@ honest state of the work.</p>
 <td style="text-align:left">corpus</td>
 <td style="text-align:left">A path declaring running whose branch has had no commit for longer than the declared window</td>
 <td style="text-align:left"><code>staleRunningPaths(corpus, branchAges(corpus)) — advisory always; an unresolvable branch reports nothing</code></td>
+</tr>
+<tr data-rule="provisional" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>provisional</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A proposed candidate still contains commits marked Cairn-Provisional, or HEAD is itself provisional</td>
+<td style="text-align:left"><code>git log --grep=^Cairn-Provisional: base..subject_commit (blocking on a ready path, advisory at HEAD)</code></td>
 </tr>
 <tr data-rule="registration" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>registration</code></td>
@@ -3334,6 +3386,22 @@ which parts move together:</p>
 </table>
 <p>Every type MUST include the appended ledger entry, the refreshed handoff brief,
 and a recorded verification result. No type may omit those three.</p>
+<p>The ledger entry declares the unit in a fenced <code>cairn-unit</code> block:</p>
+<pre><code class="language-text">```cairn-unit
+step: S02
+unit: 07
+type: implementation
+verified: cairn-check, typecheck, test, build
+```
+</code></pre>
+<p><code>unit</code> is a <strong>ledger ordinal, not an object id</strong>, and that is deliberate. The
+commit a work unit produces does not exist while the unit is being written, so a
+block naming its own object id could never be written truthfully — the same
+self-reference that <a href="#article-concept-administrative-closure" data-article="concept-administrative-closure" data-anchor="" class="wiki-link">administrative closure</a>
+solves with a following commit. The ordinal is knowable in advance, and
+<code>refs/cairn/checkpoints/&lt;path-id&gt;/&lt;unit&gt;</code> supplies the object id afterwards. The
+ledger says which unit; the ref says which commit; neither has to lie about the
+other.</p>
 <p>The typing is not bureaucracy; it is what makes “where relevant” checkable. An
 untyped rule that demands documentation from every unit demands it from a typo
 fix too, and what a writer — human or agent — learns from that rule is to
@@ -3391,9 +3459,15 @@ the exact moment the ledger is most complete.</p>
 already be reachable from a retention ref on the same remote:</p>
 <pre><code class="language-text">refs/cairn/checkpoints/&lt;path-id&gt;/&lt;n&gt;
 </code></pre>
-<p><code>&lt;n&gt;</code> is the ledger’s own ordinal for that checkpoint, so a ledger entry and its
-retained ref name the same thing. Retention refs are append-only: once pushed, a
-ref MUST NOT be moved or deleted while the path record is retained.</p>
+<p><code>&lt;n&gt;</code> is the <code>unit</code> ordinal declared by the ledger entry, so a ledger entry and
+its retained ref name the same thing. Retention refs are append-only: once
+written, a ref MUST NOT be moved or deleted while the path record is retained.</p>
+<p>A validator sees one commit and cannot observe “before the push”. What it can
+require is that every declared unit <strong>except the newest</strong> is already retained:
+the newest unit’s ref is written immediately after the commit that declares it,
+and by the time the next unit exists it is no longer newest. That is the same
+guarantee reached by a checkable route — retention is in place before the next
+rewriting push, which is the only moment it matters.</p>
 <p>A repository that will not maintain that namespace has exactly one other
 conforming option: forbid rewriting pushes on path branches entirely and reach a
 current base by <a href="#article-concept-merge" data-article="concept-merge" data-anchor="" class="wiki-link">merge</a> instead. Rewriting without
@@ -4145,14 +4219,14 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Checkpoint retention refs before any rewriting push</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">ref namespace, push permission, ledger-to-ref mapping</td>
+<td style="text-align:left"><strong>partially implemented</strong>; every declared unit except the newest must resolve a local retention ref</td>
+<td style="text-align:left">remote push of the namespace; the temporal “before the push” property is not observable</td>
 </tr>
 <tr>
 <td style="text-align:left">Marked provisional commits excluded from candidate identity</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">commit-trailer parsing and fold verification</td>
+<td style="text-align:left">implemented; a ready path whose candidate range still contains a marked commit is blocked</td>
+<td style="text-align:left">the fold itself is not verified to preserve content</td>
 </tr>
 <tr>
 <td style="text-align:left">Handoff-brief field schema and answerable-alone contract</td>
@@ -4199,8 +4273,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Typed work units keyed to their required parts</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong>; the installed rule demands one fixed set</td>
-<td style="text-align:left">work-unit type in the ledger schema</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the <code>cairn-unit</code> block and its type vocabulary are checked</td>
+<td style="text-align:left"><code>same-work-unit</code> does not yet key its requirement to the declared type</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>lightweight</code> default route and one-way escalation</td>
@@ -4318,6 +4392,12 @@ honest state of the work.</p>
 <td style="text-align:left">Path branch not declared by a running path file, or missing base_commit</td>
 <td style="text-align:left"><code>isPathBranch(branch) &amp;&amp; (!match || !PATH_BRANCH_STATUSES.includes(status) || !isCommitPin(base))</code></td>
 </tr>
+<tr data-rule="checkpoint-retention" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>checkpoint-retention</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint</td>
+<td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory)</code></td>
+</tr>
 <tr data-rule="coherence-audit" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>coherence-audit</code></td>
 <td style="text-align:left">corpus</td>
@@ -4341,6 +4421,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Path declared running without an opening-check session note</td>
 <td style="text-align:left"><code>!openingFor(pathId) via session frontmatter { path, ceremony: 'opening' }</code></td>
+</tr>
+<tr data-rule="provisional" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>provisional</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A proposed candidate still contains commits marked Cairn-Provisional, or HEAD is itself provisional</td>
+<td style="text-align:left"><code>git log --grep=^Cairn-Provisional: base..subject_commit (blocking on a ready path, advisory at HEAD)</code></td>
 </tr>
 <tr data-rule="rebase" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>rebase</code></td>
@@ -4384,6 +4470,12 @@ honest state of the work.</p>
 <td style="text-align:left">Changed path state is not an allowed lifecycle transition, or prior state is unavailable</td>
 <td style="text-align:left"><code>transitionErrors(previous, current, onPathBranch)</code></td>
 </tr>
+<tr data-rule="work-unit" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>work-unit</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A changed path record carries no <code>cairn-unit</code> block, or one declares an unknown type</td>
+<td style="text-align:left"><code>parseWorkUnits(record) =&gt; workUnitErrors(unit) over WORK_UNIT_TYPES</code></td>
+</tr>
 <tr data-rule="area-note" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>area-note</code></td>
 <td style="text-align:left">diff</td>
@@ -4395,6 +4487,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Detached checkout where branch cannot be identified from host or git ref</td>
 <td style="text-align:left"><code>branchSource === 'detached' (blocking on guarded roots, advisory on others)</code></td>
+</tr>
+<tr data-rule="checkpoint-retention" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>checkpoint-retention</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint</td>
+<td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory)</code></td>
 </tr>
 <tr data-rule="decision-drift" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>decision-drift</code></td>
@@ -4419,6 +4517,12 @@ honest state of the work.</p>
 <td style="text-align:left">corpus</td>
 <td style="text-align:left">A path declaring running whose branch has had no commit for longer than the declared window</td>
 <td style="text-align:left"><code>staleRunningPaths(corpus, branchAges(corpus)) — advisory always; an unresolvable branch reports nothing</code></td>
+</tr>
+<tr data-rule="provisional" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>provisional</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A proposed candidate still contains commits marked Cairn-Provisional, or HEAD is itself provisional</td>
+<td style="text-align:left"><code>git log --grep=^Cairn-Provisional: base..subject_commit (blocking on a ready path, advisory at HEAD)</code></td>
 </tr>
 <tr data-rule="registration" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>registration</code></td>
@@ -7303,14 +7407,16 @@ and verify by <code>links</code>, <code>schema</code>, and coherence audit.</li>
 <li>[ ] One writer assignment per writable worktree is visible.</li>
 <li>[ ] Each completed work unit updates code, tests, documents, ledger, and
 handoff together where relevant.</li>
-<li>[ ] Each work unit declares a type, and its type’s required parts moved
-together.</li>
+<li>[ ] Each work unit declares a <code>cairn-unit</code> block with a step, a ledger
+ordinal, a type from the vocabulary, and a verification result.</li>
+<li>[ ] Each work unit’s type’s required parts actually moved together.</li>
 <li>[ ] Each completed work unit is committed and pushed immediately.</li>
 <li>[ ] Incomplete work under review is a pushed commit carrying
 <code>Cairn-Provisional:</code>, not an uncommitted working tree.</li>
-<li>[ ] Every ledger-named checkpoint is reachable from
-<code>refs/cairn/checkpoints/&lt;path-id&gt;/&lt;n&gt;</code> before any rewriting push, or the
-repository forbids rewriting pushes on path branches.</li>
+<li>[ ] Every declared unit except the newest resolves a retention ref at
+<code>refs/cairn/checkpoints/&lt;path-id&gt;/&lt;unit&gt;</code>, or the repository forbids
+rewriting pushes on path branches.</li>
+<li>[ ] Those refs are pushed, so retention survives the machine that wrote it.</li>
 <li>[ ] No retention ref has been moved or deleted while its path record is
 retained.</li>
 <li>[ ] The handoff brief carries <code>checkpoint</code>, <code>checkpoint_pushed</code>,
@@ -7935,10 +8041,14 @@ git merge-base --is-ancestor HEAD origin/path/cp-example-001
 </code></pre>
 <p>The final command must exit zero before the step is called complete. Then record
 the checkpoint in the ledger and retain it:</p>
-<pre><code class="language-bash">git push origin HEAD:refs/cairn/checkpoints/cp-example-001/01
-git ls-remote origin 'refs/cairn/checkpoints/cp-example-001/*'
+<pre><code class="language-bash">git update-ref refs/cairn/checkpoints/cp-example-001/01 HEAD
+git push origin refs/cairn/checkpoints/cp-example-001/01
+git for-each-ref refs/cairn/checkpoints/cp-example-001
 </code></pre>
-<p>The ordinal matches the ledger’s own numbering for this checkpoint.</p>
+<p>The ordinal is the <code>unit:</code> value in that entry’s <code>cairn-unit</code> block. The local
+ref is what the gate reads — deliberately, so a restricted runner or an offline
+checkout cannot turn a protocol failure into a protocol pass. The push is what
+makes it survive the machine.</p>
 <h2 id="reference-operations--publish-incomplete-work" data-heading="publish-incomplete-work">Publish incomplete work</h2>
 <p>Work that is not a completed unit — mid-refactor, failing, or awaiting a user’s
 inspection — is pushed rather than held on disk:</p>
@@ -7960,9 +8070,10 @@ already be retained before the force push that follows.</p>
 <h2 id="reference-operations--produce-implementation-candidate-c" data-heading="produce-implementation-candidate-c">Produce implementation candidate C</h2>
 <p>Retain every ledger-named checkpoint <strong>before</strong> the rebase, because the rebase is
 what orphans them:</p>
-<pre><code class="language-bash">git ls-remote origin 'refs/cairn/checkpoints/cp-example-001/*'
-# push any ledger-named checkpoint that is missing from that list
-git push origin &lt;checkpoint-oid&gt;:refs/cairn/checkpoints/cp-example-001/&lt;n&gt;
+<pre><code class="language-bash">npm run cairn-check   # blocks on any declared unit that is not yet retained
+git for-each-ref refs/cairn/checkpoints/cp-example-001
+git update-ref refs/cairn/checkpoints/cp-example-001/&lt;unit&gt; &lt;checkpoint-oid&gt;
+git push origin refs/cairn/checkpoints/cp-example-001/&lt;unit&gt;
 </code></pre>
 <p>Record the trunk tip as <code>T</code>, then rebase onto it:</p>
 <pre><code class="language-bash">git fetch origin main
@@ -8190,7 +8301,13 @@ What this step set out to establish.
 
 #### Work
 
-- type: implementation | documentation | decision | foundation | repair | closure
+```cairn-unit
+step: S01
+unit: 01
+type: implementation
+verified: cairn-check, typecheck, test, build
+```
+
 - implementation changed
 - tests added or changed
 - documents changed
@@ -8212,7 +8329,7 @@ remote      : not pushed | origin/path/cp-example-001 @ &lt;full commit&gt;
 ```text
 status      : running
 current step: S01 complete only after required review and remote proof
-retention   : refs/cairn/checkpoints/cp-example-001/01 @ &lt;full object id&gt;
+retention   : refs/cairn/checkpoints/cp-example-001/01 — written after this commit
 changed     : exact surfaces or concise groups
 session     : safe boundary only after successful push
 next action : S02 — exact first action
@@ -8261,9 +8378,10 @@ invalid by a finding, or when
 <a href="#article-concept-acceptance-drift" data-article="concept-acceptance-drift" data-anchor="" class="wiki-link">acceptance drift</a> invalidates it because the
 trunk moved inside <code>writes:</code> or <code>governs:</code>. Record why the transition occurred.</p>
 <h3 id="reference-path-template--producing-a-candidate" data-heading="producing-a-candidate">Producing a candidate</h3>
-<p>Before rebasing, push every ledger-named checkpoint to
-<code>refs/cairn/checkpoints/&lt;path-id&gt;/&lt;n&gt;</code>. Then rebase, fold every provisional
-commit into the work unit it was drafting, and push <code>C</code>.</p>
+<p>Before rebasing, retain every declared unit at
+<code>refs/cairn/checkpoints/&lt;path-id&gt;/&lt;unit&gt;</code>, where <code>&lt;unit&gt;</code> is the ordinal in that
+entry’s <code>cairn-unit</code> block. Then rebase, fold every provisional commit into the
+work unit it was drafting, and push <code>C</code>.</p>
 <h3 id="reference-path-template--becoming-ready" data-heading="becoming-ready">Becoming ready</h3>
 <p>After exact candidate <code>C</code> has passed its checks, audit, and acceptance, create
 one administrative commit that:</p>
@@ -9362,6 +9480,22 @@ which parts move together:</p>
 </table>
 <p>Every type MUST include the appended ledger entry, the refreshed handoff brief,
 and a recorded verification result. No type may omit those three.</p>
+<p>The ledger entry declares the unit in a fenced <code>cairn-unit</code> block:</p>
+<pre><code class="language-text">```cairn-unit
+step: S02
+unit: 07
+type: implementation
+verified: cairn-check, typecheck, test, build
+```
+</code></pre>
+<p><code>unit</code> is a <strong>ledger ordinal, not an object id</strong>, and that is deliberate. The
+commit a work unit produces does not exist while the unit is being written, so a
+block naming its own object id could never be written truthfully — the same
+self-reference that <a href="#article-concept-administrative-closure" data-article="concept-administrative-closure" data-anchor="" class="wiki-link">administrative closure</a>
+solves with a following commit. The ordinal is knowable in advance, and
+<code>refs/cairn/checkpoints/&lt;path-id&gt;/&lt;unit&gt;</code> supplies the object id afterwards. The
+ledger says which unit; the ref says which commit; neither has to lie about the
+other.</p>
 <p>The typing is not bureaucracy; it is what makes “where relevant” checkable. An
 untyped rule that demands documentation from every unit demands it from a typo
 fix too, and what a writer — human or agent — learns from that rule is to
@@ -9419,9 +9553,15 @@ the exact moment the ledger is most complete.</p>
 already be reachable from a retention ref on the same remote:</p>
 <pre><code class="language-text">refs/cairn/checkpoints/&lt;path-id&gt;/&lt;n&gt;
 </code></pre>
-<p><code>&lt;n&gt;</code> is the ledger’s own ordinal for that checkpoint, so a ledger entry and its
-retained ref name the same thing. Retention refs are append-only: once pushed, a
-ref MUST NOT be moved or deleted while the path record is retained.</p>
+<p><code>&lt;n&gt;</code> is the <code>unit</code> ordinal declared by the ledger entry, so a ledger entry and
+its retained ref name the same thing. Retention refs are append-only: once
+written, a ref MUST NOT be moved or deleted while the path record is retained.</p>
+<p>A validator sees one commit and cannot observe “before the push”. What it can
+require is that every declared unit <strong>except the newest</strong> is already retained:
+the newest unit’s ref is written immediately after the commit that declares it,
+and by the time the next unit exists it is no longer newest. That is the same
+guarantee reached by a checkable route — retention is in place before the next
+rewriting push, which is the only moment it matters.</p>
 <p>A repository that will not maintain that namespace has exactly one other
 conforming option: forbid rewriting pushes on path branches entirely and reach a
 current base by <a href="#article-concept-merge" data-article="concept-merge" data-anchor="" class="wiki-link">merge</a> instead. Rewriting without
@@ -10173,14 +10313,14 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Checkpoint retention refs before any rewriting push</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">ref namespace, push permission, ledger-to-ref mapping</td>
+<td style="text-align:left"><strong>partially implemented</strong>; every declared unit except the newest must resolve a local retention ref</td>
+<td style="text-align:left">remote push of the namespace; the temporal “before the push” property is not observable</td>
 </tr>
 <tr>
 <td style="text-align:left">Marked provisional commits excluded from candidate identity</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">commit-trailer parsing and fold verification</td>
+<td style="text-align:left">implemented; a ready path whose candidate range still contains a marked commit is blocked</td>
+<td style="text-align:left">the fold itself is not verified to preserve content</td>
 </tr>
 <tr>
 <td style="text-align:left">Handoff-brief field schema and answerable-alone contract</td>
@@ -10227,8 +10367,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Typed work units keyed to their required parts</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong>; the installed rule demands one fixed set</td>
-<td style="text-align:left">work-unit type in the ledger schema</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the <code>cairn-unit</code> block and its type vocabulary are checked</td>
+<td style="text-align:left"><code>same-work-unit</code> does not yet key its requirement to the declared type</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>lightweight</code> default route and one-way escalation</td>
@@ -10346,6 +10486,12 @@ honest state of the work.</p>
 <td style="text-align:left">Path branch not declared by a running path file, or missing base_commit</td>
 <td style="text-align:left"><code>isPathBranch(branch) &amp;&amp; (!match || !PATH_BRANCH_STATUSES.includes(status) || !isCommitPin(base))</code></td>
 </tr>
+<tr data-rule="checkpoint-retention" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>checkpoint-retention</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint</td>
+<td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory)</code></td>
+</tr>
 <tr data-rule="coherence-audit" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>coherence-audit</code></td>
 <td style="text-align:left">corpus</td>
@@ -10369,6 +10515,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Path declared running without an opening-check session note</td>
 <td style="text-align:left"><code>!openingFor(pathId) via session frontmatter { path, ceremony: 'opening' }</code></td>
+</tr>
+<tr data-rule="provisional" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>provisional</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A proposed candidate still contains commits marked Cairn-Provisional, or HEAD is itself provisional</td>
+<td style="text-align:left"><code>git log --grep=^Cairn-Provisional: base..subject_commit (blocking on a ready path, advisory at HEAD)</code></td>
 </tr>
 <tr data-rule="rebase" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>rebase</code></td>
@@ -10412,6 +10564,12 @@ honest state of the work.</p>
 <td style="text-align:left">Changed path state is not an allowed lifecycle transition, or prior state is unavailable</td>
 <td style="text-align:left"><code>transitionErrors(previous, current, onPathBranch)</code></td>
 </tr>
+<tr data-rule="work-unit" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>work-unit</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A changed path record carries no <code>cairn-unit</code> block, or one declares an unknown type</td>
+<td style="text-align:left"><code>parseWorkUnits(record) =&gt; workUnitErrors(unit) over WORK_UNIT_TYPES</code></td>
+</tr>
 <tr data-rule="area-note" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>area-note</code></td>
 <td style="text-align:left">diff</td>
@@ -10423,6 +10581,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Detached checkout where branch cannot be identified from host or git ref</td>
 <td style="text-align:left"><code>branchSource === 'detached' (blocking on guarded roots, advisory on others)</code></td>
+</tr>
+<tr data-rule="checkpoint-retention" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>checkpoint-retention</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint</td>
+<td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory)</code></td>
 </tr>
 <tr data-rule="decision-drift" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>decision-drift</code></td>
@@ -10447,6 +10611,12 @@ honest state of the work.</p>
 <td style="text-align:left">corpus</td>
 <td style="text-align:left">A path declaring running whose branch has had no commit for longer than the declared window</td>
 <td style="text-align:left"><code>staleRunningPaths(corpus, branchAges(corpus)) — advisory always; an unresolvable branch reports nothing</code></td>
+</tr>
+<tr data-rule="provisional" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>provisional</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A proposed candidate still contains commits marked Cairn-Provisional, or HEAD is itself provisional</td>
+<td style="text-align:left"><code>git log --grep=^Cairn-Provisional: base..subject_commit (blocking on a ready path, advisory at HEAD)</code></td>
 </tr>
 <tr data-rule="registration" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>registration</code></td>
@@ -13051,14 +13221,16 @@ and verify by <code>links</code>, <code>schema</code>, and coherence audit.</li>
 <li>[ ] One writer assignment per writable worktree is visible.</li>
 <li>[ ] Each completed work unit updates code, tests, documents, ledger, and
 handoff together where relevant.</li>
-<li>[ ] Each work unit declares a type, and its type’s required parts moved
-together.</li>
+<li>[ ] Each work unit declares a <code>cairn-unit</code> block with a step, a ledger
+ordinal, a type from the vocabulary, and a verification result.</li>
+<li>[ ] Each work unit’s type’s required parts actually moved together.</li>
 <li>[ ] Each completed work unit is committed and pushed immediately.</li>
 <li>[ ] Incomplete work under review is a pushed commit carrying
 <code>Cairn-Provisional:</code>, not an uncommitted working tree.</li>
-<li>[ ] Every ledger-named checkpoint is reachable from
-<code>refs/cairn/checkpoints/&lt;path-id&gt;/&lt;n&gt;</code> before any rewriting push, or the
-repository forbids rewriting pushes on path branches.</li>
+<li>[ ] Every declared unit except the newest resolves a retention ref at
+<code>refs/cairn/checkpoints/&lt;path-id&gt;/&lt;unit&gt;</code>, or the repository forbids
+rewriting pushes on path branches.</li>
+<li>[ ] Those refs are pushed, so retention survives the machine that wrote it.</li>
 <li>[ ] No retention ref has been moved or deleted while its path record is
 retained.</li>
 <li>[ ] The handoff brief carries <code>checkpoint</code>, <code>checkpoint_pushed</code>,
@@ -13671,10 +13843,14 @@ git merge-base --is-ancestor HEAD origin/path/cp-example-001
 </code></pre>
 <p>The final command must exit zero before the step is called complete. Then record
 the checkpoint in the ledger and retain it:</p>
-<pre><code class="language-bash">git push origin HEAD:refs/cairn/checkpoints/cp-example-001/01
-git ls-remote origin 'refs/cairn/checkpoints/cp-example-001/*'
+<pre><code class="language-bash">git update-ref refs/cairn/checkpoints/cp-example-001/01 HEAD
+git push origin refs/cairn/checkpoints/cp-example-001/01
+git for-each-ref refs/cairn/checkpoints/cp-example-001
 </code></pre>
-<p>The ordinal matches the ledger’s own numbering for this checkpoint.</p>
+<p>The ordinal is the <code>unit:</code> value in that entry’s <code>cairn-unit</code> block. The local
+ref is what the gate reads — deliberately, so a restricted runner or an offline
+checkout cannot turn a protocol failure into a protocol pass. The push is what
+makes it survive the machine.</p>
 <h2 id="reference-operations--publish-incomplete-work" data-heading="publish-incomplete-work">Publish incomplete work</h2>
 <p>Work that is not a completed unit — mid-refactor, failing, or awaiting a user’s
 inspection — is pushed rather than held on disk:</p>
@@ -13696,9 +13872,10 @@ already be retained before the force push that follows.</p>
 <h2 id="reference-operations--produce-implementation-candidate-c" data-heading="produce-implementation-candidate-c">Produce implementation candidate C</h2>
 <p>Retain every ledger-named checkpoint <strong>before</strong> the rebase, because the rebase is
 what orphans them:</p>
-<pre><code class="language-bash">git ls-remote origin 'refs/cairn/checkpoints/cp-example-001/*'
-# push any ledger-named checkpoint that is missing from that list
-git push origin &lt;checkpoint-oid&gt;:refs/cairn/checkpoints/cp-example-001/&lt;n&gt;
+<pre><code class="language-bash">npm run cairn-check   # blocks on any declared unit that is not yet retained
+git for-each-ref refs/cairn/checkpoints/cp-example-001
+git update-ref refs/cairn/checkpoints/cp-example-001/&lt;unit&gt; &lt;checkpoint-oid&gt;
+git push origin refs/cairn/checkpoints/cp-example-001/&lt;unit&gt;
 </code></pre>
 <p>Record the trunk tip as <code>T</code>, then rebase onto it:</p>
 <pre><code class="language-bash">git fetch origin main
@@ -13922,7 +14099,13 @@ What this step set out to establish.
 
 #### Work
 
-- type: implementation | documentation | decision | foundation | repair | closure
+```cairn-unit
+step: S01
+unit: 01
+type: implementation
+verified: cairn-check, typecheck, test, build
+```
+
 - implementation changed
 - tests added or changed
 - documents changed
@@ -13944,7 +14127,7 @@ remote      : not pushed | origin/path/cp-example-001 @ &lt;full commit&gt;
 ```text
 status      : running
 current step: S01 complete only after required review and remote proof
-retention   : refs/cairn/checkpoints/cp-example-001/01 @ &lt;full object id&gt;
+retention   : refs/cairn/checkpoints/cp-example-001/01 — written after this commit
 changed     : exact surfaces or concise groups
 session     : safe boundary only after successful push
 next action : S02 — exact first action
@@ -13993,9 +14176,10 @@ invalid by a finding, or when
 <a href="#article-concept-acceptance-drift" data-article="concept-acceptance-drift" data-anchor="" class="wiki-link">acceptance drift</a> invalidates it because the
 trunk moved inside <code>writes:</code> or <code>governs:</code>. Record why the transition occurred.</p>
 <h3 id="reference-path-template--producing-a-candidate" data-heading="producing-a-candidate">Producing a candidate</h3>
-<p>Before rebasing, push every ledger-named checkpoint to
-<code>refs/cairn/checkpoints/&lt;path-id&gt;/&lt;n&gt;</code>. Then rebase, fold every provisional
-commit into the work unit it was drafting, and push <code>C</code>.</p>
+<p>Before rebasing, retain every declared unit at
+<code>refs/cairn/checkpoints/&lt;path-id&gt;/&lt;unit&gt;</code>, where <code>&lt;unit&gt;</code> is the ordinal in that
+entry’s <code>cairn-unit</code> block. Then rebase, fold every provisional commit into the
+work unit it was drafting, and push <code>C</code>.</p>
 <h3 id="reference-path-template--becoming-ready" data-heading="becoming-ready">Becoming ready</h3>
 <p>After exact candidate <code>C</code> has passed its checks, audit, and acceptance, create
 one administrative commit that:</p>

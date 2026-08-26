@@ -93,7 +93,13 @@ What this step set out to establish.
 
 #### Work
 
-- type: implementation | documentation | decision | foundation | repair | closure
+```cairn-unit
+step: S01
+unit: 01
+type: implementation
+verified: cairn-check, typecheck, test, build
+```
+
 - implementation changed
 - tests added or changed
 - documents changed
@@ -115,7 +121,7 @@ remote      : not pushed | origin/path/cp-example-001 @ <full commit>
 ```text
 status      : running
 current step: S01 complete only after required review and remote proof
-retention   : refs/cairn/checkpoints/cp-example-001/01 @ <full object id>
+retention   : refs/cairn/checkpoints/cp-example-001/01 — written after this commit
 changed     : exact surfaces or concise groups
 session     : safe boundary only after successful push
 next action : S02 — exact first action
@@ -171,9 +177,10 @@ trunk moved inside `writes:` or `governs:`. Record why the transition occurred.
 
 ### Producing a candidate
 
-Before rebasing, push every ledger-named checkpoint to
-`refs/cairn/checkpoints/<path-id>/<n>`. Then rebase, fold every provisional
-commit into the work unit it was drafting, and push `C`.
+Before rebasing, retain every declared unit at
+`refs/cairn/checkpoints/<path-id>/<unit>`, where `<unit>` is the ordinal in that
+entry's `cairn-unit` block. Then rebase, fold every provisional commit into the
+work unit it was drafting, and push `C`.
 
 ### Becoming ready
 
