@@ -29,5 +29,5 @@ strictly limited.
 A commit records content; it does not prove that the content works or was
 reviewed.
 
-Related: [commit hash](./commit-hash.md), [work unit](./work-unit.md),
+Related: [object id](./commit-hash.md), [work unit](./work-unit.md),
 [implementation candidate](./implementation-candidate.md).

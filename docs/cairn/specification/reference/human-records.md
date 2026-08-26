@@ -1,16 +1,21 @@
 ---
 type: Cairn Reference
 title: Opening, audit, and closing records
-description: Canonical schemas for the judgement-bearing records Cairn binds to a path and exact implementation candidate.
+description: Canonical schemas for the judgement-bearing records Cairn binds to a path, its accepted scope, and one exact implementation candidate.
 tags: [cairn, reference, ceremony, audit, frontmatter, template]
-timestamp: 2026-08-25T00:00:00Z
+timestamp: 2026-08-26T00:00:00Z
 ---
 
 # Human and agent judgement records
 
 These records turn an authorised judgement into an inspectable repository
-object. Their shape and candidate binding are mechanical; their reasoning is
-not.
+object. Their shape and their binding — to a candidate, to a scope digest, to a
+base — are mechanical; their reasoning is not.
+
+On the [`full` route](../concepts/lightweight-path.md) each record below is its
+own file. On the default `lightweight` route the opening block lives in the path
+record and the audit questions are answered inside the closing record. The
+fields are identical either way; only the number of files changes.
 
 ## Opening acceptance
 
@@ -32,8 +37,10 @@ path: CP-EXAMPLE-001
 ceremony: opening
 decision: accepted
 accepted_by: participant-id
+accepted_roles: [initiator, reviewer]
 accepted_at: 2026-01-15T09:00:00Z
 scope_ref: atomik-project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
+scope_digest: sha256:9f2c4b1d5e6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c
 ---
 
 # CP-EXAMPLE-001 — opening acceptance
@@ -44,11 +51,12 @@ The bounded result in one paragraph.
 
 ## Review
 
+- Route: lightweight | full — with the trigger, if full
 - Definition of done: accepted | amended
 - Steps and evidence: accepted | amended
-- Governing documents: accepted | amended
 - Expected writes and overlap: accepted | amended
 - Exclusions: accepted | amended
+- Governing documents pinned in `governs:`: accepted | amended
 - Initial writer assignment: participant-id
 
 ## Amendments
@@ -60,16 +68,35 @@ Record exact changes, or “none”.
 Accepted for trunk registration.
 ````
 
-The repository defines who may accept. The v0.1 reference checker currently
-proves the opening record's path and ceremony presence; full actor, decision,
-time, and authority enforcement remains partial and must be reported as such.
+### The scope digest
+
+`scope_digest` covers the exact text `scope_ref` resolves to at the registration
+commit: the named heading and its body up to the next heading of the same or
+higher level, normalised for line endings and trailing whitespace, with no other
+transformation. The algorithm is named in the value and the digest is never
+abbreviated.
+
+Without it, `scope_ref` is a mutable pointer: the definition of done can be
+edited after acceptance, and every record still looks valid. Closing acceptance
+re-computes the digest and refuses to proceed on a mismatch.
+
+### Amending accepted scope
+
+A scope change is not an edit. It is a new opening acceptance carrying the new
+digest, `supersedes:` naming the earlier record, and the reason. The superseded
+record is retained.
+
+The repository defines who may accept. The v0.2 reference checker currently
+proves the opening record's path and ceremony presence; actor, roles, decision,
+time, digest, and authority enforcement remain unimplemented and must be
+reported as such.
 
 ## Coherence audit
 
 Filename:
 
 ```text
-atomik-project/audits/cp-example-001-<full-40-character-subject-commit>.md
+atomik-project/audits/cp-example-001-<full-subject-object-id>.md
 ```
 
 Template:
@@ -84,6 +111,8 @@ cairn:
   branch: path/cp-example-001
   subject_commit: fedcba9876543210fedcba9876543210fedcba98
   base: 0123456789abcdef0123456789abcdef01234567
+  governs:
+    - docs/bedrock/example.md@89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
   verdict: clean
 ---
 
@@ -92,7 +121,7 @@ cairn:
 ## Inputs reviewed
 
 - exact diff from the current trunk to the subject commit
-- every required and triggered architecture document
+- every document pinned in `governs:`, read at its pinned object id
 - relevant decision records
 - affected module notes
 - live paths declaring overlapping surfaces
@@ -125,6 +154,11 @@ Allowed verdict stems are `clean`, `drift noted`, and
 disposition. If a finding changes implementation, create and audit a new
 candidate.
 
+The object-id length above is SHA-1's forty characters because that is what most
+repositories are configured for. The requirement is the **full object id in the
+repository's configured format**: a SHA-256 repository writes sixty-four
+characters in the same field and the same filename.
+
 ## Closing acceptance
 
 Filename:
@@ -144,11 +178,22 @@ tags: [cairn, closing]
 path: CP-EXAMPLE-001
 ceremony: closing
 subject_commit: fedcba9876543210fedcba9876543210fedcba98
+base: 0123456789abcdef0123456789abcdef01234567
 accepted_by: participant-id
+accepted_roles: [reviewer, auditor]
 accepted_at: 2026-01-15T14:30:00Z
 decision: accepted
 scope_ref: atomik-project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
-advisory_disposition: "fixed: none; accepted: scope-drift — reason; deferred: none"
+scope_digest: sha256:9f2c4b1d5e6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c
+advisory_disposition:
+  - rule: scope-drift
+    disposition: accepted
+    reason: the wider root cause is declared in writes: at this same commit
+  - rule: path-staleness
+    disposition: deferred
+    reason: parked during the dependency freeze
+    owner: participant-id
+    follow_up: CP-EXAMPLE-002
 ---
 
 # CP-EXAMPLE-001 — closing acceptance
@@ -156,25 +201,42 @@ advisory_disposition: "fixed: none; accepted: scope-drift — reason; deferred: 
 ## Result reviewed
 
 - Candidate: `fedcba9876543210fedcba9876543210fedcba98`
+- Base accepted against: `0123456789abcdef0123456789abcdef01234567`
+- Scope digest re-computed at the candidate: matches opening
 - Delivered outcome: …
 - Definition-of-done evidence: …
+- Provisional commits folded: yes | none existed
 - User or domain review: …
 - Known limits: …
 
 ## Advisory disposition
 
-- Fixed: …
-- Accepted with reason: …
-- Deferred with responsible participant and follow-up: …
+Every advisory the checker raised at this candidate appears in the frontmatter
+list, and nothing else does. Prose here explains the entries; it does not
+replace them.
 
 ## Decision
 
 Candidate accepted for administrative closure and exact integration.
 ````
 
-The closing record and audit MUST name the same subject. The full hash,
-reviewer identity, UTC time, accepted decision, scope reference, and advisory
-disposition are required.
+### What the record binds
+
+| Field | Binds |
+| :-- | :-- |
+| `subject_commit` | the exact result. MUST equal the audit's subject |
+| `scope_digest` | the accepted definition of done. MUST equal the opening digest |
+| `base` | the trunk tip the candidate was read against. Input to the [drift predicate](../concepts/acceptance-drift.md) |
+| `accepted_roles` | which of the five roles this actor held, so a collapse is visible |
+| `advisory_disposition` | a structured entry per advisory raised at the candidate |
+
+`advisory_disposition` is a list, not a sentence. Each entry names a `rule`, a
+`disposition` of `fixed`, `accepted`, or `deferred`, and a `reason`; a deferral
+also names an `owner` and a `follow_up`. The list MUST correspond exactly to the
+advisories raised at the candidate — set equality is checkable, and a free-text
+summary is not.
+
+Reviewer identity, UTC time, and an accepted decision remain required.
 
 ## Immutability and correction
 

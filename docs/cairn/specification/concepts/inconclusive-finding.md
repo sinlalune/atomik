@@ -23,6 +23,6 @@ name the evidence to fetch or provide.
 Inconclusive is not a softer form of pass and is not evidence that a path is
 stale or safe.
 
-Related: [blocking finding](./blocking-finding.md), [fetch](./fetch.md),
+Related: [blocking finding](./blocking-finding.md), [fetch and push](./fetch-and-push.md),
 [exit code](./exit-code.md).
 

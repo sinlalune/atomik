@@ -20,6 +20,21 @@ remains the complete record; this is the readable one. If two paths ever start
 colliding on this file, it takes the amendment the journal already took — one file
 per entry in a `log/` subfolder — which was a concurrency fix, never a size one.
 
+## 2026-08-26
+
+- `S07g` proposes `ADR-019`, the Cairn v0.2 revision. Two of its nineteen items
+  are places where the protocol broke its own promises: rebase-before-close
+  orphaned every checkpoint the ledger named, and the rule keeping pre-acceptance
+  work unpushed forbade publishing the most losable state in the system. Both are
+  fixed — retention refs under `refs/cairn/checkpoints/`, and a marked provisional
+  commit excluded from candidate identity. The handoff brief gains a real contract
+  with a cold-resume metric; closure is restricted field by field; scope is bound
+  by digest; drift is decided by a predicate over `writes:` ∪ `governs:` rather
+  than by trunk equality, which would livelock. The lightweight route becomes the
+  default, which is the counterweight that makes the rest affordable rather than
+  polish. No checker rule lands: every added requirement carries a matrix row that
+  says `not implemented`.
+
 ## 2026-08-25
 
 - `S07f` proposes `ADR-018`: preserve Cairn's team/path/remote-checkpoint model,

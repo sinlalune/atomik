@@ -28,5 +28,5 @@ complete only when the accepted candidate is reachable from the remote trunk.
 A configured remote does not prove that a push succeeded or that its refs are
 protected.
 
-Related: [fetch](./fetch.md), [push](./push.md),
+Related: [fetch and push](./fetch-and-push.md),
 [remote checkpoint](./remote-checkpoint.md).

@@ -1,0 +1,78 @@
+---
+type: Atomik Coding Path History
+title: 'CP-OPS-002 S07a — ADR-017, the path lifecycle (ruling 5, F11 + F15) — COMPLETE'
+description: Completed-step record rolled out of CP-OPS-002.md at CP-OPS-002 S07g. Verbatim; nothing summarized.
+tags: [coding-path, history, cp-ops-002]
+timestamp: 2026-08-26T00:00:00Z
+path: CP-OPS-002
+step: S07a
+---
+
+# CP-OPS-002 S07a — ADR-017, the path lifecycle (ruling 5, F11 + F15) — COMPLETE
+
+Rolled out of [CP-OPS-002.md](../CP-OPS-002.md) at CP-OPS-002 S07g, VERBATIM:
+moved, never summarized. The live path file keeps its declaration, its index over
+these records, its Work Ledger and its next action; the execution detail lives
+here. The convention is in [paths.md](../paths.md#the-ledger-has-a-boundary).
+
+Two mechanical adjustments were unavoidable and are named rather than made
+silently. **Deixis**: text saying "below", "this ledger" or "the checkpoint" was
+written when this entry sat in the path file and points at the Work Ledger in
+[CP-OPS-002.md](../CP-OPS-002.md); repairing it in place would have made the
+record no longer verbatim. **Link depth**: a relative link is an address, not
+content — moving the file one directory down changes the address of the *same*
+target, so `../sessions/…` became `../../sessions/…`. The characters differ; the
+reference does not.
+
+---
+
+### S07a — ADR-017, the path lifecycle *(ruling 5, F11 + F15)* — **COMPLETE**
+
+Three documents described one state machine and no two agreed. Bedrock 35 said a finished
+path moves to `done`, **then** `archived` — demotion, never deletion. Round 3's D2 §2.2
+declared `done` **terminal** and drew `running → archived` as the only abandonment edge.
+ADR-012 recorded that abandoned paths have no terminal transition at all. `AGENTS.md` calls
+that a defect to report; the audit reported it (F15), and the owner ruled that a
+specification may not settle it — an ADR must.
+
+- **`archived` is the single terminal state.** Bedrock wins, because `AGENTS.md` says
+  bedrock states the doctrine while `paths.md` carries operating detail. `done` means
+  accepted, rebased, audited and merged — a completion, not an end; `archived` means off
+  the portfolio, retained as history.
+- **Abandonment is `running → archived`, and it takes no new word.** An abandoned path
+  exits the door a finished one eventually uses, and never passes through `done`, because
+  `done` asserts a merge that did not happen. An `abandoned` status was rejected: a fifth
+  word for an existing shelf, which every consumer would then special-case into behaving
+  exactly like `archived`. **The closing ceremony is not side-stepped** — that gate keys on
+  `done`, and archiving claims the opposite, so it is a different destination rather than a
+  cheaper route to the same one.
+- **`active` is retired** (F11). It was accepted by `schema` and rejected by `branch-path`,
+  so a path declaring it failed with a message about a different problem. No path file
+  declared it, so this deletes dead vocabulary rather than migrating anything.
+- **The honest half, stated so no later document can claim more.** A validator run sees ONE
+  commit: it reads the state a file declares now and has never seen a transition. So the
+  machine is doctrine, and what CI enforces is the set of per-state INVARIANTS, each a fact
+  about one file — all of which already existed. **This ADR adds no blocking rule**, and
+  that is a decision: *"which state was this in last week"* fails the first half of the
+  admission test. A specification that said Cairn "enforces the path lifecycle" would be a
+  fresh F13.
+- **Staleness closes the other half of ADR-012's hole.** That hole was two things — no
+  terminal transition, and nothing noticing a path that needs one. The advisory
+  `path-staleness` rule reports a `running` path whose branch has had no commit for longer
+  than the declared window (14 days), naming both ways out. Advisory permanently: a parked
+  path is not a wrong path, and a build that failed for one would teach people to lie about
+  status rather than to archive. The window is a **declared property of a repository**, the
+  shape enforcement tiers took in ADR-016 §3, and it becomes configurable at S08.
+- **Unknown reports nothing.** A branch the checkout cannot resolve — a shallow CI clone, a
+  path whose branch lives on another machine — produces no finding. Unknown must never read
+  as stale for the same reason it must never read as fresh. Pinned by a test over `null`,
+  `undefined`, `NaN` and absence.
+- **Documents corrected, not restated.** D2 §2.2 carries a dated banner and documents the
+  accepted outcome, its vocabulary table loses the `active` row and its "Documented
+  Lifecycle Gaps" entry is marked closed; the corrections register gains C16; §2.3's rule
+  table is regenerated from the live source. `paths.md` states the vocabulary by reference
+  to the ADR and moves hole 1 into its closed list, leaving **two** open. `index.html`
+  names ADR-017 in its banner and carries the new rule. **Bedrock is untouched on purpose**
+  — the ADR ratifies what bedrock 35 already said, and amending a page to agree with itself
+  would be noise.
+- Four regression tests. Suite 77 → 81.

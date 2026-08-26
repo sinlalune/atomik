@@ -66,6 +66,7 @@ test('cairn-spec: the canonical route moves from simple durable work to protocol
   assert.deepEqual(headings, [
     'Begin with work that survives',
     'Put one bounded change on a coding path',
+    'Choose the route the change earns',
     'Make progress resumable',
     'Let paths work beside one another',
     'Separate evidence from judgement',
@@ -74,13 +75,16 @@ test('cairn-spec: the canonical route moves from simple durable work to protocol
     'Integrate without claiming the future',
     'Keep lifecycle statements truthful',
     'Preserve records without overstating Git',
+    'Repair a path that broke protocol',
     'State the trust and enforcement boundary',
+    'Deliberate non-goals',
     'Current conformance',
     'Implemented rule catalogue',
     'Continue through the wiki'
   ])
   assert.doesNotMatch(markdown, /^## \d+\./m)
-  assert.match(markdown, /This document is the canonical Cairn v0\.1 specification/)
+  assert.match(markdown, /This document is the canonical Cairn v0\.2 specification/)
+  assert.match(markdown, /^  version: 0\.2$/m)
 })
 
 test('cairn-spec: the first complete view introduces formal terms through their articles', () => {
@@ -141,15 +145,15 @@ test('cairn-spec: closure binds audit and acceptance to the final candidate in o
   }
   assert.ok(markdown.indexOf('## Integrate without claiming the future') > previous)
   assert.match(markdown, /subject_commit: [0-9a-f]{40}/)
-  assert.match(markdown, /status: ready/)
+  assert.match(markdown, /`status`, set to `ready`/)
   assert.match(markdown, /A path branch MUST NOT set itself to `done`/)
-  assert.match(markdown, /Every advisory MUST be recorded as fixed, accepted, or\s+deferred with a reason/)
+  assert.match(markdown, /The list MUST correspond exactly to\s+the advisories the checker raised at `C`/)
 })
 
 test('cairn-spec: critical unknowns fail closed and lifecycle claims are truthful', () => {
   assert.match(markdown, /pass\s+predicate proved\s+fail\s+predicate disproved\s+inconclusive\s+required input unavailable/)
   assert.match(markdown, /both `fail` and `inconclusive` MUST return non-zero/)
-  assert.match(markdown, /`blocked` retains its branch and base commit/)
+  assert.match(markdown, /`blocked` retains its branch and base\s+commit/)
   assert.match(markdown, /`resolution: completed \\?\| abandoned \\?\| superseded`/)
   assert.match(markdown, /Path declarations are retained; they are archived\s+rather than deleted/)
 })
@@ -164,13 +168,139 @@ test('cairn-spec: trust, protection, and incomplete capabilities are stated narr
     'Exact protected integration transport',
     'Independently protected control plane',
     'Transactional `init`, `new`, and `close` commands',
-    'Lightweight path',
+    'Checkpoint retention refs before any rewriting push',
+    'Marked provisional commits excluded from candidate identity',
+    'Handoff-brief field schema and answerable-alone contract',
+    'Field-level administrative closure surface',
+    'Scope digest recorded at opening and re-verified at closing',
+    'Candidate base `T` and the acceptance-drift predicate',
+    'Structured `advisory_disposition` matching findings at `C`',
+    'Recorded roles and the collapsed-actor advisory',
+    '`scope-drift` blocking unless the declaration moves in the same commit',
+    'Typed work units keyed to their required parts',
+    '`lightweight` default route and one-way escalation',
+    '`foundation` and adoption routes',
+    'Repair procedures for protocol violations',
+    'Redaction ceremony',
     'Emergency path',
-    'Operational-cost pilot'
+    'Cold-resume pilot'
   ]) {
     assert.ok(markdown.includes(gap), 'missing visible conformance gap: ' + gap)
   }
   assert.match(markdown, /not yet a general-purpose merge, governance, or security\s+>\s*system/)
+})
+
+test('cairn-spec: v0.2 closes the retention, provisional, and brief promises', () => {
+  assert.match(markdown, /refs\/cairn\/checkpoints\/<path-id>\/<n>/)
+  assert.match(
+    markdown,
+    /Before any rewriting push of a path branch, every commit the ledger names MUST\s+already be reachable from a retention ref/
+  )
+  assert.match(markdown, /forbid rewriting pushes on path branches entirely/)
+  assert.match(markdown, /Cairn-Provisional: <reason>/)
+  assert.match(markdown, /MUST NOT be left only in a\s+\[working tree\]/)
+  assert.match(markdown, /Provisional commits are excluded from candidate identity/)
+  for (const field of [
+    'checkpoint_pushed',
+    'base_commit',
+    'trunk_seen',
+    'governs',
+    'verify',
+    'budget_tokens'
+  ]) {
+    assert.ok(markdown.includes(field), 'brief frontmatter omits ' + field)
+  }
+  assert.match(markdown, /seven capped sections/)
+  assert.match(markdown, /the brief has failed\*\*/)
+  assert.match(markdown, /\*\*cold resume\*\*/)
+})
+
+test('cairn-spec: records bind scope, base, roles, and every advisory', () => {
+  assert.match(markdown, /scope_digest: sha256:/)
+  assert.match(markdown, /MUST equal the digest\s+recorded at opening/)
+  assert.match(markdown, /accepted_roles:/)
+  assert.match(markdown, /advisory_disposition:\n\s+- rule:/)
+  assert.match(markdown, /disposition: (?:accepted|fixed|deferred)/)
+  assert.match(markdown, /`A` is restricted \*\*field by field\*\*, not file by file/)
+  assert.match(markdown, /Drift predicate/)
+  assert.match(markdown, /It MUST NOT be `T' == T`/)
+  assert.match(markdown, /union of the path's `writes:` and\s+> `governs:` declarations/)
+})
+
+test('cairn-spec: routes, repair, and non-goals are specified rather than implied', () => {
+  const routes = markdown.slice(
+    markdown.indexOf('## Choose the route the change earns'),
+    markdown.indexOf('## Make progress resumable')
+  )
+  assert.match(routes, /### `lightweight` — the default/)
+  assert.match(routes, /### `full` — required, not merely available/)
+  assert.match(routes, /### `foundation` — the repository's own first hour/)
+  assert.match(routes, /adoption path/)
+  assert.match(routes, /Escalation is one-way/)
+  assert.match(routes, /MUST NOT\s+declare itself down a route/)
+
+  const repair = markdown.slice(
+    markdown.indexOf('## Repair a path that broke protocol'),
+    markdown.indexOf('## State the trust and enforcement boundary')
+  )
+  assert.match(repair, /`type: repair`/)
+  assert.match(repair, /MUST NOT be the same work unit as the work that caused it/)
+
+  const nonGoals = markdown.slice(
+    markdown.indexOf('## Deliberate non-goals'),
+    markdown.indexOf('## Current conformance')
+  )
+  for (const nonGoal of [
+    'Requiring `T\' == T` at integration',
+    'Defending against an authorised writer',
+    'Resolving semantic conflicts',
+    'Undoing disclosure',
+    'Specifying the emergency route'
+  ]) {
+    assert.ok(nonGoals.includes(nonGoal), 'missing stated non-goal: ' + nonGoal)
+  }
+})
+
+test('cairn-spec: identity is object-format agnostic and the lifecycle table is reconciled', () => {
+  assert.match(markdown, /full object id in the\s+repository's configured object format/)
+  assert.match(markdown, /SHA-256 produces\s+sixty-four/)
+  assert.doesNotMatch(markdown, /MUST be all 40 hexadecimal characters/)
+  const table = markdown.slice(
+    markdown.indexOf('Allowed transitions are:'),
+    markdown.indexOf('Three edges deserve their reasons stated')
+  )
+  assert.match(table, /ready\s+→ running \| blocked \| done/)
+  assert.doesNotMatch(table, /archived → archived/)
+  assert.match(markdown, /\*\*`ready → blocked` exists\.\*\*/)
+  assert.match(markdown, /\*\*`blocked → ready` does not exist\.\*\*/)
+  assert.match(markdown, /\*\*`archived → archived` is not a transition\.\*\*/)
+})
+
+test('cairn-spec: the concept wiki separates borrowed vocabulary from Cairn concepts', () => {
+  const index = readFileSync(join(CONCEPTS, 'index.md'), 'utf8')
+  assert.match(index, /^## Borrowed vocabulary$/m)
+  assert.match(index, /^## Cairn's own concepts$/m)
+  assert.ok(
+    index.indexOf('## Borrowed vocabulary') < index.indexOf("## Cairn's own concepts")
+  )
+  const concepts = readdirSync(CONCEPTS)
+    .filter((name) => name.endsWith('.md') && name !== 'index.md')
+  assert.ok(concepts.length <= 66, 'the concept budget is 66 articles, found ' + concepts.length)
+  for (const borrowed of ['git.md', 'rebase.md', 'merge.md', 'test.md', 'schema.md']) {
+    assert.ok(concepts.includes(borrowed))
+  }
+  for (const gone of ['file.md', 'markdown.md', 'fetch.md', 'push.md', 'working-tree.md']) {
+    assert.equal(existsSync(join(CONCEPTS, gone)), false, gone + ' was merged, not kept')
+  }
+  for (const added of [
+    'checkpoint-retention.md',
+    'provisional-commit.md',
+    'scope-digest.md',
+    'acceptance-drift.md',
+    'foundation-path.md'
+  ]) {
+    assert.ok(concepts.includes(added), 'v0.2 concept missing: ' + added)
+  }
 })
 
 test('cairn-spec: canonical prose is history-free and distinguishes roles from bindings', () => {
@@ -239,8 +369,9 @@ test('cairn-spec: repository reference exhaustively maps the installed Cairn str
     assert.ok(layout.includes(required), 'installed layout omits ' + required)
   }
   assert.match(layout, /This tree is exhaustive for active Cairn-defined files and folder roles/)
-  assert.match(layout, /`cairn\.config\.json` is not shown because it is a specified portability\s+target, not an installed v0\.1 file/)
+  assert.match(layout, /`cairn\.config\.json` is not shown because it is a specified portability\s+target, not an installed reference file/)
   assert.match(layout, /\| execution-state plane \| `atomik-project\/` \| `roots\.project` \|/)
+  assert.match(layout, /refs\/cairn\/checkpoints\/<path-id>\/<n>/)
 
   const operations = readFileSync(OPERATIONS, 'utf8')
   assert.match(operations, /git add atomik-project\/coding-paths\/CP-EXAMPLE-001\.md/)

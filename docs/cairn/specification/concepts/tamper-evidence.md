@@ -28,5 +28,5 @@ adversarially.
 Git history is not immutable merely because it is hashed. Without a previously
 trusted reference, a rewritten history may look internally consistent.
 
-Related: [commit hash](./commit-hash.md),
+Related: [object id](./commit-hash.md),
 [record integrity](./record-integrity.md), [control plane](./control-plane.md).

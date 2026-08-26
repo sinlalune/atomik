@@ -8,7 +8,7 @@ timestamp: 2026-08-25T00:00:00Z
 
 # Live view
 
-A live view is a generated navigation [file](./file.md), canonically
+A live view is a generated navigation [file](./project-memory.md), canonically
 `project/coding-paths/ACTIVE.md`. The
 [reference binding](../reference/repository-layout.md#portable-roles-and-installed-names)
 uses `atomik-project/coding-paths/ACTIVE.md`.

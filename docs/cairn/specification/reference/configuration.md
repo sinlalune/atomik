@@ -3,14 +3,14 @@ type: Cairn Reference
 title: Versioned Cairn configuration
 description: The specified portability interface, including the fields and implementation obligations that are not yet delivered by the reference tools.
 tags: [cairn, reference, configuration, portability, conformance]
-timestamp: 2026-08-25T00:00:00Z
+timestamp: 2026-08-26T00:00:00Z
 ---
 
 # Versioned Cairn configuration
 
 ## Status
 
-This page specifies the portable configuration contract. The v0.1 reference
+This page specifies the portable configuration contract. The reference
 checker does **not** yet load it: its layout, metadata namespace, source roots,
 area map, runtime assumptions, and trunk binding remain repository-specific.
 Therefore the reference implementation MUST NOT claim portable conformance.
@@ -39,6 +39,10 @@ Therefore the reference implementation MUST NOT claim portable conformance.
     }
   ],
   "staleAfterDays": 14,
+  "defaultRoute": "lightweight",
+  "checkpointRetentionRef": "refs/cairn/checkpoints",
+  "scopeDigestAlgorithm": "sha256",
+  "briefBudgetTokens": 1200,
   "transport": {
     "registration": "declared-adapter-name",
     "integration": "declared-adapter-name"
@@ -66,7 +70,16 @@ implemented and validated.
 | `roots.source` | guarded source roots | non-empty path array |
 | `areas` | source pattern to module-note routing | deterministic ordered matches |
 | `staleAfterDays` | quiet-path advisory window | positive integer, advisory only |
+| `defaultRoute` | route assumed when a path omits `route:` | `lightweight \| full` |
+| `checkpointRetentionRef` | ref prefix for [checkpoint retention](../concepts/checkpoint-retention.md) | a ref prefix the remote accepts, or `null` where the repository forbids rewriting pushes instead |
+| `scopeDigestAlgorithm` | digest used for [scope digests](../concepts/scope-digest.md) | a named algorithm; the digest is never abbreviated |
+| `briefBudgetTokens` | default `budget_tokens` for a [handoff brief](./handoff-brief.md) | positive integer |
 | `transport` | registration and integration adapters | installed and tested adapter identifiers |
+
+`checkpointRetentionRef: null` is a conforming value only when the repository
+also forbids rewriting pushes on path branches. It is not a way to opt out of
+retaining checkpoints; it is the declaration that the other conforming option
+was chosen.
 
 ## Implementation obligations
 
@@ -81,7 +94,9 @@ A portable implementation MUST:
    diagnostics, templates, and generated views;
 6. define installation and update mechanics;
 7. test every supported host transport against the exact commit it lands;
-8. print the effective bindings and enforcement profile.
+8. print the effective bindings and enforcement profile;
+9. refuse to start when `checkpointRetentionRef` is `null` and the repository
+   has not also declared that rewriting pushes are forbidden on path branches.
 
 Configuration may rename a role. It may not weaken a protocol `MUST`.
 

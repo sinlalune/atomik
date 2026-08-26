@@ -11,7 +11,7 @@ timestamp: 2026-08-26T00:00:00Z
 A decision record states a choice, its status, context, rationale,
 consequences, and rejected alternatives.
 
-In Cairn, decision records use stable ids and one [file](./file.md) per decision
+In Cairn, decision records use stable ids and one [file](./project-memory.md) per decision
 under `docs/adr/`. A path that changes
 [architecture](./architecture.md) updates or adds the relevant record in the
 same [work unit](./work-unit.md). Later corrections create a new decision rather

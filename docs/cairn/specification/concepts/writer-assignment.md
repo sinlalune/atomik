@@ -26,7 +26,7 @@ writer begins.
 
 ## It does not prove
 
-The v0.1 reference tools record and expect the assignment but do not implement
+The reference tools record and expect the assignment but do not implement
 a lease or allocator.
 
 Related: [worktree](./worktree.md), [handoff](./handoff.md),
