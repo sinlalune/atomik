@@ -1301,7 +1301,7 @@ not in a separate document a reader may never open.
 | Full opening decision, actor, time, scope, and authority schema | required | **partially implemented**; path and ceremony presence are checked | repository governance |
 | Multiple team participants and checkpoint handoff | required | records support it; writer exclusivity is operational | team assignment policy |
 | `running`, `blocked`, `ready`, `done`, `archived` lifecycle | required | transition and state checks implemented for observable changes | complete comparison ref |
-| `ready → blocked` and unchanged-state acceptance | required | **not implemented**; the installed transition table predates both | transition-table update |
+| `ready → blocked` and unchanged-state acceptance | required | implemented; the transition table carries `ready → blocked`, refuses `blocked → ready`, accepts an unchanged state, and holds an archived resolution terminal | complete comparison ref |
 | Exact-candidate audit and closing acceptance | required | implemented | authorised reviewer |
 | Full object id in the repository's configured format | required | **partially implemented**; the installed checker matches a forty-character form | object-format-aware identity check |
 | Fail-closed critical inconclusive outcomes | required | implemented | complete trunk and comparison refs |
@@ -1336,8 +1336,8 @@ The current supported claim is therefore:
 > the protocol. It is not yet a general-purpose merge, governance, or security
 > system.
 
-Four rows remain `not implemented` after every predicate that could be written
-was written, and they are the honest residue rather than a backlog:
+Three rows remain `not implemented` among the requirements v0.2 added, and they
+are the honest residue rather than a backlog:
 **repair procedures** have no predicate to propose, the **answerable-alone
 contract** is a judgement measured by cold resume, the **temporal half of
 checkpoint retention** is unobservable to a validator that sees one commit, and

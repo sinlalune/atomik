@@ -1774,3 +1774,31 @@ test('a marker with no redaction record behind it is blocked', () => {
   })
   assert.ok(rules(bad, 'blocking').includes('redaction'))
 })
+
+/* ------------------------------------------------------------------ *
+ * v0.2 — the lifecycle table, reconciled in both directions
+ * ------------------------------------------------------------------ */
+
+test('ready → blocked exists, because acceptance stalls', () => {
+  assert.deepEqual(
+    transitionErrors({ status: 'ready' }, { status: 'blocked' }),
+    [],
+    'a candidate waiting on an unavailable reviewer is blocked, not still ready'
+  )
+})
+
+test('blocked → ready does not exist, because reaching ready is execution', () => {
+  assert.ok(
+    transitionErrors({ status: 'blocked' }, { status: 'ready' })
+      .some((error) => /not allowed/.test(error))
+  )
+})
+
+test('an unchanged archived state is no event, but its resolution is terminal', () => {
+  const archived = { status: 'archived', resolution: 'completed' }
+  assert.deepEqual(transitionErrors(archived, archived), [])
+  assert.ok(
+    transitionErrors(archived, { status: 'archived', resolution: 'superseded' })
+      .some((error) => /resolution is terminal/.test(error))
+  )
+})
