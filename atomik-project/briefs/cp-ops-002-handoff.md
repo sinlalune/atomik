@@ -5,7 +5,8 @@ timestamp: 2026-08-26T00:00:00Z
 atomik:
   path: CP-OPS-002
   branch: path/cp-ops-002
-  checkpoint: PENDING
+  checkpoint: 8f84024367aaa153e68c8fa57e3014a6a53adc63
+  checkpoint_unit: 06
   checkpoint_pushed: true
   base_commit: 7aa3b1d
   trunk_seen: df875e68c383f6e82b833b755e8925f2fb4651ed

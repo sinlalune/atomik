@@ -1051,6 +1051,7 @@ export function routeDescent(previous, current) {
 
 export const BRIEF_FIELDS = [
   'checkpoint',
+  'checkpoint_unit',
   'checkpoint_pushed',
   'base_commit',
   'trunk_seen',
@@ -1082,7 +1083,10 @@ export function briefErrors(front, body, budget = 1200, tokensOf = approxTokens)
     }
   }
   if (front.checkpoint && !/^[0-9a-f]{7,64}$/i.test(String(front.checkpoint))) {
-    errors.push('`checkpoint` must be an object id')
+    errors.push('`checkpoint` must be an object id — it names the last RETAINED checkpoint, never the commit containing this brief, which does not exist while the brief is being written')
+  }
+  if (front.checkpoint_unit && !/^\d{1,4}$/.test(String(front.checkpoint_unit))) {
+    errors.push('`checkpoint_unit` must be the ledger ordinal of the retained checkpoint')
   }
   if (front.checkpoint_pushed !== undefined && String(front.checkpoint_pushed) !== 'true') {
     errors.push('`checkpoint_pushed` is false — a checkpoint that is not on the remote is not a handoff, it is a defect to repair')

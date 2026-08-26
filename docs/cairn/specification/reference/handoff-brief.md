@@ -29,7 +29,8 @@ also read the ledger has become a second ledger and has failed.
 
 | Field | Type | Meaning |
 | :-- | :-- | :-- |
-| `checkpoint` | full object id | the last completed work-unit commit; the exact resume point |
+| `checkpoint` | full object id | the last **retained** checkpoint; the exact resume point |
+| `checkpoint_unit` | ledger ordinal | that checkpoint's `unit:`, so the brief and its retention ref agree |
 | `checkpoint_pushed` | boolean | whether `checkpoint` is present on the remote path branch. `false` is a defect to repair, not a state to hand over |
 | `base_commit` | full object id | the trunk commit the path was registered from |
 | `trunk_seen` | full object id | the trunk tip last fetched, so a reader knows how stale the path's view is |
@@ -37,6 +38,11 @@ also read the ledger has become a second ledger and has failed.
 | `governs` | list of `path@<object-id>` | the documents that bind this work, each pinned at an exact id |
 | `verify` | list of exact commands | run verbatim to confirm the checkpoint is what the brief says |
 | `budget_tokens` | integer | the size budget for the whole brief; default `1200` |
+
+`checkpoint` cannot be the commit that contains the brief. A brief is refreshed
+inside the work unit it describes, so at write time that commit does not exist —
+the same self-reference the `cairn-unit` ordinal solves. It names the last
+checkpoint that is already retained and resumable.
 
 `governs` entries MUST carry the `@<object-id>` pin. An unpinned document
 reference means "read whatever this says now", which is precisely the ambiguity
@@ -108,6 +114,7 @@ cairn:
   path: CP-EXAMPLE-001
   branch: path/cp-example-001
   checkpoint: fedcba9876543210fedcba9876543210fedcba98
+  checkpoint_unit: 07
   checkpoint_pushed: true
   base_commit: 0123456789abcdef0123456789abcdef01234567
   trunk_seen: 4444444444444444444444444444444444444444

@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-002
   route: full            # control plane + decision plane; escalation is one-way
   status: running
-  current_step: S07k
+  current_step: S07l
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
   writes:                    # ADVISORY — a signal, never a lock
@@ -492,6 +492,37 @@ behind. That is a strictly weaker guarantee than the specification states, and c
 gap this far is not the same as closing it.
 
 - Four regression tests; checker suite 125 → 129, full suite 172 → 176.
+
+### S07l — Repair: the brief could not name its own commit — **COMPLETE**
+
+```cairn-unit
+step: S07l
+unit: 08
+type: repair
+verified: cairn-check, cairn-check:test, typecheck, test, build
+```
+
+The S07k commit landed with `checkpoint: PENDING` in the handoff brief, and `brief-schema`
+failed on the pushed state. The placeholder was careless; what it exposed was not.
+
+**The same self-reference, in a second place.** A brief is refreshed *inside* the work unit
+it describes, so at the moment it is written the commit it will become does not exist. The
+`cairn-unit` block already solves this — it declares an ordinal and lets the retention ref
+supply the hash afterwards — and the brief was left with a field that could only ever be
+filled in with a lie, a stale value, or a follow-up commit. The third option is the pattern
+S07k had just repaired.
+
+- **`checkpoint` now names the last RETAINED checkpoint**, which is a commit that exists,
+  is pushed, and is resumable. `checkpoint_unit` carries its ordinal, so the brief and its
+  retention ref name the same thing — the same pairing the ledger already uses.
+- The specification, the handoff-brief reference and `BRIEF_FIELDS` all moved together;
+  the field count is pinned by a test so the schema and its documentation cannot drift.
+- **The gate caught this, on the remote, after the push.** That is the intended behaviour
+  rather than an embarrassment: `brief-schema` was written in S07j precisely because a
+  bootstrap contract with no fields drifts silently, and the first thing it caught was its
+  author's own placeholder.
+
+- Checker suite 129, full suite 176; the brief field count moves 8 → 9.
 
 ### S08 — Extract Cairn from Atomik
 
