@@ -1,794 +1,799 @@
 ---
 type: Cairn Specification
 title: Cairn — canonical protocol specification
-description: A top-down, newcomer-friendly specification of Cairn: the complete operating model first, then its records, lifecycle, execution flow, enforcement, and implementation contract.
-tags: [cairn, specification, protocol, coding-path, worktree, git, ci, onboarding]
+description: A precise, newcomer-accessible specification of Cairn as a repository-native team protocol with durable, remotely resumable coding paths.
+tags: [cairn, specification, protocol, team, coding-path, git, ci]
 timestamp: 2026-08-25T00:00:00Z
 cairn:
-  document: specification
+  article: specification
+  kind: specification
   status: canonical
-  version: 1.0
+  version: 0.1
 ---
 
-# Cairn — canonical protocol specification
+# Cairn
 
-Cairn is a repository-native protocol for carrying software work from intent to
-an integrated result without losing decisions, progress, or accountability in a
-conversation. It lets several bounded pieces of work proceed in parallel while
-keeping each one independently understandable, verifiable, resumable, and able
-to merge itself.
+Cairn is a protocol kept inside a [Git repository](./concepts/repository.md) for
+a team of developers and coding agents. It turns one bounded software change
+into a durable [coding path](./concepts/coding-path.md). That path can be
+inspected, checked, handed over, resumed from a
+[remote checkpoint](./concepts/remote-checkpoint.md), and integrated without
+reconstructing a conversation.
 
-This page is the canonical specification. It contains every normative rule. The
-linked **foundation notes** explain prerequisite ideas more deeply at the point
-where they first become useful; the linked **reference notes** provide complete
-templates and command recipes. Those notes clarify this page but do not create
-additional requirements.
+This document is the canonical Cairn v0.1 specification. “Canonical” means it is
+the authoritative statement of the protocol. “v0.1” means its current
+[conformance profile](./concepts/conformance.md) is deliberately narrow: Cairn
+is ready to evaluate as a trusted-team coordination and project-memory
+protocol, but it does not yet claim general-purpose governance or adversarial
+security.
 
-The words **MUST**, **MUST NOT**, **SHOULD**, and **MAY** have their usual
-specification meanings:
+The specification is written as a learning route. It begins with the small
+ideas that make work durable, combines them into one coding path, then adds
+parallel work, evidence, closure, integration, and governance. Every specialised
+[Git](./concepts/git.md) or Cairn term links to one article in the
+[concept index](./concepts/index.md).
+The [implementation reference](./reference/index.md) contains exact trees,
+schemas, templates, and command sequences. Concept and reference articles
+explain this page; they do not silently create additional requirements.
 
-- **MUST / MUST NOT** — required for Cairn conformance.
-- **SHOULD / SHOULD NOT** — the default; depart only for a recorded reason.
-- **MAY** — optional and compatible with the protocol.
+The key words **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY**
+express requirements:
 
-If you are new to Git, tests, continuous integration, or frontmatter, keep
-reading. Each term is defined briefly before Cairn relies on it, with a deeper
-note beside it.
+- **MUST / MUST NOT** — required for conformance;
+- **SHOULD / SHOULD NOT** — the default, with any departure recorded;
+- **MAY** — optional.
 
-## 1. The big picture
+## Begin with work that survives
 
-### 1.1 The outcome Cairn creates
+A [file](./concepts/file.md) is durable when it remains available after the
+current person, agent, process, or conversation ends. A
+[repository](./concepts/repository.md) is a directory whose history is recorded
+by [Git](./concepts/git.md). A [commit](./concepts/commit.md) is one named
+snapshot in that history, and a [commit hash](./concepts/commit-hash.md)
+identifies that snapshot and the history leading to it.
 
-At any moment, a person or agent should be able to open the repository and
-answer five questions from files alone:
+Cairn uses those ordinary objects as
+[project memory](./concepts/project-memory.md). At any time, a team member who
+can read the repository SHOULD be able to answer:
 
-1. What work is running?
-2. Who or what owns each piece of work?
-3. What has each piece completed, and what happens next?
-4. Which checks have passed, and which judgements have been recorded?
-5. How can the work be resumed or merged without reconstructing a chat?
+1. Which pieces of work are active?
+2. What result is each piece meant to produce?
+3. Who or what may write each piece now?
+4. What has been completed, checked, accepted, or blocked?
+5. Which exact remote state can another authorised participant resume?
+6. Which exact result is being proposed for integration?
 
-Cairn creates that outcome with one durable unit called a **coding path**. A
-coding path is a bounded change described by one Markdown file. It receives one
-Git branch, one working directory, and one writer. Its file holds the plan and a
-growing work ledger. Every completed step becomes a Git commit and is pushed
-immediately.
+The answers MUST live in repository files and Git history. A chat, local process
+memory, private note, or unpushed checkout MAY help current work, but MUST NOT be
+the only location of a completed decision, checkpoint, or next action.
 
-> **Core invariant**
->
-> One coding path = one branch = one worktree = one writer.
+### The complete protocol in one view
 
-A [Git repository](./foundations/git-and-history.md#repository) is a folder whose
-history is stored as linked snapshots called commits. A **branch** names one line
-of that history. A **worktree** is a separate checkout of the same repository,
-so two paths can work in different folders without sharing a live filesystem.
-[Learn the Git model from zero.](./foundations/git-and-history.md)
+In ordinary language: agree on one change, make that work visible to the team,
+advance it in recoverable pieces, evaluate the exact result, record who accepted
+that result, and only then add it to the shared product. Cairn gives each action
+a precise name:
 
-### 1.2 The complete flow
+| What the team does | Cairn name introduced here |
+| :-- | :-- |
+| Agree on the outcome, boundaries, and first writer | [opening acceptance](./concepts/opening-acceptance.md) |
+| Publish the accepted plan before implementation starts | [trunk registration](./concepts/trunk-registration.md) |
+| Give the change its own visible history and editable directory | path [branch](./concepts/branch.md) and [worktree](./concepts/worktree.md) |
+| Advance implementation, tests, documents, and progress together | [work unit](./concepts/work-unit.md), [work ledger](./concepts/work-ledger.md), and [handoff](./concepts/handoff.md) |
+| Publish every completed piece so another participant can resume it | [remote checkpoint](./concepts/remote-checkpoint.md) |
+| Reapply the work to the newest shared base | [rebase](./concepts/rebase.md) |
+| Name the exact product result being proposed | [implementation candidate](./concepts/implementation-candidate.md) |
+| Check that exact result against software and project knowledge | [automated checks](./concepts/cairn-checker.md) and [coherence audit](./concepts/coherence-audit.md) |
+| Record an authorised decision about that exact result | [closing acceptance](./concepts/closing-acceptance.md) |
+| Add only records about the accepted result | [administrative closure](./concepts/administrative-closure.md), producing the [ready state](./concepts/ready-state.md) |
+| Carry the checked result into shared history without changing it | [integration transport](./concepts/integration-transport.md) |
+| Record that the accepted result is now on the [shared trunk](./concepts/trunk.md) | [done state](./concepts/done-state.md) |
 
-```text
-INTENT
-  │
-  ▼
-OPENING CHECK ── owner accepts the bounded path
-  │
-  ▼
-REGISTER ─────── metadata-only commit on the trunk
-  │
-  ▼
-ISOLATE ──────── path branch + dedicated worktree + one writer
-  │
-  ▼
-EXECUTE ──────── one step = code + tests + docs + ledger + brief
-  │               then commit + immediate push
-  │
-  ├────────────── other paths execute beside it in their own worktrees
-  │
-  ▼
-CLOSING CEREMONY ─ owner accepts the result
-  │
-  ▼
-REBASE + GATES + COHERENCE AUDIT
-  │
-  ▼
-SELF-MERGE ───── path merges into the trunk and pushes it
-  │
-  ▼
-VERIFY + CLEAN ─ prove the remote merge, remove the clean worktree,
-                 retain the branch as durable history
-```
+Several paths may execute at the same time. Registration and integration are
+ordered because they change the shared [trunk](./concepts/trunk.md); the work
+between them remains parallel. Each path remains responsible for carrying its
+accepted candidate through its declared
+[integration transport](./concepts/integration-transport.md). Cairn does not
+create a permanent central integrator role.
 
-The **trunk** is the shared main branch, conventionally `main`. Work happens in
-parallel; only the short act of registering a path and the short act of merging
-it are serialised.
+## Put one bounded change on a coding path
 
-### 1.3 The three roles
+A [coding path](./concepts/coding-path.md) is one bounded outcome and its durable
+route from accepted intent to integration. It has:
 
-| Role | Owns | Does not own |
-| :-- | :-- | :-- |
-| **Owner** | intent, opening acceptance, closing acceptance, changes to scope or architecture | mechanical gate verdicts |
-| **Path writer** | one path file, one branch, one worktree, implementation, tests, documentation, ledger, audit | another path's working directory or branch |
-| **Cairn checker** | objective facts about files, metadata, Git ancestry, and command exit codes | product judgement, architectural taste, or whether prose is true |
+- one stable identifier, such as `CP-SEARCH`;
+- one [path record](./concepts/path-record.md), such as
+  `project/coding-paths/CP-SEARCH.md`;
+- one [branch](./concepts/branch.md), such as `path/cp-search`;
+- one dedicated [worktree](./concepts/worktree.md);
+- one [assigned writer](./concepts/writer-assignment.md) for that writable
+  worktree at a time;
+- one ordered plan, ledger, current checkpoint, and next action.
 
-The owner and writer may be people or agents where appropriate. The checker is
-deterministic automation. Cairn deliberately separates **human judgement** from
-**mechanical proof**: judgement is recorded in files; automation proves that the
-records exist and have the required shape.
+The invariant is structural, not personal:
 
-### 1.4 What Cairn is — and is not
+> One coding path maps to one path record, one path branch, and one writable
+> worktree. One writer is assigned to that writable worktree at a time.
 
-Cairn is:
+### Team roles
 
-- an execution protocol stored inside the repository;
-- a concurrency model for independent coding paths;
-- a durable handoff model for people and agents;
-- a set of local checks that can also run in CI;
-- a disciplined route from acceptance to self-merge.
+One path may involve several roles:
 
-Cairn is not:
+| Role | Responsibility |
+| :-- | :-- |
+| [Path initiator](./concepts/path-initiator.md) | frames the bounded outcome and proposes its first plan |
+| [Path writer](./concepts/path-writer.md) | produces the current work unit in the assigned writable worktree |
+| [Authorised reviewer](./concepts/authorised-reviewer.md) | accepts opening scope or an exact closing candidate under repository policy |
+| [Auditor](./concepts/auditor.md) | evaluates candidate coherence against project knowledge and parallel paths |
+| [Cairn checker](./concepts/cairn-checker.md) | evaluates deterministic repository predicates |
+| [Integrator](./concepts/integrator.md) | path-scoped responsibility for operating or supervising the declared exact-commit transport |
 
-- a ticket service, chat transcript, or hidden database;
-- a scheduler that assigns people to work;
-- a replacement for tests, code review, or architectural judgement;
-- a lock that prevents paths from discovering a wider root cause;
-- a promise that every recorded statement is correct.
+Roles are responsibilities, not permanent identities. A developer or coding
+agent may hold more than one where repository policy permits it. Stronger
+[enforcement profiles](./concepts/enforcement-profile.md) can require
+separation—for example, independent approval when a path changes the Cairn
+[control plane](./concepts/control-plane.md).
 
-## 2. The project model
+A team may contain multiple developers and multiple agents per developer.
+Different writers may work on different paths concurrently. Other participants
+may read, test, review, or advise a path. The assigned writer may change at a
+pushed checkpoint through a recorded [handoff](./concepts/handoff.md). A path is
+therefore not permanently owned by the person or agent that opened it.
 
-### 2.1 Three kinds of state
+A Git worktree provides filesystem isolation; it does not establish exclusive
+ownership. [Writer assignment](./concepts/writer-assignment.md) is a team
+responsibility. Repositories needing a stronger guarantee require a lease or
+allocator outside the v0.1 reference tools.
 
-A project contains three kinds of state. The distinction matters because only
-two survive the current conversation:
+### The path record
 
-| Plane | Canonical home | Question it answers | Lifetime |
-| :-- | :-- | :-- | :-- |
-| **Knowledge** | `docs/` | What should the system be, and why? | durable |
-| **Execution state** | `project/` | What is this bounded task changing, and where does it stand? | durable |
-| **Ephemeral context** | a conversation or process memory | What is being considered right now? | temporary |
-
-A file can be durable without being true. Architecture and decisions are the
-durable source of record; tests and evidence still determine whether their
-claims hold. [Why durable state and truth are different.](./foundations/durable-state.md)
-
-The protocol's central rule follows directly:
-
-> Progress, acceptance, decisions, and next actions MUST be persisted in files.
-> Conversation memory MUST NOT be their only home.
-
-### 2.2 Canonical repository layout
-
-Cairn uses the following default names. A conforming implementation MAY bind the
-same roles to different paths through `cairn.config.json`; documentation and
-generated output MUST use the configured names consistently.
+The canonical path filename is:
 
 ```text
-repository/
-├── AGENTS.md                         # small entry-point for people and agents
-├── cairn.config.json                 # repository bindings and enforcement tier
-├── src/ …                            # product/source roots (project-defined)
-├── docs/                             # durable knowledge plane
-│   ├── architecture/                 # accepted architecture and doctrine
-│   ├── adr/                          # architectural decision records
-│   └── modules/                      # notes for implemented areas
-└── project/                          # durable execution-state plane
-    ├── index.md                      # map of this project state
-    ├── coding-paths/
-    │   ├── index.md                  # path register and navigation
-    │   ├── ACTIVE.md                 # generated running-path view
-    │   ├── CP-EXAMPLE-001.md         # one path, plan, and live ledger
-    │   └── history/
-    │       └── CP-EXAMPLE-001-S01.md # completed ledger step, moved verbatim
-    ├── sessions/
-    │   └── 2026-01-15-cp-example-001-opening.md
-    ├── audits/
-    │   └── cp-example-001-a1b2c3d.md
-    ├── briefs/
-    │   └── cp-example-001-handoff.md
-    └── log/
-        └── 2026-01-18-cp-example-001.md
+project/coding-paths/CP-<ID>.md
 ```
 
-The detailed ownership and naming rules are collected in the
-[repository layout reference](./reference/repository-layout.md).
-
-### 2.3 Four ownership classes
-
-Every Cairn-managed file belongs to one of four classes:
-
-| Class | Examples | Write rule |
-| :-- | :-- | :-- |
-| **Canonical** | architecture page, ADR, module note | edited deliberately; a change may require a decision record |
-| **Path-owned** | `CP-*.md`, its handoff brief | exactly one active path writes it |
-| **Generated** | `ACTIVE.md`, rule catalogue | never hand-edited; regenerate from canonical inputs |
-| **Append-only by namespace** | audits, session records, journal entries, rolled steps | create one uniquely named file; do not make every path append to one shared file |
-
-This arrangement avoids coordination through shared mutable summaries. The
-underlying principle is explained in
-[Concurrency by structure](./foundations/parallel-work.md).
-
-## 3. The coding path
-
-### 3.1 One bounded unit of work
-
-A **coding path** is the complete durable record for one bounded implementation
-task. It MUST state:
-
-- its identity and current status;
-- the outcome it intends to produce;
-- its ordered steps and definition of done;
-- the documents that govern it;
-- the files or areas it expects to touch;
-- its work ledger, current checkpoint, next action, and blockers.
-
-The canonical path filename is `project/coding-paths/CP-<ID>.md`.
-
-Numbered identifiers such as `CP-ROADMAP-010` are suitable when the work comes from
-a roadmap. Named identifiers such as `CP-SEARCH` are suitable for repairs,
-investigations, or focused improvements. The branch name is the lower-case path
-identifier under `path/`: `CP-SEARCH` becomes `path/cp-search`.
-
-### 3.2 The identity tuple
-
-The path's frontmatter begins with a small identity tuple:
+Its [Markdown](./concepts/markdown.md)
+[frontmatter](./concepts/frontmatter.md) begins with an exact machine-readable
+[schema](./concepts/schema.md):
 
 ```yaml
 cairn:
   id: CP-EXAMPLE-001
   status: running
   current_step: S02
-  base_commit: a1b2c3d
+  base_commit: 0123456789abcdef0123456789abcdef01234567
   branch: path/cp-example-001
+  assigned_writer: participant-id
   writes:
     - src/example/**
     - docs/modules/example.md
 ```
 
-**Frontmatter** is a metadata block between `---` lines at the beginning of a
-Markdown file. It lets people read the document normally while tools read exact
-fields. [Frontmatter and machine-readable records.](./foundations/metadata-and-records.md)
+The path MUST describe:
 
-The tuple has two jobs:
+- its intended outcome and definition of done;
+- ordered, independently checkable steps;
+- governing and conditional documents;
+- deliberately excluded material;
+- expected write surfaces;
+- the work ledger, current checkpoint, next action, and blockers;
+- the last completed remote checkpoint.
 
-- `id`, `status`, `branch`, and `base_commit` give every checkout a stable way
-  to identify the work;
-- `current_step` and `writes` help people and tools navigate the evolving task.
+The identifier MUST use `CP-<UPPERCASE-ID>`, the filename MUST be
+`<ID>.md`, and the branch MUST be `path/<lowercase-id>`. Identifiers and branch
+names MUST be unique and MUST NOT be reused for unrelated work.
 
-`base_commit` MUST identify the trunk tip immediately before the path's
-registration commit. It pins the project state on which the path was accepted.
+The `writes:` list is a [declared write surface](./concepts/declared-write-surface.md).
+It makes likely overlap visible. It is an advisory signal, not a filesystem
+lock: a path may discover a necessary wider change, record why, update the
+declaration, and continue.
 
-The complete copy-ready document is in the
-[path template reference](./reference/path-template.md).
+The full copy-ready form is the [coding-path template](./reference/path-template.md).
 
-### 3.3 Documentation coverage
+### The repository around the path
 
-Every path MUST classify relevant project documentation into three visible
-groups:
+A Cairn repository separates four things before naming their folders:
 
-```text
-Required               read before execution
-Conditional            read when a named trigger occurs
-Deliberately excluded  outside scope, with a reason
-```
+- application source is the software being changed;
+- the [control plane](./concepts/control-plane.md) contains the checker,
+  generators, configuration, and [continuous-integration](./concepts/continuous-integration.md)
+  adapter that evaluate the protocol;
+- the durable knowledge plane contains
+  [architecture](./concepts/architecture.md),
+  [decision records](./concepts/decision-record.md),
+  [module notes](./concepts/module-note.md), and this specification;
+- the durable execution plane contains
+  [path records](./concepts/path-record.md), immutable event records,
+  [audits](./concepts/coherence-audit.md),
+  [handoff briefs](./concepts/handoff.md), and integrated-outcome
+  [journal entries](./concepts/journal.md).
 
-The purpose is not to make every writer read the whole repository. It is to
-make omission explicit. A path MAY widen its coverage when discovery requires
-it; the ledger MUST record the widening.
+Within a meaningful documentation folder, `index.md` explains what belongs
+there and how to navigate it; `log.md` summarises recent changes in that folder.
+Independent events use one file per event. Generated
+[live views](./concepts/live-view.md) are rebuilt from their source records
+rather than edited as another truth.
 
-### 3.4 `writes:` is a signal, not a lock
+`AGENTS.md` is the small entry point that tells a new participant what to read
+first. `cairn.config.json` binds portable role names to repository paths. The
+workflow and `cairn-*` tools form the executable control plane. Three optional
+[project-memory](./concepts/project-memory.md) spaces may accompany execution:
+`brainstorm/` for explicitly provisional thinking, `sources/` for imported
+references, and `projects/` for nested project bundles. These names are defined
+here before they appear in the tree; none is an unexplained source of authority.
 
-`writes:` lists expected write surfaces. It helps identify likely overlap when
-paths open and helps a reviewer compare the final diff with the accepted scope.
-
-It MUST NOT prevent a path from following a root cause into another file. When
-the actual work exceeds the declaration, the writer records the widening in the
-ledger, adds the new documentation coverage when needed, and continues. Cairn
-reports this as advisory scope drift rather than blocking it.
-
-### 3.5 The work ledger and handoff brief
-
-The **work ledger** is the append-only checkpoint inside the path. Every executed
-step records what changed, tests run, decisions made, remote commit, next action,
-and blockers. It is written during the work, not reconstructed at the end.
-
-The **handoff brief** in `project/briefs/<path-id>-handoff.md` is a shorter,
-disposable view refreshed from the ledger at every completed step. It helps a new
-session enter quickly, but it MUST NOT replace the path file. If the brief, path,
-and Git disagree, the writer reconciles the ledger against Git and regenerates
-the brief.
-
-When a path file exceeds the configured reading budget, completed major steps
-MAY move into `project/coding-paths/history/<id>-SNN.md`. The move MUST be
-verbatim. The live path retains its declaration, step index, checkpoint, next
-action, and blockers.
-
-## 4. Lifecycle
-
-### 4.1 States
+The following tree is exhaustive for the roles and files Cairn defines. Names
+inside angle brackets are repeatable patterns; application-specific source and
+knowledge may add other folders without changing Cairn:
 
 ```text
-draft ───────► running ───────► done ───────► archived
-                  │  ▲                           ▲
-                  │  └──── blocked ─────────────┘
-                  └──────────────────────────────┘
-                              abandonment
+repository/
+├── AGENTS.md
+├── cairn.config.json
+├── .github/
+│   └── workflows/
+│       └── cairn.yml
+├── tools/
+│   ├── cairn-check.<runtime>
+│   ├── cairn-active.<runtime>
+│   ├── cairn-audit.<runtime>
+│   ├── cairn-rules.<runtime>
+│   ├── cairn-spec-build.<runtime>
+│   └── <tool-name>.test.<runtime>
+├── <application-source-root>/
+│   └── <application-files>
+├── docs/
+│   ├── architecture/
+│   │   ├── index.md
+│   │   ├── log.md
+│   │   ├── <architecture-page>.md
+│   │   └── archive/
+│   │       └── <superseded-page>.md
+│   ├── adr/
+│   │   ├── index.md
+│   │   ├── log.md
+│   │   └── ADR-<NNN>-<decision>.md
+│   ├── modules/
+│   │   ├── index.md
+│   │   ├── log.md
+│   │   └── <implemented-area>.md
+│   └── cairn/
+│       ├── index.md
+│       ├── specification.html
+│       └── specification/
+│           ├── index.md
+│           ├── log.md
+│           ├── concepts/
+│           │   ├── index.md
+│           │   └── <concept>.md
+│           └── reference/
+│               ├── index.md
+│               └── <reference-article>.md
+└── project/
+    ├── index.md
+    ├── log.md
+    ├── coding-paths/
+    │   ├── index.md
+    │   ├── log.md
+    │   ├── paths.md
+    │   ├── ACTIVE.md
+    │   ├── CP-<ID>.md
+    │   └── history/
+    │       ├── index.md
+    │       ├── log.md
+    │       └── CP-<ID>-S<NN>.md
+    ├── sessions/
+    │   ├── index.md
+    │   ├── log.md
+    │   ├── <date>-<path-id>-<event>.md
+    │   └── <date>-<session>/
+    │       └── <session-artifact>.md
+    ├── audits/
+    │   ├── index.md
+    │   ├── log.md
+    │   └── <path-id>-<full-subject-commit>.md
+    ├── briefs/
+    │   ├── index.md
+    │   ├── log.md
+    │   ├── <path-id>-handoff.md
+    │   └── <date>-<subject>.md
+    ├── log/
+    │   ├── index.md
+    │   └── <date>-<path-id>.md
+    ├── brainstorm/
+    │   ├── index.md
+    │   ├── log.md
+    │   └── <provisional-note>.md
+    ├── sources/
+    │   ├── index.md
+    │   ├── log.md
+    │   └── <source-record>.md
+    └── projects/
+        ├── index.md
+        ├── log.md
+        └── <nested-project>/
+            ├── index.md
+            ├── log.md
+            └── <project-descriptor>.json
 ```
 
-| Status | Meaning | Required state |
-| :-- | :-- | :-- |
-| `draft` | proposed, not accepted | identity and proposed scope |
-| `running` | accepted, registered, and assigned to its branch/worktree | branch, base commit, opening record, trunk registration |
-| `blocked` | unable to progress until a named condition changes | blocker and next way to resume; no active branch obligation |
-| `done` | accepted, rebased, audited, and merged | closing record and integrated result |
-| `archived` | removed from the live portfolio and retained as history | reason for archival |
+`cairn.config.json` is the specified portable binding file. It is part of the
+protocol layout but is not yet loaded or installed by the v0.1 reference tools.
 
-`archived` is the single terminal state. A completed path normally moves
-`done → archived`. An abandoned path moves `running → archived` without passing
-through `done`, because `done` asserts that the result was merged.
+The protocol role name for the execution plane is `project/`. The current
+reference tools bind that role to `atomik-project/` and bind
+`docs/architecture/` to `docs/bedrock/`; the not-yet-implemented portable
+configuration will make those bindings selectable. The exact installed tree,
+file roles, naming rules, and portable mapping are in the
+[repository-layout reference](./reference/repository-layout.md).
 
-A path MAY move between `running` and `blocked` as conditions change. A quiet
-`running` path SHOULD produce an advisory staleness notice; it MUST NOT fail an
-unrelated build merely because it is old.
+## Make progress resumable
 
-### 4.2 What automation can enforce
+A [work unit](./concepts/work-unit.md) is the smallest completed change Cairn
+recognises. One work unit contains, where relevant:
 
-The lifecycle describes allowed human and agent behaviour. A validator normally
-sees one repository state, not the previous status transition. It therefore
-enforces **per-state invariants**, not the history of transitions:
+- implementation;
+- tests;
+- affected architecture, decision, and module documentation;
+- one appended [work-ledger](./concepts/work-ledger.md) entry;
+- a refreshed handoff brief;
+- verification results.
 
-- `running` requires its branch, base commit, opening record, and registration;
-- `done` requires its closing record;
-- `draft`, `blocked`, and `archived` carry no branch obligation.
+These parts MUST move together. Source changed without its affected tests,
+documents, or path state is not a completed Cairn work unit.
 
-An implementation MUST NOT claim to enforce transitions it cannot observe.
+### Check the work before calling it complete
 
-## 5. Opening a path
+A [test](./concepts/test.md) is an executable example whose result can be
+observed. A process [exit code](./concepts/exit-code.md) is zero for success and
+non-zero for failure. Gates MUST be run directly so their exit code remains the
+verdict; output MUST NOT be filtered in a way that hides or replaces it.
 
-Opening turns accepted intent into globally visible execution state. The order
-is part of the protocol.
+If a work unit is explicitly delivered for a user or reviewer to test before it
+is accepted, it remains an uncommitted and unpushed candidate during that
+inspection. It MUST NOT be reported as complete. After an explicit pass, the
+writer commits it and pushes it immediately. A failed review returns the work
+unit to execution.
 
-### 5.1 Define and review
+This inspection rule is distinct from final closing acceptance: a step review
+accepts that work unit for checkpointing; closing acceptance later names the
+exact final implementation commit.
 
-1. The owner and writer define one bounded outcome, its major features, its
-   documentation coverage, expected writes, and definition of done.
-2. They run an **opening check** item by item. The owner explicitly accepts the
-   path or amends it.
-3. They record the acceptance in a session file under `project/sessions/`.
+### Commit and push form one completed checkpoint
 
-The session record MUST declare these root-level fields:
+A local commit is not yet shared. A [remote](./concepts/remote.md) is a shared
+copy of the repository reached through Git. [Push](./concepts/push.md) publishes
+local commits to it; [fetch](./concepts/fetch.md) retrieves remote refs without
+changing the current working files.
+
+Every completed work unit MUST become one coherent commit and MUST be pushed
+immediately to its remote path branch. Only then is it a
+[remote checkpoint](./concepts/remote-checkpoint.md). The ledger and handoff
+brief MUST name that exact checkpoint and the next action.
+
+Any authorised participant can then fetch the branch, open the path record,
+read its governing documents and ledger, verify the checkpoint, and continue
+from the stated next action. “Implemented locally” and “completed” are not
+synonyms.
+
+The work ledger is append-only in protocol semantics. Completed ledger sections
+MAY move byte-for-byte into uniquely named files under
+`project/coding-paths/history/` when the live record becomes too large.
+Summarising a rolled entry is not equivalent to retaining it. The reference
+checker protects existing history records from rewrite, but does not yet prove
+that live ledger text remains a byte prefix or was rolled verbatim; the
+[conformance matrix](#current-conformance) states this limit explicitly.
+
+## Let paths work beside one another
+
+A [working tree](./concepts/working-tree.md) is the checked-out files a process
+can edit. A Git worktree gives another working tree for the same repository.
+Each running, blocked, or ready path MUST retain its branch and base commit, and
+its remote path branch MUST retain its latest completed checkpoint.
+
+Paths avoid unnecessary collisions through structure:
+
+- each path edits its own path record and brief;
+- sessions, audits, history, and journal records use one file per event;
+- shared summaries such as `ACTIVE.md` are generated from canonical records;
+- expected overlap is visible through `writes:` declarations;
+- integrations are serialised even though execution is parallel.
+
+The generated [live view](./concepts/live-view.md) MUST include `running`,
+`blocked`, and `ready` paths. It is navigation, not an independent source of
+truth, and MUST NOT be hand-edited.
+
+Overlapping declarations do not automatically mean a conflict. A
+[conflict](./concepts/conflict.md) occurs when Git cannot combine changes
+without a choice. Paths that discover semantic overlap SHOULD coordinate at
+their latest remote checkpoints, record any scope change, and preserve one
+writer per writable worktree.
+
+Running path branches are required because they carry resumable checkpoints.
+After integration, retaining the path branch is optional if every path commit is
+proved reachable from the remote trunk. Deleting a branch name does not delete
+commits already reachable from that trunk.
+
+## Separate evidence from judgement
+
+Cairn distinguishes facts a program can prove from judgements a person or agent
+must make.
+
+Mechanical evidence includes:
+
+- whether a file exists and matches a [schema](./concepts/schema.md);
+- whether identifiers are unique;
+- whether one commit is an ancestor of another;
+- whether a command returned zero;
+- whether an existing record was rewritten;
+- whether a diff stayed inside an allowed closure surface.
+
+Judgement includes:
+
+- whether the intended outcome is the right one;
+- whether an architectural explanation is coherent;
+- whether a known limitation is acceptable;
+- whether an advisory should be fixed or deferred.
+
+A [blocking finding](./concepts/blocking-finding.md) means a required predicate
+was disproved. An [advisory finding](./concepts/advisory-finding.md) identifies
+risk or drift that requires a disposition but does not mechanically forbid
+progress. An [inconclusive finding](./concepts/inconclusive-finding.md) means a
+required input was unavailable.
+
+Critical gates use exactly three outcomes:
+
+```text
+pass          predicate proved
+fail          predicate disproved
+inconclusive  required input unavailable
+```
+
+For registration, trunk ancestry, lifecycle transition, candidate binding, and
+record-integrity gates, both `fail` and `inconclusive` MUST return non-zero.
+A shallow or misconfigured checkout cannot turn missing evidence into success.
+An advisory such as path age MAY remain silent when its evidence is unavailable
+because it does not certify integration safety.
+
+[Continuous integration](./concepts/continuous-integration.md) can repeat the
+same deterministic checks in a clean environment. CI observes and reports
+unless the repository host is separately configured to require its exact
+result.
+
+## Open and register work
+
+A path becomes shared work through [opening acceptance](./concepts/opening-acceptance.md)
+followed by [trunk registration](./concepts/trunk-registration.md).
+
+### Opening acceptance
+
+Before implementation, the team MUST review the proposed outcome, definition of
+done, steps, governing documents, expected write surfaces, exclusions, and
+initial writer assignment. An authorised participant records the decision:
 
 ```yaml
 path: CP-EXAMPLE-001
 ceremony: opening
+decision: accepted
+accepted_by: participant-id
+accepted_at: 2026-01-15T09:00:00Z
+scope_ref: project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
 ```
 
-The fields are root-level because the checker must read one unambiguous schema.
-The path identifier is matched exactly. Full templates for opening, closing, and
-audits are in [Human records](./reference/human-records.md).
+The repository's governance decides who is authorised. Cairn does not require
+one permanent owner. The initiator, reviewer, writer, and integrator may be
+different developers or agents, subject to repository policy.
 
-### 5.2 Register before branching
+### Registration before branching
 
-From a clean, current trunk:
+Registration makes the path visible before implementation becomes private to a
+branch:
 
-1. Set the path to `status: running`.
-2. Set `base_commit` to the current trunk tip.
-3. Set the final `path/<id>` branch name.
-4. Regenerate `project/coding-paths/ACTIVE.md`.
-5. Run the local Cairn check.
-6. Commit and push a **metadata-only registration** to the trunk.
+1. Fetch the current remote trunk and require a clean registration checkout.
+2. Record its exact tip as base commit `B`.
+3. Add the accepted opening record and path declaration with `status: running`.
+4. Regenerate the live view.
+5. Create one metadata-only registration commit `R` on the trunk.
+6. Prove that `parent(R) = B`.
+7. Integrate and push `R` through the repository's declared transport.
+8. Create `path/<id>` and its worktree from the registered trunk.
+9. Push the path branch before reporting it available.
 
-The registration contains the accepted path declaration, the generated active
-view, and the opening record. It MAY include another metadata correction needed
-to make those records coherent. It MUST contain no implementation.
+The path MUST exist on the remote trunk before implementation begins. A
+protected host profile therefore needs a registration-aware transport; it MUST
+NOT require the not-yet-landed declaration as a precondition for landing that
+same declaration.
 
-Only after the pushed registration exists on the trunk may the writer create the
-path branch and worktree from that commit.
+## Close one exact implementation candidate
 
-**Why this order exists:** a checkout can read its own branch but cannot see
-files that exist only on sibling branches. Registration makes every active path
-visible from the common ancestor before the work diverges.
+Closure is about an immutable identity, not whichever files happen to be at
+`HEAD` later. An [implementation candidate](./concepts/implementation-candidate.md)
+is the exact commit `C` proposed as the product result.
 
-## 6. Executing a path
+### Produce and audit candidate C
 
-### 6.1 Create isolation
+1. Fetch the remote trunk.
+2. [Rebase](./concepts/rebase.md) the path onto it, resolving every conflict.
+3. Complete any required user inspection before checkpointing.
+4. Commit and push the resulting implementation candidate `C`.
+5. Run product checks and the Cairn checker against exactly `C`.
+6. Perform a [coherence audit](./concepts/coherence-audit.md) of exactly `C`.
+7. If a finding changes implementation, create a new candidate and repeat.
 
-The writer creates one dedicated branch and one dedicated worktree:
+A rebase reconstructs path commits on a newer base and therefore normally
+changes their hashes. Acceptance or audit of a pre-rebase commit cannot certify
+the rebased result.
 
-```bash
-git worktree add ../repo-cp-example-001 \
-  -b path/cp-example-001 main
-cd ../repo-cp-example-001
-```
-
-No second writer may modify that worktree. Other people or agents MAY inspect,
-diagnose, or review it without writing.
-
-If the software creates runtime profiles, caches, databases, ports, or sockets,
-each worktree MUST receive an isolated runtime identity. Filesystem isolation is
-incomplete when two running instances still share mutable runtime state.
-
-### 6.2 Execute one step at a time
-
-One step is one coherent work unit:
+The audit record MUST use the full candidate hash in both its filename and
+metadata:
 
 ```text
-implementation
-  + tests
-  + affected architecture/module documentation
-  + path ledger checkpoint
-  + refreshed handoff brief
+project/audits/cp-example-001-0123456789abcdef0123456789abcdef01234567.md
 ```
 
-The step SHOULD be small enough to review as one idea and complete enough to be
-a safe recovery point. The writer stages explicit paths, not an undifferentiated
-working tree.
-
-### 6.3 Run gates bare
-
-A **test** is executable code that checks a behaviour. A **gate** is a check whose
-non-zero process exit code can stop the work. A check must be run directly so its
-exit code remains the verdict:
-
-```bash
-npm run cairn-check
-npm run typecheck && npm test && npm run build
+```yaml
+cairn:
+  path: CP-EXAMPLE-001
+  branch: path/cp-example-001
+  base: 0123456789abcdef0123456789abcdef01234567
+  subject_commit: fedcba9876543210fedcba9876543210fedcba98
+  verdict: clean
 ```
 
-Do not pipe a gate through `grep`, `head`, `tail`, or another filter before
-recording the verdict. In a shell pipeline, the visible exit status may belong
-to the final filter rather than the check that matters.
+The audit records a reasoned judgement. The checker can prove that the record
+exists, is complete, names `C`, and is not later rewritten; it cannot prove that
+the judgement is wise.
 
-[Tests, exit codes, CI, and gates from zero.](./foundations/quality-and-gates.md)
+### Accept candidate C
 
-### 6.4 Commit and push are one completion unit
-
-After the gates pass:
-
-1. commit the coherent step on the path branch;
-2. push that commit immediately to its upstream branch;
-3. record the remote commit in the ledger;
-4. only then call the step complete.
-
-A commit is a durable local snapshot. A **push** copies it to a remote repository
-that survives the current machine. If pushing fails, the correct state is
-**implemented locally, not complete**.
-
-Every completed and pushed step is a safe session boundary. The writer SHOULD
-offer to continue in a fresh session. The next session re-enters from
-`AGENTS.md` → active paths → path ledger → handoff brief, verifies those records
-against Git, and begins the recorded next action without an oral recap.
-
-## 7. Parallel paths
-
-### 7.1 Work is parallel; integration is ordered
-
-Any number of paths MAY execute at the same time when each has its own branch,
-worktree, writer, and runtime identity.
-
-```text
-                         ┌─ path/cp-a ─ steps ─┐
-trunk ─ registration A ──┼──────────────────────┼─ merge A ─ trunk
-      ─ registration B ──┼─ path/cp-b ─ steps ──────────────┼─ merge B
-                         └─ path/cp-c ─ steps ───────────────┘
-```
-
-Paths do not merge through an integrator. Each path merges itself after it
-contains the current trunk tip and passes its own closing conditions. This
-serialises a short integration window without serialising days of work.
-
-### 7.2 Avoid shared evolving files
-
-When several writers need one overview, Cairn prefers one of two structures:
-
-- **generate the overview** from path-owned inputs; or
-- **give each writer a uniquely named file** and build an index over them.
-
-Examples:
-
-- `ACTIVE.md` is generated from registered path declarations;
-- journal entries are one file per path merge under `project/log/`;
-- audits are named by path and commit;
-- completed ledger steps are named by path and step.
-
-A generated file MUST NOT be maintained manually. A hand edit to a generated or
-shared statement of record SHOULD be reported and either regenerated or justified
-in the current ledger.
-
-### 7.3 Overlap and widening
-
-The path declarations provide an early overlap signal. When two paths expect to
-touch the same high-conflict file, their writers SHOULD coordinate merge order or
-rebase early. Cairn does not lock the file and does not appoint a permanent
-gatekeeper.
-
-Discovery may widen a path. The writer records the new surface, updates the
-governing documentation, and keeps the work coherent. Unrecorded drift is a
-warning; justified widening is normal.
-
-## 8. Closing and self-merge
-
-Closing converts branch-owned execution state into an accepted trunk result.
-
-### 8.1 Closing sequence
-
-The path MUST perform these steps in order:
-
-1. **Closing ceremony.** The owner reviews the delivered scope, remaining work,
-   and next direction. A session record declares `path:` and
-   `ceremony: closing` at root level.
-2. **Rebase.** Rebase the path onto the current trunk. The path branch must
-   contain the trunk tip.
-3. **Quality gates.** Run the protocol and product gates on the rebased result.
-4. **Coherence audit.** Review the rebased diff against accepted architecture,
-   decision records, and the path's declared coverage; write a filled record in
-   `project/audits/`.
-5. **Complete the path.** Set `status: done` in the change that will merge.
-6. **Self-merge and push.** Merge the path into the trunk and push the trunk
-   immediately.
-7. **Verify and clean.** Prove the merge is present on the remote trunk, then
-   retire the clean secondary worktree from another checkout.
-
-### 8.2 Rebase gate
-
-A **rebase** replays the path's commits on top of the latest trunk. Cairn checks
-the result as a Git ancestry predicate:
-
-```text
-current trunk tip is an ancestor of path HEAD
-```
-
-If a rebase rewrites commits already published on the path branch, update the
-remote with `--force-with-lease`, never blind `--force`, and record the old and
-new heads. `--force-with-lease` refuses to overwrite remote work that moved
-unexpectedly.
-
-### 8.3 Coherence audit
-
-Architectural coherence requires judgement, so its verdict is not a blocking
-machine rule. Cairn separates two facts:
-
-```text
-agent or reviewer produces the judgement
-checker verifies that a filled, correctly bound record exists
-```
-
-The audit MUST identify the path and a commit belonging to that path. It MUST
-state an outcome and answer its own review prompts. The checker MUST NOT pretend
-to judge whether the architectural conclusion is wise.
-
-### 8.4 Remote verification and worktree cleanup
-
-Cleanup begins only after the merge commit is an ancestor of the remote trunk.
-From another surviving checkout, the operator:
-
-1. resolves the exact secondary worktree;
-2. requires its Git status to be empty;
-3. removes it without `--force`;
-4. verifies its registration and directory are absent.
-
-The main/owner worktree and any dirty worktree MUST NOT be removed. The local and
-remote path branch SHOULD be retained as the online step history. Worktree
-removal and branch deletion are separate operations.
-
-If verification or cleanup fails, leave the directory intact and report:
-
-```text
-merge complete; cleanup incomplete
-```
-
-The complete command sequence is in the
-[operations reference](./reference/operations.md).
-
-## 9. Human records
-
-### 9.1 Ceremonies
-
-Opening and closing are human decisions expressed as durable records. The
-checker proves the declaration exists; it does not infer acceptance from a
-filename and does not assess the quality of the decision.
-
-The two machine fields are deliberately small:
+An authorised reviewer performs [closing acceptance](./concepts/closing-acceptance.md)
+of the same candidate. The record MUST declare:
 
 ```yaml
 path: CP-EXAMPLE-001
-ceremony: opening   # use `closing` for the other ceremony
+ceremony: closing
+subject_commit: fedcba9876543210fedcba9876543210fedcba98
+accepted_by: participant-id
+accepted_at: 2026-01-15T14:30:00Z
+decision: accepted
+scope_ref: project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
+advisory_disposition: "fixed: none; accepted: scope-drift; deferred: none"
 ```
 
-In an actual record, comments MUST be on their own line if the configured parser
-takes scalar values literally. The canonical copy-ready form is in
-[Human records](./reference/human-records.md).
+The subject hash MUST be all 40 hexadecimal characters. The accepted scope MUST
+be identifiable. Every advisory MUST be recorded as fixed, accepted, or
+deferred with a reason.
 
-### 9.2 Architecture decisions
+### Add only administrative closure
 
-Architecture belongs in `docs/architecture/`; changes to accepted architecture
-SHOULD be accompanied by an ADR in `docs/adr/`. A coding path may execute an
-accepted decision but MUST NOT silently invent architecture in its ledger.
-
-### 9.3 Journal
-
-At merge time the path writes one journal entry under
-`project/log/YYYY-MM-DD-<path-id>.md`. The entry names the integrated outcome and
-links to its path, audit, and relevant decision records. One file per entry keeps
-parallel paths from appending to the same mutable file.
-
-## 10. Enforcement model
-
-### 10.1 Blocking and advisory findings
-
-Every mechanical finding has one of two effects:
+Recording acceptance necessarily creates a commit after `C`. Cairn resolves
+that self-reference with one [administrative closure](./concepts/administrative-closure.md)
+commit `A`:
 
 ```text
-BLOCKING   contributes to a non-zero exit code; the work cannot proceed
-ADVISORY   prints a visible finding; it never changes the exit code
+C  exact implementation candidate
+└─ A  path status ready + audit + closing record + refreshed handoff
 ```
 
-A rule may block only when both conditions hold:
+`A` MUST change only the configured closure surfaces: the path record, its
+handoff brief, the exact audit, and the exact closing record. Product source,
+tests, architecture, and implementation documentation MUST NOT change after
+acceptance. The path record declares `status: ready` and
+`subject_commit: C`. The final protocol check runs on `A`, then `A` is pushed.
 
-> The condition is objectively checkable **and** violating it leaves the
-> repository in a mechanically wrong state.
+If implementation changes after `C`, even during conflict resolution or audit
+repair, `C` is no longer the candidate. Return the path to `running`, produce a
+new candidate, and repeat audit and acceptance.
 
-Judgement, preference, age, likely scope, and prose quality belong in the
-advisory tier. A false blocking verdict encourages people to bypass the whole
-checker; the admission test protects the credibility of every gate.
+The complete schemas are in [human records](./reference/human-records.md); the
+command sequence is in [operations](./reference/operations.md).
 
-### 10.2 Enforcement tiers
+## Integrate without claiming the future
 
-The same checks can run at three repository-declared tiers:
+[Ready](./concepts/ready-state.md) and [done](./concepts/done-state.md) name
+different facts:
 
-| Tier | Configuration | Meaning |
+- `ready` — exact candidate `C` has checks, audit, and acceptance; the path has
+  not claimed integration;
+- `done` — `C` is reachable from the remote trunk and the trunk records the
+  completed resolution.
+
+A path branch MUST NOT set itself to `done`. The repository's
+[integration transport](./concepts/integration-transport.md) integrates the
+exact ready tip `A` and records `done` in the trunk integration unit. A
+[merge](./concepts/merge.md) commit is one valid transport when its exact result
+is checked before the remote trunk accepts it; a host queue or trusted bot may
+provide another.
+
+This is Cairn's self-integration rule: the path carries its own accepted result
+to the transport instead of handing it to a standing central integrator. The
+path writer, another authorised participant, or automation may perform the
+path-scoped integrator role according to repository policy.
+
+The integrating unit MUST:
+
+1. start from the current remote trunk;
+2. contain `C` and `A` without changing their implementation;
+3. change only permitted integration metadata, including `status: done`,
+   `resolution: completed`, the live view, and one journal record;
+4. pass the final protocol and product checks as the exact trunk candidate;
+5. land that exact checked candidate;
+6. be fetched back and proved reachable from the remote trunk.
+
+If the trunk moved in a way that changes the candidate, the path returns to
+`running` and repeats closure. A local merge preview is not proof that the host
+accepted the same commit.
+
+After remote verification, another checkout MAY remove the secondary worktree
+only when its exact path is known and it is Git-clean. It MUST NOT use force or
+remove the primary checkout. Branch cleanup is optional once reachability from
+the remote trunk is proved.
+
+## Keep lifecycle statements truthful
+
+The [lifecycle](./concepts/lifecycle.md) records facts rather than intentions:
+
+```text
+draft → running ↔ blocked → ready → done → archived
+           │          ▲       │
+           └──────────┘       └→ running
+
+draft | running | blocked → archived
+```
+
+| State | Exact meaning | Required identity |
 | :-- | :-- | :-- |
-| `local` | local command only | the checker reports before commit; no host is required |
-| `ci` | workflow runs on trunk and `path/**` | CI observes and publishes the verdict; a direct merge can still bypass it |
-| `protected` | trunk requires the CI checks | the host prevents a failing change from merging |
+| [`draft`](./concepts/draft-state.md) | proposed, not registered for execution | id |
+| [`running`](./concepts/running-state.md) | accepted, registered, and executable | id, branch, base commit, writer |
+| [`blocked`](./concepts/blocked-state.md) | paused by a named condition | the running identity plus blocker and unblock condition |
+| [`ready`](./concepts/ready-state.md) | exact `C` audited and accepted; not integrated | running identity plus full subject commit |
+| [`done`](./concepts/done-state.md) | accepted candidate integrated on the trunk | subject commit and `resolution: completed` |
+| [`archived`](./concepts/archived-state.md) | terminal retained record | `resolution: completed \| abandoned \| superseded` |
 
-Only `local` is required by Cairn. `ci` and `protected` are repository
-capabilities. The configured tier MUST be printed by the checker so documentation
-does not claim prevention when the host only observes.
-
-See the canonical fields and defaults in
-[`cairn.config.json`](./reference/configuration.md).
-
-### 10.3 Deterministic and judgement-bearing work
-
-The checker may inspect:
-
-- Git refs and ancestry;
-- filesystem paths and directory contents;
-- Markdown/frontmatter fields;
-- changed-file sets and configured globs;
-- command exit codes;
-- declared host variables;
-- wall-clock age for advisory notices.
-
-It MUST NOT put a non-deterministic model verdict on the blocking path. When a
-judgement matters, a person or agent writes a record and the deterministic check
-verifies only its existence, binding, and minimum completeness.
-
-### 10.4 Unknown is not success
-
-When a rule cannot identify the subject it is expected to guard, it must report
-that condition. For example, an unidentified branch with guarded source changes
-is blocking because every branch-scoped rule would otherwise disappear silently.
-
-When absence of information is legitimate, unknown must remain unknown. An
-unresolvable remote branch, for example, MUST NOT be labelled stale or fresh.
-
-### 10.5 Generated and executable documentation
-
-Facts that can be derived SHOULD be generated. Published templates SHOULD be
-parsed by tests. This specification's detailed rule catalogue is generated from
-the checker source and compared by the test suite, so a rule cannot be silently
-added to one side only.
-
-## 11. Operator sequence
-
-This compact sequence is enough for daily use after the model above is
-understood.
-
-### Open
+Allowed transitions are:
 
 ```text
-opening check
-  → write opening record
-  → create running path declaration on current trunk
-  → regenerate ACTIVE.md
-  → run cairn-check
-  → metadata-only registration commit
-  → push trunk
-  → create path branch and worktree from that commit
+draft   → running | archived
+running → blocked | ready | archived
+blocked → running | archived
+ready   → done | running
+done    → archived
+archived → archived
 ```
 
-### Execute each step
+Self-transitions are allowed while ordinary fields advance. An unintegrated path
+archives as `abandoned` or `superseded`, never `completed`. A completed path
+archives as `completed`. `blocked` retains its branch and base commit because
+dormant work needs more traceability, not less.
 
-```text
-code + tests + docs + ledger + handoff brief
-  → run gates bare
-  → commit explicit files
-  → push immediately
-  → record remote checkpoint
-  → continue here or resume next step in a fresh session
-```
+The ready state exists on the path branch. The trunk may observe `running → done`
+when it integrates a branch whose ready state was never previously present on
+the trunk; this is the integration form of `ready → done`, not permission to
+skip candidate-bound closure.
 
-### Close
+When a required earlier state is unavailable, transition validation is
+inconclusive and blocks. Path declarations are retained; they are archived
+rather than deleted.
 
-```text
-closing ceremony
-  → rebase on current trunk
-  → product gates + cairn-check
-  → coherence audit
-  → status: done
-  → push path
-  → self-merge and push trunk
-  → verify remote merge
-  → remove exact clean secondary worktree without force
-  → retain branch
-```
+## Preserve records without overstating Git
 
-Copy-ready shell commands are in [Operations](./reference/operations.md).
+[Record integrity](./concepts/record-integrity.md) applies to sessions, audits,
+journal entries, and rolled ledger history. Once such a record exists, a new
+change MUST NOT edit, rename, or delete it. A correction creates a new
+superseding record that points to the earlier one.
 
-## 12. Guarantees and limits
+The [journal](./concepts/journal.md) uses one file per integrated outcome under
+`project/log/`. A shared append-only `log.md` is not the journal; folder
+`index.md` and `log.md` files may remain mutable navigation views where the
+repository uses them.
 
-### 12.1 What a conforming repository can rely on
+Git provides [tamper evidence](./concepts/tamper-evidence.md) relative to a
+previously known hash: rewriting an ancestor changes descendant hashes. Git
+alone is not an immutable audit log. Protected refs, signatures, or an external
+anchor are needed when the threat model includes authorised writers rewriting
+history.
 
-When Cairn is followed:
+## State the trust and enforcement boundary
 
-- every implementation belongs to an accepted, bounded path;
-- every running path is visible from the trunk before its branch diverges;
-- parallel writers do not share a working directory;
-- each completed step has local and remote Git recovery points;
-- each session can resume from durable repository state;
-- owner acceptance is recorded at opening and closing;
-- integration occurs only from a path containing the current trunk tip;
-- mechanical conditions and human judgements remain visibly distinct;
-- generated portfolio views derive from path-owned records;
-- the final merge and local cleanup have explicit proofs and outcomes.
+Cairn v0.1 assumes collaborating writers. Its local and CI mechanisms protect
+against accidental omission, coordination errors, stale bases, malformed
+records, and silent loss of execution state. They are not an adversarial
+security boundary.
 
-### 12.2 What Cairn does not prove
+The [control plane](./concepts/control-plane.md) includes the checker,
+configuration, schemas, templates, rule-catalogue generator, and CI workflow. A
+writer who can change all of those can weaken the mechanism that evaluates the
+same change. Stronger governance MUST protect the control plane independently
+from ordinary path work.
 
-Cairn does not prove:
+An [enforcement profile](./concepts/enforcement-profile.md) describes what is
+actually installed:
 
-- that a human acceptance was wise;
-- that an audit conclusion was correct;
-- that checkpoint prose is accurate merely because the file changed;
-- that `base_commit` describes the intended moment unless an implementation
-  explicitly validates it;
-- that every commit was pushed immediately after the fact; the final Git graph
-  cannot reconstruct push cadence;
-- that a removed worktree was clean after it no longer exists in repository CI;
-- that a green test suite covers behaviours nobody thought to test.
+| Profile | What it establishes | What it does not establish |
+| :-- | :-- | :-- |
+| `local` | participants can run deterministic checks | checks ran remotely or blocked integration |
+| `ci` | a remote runner reports checks for declared refs | the host required the result |
+| `protected` | the host requires checks for the exact integration candidate | judgement quality or security when the control plane is unprotected |
 
-These are boundaries, not hidden promises. Cairn records the strongest fact its
-inputs can support and leaves judgement visible where judgement remains.
+A repository MUST NOT claim `protected` unless it has both:
 
-## 13. Rule catalogue
+1. a tested exact-commit transport for registration and integration; and
+2. independent protection or approval for control-plane changes.
 
-Run the checker locally as the automation runs it:
+Required-status settings alone do not specify how a not-yet-registered path
+lands or how a locally created merge commit obtains checks. A protected profile
+must name and test its transport instead of relying on a generic branch-setting
+claim.
 
-```bash
-npm run cairn-check
-npm run cairn-check -- --base origin/main
-npm run cairn-check:test
-```
+The versioned [configuration reference](./reference/configuration.md) specifies
+portable role bindings. The current reference checker remains bound to one
+repository layout and a deliberately limited frontmatter subset; it does not
+yet implement that portable configuration contract. A conforming portable
+implementation MUST either use a standard YAML parser or publish and validate a
+distinct format without calling it full YAML.
 
-The following table is generated from the checker's rule source. Some rule names
-appear once at each level because the same condition may be blocking in a guarded
-context and advisory in a migration or non-guarded context.
+## Current conformance
+
+[Conformance](./concepts/conformance.md) distinguishes the protocol from one
+implementation. A requirement can be canonical before the reference tools
+implement it, but its status must be visible.
+
+| Capability | Protocol v0.1 | Reference tools | Additional dependency |
+| :-- | :-- | :-- | :-- |
+| Path record, branch identity, registration, and remote checkpoints | required | implemented, with repository-specific bindings | remote Git |
+| Full opening decision, actor, time, scope, and authority schema | required | **partially implemented**; path and ceremony presence are checked | repository governance |
+| Multiple team participants and checkpoint handoff | required | records support it; writer exclusivity is operational | team assignment policy |
+| `running`, `blocked`, `ready`, `done`, `archived` lifecycle | required | transition and state checks implemented for observable changes | complete comparison ref |
+| Exact-candidate audit and closing acceptance | required | implemented | authorised reviewer |
+| Fail-closed critical inconclusive outcomes | required | implemented | complete trunk and comparison refs |
+| Existing session, audit, history, and journal immutability | required | implemented for new or changed records | complete comparison ref |
+| Live-ledger prefix and verbatim-roll proof | required | **not implemented** | explicit ledger markers/schema |
+| Versioned portable configuration and schema migration | required for portable profile | **not implemented** | configuration loader and migrations |
+| Exact protected integration transport | required for protected profile | **not installed or tested** | repository-host adapter |
+| Independently protected control plane | required for protected profile | **not installed or tested** | host ownership/approval policy |
+| Transactional `init`, `new`, and `close` commands | required before general release | **not implemented** | command tooling |
+| [Lightweight path](./concepts/lightweight-path.md) | required before general release | **not implemented** | policy and measured thresholds |
+| [Emergency path](./concepts/emergency-path.md) | required before general release | **not implemented** | incident policy and retrospective |
+| Operational-cost pilot | required before general release | **not run** | representative team |
+
+The current supported claim is therefore:
+
+> Cairn v0.1 is a local-first coordination and project-memory protocol for a
+> team of trusted developers and coding agents working through remote Git
+> branches. Its reference tools enforce a substantial but incomplete subset of
+> the protocol. It is not yet a general-purpose merge, governance, or security
+> system.
+
+Operational cost is part of correctness. A pilot SHOULD measure ceremony time,
+ignored advisories, integration retries, documentation churn, checkpoint
+recovery time, and bypass pressure before a team widens its claims.
+
+## Implemented rule catalogue
+
+This catalogue is generated from the reference checker. It inventories
+implemented predicates; it does not make unimplemented protocol requirements
+disappear and does not prove that a judgement-bearing record is correct.
 
 <!-- cairn:rules:begin -->
 | Level | Rule Name | Scope | Trigger Condition | Enforcing Logic |
 | :--- | :--- | :--- | :--- | :--- |
+| **Blocking** | `acceptance` | diff | Ready/done path lacks exact-commit acceptance or changed implementation after acceptance | `closingAcceptanceErrors(record, pathId) + pathClosureState(path, record)` |
 | **Blocking** | `branch-identity` | diff | Detached checkout where branch cannot be identified from host or git ref | `branchSource === 'detached' (blocking on guarded roots, advisory on others)` |
 | **Blocking** | `branch-path` | diff | Path branch not declared by a running path file, or missing base_commit | `isPathBranch(branch) && (!match \|\| !PATH_BRANCH_STATUSES.includes(status) \|\| !isCommitPin(base))` |
-| **Blocking** | `ceremony` | diff | Path marked done without closing ceremony session note frontmatter | `!ceremonyFor(pathId) via session frontmatter { path, ceremony: 'closing' }` |
+| **Blocking** | `coherence-audit` | corpus | Ready path lacks a filled coherence audit bound to its exact subject_commit | `cairn-audit --check --subject path.subject_commit` |
 | **Blocking** | `derived-view` | corpus | ACTIVE.md running-paths block does not match trunk path files | `tools/cairn-active.mjs --check` |
 | **Blocking** | `links` | corpus | Relative Markdown link points to non-existent target (code fences stripped) | `stripCode(text) => !existsSync(target)` |
 | **Blocking** | `opening-ceremony` | diff | Path declared running without an opening-check session note | `!openingFor(pathId) via session frontmatter { path, ceremony: 'opening' }` |
 | **Blocking** | `rebase` | diff | Path branch does not contain latest trunk tip (stale branch) | `trunkContained(trunkRef) === false` |
+| **Blocking** | `record-integrity` | diff | Existing session, audit, journal, or rolled-history record was modified, renamed, or deleted | `immutableRecordMutations(previousRef) + isImmutableRecord(file)` |
 | **Blocking** | `registration` | diff | Path declaration tuple (id, running, branch, base) missing from trunk | `pathRegistrationState() === 'missing' (blocking) or declared migration exception (advisory)` |
-| **Blocking** | `same-work-unit` | diff | Source changed without accompanying module note and coding path update | `touched(sourceRoots) => touched(moduleNotes) && touched(pathDirectory)` |
+| **Blocking** | `registration-base` | diff | Path base_commit cannot be proved to equal the registration commit parent | `pathRegistrationBaseState() === 'mismatch' \| null` |
+| **Blocking** | `same-work-unit` | diff | Source changed without accompanying module note and coding path update | `touched(GUARDED_ROOTS) => touched(docs/modules/) && touched(PATH_DIR)` |
 | **Blocking** | `schema` | corpus | Path or ADR frontmatter fails parsing, or an id/status/date is outside vocabulary | `pathFrontmatterErrors(front) + adrFrontmatterErrors(front, file, bodyStatus)` |
+| **Blocking** | `transition` | diff | Changed path state is not an allowed lifecycle transition, or prior state is unavailable | `transitionErrors(previous, current, onPathBranch)` |
 | *Advisory* | `area-note` | diff | Subsystem source changed without touching matching area module note | `areaOf(file) => changed.includes(note)` |
 | *Advisory* | `branch-identity` | diff | Detached checkout where branch cannot be identified from host or git ref | `branchSource === 'detached' (blocking on guarded roots, advisory on others)` |
-| *Advisory* | `coherence-audit` | corpus | Path rebased HEAD lacks a filled, correctly bound coherence-audit record | `cairn-audit --check in the configured audit directory` |
 | *Advisory* | `decision-drift` | diff | Configured architecture changed without an ADR in the same changeset | `touched(architectureRoot) => touched(decisionRoot)` |
 | *Advisory* | `ledger-size` | diff | A path file in the diff exceeds the ledger token budget | `changed.includes(path.file) && path.tokens > LEDGER_TOKEN_BUDGET` |
 | *Advisory* | `opening-ceremony` | diff | Path declared running without an opening-check session note | `!openingFor(pathId) via session frontmatter { path, ceremony: 'opening' }` |
@@ -799,21 +804,24 @@ context and advisory in a migration or non-guarded context.
 | *Advisory* | `single-truth` | diff | Manual edits to shared/derived statements of record | `SINGLE_TRUTH.includes(file)` |
 <!-- cairn:rules:end -->
 
-## 14. Reading and implementation map
+## Continue through the wiki
 
-### Learn a prerequisite when you meet it
+The [concept index](./concepts/index.md) offers two routes: the same
+simple-to-complex sequence used here and an alphabetical catalogue. Each article
+defines one object, explains why Cairn uses it, states what it does not prove,
+and links to related objects.
 
-- [Git, commits, branches, remotes, rebase, and worktrees](./foundations/git-and-history.md)
-- [Durable state, canonical files, generated views, and ephemeral context](./foundations/durable-state.md)
-- [Frontmatter and machine-readable human records](./foundations/metadata-and-records.md)
-- [Tests, exit codes, CI, blocking gates, and advisory findings](./foundations/quality-and-gates.md)
-- [Parallel work through ownership and namespace design](./foundations/parallel-work.md)
+Use the reference when reconstructing or operating a repository:
 
-### Reconstruct or operate the protocol
+- [repository layout](./reference/repository-layout.md);
+- [coding-path template](./reference/path-template.md);
+- [opening, closing, and audit records](./reference/human-records.md);
+- [operating sequence](./reference/operations.md);
+- [configuration and portability status](./reference/configuration.md);
+- [conformance checklist](./reference/conformance.md).
 
-- [Canonical repository layout and naming](./reference/repository-layout.md)
-- [Complete coding-path template](./reference/path-template.md)
-- [Opening, closing, and audit records](./reference/human-records.md)
-- [`cairn.config.json` fields and defaults](./reference/configuration.md)
-- [Opening, execution, closing, and cleanup commands](./reference/operations.md)
-- [Glossary](./reference/glossary.md)
+The Markdown project and universal HTML edition contain the same article graph.
+In the HTML reader, each pane scrolls and keeps history independently. A wiki
+link in either pane opens its object in the other pane; the tree opens an
+article in the active pane, and a direct `#article-<id>` URL opens that object
+beside the specification. Neither pane is a footnote to the other.

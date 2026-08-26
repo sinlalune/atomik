@@ -1,15 +1,17 @@
 ---
 type: Cairn Reference
-title: 'Reference: Coding-path template'
-description: A complete canonical Markdown template for a Cairn coding path, including coverage, execution steps, ledger, remote checkpoint, and cleanup plan.
+title: Coding-path template
+description: A complete Cairn path record with identity, plan, work ledger, handoff state, and exact-candidate closure fields.
 tags: [cairn, reference, template, coding-path, ledger]
 timestamp: 2026-08-25T00:00:00Z
 ---
 
 # Coding-path template
 
-Copy this file to `project/coding-paths/CP-<ID>.md`. Comments below explain the
-fields; a repository may remove comments after filling the template.
+For the installed reference binding, copy this file to
+`atomik-project/coding-paths/CP-<ID>.md`. Keep the path id, filename, and branch
+mechanically related. A portable implementation substitutes its configured
+execution-state root.
 
 ````md
 ---
@@ -24,11 +26,14 @@ cairn:
   current_step: S01
   base_commit: null
   branch: path/cp-example-001
+  assigned_writer: null
+  subject_commit: null
+  resolution: null
   writes:
-    - src/example/**
+    - apps/example/**
     - docs/modules/example.md
-    - project/coding-paths/CP-EXAMPLE-001.md
-    - project/briefs/cp-example-001-handoff.md
+    - atomik-project/coding-paths/CP-EXAMPLE-001.md
+    - atomik-project/briefs/cp-example-001-handoff.md
 ---
 
 # CP-EXAMPLE-001 — Short title
@@ -40,31 +45,35 @@ State the observable result, not the activity.
 ## Definition of done
 
 - [ ] Product behaviour is implemented and covered by relevant tests.
-- [ ] Affected architecture, decision, module, and learning documents are current.
-- [ ] Every executed step has a ledger entry, refreshed handoff brief, commit,
-      and immediate remote push.
-- [ ] Closing record, rebase, gates, coherence audit, self-merge, remote proof,
-      and safe worktree cleanup are complete.
+- [ ] Affected architecture, decisions, module notes, and learning documents
+      are current.
+- [ ] Every completed step has one coherent ledger entry, refreshed handoff,
+      commit, and remote checkpoint.
+- [ ] The final implementation candidate is rebased, checked, audited, and
+      accepted by exact full hash.
+- [ ] The path reaches ready without implementation changes after acceptance.
+- [ ] The exact integration candidate lands, the trunk records done, the remote
+      result is proved, and the clean secondary worktree is removed safely.
 
 ## Documentation coverage
 
 ### Required
 
-- `docs/architecture/example.md` — why this document governs the work
+- `docs/bedrock/example.md` — why this document governs the work
 
 ### Conditional
 
-- `docs/architecture/security.md` — read before changing a trust boundary
+- `docs/bedrock/security.md` — read before changing a trust boundary
 
 ### Deliberately excluded
 
-- `docs/architecture/unrelated.md` — outside this path's bounded outcome
+- `docs/bedrock/unrelated.md` — outside this path's bounded outcome
 
 ## Execution
 
 - [ ] S01 — first coherent, independently verifiable result
 - [ ] S02 — second coherent result
-- [ ] S03 — hardening, documentation, and closure preparation
+- [ ] S03 — hardening and closure preparation
 
 ## Work ledger
 
@@ -76,7 +85,7 @@ What this step set out to establish.
 
 #### Work
 
-- code changed
+- implementation changed
 - tests added or changed
 - documents changed
 - decisions, discoveries, reversals, and scope widening
@@ -84,22 +93,23 @@ What this step set out to establish.
 #### Verification
 
 ```text
-cairn-check : not run | pass | fail with reason
+cairn-check : not run | pass | fail/inconclusive with reason
 typecheck   : not run | pass | fail with reason
 tests       : not run | pass | fail with reason
 build       : not run | pass | fail with reason
-remote      : not pushed | origin/path/cp-example-001 @ <commit>
+user review : not required | awaiting pass | passed by <identity>
+remote      : not pushed | origin/path/cp-example-001 @ <full commit>
 ```
 
 #### Checkpoint
 
 ```text
 status      : running
-current step: S01 complete
+current step: S01 complete only after required review and remote proof
 changed     : exact surfaces or concise groups
 session     : safe boundary only after successful push
 next action : S02 — exact first action
-blockers    : none | named condition and owner
+blockers    : none | named condition and responsible participant
 ```
 
 ## Current checkpoint
@@ -107,13 +117,14 @@ blockers    : none | named condition and owner
 ```text
 base commit : <trunk tip immediately before registration>
 branch      : path/cp-example-001
-remote      : origin/path/cp-example-001 @ <last completed-step commit>
+writer      : <current assigned participant>
+remote      : origin/path/cp-example-001 @ <last completed checkpoint>
 gates       : exact latest verdicts
-session     : safe boundary; next session starts at next action
+session     : safe boundary or uncommitted review candidate
 next action : exact next action
-blockers    : none | named condition
-cleanup plan: after remote merge proof, remove the exact clean secondary
-              worktree without force; retain the path branch
+blockers    : none | named condition and unblock condition
+cleanup plan: after remote integration proof, remove the exact clean secondary
+              worktree without force
 ```
 
 ## Blockers
@@ -121,30 +132,52 @@ cleanup plan: after remote merge proof, remove the exact clean secondary
 - None.
 ````
 
-## Status-specific edits
+## State-specific edits
 
-### Activating
+### Registering
 
-Before the registration commit:
-
-- change `status` to `running`;
-- set `base_commit` to the current trunk tip;
-- confirm the final branch name;
-- add the opening record and regenerate `ACTIVE.md`.
+- record an accepted opening session;
+- set `status: running`;
+- set `base_commit` to the current trunk tip before registration;
+- set `assigned_writer`;
+- regenerate `ACTIVE.md`;
+- land one metadata-only registration commit whose parent equals
+  `base_commit`;
+- only then create and push the path branch.
 
 ### Blocking
 
-Set `status: blocked`, name the blocking condition, name what would unblock it,
-and keep the last verified remote checkpoint.
+Set `status: blocked`, retain `branch` and `base_commit`, and name the blocker,
+unblock condition, writer assignment, and last remote checkpoint.
 
-### Completing
+### Returning to running
 
-After the closing record, rebase, gates, and audit are ready, set `status: done`
-in the merge unit. The status asserts that the result lands on the trunk.
+Set `status: running` when execution resumes or when a ready candidate becomes
+invalid. Record why the transition occurred.
 
-### Abandoning or archiving
+### Becoming ready
 
-Set `status: archived` and record whether the path was completed-and-demoted or
-abandoned. An abandoned path does not pass through `done`.
+After exact candidate `C` has passed its checks, audit, and acceptance, create
+one administrative commit that:
 
-Return to [The coding path](../index.md#3-the-coding-path).
+- sets `status: ready`;
+- sets `subject_commit` to the full hash of `C`;
+- contains only the path record, handoff, exact audit, and exact closing record.
+
+### Recording done
+
+Only the trunk integration unit sets `status: done` and
+`resolution: completed`. A path branch never claims done.
+
+### Archiving
+
+Set `status: archived` and exactly one resolution:
+
+- `completed` after done;
+- `abandoned` for stopped, unintegrated work;
+- `superseded` for work replaced by another path or decision.
+
+Keep the path record.
+
+Return to [the path model](../index.md#put-one-bounded-change-on-a-coding-path)
+or [lifecycle](../concepts/lifecycle.md).

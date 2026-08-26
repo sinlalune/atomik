@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * cairn-active — regenerate the running-paths view in ACTIVE.md.
+ * cairn-active — regenerate the live-paths view in ACTIVE.md.
  *
  * The owner's challenge (2026-08-14): "if an agent is merging it can
  * reconstruct those files on the go". Correct — and reconstructing beats
@@ -30,19 +30,20 @@ import { ACTIVE_FILE, PATHS_BEGIN, PATHS_END, readFrontmatter } from './cairn-ch
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const PATH_DIR = 'atomik-project/coding-paths'
+const LIVE_STATUSES = new Set(['running', 'blocked', 'ready'])
 
 /** Deterministic by construction: sorted by id, so two people regenerating
  *  from the same path files produce byte-identical output. */
 export function renderPaths(paths) {
   if (paths.length === 0) {
-    return '- *(no path running)*'
+    return '- *(no live path)*'
   }
   return paths
     .slice()
     .sort((a, b) => a.id.localeCompare(b.id))
     .map(
       (path) =>
-        `- **${path.id}** — ${path.title} · branch \`${path.branch}\` · base \`${path.base}\``
+        `- **${path.id}** — ${path.title} · status \`${path.status}\` · branch \`${path.branch}\` · base \`${path.base}\``
     )
     .join('\n')
 }
@@ -61,19 +62,20 @@ export function spliceBlock(text, body) {
 }
 
 export function collectPaths(files) {
-  const running = []
+  const live = []
   for (const { name, text } of files) {
     const parsed = readFrontmatter(text)
     const front = parsed?.data?.atomik
-    if (!front || front.status !== 'running' || !front.branch) continue
-    running.push({
+    if (!front || !LIVE_STATUSES.has(front.status) || !front.branch) continue
+    live.push({
       id: front.id ?? name.replace(/\.md$/, ''),
       title: (parsed.data.title ?? '').replace(/^['"]|['"]$/g, '').split(' — ')[0],
+      status: front.status,
       branch: front.branch,
       base: front.base_commit ?? 'unpinned'
     })
   }
-  return running
+  return live
 }
 
 function main() {

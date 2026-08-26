@@ -16,24 +16,31 @@ import { test } from 'node:test'
 import {
   adrFrontmatterErrors,
   approxTokens,
+  closingAcceptanceErrors,
+  closingRecordFromSessions,
   areaOf,
   ceremonyFromSessions,
+  duplicatePathIdentityFindings,
   openingFromSessions,
   evaluate,
   globToRegExp,
   isCommitPin,
+  isImmutableRecord,
   isPathBranch,
   LEDGER_TOKEN_BUDGET,
   matchesAny,
+  nameStatusMutations,
   parseWrites,
   pathFrontmatterErrors,
   PATH_STALE_DAYS,
   porcelainPaths,
+  porcelainMutations,
   readFrontmatter,
   registrationMatches,
   resolveBranch,
   staleRunningPaths,
-  stripCode
+  stripCode,
+  transitionErrors
 } from './cairn-check.mjs'
 
 const A_PATH = {
@@ -47,6 +54,20 @@ const A_PATH = {
   writes: ['apps/desktop/electron-main/graph-index.ts', 'docs/modules/atomik-desktop-graph.md']
 }
 
+const CANDIDATE = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+
+const acceptedRecord = (pathId = A_PATH.front.id, subject = CANDIDATE) => ({
+  path: pathId,
+  ceremony: 'closing',
+  subject_commit: subject,
+  accepted_by: 'reviewer@example.test',
+  accepted_at: '2026-08-25T12:00:00Z',
+  decision: 'accepted',
+  scope_ref: `project/coding-paths/${pathId}.md#definition-of-done`,
+  advisory_disposition: 'all fixed or explicitly deferred in this record',
+  __file: `atomik-project/sessions/2026-08-25-${pathId.toLowerCase()}-closing.md`
+})
+
 /** `git status --porcelain -z` output: NUL-terminated records, never quoted. */
 const z = (...records) => records.map((r) => `${r}\0`).join('')
 
@@ -58,8 +79,16 @@ const run = (changed, branch, paths = [A_PATH], extra = {}) =>
     resolveFile: () => true,
     trunkContained: true,
     registrationState: 'registered',
-    ceremonyFor: () => true,
+    registrationBaseState: 'match',
+    closureFor: (id) => acceptedRecord(id),
+    closureStateFor: (path) => ({
+      subjectIsAncestor: true,
+      commitsAfterSubject: path.front.status === 'done' ? 2 : 1,
+      forbiddenFiles: []
+    }),
     openingFor: () => true,
+    previousPaths: new Map(paths.map((path) => [path.file, path.front])),
+    immutableMutations: [],
     ...extra
   })
 
@@ -77,20 +106,24 @@ test('a declared path that is neither running nor closing as done is blocked', (
   assert.ok(rules(found, 'blocking').includes('branch-path'))
 })
 
-test('a done path may finish on its own branch when its ceremony is recorded', () => {
-  const done = { ...A_PATH, front: { ...A_PATH.front, status: 'done' } }
-  const closing = [done.file, 'atomik-project/sessions/cp-mvp-010-closing.md']
+test('a path branch may declare ready only for an exactly accepted candidate', () => {
+  const ready = {
+    ...A_PATH,
+    front: { ...A_PATH.front, status: 'ready', subject_commit: CANDIDATE }
+  }
+  const closing = [ready.file, 'atomik-project/sessions/cp-mvp-010-closing.md']
 
-  const recorded = run(closing, 'path/cp-mvp-010', [done], {
-    ceremonyFor: () => true
+  const recorded = run(closing, 'path/cp-mvp-010', [ready], {
+    previousPaths: new Map([[ready.file, A_PATH.front]])
   })
   assert.ok(!rules(recorded, 'blocking').includes('branch-path'))
-  assert.ok(!rules(recorded, 'blocking').includes('ceremony'))
+  assert.ok(!rules(recorded, 'blocking').includes('acceptance'))
 
-  const missing = run(closing, 'path/cp-mvp-010', [done], {
-    ceremonyFor: () => false
+  const missing = run(closing, 'path/cp-mvp-010', [ready], {
+    previousPaths: new Map([[ready.file, A_PATH.front]]),
+    closureFor: () => null
   })
-  assert.ok(rules(missing, 'blocking').includes('ceremony'))
+  assert.ok(rules(missing, 'blocking').includes('acceptance'))
 })
 
 test('a running path with no base commit is blocked', () => {
@@ -122,6 +155,25 @@ test('an unregistered path branch is blocked; a grandfathered one is advisory', 
 
   const registered = run(['README.md'], 'path/cp-mvp-010', [A_PATH])
   assert.ok(!rules(registered, 'blocking').includes('registration'))
+})
+
+test('unavailable registration evidence is inconclusive and still exits through blocking', () => {
+  const found = run(['README.md'], 'path/cp-mvp-010', [A_PATH], {
+    registrationState: null,
+    registrationBaseState: null
+  })
+  for (const rule of ['registration', 'registration-base']) {
+    assert.ok(found.some((finding) =>
+      finding.rule === rule && finding.level === 'blocking' &&
+      finding.outcome === 'inconclusive'))
+  }
+})
+
+test('a base_commit different from the registration parent is blocked', () => {
+  const found = run(['README.md'], 'path/cp-mvp-010', [A_PATH], {
+    registrationBaseState: 'mismatch'
+  })
+  assert.ok(rules(found, 'blocking').includes('registration-base'))
 })
 
 test('a trunk registration must match the path identity, running state and branch', () => {
@@ -182,8 +234,8 @@ test('base commits are real-looking Git pins, not YAML null strings', () => {
 /**
  * THE REBASE GATE. Every path merges itself, so nothing else stops a stale
  * branch from landing on a trunk it never saw. Unknown (null) must read as
- * "cannot tell", never as "stale" — a fresh clone or a detached CI checkout
- * must not fail for a reason the author cannot fix.
+ * "cannot tell", never as a pass — a fresh or shallow checkout must fetch the
+ * evidence before this critical gate can certify a candidate.
  */
 test('a path branch behind the trunk is blocked; up to date is not', () => {
   const stale = run(['README.md'], 'path/cp-mvp-010', [A_PATH], { trunkContained: false })
@@ -193,7 +245,9 @@ test('a path branch behind the trunk is blocked; up to date is not', () => {
   assert.ok(!rules(fresh, 'blocking').includes('rebase'))
 
   const unknown = run(['README.md'], 'path/cp-mvp-010', [A_PATH], { trunkContained: null })
-  assert.ok(!rules(unknown, 'blocking').includes('rebase'))
+  assert.ok(rules(unknown, 'blocking').includes('rebase'))
+  assert.ok(unknown.some((finding) => finding.rule === 'rebase' &&
+    finding.outcome === 'inconclusive'))
 })
 
 test('the trunk itself is never asked to rebase onto itself', () => {
@@ -202,26 +256,43 @@ test('the trunk itself is never asked to rebase onto itself', () => {
 })
 
 /**
- * With no integrator, the closing ceremony is the only human guard left
- * before a path merges itself — so a path claiming done must show its note.
+ * `done` is an integration fact on the trunk and is backed by the exact closing
+ * acceptance, not by a path-id-only ceremony marker.
  */
-test('a path marked done without a ceremony note is blocked', () => {
-  const done = { ...A_PATH, front: { ...A_PATH.front, status: 'done' } }
+test('a path marked done without exact candidate acceptance is blocked', () => {
+  const done = {
+    ...A_PATH,
+    front: {
+      ...A_PATH.front,
+      status: 'done',
+      subject_commit: CANDIDATE,
+      resolution: 'completed'
+    }
+  }
   const closing = [done.file, 'atomik-project/sessions/x.md']
 
-  const missing = run(closing, 'master', [done], { ceremonyFor: () => false })
-  assert.ok(rules(missing, 'blocking').includes('ceremony'))
+  const missing = run(closing, 'master', [done], {
+    previousPaths: new Map([[done.file, A_PATH.front]]),
+    closureFor: () => null
+  })
+  assert.ok(rules(missing, 'blocking').includes('acceptance'))
 
-  const recorded = run(closing, 'master', [done], { ceremonyFor: () => true })
-  assert.ok(!rules(recorded, 'blocking').includes('ceremony'))
+  const recorded = run(closing, 'master', [done], {
+    previousPaths: new Map([[done.file, A_PATH.front]])
+  })
+  assert.ok(!rules(recorded, 'blocking').includes('acceptance'))
 })
 
 test('paths that closed before the rule existed are left alone', () => {
-  // Scoped to the change that marks a path done: an old path sitting at
-  // `done` in the corpus must not fail a change that never touched it.
+  // The full branch diff may include a historical migration of this file. The
+  // exact proposed work unit does not, so the new schema must not punish it.
   const legacy = { ...A_PATH, front: { ...A_PATH.front, status: 'done' } }
-  const found = run(['README.md'], 'master', [legacy], { ceremonyFor: () => false })
-  assert.ok(!rules(found, 'blocking').includes('ceremony'))
+  const found = run([legacy.file], 'master', [legacy], {
+    stateChanged: [],
+    closureFor: () => null
+  })
+  assert.ok(!rules(found, 'blocking').includes('acceptance'))
+  assert.ok(!rules(found, 'blocking').includes('transition'))
 })
 
 test('the journal warns but never blocks', () => {
@@ -275,6 +346,18 @@ test('source without a module note is blocked, with it is not', () => {
     'path/cp-mvp-010'
   )
   assert.deepEqual(rules(complete, 'blocking'), [])
+})
+
+test('same-work-unit guards apps, packages, and shared source roots', () => {
+  for (const source of ['packages/protocol/index.ts', 'shared/schema.ts']) {
+    const missing = run([source, A_PATH.file], 'path/cp-mvp-010')
+    assert.ok(rules(missing, 'blocking').includes('same-work-unit'), source)
+    const complete = run(
+      [source, 'docs/modules/atomik-desktop-shell.md', A_PATH.file],
+      'path/cp-mvp-010'
+    )
+    assert.ok(!rules(complete, 'blocking').includes('same-work-unit'), source)
+  }
 })
 
 test('source without a coding path update is blocked', () => {
@@ -371,6 +454,33 @@ test('running path schema requires the fields the global projection consumes', (
   }).some((error) => error.includes('Git hash')))
 })
 
+test('ready and blocked preserve branch traceability; ready also pins its candidate', () => {
+  const blocked = { ...A_PATH.front, status: 'blocked' }
+  assert.deepEqual(pathFrontmatterErrors(blocked), [])
+  assert.ok(pathFrontmatterErrors({ id: 'CP-X', status: 'blocked' })
+    .some((error) => error.includes('atomik.branch')))
+
+  const ready = { ...A_PATH.front, status: 'ready', subject_commit: CANDIDATE }
+  assert.deepEqual(pathFrontmatterErrors(ready), [])
+  assert.ok(pathFrontmatterErrors({ ...ready, subject_commit: 'aaaaaaa' })
+    .some((error) => error.includes('40-character')))
+})
+
+test('path identity, filename, and branch use one reconstructable convention', () => {
+  assert.deepEqual(pathFrontmatterErrors(
+    A_PATH.front,
+    'atomik-project/coding-paths/CP-MVP-010.md'
+  ), [])
+  assert.ok(pathFrontmatterErrors(
+    { ...A_PATH.front, branch: 'path/something-else' },
+    'atomik-project/coding-paths/CP-MVP-010.md'
+  ).some((error) => error.includes('must equal path/cp-mvp-010')))
+  assert.ok(pathFrontmatterErrors(
+    A_PATH.front,
+    'atomik-project/coding-paths/CP-WRONG.md'
+  ).some((error) => error.includes('does not match the file name')))
+})
+
 test('area mapping routes source to its module note', () => {
   assert.equal(areaOf('apps/desktop/shared/graph-core.ts'), 'graph')
   assert.equal(areaOf('apps/desktop/renderer/src/editor/EditorPane.tsx'), 'editor')
@@ -410,6 +520,45 @@ test('porcelain paths: renames report the new path, noise is dropped', () => {
   )
   assert.deepEqual(porcelainPaths(''), [])
   assert.deepEqual(porcelainPaths(z('', '')), [])
+})
+
+test('append-only mutation parsing permits additions and reports existing changes', () => {
+  assert.deepEqual(porcelainMutations(z(
+    '?? atomik-project/audits/new.md',
+    'A  atomik-project/sessions/new.md',
+    ' M atomik-project/audits/existing.md',
+    'D  atomik-project/log/existing.md',
+    'R  atomik-project/audits/renamed.md',
+    'atomik-project/audits/old.md'
+  )), [
+    'atomik-project/audits/existing.md',
+    'atomik-project/log/existing.md',
+    'atomik-project/audits/renamed.md',
+    'atomik-project/audits/old.md'
+  ])
+})
+
+test('committed mutation parsing keeps both sides of renames and treats copies as additions', () => {
+  assert.deepEqual(nameStatusMutations([
+    'M', 'atomik-project/audits/existing.md',
+    'A', 'atomik-project/audits/new.md',
+    'R100', 'atomik-project/audits/old.md', 'elsewhere/renamed.md',
+    'C100', 'atomik-project/audits/source.md', 'atomik-project/audits/copy.md',
+    ''
+  ].join('\0')), [
+    'atomik-project/audits/existing.md',
+    'atomik-project/audits/old.md',
+    'elsewhere/renamed.md'
+  ])
+})
+
+test('append-only namespaces exclude their mutable index and log views', () => {
+  assert.equal(isImmutableRecord('atomik-project/sessions/2026-08-25-x.md'), true)
+  assert.equal(isImmutableRecord('atomik-project/audits/cp-x-aaaa.md'), true)
+  assert.equal(isImmutableRecord('atomik-project/sessions/index.md'), false)
+  assert.equal(isImmutableRecord('atomik-project/audits/log.md'), false)
+  assert.equal(isImmutableRecord('atomik-project/log/index.md'), false)
+  assert.equal(isImmutableRecord('atomik-project/log.md'), true)
 })
 
 test('a path with a space is read whole, not quoted (CP-OPS-002 S06d)', () => {
@@ -512,13 +661,91 @@ test('a ceremony note belongs to exactly one path', () => {
   assert.equal(ceremonyFromSessions([], 'CP-MVP-001'), false)
 })
 
-test('done with only an opening check on record is blocked', () => {
-  const done = { ...A_PATH, front: { ...A_PATH.front, status: 'done' } }
-  const sessions = [{ path: 'CP-MVP-010', ceremony: 'opening' }]
-  const found = run([done.file], 'path/cp-mvp-010', [done], {
-    ceremonyFor: (id) => ceremonyFromSessions(sessions, id)
+test('closing lookup selects the acceptance for the current candidate', () => {
+  const old = acceptedRecord(A_PATH.front.id, 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')
+  const current = acceptedRecord(A_PATH.front.id, CANDIDATE)
+  assert.equal(
+    closingRecordFromSessions([old, current], A_PATH.front.id, CANDIDATE),
+    current
+  )
+  assert.equal(
+    closingRecordFromSessions([old], A_PATH.front.id, CANDIDATE),
+    null
+  )
+})
+
+test('closing acceptance names the exact candidate, actor, time, scope, and advisory disposition', () => {
+  assert.deepEqual(closingAcceptanceErrors(acceptedRecord(), A_PATH.front.id), [])
+  const incomplete = {
+    path: A_PATH.front.id,
+    ceremony: 'closing',
+    subject_commit: 'aaaaaaa',
+    decision: 'accepted'
+  }
+  const errors = closingAcceptanceErrors(incomplete, A_PATH.front.id)
+  for (const field of [
+    'subject_commit', 'accepted_by', 'accepted_at', 'scope_ref', 'advisory_disposition'
+  ]) assert.ok(errors.some((error) => error.includes(field)), field)
+})
+
+test('implementation changes after exact acceptance invalidate ready', () => {
+  const ready = {
+    ...A_PATH,
+    front: { ...A_PATH.front, status: 'ready', subject_commit: CANDIDATE }
+  }
+  const found = run([ready.file], 'path/cp-mvp-010', [ready], {
+    previousPaths: new Map([[ready.file, A_PATH.front]]),
+    closureStateFor: () => ({
+      subjectIsAncestor: true,
+      commitsAfterSubject: 1,
+      forbiddenFiles: ['apps/desktop/electron-main/index.ts']
+    })
   })
-  assert.ok(rules(found, 'blocking').includes('ceremony'))
+  assert.ok(found.some((finding) =>
+    finding.rule === 'acceptance' && finding.message.includes('implementation changed')))
+})
+
+test('an existing durable record cannot be rewritten, but a new record may be added', () => {
+  const existing = run(
+    ['atomik-project/audits/existing.md'],
+    'path/cp-mvp-010',
+    [A_PATH],
+    { immutableMutations: ['atomik-project/audits/existing.md'] }
+  )
+  assert.ok(rules(existing, 'blocking').includes('record-integrity'))
+
+  const added = run(
+    ['atomik-project/audits/new.md'],
+    'path/cp-mvp-010',
+    [A_PATH],
+    { immutableMutations: [] }
+  )
+  assert.ok(!rules(added, 'blocking').includes('record-integrity'))
+
+  const unknown = run(
+    ['atomik-project/audits/maybe-new.md'],
+    'path/cp-mvp-010',
+    [A_PATH],
+    { immutableMutations: null }
+  )
+  assert.ok(unknown.some((finding) =>
+    finding.rule === 'record-integrity' && finding.outcome === 'inconclusive'))
+})
+
+test('ready with only an opening check on record is blocked', () => {
+  const ready = {
+    ...A_PATH,
+    front: { ...A_PATH.front, status: 'ready', subject_commit: CANDIDATE }
+  }
+  const sessions = [{ path: 'CP-MVP-010', ceremony: 'opening' }]
+  const found = run([ready.file], 'path/cp-mvp-010', [ready], {
+    previousPaths: new Map([[ready.file, A_PATH.front]]),
+    closureFor: (id) => {
+      const closed = ceremonyFromSessions(sessions, id)
+      return closed ? acceptedRecord(id) : null
+    }
+  })
+  assert.ok(rules(found, 'blocking').includes('acceptance'))
 })
 
 
@@ -564,10 +791,18 @@ test('a path this change does not touch is never examined', () => {
 })
 
 test('a path that is not running is out of scope for the opening gate', () => {
-  const done = { ...A_PATH, front: { ...A_PATH.front, status: 'done' } }
+  const done = {
+    ...A_PATH,
+    front: {
+      ...A_PATH.front,
+      status: 'done',
+      subject_commit: CANDIDATE,
+      resolution: 'completed'
+    }
+  }
   const found = run([done.file], 'path/cp-mvp-010', [done], {
     openingFor: () => false,
-    ceremonyFor: () => true
+    previousPaths: new Map([[done.file, A_PATH.front]])
   })
   assert.ok(!rules(found, 'blocking').includes('opening-ceremony'))
 })
@@ -780,6 +1015,47 @@ const running = (id, branch) => ({
   writes: []
 })
 
+test('path ids and branch names are unique across the repository corpus', () => {
+  const paths = [
+    running('CP-A', 'path/cp-a'),
+    running('CP-A', 'path/cp-b'),
+    running('CP-C', 'path/cp-a')
+  ]
+  const errors = duplicatePathIdentityFindings(paths)
+  assert.ok(errors.some((error) => error.startsWith('id "CP-A"')))
+  assert.ok(errors.some((error) => error.startsWith('branch "path/cp-a"')))
+})
+
+test('lifecycle transitions distinguish ready from integrated done', () => {
+  const ready = { ...A_PATH.front, status: 'ready', subject_commit: CANDIDATE }
+  const done = {
+    ...ready,
+    status: 'done',
+    resolution: 'completed'
+  }
+  assert.deepEqual(transitionErrors(A_PATH.front, ready, true), [])
+  assert.deepEqual(transitionErrors(A_PATH.front, done, false), [])
+  assert.ok(transitionErrors(A_PATH.front, done, true)
+    .some((error) => error.includes('cannot claim `done`')))
+  assert.ok(transitionErrors({ ...A_PATH.front, status: 'blocked' }, ready, true)
+    .some((error) => error.includes('not allowed')))
+  assert.ok(transitionErrors(A_PATH.front, { ...A_PATH.front, status: 'archived' })
+    .some((error) => error.includes('requires resolution')))
+  assert.ok(transitionErrors(A_PATH.front, {
+    ...A_PATH.front, status: 'archived', resolution: 'completed'
+  }).some((error) => error.includes('never completed')))
+  assert.deepEqual(transitionErrors(done, {
+    ...done, status: 'archived', resolution: 'completed'
+  }), [])
+})
+
+test('a path declaration is archived with a resolution, never deleted', () => {
+  const file = 'atomik-project/coding-paths/CP-DELETED.md'
+  const found = run([file], 'master', [], { stateChanged: [file] })
+  assert.ok(found.some((finding) =>
+    finding.rule === 'transition' && finding.message.includes('instead of deleting')))
+})
+
 test('active is out of the status vocabulary (F11)', () => {
   // It was accepted by schema and rejected by branch-path, so a path
   // declaring it failed with a message about a different problem.
@@ -787,8 +1063,11 @@ test('active is out of the status vocabulary (F11)', () => {
   assert.equal(errors.length, 1)
   assert.match(errors[0], /outside the vocabulary/)
   assert.doesNotMatch(errors[0], /active \|/)
-  // the states the lifecycle actually has all pass
-  for (const status of ['draft', 'blocked', 'archived'])
+  // branch-bearing dormant work retains the identity needed to resume it
+  assert.deepEqual(pathFrontmatterErrors({
+    id: 'CP-X', status: 'blocked', branch: 'path/cp-x', base_commit: '7aa3b1d'
+  }), [])
+  for (const status of ['draft', 'archived'])
     assert.deepEqual(pathFrontmatterErrors({ id: 'CP-X', status }), [])
 })
 

@@ -60,6 +60,10 @@ export const RULE_METADATA = {
     condition: 'Path declaration tuple (id, running, branch, base) missing from trunk',
     enforcing: "pathRegistrationState() === 'missing' (blocking) or declared migration exception (advisory)"
   },
+  'registration-base': {
+    condition: 'Path base_commit cannot be proved to equal the registration commit parent',
+    enforcing: "pathRegistrationBaseState() === 'mismatch' | null"
+  },
   'remote-checkpoint': {
     condition: 'Local path HEAD not present on upstream tracking branch',
     enforcing: "pathRemoteCheckpoint(branch).state === 'missing' | 'unpushed'"
@@ -72,9 +76,17 @@ export const RULE_METADATA = {
     condition: 'Path declared running without an opening-check session note',
     enforcing: "!openingFor(pathId) via session frontmatter { path, ceremony: 'opening' }"
   },
-  'ceremony': {
-    condition: 'Path marked done without closing ceremony session note frontmatter',
-    enforcing: "!ceremonyFor(pathId) via session frontmatter { path, ceremony: 'closing' }"
+  'transition': {
+    condition: 'Changed path state is not an allowed lifecycle transition, or prior state is unavailable',
+    enforcing: 'transitionErrors(previous, current, onPathBranch)'
+  },
+  'acceptance': {
+    condition: 'Ready/done path lacks exact-commit acceptance or changed implementation after acceptance',
+    enforcing: 'closingAcceptanceErrors(record, pathId) + pathClosureState(path, record)'
+  },
+  'record-integrity': {
+    condition: 'Existing session, audit, journal, or rolled-history record was modified, renamed, or deleted',
+    enforcing: 'immutableRecordMutations(previousRef) + isImmutableRecord(file)'
   },
   'single-truth': {
     condition: 'Manual edits to shared/derived statements of record',
@@ -82,7 +94,7 @@ export const RULE_METADATA = {
   },
   'same-work-unit': {
     condition: 'Source changed without accompanying module note and coding path update',
-    enforcing: 'touched(sourceRoots) => touched(moduleNotes) && touched(pathDirectory)'
+    enforcing: 'touched(GUARDED_ROOTS) => touched(docs/modules/) && touched(PATH_DIR)'
   },
   'area-note': {
     condition: 'Subsystem source changed without touching matching area module note',
@@ -109,8 +121,8 @@ export const RULE_METADATA = {
     enforcing: 'staleRunningPaths(corpus, branchAges(corpus)) — advisory always; an unresolvable branch reports nothing'
   },
   'coherence-audit': {
-    condition: 'Path rebased HEAD lacks a filled, correctly bound coherence-audit record',
-    enforcing: 'cairn-audit --check in the configured audit directory'
+    condition: 'Ready path lacks a filled coherence audit bound to its exact subject_commit',
+    enforcing: 'cairn-audit --check --subject path.subject_commit'
   },
   'schema': {
     condition: 'Path or ADR frontmatter fails parsing, or an id/status/date is outside vocabulary',

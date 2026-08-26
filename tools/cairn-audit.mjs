@@ -13,19 +13,21 @@
  *
  *   the AGENT produces the judgment    reads the rebased diff against bedrock,
  *                                      the ADRs, and the path's declared coverage
- *   CI checks only that it EXISTS      a deterministic gate on a
+ *   CI checks binding + completeness   a deterministic gate on a
  *                                      non-deterministic activity
- *   its verdict never blocks           findings are advisory, read by a human
+ *   its verdict is not machine-judged  findings are disposed by the acceptor
  *
- * This script writes the empty record, stamped with the head commit it belongs
- * to, so the check has something objective to look for. Filling it in is the
+ * This script writes the empty record, stamped with the exact implementation
+ * candidate it reviews, so the check has something objective to look for. A
+ * later administrative closure commit may contain the record without changing
+ * that subject. Filling it in is the
  * agent's job — an unfilled record is visible as unfilled, which is the point:
  * a missing audit and a lazy audit should not look the same. `fillErrors()` is
  * what makes that true of a HOLLOWED-OUT record too: deleting the placeholder
  * is a deletion, not an audit (F10).
  *
  *   node tools/cairn-audit.mjs                        # scaffold for the current branch
- *   node tools/cairn-audit.mjs --check [--base <ref>] # exit 1 if this path has none
+ *   node tools/cairn-audit.mjs --check --subject <sha> [--branch path/<id>]
  */
 
 import { execFileSync } from 'node:child_process'
@@ -37,34 +39,37 @@ import { readFrontmatter } from './cairn-check.mjs'
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const AUDIT_DIR = 'atomik-project/audits'
 const PATH_DIR = 'atomik-project/coding-paths'
+const SESSION_DIR = 'atomik-project/sessions'
 
 const PLACEHOLDER = 'TO BE FILLED BY THE AUDITING AGENT'
 
-/** An audit belongs to one head commit: re-running after another rebase
+/** An audit belongs to one candidate commit: re-running after another rebase
  *  produces another record rather than overwriting the last one, so the
  *  history of what was checked survives. */
-export function auditName(pathId, head) {
-  return `${pathId.toLowerCase()}-${head.slice(0, 7)}.md`
+export function auditName(pathId, subjectCommit) {
+  return `${pathId.toLowerCase()}-${subjectCommit}.md`
 }
 
-export function auditTemplate({ pathId, branch, head, base }) {
+export function auditTemplate({ pathId, branch, subjectCommit, base }) {
   return `---
 type: Atomik Coherence Audit
-title: Coherence audit — ${pathId} @ ${head.slice(0, 7)}
+title: Coherence audit — ${pathId} @ ${subjectCommit.slice(0, 7)}
 timestamp: ${new Date().toISOString()}
 atomik:
   path: ${pathId}
   branch: ${branch}
-  head: ${head}
+  subject_commit: ${subjectCommit}
   base: ${base}
   verdict: ${PLACEHOLDER}
 ---
 
-# Coherence audit — ${pathId} @ ${head.slice(0, 7)}
+# Coherence audit — ${pathId} @ ${subjectCommit.slice(0, 7)}
 
-Run after the rebase, before the merge. ADVISORY: nothing here blocks. Its job
-is to catch what no deterministic check can — two paths that each pass every
-rule and still pull the architecture in different directions.
+Run after the rebase, before acceptance. The judgement in this record is not a
+machine verdict; its existence, completeness, and exact candidate binding are
+mechanical closure gates. Its job is to catch what deterministic checks cannot
+— two paths that each pass every rule and still pull the architecture in
+different directions.
 
 ## What to read
 
@@ -179,55 +184,33 @@ function git(args) {
   return execFileSync('git', args, { cwd: REPO, encoding: 'utf8' }).trim()
 }
 
-/** The trunk to measure this path against — the same ref cairn-check uses. */
-function base() {
-  const argv = process.argv
-  return argv.includes('--base') ? argv[argv.indexOf('--base') + 1] : 'master'
-}
-
-/** Commits on this branch and not on the trunk. A missing or unreadable trunk
- *  ref is an ANSWER, not a crash: fall back to HEAD alone, which is the old,
- *  stricter behaviour rather than a silently wider one. */
-function revListOwn(trunkRef) {
-  try {
-    return git(['rev-list', 'HEAD', '--not', trunkRef])
-  } catch {
-    return ''
-  }
-}
-
 /**
- * Which commits may a record legitimately name?
- *
- * The scaffold is stamped with the head it was written for — and then COMMITTING
- * it moves the head, so the record can never name the commit that contains it.
- * `--check` therefore never matched: all nine records in this repository name a
- * different commit from the one holding them, seven of them exactly the parent
- * (audit 2026-08-24, finding F12).
- *
- * The fix is not to rename anything. A record naming HEAD **or any commit this
- * path itself contributed** is describing work this branch actually did, which is
- * what the check is for. Every existing record becomes valid without migration,
- * because that is what they were already doing accidentally.
- *
- * The bound matters: `git rev-list HEAD --not <trunk>` is exactly this path's own
- * commits. A record naming an arbitrary trunk ancestor would prove nothing about
- * this branch, and one belonging to a DIFFERENT path is refused outright — the
- * file name carries the path id, so that is checked rather than assumed.
+ * A closing audit is valid for exactly one candidate commit. The administrative
+ * closure commit may contain this record, but it cannot widen the record's
+ * subject to HEAD or to any earlier path commit.
  */
-export function findAudit(files, shas, pathId) {
-  const acceptable = new Set(shas.map((sha) => auditName(pathId, sha)))
-  return files.find((file) => acceptable.has(file))
+export function findAudit(files, subjectCommit, pathId) {
+  if (!/^[0-9a-f]{40}$/i.test(String(subjectCommit))) return undefined
+  const expected = auditName(pathId, subjectCommit)
+  return files.find((file) => file === expected)
 }
 
-/** This path's own commits, newest first, HEAD included. Pure: it takes the
- *  `git rev-list` output rather than running Git, so the rule is testable. */
-export function ownCommits(revListOutput, head) {
-  const listed = String(revListOutput || '')
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
-  return listed.includes(head) ? listed : [head, ...listed]
+export function auditBindingErrors(
+  text,
+  { pathId, subjectCommit, branch = null, baseCommit = null }
+) {
+  const front = readFrontmatter(text)?.data?.atomik
+  const errors = []
+  if (!front) return ['missing atomik audit frontmatter']
+  if (front.path !== pathId) errors.push(`atomik.path must equal ${pathId}`)
+  if (front.subject_commit !== subjectCommit) {
+    errors.push(`atomik.subject_commit must equal ${subjectCommit}`)
+  }
+  if (branch && front.branch !== branch) errors.push(`atomik.branch must equal ${branch}`)
+  if (baseCommit && front.base !== baseCommit) {
+    errors.push(`atomik.base must equal ${baseCommit}`)
+  }
+  return errors
 }
 
 function currentPath(branch) {
@@ -239,8 +222,28 @@ function currentPath(branch) {
   return null
 }
 
+function closingSubject(pathId) {
+  try {
+    let subject = null
+    for (const name of readdirSync(join(REPO, SESSION_DIR)).filter((f) => f.endsWith('.md')).sort()) {
+      const data = readFrontmatter(readFileSync(join(REPO, SESSION_DIR, name), 'utf8'))?.data
+      if (data?.path !== pathId || String(data?.ceremony).toLowerCase() !== 'closing') continue
+      if (data?.decision !== 'accepted') continue
+      if (/^[0-9a-f]{40}$/i.test(String(data?.subject_commit))) subject = data.subject_commit
+    }
+    return subject
+  } catch {
+    return null
+  }
+}
+
+export function resolveAuditBranch(argv, gitBranch) {
+  const at = argv.indexOf('--branch')
+  return at === -1 ? gitBranch : argv[at + 1]
+}
+
 function main() {
-  const branch = git(['rev-parse', '--abbrev-ref', 'HEAD'])
+  const branch = resolveAuditBranch(process.argv, git(['rev-parse', '--abbrev-ref', 'HEAD']))
   const head = git(['rev-parse', 'HEAD'])
   const dir = join(REPO, AUDIT_DIR)
   mkdirSync(dir, { recursive: true })
@@ -253,17 +256,35 @@ function main() {
       console.log(`cairn-audit — nothing to check: "${branch}" is not a path branch`)
       process.exit(0)
     }
-    const candidates = ownCommits(revListOwn(base()), head)
-    const found = findAudit(existing, candidates, front.id)
-    if (!found) {
+    const explicitSubject = process.argv.includes('--subject')
+      ? process.argv[process.argv.indexOf('--subject') + 1]
+      : null
+    const subject = explicitSubject || closingSubject(front.id)
+    if (!/^[0-9a-f]{40}$/i.test(String(subject))) {
       console.error(
-        `cairn-audit — no coherence audit for ${front.id} naming ${head.slice(0, 7)} ` +
-        `or any of this path's ${candidates.length - 1} earlier commit(s). Run: npm run cairn-audit`)
+        `cairn-audit — no accepted 40-character subject_commit for ${front.id}; ` +
+        'record the exact closing candidate or pass --subject <sha>')
       process.exit(1)
     }
-    const unfilled = fillErrors(readFileSync(join(dir, found), 'utf8'))
-    if (unfilled.length) {
-      console.error(`cairn-audit — ${found} is not a completed audit: ${unfilled.join('; ')}`)
+    const found = findAudit(existing, subject, front.id)
+    if (!found) {
+      console.error(
+        `cairn-audit — no coherence audit for ${front.id} naming exact candidate ` +
+        `${subject}. Run the audit again for that candidate`)
+      process.exit(1)
+    }
+    const text = readFileSync(join(dir, found), 'utf8')
+    const invalid = [
+      ...auditBindingErrors(text, {
+        pathId: front.id,
+        subjectCommit: subject,
+        branch,
+        baseCommit: front.base_commit
+      }),
+      ...fillErrors(text)
+    ]
+    if (invalid.length) {
+      console.error(`cairn-audit — ${found} is not a valid completed audit: ${invalid.join('; ')}`)
       process.exit(1)
     }
     console.log(`cairn-audit — ${found} present and filled`)
@@ -285,7 +306,12 @@ function main() {
   }
   writeFileSync(
     file,
-    auditTemplate({ pathId: front.id, branch, head, base: front.base_commit ?? 'unpinned' }),
+    auditTemplate({
+      pathId: front.id,
+      branch,
+      subjectCommit: head,
+      base: front.base_commit ?? 'unpinned'
+    }),
     'utf8'
   )
   console.log(`cairn-audit — scaffolded ${AUDIT_DIR}/${auditName(front.id, head)}`)

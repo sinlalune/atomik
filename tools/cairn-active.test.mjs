@@ -27,16 +27,19 @@ const pathFile = (id, { status = 'running', branch, base = 'abc1234' } = {}) => 
   ].join('\n')
 })
 
-test('only running paths that declare a branch appear', () => {
-  const running = collectPaths([
+test('running, blocked and ready paths remain visible while done paths leave the live view', () => {
+  const live = collectPaths([
     pathFile('CP-MVP-010', { branch: 'path/cp-mvp-010' }),
+    pathFile('CP-MVP-011', { status: 'blocked', branch: 'path/cp-mvp-011' }),
+    pathFile('CP-MVP-012', { status: 'ready', branch: 'path/cp-mvp-012' }),
     pathFile('CP-MVP-009', { status: 'done', branch: 'path/cp-mvp-009' }),
     pathFile('CP-OPS-001', { status: 'active' }),
-    pathFile('CP-MVP-012', { status: 'running' }) // running but no branch
+    pathFile('CP-MVP-013', { status: 'running' }) // running but no branch
   ])
-  assert.deepEqual(running.map((p) => p.id), ['CP-MVP-010'])
-  assert.equal(running[0].branch, 'path/cp-mvp-010')
-  assert.equal(running[0].base, 'abc1234')
+  assert.deepEqual(live.map((p) => p.id), ['CP-MVP-010', 'CP-MVP-011', 'CP-MVP-012'])
+  assert.deepEqual(live.map((p) => p.status), ['running', 'blocked', 'ready'])
+  assert.equal(live[0].branch, 'path/cp-mvp-010')
+  assert.equal(live[0].base, 'abc1234')
 })
 
 test('output is deterministic whatever order the files are read in', () => {
@@ -48,9 +51,9 @@ test('output is deterministic whatever order the files are read in', () => {
   assert.ok(forward.indexOf('CP-MVP-010') < forward.indexOf('CP-MVP-011'))
 })
 
-test('no running paths reads as an honest empty state, never a blank block', () => {
+test('no live paths reads as an honest empty state, never a blank block', () => {
   const rendered = renderPaths([])
-  assert.ok(rendered.includes('no path running'))
+  assert.ok(rendered.includes('no live path'))
   assert.ok(rendered.trim().length > 0)
 })
 
