@@ -431,7 +431,15 @@ The adoption group, and the last of the fourteen rows that could be reached at a
   row. Code spans and fences are now stripped before any marker is judged — the same lesson
   the link rule learned against 34 false positives — and the catalogue text quotes its
   example. A rule that flags its own specification is a rule people switch off.
-- Twelve regression tests; checker suite 110 → 122, full suite 157 → 169.
+- **The lifecycle table was reconciled with the specification in the same step**, closing
+  the one v0.2 row that had been corrected in prose and left untouched in code:
+  `ready → blocked` now exists (acceptance stalls), `blocked → ready` still does not
+  (reaching `ready` is execution), an unchanged state is accepted for every state, and an
+  archived resolution is terminal. Doing so exposed a pre-existing defect — an unchanged
+  `done → archived (completed)` record failed the "unintegrated paths archive as abandoned
+  or superseded" rule on every later run, because an unchanged state was being read as an
+  archiving event. Fixed with the reason recorded rather than the symptom silenced.
+- Fifteen regression tests; checker suite 110 → 125, full suite 157 → 172.
 
 ### S08 — Extract Cairn from Atomik
 

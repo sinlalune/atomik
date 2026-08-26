@@ -476,9 +476,19 @@ export function transitionErrors(previous, current, onPathBranch = false) {
     null: ['draft', 'running'],
     draft: ['draft', 'running', 'archived'],
     running: ['running', 'blocked', 'ready', 'archived'],
+    // No blocked → ready: reaching `ready` means producing and auditing a
+    // candidate, which is execution. An unblocked path returns to `running`
+    // and reaches `ready` from there.
     blocked: ['blocked', 'running', 'archived'],
-    ready: ['ready', 'running', 'done'],
+    // ready → blocked exists because acceptance stalls. A candidate audited and
+    // waiting on an unavailable reviewer is blocked on a named condition, and
+    // saying so is more useful than a `ready` that quietly ages.
+    ready: ['ready', 'running', 'blocked', 'done'],
     done: ['done', 'archived'],
+    // `archived` is terminal and has no outgoing edge. It appears here because
+    // an UNCHANGED state is not a transition: a validator comparing two commits
+    // routinely sees a record that declared `archived` before and declares it
+    // now, and that is no event at all. What must not change is its resolution.
     archived: ['archived']
   }
 
@@ -495,9 +505,19 @@ export function transitionErrors(previous, current, onPathBranch = false) {
   if (to === 'archived' && from === 'done' && current?.resolution !== 'completed') {
     errors.push('done → archived requires resolution: completed')
   }
+  if (from === 'archived' && to === 'archived' && previous?.resolution !== current?.resolution) {
+    errors.push(
+      `an archived path's resolution is terminal: ${previous?.resolution ?? 'none'} cannot become ${current?.resolution ?? 'none'}`
+    )
+  }
   if (
     to === 'archived' &&
     from !== 'done' &&
+    // An UNCHANGED archived record is not an archiving event, so it is not an
+    // unintegrated path archiving as `completed`. Without this the rule failed
+    // every later run over a correctly completed-and-archived path — a defect
+    // that only became visible once the table was reconciled in both directions.
+    from !== 'archived' &&
     !['abandoned', 'superseded'].includes(current?.resolution)
   ) {
     errors.push('an unintegrated path archives as abandoned or superseded, never completed')
