@@ -437,6 +437,20 @@ candidate, a standalone closing record, and an
 [administrative closure](./concepts/administrative-closure.md) commit distinct
 from the candidate.
 
+Triggers 1–3 are structural and derivable from the declaration. Triggers 4 and 5
+are an expectation and a policy, so they are declared rather than derived — and a
+route made of self-declarations has an obvious failure mode: everything declares
+itself lightweight, ceremony evaporates, and no rule ever fires.
+
+One structural backstop closes most of that gap. Trigger 4 is unobservable as an
+*expectation*, but **having** spanned more than one work unit is a fact in the
+ledger:
+
+> A path whose ledger declares more than one `cairn-unit` MUST declare
+> `route: full`.
+
+It is the same trigger arriving one unit late, and it cannot be declared away.
+
 Escalation is one-way. A lightweight path that meets any trigger MUST escalate
 before its next checkpoint and record the trigger in its ledger. A path MUST NOT
 declare itself down a route: a change does not become small by being called
@@ -934,6 +948,7 @@ accepted_at: 2026-01-15T14:30:00Z
 decision: accepted
 scope_ref: project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
 scope_digest: sha256:9f2c4b1d…
+advisories_at_candidate: [scope-drift, path-staleness]
 advisory_disposition:
   - rule: scope-drift
     disposition: accepted
@@ -958,13 +973,33 @@ is weaker than it looks:
 
 `advisory_disposition` MUST be a list of entries, each naming a `rule`, a
 `disposition` of `fixed`, `accepted`, or `deferred`, and a `reason`. A deferral
-MUST also name an `owner` and a `follow_up`. The list MUST correspond exactly to
-the advisories the checker raised at `C` — no invented entries, no omissions.
+MUST also name an `owner` and a `follow_up`.
 
-Set equality against the findings at `C` is a predicate. A free-text sentence is
-not: as one string, “every advisory MUST be recorded” cannot be checked at all,
-and a reviewer who writes `accepted: none` over three live advisories produces a
-record that reads as complete and is false.
+Set equality is a predicate. A free-text sentence is not: as one string, “every
+advisory MUST be recorded” cannot be checked at all, and a reviewer who writes
+`accepted: none` over three live advisories produces a record that reads as
+complete and is false.
+
+Equality against *what* is the load-bearing question. The obvious answer —
+whatever the checker raises when it evaluates the closure commit `A` — is
+**unsound**. `A` is field-restricted by construction, so the advisories it can
+raise are a strict subset of those raised at `C`; a rule comparing against `A`
+passes while advisories raised at the candidate go undisposed, which is exactly
+the failure this requirement exists to prevent.
+
+The closing record therefore **attests** the set raised at `C`, in
+`advisories_at_candidate`, bound to `C` by the audit's subject. Two facts follow
+and both MUST hold:
+
+1. the dispositions cover exactly the attested set — no omissions, no invented
+   entries;
+2. every advisory raised at `A` appears in the attested set. Because `A`'s
+   findings are a subset of `C`'s, an advisory firing at `A` and missing from
+   the record proves the attestation incomplete.
+
+An advisory that fires only at `C` remains an attestation rather than a
+derivation. Closing that requires evaluation replayed at `C`, and the
+[conformance matrix](#current-conformance) says so.
 
 ### Add only administrative closure
 
@@ -1318,7 +1353,7 @@ not in a separate document a reader may never open.
 | `running`, `blocked`, `ready`, `done`, `archived` lifecycle | required | transition and state checks implemented for observable changes | complete comparison ref |
 | `ready → blocked` and unchanged-state acceptance | required | implemented; the transition table carries `ready → blocked`, refuses `blocked → ready`, accepts an unchanged state, and holds an archived resolution terminal | complete comparison ref |
 | Exact-candidate audit and closing acceptance | required | implemented | authorised reviewer |
-| Full object id in the repository's configured format | required | **partially implemented**; the installed checker matches a forty-character form | object-format-aware identity check |
+| Full object id in the repository's configured format | required | implemented; the checker accepts SHA-1 and SHA-256 ids and refuses every prefix | a repository configured for another object format |
 | Fail-closed critical inconclusive outcomes | required | implemented | complete trunk and comparison refs |
 | Existing session, audit, history, and journal immutability | required | implemented for new or changed records | complete comparison ref |
 | Checkpoint retention refs before any rewriting push | required | **partially implemented**; every declared unit except the newest must resolve a local retention ref, and every branch commit that is neither retained, provisional, nor `HEAD` is reported as orphaned | remote push of the namespace; a ref *moving* is unobservable to a single-commit validator — only the orphan it leaves behind is |
@@ -1327,11 +1362,11 @@ not in a separate document a reader may never open.
 | Field-level administrative closure surface | required | implemented; closure may move only `status`, `subject_commit`, `current_step` and `resolution` | ledger append-only proof, which remains a separate open row |
 | Scope digest recorded at opening and re-verified at closing | required | implemented; the resolved section is digested and compared at closure | a path opened before the rule cannot amend its immutable opening record — see the migration exception |
 | Candidate base `T` and the acceptance-drift predicate | required | implemented; the trunk delta since the recorded base is tested against `writes:` ∪ `governs:` | path matching is a proxy for semantic overlap, as stated |
-| Structured `advisory_disposition` matching findings at `C` | required | **partially implemented**; set equality holds against the advisories raised in the same run, which evaluates the closure commit rather than the candidate | evaluation replayed at `C` |
+| Structured `advisory_disposition` matching findings at `C` | required | **partially implemented**; dispositions must cover the attested `advisories_at_candidate` exactly, and any advisory raised at `A` and absent from it is proved missing | an advisory that fires only at `C` stays attested rather than derived; closing that needs evaluation replayed at `C` |
 | Recorded roles and the collapsed-actor advisory | required | **partially implemented**; a shared opening/closing actor is reported | `accepted_roles` itself is recorded and not yet validated |
 | `scope-drift` blocking unless the declaration moves in the same commit | required | implemented; drift blocks unless `writes:` moved in the same change | none |
 | Typed work units keyed to their required parts | required | **partially implemented**; the `cairn-unit` block and its type vocabulary are checked | `same-work-unit` does not yet key its requirement to the declared type |
-| `lightweight` default route and one-way escalation | required | **partially implemented**; the vocabulary, the three structural triggers and one-way escalation are checked | the *multi-unit* and *high-risk* triggers are an expectation and a policy, so they stay declared rather than derived |
+| `lightweight` default route and one-way escalation | required | **partially implemented**; the vocabulary, the three structural triggers, the second-unit backstop and one-way escalation are checked | the *high-risk* trigger is a policy and stays declared; the multi-unit trigger is caught one unit late rather than in advance |
 | `foundation` and adoption routes | required | **partially implemented**; the route is declarable and its write surface is confined to documents and the path records it produces | the adoption variant is a use of the same route, not a separate predicate |
 | Repair procedures for protocol violations | required | **not implemented**; procedural, with no predicate proposed | none — repair is recorded, not gated |
 | Redaction ceremony | required | **partially implemented**; every `[redacted: …]` marker must name a redaction record that exists | rotation-first ordering is a procedure, not a predicate |
@@ -1358,6 +1393,24 @@ contract** is a judgement measured by cold resume, the **temporal half of
 checkpoint retention** is unobservable to a validator that sees one commit, and
 **live-ledger prefix proof** awaits explicit ledger markers. Naming what cannot
 be checked is part of the claim.
+
+### Distrust a predicate that asks about a declaration
+
+One failure mode is worth naming for whoever implements this next, because it
+produced two real violations here and both times the gate reported `OK`.
+
+A predicate can ask about a **declaration** — does every unit the ledger names
+resolve a ref? does the disposition match what the checker raises right now? — or
+about a **fact** — is every commit on this branch retained? was every advisory at
+the candidate disposed? The two read almost identically in code and diverge
+exactly when something has gone wrong, because a broken state usually leaves the
+declarations internally consistent. A ref moved forward keeps every declared unit
+resolving. A closure commit's advisory set stays a tidy subset of the candidate's.
+
+Both rules passed over a live violation. Both were rewritten to walk the
+repository instead: the branch itself for retention, an attested candidate set for
+dispositions. When a predicate can be written either way, write the one that can
+disagree with the record.
 
 A requirement whose reference row names a migration exception is not exempt from
 the requirement. The exception is finite, listed in the checker, and reported as

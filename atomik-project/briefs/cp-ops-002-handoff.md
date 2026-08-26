@@ -5,8 +5,8 @@ timestamp: 2026-08-26T00:00:00Z
 atomik:
   path: CP-OPS-002
   branch: path/cp-ops-002
-  checkpoint: 8f84024367aaa153e68c8fa57e3014a6a53adc63
-  checkpoint_unit: 06
+  checkpoint: a523afb0fd576715ed1fd0988d8f5afe7970cd38
+  checkpoint_unit: 08
   checkpoint_pushed: true
   base_commit: 7aa3b1d
   trunk_seen: df875e68c383f6e82b833b755e8925f2fb4651ed
@@ -45,10 +45,10 @@ digests, field-level closure, acceptance drift, structured dispositions,
 collapsed-role advisory, blocking scope drift, and a self-deleting migration
 exception (S07i). Routes, this brief's own contract, and redaction (S07j).
 
-Ten of the fourteen unimplemented v0.2 rows are now enforced or partly enforced.
-Four remain, and are the honest residue rather than a backlog: repair procedures
-have no predicate, the answerable-alone contract is a judgement, the temporal
-half of retention is unobservable, and ledger-prefix proof awaits markers.
+A second review round corrected three predicates rather than adding any: the
+closure surface was more permissive than its own prose, `advisory-disposition`
+was unsound rather than partial, and the object-id check contradicted the spec it
+enforced. The route gained a structural backstop at the second work unit.
 
 One protocol violation occurred and was repaired in S07k: a retention ref was
 force-moved, orphaning the commit it had named. The rule could not see it —
@@ -59,8 +59,10 @@ Checker suite 129, full protocol/specification suite 176. Retention refs 01–07
 
 ## Next action
 
-Begin S08: `cairn.config.json`, the generated enforcement header line,
-`tools/cairn-new.mjs`, and the tier-0/1 `cairn-init` seed.
+Run the cold-resume pilot before writing another rule. Rules went 24 → 40 and the
+pilot row still reads `not run`; twenty cold resumes on real handoffs, failures
+classified by which of the eight answerable-alone questions was unanswerable,
+and that result decides v0.3. S08 follows.
 
 ## Blockers
 
@@ -82,6 +84,11 @@ None.
   trailing comments; quoted values keep their `#`.
 - **Retention checked per declared unit only.** A moved ref left every unit
   resolving while orphaning a real commit; the branch is now walked directly.
+- **Dispositions compared against the closure commit.** `A` is field-restricted,
+  so its advisory set is a strict subset of `C`'s — the rule could pass while an
+  advisory at the candidate went undisposed. The record now attests the set.
+- **Route triggers left entirely to declaration.** A path that has already
+  spanned two work units must be `full`, which cannot be declared away.
 
 ## Reading order
 

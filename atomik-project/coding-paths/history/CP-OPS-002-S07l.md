@@ -1,0 +1,55 @@
+---
+type: Atomik Coding Path History
+title: 'CP-OPS-002 S07l — Repair: the brief could not name its own commit — COMPLETE'
+description: Completed-step record rolled out of CP-OPS-002.md at CP-OPS-002 S07m. Verbatim; nothing summarized.
+tags: [coding-path, history, cp-ops-002]
+timestamp: 2026-08-26T00:00:00Z
+path: CP-OPS-002
+step: S07l
+---
+
+# CP-OPS-002 S07l — Repair: the brief could not name its own commit — COMPLETE
+
+Rolled out of [CP-OPS-002.md](../CP-OPS-002.md) at CP-OPS-002 S07m, VERBATIM:
+moved, never summarized. The live path file keeps its declaration, its index over
+these records, its Work Ledger and its next action; the execution detail lives
+here. The convention is in [paths.md](../paths.md#the-ledger-has-a-boundary).
+
+Two mechanical adjustments are named rather than made silently. **Deixis**: text
+saying "below" or "this ledger" was written when this entry sat in the path file
+and points at the Work Ledger in [CP-OPS-002.md](../CP-OPS-002.md). **Link
+depth**: a relative link is an address, not content — moving the file one
+directory down changes the address of the *same* target.
+
+---
+
+### S07l — Repair: the brief could not name its own commit — **COMPLETE**
+
+```cairn-unit
+step: S07l
+unit: 08
+type: repair
+verified: cairn-check, cairn-check:test, typecheck, test, build
+```
+
+The S07k commit landed with `checkpoint: PENDING` in the handoff brief, and `brief-schema`
+failed on the pushed state. The placeholder was careless; what it exposed was not.
+
+**The same self-reference, in a second place.** A brief is refreshed *inside* the work unit
+it describes, so at the moment it is written the commit it will become does not exist. The
+`cairn-unit` block already solves this — it declares an ordinal and lets the retention ref
+supply the hash afterwards — and the brief was left with a field that could only ever be
+filled in with a lie, a stale value, or a follow-up commit. The third option is the pattern
+S07k had just repaired.
+
+- **`checkpoint` now names the last RETAINED checkpoint**, which is a commit that exists,
+  is pushed, and is resumable. `checkpoint_unit` carries its ordinal, so the brief and its
+  retention ref name the same thing — the same pairing the ledger already uses.
+- The specification, the handoff-brief reference and `BRIEF_FIELDS` all moved together;
+  the field count is pinned by a test so the schema and its documentation cannot drift.
+- **The gate caught this, on the remote, after the push.** That is the intended behaviour
+  rather than an embarrassment: `brief-schema` was written in S07j precisely because a
+  bootstrap contract with no fields drifts silently, and the first thing it caught was its
+  author's own placeholder.
+
+- Checker suite 129, full suite 176; the brief field count moves 8 → 9.

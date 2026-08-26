@@ -17,6 +17,7 @@ For each row it records `pass`, `fail`, `inconclusive`, `host-dependent`, or
 
 - [ ] Every path declares `route:`.
 - [ ] No path on `route: lightweight` meets a full-route trigger.
+- [ ] No path on `route: lightweight` declares more than one `cairn-unit`.
 - [ ] Every escalation from lightweight to full is recorded in the ledger, and
       no path was ever de-escalated.
 - [ ] A lightweight path still names an exact candidate and an exact
@@ -64,13 +65,15 @@ For each row it records `pass`, `fail`, `inconclusive`, `host-dependent`, or
 - [ ] No commit between the base and `C` carries `Cairn-Provisional:`.
 - [ ] Product and protocol checks run against `C`.
 - [ ] Audit and closing acceptance name the same full object id `C`, in the
-      repository's configured object format, never abbreviated.
+      repository's configured object format, never abbreviated — and the
+      implementation accepts that format rather than assuming SHA-1.
 - [ ] The closing record's `scope_digest` equals the opening digest, or a scope
       amendment supersedes the opening record.
 - [ ] The closing record names the base `T` the candidate was accepted against.
-- [ ] `advisory_disposition` is a structured list whose entries correspond
-      exactly to the advisories raised at `C`, with an owner and follow-up on
-      every deferral.
+- [ ] The closing record attests `advisories_at_candidate`, and
+      `advisory_disposition` covers that set exactly, with an owner and
+      follow-up on every deferral.
+- [ ] No advisory raised at the closure commit is absent from the attested set.
 - [ ] Acceptance records name the roles the actor held, and a collapsed
       opening/closing actor is reported as an advisory.
 - [ ] Exactly one allowlisted administrative commit `A` follows `C` on a ready

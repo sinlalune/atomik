@@ -1353,6 +1353,18 @@ a standalone <a href="#article-concept-coherence-audit" data-article="concept-co
 candidate, a standalone closing record, and an
 <a href="#article-concept-administrative-closure" data-article="concept-administrative-closure" data-anchor="" class="wiki-link">administrative closure</a> commit distinct
 from the candidate.</p>
+<p>Triggers 1–3 are structural and derivable from the declaration. Triggers 4 and 5
+are an expectation and a policy, so they are declared rather than derived — and a
+route made of self-declarations has an obvious failure mode: everything declares
+itself lightweight, ceremony evaporates, and no rule ever fires.</p>
+<p>One structural backstop closes most of that gap. Trigger 4 is unobservable as an
+<em>expectation</em>, but <strong>having</strong> spanned more than one work unit is a fact in the
+ledger:</p>
+<blockquote>
+<p>A path whose ledger declares more than one <code>cairn-unit</code> MUST declare
+<code>route: full</code>.</p>
+</blockquote>
+<p>It is the same trigger arriving one unit late, and it cannot be declared away.</p>
 <p>Escalation is one-way. A lightweight path that meets any trigger MUST escalate
 before its next checkpoint and record the trigger in its ledger. A path MUST NOT
 declare itself down a route: a change does not become small by being called
@@ -1799,6 +1811,7 @@ accepted_at: 2026-01-15T14:30:00Z
 decision: accepted
 scope_ref: project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
 scope_digest: sha256:9f2c4b1d…
+advisories_at_candidate: [scope-drift, path-staleness]
 advisory_disposition:
   - rule: scope-drift
     disposition: accepted
@@ -1821,12 +1834,30 @@ is what <a href="#article-concept-acceptance-drift" data-article="concept-accept
 <h3 id="specification--advisories-are-dispositions-not-a-sentence" data-heading="advisories-are-dispositions-not-a-sentence">Advisories are dispositions, not a sentence</h3>
 <p><code>advisory_disposition</code> MUST be a list of entries, each naming a <code>rule</code>, a
 <code>disposition</code> of <code>fixed</code>, <code>accepted</code>, or <code>deferred</code>, and a <code>reason</code>. A deferral
-MUST also name an <code>owner</code> and a <code>follow_up</code>. The list MUST correspond exactly to
-the advisories the checker raised at <code>C</code> — no invented entries, no omissions.</p>
-<p>Set equality against the findings at <code>C</code> is a predicate. A free-text sentence is
-not: as one string, “every advisory MUST be recorded” cannot be checked at all,
-and a reviewer who writes <code>accepted: none</code> over three live advisories produces a
-record that reads as complete and is false.</p>
+MUST also name an <code>owner</code> and a <code>follow_up</code>.</p>
+<p>Set equality is a predicate. A free-text sentence is not: as one string, “every
+advisory MUST be recorded” cannot be checked at all, and a reviewer who writes
+<code>accepted: none</code> over three live advisories produces a record that reads as
+complete and is false.</p>
+<p>Equality against <em>what</em> is the load-bearing question. The obvious answer —
+whatever the checker raises when it evaluates the closure commit <code>A</code> — is
+<strong>unsound</strong>. <code>A</code> is field-restricted by construction, so the advisories it can
+raise are a strict subset of those raised at <code>C</code>; a rule comparing against <code>A</code>
+passes while advisories raised at the candidate go undisposed, which is exactly
+the failure this requirement exists to prevent.</p>
+<p>The closing record therefore <strong>attests</strong> the set raised at <code>C</code>, in
+<code>advisories_at_candidate</code>, bound to <code>C</code> by the audit’s subject. Two facts follow
+and both MUST hold:</p>
+<ol>
+<li>the dispositions cover exactly the attested set — no omissions, no invented
+entries;</li>
+<li>every advisory raised at <code>A</code> appears in the attested set. Because <code>A</code>’s
+findings are a subset of <code>C</code>’s, an advisory firing at <code>A</code> and missing from
+the record proves the attestation incomplete.</li>
+</ol>
+<p>An advisory that fires only at <code>C</code> remains an attestation rather than a
+derivation. Closing that requires evaluation replayed at <code>C</code>, and the
+<a href="#specification--current-conformance" data-local-anchor="current-conformance" class="section-link">conformance matrix</a> says so.</p>
 <h3 id="specification--add-only-administrative-closure" data-heading="add-only-administrative-closure">Add only administrative closure</h3>
 <p>Recording acceptance necessarily creates a commit after <code>C</code>. Cairn resolves
 that self-reference with one <a href="#article-concept-administrative-closure" data-article="concept-administrative-closure" data-anchor="" class="wiki-link">administrative closure</a>
@@ -2292,8 +2323,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Full object id in the repository’s configured format</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; the installed checker matches a forty-character form</td>
-<td style="text-align:left">object-format-aware identity check</td>
+<td style="text-align:left">implemented; the checker accepts SHA-1 and SHA-256 ids and refuses every prefix</td>
+<td style="text-align:left">a repository configured for another object format</td>
 </tr>
 <tr>
 <td style="text-align:left">Fail-closed critical inconclusive outcomes</td>
@@ -2346,8 +2377,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Structured <code>advisory_disposition</code> matching findings at <code>C</code></td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; set equality holds against the advisories raised in the same run, which evaluates the closure commit rather than the candidate</td>
-<td style="text-align:left">evaluation replayed at <code>C</code></td>
+<td style="text-align:left"><strong>partially implemented</strong>; dispositions must cover the attested <code>advisories_at_candidate</code> exactly, and any advisory raised at <code>A</code> and absent from it is proved missing</td>
+<td style="text-align:left">an advisory that fires only at <code>C</code> stays attested rather than derived; closing that needs evaluation replayed at <code>C</code></td>
 </tr>
 <tr>
 <td style="text-align:left">Recorded roles and the collapsed-actor advisory</td>
@@ -2370,8 +2401,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left"><code>lightweight</code> default route and one-way escalation</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; the vocabulary, the three structural triggers and one-way escalation are checked</td>
-<td style="text-align:left">the <em>multi-unit</em> and <em>high-risk</em> triggers are an expectation and a policy, so they stay declared rather than derived</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the vocabulary, the three structural triggers, the second-unit backstop and one-way escalation are checked</td>
+<td style="text-align:left">the <em>high-risk</em> trigger is a policy and stays declared; the multi-unit trigger is caught one unit late rather than in advance</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>foundation</code> and adoption routes</td>
@@ -2450,6 +2481,20 @@ contract</strong> is a judgement measured by cold resume, the <strong>temporal h
 checkpoint retention</strong> is unobservable to a validator that sees one commit, and
 <strong>live-ledger prefix proof</strong> awaits explicit ledger markers. Naming what cannot
 be checked is part of the claim.</p>
+<h3 id="specification--distrust-a-predicate-that-asks-about-a-declaration" data-heading="distrust-a-predicate-that-asks-about-a-declaration">Distrust a predicate that asks about a declaration</h3>
+<p>One failure mode is worth naming for whoever implements this next, because it
+produced two real violations here and both times the gate reported <code>OK</code>.</p>
+<p>A predicate can ask about a <strong>declaration</strong> — does every unit the ledger names
+resolve a ref? does the disposition match what the checker raises right now? — or
+about a <strong>fact</strong> — is every commit on this branch retained? was every advisory at
+the candidate disposed? The two read almost identically in code and diverge
+exactly when something has gone wrong, because a broken state usually leaves the
+declarations internally consistent. A ref moved forward keeps every declared unit
+resolving. A closure commit’s advisory set stays a tidy subset of the candidate’s.</p>
+<p>Both rules passed over a live violation. Both were rewritten to walk the
+repository instead: the branch itself for retention, an attested candidate set for
+dispositions. When a predicate can be written either way, write the one that can
+disagree with the record.</p>
 <p>A requirement whose reference row names a migration exception is not exempt from
 the requirement. The exception is finite, listed in the checker, and reported as
 a blocking finding once it is spent — an exception that outlives its migration
@@ -3386,6 +3431,18 @@ a standalone <a href="#article-concept-coherence-audit" data-article="concept-co
 candidate, a standalone closing record, and an
 <a href="#article-concept-administrative-closure" data-article="concept-administrative-closure" data-anchor="" class="wiki-link">administrative closure</a> commit distinct
 from the candidate.</p>
+<p>Triggers 1–3 are structural and derivable from the declaration. Triggers 4 and 5
+are an expectation and a policy, so they are declared rather than derived — and a
+route made of self-declarations has an obvious failure mode: everything declares
+itself lightweight, ceremony evaporates, and no rule ever fires.</p>
+<p>One structural backstop closes most of that gap. Trigger 4 is unobservable as an
+<em>expectation</em>, but <strong>having</strong> spanned more than one work unit is a fact in the
+ledger:</p>
+<blockquote>
+<p>A path whose ledger declares more than one <code>cairn-unit</code> MUST declare
+<code>route: full</code>.</p>
+</blockquote>
+<p>It is the same trigger arriving one unit late, and it cannot be declared away.</p>
 <p>Escalation is one-way. A lightweight path that meets any trigger MUST escalate
 before its next checkpoint and record the trigger in its ledger. A path MUST NOT
 declare itself down a route: a change does not become small by being called
@@ -3832,6 +3889,7 @@ accepted_at: 2026-01-15T14:30:00Z
 decision: accepted
 scope_ref: project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
 scope_digest: sha256:9f2c4b1d…
+advisories_at_candidate: [scope-drift, path-staleness]
 advisory_disposition:
   - rule: scope-drift
     disposition: accepted
@@ -3854,12 +3912,30 @@ is what <a href="#article-concept-acceptance-drift" data-article="concept-accept
 <h3 id="specification--advisories-are-dispositions-not-a-sentence" data-heading="advisories-are-dispositions-not-a-sentence">Advisories are dispositions, not a sentence</h3>
 <p><code>advisory_disposition</code> MUST be a list of entries, each naming a <code>rule</code>, a
 <code>disposition</code> of <code>fixed</code>, <code>accepted</code>, or <code>deferred</code>, and a <code>reason</code>. A deferral
-MUST also name an <code>owner</code> and a <code>follow_up</code>. The list MUST correspond exactly to
-the advisories the checker raised at <code>C</code> — no invented entries, no omissions.</p>
-<p>Set equality against the findings at <code>C</code> is a predicate. A free-text sentence is
-not: as one string, “every advisory MUST be recorded” cannot be checked at all,
-and a reviewer who writes <code>accepted: none</code> over three live advisories produces a
-record that reads as complete and is false.</p>
+MUST also name an <code>owner</code> and a <code>follow_up</code>.</p>
+<p>Set equality is a predicate. A free-text sentence is not: as one string, “every
+advisory MUST be recorded” cannot be checked at all, and a reviewer who writes
+<code>accepted: none</code> over three live advisories produces a record that reads as
+complete and is false.</p>
+<p>Equality against <em>what</em> is the load-bearing question. The obvious answer —
+whatever the checker raises when it evaluates the closure commit <code>A</code> — is
+<strong>unsound</strong>. <code>A</code> is field-restricted by construction, so the advisories it can
+raise are a strict subset of those raised at <code>C</code>; a rule comparing against <code>A</code>
+passes while advisories raised at the candidate go undisposed, which is exactly
+the failure this requirement exists to prevent.</p>
+<p>The closing record therefore <strong>attests</strong> the set raised at <code>C</code>, in
+<code>advisories_at_candidate</code>, bound to <code>C</code> by the audit’s subject. Two facts follow
+and both MUST hold:</p>
+<ol>
+<li>the dispositions cover exactly the attested set — no omissions, no invented
+entries;</li>
+<li>every advisory raised at <code>A</code> appears in the attested set. Because <code>A</code>’s
+findings are a subset of <code>C</code>’s, an advisory firing at <code>A</code> and missing from
+the record proves the attestation incomplete.</li>
+</ol>
+<p>An advisory that fires only at <code>C</code> remains an attestation rather than a
+derivation. Closing that requires evaluation replayed at <code>C</code>, and the
+<a href="#specification--current-conformance" data-local-anchor="current-conformance" class="section-link">conformance matrix</a> says so.</p>
 <h3 id="specification--add-only-administrative-closure" data-heading="add-only-administrative-closure">Add only administrative closure</h3>
 <p>Recording acceptance necessarily creates a commit after <code>C</code>. Cairn resolves
 that self-reference with one <a href="#article-concept-administrative-closure" data-article="concept-administrative-closure" data-anchor="" class="wiki-link">administrative closure</a>
@@ -4325,8 +4401,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Full object id in the repository’s configured format</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; the installed checker matches a forty-character form</td>
-<td style="text-align:left">object-format-aware identity check</td>
+<td style="text-align:left">implemented; the checker accepts SHA-1 and SHA-256 ids and refuses every prefix</td>
+<td style="text-align:left">a repository configured for another object format</td>
 </tr>
 <tr>
 <td style="text-align:left">Fail-closed critical inconclusive outcomes</td>
@@ -4379,8 +4455,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Structured <code>advisory_disposition</code> matching findings at <code>C</code></td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; set equality holds against the advisories raised in the same run, which evaluates the closure commit rather than the candidate</td>
-<td style="text-align:left">evaluation replayed at <code>C</code></td>
+<td style="text-align:left"><strong>partially implemented</strong>; dispositions must cover the attested <code>advisories_at_candidate</code> exactly, and any advisory raised at <code>A</code> and absent from it is proved missing</td>
+<td style="text-align:left">an advisory that fires only at <code>C</code> stays attested rather than derived; closing that needs evaluation replayed at <code>C</code></td>
 </tr>
 <tr>
 <td style="text-align:left">Recorded roles and the collapsed-actor advisory</td>
@@ -4403,8 +4479,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left"><code>lightweight</code> default route and one-way escalation</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; the vocabulary, the three structural triggers and one-way escalation are checked</td>
-<td style="text-align:left">the <em>multi-unit</em> and <em>high-risk</em> triggers are an expectation and a policy, so they stay declared rather than derived</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the vocabulary, the three structural triggers, the second-unit backstop and one-way escalation are checked</td>
+<td style="text-align:left">the <em>high-risk</em> trigger is a policy and stays declared; the multi-unit trigger is caught one unit late rather than in advance</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>foundation</code> and adoption routes</td>
@@ -4483,6 +4559,20 @@ contract</strong> is a judgement measured by cold resume, the <strong>temporal h
 checkpoint retention</strong> is unobservable to a validator that sees one commit, and
 <strong>live-ledger prefix proof</strong> awaits explicit ledger markers. Naming what cannot
 be checked is part of the claim.</p>
+<h3 id="specification--distrust-a-predicate-that-asks-about-a-declaration" data-heading="distrust-a-predicate-that-asks-about-a-declaration">Distrust a predicate that asks about a declaration</h3>
+<p>One failure mode is worth naming for whoever implements this next, because it
+produced two real violations here and both times the gate reported <code>OK</code>.</p>
+<p>A predicate can ask about a <strong>declaration</strong> — does every unit the ledger names
+resolve a ref? does the disposition match what the checker raises right now? — or
+about a <strong>fact</strong> — is every commit on this branch retained? was every advisory at
+the candidate disposed? The two read almost identically in code and diverge
+exactly when something has gone wrong, because a broken state usually leaves the
+declarations internally consistent. A ref moved forward keeps every declared unit
+resolving. A closure commit’s advisory set stays a tidy subset of the candidate’s.</p>
+<p>Both rules passed over a live violation. Both were rewritten to walk the
+repository instead: the branch itself for retention, an attested candidate set for
+dispositions. When a predicate can be written either way, write the one that can
+disagree with the record.</p>
 <p>A requirement whose reference row names a migration exception is not exempt from
 the requirement. The exception is finite, listed in the checker, and reported as
 a blocking finding once it is spent — an exception that outlives its migration
@@ -7592,6 +7682,7 @@ For each row it records <code>pass</code>, <code>fail</code>, <code>inconclusive
 <ul>
 <li>[ ] Every path declares <code>route:</code>.</li>
 <li>[ ] No path on <code>route: lightweight</code> meets a full-route trigger.</li>
+<li>[ ] No path on <code>route: lightweight</code> declares more than one <code>cairn-unit</code>.</li>
 <li>[ ] Every escalation from lightweight to full is recorded in the ledger, and
 no path was ever de-escalated.</li>
 <li>[ ] A lightweight path still names an exact candidate and an exact
@@ -7639,13 +7730,15 @@ time-to-first-correct-action recorded.</li>
 <li>[ ] No commit between the base and <code>C</code> carries <code>Cairn-Provisional:</code>.</li>
 <li>[ ] Product and protocol checks run against <code>C</code>.</li>
 <li>[ ] Audit and closing acceptance name the same full object id <code>C</code>, in the
-repository’s configured object format, never abbreviated.</li>
+repository’s configured object format, never abbreviated — and the
+implementation accepts that format rather than assuming SHA-1.</li>
 <li>[ ] The closing record’s <code>scope_digest</code> equals the opening digest, or a scope
 amendment supersedes the opening record.</li>
 <li>[ ] The closing record names the base <code>T</code> the candidate was accepted against.</li>
-<li>[ ] <code>advisory_disposition</code> is a structured list whose entries correspond
-exactly to the advisories raised at <code>C</code>, with an owner and follow-up on
-every deferral.</li>
+<li>[ ] The closing record attests <code>advisories_at_candidate</code>, and
+<code>advisory_disposition</code> covers that set exactly, with an owner and
+follow-up on every deferral.</li>
+<li>[ ] No advisory raised at the closure commit is absent from the attested set.</li>
 <li>[ ] Acceptance records name the roles the actor held, and a collapsed
 opening/closing actor is reported as an advisory.</li>
 <li>[ ] Exactly one allowlisted administrative commit <code>A</code> follows <code>C</code> on a ready
@@ -8101,6 +8194,7 @@ accepted_at: 2026-01-15T14:30:00Z
 decision: accepted
 scope_ref: atomik-project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
 scope_digest: sha256:9f2c4b1d5e6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c
+advisories_at_candidate: [scope-drift, path-staleness]
 advisory_disposition:
   - rule: scope-drift
     disposition: accepted
@@ -8161,16 +8255,24 @@ Candidate accepted for administrative closure and exact integration.
 <td style="text-align:left">which of the five roles this actor held, so a collapse is visible</td>
 </tr>
 <tr>
+<td style="text-align:left"><code>advisories_at_candidate</code></td>
+<td style="text-align:left">the advisory rules raised at <code>C</code>, attested by the reviewer</td>
+</tr>
+<tr>
 <td style="text-align:left"><code>advisory_disposition</code></td>
-<td style="text-align:left">a structured entry per advisory raised at the candidate</td>
+<td style="text-align:left">a structured entry per advisory in that attested set</td>
 </tr>
 </tbody>
 </table>
 <p><code>advisory_disposition</code> is a list, not a sentence. Each entry names a <code>rule</code>, a
 <code>disposition</code> of <code>fixed</code>, <code>accepted</code>, or <code>deferred</code>, and a <code>reason</code>; a deferral
-also names an <code>owner</code> and a <code>follow_up</code>. The list MUST correspond exactly to the
-advisories raised at the candidate — set equality is checkable, and a free-text
-summary is not.</p>
+also names an <code>owner</code> and a <code>follow_up</code>.</p>
+<p>It is compared against <code>advisories_at_candidate</code>, not against whatever a checker
+raises while evaluating the closure commit. <code>A</code> is field-restricted, so its
+advisory set is a strict subset of <code>C</code>’s: comparing against it would let an
+advisory raised at the candidate pass undisposed. The attested set is the
+subject, and any advisory that does fire at <code>A</code> and is missing from it proves
+the attestation incomplete.</p>
 <p>Reviewer identity, UTC time, and an accepted decision remain required.</p>
 <h2 id="reference-human-records--immutability-and-correction" data-heading="immutability-and-correction">Immutability and correction</h2>
 <p>Once created, each session or audit file is immutable. A factual correction
@@ -9604,6 +9706,18 @@ a standalone <a href="#article-concept-coherence-audit" data-article="concept-co
 candidate, a standalone closing record, and an
 <a href="#article-concept-administrative-closure" data-article="concept-administrative-closure" data-anchor="" class="wiki-link">administrative closure</a> commit distinct
 from the candidate.</p>
+<p>Triggers 1–3 are structural and derivable from the declaration. Triggers 4 and 5
+are an expectation and a policy, so they are declared rather than derived — and a
+route made of self-declarations has an obvious failure mode: everything declares
+itself lightweight, ceremony evaporates, and no rule ever fires.</p>
+<p>One structural backstop closes most of that gap. Trigger 4 is unobservable as an
+<em>expectation</em>, but <strong>having</strong> spanned more than one work unit is a fact in the
+ledger:</p>
+<blockquote>
+<p>A path whose ledger declares more than one <code>cairn-unit</code> MUST declare
+<code>route: full</code>.</p>
+</blockquote>
+<p>It is the same trigger arriving one unit late, and it cannot be declared away.</p>
 <p>Escalation is one-way. A lightweight path that meets any trigger MUST escalate
 before its next checkpoint and record the trigger in its ledger. A path MUST NOT
 declare itself down a route: a change does not become small by being called
@@ -10050,6 +10164,7 @@ accepted_at: 2026-01-15T14:30:00Z
 decision: accepted
 scope_ref: project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
 scope_digest: sha256:9f2c4b1d…
+advisories_at_candidate: [scope-drift, path-staleness]
 advisory_disposition:
   - rule: scope-drift
     disposition: accepted
@@ -10072,12 +10187,30 @@ is what <a href="#article-concept-acceptance-drift" data-article="concept-accept
 <h3 id="specification--advisories-are-dispositions-not-a-sentence" data-heading="advisories-are-dispositions-not-a-sentence">Advisories are dispositions, not a sentence</h3>
 <p><code>advisory_disposition</code> MUST be a list of entries, each naming a <code>rule</code>, a
 <code>disposition</code> of <code>fixed</code>, <code>accepted</code>, or <code>deferred</code>, and a <code>reason</code>. A deferral
-MUST also name an <code>owner</code> and a <code>follow_up</code>. The list MUST correspond exactly to
-the advisories the checker raised at <code>C</code> — no invented entries, no omissions.</p>
-<p>Set equality against the findings at <code>C</code> is a predicate. A free-text sentence is
-not: as one string, “every advisory MUST be recorded” cannot be checked at all,
-and a reviewer who writes <code>accepted: none</code> over three live advisories produces a
-record that reads as complete and is false.</p>
+MUST also name an <code>owner</code> and a <code>follow_up</code>.</p>
+<p>Set equality is a predicate. A free-text sentence is not: as one string, “every
+advisory MUST be recorded” cannot be checked at all, and a reviewer who writes
+<code>accepted: none</code> over three live advisories produces a record that reads as
+complete and is false.</p>
+<p>Equality against <em>what</em> is the load-bearing question. The obvious answer —
+whatever the checker raises when it evaluates the closure commit <code>A</code> — is
+<strong>unsound</strong>. <code>A</code> is field-restricted by construction, so the advisories it can
+raise are a strict subset of those raised at <code>C</code>; a rule comparing against <code>A</code>
+passes while advisories raised at the candidate go undisposed, which is exactly
+the failure this requirement exists to prevent.</p>
+<p>The closing record therefore <strong>attests</strong> the set raised at <code>C</code>, in
+<code>advisories_at_candidate</code>, bound to <code>C</code> by the audit’s subject. Two facts follow
+and both MUST hold:</p>
+<ol>
+<li>the dispositions cover exactly the attested set — no omissions, no invented
+entries;</li>
+<li>every advisory raised at <code>A</code> appears in the attested set. Because <code>A</code>’s
+findings are a subset of <code>C</code>’s, an advisory firing at <code>A</code> and missing from
+the record proves the attestation incomplete.</li>
+</ol>
+<p>An advisory that fires only at <code>C</code> remains an attestation rather than a
+derivation. Closing that requires evaluation replayed at <code>C</code>, and the
+<a href="#specification--current-conformance" data-local-anchor="current-conformance" class="section-link">conformance matrix</a> says so.</p>
 <h3 id="specification--add-only-administrative-closure" data-heading="add-only-administrative-closure">Add only administrative closure</h3>
 <p>Recording acceptance necessarily creates a commit after <code>C</code>. Cairn resolves
 that self-reference with one <a href="#article-concept-administrative-closure" data-article="concept-administrative-closure" data-anchor="" class="wiki-link">administrative closure</a>
@@ -10543,8 +10676,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Full object id in the repository’s configured format</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; the installed checker matches a forty-character form</td>
-<td style="text-align:left">object-format-aware identity check</td>
+<td style="text-align:left">implemented; the checker accepts SHA-1 and SHA-256 ids and refuses every prefix</td>
+<td style="text-align:left">a repository configured for another object format</td>
 </tr>
 <tr>
 <td style="text-align:left">Fail-closed critical inconclusive outcomes</td>
@@ -10597,8 +10730,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Structured <code>advisory_disposition</code> matching findings at <code>C</code></td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; set equality holds against the advisories raised in the same run, which evaluates the closure commit rather than the candidate</td>
-<td style="text-align:left">evaluation replayed at <code>C</code></td>
+<td style="text-align:left"><strong>partially implemented</strong>; dispositions must cover the attested <code>advisories_at_candidate</code> exactly, and any advisory raised at <code>A</code> and absent from it is proved missing</td>
+<td style="text-align:left">an advisory that fires only at <code>C</code> stays attested rather than derived; closing that needs evaluation replayed at <code>C</code></td>
 </tr>
 <tr>
 <td style="text-align:left">Recorded roles and the collapsed-actor advisory</td>
@@ -10621,8 +10754,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left"><code>lightweight</code> default route and one-way escalation</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; the vocabulary, the three structural triggers and one-way escalation are checked</td>
-<td style="text-align:left">the <em>multi-unit</em> and <em>high-risk</em> triggers are an expectation and a policy, so they stay declared rather than derived</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the vocabulary, the three structural triggers, the second-unit backstop and one-way escalation are checked</td>
+<td style="text-align:left">the <em>high-risk</em> trigger is a policy and stays declared; the multi-unit trigger is caught one unit late rather than in advance</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>foundation</code> and adoption routes</td>
@@ -10701,6 +10834,20 @@ contract</strong> is a judgement measured by cold resume, the <strong>temporal h
 checkpoint retention</strong> is unobservable to a validator that sees one commit, and
 <strong>live-ledger prefix proof</strong> awaits explicit ledger markers. Naming what cannot
 be checked is part of the claim.</p>
+<h3 id="specification--distrust-a-predicate-that-asks-about-a-declaration" data-heading="distrust-a-predicate-that-asks-about-a-declaration">Distrust a predicate that asks about a declaration</h3>
+<p>One failure mode is worth naming for whoever implements this next, because it
+produced two real violations here and both times the gate reported <code>OK</code>.</p>
+<p>A predicate can ask about a <strong>declaration</strong> — does every unit the ledger names
+resolve a ref? does the disposition match what the checker raises right now? — or
+about a <strong>fact</strong> — is every commit on this branch retained? was every advisory at
+the candidate disposed? The two read almost identically in code and diverge
+exactly when something has gone wrong, because a broken state usually leaves the
+declarations internally consistent. A ref moved forward keeps every declared unit
+resolving. A closure commit’s advisory set stays a tidy subset of the candidate’s.</p>
+<p>Both rules passed over a live violation. Both were rewritten to walk the
+repository instead: the branch itself for retention, an attested candidate set for
+dispositions. When a predicate can be written either way, write the one that can
+disagree with the record.</p>
 <p>A requirement whose reference row names a migration exception is not exempt from
 the requirement. The exception is finite, listed in the checker, and reported as
 a blocking finding once it is spent — an exception that outlives its migration
@@ -13530,6 +13677,7 @@ For each row it records <code>pass</code>, <code>fail</code>, <code>inconclusive
 <ul>
 <li>[ ] Every path declares <code>route:</code>.</li>
 <li>[ ] No path on <code>route: lightweight</code> meets a full-route trigger.</li>
+<li>[ ] No path on <code>route: lightweight</code> declares more than one <code>cairn-unit</code>.</li>
 <li>[ ] Every escalation from lightweight to full is recorded in the ledger, and
 no path was ever de-escalated.</li>
 <li>[ ] A lightweight path still names an exact candidate and an exact
@@ -13577,13 +13725,15 @@ time-to-first-correct-action recorded.</li>
 <li>[ ] No commit between the base and <code>C</code> carries <code>Cairn-Provisional:</code>.</li>
 <li>[ ] Product and protocol checks run against <code>C</code>.</li>
 <li>[ ] Audit and closing acceptance name the same full object id <code>C</code>, in the
-repository’s configured object format, never abbreviated.</li>
+repository’s configured object format, never abbreviated — and the
+implementation accepts that format rather than assuming SHA-1.</li>
 <li>[ ] The closing record’s <code>scope_digest</code> equals the opening digest, or a scope
 amendment supersedes the opening record.</li>
 <li>[ ] The closing record names the base <code>T</code> the candidate was accepted against.</li>
-<li>[ ] <code>advisory_disposition</code> is a structured list whose entries correspond
-exactly to the advisories raised at <code>C</code>, with an owner and follow-up on
-every deferral.</li>
+<li>[ ] The closing record attests <code>advisories_at_candidate</code>, and
+<code>advisory_disposition</code> covers that set exactly, with an owner and
+follow-up on every deferral.</li>
+<li>[ ] No advisory raised at the closure commit is absent from the attested set.</li>
 <li>[ ] Acceptance records name the roles the actor held, and a collapsed
 opening/closing actor is reported as an advisory.</li>
 <li>[ ] Exactly one allowlisted administrative commit <code>A</code> follows <code>C</code> on a ready
@@ -14031,6 +14181,7 @@ accepted_at: 2026-01-15T14:30:00Z
 decision: accepted
 scope_ref: atomik-project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
 scope_digest: sha256:9f2c4b1d5e6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c
+advisories_at_candidate: [scope-drift, path-staleness]
 advisory_disposition:
   - rule: scope-drift
     disposition: accepted
@@ -14091,16 +14242,24 @@ Candidate accepted for administrative closure and exact integration.
 <td style="text-align:left">which of the five roles this actor held, so a collapse is visible</td>
 </tr>
 <tr>
+<td style="text-align:left"><code>advisories_at_candidate</code></td>
+<td style="text-align:left">the advisory rules raised at <code>C</code>, attested by the reviewer</td>
+</tr>
+<tr>
 <td style="text-align:left"><code>advisory_disposition</code></td>
-<td style="text-align:left">a structured entry per advisory raised at the candidate</td>
+<td style="text-align:left">a structured entry per advisory in that attested set</td>
 </tr>
 </tbody>
 </table>
 <p><code>advisory_disposition</code> is a list, not a sentence. Each entry names a <code>rule</code>, a
 <code>disposition</code> of <code>fixed</code>, <code>accepted</code>, or <code>deferred</code>, and a <code>reason</code>; a deferral
-also names an <code>owner</code> and a <code>follow_up</code>. The list MUST correspond exactly to the
-advisories raised at the candidate — set equality is checkable, and a free-text
-summary is not.</p>
+also names an <code>owner</code> and a <code>follow_up</code>.</p>
+<p>It is compared against <code>advisories_at_candidate</code>, not against whatever a checker
+raises while evaluating the closure commit. <code>A</code> is field-restricted, so its
+advisory set is a strict subset of <code>C</code>’s: comparing against it would let an
+advisory raised at the candidate pass undisposed. The attested set is the
+subject, and any advisory that does fire at <code>A</code> and is missing from it proves
+the attestation incomplete.</p>
 <p>Reviewer identity, UTC time, and an accepted decision remain required.</p>
 <h2 id="reference-human-records--immutability-and-correction" data-heading="immutability-and-correction">Immutability and correction</h2>
 <p>Once created, each session or audit file is immutable. A factual correction
