@@ -179,6 +179,24 @@ export const LEGACY_UNDECLARED_OPENINGS = new Set(['CP-MVP-011', 'CP-MVP-012'])
  * below reports a listed path that no longer needs the exception, so the
  * exception is deleted by a failing gate rather than by anyone remembering.
  */
+export const ROUTES = ['lightweight', 'full', 'foundation']
+
+/** The files that evaluate the protocol. A writer who can change all of these
+ *  can weaken the mechanism that judges the same change, which is why touching
+ *  them is a full-route trigger rather than a matter of taste. */
+export const CONTROL_PLANE = [
+  'tools/cairn-',
+  '.github/workflows/cairn.yml',
+  'cairn.config.json'
+]
+
+/** Where accepted doctrine and decisions live. */
+export const DECISION_PLANE = ['docs/bedrock/', 'docs/adr/']
+
+/** A foundation path's work units are documents, so its write surface is
+ *  documents plus the draft path records it produces — and nothing else. */
+export const FOUNDATION_SURFACE = [/^docs\//, /^project\//, /^atomik-project\/coding-paths\//]
+
 export const V02_MIGRATION_PATHS = new Set(['CP-OPS-002'])
 
 /** An exception that has served its purpose is a bypass. A listed path that is
@@ -239,7 +257,14 @@ export const PROVISIONAL_TRAILER = 'Cairn-Provisional'
  *  because several records carry a colon inside a quoted title and the existing
  *  gates compare those strings byte-for-byte. */
 export function frontmatterScalar(value) {
-  return value.trim()
+  const trimmed = value.trim()
+  // A trailing comment on a KEY is the same trap F9 fixed on `writes:` and on
+  // list items: `writes:   # ADVISORY` made the value non-empty, so the key
+  // stopped opening a list and silently declared nothing at all. Quoted values
+  // are left alone, because a `#` inside quotes is content, not a comment.
+  if (trimmed.startsWith("'") || trimmed.startsWith('"')) return trimmed
+  if (trimmed.startsWith('#')) return ''
+  return trimmed.replace(/\s+#.*$/, '').trim()
 }
 
 /** A list ITEM may carry a trailing comment, which is the same trap that made
@@ -315,7 +340,7 @@ export function readFrontmatter(text) {
     }
     list = null
 
-    const value = rawValue.trim()
+    const value = frontmatterScalar(rawValue)
     const target = indent === 0 ? data : section ? data[section] : null
     if (target == null || typeof target !== 'object' || Array.isArray(target)) continue
 
@@ -943,6 +968,113 @@ export function approxTokens(text) {
   return Math.round((words * 4) / 3)
 }
 
+/**
+ * Which full-route triggers a declared write surface actually fires.
+ *
+ * Three of the five triggers are structural and checkable here. The other two —
+ * "expected to span more than one work unit" and "policy-designated high-risk" —
+ * are an expectation and a policy, so they are declared rather than derived, and
+ * the specification says so instead of implying the list is exhaustive.
+ */
+export function fullRouteTriggers(writes = [], areaOfFile = areaOf) {
+  const triggers = []
+  if (writes.some((pattern) => CONTROL_PLANE.some((prefix) => pattern.startsWith(prefix)))) {
+    triggers.push('it changes the control plane')
+  }
+  if (writes.some((pattern) => DECISION_PLANE.some((prefix) => pattern.startsWith(prefix)))) {
+    triggers.push('it changes architecture or a decision record')
+  }
+  const areas = new Set(writes.map((pattern) => areaOfFile(pattern.replace(/\*+$/, ''))).filter(Boolean))
+  if (areas.size > 1) {
+    triggers.push(`it declares ${areas.size} implemented areas (${[...areas].join(', ')})`)
+  }
+  return triggers
+}
+
+export function foundationSurfaceViolations(writes = []) {
+  return writes.filter((pattern) => !FOUNDATION_SURFACE.some((allowed) => allowed.test(pattern)))
+}
+
+/** Escalation is one-way. A change does not become small by being called small,
+ *  so the only direction a route may move is toward more ceremony. */
+export function routeDescent(previous, current) {
+  if (!previous || !current || previous === current) return null
+  if (previous === 'full' && current !== 'full') {
+    return `route moved from full to ${current} — escalation is one-way; a change does not become small by being called small`
+  }
+  return null
+}
+
+export const BRIEF_FIELDS = [
+  'checkpoint',
+  'checkpoint_pushed',
+  'base_commit',
+  'trunk_seen',
+  'writes',
+  'governs',
+  'verify',
+  'budget_tokens'
+]
+
+export const BRIEF_SECTIONS = [
+  'Outcome',
+  'State',
+  'Next action',
+  'Blockers',
+  'Tried and rejected',
+  'Reading order',
+  'Verification'
+]
+
+/** The brief is the bootstrap contract, and a contract with no fields is not a
+ *  contract. The SHAPE is checkable here; whether the brief can actually be
+ *  resumed cold is a judgement and a benchmark, and is never claimed. */
+export function briefErrors(front, body, budget = 1200, tokensOf = approxTokens) {
+  const errors = []
+  if (!front) return ['the handoff brief has no readable frontmatter']
+  for (const field of BRIEF_FIELDS) {
+    if (front[field] === undefined || front[field] === '') {
+      errors.push(`the handoff brief needs \`${field}\``)
+    }
+  }
+  if (front.checkpoint && !/^[0-9a-f]{7,64}$/i.test(String(front.checkpoint))) {
+    errors.push('`checkpoint` must be an object id')
+  }
+  if (front.checkpoint_pushed !== undefined && String(front.checkpoint_pushed) !== 'true') {
+    errors.push('`checkpoint_pushed` is false — a checkpoint that is not on the remote is not a handoff, it is a defect to repair')
+  }
+  for (const entry of Array.isArray(front.governs) ? front.governs : []) {
+    if (!String(entry).includes('@')) {
+      errors.push(`\`governs\` entry "${entry}" is not pinned — an unpinned document means "whatever this says now", which is the ambiguity the field removes`)
+    }
+  }
+  const headings = [...String(body).matchAll(/^##\s+(.+?)\s*$/gm)].map((match) => match[1])
+  const missing = BRIEF_SECTIONS.filter((section) => !headings.includes(section))
+  if (missing.length > 0) errors.push(`the handoff brief is missing: ${missing.join(', ')}`)
+  const extra = headings.filter((heading) => !BRIEF_SECTIONS.includes(heading))
+  if (extra.length > 0) errors.push(`the handoff brief carries sections outside the seven: ${extra.join(', ')}`)
+  const limit = Number.parseInt(front.budget_tokens, 10)
+  const size = tokensOf(String(body))
+  if (Number.isInteger(limit) && size > limit) {
+    errors.push(`the handoff brief is ~${size} tokens against its declared budget of ${limit} — a path whose situation will not fit in the budget has lost its shape`)
+  } else if (!Number.isInteger(limit) && size > budget) {
+    errors.push(`the handoff brief is ~${size} tokens against the default budget of ${budget}`)
+  }
+  return errors
+}
+
+/** Redaction is the one sanctioned exception to record immutability, so every
+ *  marker must name the record that authorised it. A marker pointing at nothing
+ *  is an edit wearing a ceremony's clothes. */
+export function redactionMarkers(text) {
+  // Code spans and fences are stripped first, for the same reason the link rule
+  // strips them: documentation SHOWS a redaction marker constantly, and a rule
+  // that flags its own specification is a rule people switch off. Found
+  // immediately, by this rule firing on the ledger entry describing it.
+  return [...stripCode(String(text)).matchAll(/\[redacted:\s*([^\]]+)\]/g)]
+    .map((match) => match[1].trim())
+}
+
 export function areaOf(file) {
   for (const [pattern, area] of AREA_MAP) if (pattern.test(file)) return area
   return null
@@ -1001,7 +1133,9 @@ export function evaluate({
   trunkDelta = null,
   openingRecordFor = null,
   migrationExempt = V02_MIGRATION_PATHS,
-  migrationStale = []
+  migrationStale = [],
+  briefFor = null,
+  redactionRecordExists = null
 }) {
   const findings = []
   const add = (level, rule, message, outcome = level === 'advisory' ? 'advisory' : 'fail') =>
@@ -1452,6 +1586,70 @@ export function evaluate({
     add('blocking', 'migration-debt', stale)
   }
 
+  // 14. the route a change earns ------------------------------------------
+  // Not every bounded change deserves the same ceremony. A protocol that
+  // demands nine artifacts for a one-line fix teaches people to route around
+  // it, and a protocol routed around enforces nothing at all — so the route is
+  // the field that prices the rest, and the triggers are what stop it being a
+  // self-served discount.
+  if (onPath && match) {
+    const id = String(match.front.id ?? '')
+    const route = match.front.route
+    const exempt = migrationExempt.has(id)
+    if (!route) {
+      add(exempt ? 'advisory' : 'blocking', 'route',
+        `${match.file} declares no route: — every path declares ${ROUTES.join(' | ')}${exempt ? ' (grandfathered: this path predates the rule)' : ''}`)
+    } else if (!ROUTES.includes(route)) {
+      add('blocking', 'route', `${match.file} declares route "${route}", outside ${ROUTES.join(' | ')}`)
+    } else {
+      const triggers = fullRouteTriggers(match.writes ?? [])
+      if (route === 'lightweight' && triggers.length > 0) {
+        add('blocking', 'route',
+          `${match.file} declares route: lightweight while ${triggers.join('; ')} — escalate to full before the next checkpoint and record the trigger in the ledger`)
+      }
+      if (route === 'foundation') {
+        const outside = foundationSurfaceViolations(match.writes ?? [])
+        if (outside.length > 0) {
+          add('blocking', 'route',
+            `a foundation path's work units are documents, but ${match.file} declares ${outside.slice(0, 4).join(', ')} outside docs/ and the path records it produces`)
+        }
+      }
+      const descent = routeDescent(previousFronts.get(match.file)?.route, route)
+      if (descent) add('blocking', 'route', `${match.file}: ${descent}`)
+    }
+  }
+
+  // 15. the handoff brief is a contract -----------------------------------
+  // It is the first document a resuming participant reads and, for several
+  // minutes, the only one. The SHAPE is checkable; whether it can actually be
+  // resumed cold is a judgement and a benchmark, and is not claimed here.
+  if (onPath && match && briefFor) {
+    const id = String(match.front.id ?? '')
+    const brief = briefFor(id)
+    const exempt = migrationExempt.has(id)
+    if (brief === null) {
+      add(exempt ? 'advisory' : 'blocking', 'brief-schema',
+        `${id} has no handoff brief — the bootstrap contract is not optional${exempt ? ' (grandfathered)' : ''}`)
+    } else if (brief) {
+      for (const error of briefErrors(brief.front, brief.body)) {
+        add('blocking', 'brief-schema', `${brief.file}: ${error}`)
+      }
+    }
+  }
+
+  // 16. redaction names the record that authorised it ----------------------
+  if (redactionRecordExists) {
+    for (const file of changed) {
+      const markers = redactionRecordExists.markersIn?.(file) ?? []
+      for (const marker of markers) {
+        if (!redactionRecordExists.has(marker)) {
+          add('blocking', 'redaction',
+            `${file} carries [redacted: ${marker}] with no redaction record of that id — redaction is a ceremony that names its authority, not an edit wearing one's clothes`)
+        }
+      }
+    }
+  }
+
   // 6. decision drift (advisory) --------------------------------------
   if (touched('docs/bedrock/').length > 0 && touched('docs/adr/').length === 0) {
     add('advisory', 'decision-drift',
@@ -1726,6 +1924,39 @@ function trunkDeltaSince(base, trunkRef) {
   const raw = gitOrNull(['diff', '--name-only', '-z', base, trunkRef])
   if (raw == null) return null
   return raw.split('\0').filter(Boolean)
+}
+
+/** The handoff brief for a path: `null` when there is none, an object when
+ *  there is. The distinction matters — a missing brief and an unreadable one
+ *  are different findings. */
+function briefRecord(pathId) {
+  const rel = `atomik-project/briefs/${String(pathId).toLowerCase()}-handoff.md`
+  if (!existsSync(join(REPO, rel))) return null
+  const text = readFileSync(join(REPO, rel), 'utf8')
+  const parsed = readFrontmatter(text)
+  const front = parsed?.data?.atomik ?? parsed?.data ?? null
+  const body = text.startsWith('---\n')
+    ? text.slice(text.indexOf('\n---', 4) + 4)
+    : text
+  return { file: rel, front, body }
+}
+
+/** Redaction records and the markers that must point at one. */
+function redactionIndex() {
+  const ids = new Set()
+  if (existsSync(join(REPO, SESSION_DIR))) {
+    for (const file of readdirSync(join(REPO, SESSION_DIR))) {
+      if (file.includes('redaction')) ids.add(file.replace(/\.md$/, ''))
+    }
+  }
+  return {
+    has: (marker) => ids.has(marker),
+    markersIn: (file) => {
+      const absolute = join(REPO, file)
+      if (!file.endsWith('.md') || !existsSync(absolute)) return []
+      return redactionMarkers(readFileSync(absolute, 'utf8'))
+    }
+  }
 }
 
 function retainedCheckpointRefs(pathId) {
@@ -2105,6 +2336,8 @@ function main() {
         ? trunkDeltaSince(closingRecord(pathForBranch.front.id)?.base, trunkRef)
         : [],
       migrationStale: migrationDebt(paths),
+      briefFor: briefRecord,
+      redactionRecordExists: redactionIndex(),
       retainedRefs: retainedCheckpointRefs(pathForBranch?.front?.id),
       provisionalInCandidate: pathForBranch
         ? provisionalCommits(pathForBranch.front?.base_commit, pathForBranch.front?.subject_commit)

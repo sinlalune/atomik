@@ -48,6 +48,18 @@ export function extractRules(source) {
 }
 
 export const RULE_METADATA = {
+  'route': {
+    condition: 'A path declares no route, an unknown route, a lightweight route that meets a full-route trigger, a foundation surface outside documents, or a descent from full',
+    enforcing: 'fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)'
+  },
+  'brief-schema': {
+    condition: 'The handoff brief is missing, or lacks its eight fields, its seven exact sections, pinned governs entries, or its token budget',
+    enforcing: 'briefErrors(front, body) over BRIEF_FIELDS and BRIEF_SECTIONS'
+  },
+  'redaction': {
+    condition: 'A `[redacted: …]` marker names no redaction record (code spans and fences stripped first)',
+    enforcing: 'redactionMarkers(stripCode(text)) => redaction record exists'
+  },
   'scope-digest': {
     condition: 'The accepted definition of done moved after acceptance, or was accepted without a digest',
     enforcing: 'scopeDigest(resolveScopeSection(pathRecord, scope_ref)) === record.scope_digest'
