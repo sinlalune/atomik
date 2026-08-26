@@ -53,6 +53,8 @@ import {
   migrationDebt,
   openingRecordFromSessions,
   CLOSURE_MUTABLE_FIELDS,
+  closureMutableFields,
+  isObjectId,
   DISPOSITIONS,
   fullRouteTriggers,
   foundationSurfaceViolations,
@@ -488,7 +490,13 @@ test('ready and blocked preserve branch traceability; ready also pins its candid
   const ready = { ...A_PATH.front, status: 'ready', subject_commit: CANDIDATE }
   assert.deepEqual(pathFrontmatterErrors(ready), [])
   assert.ok(pathFrontmatterErrors({ ...ready, subject_commit: 'aaaaaaa' })
-    .some((error) => error.includes('40-character')))
+    .some((error) => error.includes('full object id')),
+    'a prefix is never a candidate identity')
+  assert.deepEqual(
+    pathFrontmatterErrors({ ...ready, subject_commit: 'b'.repeat(64) }),
+    [],
+    'a SHA-256 repository conforms to the specification and must conform to the checker'
+  )
 })
 
 test('path identity, filename, and branch use one reconstructable convention', () => {
@@ -1469,6 +1477,38 @@ test('closure may move status and subject_commit and nothing else', () => {
   assert.ok(!CLOSURE_MUTABLE_FIELDS.includes('writes'))
 })
 
+test('the closure surface is scoped by the fact it records, not shared across both', () => {
+  // `resolution` at closure is incoherent: a ready path has resolved nothing.
+  // Allowing it on both statuses made the predicate more permissive than the
+  // prose it enforces — the bad direction. Caught in review.
+  const before = { id: 'CP-MVP-010', status: 'running', current_step: 'S01' }
+  assert.deepEqual(closureMutableFields('ready'), ['status', 'subject_commit'])
+  assert.deepEqual(closureMutableFields('done'), ['status', 'subject_commit', 'resolution'])
+  assert.equal(
+    closureFieldErrors(before, { ...before, status: 'ready', resolution: 'completed' }).length,
+    1
+  )
+  assert.equal(
+    closureFieldErrors(before, { ...before, status: 'ready', current_step: 'S02' }).length,
+    1
+  )
+  assert.deepEqual(
+    closureFieldErrors(before, { ...before, status: 'done', resolution: 'completed' }),
+    []
+  )
+})
+
+test('an object id may be SHA-1 or SHA-256, and never a prefix', () => {
+  // A checker that admits only forty characters refuses a repository the
+  // specification accepts, so the tool and the spec disagree about what a valid
+  // repository is.
+  assert.ok(isObjectId('a'.repeat(40)))
+  assert.ok(isObjectId('a'.repeat(64)))
+  assert.ok(!isObjectId('a'.repeat(7)))
+  assert.ok(!isObjectId('a'.repeat(41)))
+  assert.ok(!isObjectId('zz' + 'a'.repeat(38)))
+})
+
 test('a closure commit that rewrites the accepted scope is blocked', () => {
   const ready = readyPath()
   const found = run([ready.file], 'path/cp-mvp-010', [ready], {
@@ -1533,13 +1573,40 @@ test('a busy trunk alone never invalidates an acceptance', () => {
  * v0.2 — advisory dispositions and collapsed roles
  * ------------------------------------------------------------------ */
 
-test('a disposition list must match the advisories actually raised', () => {
+test('a disposition list must match the advisories attested at the candidate', () => {
   const entry = { rule: 'scope-drift', disposition: 'accepted', reason: 'declared here' }
-  assert.deepEqual(dispositionErrors([entry], ['scope-drift']), [])
-  assert.equal(dispositionErrors([], ['scope-drift']).length, 1)
-  assert.equal(dispositionErrors([entry], []).length, 1)
-  assert.equal(dispositionErrors('all fixed', ['scope-drift']).length, 1)
+  assert.deepEqual(dispositionErrors([entry], ['scope-drift'], []), [])
+  assert.equal(dispositionErrors([], ['scope-drift'], []).length, 1)
+  assert.equal(dispositionErrors([entry], [], []).length, 1)
+  assert.equal(dispositionErrors('all fixed', ['scope-drift'], []).length, 1)
   assert.ok(DISPOSITIONS.includes('deferred'))
+})
+
+test('comparing against the CLOSURE commit alone would be unsound', () => {
+  // `A` is field-restricted, so its advisory set is a strict subset of `C`'s.
+  // A rule comparing dispositions against what fires at `A` passes while an
+  // advisory raised at `C` goes undisposed — the exact failure the requirement
+  // exists to prevent.
+  const entry = { rule: 'scope-drift', disposition: 'accepted', reason: 'r' }
+  const raisedAtA = ['scope-drift']
+  assert.equal(
+    dispositionErrors([entry], ['scope-drift', 'path-staleness'], raisedAtA).length,
+    1,
+    'path-staleness was attested at the candidate and left undisposed'
+  )
+})
+
+test('an advisory firing at closure and missing from the attestation proves it incomplete', () => {
+  const entry = { rule: 'scope-drift', disposition: 'accepted', reason: 'r' }
+  const errors = dispositionErrors([entry], ['scope-drift'], ['scope-drift', 'ledger-size'])
+  assert.ok(errors.some((e) => /proves the attested set incomplete/.test(e)))
+})
+
+test('a closing record with no attested candidate set cannot be checked soundly', () => {
+  const entry = { rule: 'scope-drift', disposition: 'accepted', reason: 'r' }
+  assert.ok(
+    dispositionErrors([entry], undefined, []).some((e) => /advisories_at_candidate/.test(e))
+  )
 })
 
 test('a deferral without an owner and a follow-up is rejected', () => {
@@ -1844,4 +1911,20 @@ test('an orphaned checkpoint blocks the gate', () => {
     head: 'c4'
   })
   assert.ok(rules(found, 'blocking').includes('checkpoint-retention'))
+})
+
+test('a lightweight path that has already spanned two units must escalate', () => {
+  // "Expected to span more than one work unit" is unobservable. HAVING spanned
+  // one is a fact in the ledger, and without this backstop everything can
+  // declare itself lightweight and no rule ever fires.
+  const twoUnits = [
+    { step: 'S01', unit: '01', type: 'implementation', verified: 'x' },
+    { step: 'S02', unit: '02', type: 'implementation', verified: 'x' }
+  ]
+  const found = run([A_PATH.file], 'path/cp-mvp-010', [A_PATH], { workUnits: twoUnits })
+  assert.ok(rules(found, 'blocking').includes('route'))
+
+  const escalated = { ...A_PATH, front: { ...A_PATH.front, route: 'full' } }
+  const ok = run([escalated.file], 'path/cp-mvp-010', [escalated], { workUnits: twoUnits })
+  assert.ok(!rules(ok, 'blocking').includes('route'))
 })

@@ -147,7 +147,9 @@ test('cairn-spec: closure binds audit and acceptance to the final candidate in o
   assert.match(markdown, /subject_commit: [0-9a-f]{40}/)
   assert.match(markdown, /`status`, set to `ready`/)
   assert.match(markdown, /A path branch MUST NOT set itself to `done`/)
-  assert.match(markdown, /The list MUST correspond exactly to\s+the advisories the checker raised at `C`/)
+  assert.match(markdown, /the dispositions cover exactly the attested set/)
+  assert.match(markdown, /advisories_at_candidate/)
+  assert.match(markdown, /whatever the checker raises when it evaluates the closure commit `A` — is\s+\*\*unsound\*\*/)
 })
 
 test('cairn-spec: critical unknowns fail closed and lifecycle claims are truthful', () => {
@@ -495,4 +497,14 @@ test('cairn-spec: every inline script parses as JavaScript', () => {
   const scripts = captures(html, /<script>([\s\S]*?)<\/script>/g)
   assert.ok(scripts.length >= 2)
   for (const script of scripts) assert.doesNotThrow(() => new Function(script))
+})
+test('cairn-spec: v0.2 names the predicate failure mode it hit twice', () => {
+  assert.match(markdown, /### Distrust a predicate that asks about a declaration/)
+  assert.match(markdown, /A ref moved forward keeps every declared unit\s+resolving/)
+  assert.match(markdown, /write the one that can\s+disagree with the record/)
+})
+
+test('cairn-spec: the route has a structural backstop, not only declarations', () => {
+  assert.match(markdown, /MUST declare\s+> `route: full`/)
+  assert.match(markdown, /\*\*having\*\* spanned more than one work unit is a fact in the\s+ledger/)
 })

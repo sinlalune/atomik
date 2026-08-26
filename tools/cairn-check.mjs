@@ -406,8 +406,19 @@ export function parseWrites(text) {
   return out.filter(Boolean)
 }
 
+/** A FULL object id, in whichever format the repository is configured for.
+ *  SHA-1 gives forty hex characters and SHA-256 gives sixty-four; a checker
+ *  that admits only the first refuses a repository the specification accepts,
+ *  which makes the tool and the spec disagree about what a valid repository is.
+ *  Length follows from the repository; the requirement is unabbreviated. */
+export function isObjectId(value) {
+  return typeof value === 'string' && /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i.test(value)
+}
+
+export const OBJECT_ID_FORMATS = 'forty hexadecimal characters (SHA-1) or sixty-four (SHA-256)'
+
 export function isCommitPin(value) {
-  return typeof value === 'string' && /^[0-9a-f]{7,40}$/i.test(value)
+  return typeof value === 'string' && /^[0-9a-f]{7,64}$/i.test(value)
 }
 
 /** The stable identity tuple that must already exist on the trunk before a
@@ -455,8 +466,8 @@ export function pathFrontmatterErrors(front, file = null) {
   if (['running', 'blocked', 'ready'].includes(front.status) && !isCommitPin(front.base_commit)) {
     errors.push(`status "${front.status}" requires atomik.base_commit as a 7–40 digit Git hash`)
   }
-  if (front.status === 'ready' && !/^[0-9a-f]{40}$/i.test(String(front.subject_commit))) {
-    errors.push('status "ready" requires atomik.subject_commit as a full 40-character Git hash')
+  if (front.status === 'ready' && !isObjectId(front.subject_commit)) {
+    errors.push(`status "ready" requires atomik.subject_commit as a full object id — ${OBJECT_ID_FORMATS}`)
   }
   if (front.status === 'archived' && front.resolution && !PATH_RESOLUTIONS.includes(front.resolution)) {
     errors.push(
@@ -525,8 +536,8 @@ export function transitionErrors(previous, current, onPathBranch = false) {
   if (to === 'done' && current?.resolution !== 'completed') {
     errors.push('status `done` requires resolution: completed')
   }
-  if (to === 'done' && !/^[0-9a-f]{40}$/i.test(String(current?.subject_commit))) {
-    errors.push('status `done` requires subject_commit as a full 40-character Git hash')
+  if (to === 'done' && !isObjectId(current?.subject_commit)) {
+    errors.push(`status \`done\` requires subject_commit as a full object id — ${OBJECT_ID_FORMATS}`)
   }
   return errors
 }
@@ -553,8 +564,8 @@ export function closingAcceptanceErrors(record, pathId) {
   if (!record) return ['missing closing acceptance record']
   if (record.path !== pathId) errors.push(`path must equal ${pathId}`)
   if (String(record.ceremony).toLowerCase() !== 'closing') errors.push('ceremony must equal closing')
-  if (!/^[0-9a-f]{40}$/i.test(String(record.subject_commit))) {
-    errors.push('subject_commit must be a full 40-character Git hash')
+  if (!isObjectId(record.subject_commit)) {
+    errors.push(`subject_commit must be a full object id — ${OBJECT_ID_FORMATS}`)
   }
   if (!String(record.accepted_by ?? '').trim()) errors.push('accepted_by is required')
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(String(record.accepted_at))) {
@@ -936,18 +947,33 @@ export function scopeDigest(section, algorithm = 'sha256') {
  *  declared surfaces live in this same file, so a closure permitted to "change
  *  the path record" is permitted to rewrite the standard its own acceptance was
  *  measured against, after the measurement. */
-export const CLOSURE_MUTABLE_FIELDS = ['status', 'subject_commit', 'current_step', 'resolution']
+/** What closure may move depends on which fact it is recording.
+ *
+ *  `ready` is an acceptance: it names the candidate and nothing else. `done` is
+ *  an integration, so the trunk unit additionally writes the resolution. An
+ *  earlier version of this list allowed `current_step` and `resolution` on
+ *  BOTH, which made the predicate more permissive than the prose it was meant
+ *  to enforce — and `resolution` at closure is incoherent anyway, because a
+ *  ready path has not resolved anything. Caught in review. */
+export function closureMutableFields(status) {
+  return status === 'done'
+    ? ['status', 'subject_commit', 'resolution']
+    : ['status', 'subject_commit']
+}
+
+export const CLOSURE_MUTABLE_FIELDS = closureMutableFields('ready')
 
 export function closureFieldErrors(previous, current) {
   if (!previous || !current) return []
   const errors = []
+  const mutable = closureMutableFields(current.status)
   const keys = new Set([...Object.keys(previous), ...Object.keys(current)])
   for (const key of keys) {
-    if (CLOSURE_MUTABLE_FIELDS.includes(key)) continue
+    if (mutable.includes(key)) continue
     const before = JSON.stringify(previous[key] ?? null)
     const after = JSON.stringify(current[key] ?? null)
     if (before !== after) {
-      errors.push(`closure changed \`${key}\`, which acceptance was measured against — only ${CLOSURE_MUTABLE_FIELDS.join(', ')} may move after a candidate is accepted`)
+      errors.push(`closure changed \`${key}\`, which acceptance was measured against — only ${mutable.join(', ')} may move when a path declares ${current.status}`)
     }
   }
   return errors
@@ -969,14 +995,45 @@ export function acceptanceDrift(trunkDelta, writes = [], governs = []) {
 
 export const DISPOSITIONS = ['fixed', 'accepted', 'deferred']
 
-/** `advisory_disposition` as one sentence is unenforceable: a reviewer writing
- *  "accepted: none" over three live advisories produces a record that reads as
- *  complete and is false. Set equality against the findings actually raised is
- *  a predicate; a summary is not. */
-export function dispositionErrors(disposition, raised) {
+/**
+ * `advisory_disposition` as one sentence is unenforceable: a reviewer writing
+ * "accepted: none" over three live advisories produces a record that reads as
+ * complete and is false. Set equality is a predicate; a summary is not.
+ *
+ * But equality against *what*? The first version compared against the
+ * advisories raised in the run that evaluates `A`, and that was unsound. `A` is
+ * field-restricted by construction, so its advisory set is a strict SUBSET of
+ * the set raised at `C` — the rule could pass while advisories raised at the
+ * candidate went undisposed, which is the exact failure the requirement exists
+ * to prevent. Caught in review.
+ *
+ * The record therefore ATTESTS the set raised at `C`, in `advisories_at_candidate`,
+ * bound to `C` by the audit's subject. Two things are then checkable:
+ *
+ *   1. dispositions cover exactly the attested set — no omissions, no invented
+ *      entries;
+ *   2. every advisory raised here at `A` appears in the attested set. Because
+ *      A ⊂ C, an advisory firing now and missing from the record PROVES the
+ *      attestation incomplete.
+ *
+ * What remains an attestation rather than a derivation is an advisory that
+ * fires only at `C`. Closing that needs evaluation replayed at `C`, and the
+ * conformance matrix says so.
+ */
+export function dispositionErrors(disposition, attested, raisedHere = []) {
   const errors = []
   if (!Array.isArray(disposition)) {
     return ['advisory_disposition must be a list of { rule, disposition, reason } entries']
+  }
+  if (!Array.isArray(attested)) {
+    errors.push('advisories_at_candidate must list the advisory rules raised at the candidate — without it, dispositions can only be compared against the closure commit, whose advisory set is a strict subset')
+    attested = []
+  }
+  const attestedSet = new Set(attested)
+  for (const rule of raisedHere) {
+    if (!attestedSet.has(rule)) {
+      errors.push(`advisory "${rule}" is raised at the closure commit but is absent from advisories_at_candidate — the closure commit's findings are a subset of the candidate's, so this proves the attested set incomplete`)
+    }
   }
   const named = new Set()
   for (const entry of disposition) {
@@ -996,12 +1053,12 @@ export function dispositionErrors(disposition, raised) {
       errors.push(`${entry.rule ?? 'an entry'} is deferred without an owner and a follow_up`)
     }
   }
-  for (const rule of raised) {
-    if (!named.has(rule)) errors.push(`advisory "${rule}" was raised and has no disposition`)
+  for (const rule of attestedSet) {
+    if (!named.has(rule)) errors.push(`advisory "${rule}" was raised at the candidate and has no disposition`)
   }
   for (const rule of named) {
-    if (!raised.includes(rule)) {
-      errors.push(`advisory_disposition names "${rule}", which was not raised against this candidate`)
+    if (!attestedSet.has(rule)) {
+      errors.push(`advisory_disposition names "${rule}", which advisories_at_candidate does not list as raised`)
     }
   }
   return errors
@@ -1020,8 +1077,16 @@ export function approxTokens(text) {
  * are an expectation and a policy, so they are declared rather than derived, and
  * the specification says so instead of implying the list is exhaustive.
  */
-export function fullRouteTriggers(writes = [], areaOfFile = areaOf) {
+export function fullRouteTriggers(writes = [], areaOfFile = areaOf, unitCount = 0) {
   const triggers = []
+  // The specification's "expected to span more than one work unit" is an
+  // expectation and cannot be derived. HAVING spanned one is a fact in the
+  // ledger, and it is the same trigger arriving one unit late. Without this
+  // backstop the honest failure mode is that everything declares itself
+  // lightweight, ceremony evaporates, and no rule ever fires. Added in review.
+  if (unitCount > 1) {
+    triggers.push(`its ledger already declares ${unitCount} work units`)
+  }
   if (writes.some((pattern) => CONTROL_PLANE.some((prefix) => pattern.startsWith(prefix)))) {
     triggers.push('it changes the control plane')
   }
@@ -1621,7 +1686,9 @@ export function evaluate({
     const record = closureFor?.(id)
     const raised = [...new Set(findings.filter((f) => f.level === 'advisory').map((f) => f.rule))]
     if (record && !migrationExempt.has(id)) {
-      for (const error of dispositionErrors(record.advisory_disposition, raised)) {
+      for (const error of dispositionErrors(
+        record.advisory_disposition, record.advisories_at_candidate, raised
+      )) {
         add('blocking', 'advisory-disposition', `${id}: ${error}`)
       }
     } else if (record && typeof record.advisory_disposition === 'string') {
@@ -1666,7 +1733,7 @@ export function evaluate({
     } else if (!ROUTES.includes(route)) {
       add('blocking', 'route', `${match.file} declares route "${route}", outside ${ROUTES.join(' | ')}`)
     } else {
-      const triggers = fullRouteTriggers(match.writes ?? [])
+      const triggers = fullRouteTriggers(match.writes ?? [], areaOf, (workUnits ?? []).length)
       if (route === 'lightweight' && triggers.length > 0) {
         add('blocking', 'route',
           `${match.file} declares route: lightweight while ${triggers.join('; ')} — escalate to full before the next checkpoint and record the trigger in the ledger`)
@@ -1841,7 +1908,7 @@ function closureAllowedFiles(path, record) {
  * integrating trunk commit. In both cases the tree diff must be metadata-only. */
 function pathClosureState(path, record) {
   const subject = record?.subject_commit
-  if (!/^[0-9a-f]{40}$/i.test(String(subject))) return null
+  if (!isObjectId(subject)) return null
   if (!gitOrNull(['rev-parse', '--verify', subject])) return null
 
   const subjectIsAncestor = (() => {

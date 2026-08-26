@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-002
   route: full            # control plane + decision plane; escalation is one-way
   status: running
-  current_step: S07l
+  current_step: S07m
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
   writes:                    # ADVISORY — a signal, never a lock
@@ -96,433 +96,72 @@ Convention: [paths.md](./paths.md#the-ledger-has-a-boundary) · index:
 - **[S07d](./history/CP-OPS-002-S07d.md)** — The binding names, and the document read downward *(owner, 2026-08-25)* — **SUPERSEDED by S07e**
 - **[S07e](./history/CP-OPS-002-S07e.md)** — Canonical top-down specification project and universal reader *(owner correction)* — **COMPLETE**
 
-### S07f — Candidate-bound closure and truthful team lifecycle — **COMPLETE**
+- **[S07f](./history/CP-OPS-002-S07f.md)** — Candidate-bound closure and truthful team lifecycle — COMPLETE
+- **[S07g](./history/CP-OPS-002-S07g.md)** — Cairn v0.2: close the gaps between the promises and the predicates — COMPLETE
+- **[S07h](./history/CP-OPS-002-S07h.md)** — The v0.2 predicates, part one: the parser, the typed ledger, and the two P0 gates — COMPLETE
+- **[S07i](./history/CP-OPS-002-S07i.md)** — The v0.2 predicates, part two: the record rules — COMPLETE
+- **[S07j](./history/CP-OPS-002-S07j.md)** — The v0.2 predicates, part three: routes, the brief contract, redaction — COMPLETE
+- **[S07k](./history/CP-OPS-002-S07k.md)** — Repair: a retention ref was moved, and the rule could not see it — COMPLETE
+- **[S07l](./history/CP-OPS-002-S07l.md)** — Repair: the brief could not name its own commit — COMPLETE
+
+### S07m — Review round two: two unsound predicates and a fabricated figure — **COMPLETE**
 
 ```cairn-unit
-step: S07f
-unit: 01
+step: S07m
+unit: 09
 type: implementation
 verified: cairn-check, cairn-check:test, typecheck, test, build
 ```
 
-An external senior review of the same protocol state found that Cairn's durable path and
-checkpoint model was strong, while several closure and enforcement claims exceeded their
-predicates. The user rejected the reviewer's suggested one-owner scope: Cairn remains for
-teams with multiple developers and multiple agents per developer. A path has one assigned
-writer in a writable worktree at a time, may change writers at a pushed checkpoint, and
-remains independently pullable, navigable, and resumable from its remote branch.
+The reviewer checked the response against the generated specification rather than taking it
+at its word, and found four things. Three were defects in this work; one was a compliment
+that does not survive counting.
 
-The complete code-and-specification correction was held in the working tree, uncommitted
-and unpushed, until the user's inspection. **The user passed it on 2026-08-26**, choosing
-to land it as its own checkpoint so that the v0.2 protocol revision that follows reads as
-its own reviewable diff rather than as one undifferentiated delivery.
-
-- `ready` is the accepted state of a path branch; `done` is an integration fact recorded
-  on the trunk. `blocked` retains `branch` and `base_commit`; archival carries
-  `completed | abandoned | superseded` resolution with transition-specific constraints.
-- Audit and closing acceptance bind the same full 40-character `subject_commit`.
-  Acceptance also records actor, UTC time, accepted scope, decision, and disposition of
-  advisories. Exactly one metadata-only closure commit may follow the implementation
-  candidate; the integrating trunk result permits one further metadata commit.
-- Critical registration, registration-parent, rebase, transition, acceptance, and
-  record-integrity predicates report `pass | fail | inconclusive`; both non-pass outcomes
-  exit non-zero. CI supplies the previous pushed SHA for a push, the base SHA for a pull
-  request, and `HEAD^` only as final fallback, so transition and forward-scoped record
-  integrity compare the proposed work unit rather than punishing old records.
-- Existing session, audit, journal-entry, and rolled-history records cannot be modified,
-  renamed, or deleted. Namespace indexes and logs remain mutable views. Path ids, filenames,
-  branch names, and registration parents are checked; path declarations are archived rather
-  than deleted.
-- Coherence audit existence, completeness, path/branch/base binding, and exact candidate
-  binding are blocking facts. Its architectural judgement remains human/agent judgement.
-  Audit filenames use the full candidate hash, eliminating short-hash collisions.
-- `ACTIVE.md` now keeps `running`, `blocked`, and `ready` paths visible. Worktree
-  isolation is not treated as proof of writer exclusivity; writer assignment remains an
-  operating responsibility.
-- `same-work-unit` now guards all three roots the checker declares
-  (`apps/`, `packages/`, `shared/`) instead of printing a stronger catalogue claim
-  than its predicate.
-- ADR-018 is **proposed**, not accepted. It preserves the team/path/checkpoint model, states
-  the trusted-collaborator threat boundary, and leaves independently protected control-plane
-  transport, versioned configuration, transaction commands, lightweight/emergency paths,
-  and pilot metrics as explicit conformance gaps rather than claiming they exist.
-- The canonical v0.1 specification now moves from simple durable objects through one path,
-  remote resumability, parallel team work, evidence, registration, exact-candidate closure,
-  truthful integration, lifecycle, trust and conformance. It creates no permanent owner or
-  central integrator: roles are path-scoped and may be held by developers or agents under
-  repository policy.
-- Sixty-five specialist concepts have one article each under
-  `docs/cairn/specification/concepts/`. Combined foundation chapters and the omnibus
-  glossary are removed. The first full-protocol view now pairs each plain-language action
-  with a linked Cairn term, and concept definitions link specialised dependencies at first
-  use. Exact reference pages reconstruct the tree, path, human records, manual operations,
-  versioned configuration target and conformance matrix.
-- The repository map is exhaustive for active Cairn-defined roles rather than illustrative.
-  It was checked against the current repository and now includes the workflow, tools,
-  specification graph, folder indexes/logs, operating guide, event records, ledger history,
-  journal, and optional project-memory spaces. Portable role names remain distinct from the
-  installed `atomik-project/`, `docs/bedrock/`, `apps/`, `packages/`, and `shared/` bindings.
-- The universal HTML is generated from the Markdown graph by
-  `tools/cairn-spec-build.mjs`. Its flat research-paper system uses neutral translucent
-  surfaces, precise serif/sans/mono typography, thin rules, and restrained frosted navigation
-  chrome without gradients, themes, shadows, or decorative cards. Tree, pane, and pane seams
-  have no layout gutters.
-- The user-reported inert reader was a defect, not a browser limitation: first render tried
-  to serialise both pane states before the second existed, aborting all click handlers. Both
-  states are now initialised before rendering. Each pane is also a bounded overflow region,
-  so it scrolls independently. Runtime DOM tests prove cross-pane wiki clicks and direct
-  `#article-<id>` loading into the right pane.
-- The universal file embeds 74 articles and remains self-contained, responsive, printable,
-  keyboard-operable and sequentially readable without JavaScript. Tests pin deterministic
-  generation, all Markdown/wiki/tree/anchor targets, equal-pane structure, live routing,
-  scroll containment, rule parity, self-containment and inline-script syntax.
-- The reference tools still do not claim what they have not implemented: ledger-prefix
-  proof, portable configuration and migrations, independently protected control plane,
-  exact protected transport, transaction commands, lightweight/emergency paths and measured
-  operational cost all remain explicit conformance gaps.
-
-### S07g — Cairn v0.2: close the gaps between the promises and the predicates — **COMPLETE**
-
-```cairn-unit
-step: S07g
-unit: 02
-type: documentation
-verified: cairn-check, cairn-check:test, typecheck, test, build
-```
-
-A nineteen-item external review of the v0.1 specification, delivered by the user. Every
-item is now resolved in normative text or listed under *Deliberate non-goals* with a
-reason; none is deferred silently. **Specification text only** — no checker rule was
-implemented, and every added requirement carries a conformance-matrix row whose
-reference-tools column says `not implemented`. That ordering is the decision: the
-specification is corrected first so the tooling has a correct target, and a matrix row
-that lies about a mechanism is the exact failure this revision exists to remove.
-
-- **Two items were broken promises, not missing features.** Rebase-before-close
-  force-pushes the path branch and orphans every checkpoint the ledger names — so the
-  ledger's resumability promise resolves to nothing at the moment the ledger is most
-  complete. Retention refs under `refs/cairn/checkpoints/<path-id>/<n>` are now required
-  before any rewriting push, with "forbid rewriting pushes on path branches" as the only
-  other conforming option. And the rule that kept pre-acceptance work uncommitted and
-  unpushed forbade publishing the single most losable state in the protocol: an agent's
-  mid-session working tree. A **provisional commit** is pushed, carries
-  `Cairn-Provisional: <reason>`, is never a checkpoint or a resume point, and is folded
-  into its work unit before `C` exists.
-- **The brief was the bootstrap contract with no fields.** It now has frontmatter
-  (`checkpoint`, `checkpoint_pushed`, `base_commit`, `trunk_seen`, `writes`, `governs` as
-  `path@<object-id>`, `verify` as exact commands, `budget_tokens`), seven capped body
-  sections, a ~1200-token budget, and an **answerable-alone contract** — eight questions a
-  reader with only `AGENTS.md` and the brief must be able to answer. Needing the ledger to
-  answer any of them means the brief failed. **Cold resume** becomes the pilot's primary
-  metric, ahead of ceremony time.
-- **Records now mean what they claim.** `A` is restricted **field by field**, because the
-  definition of done and both declared surfaces live inside the path record — a file-level
-  restriction would let closure rewrite the standard its own acceptance was measured
-  against. `scope_ref` gained a **scope digest** recorded at opening and re-verified at
-  closing. `advisory_disposition` became a structured list required to match the findings
-  raised at `C`; as one free-text string, "every advisory MUST be recorded" was
-  unenforceable. Acceptance records name the roles the actor held, and a collapsed
-  opening/closing actor raises an advisory — the degradation is made visible rather than
-  forbidden, because forbidding it would exclude the setup most likely to adopt Cairn
-  first.
-- **Drift is a predicate, and the obvious rule was rejected by name.** The closing record
-  names its base `T`; an acceptance survives while the trunk delta from `T` to `T'` touches
-  nothing in `writes:` ∪ `governs:`. `remote_trunk == T` at integration is refused in the
-  normative text with its reason: it is first-come-first-served, every landing invalidates
-  every other open acceptance, and where audit plus acceptance outlast the trunk's landing
-  interval nothing ever closes — worst on exactly the busy repositories the protocol is
-  for.
-- **The counterweight, without which this revision would be strictly harder to adopt than
-  what it replaces.** Every item above is a tightening. The **lightweight path** becomes
-  the **default route**: opening acceptance inside the path record, coherence questions
-  answered inside the closing record, `A` allowed to share `C`'s commit — with exact
-  candidate identity and exact acceptance fully retained. `route: full` is *required* by
-  five named triggers, and escalation is one-way; no path may declare itself down.
-- **Typed work units** (`implementation`, `documentation`, `decision`, `foundation`,
-  `repair`, `closure`) make "where relevant" exact. The untyped rule demanded a module note
-  from a typo fix, which trains a writer — human or agent — to manufacture an empty
-  documentation delta until the gate goes quiet.
-- **Repair procedures** for the eight violations real deployments hit, each a `repair` work
-  unit that leaves the violation visible in the ledger and is never the same unit as the
-  work that caused it. **Redaction** is a ceremony beginning with rotation, because
-  redaction is not un-disclosure.
-- **Editorial.** Identity is the full object id in the repository's configured object
-  format, not forty hex characters — the "universal" edition was SHA-1-specific. The
-  lifecycle diagram and table are reconciled both ways: `ready → blocked` exists (acceptance
-  stalls), `blocked → ready` does not (reaching `ready` is execution), and
-  `archived → archived` is removed because an unchanged state is not an event.
-- **The origin gap.** A **foundation path** covers a repository's own first hour: write
-  surface `docs/**` plus `draft` path records, documents as work units, verification by
-  `links` + `schema` + coherence audit — three rules that already existed, so no new gate —
-  and a deliverable of foundational text plus a roadmap of `draft` path records awaiting
-  opening acceptance. Its **adoption** variant back-documents a brownfield repository into
-  a legal entry point. Governing documents pinned as `path@oid` are also what make the
-  scope digests cheap.
-- **Concept budget held at 66.** `file`, `markdown`, `fetch`, `push` and `working-tree`
-  merged into `project-memory`, `frontmatter`, `fetch-and-push` and `worktree`, paying for
-  `checkpoint-retention`, `provisional-commit`, `scope-digest`, `acceptance-drift` and
-  `foundation-path`. The Git-glossary split (21 borrowed terms, 45 Cairn concepts) is
-  structural and **added no article**, which the brief required.
-- **ADR-019** records the decisions and amends ADR-018 on the two rules v0.2 contradicts.
-  It stays `proposed`. Five regression tests added to the executable documentation
-  contract; suite 118 → 123.
-
-### S07h — The v0.2 predicates, part one: the parser, the typed ledger, and the two P0 gates — **COMPLETE**
-
-```cairn-unit
-step: S07h
-unit: 03
-type: implementation
-verified: cairn-check, cairn-check:test, typecheck, test, build
-```
-
-S07g corrected the specification and deliberately implemented nothing. This step begins
-closing that gap, in the order the review ranked it: the two P0 items first, because they
-are the ones where the protocol was breaking its own promises rather than merely failing
-to check them.
-
-- **The frontmatter reader grew a named grammar rather than a dependency.** v0.2 records
-  carry flow lists (`accepted_roles`), block lists (`governs`) and lists of maps
-  (`advisory_disposition`); the old reader handled scalars and one nested map. It now reads
-  exactly the shapes Cairn's own records use and refuses the rest, which is what the
-  specification requires of a limited reader that declines to borrow YAML's name. Zero
-  dependencies, so the S08 `cairn-init` kit stays installable in a repository with no
-  network. One real behaviour change surfaced from the existing suite and was fixed rather
-  than papered over: a nested key with an empty value must stay the empty string, or a
-  blank `verdict:` in an audit record reports as an object instead of as missing.
-- **The ledger gained a machine-readable unit block**, and its design is the interesting
-  part. A block naming its own commit hash could never be written truthfully — the commit
-  does not exist while the unit is being written, which is the same self-reference
-  administrative closure solves with a following commit. So the block declares a **ledger
-  ordinal**, and `refs/cairn/checkpoints/<path-id>/<unit>` supplies the hash afterwards.
-  The ledger says which unit, the ref says which commit, and neither has to lie.
-- **`work-unit` (blocking)** — a changed path record must carry a `cairn-unit` block, and
-  every block must declare a step, an ordinal, a type from the six-word vocabulary, and a
-  verification result. `same-work-unit` does **not** yet key its requirement to the type;
-  the matrix says so rather than claiming the whole item.
-- **`checkpoint-retention` (blocking, with an advisory tail)** — every declared unit except
-  the newest must resolve a local retention ref. The newest is exempt because its ref is
-  written immediately after the commit that declares it, so checking it would fail every
-  gate run that precedes its own push; by the time the next unit exists it is no longer
-  newest, which delivers the guarantee that actually matters — retention is in place before
-  the next rewriting push. Unreadable refs are `inconclusive` and non-zero.
-- **Deliberately local.** `git ls-remote` would prove the ref reached the remote and would
-  also make the gate depend on the network, so a restricted runner or a plane ride would
-  turn a protocol failure into a protocol pass. The ref is written locally and pushed in
-  the same breath; `remote-checkpoint` already carries the separate advisory question of
-  what the remote holds.
-- **`provisional` (blocking, with an advisory tail)** — a ready path whose candidate range
-  still contains a commit trailered `Cairn-Provisional:` is blocked, because a candidate
-  containing marked-incomplete work is a candidate containing work nobody claimed was
-  finished. An unreadable range is inconclusive. At HEAD the same trailer is advisory: that
-  commit is durable and legitimate, it is simply not a checkpoint.
-- **Migration, named rather than hidden.** The S07f and S07g entries in this live ledger
-  gained unit blocks retroactively, and the ordinal series starts at S07f because that is
-  where the convention starts. This is a legitimate edit: the live path record advances
-  with every work unit, and `record-integrity` protects sessions, audits, journal entries
-  and rolled history — not the live ledger. Units 01 and 02 were retained at their real
-  commits before this step's gates were run.
-- **No migration exception set was added, because none is needed yet.** `work-unit` is
-  diff-scoped, so it asks nothing of ledger entries that predate it, and retention only
-  checks units that declare a block. The declared, self-deleting exception lands with the
-  scope-digest and route rules, which do reach back over existing state.
-- Fifteen regression tests; checker suite 76 → 91, full protocol/specification suite
-  123 → 138.
-
-### S07i — The v0.2 predicates, part two: the record rules — **COMPLETE**
-
-```cairn-unit
-step: S07i
-unit: 04
-type: implementation
-verified: cairn-check, cairn-check:test, typecheck, test, build
-```
-
-The P1 group — every rule in it reaches back over records that already exist, which is
-why it needed the migration decision before it could be written.
-
-- **`scope-digest` (blocking).** `scope_ref` is a file path and a heading, so the sentence
-  it resolves to could be rewritten after acceptance while every record still read as
-  valid. The checker now resolves the section — the named heading and its body up to the
-  next heading of the same or higher level, normalised for line endings and trailing
-  whitespace and **nothing else**, because a digest whose input is "cleaned" silently
-  accepts changes it claims to cover — digests it, and compares. An unreadable `scope_ref`
-  is `inconclusive`; a `scope_ref` naming no section is a failure, not a pass.
-- **`closure-surface` (blocking).** File-level allowance was never a restriction: the
-  definition of done and both declared surfaces live inside the path record, so a closure
-  permitted to "change the path record" could rewrite the standard its own acceptance was
-  measured against, after the measurement. Closure may now move `status`,
-  `subject_commit`, `current_step` and `resolution`, and nothing else.
-- **`acceptance-drift` (blocking).** The trunk delta since the accepted base, tested
-  against `writes:` ∪ `governs:`. The rejected alternative is pinned by a test named for
-  what it protects: a two-hundred-file trunk delta touching nothing the path declared
-  raises no finding at all, which is precisely what `trunk === base` could not do.
-- **`advisory-disposition` (blocking, advisory for grandfathered paths).** Set equality
-  between the dispositions recorded and the advisories raised. **Stated limit:** the
-  comparison uses the advisories raised in the same run, which evaluates the closure commit
-  rather than the candidate. The matrix says *partially implemented* for that reason
-  rather than claiming the whole item.
-- **`role-collapse` (advisory).** One actor on both acceptances is permitted and reported.
-  Forbidding it would exclude the setup most likely to adopt Cairn first; the requirement
-  is that the weakness is legible rather than invisible.
-- **`scope-drift` promoted to blocking** unless `writes:` moved in the same change. Drift
-  accompanied by the widening is what a discovered root cause looks like and stays
-  advisory; drift alone now blocks, because both declared surfaces feed the drift
-  predicate and a stale surface weakens every answer computed from it.
-- **`migration-debt` (blocking) is the exception's own expiry.** `V02_MIGRATION_PATHS`
-  holds `CP-OPS-002`, whose opening acceptance is an immutable session record and can never
-  acquire a digest. The set cannot outlive its migration: a listed path that no longer
-  exists, or that has archived, produces a blocking finding telling the next writer to
-  delete the entry. An exception that survives its migration is a bypass, and the mechanism
-  that removes it is the same one that enforces the rule.
-- **`work-unit` was too weak and was tightened in the same step.** "A block somewhere in
-  the file" passes forever once the first block exists. The rule now requires a block for
-  the step the record declares as `current_step`, and this path gained that field. The gate
-  caught its own missing S07i entry before this text was written, which is the only kind of
-  evidence a rule like this can offer.
-- **This path migrated onto the rules.** `governs:` now declares eight documents pinned at
-  exact blob ids — `paths.md`, bedrock 22/24/26/35, ADR-009, ADR-012, and the audit that
-  opened this path — so "which knowledge governed" is a fact rather than a recollection.
-- Nineteen regression tests; checker suite 91 → 110, full suite 138 → 156.
-
-### S07j — The v0.2 predicates, part three: routes, the brief contract, redaction — **COMPLETE**
-
-```cairn-unit
-step: S07j
-unit: 05
-type: implementation
-verified: cairn-check, cairn-check:test, typecheck, test, build
-```
-
-The adoption group, and the last of the fourteen rows that could be reached at all.
-
-- **`route` (blocking).** Vocabulary (`lightweight | full | foundation`), plus the three
-  full-route triggers that are structural and therefore checkable: the change touches the
-  control plane, it touches architecture or a decision record, or its `writes:` covers more
-  than one implemented area. The other two triggers in the specification — *expected to
-  span more than one work unit* and *policy-designated high-risk* — are an expectation and
-  a policy, so they stay declared rather than derived, and the matrix says so instead of
-  implying the list is exhaustive. A `foundation` route's write surface is confined to
-  documents and the path records it produces. Descent from `full` blocks: escalation is
-  one-way, because a change does not become small by being called small.
-- **`brief-schema` (blocking).** The eight frontmatter fields, the seven capped sections
-  and nothing outside them, `governs` entries pinned, `checkpoint_pushed` true, and the
-  declared token budget. What is **not** claimed is the answerable-alone contract: whether
-  a brief can actually be resumed cold is a judgement and a benchmark, and the shape is all
-  a checker can see.
-- **`redaction` (blocking).** Every `[redacted: <id>]` marker must name a redaction record
-  that exists. A marker pointing at nothing is an edit wearing a ceremony's clothes.
-- **A live parser bug, found by the new rules and fixed rather than worked around.** The
-  scalar reader took values verbatim to end of line, which was a deliberate documented
-  choice — and it meant `governs:   # declared READ surface` produced a **non-empty** value,
-  so the key stopped opening its list and this path silently declared no governing
-  documents at all. That is exactly the F9 failure, one line higher up: the same trap the
-  list-item reader was already taught to avoid. Scalars now strip a trailing comment, a
-  whole-comment value reads as empty, and a quoted value keeps its `#` because there it is
-  content. The test that pinned the old behaviour was rewritten to pin the new, with the
-  reason recorded — it documented a limitation, not a requirement.
-- **This path migrated onto the rules.** It declares `route: full` (control plane and
-  decision plane, so the triggers demand it), and its handoff brief was rewritten onto the
-  seven-section contract inside the 1200-token budget. The old brief failed the gate on
-  nine counts, which is a fair measure of how much a bootstrap contract drifts when nothing
-  is checking it.
-- **The redaction rule cried wolf twice before it was right**, both times on documentation
-  describing itself: first on the ledger entry above, then on its own generated catalogue
-  row. Code spans and fences are now stripped before any marker is judged — the same lesson
-  the link rule learned against 34 false positives — and the catalogue text quotes its
-  example. A rule that flags its own specification is a rule people switch off.
-- **The lifecycle table was reconciled with the specification in the same step**, closing
-  the one v0.2 row that had been corrected in prose and left untouched in code:
-  `ready → blocked` now exists (acceptance stalls), `blocked → ready` still does not
-  (reaching `ready` is execution), an unchanged state is accepted for every state, and an
-  archived resolution is terminal. Doing so exposed a pre-existing defect — an unchanged
-  `done → archived (completed)` record failed the "unintegrated paths archive as abandoned
-  or superseded" rule on every later run, because an unchanged state was being read as an
-  archiving event. Fixed with the reason recorded rather than the symptom silenced.
-- Fifteen regression tests; checker suite 110 → 125, full suite 157 → 172.
-
-### S07k — Repair: a retention ref was moved, and the rule could not see it — **COMPLETE**
-
-```cairn-unit
-step: S07j
-unit: 06
-type: implementation
-verified: cairn-check, cairn-check:test, typecheck, test, build
-```
-
-```cairn-unit
-step: S07k
-unit: 07
-type: repair
-verified: cairn-check, cairn-check:test, typecheck, test, build
-```
-
-**The violation.** S07j landed as `0711bc6` and was retained as unit 05. A follow-up commit
-`8f84024` reconciled the checker's lifecycle table, and the retention ref for unit 05 was
-**force-moved** onto it. That is forbidden by the rule written earlier in this same path —
-*once written, a ref MUST NOT be moved or deleted while the path record is retained* — and
-it left `0711bc6` retained by nothing. Nothing was lost, because the commit is still
-reachable from the branch; the promise was broken, not the history.
-
-Two separate failures, and the second is the instructive one.
-
-- **The act.** A completed work unit was shipped under the previous unit's block instead of
-  its own, and its checkpoint was retained by moving an existing ref rather than writing a
-  new one. Convenience, at the exact moment the protocol asks for a new ordinal.
-- **The blind spot.** `checkpoint-retention` asked whether every DECLARED unit resolves a
-  ref. After the move, every declared unit still resolved one — so the gate reported OK over
-  an orphaned checkpoint. The rule was checking the ledger's claims rather than the branch's
-  facts, and those are not the same question.
-
-**The repair, following [operations](../../docs/cairn/specification/reference/repair.md).**
-Ref 05 restored to `0711bc6`. `8f84024` retained as unit 06, which is what it always should
-have been: a completed work unit with its own ordinal. This entry is unit 07, a separate
-`repair` unit, because a repair must never be the same work unit as the work that caused it.
-
-**The rule now sees it.** `unretainedCheckpoints` walks the branch from the oldest retained
-commit to `HEAD` and reports any commit that is neither retained, nor marked provisional,
-nor `HEAD` itself. Run against the broken state it named `0711bc6` immediately. The range
-starts at the oldest retained commit because commits predating the convention cannot be
-judged by it, and `HEAD` is exempt for the same reason the newest unit is — its ref is
-written after the commit that declares it.
-
-**Ref append-only remains partly unprovable, and the matrix says so.** A validator that
-sees one commit cannot observe a ref moving; it can only observe the orphan a move leaves
-behind. That is a strictly weaker guarantee than the specification states, and closing the
-gap this far is not the same as closing it.
-
-- Four regression tests; checker suite 125 → 129, full suite 172 → 176.
-
-### S07l — Repair: the brief could not name its own commit — **COMPLETE**
-
-```cairn-unit
-step: S07l
-unit: 08
-type: repair
-verified: cairn-check, cairn-check:test, typecheck, test, build
-```
-
-The S07k commit landed with `checkpoint: PENDING` in the handoff brief, and `brief-schema`
-failed on the pushed state. The placeholder was careless; what it exposed was not.
-
-**The same self-reference, in a second place.** A brief is refreshed *inside* the work unit
-it describes, so at the moment it is written the commit it will become does not exist. The
-`cairn-unit` block already solves this — it declares an ordinal and lets the retention ref
-supply the hash afterwards — and the brief was left with a field that could only ever be
-filled in with a lie, a stale value, or a follow-up commit. The third option is the pattern
-S07k had just repaired.
-
-- **`checkpoint` now names the last RETAINED checkpoint**, which is a commit that exists,
-  is pushed, and is resumable. `checkpoint_unit` carries its ordinal, so the brief and its
-  retention ref name the same thing — the same pairing the ledger already uses.
-- The specification, the handoff-brief reference and `BRIEF_FIELDS` all moved together;
-  the field count is pinned by a test so the schema and its documentation cannot drift.
-- **The gate caught this, on the remote, after the push.** That is the intended behaviour
-  rather than an embarrassment: `brief-schema` was written in S07j precisely because a
-  bootstrap contract with no fields drifts silently, and the first thing it caught was its
-  author's own placeholder.
-
-- Checker suite 129, full suite 176; the brief field count moves 8 → 9.
+- **`closure-surface` was more permissive than the prose it enforces.** The rule allowed
+  `current_step` and `resolution` on any closure. `resolution` at closure is incoherent —
+  a `ready` path has resolved nothing — and neither field appears in the normative list.
+  The surface is now scoped by the fact being recorded: `ready` may move `status` and
+  `subject_commit`; `done` additionally moves `resolution`, because that is the trunk
+  integration unit. This was the exact seam the document claims to track, and the predicate
+  was on the wrong side of it.
+- **`advisory-disposition` was unsound, not merely partial.** It compared dispositions
+  against the advisories raised while evaluating `A` — and `A` is field-restricted by
+  construction, so its advisory set is a strict SUBSET of `C`'s. The rule could pass while
+  an advisory raised at the candidate went undisposed, which is the failure the requirement
+  exists to prevent. The closing record now **attests** `advisories_at_candidate`, bound to
+  `C` by the audit's subject; dispositions must cover that set exactly, and any advisory
+  that fires at `A` and is missing from it proves the attestation incomplete. An advisory
+  firing only at `C` remains attested rather than derived, and the matrix says so.
+- **Item 14 was conformance-breaking, not editorial.** The text disowned "forty hexadecimal
+  characters" while the checker matched `[0-9a-f]{40}` in five places, so a SHA-256
+  repository conformed to the specification and failed the reference tool — the tool and the
+  spec disagreeing about what a valid repository is. `isObjectId` now accepts either format
+  and refuses every prefix; `isCommitPin` widens to 64.
+- **`route` gained a structural backstop.** Two of five triggers are self-declared, whose
+  honest failure mode is that everything declares itself lightweight and no rule ever fires.
+  *Expected* to span more than one work unit is unobservable; **having** spanned one is a
+  fact in the ledger. A path whose ledger declares more than one `cairn-unit` must be
+  `full`. It is the same trigger one unit late, and it cannot be declared away.
+- **A fabricated figure, removed.** The response document reported v0.1 conformance as
+  `9 / 0 / 21`. The real count is `6 / 1 / 8` across 15 rows — v0.1 shipped fifteen rows and
+  at least one partial, so zero partials was impossible on its face. The number was not
+  mis-transcribed; it was invented. It is now generated from the v0.1 table rather than
+  asserted.
+- **A compliment declined.** The reviewer read the split as surface area falling —
+  "45 Cairn concepts, down from ~55". Classifying v0.1's 65 articles under the same
+  taxonomy gives **41 Cairn and 24 borrowed**, so Cairn concepts went **41 → 45, up four**,
+  while borrowed fell 24 → 21. The brief's "~25 real ideas" was an estimate; the split
+  revealed the real number rather than reducing it. Accepting a flattering figure that
+  counting contradicts is the failure this whole path exists to remove.
+- **The failure mode both violations share is now named in the specification**, in a section
+  addressed to the next implementer: a predicate can ask about a **declaration** or about a
+  **fact**, the two read almost identically, and they diverge exactly when something has
+  gone wrong — because a broken state usually leaves the declarations internally consistent.
+  A moved ref keeps every declared unit resolving; a closure commit's advisory set stays a
+  tidy subset. When a predicate can be written either way, write the one that can disagree
+  with the record.
+- Nine regression tests; checker suite 129 → 135, full suite 176 → 184. **No new rules** —
+  every change corrects or scopes an existing one.
 
 ### S08 — Extract Cairn from Atomik
 

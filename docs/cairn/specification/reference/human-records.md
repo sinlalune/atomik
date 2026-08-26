@@ -185,6 +185,7 @@ accepted_at: 2026-01-15T14:30:00Z
 decision: accepted
 scope_ref: atomik-project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
 scope_digest: sha256:9f2c4b1d5e6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c
+advisories_at_candidate: [scope-drift, path-staleness]
 advisory_disposition:
   - rule: scope-drift
     disposition: accepted
@@ -228,13 +229,19 @@ Candidate accepted for administrative closure and exact integration.
 | `scope_digest` | the accepted definition of done. MUST equal the opening digest |
 | `base` | the trunk tip the candidate was read against. Input to the [drift predicate](../concepts/acceptance-drift.md) |
 | `accepted_roles` | which of the five roles this actor held, so a collapse is visible |
-| `advisory_disposition` | a structured entry per advisory raised at the candidate |
+| `advisories_at_candidate` | the advisory rules raised at `C`, attested by the reviewer |
+| `advisory_disposition` | a structured entry per advisory in that attested set |
 
 `advisory_disposition` is a list, not a sentence. Each entry names a `rule`, a
 `disposition` of `fixed`, `accepted`, or `deferred`, and a `reason`; a deferral
-also names an `owner` and a `follow_up`. The list MUST correspond exactly to the
-advisories raised at the candidate — set equality is checkable, and a free-text
-summary is not.
+also names an `owner` and a `follow_up`.
+
+It is compared against `advisories_at_candidate`, not against whatever a checker
+raises while evaluating the closure commit. `A` is field-restricted, so its
+advisory set is a strict subset of `C`'s: comparing against it would let an
+advisory raised at the candidate pass undisposed. The attested set is the
+subject, and any advisory that does fire at `A` and is missing from it proves
+the attestation incomplete.
 
 Reviewer identity, UTC time, and an accepted decision remain required.
 

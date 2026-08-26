@@ -1,0 +1,76 @@
+---
+type: Atomik Coding Path History
+title: 'CP-OPS-002 S07k — Repair: a retention ref was moved, and the rule could not see it — COMPLETE'
+description: Completed-step record rolled out of CP-OPS-002.md at CP-OPS-002 S07m. Verbatim; nothing summarized.
+tags: [coding-path, history, cp-ops-002]
+timestamp: 2026-08-26T00:00:00Z
+path: CP-OPS-002
+step: S07k
+---
+
+# CP-OPS-002 S07k — Repair: a retention ref was moved, and the rule could not see it — COMPLETE
+
+Rolled out of [CP-OPS-002.md](../CP-OPS-002.md) at CP-OPS-002 S07m, VERBATIM:
+moved, never summarized. The live path file keeps its declaration, its index over
+these records, its Work Ledger and its next action; the execution detail lives
+here. The convention is in [paths.md](../paths.md#the-ledger-has-a-boundary).
+
+Two mechanical adjustments are named rather than made silently. **Deixis**: text
+saying "below" or "this ledger" was written when this entry sat in the path file
+and points at the Work Ledger in [CP-OPS-002.md](../CP-OPS-002.md). **Link
+depth**: a relative link is an address, not content — moving the file one
+directory down changes the address of the *same* target.
+
+---
+
+### S07k — Repair: a retention ref was moved, and the rule could not see it — **COMPLETE**
+
+```cairn-unit
+step: S07j
+unit: 06
+type: implementation
+verified: cairn-check, cairn-check:test, typecheck, test, build
+```
+
+```cairn-unit
+step: S07k
+unit: 07
+type: repair
+verified: cairn-check, cairn-check:test, typecheck, test, build
+```
+
+**The violation.** S07j landed as `0711bc6` and was retained as unit 05. A follow-up commit
+`8f84024` reconciled the checker's lifecycle table, and the retention ref for unit 05 was
+**force-moved** onto it. That is forbidden by the rule written earlier in this same path —
+*once written, a ref MUST NOT be moved or deleted while the path record is retained* — and
+it left `0711bc6` retained by nothing. Nothing was lost, because the commit is still
+reachable from the branch; the promise was broken, not the history.
+
+Two separate failures, and the second is the instructive one.
+
+- **The act.** A completed work unit was shipped under the previous unit's block instead of
+  its own, and its checkpoint was retained by moving an existing ref rather than writing a
+  new one. Convenience, at the exact moment the protocol asks for a new ordinal.
+- **The blind spot.** `checkpoint-retention` asked whether every DECLARED unit resolves a
+  ref. After the move, every declared unit still resolved one — so the gate reported OK over
+  an orphaned checkpoint. The rule was checking the ledger's claims rather than the branch's
+  facts, and those are not the same question.
+
+**The repair, following [operations](../../../docs/cairn/specification/reference/repair.md).**
+Ref 05 restored to `0711bc6`. `8f84024` retained as unit 06, which is what it always should
+have been: a completed work unit with its own ordinal. This entry is unit 07, a separate
+`repair` unit, because a repair must never be the same work unit as the work that caused it.
+
+**The rule now sees it.** `unretainedCheckpoints` walks the branch from the oldest retained
+commit to `HEAD` and reports any commit that is neither retained, nor marked provisional,
+nor `HEAD` itself. Run against the broken state it named `0711bc6` immediately. The range
+starts at the oldest retained commit because commits predating the convention cannot be
+judged by it, and `HEAD` is exempt for the same reason the newest unit is — its ref is
+written after the commit that declares it.
+
+**Ref append-only remains partly unprovable, and the matrix says so.** A validator that
+sees one commit cannot observe a ref moving; it can only observe the orphan a move leaves
+behind. That is a strictly weaker guarantee than the specification states, and closing the
+gap this far is not the same as closing it.
+
+- Four regression tests; checker suite 125 → 129, full suite 172 → 176.
