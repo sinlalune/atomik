@@ -1308,7 +1308,7 @@ not in a separate document a reader may never open.
 | Existing session, audit, history, and journal immutability | required | implemented for new or changed records | complete comparison ref |
 | Checkpoint retention refs before any rewriting push | required | **partially implemented**; every declared unit except the newest must resolve a local retention ref | remote push of the namespace; the temporal “before the push” property is not observable |
 | Marked provisional commits excluded from candidate identity | required | implemented; a ready path whose candidate range still contains a marked commit is blocked | the fold itself is not verified to preserve content |
-| Handoff-brief field schema and answerable-alone contract | required | **not implemented** | brief schema and a cold-resume harness |
+| Handoff-brief field schema and answerable-alone contract | required | **partially implemented**; the eight fields, the seven exact sections, pinned `governs` entries and the token budget are checked | the answerable-alone contract is a judgement and a cold-resume harness, and is never claimed by a checker |
 | Field-level administrative closure surface | required | implemented; closure may move only `status`, `subject_commit`, `current_step` and `resolution` | ledger append-only proof, which remains a separate open row |
 | Scope digest recorded at opening and re-verified at closing | required | implemented; the resolved section is digested and compared at closure | a path opened before the rule cannot amend its immutable opening record — see the migration exception |
 | Candidate base `T` and the acceptance-drift predicate | required | implemented; the trunk delta since the recorded base is tested against `writes:` ∪ `governs:` | path matching is a proxy for semantic overlap, as stated |
@@ -1316,10 +1316,10 @@ not in a separate document a reader may never open.
 | Recorded roles and the collapsed-actor advisory | required | **partially implemented**; a shared opening/closing actor is reported | `accepted_roles` itself is recorded and not yet validated |
 | `scope-drift` blocking unless the declaration moves in the same commit | required | implemented; drift blocks unless `writes:` moved in the same change | none |
 | Typed work units keyed to their required parts | required | **partially implemented**; the `cairn-unit` block and its type vocabulary are checked | `same-work-unit` does not yet key its requirement to the declared type |
-| `lightweight` default route and one-way escalation | required | **not implemented** | route field, trigger evaluation |
-| `foundation` and adoption routes | required | **not implemented**; its three checks exist and are not yet bound to a route | route field |
+| `lightweight` default route and one-way escalation | required | **partially implemented**; the vocabulary, the three structural triggers and one-way escalation are checked | the *multi-unit* and *high-risk* triggers are an expectation and a policy, so they stay declared rather than derived |
+| `foundation` and adoption routes | required | **partially implemented**; the route is declarable and its write surface is confined to documents and the path records it produces | the adoption variant is a use of the same route, not a separate predicate |
 | Repair procedures for protocol violations | required | **not implemented**; procedural, with no predicate proposed | none — repair is recorded, not gated |
-| Redaction ceremony | required | **not implemented** | redaction record schema |
+| Redaction ceremony | required | **partially implemented**; every `[redacted: …]` marker must name a redaction record that exists | rotation-first ordering is a procedure, not a predicate |
 | Live-ledger prefix and verbatim-roll proof | required | **not implemented** | explicit ledger markers/schema |
 | Versioned portable configuration and schema migration | required for portable profile | **not implemented** | configuration loader and migrations |
 | Exact protected integration transport | required for protected profile | **not installed or tested** | repository-host adapter |
@@ -1335,6 +1335,14 @@ The current supported claim is therefore:
 > branches. Its reference tools enforce a substantial but incomplete subset of
 > the protocol. It is not yet a general-purpose merge, governance, or security
 > system.
+
+Four rows remain `not implemented` after every predicate that could be written
+was written, and they are the honest residue rather than a backlog:
+**repair procedures** have no predicate to propose, the **answerable-alone
+contract** is a judgement measured by cold resume, the **temporal half of
+checkpoint retention** is unobservable to a validator that sees one commit, and
+**live-ledger prefix proof** awaits explicit ledger markers. Naming what cannot
+be checked is part of the claim.
 
 A requirement whose reference row names a migration exception is not exempt from
 the requirement. The exception is finite, listed in the checker, and reported as
@@ -1362,6 +1370,7 @@ honest state of the work.
 | **Blocking** | `advisory-disposition` | diff | advisory_disposition is not a structured list matching the advisories raised against the candidate | `dispositionErrors(record.advisory_disposition, raised) with set equality on rule names` |
 | **Blocking** | `branch-identity` | diff | Detached checkout where branch cannot be identified from host or git ref | `branchSource === 'detached' (blocking on guarded roots, advisory on others)` |
 | **Blocking** | `branch-path` | diff | Path branch not declared by a running path file, or missing base_commit | `isPathBranch(branch) && (!match \|\| !PATH_BRANCH_STATUSES.includes(status) \|\| !isCommitPin(base))` |
+| **Blocking** | `brief-schema` | diff | The handoff brief is missing, or lacks its eight fields, its seven exact sections, pinned governs entries, or its token budget | `briefErrors(front, body) over BRIEF_FIELDS and BRIEF_SECTIONS` |
 | **Blocking** | `checkpoint-retention` | diff | A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint | `retentionDue(units) => retainedRefs.has(refs/cairn/checkpoints/<id>/<n>) (newest unit advisory)` |
 | **Blocking** | `closure-surface` | diff | An administrative closure commit changed a path field other than status, subject_commit, current_step or resolution | `closureFieldErrors(previousFront, currentFront) over CLOSURE_MUTABLE_FIELDS` |
 | **Blocking** | `coherence-audit` | corpus | Ready path lacks a filled coherence audit bound to its exact subject_commit | `cairn-audit --check --subject path.subject_commit` |
@@ -1372,8 +1381,10 @@ honest state of the work.
 | **Blocking** | `provisional` | diff | A proposed candidate still contains commits marked Cairn-Provisional, or HEAD is itself provisional | `git log --grep=^Cairn-Provisional: base..subject_commit (blocking on a ready path, advisory at HEAD)` |
 | **Blocking** | `rebase` | diff | Path branch does not contain latest trunk tip (stale branch) | `trunkContained(trunkRef) === false` |
 | **Blocking** | `record-integrity` | diff | Existing session, audit, journal, or rolled-history record was modified, renamed, or deleted | `immutableRecordMutations(previousRef) + isImmutableRecord(file)` |
+| **Blocking** | `redaction` | diff | A `[redacted: …]` marker names no redaction record (code spans and fences stripped first) | `redactionMarkers(stripCode(text)) => redaction record exists` |
 | **Blocking** | `registration` | diff | Path declaration tuple (id, running, branch, base) missing from trunk | `pathRegistrationState() === 'missing' (blocking) or declared migration exception (advisory)` |
 | **Blocking** | `registration-base` | diff | Path base_commit cannot be proved to equal the registration commit parent | `pathRegistrationBaseState() === 'mismatch' \| null` |
+| **Blocking** | `route` | diff | A path declares no route, an unknown route, a lightweight route that meets a full-route trigger, a foundation surface outside documents, or a descent from full | `fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)` |
 | **Blocking** | `same-work-unit` | diff | Source changed without accompanying module note and coding path update | `touched(GUARDED_ROOTS) => touched(docs/modules/) && touched(PATH_DIR)` |
 | **Blocking** | `schema` | corpus | Path or ADR frontmatter fails parsing, or an id/status/date is outside vocabulary | `pathFrontmatterErrors(front) + adrFrontmatterErrors(front, file, bodyStatus)` |
 | **Blocking** | `scope-digest` | diff | The accepted definition of done moved after acceptance, or was accepted without a digest | `scopeDigest(resolveScopeSection(pathRecord, scope_ref)) === record.scope_digest` |

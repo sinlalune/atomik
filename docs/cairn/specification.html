@@ -2306,8 +2306,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Handoff-brief field schema and answerable-alone contract</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">brief schema and a cold-resume harness</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the eight fields, the seven exact sections, pinned <code>governs</code> entries and the token budget are checked</td>
+<td style="text-align:left">the answerable-alone contract is a judgement and a cold-resume harness, and is never claimed by a checker</td>
 </tr>
 <tr>
 <td style="text-align:left">Field-level administrative closure surface</td>
@@ -2354,14 +2354,14 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left"><code>lightweight</code> default route and one-way escalation</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">route field, trigger evaluation</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the vocabulary, the three structural triggers and one-way escalation are checked</td>
+<td style="text-align:left">the <em>multi-unit</em> and <em>high-risk</em> triggers are an expectation and a policy, so they stay declared rather than derived</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>foundation</code> and adoption routes</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong>; its three checks exist and are not yet bound to a route</td>
-<td style="text-align:left">route field</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the route is declarable and its write surface is confined to documents and the path records it produces</td>
+<td style="text-align:left">the adoption variant is a use of the same route, not a separate predicate</td>
 </tr>
 <tr>
 <td style="text-align:left">Repair procedures for protocol violations</td>
@@ -2372,8 +2372,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Redaction ceremony</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">redaction record schema</td>
+<td style="text-align:left"><strong>partially implemented</strong>; every <code>[redacted: …]</code> marker must name a redaction record that exists</td>
+<td style="text-align:left">rotation-first ordering is a procedure, not a predicate</td>
 </tr>
 <tr>
 <td style="text-align:left">Live-ledger prefix and verbatim-roll proof</td>
@@ -2427,6 +2427,13 @@ branches. Its reference tools enforce a substantial but incomplete subset of
 the protocol. It is not yet a general-purpose merge, governance, or security
 system.</p>
 </blockquote>
+<p>Four rows remain <code>not implemented</code> after every predicate that could be written
+was written, and they are the honest residue rather than a backlog:
+<strong>repair procedures</strong> have no predicate to propose, the <strong>answerable-alone
+contract</strong> is a judgement measured by cold resume, the <strong>temporal half of
+checkpoint retention</strong> is unobservable to a validator that sees one commit, and
+<strong>live-ledger prefix proof</strong> awaits explicit ledger markers. Naming what cannot
+be checked is part of the claim.</p>
 <p>A requirement whose reference row names a migration exception is not exempt from
 the requirement. The exception is finite, listed in the checker, and reported as
 a blocking finding once it is spent — an exception that outlives its migration
@@ -2483,6 +2490,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Path branch not declared by a running path file, or missing base_commit</td>
 <td style="text-align:left"><code>isPathBranch(branch) &amp;&amp; (!match || !PATH_BRANCH_STATUSES.includes(status) || !isCommitPin(base))</code></td>
+</tr>
+<tr data-rule="brief-schema" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>brief-schema</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">The handoff brief is missing, or lacks its eight fields, its seven exact sections, pinned governs entries, or its token budget</td>
+<td style="text-align:left"><code>briefErrors(front, body) over BRIEF_FIELDS and BRIEF_SECTIONS</code></td>
 </tr>
 <tr data-rule="checkpoint-retention" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>checkpoint-retention</code></td>
@@ -2544,6 +2557,12 @@ honest state of the work.</p>
 <td style="text-align:left">Existing session, audit, journal, or rolled-history record was modified, renamed, or deleted</td>
 <td style="text-align:left"><code>immutableRecordMutations(previousRef) + isImmutableRecord(file)</code></td>
 </tr>
+<tr data-rule="redaction" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>redaction</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A <code>[redacted: …]</code> marker names no redaction record (code spans and fences stripped first)</td>
+<td style="text-align:left"><code>redactionMarkers(stripCode(text)) =&gt; redaction record exists</code></td>
+</tr>
 <tr data-rule="registration" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>registration</code></td>
 <td style="text-align:left">diff</td>
@@ -2555,6 +2574,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Path base_commit cannot be proved to equal the registration commit parent</td>
 <td style="text-align:left"><code>pathRegistrationBaseState() === 'mismatch' | null</code></td>
+</tr>
+<tr data-rule="route" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>route</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A path declares no route, an unknown route, a lightweight route that meets a full-route trigger, a foundation surface outside documents, or a descent from full</td>
+<td style="text-align:left"><code>fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)</code></td>
 </tr>
 <tr data-rule="same-work-unit" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>same-work-unit</code></td>
@@ -4298,8 +4323,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Handoff-brief field schema and answerable-alone contract</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">brief schema and a cold-resume harness</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the eight fields, the seven exact sections, pinned <code>governs</code> entries and the token budget are checked</td>
+<td style="text-align:left">the answerable-alone contract is a judgement and a cold-resume harness, and is never claimed by a checker</td>
 </tr>
 <tr>
 <td style="text-align:left">Field-level administrative closure surface</td>
@@ -4346,14 +4371,14 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left"><code>lightweight</code> default route and one-way escalation</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">route field, trigger evaluation</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the vocabulary, the three structural triggers and one-way escalation are checked</td>
+<td style="text-align:left">the <em>multi-unit</em> and <em>high-risk</em> triggers are an expectation and a policy, so they stay declared rather than derived</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>foundation</code> and adoption routes</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong>; its three checks exist and are not yet bound to a route</td>
-<td style="text-align:left">route field</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the route is declarable and its write surface is confined to documents and the path records it produces</td>
+<td style="text-align:left">the adoption variant is a use of the same route, not a separate predicate</td>
 </tr>
 <tr>
 <td style="text-align:left">Repair procedures for protocol violations</td>
@@ -4364,8 +4389,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Redaction ceremony</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">redaction record schema</td>
+<td style="text-align:left"><strong>partially implemented</strong>; every <code>[redacted: …]</code> marker must name a redaction record that exists</td>
+<td style="text-align:left">rotation-first ordering is a procedure, not a predicate</td>
 </tr>
 <tr>
 <td style="text-align:left">Live-ledger prefix and verbatim-roll proof</td>
@@ -4419,6 +4444,13 @@ branches. Its reference tools enforce a substantial but incomplete subset of
 the protocol. It is not yet a general-purpose merge, governance, or security
 system.</p>
 </blockquote>
+<p>Four rows remain <code>not implemented</code> after every predicate that could be written
+was written, and they are the honest residue rather than a backlog:
+<strong>repair procedures</strong> have no predicate to propose, the <strong>answerable-alone
+contract</strong> is a judgement measured by cold resume, the <strong>temporal half of
+checkpoint retention</strong> is unobservable to a validator that sees one commit, and
+<strong>live-ledger prefix proof</strong> awaits explicit ledger markers. Naming what cannot
+be checked is part of the claim.</p>
 <p>A requirement whose reference row names a migration exception is not exempt from
 the requirement. The exception is finite, listed in the checker, and reported as
 a blocking finding once it is spent — an exception that outlives its migration
@@ -4475,6 +4507,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Path branch not declared by a running path file, or missing base_commit</td>
 <td style="text-align:left"><code>isPathBranch(branch) &amp;&amp; (!match || !PATH_BRANCH_STATUSES.includes(status) || !isCommitPin(base))</code></td>
+</tr>
+<tr data-rule="brief-schema" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>brief-schema</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">The handoff brief is missing, or lacks its eight fields, its seven exact sections, pinned governs entries, or its token budget</td>
+<td style="text-align:left"><code>briefErrors(front, body) over BRIEF_FIELDS and BRIEF_SECTIONS</code></td>
 </tr>
 <tr data-rule="checkpoint-retention" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>checkpoint-retention</code></td>
@@ -4536,6 +4574,12 @@ honest state of the work.</p>
 <td style="text-align:left">Existing session, audit, journal, or rolled-history record was modified, renamed, or deleted</td>
 <td style="text-align:left"><code>immutableRecordMutations(previousRef) + isImmutableRecord(file)</code></td>
 </tr>
+<tr data-rule="redaction" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>redaction</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A <code>[redacted: …]</code> marker names no redaction record (code spans and fences stripped first)</td>
+<td style="text-align:left"><code>redactionMarkers(stripCode(text)) =&gt; redaction record exists</code></td>
+</tr>
 <tr data-rule="registration" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>registration</code></td>
 <td style="text-align:left">diff</td>
@@ -4547,6 +4591,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Path base_commit cannot be proved to equal the registration commit parent</td>
 <td style="text-align:left"><code>pathRegistrationBaseState() === 'mismatch' | null</code></td>
+</tr>
+<tr data-rule="route" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>route</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A path declares no route, an unknown route, a lightweight route that meets a full-route trigger, a foundation surface outside documents, or a descent from full</td>
+<td style="text-align:left"><code>fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)</code></td>
 </tr>
 <tr data-rule="same-work-unit" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>same-work-unit</code></td>
@@ -10452,8 +10502,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Handoff-brief field schema and answerable-alone contract</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">brief schema and a cold-resume harness</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the eight fields, the seven exact sections, pinned <code>governs</code> entries and the token budget are checked</td>
+<td style="text-align:left">the answerable-alone contract is a judgement and a cold-resume harness, and is never claimed by a checker</td>
 </tr>
 <tr>
 <td style="text-align:left">Field-level administrative closure surface</td>
@@ -10500,14 +10550,14 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left"><code>lightweight</code> default route and one-way escalation</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">route field, trigger evaluation</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the vocabulary, the three structural triggers and one-way escalation are checked</td>
+<td style="text-align:left">the <em>multi-unit</em> and <em>high-risk</em> triggers are an expectation and a policy, so they stay declared rather than derived</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>foundation</code> and adoption routes</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong>; its three checks exist and are not yet bound to a route</td>
-<td style="text-align:left">route field</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the route is declarable and its write surface is confined to documents and the path records it produces</td>
+<td style="text-align:left">the adoption variant is a use of the same route, not a separate predicate</td>
 </tr>
 <tr>
 <td style="text-align:left">Repair procedures for protocol violations</td>
@@ -10518,8 +10568,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Redaction ceremony</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">redaction record schema</td>
+<td style="text-align:left"><strong>partially implemented</strong>; every <code>[redacted: …]</code> marker must name a redaction record that exists</td>
+<td style="text-align:left">rotation-first ordering is a procedure, not a predicate</td>
 </tr>
 <tr>
 <td style="text-align:left">Live-ledger prefix and verbatim-roll proof</td>
@@ -10573,6 +10623,13 @@ branches. Its reference tools enforce a substantial but incomplete subset of
 the protocol. It is not yet a general-purpose merge, governance, or security
 system.</p>
 </blockquote>
+<p>Four rows remain <code>not implemented</code> after every predicate that could be written
+was written, and they are the honest residue rather than a backlog:
+<strong>repair procedures</strong> have no predicate to propose, the <strong>answerable-alone
+contract</strong> is a judgement measured by cold resume, the <strong>temporal half of
+checkpoint retention</strong> is unobservable to a validator that sees one commit, and
+<strong>live-ledger prefix proof</strong> awaits explicit ledger markers. Naming what cannot
+be checked is part of the claim.</p>
 <p>A requirement whose reference row names a migration exception is not exempt from
 the requirement. The exception is finite, listed in the checker, and reported as
 a blocking finding once it is spent — an exception that outlives its migration
@@ -10629,6 +10686,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Path branch not declared by a running path file, or missing base_commit</td>
 <td style="text-align:left"><code>isPathBranch(branch) &amp;&amp; (!match || !PATH_BRANCH_STATUSES.includes(status) || !isCommitPin(base))</code></td>
+</tr>
+<tr data-rule="brief-schema" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>brief-schema</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">The handoff brief is missing, or lacks its eight fields, its seven exact sections, pinned governs entries, or its token budget</td>
+<td style="text-align:left"><code>briefErrors(front, body) over BRIEF_FIELDS and BRIEF_SECTIONS</code></td>
 </tr>
 <tr data-rule="checkpoint-retention" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>checkpoint-retention</code></td>
@@ -10690,6 +10753,12 @@ honest state of the work.</p>
 <td style="text-align:left">Existing session, audit, journal, or rolled-history record was modified, renamed, or deleted</td>
 <td style="text-align:left"><code>immutableRecordMutations(previousRef) + isImmutableRecord(file)</code></td>
 </tr>
+<tr data-rule="redaction" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>redaction</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A <code>[redacted: …]</code> marker names no redaction record (code spans and fences stripped first)</td>
+<td style="text-align:left"><code>redactionMarkers(stripCode(text)) =&gt; redaction record exists</code></td>
+</tr>
 <tr data-rule="registration" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>registration</code></td>
 <td style="text-align:left">diff</td>
@@ -10701,6 +10770,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Path base_commit cannot be proved to equal the registration commit parent</td>
 <td style="text-align:left"><code>pathRegistrationBaseState() === 'mismatch' | null</code></td>
+</tr>
+<tr data-rule="route" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>route</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A path declares no route, an unknown route, a lightweight route that meets a full-route trigger, a foundation surface outside documents, or a descent from full</td>
+<td style="text-align:left"><code>fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)</code></td>
 </tr>
 <tr data-rule="same-work-unit" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>same-work-unit</code></td>

@@ -53,6 +53,14 @@ import {
   openingRecordFromSessions,
   CLOSURE_MUTABLE_FIELDS,
   DISPOSITIONS,
+  fullRouteTriggers,
+  foundationSurfaceViolations,
+  routeDescent,
+  briefErrors,
+  redactionMarkers,
+  ROUTES,
+  BRIEF_FIELDS,
+  BRIEF_SECTIONS,
   CHECKPOINT_REF_PREFIX,
   PROVISIONAL_TRAILER,
   WORK_UNIT_TYPES
@@ -62,6 +70,7 @@ const A_PATH = {
   file: 'atomik-project/coding-paths/CP-MVP-010.md',
   front: {
     id: 'CP-MVP-010',
+    route: 'lightweight',
     status: 'running',
     base_commit: '70f7e27',
     branch: 'path/cp-mvp-010'
@@ -957,15 +966,31 @@ test('the ceremony template shipped in bedrock 24 satisfies the gate', () => {
   assert.equal(ceremonyFromSessions([note], 'CP-EXAMPLE-001'), true)
 })
 
-test('an inline comment on ceremony: is part of the value, so it declares nothing', () => {
-  // The scalar reader takes values verbatim to end of line. This is why the
-  // template carries no `# opening | closing` hint on the key itself.
+test('an inline comment is stripped from a scalar, the way it already was from a list item', () => {
+  // This reverses an earlier deliberate choice, because the choice caused the
+  // bug it was meant to avoid. Taking values verbatim to end of line meant
+  // `writes:   # ADVISORY — a signal, never a lock` produced a NON-EMPTY value,
+  // so the key stopped opening a list and the path silently declared no write
+  // surface at all — the F9 failure one line higher up. Found live in this
+  // repository on `governs:`. A quoted value keeps its `#`, because there it is
+  // content rather than a comment.
   const commented = readFrontmatter(
     ['---', 'path: CP-MVP-010', 'ceremony: closing   # opening | closing', '---', ''].join('\n')
   ).data
 
-  assert.equal(commented.ceremony, 'closing   # opening | closing')
-  assert.equal(ceremonyFromSessions([commented], 'CP-MVP-010'), false)
+  assert.equal(commented.ceremony, 'closing')
+  assert.equal(ceremonyFromSessions([commented], 'CP-MVP-010'), true)
+
+  const wholeLine = readFrontmatter(
+    ['---', 'cairn:', '  writes:   # ADVISORY, never a lock', '    - src/**', '---', ''].join('\n')
+  ).data
+  assert.deepEqual(wholeLine.cairn.writes, ['src/**'],
+    'a key whose entire value is a comment must still open its list')
+
+  const quoted = readFrontmatter(
+    ['---', "title: 'a heading # with a hash'", '---', ''].join('\n')
+  ).data
+  assert.equal(quoted.title, "'a heading # with a hash'")
 })
 
 
@@ -1599,4 +1624,153 @@ test('drift with a stale declaration blocks; drift that widens it stays advisory
   })
   assert.ok(!rules(widened, 'blocking').includes('scope-drift'))
   assert.ok(rules(widened, 'advisory').includes('scope-drift'))
+})
+
+/* ------------------------------------------------------------------ *
+ * v0.2 — the route a change earns
+ * ------------------------------------------------------------------ */
+
+test('the structural full-route triggers fire on the control and decision planes', () => {
+  assert.deepEqual(fullRouteTriggers(['apps/desktop/renderer/src/editor/x.ts']), [])
+  assert.match(fullRouteTriggers(['tools/cairn-check.mjs'])[0], /control plane/)
+  assert.match(fullRouteTriggers(['docs/adr/**'])[0], /decision record/)
+  assert.match(
+    fullRouteTriggers([
+      'apps/desktop/renderer/src/editor/x.ts',
+      'apps/desktop/electron-main/vault/y.ts'
+    ])[0],
+    /implemented areas/
+  )
+  assert.ok(ROUTES.includes('foundation'))
+})
+
+test('a lightweight path that meets a trigger is blocked until it escalates', () => {
+  const heavy = { ...A_PATH, writes: ['tools/cairn-check.mjs'] }
+  const found = run([heavy.file], 'path/cp-mvp-010', [heavy], {
+    workUnits: [{ step: 'S01', unit: '01', type: 'implementation', verified: 'x' }]
+  })
+  assert.ok(rules(found, 'blocking').includes('route'))
+
+  const escalated = {
+    ...heavy,
+    front: { ...heavy.front, route: 'full' }
+  }
+  const ok = run([escalated.file], 'path/cp-mvp-010', [escalated], {
+    workUnits: [{ step: 'S01', unit: '01', type: 'implementation', verified: 'x' }]
+  })
+  assert.ok(!rules(ok, 'blocking').includes('route'))
+})
+
+test('escalation is one-way and an unknown route is rejected', () => {
+  assert.equal(routeDescent('full', 'full'), null)
+  assert.equal(routeDescent('lightweight', 'full'), null)
+  assert.match(routeDescent('full', 'lightweight'), /one-way/)
+
+  const bogus = { ...A_PATH, front: { ...A_PATH.front, route: 'express' } }
+  assert.ok(rules(run(['README.md'], 'path/cp-mvp-010', [bogus]), 'blocking').includes('route'))
+
+  const descended = { ...A_PATH, front: { ...A_PATH.front, route: 'lightweight' } }
+  const found = run(['README.md'], 'path/cp-mvp-010', [descended], {
+    previousFronts: new Map([[descended.file, { ...descended.front, route: 'full' }]])
+  })
+  assert.ok(rules(found, 'blocking').includes('route'))
+})
+
+test("a foundation path's write surface is documents and the paths it produces", () => {
+  assert.deepEqual(foundationSurfaceViolations(['docs/**', 'project/coding-paths/CP-A.md']), [])
+  assert.deepEqual(foundationSurfaceViolations(['apps/desktop/x.ts']), ['apps/desktop/x.ts'])
+
+  const foundation = {
+    ...A_PATH,
+    front: { ...A_PATH.front, route: 'foundation' },
+    writes: ['docs/architecture/x.md', 'apps/desktop/x.ts']
+  }
+  assert.ok(rules(run(['README.md'], 'path/cp-mvp-010', [foundation]), 'blocking').includes('route'))
+})
+
+/* ------------------------------------------------------------------ *
+ * v0.2 — the handoff brief is a contract
+ * ------------------------------------------------------------------ */
+
+const briefFront = {
+  checkpoint: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+  checkpoint_pushed: 'true',
+  base_commit: '70f7e27',
+  trunk_seen: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+  writes: ['src/**'],
+  governs: ['docs/a.md@cccc'],
+  verify: ['npm run cairn-check'],
+  budget_tokens: '1200'
+}
+const briefBody = BRIEF_SECTIONS.map((section) => `## ${section}\n\nshort.\n`).join('\n')
+
+test('a complete brief passes and each missing field is named', () => {
+  assert.deepEqual(briefErrors(briefFront, briefBody), [])
+  const { trunk_seen: _dropped, ...missing } = briefFront
+  assert.ok(briefErrors(missing, briefBody).some((e) => e.includes('trunk_seen')))
+  assert.deepEqual(BRIEF_FIELDS.length, 8)
+})
+
+test('an unpushed checkpoint is a defect to repair, not a handoff', () => {
+  const errors = briefErrors({ ...briefFront, checkpoint_pushed: 'false' }, briefBody)
+  assert.ok(errors.some((e) => /not on the remote/.test(e)))
+})
+
+test('an unpinned governs entry is rejected, because it means "whatever this says now"', () => {
+  const errors = briefErrors({ ...briefFront, governs: ['docs/a.md'] }, briefBody)
+  assert.ok(errors.some((e) => /not pinned/.test(e)))
+})
+
+test('the seven sections are exact — none missing, none extra', () => {
+  const short = briefBody.replace('## Tried and rejected\n\nshort.\n', '')
+  assert.ok(briefErrors(briefFront, short).some((e) => /missing: Tried and rejected/.test(e)))
+  const extra = `${briefBody}\n## Appendix\n\nmore.\n`
+  assert.ok(briefErrors(briefFront, extra).some((e) => /outside the seven: Appendix/.test(e)))
+})
+
+test('a brief over its declared budget is reported with both numbers', () => {
+  const bloated = briefBody.replace('## State\n\nshort.', `## State\n\n${'word '.repeat(4000)}`)
+  const errors = briefErrors({ ...briefFront, budget_tokens: '1200' }, bloated)
+  assert.ok(errors.some((e) => /against its declared budget of 1200/.test(e)))
+})
+
+test('a missing brief blocks, and is only advised for a listed migration path', () => {
+  const strict = run(['README.md'], 'path/cp-mvp-010', [A_PATH], {
+    briefFor: () => null,
+    migrationExempt: new Set()
+  })
+  assert.ok(rules(strict, 'blocking').includes('brief-schema'))
+
+  const exempt = run(['README.md'], 'path/cp-mvp-010', [A_PATH], {
+    briefFor: () => null,
+    migrationExempt: new Set(['CP-MVP-010'])
+  })
+  assert.ok(!rules(exempt, 'blocking').includes('brief-schema'))
+  assert.ok(rules(exempt, 'advisory').includes('brief-schema'))
+})
+
+/* ------------------------------------------------------------------ *
+ * v0.2 — redaction names the record that authorised it
+ * ------------------------------------------------------------------ */
+
+test('a redaction marker inside code is documentation, not a finding', () => {
+  assert.deepEqual(redactionMarkers('text [redacted: 2026-01-01-x] more'), ['2026-01-01-x'])
+  assert.deepEqual(redactionMarkers('use `[redacted: <id>]` in the record'), [])
+  assert.deepEqual(redactionMarkers('```\n[redacted: <id>]\n```'), [])
+})
+
+test('a marker with no redaction record behind it is blocked', () => {
+  const index = {
+    has: (marker) => marker === '2026-01-01-cp-mvp-010-redaction',
+    markersIn: (file) => (file === 'atomik-project/sessions/note.md' ? ['2026-01-01-cp-mvp-010-redaction'] : ['ghost'])
+  }
+  const good = run(['atomik-project/sessions/note.md'], 'path/cp-mvp-010', [A_PATH], {
+    redactionRecordExists: index
+  })
+  assert.ok(!rules(good, 'blocking').includes('redaction'))
+
+  const bad = run(['docs/other.md'], 'path/cp-mvp-010', [A_PATH], {
+    redactionRecordExists: index
+  })
+  assert.ok(rules(bad, 'blocking').includes('redaction'))
 })
