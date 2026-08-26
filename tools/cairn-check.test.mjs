@@ -1695,6 +1695,7 @@ test("a foundation path's write surface is documents and the paths it produces",
 
 const briefFront = {
   checkpoint: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+  checkpoint_unit: '07',
   checkpoint_pushed: 'true',
   base_commit: '70f7e27',
   trunk_seen: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
@@ -1709,7 +1710,7 @@ test('a complete brief passes and each missing field is named', () => {
   assert.deepEqual(briefErrors(briefFront, briefBody), [])
   const { trunk_seen: _dropped, ...missing } = briefFront
   assert.ok(briefErrors(missing, briefBody).some((e) => e.includes('trunk_seen')))
-  assert.deepEqual(BRIEF_FIELDS.length, 8)
+  assert.deepEqual(BRIEF_FIELDS.length, 9)
 })
 
 test('an unpushed checkpoint is a defect to repair, not a handoff', () => {

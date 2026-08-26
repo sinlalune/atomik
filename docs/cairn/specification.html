@@ -1554,7 +1554,8 @@ bootstrap contract, and a bootstrap contract with no specified fields is not a
 contract.</p>
 <p>The brief lives at <code>project/briefs/&lt;lowercase-id&gt;-handoff.md</code>. Its frontmatter
 MUST carry:</p>
-<pre><code class="language-yaml">checkpoint: &lt;full object id of the last completed work unit&gt;
+<pre><code class="language-yaml">checkpoint: &lt;full object id of the last retained checkpoint&gt;
+checkpoint_unit: &lt;its ledger ordinal&gt;
 checkpoint_pushed: true
 base_commit: &lt;full object id&gt;
 trunk_seen: &lt;full object id of the trunk tip last fetched&gt;
@@ -1567,6 +1568,13 @@ verify:
   - npm test
 budget_tokens: 1200
 </code></pre>
+<p><code>checkpoint</code> names the last <strong>retained</strong> checkpoint, not the commit containing
+the brief. This is the same self-reference the <code>cairn-unit</code> ordinal solves: a
+brief is refreshed inside the work unit it describes, so at the moment it is
+written the commit it will become does not exist. What it can name truthfully is
+the last checkpoint that is already retained and resumable, and
+<code>checkpoint_unit</code> gives that checkpoint its ordinal so the retention ref and the
+brief agree.</p>
 <p>Its body MUST hold seven capped sections, and no others: <strong>outcome</strong>, <strong>state</strong>,
 <strong>next action</strong>, <strong>blockers</strong>, <strong>tried and rejected</strong>, <strong>reading order</strong>, and
 <strong>verification</strong>. The whole brief SHOULD fit inside <code>budget_tokens</code>, whose
@@ -3579,7 +3587,8 @@ bootstrap contract, and a bootstrap contract with no specified fields is not a
 contract.</p>
 <p>The brief lives at <code>project/briefs/&lt;lowercase-id&gt;-handoff.md</code>. Its frontmatter
 MUST carry:</p>
-<pre><code class="language-yaml">checkpoint: &lt;full object id of the last completed work unit&gt;
+<pre><code class="language-yaml">checkpoint: &lt;full object id of the last retained checkpoint&gt;
+checkpoint_unit: &lt;its ledger ordinal&gt;
 checkpoint_pushed: true
 base_commit: &lt;full object id&gt;
 trunk_seen: &lt;full object id of the trunk tip last fetched&gt;
@@ -3592,6 +3601,13 @@ verify:
   - npm test
 budget_tokens: 1200
 </code></pre>
+<p><code>checkpoint</code> names the last <strong>retained</strong> checkpoint, not the commit containing
+the brief. This is the same self-reference the <code>cairn-unit</code> ordinal solves: a
+brief is refreshed inside the work unit it describes, so at the moment it is
+written the commit it will become does not exist. What it can name truthfully is
+the last checkpoint that is already retained and resumable, and
+<code>checkpoint_unit</code> gives that checkpoint its ordinal so the retention ref and the
+brief agree.</p>
 <p>Its body MUST hold seven capped sections, and no others: <strong>outcome</strong>, <strong>state</strong>,
 <strong>next action</strong>, <strong>blockers</strong>, <strong>tried and rejected</strong>, <strong>reading order</strong>, and
 <strong>verification</strong>. The whole brief SHOULD fit inside <code>budget_tokens</code>, whose
@@ -7732,7 +7748,12 @@ also read the ledger has become a second ledger and has failed.</p>
 <tr>
 <td style="text-align:left"><code>checkpoint</code></td>
 <td style="text-align:left">full object id</td>
-<td style="text-align:left">the last completed work-unit commit; the exact resume point</td>
+<td style="text-align:left">the last <strong>retained</strong> checkpoint; the exact resume point</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>checkpoint_unit</code></td>
+<td style="text-align:left">ledger ordinal</td>
+<td style="text-align:left">that checkpoint’s <code>unit:</code>, so the brief and its retention ref agree</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>checkpoint_pushed</code></td>
@@ -7771,6 +7792,10 @@ also read the ledger has become a second ledger and has failed.</p>
 </tr>
 </tbody>
 </table>
+<p><code>checkpoint</code> cannot be the commit that contains the brief. A brief is refreshed
+inside the work unit it describes, so at write time that commit does not exist —
+the same self-reference the <code>cairn-unit</code> ordinal solves. It names the last
+checkpoint that is already retained and resumable.</p>
 <p><code>governs</code> entries MUST carry the <code>@&lt;object-id&gt;</code> pin. An unpinned document
 reference means “read whatever this says now”, which is precisely the ambiguity
 the field exists to remove.</p>
@@ -7864,6 +7889,7 @@ cairn:
   path: CP-EXAMPLE-001
   branch: path/cp-example-001
   checkpoint: fedcba9876543210fedcba9876543210fedcba98
+  checkpoint_unit: 07
   checkpoint_pushed: true
   base_commit: 0123456789abcdef0123456789abcdef01234567
   trunk_seen: 4444444444444444444444444444444444444444
@@ -9779,7 +9805,8 @@ bootstrap contract, and a bootstrap contract with no specified fields is not a
 contract.</p>
 <p>The brief lives at <code>project/briefs/&lt;lowercase-id&gt;-handoff.md</code>. Its frontmatter
 MUST carry:</p>
-<pre><code class="language-yaml">checkpoint: &lt;full object id of the last completed work unit&gt;
+<pre><code class="language-yaml">checkpoint: &lt;full object id of the last retained checkpoint&gt;
+checkpoint_unit: &lt;its ledger ordinal&gt;
 checkpoint_pushed: true
 base_commit: &lt;full object id&gt;
 trunk_seen: &lt;full object id of the trunk tip last fetched&gt;
@@ -9792,6 +9819,13 @@ verify:
   - npm test
 budget_tokens: 1200
 </code></pre>
+<p><code>checkpoint</code> names the last <strong>retained</strong> checkpoint, not the commit containing
+the brief. This is the same self-reference the <code>cairn-unit</code> ordinal solves: a
+brief is refreshed inside the work unit it describes, so at the moment it is
+written the commit it will become does not exist. What it can name truthfully is
+the last checkpoint that is already retained and resumable, and
+<code>checkpoint_unit</code> gives that checkpoint its ordinal so the retention ref and the
+brief agree.</p>
 <p>Its body MUST hold seven capped sections, and no others: <strong>outcome</strong>, <strong>state</strong>,
 <strong>next action</strong>, <strong>blockers</strong>, <strong>tried and rejected</strong>, <strong>reading order</strong>, and
 <strong>verification</strong>. The whole brief SHOULD fit inside <code>budget_tokens</code>, whose
@@ -13648,7 +13682,12 @@ also read the ledger has become a second ledger and has failed.</p>
 <tr>
 <td style="text-align:left"><code>checkpoint</code></td>
 <td style="text-align:left">full object id</td>
-<td style="text-align:left">the last completed work-unit commit; the exact resume point</td>
+<td style="text-align:left">the last <strong>retained</strong> checkpoint; the exact resume point</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>checkpoint_unit</code></td>
+<td style="text-align:left">ledger ordinal</td>
+<td style="text-align:left">that checkpoint’s <code>unit:</code>, so the brief and its retention ref agree</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>checkpoint_pushed</code></td>
@@ -13687,6 +13726,10 @@ also read the ledger has become a second ledger and has failed.</p>
 </tr>
 </tbody>
 </table>
+<p><code>checkpoint</code> cannot be the commit that contains the brief. A brief is refreshed
+inside the work unit it describes, so at write time that commit does not exist —
+the same self-reference the <code>cairn-unit</code> ordinal solves. It names the last
+checkpoint that is already retained and resumable.</p>
 <p><code>governs</code> entries MUST carry the <code>@&lt;object-id&gt;</code> pin. An unpinned document
 reference means “read whatever this says now”, which is precisely the ambiguity
 the field exists to remove.</p>
@@ -13780,6 +13823,7 @@ cairn:
   path: CP-EXAMPLE-001
   branch: path/cp-example-001
   checkpoint: fedcba9876543210fedcba9876543210fedcba98
+  checkpoint_unit: 07
   checkpoint_pushed: true
   base_commit: 0123456789abcdef0123456789abcdef01234567
   trunk_seen: 4444444444444444444444444444444444444444

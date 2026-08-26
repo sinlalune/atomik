@@ -637,7 +637,8 @@ The brief lives at `project/briefs/<lowercase-id>-handoff.md`. Its frontmatter
 MUST carry:
 
 ```yaml
-checkpoint: <full object id of the last completed work unit>
+checkpoint: <full object id of the last retained checkpoint>
+checkpoint_unit: <its ledger ordinal>
 checkpoint_pushed: true
 base_commit: <full object id>
 trunk_seen: <full object id of the trunk tip last fetched>
@@ -650,6 +651,14 @@ verify:
   - npm test
 budget_tokens: 1200
 ```
+
+`checkpoint` names the last **retained** checkpoint, not the commit containing
+the brief. This is the same self-reference the `cairn-unit` ordinal solves: a
+brief is refreshed inside the work unit it describes, so at the moment it is
+written the commit it will become does not exist. What it can name truthfully is
+the last checkpoint that is already retained and resumable, and
+`checkpoint_unit` gives that checkpoint its ordinal so the retention ref and the
+brief agree.
 
 Its body MUST hold seven capped sections, and no others: **outcome**, **state**,
 **next action**, **blockers**, **tried and rejected**, **reading order**, and
