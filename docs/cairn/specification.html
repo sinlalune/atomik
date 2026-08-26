@@ -2084,6 +2084,10 @@ Where a record is owed, repair supersedes it rather than replacing it.</p>
 <td style="text-align:left">Recover the orphaned commits from reflog or any surviving ref and push them to <code>refs/cairn/checkpoints/</code> immediately. Ledger entries naming commits that cannot be recovered are marked <code>unrecoverable</code>, never deleted.</td>
 </tr>
 <tr>
+<td style="text-align:left">A retention ref was moved</td>
+<td style="text-align:left">Restore it to the commit it originally named. Give the commit it was moved onto its own ordinal and its own ledger entry — moving a ref usually means a completed work unit was shipped under the previous unit’s block, so both facts need repairing, not one.</td>
+</tr>
+<tr>
 <td style="text-align:left">A path branch declared <code>done</code></td>
 <td style="text-align:left">Return the declaration to <code>ready</code> in a <code>repair</code> unit and re-run integration through the declared transport. <code>done</code> on a branch is a claim about the trunk that the branch cannot make.</td>
 </tr>
@@ -2103,6 +2107,10 @@ Where a record is owed, repair supersedes it rather than replacing it.</p>
 </table>
 <p>Two rules govern every row. A repair MUST leave the violation visible in the
 ledger, and a repair MUST NOT be the same work unit as the work that caused it.</p>
+<p>A repair SHOULD also ask why the violation was not caught, and treat the answer
+as part of the repair. A rule that checks a record’s claims rather than the
+repository’s facts will report success over a broken state — which is worse than
+having no rule, because it certifies what nobody verified.</p>
 <p>The <a href="#article-reference-repair" data-article="reference-repair" data-anchor="" class="wiki-link">repair reference</a> carries the command sequences.</p>
 <h2 id="specification--state-the-trust-and-enforcement-boundary" data-heading="state-the-trust-and-enforcement-boundary">State the trust and enforcement boundary</h2>
 <p>Cairn v0.2 assumes collaborating writers. Its local and CI mechanisms protect
@@ -2294,8 +2302,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Checkpoint retention refs before any rewriting push</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; every declared unit except the newest must resolve a local retention ref</td>
-<td style="text-align:left">remote push of the namespace; the temporal “before the push” property is not observable</td>
+<td style="text-align:left"><strong>partially implemented</strong>; every declared unit except the newest must resolve a local retention ref, and every branch commit that is neither retained, provisional, nor <code>HEAD</code> is reported as orphaned</td>
+<td style="text-align:left">remote push of the namespace; a ref <em>moving</em> is unobservable to a single-commit validator — only the orphan it leaves behind is</td>
 </tr>
 <tr>
 <td style="text-align:left">Marked provisional commits excluded from candidate identity</td>
@@ -4101,6 +4109,10 @@ Where a record is owed, repair supersedes it rather than replacing it.</p>
 <td style="text-align:left">Recover the orphaned commits from reflog or any surviving ref and push them to <code>refs/cairn/checkpoints/</code> immediately. Ledger entries naming commits that cannot be recovered are marked <code>unrecoverable</code>, never deleted.</td>
 </tr>
 <tr>
+<td style="text-align:left">A retention ref was moved</td>
+<td style="text-align:left">Restore it to the commit it originally named. Give the commit it was moved onto its own ordinal and its own ledger entry — moving a ref usually means a completed work unit was shipped under the previous unit’s block, so both facts need repairing, not one.</td>
+</tr>
+<tr>
 <td style="text-align:left">A path branch declared <code>done</code></td>
 <td style="text-align:left">Return the declaration to <code>ready</code> in a <code>repair</code> unit and re-run integration through the declared transport. <code>done</code> on a branch is a claim about the trunk that the branch cannot make.</td>
 </tr>
@@ -4120,6 +4132,10 @@ Where a record is owed, repair supersedes it rather than replacing it.</p>
 </table>
 <p>Two rules govern every row. A repair MUST leave the violation visible in the
 ledger, and a repair MUST NOT be the same work unit as the work that caused it.</p>
+<p>A repair SHOULD also ask why the violation was not caught, and treat the answer
+as part of the repair. A rule that checks a record’s claims rather than the
+repository’s facts will report success over a broken state — which is worse than
+having no rule, because it certifies what nobody verified.</p>
 <p>The <a href="#article-reference-repair" data-article="reference-repair" data-anchor="" class="wiki-link">repair reference</a> carries the command sequences.</p>
 <h2 id="specification--state-the-trust-and-enforcement-boundary" data-heading="state-the-trust-and-enforcement-boundary">State the trust and enforcement boundary</h2>
 <p>Cairn v0.2 assumes collaborating writers. Its local and CI mechanisms protect
@@ -4311,8 +4327,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Checkpoint retention refs before any rewriting push</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; every declared unit except the newest must resolve a local retention ref</td>
-<td style="text-align:left">remote push of the namespace; the temporal “before the push” property is not observable</td>
+<td style="text-align:left"><strong>partially implemented</strong>; every declared unit except the newest must resolve a local retention ref, and every branch commit that is neither retained, provisional, nor <code>HEAD</code> is reported as orphaned</td>
+<td style="text-align:left">remote push of the namespace; a ref <em>moving</em> is unobservable to a single-commit validator — only the orphan it leaves behind is</td>
 </tr>
 <tr>
 <td style="text-align:left">Marked provisional commits excluded from candidate identity</td>
@@ -8644,6 +8660,19 @@ git push origin &lt;recovered-oid&gt;:refs/cairn/checkpoints/&lt;path-id&gt;/&lt
 Ledger entries naming commits that cannot be recovered are marked
 <code>unrecoverable</code> — never deleted. A ledger that quietly loses the entries it can
 no longer resolve is worse than one that admits a gap.</p>
+<h2 id="reference-repair--a-retention-ref-was-moved" data-heading="a-retention-ref-was-moved">A retention ref was moved</h2>
+<p>Every declared unit still resolves a ref, so the per-unit check reports nothing.
+The commit the ref used to name is the evidence.</p>
+<pre><code class="language-bash">git for-each-ref refs/cairn/checkpoints/cp-example-001
+git log --format='%H %s' &lt;base&gt;..HEAD
+# any commit in that range that is neither retained, nor provisional, nor HEAD
+git update-ref refs/cairn/checkpoints/cp-example-001/&lt;n&gt; &lt;original-oid&gt;
+git update-ref refs/cairn/checkpoints/cp-example-001/&lt;n+1&gt; &lt;moved-onto-oid&gt;
+</code></pre>
+<p>Restore the ref to the commit it originally named, then give the commit it was
+moved onto its own ordinal and its own ledger entry. A moved ref usually means a
+completed work unit was shipped under the previous unit’s block, so there are
+two facts to repair rather than one.</p>
 <h2 id="reference-repair--a-path-branch-declared-done" data-heading="a-path-branch-declared-done">A path branch declared <code>done</code></h2>
 <p><code>done</code> is a claim about the trunk, and a branch cannot make it.</p>
 <p>Return the declaration to <code>ready</code> in a <code>repair</code> unit, then re-run integration
@@ -10280,6 +10309,10 @@ Where a record is owed, repair supersedes it rather than replacing it.</p>
 <td style="text-align:left">Recover the orphaned commits from reflog or any surviving ref and push them to <code>refs/cairn/checkpoints/</code> immediately. Ledger entries naming commits that cannot be recovered are marked <code>unrecoverable</code>, never deleted.</td>
 </tr>
 <tr>
+<td style="text-align:left">A retention ref was moved</td>
+<td style="text-align:left">Restore it to the commit it originally named. Give the commit it was moved onto its own ordinal and its own ledger entry — moving a ref usually means a completed work unit was shipped under the previous unit’s block, so both facts need repairing, not one.</td>
+</tr>
+<tr>
 <td style="text-align:left">A path branch declared <code>done</code></td>
 <td style="text-align:left">Return the declaration to <code>ready</code> in a <code>repair</code> unit and re-run integration through the declared transport. <code>done</code> on a branch is a claim about the trunk that the branch cannot make.</td>
 </tr>
@@ -10299,6 +10332,10 @@ Where a record is owed, repair supersedes it rather than replacing it.</p>
 </table>
 <p>Two rules govern every row. A repair MUST leave the violation visible in the
 ledger, and a repair MUST NOT be the same work unit as the work that caused it.</p>
+<p>A repair SHOULD also ask why the violation was not caught, and treat the answer
+as part of the repair. A rule that checks a record’s claims rather than the
+repository’s facts will report success over a broken state — which is worse than
+having no rule, because it certifies what nobody verified.</p>
 <p>The <a href="#article-reference-repair" data-article="reference-repair" data-anchor="" class="wiki-link">repair reference</a> carries the command sequences.</p>
 <h2 id="specification--state-the-trust-and-enforcement-boundary" data-heading="state-the-trust-and-enforcement-boundary">State the trust and enforcement boundary</h2>
 <p>Cairn v0.2 assumes collaborating writers. Its local and CI mechanisms protect
@@ -10490,8 +10527,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Checkpoint retention refs before any rewriting push</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; every declared unit except the newest must resolve a local retention ref</td>
-<td style="text-align:left">remote push of the namespace; the temporal “before the push” property is not observable</td>
+<td style="text-align:left"><strong>partially implemented</strong>; every declared unit except the newest must resolve a local retention ref, and every branch commit that is neither retained, provisional, nor <code>HEAD</code> is reported as orphaned</td>
+<td style="text-align:left">remote push of the namespace; a ref <em>moving</em> is unobservable to a single-commit validator — only the orphan it leaves behind is</td>
 </tr>
 <tr>
 <td style="text-align:left">Marked provisional commits excluded from candidate identity</td>
@@ -14523,6 +14560,19 @@ git push origin &lt;recovered-oid&gt;:refs/cairn/checkpoints/&lt;path-id&gt;/&lt
 Ledger entries naming commits that cannot be recovered are marked
 <code>unrecoverable</code> — never deleted. A ledger that quietly loses the entries it can
 no longer resolve is worse than one that admits a gap.</p>
+<h2 id="reference-repair--a-retention-ref-was-moved" data-heading="a-retention-ref-was-moved">A retention ref was moved</h2>
+<p>Every declared unit still resolves a ref, so the per-unit check reports nothing.
+The commit the ref used to name is the evidence.</p>
+<pre><code class="language-bash">git for-each-ref refs/cairn/checkpoints/cp-example-001
+git log --format='%H %s' &lt;base&gt;..HEAD
+# any commit in that range that is neither retained, nor provisional, nor HEAD
+git update-ref refs/cairn/checkpoints/cp-example-001/&lt;n&gt; &lt;original-oid&gt;
+git update-ref refs/cairn/checkpoints/cp-example-001/&lt;n+1&gt; &lt;moved-onto-oid&gt;
+</code></pre>
+<p>Restore the ref to the commit it originally named, then give the commit it was
+moved onto its own ordinal and its own ledger entry. A moved ref usually means a
+completed work unit was shipped under the previous unit’s block, so there are
+two facts to repair rather than one.</p>
 <h2 id="reference-repair--a-path-branch-declared-done" data-heading="a-path-branch-declared-done">A path branch declared <code>done</code></h2>
 <p><code>done</code> is a claim about the trunk, and a branch cannot make it.</p>
 <p>Return the declaration to <code>ready</code> in a <code>repair</code> unit, then re-run integration

@@ -5,7 +5,7 @@ timestamp: 2026-08-26T00:00:00Z
 atomik:
   path: CP-OPS-002
   branch: path/cp-ops-002
-  checkpoint: 8709579d9952e16e538bef0603c2650b9c4c9185
+  checkpoint: PENDING
   checkpoint_pushed: true
   base_commit: 7aa3b1d
   trunk_seen: df875e68c383f6e82b833b755e8925f2fb4651ed
@@ -49,7 +49,12 @@ Four remain, and are the honest residue rather than a backlog: repair procedures
 have no predicate, the answerable-alone contract is a judgement, the temporal
 half of retention is unobservable, and ledger-prefix proof awaits markers.
 
-Checker suite 122, full protocol/specification suite 169.
+One protocol violation occurred and was repaired in S07k: a retention ref was
+force-moved, orphaning the commit it had named. The rule could not see it —
+it checked whether every declared unit resolved a ref, not whether every
+completed commit was retained. Both the ref and the rule are fixed.
+
+Checker suite 129, full protocol/specification suite 176. Retention refs 01–07.
 
 ## Next action
 
@@ -74,6 +79,8 @@ None.
 - **Taking frontmatter scalars verbatim to end of line.** A documented choice
   that silently made `governs:   # comment` declare nothing. Scalars now strip
   trailing comments; quoted values keep their `#`.
+- **Retention checked per declared unit only.** A moved ref left every unit
+  resolving while orphaning a real commit; the branch is now walked directly.
 
 ## Reading order
 

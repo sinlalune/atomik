@@ -1207,6 +1207,7 @@ Where a record is owed, repair supersedes it rather than replacing it.
 | Implementation changed after acceptance | The candidate is void. Return to `running`, produce a new candidate, and supersede the closing record with one naming the new object id. The original acceptance is retained. |
 | An immutable record was edited | The edit cannot be undone by another edit. Add a superseding correction record naming both object ids and stating what was changed, and record the violation in the ledger. |
 | Branch force-pushed without retention | Recover the orphaned commits from reflog or any surviving ref and push them to `refs/cairn/checkpoints/` immediately. Ledger entries naming commits that cannot be recovered are marked `unrecoverable`, never deleted. |
+| A retention ref was moved | Restore it to the commit it originally named. Give the commit it was moved onto its own ordinal and its own ledger entry — moving a ref usually means a completed work unit was shipped under the previous unit's block, so both facts need repairing, not one. |
 | A path branch declared `done` | Return the declaration to `ready` in a `repair` unit and re-run integration through the declared transport. `done` on a branch is a claim about the trunk that the branch cannot make. |
 | Scope digest mismatch at closing | Either restore the accepted text or record a scope amendment — a new opening acceptance with a new digest, naming the record it supersedes — then re-close. |
 | Work outside `writes:` already committed | Update the declaration and record the reason in the same repair unit. A widening that is recorded is ordinary; one that is hidden is the violation. |
@@ -1214,6 +1215,11 @@ Where a record is owed, repair supersedes it rather than replacing it.
 
 Two rules govern every row. A repair MUST leave the violation visible in the
 ledger, and a repair MUST NOT be the same work unit as the work that caused it.
+
+A repair SHOULD also ask why the violation was not caught, and treat the answer
+as part of the repair. A rule that checks a record's claims rather than the
+repository's facts will report success over a broken state — which is worse than
+having no rule, because it certifies what nobody verified.
 
 The [repair reference](./reference/repair.md) carries the command sequences.
 ## State the trust and enforcement boundary
@@ -1306,7 +1312,7 @@ not in a separate document a reader may never open.
 | Full object id in the repository's configured format | required | **partially implemented**; the installed checker matches a forty-character form | object-format-aware identity check |
 | Fail-closed critical inconclusive outcomes | required | implemented | complete trunk and comparison refs |
 | Existing session, audit, history, and journal immutability | required | implemented for new or changed records | complete comparison ref |
-| Checkpoint retention refs before any rewriting push | required | **partially implemented**; every declared unit except the newest must resolve a local retention ref | remote push of the namespace; the temporal “before the push” property is not observable |
+| Checkpoint retention refs before any rewriting push | required | **partially implemented**; every declared unit except the newest must resolve a local retention ref, and every branch commit that is neither retained, provisional, nor `HEAD` is reported as orphaned | remote push of the namespace; a ref *moving* is unobservable to a single-commit validator — only the orphan it leaves behind is |
 | Marked provisional commits excluded from candidate identity | required | implemented; a ready path whose candidate range still contains a marked commit is blocked | the fold itself is not verified to preserve content |
 | Handoff-brief field schema and answerable-alone contract | required | **partially implemented**; the eight fields, the seven exact sections, pinned `governs` entries and the token budget are checked | the answerable-alone contract is a judgement and a cold-resume harness, and is never claimed by a checker |
 | Field-level administrative closure surface | required | implemented; closure may move only `status`, `subject_commit`, `current_step` and `resolution` | ledger append-only proof, which remains a separate open row |
