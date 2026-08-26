@@ -1159,6 +1159,13 @@ the paths this work expects to change. <code>governs:</code> is its counterpart,
 declared read surface: the documents this work is bound by, each pinned as
 <code>path@&lt;object-id&gt;</code> so that <em>which</em> version governed is a fact rather than a
 recollection.</p>
+<p>The pinned id is the document’s own <strong>blob object id</strong> — the id of that exact
+content, not of a repository state that happened to contain it. A commit id
+would also identify a version, but it changes whenever anything else in the
+repository changes, so a <code>governs:</code> list pinned to commits would go stale
+constantly while the documents it names sat untouched.</p>
+<pre><code class="language-bash">git rev-parse HEAD:docs/architecture/example.md
+</code></pre>
 <p>Neither is a filesystem lock. A path may discover a necessary wider change and
 continue. What it MUST NOT do is continue with a stale declaration: writing
 outside <code>writes:</code> is permitted only when the same work unit updates the
@@ -2305,38 +2312,38 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Field-level administrative closure surface</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; the installed rule restricts files, not fields</td>
-<td style="text-align:left">field-level diff comparison</td>
+<td style="text-align:left">implemented; closure may move only <code>status</code>, <code>subject_commit</code>, <code>current_step</code> and <code>resolution</code></td>
+<td style="text-align:left">ledger append-only proof, which remains a separate open row</td>
 </tr>
 <tr>
 <td style="text-align:left">Scope digest recorded at opening and re-verified at closing</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">digest computation over a resolved section</td>
+<td style="text-align:left">implemented; the resolved section is digested and compared at closure</td>
+<td style="text-align:left">a path opened before the rule cannot amend its immutable opening record — see the migration exception</td>
 </tr>
 <tr>
 <td style="text-align:left">Candidate base <code>T</code> and the acceptance-drift predicate</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">trunk delta computation against <code>writes:</code> and <code>governs:</code></td>
+<td style="text-align:left">implemented; the trunk delta since the recorded base is tested against <code>writes:</code> ∪ <code>governs:</code></td>
+<td style="text-align:left">path matching is a proxy for semantic overlap, as stated</td>
 </tr>
 <tr>
 <td style="text-align:left">Structured <code>advisory_disposition</code> matching findings at <code>C</code></td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">checker finding set exported for comparison</td>
+<td style="text-align:left"><strong>partially implemented</strong>; set equality holds against the advisories raised in the same run, which evaluates the closure commit rather than the candidate</td>
+<td style="text-align:left">evaluation replayed at <code>C</code></td>
 </tr>
 <tr>
 <td style="text-align:left">Recorded roles and the collapsed-actor advisory</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">role fields in acceptance records</td>
+<td style="text-align:left"><strong>partially implemented</strong>; a shared opening/closing actor is reported</td>
+<td style="text-align:left"><code>accepted_roles</code> itself is recorded and not yet validated</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>scope-drift</code> blocking unless the declaration moves in the same commit</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong>; the installed rule is advisory</td>
-<td style="text-align:left">same-commit declaration comparison</td>
+<td style="text-align:left">implemented; drift blocks unless <code>writes:</code> moved in the same change</td>
+<td style="text-align:left">none</td>
 </tr>
 <tr>
 <td style="text-align:left">Typed work units keyed to their required parts</td>
@@ -2420,6 +2427,11 @@ branches. Its reference tools enforce a substantial but incomplete subset of
 the protocol. It is not yet a general-purpose merge, governance, or security
 system.</p>
 </blockquote>
+<p>A requirement whose reference row names a migration exception is not exempt from
+the requirement. The exception is finite, listed in the checker, and reported as
+a blocking finding once it is spent — an exception that outlives its migration
+is a bypass, and the mechanism that removes it is the same one that enforces the
+rule.</p>
 <p>Operational cost is part of correctness. A pilot SHOULD measure cold-resume
 success first, then ceremony time, ignored advisories, integration retries,
 documentation churn, and bypass pressure, before a team widens its claims.</p>
@@ -2448,6 +2460,18 @@ honest state of the work.</p>
 <td style="text-align:left">Ready/done path lacks exact-commit acceptance or changed implementation after acceptance</td>
 <td style="text-align:left"><code>closingAcceptanceErrors(record, pathId) + pathClosureState(path, record)</code></td>
 </tr>
+<tr data-rule="acceptance-drift" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>acceptance-drift</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">The trunk moved inside the path’s declared writes: or governs: since the accepted base</td>
+<td style="text-align:left"><code>acceptanceDrift(git diff --name-only &lt;base&gt; &lt;trunk&gt;, writes, governs) — never trunk === base</code></td>
+</tr>
+<tr data-rule="advisory-disposition" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>advisory-disposition</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">advisory_disposition is not a structured list matching the advisories raised against the candidate</td>
+<td style="text-align:left"><code>dispositionErrors(record.advisory_disposition, raised) with set equality on rule names</code></td>
+</tr>
 <tr data-rule="branch-identity" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>branch-identity</code></td>
 <td style="text-align:left">diff</td>
@@ -2466,6 +2490,12 @@ honest state of the work.</p>
 <td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint</td>
 <td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory)</code></td>
 </tr>
+<tr data-rule="closure-surface" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>closure-surface</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">An administrative closure commit changed a path field other than status, subject_commit, current_step or resolution</td>
+<td style="text-align:left"><code>closureFieldErrors(previousFront, currentFront) over CLOSURE_MUTABLE_FIELDS</code></td>
+</tr>
 <tr data-rule="coherence-audit" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>coherence-audit</code></td>
 <td style="text-align:left">corpus</td>
@@ -2483,6 +2513,12 @@ honest state of the work.</p>
 <td style="text-align:left">corpus</td>
 <td style="text-align:left">Relative Markdown link points to non-existent target (code fences stripped)</td>
 <td style="text-align:left"><code>stripCode(text) =&gt; !existsSync(target)</code></td>
+</tr>
+<tr data-rule="migration-debt" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>migration-debt</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A path listed in the v0.2 migration exception no longer needs it</td>
+<td style="text-align:left"><code>migrationDebt(paths, V02_MIGRATION_PATHS) — a spent exception is a bypass</code></td>
 </tr>
 <tr data-rule="opening-ceremony" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>opening-ceremony</code></td>
@@ -2532,6 +2568,18 @@ honest state of the work.</p>
 <td style="text-align:left">Path or ADR frontmatter fails parsing, or an id/status/date is outside vocabulary</td>
 <td style="text-align:left"><code>pathFrontmatterErrors(front) + adrFrontmatterErrors(front, file, bodyStatus)</code></td>
 </tr>
+<tr data-rule="scope-digest" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>scope-digest</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">The accepted definition of done moved after acceptance, or was accepted without a digest</td>
+<td style="text-align:left"><code>scopeDigest(resolveScopeSection(pathRecord, scope_ref)) === record.scope_digest</code></td>
+</tr>
+<tr data-rule="scope-drift" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>scope-drift</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">Changed files outside path frontmatter declared writes: patterns</td>
+<td style="text-align:left"><code>!matchesAny(file, declaredWrites)</code></td>
+</tr>
 <tr data-rule="transition" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>transition</code></td>
 <td style="text-align:left">diff</td>
@@ -2543,6 +2591,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">A changed path record carries no <code>cairn-unit</code> block, or one declares an unknown type</td>
 <td style="text-align:left"><code>parseWorkUnits(record) =&gt; workUnitErrors(unit) over WORK_UNIT_TYPES</code></td>
+</tr>
+<tr data-rule="advisory-disposition" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>advisory-disposition</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">advisory_disposition is not a structured list matching the advisories raised against the candidate</td>
+<td style="text-align:left"><code>dispositionErrors(record.advisory_disposition, raised) with set equality on rule names</code></td>
 </tr>
 <tr data-rule="area-note" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>area-note</code></td>
@@ -2603,6 +2657,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Local path HEAD not present on upstream tracking branch</td>
 <td style="text-align:left"><code>pathRemoteCheckpoint(branch).state === 'missing' | 'unpushed'</code></td>
+</tr>
+<tr data-rule="role-collapse" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>role-collapse</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">One actor recorded both the opening and the closing acceptance for a path</td>
+<td style="text-align:left"><code>opening.accepted_by === closing.accepted_by (advisory: visible, never forbidden)</code></td>
 </tr>
 <tr data-rule="scope-drift" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>scope-drift</code></td>
@@ -3091,6 +3151,13 @@ the paths this work expects to change. <code>governs:</code> is its counterpart,
 declared read surface: the documents this work is bound by, each pinned as
 <code>path@&lt;object-id&gt;</code> so that <em>which</em> version governed is a fact rather than a
 recollection.</p>
+<p>The pinned id is the document’s own <strong>blob object id</strong> — the id of that exact
+content, not of a repository state that happened to contain it. A commit id
+would also identify a version, but it changes whenever anything else in the
+repository changes, so a <code>governs:</code> list pinned to commits would go stale
+constantly while the documents it names sat untouched.</p>
+<pre><code class="language-bash">git rev-parse HEAD:docs/architecture/example.md
+</code></pre>
 <p>Neither is a filesystem lock. A path may discover a necessary wider change and
 continue. What it MUST NOT do is continue with a stale declaration: writing
 outside <code>writes:</code> is permitted only when the same work unit updates the
@@ -4237,38 +4304,38 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Field-level administrative closure surface</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; the installed rule restricts files, not fields</td>
-<td style="text-align:left">field-level diff comparison</td>
+<td style="text-align:left">implemented; closure may move only <code>status</code>, <code>subject_commit</code>, <code>current_step</code> and <code>resolution</code></td>
+<td style="text-align:left">ledger append-only proof, which remains a separate open row</td>
 </tr>
 <tr>
 <td style="text-align:left">Scope digest recorded at opening and re-verified at closing</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">digest computation over a resolved section</td>
+<td style="text-align:left">implemented; the resolved section is digested and compared at closure</td>
+<td style="text-align:left">a path opened before the rule cannot amend its immutable opening record — see the migration exception</td>
 </tr>
 <tr>
 <td style="text-align:left">Candidate base <code>T</code> and the acceptance-drift predicate</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">trunk delta computation against <code>writes:</code> and <code>governs:</code></td>
+<td style="text-align:left">implemented; the trunk delta since the recorded base is tested against <code>writes:</code> ∪ <code>governs:</code></td>
+<td style="text-align:left">path matching is a proxy for semantic overlap, as stated</td>
 </tr>
 <tr>
 <td style="text-align:left">Structured <code>advisory_disposition</code> matching findings at <code>C</code></td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">checker finding set exported for comparison</td>
+<td style="text-align:left"><strong>partially implemented</strong>; set equality holds against the advisories raised in the same run, which evaluates the closure commit rather than the candidate</td>
+<td style="text-align:left">evaluation replayed at <code>C</code></td>
 </tr>
 <tr>
 <td style="text-align:left">Recorded roles and the collapsed-actor advisory</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">role fields in acceptance records</td>
+<td style="text-align:left"><strong>partially implemented</strong>; a shared opening/closing actor is reported</td>
+<td style="text-align:left"><code>accepted_roles</code> itself is recorded and not yet validated</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>scope-drift</code> blocking unless the declaration moves in the same commit</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong>; the installed rule is advisory</td>
-<td style="text-align:left">same-commit declaration comparison</td>
+<td style="text-align:left">implemented; drift blocks unless <code>writes:</code> moved in the same change</td>
+<td style="text-align:left">none</td>
 </tr>
 <tr>
 <td style="text-align:left">Typed work units keyed to their required parts</td>
@@ -4352,6 +4419,11 @@ branches. Its reference tools enforce a substantial but incomplete subset of
 the protocol. It is not yet a general-purpose merge, governance, or security
 system.</p>
 </blockquote>
+<p>A requirement whose reference row names a migration exception is not exempt from
+the requirement. The exception is finite, listed in the checker, and reported as
+a blocking finding once it is spent — an exception that outlives its migration
+is a bypass, and the mechanism that removes it is the same one that enforces the
+rule.</p>
 <p>Operational cost is part of correctness. A pilot SHOULD measure cold-resume
 success first, then ceremony time, ignored advisories, integration retries,
 documentation churn, and bypass pressure, before a team widens its claims.</p>
@@ -4380,6 +4452,18 @@ honest state of the work.</p>
 <td style="text-align:left">Ready/done path lacks exact-commit acceptance or changed implementation after acceptance</td>
 <td style="text-align:left"><code>closingAcceptanceErrors(record, pathId) + pathClosureState(path, record)</code></td>
 </tr>
+<tr data-rule="acceptance-drift" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>acceptance-drift</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">The trunk moved inside the path’s declared writes: or governs: since the accepted base</td>
+<td style="text-align:left"><code>acceptanceDrift(git diff --name-only &lt;base&gt; &lt;trunk&gt;, writes, governs) — never trunk === base</code></td>
+</tr>
+<tr data-rule="advisory-disposition" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>advisory-disposition</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">advisory_disposition is not a structured list matching the advisories raised against the candidate</td>
+<td style="text-align:left"><code>dispositionErrors(record.advisory_disposition, raised) with set equality on rule names</code></td>
+</tr>
 <tr data-rule="branch-identity" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>branch-identity</code></td>
 <td style="text-align:left">diff</td>
@@ -4398,6 +4482,12 @@ honest state of the work.</p>
 <td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint</td>
 <td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory)</code></td>
 </tr>
+<tr data-rule="closure-surface" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>closure-surface</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">An administrative closure commit changed a path field other than status, subject_commit, current_step or resolution</td>
+<td style="text-align:left"><code>closureFieldErrors(previousFront, currentFront) over CLOSURE_MUTABLE_FIELDS</code></td>
+</tr>
 <tr data-rule="coherence-audit" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>coherence-audit</code></td>
 <td style="text-align:left">corpus</td>
@@ -4415,6 +4505,12 @@ honest state of the work.</p>
 <td style="text-align:left">corpus</td>
 <td style="text-align:left">Relative Markdown link points to non-existent target (code fences stripped)</td>
 <td style="text-align:left"><code>stripCode(text) =&gt; !existsSync(target)</code></td>
+</tr>
+<tr data-rule="migration-debt" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>migration-debt</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A path listed in the v0.2 migration exception no longer needs it</td>
+<td style="text-align:left"><code>migrationDebt(paths, V02_MIGRATION_PATHS) — a spent exception is a bypass</code></td>
 </tr>
 <tr data-rule="opening-ceremony" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>opening-ceremony</code></td>
@@ -4464,6 +4560,18 @@ honest state of the work.</p>
 <td style="text-align:left">Path or ADR frontmatter fails parsing, or an id/status/date is outside vocabulary</td>
 <td style="text-align:left"><code>pathFrontmatterErrors(front) + adrFrontmatterErrors(front, file, bodyStatus)</code></td>
 </tr>
+<tr data-rule="scope-digest" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>scope-digest</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">The accepted definition of done moved after acceptance, or was accepted without a digest</td>
+<td style="text-align:left"><code>scopeDigest(resolveScopeSection(pathRecord, scope_ref)) === record.scope_digest</code></td>
+</tr>
+<tr data-rule="scope-drift" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>scope-drift</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">Changed files outside path frontmatter declared writes: patterns</td>
+<td style="text-align:left"><code>!matchesAny(file, declaredWrites)</code></td>
+</tr>
 <tr data-rule="transition" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>transition</code></td>
 <td style="text-align:left">diff</td>
@@ -4475,6 +4583,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">A changed path record carries no <code>cairn-unit</code> block, or one declares an unknown type</td>
 <td style="text-align:left"><code>parseWorkUnits(record) =&gt; workUnitErrors(unit) over WORK_UNIT_TYPES</code></td>
+</tr>
+<tr data-rule="advisory-disposition" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>advisory-disposition</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">advisory_disposition is not a structured list matching the advisories raised against the candidate</td>
+<td style="text-align:left"><code>dispositionErrors(record.advisory_disposition, raised) with set equality on rule names</code></td>
 </tr>
 <tr data-rule="area-note" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>area-note</code></td>
@@ -4535,6 +4649,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Local path HEAD not present on upstream tracking branch</td>
 <td style="text-align:left"><code>pathRemoteCheckpoint(branch).state === 'missing' | 'unpushed'</code></td>
+</tr>
+<tr data-rule="role-collapse" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>role-collapse</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">One actor recorded both the opening and the closing acceptance for a path</td>
+<td style="text-align:left"><code>opening.accepted_by === closing.accepted_by (advisory: visible, never forbidden)</code></td>
 </tr>
 <tr data-rule="scope-drift" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>scope-drift</code></td>
@@ -9185,6 +9305,13 @@ the paths this work expects to change. <code>governs:</code> is its counterpart,
 declared read surface: the documents this work is bound by, each pinned as
 <code>path@&lt;object-id&gt;</code> so that <em>which</em> version governed is a fact rather than a
 recollection.</p>
+<p>The pinned id is the document’s own <strong>blob object id</strong> — the id of that exact
+content, not of a repository state that happened to contain it. A commit id
+would also identify a version, but it changes whenever anything else in the
+repository changes, so a <code>governs:</code> list pinned to commits would go stale
+constantly while the documents it names sat untouched.</p>
+<pre><code class="language-bash">git rev-parse HEAD:docs/architecture/example.md
+</code></pre>
 <p>Neither is a filesystem lock. A path may discover a necessary wider change and
 continue. What it MUST NOT do is continue with a stale declaration: writing
 outside <code>writes:</code> is permitted only when the same work unit updates the
@@ -10331,38 +10458,38 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Field-level administrative closure surface</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; the installed rule restricts files, not fields</td>
-<td style="text-align:left">field-level diff comparison</td>
+<td style="text-align:left">implemented; closure may move only <code>status</code>, <code>subject_commit</code>, <code>current_step</code> and <code>resolution</code></td>
+<td style="text-align:left">ledger append-only proof, which remains a separate open row</td>
 </tr>
 <tr>
 <td style="text-align:left">Scope digest recorded at opening and re-verified at closing</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">digest computation over a resolved section</td>
+<td style="text-align:left">implemented; the resolved section is digested and compared at closure</td>
+<td style="text-align:left">a path opened before the rule cannot amend its immutable opening record — see the migration exception</td>
 </tr>
 <tr>
 <td style="text-align:left">Candidate base <code>T</code> and the acceptance-drift predicate</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">trunk delta computation against <code>writes:</code> and <code>governs:</code></td>
+<td style="text-align:left">implemented; the trunk delta since the recorded base is tested against <code>writes:</code> ∪ <code>governs:</code></td>
+<td style="text-align:left">path matching is a proxy for semantic overlap, as stated</td>
 </tr>
 <tr>
 <td style="text-align:left">Structured <code>advisory_disposition</code> matching findings at <code>C</code></td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">checker finding set exported for comparison</td>
+<td style="text-align:left"><strong>partially implemented</strong>; set equality holds against the advisories raised in the same run, which evaluates the closure commit rather than the candidate</td>
+<td style="text-align:left">evaluation replayed at <code>C</code></td>
 </tr>
 <tr>
 <td style="text-align:left">Recorded roles and the collapsed-actor advisory</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">role fields in acceptance records</td>
+<td style="text-align:left"><strong>partially implemented</strong>; a shared opening/closing actor is reported</td>
+<td style="text-align:left"><code>accepted_roles</code> itself is recorded and not yet validated</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>scope-drift</code> blocking unless the declaration moves in the same commit</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong>; the installed rule is advisory</td>
-<td style="text-align:left">same-commit declaration comparison</td>
+<td style="text-align:left">implemented; drift blocks unless <code>writes:</code> moved in the same change</td>
+<td style="text-align:left">none</td>
 </tr>
 <tr>
 <td style="text-align:left">Typed work units keyed to their required parts</td>
@@ -10446,6 +10573,11 @@ branches. Its reference tools enforce a substantial but incomplete subset of
 the protocol. It is not yet a general-purpose merge, governance, or security
 system.</p>
 </blockquote>
+<p>A requirement whose reference row names a migration exception is not exempt from
+the requirement. The exception is finite, listed in the checker, and reported as
+a blocking finding once it is spent — an exception that outlives its migration
+is a bypass, and the mechanism that removes it is the same one that enforces the
+rule.</p>
 <p>Operational cost is part of correctness. A pilot SHOULD measure cold-resume
 success first, then ceremony time, ignored advisories, integration retries,
 documentation churn, and bypass pressure, before a team widens its claims.</p>
@@ -10474,6 +10606,18 @@ honest state of the work.</p>
 <td style="text-align:left">Ready/done path lacks exact-commit acceptance or changed implementation after acceptance</td>
 <td style="text-align:left"><code>closingAcceptanceErrors(record, pathId) + pathClosureState(path, record)</code></td>
 </tr>
+<tr data-rule="acceptance-drift" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>acceptance-drift</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">The trunk moved inside the path’s declared writes: or governs: since the accepted base</td>
+<td style="text-align:left"><code>acceptanceDrift(git diff --name-only &lt;base&gt; &lt;trunk&gt;, writes, governs) — never trunk === base</code></td>
+</tr>
+<tr data-rule="advisory-disposition" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>advisory-disposition</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">advisory_disposition is not a structured list matching the advisories raised against the candidate</td>
+<td style="text-align:left"><code>dispositionErrors(record.advisory_disposition, raised) with set equality on rule names</code></td>
+</tr>
 <tr data-rule="branch-identity" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>branch-identity</code></td>
 <td style="text-align:left">diff</td>
@@ -10492,6 +10636,12 @@ honest state of the work.</p>
 <td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint</td>
 <td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory)</code></td>
 </tr>
+<tr data-rule="closure-surface" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>closure-surface</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">An administrative closure commit changed a path field other than status, subject_commit, current_step or resolution</td>
+<td style="text-align:left"><code>closureFieldErrors(previousFront, currentFront) over CLOSURE_MUTABLE_FIELDS</code></td>
+</tr>
 <tr data-rule="coherence-audit" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>coherence-audit</code></td>
 <td style="text-align:left">corpus</td>
@@ -10509,6 +10659,12 @@ honest state of the work.</p>
 <td style="text-align:left">corpus</td>
 <td style="text-align:left">Relative Markdown link points to non-existent target (code fences stripped)</td>
 <td style="text-align:left"><code>stripCode(text) =&gt; !existsSync(target)</code></td>
+</tr>
+<tr data-rule="migration-debt" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>migration-debt</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A path listed in the v0.2 migration exception no longer needs it</td>
+<td style="text-align:left"><code>migrationDebt(paths, V02_MIGRATION_PATHS) — a spent exception is a bypass</code></td>
 </tr>
 <tr data-rule="opening-ceremony" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>opening-ceremony</code></td>
@@ -10558,6 +10714,18 @@ honest state of the work.</p>
 <td style="text-align:left">Path or ADR frontmatter fails parsing, or an id/status/date is outside vocabulary</td>
 <td style="text-align:left"><code>pathFrontmatterErrors(front) + adrFrontmatterErrors(front, file, bodyStatus)</code></td>
 </tr>
+<tr data-rule="scope-digest" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>scope-digest</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">The accepted definition of done moved after acceptance, or was accepted without a digest</td>
+<td style="text-align:left"><code>scopeDigest(resolveScopeSection(pathRecord, scope_ref)) === record.scope_digest</code></td>
+</tr>
+<tr data-rule="scope-drift" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>scope-drift</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">Changed files outside path frontmatter declared writes: patterns</td>
+<td style="text-align:left"><code>!matchesAny(file, declaredWrites)</code></td>
+</tr>
 <tr data-rule="transition" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>transition</code></td>
 <td style="text-align:left">diff</td>
@@ -10569,6 +10737,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">A changed path record carries no <code>cairn-unit</code> block, or one declares an unknown type</td>
 <td style="text-align:left"><code>parseWorkUnits(record) =&gt; workUnitErrors(unit) over WORK_UNIT_TYPES</code></td>
+</tr>
+<tr data-rule="advisory-disposition" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>advisory-disposition</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">advisory_disposition is not a structured list matching the advisories raised against the candidate</td>
+<td style="text-align:left"><code>dispositionErrors(record.advisory_disposition, raised) with set equality on rule names</code></td>
 </tr>
 <tr data-rule="area-note" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>area-note</code></td>
@@ -10629,6 +10803,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Local path HEAD not present on upstream tracking branch</td>
 <td style="text-align:left"><code>pathRemoteCheckpoint(branch).state === 'missing' | 'unpushed'</code></td>
+</tr>
+<tr data-rule="role-collapse" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>role-collapse</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">One actor recorded both the opening and the closing acceptance for a path</td>
+<td style="text-align:left"><code>opening.accepted_by === closing.accepted_by (advisory: visible, never forbidden)</code></td>
 </tr>
 <tr data-rule="scope-drift" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>scope-drift</code></td>

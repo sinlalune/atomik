@@ -44,6 +44,15 @@ import {
   transitionErrors,
   retentionDue,
   workUnitErrors,
+  resolveScopeSection,
+  scopeDigest,
+  closureFieldErrors,
+  acceptanceDrift,
+  dispositionErrors,
+  migrationDebt,
+  openingRecordFromSessions,
+  CLOSURE_MUTABLE_FIELDS,
+  DISPOSITIONS,
   CHECKPOINT_REF_PREFIX,
   PROVISIONAL_TRAILER,
   WORK_UNIT_TYPES
@@ -1206,6 +1215,18 @@ test('a changed path record with no cairn-unit block is blocked', () => {
   assert.ok(rules(found, 'blocking').includes('work-unit'))
 })
 
+test('the block must be for the step the record says it is on', () => {
+  const onS03 = { ...UNIT_PATH, front: { ...UNIT_PATH.front, current_step: 'S03' } }
+  const stale = run([onS03.file], 'path/cp-mvp-010', [onS03], { workUnits: UNITS })
+  assert.ok(rules(stale, 'blocking').includes('work-unit'),
+    'a block for S01/S02 must not satisfy a record declaring S03')
+
+  const current = run([onS03.file], 'path/cp-mvp-010', [onS03], {
+    workUnits: [...UNITS, { step: 'S03', unit: '03', type: 'repair', verified: 'cairn-check' }]
+  })
+  assert.ok(!rules(current, 'blocking').includes('work-unit'))
+})
+
 test('a path record that did not change is not asked for a work unit', () => {
   const found = run(['README.md'], 'path/cp-mvp-010', [UNIT_PATH], { workUnits: [] })
   assert.ok(!rules(found, 'blocking').includes('work-unit'))
@@ -1297,4 +1318,285 @@ test('a provisional HEAD is durable work, advised rather than forbidden', () => 
   assert.ok(rules(found, 'advisory').includes('provisional'))
   assert.ok(!rules(found, 'blocking').includes('provisional'))
   assert.equal(PROVISIONAL_TRAILER, 'Cairn-Provisional')
+})
+
+/* ------------------------------------------------------------------ *
+ * v0.2 — scope is bound by digest, not by a pointer
+ * ------------------------------------------------------------------ */
+
+const SCOPED = `# CP-MVP-010
+
+## Goal
+
+Something.
+
+## Definition of done
+
+- [ ] the observable result
+- [ ] and its tests
+
+## Execution
+
+Not part of the scope.
+`
+
+test('a scope_ref resolves to its heading and body, stopping at the next peer heading', () => {
+  const section = resolveScopeSection(SCOPED, '#definition-of-done')
+  assert.match(section, /^## Definition of done/)
+  assert.match(section, /and its tests/)
+  assert.doesNotMatch(section, /Not part of the scope/)
+  assert.equal(resolveScopeSection(SCOPED, '#no-such-heading'), null)
+})
+
+test('the digest changes when the accepted text changes, and only then', () => {
+  const before = scopeDigest(resolveScopeSection(SCOPED, '#definition-of-done'))
+  const reflowed = SCOPED.replace('## Execution', '## Execution')
+  assert.equal(scopeDigest(resolveScopeSection(reflowed, '#definition-of-done')), before)
+  const moved = SCOPED.replace('- [ ] and its tests', '- [ ] and maybe its tests')
+  assert.notEqual(scopeDigest(resolveScopeSection(moved, '#definition-of-done')), before)
+  assert.match(before, /^sha256:[0-9a-f]{64}$/)
+})
+
+const readyPath = (extra = {}) => ({
+  ...A_PATH,
+  front: { ...A_PATH.front, status: 'ready', subject_commit: CANDIDATE, ...extra }
+})
+
+const digested = (record = {}) => ({ ...acceptedRecord(), scope_digest: 'sha256:abc', ...record })
+
+test('a closing record whose digest no longer matches the path record is blocked', () => {
+  const ready = readyPath()
+  const found = run([ready.file], 'path/cp-mvp-010', [ready], {
+    previousPaths: new Map([[ready.file, A_PATH.front]]),
+    closureFor: () => digested(),
+    scopeDigestFor: () => 'sha256:def',
+    migrationExempt: new Set()
+  })
+  assert.ok(rules(found, 'blocking').includes('scope-digest'))
+})
+
+test('a matching digest passes, and an unreadable scope_ref is inconclusive', () => {
+  const ready = readyPath()
+  const ok = run([ready.file], 'path/cp-mvp-010', [ready], {
+    previousPaths: new Map([[ready.file, A_PATH.front]]),
+    closureFor: () => digested(),
+    scopeDigestFor: () => 'sha256:abc',
+    openingRecordFor: () => ({ scope_digest: 'sha256:abc' }),
+    migrationExempt: new Set()
+  })
+  assert.ok(!rules(ok, 'blocking').includes('scope-digest'))
+
+  const unreadable = run([ready.file], 'path/cp-mvp-010', [ready], {
+    previousPaths: new Map([[ready.file, A_PATH.front]]),
+    closureFor: () => digested(),
+    scopeDigestFor: () => undefined,
+    migrationExempt: new Set()
+  })
+  assert.equal(
+    unreadable.find((f) => f.rule === 'scope-digest').outcome,
+    'inconclusive'
+  )
+})
+
+test('a listed migration path is advised about a missing digest, never blocked', () => {
+  const ready = readyPath()
+  const found = run([ready.file], 'path/cp-mvp-010', [ready], {
+    previousPaths: new Map([[ready.file, A_PATH.front]]),
+    closureFor: () => acceptedRecord(),
+    scopeDigestFor: () => 'sha256:abc',
+    migrationExempt: new Set(['CP-MVP-010'])
+  })
+  assert.ok(!rules(found, 'blocking').includes('scope-digest'))
+  assert.ok(rules(found, 'advisory').includes('scope-digest'))
+})
+
+test('a spent migration exception is itself a blocking finding', () => {
+  assert.deepEqual(migrationDebt([], new Set()), [])
+  assert.equal(migrationDebt([], new Set(['CP-GONE'])).length, 1)
+  assert.equal(
+    migrationDebt([{ front: { id: 'CP-OLD', status: 'archived' } }], new Set(['CP-OLD'])).length,
+    1
+  )
+  assert.equal(
+    migrationDebt([{ front: { id: 'CP-OLD', status: 'running' } }], new Set(['CP-OLD'])).length,
+    0
+  )
+  const found = run(['README.md'], 'path/cp-mvp-010', [A_PATH], {
+    migrationStale: ['CP-GONE no longer exists']
+  })
+  assert.ok(rules(found, 'blocking').includes('migration-debt'))
+})
+
+/* ------------------------------------------------------------------ *
+ * v0.2 — closure moves fields, not files
+ * ------------------------------------------------------------------ */
+
+test('closure may move status and subject_commit and nothing else', () => {
+  const before = { id: 'CP-MVP-010', status: 'running', writes: ['a'], scope_ref: 'x' }
+  assert.deepEqual(
+    closureFieldErrors(before, { ...before, status: 'ready', subject_commit: CANDIDATE }),
+    []
+  )
+  assert.equal(closureFieldErrors(before, { ...before, writes: ['a', 'b'] }).length, 1)
+  assert.equal(closureFieldErrors(before, { ...before, scope_ref: 'y' }).length, 1)
+  assert.ok(CLOSURE_MUTABLE_FIELDS.includes('status'))
+  assert.ok(!CLOSURE_MUTABLE_FIELDS.includes('writes'))
+})
+
+test('a closure commit that rewrites the accepted scope is blocked', () => {
+  const ready = readyPath()
+  const found = run([ready.file], 'path/cp-mvp-010', [ready], {
+    previousPaths: new Map([[ready.file, A_PATH.front]]),
+    previousFronts: new Map([[ready.file, { ...A_PATH.front, scope_ref: 'was' }]]),
+    closureFor: () => digested(),
+    scopeDigestFor: () => 'sha256:abc',
+    migrationExempt: new Set()
+  })
+  assert.ok(rules(found, 'blocking').includes('closure-surface'))
+})
+
+/* ------------------------------------------------------------------ *
+ * v0.2 — acceptance drift
+ * ------------------------------------------------------------------ */
+
+test('drift is decided over declared surfaces, not over trunk equality', () => {
+  const writes = ['apps/example/**']
+  const governs = ['docs/bedrock/22_22-agent-handoff.md@89ab89ab']
+  assert.deepEqual(acceptanceDrift(['README.md'], writes, governs), [])
+  assert.deepEqual(acceptanceDrift(['apps/example/x.ts'], writes, governs), ['apps/example/x.ts'])
+  assert.deepEqual(
+    acceptanceDrift(['docs/bedrock/22_22-agent-handoff.md'], writes, governs),
+    ['docs/bedrock/22_22-agent-handoff.md']
+  )
+})
+
+test('a trunk that moved inside the declared surfaces invalidates the acceptance', () => {
+  const ready = { ...readyPath(), writes: ['apps/example/**'], governs: [] }
+  const drifted = run([ready.file], 'path/cp-mvp-010', [ready], {
+    previousPaths: new Map([[ready.file, A_PATH.front]]),
+    closureFor: () => ({ ...digested(), base: '70f7e27' }),
+    scopeDigestFor: () => 'sha256:abc',
+    trunkDelta: ['apps/example/x.ts'],
+    migrationExempt: new Set(['CP-MVP-010'])
+  })
+  assert.ok(rules(drifted, 'blocking').includes('acceptance-drift'))
+
+  const untouched = run([ready.file], 'path/cp-mvp-010', [ready], {
+    previousPaths: new Map([[ready.file, A_PATH.front]]),
+    closureFor: () => ({ ...digested(), base: '70f7e27' }),
+    scopeDigestFor: () => 'sha256:abc',
+    trunkDelta: ['unrelated/other.ts'],
+    migrationExempt: new Set(['CP-MVP-010'])
+  })
+  assert.ok(!rules(untouched, 'blocking').includes('acceptance-drift'))
+})
+
+test('a busy trunk alone never invalidates an acceptance', () => {
+  const ready = { ...readyPath(), writes: ['apps/example/**'], governs: [] }
+  const busy = run([ready.file], 'path/cp-mvp-010', [ready], {
+    previousPaths: new Map([[ready.file, A_PATH.front]]),
+    closureFor: () => ({ ...digested(), base: '70f7e27' }),
+    scopeDigestFor: () => 'sha256:abc',
+    trunkDelta: Array.from({ length: 200 }, (_, i) => `other/area/file-${i}.ts`),
+    migrationExempt: new Set(['CP-MVP-010'])
+  })
+  assert.ok(!rules(busy, 'blocking').includes('acceptance-drift'))
+})
+
+/* ------------------------------------------------------------------ *
+ * v0.2 — advisory dispositions and collapsed roles
+ * ------------------------------------------------------------------ */
+
+test('a disposition list must match the advisories actually raised', () => {
+  const entry = { rule: 'scope-drift', disposition: 'accepted', reason: 'declared here' }
+  assert.deepEqual(dispositionErrors([entry], ['scope-drift']), [])
+  assert.equal(dispositionErrors([], ['scope-drift']).length, 1)
+  assert.equal(dispositionErrors([entry], []).length, 1)
+  assert.equal(dispositionErrors('all fixed', ['scope-drift']).length, 1)
+  assert.ok(DISPOSITIONS.includes('deferred'))
+})
+
+test('a deferral without an owner and a follow-up is rejected', () => {
+  const deferred = { rule: 'path-staleness', disposition: 'deferred', reason: 'frozen' }
+  assert.ok(dispositionErrors([deferred], ['path-staleness']).length > 0)
+  assert.deepEqual(
+    dispositionErrors(
+      [{ ...deferred, owner: 'a', follow_up: 'CP-X' }],
+      ['path-staleness']
+    ),
+    []
+  )
+})
+
+test('prose disposition is advised for a grandfathered path and blocked otherwise', () => {
+  const ready = readyPath()
+  const common = {
+    previousPaths: new Map([[ready.file, A_PATH.front]]),
+    closureFor: () => digested(),
+    scopeDigestFor: () => 'sha256:abc'
+  }
+  const exempt = run([ready.file], 'path/cp-mvp-010', [ready], {
+    ...common,
+    migrationExempt: new Set(['CP-MVP-010'])
+  })
+  assert.ok(rules(exempt, 'advisory').includes('advisory-disposition'))
+  assert.ok(!rules(exempt, 'blocking').includes('advisory-disposition'))
+
+  const strict = run([ready.file], 'path/cp-mvp-010', [ready], {
+    ...common,
+    migrationExempt: new Set()
+  })
+  assert.ok(rules(strict, 'blocking').includes('advisory-disposition'))
+})
+
+test('one actor on both acceptances is recorded as an advisory, not forbidden', () => {
+  const ready = readyPath()
+  const found = run([ready.file], 'path/cp-mvp-010', [ready], {
+    previousPaths: new Map([[ready.file, A_PATH.front]]),
+    closureFor: () => ({ ...digested(), accepted_by: 'solo@example.test' }),
+    openingRecordFor: () => ({ accepted_by: 'solo@example.test', scope_digest: 'sha256:abc' }),
+    scopeDigestFor: () => 'sha256:abc',
+    migrationExempt: new Set(['CP-MVP-010'])
+  })
+  assert.ok(rules(found, 'advisory').includes('role-collapse'))
+  assert.ok(!rules(found, 'blocking').includes('role-collapse'))
+})
+
+test('two different actors raise no collapse finding', () => {
+  const ready = readyPath()
+  const found = run([ready.file], 'path/cp-mvp-010', [ready], {
+    previousPaths: new Map([[ready.file, A_PATH.front]]),
+    closureFor: () => ({ ...digested(), accepted_by: 'reviewer@example.test' }),
+    openingRecordFor: () => ({ accepted_by: 'initiator@example.test' }),
+    scopeDigestFor: () => 'sha256:abc',
+    migrationExempt: new Set(['CP-MVP-010'])
+  })
+  assert.ok(!rules(found, 'advisory').includes('role-collapse'))
+})
+
+test('the opening record itself is retrievable, not merely its existence', () => {
+  const sessions = [
+    { path: 'CP-MVP-010', ceremony: 'opening', accepted_by: 'a', scope_digest: 'sha256:1' },
+    { path: 'CP-OTHER', ceremony: 'opening', accepted_by: 'b' }
+  ]
+  assert.equal(openingRecordFromSessions(sessions, 'CP-MVP-010').accepted_by, 'a')
+  assert.equal(openingRecordFromSessions(sessions, 'CP-NONE'), null)
+})
+
+/* ------------------------------------------------------------------ *
+ * v0.2 — scope drift blocks unless the declaration moves with it
+ * ------------------------------------------------------------------ */
+
+test('drift with a stale declaration blocks; drift that widens it stays advisory', () => {
+  const outside = ['unrelated/file.ts']
+  const stale = run(outside, 'path/cp-mvp-010', [A_PATH], {
+    previousFronts: new Map([[`${A_PATH.file}::writes`, A_PATH.writes]])
+  })
+  assert.ok(rules(stale, 'blocking').includes('scope-drift'))
+
+  const widened = run(outside, 'path/cp-mvp-010', [A_PATH], {
+    previousFronts: new Map([[`${A_PATH.file}::writes`, ['apps/desktop/electron-main/graph-index.ts']]])
+  })
+  assert.ok(!rules(widened, 'blocking').includes('scope-drift'))
+  assert.ok(rules(widened, 'advisory').includes('scope-drift'))
 })

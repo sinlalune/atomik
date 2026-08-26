@@ -220,6 +220,16 @@ declared read surface: the documents this work is bound by, each pinned as
 `path@<object-id>` so that *which* version governed is a fact rather than a
 recollection.
 
+The pinned id is the document's own **blob object id** — the id of that exact
+content, not of a repository state that happened to contain it. A commit id
+would also identify a version, but it changes whenever anything else in the
+repository changes, so a `governs:` list pinned to commits would go stale
+constantly while the documents it names sat untouched.
+
+```bash
+git rev-parse HEAD:docs/architecture/example.md
+```
+
 Neither is a filesystem lock. A path may discover a necessary wider change and
 continue. What it MUST NOT do is continue with a stale declaration: writing
 outside `writes:` is permitted only when the same work unit updates the
@@ -1299,12 +1309,12 @@ not in a separate document a reader may never open.
 | Checkpoint retention refs before any rewriting push | required | **partially implemented**; every declared unit except the newest must resolve a local retention ref | remote push of the namespace; the temporal “before the push” property is not observable |
 | Marked provisional commits excluded from candidate identity | required | implemented; a ready path whose candidate range still contains a marked commit is blocked | the fold itself is not verified to preserve content |
 | Handoff-brief field schema and answerable-alone contract | required | **not implemented** | brief schema and a cold-resume harness |
-| Field-level administrative closure surface | required | **partially implemented**; the installed rule restricts files, not fields | field-level diff comparison |
-| Scope digest recorded at opening and re-verified at closing | required | **not implemented** | digest computation over a resolved section |
-| Candidate base `T` and the acceptance-drift predicate | required | **not implemented** | trunk delta computation against `writes:` and `governs:` |
-| Structured `advisory_disposition` matching findings at `C` | required | **not implemented** | checker finding set exported for comparison |
-| Recorded roles and the collapsed-actor advisory | required | **not implemented** | role fields in acceptance records |
-| `scope-drift` blocking unless the declaration moves in the same commit | required | **not implemented**; the installed rule is advisory | same-commit declaration comparison |
+| Field-level administrative closure surface | required | implemented; closure may move only `status`, `subject_commit`, `current_step` and `resolution` | ledger append-only proof, which remains a separate open row |
+| Scope digest recorded at opening and re-verified at closing | required | implemented; the resolved section is digested and compared at closure | a path opened before the rule cannot amend its immutable opening record — see the migration exception |
+| Candidate base `T` and the acceptance-drift predicate | required | implemented; the trunk delta since the recorded base is tested against `writes:` ∪ `governs:` | path matching is a proxy for semantic overlap, as stated |
+| Structured `advisory_disposition` matching findings at `C` | required | **partially implemented**; set equality holds against the advisories raised in the same run, which evaluates the closure commit rather than the candidate | evaluation replayed at `C` |
+| Recorded roles and the collapsed-actor advisory | required | **partially implemented**; a shared opening/closing actor is reported | `accepted_roles` itself is recorded and not yet validated |
+| `scope-drift` blocking unless the declaration moves in the same commit | required | implemented; drift blocks unless `writes:` moved in the same change | none |
 | Typed work units keyed to their required parts | required | **partially implemented**; the `cairn-unit` block and its type vocabulary are checked | `same-work-unit` does not yet key its requirement to the declared type |
 | `lightweight` default route and one-way escalation | required | **not implemented** | route field, trigger evaluation |
 | `foundation` and adoption routes | required | **not implemented**; its three checks exist and are not yet bound to a route | route field |
@@ -1326,6 +1336,12 @@ The current supported claim is therefore:
 > the protocol. It is not yet a general-purpose merge, governance, or security
 > system.
 
+A requirement whose reference row names a migration exception is not exempt from
+the requirement. The exception is finite, listed in the checker, and reported as
+a blocking finding once it is spent — an exception that outlives its migration
+is a bypass, and the mechanism that removes it is the same one that enforces the
+rule.
+
 Operational cost is part of correctness. A pilot SHOULD measure cold-resume
 success first, then ceremony time, ignored advisories, integration retries,
 documentation churn, and bypass pressure, before a team widens its claims.
@@ -1342,12 +1358,16 @@ honest state of the work.
 | Level | Rule Name | Scope | Trigger Condition | Enforcing Logic |
 | :--- | :--- | :--- | :--- | :--- |
 | **Blocking** | `acceptance` | diff | Ready/done path lacks exact-commit acceptance or changed implementation after acceptance | `closingAcceptanceErrors(record, pathId) + pathClosureState(path, record)` |
+| **Blocking** | `acceptance-drift` | diff | The trunk moved inside the path's declared writes: or governs: since the accepted base | `acceptanceDrift(git diff --name-only <base> <trunk>, writes, governs) — never trunk === base` |
+| **Blocking** | `advisory-disposition` | diff | advisory_disposition is not a structured list matching the advisories raised against the candidate | `dispositionErrors(record.advisory_disposition, raised) with set equality on rule names` |
 | **Blocking** | `branch-identity` | diff | Detached checkout where branch cannot be identified from host or git ref | `branchSource === 'detached' (blocking on guarded roots, advisory on others)` |
 | **Blocking** | `branch-path` | diff | Path branch not declared by a running path file, or missing base_commit | `isPathBranch(branch) && (!match \|\| !PATH_BRANCH_STATUSES.includes(status) \|\| !isCommitPin(base))` |
 | **Blocking** | `checkpoint-retention` | diff | A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint | `retentionDue(units) => retainedRefs.has(refs/cairn/checkpoints/<id>/<n>) (newest unit advisory)` |
+| **Blocking** | `closure-surface` | diff | An administrative closure commit changed a path field other than status, subject_commit, current_step or resolution | `closureFieldErrors(previousFront, currentFront) over CLOSURE_MUTABLE_FIELDS` |
 | **Blocking** | `coherence-audit` | corpus | Ready path lacks a filled coherence audit bound to its exact subject_commit | `cairn-audit --check --subject path.subject_commit` |
 | **Blocking** | `derived-view` | corpus | ACTIVE.md running-paths block does not match trunk path files | `tools/cairn-active.mjs --check` |
 | **Blocking** | `links` | corpus | Relative Markdown link points to non-existent target (code fences stripped) | `stripCode(text) => !existsSync(target)` |
+| **Blocking** | `migration-debt` | diff | A path listed in the v0.2 migration exception no longer needs it | `migrationDebt(paths, V02_MIGRATION_PATHS) — a spent exception is a bypass` |
 | **Blocking** | `opening-ceremony` | diff | Path declared running without an opening-check session note | `!openingFor(pathId) via session frontmatter { path, ceremony: 'opening' }` |
 | **Blocking** | `provisional` | diff | A proposed candidate still contains commits marked Cairn-Provisional, or HEAD is itself provisional | `git log --grep=^Cairn-Provisional: base..subject_commit (blocking on a ready path, advisory at HEAD)` |
 | **Blocking** | `rebase` | diff | Path branch does not contain latest trunk tip (stale branch) | `trunkContained(trunkRef) === false` |
@@ -1356,8 +1376,11 @@ honest state of the work.
 | **Blocking** | `registration-base` | diff | Path base_commit cannot be proved to equal the registration commit parent | `pathRegistrationBaseState() === 'mismatch' \| null` |
 | **Blocking** | `same-work-unit` | diff | Source changed without accompanying module note and coding path update | `touched(GUARDED_ROOTS) => touched(docs/modules/) && touched(PATH_DIR)` |
 | **Blocking** | `schema` | corpus | Path or ADR frontmatter fails parsing, or an id/status/date is outside vocabulary | `pathFrontmatterErrors(front) + adrFrontmatterErrors(front, file, bodyStatus)` |
+| **Blocking** | `scope-digest` | diff | The accepted definition of done moved after acceptance, or was accepted without a digest | `scopeDigest(resolveScopeSection(pathRecord, scope_ref)) === record.scope_digest` |
+| **Blocking** | `scope-drift` | diff | Changed files outside path frontmatter declared writes: patterns | `!matchesAny(file, declaredWrites)` |
 | **Blocking** | `transition` | diff | Changed path state is not an allowed lifecycle transition, or prior state is unavailable | `transitionErrors(previous, current, onPathBranch)` |
 | **Blocking** | `work-unit` | diff | A changed path record carries no `cairn-unit` block, or one declares an unknown type | `parseWorkUnits(record) => workUnitErrors(unit) over WORK_UNIT_TYPES` |
+| *Advisory* | `advisory-disposition` | diff | advisory_disposition is not a structured list matching the advisories raised against the candidate | `dispositionErrors(record.advisory_disposition, raised) with set equality on rule names` |
 | *Advisory* | `area-note` | diff | Subsystem source changed without touching matching area module note | `areaOf(file) => changed.includes(note)` |
 | *Advisory* | `branch-identity` | diff | Detached checkout where branch cannot be identified from host or git ref | `branchSource === 'detached' (blocking on guarded roots, advisory on others)` |
 | *Advisory* | `checkpoint-retention` | diff | A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint | `retentionDue(units) => retainedRefs.has(refs/cairn/checkpoints/<id>/<n>) (newest unit advisory)` |
@@ -1368,6 +1391,7 @@ honest state of the work.
 | *Advisory* | `provisional` | diff | A proposed candidate still contains commits marked Cairn-Provisional, or HEAD is itself provisional | `git log --grep=^Cairn-Provisional: base..subject_commit (blocking on a ready path, advisory at HEAD)` |
 | *Advisory* | `registration` | diff | Path declaration tuple (id, running, branch, base) missing from trunk | `pathRegistrationState() === 'missing' (blocking) or declared migration exception (advisory)` |
 | *Advisory* | `remote-checkpoint` | diff | Local path HEAD not present on upstream tracking branch | `pathRemoteCheckpoint(branch).state === 'missing' \| 'unpushed'` |
+| *Advisory* | `role-collapse` | diff | One actor recorded both the opening and the closing acceptance for a path | `opening.accepted_by === closing.accepted_by (advisory: visible, never forbidden)` |
 | *Advisory* | `scope-drift` | diff | Changed files outside path frontmatter declared writes: patterns | `!matchesAny(file, declaredWrites)` |
 | *Advisory* | `single-truth` | diff | Manual edits to shared/derived statements of record | `SINGLE_TRUTH.includes(file)` |
 <!-- cairn:rules:end -->
