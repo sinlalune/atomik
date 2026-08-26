@@ -7,6 +7,7 @@ timestamp: 2026-08-24T00:00:00Z
 atomik:
   id: CP-OPS-002
   status: running
+  current_step: S07i
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
   writes:                    # ADVISORY — a signal, never a lock
@@ -43,6 +44,15 @@ atomik:
     - atomik-project/briefs/**            # S06d: the F7 residue lives here too
     - atomik-project/audits/index.md
     - atomik-project/log/**
+  governs:                   # declared READ surface, pinned at exact blob ids
+    - atomik-project/coding-paths/paths.md@2e7747c5ffb4e0b3def150a112752cf417205c75
+    - docs/bedrock/22_22-agent-handoff.md@c10ed0a11bc501336f449be204b57408f80c196e
+    - docs/bedrock/24_24-doc-templates.md@d8d8d00d466fd5e456dece1f5a8284a5c3a8c15a
+    - docs/bedrock/26_26-okf-agent-context.md@867ef9c288e036b2b69fef464d0e8f5aef9960d6
+    - docs/bedrock/35_35-coding-path-execution-state.md@65e1b9abda9e1ebd7dd298a1195934b3cd20a780
+    - docs/adr/ADR-009-coding-paths-work-ledger-dual-plane.md@3234eb9b1b9abb86e083998a30d58608cdc1e0e6
+    - docs/adr/ADR-012-parallel-paths-self-merge.md@371c5ab3c560f9d5ab44d4bc630cff577264b5ab
+    - docs/cairn/cairn-audit-2026-08-24.md@319d54d2035b03dddb03f379cc7874bcbc448154
 ---
 
 # CP-OPS-002 — Cairn 2.0
@@ -318,6 +328,62 @@ to check them.
 - Fifteen regression tests; checker suite 76 → 91, full protocol/specification suite
   123 → 138.
 
+### S07i — The v0.2 predicates, part two: the record rules — **COMPLETE**
+
+```cairn-unit
+step: S07i
+unit: 04
+type: implementation
+verified: cairn-check, cairn-check:test, typecheck, test, build
+```
+
+The P1 group — every rule in it reaches back over records that already exist, which is
+why it needed the migration decision before it could be written.
+
+- **`scope-digest` (blocking).** `scope_ref` is a file path and a heading, so the sentence
+  it resolves to could be rewritten after acceptance while every record still read as
+  valid. The checker now resolves the section — the named heading and its body up to the
+  next heading of the same or higher level, normalised for line endings and trailing
+  whitespace and **nothing else**, because a digest whose input is "cleaned" silently
+  accepts changes it claims to cover — digests it, and compares. An unreadable `scope_ref`
+  is `inconclusive`; a `scope_ref` naming no section is a failure, not a pass.
+- **`closure-surface` (blocking).** File-level allowance was never a restriction: the
+  definition of done and both declared surfaces live inside the path record, so a closure
+  permitted to "change the path record" could rewrite the standard its own acceptance was
+  measured against, after the measurement. Closure may now move `status`,
+  `subject_commit`, `current_step` and `resolution`, and nothing else.
+- **`acceptance-drift` (blocking).** The trunk delta since the accepted base, tested
+  against `writes:` ∪ `governs:`. The rejected alternative is pinned by a test named for
+  what it protects: a two-hundred-file trunk delta touching nothing the path declared
+  raises no finding at all, which is precisely what `trunk === base` could not do.
+- **`advisory-disposition` (blocking, advisory for grandfathered paths).** Set equality
+  between the dispositions recorded and the advisories raised. **Stated limit:** the
+  comparison uses the advisories raised in the same run, which evaluates the closure commit
+  rather than the candidate. The matrix says *partially implemented* for that reason
+  rather than claiming the whole item.
+- **`role-collapse` (advisory).** One actor on both acceptances is permitted and reported.
+  Forbidding it would exclude the setup most likely to adopt Cairn first; the requirement
+  is that the weakness is legible rather than invisible.
+- **`scope-drift` promoted to blocking** unless `writes:` moved in the same change. Drift
+  accompanied by the widening is what a discovered root cause looks like and stays
+  advisory; drift alone now blocks, because both declared surfaces feed the drift
+  predicate and a stale surface weakens every answer computed from it.
+- **`migration-debt` (blocking) is the exception's own expiry.** `V02_MIGRATION_PATHS`
+  holds `CP-OPS-002`, whose opening acceptance is an immutable session record and can never
+  acquire a digest. The set cannot outlive its migration: a listed path that no longer
+  exists, or that has archived, produces a blocking finding telling the next writer to
+  delete the entry. An exception that survives its migration is a bypass, and the mechanism
+  that removes it is the same one that enforces the rule.
+- **`work-unit` was too weak and was tightened in the same step.** "A block somewhere in
+  the file" passes forever once the first block exists. The rule now requires a block for
+  the step the record declares as `current_step`, and this path gained that field. The gate
+  caught its own missing S07i entry before this text was written, which is the only kind of
+  evidence a rule like this can offer.
+- **This path migrated onto the rules.** `governs:` now declares eight documents pinned at
+  exact blob ids — `paths.md`, bedrock 22/24/26/35, ADR-009, ADR-012, and the audit that
+  opened this path — so "which knowledge governed" is a fact rather than a recollection.
+- Nineteen regression tests; checker suite 91 → 110, full suite 138 → 156.
+
 ### S08 — Extract Cairn from Atomik
 
 Cairn is not portable today: `cairn-check.mjs` hardcodes `atomik-project/`, `apps/`,
@@ -354,7 +420,7 @@ brief names — and fix what the pilot finds before merging.
 | Base commit | `7aa3b1d` — registered on the trunk by `df875e6` before this branch existed |
 | Branch | `path/cp-ops-002`, worktree `../4tom1k-cp-ops-002`, `node_modules` symlinked |
 | Steps complete | **S00** — enforcement repairs adopted (`dd6e76a`) · **S01** — ceremony schema pinned, D1 corrected, registration doctrine unified, ADR-016 (`c4a9670`) · **S04** — ledger boundary, CP-MVP-008 rolled into `history/`, advisory `ledger-size` (`7e04288`) · **S05** — five indexes, ADR frontmatter, schema validation over the decision plane (`3df9073`) · **S05b** — the opening check gated, five more indexes (`d6b29f1`), the invented folder-log decision retracted on owner correction (`360f2be`) · **S05c** — the OKF pair completed: eighteen folder logs seeded from real Git history (`468bc24`) · **S06** — `index.html` rewritten against ADR-012, both HTML pages dated (`2a5ef35`) · **S06c** — the coherence audit bound to the commits its path contributed (`de4e0fa`) · **S06d** — the six stale worktrees and the orphan registration branch drained, `isFilled()` given something to measure, and a C-quoted path stopped hiding from the blocking rules (`9cbe605`, `6fa33e7`) · **S07a** — ADR-017 settles the path lifecycle; `active` retired, abandonment given a door, staleness noticed without blocking (`b4ef361`) · **S07 / S07b / S07c / S07d** — superseded specification attempts retained in this ledger · **S07e** — one canonical top-down specification project, linked newcomer foundations and implementation references, plus one self-contained three-pane universal reader · **S07f** — candidate-bound closure, truthful team lifecycle, the canonical concept wiki and the deterministic equal-pane universal reader, passed by the user and landed as its own checkpoint · **S07g** — the Cairn v0.2 revision: nineteen review items resolved in normative text, concept budget held at 66, ADR-019 proposed |
-| Remaining | S08 and S09 (S03 withdrawn by owner ruling; S06b rescoped across S07 + S08 by ruling 9). S08 now also owns the v0.2 predicates: fourteen conformance rows say `not implemented` on purpose |
+| Remaining | S07j (routes, brief schema, redaction), then S08 and S09 (S03 withdrawn by owner ruling; S06b rescoped across S07 + S08 by ruling 9). S08 now also owns the v0.2 predicates: fourteen conformance rows say `not implemented` on purpose |
 | Opening check | accepted 2026-08-24, eight rulings ([note](../sessions/2026-08-24-cp-ops-002-opening-check.md)) |
 | Gates at S07e | `cairn-check` OK (1 advisory: no coherence audit for this head, expected before merge) · validator suite 90/90 · canonical catalogue generator current · HTML structure parser-validated · self-contained/targets/rules/inline-script contracts test-pinned · `npm run typecheck` PASS · product suite 1,101 passed / 1 skipped (1,102 total) · `npm run build` PASS |
 | Ledger rolled (S07c) | `ledger-size` fired at ~11 k tokens against the 10 k budget while this file was being edited — which is the only moment the rule is useful, and it worked. S00, S01, S03, S04, S05 (+S05b, S05c) and S06 (+S06b, S06c, S06d) moved **verbatim** into [`history/`](./history/index.md), leaving one index line each. Verified by extracting each record's body and confirming it appears unchanged in `HEAD`. Two mechanical adjustments are named in every record header rather than made silently: deixis is left alone, and relative-link depth is repointed one level, because a link is an address rather than content and the same target must keep resolving |

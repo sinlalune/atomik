@@ -20,6 +20,7 @@
  */
 
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -100,6 +101,7 @@ const PATH_DIR = 'atomik-project/coding-paths'
  *  vocabulary rather than migrating anything. */
 const PATH_STATUSES = ['draft', 'blocked', 'running', 'ready', 'done', 'archived']
 const PATH_BRANCH_STATUSES = ['running', 'blocked', 'ready']
+const CLOSED_STATUSES = ['ready', 'done']
 const PATH_RESOLUTIONS = ['completed', 'abandoned', 'superseded']
 const SESSION_DIR = 'atomik-project/sessions'
 const HISTORY_DIR = `${PATH_DIR}/history`
@@ -165,6 +167,37 @@ export const LEGACY_UNDECLARED_OPENINGS = new Set(['CP-MVP-011', 'CP-MVP-012'])
  * documentation fix, and what that teaches a writer — person or agent — is to
  * produce an empty documentation delta until the gate goes quiet.
  */
+/**
+ * Paths whose records predate the v0.2 record rules.
+ *
+ * `scope_digest` is the load-bearing case: an opening acceptance is an
+ * immutable session record, so a path opened before digests existed can never
+ * acquire one. Blocking it would fail an in-flight path for a convention that
+ * postdates its own ceremony — the failure that gets a validator switched off.
+ *
+ * The set is finite, named, and cannot outlive the migration: `migrationDebt`
+ * below reports a listed path that no longer needs the exception, so the
+ * exception is deleted by a failing gate rather than by anyone remembering.
+ */
+export const V02_MIGRATION_PATHS = new Set(['CP-OPS-002'])
+
+/** An exception that has served its purpose is a bypass. A listed path that is
+ *  archived, or that now carries what the exception excused, must leave the
+ *  set — and the gate says so rather than waiting to be noticed. */
+export function migrationDebt(paths, exempt = V02_MIGRATION_PATHS) {
+  const live = new Map(paths.map((path) => [String(path.front?.id ?? ''), path]))
+  const stale = []
+  for (const id of exempt) {
+    const path = live.get(id)
+    if (!path) {
+      stale.push(`${id} is listed in V02_MIGRATION_PATHS but no longer exists — delete the entry`)
+    } else if (path.front?.status === 'archived') {
+      stale.push(`${id} is archived, so its v0.2 exception is spent — delete the entry`)
+    }
+  }
+  return stale
+}
+
 export const WORK_UNIT_TYPES = [
   'implementation',
   'documentation',
@@ -787,6 +820,124 @@ export function retentionDue(units) {
   return units.filter((unit) => Number.parseInt(unit.unit, 10) < newest)
 }
 
+/**
+ * The text a `scope_ref` resolves to: the named heading and its body, up to the
+ * next heading of the same or higher level. Normalised for line endings and
+ * trailing whitespace and nothing else — a digest whose input is "cleaned"
+ * silently accepts changes it claims to have covered.
+ */
+export function resolveScopeSection(text, anchor) {
+  const wanted = String(anchor ?? '').replace(/^#/, '').toLowerCase()
+  if (!wanted) return null
+  const lines = text.replace(/\r\n/g, '\n').split('\n')
+  let start = -1
+  let level = 0
+  for (let i = 0; i < lines.length; i += 1) {
+    const heading = lines[i].match(/^(#{1,6})\s+(.+?)\s*$/)
+    if (!heading) continue
+    const slug = heading[2]
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+    if (slug === wanted) {
+      start = i
+      level = heading[1].length
+      break
+    }
+  }
+  if (start === -1) return null
+  let end = lines.length
+  for (let i = start + 1; i < lines.length; i += 1) {
+    const heading = lines[i].match(/^(#{1,6})\s+/)
+    if (heading && heading[1].length <= level) {
+      end = i
+      break
+    }
+  }
+  return lines.slice(start, end).map((line) => line.replace(/[ \t]+$/, '')).join('\n').trim()
+}
+
+export function scopeDigest(section, algorithm = 'sha256') {
+  if (section == null) return null
+  return `${algorithm}:${createHash(algorithm).update(section, 'utf8').digest('hex')}`
+}
+
+/** Fields an administrative closure commit may move inside the path record.
+ *  File-level allowance is not a restriction: the definition of done and both
+ *  declared surfaces live in this same file, so a closure permitted to "change
+ *  the path record" is permitted to rewrite the standard its own acceptance was
+ *  measured against, after the measurement. */
+export const CLOSURE_MUTABLE_FIELDS = ['status', 'subject_commit', 'current_step', 'resolution']
+
+export function closureFieldErrors(previous, current) {
+  if (!previous || !current) return []
+  const errors = []
+  const keys = new Set([...Object.keys(previous), ...Object.keys(current)])
+  for (const key of keys) {
+    if (CLOSURE_MUTABLE_FIELDS.includes(key)) continue
+    const before = JSON.stringify(previous[key] ?? null)
+    const after = JSON.stringify(current[key] ?? null)
+    if (before !== after) {
+      errors.push(`closure changed \`${key}\`, which acceptance was measured against — only ${CLOSURE_MUTABLE_FIELDS.join(', ')} may move after a candidate is accepted`)
+    }
+  }
+  return errors
+}
+
+/** Which trunk changes threaten an acceptance. Deliberately NOT `trunk === base`:
+ *  that rule is first-come-first-served, so every landing invalidates every other
+ *  open acceptance and a busy trunk never closes. `writes:` is the surface the
+ *  candidate changed; `governs:` is the frame the audit read it against. A trunk
+ *  change in either moved something the acceptance depended on. */
+export function acceptanceDrift(trunkDelta, writes = [], governs = []) {
+  const surfaces = [
+    ...writes,
+    ...governs.map((entry) => String(entry).split('@')[0])
+  ].filter(Boolean)
+  if (surfaces.length === 0) return []
+  return trunkDelta.filter((file) => matchesAny(file, surfaces))
+}
+
+export const DISPOSITIONS = ['fixed', 'accepted', 'deferred']
+
+/** `advisory_disposition` as one sentence is unenforceable: a reviewer writing
+ *  "accepted: none" over three live advisories produces a record that reads as
+ *  complete and is false. Set equality against the findings actually raised is
+ *  a predicate; a summary is not. */
+export function dispositionErrors(disposition, raised) {
+  const errors = []
+  if (!Array.isArray(disposition)) {
+    return ['advisory_disposition must be a list of { rule, disposition, reason } entries']
+  }
+  const named = new Set()
+  for (const entry of disposition) {
+    if (typeof entry !== 'object' || entry == null) {
+      errors.push('every advisory_disposition entry must name a rule, a disposition and a reason')
+      continue
+    }
+    if (!entry.rule) errors.push('an advisory_disposition entry has no rule')
+    else named.add(entry.rule)
+    if (!DISPOSITIONS.includes(entry.disposition)) {
+      errors.push(`disposition "${entry.disposition ?? ''}" for ${entry.rule ?? 'an entry'} is outside ${DISPOSITIONS.join(' | ')}`)
+    }
+    if (!String(entry.reason ?? '').trim()) {
+      errors.push(`${entry.rule ?? 'an entry'} has no reason`)
+    }
+    if (entry.disposition === 'deferred' && !(entry.owner && entry.follow_up)) {
+      errors.push(`${entry.rule ?? 'an entry'} is deferred without an owner and a follow_up`)
+    }
+  }
+  for (const rule of raised) {
+    if (!named.has(rule)) errors.push(`advisory "${rule}" was raised and has no disposition`)
+  }
+  for (const rule of named) {
+    if (!raised.includes(rule)) {
+      errors.push(`advisory_disposition names "${rule}", which was not raised against this candidate`)
+    }
+  }
+  return errors
+}
+
 export function approxTokens(text) {
   const words = text.split(/\s+/).filter(Boolean).length
   return Math.round((words * 4) / 3)
@@ -844,7 +995,13 @@ export function evaluate({
   workUnits = null,
   retainedRefs = new Map(),
   provisionalInCandidate = [],
-  headProvisional = false
+  headProvisional = false,
+  scopeDigestFor = null,
+  previousFronts = new Map(),
+  trunkDelta = null,
+  openingRecordFor = null,
+  migrationExempt = V02_MIGRATION_PATHS,
+  migrationStale = []
 }) {
   const findings = []
   const add = (level, rule, message, outcome = level === 'advisory' ? 'advisory' : 'fail') =>
@@ -1079,7 +1236,12 @@ export function evaluate({
     }
   }
 
-  // 5. declared scope drift (advisory — a signal, never a lock) --------
+  // 5. declared scope drift ---------------------------------------------
+  // Writing outside the declaration is not forbidden; leaving the declaration
+  // STALE is. Both declared surfaces feed the acceptance-drift predicate, so a
+  // surface that no longer describes the work quietly weakens every answer
+  // computed from it. Drift accompanied by the widening is ordinary protocol
+  // and stays advisory; drift alone blocks.
   if (onPath) {
     const declared = match?.writes ?? []
     if (declared.length > 0) {
@@ -1087,8 +1249,17 @@ export function evaluate({
         (file) => !matchesAny(file, declared) && !file.startsWith(`${PATH_DIR}/`)
       )
       if (drift.length > 0) {
-        add('advisory', 'scope-drift',
-          `${drift.length} file(s) outside the declared writes: ${drift.slice(0, 6).join(', ')}${drift.length > 6 ? ' …' : ''} — record the widening in the ledger; a root cause is discovered, not declared`)
+        const previousWrites = previousFronts.get(`${match.file}::writes`)
+        const declarationMoved = previousWrites == null ||
+          JSON.stringify(previousWrites) !== JSON.stringify(declared)
+        const list = `${drift.slice(0, 6).join(', ')}${drift.length > 6 ? ' …' : ''}`
+        if (declarationMoved) {
+          add('advisory', 'scope-drift',
+            `${drift.length} file(s) outside the declared writes: ${list} — the declaration moved in this same change, which is what a discovered root cause looks like; record why in the ledger`)
+        } else {
+          add('blocking', 'scope-drift',
+            `${drift.length} file(s) outside the declared writes: ${list} — update writes: in this same commit and record why, or the declaration stops describing the work every later predicate reads from it`)
+        }
       }
     }
   }
@@ -1113,9 +1284,17 @@ export function evaluate({
   // documentation delta rather than a coherent one. The declared type makes
   // the requirement exact instead of universal.
   if (onPath && match && workUnits != null) {
-    if (changed.includes(match.file) && workUnits.length === 0) {
-      add('blocking', 'work-unit',
-        `${match.file} changed with no \`cairn-unit\` block — every completed work unit declares its step, ledger ordinal, type (${WORK_UNIT_TYPES.join(' | ')}) and verification`)
+    if (changed.includes(match.file)) {
+      const step = match.front.current_step
+      // Requiring merely "a block somewhere" would pass forever once the first
+      // one exists. The block has to be for the step the record says it is on.
+      const forStep = step ? workUnits.some((unit) => unit.step === step) : workUnits.length > 0
+      if (!forStep) {
+        add('blocking', 'work-unit',
+          step
+            ? `${match.file} changed while declaring current_step ${step}, with no \`cairn-unit\` block for that step — every completed work unit declares its step, ledger ordinal, type (${WORK_UNIT_TYPES.join(' | ')}) and verification`
+            : `${match.file} changed with no \`cairn-unit\` block — every completed work unit declares its step, ledger ordinal, type (${WORK_UNIT_TYPES.join(' | ')}) and verification`)
+      }
     }
     for (const unit of workUnits) {
       for (const error of workUnitErrors(unit)) {
@@ -1173,6 +1352,104 @@ export function evaluate({
   if (onPath && headProvisional) {
     add('advisory', 'provisional',
       `HEAD carries ${PROVISIONAL_TRAILER}: — this commit is durable but is not a checkpoint, must not be named as a resume point, and must be folded before a candidate`)
+  }
+
+  // 9. scope is bound by digest, not by a pointer -----------------------
+  // Implementation is bound to an object id and cannot quietly become
+  // something else. `scope_ref` is a file path and a heading, so the sentence
+  // it resolves to can be rewritten after acceptance and every record still
+  // reads as valid. The digest gives scope the identity the code already had.
+  if (onPath && match && CLOSED_STATUSES.includes(match.front.status)) {
+    const id = String(match.front.id ?? '')
+    const record = closureFor?.(id)
+    const exempt = migrationExempt.has(id)
+    const opening = openingRecordFor?.(id)
+    const expected = scopeDigestFor?.(record?.scope_ref)
+
+    if (expected === undefined) {
+      add('blocking', 'scope-digest',
+        `cannot resolve ${record?.scope_ref ?? 'the scope_ref'} for ${id} — a scope that cannot be read cannot be shown unchanged`,
+        'inconclusive')
+    } else if (expected === null) {
+      add('blocking', 'scope-digest',
+        `${record?.scope_ref ?? 'scope_ref'} names no section in ${match.file} — acceptance must point at text that exists`)
+    } else {
+      if (!record?.scope_digest) {
+        add(exempt ? 'advisory' : 'blocking', 'scope-digest',
+          `the closing record for ${id} carries no scope_digest — record ${expected} so closure can prove the definition of done did not move${exempt ? ' (grandfathered: this path predates the rule)' : ''}`)
+      } else if (record.scope_digest !== expected) {
+        add('blocking', 'scope-digest',
+          `the definition of done moved after acceptance: the closing record says ${record.scope_digest}, ${match.file} now digests to ${expected} — restore the accepted text or record a scope amendment`)
+      }
+      if (opening && !opening.scope_digest) {
+        add(exempt ? 'advisory' : 'blocking', 'scope-digest',
+          `the opening acceptance for ${id} carries no scope_digest${exempt ? ' and is an immutable record that predates the rule' : ' — a scope accepted without a digest is bound to nothing'}`)
+      }
+    }
+  }
+
+  // 9b. closure moves fields, not files ----------------------------------
+  if (onPath && match && CLOSED_STATUSES.includes(match.front.status)) {
+    const previous = previousFronts.get(match.file)
+    for (const error of closureFieldErrors(previous, match.front)) {
+      add('blocking', 'closure-surface', `${match.file}: ${error}`)
+    }
+  }
+
+  // 10. acceptance drift -------------------------------------------------
+  // NOT `trunk === base`. That rule is the obvious one and it livelocks: every
+  // landing invalidates every other open acceptance, so where audit plus
+  // acceptance outlast the trunk's landing interval nothing ever closes.
+  if (onPath && match && match.front.status === 'ready') {
+    const record = closureFor?.(String(match.front.id ?? ''))
+    if (record?.base) {
+      if (trunkDelta == null) {
+        add('blocking', 'acceptance-drift',
+          `cannot read the trunk delta since ${record.base} — fetch the complete trunk and rerun the gate`,
+          'inconclusive')
+      } else {
+        const drifted = acceptanceDrift(trunkDelta, match.writes ?? [], match.governs ?? [])
+        if (drifted.length > 0) {
+          add('blocking', 'acceptance-drift',
+            `the trunk moved inside this path's declared surfaces since the accepted base ${record.base} (${drifted.slice(0, 3).join(', ')}) — return to running, rebase, and repeat audit and acceptance`)
+        }
+      }
+    }
+  }
+
+  // 11. every advisory gets a disposition ---------------------------------
+  if (onPath && match && CLOSED_STATUSES.includes(match.front.status)) {
+    const id = String(match.front.id ?? '')
+    const record = closureFor?.(id)
+    const raised = [...new Set(findings.filter((f) => f.level === 'advisory').map((f) => f.rule))]
+    if (record && !migrationExempt.has(id)) {
+      for (const error of dispositionErrors(record.advisory_disposition, raised)) {
+        add('blocking', 'advisory-disposition', `${id}: ${error}`)
+      }
+    } else if (record && typeof record.advisory_disposition === 'string') {
+      add('advisory', 'advisory-disposition',
+        `${id} records advisory_disposition as prose, which nothing can check — the structured list is required for paths opened after this rule`)
+    }
+  }
+
+  // 12. collapsed roles are recorded, not forbidden ------------------------
+  // A solo developer with agents holds all five positions, which makes closing
+  // acceptance a signature the signer issued to themselves. Forbidding that
+  // would exclude the setup most likely to adopt Cairn first. The requirement
+  // is that the weakness is legible instead of invisible.
+  if (onPath && match && CLOSED_STATUSES.includes(match.front.status)) {
+    const id = String(match.front.id ?? '')
+    const opening = openingRecordFor?.(id)
+    const closing = closureFor?.(id)
+    if (opening?.accepted_by && closing?.accepted_by && opening.accepted_by === closing.accepted_by) {
+      add('advisory', 'role-collapse',
+        `${opening.accepted_by} recorded both the opening and the closing acceptance for ${id} — a self-issued signature is permitted and must stay visible; this repository cannot claim an enforcement profile above local on its strength`)
+    }
+  }
+
+  // 13. a spent migration exception is a bypass ---------------------------
+  for (const stale of migrationStale) {
+    add('blocking', 'migration-debt', stale)
   }
 
   // 6. decision drift (advisory) --------------------------------------
@@ -1412,6 +1689,45 @@ function pathRegistrationState(trunkRef, branch, paths) {
  *  restricted runner would turn a protocol failure into a protocol pass. The
  *  ref is written locally and pushed in the same breath; `remote-checkpoint`
  *  already carries the separate, advisory question of what the remote has. */
+/** The digest of the text a `scope_ref` actually resolves to, right now.
+ *  `undefined` means the reference could not be read at all — inconclusive,
+ *  never a pass. `null` means the file exists and names no such section. */
+function scopeDigestOf(scopeRef) {
+  if (!scopeRef) return undefined
+  const [file, anchor] = String(scopeRef).split('#')
+  const local = file.replace(/^project\//, `${PATH_DIR.split('/')[0]}/`)
+  const target = existsSync(join(REPO, file))
+    ? file
+    : existsSync(join(REPO, local)) ? local : null
+  if (!target) return undefined
+  const section = resolveScopeSection(readFileSync(join(REPO, target), 'utf8'), anchor)
+  return section == null ? null : scopeDigest(section)
+}
+
+/** Previous frontmatter AND previous declared writes, keyed so one map can
+ *  carry both without a second parameter: `<file>` and `<file>::writes`. */
+function previousFrontStates(paths, ref) {
+  const states = new Map()
+  if (!ref) return states
+  for (const path of paths) {
+    const text = gitOrNull(['show', `${ref}:${path.file}`])
+    if (text == null) continue
+    const front = readFrontmatter(text)?.data?.atomik ?? null
+    if (front) states.set(path.file, front)
+    states.set(`${path.file}::writes`, parseWrites(text))
+  }
+  return states
+}
+
+/** Files the trunk changed since the base an acceptance was recorded against. */
+function trunkDeltaSince(base, trunkRef) {
+  if (!isCommitPin(base)) return []
+  if (!gitOrNull(['rev-parse', '--verify', base])) return null
+  const raw = gitOrNull(['diff', '--name-only', '-z', base, trunkRef])
+  if (raw == null) return null
+  return raw.split('\0').filter(Boolean)
+}
+
 function retainedCheckpointRefs(pathId) {
   if (!pathId) return new Map()
   const prefix = `${CHECKPOINT_REF_PREFIX}/${String(pathId).toLowerCase()}`
@@ -1523,6 +1839,16 @@ export function openingFromSessions(sessions, pathId) {
   return ceremonyOfKind(sessions, pathId, 'opening')
 }
 
+/** The opening record itself, not merely the fact that one exists. Closure
+ *  needs its `accepted_by` to see a collapsed reviewer, and its `scope_digest`
+ *  to prove the definition of done did not move after it was accepted. */
+export function openingRecordFromSessions(sessions, pathId) {
+  const matches = sessions.filter(
+    (note) => note?.path === pathId && String(note?.ceremony).toLowerCase() === 'opening'
+  )
+  return matches.at(-1) ?? null
+}
+
 function loadSessions() {
   try {
     return readdirSync(join(REPO, SESSION_DIR))
@@ -1579,6 +1905,7 @@ function loadPaths() {
         file: rel,
         front,
         writes: parseWrites(text),
+        governs: Array.isArray(front?.governs) ? front.governs : [],
         tokens: approxTokens(text),
         parseError: parsed?.error ?? null
       }
@@ -1771,6 +2098,13 @@ function main() {
       immutableMutations: immutableRecordMutations(recordRef),
       branchSource,
       workUnits: pathForBranch ? parseWorkUnits(readFileSync(join(REPO, pathForBranch.file), 'utf8')) : null,
+      scopeDigestFor: scopeDigestOf,
+      openingRecordFor: (id) => openingRecordFromSessions(loadSessions(), id),
+      previousFronts: previousFrontStates(paths, previousRef),
+      trunkDelta: pathForBranch?.front?.status === 'ready'
+        ? trunkDeltaSince(closingRecord(pathForBranch.front.id)?.base, trunkRef)
+        : [],
+      migrationStale: migrationDebt(paths),
       retainedRefs: retainedCheckpointRefs(pathForBranch?.front?.id),
       provisionalInCandidate: pathForBranch
         ? provisionalCommits(pathForBranch.front?.base_commit, pathForBranch.front?.subject_commit)

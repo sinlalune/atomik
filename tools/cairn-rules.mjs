@@ -48,6 +48,30 @@ export function extractRules(source) {
 }
 
 export const RULE_METADATA = {
+  'scope-digest': {
+    condition: 'The accepted definition of done moved after acceptance, or was accepted without a digest',
+    enforcing: 'scopeDigest(resolveScopeSection(pathRecord, scope_ref)) === record.scope_digest'
+  },
+  'closure-surface': {
+    condition: 'An administrative closure commit changed a path field other than status, subject_commit, current_step or resolution',
+    enforcing: 'closureFieldErrors(previousFront, currentFront) over CLOSURE_MUTABLE_FIELDS'
+  },
+  'acceptance-drift': {
+    condition: 'The trunk moved inside the path\'s declared writes: or governs: since the accepted base',
+    enforcing: 'acceptanceDrift(git diff --name-only <base> <trunk>, writes, governs) — never trunk === base'
+  },
+  'advisory-disposition': {
+    condition: 'advisory_disposition is not a structured list matching the advisories raised against the candidate',
+    enforcing: 'dispositionErrors(record.advisory_disposition, raised) with set equality on rule names'
+  },
+  'role-collapse': {
+    condition: 'One actor recorded both the opening and the closing acceptance for a path',
+    enforcing: 'opening.accepted_by === closing.accepted_by (advisory: visible, never forbidden)'
+  },
+  'migration-debt': {
+    condition: 'A path listed in the v0.2 migration exception no longer needs it',
+    enforcing: 'migrationDebt(paths, V02_MIGRATION_PATHS) — a spent exception is a bypass'
+  },
   'work-unit': {
     condition: 'A changed path record carries no `cairn-unit` block, or one declares an unknown type',
     enforcing: 'parseWorkUnits(record) => workUnitErrors(unit) over WORK_UNIT_TYPES'

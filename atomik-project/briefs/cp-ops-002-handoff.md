@@ -1,11 +1,11 @@
 ---
 type: Atomik Brief
-title: Handoff — CP-OPS-002 S07h complete; the first two v0.2 predicates are enforced
+title: Handoff — CP-OPS-002 S07i complete; the P0 and P1 v0.2 predicates are enforced
 timestamp: 2026-08-26T00:00:00Z
 atomik:
   path: CP-OPS-002
   branch: path/cp-ops-002
-  candidate_step: S07i
+  candidate_step: S07j
 ---
 
 # Resume CP-OPS-002 here
@@ -77,22 +77,29 @@ This repository migrated onto its own rules: units 01 and 02 are retained at
 `e787174` and `d1f3830`, and unit 03 is this step. Checker suite 76 → 91, full
 suite 123 → 138.
 
-## S07i — the record predicates
+## What S07i landed — the record predicates
 
-Next, the P1 group, all of which reach back over existing records and therefore
-need the declared, self-deleting migration exception you chose:
+- `scope-digest` (blocking) — the resolved section is digested and compared at
+  closure. Unreadable is inconclusive; naming no section is a failure.
+- `closure-surface` (blocking) — closure may move `status`, `subject_commit`,
+  `current_step`, `resolution`, and nothing else.
+- `acceptance-drift` (blocking) — trunk delta since the accepted base against
+  `writes:` ∪ `governs:`. A test pins the rejected alternative: a 200-file trunk
+  delta touching nothing declared raises no finding.
+- `advisory-disposition` (blocking) — set equality with the advisories raised.
+  Stated limit: the comparison evaluates the closure commit, not the candidate.
+- `role-collapse` (advisory) — one actor on both acceptances is visible, not
+  forbidden.
+- `scope-drift` promoted to blocking unless `writes:` moved in the same change.
+- `migration-debt` (blocking) — `V02_MIGRATION_PATHS` holds `CP-OPS-002`, whose
+  opening record is immutable and can never gain a digest. A listed path that
+  archives or disappears produces a blocking finding telling the next writer to
+  delete the entry, so the exception cannot outlive its migration.
+- `work-unit` was tightened in the same step: the block must be for the step the
+  record declares as `current_step`. The gate caught its own missing entry.
 
-- `scope-digest` — resolve `scope_ref`, digest the section, compare opening to
-  closing. The CP-OPS-002 opening record is immutable and has no digest, so it
-  goes in the exception set.
-- field-level `closure-surface` — extend the existing file-level restriction to
-  compare frontmatter fields and prove the ledger only grew.
-- `acceptance-drift` — trunk delta from the recorded base against
-  `writes:` ∪ `governs:`.
-- `advisory-disposition` — set equality against the advisories raised at the
-  candidate.
-- `role-collapse` (advisory) — same actor recorded both acceptances.
-- `scope-drift` — promote to blocking unless `writes:` moved in the same commit.
+This path migrated onto the rules: `governs:` declares eight documents pinned at
+exact blob ids. Checker suite 91 → 110, full suite 138 → 157.
 
 ## S07j — routes, brief schema, redaction
 
@@ -137,6 +144,6 @@ string, the concept budget, and the nineteen resolved items.
 ## Resume instruction
 
 Resolve the path from this worktree, compare this brief with the work ledger and
-Git status, and continue from S07i. The v0.2 review and its resolution are
+Git status, and continue from S07j. The v0.2 review and its resolution are
 recorded in the S07g ledger entry and in ADR-019; do not ask the user to restate
 either.
