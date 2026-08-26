@@ -28,7 +28,7 @@ on:
     branches: [master, 'path/**']
   pull_request:
 
-# Every commit is pushed immediately (owner directive 2026-08-24), so a path
+# Every completed checkpoint is pushed immediately, so a path
 # generates many runs. Supersede rather than queue them: the newest head of a
 # branch is the only one whose verdict matters.
 concurrency:
@@ -69,14 +69,28 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      # No `npm ci` on purpose: the validator is dependency-free, which is
-      # what keeps it runnable in any pipeline and readable by a sceptic.
+      # The validator itself remains dependency-free. Its test job also checks
+      # the generated specification reader, whose renderer is a declared
+      # workspace dependency, so the complete executable contract is installed.
+      - run: npm ci
       - name: validator self-test
         run: npm run cairn-check:test
       - name: protocol check
         # --base doubles as the rebase gate: cairn-check fails a path/* branch
         # that does not already contain this ref's tip. Every path merges
         # itself, so nothing else stops a stale branch landing on a trunk it
-        # never saw. Pair it with the host's "require branches to be up to
-        # date" so the rule holds for merges made from the web UI too.
-        run: node tools/cairn-check.mjs --base "origin/${{ github.base_ref || 'master' }}"
+        # never saw. A protected profile must pair this with its tested
+        # exact-commit transport rather than relying on a generic host switch.
+        env:
+          CAIRN_BASE_REF: origin/${{ github.base_ref || 'master' }}
+          CAIRN_EVENT_BEFORE: ${{ github.event.before }}
+          CAIRN_PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          cairn_previous="$CAIRN_EVENT_BEFORE"
+          if [[ ! "$cairn_previous" =~ ^[0-9a-f]{40}$ ]] || [[ "$cairn_previous" =~ ^0+$ ]]; then
+            cairn_previous="$CAIRN_PR_BASE_SHA"
+          fi
+          if [[ ! "$cairn_previous" =~ ^[0-9a-f]{40}$ ]] || [[ "$cairn_previous" =~ ^0+$ ]]; then
+            cairn_previous="$(git rev-parse HEAD^)"
+          fi
+          node tools/cairn-check.mjs --base "$CAIRN_BASE_REF" --previous "$cairn_previous"

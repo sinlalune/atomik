@@ -22,6 +22,12 @@ per entry in a `log/` subfolder — which was a concurrency fix, never a size on
 
 ## 2026-08-25
 
+- `S07f` proposes `ADR-018`: preserve Cairn's team/path/remote-checkpoint model,
+  bind audit and acceptance to one exact candidate, add truthful `ready` and
+  terminal-resolution semantics, fail critical unknowns closed, and state the
+  control-plane trust boundary. It remains proposed until the owner's review
+  pass over the uncommitted correction.
+
 - `S07a` `ADR-017` settles the path lifecycle three documents described differently:
   `archived` is the single terminal state and the exit an abandoned path takes too
   (`running → archived`, no fifth word), `done` is a completion rather than an end,

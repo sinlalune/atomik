@@ -1,143 +1,101 @@
 ---
 type: Cairn Reference
-title: 'Reference: Opening, closing, and audit records'
-description: Canonical templates for the human and agent judgements Cairn persists as machine-readable Markdown.
+title: Opening, audit, and closing records
+description: Canonical schemas for the judgement-bearing records Cairn binds to a path and exact implementation candidate.
 tags: [cairn, reference, ceremony, audit, frontmatter, template]
 timestamp: 2026-08-25T00:00:00Z
 ---
 
-# Human records
+# Human and agent judgement records
 
-## Ceremony schema
+These records turn an authorised judgement into an inspectable repository
+object. Their shape and candidate binding are mechanical; their reasoning is
+not.
 
-Opening and closing records live under `project/sessions/`. The checker reads
-exactly two root-level fields:
+## Opening acceptance
 
-```yaml
-path: CP-EXAMPLE-001
-ceremony: opening
+Filename:
+
+```text
+atomik-project/sessions/YYYY-MM-DD-cp-example-001-opening.md
 ```
 
-Allowed `ceremony` values are `opening` and `closing`. Do not nest these fields
-under `cairn:`. Match the full path id. If the configured parser treats scalar
-text literally, keep comments on separate lines.
+Template:
 
-## Opening record
-
-```md
+````md
 ---
 type: Cairn Session Record
-title: CP-EXAMPLE-001 opening check
-timestamp: YYYY-MM-DDT00:00:00Z
+title: CP-EXAMPLE-001 opening acceptance
+timestamp: 2026-01-15T09:00:00Z
 tags: [cairn, opening]
 path: CP-EXAMPLE-001
-branch: path/cp-example-001
 ceremony: opening
+decision: accepted
+accepted_by: participant-id
+accepted_at: 2026-01-15T09:00:00Z
+scope_ref: atomik-project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
 ---
 
-# CP-EXAMPLE-001 — opening check
+# CP-EXAMPLE-001 — opening acceptance
 
-## Proposed outcome
+## Outcome
 
 The bounded result in one paragraph.
 
-## Feature checks
+## Review
 
-### Feature or constraint 1
+- Definition of done: accepted | amended
+- Steps and evidence: accepted | amended
+- Governing documents: accepted | amended
+- Expected writes and overlap: accepted | amended
+- Exclusions: accepted | amended
+- Initial writer assignment: participant-id
 
-- Proposed implementation: …
-- Owner response: accepted | amended
-- Amendment, if any: …
+## Amendments
 
-### Feature or constraint 2
-
-- Proposed implementation: …
-- Owner response: accepted | amended
-- Amendment, if any: …
-
-## Scope and exclusions
-
-- Expected write surfaces: …
-- Required documents: …
-- Explicit exclusions: …
+Record exact changes, or “none”.
 
 ## Decision
 
-Accepted for registration: yes | no
+Accepted for trunk registration.
+````
+
+The repository defines who may accept. The v0.1 reference checker currently
+proves the opening record's path and ceremony presence; full actor, decision,
+time, and authority enforcement remains partial and must be reported as such.
+
+## Coherence audit
+
+Filename:
+
+```text
+atomik-project/audits/cp-example-001-<full-40-character-subject-commit>.md
 ```
 
-Activation requires an explicit accepted decision, not merely the existence of
-the file.
+Template:
 
-## Closing record
-
-```md
----
-type: Cairn Session Record
-title: CP-EXAMPLE-001 closing ceremony
-timestamp: YYYY-MM-DDT00:00:00Z
-tags: [cairn, closing]
-path: CP-EXAMPLE-001
-branch: path/cp-example-001
-ceremony: closing
----
-
-# CP-EXAMPLE-001 — closing ceremony
-
-## Recall
-
-- Delivered outcome: …
-- Completed steps and remote commits: …
-- Accepted scope widening: …
-- Remaining backlog: …
-- Known limits: …
-
-## Owner review
-
-### Does the delivered result match the accepted path?
-
-Owner response: …
-
-### What, if anything, must change before merge?
-
-Owner response: …
-
-### What should happen next?
-
-Owner response: …
-
-## Decision
-
-Accepted for closure: yes | no
-```
-
-## Coherence-audit record
-
-The audit is produced after the closing rebase and before self-merge. Its verdict
-is advisory, but the record must be bound to the path's own work and be filled.
-
-```md
+````md
 ---
 type: Cairn Coherence Audit
-title: Coherence audit — CP-EXAMPLE-001 @ a1b2c3d
-timestamp: YYYY-MM-DDT00:00:00Z
+title: Coherence audit — CP-EXAMPLE-001
+timestamp: 2026-01-15T13:30:00Z
 cairn:
   path: CP-EXAMPLE-001
   branch: path/cp-example-001
-  head: a1b2c3d4e5f6
-  base: origin/main
+  subject_commit: fedcba9876543210fedcba9876543210fedcba98
+  base: 0123456789abcdef0123456789abcdef01234567
   verdict: clean
 ---
 
-# Coherence audit — CP-EXAMPLE-001 @ a1b2c3d
+# Coherence audit — CP-EXAMPLE-001
 
 ## Inputs reviewed
 
-- rebased diff against the trunk
-- required and triggered conditional architecture documents
-- ADRs relevant to the change
+- exact diff from the current trunk to the subject commit
+- every required and triggered architecture document
+- relevant decision records
 - affected module notes
-- other running paths declaring overlapping surfaces
+- live paths declaring overlapping surfaces
 
 ## Findings
 
@@ -145,7 +103,7 @@ cairn:
 
 No. Evidence: …
 
-### Does it duplicate another running path's work?
+### Does it duplicate another live path's work?
 
 No. Evidence: …
 
@@ -153,21 +111,76 @@ No. Evidence: …
 
 No. Evidence: …
 
-### Is a statement now maintained independently in two places?
+### Does it create independently maintained statements that may drift?
 
 No. Evidence: …
 
 ## Verdict
 
-**clean**
+clean
+````
 
-Allowed outcome stems: `clean` · `drift noted` ·
-`needs a conversation before merge`.
+Allowed verdict stems are `clean`, `drift noted`, and
+`needs a conversation before merge`. A qualified verdict may state the
+disposition. If a finding changes implementation, create and audit a new
+candidate.
+
+## Closing acceptance
+
+Filename:
+
+```text
+atomik-project/sessions/YYYY-MM-DD-cp-example-001-closing.md
 ```
 
-The checker may require an outcome and at least one substantive answer. It must
-not judge the quality of those answers.
+Template:
 
-Return to [Opening](../index.md#5-opening-a-path),
-[Closing](../index.md#8-closing-and-self-merge), or
-[Human records](../index.md#9-human-records).
+````md
+---
+type: Cairn Session Record
+title: CP-EXAMPLE-001 closing acceptance
+timestamp: 2026-01-15T14:30:00Z
+tags: [cairn, closing]
+path: CP-EXAMPLE-001
+ceremony: closing
+subject_commit: fedcba9876543210fedcba9876543210fedcba98
+accepted_by: participant-id
+accepted_at: 2026-01-15T14:30:00Z
+decision: accepted
+scope_ref: atomik-project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
+advisory_disposition: "fixed: none; accepted: scope-drift — reason; deferred: none"
+---
+
+# CP-EXAMPLE-001 — closing acceptance
+
+## Result reviewed
+
+- Candidate: `fedcba9876543210fedcba9876543210fedcba98`
+- Delivered outcome: …
+- Definition-of-done evidence: …
+- User or domain review: …
+- Known limits: …
+
+## Advisory disposition
+
+- Fixed: …
+- Accepted with reason: …
+- Deferred with responsible participant and follow-up: …
+
+## Decision
+
+Candidate accepted for administrative closure and exact integration.
+````
+
+The closing record and audit MUST name the same subject. The full hash,
+reviewer identity, UTC time, accepted decision, scope reference, and advisory
+disposition are required.
+
+## Immutability and correction
+
+Once created, each session or audit file is immutable. A factual correction
+creates a new uniquely named record that identifies and supersedes the earlier
+record. It never edits history into a more convenient shape.
+
+Return to [exact-candidate closure](../index.md#close-one-exact-implementation-candidate)
+or open [closing acceptance](../concepts/closing-acceptance.md).

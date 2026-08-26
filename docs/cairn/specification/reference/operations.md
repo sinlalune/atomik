@@ -1,141 +1,204 @@
 ---
 type: Cairn Reference
-title: 'Reference: Cairn operations'
-description: Copy-ready command sequences for path registration, isolated execution, step checkpoints, rebase, self-merge, remote verification, and safe worktree cleanup.
+title: Cairn operations
+description: Manual command sequences for registration, remote checkpoints, exact-candidate closure, integration verification, and safe worktree cleanup.
 tags: [cairn, reference, commands, worktree, merge, cleanup]
 timestamp: 2026-08-25T00:00:00Z
 ---
 
 # Cairn operations
 
-The commands use the canonical defaults `main`, `origin`, and
-`path/cp-example-001`. Substitute configured names. Run gates directly; never
-pipe their first verdict through a filter.
+These commands use the canonical defaults `main`, `origin`, and
+`path/cp-example-001`. Substitute validated bindings. Run gates directly; never
+pipe their verdict through another command.
 
-## Before opening
+The manual sequence is normative while transactional `cairn-init`,
+`cairn-new`, and `cairn-close` commands remain unimplemented.
+
+## Register an accepted path
+
+Use the repository's declared registration transport. For a local or CI profile
+whose policy permits an exact direct trunk update:
 
 ```bash
 git switch main
 git fetch origin main
 git status --porcelain=v1
-git rev-parse HEAD
+git rev-parse origin/main
 ```
 
-The status output must be empty before registration. Reconcile the local trunk
-with the repository's normal policy before continuing.
-
-## Registration
-
-After the opening record and running path declaration are ready:
+The status output must be empty. Set `base_commit` to the exact remote trunk tip,
+record opening acceptance, set the path to running, and regenerate the live
+view:
 
 ```bash
 npm run cairn-active
 npm run cairn-check
 git status --short
-git add project/coding-paths/CP-EXAMPLE-001.md
-git add project/coding-paths/ACTIVE.md
-git add project/sessions/YYYY-MM-DD-cp-example-001-opening.md
+git add atomik-project/coding-paths/CP-EXAMPLE-001.md
+git add atomik-project/coding-paths/ACTIVE.md
+git add atomik-project/sessions/YYYY-MM-DD-cp-example-001-opening.md
 git commit -m "Register CP-EXAMPLE-001 before branching"
-git push origin main
+git rev-parse HEAD^
+git push origin HEAD:main
 ```
 
-Stage any additional metadata correction explicitly. No implementation belongs
-in this commit.
+The printed parent must equal `base_commit`. No product implementation belongs
+in the registration commit. A protected profile replaces the final push with
+its tested registration adapter; it cannot reuse a check that requires the new
+path to already exist on trunk.
 
-## Worktree creation
+## Create and publish the path
 
 ```bash
 git worktree add ../repo-cp-example-001 \
   -b path/cp-example-001 main
 cd ../repo-cp-example-001
+git push -u origin path/cp-example-001
 git status --short --branch
 ```
 
-Configure per-worktree ports, profiles, databases, and caches when applicable.
+Configure path-specific ports, profiles, databases, and caches where relevant.
+Assign one writer to this writable worktree.
 
-## Complete one step
+## Complete one work unit
 
-After implementation, tests, documentation, ledger, and handoff brief are all
-current:
+First update implementation, tests, affected documents, the path ledger, and
+handoff brief. If the delivery requires user testing before checkpointing,
+leave it uncommitted and unpushed, present it for inspection, and continue only
+after explicit pass.
+
+Then:
 
 ```bash
 npm run cairn-check
-npm run typecheck && npm test && npm run build
+npm run typecheck
+npm test
+npm run build
 git status --short
 git add path/to/implementation
 git add path/to/tests
 git add docs/modules/example.md
-git add project/coding-paths/CP-EXAMPLE-001.md
-git add project/briefs/cp-example-001-handoff.md
+git add atomik-project/coding-paths/CP-EXAMPLE-001.md
+git add atomik-project/briefs/cp-example-001-handoff.md
 git commit -m "CP-EXAMPLE-001 S01: coherent outcome"
 git push origin path/cp-example-001
+git fetch origin path/cp-example-001
 git merge-base --is-ancestor HEAD origin/path/cp-example-001
 ```
 
-The final command must exit zero before the step is reported complete.
+The final command must exit zero before the step is called complete.
 
-## Rebase before closure
+## Produce implementation candidate C
 
-Record the pre-rebase path head first:
+Record the current checkpoint, then rebase:
 
 ```bash
-git rev-parse HEAD
 git fetch origin main
 git rebase origin/main
-npm run cairn-check -- --base origin/main
-npm run typecheck && npm test && npm run build
 ```
 
-If published commits were rewritten:
+Resolve conflicts and finish any final implementation. If user inspection is
+required, obtain the pass before committing those final changes. Commit only
+when the worktree contains candidate changes; otherwise the rebased `HEAD` is
+already the candidate. Record `C`, publish it, and run all checks against it:
 
 ```bash
+# if final candidate changes are present:
+git commit -m "CP-EXAMPLE-001: final implementation candidate"
 git rev-parse HEAD
 git push --force-with-lease origin path/cp-example-001
+npm run cairn-check -- --base origin/main
+npm run typecheck
+npm test
+npm run build
 ```
 
-Record both heads in the ledger. Never use blind `--force`.
+Use an ordinary push when rebase did not rewrite a published branch. The full
+output of `git rev-parse HEAD` is `C`.
 
-## Coherence audit and done state
+## Audit and accept exactly C
 
 ```bash
-npm run cairn-audit
+npm run cairn-audit -- --subject <C> --branch path/cp-example-001
 ```
 
-Fill the generated record, set the path to `status: done`, refresh its brief,
-then run the checks again and commit/push those explicit files.
+Fill the generated full-hash audit record. An authorised reviewer inspects
+exactly `C` and creates the closing acceptance record with the same hash and a
+disposition for every advisory.
 
-## Self-merge
+If implementation changes, stop: commit a new `C`, rerun all checks, generate a
+new audit file, and obtain new acceptance.
 
-From the repository's designated trunk checkout:
+## Create administrative commit A
+
+Set the path to `status: ready` and `subject_commit: <C>`. Refresh the handoff.
+Stage only the four closure surfaces:
+
+```bash
+git add atomik-project/coding-paths/CP-EXAMPLE-001.md
+git add atomik-project/briefs/cp-example-001-handoff.md
+git add atomik-project/audits/cp-example-001-<C>.md
+git add atomik-project/sessions/YYYY-MM-DD-cp-example-001-closing.md
+git commit -m "Close CP-EXAMPLE-001 candidate <C>"
+git rev-list --count <C>..HEAD
+npm run cairn-check -- --base origin/main
+git push origin path/cp-example-001
+```
+
+The count must be exactly one. The checker must report no implementation change
+after acceptance. The resulting commit is `A`.
+
+## Integrate the exact ready tip
+
+The exact procedure depends on the declared transport. A checked local merge
+transport can construct a candidate from a clean designated trunk checkout:
 
 ```bash
 git switch main
-git fetch origin main
-git merge-base --is-ancestor origin/main path/cp-example-001
-git merge --no-ff path/cp-example-001 \
-  -m "Merge CP-EXAMPLE-001"
-npm run cairn-check
-npm run typecheck && npm test && npm run build
-git push origin main
+git fetch origin main path/cp-example-001
+git merge --no-ff --no-commit origin/path/cp-example-001
 ```
 
-If local `main` is not the repository's accepted current trunk, reconcile it
-before merge. Never hide a stale base behind a local merge preview.
+In that pending integration unit only:
 
-## Verify the remote merge
+- set the path to `status: done` and `resolution: completed`;
+- retain `subject_commit: <C>`;
+- regenerate `ACTIVE.md`;
+- add one `atomik-project/log/YYYY-MM-DD-cp-example-001.md` entry.
+
+Then create and test the exact merge candidate:
 
 ```bash
+git add atomik-project/coding-paths/CP-EXAMPLE-001.md
+git add atomik-project/coding-paths/ACTIVE.md
+git add atomik-project/log/YYYY-MM-DD-cp-example-001.md
+git commit -m "Integrate CP-EXAMPLE-001"
+git merge-base --is-ancestor <C> HEAD
+git rev-list --count <C>..HEAD
+npm run cairn-check
+npm run typecheck
+npm test
+npm run build
+```
+
+The ancestry command must succeed and the count must be exactly two: `A` and the
+integration commit. Only after every check passes may the transport land that
+exact commit:
+
+```bash
+git push origin HEAD:main
 git fetch origin main
-git rev-parse HEAD
 git merge-base --is-ancestor HEAD origin/main
 ```
 
-The ancestry command must exit zero. Keep the exact merge commit for the closure
-report.
+A protected profile uses its tested candidate-ref, queue, or bot adapter rather
+than a direct push. In every profile, the checked identity and landed identity
+must be equal.
 
 ## Remove the secondary worktree safely
 
-Run from another checkout, never from the worktree being removed:
+From another checkout:
 
 ```bash
 git worktree list --porcelain
@@ -146,16 +209,18 @@ test ! -e /exact/path/to/repo-cp-example-001
 ```
 
 The status command must print nothing. Do not pass `--force`. Do not target the
-main checkout. Removing the worktree does not remove either the local or remote
-path branch.
+primary checkout. The path branch may be retained for navigation or removed
+after every path commit is proved reachable from the remote trunk.
 
-## Failure wording
-
-Use explicit partial outcomes:
+## Report partial outcomes precisely
 
 ```text
-implemented locally, not complete      push did not succeed
-merge complete; cleanup incomplete     remote merge is proven, cleanup failed
+implemented locally, awaiting user pass
+accepted work unit, commit not yet pushed
+path ready, not integrated
+integration candidate checked, remote push failed
+remote integration complete, cleanup incomplete
 ```
 
-Return to [Operator sequence](../index.md#11-operator-sequence).
+Return to [the full protocol](../index.md) or the
+[integration-transport concept](../concepts/integration-transport.md).

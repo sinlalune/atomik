@@ -12,7 +12,7 @@
  * idea must be able to read it in one sitting and run it locally with the
  * same command CI runs.
  *
- *   node tools/cairn-check.mjs [--base <ref>] [--json]
+ *   node tools/cairn-check.mjs [--base <ref>] [--previous <ref>] [--json]
  *
  * BLOCKING failures exit 1. ADVISORY findings are printed and never fail:
  * a declared write surface is a signal, not a lock (owner ruling 4), and a
@@ -98,8 +98,9 @@ const PATH_DIR = 'atomik-project/coding-paths'
  *  (audit 2026-08-24, F11). Its reservation for CP-OPS-001 was spent when that
  *  path reached `done`, and no path file declares it — this deletes dead
  *  vocabulary rather than migrating anything. */
-const PATH_STATUSES = ['draft', 'blocked', 'running', 'done', 'archived']
-const PATH_BRANCH_STATUSES = ['running', 'done']
+const PATH_STATUSES = ['draft', 'blocked', 'running', 'ready', 'done', 'archived']
+const PATH_BRANCH_STATUSES = ['running', 'blocked', 'ready']
+const PATH_RESOLUTIONS = ['completed', 'abandoned', 'superseded']
 const SESSION_DIR = 'atomik-project/sessions'
 const HISTORY_DIR = `${PATH_DIR}/history`
 const ADR_DIR = 'docs/adr'
@@ -256,20 +257,140 @@ export function registrationMatches(text, id, branch, baseCommit) {
   )
 }
 
-export function pathFrontmatterErrors(front) {
+export function pathFrontmatterErrors(front, file = null) {
   if (!front) return ['missing atomik: frontmatter block']
   const errors = []
   if (!front.id) errors.push('missing atomik.id')
+  else {
+    if (!/^CP-[A-Z0-9][A-Z0-9-]*$/.test(front.id)) {
+      errors.push('atomik.id must use canonical CP-<UPPERCASE-ID> form')
+    }
+    const expected = file?.split('/').at(-1)
+    if (expected && expected !== `${front.id}.md`) {
+      errors.push(`atomik.id "${front.id}" does not match the file name (${expected})`)
+    }
+  }
   if (!PATH_STATUSES.includes(front.status)) {
     errors.push(`status "${front.status}" is outside the vocabulary (${PATH_STATUSES.join(' | ')})`)
   }
-  if (front.status === 'running' && !front.branch) {
-    errors.push('status "running" requires atomik.branch')
+  if (['running', 'blocked', 'ready'].includes(front.status) && !front.branch) {
+    errors.push(`status "${front.status}" requires atomik.branch`)
   }
-  if (front.status === 'running' && !isCommitPin(front.base_commit)) {
-    errors.push('status "running" requires atomik.base_commit as a 7–40 digit Git hash')
+  if (
+    ['running', 'blocked', 'ready'].includes(front.status) &&
+    front.id &&
+    front.branch &&
+    front.branch !== `path/${front.id.toLowerCase()}`
+  ) {
+    errors.push(`atomik.branch must equal path/${front.id.toLowerCase()}`)
+  }
+  if (['running', 'blocked', 'ready'].includes(front.status) && !isCommitPin(front.base_commit)) {
+    errors.push(`status "${front.status}" requires atomik.base_commit as a 7–40 digit Git hash`)
+  }
+  if (front.status === 'ready' && !/^[0-9a-f]{40}$/i.test(String(front.subject_commit))) {
+    errors.push('status "ready" requires atomik.subject_commit as a full 40-character Git hash')
+  }
+  if (front.status === 'archived' && front.resolution && !PATH_RESOLUTIONS.includes(front.resolution)) {
+    errors.push(
+      `atomik.resolution "${front.resolution}" is outside the vocabulary (${PATH_RESOLUTIONS.join(' | ')})`
+    )
   }
   return errors
+}
+
+/** A transition is checked whenever the previous path state is available.
+ * `null` means this is a newly created path declaration. */
+export function transitionErrors(previous, current, onPathBranch = false) {
+  const errors = []
+  const from = previous?.status ?? null
+  const to = current?.status
+  const allowed = {
+    null: ['draft', 'running'],
+    draft: ['draft', 'running', 'archived'],
+    running: ['running', 'blocked', 'ready', 'archived'],
+    blocked: ['blocked', 'running', 'archived'],
+    ready: ['ready', 'running', 'done'],
+    done: ['done', 'archived'],
+    archived: ['archived']
+  }
+
+  const trunkIntegration = !onPathBranch && from === 'running' && to === 'done'
+  if (!(allowed[String(from)] ?? []).includes(to) && !trunkIntegration) {
+    errors.push(`transition ${from ?? 'new'} → ${to ?? 'missing'} is not allowed`)
+  }
+  if (onPathBranch && to === 'done') {
+    errors.push('a path branch cannot claim `done`; it declares `ready` and integration records `done` on the trunk')
+  }
+  if (to === 'archived' && !PATH_RESOLUTIONS.includes(current?.resolution)) {
+    errors.push('status `archived` requires resolution: completed | abandoned | superseded')
+  }
+  if (to === 'archived' && from === 'done' && current?.resolution !== 'completed') {
+    errors.push('done → archived requires resolution: completed')
+  }
+  if (
+    to === 'archived' &&
+    from !== 'done' &&
+    !['abandoned', 'superseded'].includes(current?.resolution)
+  ) {
+    errors.push('an unintegrated path archives as abandoned or superseded, never completed')
+  }
+  if (to === 'done' && current?.resolution !== 'completed') {
+    errors.push('status `done` requires resolution: completed')
+  }
+  if (to === 'done' && !/^[0-9a-f]{40}$/i.test(String(current?.subject_commit))) {
+    errors.push('status `done` requires subject_commit as a full 40-character Git hash')
+  }
+  return errors
+}
+
+export function duplicatePathIdentityFindings(paths) {
+  const findings = []
+  for (const key of ['id', 'branch']) {
+    const seen = new Map()
+    for (const path of paths) {
+      const value = path.front?.[key]
+      if (!value) continue
+      if (seen.has(value)) {
+        findings.push(`${key} "${value}" is declared by both ${seen.get(value)} and ${path.file}`)
+      } else {
+        seen.set(value, path.file)
+      }
+    }
+  }
+  return findings
+}
+
+export function closingAcceptanceErrors(record, pathId) {
+  const errors = []
+  if (!record) return ['missing closing acceptance record']
+  if (record.path !== pathId) errors.push(`path must equal ${pathId}`)
+  if (String(record.ceremony).toLowerCase() !== 'closing') errors.push('ceremony must equal closing')
+  if (!/^[0-9a-f]{40}$/i.test(String(record.subject_commit))) {
+    errors.push('subject_commit must be a full 40-character Git hash')
+  }
+  if (!String(record.accepted_by ?? '').trim()) errors.push('accepted_by is required')
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(String(record.accepted_at))) {
+    errors.push('accepted_at must be an ISO UTC timestamp')
+  }
+  if (record.decision !== 'accepted') errors.push('decision must equal accepted')
+  if (!String(record.scope_ref ?? '').trim()) errors.push('scope_ref is required')
+  if (!String(record.advisory_disposition ?? '').trim()) {
+    errors.push('advisory_disposition is required')
+  }
+  return errors
+}
+
+const IMMUTABLE_RECORD_PREFIXES = [
+  'atomik-project/sessions/',
+  'atomik-project/audits/',
+  `${HISTORY_DIR}/`,
+  'atomik-project/log/'
+]
+
+export function isImmutableRecord(file) {
+  if (file === JOURNAL) return true
+  if (!IMMUTABLE_RECORD_PREFIXES.some((prefix) => file.startsWith(prefix))) return false
+  return !['index.md', 'log.md', '.gitkeep'].includes(file.split('/').at(-1))
 }
 
 /**
@@ -414,6 +535,54 @@ export function porcelainPaths(raw) {
   return out.filter(Boolean)
 }
 
+/** Existing files changed by `git status --porcelain -z`.
+ *
+ * Additions are deliberately excluded: append-only namespaces grow by adding
+ * uniquely named files. Every other status means an object that existed before
+ * this work unit was modified, renamed or deleted. */
+export function porcelainMutations(raw) {
+  const fields = String(raw).split('\0')
+  const out = []
+  for (let i = 0; i < fields.length; i += 1) {
+    const record = fields[i]
+    if (record.length <= 3) continue
+    const status = record.slice(0, 2)
+    const path = record.slice(3)
+    const isAddition = status === '??' || status[0] === 'A'
+    if (status.includes('R')) {
+      if (path) out.push(path)
+      if (fields[i + 1]) out.push(fields[i + 1])
+      i += 1
+    } else {
+      if (!isAddition && !status.includes('C') && path) out.push(path)
+      if (status.includes('C')) i += 1
+    }
+  }
+  return out
+}
+
+/** Existing-file mutations from `git diff --name-status -z`. Rename records
+ * carry both old and new names; copies are additions and leave the source
+ * intact. */
+export function nameStatusMutations(raw) {
+  const fields = String(raw).split('\0')
+  const out = []
+  for (let i = 0; i < fields.length;) {
+    const status = fields[i++]
+    if (!status) continue
+    if (status.startsWith('R')) {
+      if (fields[i]) out.push(fields[i])
+      if (fields[i + 1]) out.push(fields[i + 1])
+      i += 2
+    } else {
+      const path = fields[i++]
+      if (path && !status.startsWith('A') && !status.startsWith('C')) out.push(path)
+      if (status.startsWith('C')) i += 1
+    }
+  }
+  return out
+}
+
 /** Which module area note a source file belongs to. Used ADVISORY only:
  *  the map is a judgment call and a wrong blocking verdict would teach
  *  people to bypass the validator. */
@@ -487,18 +656,24 @@ export function staleRunningPaths(paths, ages, budgetDays = PATH_STALE_DAYS) {
  */
 export function evaluate({
   changed,
+  stateChanged = changed,
   branch,
   paths,
   resolveFile,
   trunkContained,
   registrationState,
+  registrationBaseState = 'match',
   remoteCheckpoint,
-  ceremonyFor,
+  closureFor,
+  closureStateFor,
   openingFor,
+  previousPaths = new Map(),
+  immutableMutations = [],
   branchSource = 'symbolic-ref'
 }) {
   const findings = []
-  const add = (level, rule, message) => findings.push({ level, rule, message })
+  const add = (level, rule, message, outcome = level === 'advisory' ? 'advisory' : 'fail') =>
+    findings.push({ level, rule, outcome, message })
   const touched = (prefix) => changed.filter((file) => file.startsWith(prefix))
   const onPath = isPathBranch(branch)
   const match = paths.find((p) => p.front?.branch === branch)
@@ -519,7 +694,8 @@ export function evaluate({
       'contains the base by construction and makes the rebase gate pass without proving anything'
     if (guarded.length > 0) {
       add('blocking', 'branch-identity',
-        `detached checkout: the branch cannot be identified, so every path rule was SKIPPED while ${guarded.length} guarded file(s) changed — ${how}`)
+        `detached checkout: the branch cannot be identified, so every path rule was SKIPPED while ${guarded.length} guarded file(s) changed — ${how}`,
+        'inconclusive')
     } else {
       add('advisory', 'branch-identity',
         `detached checkout: path rules were skipped because the branch could not be identified — ${how}`)
@@ -533,7 +709,7 @@ export function evaluate({
         `branch "${branch}" has no coding path declaring it (expected a file in ${PATH_DIR}/ with atomik.branch: ${branch})`)
     } else if (!PATH_BRANCH_STATUSES.includes(match.front.status)) {
       add('blocking', 'branch-path',
-        `${match.file} declares this branch but its status is "${match.front.status}" — a path branch must be "running" or in its final "done" transition`)
+        `${match.file} declares this branch but its status is "${match.front.status}" — a path branch must be running, blocked, or ready; done is recorded by integration on the trunk`)
     } else if (!isCommitPin(match.front.base_commit)) {
       add('blocking', 'branch-path', `${match.file} needs atomik.base_commit as a 7–40 digit Git hash`)
     }
@@ -548,9 +724,21 @@ export function evaluate({
     if (registrationState === 'missing') {
       add('blocking', 'registration',
         `${match.file} is not registered as running on the trunk — land the accepted path declaration and regenerate ACTIVE.md before implementation`)
+    } else if (registrationState == null) {
+      add('blocking', 'registration',
+        `cannot resolve the trunk registration for ${match.front.id} — fetch the complete trunk ref and rerun the gate`,
+        'inconclusive')
     } else if (registrationState === 'grandfathered') {
       add('advisory', 'registration',
         `${match.front.id} predates trunk registration and is explicitly grandfathered — do not copy this exception to a new path`)
+    }
+    if (registrationState !== 'grandfathered' && registrationBaseState === 'mismatch') {
+      add('blocking', 'registration-base',
+        `${match.file} base_commit is not the parent of its trunk registration commit`)
+    } else if (registrationState !== 'grandfathered' && registrationBaseState == null) {
+      add('blocking', 'registration-base',
+        `cannot prove the registration parent for ${match.front.id} — fetch the complete trunk history and rerun the gate`,
+        'inconclusive')
     }
   }
 
@@ -573,22 +761,82 @@ export function evaluate({
   if (onPath && trunkContained === false) {
     add('blocking', 'rebase',
       `branch "${branch}" does not contain the trunk tip — rebase before merging, and let CI run on the REBASED result, not a stale branch`)
+  } else if (onPath && trunkContained == null) {
+    add('blocking', 'rebase',
+      `cannot resolve the trunk tip for branch "${branch}" — fetch the complete trunk ref and rerun the rebase gate`,
+      'inconclusive')
   }
 
-  // 4. the closing ceremony is the only human guard left once the integrator
-  //    is gone, so a path claiming done must show its session note.
-  //
-  //    Scoped to paths touched by THIS change, deliberately. Checking the whole
-  //    corpus would fail on the early paths that closed before session notes
-  //    were a rule — punishing history for a convention it predates is the
-  //    fastest way to get a check switched off. The rule is about the
-  //    TRANSITION to done, which is always part of the change that makes it.
-  if (ceremonyFor) {
-    for (const path of paths) {
-      if (path.front?.status !== 'done' || !changed.includes(path.file)) continue
-      if (!ceremonyFor(path.front.id)) {
-        add('blocking', 'ceremony',
-          `${path.file} is marked done with no session note declaring \`path: ${path.front.id}\` and \`ceremony: closing\` — closing a path without a recorded ceremony is invalid`)
+  // 4. lifecycle transitions and exact candidate acceptance ------------
+  for (const file of stateChanged.filter(
+    (entry) => /^atomik-project\/coding-paths\/CP-[^/]+\.md$/.test(entry)
+  )) {
+    if (!paths.some((path) => path.file === file)) {
+      add('blocking', 'transition',
+        `${file}: path declarations are retained; archive with an explicit resolution instead of deleting the record`)
+    }
+  }
+
+  for (const path of paths) {
+    if (stateChanged.includes(path.file)) {
+      const previous = previousPaths instanceof Map
+        ? previousPaths.get(path.file)
+        : previousPaths?.[path.file]
+      if (previous === undefined) {
+        add('blocking', 'transition',
+          `${path.file}: previous path state is unavailable — provide a complete comparison ref`,
+          'inconclusive')
+      } else {
+        for (const error of transitionErrors(previous, path.front, onPath && path === match)) {
+          add('blocking', 'transition', `${path.file}: ${error}`)
+        }
+      }
+    }
+
+    const validatesReady = path.front?.status === 'ready' && onPath && path === match
+    const validatesDone = path.front?.status === 'done' && stateChanged.includes(path.file)
+    if (!validatesReady && !validatesDone) continue
+    const record = closureFor?.(path.front.id, path.front.subject_commit) ?? null
+    for (const error of closingAcceptanceErrors(record, path.front.id)) {
+      add('blocking', 'acceptance', `${path.file}: ${error}`)
+    }
+    if (record?.subject_commit && path.front.subject_commit !== record.subject_commit) {
+      add('blocking', 'acceptance',
+        `${path.file}: atomik.subject_commit must equal the closing record subject_commit`)
+    }
+    const state = closureStateFor?.(path, record)
+    if (state == null) {
+      add('blocking', 'acceptance',
+        `${path.file}: cannot inspect the accepted candidate and administrative closure commit`,
+        'inconclusive')
+    } else {
+      if (!state.subjectIsAncestor) {
+        add('blocking', 'acceptance', `${path.file}: accepted subject_commit is not an ancestor of HEAD`)
+      }
+      const expectedAdministrativeCommits = path.front.status === 'ready' ? 1 : 2
+      if (state.commitsAfterSubject !== expectedAdministrativeCommits) {
+        add('blocking', 'acceptance',
+          `${path.file}: ${path.front.status} requires exactly ${expectedAdministrativeCommits} metadata commit(s) after subject_commit; found ${state.commitsAfterSubject}`)
+      }
+      if (state.forbiddenFiles?.length) {
+        add('blocking', 'acceptance',
+          `${path.file}: implementation changed after acceptance: ${state.forbiddenFiles.join(', ')}`)
+      }
+    }
+  }
+
+  if (immutableMutations == null) {
+    const records = changed.filter(isImmutableRecord)
+    if (records.length > 0) {
+      add('blocking', 'record-integrity',
+        `cannot determine whether ${records.length} append-only record(s) are additions or rewrites — provide a complete comparison ref`,
+        'inconclusive')
+    }
+  } else {
+    for (const file of immutableMutations) {
+      if (isImmutableRecord(file)) {
+        add('blocking', 'record-integrity',
+          `${file} is an existing append-only record and may not be modified, renamed, or deleted; add a superseding record instead`)
       }
     }
   }
@@ -606,7 +854,7 @@ export function evaluate({
   //     paths that closed before session notes existed are never examined.
   if (openingFor) {
     for (const path of paths) {
-      if (path.front?.status !== 'running' || !changed.includes(path.file)) continue
+      if (path.front?.status !== 'running' || !stateChanged.includes(path.file)) continue
       const id = path.front.id
       if (openingFor(id)) continue
       if (LEGACY_UNDECLARED_OPENINGS.has(id)) {
@@ -615,7 +863,7 @@ export function evaluate({
         continue
       }
       add('blocking', 'opening-ceremony',
-        `${path.file} is running with no session note declaring \`path: ${id}\` and \`ceremony: opening\` — a path activates on the owner's recorded acceptance, never on a conversation`)
+        `${path.file} is running with no session note declaring \`path: ${id}\` and \`ceremony: opening\` — a path activates on recorded team acceptance, never on a conversation`)
     }
   }
 
@@ -631,7 +879,11 @@ export function evaluate({
   }
 
   // 3. same work unit -------------------------------------------------
-  const sourceChanged = touched('apps/').filter((f) => !f.includes('/tests/'))
+  const sourceChanged = changed.filter(
+    (file) =>
+      GUARDED_ROOTS.some((root) => file.startsWith(root)) &&
+      !file.includes('/tests/')
+  )
   if (sourceChanged.length > 0) {
     if (touched('docs/modules/').length === 0) {
       add('blocking', 'same-work-unit',
@@ -731,6 +983,120 @@ function changedFiles(base) {
     return [...new Set([...committed, ...working].filter(Boolean))]
   }
   return working
+}
+
+/** The state against which this proposed work is judged. A local working-tree
+ * run compares with HEAD; a branch run compares with its trunk merge-base;
+ * callers may provide the exact previous CI commit explicitly. */
+function comparisonRef(base, explicitPrevious) {
+  if (explicitPrevious) {
+    return gitOrNull(['rev-parse', '--verify', explicitPrevious])
+  }
+  if (base) return gitOrNull(['merge-base', base, 'HEAD'])
+  return gitOrNull(['rev-parse', 'HEAD'])
+}
+
+function frontmatterAt(ref, file) {
+  if (!ref) return undefined
+  const text = gitOrNull(['show', `${ref}:${file}`])
+  if (text == null) {
+    // A resolvable ref plus an absent file means a new declaration. A missing
+    // ref was rejected above and remains `undefined` (inconclusive).
+    return gitOrNull(['rev-parse', '--verify', ref]) == null ? undefined : null
+  }
+  return readFrontmatter(`${text}\n`)?.data?.atomik ?? undefined
+}
+
+function previousPathStates(paths, ref) {
+  const states = new Map()
+  for (const path of paths) states.set(path.file, frontmatterAt(ref, path.file))
+  return states
+}
+
+/** `base_commit` is not merely any ancestor. It names the trunk state just
+ * before registration, so it must resolve to the first parent of the commit
+ * that introduced this path declaration on the trunk. */
+function pathRegistrationBaseState(trunkRef, branch, paths) {
+  if (!isPathBranch(branch)) return null
+  const match = paths.find((path) => path.front?.branch === branch)
+  const id = match?.front?.id
+  if (!match || !id) return null
+  if (LEGACY_UNREGISTERED_PATHS.has(id)) return 'grandfathered'
+  if (!gitOrNull(['rev-parse', '--verify', trunkRef])) return null
+
+  const additions = gitOrNull([
+    'log', '--diff-filter=A', '--format=%H', '--reverse', trunkRef, '--', match.file
+  ])
+  const registration = additions?.split('\n').filter(Boolean)[0]
+  if (!registration) return null
+  const parent = gitOrNull(['rev-parse', `${registration}^`])
+  const declared = gitOrNull(['rev-parse', match.front.base_commit])
+  if (!parent || !declared) return null
+  return parent === declared ? 'match' : 'mismatch'
+}
+
+function closureAllowedFiles(path, record) {
+  const id = String(path.front?.id ?? '').toLowerCase()
+  const subject = String(record?.subject_commit ?? '')
+  const exact = new Set([
+    path.file,
+    `atomik-project/briefs/${id}-handoff.md`,
+    `atomik-project/audits/${id}-${subject}.md`,
+    record?.__file
+  ].filter(Boolean))
+  if (path.front?.status === 'done') exact.add(ACTIVE_FILE)
+  const journal = new RegExp(
+    `^atomik-project/log/\\d{4}-\\d{2}-\\d{2}-${id.replace(/[.*+?^\${}()|[\]\\]/g, '\\$&')}\\.md$`
+  )
+  return (file) => exact.has(file) || (
+    path.front?.status === 'done' && journal.test(file)
+  )
+}
+
+/** Inspect the commits after the accepted implementation candidate. `ready`
+ * allows one administrative closure commit. `done` additionally allows the
+ * integrating trunk commit. In both cases the tree diff must be metadata-only. */
+function pathClosureState(path, record) {
+  const subject = record?.subject_commit
+  if (!/^[0-9a-f]{40}$/i.test(String(subject))) return null
+  if (!gitOrNull(['rev-parse', '--verify', subject])) return null
+
+  const subjectIsAncestor = (() => {
+    try {
+      execFileSync('git', ['merge-base', '--is-ancestor', subject, 'HEAD'], {
+        cwd: REPO,
+        stdio: 'ignore'
+      })
+      return true
+    } catch {
+      return false
+    }
+  })()
+  if (!subjectIsAncestor) {
+    return { subjectIsAncestor: false, commitsAfterSubject: 0, forbiddenFiles: [] }
+  }
+
+  const count = Number(gitOrNull(['rev-list', '--count', `${subject}..HEAD`]))
+  const files = gitRaw(['diff', '--name-only', '-z', `${subject}..HEAD`])
+    .split('\0')
+    .filter(Boolean)
+  const allowed = closureAllowedFiles(path, record)
+  return {
+    subjectIsAncestor: true,
+    commitsAfterSubject: Number.isFinite(count) ? count : null,
+    forbiddenFiles: files.filter((file) => !allowed(file))
+  }
+}
+
+/** Existing append-only records may not be rewritten in either committed or
+ * working-tree changes. An unavailable comparison ref is inconclusive. */
+function immutableRecordMutations(ref) {
+  if (!ref || !gitOrNull(['rev-parse', '--verify', ref])) return null
+  const working = porcelainMutations(gitRaw(['status', '--porcelain', '-z']))
+  const committed = nameStatusMutations(gitRaw([
+    'diff', '--diff-filter=MDRTUXB', '--name-status', '-z', `${ref}..HEAD`
+  ]))
+  return [...new Set([...committed, ...working])]
 }
 
 function walk(dir, out = []) {
@@ -851,6 +1217,16 @@ export function ceremonyFromSessions(sessions, pathId) {
   return ceremonyOfKind(sessions, pathId, 'closing')
 }
 
+export function closingRecordFromSessions(sessions, pathId, subjectCommit = null) {
+  const matches = sessions.filter(
+    (note) =>
+      note?.path === pathId &&
+      String(note?.ceremony).toLowerCase() === 'closing' &&
+      (!subjectCommit || note?.subject_commit === subjectCommit)
+  )
+  return matches.at(-1) ?? null
+}
+
 /**
  * Does an OPENING check exist for this path?
  *
@@ -871,7 +1247,11 @@ function loadSessions() {
   try {
     return readdirSync(join(REPO, SESSION_DIR))
       .filter((file) => file.endsWith('.md'))
-      .map((file) => readFrontmatter(readFileSync(join(REPO, SESSION_DIR, file), 'utf8'))?.data ?? {})
+      .sort()
+      .map((file) => ({
+        ...(readFrontmatter(readFileSync(join(REPO, SESSION_DIR, file), 'utf8'))?.data ?? {}),
+        __file: `${SESSION_DIR}/${file}`
+      }))
   } catch {
     return []
   }
@@ -879,6 +1259,10 @@ function loadSessions() {
 
 function hasCeremony(pathId) {
   return ceremonyFromSessions(loadSessions(), pathId)
+}
+
+function closingRecord(pathId, subjectCommit = null) {
+  return closingRecordFromSessions(loadSessions(), pathId, subjectCommit)
 }
 
 function hasOpening(pathId) {
@@ -949,6 +1333,7 @@ function branchAges(paths) {
  *  are cheap and catching them late is the expensive part. */
 function corpusFindings(branch, trunkRef = 'master') {
   const findings = []
+  const corpus = loadPaths()
 
   // The derived running-paths view must match the path files it projects.
   // Objective, no judgment, one-command fix. Skipped on path branches, which
@@ -969,26 +1354,35 @@ function corpusFindings(branch, trunkRef = 'master') {
   }
 
   // The coherence audit replaces the integrator's eye on architectural drift.
-  // ADVISORY by construction: an agent's judgment is not deterministic, so CI
-  // may check that the record EXISTS but must never depend on its verdict.
+  // Its architectural JUDGMENT is never machine-scored. Its existence,
+  // completeness and exact candidate binding are objective closure facts.
   if (isPathBranch(branch)) {
-    try {
-      execFileSync('node', [join(REPO, 'tools/cairn-audit.mjs'), '--check', '--base', trunkRef], {
-        cwd: REPO,
-        stdio: 'pipe'
-      })
-    } catch {
-      findings.push({
-        level: 'advisory',
-        rule: 'coherence-audit',
-        message: 'no filled coherence audit for this head — run `npm run cairn-audit` after the rebase, before merging'
-      })
+    const path = corpus.find((entry) => entry.front?.branch === branch)
+    if (path?.front?.status === 'ready') {
+      try {
+        execFileSync('node', [
+          join(REPO, 'tools/cairn-audit.mjs'),
+          '--check',
+          '--subject',
+          path.front.subject_commit,
+          '--branch',
+          branch
+        ], {
+          cwd: REPO,
+          stdio: 'pipe'
+        })
+      } catch {
+        findings.push({
+          level: 'blocking',
+          rule: 'coherence-audit',
+          message: `no filled coherence audit bound to ${path.front.subject_commit} — audit that exact candidate before declaring ready`
+        })
+      }
     }
   }
 
   // A `running` path that has gone quiet needs a push or an archive (ADR-017).
   // Advisory forever: see PATH_STALE_DAYS.
-  const corpus = loadPaths()
   for (const stale of staleRunningPaths(corpus, branchAges(corpus))) {
     findings.push({
       level: 'advisory',
@@ -1002,13 +1396,17 @@ function corpusFindings(branch, trunkRef = 'master') {
       findings.push({ level: 'blocking', rule: 'schema', message: `${path.file}: ${path.parseError}` })
       continue
     }
-    for (const error of pathFrontmatterErrors(path.front)) {
+    for (const error of pathFrontmatterErrors(path.front, path.file)) {
       findings.push({
         level: 'blocking',
         rule: 'schema',
         message: `${path.file}: ${error}`
       })
     }
+  }
+
+  for (const error of duplicatePathIdentityFindings(corpus)) {
+    findings.push({ level: 'blocking', rule: 'schema', message: error })
   }
 
   for (const adr of loadAdrs()) {
@@ -1051,6 +1449,9 @@ function corpusFindings(branch, trunkRef = 'master') {
 function main() {
   const argv = process.argv.slice(2)
   const base = argv.includes('--base') ? argv[argv.indexOf('--base') + 1] : null
+  const explicitPrevious = argv.includes('--previous')
+    ? argv[argv.indexOf('--previous') + 1]
+    : null
   const asJson = argv.includes('--json')
   const flag = argv.includes('--branch') ? argv[argv.indexOf('--branch') + 1] : null
 
@@ -1063,23 +1464,37 @@ function main() {
   const changed = changedFiles(base)
   const paths = loadPaths()
   const trunkRef = base ?? 'master'
+  const previousRef = comparisonRef(base, explicitPrevious)
+  const stateChanged = previousRef ? changedFiles(previousRef) : changed
+  // Record immutability is forward-scoped per proposed change. CI passes the
+  // previous pushed SHA; an ordinary local run compares the working tree with
+  // HEAD. The broader trunk merge-base can predate the rule and would punish
+  // historical migrations that were valid under their then-current schema.
+  const recordRef = explicitPrevious ? previousRef : comparisonRef(null, null)
   const findings = [
     ...corpusFindings(branch, trunkRef),
     ...evaluate({
       changed,
+      stateChanged,
       branch,
       paths,
       resolveFile: (file) => existsSync(join(REPO, file)),
       trunkContained: trunkContained(trunkRef),
       registrationState: pathRegistrationState(trunkRef, branch, paths),
+      registrationBaseState: pathRegistrationBaseState(trunkRef, branch, paths),
       remoteCheckpoint: pathRemoteCheckpoint(branch),
-      ceremonyFor: hasCeremony,
+      closureFor: closingRecord,
+      closureStateFor: pathClosureState,
       openingFor: hasOpening,
+      previousPaths: previousPathStates(paths, previousRef),
+      immutableMutations: immutableRecordMutations(recordRef),
       branchSource
     })
   ]
 
   const blocking = findings.filter((f) => f.level === 'blocking')
+  const inconclusive = blocking.filter((f) => f.outcome === 'inconclusive')
+  const failed = blocking.filter((f) => f.outcome !== 'inconclusive')
   const advisory = findings.filter((f) => f.level === 'advisory')
 
   if (asJson) {
@@ -1087,7 +1502,8 @@ function main() {
   } else {
     console.log(`cairn-check — branch ${branch}, ${changed.length} changed file(s)`)
     for (const group of [
-      ['BLOCKING', blocking],
+      ['FAIL', failed],
+      ['INCONCLUSIVE', inconclusive],
       ['ADVISORY', advisory]
     ]) {
       const [label, list] = group
@@ -1098,7 +1514,7 @@ function main() {
     console.log(
       blocking.length === 0
         ? `\nOK — protocol satisfied${advisory.length ? ` (${advisory.length} advisory)` : ''}`
-        : `\nFAILED — ${blocking.length} blocking finding(s)`
+        : `\nFAILED — ${failed.length} failed, ${inconclusive.length} inconclusive`
     )
   }
   process.exit(blocking.length === 0 ? 0 : 1)

@@ -14,8 +14,7 @@ say what was decided and when, and they are never rewritten silently — a decis
 that changes is superseded or amended in place with a dated line.
 
 Numbers are stable and may be reserved by a path that is still running, so a gap
-means reserved, not missing. `ADR-017` is reserved for the path lifecycle
-(CP-OPS-002 S07a).
+means reserved, not missing.
 
 Every record carries frontmatter (`type`, `title`, `description`, `tags`,
 `timestamp`, and an `adr:` block with `id`, `status`, `date`) — backfilled across
@@ -65,3 +64,5 @@ with no ADR beside it raises the advisory `decision-drift`.
   Repairs the checks that reported OK over false conditions: rules fail closed when they cannot name their subject, ceremonies are declared in root-level frontmatter, and enforcement is declared in three tiers.
 - **[ADR-017 — The coding-path lifecycle — `archived` is the terminal state, and an abandoned path has a way out](./ADR-017-coding-path-lifecycle.md)** · accepted · 2026-08-25
   `done` is a completion and `archived` the single terminal state, reached by demotion from `done` or by abandonment from `running`; `active` is retired, and a quiet path is noticed by an advisory signal rather than a gate.
+- **[ADR-018 — Cairn candidate-bound closure, truthful lifecycle, and team enforcement boundaries](./ADR-018-cairn-candidate-bound-closure.md)** · proposed · 2026-08-25
+  Preserves team-owned, remotely resumable coding paths while binding audit and acceptance to one exact candidate, separating `ready` from integrated `done`, failing critical unknowns closed, and defining the control-plane trust boundary.

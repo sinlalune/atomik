@@ -3,61 +3,55 @@
  *
  *   node --test tools/
  *
- * F12: the scaffold is stamped with the head it was written for, and committing
- * it moves the head — so `--check` could never match the commit that contains
- * the record. All nine records in this repository name a different commit from
- * the one holding them, seven of them exactly the parent.
+ * A closing audit names the exact implementation candidate. The administrative
+ * closure commit contains the record without changing that subject.
  */
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
+  auditBindingErrors,
   auditName,
   auditTemplate,
   fillErrors,
   findAudit,
   findingsSections,
   isFilled,
-  ownCommits
+  resolveAuditBranch
 } from './cairn-audit.mjs'
 
 const PATH = 'CP-MVP-010'
 const HEAD = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
 const PARENT = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
-const OLDER = 'cccccccccccccccccccccccccccccccccccccccc'
 const TRUNK = 'dddddddddddddddddddddddddddddddddddddddd'
 
-const own = ownCommits([HEAD, PARENT, OLDER].join('\n'), HEAD)
-const files = own.map((sha) => auditName(PATH, sha))
+const files = [auditName(PATH, HEAD), auditName(PATH, PARENT)]
 
-test('a record naming the PARENT satisfies the check', () => {
-  // the shape all nine existing records already have — retroactively valid,
-  // with no renaming and no migration
-  const onlyParent = [auditName(PATH, PARENT)]
-  assert.equal(findAudit(onlyParent, own, PATH), auditName(PATH, PARENT))
+test('the host-resolved branch overrides detached HEAD for audit checks', () => {
+  assert.equal(resolveAuditBranch(['node', 'audit', '--branch', 'path/cp-mvp-010'], 'HEAD'),
+    'path/cp-mvp-010')
+  assert.equal(resolveAuditBranch(['node', 'audit'], 'path/local'), 'path/local')
 })
 
-test('a record naming HEAD itself still satisfies the check', () => {
-  assert.equal(findAudit(files, own, PATH), auditName(PATH, HEAD))
+test('a record naming an earlier path commit does not satisfy the exact candidate', () => {
+  const onlyParent = [auditName(PATH, PARENT)]
+  assert.equal(findAudit(onlyParent, HEAD, PATH), undefined)
+})
+
+test('a record naming the exact candidate satisfies the check', () => {
+  assert.equal(findAudit(files, HEAD, PATH), auditName(PATH, HEAD))
 })
 
 test('a commit outside this path proves nothing', () => {
   // a trunk ancestor is not this path's work, so a record naming one is refused
   const trunkRecord = [auditName(PATH, TRUNK)]
-  assert.equal(findAudit(trunkRecord, own, PATH), undefined)
+  assert.equal(findAudit(trunkRecord, HEAD, PATH), undefined)
 })
 
 test('another path record is refused even when the sha matches', () => {
-  const otherPath = [auditName('CP-MVP-011', PARENT)]
-  assert.equal(findAudit(otherPath, own, PATH), undefined)
-  assert.equal(findAudit([], own, PATH), undefined)
-})
-
-test('ownCommits includes HEAD exactly once', () => {
-  assert.deepEqual(ownCommits(`${HEAD}\n${PARENT}`, HEAD), [HEAD, PARENT])
-  // an empty rev-list (unreadable trunk ref) falls back to HEAD alone —
-  // the old, stricter behaviour rather than a silently wider one
-  assert.deepEqual(ownCommits('', HEAD), [HEAD])
-  assert.deepEqual(ownCommits(`  ${PARENT}  \n\n`, HEAD), [HEAD, PARENT])
+  const otherPath = [auditName('CP-MVP-011', HEAD)]
+  assert.equal(findAudit(otherPath, HEAD, PATH), undefined)
+  assert.equal(findAudit([], HEAD, PATH), undefined)
+  assert.equal(findAudit(files, HEAD.slice(0, 7), PATH), undefined)
 })
 
 test('a record naming a pre-rebase commit the rebase rewrote is refused', () => {
@@ -68,18 +62,44 @@ test('a record naming a pre-rebase commit the rebase rewrote is refused', () => 
   // requires the audit to be run AFTER the rebase, on the result that will land.
   // An audit of a diff that no longer exists reviewed something else.
   const rewritten = 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
-  assert.equal(findAudit([auditName(PATH, rewritten)], own, PATH), undefined)
+  assert.equal(findAudit([auditName(PATH, rewritten)], HEAD, PATH), undefined)
 })
 
 test('a record naming a valid commit but still a scaffold does not count', () => {
   const scaffold = auditTemplate({
     pathId: PATH,
     branch: 'path/cp-mvp-010',
-    head: HEAD,
+    subjectCommit: HEAD,
     base: TRUNK
   })
   assert.equal(isFilled(scaffold), false)
   assert.ok(fillErrors(scaffold).includes('still carries the scaffold placeholder'))
+})
+
+test('the audit frontmatter must bind the exact path, branch and full candidate', () => {
+  const text = auditTemplate({
+    pathId: PATH,
+    branch: 'path/cp-mvp-010',
+    subjectCommit: HEAD,
+    base: TRUNK
+  })
+  assert.deepEqual(auditBindingErrors(text, {
+    pathId: PATH,
+    branch: 'path/cp-mvp-010',
+    subjectCommit: HEAD,
+    baseCommit: TRUNK
+  }), [])
+  assert.ok(auditBindingErrors(text, {
+    pathId: 'CP-OTHER',
+    branch: 'path/cp-other',
+    subjectCommit: PARENT
+  }).length === 3)
+  assert.ok(auditBindingErrors(text, {
+    pathId: PATH,
+    branch: 'path/cp-mvp-010',
+    subjectCommit: HEAD,
+    baseCommit: PARENT
+  }).some((error) => error.includes('atomik.base')))
 })
 
 // ---------------------------------------------------------------------------
@@ -104,7 +124,7 @@ timestamp: 2026-08-25T00:00:00.000Z
 atomik:
   path: ${PATH}
   branch: path/cp-mvp-010
-  head: ${HEAD}
+  subject_commit: ${HEAD}
   base: ${TRUNK}
   verdict: ${verdict}
 ---

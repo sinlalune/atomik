@@ -1,75 +1,363 @@
 /**
- * Executable contract for the canonical Cairn specification project and its
- * self-contained HTML edition.
+ * Executable contract for the canonical Cairn Markdown wiki and its
+ * deterministic self-contained HTML projection.
  */
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { readFileSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { dirname, join, posix, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { extractRules } from './cairn-rules.mjs'
+import { parseHTML } from 'linkedom'
+import { buildHtml, loadArticles } from './cairn-spec-build.mjs'
+import { extractRules, generateMarkdownTable, tableIn } from './cairn-rules.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const SPEC = join(REPO, 'docs/cairn/specification/index.md')
+const ROOT = join(REPO, 'docs/cairn/specification')
+const SPEC = join(ROOT, 'index.md')
+const CONCEPTS = join(ROOT, 'concepts')
+const REFERENCES = join(ROOT, 'reference')
 const HTML = join(REPO, 'docs/cairn/specification.html')
 const CHECK = join(REPO, 'tools/cairn-check.mjs')
+const LAYOUT = join(REFERENCES, 'repository-layout.md')
+const OPERATIONS = join(REFERENCES, 'operations.md')
 
 const markdown = readFileSync(SPEC, 'utf8')
 const html = readFileSync(HTML, 'utf8')
+const checkSource = readFileSync(CHECK, 'utf8')
 
 function captures(source, expression) {
   return [...source.matchAll(expression)].map((match) => match[1])
 }
 
-test('cairn-spec: the canonical document reads top down from big picture to implementation', () => {
-  const headings = captures(markdown, /^## (\d+\. .+)$/gm)
-  assert.deepEqual(headings.slice(0, 5), [
-    '1. The big picture',
-    '2. The project model',
-    '3. The coding path',
-    '4. Lifecycle',
-    '5. Opening a path'
+function bootReader(hash = '') {
+  const { window } = parseHTML(html)
+  const location = { hash }
+  const history = {
+    replaceState(_state, _title, next) {
+      location.hash = next
+    }
+  }
+  const CSS = {
+    escape(value) {
+      return String(value).replace(/["\\]/g, '\\$&')
+    }
+  }
+  window.HTMLElement.prototype.scrollIntoView = () => {}
+  const scripts = captures(html, /<script>([\s\S]*?)<\/script>/g)
+  const run = new Function('document', 'history', 'location', 'CSS', 'Event', scripts.at(-1))
+  run(window.document, history, location, CSS, window.Event)
+  return { window, location }
+}
+
+function markdownSources() {
+  return [
+    ['index.md', SPEC],
+    ...readdirSync(CONCEPTS)
+      .filter((name) => name.endsWith('.md'))
+      .map((name) => [posix.join('concepts', name), join(CONCEPTS, name)]),
+    ...readdirSync(REFERENCES)
+      .filter((name) => name.endsWith('.md'))
+      .map((name) => [posix.join('reference', name), join(REFERENCES, name)])
+  ]
+}
+
+test('cairn-spec: the canonical route moves from simple durable work to protocol detail', () => {
+  const headings = captures(markdown, /^## (.+)$/gm)
+  assert.deepEqual(headings, [
+    'Begin with work that survives',
+    'Put one bounded change on a coding path',
+    'Make progress resumable',
+    'Let paths work beside one another',
+    'Separate evidence from judgement',
+    'Open and register work',
+    'Close one exact implementation candidate',
+    'Integrate without claiming the future',
+    'Keep lifecycle statements truthful',
+    'Preserve records without overstating Git',
+    'State the trust and enforcement boundary',
+    'Current conformance',
+    'Implemented rule catalogue',
+    'Continue through the wiki'
   ])
-  assert.ok(headings.includes('10. Enforcement model'))
-  assert.ok(headings.includes('13. Rule catalogue'))
+  assert.doesNotMatch(markdown, /^## \d+\./m)
+  assert.match(markdown, /This document is the canonical Cairn v0\.1 specification/)
 })
 
-test('cairn-spec: canonical prose uses portable protocol names, not this checkout binding', () => {
-  assert.doesNotMatch(markdown, /atomik-project\//)
+test('cairn-spec: the first complete view introduces formal terms through their articles', () => {
+  const overview = markdown.slice(
+    markdown.indexOf('### The complete protocol in one view'),
+    markdown.indexOf('## Put one bounded change on a coding path')
+  )
+  for (const target of [
+    'opening-acceptance',
+    'trunk-registration',
+    'branch',
+    'worktree',
+    'work-unit',
+    'remote-checkpoint',
+    'rebase',
+    'implementation-candidate',
+    'coherence-audit',
+    'closing-acceptance',
+    'administrative-closure',
+    'ready-state',
+    'integration-transport',
+    'done-state'
+  ]) {
+    assert.match(overview, new RegExp('\\(\\./concepts/' + target + '\\.md\\)'))
+  }
+  assert.doesNotMatch(overview, /```/)
+  assert.match(overview, /In ordinary language/)
+})
+
+test('cairn-spec: Cairn remains a team protocol with checkpoint handoff', () => {
+  assert.match(markdown, /team of developers and coding\s+agents/)
+  assert.match(markdown, /multiple developers and multiple agents per developer/)
+  assert.match(markdown, /assigned writer may change at a\s+pushed checkpoint/)
+  assert.match(markdown, /authorised participant can then fetch the branch/)
+  assert.match(markdown, /Each path remains responsible for carrying its\s+accepted candidate through its declared\s+\[integration transport\]/)
+  assert.match(markdown, /does not\s+create a\s+permanent central integrator role/)
+  assert.doesNotMatch(markdown, /\bone owner\b/i)
+  assert.doesNotMatch(markdown, /contribution branch/i)
+})
+
+test('cairn-spec: closure binds audit and acceptance to the final candidate in order', () => {
+  const closure = markdown.slice(
+    markdown.indexOf('## Close one exact implementation candidate'),
+    markdown.indexOf('## Integrate without claiming the future')
+  )
+  const terms = [
+    '[Rebase](./concepts/rebase.md) the path',
+    'Commit and push the resulting implementation candidate `C`',
+    'Perform a [coherence audit]',
+    '### Accept candidate C',
+    '### Add only administrative closure'
+  ]
+  let previous = -1
+  for (const term of terms) {
+    const at = closure.indexOf(term)
+    assert.ok(at > previous, '"' + term + '" must follow the preceding closure stage')
+    previous = at
+  }
+  assert.ok(markdown.indexOf('## Integrate without claiming the future') > previous)
+  assert.match(markdown, /subject_commit: [0-9a-f]{40}/)
+  assert.match(markdown, /status: ready/)
+  assert.match(markdown, /A path branch MUST NOT set itself to `done`/)
+  assert.match(markdown, /Every advisory MUST be recorded as fixed, accepted, or\s+deferred with a reason/)
+})
+
+test('cairn-spec: critical unknowns fail closed and lifecycle claims are truthful', () => {
+  assert.match(markdown, /pass\s+predicate proved\s+fail\s+predicate disproved\s+inconclusive\s+required input unavailable/)
+  assert.match(markdown, /both `fail` and `inconclusive` MUST return non-zero/)
+  assert.match(markdown, /`blocked` retains its branch and base commit/)
+  assert.match(markdown, /`resolution: completed \\?\| abandoned \\?\| superseded`/)
+  assert.match(markdown, /Path declarations are retained; they are archived\s+rather than deleted/)
+})
+
+test('cairn-spec: trust, protection, and incomplete capabilities are stated narrowly', () => {
+  assert.match(markdown, /assumes collaborating writers/)
+  assert.match(markdown, /They are not an adversarial\s+security boundary/)
+  assert.match(markdown, /MUST NOT claim `protected` unless it has both/)
+  for (const gap of [
+    'Live-ledger prefix and verbatim-roll proof',
+    'Versioned portable configuration and schema migration',
+    'Exact protected integration transport',
+    'Independently protected control plane',
+    'Transactional `init`, `new`, and `close` commands',
+    'Lightweight path',
+    'Emergency path',
+    'Operational-cost pilot'
+  ]) {
+    assert.ok(markdown.includes(gap), 'missing visible conformance gap: ' + gap)
+  }
+  assert.match(markdown, /not yet a general-purpose merge, governance, or security\s+>\s*system/)
+})
+
+test('cairn-spec: canonical prose is history-free and distinguishes roles from bindings', () => {
   assert.doesNotMatch(markdown, /CP-(?:OPS|MVP)-/)
-  assert.doesNotMatch(markdown, /this repository(?:'s)? (?:failure|incident|issue)/i)
-  assert.doesNotMatch(html, /earlier Cairn page|CP-(?:OPS|MVP)-/i)
+  assert.doesNotMatch(markdown, /external (?:review|reviewer)|past (?:issue|project)|earlier version/i)
   assert.match(markdown, /project\/coding-paths\/CP-<ID>\.md/)
   assert.match(markdown, /cairn:\n\s+id: CP-EXAMPLE-001/)
+  assert.match(markdown, /project\/audits\/cp-example-001-[0-9a-f]{40}\.md/)
+  assert.match(markdown, /protocol role name for the execution plane is `project\/`/)
+  assert.match(markdown, /reference tools bind that role to `atomik-project\/`/)
 })
 
-test('cairn-spec: every contextual HTML link resolves to one embedded note', () => {
-  const requested = new Set(captures(html, /data-note="([a-z0-9-]+)"/g))
-  const supplied = new Set(captures(html, /class="foundation-card" id="([a-z0-9-]+)"/g))
-  assert.deepEqual([...requested].sort(), [...supplied].sort())
+test('cairn-spec: repository reference exhaustively maps the installed Cairn structure', () => {
+  const layout = readFileSync(LAYOUT, 'utf8')
+  for (const installed of [
+    'AGENTS.md',
+    'package.json',
+    '.github/workflows/cairn.yml',
+    'tools/cairn-check.mjs',
+    'tools/cairn-active.mjs',
+    'tools/cairn-audit.mjs',
+    'tools/cairn-rules.mjs',
+    'tools/cairn-spec-build.mjs',
+    'docs/bedrock/index.md',
+    'docs/adr/index.md',
+    'docs/modules/index.md',
+    'docs/cairn/specification/index.md',
+    'docs/cairn/specification.html',
+    'atomik-project/index.md',
+    'atomik-project/coding-paths/paths.md',
+    'atomik-project/coding-paths/ACTIVE.md',
+    'atomik-project/coding-paths/history/index.md',
+    'atomik-project/sessions/index.md',
+    'atomik-project/audits/index.md',
+    'atomik-project/briefs/index.md',
+    'atomik-project/log/index.md',
+    'atomik-project/brainstorm/index.md',
+    'atomik-project/sources/index.md',
+    'atomik-project/projects/index.md'
+  ]) {
+    assert.ok(existsSync(join(REPO, installed)), 'reference binding is missing ' + installed)
+  }
+  for (const required of [
+    '.github/workflows/cairn.yml',
+    'tools/cairn-check.mjs',
+    'tools/cairn-active.mjs',
+    'tools/cairn-audit.mjs',
+    'tools/cairn-rules.mjs',
+    'tools/cairn-spec-build.mjs',
+    'docs/bedrock/',
+    'docs/adr/',
+    'docs/modules/',
+    'docs/cairn/specification/index.md',
+    'docs/cairn/specification.html',
+    'atomik-project/coding-paths/paths.md',
+    'atomik-project/coding-paths/ACTIVE.md',
+    'atomik-project/coding-paths/history/',
+    'atomik-project/sessions/',
+    'atomik-project/audits/',
+    'atomik-project/briefs/',
+    'atomik-project/log/',
+    'atomik-project/brainstorm/',
+    'atomik-project/sources/',
+    'atomik-project/projects/'
+  ]) {
+    assert.ok(layout.includes(required), 'installed layout omits ' + required)
+  }
+  assert.match(layout, /This tree is exhaustive for active Cairn-defined files and folder roles/)
+  assert.match(layout, /`cairn\.config\.json` is not shown because it is a specified portability\s+target, not an installed v0\.1 file/)
+  assert.match(layout, /\| execution-state plane \| `atomik-project\/` \| `roots\.project` \|/)
+
+  const operations = readFileSync(OPERATIONS, 'utf8')
+  assert.match(operations, /git add atomik-project\/coding-paths\/CP-EXAMPLE-001\.md/)
+  assert.doesNotMatch(operations, /git add project\//)
 })
 
-test('cairn-spec: every tree chapter target exists and is observable', () => {
-  const requested = new Set(captures(html, /data-section-link="([a-z0-9-]+)"/g))
-  const supplied = new Set(captures(html, /id="([a-z0-9-]+)" data-section/g))
-  assert.deepEqual([...requested].sort(), [...supplied].sort())
+test('cairn-spec: each concept is one indexed Markdown article', () => {
+  const files = readdirSync(CONCEPTS).filter((name) => name.endsWith('.md')).sort()
+  const concepts = files.filter((name) => name !== 'index.md')
+  assert.ok(concepts.length >= 50, 'the wiki must cover the complete specialist vocabulary')
+  const index = readFileSync(join(CONCEPTS, 'index.md'), 'utf8')
+
+  for (const name of concepts) {
+    const source = readFileSync(join(CONCEPTS, name), 'utf8')
+    assert.match(source, /^type: Cairn Concept$/m, name + ' must identify one concept article')
+    assert.equal(captures(source, /^# (.+)$/gm).length, 1, name + ' must have one article title')
+    const escaped = name.replace('.', '\\.')
+    assert.match(index, new RegExp('\\(\\./' + escaped + '\\)'), name + ' is absent from the index')
+  }
+  assert.equal(existsSync(join(ROOT, 'foundations')), false)
+  assert.equal(existsSync(join(REFERENCES, 'glossary.md')), false)
 })
 
-test('cairn-spec: the HTML rule catalogue names every implemented rule exactly once', () => {
-  const implemented = new Set(extractRules(readFileSync(CHECK, 'utf8')).map((rule) => rule.name))
-  const rendered = captures(html, /<tr data-rule="([a-z-]+)">/g)
-  assert.equal(rendered.length, new Set(rendered).size, 'HTML has duplicate rule rows')
-  assert.deepEqual([...new Set(rendered)].sort(), [...implemented].sort())
+test('cairn-spec: every relative Markdown link resolves to a real file', () => {
+  for (const [relativeFile, absoluteFile] of markdownSources()) {
+    const source = readFileSync(absoluteFile, 'utf8').replace(/```[\s\S]*?```/g, '')
+    for (const href of captures(source, /\[[^\]]+\]\(([^)]+)\)/g)) {
+      if (/^(?:https?:|mailto:|#)/.test(href)) continue
+      const target = href.split('#')[0]
+      const resolved = resolve(dirname(absoluteFile), target)
+      assert.ok(existsSync(resolved), relativeFile + ' links to missing ' + href)
+    }
+  }
 })
 
-test('cairn-spec: the universal edition is self-contained and exposes all three panes', () => {
-  assert.match(html, /<nav class="tree-scroll" aria-label="Specification tree">/)
-  assert.match(html, /<main class="reading-pane" id="specification"/)
-  assert.match(html, /<aside class="context-pane" id="context-pane"/)
-  assert.match(html, /class="foundation-library"/)
-  assert.match(html, /href="\.\/specification\/index\.md"/)
+test('cairn-spec: the generated catalogue equals the checker source', () => {
+  assert.equal(tableIn(markdown), generateMarkdownTable(checkSource).trim())
+})
+
+test('cairn-spec: HTML embeds every Markdown article exactly once as a template', () => {
+  const expected = loadArticles().map((article) => article.id).sort()
+  const embedded = captures(html, /data-article-template="([a-z0-9-]+)"/g)
+  assert.equal(embedded.length, new Set(embedded).size)
+  assert.deepEqual([...embedded].sort(), expected)
+})
+
+test('cairn-spec: every wiki and tree target resolves to an embedded article', () => {
+  const supplied = new Set(captures(html, /data-article-template="([a-z0-9-]+)"/g))
+  const wikiTargets = new Set(captures(html, /data-article="([a-z0-9-]+)"/g))
+  const treeTargets = new Set(captures(html, /data-tree-article="([a-z0-9-]+)"/g))
+  assert.deepEqual([...wikiTargets].sort(), [...supplied].sort())
+  assert.deepEqual([...treeTargets].sort(), [...supplied].sort())
+  assert.doesNotMatch(html, /href="#current-conformance"/)
+  assert.match(html, /data-local-anchor="current-conformance"/)
+})
+
+test('cairn-spec: the two reading panes are equal, flat peers with restrained glass', () => {
+  assert.equal(captures(html, /<section class="article-pane" data-pane="(left|right)"/g).length, 2)
+  assert.equal(captures(html, /<div class="article-scroll" tabindex="0" aria-live="(polite)">/g).length, 2)
+  assert.match(html, /grid-template-columns: minmax\(0, 1fr\) minmax\(0, 1fr\)/)
+  assert.match(html, /\.reading-columns\s*{[\s\S]*?gap: 0;/)
+  assert.match(html, /\.reader\s*{[\s\S]*?padding: 0;[\s\S]*?overflow: hidden;/)
+  assert.match(html, /\.article-pane\s*{[\s\S]*?min-height: 0;[\s\S]*?overflow: hidden;/)
+  assert.match(html, /\.article-scroll\s*{[\s\S]*?height: 100%;[\s\S]*?overflow-y: auto;/)
+  assert.match(html, /A link inside either pane opens\s+the linked object in the other pane/)
+  assert.match(html, /sourcePane === panes\[0\] \? panes\[1\] : panes\[0\]/)
+  assert.match(html, /backdrop-filter: blur\(/)
+  assert.doesNotMatch(html, /<aside\b/i)
+  assert.doesNotMatch(html, /gradient\s*\(/i)
+  assert.doesNotMatch(html, /box-shadow\s*:/i)
+})
+
+test('cairn-spec: reader boots both pane states before rendering and routes wiki links', () => {
+  const { window, location } = bootReader()
+  const left = window.document.querySelector('[data-pane="left"]')
+  const right = window.document.querySelector('[data-pane="right"]')
+  assert.equal(left.dataset.article, 'specification')
+  assert.equal(right.dataset.article, 'concepts')
+
+  const link = left.querySelector('[data-article]')
+  const target = link.dataset.article
+  link.dispatchEvent(new window.Event('click', { bubbles: true, cancelable: true }))
+  assert.equal(right.dataset.article, target)
+  assert.equal(right.dataset.active, 'true')
+  assert.equal(location.hash, '#read=specification|' + target)
+})
+
+test('cairn-spec: a direct wiki article URL opens that object in the right pane', () => {
+  const { window } = bootReader('#article-concept-commit')
+  assert.equal(
+    window.document.querySelector('[data-pane="right"]').dataset.article,
+    'concept-commit'
+  )
+})
+
+test('cairn-spec: the HTML rule catalogue names every implemented rule', () => {
+  const implemented = extractRules(checkSource)
+    .map((rule) => rule.level + ':' + rule.name)
+    .sort()
+  const template = html.match(
+    /<template id="template-specification"[\s\S]*?>([\s\S]*?)<\/template>/
+  )?.[1]
+  assert.ok(template)
+  const rendered = [...template.matchAll(
+    /<tr data-rule="([a-z-]+)" data-level="(blocking|advisory)">/g
+  )].map((match) => match[2] + ':' + match[1]).sort()
+  assert.equal(rendered.length, new Set(rendered).size)
+  assert.deepEqual(rendered, implemented)
+})
+
+test('cairn-spec: the universal edition is self-contained and deterministic', () => {
+  assert.equal(buildHtml(), html)
+  assert.match(html, /<nav class="tree-panel" aria-label="Article tree">/)
+  assert.match(html, /<noscript>/)
   assert.doesNotMatch(html, /<script\s+[^>]*src=/i)
   assert.doesNotMatch(html, /<link\s+[^>]*rel=["']stylesheet/i)
+  assert.doesNotMatch(html, /<img\s+[^>]*src=["']https?:/i)
 })
 
 test('cairn-spec: every inline script parses as JavaScript', () => {

@@ -1,27 +1,27 @@
 ---
 type: Cairn Reference Index
 title: Cairn implementation reference
-description: Copy-ready layouts, schemas, records, configuration, commands, and vocabulary for reconstructing a conforming Cairn repository.
+description: Exact layouts, schemas, templates, commands, and conformance claims for reconstructing or operating Cairn.
 tags: [cairn, reference, index, implementation]
 timestamp: 2026-08-25T00:00:00Z
 ---
 
 # Implementation reference
 
-The [canonical specification](../index.md) explains the protocol top down. This
-folder collects the exact structures needed to reconstruct it.
+The [canonical specification](../index.md) teaches and defines the protocol.
+The [concept wiki](../concepts/index.md) explains one object per article. This
+reference supplies exact forms:
 
-- [Repository layout](./repository-layout.md) — directories, filenames,
-  ownership, and derived state.
-- [Coding-path template](./path-template.md) — complete frontmatter, plan,
-  documentation coverage, steps, and work ledger.
-- [Human records](./human-records.md) — opening, closing, and coherence-audit
-  templates.
-- [Configuration](./configuration.md) — canonical `cairn.config.json` roles,
-  defaults, and portability rules.
-- [Operations](./operations.md) — opening, step completion, closing, merge
-  verification, and safe cleanup commands.
-- [Glossary](./glossary.md) — precise definitions in one place.
+- [Repository layout](./repository-layout.md) — directories, file roles, and
+  naming conventions.
+- [Coding-path template](./path-template.md) — a complete path record.
+- [Human records](./human-records.md) — opening, audit, and closing schemas.
+- [Operations](./operations.md) — registration, checkpoints, exact-candidate
+  closure, integration, and cleanup.
+- [Configuration](./configuration.md) — the versioned portability contract and
+  its current implementation status.
+- [Conformance](./conformance.md) — a checklist for claims made by a repository
+  or tool implementation.
 
 Reference pages do not add requirements. If a reference and the specification
-disagree, the specification is authoritative and the disagreement must be fixed.
+disagree, the specification is authoritative and the disagreement is a defect.
