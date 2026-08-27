@@ -1,6 +1,6 @@
 :root {
   color-scheme: light dark;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--note-text-font);
   --border: light-dark(#e0e0d8, #33333a);
   --muted: light-dark(#6b6b62, #9a9aa2);
   --accent: light-dark(#3d5a3d, #9ec49e);
@@ -66,6 +66,17 @@
   --note-quote-border: 3px solid var(--accent);
   --note-code-size: 0.85em;
   --note-code-pad: 0.1em 0.35em;
+  /* S01 (CP-UI-TYPOGRAPHY): the PROPORTIONAL counterpart of
+     --note-code-font. It was written out four times — :root, the live
+     editor's scroller, the live-preview limit notice and the inline AI
+     widget — which is the "own copies" this block forbids: changing one
+     moved rendered notes and left the live editor on the old face. The
+     stack leads with faces the reader uses, so Windows resolves Segoe UI
+     Variable rather than Segoe UI; every platform without them falls
+     through to the same system-ui it resolved before. */
+  --note-text-font: 'Inter var', Inter, ui-sans-serif, system-ui,
+    -apple-system, 'Segoe UI Variable Text', 'Segoe UI', Roboto,
+    'Helvetica Neue', sans-serif;
   --note-code-font: ui-monospace, 'Cascadia Mono', Menlo, monospace;
   --note-code-block-max-height: min(32rem, 70vh);
   --note-code-tab-size: 2;
@@ -2435,7 +2446,7 @@ body[data-maximized] .tabstrip {
 /* live preview (lp-*): decoration classes only — the buffer stays the
    raw markdown; hidden syntax reappears on the active line */
 .editor-host.live .cm-scroller {
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--note-text-font);
   font-size: var(--note-font-size);
   line-height: var(--note-line-height);
 }
@@ -2551,7 +2562,7 @@ body[data-maximized] .tabstrip {
 .editor-host .lp-rich-limit {
   color: var(--error);
   font-size: var(--fs-sm);
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--note-text-font);
 }
 
 .editor-host .lp-h1 {
@@ -5210,7 +5221,7 @@ button svg {
    monospace under WSLg). */
 .cm-inline-ai-rendered {
   color: var(--fg);
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--note-text-font);
   font-size: var(--note-font-size);
   line-height: var(--note-line-height);
 }

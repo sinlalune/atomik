@@ -140,6 +140,55 @@ timestamp: 2026-08-17T00:00:00Z
   which would win over the `#dev-docs` hash.
 
 
+## Typography: one proportional face, one token
+
+`--note-text-font` in `:root` is the app's proportional stack; `--note-code-font`
+beside it is the monospace one. Four rules consume the proportional token and
+nothing else may restate it:
+
+| Site | Why it needs an explicit declaration |
+| :-- | :-- |
+| `:root` | the document default every chrome and content surface inherits |
+| `.editor-host.live .cm-scroller` | escapes the monospace `.editor-host .cm-scroller` sets for source mode |
+| `.editor-host .lp-rich-limit` | a notice label rendered inside the live editor |
+| `.cm-inline-ai-rendered` | escapes the monospace of the `.cm-scroller` it sits inside (S05f: bold and italic vanished under WSLg when it inherited) |
+
+Those four were four copies of the same literal until CP-UI-TYPOGRAPHY S01. The
+copies are the failure mode, not the count: changing `:root` alone moved rendered
+notes to the new face and left the **live editor** on the old one, which breaks
+the invariant `.editor-host.live .cm-content` states outright — *read <-> live
+never shifts the text*. `note-typography.test.ts` fails if a fifth copy appears.
+
+`font-family: inherit` is the tempting shortcut and it is wrong here. It is
+correct at `.cm-scroller`, whose parent chain reaches `:root`; at
+`.cm-inline-ai-rendered` the parent **is** the monospace scroller, so `inherit`
+reproduces S05f exactly. One token is right at all four sites.
+
+### What was measured, so nobody re-derives it
+
+Resolved faces read with CDP `CSS.getPlatformFontsForNode`, not inferred from the
+stack. On a WSL host with no Inter installed, every proportional stack in play —
+old and new — resolves to **DejaVu Sans**, because `system-ui` maps there through
+fontconfig. The stack's visible effect is on Windows 11 only, where
+`ui-sans-serif` and `'Segoe UI Variable Text'` sit ahead of `'Segoe UI'` and
+resolve to the newer face. The test pins that ordering; reversing it silently
+reverts the change on the only platform it shows up on.
+
+Four rendering properties were proposed alongside the stack and **all four are
+inert**. Rendering the same paragraph per variant and hashing the PNG gives one
+digest for all of them:
+
+- `-webkit-font-smoothing` / `-moz-osx-font-smoothing` — macOS only;
+- `font-optical-sizing: auto` — already the CSS initial value;
+- `text-rendering: optimizeLegibility` — only forces on kerning and standard
+  ligatures Chromium already applies.
+
+`letter-spacing` is the one that does something, and it does not belong on
+`:root`: it changes advance width by ~0.5% (measured: 555.063 → 552.141 px over
+65 characters), which re-wraps existing notes, and
+`docs/bedrock/36_36-ui-design-system.md` keeps content typography off the chrome
+vocabulary. The test asserts `:root` carries no `letter-spacing`.
+
 ## The index-changed push (CP-MVP-010 S03)
 
 - `atomik:index-changed` carries `{ reason, paths }` from main to the

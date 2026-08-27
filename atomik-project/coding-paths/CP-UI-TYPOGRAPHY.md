@@ -15,6 +15,7 @@ atomik:
     - apps/desktop/renderer/src/styles.css
     - apps/desktop/tests/**
     - docs/modules/atomik-desktop.md
+    - docs/modules/atomik-desktop-shell.md
     - atomik-project/coding-paths/CP-UI-TYPOGRAPHY.md
     - atomik-project/briefs/cp-ui-typography-handoff.md
   governs:
@@ -57,11 +58,55 @@ resolves to DejaVu Sans — and removes a standing duplication instead.
 
 ## Steps
 
-### S01 — One proportional token, four consumers, and a test that sees the fifth
+### S01 — One proportional token, four consumers, and a test that sees the fifth — **COMPLETE**
 
-Add `--note-text-font` beside the existing `--note-code-font`, point all four
-sites at it, pin both the token and the absence of any surviving stack literal in
-a test, and record the measurement in the module note.
+```cairn-unit
+step: S01
+unit: 01
+type: implementation
+verified: cairn-check, typecheck, test, build
+```
+
+`--note-text-font` joins the `--note-*` block beside `--note-code-font`, and the
+four proportional literals — `:root`, `.editor-host.live .cm-scroller`,
+`.editor-host .lp-rich-limit`, `.cm-inline-ai-rendered` — become four consumers
+of it. Nothing else changed: no tracking, no smoothing, no sizes.
+
+- **The token is declared after its first use and that is fine.** `:root` reads
+  `font-family: var(--note-text-font)` at line 3 while the definition sits at
+  line 77 of the same rule. Custom properties resolve at computed-value time, not
+  in source order, so declaration order within one rule does not matter. Verified
+  in the engine rather than assumed: `getComputedStyle` on both
+  `documentElement` and `body` returns the full new stack.
+- **`note-typography.test.ts`, six assertions.** One definition; the stack order
+  that makes Windows resolve Segoe UI Variable, including that plain `'Segoe UI'`
+  stays *behind* the variable face; four consumers; no surviving literal of the
+  old stack anywhere in the sheet; the three parity-critical selectors on the
+  token; and no `letter-spacing` on `:root`. The fourth is the one that matters
+  most — it is what makes a fifth copy fail rather than pass quietly.
+- **The module note records the measurement**, including the four inert
+  properties and the DejaVu finding, so the next person does not re-derive it
+  and does not re-propose the dead CSS.
+
+- **`writes:` widened, and the checker is why.** The declaration named only
+  `docs/modules/atomik-desktop.md`. The `area-note` advisory pointed out that
+  `styles.css` maps to the **shell** area, whose note had not changed — and the
+  root note states the split outright: it keeps what is cross-cutting, the area
+  note keeps what the area owns. The typography section therefore belongs in
+  `atomik-desktop-shell.md` and moved there; only the one-line *Common mistakes*
+  entry stays in the root note, which is a section the split assigns to it.
+  `docs/modules/atomik-desktop-shell.md` is added to `writes:` in this same work
+  unit, per the drift rule.
+- **`single-truth` on the root note is deliberate.** It fires because that note
+  is shared across areas. The edit is one bullet in *Common mistakes*, which the
+  documented split assigns to the root note specifically; the area-owned detail
+  is not there.
+
+Environment note, not a code finding: this worktree needed
+`apps/desktop/node_modules` copied from a sibling. The main checkout's copy has
+an empty `vitest/` directory, so a symlink to it typechecks as
+`TS2307 Cannot find module 'vitest'` across every test file. Worth knowing before
+diagnosing it as a tsconfig problem.
 
 ## Documentation coverage
 
@@ -73,15 +118,15 @@ colour, and the remaining monospace literals.
 
 ## Work Ledger
 
-_No work unit executed yet. S01 is the next action._
+S01 is the path's only planned step and is complete; the ledger above carries it.
 
 ## Current checkpoint
 
-Registered on the trunk at `df875e6`; no implementation branch yet.
+S01 on `path/cp-ui-typography`, rebased onto trunk `39127e7`.
 
 ## Next action
 
-Create the worktree from the registration commit and execute S01.
+Closing ceremony, then the coherence audit and self-merge.
 
 ## Blockers
 
