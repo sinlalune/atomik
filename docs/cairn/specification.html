@@ -3,32 +3,41 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Cairn v0.1 — canonical team protocol specification and concept wiki.">
+  <meta name="description" content="Cairn v0.2 — canonical team protocol specification and concept wiki.">
   <title>Cairn — canonical protocol specification</title>
   <script>document.documentElement.classList.add('has-js')</script>
   <style>
     :root {
       color-scheme: light;
-      --page: #eaede9;
-      --paper: rgba(255, 255, 252, .94);
-      --glass: rgba(248, 249, 246, .78);
-      --glass-strong: rgba(255, 255, 252, .86);
-      --ink: #20211f;
-      --muted: #666862;
-      --line: #d7d7d0;
-      --line-dark: #aaa9a2;
-      --link: #194f82;
-      --link-hover: #0c365c;
-      --code: #f4f4f0;
-      --serif: Charter, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      --page: #eceeea;
+      --paper: rgba(255, 255, 253, .95);
+      --glass: rgba(249, 250, 247, .8);
+      --glass-strong: rgba(255, 255, 253, .88);
+      --ink: #1b1c1a;
+      --muted: #6a6c66;
+      --line: #dcdcd5;
+      --line-dark: #b0afa8;
+      --tint: rgba(25, 79, 130, .07);
+      --tint-soft: rgba(25, 79, 130, .045);
+      --link: #17527f;
+      --link-hover: #0b3557;
+      --code: #f3f4ef;
+      --serif: "Source Serif 4", "Source Serif Pro", Newsreader, Literata,
+        Charter, "Iowan Old Style", Palatino, Georgia, serif;
+      --sans: "Inter var", Inter, ui-sans-serif, system-ui, -apple-system,
+        "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code",
+        "Roboto Mono", Menlo, Consolas, monospace;
+      --r-sm: .375rem;
+      --r-md: .625rem;
+      --r-lg: .875rem;
     }
     * { box-sizing: border-box; }
     html {
       height: 100%;
       overflow: hidden;
       background: var(--page);
+      -webkit-text-size-adjust: 100%;
     }
     body {
       height: 100%;
@@ -36,8 +45,12 @@
       overflow: hidden;
       color: var(--ink);
       background: var(--page);
-      font-family: var(--serif);
-      line-height: 1.58;
+      font-family: var(--sans);
+      font-optical-sizing: auto;
+      line-height: 1.62;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
     a {
       color: var(--link);
@@ -49,6 +62,7 @@
     button:focus-visible, input:focus-visible, a:focus-visible, [tabindex]:focus-visible {
       outline: 2px solid var(--link);
       outline-offset: 2px;
+      border-radius: var(--r-sm);
     }
     .masthead {
       height: 4rem;
@@ -66,23 +80,27 @@
     }
     .masthead h1 {
       margin: 0;
-      font-size: clamp(1.35rem, 2vw, 1.75rem);
-      font-weight: 600;
-      letter-spacing: -.018em;
+      font-family: var(--sans);
+      font-size: clamp(1.3rem, 2vw, 1.6rem);
+      font-weight: 620;
+      letter-spacing: -.026em;
     }
     .masthead p {
       margin: 0;
       color: var(--muted);
       font-family: var(--sans);
-      font-size: .75rem;
-      letter-spacing: .04em;
-      text-transform: uppercase;
+      font-size: .78rem;
+      font-weight: 450;
+      letter-spacing: -.005em;
     }
     .edition {
       margin-left: auto;
+      padding: .2rem .55rem;
       color: var(--muted);
+      border: 1px solid var(--line);
+      border-radius: 999px;
       font-family: var(--mono);
-      font-size: .72rem;
+      font-size: .7rem;
     }
     .reader-shell {
       height: calc(100vh - 4rem);
@@ -114,10 +132,9 @@
     }
     .tree-panel h2 {
       margin: 0;
-      font-size: .78rem;
-      font-weight: 650;
-      letter-spacing: .07em;
-      text-transform: uppercase;
+      font-size: .84rem;
+      font-weight: 620;
+      letter-spacing: -.012em;
     }
     .tree-panel header span {
       color: var(--muted);
@@ -127,27 +144,30 @@
     .tree-search {
       width: 100%;
       margin: 0 0 .85rem;
-      padding: .5rem .6rem;
+      padding: .48rem .65rem;
       color: var(--ink);
-      border: 1px solid var(--line-dark);
-      border-radius: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
       background: var(--paper);
       font-family: var(--sans);
-      font-size: .8rem;
+      font-size: .82rem;
     }
+    .tree-search::placeholder { color: var(--muted); }
+    .tree-search:hover { border-color: var(--line-dark); }
     .tree-group { border-top: 1px solid var(--line); }
     .tree-group:last-child { border-bottom: 1px solid var(--line); }
     .tree-group summary {
       display: flex;
       justify-content: space-between;
-      padding: .55rem .15rem;
+      padding: .55rem .35rem;
+      border-radius: var(--r-sm);
       cursor: pointer;
-      color: #42443f;
-      font-size: .74rem;
-      font-weight: 650;
-      letter-spacing: .045em;
-      text-transform: uppercase;
+      color: #43453f;
+      font-size: .76rem;
+      font-weight: 600;
+      letter-spacing: -.006em;
     }
+    .tree-group summary:hover { background: var(--tint-soft); }
     .tree-group summary span {
       color: var(--muted);
       font-family: var(--mono);
@@ -161,18 +181,18 @@
     .tree-group li[hidden] { display: none; }
     .tree-group a {
       display: block;
-      padding: .28rem .35rem;
+      padding: .3rem .45rem;
       color: #41433f;
-      font-size: .79rem;
-      line-height: 1.35;
+      border-radius: var(--r-sm);
+      font-size: .81rem;
+      line-height: 1.38;
       text-decoration: none;
-      border-left: 2px solid transparent;
     }
-    .tree-group a:hover,
+    .tree-group a:hover { background: var(--tint-soft); }
     .tree-group a[aria-current="page"] {
       color: var(--link);
-      border-left-color: var(--link);
-      background: #edede7;
+      background: var(--tint);
+      font-weight: 550;
     }
     .reader {
       min-width: 0;
@@ -207,53 +227,49 @@
       display: grid;
       grid-template-rows: auto minmax(0, 1fr);
       border: 0;
-      border-top: 2px solid var(--line-dark);
       border-right: 1px solid var(--line-dark);
       background: var(--paper);
     }
     .article-pane:last-child { border-right: 0; }
-    .article-pane[data-active="true"] {
-      border-top-color: var(--link);
-    }
     .pane-toolbar {
       min-height: 2.75rem;
       display: grid;
-      grid-template-columns: auto minmax(0, 1fr) auto auto;
+      grid-template-columns: minmax(0, 1fr) auto auto;
       align-items: center;
-      gap: .5rem;
-      padding: .45rem .65rem;
+      gap: .4rem;
+      padding: .45rem .7rem;
       border-bottom: 1px solid var(--line);
       background: var(--glass-strong);
       -webkit-backdrop-filter: blur(14px) saturate(1.06);
       backdrop-filter: blur(14px) saturate(1.06);
       font-family: var(--sans);
     }
-    .pane-mark {
-      color: var(--muted);
-      font-family: var(--mono);
-      font-size: .65rem;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-    }
+    .pane-toolbar.is-static { grid-template-columns: minmax(0, 1fr); }
     .pane-title {
       overflow: hidden;
       margin: 0;
-      font-size: .78rem;
+      font-size: .82rem;
       font-weight: 600;
+      letter-spacing: -.012em;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
     .pane-toolbar button {
-      width: 1.75rem;
-      height: 1.75rem;
+      width: 1.85rem;
+      height: 1.85rem;
       padding: 0;
       color: var(--ink);
       border: 1px solid var(--line);
-      border-radius: 0;
+      border-radius: var(--r-sm);
       background: transparent;
       cursor: pointer;
+      line-height: 1;
     }
-    .pane-toolbar button:disabled { color: #aaa; cursor: default; }
+    .pane-toolbar button:hover:not(:disabled) {
+      background: var(--tint-soft);
+      border-color: var(--line-dark);
+    }
+    .pane-toolbar button:disabled { color: #b4b4ae; cursor: default; }
     .article-scroll {
       min-height: 0;
       height: 100%;
@@ -275,14 +291,21 @@
     }
     .article-meta {
       display: flex;
+      align-items: center;
       justify-content: space-between;
       gap: 1rem;
-      padding: .75rem clamp(1rem, 3vw, 2.25rem) 0;
+      max-width: 44rem;
+      margin: 0 auto;
+      padding: 1rem clamp(1rem, 3vw, 2.25rem) 0;
       color: var(--muted);
       font-family: var(--sans);
-      font-size: .66rem;
-      letter-spacing: .055em;
-      text-transform: uppercase;
+      font-size: .7rem;
+    }
+    .article-meta > span {
+      padding: .12rem .5rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      letter-spacing: -.004em;
     }
     .article-meta code {
       overflow: hidden;
@@ -293,10 +316,11 @@
       white-space: nowrap;
     }
     .article-body {
-      max-width: 48rem;
+      max-width: 44rem;
       margin: 0 auto;
       padding: 1.15rem clamp(1rem, 3vw, 2.25rem) 4rem;
-      font-size: clamp(.96rem, 1.05vw, 1.04rem);
+      font-size: clamp(.93rem, 1vw, 1rem);
+      letter-spacing: -.003em;
     }
     .article-body h1,
     .article-body h2,
@@ -308,28 +332,32 @@
     }
     .article-body h1 {
       margin: .15rem 0 1.6rem;
-      padding-bottom: .65rem;
-      border-bottom: 1px solid var(--line-dark);
-      font-size: clamp(1.75rem, 3vw, 2.45rem);
+      padding-bottom: .7rem;
+      border-bottom: 1px solid var(--line);
+      font-family: var(--serif);
+      font-size: clamp(1.8rem, 3vw, 2.5rem);
       font-weight: 600;
-      letter-spacing: -.025em;
+      letter-spacing: -.028em;
     }
     .article-body h2 {
-      margin: 2.35rem 0 .8rem;
-      font-size: 1.35rem;
-      font-weight: 600;
-      letter-spacing: -.012em;
+      margin: 2.4rem 0 .8rem;
+      font-size: 1.3rem;
+      font-weight: 620;
+      letter-spacing: -.02em;
     }
     .article-body h3 {
       margin: 1.65rem 0 .55rem;
       font-family: var(--sans);
-      font-size: .98rem;
-      font-weight: 680;
+      font-size: 1rem;
+      font-weight: 640;
+      letter-spacing: -.01em;
     }
     .article-body h4 {
       margin: 1.25rem 0 .4rem;
       font-family: var(--sans);
-      font-size: .84rem;
+      font-size: .86rem;
+      font-weight: 620;
+      letter-spacing: -.006em;
     }
     .article-body p { margin: .75rem 0; }
     .article-body ul,
@@ -337,13 +365,20 @@
     .article-body li { margin: .3rem 0; }
     .article-body blockquote {
       margin: 1.4rem 0;
-      padding: .05rem 0 .05rem 1rem;
+      padding: .7rem 1rem;
       color: #3e403b;
+      border: 1px solid var(--line);
       border-left: 2px solid var(--line-dark);
-      font-style: italic;
+      border-radius: var(--r-md);
+      background: var(--tint-soft);
+      font-family: var(--serif);
+      font-size: 1.03em;
     }
+    .article-body blockquote > :first-child { margin-top: 0; }
+    .article-body blockquote > :last-child { margin-bottom: 0; }
     .article-body code {
-      padding: .06em .22em;
+      padding: .1em .3em;
+      border-radius: var(--r-sm);
       background: var(--code);
       font-family: var(--mono);
       font-size: .83em;
@@ -351,10 +386,11 @@
     .article-body pre {
       overflow: auto;
       margin: 1.15rem 0;
-      padding: .85rem 1rem;
+      padding: .9rem 1.05rem;
       border: 1px solid var(--line);
+      border-radius: var(--r-md);
       background: var(--code);
-      line-height: 1.48;
+      line-height: 1.5;
     }
     .article-body pre code {
       padding: 0;
@@ -364,19 +400,32 @@
     .article-body table {
       width: 100%;
       margin: 1.2rem 0;
-      border-collapse: collapse;
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow: hidden;
       font-family: var(--sans);
-      font-size: .78rem;
-      line-height: 1.42;
+      font-size: .79rem;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.45;
     }
     .article-body th,
     .article-body td {
-      padding: .5rem .55rem;
-      border: 1px solid var(--line);
+      padding: .5rem .6rem;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
       text-align: left;
       vertical-align: top;
     }
-    .article-body th { background: #f5f5f1; font-weight: 650; }
+    .article-body th:last-child,
+    .article-body td:last-child { border-right: 0; }
+    .article-body tr:last-child td { border-bottom: 0; }
+    .article-body th {
+      background: #f4f5f0;
+      font-weight: 620;
+      letter-spacing: -.006em;
+    }
     .article-body hr {
       margin: 2rem 0;
       border: 0;
@@ -388,6 +437,7 @@
       margin: 1rem auto;
       padding: 1rem;
       border: 1px solid var(--line);
+      border-radius: var(--r-md);
       background: var(--paper);
       font-family: var(--sans);
     }
@@ -399,6 +449,7 @@
     .sequential-article {
       margin: 0 0 1rem;
       border: 1px solid var(--line);
+      border-radius: var(--r-lg);
       background: var(--paper);
     }
     @media (max-width: 1180px) {
@@ -456,13 +507,13 @@
   <header class="masthead">
     <h1>Cairn</h1>
     <p>Canonical protocol specification</p>
-    <span class="edition">v0.1 · universal edition</span>
+    <span class="edition">v0.2 · universal edition</span>
   </header>
   <div class="reader-shell">
     <nav class="tree-panel" aria-label="Article tree">
       <header>
         <h2>Article tree</h2>
-        <span>77 objects</span>
+        <span>78 objects</span>
       </header>
       <label>
         <span hidden>Filter articles</span>
@@ -484,7 +535,7 @@
     </details>
 
     <details class="tree-group" open>
-      <summary>Concepts<span>67</span></summary>
+      <summary>Concepts<span>68</span></summary>
       <ul>
 
           <li data-tree-item data-search="concepts this wiki defines the specialised ideas used by the cairn specification. each page is about one object or rule. it starts with a plain definition, connects the idea to cairn, and states its ">
@@ -677,7 +728,7 @@
               <span>Integrator</span>
             </a>
           </li>
-          <li data-tree-item data-search="journal the cairn journal is the set of integrated-outcome records under the portable role path project/log/; the reference binding uses atomik-project/log/.">
+          <li data-tree-item data-search="journal the cairn journal is the set of integrated-outcome records under the portable role path project/log/ — one file per integrated outcome, never one appended file.">
             <a href="#article-concept-journal" data-tree-article="concept-journal">
               <span>Journal</span>
             </a>
@@ -692,7 +743,7 @@
               <span>Lightweight path</span>
             </a>
           </li>
-          <li data-tree-item data-search="live view a live view is a generated navigation file, canonically project/coding-paths/active.md. the reference binding uses atomik-project/coding-paths/active.md.">
+          <li data-tree-item data-search="live view a live view is a generated navigation file, canonically project/coding-paths/active.md.">
             <a href="#article-concept-live-view" data-tree-article="concept-live-view">
               <span>Live view</span>
             </a>
@@ -717,7 +768,7 @@
               <span>Path initiator</span>
             </a>
           </li>
-          <li data-tree-item data-search="path record a path record is project/coding-paths/cp-&lt;id&gt;.md, the portable role path and durable source of truth for one coding path. the reference binding uses atomik-project/coding-paths/cp-&lt;id&gt;.md.">
+          <li data-tree-item data-search="path record a path record is project/coding-paths/cp-&lt;id&gt;.md, the portable role path and durable source of truth for one coding path.">
             <a href="#article-concept-path-record" data-tree-article="concept-path-record">
               <span>Path record</span>
             </a>
@@ -765,6 +816,11 @@
           <li data-tree-item data-search="repository a repository is a project directory managed by git, including its recorded commits, branches, and configuration.">
             <a href="#article-concept-repository" data-tree-article="concept-repository">
               <span>Repository</span>
+            </a>
+          </li>
+          <li data-tree-item data-search="route a route is the ceremony a coding path runs at. every path must declare one, in a single frontmatter field: yaml route: lightweight the route does not change what a path is allowed to do. it ">
+            <a href="#article-concept-route" data-tree-article="concept-route">
+              <span>Route</span>
             </a>
           </li>
           <li data-tree-item data-search="running state running means a path has opening acceptance, is registered on the trunk, and may execute. it retains its canonical id, branch, base commit, current writer assignment, step, and remote checkp">
@@ -844,7 +900,7 @@
               <span>Cairn conformance checklist</span>
             </a>
           </li>
-          <li data-tree-item data-search="the handoff-brief contract the handoff brief is the protocol's bootstrap document: the first thing a new participant reads and, for several minutes, the only thing they have read. this page gives it exact fields, beca">
+          <li data-tree-item data-search="the handoff-brief contract the handoff brief is the protocol's bootstrap document: the last stop on the entry route from agents.md, and the first document a new participant acts from. this page gives it exact fields, ">
             <a href="#article-reference-handoff-brief" data-tree-article="reference-handoff-brief">
               <span>The handoff-brief contract</span>
             </a>
@@ -859,7 +915,7 @@
               <span>Cairn operations</span>
             </a>
           </li>
-          <li data-tree-item data-search="coding-path template for the installed reference binding, copy this file to atomik-project/coding-paths/cp-&lt;id&gt;.md. keep the path id, filename, and branch mechanically related. a portable implementation substitu">
+          <li data-tree-item data-search="coding-path template for the installed reference binding, copy this file to project/coding-paths/cp-&lt;id&gt;.md. keep the path id, filename, and branch mechanically related. a portable implementation substitutes its">
             <a href="#article-reference-path-template" data-tree-article="reference-path-template">
               <span>Coding-path template</span>
             </a>
@@ -880,19 +936,16 @@
     </nav>
     <main class="reader" aria-label="Cairn reader">
       <p class="reader-instruction visually-hidden">
-        Select a pane, then choose an article. A link inside either pane opens
-        the linked object in the other pane.
+        The left pane holds the full specification and stays there. Every link
+        and every tree entry opens the linked object in the right pane.
       </p>
       <div class="reading-columns">
-        <section class="article-pane" data-pane="left" data-active="true"
-          aria-label="Reading pane A">
-          <header class="pane-toolbar">
-            <span class="pane-mark">Pane A</span>
+        <section class="article-pane" data-pane="left"
+          aria-label="Specification">
+          <header class="pane-toolbar is-static">
             <h2 class="pane-title">Cairn</h2>
-            <button type="button" data-history="back" aria-label="Back in pane A" disabled>←</button>
-            <button type="button" data-history="forward" aria-label="Forward in pane A" disabled>→</button>
           </header>
-          <div class="article-scroll" tabindex="0" aria-live="polite">
+          <div class="article-scroll" tabindex="0">
 
     <div class="article-meta">
       <span>Specification</span>
@@ -1048,7 +1101,7 @@ route from accepted intent to integration. It has:</p>
 <li>one stable identifier, such as <code>CP-SEARCH</code>;</li>
 <li>one <a href="#article-concept-path-record" data-article="concept-path-record" data-anchor="" class="wiki-link">path record</a>, such as
 <code>project/coding-paths/CP-SEARCH.md</code>;</li>
-<li>one declared <a href="#article-concept-lightweight-path" data-article="concept-lightweight-path" data-anchor="" class="wiki-link">route</a>;</li>
+<li>one declared <a href="#article-concept-route" data-article="concept-route" data-anchor="" class="wiki-link">route</a>;</li>
 <li>one <a href="#article-concept-branch" data-article="concept-branch" data-anchor="" class="wiki-link">branch</a>, such as <code>path/cp-search</code>;</li>
 <li>one dedicated <a href="#article-concept-worktree" data-article="concept-worktree" data-anchor="" class="wiki-link">worktree</a>;</li>
 <li>one <a href="#article-concept-writer-assignment" data-article="concept-writer-assignment" data-anchor="" class="wiki-link">assigned writer</a> for that writable
@@ -1160,11 +1213,25 @@ declared read surface: the documents this work is bound by, each pinned as
 <code>path@&lt;object-id&gt;</code> so that <em>which</em> version governed is a fact rather than a
 recollection.</p>
 <p>The pinned id is the document’s own <strong>blob object id</strong> — the id of that exact
-content, not of a repository state that happened to contain it. A commit id
-would also identify a version, but it changes whenever anything else in the
-repository changes, so a <code>governs:</code> list pinned to commits would go stale
-constantly while the documents it names sat untouched.</p>
-<pre><code class="language-bash">git rev-parse HEAD:docs/architecture/example.md
+content, not of a repository state that happened to contain it. Git stores a
+file’s bytes as an object of their own, called a <em>blob</em>, and gives it an
+<a href="#article-concept-commit-hash" data-article="concept-commit-hash" data-anchor="" class="wiki-link">object id</a> derived from those bytes. Two files with
+identical content anywhere in any repository share one blob id; editing one byte
+produces a different one.</p>
+<p>A commit id would also identify a version, but it changes whenever anything else
+in the repository changes, so a <code>governs:</code> list pinned to commits would go stale
+constantly while the documents it names sat untouched. A blob id changes when,
+and only when, the governing document itself changes — which is exactly the
+event a reader needs to notice.</p>
+<p>Git prints a blob id with <code>rev-parse</code> using the <code>&lt;commit&gt;:&lt;path&gt;</code> form, which
+means “the object at this path, as of this commit”:</p>
+<pre><code class="language-bash">$ git rev-parse HEAD:docs/architecture/example.md
+89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
+</code></pre>
+<p>That is the value written after the <code>@</code>. To read the document back exactly as it
+was pinned — even if the working copy has since moved on — pass the same id to
+<code>git show</code>:</p>
+<pre><code class="language-bash">$ git show 89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
 </code></pre>
 <p>Neither is a filesystem lock. A path may discover a necessary wider change and
 continue. What it MUST NOT do is continue with a stale declaration: writing
@@ -1304,11 +1371,14 @@ no directory listing, and a repository that forgets they exist will
 garbage-collect exactly the history its ledger promised.</p>
 <p><code>cairn.config.json</code> is the specified portable binding file. It is part of the
 protocol layout but is not yet loaded or installed by the v0.2 reference tools.</p>
-<p>The protocol role name for the execution plane is <code>project/</code>. The current
-reference tools bind that role to <code>atomik-project/</code> and bind
-<code>docs/architecture/</code> to <code>docs/bedrock/</code>; the not-yet-implemented portable
-configuration will make those bindings selectable. The exact installed tree,
-file roles, naming rules, and portable mapping are in the
+<p>The names used throughout this specification — <code>project/</code>,
+<code>docs/architecture/</code> — are <strong>role names</strong>, not required folder names. A
+repository binds each role to a folder it already has, and the current reference
+tools bind two of them to different names than the ones written here. Those
+bindings are recorded once, in the
+<a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="portable-roles-and-installed-names" class="wiki-link">installed binding table</a>,
+so that no other page has to repeat a host repository’s local vocabulary. The
+tree, file roles, naming rules, and the mapping are all in the
 <a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="" class="wiki-link">repository-layout reference</a>.</p>
 <h2 id="specification--choose-the-route-the-change-earns" data-heading="choose-the-route-the-change-earns">Choose the route the change earns</h2>
 <p>Not every bounded change deserves the same ceremony. A protocol that demands
@@ -1594,8 +1664,19 @@ brief agree.</p>
 default is 1200; a brief that cannot say where a path stands in that budget is
 describing a path that has lost its shape.</p>
 <h4 id="specification--the-answerable-alone-contract" data-heading="the-answerable-alone-contract">The answerable-alone contract</h4>
-<p>A reader holding only <code>AGENTS.md</code> and the brief — no ledger, no conversation, no
-prior session — MUST be able to state:</p>
+<p><strong>“Alone” is a claim about what the reader must already carry in their head, not
+about how many files they may open.</strong> A participant arriving at a Cairn
+repository follows the entry route the repository itself publishes: <code>AGENTS.md</code>
+names the operating convention, the convention names the <a href="#article-concept-live-view" data-article="concept-live-view" data-anchor="" class="wiki-link">live
+view</a>, the live view names the path, and the
+<a href="#article-concept-path-record" data-article="concept-path-record" data-anchor="" class="wiki-link">path record</a> carries the plan and the ledger. That
+chain is the protocol working. A brief that set out to replace it would be a
+lossy copy of records that are already canonical, refreshed by hand, drifting
+from the day it was written.</p>
+<p>What the brief owes is the <strong>last link</strong>, and it owes it exactly. A reader
+holding <code>AGENTS.md</code>, the brief, and the repository at <code>checkpoint</code> — with no
+conversation, no prior session, and no memory of how the path reached here —
+MUST be able to state:</p>
 <ol>
 <li>the outcome this path is for;</li>
 <li>the exact commit to resume from;</li>
@@ -1606,21 +1687,50 @@ prior session — MUST be able to state:</p>
 <li>what has already been tried and rejected;</li>
 <li>the exact commands that verify the checkpoint.</li>
 </ol>
-<p>If answering any of these requires opening the ledger, <strong>the brief has failed</strong>,
-and refreshing it is part of the next work unit.</p>
-<p>The brief is mutable and rewritten at every work unit; the
-<a href="#article-concept-work-ledger" data-article="concept-work-ledger" data-anchor="" class="wiki-link">work ledger</a> is the append-only history. They are
-not two copies of one thing. The ledger grows without bound and records
-everything that happened; the brief stays small and records the situation now.
-Neither can do the other’s job, and a brief that only makes sense to someone who
-has read the ledger has quietly become a second ledger.</p>
+<p>Each answer MUST be present <strong>in the brief itself, or in a record the brief
+names at an exact object id.</strong> An answer that survives only in a conversation,
+only in a previous session, or only as something a reader would have to
+reconstruct by reading the ledger’s history and judging which parts are still
+true is unanswerable, <strong>the brief has failed</strong>, and refreshing it is part of the
+next work unit.</p>
+<p>That last clause is the one that does the work. The ledger is history — every
+work unit that happened, permanently, in order. Deciding <em>which of that history
+is still the situation</em> is precisely the brief’s job, and a brief that hands it
+back has not been terse, it has been silent.</p>
+<h5 id="specification--two-failure-modes-not-one" data-heading="two-failure-modes-not-one">Two failure modes, not one</h5>
+<p>The brief sits between two of them, and they pull in opposite directions:</p>
+<ul>
+<li><strong>too thin</strong> — it names no ids and no commands, so the reader must open the
+ledger and work out for themselves which of forty entries still holds. It has
+handed its only job back to the record it was supposed to summarise;</li>
+<li><strong>too thick</strong> — it re-narrates the ledger so as not to need it, and now two
+accounts of the same work exist, drift apart at different rates, and disagree
+about the past. A brief that reproduces the ledger has quietly become a
+second ledger.</li>
+</ul>
+<p>It escapes both by <strong>pointing rather than retelling</strong>: exact object ids, exact
+runnable commands, exact filenames, and roughly one paragraph of prose per
+section. It is the topmost stone of a cairn — it means nothing without the
+stones beneath it, and it is the only one you need to see to know where to put
+your foot next.</p>
+<h5 id="specification--why-the-objective-is-not-in-the-frontmatter" data-heading="why-the-objective-is-not-in-the-frontmatter">Why the objective is not in the frontmatter</h5>
+<p>Question 1 is the one that looks misplaced, because the frontmatter carries
+machine-checkable state and the objective is prose. It is answered by the body’s
+<code>## Outcome</code> section, which restates in one paragraph what the path record
+argues at length. The frontmatter deliberately carries no objective field: an
+objective maintained in two schemas is an objective that will eventually
+disagree with itself, and the <a href="#article-concept-acceptance-drift" data-article="concept-acceptance-drift" data-anchor="" class="wiki-link">acceptance-drift</a>
+predicate cannot adjudicate between two prose paragraphs.</p>
 <p>The complete field list, caps, and template are in the
 <a href="#article-reference-handoff-brief" data-article="reference-handoff-brief" data-anchor="" class="wiki-link">handoff-brief reference</a>.</p>
 <h4 id="specification--cold-resume-is-the-measurement" data-heading="cold-resume-is-the-measurement">Cold resume is the measurement</h4>
 <p>The answerable-alone contract is also how Cairn is measured. A <strong>cold resume</strong>
 places a participant with no prior context in front of <code>AGENTS.md</code>, the brief,
 and the repository at the named checkpoint, and asks them to perform the next
-action. Success rate and time-to-first-correct-action are the pilot’s primary
+action. The participant MAY open any record the brief names — that is the
+contract working, not a leak in the trial. What the trial MUST withhold is
+everything undurable: the conversation, the previous session, and the person who
+wrote it. Success rate and time-to-first-correct-action are the pilot’s primary
 metric, ahead of ceremony time or artifact count: a protocol whose briefs cannot
 be resumed cold has failed at the thing it exists for, however cheap its
 ceremony is.</p>
@@ -2850,13 +2960,12 @@ beside the specification. Neither pane is a footnote to the other.</p>
     </article>
           </div>
         </section>
-        <section class="article-pane" data-pane="right" data-active="false"
-          aria-label="Reading pane B">
+        <section class="article-pane" data-pane="right"
+          aria-label="Linked object">
           <header class="pane-toolbar">
-            <span class="pane-mark">Pane B</span>
             <h2 class="pane-title">Concepts</h2>
-            <button type="button" data-history="back" aria-label="Back in pane B" disabled>←</button>
-            <button type="button" data-history="forward" aria-label="Forward in pane B" disabled>→</button>
+            <button type="button" data-history="back" aria-label="Back" disabled>←</button>
+            <button type="button" data-history="forward" aria-label="Forward" disabled>→</button>
           </header>
           <div class="article-scroll" tabindex="0" aria-live="polite">
 
@@ -2876,7 +2985,7 @@ software practice: a reader who already knows what a rebase is can skip all of
 it, and a reader who does not can learn it here without learning Cairn at the
 same time. <strong>Cairn’s own concepts</strong> are the objects and rules the protocol
 actually adds — the ideas you are being asked to evaluate.</p>
-<p>Twenty-one borrowed terms, forty-five Cairn concepts. A protocol that presents
+<p>Twenty-one borrowed terms, forty-six Cairn concepts. A protocol that presents
 those as one undifferentiated glossary looks twice as large as it is, and hides
 which half a criticism belongs to.</p>
 <h2 id="concepts--borrowed-vocabulary" data-heading="borrowed-vocabulary">Borrowed vocabulary</h2>
@@ -2934,8 +3043,9 @@ the path worktree now.</p>
 <a href="#article-concept-ready-state" data-article="concept-ready-state" data-anchor="" class="wiki-link">ready</a>, <a href="#article-concept-done-state" data-article="concept-done-state" data-anchor="" class="wiki-link">done</a>, and
 <a href="#article-concept-archived-state" data-article="concept-archived-state" data-anchor="" class="wiki-link">archived</a>.</p>
 <h3 id="concepts--routes" data-heading="routes">Routes</h3>
-<p><a href="#article-concept-lightweight-path" data-article="concept-lightweight-path" data-anchor="" class="wiki-link">Lightweight path</a> — the default —
-<a href="#article-concept-foundation-path" data-article="concept-foundation-path" data-anchor="" class="wiki-link">foundation path</a>, and the not-yet-implemented
+<p><a href="#article-concept-route" data-article="concept-route" data-anchor="" class="wiki-link">Route</a> is the declared field; the routes it may name are
+<a href="#article-concept-lightweight-path" data-article="concept-lightweight-path" data-anchor="" class="wiki-link">lightweight path</a> — the default —
+<code>full</code>, <a href="#article-concept-foundation-path" data-article="concept-foundation-path" data-anchor="" class="wiki-link">foundation path</a>, and the not-yet-implemented
 <a href="#article-concept-emergency-path" data-article="concept-emergency-path" data-anchor="" class="wiki-link">emergency path</a>.</p>
 <h3 id="concepts--governance" data-heading="governance">Governance</h3>
 <p><a href="#article-concept-control-plane" data-article="concept-control-plane" data-anchor="" class="wiki-link">Control plane</a> →
@@ -2999,6 +3109,7 @@ the path worktree now.</p>
 <li><a href="#article-concept-remote" data-article="concept-remote" data-anchor="" class="wiki-link">Remote</a> <em>(borrowed)</em></li>
 <li><a href="#article-concept-remote-checkpoint" data-article="concept-remote-checkpoint" data-anchor="" class="wiki-link">Remote checkpoint</a></li>
 <li><a href="#article-concept-repository" data-article="concept-repository" data-anchor="" class="wiki-link">Repository</a> <em>(borrowed)</em></li>
+<li><a href="#article-concept-route" data-article="concept-route" data-anchor="" class="wiki-link">Route</a></li>
 <li><a href="#article-concept-running-state" data-article="concept-running-state" data-anchor="" class="wiki-link">Running state</a></li>
 <li><a href="#article-concept-schema" data-article="concept-schema" data-anchor="" class="wiki-link">Schema</a> <em>(borrowed)</em></li>
 <li><a href="#article-concept-scope-digest" data-article="concept-scope-digest" data-anchor="" class="wiki-link">Scope digest</a></li>
@@ -3179,7 +3290,7 @@ route from accepted intent to integration. It has:</p>
 <li>one stable identifier, such as <code>CP-SEARCH</code>;</li>
 <li>one <a href="#article-concept-path-record" data-article="concept-path-record" data-anchor="" class="wiki-link">path record</a>, such as
 <code>project/coding-paths/CP-SEARCH.md</code>;</li>
-<li>one declared <a href="#article-concept-lightweight-path" data-article="concept-lightweight-path" data-anchor="" class="wiki-link">route</a>;</li>
+<li>one declared <a href="#article-concept-route" data-article="concept-route" data-anchor="" class="wiki-link">route</a>;</li>
 <li>one <a href="#article-concept-branch" data-article="concept-branch" data-anchor="" class="wiki-link">branch</a>, such as <code>path/cp-search</code>;</li>
 <li>one dedicated <a href="#article-concept-worktree" data-article="concept-worktree" data-anchor="" class="wiki-link">worktree</a>;</li>
 <li>one <a href="#article-concept-writer-assignment" data-article="concept-writer-assignment" data-anchor="" class="wiki-link">assigned writer</a> for that writable
@@ -3291,11 +3402,25 @@ declared read surface: the documents this work is bound by, each pinned as
 <code>path@&lt;object-id&gt;</code> so that <em>which</em> version governed is a fact rather than a
 recollection.</p>
 <p>The pinned id is the document’s own <strong>blob object id</strong> — the id of that exact
-content, not of a repository state that happened to contain it. A commit id
-would also identify a version, but it changes whenever anything else in the
-repository changes, so a <code>governs:</code> list pinned to commits would go stale
-constantly while the documents it names sat untouched.</p>
-<pre><code class="language-bash">git rev-parse HEAD:docs/architecture/example.md
+content, not of a repository state that happened to contain it. Git stores a
+file’s bytes as an object of their own, called a <em>blob</em>, and gives it an
+<a href="#article-concept-commit-hash" data-article="concept-commit-hash" data-anchor="" class="wiki-link">object id</a> derived from those bytes. Two files with
+identical content anywhere in any repository share one blob id; editing one byte
+produces a different one.</p>
+<p>A commit id would also identify a version, but it changes whenever anything else
+in the repository changes, so a <code>governs:</code> list pinned to commits would go stale
+constantly while the documents it names sat untouched. A blob id changes when,
+and only when, the governing document itself changes — which is exactly the
+event a reader needs to notice.</p>
+<p>Git prints a blob id with <code>rev-parse</code> using the <code>&lt;commit&gt;:&lt;path&gt;</code> form, which
+means “the object at this path, as of this commit”:</p>
+<pre><code class="language-bash">$ git rev-parse HEAD:docs/architecture/example.md
+89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
+</code></pre>
+<p>That is the value written after the <code>@</code>. To read the document back exactly as it
+was pinned — even if the working copy has since moved on — pass the same id to
+<code>git show</code>:</p>
+<pre><code class="language-bash">$ git show 89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
 </code></pre>
 <p>Neither is a filesystem lock. A path may discover a necessary wider change and
 continue. What it MUST NOT do is continue with a stale declaration: writing
@@ -3435,11 +3560,14 @@ no directory listing, and a repository that forgets they exist will
 garbage-collect exactly the history its ledger promised.</p>
 <p><code>cairn.config.json</code> is the specified portable binding file. It is part of the
 protocol layout but is not yet loaded or installed by the v0.2 reference tools.</p>
-<p>The protocol role name for the execution plane is <code>project/</code>. The current
-reference tools bind that role to <code>atomik-project/</code> and bind
-<code>docs/architecture/</code> to <code>docs/bedrock/</code>; the not-yet-implemented portable
-configuration will make those bindings selectable. The exact installed tree,
-file roles, naming rules, and portable mapping are in the
+<p>The names used throughout this specification — <code>project/</code>,
+<code>docs/architecture/</code> — are <strong>role names</strong>, not required folder names. A
+repository binds each role to a folder it already has, and the current reference
+tools bind two of them to different names than the ones written here. Those
+bindings are recorded once, in the
+<a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="portable-roles-and-installed-names" class="wiki-link">installed binding table</a>,
+so that no other page has to repeat a host repository’s local vocabulary. The
+tree, file roles, naming rules, and the mapping are all in the
 <a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="" class="wiki-link">repository-layout reference</a>.</p>
 <h2 id="specification--choose-the-route-the-change-earns" data-heading="choose-the-route-the-change-earns">Choose the route the change earns</h2>
 <p>Not every bounded change deserves the same ceremony. A protocol that demands
@@ -3725,8 +3853,19 @@ brief agree.</p>
 default is 1200; a brief that cannot say where a path stands in that budget is
 describing a path that has lost its shape.</p>
 <h4 id="specification--the-answerable-alone-contract" data-heading="the-answerable-alone-contract">The answerable-alone contract</h4>
-<p>A reader holding only <code>AGENTS.md</code> and the brief — no ledger, no conversation, no
-prior session — MUST be able to state:</p>
+<p><strong>“Alone” is a claim about what the reader must already carry in their head, not
+about how many files they may open.</strong> A participant arriving at a Cairn
+repository follows the entry route the repository itself publishes: <code>AGENTS.md</code>
+names the operating convention, the convention names the <a href="#article-concept-live-view" data-article="concept-live-view" data-anchor="" class="wiki-link">live
+view</a>, the live view names the path, and the
+<a href="#article-concept-path-record" data-article="concept-path-record" data-anchor="" class="wiki-link">path record</a> carries the plan and the ledger. That
+chain is the protocol working. A brief that set out to replace it would be a
+lossy copy of records that are already canonical, refreshed by hand, drifting
+from the day it was written.</p>
+<p>What the brief owes is the <strong>last link</strong>, and it owes it exactly. A reader
+holding <code>AGENTS.md</code>, the brief, and the repository at <code>checkpoint</code> — with no
+conversation, no prior session, and no memory of how the path reached here —
+MUST be able to state:</p>
 <ol>
 <li>the outcome this path is for;</li>
 <li>the exact commit to resume from;</li>
@@ -3737,21 +3876,50 @@ prior session — MUST be able to state:</p>
 <li>what has already been tried and rejected;</li>
 <li>the exact commands that verify the checkpoint.</li>
 </ol>
-<p>If answering any of these requires opening the ledger, <strong>the brief has failed</strong>,
-and refreshing it is part of the next work unit.</p>
-<p>The brief is mutable and rewritten at every work unit; the
-<a href="#article-concept-work-ledger" data-article="concept-work-ledger" data-anchor="" class="wiki-link">work ledger</a> is the append-only history. They are
-not two copies of one thing. The ledger grows without bound and records
-everything that happened; the brief stays small and records the situation now.
-Neither can do the other’s job, and a brief that only makes sense to someone who
-has read the ledger has quietly become a second ledger.</p>
+<p>Each answer MUST be present <strong>in the brief itself, or in a record the brief
+names at an exact object id.</strong> An answer that survives only in a conversation,
+only in a previous session, or only as something a reader would have to
+reconstruct by reading the ledger’s history and judging which parts are still
+true is unanswerable, <strong>the brief has failed</strong>, and refreshing it is part of the
+next work unit.</p>
+<p>That last clause is the one that does the work. The ledger is history — every
+work unit that happened, permanently, in order. Deciding <em>which of that history
+is still the situation</em> is precisely the brief’s job, and a brief that hands it
+back has not been terse, it has been silent.</p>
+<h5 id="specification--two-failure-modes-not-one" data-heading="two-failure-modes-not-one">Two failure modes, not one</h5>
+<p>The brief sits between two of them, and they pull in opposite directions:</p>
+<ul>
+<li><strong>too thin</strong> — it names no ids and no commands, so the reader must open the
+ledger and work out for themselves which of forty entries still holds. It has
+handed its only job back to the record it was supposed to summarise;</li>
+<li><strong>too thick</strong> — it re-narrates the ledger so as not to need it, and now two
+accounts of the same work exist, drift apart at different rates, and disagree
+about the past. A brief that reproduces the ledger has quietly become a
+second ledger.</li>
+</ul>
+<p>It escapes both by <strong>pointing rather than retelling</strong>: exact object ids, exact
+runnable commands, exact filenames, and roughly one paragraph of prose per
+section. It is the topmost stone of a cairn — it means nothing without the
+stones beneath it, and it is the only one you need to see to know where to put
+your foot next.</p>
+<h5 id="specification--why-the-objective-is-not-in-the-frontmatter" data-heading="why-the-objective-is-not-in-the-frontmatter">Why the objective is not in the frontmatter</h5>
+<p>Question 1 is the one that looks misplaced, because the frontmatter carries
+machine-checkable state and the objective is prose. It is answered by the body’s
+<code>## Outcome</code> section, which restates in one paragraph what the path record
+argues at length. The frontmatter deliberately carries no objective field: an
+objective maintained in two schemas is an objective that will eventually
+disagree with itself, and the <a href="#article-concept-acceptance-drift" data-article="concept-acceptance-drift" data-anchor="" class="wiki-link">acceptance-drift</a>
+predicate cannot adjudicate between two prose paragraphs.</p>
 <p>The complete field list, caps, and template are in the
 <a href="#article-reference-handoff-brief" data-article="reference-handoff-brief" data-anchor="" class="wiki-link">handoff-brief reference</a>.</p>
 <h4 id="specification--cold-resume-is-the-measurement" data-heading="cold-resume-is-the-measurement">Cold resume is the measurement</h4>
 <p>The answerable-alone contract is also how Cairn is measured. A <strong>cold resume</strong>
 places a participant with no prior context in front of <code>AGENTS.md</code>, the brief,
 and the repository at the named checkpoint, and asks them to perform the next
-action. Success rate and time-to-first-correct-action are the pilot’s primary
+action. The participant MAY open any record the brief names — that is the
+contract working, not a leak in the trial. What the trial MUST withhold is
+everything undurable: the conversation, the previous session, and the person who
+wrote it. Success rate and time-to-first-correct-action are the pilot’s primary
 metric, ahead of ceremony time or artifact count: a protocol whose briefs cannot
 be resumed cold has failed at the thing it exists for, however cheap its
 ceremony is.</p>
@@ -5002,7 +5170,7 @@ software practice: a reader who already knows what a rebase is can skip all of
 it, and a reader who does not can learn it here without learning Cairn at the
 same time. <strong>Cairn’s own concepts</strong> are the objects and rules the protocol
 actually adds — the ideas you are being asked to evaluate.</p>
-<p>Twenty-one borrowed terms, forty-five Cairn concepts. A protocol that presents
+<p>Twenty-one borrowed terms, forty-six Cairn concepts. A protocol that presents
 those as one undifferentiated glossary looks twice as large as it is, and hides
 which half a criticism belongs to.</p>
 <h2 id="concepts--borrowed-vocabulary" data-heading="borrowed-vocabulary">Borrowed vocabulary</h2>
@@ -5060,8 +5228,9 @@ the path worktree now.</p>
 <a href="#article-concept-ready-state" data-article="concept-ready-state" data-anchor="" class="wiki-link">ready</a>, <a href="#article-concept-done-state" data-article="concept-done-state" data-anchor="" class="wiki-link">done</a>, and
 <a href="#article-concept-archived-state" data-article="concept-archived-state" data-anchor="" class="wiki-link">archived</a>.</p>
 <h3 id="concepts--routes" data-heading="routes">Routes</h3>
-<p><a href="#article-concept-lightweight-path" data-article="concept-lightweight-path" data-anchor="" class="wiki-link">Lightweight path</a> — the default —
-<a href="#article-concept-foundation-path" data-article="concept-foundation-path" data-anchor="" class="wiki-link">foundation path</a>, and the not-yet-implemented
+<p><a href="#article-concept-route" data-article="concept-route" data-anchor="" class="wiki-link">Route</a> is the declared field; the routes it may name are
+<a href="#article-concept-lightweight-path" data-article="concept-lightweight-path" data-anchor="" class="wiki-link">lightweight path</a> — the default —
+<code>full</code>, <a href="#article-concept-foundation-path" data-article="concept-foundation-path" data-anchor="" class="wiki-link">foundation path</a>, and the not-yet-implemented
 <a href="#article-concept-emergency-path" data-article="concept-emergency-path" data-anchor="" class="wiki-link">emergency path</a>.</p>
 <h3 id="concepts--governance" data-heading="governance">Governance</h3>
 <p><a href="#article-concept-control-plane" data-article="concept-control-plane" data-anchor="" class="wiki-link">Control plane</a> →
@@ -5125,6 +5294,7 @@ the path worktree now.</p>
 <li><a href="#article-concept-remote" data-article="concept-remote" data-anchor="" class="wiki-link">Remote</a> <em>(borrowed)</em></li>
 <li><a href="#article-concept-remote-checkpoint" data-article="concept-remote-checkpoint" data-anchor="" class="wiki-link">Remote checkpoint</a></li>
 <li><a href="#article-concept-repository" data-article="concept-repository" data-anchor="" class="wiki-link">Repository</a> <em>(borrowed)</em></li>
+<li><a href="#article-concept-route" data-article="concept-route" data-anchor="" class="wiki-link">Route</a></li>
 <li><a href="#article-concept-running-state" data-article="concept-running-state" data-anchor="" class="wiki-link">Running state</a></li>
 <li><a href="#article-concept-schema" data-article="concept-schema" data-anchor="" class="wiki-link">Schema</a> <em>(borrowed)</em></li>
 <li><a href="#article-concept-scope-digest" data-article="concept-scope-digest" data-anchor="" class="wiki-link">Scope digest</a></li>
@@ -6289,13 +6459,19 @@ judgement is sound.</p>
 <p>A handoff brief states where a <a href="#article-concept-coding-path" data-article="concept-coding-path" data-anchor="" class="wiki-link">coding path</a> is, what evidence
 exists, and the single next action required to continue it.</p>
 <h2 id="concept-handoff--build-the-idea" data-heading="build-the-idea">Build the idea</h2>
-<p>The brief is the document a new participant reads first and, for the first few
-minutes, the only one they have read. That makes it the protocol’s bootstrap
-contract — and a bootstrap contract with no specified fields is not a contract.</p>
+<p>The brief is the <strong>last</strong> document on the entry route and the <strong>first</strong> one a
+participant acts from. <code>AGENTS.md</code> points at the operating convention, the
+convention points at the <a href="#article-concept-live-view" data-article="concept-live-view" data-anchor="" class="wiki-link">live view</a>, the live view names the
+path, and the <a href="#article-concept-path-record" data-article="concept-path-record" data-anchor="" class="wiki-link">path record</a> holds the plan and the ledger. The
+brief is the stone at the top of that cairn: it is the only one you need to look
+at to know where to step, and it is meaningless without the ones underneath.</p>
+<p>That position is what makes it the protocol’s bootstrap contract — and a
+bootstrap contract with no specified fields is not a contract.</p>
 <p>Its relationship to the <a href="#article-concept-work-ledger" data-article="concept-work-ledger" data-anchor="" class="wiki-link">work ledger</a> is a division of labour,
 not a duplication. The ledger is append-only history: everything that happened,
-in order, permanently. The brief is mutable and rewritten at every work unit: the
-current situation, small enough to hold in mind. Neither can do the other’s job.</p>
+in order, permanently. The brief is mutable and rewritten at every work unit: it
+says which part of that history is still the situation. Neither can do the
+other’s job.</p>
 <h2 id="concept-handoff--in-cairn" data-heading="in-cairn">In Cairn</h2>
 <p>The brief lives at <code>project/briefs/&lt;lowercase-id&gt;-handoff.md</code>. Its frontmatter
 carries the machine-checkable state — <code>checkpoint</code>, <code>checkpoint_pushed</code>,
@@ -6305,8 +6481,10 @@ sections: outcome, state, next action, blockers, tried and rejected, reading
 order, and verification. The complete field list, caps, and template are in the
 <a href="#article-reference-handoff-brief" data-article="reference-handoff-brief" data-anchor="" class="wiki-link">handoff-brief reference</a>.</p>
 <h3 id="concept-handoff--the-answerable-alone-contract" data-heading="the-answerable-alone-contract">The answerable-alone contract</h3>
-<p>A reader holding only <code>AGENTS.md</code> and the brief — no ledger, no conversation, no
-prior session — MUST be able to state:</p>
+<p>“Alone” constrains what the reader must already know, not how many files they
+may open. A reader holding <code>AGENTS.md</code>, the brief, and the repository at
+<code>checkpoint</code> — with no conversation, no prior session, and no memory of how the
+path got here — MUST be able to state:</p>
 <ol>
 <li>the outcome this path is for;</li>
 <li>the exact commit to resume from;</li>
@@ -6317,11 +6495,17 @@ prior session — MUST be able to state:</p>
 <li>what has already been tried and rejected;</li>
 <li>the exact commands that verify the checkpoint.</li>
 </ol>
-<p>If answering any of these requires opening the ledger, the brief has failed its
-contract. That test is also the pilot’s primary metric: a <strong>cold resume</strong>, in
-which a participant with no prior context performs the next action correctly
-from the brief alone, measured for success rate and time to first correct
-action.</p>
+<p>Each answer must be in the brief, or in a record the brief names at an exact
+object id. An answer that lives only in a conversation, only in a previous
+session, or only in a judgement the reader would have to make about which
+ledger entries still hold, is unanswerable and the brief has failed.</p>
+<p>Both directions fail. A brief too thin to name ids hands its job back to the
+ledger; a brief that re-narrates the ledger to avoid needing it has become a
+second ledger, and the two accounts start disagreeing about the past. The brief
+points; it does not retell.</p>
+<p>That contract is also the pilot’s primary metric: a <strong>cold resume</strong>, in which a
+participant with no prior context performs the next action correctly, measured
+for success rate and time to first correct action.</p>
 <h2 id="concept-handoff--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
 <p>A brief can drift if it is edited independently of the checkpoint it names. It
 is disposable and never replaces the ledger as history — being answerable alone
@@ -6471,9 +6655,8 @@ behaviour remain explicit.</p>
     <article class="article-body" data-rendered-article="concept-journal">
       <h1 id="concept-journal--journal" data-heading="journal">Journal</h1>
 <p>The Cairn journal is the set of integrated-outcome records under the portable
-role path <code>project/log/</code>; the
-<a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="portable-roles-and-installed-names" class="wiki-link">reference binding</a>
-uses <code>atomik-project/log/</code>.</p>
+role path <code>project/log/</code> — one file per integrated outcome, never one appended
+file.</p>
 <h2 id="concept-journal--in-cairn" data-heading="in-cairn">In Cairn</h2>
 <p>Each integration creates a uniquely named file such as
 <code>YYYY-MM-DD-cp-example-001.md</code>. It names the path, candidate, remote integration
@@ -6617,9 +6800,7 @@ dangerous change of the quarter, and nothing in the route selection will say so.
     <article class="article-body" data-rendered-article="concept-live-view">
       <h1 id="concept-live-view--live-view" data-heading="live-view">Live view</h1>
 <p>A live view is a generated navigation <a href="#article-concept-project-memory" data-article="concept-project-memory" data-anchor="" class="wiki-link">file</a>, canonically
-<code>project/coding-paths/ACTIVE.md</code>. The
-<a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="portable-roles-and-installed-names" class="wiki-link">reference binding</a>
-uses <code>atomik-project/coding-paths/ACTIVE.md</code>.</p>
+<code>project/coding-paths/ACTIVE.md</code>.</p>
 <h2 id="concept-live-view--in-cairn" data-heading="in-cairn">In Cairn</h2>
 <p>It derives from path records and lists <code>running</code>, <code>blocked</code>, and <code>ready</code> paths
 with the information needed to find them. The generator rewrites it
@@ -6758,11 +6939,9 @@ the proposal; initiating it does not grant automatic authority to accept it.</p>
     <article class="article-body" data-rendered-article="concept-path-record">
       <h1 id="concept-path-record--path-record" data-heading="path-record">Path record</h1>
 <p>A path record is <code>project/coding-paths/CP-&lt;ID&gt;.md</code>, the portable role path and
-durable source of truth for one <a href="#article-concept-coding-path" data-article="concept-coding-path" data-anchor="" class="wiki-link">coding path</a>. The
-<a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="portable-roles-and-installed-names" class="wiki-link">reference binding</a>
-uses <code>atomik-project/coding-paths/CP-&lt;ID&gt;.md</code>.</p>
+durable source of truth for one <a href="#article-concept-coding-path" data-article="concept-coding-path" data-anchor="" class="wiki-link">coding path</a>.</p>
 <h2 id="concept-path-record--in-cairn" data-heading="in-cairn">In Cairn</h2>
-<p>Frontmatter carries identity, <a href="#article-concept-lightweight-path" data-article="concept-lightweight-path" data-anchor="" class="wiki-link">route</a>, lifecycle state,
+<p>Frontmatter carries identity, <a href="#article-concept-route" data-article="concept-route" data-anchor="" class="wiki-link">route</a>, lifecycle state,
 base commit, branch, current step, writer assignment, subject commit when ready,
 and two declared surfaces:</p>
 <ul>
@@ -6847,8 +7026,11 @@ manually maintained copies.</p>
 why: <a href="#article-concept-architecture" data-article="concept-architecture" data-anchor="" class="wiki-link">architecture</a>, <a href="#article-concept-decision-record" data-article="concept-decision-record" data-anchor="" class="wiki-link">decisions</a>, and
 <a href="#article-concept-module-note" data-article="concept-module-note" data-anchor="" class="wiki-link">implemented-area notes</a>. The portable role path <code>project/</code>
 records what bounded work is doing now: paths, sessions, audits, handoffs, and
-integrated outcomes. The <a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="portable-roles-and-installed-names" class="wiki-link">reference binding</a>
-names that plane <code>atomik-project/</code>.</p>
+integrated outcomes.</p>
+<p><code>project/</code> is a protocol <strong>role name</strong>, not a required folder name. Which folder
+a given repository installs it in is recorded once, in the
+<a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="portable-roles-and-installed-names" class="wiki-link">installed binding table</a>,
+and nowhere else.</p>
 <p>The path ledger connects them by recording which knowledge governed a concrete
 work unit and which knowledge changed with it. A path’s
 <a href="#article-concept-path-record" data-article="concept-path-record" data-anchor="" class="wiki-link"><code>governs:</code></a> declaration pins each governing document at an
@@ -7140,6 +7322,107 @@ checks, and review are still required.</p>
 
     </article>
     </template>
+    <template id="template-concept-route"
+      data-article-template="concept-route"
+      data-title="Route"
+      data-kind="Concept"
+      data-source="concepts/route.md">
+
+    <div class="article-meta">
+      <span>Concept</span>
+      <code>concepts/route.md</code>
+    </div>
+    <article class="article-body" data-rendered-article="concept-route">
+      <h1 id="concept-route--route" data-heading="route">Route</h1>
+<p>A route is the ceremony a <a href="#article-concept-coding-path" data-article="concept-coding-path" data-anchor="" class="wiki-link">coding path</a> runs at. Every path
+MUST declare one, in a single frontmatter field:</p>
+<pre><code class="language-yaml">route: lightweight
+</code></pre>
+<p>The route does not change what a path is allowed to do. It changes how many
+records the path produces on its way to being accepted.</p>
+<h2 id="concept-route--build-the-idea" data-heading="build-the-idea">Build the idea</h2>
+<p>A protocol has exactly one lever for its own cost, and this is it. Ceremony
+priced too high is not merely expensive — it teaches people to route around the
+protocol, and a protocol routed around enforces nothing at all. Ceremony priced
+too low leaves the changes that deserve scrutiny with none.</p>
+<p>Making that lever a <strong>declared field</strong> rather than an inferred property is the
+part worth arguing about. It means the cost of a change is stated by the person
+opening it, before the work reveals how large it really was. That is honest
+about who actually knows — and it is also the obvious place to cheat.</p>
+<h2 id="concept-route--in-cairn" data-heading="in-cairn">In Cairn</h2>
+<p>Four routes are named. Three are specified; the fourth is deliberately not.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left"><code>route:</code></th>
+<th style="text-align:left">What it is</th>
+<th style="text-align:left">Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><a href="#article-concept-lightweight-path" data-article="concept-lightweight-path" data-anchor="" class="wiki-link"><code>lightweight</code></a></td>
+<td style="text-align:left">the default: every record that carries durable meaning, and none that only ceremony separates</td>
+<td style="text-align:left">specified</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>full</code></td>
+<td style="text-align:left">the strict route: opening record, standalone <a href="#article-concept-coherence-audit" data-article="concept-coherence-audit" data-anchor="" class="wiki-link">coherence audit</a>, standalone closing record, separate <a href="#article-concept-administrative-closure" data-article="concept-administrative-closure" data-anchor="" class="wiki-link">administrative closure</a></td>
+<td style="text-align:left">specified</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#article-concept-foundation-path" data-article="concept-foundation-path" data-anchor="" class="wiki-link"><code>foundation</code></a></td>
+<td style="text-align:left">the same protocol pointed at documents rather than code, for the hour before accepted intent exists</td>
+<td style="text-align:left">specified</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#article-concept-emergency-path" data-article="concept-emergency-path" data-anchor="" class="wiki-link"><code>emergency</code></a></td>
+<td style="text-align:left">named so that the gap is visible; no participant may declare it</td>
+<td style="text-align:left"><strong>not implemented</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="concept-route--five-triggers-force-full" data-heading="five-triggers-force-full">Five triggers force <code>full</code></h3>
+<p>A path MUST declare <code>route: full</code> when any one of these holds:</p>
+<ol>
+<li>it changes the <a href="#article-concept-control-plane" data-article="concept-control-plane" data-anchor="" class="wiki-link">control plane</a>;</li>
+<li>it changes <a href="#article-concept-architecture" data-article="concept-architecture" data-anchor="" class="wiki-link">architecture</a> or a
+<a href="#article-concept-decision-record" data-article="concept-decision-record" data-anchor="" class="wiki-link">decision record</a>;</li>
+<li>its <a href="#article-concept-declared-write-surface" data-article="concept-declared-write-surface" data-anchor="" class="wiki-link"><code>writes:</code></a> declaration covers more than one
+implemented area;</li>
+<li>it is expected to span more than one <a href="#article-concept-work-unit" data-article="concept-work-unit" data-anchor="" class="wiki-link">work unit</a>;</li>
+<li>repository policy designates the area or the change high-risk.</li>
+</ol>
+<p>Triggers 1–3 are <strong>structural</strong>: a checker can derive them from the declaration
+itself. Triggers 4 and 5 are an expectation and a policy, so they are declared
+rather than derived.</p>
+<h3 id="concept-route--the-backstop-and-why-it-exists" data-heading="the-backstop-and-why-it-exists">The backstop, and why it exists</h3>
+<p>A route made of self-declarations has an obvious failure mode: everything
+declares itself lightweight and ceremony evaporates. Trigger 4 is unobservable
+as an <em>expectation</em> — but <strong>having</strong> spanned more than one work unit is a fact
+sitting in the <a href="#article-concept-work-ledger" data-article="concept-work-ledger" data-anchor="" class="wiki-link">work ledger</a>:</p>
+<blockquote>
+<p>A path whose ledger declares more than one <code>cairn-unit</code> MUST declare
+<code>route: full</code>.</p>
+</blockquote>
+<p>It is the same trigger arriving one unit late, and it cannot be declared away.</p>
+<h3 id="concept-route--escalation-is-one-way" data-heading="escalation-is-one-way">Escalation is one-way</h3>
+<p>A lightweight path that meets any trigger MUST escalate before its next
+checkpoint and record the trigger in its ledger. A path MUST NOT declare itself
+<em>down</em> a route: a change does not become small by being called small, and
+self-declared smallness is exactly the bypass the trigger list exists to remove.</p>
+<h2 id="concept-route--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
+<p>The route is a proxy for risk, and a coarse one. A single-file change to one
+implemented area can be the most dangerous change of the quarter, and nothing in
+the route selection will say so. Triggers 4 and 5 remain honour-system at
+declaration time; only the ledger backstop catches trigger 4, and only after the
+fact. Trigger 5 has no mechanical form at all.</p>
+<p>Related: <a href="#article-concept-lightweight-path" data-article="concept-lightweight-path" data-anchor="" class="wiki-link">lightweight path</a>,
+<a href="#article-concept-foundation-path" data-article="concept-foundation-path" data-anchor="" class="wiki-link">foundation path</a>, <a href="#article-concept-emergency-path" data-article="concept-emergency-path" data-anchor="" class="wiki-link">emergency path</a>,
+<a href="#article-concept-coding-path" data-article="concept-coding-path" data-anchor="" class="wiki-link">coding path</a>, <a href="#article-concept-conformance" data-article="concept-conformance" data-anchor="" class="wiki-link">conformance</a>.</p>
+
+    </article>
+    </template>
     <template id="template-concept-running-state"
       data-article-template="concept-running-state"
       data-title="Running state"
@@ -7393,8 +7676,7 @@ reachable: any rewriting push requires
 promises become dangling references.</p>
 <p>If the live path grows too large, a completed step moves byte-for-byte into the
 portable role path <code>project/coding-paths/history/&lt;ID&gt;-SNN.md</code> and the path keeps
-a link. The <a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="portable-roles-and-installed-names" class="wiki-link">reference binding</a>
-uses <code>atomik-project/coding-paths/history/</code>.</p>
+a link.</p>
 <h2 id="concept-work-ledger--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
 <p>The reference checker prevents an existing rolled-history file from being
 rewritten, but it does not yet prove that live ledger content was preserved as a
@@ -7823,8 +8105,10 @@ retained.</li>
 <code>verify</code>, and <code>budget_tokens</code>.</li>
 <li>[ ] The brief’s body holds the seven capped sections and stays within
 <code>budget_tokens</code>.</li>
-<li>[ ] A reader with only <code>AGENTS.md</code> and the brief can answer all eight
-answerable-alone questions.</li>
+<li>[ ] A reader with <code>AGENTS.md</code>, the brief, and the repository at <code>checkpoint</code> —
+and no conversation, prior session, or memory of the path — can answer all
+eight answerable-alone questions from the brief or from a record it names
+at an exact object id.</li>
 <li>[ ] A cold resume has been performed and its success rate and
 time-to-first-correct-action recorded.</li>
 <li>[ ] Another authorised participant can resume from the recorded checkpoint.</li>
@@ -7923,17 +8207,21 @@ and evidenced by hand; the column that says so is “Additional dependency”, n
     <article class="article-body" data-rendered-article="reference-handoff-brief">
       <h1 id="reference-handoff-brief--the-handoff-brief-contract" data-heading="the-handoff-brief-contract">The handoff-brief contract</h1>
 <p>The <a href="#article-concept-handoff" data-article="concept-handoff" data-anchor="" class="wiki-link">handoff brief</a> is the protocol’s bootstrap
-document: the first thing a new participant reads and, for several minutes, the
-only thing they have read. This page gives it exact fields, because a bootstrap
-contract described only in prose is not a contract.</p>
+document: the last stop on the entry route from <code>AGENTS.md</code>, and the first
+document a new participant acts from. This page gives it exact fields, because a
+bootstrap contract described only in prose is not a contract.</p>
 <p>Filename:</p>
 <pre><code class="language-text">project/briefs/&lt;lowercase-path-id&gt;-handoff.md
 </code></pre>
 <p>One brief per path. It is <strong>mutable</strong> and rewritten at every completed
 <a href="#article-concept-work-unit" data-article="concept-work-unit" data-anchor="" class="wiki-link">work unit</a>. The
 <a href="#article-concept-work-ledger" data-article="concept-work-ledger" data-anchor="" class="wiki-link">work ledger</a> is the append-only history; the brief
-is the current situation. A brief that can only be understood by someone who has
-also read the ledger has become a second ledger and has failed.</p>
+says which part of that history is still the situation.</p>
+<p>It can fail in either direction. Too thin, and the reader must go decide for
+themselves which ledger entries still hold — the one judgement the brief exists
+to make. Too thick, and it has re-narrated the ledger into a second ledger, and
+the two will disagree about the past. The brief points at exact ids; it does not
+retell.</p>
 <h2 id="reference-handoff-brief--frontmatter" data-heading="frontmatter">Frontmatter</h2>
 <table>
 <thead>
@@ -8062,25 +8350,82 @@ should take before anything else.</p>
 time.</strong> Without it, a cold reader’s first instinct is usually the approach the
 last writer already eliminated, and they will spend an hour rediscovering why.</p>
 <h2 id="reference-handoff-brief--the-answerable-alone-contract" data-heading="the-answerable-alone-contract">The answerable-alone contract</h2>
-<p>A reader holding only <code>AGENTS.md</code> and this brief — no ledger, no conversation,
-no prior session — MUST be able to state:</p>
-<ol>
-<li>the outcome this path is for;</li>
-<li>the exact commit to resume from;</li>
-<li>the single next action;</li>
-<li>what the path may write;</li>
-<li>what it must read, and at which object id;</li>
-<li>what is blocking, if anything;</li>
-<li>what has already been tried and rejected;</li>
-<li>the exact commands that verify the checkpoint.</li>
-</ol>
-<p>If answering any of these requires opening the ledger, the brief has failed its
-contract, and refreshing it is part of the next work unit.</p>
+<p>“Alone” is about what the reader carries in their head, not about how many files
+they may open. The entry route — <code>AGENTS.md</code> → operating convention → live view
+→ path record → this brief — is the protocol working, and the brief’s job is the
+last link in it, not a replacement for the whole chain.</p>
+<p>A reader holding <code>AGENTS.md</code>, this brief, and the repository at <code>checkpoint</code> —
+with no conversation, no prior session, and no memory of how the path got here —
+MUST be able to state:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:right">#</th>
+<th style="text-align:left">Question</th>
+<th style="text-align:left">Answered by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right">1</td>
+<td style="text-align:left">the outcome this path is for</td>
+<td style="text-align:left"><code>## Outcome</code></td>
+</tr>
+<tr>
+<td style="text-align:right">2</td>
+<td style="text-align:left">the exact commit to resume from</td>
+<td style="text-align:left"><code>checkpoint</code> + <code>checkpoint_unit</code></td>
+</tr>
+<tr>
+<td style="text-align:right">3</td>
+<td style="text-align:left">the single next action</td>
+<td style="text-align:left"><code>## Next action</code></td>
+</tr>
+<tr>
+<td style="text-align:right">4</td>
+<td style="text-align:left">what the path may write</td>
+<td style="text-align:left"><code>writes</code></td>
+</tr>
+<tr>
+<td style="text-align:right">5</td>
+<td style="text-align:left">what it must read, and at which object id</td>
+<td style="text-align:left"><code>governs</code>, each pinned <code>path@&lt;object-id&gt;</code></td>
+</tr>
+<tr>
+<td style="text-align:right">6</td>
+<td style="text-align:left">what is blocking, if anything</td>
+<td style="text-align:left"><code>## Blockers</code></td>
+</tr>
+<tr>
+<td style="text-align:right">7</td>
+<td style="text-align:left">what has already been tried and rejected</td>
+<td style="text-align:left"><code>## Tried and rejected</code></td>
+</tr>
+<tr>
+<td style="text-align:right">8</td>
+<td style="text-align:left">the exact commands that verify the checkpoint</td>
+<td style="text-align:left"><code>verify</code> + <code>## Verification</code></td>
+</tr>
+</tbody>
+</table>
+<p>Each answer MUST be in this brief, or in a record this brief names at an exact
+object id. An answer that survives only in a conversation, only in a previous
+session, or only as a judgement about which ledger entries still hold is
+<strong>unanswerable</strong>: the brief has failed its contract, and refreshing it is part of
+the next work unit.</p>
+<p>There is deliberately <strong>no objective field in the frontmatter</strong>. Question 1 is
+prose and the frontmatter is machine-checkable state; the objective is restated
+in <code>## Outcome</code> and argued at length in the path record. Maintaining it in two
+schemas would guarantee that one of them is eventually wrong, and no predicate
+can adjudicate between two prose paragraphs.</p>
 <h2 id="reference-handoff-brief--cold-resume" data-heading="cold-resume">Cold resume</h2>
 <p>The same test, run as a measurement: place a participant with no prior context
 in front of <code>AGENTS.md</code>, this brief, and the repository at <code>checkpoint</code>, and ask
 them to perform the next action. Record whether they did it correctly and how
 long it took to the first correct action.</p>
+<p>A trial MUST allow the participant to open any record the brief names at an
+exact id — that is the contract, not a leak in it. What a trial MUST NOT supply
+is anything undurable: a conversation, a previous session, a person to ask.</p>
 <p>Record <code>written_by</code> and the path id with <strong>every</strong> trial. The aggregate over the
 eight questions is the least useful reading: failures clustering by writer mean
 the schema is fine and the practice is not, failures clustering by path mean the
@@ -8173,7 +8518,7 @@ record and the audit questions are answered inside the closing record. The
 fields are identical either way; only the number of files changes.</p>
 <h2 id="reference-human-records--opening-acceptance" data-heading="opening-acceptance">Opening acceptance</h2>
 <p>Filename:</p>
-<pre><code class="language-text">atomik-project/sessions/YYYY-MM-DD-cp-example-001-opening.md
+<pre><code class="language-text">project/sessions/YYYY-MM-DD-cp-example-001-opening.md
 </code></pre>
 <p>Template:</p>
 <pre><code class="language-md">---
@@ -8187,7 +8532,7 @@ decision: accepted
 accepted_by: participant-id
 accepted_roles: [initiator, reviewer]
 accepted_at: 2026-01-15T09:00:00Z
-scope_ref: atomik-project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
+scope_ref: project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
 scope_digest: sha256:9f2c4b1d5e6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c
 ---
 
@@ -8234,7 +8579,7 @@ time, digest, and authority enforcement remain unimplemented and must be
 reported as such.</p>
 <h2 id="reference-human-records--coherence-audit" data-heading="coherence-audit">Coherence audit</h2>
 <p>Filename:</p>
-<pre><code class="language-text">atomik-project/audits/cp-example-001-&lt;full-subject-object-id&gt;.md
+<pre><code class="language-text">project/audits/cp-example-001-&lt;full-subject-object-id&gt;.md
 </code></pre>
 <p>Template:</p>
 <pre><code class="language-md">---
@@ -8293,7 +8638,7 @@ repository’s configured format</strong>: a SHA-256 repository writes sixty-fou
 characters in the same field and the same filename.</p>
 <h2 id="reference-human-records--closing-acceptance" data-heading="closing-acceptance">Closing acceptance</h2>
 <p>Filename:</p>
-<pre><code class="language-text">atomik-project/sessions/YYYY-MM-DD-cp-example-001-closing.md
+<pre><code class="language-text">project/sessions/YYYY-MM-DD-cp-example-001-closing.md
 </code></pre>
 <p>Template:</p>
 <pre><code class="language-md">---
@@ -8309,7 +8654,7 @@ accepted_by: participant-id
 accepted_roles: [reviewer, auditor]
 accepted_at: 2026-01-15T14:30:00Z
 decision: accepted
-scope_ref: atomik-project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
+scope_ref: project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
 scope_digest: sha256:9f2c4b1d5e6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c
 advisories_at_candidate: [scope-drift, path-staleness]
 advisory_disposition:
@@ -8431,9 +8776,9 @@ view:</p>
 <pre><code class="language-bash">npm run cairn-active
 npm run cairn-check
 git status --short
-git add atomik-project/coding-paths/CP-EXAMPLE-001.md
-git add atomik-project/coding-paths/ACTIVE.md
-git add atomik-project/sessions/YYYY-MM-DD-cp-example-001-opening.md
+git add project/coding-paths/CP-EXAMPLE-001.md
+git add project/coding-paths/ACTIVE.md
+git add project/sessions/YYYY-MM-DD-cp-example-001-opening.md
 git commit -m &quot;Register CP-EXAMPLE-001 before branching&quot;
 git rev-parse HEAD^
 git push origin HEAD:main
@@ -8463,8 +8808,8 @@ git status --short
 git add path/to/implementation
 git add path/to/tests
 git add docs/modules/example.md
-git add atomik-project/coding-paths/CP-EXAMPLE-001.md
-git add atomik-project/briefs/cp-example-001-handoff.md
+git add project/coding-paths/CP-EXAMPLE-001.md
+git add project/briefs/cp-example-001-handoff.md
 git commit -m &quot;CP-EXAMPLE-001 S01: coherent outcome&quot;
 git push origin path/cp-example-001
 git fetch origin path/cp-example-001
@@ -8538,7 +8883,7 @@ at their pinned ids.</p>
 record naming the same object id, the base <code>T</code>, the roles the reviewer held, the
 re-computed scope digest, and one structured entry per advisory raised at <code>C</code>:</p>
 <pre><code class="language-bash">sed -n '/^## Definition of done$/,/^## /p' \
-  atomik-project/coding-paths/CP-EXAMPLE-001.md | sha256sum
+  project/coding-paths/CP-EXAMPLE-001.md | sha256sum
 npm run cairn-check -- --base origin/main   # the advisories to disposition
 </code></pre>
 <p>If the digest differs from the one recorded at opening, stop: the definition of
@@ -8550,10 +8895,10 @@ new audit file, and obtain new acceptance.</p>
 entry, and move the brief’s checkpoint pointer. Change no other field of the path
 record — not the definition of done, not <code>scope_ref</code>, not <code>writes:</code>, not
 <code>governs:</code>, not the step plan. Stage only the four closure surfaces:</p>
-<pre><code class="language-bash">git add atomik-project/coding-paths/CP-EXAMPLE-001.md
-git add atomik-project/briefs/cp-example-001-handoff.md
-git add atomik-project/audits/cp-example-001-&lt;C&gt;.md
-git add atomik-project/sessions/YYYY-MM-DD-cp-example-001-closing.md
+<pre><code class="language-bash">git add project/coding-paths/CP-EXAMPLE-001.md
+git add project/briefs/cp-example-001-handoff.md
+git add project/audits/cp-example-001-&lt;C&gt;.md
+git add project/sessions/YYYY-MM-DD-cp-example-001-closing.md
 git commit -m &quot;Close CP-EXAMPLE-001 candidate &lt;C&gt;&quot;
 git rev-list --count &lt;C&gt;..HEAD
 npm run cairn-check -- --base origin/main
@@ -8585,12 +8930,12 @@ git merge --no-ff --no-commit origin/path/cp-example-001
 <li>set the path to <code>status: done</code> and <code>resolution: completed</code>;</li>
 <li>retain <code>subject_commit: &lt;C&gt;</code>;</li>
 <li>regenerate <code>ACTIVE.md</code>;</li>
-<li>add one <code>atomik-project/log/YYYY-MM-DD-cp-example-001.md</code> entry.</li>
+<li>add one <code>project/log/YYYY-MM-DD-cp-example-001.md</code> entry.</li>
 </ul>
 <p>Then create and test the exact merge candidate:</p>
-<pre><code class="language-bash">git add atomik-project/coding-paths/CP-EXAMPLE-001.md
-git add atomik-project/coding-paths/ACTIVE.md
-git add atomik-project/log/YYYY-MM-DD-cp-example-001.md
+<pre><code class="language-bash">git add project/coding-paths/CP-EXAMPLE-001.md
+git add project/coding-paths/ACTIVE.md
+git add project/log/YYYY-MM-DD-cp-example-001.md
 git commit -m &quot;Integrate CP-EXAMPLE-001&quot;
 git merge-base --is-ancestor &lt;C&gt; HEAD
 git rev-list --count &lt;C&gt;..HEAD
@@ -8650,7 +8995,7 @@ satisfied. The <a href="#article-reference-repair" data-article="reference-repai
     <article class="article-body" data-rendered-article="reference-path-template">
       <h1 id="reference-path-template--coding-path-template" data-heading="coding-path-template">Coding-path template</h1>
 <p>For the installed reference binding, copy this file to
-<code>atomik-project/coding-paths/CP-&lt;ID&gt;.md</code>. Keep the path id, filename, and branch
+<code>project/coding-paths/CP-&lt;ID&gt;.md</code>. Keep the path id, filename, and branch
 mechanically related. A portable implementation substitutes its configured
 execution-state root.</p>
 <pre><code class="language-md">---
@@ -8672,8 +9017,8 @@ cairn:
   writes:
     - apps/example/**
     - docs/modules/example.md
-    - atomik-project/coding-paths/CP-EXAMPLE-001.md
-    - atomik-project/briefs/cp-example-001-handoff.md
+    - project/coding-paths/CP-EXAMPLE-001.md
+    - project/briefs/cp-example-001-handoff.md
   governs:
     - docs/bedrock/example.md@89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
 ---
@@ -8966,14 +9311,29 @@ rather than inheriting a history that looks like it never happened.</p>
 before paths: application source, the Cairn
 <a href="#article-concept-control-plane" data-article="concept-control-plane" data-anchor="" class="wiki-link">control plane</a>, durable project knowledge, and
 durable execution state. A portable implementation may bind those roles to
-different names. The reference tools in this repository do not yet load that
-configuration, so an operator also needs the exact installed binding below.</p>
-<h2 id="reference-repository-layout--installed-reference-tree" data-heading="installed-reference-tree">Installed reference tree</h2>
-<p>This tree is exhaustive for active Cairn-defined files and folder roles in the
-reference repository. Angle brackets mark repeatable names. Application code,
-domain knowledge, and non-normative research material may add files outside
-this tree without becoming protocol structure.</p>
+folders it already has.</p>
+<p>This page uses the protocol’s own <strong>role names</strong> throughout — <code>project/</code>,
+<code>docs/architecture/</code>. Which folder a given repository binds each role to is
+recorded in exactly one place, the
+<a href="#reference-repository-layout--portable-roles-and-installed-names" data-local-anchor="portable-roles-and-installed-names" class="section-link">installed binding table</a> at the foot of
+this page. Nothing else here repeats a host repository’s local vocabulary,
+because a specification that carries one adoption’s folder names through every
+example is teaching that adoption rather than the protocol.</p>
+<h2 id="reference-repository-layout--the-reference-tree" data-heading="the-reference-tree">The reference tree</h2>
+<p>This tree is exhaustive for active Cairn-defined files, folder roles, and refs.
+Angle brackets mark repeatable names. Application code, domain knowledge, and
+non-normative research material may add files outside this tree without becoming
+protocol structure.</p>
 <pre><code class="language-text">repository/
+├── .git/
+│   └── refs/
+│       ├── heads/
+│       │   ├── &lt;trunk&gt;
+│       │   └── path/&lt;lowercase-path-id&gt;
+│       └── cairn/
+│           └── checkpoints/
+│               └── &lt;lowercase-path-id&gt;/
+│                   └── &lt;ledger-unit-ordinal&gt;
 ├── AGENTS.md
 ├── package.json
 ├── .github/
@@ -9023,7 +9383,7 @@ this tree without becoming protocol structure.</p>
 │           └── reference/
 │               ├── index.md
 │               └── &lt;reference-article&gt;.md
-└── atomik-project/
+└── project/
     ├── index.md
     ├── log.md
     ├── coding-paths/
@@ -9054,27 +9414,24 @@ this tree without becoming protocol structure.</p>
     ├── log/
     │   ├── index.md
     │   └── &lt;date&gt;-&lt;path-id&gt;.md
-    ├── brainstorm/
-    │   ├── index.md
-    │   ├── log.md
-    │   └── &lt;provisional-note&gt;.md
-    ├── sources/
-    │   ├── index.md
-    │   ├── log.md
-    │   └── &lt;source-record&gt;.md
-    └── projects/
+    └── brainstorm/
         ├── index.md
         ├── log.md
-        └── &lt;nested-project&gt;/
-            ├── index.md
-            ├── log.md
-            └── project.atomik-project.json
+        └── &lt;provisional-note&gt;.md
 </code></pre>
+<p><code>.git/refs/</code> is shown because two of Cairn’s durable objects are refs rather
+than files and are therefore invisible to every directory listing: the path
+branches, and the <a href="#article-concept-checkpoint-retention" data-article="concept-checkpoint-retention" data-anchor="" class="wiki-link">checkpoint retention</a>
+namespace described <a href="#reference-repository-layout--the-cairn-ref-namespace" data-local-anchor="the-cairn-ref-namespace" class="section-link">below</a>. A reader who searches the
+working tree for them finds nothing and reasonably concludes they do not exist.</p>
 <p><code>shared/</code> is a guarded source root supported by the checker even when a
 repository does not currently contain it. Repeatable records may be absent when
 no event of that kind exists; their directory, index, and folder log still name
 the role. <code>cairn.config.json</code> is not shown because it is a specified portability
 target, not an installed reference file.</p>
+<p>A host repository may of course hold folders Cairn says nothing about. Those are
+that repository’s business and are deliberately absent here: this tree lists
+what Cairn defines, not what any one adoption happens to contain.</p>
 <h2 id="reference-repository-layout--what-every-part-does" data-heading="what-every-part-does">What every part does</h2>
 <table>
 <thead>
@@ -9166,69 +9523,64 @@ target, not an installed reference file.</p>
 <td style="text-align:left">generator only</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>atomik-project/index.md</code></td>
+<td style="text-align:left"><code>project/index.md</code></td>
 <td style="text-align:left">entry map for durable project knowledge and execution state</td>
 <td style="text-align:left">project-plane change</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>atomik-project/coding-paths/paths.md</code></td>
+<td style="text-align:left"><code>project/coding-paths/paths.md</code></td>
 <td style="text-align:left">current operating convention for opening, running, integrating, and cleaning paths</td>
 <td style="text-align:left">accepted protocol operation change</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>atomik-project/coding-paths/CP-*.md</code></td>
+<td style="text-align:left"><code>project/coding-paths/CP-*.md</code></td>
 <td style="text-align:left">one path’s plan, state, ledger, checkpoint, and next action</td>
 <td style="text-align:left">current assigned writer</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>atomik-project/coding-paths/ACTIVE.md</code></td>
+<td style="text-align:left"><code>project/coding-paths/ACTIVE.md</code></td>
 <td style="text-align:left">generated live-path index</td>
 <td style="text-align:left">generator only</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>atomik-project/coding-paths/history/*.md</code></td>
+<td style="text-align:left"><code>project/coding-paths/history/*.md</code></td>
 <td style="text-align:left">verbatim completed ledger sections</td>
 <td style="text-align:left">created by that path; immutable thereafter</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>atomik-project/sessions/*.md</code></td>
+<td style="text-align:left"><code>project/sessions/*.md</code></td>
 <td style="text-align:left">opening, closing, and other human decisions</td>
 <td style="text-align:left">participant recording the event; immutable thereafter</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>atomik-project/audits/*.md</code></td>
+<td style="text-align:left"><code>project/audits/*.md</code></td>
 <td style="text-align:left">one audit bound to one full candidate hash</td>
 <td style="text-align:left">auditor; immutable thereafter</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>atomik-project/briefs/*.md</code></td>
+<td style="text-align:left"><code>project/briefs/*.md</code></td>
 <td style="text-align:left">disposable current handoff projection</td>
 <td style="text-align:left">current assigned writer</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>atomik-project/log/*.md</code></td>
+<td style="text-align:left"><code>project/log/*.md</code></td>
 <td style="text-align:left">one integrated outcome per file</td>
 <td style="text-align:left">integration unit; immutable thereafter</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>atomik-project/log.md</code></td>
-<td style="text-align:left">frozen compatibility archive, not the writable journal</td>
-<td style="text-align:left">never append or rewrite</td>
-</tr>
-<tr>
-<td style="text-align:left"><code>atomik-project/brainstorm/</code></td>
+<td style="text-align:left"><code>project/brainstorm/</code></td>
 <td style="text-align:left">explicitly provisional thinking</td>
 <td style="text-align:left">normal path work; never treated as accepted doctrine</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>atomik-project/sources/</code></td>
-<td style="text-align:left">optional imported specifications and references</td>
-<td style="text-align:left">source-capture work</td>
+<td style="text-align:left"><code>refs/heads/path/&lt;id&gt;</code></td>
+<td style="text-align:left">one path’s branch, carrying every checkpoint it has pushed</td>
+<td style="text-align:left">current assigned writer</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>atomik-project/projects/</code></td>
-<td style="text-align:left">optional nested project bundles</td>
-<td style="text-align:left">project-specific policy</td>
+<td style="text-align:left"><code>refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;</code></td>
+<td style="text-align:left">one immovable pin per ledger-named checkpoint</td>
+<td style="text-align:left">append-only; never moved or deleted while the path record lives</td>
 </tr>
 <tr>
 <td style="text-align:left">each meaningful folder’s <code>index.md</code></td>
@@ -9255,97 +9607,123 @@ working tree and outside every directory listing:</p>
 it. <code>&lt;n&gt;</code> is the ledger’s own ordinal for that checkpoint. The refs are
 append-only for the life of the path record, and they are not released by
 integration.</p>
-<pre><code class="language-bash">git ls-remote origin 'refs/cairn/checkpoints/*'
+<p><strong>Where this actually is.</strong> Refs are not in the working tree, so no amount of
+<code>ls</code> will find them. They live inside the repository’s own database — under
+<code>.git/refs/</code> and <code>.git/packed-refs</code> locally, and in the equivalent store on the
+remote. Git will not show them with <code>git branch</code> either, because that command
+only reads <code>refs/heads/</code>. Three commands make the namespace visible:</p>
+<pre><code class="language-bash">$ git for-each-ref refs/cairn/checkpoints          # every retained checkpoint here
+$ git ls-remote origin 'refs/cairn/checkpoints/*'  # every one the remote holds
+$ git show-ref cp-example-001                      # one path's pins
 </code></pre>
+<p>Being invisible to a file listing is the point: a record kept as a file can be
+edited by the work it describes, and a checkpoint pin must survive exactly the
+operation — a rewriting push — that rewrites files.</p>
 <p>A repository that clones with a restricted refspec, or a mirror that copies only
 <code>refs/heads/*</code>, will silently lose this namespace. Fetch configuration is part of
 conforming to <a href="#article-concept-checkpoint-retention" data-article="concept-checkpoint-retention" data-anchor="" class="wiki-link">checkpoint retention</a>, not an
 optional convenience.</p>
 <h2 id="reference-repository-layout--portable-roles-and-installed-names" data-heading="portable-roles-and-installed-names">Portable roles and installed names</h2>
+<p>Everything above this heading uses role names. This table is the one place where
+they are traded for the folders a real repository holds, and it is written for
+<strong>the repository the reference tools were built in</strong> — the adoption Cairn was
+extracted from.</p>
 <table>
 <thead>
 <tr>
 <th style="text-align:left">Protocol role</th>
-<th style="text-align:left">Installed reference binding</th>
+<th style="text-align:left">Role name used in this specification</th>
+<th style="text-align:left">Bound in the reference repository to</th>
 <th style="text-align:left">Intended configuration field</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td style="text-align:left">execution-state plane</td>
-<td style="text-align:left"><code>atomik-project/</code></td>
+<td style="text-align:left"><code>project/</code></td>
+<td style="text-align:left"><strong><code>atomik-project/</code></strong></td>
 <td style="text-align:left"><code>roots.project</code></td>
 </tr>
 <tr>
 <td style="text-align:left">accepted architecture</td>
-<td style="text-align:left"><code>docs/bedrock/</code></td>
+<td style="text-align:left"><code>docs/architecture/</code></td>
+<td style="text-align:left"><strong><code>docs/bedrock/</code></strong></td>
 <td style="text-align:left"><code>roots.architecture</code></td>
 </tr>
 <tr>
 <td style="text-align:left">decision records</td>
+<td style="text-align:left"><code>docs/adr/</code></td>
 <td style="text-align:left"><code>docs/adr/</code></td>
 <td style="text-align:left"><code>roots.decisions</code></td>
 </tr>
 <tr>
 <td style="text-align:left">implemented-area notes</td>
 <td style="text-align:left"><code>docs/modules/</code></td>
+<td style="text-align:left"><code>docs/modules/</code></td>
 <td style="text-align:left"><code>roots.modules</code></td>
 </tr>
 <tr>
 <td style="text-align:left">guarded application source</td>
 <td style="text-align:left"><code>apps/</code>, <code>packages/</code>, <code>shared/</code></td>
+<td style="text-align:left">same</td>
 <td style="text-align:left"><code>roots.source</code></td>
 </tr>
 <tr>
 <td style="text-align:left">shared integration branch</td>
+<td style="text-align:left"><code>&lt;trunk&gt;</code></td>
 <td style="text-align:left"><code>main</code></td>
 <td style="text-align:left"><code>trunk</code></td>
 </tr>
 <tr>
 <td style="text-align:left">shared checkpoint remote</td>
+<td style="text-align:left"><code>&lt;remote&gt;</code></td>
 <td style="text-align:left"><code>origin</code></td>
 <td style="text-align:left"><code>remote</code></td>
 </tr>
 </tbody>
 </table>
-<p>The portable role names used in the specification—<code>project/</code> and
-<code>docs/architecture/</code>—describe these semantics without forcing the installed
-names on another repository. The <a href="#article-reference-configuration" data-article="reference-configuration" data-anchor="" class="wiki-link">configuration contract</a>
-defines the intended mapping. Until the loader exists, operators MUST use the
-installed bindings and MUST NOT claim portable conformance.</p>
+<p>Two roles are bound to a different name, and both for the same uninteresting
+reason: those folders were named before Cairn existed, by the application the
+protocol grew inside. Neither name is protocol structure. A repository adopting
+Cairn should bind these roles to whatever it already calls them and never inherit
+<code>atomik-project/</code> — the prefix names one product, not a protocol.</p>
+<p>The <a href="#article-reference-configuration" data-article="reference-configuration" data-anchor="" class="wiki-link">configuration contract</a> defines the intended mapping.
+Until the loader exists, the reference tools resolve the bound names above as
+constants: an operator working <strong>in that repository</strong> MUST use them, and MUST NOT
+claim portable conformance on the strength of them.</p>
 <h2 id="reference-repository-layout--naming-relationships" data-heading="naming-relationships">Naming relationships</h2>
 <h3 id="reference-repository-layout--path-identity" data-heading="path-identity">Path identity</h3>
 <pre><code class="language-text">CP-ROADMAP-010
-  → atomik-project/coding-paths/CP-ROADMAP-010.md
+  → project/coding-paths/CP-ROADMAP-010.md
   → path/cp-roadmap-010
-  → atomik-project/briefs/cp-roadmap-010-handoff.md
+  → project/briefs/cp-roadmap-010-handoff.md
 </code></pre>
 <p>The id uses uppercase <code>CP-</code> followed by uppercase letters, digits, and hyphens.
 It is stable, globally unique within the repository, and never reused. The
 branch field remains present for <code>running</code>, <code>blocked</code>, and <code>ready</code>.</p>
 <h3 id="reference-repository-layout--opening-and-closing-records" data-heading="opening-and-closing-records">Opening and closing records</h3>
-<pre><code class="language-text">atomik-project/sessions/YYYY-MM-DD-&lt;lowercase-path-id&gt;-opening.md
-atomik-project/sessions/YYYY-MM-DD-&lt;lowercase-path-id&gt;-closing.md
+<pre><code class="language-text">project/sessions/YYYY-MM-DD-&lt;lowercase-path-id&gt;-opening.md
+project/sessions/YYYY-MM-DD-&lt;lowercase-path-id&gt;-closing.md
 </code></pre>
 <p>Root-level metadata, not the filename, defines <code>path</code> and <code>ceremony</code>.</p>
 <h3 id="reference-repository-layout--audit-record" data-heading="audit-record">Audit record</h3>
-<pre><code class="language-text">atomik-project/audits/&lt;lowercase-path-id&gt;-&lt;full-40-character-subject-commit&gt;.md
+<pre><code class="language-text">project/audits/&lt;lowercase-path-id&gt;-&lt;full-40-character-subject-commit&gt;.md
 </code></pre>
 <h3 id="reference-repository-layout--journal-entry" data-heading="journal-entry">Journal entry</h3>
-<pre><code class="language-text">atomik-project/log/YYYY-MM-DD-&lt;lowercase-path-id&gt;.md
+<pre><code class="language-text">project/log/YYYY-MM-DD-&lt;lowercase-path-id&gt;.md
 </code></pre>
 <p>If a journal name would collide, add a stable subject suffix. Never overwrite
 an existing entry.</p>
 <h2 id="reference-repository-layout--derived-relationships" data-heading="derived-relationships">Derived relationships</h2>
 <pre><code class="language-text">live path records
-  └── atomik-project/coding-paths/ACTIVE.md
+  └── project/coding-paths/ACTIVE.md
 
 one path ledger
-  ├── atomik-project/briefs/&lt;id&gt;-handoff.md
-  └── atomik-project/coding-paths/history/&lt;id&gt;-S&lt;NN&gt;.md
+  ├── project/briefs/&lt;id&gt;-handoff.md
+  └── project/coding-paths/history/&lt;id&gt;-S&lt;NN&gt;.md
 
 integrated path + exact audit + exact closing acceptance
-  └── atomik-project/log/YYYY-MM-DD-&lt;id&gt;.md
+  └── project/log/YYYY-MM-DD-&lt;id&gt;.md
 
 canonical Markdown article graph
   └── docs/cairn/specification.html
@@ -9518,7 +9896,7 @@ route from accepted intent to integration. It has:</p>
 <li>one stable identifier, such as <code>CP-SEARCH</code>;</li>
 <li>one <a href="#article-concept-path-record" data-article="concept-path-record" data-anchor="" class="wiki-link">path record</a>, such as
 <code>project/coding-paths/CP-SEARCH.md</code>;</li>
-<li>one declared <a href="#article-concept-lightweight-path" data-article="concept-lightweight-path" data-anchor="" class="wiki-link">route</a>;</li>
+<li>one declared <a href="#article-concept-route" data-article="concept-route" data-anchor="" class="wiki-link">route</a>;</li>
 <li>one <a href="#article-concept-branch" data-article="concept-branch" data-anchor="" class="wiki-link">branch</a>, such as <code>path/cp-search</code>;</li>
 <li>one dedicated <a href="#article-concept-worktree" data-article="concept-worktree" data-anchor="" class="wiki-link">worktree</a>;</li>
 <li>one <a href="#article-concept-writer-assignment" data-article="concept-writer-assignment" data-anchor="" class="wiki-link">assigned writer</a> for that writable
@@ -9630,11 +10008,25 @@ declared read surface: the documents this work is bound by, each pinned as
 <code>path@&lt;object-id&gt;</code> so that <em>which</em> version governed is a fact rather than a
 recollection.</p>
 <p>The pinned id is the document’s own <strong>blob object id</strong> — the id of that exact
-content, not of a repository state that happened to contain it. A commit id
-would also identify a version, but it changes whenever anything else in the
-repository changes, so a <code>governs:</code> list pinned to commits would go stale
-constantly while the documents it names sat untouched.</p>
-<pre><code class="language-bash">git rev-parse HEAD:docs/architecture/example.md
+content, not of a repository state that happened to contain it. Git stores a
+file’s bytes as an object of their own, called a <em>blob</em>, and gives it an
+<a href="#article-concept-commit-hash" data-article="concept-commit-hash" data-anchor="" class="wiki-link">object id</a> derived from those bytes. Two files with
+identical content anywhere in any repository share one blob id; editing one byte
+produces a different one.</p>
+<p>A commit id would also identify a version, but it changes whenever anything else
+in the repository changes, so a <code>governs:</code> list pinned to commits would go stale
+constantly while the documents it names sat untouched. A blob id changes when,
+and only when, the governing document itself changes — which is exactly the
+event a reader needs to notice.</p>
+<p>Git prints a blob id with <code>rev-parse</code> using the <code>&lt;commit&gt;:&lt;path&gt;</code> form, which
+means “the object at this path, as of this commit”:</p>
+<pre><code class="language-bash">$ git rev-parse HEAD:docs/architecture/example.md
+89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
+</code></pre>
+<p>That is the value written after the <code>@</code>. To read the document back exactly as it
+was pinned — even if the working copy has since moved on — pass the same id to
+<code>git show</code>:</p>
+<pre><code class="language-bash">$ git show 89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
 </code></pre>
 <p>Neither is a filesystem lock. A path may discover a necessary wider change and
 continue. What it MUST NOT do is continue with a stale declaration: writing
@@ -9774,11 +10166,14 @@ no directory listing, and a repository that forgets they exist will
 garbage-collect exactly the history its ledger promised.</p>
 <p><code>cairn.config.json</code> is the specified portable binding file. It is part of the
 protocol layout but is not yet loaded or installed by the v0.2 reference tools.</p>
-<p>The protocol role name for the execution plane is <code>project/</code>. The current
-reference tools bind that role to <code>atomik-project/</code> and bind
-<code>docs/architecture/</code> to <code>docs/bedrock/</code>; the not-yet-implemented portable
-configuration will make those bindings selectable. The exact installed tree,
-file roles, naming rules, and portable mapping are in the
+<p>The names used throughout this specification — <code>project/</code>,
+<code>docs/architecture/</code> — are <strong>role names</strong>, not required folder names. A
+repository binds each role to a folder it already has, and the current reference
+tools bind two of them to different names than the ones written here. Those
+bindings are recorded once, in the
+<a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="portable-roles-and-installed-names" class="wiki-link">installed binding table</a>,
+so that no other page has to repeat a host repository’s local vocabulary. The
+tree, file roles, naming rules, and the mapping are all in the
 <a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="" class="wiki-link">repository-layout reference</a>.</p>
 <h2 id="specification--choose-the-route-the-change-earns" data-heading="choose-the-route-the-change-earns">Choose the route the change earns</h2>
 <p>Not every bounded change deserves the same ceremony. A protocol that demands
@@ -10064,8 +10459,19 @@ brief agree.</p>
 default is 1200; a brief that cannot say where a path stands in that budget is
 describing a path that has lost its shape.</p>
 <h4 id="specification--the-answerable-alone-contract" data-heading="the-answerable-alone-contract">The answerable-alone contract</h4>
-<p>A reader holding only <code>AGENTS.md</code> and the brief — no ledger, no conversation, no
-prior session — MUST be able to state:</p>
+<p><strong>“Alone” is a claim about what the reader must already carry in their head, not
+about how many files they may open.</strong> A participant arriving at a Cairn
+repository follows the entry route the repository itself publishes: <code>AGENTS.md</code>
+names the operating convention, the convention names the <a href="#article-concept-live-view" data-article="concept-live-view" data-anchor="" class="wiki-link">live
+view</a>, the live view names the path, and the
+<a href="#article-concept-path-record" data-article="concept-path-record" data-anchor="" class="wiki-link">path record</a> carries the plan and the ledger. That
+chain is the protocol working. A brief that set out to replace it would be a
+lossy copy of records that are already canonical, refreshed by hand, drifting
+from the day it was written.</p>
+<p>What the brief owes is the <strong>last link</strong>, and it owes it exactly. A reader
+holding <code>AGENTS.md</code>, the brief, and the repository at <code>checkpoint</code> — with no
+conversation, no prior session, and no memory of how the path reached here —
+MUST be able to state:</p>
 <ol>
 <li>the outcome this path is for;</li>
 <li>the exact commit to resume from;</li>
@@ -10076,21 +10482,50 @@ prior session — MUST be able to state:</p>
 <li>what has already been tried and rejected;</li>
 <li>the exact commands that verify the checkpoint.</li>
 </ol>
-<p>If answering any of these requires opening the ledger, <strong>the brief has failed</strong>,
-and refreshing it is part of the next work unit.</p>
-<p>The brief is mutable and rewritten at every work unit; the
-<a href="#article-concept-work-ledger" data-article="concept-work-ledger" data-anchor="" class="wiki-link">work ledger</a> is the append-only history. They are
-not two copies of one thing. The ledger grows without bound and records
-everything that happened; the brief stays small and records the situation now.
-Neither can do the other’s job, and a brief that only makes sense to someone who
-has read the ledger has quietly become a second ledger.</p>
+<p>Each answer MUST be present <strong>in the brief itself, or in a record the brief
+names at an exact object id.</strong> An answer that survives only in a conversation,
+only in a previous session, or only as something a reader would have to
+reconstruct by reading the ledger’s history and judging which parts are still
+true is unanswerable, <strong>the brief has failed</strong>, and refreshing it is part of the
+next work unit.</p>
+<p>That last clause is the one that does the work. The ledger is history — every
+work unit that happened, permanently, in order. Deciding <em>which of that history
+is still the situation</em> is precisely the brief’s job, and a brief that hands it
+back has not been terse, it has been silent.</p>
+<h5 id="specification--two-failure-modes-not-one" data-heading="two-failure-modes-not-one">Two failure modes, not one</h5>
+<p>The brief sits between two of them, and they pull in opposite directions:</p>
+<ul>
+<li><strong>too thin</strong> — it names no ids and no commands, so the reader must open the
+ledger and work out for themselves which of forty entries still holds. It has
+handed its only job back to the record it was supposed to summarise;</li>
+<li><strong>too thick</strong> — it re-narrates the ledger so as not to need it, and now two
+accounts of the same work exist, drift apart at different rates, and disagree
+about the past. A brief that reproduces the ledger has quietly become a
+second ledger.</li>
+</ul>
+<p>It escapes both by <strong>pointing rather than retelling</strong>: exact object ids, exact
+runnable commands, exact filenames, and roughly one paragraph of prose per
+section. It is the topmost stone of a cairn — it means nothing without the
+stones beneath it, and it is the only one you need to see to know where to put
+your foot next.</p>
+<h5 id="specification--why-the-objective-is-not-in-the-frontmatter" data-heading="why-the-objective-is-not-in-the-frontmatter">Why the objective is not in the frontmatter</h5>
+<p>Question 1 is the one that looks misplaced, because the frontmatter carries
+machine-checkable state and the objective is prose. It is answered by the body’s
+<code>## Outcome</code> section, which restates in one paragraph what the path record
+argues at length. The frontmatter deliberately carries no objective field: an
+objective maintained in two schemas is an objective that will eventually
+disagree with itself, and the <a href="#article-concept-acceptance-drift" data-article="concept-acceptance-drift" data-anchor="" class="wiki-link">acceptance-drift</a>
+predicate cannot adjudicate between two prose paragraphs.</p>
 <p>The complete field list, caps, and template are in the
 <a href="#article-reference-handoff-brief" data-article="reference-handoff-brief" data-anchor="" class="wiki-link">handoff-brief reference</a>.</p>
 <h4 id="specification--cold-resume-is-the-measurement" data-heading="cold-resume-is-the-measurement">Cold resume is the measurement</h4>
 <p>The answerable-alone contract is also how Cairn is measured. A <strong>cold resume</strong>
 places a participant with no prior context in front of <code>AGENTS.md</code>, the brief,
 and the repository at the named checkpoint, and asks them to perform the next
-action. Success rate and time-to-first-correct-action are the pilot’s primary
+action. The participant MAY open any record the brief names — that is the
+contract working, not a leak in the trial. What the trial MUST withhold is
+everything undurable: the conversation, the previous session, and the person who
+wrote it. Success rate and time-to-first-correct-action are the pilot’s primary
 metric, ahead of ceremony time or artifact count: a protocol whose briefs cannot
 be resumed cold has failed at the thing it exists for, however cheap its
 ceremony is.</p>
@@ -11337,7 +11772,7 @@ software practice: a reader who already knows what a rebase is can skip all of
 it, and a reader who does not can learn it here without learning Cairn at the
 same time. <strong>Cairn’s own concepts</strong> are the objects and rules the protocol
 actually adds — the ideas you are being asked to evaluate.</p>
-<p>Twenty-one borrowed terms, forty-five Cairn concepts. A protocol that presents
+<p>Twenty-one borrowed terms, forty-six Cairn concepts. A protocol that presents
 those as one undifferentiated glossary looks twice as large as it is, and hides
 which half a criticism belongs to.</p>
 <h2 id="concepts--borrowed-vocabulary" data-heading="borrowed-vocabulary">Borrowed vocabulary</h2>
@@ -11395,8 +11830,9 @@ the path worktree now.</p>
 <a href="#article-concept-ready-state" data-article="concept-ready-state" data-anchor="" class="wiki-link">ready</a>, <a href="#article-concept-done-state" data-article="concept-done-state" data-anchor="" class="wiki-link">done</a>, and
 <a href="#article-concept-archived-state" data-article="concept-archived-state" data-anchor="" class="wiki-link">archived</a>.</p>
 <h3 id="concepts--routes" data-heading="routes">Routes</h3>
-<p><a href="#article-concept-lightweight-path" data-article="concept-lightweight-path" data-anchor="" class="wiki-link">Lightweight path</a> — the default —
-<a href="#article-concept-foundation-path" data-article="concept-foundation-path" data-anchor="" class="wiki-link">foundation path</a>, and the not-yet-implemented
+<p><a href="#article-concept-route" data-article="concept-route" data-anchor="" class="wiki-link">Route</a> is the declared field; the routes it may name are
+<a href="#article-concept-lightweight-path" data-article="concept-lightweight-path" data-anchor="" class="wiki-link">lightweight path</a> — the default —
+<code>full</code>, <a href="#article-concept-foundation-path" data-article="concept-foundation-path" data-anchor="" class="wiki-link">foundation path</a>, and the not-yet-implemented
 <a href="#article-concept-emergency-path" data-article="concept-emergency-path" data-anchor="" class="wiki-link">emergency path</a>.</p>
 <h3 id="concepts--governance" data-heading="governance">Governance</h3>
 <p><a href="#article-concept-control-plane" data-article="concept-control-plane" data-anchor="" class="wiki-link">Control plane</a> →
@@ -11460,6 +11896,7 @@ the path worktree now.</p>
 <li><a href="#article-concept-remote" data-article="concept-remote" data-anchor="" class="wiki-link">Remote</a> <em>(borrowed)</em></li>
 <li><a href="#article-concept-remote-checkpoint" data-article="concept-remote-checkpoint" data-anchor="" class="wiki-link">Remote checkpoint</a></li>
 <li><a href="#article-concept-repository" data-article="concept-repository" data-anchor="" class="wiki-link">Repository</a> <em>(borrowed)</em></li>
+<li><a href="#article-concept-route" data-article="concept-route" data-anchor="" class="wiki-link">Route</a></li>
 <li><a href="#article-concept-running-state" data-article="concept-running-state" data-anchor="" class="wiki-link">Running state</a></li>
 <li><a href="#article-concept-schema" data-article="concept-schema" data-anchor="" class="wiki-link">Schema</a> <em>(borrowed)</em></li>
 <li><a href="#article-concept-scope-digest" data-article="concept-scope-digest" data-anchor="" class="wiki-link">Scope digest</a></li>
@@ -12492,13 +12929,19 @@ judgement is sound.</p>
 <p>A handoff brief states where a <a href="#article-concept-coding-path" data-article="concept-coding-path" data-anchor="" class="wiki-link">coding path</a> is, what evidence
 exists, and the single next action required to continue it.</p>
 <h2 id="concept-handoff--build-the-idea" data-heading="build-the-idea">Build the idea</h2>
-<p>The brief is the document a new participant reads first and, for the first few
-minutes, the only one they have read. That makes it the protocol’s bootstrap
-contract — and a bootstrap contract with no specified fields is not a contract.</p>
+<p>The brief is the <strong>last</strong> document on the entry route and the <strong>first</strong> one a
+participant acts from. <code>AGENTS.md</code> points at the operating convention, the
+convention points at the <a href="#article-concept-live-view" data-article="concept-live-view" data-anchor="" class="wiki-link">live view</a>, the live view names the
+path, and the <a href="#article-concept-path-record" data-article="concept-path-record" data-anchor="" class="wiki-link">path record</a> holds the plan and the ledger. The
+brief is the stone at the top of that cairn: it is the only one you need to look
+at to know where to step, and it is meaningless without the ones underneath.</p>
+<p>That position is what makes it the protocol’s bootstrap contract — and a
+bootstrap contract with no specified fields is not a contract.</p>
 <p>Its relationship to the <a href="#article-concept-work-ledger" data-article="concept-work-ledger" data-anchor="" class="wiki-link">work ledger</a> is a division of labour,
 not a duplication. The ledger is append-only history: everything that happened,
-in order, permanently. The brief is mutable and rewritten at every work unit: the
-current situation, small enough to hold in mind. Neither can do the other’s job.</p>
+in order, permanently. The brief is mutable and rewritten at every work unit: it
+says which part of that history is still the situation. Neither can do the
+other’s job.</p>
 <h2 id="concept-handoff--in-cairn" data-heading="in-cairn">In Cairn</h2>
 <p>The brief lives at <code>project/briefs/&lt;lowercase-id&gt;-handoff.md</code>. Its frontmatter
 carries the machine-checkable state — <code>checkpoint</code>, <code>checkpoint_pushed</code>,
@@ -12508,8 +12951,10 @@ sections: outcome, state, next action, blockers, tried and rejected, reading
 order, and verification. The complete field list, caps, and template are in the
 <a href="#article-reference-handoff-brief" data-article="reference-handoff-brief" data-anchor="" class="wiki-link">handoff-brief reference</a>.</p>
 <h3 id="concept-handoff--the-answerable-alone-contract" data-heading="the-answerable-alone-contract">The answerable-alone contract</h3>
-<p>A reader holding only <code>AGENTS.md</code> and the brief — no ledger, no conversation, no
-prior session — MUST be able to state:</p>
+<p>“Alone” constrains what the reader must already know, not how many files they
+may open. A reader holding <code>AGENTS.md</code>, the brief, and the repository at
+<code>checkpoint</code> — with no conversation, no prior session, and no memory of how the
+path got here — MUST be able to state:</p>
 <ol>
 <li>the outcome this path is for;</li>
 <li>the exact commit to resume from;</li>
@@ -12520,11 +12965,17 @@ prior session — MUST be able to state:</p>
 <li>what has already been tried and rejected;</li>
 <li>the exact commands that verify the checkpoint.</li>
 </ol>
-<p>If answering any of these requires opening the ledger, the brief has failed its
-contract. That test is also the pilot’s primary metric: a <strong>cold resume</strong>, in
-which a participant with no prior context performs the next action correctly
-from the brief alone, measured for success rate and time to first correct
-action.</p>
+<p>Each answer must be in the brief, or in a record the brief names at an exact
+object id. An answer that lives only in a conversation, only in a previous
+session, or only in a judgement the reader would have to make about which
+ledger entries still hold, is unanswerable and the brief has failed.</p>
+<p>Both directions fail. A brief too thin to name ids hands its job back to the
+ledger; a brief that re-narrates the ledger to avoid needing it has become a
+second ledger, and the two accounts start disagreeing about the past. The brief
+points; it does not retell.</p>
+<p>That contract is also the pilot’s primary metric: a <strong>cold resume</strong>, in which a
+participant with no prior context performs the next action correctly, measured
+for success rate and time to first correct action.</p>
 <h2 id="concept-handoff--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
 <p>A brief can drift if it is edited independently of the checkpoint it names. It
 is disposable and never replaces the ledger as history — being answerable alone
@@ -12654,9 +13105,8 @@ behaviour remain explicit.</p>
     <article class="article-body" data-rendered-article="concept-journal">
       <h1 id="concept-journal--journal" data-heading="journal">Journal</h1>
 <p>The Cairn journal is the set of integrated-outcome records under the portable
-role path <code>project/log/</code>; the
-<a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="portable-roles-and-installed-names" class="wiki-link">reference binding</a>
-uses <code>atomik-project/log/</code>.</p>
+role path <code>project/log/</code> — one file per integrated outcome, never one appended
+file.</p>
 <h2 id="concept-journal--in-cairn" data-heading="in-cairn">In Cairn</h2>
 <p>Each integration creates a uniquely named file such as
 <code>YYYY-MM-DD-cp-example-001.md</code>. It names the path, candidate, remote integration
@@ -12788,9 +13238,7 @@ dangerous change of the quarter, and nothing in the route selection will say so.
     <article class="article-body" data-rendered-article="concept-live-view">
       <h1 id="concept-live-view--live-view" data-heading="live-view">Live view</h1>
 <p>A live view is a generated navigation <a href="#article-concept-project-memory" data-article="concept-project-memory" data-anchor="" class="wiki-link">file</a>, canonically
-<code>project/coding-paths/ACTIVE.md</code>. The
-<a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="portable-roles-and-installed-names" class="wiki-link">reference binding</a>
-uses <code>atomik-project/coding-paths/ACTIVE.md</code>.</p>
+<code>project/coding-paths/ACTIVE.md</code>.</p>
 <h2 id="concept-live-view--in-cairn" data-heading="in-cairn">In Cairn</h2>
 <p>It derives from path records and lists <code>running</code>, <code>blocked</code>, and <code>ready</code> paths
 with the information needed to find them. The generator rewrites it
@@ -12909,11 +13357,9 @@ the proposal; initiating it does not grant automatic authority to accept it.</p>
     <article class="article-body" data-rendered-article="concept-path-record">
       <h1 id="concept-path-record--path-record" data-heading="path-record">Path record</h1>
 <p>A path record is <code>project/coding-paths/CP-&lt;ID&gt;.md</code>, the portable role path and
-durable source of truth for one <a href="#article-concept-coding-path" data-article="concept-coding-path" data-anchor="" class="wiki-link">coding path</a>. The
-<a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="portable-roles-and-installed-names" class="wiki-link">reference binding</a>
-uses <code>atomik-project/coding-paths/CP-&lt;ID&gt;.md</code>.</p>
+durable source of truth for one <a href="#article-concept-coding-path" data-article="concept-coding-path" data-anchor="" class="wiki-link">coding path</a>.</p>
 <h2 id="concept-path-record--in-cairn" data-heading="in-cairn">In Cairn</h2>
-<p>Frontmatter carries identity, <a href="#article-concept-lightweight-path" data-article="concept-lightweight-path" data-anchor="" class="wiki-link">route</a>, lifecycle state,
+<p>Frontmatter carries identity, <a href="#article-concept-route" data-article="concept-route" data-anchor="" class="wiki-link">route</a>, lifecycle state,
 base commit, branch, current step, writer assignment, subject commit when ready,
 and two declared surfaces:</p>
 <ul>
@@ -12990,8 +13436,11 @@ manually maintained copies.</p>
 why: <a href="#article-concept-architecture" data-article="concept-architecture" data-anchor="" class="wiki-link">architecture</a>, <a href="#article-concept-decision-record" data-article="concept-decision-record" data-anchor="" class="wiki-link">decisions</a>, and
 <a href="#article-concept-module-note" data-article="concept-module-note" data-anchor="" class="wiki-link">implemented-area notes</a>. The portable role path <code>project/</code>
 records what bounded work is doing now: paths, sessions, audits, handoffs, and
-integrated outcomes. The <a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="portable-roles-and-installed-names" class="wiki-link">reference binding</a>
-names that plane <code>atomik-project/</code>.</p>
+integrated outcomes.</p>
+<p><code>project/</code> is a protocol <strong>role name</strong>, not a required folder name. Which folder
+a given repository installs it in is recorded once, in the
+<a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="portable-roles-and-installed-names" class="wiki-link">installed binding table</a>,
+and nowhere else.</p>
 <p>The path ledger connects them by recording which knowledge governed a concrete
 work unit and which knowledge changed with it. A path’s
 <a href="#article-concept-path-record" data-article="concept-path-record" data-anchor="" class="wiki-link"><code>governs:</code></a> declaration pins each governing document at an
@@ -13255,6 +13704,103 @@ checks, and review are still required.</p>
 
     </article>
       </section>
+      <section class="sequential-article" id="article-concept-route">
+
+    <div class="article-meta">
+      <span>Concept</span>
+      <code>concepts/route.md</code>
+    </div>
+    <article class="article-body" data-rendered-article="concept-route">
+      <h1 id="concept-route--route" data-heading="route">Route</h1>
+<p>A route is the ceremony a <a href="#article-concept-coding-path" data-article="concept-coding-path" data-anchor="" class="wiki-link">coding path</a> runs at. Every path
+MUST declare one, in a single frontmatter field:</p>
+<pre><code class="language-yaml">route: lightweight
+</code></pre>
+<p>The route does not change what a path is allowed to do. It changes how many
+records the path produces on its way to being accepted.</p>
+<h2 id="concept-route--build-the-idea" data-heading="build-the-idea">Build the idea</h2>
+<p>A protocol has exactly one lever for its own cost, and this is it. Ceremony
+priced too high is not merely expensive — it teaches people to route around the
+protocol, and a protocol routed around enforces nothing at all. Ceremony priced
+too low leaves the changes that deserve scrutiny with none.</p>
+<p>Making that lever a <strong>declared field</strong> rather than an inferred property is the
+part worth arguing about. It means the cost of a change is stated by the person
+opening it, before the work reveals how large it really was. That is honest
+about who actually knows — and it is also the obvious place to cheat.</p>
+<h2 id="concept-route--in-cairn" data-heading="in-cairn">In Cairn</h2>
+<p>Four routes are named. Three are specified; the fourth is deliberately not.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left"><code>route:</code></th>
+<th style="text-align:left">What it is</th>
+<th style="text-align:left">Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><a href="#article-concept-lightweight-path" data-article="concept-lightweight-path" data-anchor="" class="wiki-link"><code>lightweight</code></a></td>
+<td style="text-align:left">the default: every record that carries durable meaning, and none that only ceremony separates</td>
+<td style="text-align:left">specified</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>full</code></td>
+<td style="text-align:left">the strict route: opening record, standalone <a href="#article-concept-coherence-audit" data-article="concept-coherence-audit" data-anchor="" class="wiki-link">coherence audit</a>, standalone closing record, separate <a href="#article-concept-administrative-closure" data-article="concept-administrative-closure" data-anchor="" class="wiki-link">administrative closure</a></td>
+<td style="text-align:left">specified</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#article-concept-foundation-path" data-article="concept-foundation-path" data-anchor="" class="wiki-link"><code>foundation</code></a></td>
+<td style="text-align:left">the same protocol pointed at documents rather than code, for the hour before accepted intent exists</td>
+<td style="text-align:left">specified</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="#article-concept-emergency-path" data-article="concept-emergency-path" data-anchor="" class="wiki-link"><code>emergency</code></a></td>
+<td style="text-align:left">named so that the gap is visible; no participant may declare it</td>
+<td style="text-align:left"><strong>not implemented</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="concept-route--five-triggers-force-full" data-heading="five-triggers-force-full">Five triggers force <code>full</code></h3>
+<p>A path MUST declare <code>route: full</code> when any one of these holds:</p>
+<ol>
+<li>it changes the <a href="#article-concept-control-plane" data-article="concept-control-plane" data-anchor="" class="wiki-link">control plane</a>;</li>
+<li>it changes <a href="#article-concept-architecture" data-article="concept-architecture" data-anchor="" class="wiki-link">architecture</a> or a
+<a href="#article-concept-decision-record" data-article="concept-decision-record" data-anchor="" class="wiki-link">decision record</a>;</li>
+<li>its <a href="#article-concept-declared-write-surface" data-article="concept-declared-write-surface" data-anchor="" class="wiki-link"><code>writes:</code></a> declaration covers more than one
+implemented area;</li>
+<li>it is expected to span more than one <a href="#article-concept-work-unit" data-article="concept-work-unit" data-anchor="" class="wiki-link">work unit</a>;</li>
+<li>repository policy designates the area or the change high-risk.</li>
+</ol>
+<p>Triggers 1–3 are <strong>structural</strong>: a checker can derive them from the declaration
+itself. Triggers 4 and 5 are an expectation and a policy, so they are declared
+rather than derived.</p>
+<h3 id="concept-route--the-backstop-and-why-it-exists" data-heading="the-backstop-and-why-it-exists">The backstop, and why it exists</h3>
+<p>A route made of self-declarations has an obvious failure mode: everything
+declares itself lightweight and ceremony evaporates. Trigger 4 is unobservable
+as an <em>expectation</em> — but <strong>having</strong> spanned more than one work unit is a fact
+sitting in the <a href="#article-concept-work-ledger" data-article="concept-work-ledger" data-anchor="" class="wiki-link">work ledger</a>:</p>
+<blockquote>
+<p>A path whose ledger declares more than one <code>cairn-unit</code> MUST declare
+<code>route: full</code>.</p>
+</blockquote>
+<p>It is the same trigger arriving one unit late, and it cannot be declared away.</p>
+<h3 id="concept-route--escalation-is-one-way" data-heading="escalation-is-one-way">Escalation is one-way</h3>
+<p>A lightweight path that meets any trigger MUST escalate before its next
+checkpoint and record the trigger in its ledger. A path MUST NOT declare itself
+<em>down</em> a route: a change does not become small by being called small, and
+self-declared smallness is exactly the bypass the trigger list exists to remove.</p>
+<h2 id="concept-route--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
+<p>The route is a proxy for risk, and a coarse one. A single-file change to one
+implemented area can be the most dangerous change of the quarter, and nothing in
+the route selection will say so. Triggers 4 and 5 remain honour-system at
+declaration time; only the ledger backstop catches trigger 4, and only after the
+fact. Trigger 5 has no mechanical form at all.</p>
+<p>Related: <a href="#article-concept-lightweight-path" data-article="concept-lightweight-path" data-anchor="" class="wiki-link">lightweight path</a>,
+<a href="#article-concept-foundation-path" data-article="concept-foundation-path" data-anchor="" class="wiki-link">foundation path</a>, <a href="#article-concept-emergency-path" data-article="concept-emergency-path" data-anchor="" class="wiki-link">emergency path</a>,
+<a href="#article-concept-coding-path" data-article="concept-coding-path" data-anchor="" class="wiki-link">coding path</a>, <a href="#article-concept-conformance" data-article="concept-conformance" data-anchor="" class="wiki-link">conformance</a>.</p>
+
+    </article>
+      </section>
       <section class="sequential-article" id="article-concept-running-state">
 
     <div class="article-meta">
@@ -13476,8 +14022,7 @@ reachable: any rewriting push requires
 promises become dangling references.</p>
 <p>If the live path grows too large, a completed step moves byte-for-byte into the
 portable role path <code>project/coding-paths/history/&lt;ID&gt;-SNN.md</code> and the path keeps
-a link. The <a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="portable-roles-and-installed-names" class="wiki-link">reference binding</a>
-uses <code>atomik-project/coding-paths/history/</code>.</p>
+a link.</p>
 <h2 id="concept-work-ledger--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
 <p>The reference checker prevents an existing rolled-history file from being
 rewritten, but it does not yet prove that live ledger content was preserved as a
@@ -13882,8 +14427,10 @@ retained.</li>
 <code>verify</code>, and <code>budget_tokens</code>.</li>
 <li>[ ] The brief’s body holds the seven capped sections and stays within
 <code>budget_tokens</code>.</li>
-<li>[ ] A reader with only <code>AGENTS.md</code> and the brief can answer all eight
-answerable-alone questions.</li>
+<li>[ ] A reader with <code>AGENTS.md</code>, the brief, and the repository at <code>checkpoint</code> —
+and no conversation, prior session, or memory of the path — can answer all
+eight answerable-alone questions from the brief or from a record it names
+at an exact object id.</li>
 <li>[ ] A cold resume has been performed and its success rate and
 time-to-first-correct-action recorded.</li>
 <li>[ ] Another authorised participant can resume from the recorded checkpoint.</li>
@@ -13978,17 +14525,21 @@ and evidenced by hand; the column that says so is “Additional dependency”, n
     <article class="article-body" data-rendered-article="reference-handoff-brief">
       <h1 id="reference-handoff-brief--the-handoff-brief-contract" data-heading="the-handoff-brief-contract">The handoff-brief contract</h1>
 <p>The <a href="#article-concept-handoff" data-article="concept-handoff" data-anchor="" class="wiki-link">handoff brief</a> is the protocol’s bootstrap
-document: the first thing a new participant reads and, for several minutes, the
-only thing they have read. This page gives it exact fields, because a bootstrap
-contract described only in prose is not a contract.</p>
+document: the last stop on the entry route from <code>AGENTS.md</code>, and the first
+document a new participant acts from. This page gives it exact fields, because a
+bootstrap contract described only in prose is not a contract.</p>
 <p>Filename:</p>
 <pre><code class="language-text">project/briefs/&lt;lowercase-path-id&gt;-handoff.md
 </code></pre>
 <p>One brief per path. It is <strong>mutable</strong> and rewritten at every completed
 <a href="#article-concept-work-unit" data-article="concept-work-unit" data-anchor="" class="wiki-link">work unit</a>. The
 <a href="#article-concept-work-ledger" data-article="concept-work-ledger" data-anchor="" class="wiki-link">work ledger</a> is the append-only history; the brief
-is the current situation. A brief that can only be understood by someone who has
-also read the ledger has become a second ledger and has failed.</p>
+says which part of that history is still the situation.</p>
+<p>It can fail in either direction. Too thin, and the reader must go decide for
+themselves which ledger entries still hold — the one judgement the brief exists
+to make. Too thick, and it has re-narrated the ledger into a second ledger, and
+the two will disagree about the past. The brief points at exact ids; it does not
+retell.</p>
 <h2 id="reference-handoff-brief--frontmatter" data-heading="frontmatter">Frontmatter</h2>
 <table>
 <thead>
@@ -14117,25 +14668,82 @@ should take before anything else.</p>
 time.</strong> Without it, a cold reader’s first instinct is usually the approach the
 last writer already eliminated, and they will spend an hour rediscovering why.</p>
 <h2 id="reference-handoff-brief--the-answerable-alone-contract" data-heading="the-answerable-alone-contract">The answerable-alone contract</h2>
-<p>A reader holding only <code>AGENTS.md</code> and this brief — no ledger, no conversation,
-no prior session — MUST be able to state:</p>
-<ol>
-<li>the outcome this path is for;</li>
-<li>the exact commit to resume from;</li>
-<li>the single next action;</li>
-<li>what the path may write;</li>
-<li>what it must read, and at which object id;</li>
-<li>what is blocking, if anything;</li>
-<li>what has already been tried and rejected;</li>
-<li>the exact commands that verify the checkpoint.</li>
-</ol>
-<p>If answering any of these requires opening the ledger, the brief has failed its
-contract, and refreshing it is part of the next work unit.</p>
+<p>“Alone” is about what the reader carries in their head, not about how many files
+they may open. The entry route — <code>AGENTS.md</code> → operating convention → live view
+→ path record → this brief — is the protocol working, and the brief’s job is the
+last link in it, not a replacement for the whole chain.</p>
+<p>A reader holding <code>AGENTS.md</code>, this brief, and the repository at <code>checkpoint</code> —
+with no conversation, no prior session, and no memory of how the path got here —
+MUST be able to state:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:right">#</th>
+<th style="text-align:left">Question</th>
+<th style="text-align:left">Answered by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right">1</td>
+<td style="text-align:left">the outcome this path is for</td>
+<td style="text-align:left"><code>## Outcome</code></td>
+</tr>
+<tr>
+<td style="text-align:right">2</td>
+<td style="text-align:left">the exact commit to resume from</td>
+<td style="text-align:left"><code>checkpoint</code> + <code>checkpoint_unit</code></td>
+</tr>
+<tr>
+<td style="text-align:right">3</td>
+<td style="text-align:left">the single next action</td>
+<td style="text-align:left"><code>## Next action</code></td>
+</tr>
+<tr>
+<td style="text-align:right">4</td>
+<td style="text-align:left">what the path may write</td>
+<td style="text-align:left"><code>writes</code></td>
+</tr>
+<tr>
+<td style="text-align:right">5</td>
+<td style="text-align:left">what it must read, and at which object id</td>
+<td style="text-align:left"><code>governs</code>, each pinned <code>path@&lt;object-id&gt;</code></td>
+</tr>
+<tr>
+<td style="text-align:right">6</td>
+<td style="text-align:left">what is blocking, if anything</td>
+<td style="text-align:left"><code>## Blockers</code></td>
+</tr>
+<tr>
+<td style="text-align:right">7</td>
+<td style="text-align:left">what has already been tried and rejected</td>
+<td style="text-align:left"><code>## Tried and rejected</code></td>
+</tr>
+<tr>
+<td style="text-align:right">8</td>
+<td style="text-align:left">the exact commands that verify the checkpoint</td>
+<td style="text-align:left"><code>verify</code> + <code>## Verification</code></td>
+</tr>
+</tbody>
+</table>
+<p>Each answer MUST be in this brief, or in a record this brief names at an exact
+object id. An answer that survives only in a conversation, only in a previous
+session, or only as a judgement about which ledger entries still hold is
+<strong>unanswerable</strong>: the brief has failed its contract, and refreshing it is part of
+the next work unit.</p>
+<p>There is deliberately <strong>no objective field in the frontmatter</strong>. Question 1 is
+prose and the frontmatter is machine-checkable state; the objective is restated
+in <code>## Outcome</code> and argued at length in the path record. Maintaining it in two
+schemas would guarantee that one of them is eventually wrong, and no predicate
+can adjudicate between two prose paragraphs.</p>
 <h2 id="reference-handoff-brief--cold-resume" data-heading="cold-resume">Cold resume</h2>
 <p>The same test, run as a measurement: place a participant with no prior context
 in front of <code>AGENTS.md</code>, this brief, and the repository at <code>checkpoint</code>, and ask
 them to perform the next action. Record whether they did it correctly and how
 long it took to the first correct action.</p>
+<p>A trial MUST allow the participant to open any record the brief names at an
+exact id — that is the contract, not a leak in it. What a trial MUST NOT supply
+is anything undurable: a conversation, a previous session, a person to ask.</p>
 <p>Record <code>written_by</code> and the path id with <strong>every</strong> trial. The aggregate over the
 eight questions is the least useful reading: failures clustering by writer mean
 the schema is fine and the practice is not, failures clustering by path mean the
@@ -14224,7 +14832,7 @@ record and the audit questions are answered inside the closing record. The
 fields are identical either way; only the number of files changes.</p>
 <h2 id="reference-human-records--opening-acceptance" data-heading="opening-acceptance">Opening acceptance</h2>
 <p>Filename:</p>
-<pre><code class="language-text">atomik-project/sessions/YYYY-MM-DD-cp-example-001-opening.md
+<pre><code class="language-text">project/sessions/YYYY-MM-DD-cp-example-001-opening.md
 </code></pre>
 <p>Template:</p>
 <pre><code class="language-md">---
@@ -14238,7 +14846,7 @@ decision: accepted
 accepted_by: participant-id
 accepted_roles: [initiator, reviewer]
 accepted_at: 2026-01-15T09:00:00Z
-scope_ref: atomik-project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
+scope_ref: project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
 scope_digest: sha256:9f2c4b1d5e6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c
 ---
 
@@ -14285,7 +14893,7 @@ time, digest, and authority enforcement remain unimplemented and must be
 reported as such.</p>
 <h2 id="reference-human-records--coherence-audit" data-heading="coherence-audit">Coherence audit</h2>
 <p>Filename:</p>
-<pre><code class="language-text">atomik-project/audits/cp-example-001-&lt;full-subject-object-id&gt;.md
+<pre><code class="language-text">project/audits/cp-example-001-&lt;full-subject-object-id&gt;.md
 </code></pre>
 <p>Template:</p>
 <pre><code class="language-md">---
@@ -14344,7 +14952,7 @@ repository’s configured format</strong>: a SHA-256 repository writes sixty-fou
 characters in the same field and the same filename.</p>
 <h2 id="reference-human-records--closing-acceptance" data-heading="closing-acceptance">Closing acceptance</h2>
 <p>Filename:</p>
-<pre><code class="language-text">atomik-project/sessions/YYYY-MM-DD-cp-example-001-closing.md
+<pre><code class="language-text">project/sessions/YYYY-MM-DD-cp-example-001-closing.md
 </code></pre>
 <p>Template:</p>
 <pre><code class="language-md">---
@@ -14360,7 +14968,7 @@ accepted_by: participant-id
 accepted_roles: [reviewer, auditor]
 accepted_at: 2026-01-15T14:30:00Z
 decision: accepted
-scope_ref: atomik-project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
+scope_ref: project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
 scope_digest: sha256:9f2c4b1d5e6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c
 advisories_at_candidate: [scope-drift, path-staleness]
 advisory_disposition:
@@ -14478,9 +15086,9 @@ view:</p>
 <pre><code class="language-bash">npm run cairn-active
 npm run cairn-check
 git status --short
-git add atomik-project/coding-paths/CP-EXAMPLE-001.md
-git add atomik-project/coding-paths/ACTIVE.md
-git add atomik-project/sessions/YYYY-MM-DD-cp-example-001-opening.md
+git add project/coding-paths/CP-EXAMPLE-001.md
+git add project/coding-paths/ACTIVE.md
+git add project/sessions/YYYY-MM-DD-cp-example-001-opening.md
 git commit -m &quot;Register CP-EXAMPLE-001 before branching&quot;
 git rev-parse HEAD^
 git push origin HEAD:main
@@ -14510,8 +15118,8 @@ git status --short
 git add path/to/implementation
 git add path/to/tests
 git add docs/modules/example.md
-git add atomik-project/coding-paths/CP-EXAMPLE-001.md
-git add atomik-project/briefs/cp-example-001-handoff.md
+git add project/coding-paths/CP-EXAMPLE-001.md
+git add project/briefs/cp-example-001-handoff.md
 git commit -m &quot;CP-EXAMPLE-001 S01: coherent outcome&quot;
 git push origin path/cp-example-001
 git fetch origin path/cp-example-001
@@ -14585,7 +15193,7 @@ at their pinned ids.</p>
 record naming the same object id, the base <code>T</code>, the roles the reviewer held, the
 re-computed scope digest, and one structured entry per advisory raised at <code>C</code>:</p>
 <pre><code class="language-bash">sed -n '/^## Definition of done$/,/^## /p' \
-  atomik-project/coding-paths/CP-EXAMPLE-001.md | sha256sum
+  project/coding-paths/CP-EXAMPLE-001.md | sha256sum
 npm run cairn-check -- --base origin/main   # the advisories to disposition
 </code></pre>
 <p>If the digest differs from the one recorded at opening, stop: the definition of
@@ -14597,10 +15205,10 @@ new audit file, and obtain new acceptance.</p>
 entry, and move the brief’s checkpoint pointer. Change no other field of the path
 record — not the definition of done, not <code>scope_ref</code>, not <code>writes:</code>, not
 <code>governs:</code>, not the step plan. Stage only the four closure surfaces:</p>
-<pre><code class="language-bash">git add atomik-project/coding-paths/CP-EXAMPLE-001.md
-git add atomik-project/briefs/cp-example-001-handoff.md
-git add atomik-project/audits/cp-example-001-&lt;C&gt;.md
-git add atomik-project/sessions/YYYY-MM-DD-cp-example-001-closing.md
+<pre><code class="language-bash">git add project/coding-paths/CP-EXAMPLE-001.md
+git add project/briefs/cp-example-001-handoff.md
+git add project/audits/cp-example-001-&lt;C&gt;.md
+git add project/sessions/YYYY-MM-DD-cp-example-001-closing.md
 git commit -m &quot;Close CP-EXAMPLE-001 candidate &lt;C&gt;&quot;
 git rev-list --count &lt;C&gt;..HEAD
 npm run cairn-check -- --base origin/main
@@ -14632,12 +15240,12 @@ git merge --no-ff --no-commit origin/path/cp-example-001
 <li>set the path to <code>status: done</code> and <code>resolution: completed</code>;</li>
 <li>retain <code>subject_commit: &lt;C&gt;</code>;</li>
 <li>regenerate <code>ACTIVE.md</code>;</li>
-<li>add one <code>atomik-project/log/YYYY-MM-DD-cp-example-001.md</code> entry.</li>
+<li>add one <code>project/log/YYYY-MM-DD-cp-example-001.md</code> entry.</li>
 </ul>
 <p>Then create and test the exact merge candidate:</p>
-<pre><code class="language-bash">git add atomik-project/coding-paths/CP-EXAMPLE-001.md
-git add atomik-project/coding-paths/ACTIVE.md
-git add atomik-project/log/YYYY-MM-DD-cp-example-001.md
+<pre><code class="language-bash">git add project/coding-paths/CP-EXAMPLE-001.md
+git add project/coding-paths/ACTIVE.md
+git add project/log/YYYY-MM-DD-cp-example-001.md
 git commit -m &quot;Integrate CP-EXAMPLE-001&quot;
 git merge-base --is-ancestor &lt;C&gt; HEAD
 git rev-list --count &lt;C&gt;..HEAD
@@ -14693,7 +15301,7 @@ satisfied. The <a href="#article-reference-repair" data-article="reference-repai
     <article class="article-body" data-rendered-article="reference-path-template">
       <h1 id="reference-path-template--coding-path-template" data-heading="coding-path-template">Coding-path template</h1>
 <p>For the installed reference binding, copy this file to
-<code>atomik-project/coding-paths/CP-&lt;ID&gt;.md</code>. Keep the path id, filename, and branch
+<code>project/coding-paths/CP-&lt;ID&gt;.md</code>. Keep the path id, filename, and branch
 mechanically related. A portable implementation substitutes its configured
 execution-state root.</p>
 <pre><code class="language-md">---
@@ -14715,8 +15323,8 @@ cairn:
   writes:
     - apps/example/**
     - docs/modules/example.md
-    - atomik-project/coding-paths/CP-EXAMPLE-001.md
-    - atomik-project/briefs/cp-example-001-handoff.md
+    - project/coding-paths/CP-EXAMPLE-001.md
+    - project/briefs/cp-example-001-handoff.md
   governs:
     - docs/bedrock/example.md@89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
 ---
@@ -15001,14 +15609,29 @@ rather than inheriting a history that looks like it never happened.</p>
 before paths: application source, the Cairn
 <a href="#article-concept-control-plane" data-article="concept-control-plane" data-anchor="" class="wiki-link">control plane</a>, durable project knowledge, and
 durable execution state. A portable implementation may bind those roles to
-different names. The reference tools in this repository do not yet load that
-configuration, so an operator also needs the exact installed binding below.</p>
-<h2 id="reference-repository-layout--installed-reference-tree" data-heading="installed-reference-tree">Installed reference tree</h2>
-<p>This tree is exhaustive for active Cairn-defined files and folder roles in the
-reference repository. Angle brackets mark repeatable names. Application code,
-domain knowledge, and non-normative research material may add files outside
-this tree without becoming protocol structure.</p>
+folders it already has.</p>
+<p>This page uses the protocol’s own <strong>role names</strong> throughout — <code>project/</code>,
+<code>docs/architecture/</code>. Which folder a given repository binds each role to is
+recorded in exactly one place, the
+<a href="#reference-repository-layout--portable-roles-and-installed-names" data-local-anchor="portable-roles-and-installed-names" class="section-link">installed binding table</a> at the foot of
+this page. Nothing else here repeats a host repository’s local vocabulary,
+because a specification that carries one adoption’s folder names through every
+example is teaching that adoption rather than the protocol.</p>
+<h2 id="reference-repository-layout--the-reference-tree" data-heading="the-reference-tree">The reference tree</h2>
+<p>This tree is exhaustive for active Cairn-defined files, folder roles, and refs.
+Angle brackets mark repeatable names. Application code, domain knowledge, and
+non-normative research material may add files outside this tree without becoming
+protocol structure.</p>
 <pre><code class="language-text">repository/
+├── .git/
+│   └── refs/
+│       ├── heads/
+│       │   ├── &lt;trunk&gt;
+│       │   └── path/&lt;lowercase-path-id&gt;
+│       └── cairn/
+│           └── checkpoints/
+│               └── &lt;lowercase-path-id&gt;/
+│                   └── &lt;ledger-unit-ordinal&gt;
 ├── AGENTS.md
 ├── package.json
 ├── .github/
@@ -15058,7 +15681,7 @@ this tree without becoming protocol structure.</p>
 │           └── reference/
 │               ├── index.md
 │               └── &lt;reference-article&gt;.md
-└── atomik-project/
+└── project/
     ├── index.md
     ├── log.md
     ├── coding-paths/
@@ -15089,27 +15712,24 @@ this tree without becoming protocol structure.</p>
     ├── log/
     │   ├── index.md
     │   └── &lt;date&gt;-&lt;path-id&gt;.md
-    ├── brainstorm/
-    │   ├── index.md
-    │   ├── log.md
-    │   └── &lt;provisional-note&gt;.md
-    ├── sources/
-    │   ├── index.md
-    │   ├── log.md
-    │   └── &lt;source-record&gt;.md
-    └── projects/
+    └── brainstorm/
         ├── index.md
         ├── log.md
-        └── &lt;nested-project&gt;/
-            ├── index.md
-            ├── log.md
-            └── project.atomik-project.json
+        └── &lt;provisional-note&gt;.md
 </code></pre>
+<p><code>.git/refs/</code> is shown because two of Cairn’s durable objects are refs rather
+than files and are therefore invisible to every directory listing: the path
+branches, and the <a href="#article-concept-checkpoint-retention" data-article="concept-checkpoint-retention" data-anchor="" class="wiki-link">checkpoint retention</a>
+namespace described <a href="#reference-repository-layout--the-cairn-ref-namespace" data-local-anchor="the-cairn-ref-namespace" class="section-link">below</a>. A reader who searches the
+working tree for them finds nothing and reasonably concludes they do not exist.</p>
 <p><code>shared/</code> is a guarded source root supported by the checker even when a
 repository does not currently contain it. Repeatable records may be absent when
 no event of that kind exists; their directory, index, and folder log still name
 the role. <code>cairn.config.json</code> is not shown because it is a specified portability
 target, not an installed reference file.</p>
+<p>A host repository may of course hold folders Cairn says nothing about. Those are
+that repository’s business and are deliberately absent here: this tree lists
+what Cairn defines, not what any one adoption happens to contain.</p>
 <h2 id="reference-repository-layout--what-every-part-does" data-heading="what-every-part-does">What every part does</h2>
 <table>
 <thead>
@@ -15201,69 +15821,64 @@ target, not an installed reference file.</p>
 <td style="text-align:left">generator only</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>atomik-project/index.md</code></td>
+<td style="text-align:left"><code>project/index.md</code></td>
 <td style="text-align:left">entry map for durable project knowledge and execution state</td>
 <td style="text-align:left">project-plane change</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>atomik-project/coding-paths/paths.md</code></td>
+<td style="text-align:left"><code>project/coding-paths/paths.md</code></td>
 <td style="text-align:left">current operating convention for opening, running, integrating, and cleaning paths</td>
 <td style="text-align:left">accepted protocol operation change</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>atomik-project/coding-paths/CP-*.md</code></td>
+<td style="text-align:left"><code>project/coding-paths/CP-*.md</code></td>
 <td style="text-align:left">one path’s plan, state, ledger, checkpoint, and next action</td>
 <td style="text-align:left">current assigned writer</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>atomik-project/coding-paths/ACTIVE.md</code></td>
+<td style="text-align:left"><code>project/coding-paths/ACTIVE.md</code></td>
 <td style="text-align:left">generated live-path index</td>
 <td style="text-align:left">generator only</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>atomik-project/coding-paths/history/*.md</code></td>
+<td style="text-align:left"><code>project/coding-paths/history/*.md</code></td>
 <td style="text-align:left">verbatim completed ledger sections</td>
 <td style="text-align:left">created by that path; immutable thereafter</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>atomik-project/sessions/*.md</code></td>
+<td style="text-align:left"><code>project/sessions/*.md</code></td>
 <td style="text-align:left">opening, closing, and other human decisions</td>
 <td style="text-align:left">participant recording the event; immutable thereafter</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>atomik-project/audits/*.md</code></td>
+<td style="text-align:left"><code>project/audits/*.md</code></td>
 <td style="text-align:left">one audit bound to one full candidate hash</td>
 <td style="text-align:left">auditor; immutable thereafter</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>atomik-project/briefs/*.md</code></td>
+<td style="text-align:left"><code>project/briefs/*.md</code></td>
 <td style="text-align:left">disposable current handoff projection</td>
 <td style="text-align:left">current assigned writer</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>atomik-project/log/*.md</code></td>
+<td style="text-align:left"><code>project/log/*.md</code></td>
 <td style="text-align:left">one integrated outcome per file</td>
 <td style="text-align:left">integration unit; immutable thereafter</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>atomik-project/log.md</code></td>
-<td style="text-align:left">frozen compatibility archive, not the writable journal</td>
-<td style="text-align:left">never append or rewrite</td>
-</tr>
-<tr>
-<td style="text-align:left"><code>atomik-project/brainstorm/</code></td>
+<td style="text-align:left"><code>project/brainstorm/</code></td>
 <td style="text-align:left">explicitly provisional thinking</td>
 <td style="text-align:left">normal path work; never treated as accepted doctrine</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>atomik-project/sources/</code></td>
-<td style="text-align:left">optional imported specifications and references</td>
-<td style="text-align:left">source-capture work</td>
+<td style="text-align:left"><code>refs/heads/path/&lt;id&gt;</code></td>
+<td style="text-align:left">one path’s branch, carrying every checkpoint it has pushed</td>
+<td style="text-align:left">current assigned writer</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>atomik-project/projects/</code></td>
-<td style="text-align:left">optional nested project bundles</td>
-<td style="text-align:left">project-specific policy</td>
+<td style="text-align:left"><code>refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;</code></td>
+<td style="text-align:left">one immovable pin per ledger-named checkpoint</td>
+<td style="text-align:left">append-only; never moved or deleted while the path record lives</td>
 </tr>
 <tr>
 <td style="text-align:left">each meaningful folder’s <code>index.md</code></td>
@@ -15290,97 +15905,123 @@ working tree and outside every directory listing:</p>
 it. <code>&lt;n&gt;</code> is the ledger’s own ordinal for that checkpoint. The refs are
 append-only for the life of the path record, and they are not released by
 integration.</p>
-<pre><code class="language-bash">git ls-remote origin 'refs/cairn/checkpoints/*'
+<p><strong>Where this actually is.</strong> Refs are not in the working tree, so no amount of
+<code>ls</code> will find them. They live inside the repository’s own database — under
+<code>.git/refs/</code> and <code>.git/packed-refs</code> locally, and in the equivalent store on the
+remote. Git will not show them with <code>git branch</code> either, because that command
+only reads <code>refs/heads/</code>. Three commands make the namespace visible:</p>
+<pre><code class="language-bash">$ git for-each-ref refs/cairn/checkpoints          # every retained checkpoint here
+$ git ls-remote origin 'refs/cairn/checkpoints/*'  # every one the remote holds
+$ git show-ref cp-example-001                      # one path's pins
 </code></pre>
+<p>Being invisible to a file listing is the point: a record kept as a file can be
+edited by the work it describes, and a checkpoint pin must survive exactly the
+operation — a rewriting push — that rewrites files.</p>
 <p>A repository that clones with a restricted refspec, or a mirror that copies only
 <code>refs/heads/*</code>, will silently lose this namespace. Fetch configuration is part of
 conforming to <a href="#article-concept-checkpoint-retention" data-article="concept-checkpoint-retention" data-anchor="" class="wiki-link">checkpoint retention</a>, not an
 optional convenience.</p>
 <h2 id="reference-repository-layout--portable-roles-and-installed-names" data-heading="portable-roles-and-installed-names">Portable roles and installed names</h2>
+<p>Everything above this heading uses role names. This table is the one place where
+they are traded for the folders a real repository holds, and it is written for
+<strong>the repository the reference tools were built in</strong> — the adoption Cairn was
+extracted from.</p>
 <table>
 <thead>
 <tr>
 <th style="text-align:left">Protocol role</th>
-<th style="text-align:left">Installed reference binding</th>
+<th style="text-align:left">Role name used in this specification</th>
+<th style="text-align:left">Bound in the reference repository to</th>
 <th style="text-align:left">Intended configuration field</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td style="text-align:left">execution-state plane</td>
-<td style="text-align:left"><code>atomik-project/</code></td>
+<td style="text-align:left"><code>project/</code></td>
+<td style="text-align:left"><strong><code>atomik-project/</code></strong></td>
 <td style="text-align:left"><code>roots.project</code></td>
 </tr>
 <tr>
 <td style="text-align:left">accepted architecture</td>
-<td style="text-align:left"><code>docs/bedrock/</code></td>
+<td style="text-align:left"><code>docs/architecture/</code></td>
+<td style="text-align:left"><strong><code>docs/bedrock/</code></strong></td>
 <td style="text-align:left"><code>roots.architecture</code></td>
 </tr>
 <tr>
 <td style="text-align:left">decision records</td>
+<td style="text-align:left"><code>docs/adr/</code></td>
 <td style="text-align:left"><code>docs/adr/</code></td>
 <td style="text-align:left"><code>roots.decisions</code></td>
 </tr>
 <tr>
 <td style="text-align:left">implemented-area notes</td>
 <td style="text-align:left"><code>docs/modules/</code></td>
+<td style="text-align:left"><code>docs/modules/</code></td>
 <td style="text-align:left"><code>roots.modules</code></td>
 </tr>
 <tr>
 <td style="text-align:left">guarded application source</td>
 <td style="text-align:left"><code>apps/</code>, <code>packages/</code>, <code>shared/</code></td>
+<td style="text-align:left">same</td>
 <td style="text-align:left"><code>roots.source</code></td>
 </tr>
 <tr>
 <td style="text-align:left">shared integration branch</td>
+<td style="text-align:left"><code>&lt;trunk&gt;</code></td>
 <td style="text-align:left"><code>main</code></td>
 <td style="text-align:left"><code>trunk</code></td>
 </tr>
 <tr>
 <td style="text-align:left">shared checkpoint remote</td>
+<td style="text-align:left"><code>&lt;remote&gt;</code></td>
 <td style="text-align:left"><code>origin</code></td>
 <td style="text-align:left"><code>remote</code></td>
 </tr>
 </tbody>
 </table>
-<p>The portable role names used in the specification—<code>project/</code> and
-<code>docs/architecture/</code>—describe these semantics without forcing the installed
-names on another repository. The <a href="#article-reference-configuration" data-article="reference-configuration" data-anchor="" class="wiki-link">configuration contract</a>
-defines the intended mapping. Until the loader exists, operators MUST use the
-installed bindings and MUST NOT claim portable conformance.</p>
+<p>Two roles are bound to a different name, and both for the same uninteresting
+reason: those folders were named before Cairn existed, by the application the
+protocol grew inside. Neither name is protocol structure. A repository adopting
+Cairn should bind these roles to whatever it already calls them and never inherit
+<code>atomik-project/</code> — the prefix names one product, not a protocol.</p>
+<p>The <a href="#article-reference-configuration" data-article="reference-configuration" data-anchor="" class="wiki-link">configuration contract</a> defines the intended mapping.
+Until the loader exists, the reference tools resolve the bound names above as
+constants: an operator working <strong>in that repository</strong> MUST use them, and MUST NOT
+claim portable conformance on the strength of them.</p>
 <h2 id="reference-repository-layout--naming-relationships" data-heading="naming-relationships">Naming relationships</h2>
 <h3 id="reference-repository-layout--path-identity" data-heading="path-identity">Path identity</h3>
 <pre><code class="language-text">CP-ROADMAP-010
-  → atomik-project/coding-paths/CP-ROADMAP-010.md
+  → project/coding-paths/CP-ROADMAP-010.md
   → path/cp-roadmap-010
-  → atomik-project/briefs/cp-roadmap-010-handoff.md
+  → project/briefs/cp-roadmap-010-handoff.md
 </code></pre>
 <p>The id uses uppercase <code>CP-</code> followed by uppercase letters, digits, and hyphens.
 It is stable, globally unique within the repository, and never reused. The
 branch field remains present for <code>running</code>, <code>blocked</code>, and <code>ready</code>.</p>
 <h3 id="reference-repository-layout--opening-and-closing-records" data-heading="opening-and-closing-records">Opening and closing records</h3>
-<pre><code class="language-text">atomik-project/sessions/YYYY-MM-DD-&lt;lowercase-path-id&gt;-opening.md
-atomik-project/sessions/YYYY-MM-DD-&lt;lowercase-path-id&gt;-closing.md
+<pre><code class="language-text">project/sessions/YYYY-MM-DD-&lt;lowercase-path-id&gt;-opening.md
+project/sessions/YYYY-MM-DD-&lt;lowercase-path-id&gt;-closing.md
 </code></pre>
 <p>Root-level metadata, not the filename, defines <code>path</code> and <code>ceremony</code>.</p>
 <h3 id="reference-repository-layout--audit-record" data-heading="audit-record">Audit record</h3>
-<pre><code class="language-text">atomik-project/audits/&lt;lowercase-path-id&gt;-&lt;full-40-character-subject-commit&gt;.md
+<pre><code class="language-text">project/audits/&lt;lowercase-path-id&gt;-&lt;full-40-character-subject-commit&gt;.md
 </code></pre>
 <h3 id="reference-repository-layout--journal-entry" data-heading="journal-entry">Journal entry</h3>
-<pre><code class="language-text">atomik-project/log/YYYY-MM-DD-&lt;lowercase-path-id&gt;.md
+<pre><code class="language-text">project/log/YYYY-MM-DD-&lt;lowercase-path-id&gt;.md
 </code></pre>
 <p>If a journal name would collide, add a stable subject suffix. Never overwrite
 an existing entry.</p>
 <h2 id="reference-repository-layout--derived-relationships" data-heading="derived-relationships">Derived relationships</h2>
 <pre><code class="language-text">live path records
-  └── atomik-project/coding-paths/ACTIVE.md
+  └── project/coding-paths/ACTIVE.md
 
 one path ledger
-  ├── atomik-project/briefs/&lt;id&gt;-handoff.md
-  └── atomik-project/coding-paths/history/&lt;id&gt;-S&lt;NN&gt;.md
+  ├── project/briefs/&lt;id&gt;-handoff.md
+  └── project/coding-paths/history/&lt;id&gt;-S&lt;NN&gt;.md
 
 integrated path + exact audit + exact closing acceptance
-  └── atomik-project/log/YYYY-MM-DD-&lt;id&gt;.md
+  └── project/log/YYYY-MM-DD-&lt;id&gt;.md
 
 canonical Markdown article graph
   └── docs/cairn/specification.html
@@ -15395,57 +16036,68 @@ or open the <a href="#article-concept-repository" data-article="concept-reposito
   </noscript>
   <script>
     (() => {
-      const panes = [...document.querySelectorAll('[data-pane]')]
+      // The left pane is the specification and never navigates away from it.
+      // Everything else — tree entries, wiki links from either side — opens in
+      // the right pane, which is the only one that carries history.
+      const spec = document.querySelector('[data-pane="left"]')
+      const reader = document.querySelector('[data-pane="right"]')
       const templates = new Map(
         [...document.querySelectorAll('[data-article-template]')]
           .map((template) => [template.dataset.articleTemplate, template])
       )
-      const states = new Map()
-      let activePane = panes[0]
+      const state = { entries: [], index: -1, current: null }
 
-      function initialIds() {
-        const pair = location.hash.match(/^#read=([^|]+)[|](.+)$/)
-        if (pair) return pair.slice(1).map((value) => decodeURIComponent(value))
-        const article = location.hash.match(/^#article-([a-z0-9-]+)$/)
-        if (article) return ['specification', article[1]]
-        return ['specification', 'concepts']
-      }
-
-      function setActive(pane) {
-        activePane = pane
-        for (const candidate of panes) {
-          candidate.dataset.active = String(candidate === pane)
-        }
+      function initialId() {
+        const direct = location.hash.match(/^#article-([a-z0-9-]+)$/)
+        if (direct) return direct[1]
+        const legacy = location.hash.match(/^#read=[^|]*[|](.+)$/)
+        if (legacy) return decodeURIComponent(legacy[1])
+        return 'concepts'
       }
 
       function updateHash() {
-        const ids = panes.map((pane) => states.get(pane).current)
-        history.replaceState(null, '', '#read=' + ids.map(encodeURIComponent).join('|'))
+        history.replaceState(null, '', '#article-' + state.current)
       }
 
-      function updateControls(pane) {
-        const state = states.get(pane)
-        pane.querySelector('[data-history="back"]').disabled = state.index <= 0
-        pane.querySelector('[data-history="forward"]').disabled =
+      function updateControls() {
+        reader.querySelector('[data-history="back"]').disabled = state.index <= 0
+        reader.querySelector('[data-history="forward"]').disabled =
           state.index >= state.entries.length - 1
       }
 
       function markTree() {
-        const open = new Set(panes.map((pane) => states.get(pane).current))
         for (const link of document.querySelectorAll('[data-tree-article]')) {
-          if (open.has(link.dataset.treeArticle)) {
+          const current = link.dataset.treeArticle === state.current ||
+            (link.dataset.treeArticle === 'specification' && state.current === null)
+          if (current) {
             link.setAttribute('aria-current', 'page')
           } else {
             link.removeAttribute('aria-current')
           }
         }
+        document.querySelector('[data-tree-article="specification"]')
+          ?.setAttribute('aria-current', 'page')
       }
 
-      function render(pane, id, anchor = '', record = true) {
+      function scrollTo(pane, anchor) {
+        pane.querySelector('.article-scroll')
+          ?.querySelector('[data-heading="' + CSS.escape(anchor) + '"]')
+          ?.scrollIntoView({ block: 'start' })
+      }
+
+      function open(id, anchor = '', record = true) {
         const template = templates.get(id)
         if (!template) return
-        const state = states.get(pane)
-        const scroll = pane.querySelector('.article-scroll')
+        // The specification already occupies the left pane; opening it again on
+        // the right would be two scroll positions in one document.
+        if (id === 'specification') {
+          const scroll = spec.querySelector('.article-scroll')
+          if (anchor) scrollTo(spec, anchor)
+          else scroll.scrollTop = 0
+          scroll.focus()
+          return
+        }
+        const scroll = reader.querySelector('.article-scroll')
         if (record) {
           state.entries.splice(state.index + 1)
           state.entries.push({ id, anchor })
@@ -15453,69 +16105,48 @@ or open the <a href="#article-concept-repository" data-article="concept-reposito
         }
         state.current = id
         scroll.replaceChildren(template.content.cloneNode(true))
-        pane.querySelector('.pane-title').textContent = template.dataset.title
-        pane.dataset.article = id
+        reader.querySelector('.pane-title').textContent = template.dataset.title
+        reader.dataset.article = id
         scroll.scrollTop = 0
-        if (anchor) {
-          scroll.querySelector('[data-heading="' + CSS.escape(anchor) + '"]')
-            ?.scrollIntoView({ block: 'start' })
-        }
-        updateControls(pane)
+        if (anchor) scrollTo(reader, anchor)
+        updateControls()
         markTree()
         updateHash()
       }
 
-      const ids = initialIds()
-      panes.forEach((pane, index) => {
-        const fallback = index === 0 ? 'specification' : 'concepts'
-        const id = templates.has(ids[index]) ? ids[index] : fallback
-        states.set(pane, { entries: [{ id, anchor: '' }], index: 0, current: id })
-      })
-      panes.forEach((pane) => {
-        const id = states.get(pane).current
-        render(pane, id, '', false)
-        pane.addEventListener('pointerdown', () => setActive(pane))
-        pane.addEventListener('focusin', () => setActive(pane))
-      })
+      spec.dataset.article = 'specification'
+      open(templates.has(initialId()) ? initialId() : 'concepts', '', true)
 
       document.addEventListener('click', (event) => {
         const localLink = event.target.closest('[data-local-anchor]')
         if (localLink) {
           event.preventDefault()
-          const sourcePane = localLink.closest('[data-pane]')
-          const scroll = sourcePane?.querySelector('.article-scroll')
-          scroll?.querySelector(
-            '[data-heading="' + CSS.escape(localLink.dataset.localAnchor) + '"]'
-          )?.scrollIntoView({ block: 'start' })
+          const pane = localLink.closest('[data-pane]')
+          if (pane) scrollTo(pane, localLink.dataset.localAnchor)
           return
         }
         const articleLink = event.target.closest('[data-article]')
         if (articleLink) {
           event.preventDefault()
-          const sourcePane = articleLink.closest('[data-pane]')
-          const targetPane = sourcePane === panes[0] ? panes[1] : panes[0]
-          setActive(targetPane)
-          render(targetPane, articleLink.dataset.article, articleLink.dataset.anchor)
-          targetPane.querySelector('.article-scroll').focus()
+          open(articleLink.dataset.article, articleLink.dataset.anchor)
+          if (articleLink.dataset.article !== 'specification') {
+            reader.querySelector('.article-scroll').focus()
+          }
           return
         }
         const treeLink = event.target.closest('[data-tree-article]')
         if (treeLink) {
           event.preventDefault()
-          render(activePane, treeLink.dataset.treeArticle)
-          activePane.querySelector('.article-scroll').focus()
+          open(treeLink.dataset.treeArticle)
           return
         }
         const historyButton = event.target.closest('[data-history]')
         if (!historyButton) return
-        const pane = historyButton.closest('[data-pane]')
-        const state = states.get(pane)
-        const delta = historyButton.dataset.history === 'back' ? -1 : 1
-        const next = state.index + delta
+        const next = state.index + (historyButton.dataset.history === 'back' ? -1 : 1)
         if (next < 0 || next >= state.entries.length) return
         state.index = next
         const entry = state.entries[next]
-        render(pane, entry.id, entry.anchor, false)
+        open(entry.id, entry.anchor, false)
       })
 
       const search = document.querySelector('#tree-search')

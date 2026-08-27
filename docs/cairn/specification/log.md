@@ -11,6 +11,63 @@ timestamp: 2026-08-26T00:00:00Z
 The companion entry point is [index.md](./index.md). This log records changes to
 the documentation project; it is not part of the protocol's normative prose.
 
+## 2026-08-27 — owner review: the trail, the role names, and a modern reader
+
+**The answerable-alone contract said the wrong thing.** It required a reader
+holding "only `AGENTS.md` and the brief — no ledger" to answer eight questions,
+which contradicts what `AGENTS.md` actually does: it points at the operating
+convention, which points at the live view, which names the path and its ledger.
+Reconstructing that chain is the protocol working, not a failure of the brief.
+"Alone" now constrains **context, not file count** — no conversation, no prior
+session, no memory — and each answer must be in the brief or in a record the
+brief names at an exact object id.
+
+The companion sentence was inverted for the same reason. It named only the
+*thick* failure (a brief that reproduces the ledger becomes a second ledger) and
+left the thin one unnamed, so a brief could satisfy the text by saying almost
+nothing. Both are now stated: deciding which of the ledger's history is still
+the situation is the brief's own job, and a brief that hands it back has been
+silent rather than terse. The frontmatter's lack of an objective field is now
+explained where a reader would otherwise read it as an oversight.
+
+The [cold-resume pilot](../cairn-cold-resume-pilot-2026-08-26.md) was run under
+the earlier wording and carries a note saying which of its numbers move: the two
+dominant failures test brief fields and do not, `outcome` becomes an upper
+bound, and the finding that decides v0.3 is unaffected.
+
+**Role names, everywhere but one table.** The specification carried
+`atomik-project/` — the folder name of the application Cairn was extracted from
+— through fifty-six examples, templates and command sequences. Every one now
+reads `project/`. The single place a host binding belongs is the installed
+binding table in the [layout reference](./reference/repository-layout.md), which
+gained a column and a paragraph saying why two roles are bound to legacy names
+and that no adopting repository should inherit them.
+
+**Three things the text asked a reader to already know.** The `governs:` pin
+demanded a *blob* object id and then dropped `git rev-parse HEAD:<path>` with no
+explanation; the command now has its output, its `<commit>:<path>` form, and the
+`git show` that reads the pinned version back. `[route]` linked to the
+lightweight-path article, so the field and its default were the same page; route
+is now its own concept with the four routes, the five triggers, the ledger
+backstop and one-way escalation. The `refs/cairn/checkpoints/` namespace was
+described but never located: it is now in the reference tree under `.git/refs/`,
+in the role table, and has a paragraph naming the three commands that make refs
+visible at all.
+
+**Two rows left the tree.** `sources/` and `projects/` were vault fixtures from
+the host repository's first use as an Atomik vault, and the frozen `log.md`
+archive predates the one-file-per-entry journal. None is Cairn structure.
+
+**The reader.** The two panes were peers with an active-pane model that added a
+selection step before every click. The specification is now fixed in the left
+pane and every link and tree entry opens on the right, which removes the model,
+the Pane A/Pane B labels, and the coloured rule lines that marked active state —
+current state reads as a subtle fill against the layout's one separator line.
+Body text moved to a modern sans with a serif display title, rounded corners
+landed on the search field, code blocks, tables, quotes and buttons, and the
+edition label is now read from the specification's own frontmatter rather than
+hard-coded, where it had been saying v0.1 since the text moved to v0.2.
+
 ## 2026-08-26 — v0.2
 
 The specification moves from v0.1 to v0.2 against an external nineteen-item

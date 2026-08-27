@@ -9,13 +9,11 @@ timestamp: 2026-08-26T00:00:00Z
 # Path record
 
 A path record is `project/coding-paths/CP-<ID>.md`, the portable role path and
-durable source of truth for one [coding path](./coding-path.md). The
-[reference binding](../reference/repository-layout.md#portable-roles-and-installed-names)
-uses `atomik-project/coding-paths/CP-<ID>.md`.
+durable source of truth for one [coding path](./coding-path.md).
 
 ## In Cairn
 
-Frontmatter carries identity, [route](./lightweight-path.md), lifecycle state,
+Frontmatter carries identity, [route](./route.md), lifecycle state,
 base commit, branch, current step, writer assignment, subject commit when ready,
 and two declared surfaces:
 

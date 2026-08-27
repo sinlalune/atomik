@@ -9,7 +9,7 @@ timestamp: 2026-08-26T00:00:00Z
 # Coding-path template
 
 For the installed reference binding, copy this file to
-`atomik-project/coding-paths/CP-<ID>.md`. Keep the path id, filename, and branch
+`project/coding-paths/CP-<ID>.md`. Keep the path id, filename, and branch
 mechanically related. A portable implementation substitutes its configured
 execution-state root.
 
@@ -33,8 +33,8 @@ cairn:
   writes:
     - apps/example/**
     - docs/modules/example.md
-    - atomik-project/coding-paths/CP-EXAMPLE-001.md
-    - atomik-project/briefs/cp-example-001-handoff.md
+    - project/coding-paths/CP-EXAMPLE-001.md
+    - project/briefs/cp-example-001-handoff.md
   governs:
     - docs/bedrock/example.md@89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
 ---

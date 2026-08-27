@@ -22,13 +22,13 @@ integration transport; there is no standing central integrator.
   conformance.
 - [Concept wiki](./specification/concepts/index.md) — one article per
   specialised idea, with the twenty-one borrowed Git and general-practice terms
-  kept separate from the forty-five concepts Cairn defines.
+  kept separate from the forty-six concepts Cairn defines.
 - [Implementation reference](./specification/reference/index.md) — exact layout,
   templates, record schemas, commands, configuration status, and conformance
   checklist.
 - [Universal HTML edition](./specification.html) — the same article graph in one
-  self-contained, flat research-paper-style reader with a tree, two equal
-  independently scrolling panes, and cross-pane wiki navigation.
+  self-contained reader: an article tree, the full specification fixed in the
+  left pane, and every link or tree entry opening its object in the right.
 
 `docs/cairn/specification/` is an Atomik-ready documentation project:
 `index.md` is the main learning route, `concepts/` is the linked object wiki,

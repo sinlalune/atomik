@@ -8,7 +8,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { dirname, join, posix, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseHTML } from 'linkedom'
-import { buildHtml, loadArticles } from './cairn-spec-build.mjs'
+import { buildHtml, loadArticles, specVersion } from './cairn-spec-build.mjs'
 import { extractRules, generateMarkdownTable, tableIn } from './cairn-rules.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -278,6 +278,66 @@ test('cairn-spec: identity is object-format agnostic and the lifecycle table is 
   assert.match(markdown, /\*\*`archived → archived` is not a transition\.\*\*/)
 })
 
+test('cairn-spec: the answerable-alone contract constrains context, not file count', () => {
+  const brief = readFileSync(join(REFERENCES, 'handoff-brief.md'), 'utf8')
+  const concept = readFileSync(join(CONCEPTS, 'handoff.md'), 'utf8')
+
+  // The old wording said "AGENTS.md and the brief — no ledger". That is not what
+  // the entry route does: AGENTS.md leads to the convention, the live view, the
+  // path record and its ledger. "Alone" is about undurable context.
+  for (const [name, source] of [['spec', markdown], ['reference', brief], ['concept', concept]]) {
+    assert.doesNotMatch(source, /no ledger, no conversation/, name + ' still forbids the ledger')
+    assert.match(source, /no\s+conversation,\s+no\s+prior\s+session/, name + ' must still exclude undurable context')
+    assert.match(
+      source, /in (?:the|this) brief(?: itself)?, or in a record\s+(?:the|this) brief\s+names at an exact\s+object id/,
+      name + ' must permit records the brief names at an exact id'
+    )
+  }
+
+  // Both failure modes, not one. The old text named only the thick one.
+  assert.match(markdown, /##### Two failure modes, not one/)
+  assert.match(markdown, /\*\*too thin\*\*/)
+  assert.match(markdown, /\*\*too thick\*\*/)
+  assert.match(brief, /It can fail in either direction/)
+
+  // The objective is deliberately absent from the frontmatter; say so where a
+  // reader would otherwise read the omission as an oversight.
+  assert.match(markdown, /##### Why the objective is not in the frontmatter/)
+  assert.match(brief, /no objective field in the frontmatter/)
+  assert.doesNotMatch(brief, /^\| `objective` \|/m)
+
+  // A cold-resume trial withholds context, not records.
+  assert.match(markdown, /MAY open any record the brief names/)
+  assert.match(brief, /MUST allow the participant to open any record the brief names/)
+})
+
+test('cairn-spec: the blob object id is explained where it is first demanded', () => {
+  const index = markdown.indexOf('git rev-parse HEAD:docs/architecture/example.md')
+  assert.ok(index > -1, 'the pin command must appear in the canonical prose')
+  assert.match(markdown, /Git stores a\s+file's bytes as an object of their own, called a \*blob\*/)
+  assert.match(markdown, /the `<commit>:<path>` form, which\nmeans "the object at this path, as of this commit"/)
+  // A command with no shown output teaches nothing about what it produces.
+  assert.match(markdown, /\$ git rev-parse HEAD:docs\/architecture\/example\.md\n[0-9a-f]{40}\n/)
+  assert.match(markdown, /\$ git show [0-9a-f]{40}/)
+})
+
+test('cairn-spec: route is its own concept, not an alias for the default route', () => {
+  const route = readFileSync(join(CONCEPTS, 'route.md'), 'utf8')
+  assert.match(route, /^# Route$/m)
+  for (const named of ['lightweight', '`full`', 'foundation', '`emergency`']) {
+    assert.ok(route.includes(named), 'route.md omits ' + named)
+  }
+  assert.match(route, /Escalation is one-way/)
+  // Every [route] link points at the field, not at one of the routes it names.
+  for (const [name, source] of [
+    ['spec', markdown],
+    ['path-record', readFileSync(join(CONCEPTS, 'path-record.md'), 'utf8')]
+  ]) {
+    assert.doesNotMatch(source, /\[route\]\(\.[^)]*lightweight-path\.md\)/, name)
+    assert.match(source, /\[route\]\(\.[^)]*route\.md\)/, name)
+  }
+})
+
 test('cairn-spec: the concept wiki separates borrowed vocabulary from Cairn concepts', () => {
   const index = readFileSync(join(CONCEPTS, 'index.md'), 'utf8')
   assert.match(index, /^## Borrowed vocabulary$/m)
@@ -287,7 +347,7 @@ test('cairn-spec: the concept wiki separates borrowed vocabulary from Cairn conc
   )
   const concepts = readdirSync(CONCEPTS)
     .filter((name) => name.endsWith('.md') && name !== 'index.md')
-  assert.ok(concepts.length <= 66, 'the concept budget is 66 articles, found ' + concepts.length)
+  assert.ok(concepts.length <= 67, 'the concept budget is 67 articles, found ' + concepts.length)
   for (const borrowed of ['git.md', 'rebase.md', 'merge.md', 'test.md', 'schema.md']) {
     assert.ok(concepts.includes(borrowed))
   }
@@ -299,7 +359,8 @@ test('cairn-spec: the concept wiki separates borrowed vocabulary from Cairn conc
     'provisional-commit.md',
     'scope-digest.md',
     'acceptance-drift.md',
-    'foundation-path.md'
+    'foundation-path.md',
+    'route.md'
   ]) {
     assert.ok(concepts.includes(added), 'v0.2 concept missing: ' + added)
   }
@@ -311,8 +372,19 @@ test('cairn-spec: canonical prose is history-free and distinguishes roles from b
   assert.match(markdown, /project\/coding-paths\/CP-<ID>\.md/)
   assert.match(markdown, /cairn:\n\s+id: CP-EXAMPLE-001/)
   assert.match(markdown, /project\/audits\/cp-example-001-[0-9a-f]{40}\.md/)
-  assert.match(markdown, /protocol role name for the execution plane is `project\/`/)
-  assert.match(markdown, /reference tools bind that role to `atomik-project\/`/)
+  // The canonical prose uses role names only. Every host-repository binding
+  // lives in exactly one table, in the layout reference — a specification that
+  // repeats one adoption's folder names through its examples is teaching that
+  // adoption rather than the protocol.
+  assert.match(markdown, /are\s+\*\*role names\*\*, not required folder names/)
+  assert.match(markdown, /installed binding table\]\(\.\/reference\/repository-layout\.md#portable-roles-and-installed-names\)/)
+  assert.doesNotMatch(markdown, /atomik/i)
+  for (const article of readdirSync(CONCEPTS).filter((name) => name.endsWith('.md'))) {
+    assert.doesNotMatch(
+      readFileSync(join(CONCEPTS, article), 'utf8'), /atomik/i,
+      article + ' repeats a host repository binding; only the layout table may'
+    )
+  }
 })
 
 test('cairn-spec: repository reference exhaustively maps the installed Cairn structure', () => {
@@ -339,9 +411,7 @@ test('cairn-spec: repository reference exhaustively maps the installed Cairn str
     'atomik-project/audits/index.md',
     'atomik-project/briefs/index.md',
     'atomik-project/log/index.md',
-    'atomik-project/brainstorm/index.md',
-    'atomik-project/sources/index.md',
-    'atomik-project/projects/index.md'
+    'atomik-project/brainstorm/index.md'
   ]) {
     assert.ok(existsSync(join(REPO, installed)), 'reference binding is missing ' + installed)
   }
@@ -357,27 +427,36 @@ test('cairn-spec: repository reference exhaustively maps the installed Cairn str
     'docs/modules/',
     'docs/cairn/specification/index.md',
     'docs/cairn/specification.html',
-    'atomik-project/coding-paths/paths.md',
-    'atomik-project/coding-paths/ACTIVE.md',
-    'atomik-project/coding-paths/history/',
-    'atomik-project/sessions/',
-    'atomik-project/audits/',
-    'atomik-project/briefs/',
-    'atomik-project/log/',
-    'atomik-project/brainstorm/',
-    'atomik-project/sources/',
-    'atomik-project/projects/'
+    'project/coding-paths/paths.md',
+    'project/coding-paths/ACTIVE.md',
+    'project/coding-paths/history/',
+    'project/sessions/',
+    'project/audits/',
+    'project/briefs/',
+    'project/log/',
+    'project/brainstorm/'
   ]) {
     assert.ok(layout.includes(required), 'installed layout omits ' + required)
   }
-  assert.match(layout, /This tree is exhaustive for active Cairn-defined files and folder roles/)
-  assert.match(layout, /`cairn\.config\.json` is not shown because it is a specified portability\s+target, not an installed reference file/)
-  assert.match(layout, /\| execution-state plane \| `atomik-project\/` \| `roots\.project` \|/)
+  // Two Cairn objects are refs, not files, so no directory listing shows them.
+  // The tree names them or a reader concludes they do not exist.
+  assert.match(layout, /refs\/\n│\s+├── heads\//)
+  assert.match(layout, /└── cairn\/\n│\s+└── checkpoints\//)
   assert.match(layout, /refs\/cairn\/checkpoints\/<path-id>\/<n>/)
+  assert.match(layout, /git for-each-ref refs\/cairn\/checkpoints/)
+
+  // Host-repository residue is not protocol structure and must stay out.
+  assert.doesNotMatch(layout, /sources\/|projects\/|frozen compatibility archive/)
+
+  assert.match(layout, /This tree is exhaustive for active Cairn-defined files, folder roles, and refs/)
+  assert.match(layout, /`cairn\.config\.json` is not shown because it is a specified portability\s+target, not an installed reference file/)
+  // The one sanctioned mention of the host binding, and the only one.
+  assert.match(layout, /\| execution-state plane \| `project\/` \| \*\*`atomik-project\/`\*\* \| `roots\.project` \|/)
+  assert.equal(layout.match(/atomik/gi).length, 2)
 
   const operations = readFileSync(OPERATIONS, 'utf8')
-  assert.match(operations, /git add atomik-project\/coding-paths\/CP-EXAMPLE-001\.md/)
-  assert.doesNotMatch(operations, /git add project\//)
+  assert.match(operations, /git add project\/coding-paths\/CP-EXAMPLE-001\.md/)
+  assert.doesNotMatch(operations, /atomik/i)
 })
 
 test('cairn-spec: each concept is one indexed Markdown article', () => {
@@ -430,35 +509,88 @@ test('cairn-spec: every wiki and tree target resolves to an embedded article', (
   assert.match(html, /data-local-anchor="current-conformance"/)
 })
 
-test('cairn-spec: the two reading panes are equal, flat peers with restrained glass', () => {
+test('cairn-spec: the specification pane is fixed and the reading pane carries history', () => {
   assert.equal(captures(html, /<section class="article-pane" data-pane="(left|right)"/g).length, 2)
-  assert.equal(captures(html, /<div class="article-scroll" tabindex="0" aria-live="(polite)">/g).length, 2)
   assert.match(html, /grid-template-columns: minmax\(0, 1fr\) minmax\(0, 1fr\)/)
   assert.match(html, /\.reading-columns\s*{[\s\S]*?gap: 0;/)
   assert.match(html, /\.reader\s*{[\s\S]*?padding: 0;[\s\S]*?overflow: hidden;/)
   assert.match(html, /\.article-pane\s*{[\s\S]*?min-height: 0;[\s\S]*?overflow: hidden;/)
   assert.match(html, /\.article-scroll\s*{[\s\S]*?height: 100%;[\s\S]*?overflow-y: auto;/)
-  assert.match(html, /A link inside either pane opens\s+the linked object in the other pane/)
-  assert.match(html, /sourcePane === panes\[0\] \? panes\[1\] : panes\[0\]/)
+
+  // The left pane never navigates, so it carries no history controls; the right
+  // pane is the only destination, so links no longer alternate between panes.
+  assert.match(html, /The left pane holds the full specification and stays there/)
+  assert.equal(captures(html, /<button type="button" data-history="(back)"/g).length, 1)
+  assert.match(html, /<header class="pane-toolbar is-static">\s*\n\s*<h2 class="pane-title">/)
+  assert.doesNotMatch(html, /sourcePane === panes\[0\]/)
+
+  // Pane A / Pane B were scaffolding for an active-pane model that is gone.
+  assert.doesNotMatch(html, /Pane [AB]|pane-mark|data-active/)
+
+  // Current state reads as a subtle fill, never as an extra rule line stacked
+  // on top of the one separator the layout already has.
+  const current = html.match(/\.tree-group a\[aria-current="page"\] {[^}]*}/)[0]
+  assert.match(current, /background: var\(--tint\)/)
+  assert.doesNotMatch(current, /border/)
+  assert.doesNotMatch(html, /border-left-color: var\(--link\)/)
+  assert.doesNotMatch(html, /border-top-color: var\(--link\)/)
+
+  // Modern, but still flat: radii and a contemporary stack, no shadows, no
+  // gradients, and glass kept to the two chrome surfaces it already had.
+  assert.match(html, /--r-sm: \.375rem;/)
+  for (const rounded of ['.tree-search', '.article-body pre', '.article-body table']) {
+    const rule = html.match(new RegExp(rounded.replace(/[.]/g, '\\$&') + ' {[^}]*}'))[0]
+    assert.match(rule, /border-radius: var\(--r-/, rounded + ' must be rounded')
+  }
+  assert.match(html, /--sans: "Inter var", Inter, ui-sans-serif, system-ui/)
+  assert.match(html, /--mono: ui-monospace/)
   assert.match(html, /backdrop-filter: blur\(/)
   assert.doesNotMatch(html, /<aside\b/i)
   assert.doesNotMatch(html, /gradient\s*\(/i)
   assert.doesNotMatch(html, /box-shadow\s*:/i)
 })
 
-test('cairn-spec: reader boots both pane states before rendering and routes wiki links', () => {
+test('cairn-spec: the edition label is read from the specification, not hard-coded', () => {
+  const version = specVersion()
+  assert.match(markdown, new RegExp('^\\s+version: ' + version + '$', 'm'))
+  assert.ok(html.includes('<span class="edition">v' + version + ' · universal edition</span>'))
+  assert.ok(html.includes('content="Cairn v' + version + ' —'))
+})
+
+test('cairn-spec: the reading pane receives every link and the left pane keeps the spec', () => {
   const { window, location } = bootReader()
   const left = window.document.querySelector('[data-pane="left"]')
   const right = window.document.querySelector('[data-pane="right"]')
   assert.equal(left.dataset.article, 'specification')
   assert.equal(right.dataset.article, 'concepts')
 
-  const link = left.querySelector('[data-article]')
-  const target = link.dataset.article
-  link.dispatchEvent(new window.Event('click', { bubbles: true, cancelable: true }))
-  assert.equal(right.dataset.article, target)
-  assert.equal(right.dataset.active, 'true')
-  assert.equal(location.hash, '#read=specification|' + target)
+  // A wiki link inside the specification opens on the right, as before.
+  const fromSpec = left.querySelector('[data-article]')
+  fromSpec.dispatchEvent(new window.Event('click', { bubbles: true, cancelable: true }))
+  assert.equal(right.dataset.article, fromSpec.dataset.article)
+  assert.equal(location.hash, '#article-' + fromSpec.dataset.article)
+
+  // A wiki link inside the right pane stays on the right; under the old
+  // alternating model it would have evicted the specification.
+  const fromReader = [...right.querySelectorAll('[data-article]')]
+    .find((node) => node.dataset.article !== 'specification')
+  const onward = fromReader.dataset.article
+  fromReader.dispatchEvent(new window.Event('click', { bubbles: true, cancelable: true }))
+  assert.equal(right.dataset.article, onward)
+  assert.equal(left.dataset.article, 'specification')
+
+  // And the tree opens on the right too, with no pane to select first.
+  const treeLink = window.document.querySelector('[data-tree-article="concept-git"]')
+  treeLink.dispatchEvent(new window.Event('click', { bubbles: true, cancelable: true }))
+  assert.equal(right.dataset.article, 'concept-git')
+  assert.equal(left.dataset.article, 'specification')
+
+  // The specification's own tree entry scrolls the left pane rather than
+  // opening a second copy of it on the right.
+  const specEntry = window.document.querySelector('[data-tree-article="specification"]')
+  specEntry.dispatchEvent(new window.Event('click', { bubbles: true, cancelable: true }))
+  assert.equal(right.dataset.article, 'concept-git')
+  assert.equal(left.dataset.article, 'specification')
 })
 
 test('cairn-spec: a direct wiki article URL opens that object in the right pane', () => {

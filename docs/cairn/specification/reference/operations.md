@@ -35,9 +35,9 @@ view:
 npm run cairn-active
 npm run cairn-check
 git status --short
-git add atomik-project/coding-paths/CP-EXAMPLE-001.md
-git add atomik-project/coding-paths/ACTIVE.md
-git add atomik-project/sessions/YYYY-MM-DD-cp-example-001-opening.md
+git add project/coding-paths/CP-EXAMPLE-001.md
+git add project/coding-paths/ACTIVE.md
+git add project/sessions/YYYY-MM-DD-cp-example-001-opening.md
 git commit -m "Register CP-EXAMPLE-001 before branching"
 git rev-parse HEAD^
 git push origin HEAD:main
@@ -77,8 +77,8 @@ git status --short
 git add path/to/implementation
 git add path/to/tests
 git add docs/modules/example.md
-git add atomik-project/coding-paths/CP-EXAMPLE-001.md
-git add atomik-project/briefs/cp-example-001-handoff.md
+git add project/coding-paths/CP-EXAMPLE-001.md
+git add project/briefs/cp-example-001-handoff.md
 git commit -m "CP-EXAMPLE-001 S01: coherent outcome"
 git push origin path/cp-example-001
 git fetch origin path/cp-example-001
@@ -184,7 +184,7 @@ re-computed scope digest, and one structured entry per advisory raised at `C`:
 
 ```bash
 sed -n '/^## Definition of done$/,/^## /p' \
-  atomik-project/coding-paths/CP-EXAMPLE-001.md | sha256sum
+  project/coding-paths/CP-EXAMPLE-001.md | sha256sum
 npm run cairn-check -- --base origin/main   # the advisories to disposition
 ```
 
@@ -202,10 +202,10 @@ record — not the definition of done, not `scope_ref`, not `writes:`, not
 `governs:`, not the step plan. Stage only the four closure surfaces:
 
 ```bash
-git add atomik-project/coding-paths/CP-EXAMPLE-001.md
-git add atomik-project/briefs/cp-example-001-handoff.md
-git add atomik-project/audits/cp-example-001-<C>.md
-git add atomik-project/sessions/YYYY-MM-DD-cp-example-001-closing.md
+git add project/coding-paths/CP-EXAMPLE-001.md
+git add project/briefs/cp-example-001-handoff.md
+git add project/audits/cp-example-001-<C>.md
+git add project/sessions/YYYY-MM-DD-cp-example-001-closing.md
 git commit -m "Close CP-EXAMPLE-001 candidate <C>"
 git rev-list --count <C>..HEAD
 npm run cairn-check -- --base origin/main
@@ -249,14 +249,14 @@ In that pending integration unit only:
 - set the path to `status: done` and `resolution: completed`;
 - retain `subject_commit: <C>`;
 - regenerate `ACTIVE.md`;
-- add one `atomik-project/log/YYYY-MM-DD-cp-example-001.md` entry.
+- add one `project/log/YYYY-MM-DD-cp-example-001.md` entry.
 
 Then create and test the exact merge candidate:
 
 ```bash
-git add atomik-project/coding-paths/CP-EXAMPLE-001.md
-git add atomik-project/coding-paths/ACTIVE.md
-git add atomik-project/log/YYYY-MM-DD-cp-example-001.md
+git add project/coding-paths/CP-EXAMPLE-001.md
+git add project/coding-paths/ACTIVE.md
+git add project/log/YYYY-MM-DD-cp-example-001.md
 git commit -m "Integrate CP-EXAMPLE-001"
 git merge-base --is-ancestor <C> HEAD
 git rev-list --count <C>..HEAD

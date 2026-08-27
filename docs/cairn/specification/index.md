@@ -118,7 +118,7 @@ route from accepted intent to integration. It has:
 - one stable identifier, such as `CP-SEARCH`;
 - one [path record](./concepts/path-record.md), such as
   `project/coding-paths/CP-SEARCH.md`;
-- one declared [route](./concepts/lightweight-path.md);
+- one declared [route](./concepts/route.md);
 - one [branch](./concepts/branch.md), such as `path/cp-search`;
 - one dedicated [worktree](./concepts/worktree.md);
 - one [assigned writer](./concepts/writer-assignment.md) for that writable
@@ -221,13 +221,32 @@ declared read surface: the documents this work is bound by, each pinned as
 recollection.
 
 The pinned id is the document's own **blob object id** — the id of that exact
-content, not of a repository state that happened to contain it. A commit id
-would also identify a version, but it changes whenever anything else in the
-repository changes, so a `governs:` list pinned to commits would go stale
-constantly while the documents it names sat untouched.
+content, not of a repository state that happened to contain it. Git stores a
+file's bytes as an object of their own, called a *blob*, and gives it an
+[object id](./concepts/commit-hash.md) derived from those bytes. Two files with
+identical content anywhere in any repository share one blob id; editing one byte
+produces a different one.
+
+A commit id would also identify a version, but it changes whenever anything else
+in the repository changes, so a `governs:` list pinned to commits would go stale
+constantly while the documents it names sat untouched. A blob id changes when,
+and only when, the governing document itself changes — which is exactly the
+event a reader needs to notice.
+
+Git prints a blob id with `rev-parse` using the `<commit>:<path>` form, which
+means "the object at this path, as of this commit":
 
 ```bash
-git rev-parse HEAD:docs/architecture/example.md
+$ git rev-parse HEAD:docs/architecture/example.md
+89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
+```
+
+That is the value written after the `@`. To read the document back exactly as it
+was pinned — even if the working copy has since moved on — pass the same id to
+`git show`:
+
+```bash
+$ git show 89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
 ```
 
 Neither is a filesystem lock. A path may discover a necessary wider change and
@@ -380,11 +399,14 @@ garbage-collect exactly the history its ledger promised.
 `cairn.config.json` is the specified portable binding file. It is part of the
 protocol layout but is not yet loaded or installed by the v0.2 reference tools.
 
-The protocol role name for the execution plane is `project/`. The current
-reference tools bind that role to `atomik-project/` and bind
-`docs/architecture/` to `docs/bedrock/`; the not-yet-implemented portable
-configuration will make those bindings selectable. The exact installed tree,
-file roles, naming rules, and portable mapping are in the
+The names used throughout this specification — `project/`,
+`docs/architecture/` — are **role names**, not required folder names. A
+repository binds each role to a folder it already has, and the current reference
+tools bind two of them to different names than the ones written here. Those
+bindings are recorded once, in the
+[installed binding table](./reference/repository-layout.md#portable-roles-and-installed-names),
+so that no other page has to repeat a host repository's local vocabulary. The
+tree, file roles, naming rules, and the mapping are all in the
 [repository-layout reference](./reference/repository-layout.md).
 
 ## Choose the route the change earns
@@ -683,8 +705,20 @@ describing a path that has lost its shape.
 
 #### The answerable-alone contract
 
-A reader holding only `AGENTS.md` and the brief — no ledger, no conversation, no
-prior session — MUST be able to state:
+**"Alone" is a claim about what the reader must already carry in their head, not
+about how many files they may open.** A participant arriving at a Cairn
+repository follows the entry route the repository itself publishes: `AGENTS.md`
+names the operating convention, the convention names the [live
+view](./concepts/live-view.md), the live view names the path, and the
+[path record](./concepts/path-record.md) carries the plan and the ledger. That
+chain is the protocol working. A brief that set out to replace it would be a
+lossy copy of records that are already canonical, refreshed by hand, drifting
+from the day it was written.
+
+What the brief owes is the **last link**, and it owes it exactly. A reader
+holding `AGENTS.md`, the brief, and the repository at `checkpoint` — with no
+conversation, no prior session, and no memory of how the path reached here —
+MUST be able to state:
 
 1. the outcome this path is for;
 2. the exact commit to resume from;
@@ -695,15 +729,45 @@ prior session — MUST be able to state:
 7. what has already been tried and rejected;
 8. the exact commands that verify the checkpoint.
 
-If answering any of these requires opening the ledger, **the brief has failed**,
-and refreshing it is part of the next work unit.
+Each answer MUST be present **in the brief itself, or in a record the brief
+names at an exact object id.** An answer that survives only in a conversation,
+only in a previous session, or only as something a reader would have to
+reconstruct by reading the ledger's history and judging which parts are still
+true is unanswerable, **the brief has failed**, and refreshing it is part of the
+next work unit.
 
-The brief is mutable and rewritten at every work unit; the
-[work ledger](./concepts/work-ledger.md) is the append-only history. They are
-not two copies of one thing. The ledger grows without bound and records
-everything that happened; the brief stays small and records the situation now.
-Neither can do the other's job, and a brief that only makes sense to someone who
-has read the ledger has quietly become a second ledger.
+That last clause is the one that does the work. The ledger is history — every
+work unit that happened, permanently, in order. Deciding *which of that history
+is still the situation* is precisely the brief's job, and a brief that hands it
+back has not been terse, it has been silent.
+
+##### Two failure modes, not one
+
+The brief sits between two of them, and they pull in opposite directions:
+
+- **too thin** — it names no ids and no commands, so the reader must open the
+  ledger and work out for themselves which of forty entries still holds. It has
+  handed its only job back to the record it was supposed to summarise;
+- **too thick** — it re-narrates the ledger so as not to need it, and now two
+  accounts of the same work exist, drift apart at different rates, and disagree
+  about the past. A brief that reproduces the ledger has quietly become a
+  second ledger.
+
+It escapes both by **pointing rather than retelling**: exact object ids, exact
+runnable commands, exact filenames, and roughly one paragraph of prose per
+section. It is the topmost stone of a cairn — it means nothing without the
+stones beneath it, and it is the only one you need to see to know where to put
+your foot next.
+
+##### Why the objective is not in the frontmatter
+
+Question 1 is the one that looks misplaced, because the frontmatter carries
+machine-checkable state and the objective is prose. It is answered by the body's
+`## Outcome` section, which restates in one paragraph what the path record
+argues at length. The frontmatter deliberately carries no objective field: an
+objective maintained in two schemas is an objective that will eventually
+disagree with itself, and the [acceptance-drift](./concepts/acceptance-drift.md)
+predicate cannot adjudicate between two prose paragraphs.
 
 The complete field list, caps, and template are in the
 [handoff-brief reference](./reference/handoff-brief.md).
@@ -713,7 +777,10 @@ The complete field list, caps, and template are in the
 The answerable-alone contract is also how Cairn is measured. A **cold resume**
 places a participant with no prior context in front of `AGENTS.md`, the brief,
 and the repository at the named checkpoint, and asks them to perform the next
-action. Success rate and time-to-first-correct-action are the pilot's primary
+action. The participant MAY open any record the brief names — that is the
+contract working, not a leak in the trial. What the trial MUST withhold is
+everything undurable: the conversation, the previous session, and the person who
+wrote it. Success rate and time-to-first-correct-action are the pilot's primary
 metric, ahead of ceremony time or artifact count: a protocol whose briefs cannot
 be resumed cold has failed at the thing it exists for, however cheap its
 ceremony is.
