@@ -19,6 +19,7 @@ the inputs globally complete; derivation keeps the output single-sourced.
 
 <!-- cairn:paths:begin -->
 - **CP-OPS-002** — Cairn 2.0 · branch `path/cp-ops-002` · base `7aa3b1d`
+- **CP-UI-TYPOGRAPHY** — Reader typography in the app · branch `path/cp-ui-typography` · base `df875e6`
 <!-- cairn:paths:end -->
 
 ## Grandfathered in flight
