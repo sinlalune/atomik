@@ -651,6 +651,7 @@ The brief lives at `project/briefs/<lowercase-id>-handoff.md`. Its frontmatter
 MUST carry:
 
 ```yaml
+written_by: <participant id of whoever refreshed this brief>
 checkpoint: <full object id of the last retained checkpoint>
 checkpoint_unit: <its ledger ordinal>
 checkpoint_pushed: true
@@ -716,6 +717,24 @@ action. Success rate and time-to-first-correct-action are the pilot's primary
 metric, ahead of ceremony time or artifact count: a protocol whose briefs cannot
 be resumed cold has failed at the thing it exists for, however cheap its
 ceremony is.
+
+##### Record the writer and the path with every trial
+
+A pilot MUST record, for each trial, which of the eight questions was
+unanswerable, **who wrote the brief**, and **which path it belongs to**. The
+aggregate count over the eight questions is the least useful of the three
+readings, because the two informative outcomes point in opposite directions and
+the aggregate hides which one holds:
+
+- failures cluster by **writer** — the schema is adequate and the practice is
+  not. A template and a worked example fix it, and no normative text changes;
+- failures cluster by **path** — the schema is underspecified for a class of
+  work, and that is a specification change.
+
+`written_by` is required in the brief for this reason and no other. Git
+authorship is not a substitute: a repository where one participant commits work
+produced by several records one identity for all of them, and the writer axis
+collapses before the pilot begins.
 
 ### The ledger boundary
 
@@ -1376,7 +1395,7 @@ not in a separate document a reader may never open.
 | Independently protected control plane | required for protected profile | **not installed or tested** | host ownership/approval policy |
 | Transactional `init`, `new`, and `close` commands | required before general release | **not implemented** | command tooling |
 | [Emergency path](./concepts/emergency-path.md) | deliberately unspecified | **not implemented** | incident policy and retrospective |
-| Cold-resume pilot | required before general release | **not run** | representative team |
+| Cold-resume pilot | required before general release | **run once**: 20 trials, 35% would act without asking; failures flat across paths, so no schema change is indicated | a writer axis, which needs `written_by` populated across more than one writer |
 
 The current supported claim is therefore:
 
@@ -1393,6 +1412,27 @@ contract** is a judgement measured by cold resume, the **temporal half of
 checkpoint retention** is unobservable to a validator that sees one commit, and
 **live-ledger prefix proof** awaits explicit ledger markers. Naming what cannot
 be checked is part of the claim.
+
+### Open finding: this revision grew its own surface
+
+Separating borrowed vocabulary from Cairn's own is not presentation. It is the
+only way to measure how large the protocol actually is, and running it as a
+measurement produces a finding rather than a tidier index.
+
+| | Borrowed | Cairn's own | Total |
+| :-- | --: | --: | --: |
+| Before | 24 | 41 | 65 |
+| After | 21 | **45** | 66 |
+
+The revision was meant to be net-neutral in concept count. It was, in total —
+and only because the borrowed glossary shrank. **Cairn's own surface grew by
+four.** Every added concept earns its page, and that is beside the point: a
+protocol whose vocabulary grows every time it is corrected gets harder to hold
+in mind at exactly the rate it gets more precise.
+
+This is recorded as an open finding, not a resolved item. The remedy is merges,
+and merges are the work of noticing that two named objects are one object seen
+twice — which cannot be done by asking for it in a checklist.
 
 ### Distrust a predicate that asks about a declaration
 

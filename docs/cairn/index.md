@@ -55,6 +55,7 @@ same navigation as the standalone HTML reader.
 
 ## Other views and retained design records
 
+- [Cold-resume pilot, 20 trials](./cairn-cold-resume-pilot-2026-08-26.md)
 - [Compact overview](./index.html)
 - [Workflow view](./workflow.html)
 - [Extraction brief](./cairn.md)

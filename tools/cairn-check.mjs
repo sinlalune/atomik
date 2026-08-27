@@ -1115,6 +1115,7 @@ export function routeDescent(previous, current) {
 }
 
 export const BRIEF_FIELDS = [
+  'written_by',
   'checkpoint',
   'checkpoint_unit',
   'checkpoint_pushed',

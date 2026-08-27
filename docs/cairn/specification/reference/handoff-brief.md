@@ -29,6 +29,7 @@ also read the ledger has become a second ledger and has failed.
 
 | Field | Type | Meaning |
 | :-- | :-- | :-- |
+| `written_by` | participant id | who refreshed this brief. Required so a cold-resume pilot can tell a practice problem from a schema problem; git authorship cannot, because one committer may publish several participants' work |
 | `checkpoint` | full object id | the last **retained** checkpoint; the exact resume point |
 | `checkpoint_unit` | ledger ordinal | that checkpoint's `unit:`, so the brief and its retention ref agree |
 | `checkpoint_pushed` | boolean | whether `checkpoint` is present on the remote path branch. `false` is a defect to repair, not a state to hand over |
@@ -99,6 +100,12 @@ in front of `AGENTS.md`, this brief, and the repository at `checkpoint`, and ask
 them to perform the next action. Record whether they did it correctly and how
 long it took to the first correct action.
 
+Record `written_by` and the path id with **every** trial. The aggregate over the
+eight questions is the least useful reading: failures clustering by writer mean
+the schema is fine and the practice is not, failures clustering by path mean the
+schema is underspecified for a class of work, and those point in opposite
+directions. The aggregate hides which one you are in.
+
 This is the pilot's **primary** metric, ahead of ceremony time, artifact count,
 or advisory volume. A protocol whose briefs cannot be resumed cold has failed at
 the thing it exists for, however cheap its ceremony has become.
@@ -113,6 +120,7 @@ timestamp: 2026-01-15T16:00:00Z
 cairn:
   path: CP-EXAMPLE-001
   branch: path/cp-example-001
+  written_by: participant-id
   checkpoint: fedcba9876543210fedcba9876543210fedcba98
   checkpoint_unit: 07
   checkpoint_pushed: true

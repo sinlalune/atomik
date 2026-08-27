@@ -1761,6 +1761,7 @@ test("a foundation path's write surface is documents and the paths it produces",
  * ------------------------------------------------------------------ */
 
 const briefFront = {
+  written_by: 'participant-id',
   checkpoint: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
   checkpoint_unit: '07',
   checkpoint_pushed: 'true',
@@ -1777,7 +1778,11 @@ test('a complete brief passes and each missing field is named', () => {
   assert.deepEqual(briefErrors(briefFront, briefBody), [])
   const { trunk_seen: _dropped, ...missing } = briefFront
   assert.ok(briefErrors(missing, briefBody).some((e) => e.includes('trunk_seen')))
-  assert.deepEqual(BRIEF_FIELDS.length, 9)
+  assert.deepEqual(BRIEF_FIELDS.length, 10)
+  // written_by exists so a cold-resume pilot can separate a practice problem
+  // from a schema problem. The first pilot could not: one Git author across the
+  // whole corpus collapsed the writer axis before it could be read.
+  assert.ok(BRIEF_FIELDS.includes('written_by'))
 })
 
 test('an unpushed checkpoint is a defect to repair, not a handoff', () => {
