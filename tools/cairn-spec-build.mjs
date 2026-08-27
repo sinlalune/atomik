@@ -225,8 +225,6 @@ export function buildHtml() {
       --link: #17527f;
       --link-hover: #0b3557;
       --code: #f3f4ef;
-      --serif: "Source Serif 4", "Source Serif Pro", Newsreader, Literata,
-        Charter, "Iowan Old Style", Palatino, Georgia, serif;
       --sans: "Inter var", Inter, ui-sans-serif, system-ui, -apple-system,
         "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
       --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code",
@@ -460,12 +458,16 @@ export function buildHtml() {
     .pane-toolbar button {
       width: 1.85rem;
       height: 1.85rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       padding: 0;
       color: var(--ink);
       border: 1px solid var(--line);
       border-radius: var(--r-sm);
       background: transparent;
       cursor: pointer;
+      font-size: .9rem;
       line-height: 1;
     }
     .pane-toolbar button:hover:not(:disabled) {
@@ -537,10 +539,9 @@ export function buildHtml() {
       margin: .15rem 0 1.6rem;
       padding-bottom: .7rem;
       border-bottom: 1px solid var(--line);
-      font-family: var(--serif);
-      font-size: clamp(1.8rem, 3vw, 2.5rem);
-      font-weight: 600;
-      letter-spacing: -.028em;
+      font-size: clamp(1.7rem, 2.8vw, 2.3rem);
+      font-weight: 660;
+      letter-spacing: -.034em;
     }
     .article-body h2 {
       margin: 2.4rem 0 .8rem;
@@ -574,8 +575,7 @@ export function buildHtml() {
       border-left: 2px solid var(--line-dark);
       border-radius: var(--r-md);
       background: var(--tint-soft);
-      font-family: var(--serif);
-      font-size: 1.03em;
+      font-size: 1.01em;
     }
     .article-body blockquote > :first-child { margin-top: 0; }
     .article-body blockquote > :last-child { margin-bottom: 0; }
@@ -849,14 +849,27 @@ export function buildHtml() {
       open(templates.has(initialId()) ? initialId() : 'concepts', '', true)
 
       document.addEventListener('click', (event) => {
-        const localLink = event.target.closest('[data-local-anchor]')
+        // The history buttons are matched FIRST and wiki links are matched as
+        // anchors. Each pane carries data-article to say what it is showing, so
+        // a bare [data-article] lookup walks up to the pane and swallows every
+        // click inside it — the back button included.
+        const historyButton = event.target.closest('[data-history]')
+        if (historyButton) {
+          const next = state.index + (historyButton.dataset.history === 'back' ? -1 : 1)
+          if (next < 0 || next >= state.entries.length) return
+          state.index = next
+          const entry = state.entries[next]
+          open(entry.id, entry.anchor, false)
+          return
+        }
+        const localLink = event.target.closest('a[data-local-anchor]')
         if (localLink) {
           event.preventDefault()
           const pane = localLink.closest('[data-pane]')
           if (pane) scrollTo(pane, localLink.dataset.localAnchor)
           return
         }
-        const articleLink = event.target.closest('[data-article]')
+        const articleLink = event.target.closest('a[data-article]')
         if (articleLink) {
           event.preventDefault()
           open(articleLink.dataset.article, articleLink.dataset.anchor)
@@ -865,19 +878,11 @@ export function buildHtml() {
           }
           return
         }
-        const treeLink = event.target.closest('[data-tree-article]')
+        const treeLink = event.target.closest('a[data-tree-article]')
         if (treeLink) {
           event.preventDefault()
           open(treeLink.dataset.treeArticle)
-          return
         }
-        const historyButton = event.target.closest('[data-history]')
-        if (!historyButton) return
-        const next = state.index + (historyButton.dataset.history === 'back' ? -1 : 1)
-        if (next < 0 || next >= state.entries.length) return
-        state.index = next
-        const entry = state.entries[next]
-        open(entry.id, entry.anchor, false)
       })
 
       const search = document.querySelector('#tree-search')

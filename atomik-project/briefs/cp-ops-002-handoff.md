@@ -6,8 +6,8 @@ atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: 9627ef717d65bc9186a1fe613bf5b43631802a88
-  checkpoint_unit: 10
+  checkpoint: 631d653
+  checkpoint_unit: 11
   checkpoint_pushed: true
   base_commit: 7aa3b1d
   trunk_seen: df875e68c383f6e82b833b755e8925f2fb4651ed
@@ -54,7 +54,13 @@ namespace is located in the tree, and three non-Cairn rows left it. The reader
 pins the specification to the left pane, opens everything on the right, and drops
 the active-pane model, its coloured rule lines, and the Pane A/B labels.
 
-Checker suite 188, specification suite 30. Retention refs 01–10.
+S07p repaired three defects owner review found in that reader: the history
+buttons were dead (the pane's own `data-article` swallowed every click inside
+it), the arrow glyphs were not centred, and the h1 kept a serif that falls back
+to a dated face. One face now, and a test that clicks the buttons rather than
+asserting they are enabled.
+
+Checker suite 189, specification suite 31. Retention refs 01–11.
 
 ## Next action
 
@@ -97,6 +103,8 @@ None.
   eventually disagree with itself, and no predicate can adjudicate two paragraphs.
 - **Renaming the `atomik-project/` folder now.** 736 occurrences across 120 files
   with two paths branched against it; owner ruled documents-only, folder at S08.
+- **A serif display face in the reader.** It carries whatever the machine has,
+  and with no Source Serif installed that is a dated fallback. One face.
 
 ## Reading order
 
@@ -113,7 +121,7 @@ reasons; `docs/cairn/specification/index.md` is the normative target.
 
 `npm run cairn-check` reports OK with at most one advisory: the newest work
 unit's retention ref, which is written after the commit that declares it.
-`npm run cairn-check:test` passes 188 subtests; `node --test
-tools/cairn-spec.test.mjs` passes 30. `npm run cairn-spec:build` reproduces the
+`npm run cairn-check:test` passes 189 subtests; `node --test
+tools/cairn-spec.test.mjs` passes 31. `npm run cairn-spec:build` reproduces the
 checked-in HTML byte-for-byte. `npm run typecheck`, `npm test` (1101 passing)
 and `npm run build` all pass.
