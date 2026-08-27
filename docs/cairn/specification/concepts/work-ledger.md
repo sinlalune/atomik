@@ -32,8 +32,7 @@ promises become dangling references.
 
 If the live path grows too large, a completed step moves byte-for-byte into the
 portable role path `project/coding-paths/history/<ID>-SNN.md` and the path keeps
-a link. The [reference binding](../reference/repository-layout.md#portable-roles-and-installed-names)
-uses `atomik-project/coding-paths/history/`.
+a link.
 
 ## It does not prove
 

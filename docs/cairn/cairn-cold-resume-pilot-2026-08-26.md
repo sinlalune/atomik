@@ -12,6 +12,26 @@ The specification names cold resume as the pilot's **primary** metric and the
 conformance matrix had carried it as `not run` since the row was written. This
 is the first run.
 
+> **Read under the corrected contract (added 2026-08-27).** This pilot was run
+> against the earlier wording of the answerable-alone contract, which said
+> `AGENTS.md` and the brief and *nothing else* — participants were instructed to
+> read no other file. The contract now says what it always meant: a reader may
+> open any record the brief names at an exact object id, and what they must do
+> without is conversation, prior sessions, and memory.
+>
+> Three of the numbers below are unaffected and one is not. `resume_commit`
+> (16/20) and `must_read` (15/20) both fail on fields that live *in* the brief,
+> so a wider reading permission cannot rescue them; the same holds for
+> `next_action`, `verify`, `blocking`, `may_write` and `tried_rejected`. The
+> `outcome` column (10/20) is the affected one: several of those briefs named a
+> path record that states the objective, and under the corrected contract a
+> participant would have been allowed to open it. Treat 10/20 as an upper bound
+> on `outcome` failures and **35% "would act" as a lower bound** on the headline.
+>
+> The finding that decides v0.3 — that failures do not cluster by path — does not
+> move, because it is computed across all eight questions and the affected column
+> is spread evenly across the corpus. The recommendation stands unchanged.
+
 ## Method
 
 Twenty distinct handoff briefs, taken as they stood at real commits across six

@@ -12,18 +12,34 @@ The [specification](../index.md#the-repository-around-the-path) defines roles
 before paths: application source, the Cairn
 [control plane](../concepts/control-plane.md), durable project knowledge, and
 durable execution state. A portable implementation may bind those roles to
-different names. The reference tools in this repository do not yet load that
-configuration, so an operator also needs the exact installed binding below.
+folders it already has.
 
-## Installed reference tree
+This page uses the protocol's own **role names** throughout — `project/`,
+`docs/architecture/`. Which folder a given repository binds each role to is
+recorded in exactly one place, the
+[installed binding table](#portable-roles-and-installed-names) at the foot of
+this page. Nothing else here repeats a host repository's local vocabulary,
+because a specification that carries one adoption's folder names through every
+example is teaching that adoption rather than the protocol.
 
-This tree is exhaustive for active Cairn-defined files and folder roles in the
-reference repository. Angle brackets mark repeatable names. Application code,
-domain knowledge, and non-normative research material may add files outside
-this tree without becoming protocol structure.
+## The reference tree
+
+This tree is exhaustive for active Cairn-defined files, folder roles, and refs.
+Angle brackets mark repeatable names. Application code, domain knowledge, and
+non-normative research material may add files outside this tree without becoming
+protocol structure.
 
 ```text
 repository/
+├── .git/
+│   └── refs/
+│       ├── heads/
+│       │   ├── <trunk>
+│       │   └── path/<lowercase-path-id>
+│       └── cairn/
+│           └── checkpoints/
+│               └── <lowercase-path-id>/
+│                   └── <ledger-unit-ordinal>
 ├── AGENTS.md
 ├── package.json
 ├── .github/
@@ -73,7 +89,7 @@ repository/
 │           └── reference/
 │               ├── index.md
 │               └── <reference-article>.md
-└── atomik-project/
+└── project/
     ├── index.md
     ├── log.md
     ├── coding-paths/
@@ -104,28 +120,27 @@ repository/
     ├── log/
     │   ├── index.md
     │   └── <date>-<path-id>.md
-    ├── brainstorm/
-    │   ├── index.md
-    │   ├── log.md
-    │   └── <provisional-note>.md
-    ├── sources/
-    │   ├── index.md
-    │   ├── log.md
-    │   └── <source-record>.md
-    └── projects/
+    └── brainstorm/
         ├── index.md
         ├── log.md
-        └── <nested-project>/
-            ├── index.md
-            ├── log.md
-            └── project.atomik-project.json
+        └── <provisional-note>.md
 ```
+
+`.git/refs/` is shown because two of Cairn's durable objects are refs rather
+than files and are therefore invisible to every directory listing: the path
+branches, and the [checkpoint retention](../concepts/checkpoint-retention.md)
+namespace described [below](#the-cairn-ref-namespace). A reader who searches the
+working tree for them finds nothing and reasonably concludes they do not exist.
 
 `shared/` is a guarded source root supported by the checker even when a
 repository does not currently contain it. Repeatable records may be absent when
 no event of that kind exists; their directory, index, and folder log still name
 the role. `cairn.config.json` is not shown because it is a specified portability
 target, not an installed reference file.
+
+A host repository may of course hold folders Cairn says nothing about. Those are
+that repository's business and are deliberately absent here: this tree lists
+what Cairn defines, not what any one adoption happens to contain.
 
 ## What every part does
 
@@ -147,19 +162,18 @@ target, not an installed reference file.
 | `docs/cairn/specification/concepts/*.md` | one explanatory article per specialised object | same specification work unit |
 | `docs/cairn/specification/reference/*.md` | exact layouts, schemas, and operations | same specification work unit |
 | `docs/cairn/specification.html` | generated self-contained reader | generator only |
-| `atomik-project/index.md` | entry map for durable project knowledge and execution state | project-plane change |
-| `atomik-project/coding-paths/paths.md` | current operating convention for opening, running, integrating, and cleaning paths | accepted protocol operation change |
-| `atomik-project/coding-paths/CP-*.md` | one path's plan, state, ledger, checkpoint, and next action | current assigned writer |
-| `atomik-project/coding-paths/ACTIVE.md` | generated live-path index | generator only |
-| `atomik-project/coding-paths/history/*.md` | verbatim completed ledger sections | created by that path; immutable thereafter |
-| `atomik-project/sessions/*.md` | opening, closing, and other human decisions | participant recording the event; immutable thereafter |
-| `atomik-project/audits/*.md` | one audit bound to one full candidate hash | auditor; immutable thereafter |
-| `atomik-project/briefs/*.md` | disposable current handoff projection | current assigned writer |
-| `atomik-project/log/*.md` | one integrated outcome per file | integration unit; immutable thereafter |
-| `atomik-project/log.md` | frozen compatibility archive, not the writable journal | never append or rewrite |
-| `atomik-project/brainstorm/` | explicitly provisional thinking | normal path work; never treated as accepted doctrine |
-| `atomik-project/sources/` | optional imported specifications and references | source-capture work |
-| `atomik-project/projects/` | optional nested project bundles | project-specific policy |
+| `project/index.md` | entry map for durable project knowledge and execution state | project-plane change |
+| `project/coding-paths/paths.md` | current operating convention for opening, running, integrating, and cleaning paths | accepted protocol operation change |
+| `project/coding-paths/CP-*.md` | one path's plan, state, ledger, checkpoint, and next action | current assigned writer |
+| `project/coding-paths/ACTIVE.md` | generated live-path index | generator only |
+| `project/coding-paths/history/*.md` | verbatim completed ledger sections | created by that path; immutable thereafter |
+| `project/sessions/*.md` | opening, closing, and other human decisions | participant recording the event; immutable thereafter |
+| `project/audits/*.md` | one audit bound to one full candidate hash | auditor; immutable thereafter |
+| `project/briefs/*.md` | disposable current handoff projection | current assigned writer |
+| `project/log/*.md` | one integrated outcome per file | integration unit; immutable thereafter |
+| `project/brainstorm/` | explicitly provisional thinking | normal path work; never treated as accepted doctrine |
+| `refs/heads/path/<id>` | one path's branch, carrying every checkpoint it has pushed | current assigned writer |
+| `refs/cairn/checkpoints/<id>/<n>` | one immovable pin per ledger-named checkpoint | append-only; never moved or deleted while the path record lives |
 | each meaningful folder's `index.md` | what belongs there and how to navigate it | update when folder meaning or contents change materially |
 | each meaningful folder's `log.md` | recent meaningful changes in that scope | newest-first folder history; not an event record |
 
@@ -182,9 +196,21 @@ it. `<n>` is the ledger's own ordinal for that checkpoint. The refs are
 append-only for the life of the path record, and they are not released by
 integration.
 
+**Where this actually is.** Refs are not in the working tree, so no amount of
+`ls` will find them. They live inside the repository's own database — under
+`.git/refs/` and `.git/packed-refs` locally, and in the equivalent store on the
+remote. Git will not show them with `git branch` either, because that command
+only reads `refs/heads/`. Three commands make the namespace visible:
+
 ```bash
-git ls-remote origin 'refs/cairn/checkpoints/*'
+$ git for-each-ref refs/cairn/checkpoints          # every retained checkpoint here
+$ git ls-remote origin 'refs/cairn/checkpoints/*'  # every one the remote holds
+$ git show-ref cp-example-001                      # one path's pins
 ```
+
+Being invisible to a file listing is the point: a record kept as a file can be
+edited by the work it describes, and a checkpoint pin must survive exactly the
+operation — a rewriting push — that rewrites files.
 
 A repository that clones with a restricted refspec, or a mirror that copies only
 `refs/heads/*`, will silently lose this namespace. Fetch configuration is part of
@@ -193,21 +219,31 @@ optional convenience.
 
 ## Portable roles and installed names
 
-| Protocol role | Installed reference binding | Intended configuration field |
-| :-- | :-- | :-- |
-| execution-state plane | `atomik-project/` | `roots.project` |
-| accepted architecture | `docs/bedrock/` | `roots.architecture` |
-| decision records | `docs/adr/` | `roots.decisions` |
-| implemented-area notes | `docs/modules/` | `roots.modules` |
-| guarded application source | `apps/`, `packages/`, `shared/` | `roots.source` |
-| shared integration branch | `main` | `trunk` |
-| shared checkpoint remote | `origin` | `remote` |
+Everything above this heading uses role names. This table is the one place where
+they are traded for the folders a real repository holds, and it is written for
+**the repository the reference tools were built in** — the adoption Cairn was
+extracted from.
 
-The portable role names used in the specification—`project/` and
-`docs/architecture/`—describe these semantics without forcing the installed
-names on another repository. The [configuration contract](./configuration.md)
-defines the intended mapping. Until the loader exists, operators MUST use the
-installed bindings and MUST NOT claim portable conformance.
+| Protocol role | Role name used in this specification | Bound in the reference repository to | Intended configuration field |
+| :-- | :-- | :-- | :-- |
+| execution-state plane | `project/` | **`atomik-project/`** | `roots.project` |
+| accepted architecture | `docs/architecture/` | **`docs/bedrock/`** | `roots.architecture` |
+| decision records | `docs/adr/` | `docs/adr/` | `roots.decisions` |
+| implemented-area notes | `docs/modules/` | `docs/modules/` | `roots.modules` |
+| guarded application source | `apps/`, `packages/`, `shared/` | same | `roots.source` |
+| shared integration branch | `<trunk>` | `main` | `trunk` |
+| shared checkpoint remote | `<remote>` | `origin` | `remote` |
+
+Two roles are bound to a different name, and both for the same uninteresting
+reason: those folders were named before Cairn existed, by the application the
+protocol grew inside. Neither name is protocol structure. A repository adopting
+Cairn should bind these roles to whatever it already calls them and never inherit
+`atomik-project/` — the prefix names one product, not a protocol.
+
+The [configuration contract](./configuration.md) defines the intended mapping.
+Until the loader exists, the reference tools resolve the bound names above as
+constants: an operator working **in that repository** MUST use them, and MUST NOT
+claim portable conformance on the strength of them.
 
 ## Naming relationships
 
@@ -215,9 +251,9 @@ installed bindings and MUST NOT claim portable conformance.
 
 ```text
 CP-ROADMAP-010
-  → atomik-project/coding-paths/CP-ROADMAP-010.md
+  → project/coding-paths/CP-ROADMAP-010.md
   → path/cp-roadmap-010
-  → atomik-project/briefs/cp-roadmap-010-handoff.md
+  → project/briefs/cp-roadmap-010-handoff.md
 ```
 
 The id uses uppercase `CP-` followed by uppercase letters, digits, and hyphens.
@@ -227,8 +263,8 @@ branch field remains present for `running`, `blocked`, and `ready`.
 ### Opening and closing records
 
 ```text
-atomik-project/sessions/YYYY-MM-DD-<lowercase-path-id>-opening.md
-atomik-project/sessions/YYYY-MM-DD-<lowercase-path-id>-closing.md
+project/sessions/YYYY-MM-DD-<lowercase-path-id>-opening.md
+project/sessions/YYYY-MM-DD-<lowercase-path-id>-closing.md
 ```
 
 Root-level metadata, not the filename, defines `path` and `ceremony`.
@@ -236,13 +272,13 @@ Root-level metadata, not the filename, defines `path` and `ceremony`.
 ### Audit record
 
 ```text
-atomik-project/audits/<lowercase-path-id>-<full-40-character-subject-commit>.md
+project/audits/<lowercase-path-id>-<full-40-character-subject-commit>.md
 ```
 
 ### Journal entry
 
 ```text
-atomik-project/log/YYYY-MM-DD-<lowercase-path-id>.md
+project/log/YYYY-MM-DD-<lowercase-path-id>.md
 ```
 
 If a journal name would collide, add a stable subject suffix. Never overwrite
@@ -252,14 +288,14 @@ an existing entry.
 
 ```text
 live path records
-  └── atomik-project/coding-paths/ACTIVE.md
+  └── project/coding-paths/ACTIVE.md
 
 one path ledger
-  ├── atomik-project/briefs/<id>-handoff.md
-  └── atomik-project/coding-paths/history/<id>-S<NN>.md
+  ├── project/briefs/<id>-handoff.md
+  └── project/coding-paths/history/<id>-S<NN>.md
 
 integrated path + exact audit + exact closing acceptance
-  └── atomik-project/log/YYYY-MM-DD-<id>.md
+  └── project/log/YYYY-MM-DD-<id>.md
 
 canonical Markdown article graph
   └── docs/cairn/specification.html

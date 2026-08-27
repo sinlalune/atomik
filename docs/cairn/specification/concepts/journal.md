@@ -9,9 +9,8 @@ timestamp: 2026-08-25T00:00:00Z
 # Journal
 
 The Cairn journal is the set of integrated-outcome records under the portable
-role path `project/log/`; the
-[reference binding](../reference/repository-layout.md#portable-roles-and-installed-names)
-uses `atomik-project/log/`.
+role path `project/log/` — one file per integrated outcome, never one appended
+file.
 
 ## In Cairn
 

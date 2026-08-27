@@ -9,9 +9,9 @@ timestamp: 2026-08-26T00:00:00Z
 # The handoff-brief contract
 
 The [handoff brief](../concepts/handoff.md) is the protocol's bootstrap
-document: the first thing a new participant reads and, for several minutes, the
-only thing they have read. This page gives it exact fields, because a bootstrap
-contract described only in prose is not a contract.
+document: the last stop on the entry route from `AGENTS.md`, and the first
+document a new participant acts from. This page gives it exact fields, because a
+bootstrap contract described only in prose is not a contract.
 
 Filename:
 
@@ -22,8 +22,13 @@ project/briefs/<lowercase-path-id>-handoff.md
 One brief per path. It is **mutable** and rewritten at every completed
 [work unit](../concepts/work-unit.md). The
 [work ledger](../concepts/work-ledger.md) is the append-only history; the brief
-is the current situation. A brief that can only be understood by someone who has
-also read the ledger has become a second ledger and has failed.
+says which part of that history is still the situation.
+
+It can fail in either direction. Too thin, and the reader must go decide for
+themselves which ledger entries still hold — the one judgement the brief exists
+to make. Too thick, and it has re-narrated the ledger into a second ledger, and
+the two will disagree about the past. The brief points at exact ids; it does not
+retell.
 
 ## Frontmatter
 
@@ -78,20 +83,37 @@ last writer already eliminated, and they will spend an hour rediscovering why.
 
 ## The answerable-alone contract
 
-A reader holding only `AGENTS.md` and this brief — no ledger, no conversation,
-no prior session — MUST be able to state:
+"Alone" is about what the reader carries in their head, not about how many files
+they may open. The entry route — `AGENTS.md` → operating convention → live view
+→ path record → this brief — is the protocol working, and the brief's job is the
+last link in it, not a replacement for the whole chain.
 
-1. the outcome this path is for;
-2. the exact commit to resume from;
-3. the single next action;
-4. what the path may write;
-5. what it must read, and at which object id;
-6. what is blocking, if anything;
-7. what has already been tried and rejected;
-8. the exact commands that verify the checkpoint.
+A reader holding `AGENTS.md`, this brief, and the repository at `checkpoint` —
+with no conversation, no prior session, and no memory of how the path got here —
+MUST be able to state:
 
-If answering any of these requires opening the ledger, the brief has failed its
-contract, and refreshing it is part of the next work unit.
+| # | Question | Answered by |
+| --: | :-- | :-- |
+| 1 | the outcome this path is for | `## Outcome` |
+| 2 | the exact commit to resume from | `checkpoint` + `checkpoint_unit` |
+| 3 | the single next action | `## Next action` |
+| 4 | what the path may write | `writes` |
+| 5 | what it must read, and at which object id | `governs`, each pinned `path@<object-id>` |
+| 6 | what is blocking, if anything | `## Blockers` |
+| 7 | what has already been tried and rejected | `## Tried and rejected` |
+| 8 | the exact commands that verify the checkpoint | `verify` + `## Verification` |
+
+Each answer MUST be in this brief, or in a record this brief names at an exact
+object id. An answer that survives only in a conversation, only in a previous
+session, or only as a judgement about which ledger entries still hold is
+**unanswerable**: the brief has failed its contract, and refreshing it is part of
+the next work unit.
+
+There is deliberately **no objective field in the frontmatter**. Question 1 is
+prose and the frontmatter is machine-checkable state; the objective is restated
+in `## Outcome` and argued at length in the path record. Maintaining it in two
+schemas would guarantee that one of them is eventually wrong, and no predicate
+can adjudicate between two prose paragraphs.
 
 ## Cold resume
 
@@ -99,6 +121,10 @@ The same test, run as a measurement: place a participant with no prior context
 in front of `AGENTS.md`, this brief, and the repository at `checkpoint`, and ask
 them to perform the next action. Record whether they did it correctly and how
 long it took to the first correct action.
+
+A trial MUST allow the participant to open any record the brief names at an
+exact id — that is the contract, not a leak in it. What a trial MUST NOT supply
+is anything undurable: a conversation, a previous session, a person to ask.
 
 Record `written_by` and the path id with **every** trial. The aggregate over the
 eight questions is the least useful reading: failures clustering by writer mean

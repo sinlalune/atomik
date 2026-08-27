@@ -52,8 +52,10 @@ For each row it records `pass`, `fail`, `inconclusive`, `host-dependent`, or
       `verify`, and `budget_tokens`.
 - [ ] The brief's body holds the seven capped sections and stays within
       `budget_tokens`.
-- [ ] A reader with only `AGENTS.md` and the brief can answer all eight
-      answerable-alone questions.
+- [ ] A reader with `AGENTS.md`, the brief, and the repository at `checkpoint` —
+      and no conversation, prior session, or memory of the path — can answer all
+      eight answerable-alone questions from the brief or from a record it names
+      at an exact object id.
 - [ ] A cold resume has been performed and its success rate and
       time-to-first-correct-action recorded.
 - [ ] Another authorised participant can resume from the recorded checkpoint.

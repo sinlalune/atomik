@@ -1,13 +1,13 @@
 ---
 type: Atomik Brief
 title: Handoff — CP-OPS-002
-timestamp: 2026-08-26T00:00:00Z
+timestamp: 2026-08-27T00:00:00Z
 atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: a523afb0fd576715ed1fd0988d8f5afe7970cd38
-  checkpoint_unit: 08
+  checkpoint: 9627ef717d65bc9186a1fe613bf5b43631802a88
+  checkpoint_unit: 10
   checkpoint_pushed: true
   base_commit: 7aa3b1d
   trunk_seen: df875e68c383f6e82b833b755e8925f2fb4651ed
@@ -37,33 +37,32 @@ extract the protocol from Atomik as a portable specification and init kit.
 
 ## State
 
-The Cairn specification is v0.2 and its predicates are being implemented in
-order of the review's own severity ranking. Landed: the canonical specification
-project (S07f), the v0.2 revision of its text (S07g), the two P0 predicates —
-checkpoint retention and provisional commits — plus a typed ledger and an
-extended frontmatter grammar (S07h), and the P1 record predicates: scope
-digests, field-level closure, acceptance drift, structured dispositions,
-collapsed-role advisory, blocking scope drift, and a self-deleting migration
-exception (S07i). Routes, this brief's own contract, and redaction (S07j).
+The Cairn specification is v0.2, its predicates are implemented in the review's
+own severity order (S07g–S07j), and two repair units closed a moved retention ref
+and the rule that could not see it (S07k–S07l). A second review round corrected
+three predicates rather than adding any (S07m). The cold-resume pilot ran at
+S07n: 20 trials, 35% would act, failures flat across paths, and its own verdict
+is *do not change the normative text yet*.
 
-A second review round corrected three predicates rather than adding any: the
-closure surface was more permissive than its own prose, `advisory-disposition`
-was unsound rather than partial, and the object-id check contradicted the spec it
-enforced. The route gained a structural backstop at the second work unit.
+S07o answered owner feedback on v0.2. Two doctrine corrections: the
+answerable-alone contract forbade the reader from following the entry route
+`AGENTS.md` points at, and now constrains context rather than file count; and the
+second-ledger sentence named only one of the two ways a brief fails. Editorial:
+`project/` replaces `atomik-project/` everywhere except one binding table, the
+blob object id is explained, route is its own concept, the retention ref
+namespace is located in the tree, and three non-Cairn rows left it. The reader
+pins the specification to the left pane, opens everything on the right, and drops
+the active-pane model, its coloured rule lines, and the Pane A/B labels.
 
-One protocol violation occurred and was repaired in S07k: a retention ref was
-force-moved, orphaning the commit it had named. The rule could not see it —
-it checked whether every declared unit resolved a ref, not whether every
-completed commit was retained. Both the ref and the rule are fixed.
-
-Checker suite 129, full protocol/specification suite 176. Retention refs 01–07.
+Checker suite 188, specification suite 30. Retention refs 01–10.
 
 ## Next action
 
-Run the cold-resume pilot before writing another rule. Rules went 24 → 40 and the
-pilot row still reads `not run`; twenty cold resumes on real handoffs, failures
-classified by which of the eight answerable-alone questions was unanswerable,
-and that result decides v0.3. S08 follows.
+Begin S08 — extract Cairn from Atomik. First unit: `cairn.config.json` and the
+loader, so `cairn-check.mjs` stops hardcoding `atomik-project/`, `apps/`,
+`AREA_MAP` and the grandfather set. The folder rename `atomik-project/` →
+`project/` lands in that same work unit, once the binding is selectable rather
+than documented-but-unimplemented.
 
 ## Blockers
 
@@ -90,6 +89,14 @@ None.
   advisory at the candidate went undisposed. The record now attests the set.
 - **Route triggers left entirely to declaration.** A path that has already
   spanned two work units must be `full`, which cannot be declared away.
+- **A brief that answers everything from itself.** Rejected at owner review: it
+  would be a hand-kept copy of the path record and ledger, drifting from the day
+  it is written. The brief owes the last link of the entry route, exactly.
+- **An `objective:` field in the brief frontmatter.** The objective is prose and
+  the frontmatter is machine-checkable state; maintained in two schemas it will
+  eventually disagree with itself, and no predicate can adjudicate two paragraphs.
+- **Renaming the `atomik-project/` folder now.** 736 occurrences across 120 files
+  with two paths branched against it; owner ruled documents-only, folder at S08.
 
 ## Reading order
 
@@ -106,6 +113,7 @@ reasons; `docs/cairn/specification/index.md` is the normative target.
 
 `npm run cairn-check` reports OK with at most one advisory: the newest work
 unit's retention ref, which is written after the commit that declares it.
-`npm run cairn-check:test` passes 157 subtests. `npm run cairn-spec:build`
-reproduces the checked-in HTML byte-for-byte. `npm run typecheck`, `npm test`
+`npm run cairn-check:test` passes 188 subtests; `node --test
+tools/cairn-spec.test.mjs` passes 30. `npm run cairn-spec:build` reproduces the
+checked-in HTML byte-for-byte. `npm run typecheck`, `npm test` (1101 passing)
 and `npm run build` all pass.

@@ -22,7 +22,7 @@ fields are identical either way; only the number of files changes.
 Filename:
 
 ```text
-atomik-project/sessions/YYYY-MM-DD-cp-example-001-opening.md
+project/sessions/YYYY-MM-DD-cp-example-001-opening.md
 ```
 
 Template:
@@ -39,7 +39,7 @@ decision: accepted
 accepted_by: participant-id
 accepted_roles: [initiator, reviewer]
 accepted_at: 2026-01-15T09:00:00Z
-scope_ref: atomik-project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
+scope_ref: project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
 scope_digest: sha256:9f2c4b1d5e6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c
 ---
 
@@ -96,7 +96,7 @@ reported as such.
 Filename:
 
 ```text
-atomik-project/audits/cp-example-001-<full-subject-object-id>.md
+project/audits/cp-example-001-<full-subject-object-id>.md
 ```
 
 Template:
@@ -164,7 +164,7 @@ characters in the same field and the same filename.
 Filename:
 
 ```text
-atomik-project/sessions/YYYY-MM-DD-cp-example-001-closing.md
+project/sessions/YYYY-MM-DD-cp-example-001-closing.md
 ```
 
 Template:
@@ -183,7 +183,7 @@ accepted_by: participant-id
 accepted_roles: [reviewer, auditor]
 accepted_at: 2026-01-15T14:30:00Z
 decision: accepted
-scope_ref: atomik-project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
+scope_ref: project/coding-paths/CP-EXAMPLE-001.md#definition-of-done
 scope_digest: sha256:9f2c4b1d5e6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c
 advisories_at_candidate: [scope-drift, path-staleness]
 advisory_disposition:

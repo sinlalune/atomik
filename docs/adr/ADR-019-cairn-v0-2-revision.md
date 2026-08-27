@@ -68,15 +68,29 @@ The brief is the bootstrap document and was unspecified. It now has frontmatter
 (`checkpoint`, `checkpoint_pushed`, `base_commit`, `trunk_seen`, `writes`,
 `governs` as `path@<object-id>`, `verify` as exact commands, `budget_tokens`),
 seven capped body sections, a ~1200-token budget, and an **answerable-alone
-contract**: a reader with only `AGENTS.md` and the brief must be able to state
-the outcome, the resume commit, the single next action, the write surface, what
-to read and at which object id, what is blocking, what was tried and rejected,
-and the exact verification commands. Needing the ledger to answer any of those
-means the brief failed.
+contract**: a reader with `AGENTS.md`, the brief, and the repository at the named
+checkpoint must be able to state the outcome, the resume commit, the single next
+action, the write surface, what to read and at which object id, what is
+blocking, what was tried and rejected, and the exact verification commands.
+
+**"Alone" constrains context, not file count** (corrected 2026-08-27; the first
+draft of this ADR said "with only `AGENTS.md` and the brief"). Each answer must
+be in the brief or in a record the brief names at an exact object id. The entry
+route — `AGENTS.md` → operating convention → live view → path record → brief —
+is the protocol working, and a brief written to replace it would be a hand-kept
+copy of records that are already canonical. What the reader must do without is
+undurable context: a conversation, a prior session, a person to ask. An answer
+that survives only as a judgement about which ledger entries still hold is
+unanswerable, because making that judgement is precisely the brief's job.
+
+The brief therefore fails in two directions, not one: too thin and it hands that
+judgement back to the ledger; too thick and it re-narrates the ledger into a
+second one, and the two accounts start disagreeing about the past.
 
 The brief is mutable and rewritten per work unit; the ledger is append-only
 history. **Cold resume** — a participant with no prior context performing the
-next action from the brief alone — becomes the pilot's primary metric.
+next action — becomes the pilot's primary metric. A trial withholds context, not
+records: the participant may open anything the brief names at an exact id.
 
 ### 4. Closure is restricted field by field
 

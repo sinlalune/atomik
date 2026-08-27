@@ -20,7 +20,7 @@ it, and a reader who does not can learn it here without learning Cairn at the
 same time. **Cairn's own concepts** are the objects and rules the protocol
 actually adds — the ideas you are being asked to evaluate.
 
-Twenty-one borrowed terms, forty-five Cairn concepts. A protocol that presents
+Twenty-one borrowed terms, forty-six Cairn concepts. A protocol that presents
 those as one undifferentiated glossary looks twice as large as it is, and hides
 which half a criticism belongs to.
 
@@ -101,8 +101,9 @@ the path worktree now.
 
 ### Routes
 
-[Lightweight path](./lightweight-path.md) — the default —
-[foundation path](./foundation-path.md), and the not-yet-implemented
+[Route](./route.md) is the declared field; the routes it may name are
+[lightweight path](./lightweight-path.md) — the default —
+`full`, [foundation path](./foundation-path.md), and the not-yet-implemented
 [emergency path](./emergency-path.md).
 
 ### Governance
@@ -170,6 +171,7 @@ Borrowed terms are marked *(borrowed)*.
 - [Remote](./remote.md) *(borrowed)*
 - [Remote checkpoint](./remote-checkpoint.md)
 - [Repository](./repository.md) *(borrowed)*
+- [Route](./route.md)
 - [Running state](./running-state.md)
 - [Schema](./schema.md) *(borrowed)*
 - [Scope digest](./scope-digest.md)
