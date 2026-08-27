@@ -544,6 +544,14 @@ test('cairn-spec: the specification pane is fixed and the reading pane carries h
   }
   assert.match(html, /--sans: "Inter var", Inter, ui-sans-serif, system-ui/)
   assert.match(html, /--mono: ui-monospace/)
+  // One face for prose and display: the serif stack fell back to a dated face
+  // on any machine without it, which is the opposite of the intent.
+  assert.doesNotMatch(html, /--serif|font-family: var\(--serif\)/)
+  const heading = html.match(/\.article-body h1 {[^}]*}/)[0]
+  assert.doesNotMatch(heading, /font-family/)
+  // The glyph sat on its baseline inside a fixed-size box.
+  const control = html.match(/\.pane-toolbar button {[^}]*}/)[0]
+  assert.match(control, /display: inline-flex;[\s\S]*align-items: center;/)
   assert.match(html, /backdrop-filter: blur\(/)
   assert.doesNotMatch(html, /<aside\b/i)
   assert.doesNotMatch(html, /gradient\s*\(/i)
@@ -591,6 +599,41 @@ test('cairn-spec: the reading pane receives every link and the left pane keeps t
   specEntry.dispatchEvent(new window.Event('click', { bubbles: true, cancelable: true }))
   assert.equal(right.dataset.article, 'concept-git')
   assert.equal(left.dataset.article, 'specification')
+})
+
+test('cairn-spec: the history buttons walk the reading pane back and forward', () => {
+  const { window } = bootReader()
+  const right = window.document.querySelector('[data-pane="right"]')
+  const back = right.querySelector('[data-history="back"]')
+  const forward = right.querySelector('[data-history="forward"]')
+  const click = (node) =>
+    node.dispatchEvent(new window.Event('click', { bubbles: true, cancelable: true }))
+
+  assert.equal(right.dataset.article, 'concepts')
+  assert.equal(back.disabled, true)
+  assert.equal(forward.disabled, true)
+
+  const first = window.document.querySelector('[data-tree-article="concept-git"]')
+  click(first)
+  const second = window.document.querySelector('[data-tree-article="concept-merge"]')
+  click(second)
+  assert.equal(right.dataset.article, 'concept-merge')
+  assert.equal(back.disabled, false)
+
+  // Each pane carries data-article to say what it is showing. A bare
+  // [data-article] lookup walks up to the pane and swallows every click inside
+  // it, so the button used to re-render the current article instead of moving.
+  click(back)
+  assert.equal(right.dataset.article, 'concept-git')
+  assert.equal(forward.disabled, false)
+  click(back)
+  assert.equal(right.dataset.article, 'concepts')
+  assert.equal(back.disabled, true)
+  click(forward)
+  assert.equal(right.dataset.article, 'concept-git')
+  click(forward)
+  assert.equal(right.dataset.article, 'concept-merge')
+  assert.equal(forward.disabled, true)
 })
 
 test('cairn-spec: a direct wiki article URL opens that object in the right pane', () => {
