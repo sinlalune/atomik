@@ -1566,7 +1566,8 @@ bootstrap contract, and a bootstrap contract with no specified fields is not a
 contract.</p>
 <p>The brief lives at <code>project/briefs/&lt;lowercase-id&gt;-handoff.md</code>. Its frontmatter
 MUST carry:</p>
-<pre><code class="language-yaml">checkpoint: &lt;full object id of the last retained checkpoint&gt;
+<pre><code class="language-yaml">written_by: &lt;participant id of whoever refreshed this brief&gt;
+checkpoint: &lt;full object id of the last retained checkpoint&gt;
 checkpoint_unit: &lt;its ledger ordinal&gt;
 checkpoint_pushed: true
 base_commit: &lt;full object id&gt;
@@ -1623,6 +1624,22 @@ action. Success rate and time-to-first-correct-action are the pilot’s primary
 metric, ahead of ceremony time or artifact count: a protocol whose briefs cannot
 be resumed cold has failed at the thing it exists for, however cheap its
 ceremony is.</p>
+<h5 id="specification--record-the-writer-and-the-path-with-every-trial" data-heading="record-the-writer-and-the-path-with-every-trial">Record the writer and the path with every trial</h5>
+<p>A pilot MUST record, for each trial, which of the eight questions was
+unanswerable, <strong>who wrote the brief</strong>, and <strong>which path it belongs to</strong>. The
+aggregate count over the eight questions is the least useful of the three
+readings, because the two informative outcomes point in opposite directions and
+the aggregate hides which one holds:</p>
+<ul>
+<li>failures cluster by <strong>writer</strong> — the schema is adequate and the practice is
+not. A template and a worked example fix it, and no normative text changes;</li>
+<li>failures cluster by <strong>path</strong> — the schema is underspecified for a class of
+work, and that is a specification change.</li>
+</ul>
+<p><code>written_by</code> is required in the brief for this reason and no other. Git
+authorship is not a substitute: a repository where one participant commits work
+produced by several records one identity for all of them, and the writer axis
+collapses before the pilot begins.</p>
 <h3 id="specification--the-ledger-boundary" data-heading="the-ledger-boundary">The ledger boundary</h3>
 <p>The work ledger is append-only in protocol semantics. Completed ledger sections
 MAY move byte-for-byte into uniquely named files under
@@ -2461,8 +2478,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Cold-resume pilot</td>
 <td style="text-align:left">required before general release</td>
-<td style="text-align:left"><strong>not run</strong></td>
-<td style="text-align:left">representative team</td>
+<td style="text-align:left"><strong>run once</strong>: 20 trials, 35% would act without asking; failures flat across paths, so no schema change is indicated</td>
+<td style="text-align:left">a writer axis, which needs <code>written_by</code> populated across more than one writer</td>
 </tr>
 </tbody>
 </table>
@@ -2481,6 +2498,42 @@ contract</strong> is a judgement measured by cold resume, the <strong>temporal h
 checkpoint retention</strong> is unobservable to a validator that sees one commit, and
 <strong>live-ledger prefix proof</strong> awaits explicit ledger markers. Naming what cannot
 be checked is part of the claim.</p>
+<h3 id="specification--open-finding-this-revision-grew-its-own-surface" data-heading="open-finding-this-revision-grew-its-own-surface">Open finding: this revision grew its own surface</h3>
+<p>Separating borrowed vocabulary from Cairn’s own is not presentation. It is the
+only way to measure how large the protocol actually is, and running it as a
+measurement produces a finding rather than a tidier index.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left"></th>
+<th style="text-align:right">Borrowed</th>
+<th style="text-align:right">Cairn’s own</th>
+<th style="text-align:right">Total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">Before</td>
+<td style="text-align:right">24</td>
+<td style="text-align:right">41</td>
+<td style="text-align:right">65</td>
+</tr>
+<tr>
+<td style="text-align:left">After</td>
+<td style="text-align:right">21</td>
+<td style="text-align:right"><strong>45</strong></td>
+<td style="text-align:right">66</td>
+</tr>
+</tbody>
+</table>
+<p>The revision was meant to be net-neutral in concept count. It was, in total —
+and only because the borrowed glossary shrank. <strong>Cairn’s own surface grew by
+four.</strong> Every added concept earns its page, and that is beside the point: a
+protocol whose vocabulary grows every time it is corrected gets harder to hold
+in mind at exactly the rate it gets more precise.</p>
+<p>This is recorded as an open finding, not a resolved item. The remedy is merges,
+and merges are the work of noticing that two named objects are one object seen
+twice — which cannot be done by asking for it in a checklist.</p>
 <h3 id="specification--distrust-a-predicate-that-asks-about-a-declaration" data-heading="distrust-a-predicate-that-asks-about-a-declaration">Distrust a predicate that asks about a declaration</h3>
 <p>One failure mode is worth naming for whoever implements this next, because it
 produced two real violations here and both times the gate reported <code>OK</code>.</p>
@@ -3644,7 +3697,8 @@ bootstrap contract, and a bootstrap contract with no specified fields is not a
 contract.</p>
 <p>The brief lives at <code>project/briefs/&lt;lowercase-id&gt;-handoff.md</code>. Its frontmatter
 MUST carry:</p>
-<pre><code class="language-yaml">checkpoint: &lt;full object id of the last retained checkpoint&gt;
+<pre><code class="language-yaml">written_by: &lt;participant id of whoever refreshed this brief&gt;
+checkpoint: &lt;full object id of the last retained checkpoint&gt;
 checkpoint_unit: &lt;its ledger ordinal&gt;
 checkpoint_pushed: true
 base_commit: &lt;full object id&gt;
@@ -3701,6 +3755,22 @@ action. Success rate and time-to-first-correct-action are the pilot’s primary
 metric, ahead of ceremony time or artifact count: a protocol whose briefs cannot
 be resumed cold has failed at the thing it exists for, however cheap its
 ceremony is.</p>
+<h5 id="specification--record-the-writer-and-the-path-with-every-trial" data-heading="record-the-writer-and-the-path-with-every-trial">Record the writer and the path with every trial</h5>
+<p>A pilot MUST record, for each trial, which of the eight questions was
+unanswerable, <strong>who wrote the brief</strong>, and <strong>which path it belongs to</strong>. The
+aggregate count over the eight questions is the least useful of the three
+readings, because the two informative outcomes point in opposite directions and
+the aggregate hides which one holds:</p>
+<ul>
+<li>failures cluster by <strong>writer</strong> — the schema is adequate and the practice is
+not. A template and a worked example fix it, and no normative text changes;</li>
+<li>failures cluster by <strong>path</strong> — the schema is underspecified for a class of
+work, and that is a specification change.</li>
+</ul>
+<p><code>written_by</code> is required in the brief for this reason and no other. Git
+authorship is not a substitute: a repository where one participant commits work
+produced by several records one identity for all of them, and the writer axis
+collapses before the pilot begins.</p>
 <h3 id="specification--the-ledger-boundary" data-heading="the-ledger-boundary">The ledger boundary</h3>
 <p>The work ledger is append-only in protocol semantics. Completed ledger sections
 MAY move byte-for-byte into uniquely named files under
@@ -4539,8 +4609,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Cold-resume pilot</td>
 <td style="text-align:left">required before general release</td>
-<td style="text-align:left"><strong>not run</strong></td>
-<td style="text-align:left">representative team</td>
+<td style="text-align:left"><strong>run once</strong>: 20 trials, 35% would act without asking; failures flat across paths, so no schema change is indicated</td>
+<td style="text-align:left">a writer axis, which needs <code>written_by</code> populated across more than one writer</td>
 </tr>
 </tbody>
 </table>
@@ -4559,6 +4629,42 @@ contract</strong> is a judgement measured by cold resume, the <strong>temporal h
 checkpoint retention</strong> is unobservable to a validator that sees one commit, and
 <strong>live-ledger prefix proof</strong> awaits explicit ledger markers. Naming what cannot
 be checked is part of the claim.</p>
+<h3 id="specification--open-finding-this-revision-grew-its-own-surface" data-heading="open-finding-this-revision-grew-its-own-surface">Open finding: this revision grew its own surface</h3>
+<p>Separating borrowed vocabulary from Cairn’s own is not presentation. It is the
+only way to measure how large the protocol actually is, and running it as a
+measurement produces a finding rather than a tidier index.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left"></th>
+<th style="text-align:right">Borrowed</th>
+<th style="text-align:right">Cairn’s own</th>
+<th style="text-align:right">Total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">Before</td>
+<td style="text-align:right">24</td>
+<td style="text-align:right">41</td>
+<td style="text-align:right">65</td>
+</tr>
+<tr>
+<td style="text-align:left">After</td>
+<td style="text-align:right">21</td>
+<td style="text-align:right"><strong>45</strong></td>
+<td style="text-align:right">66</td>
+</tr>
+</tbody>
+</table>
+<p>The revision was meant to be net-neutral in concept count. It was, in total —
+and only because the borrowed glossary shrank. <strong>Cairn’s own surface grew by
+four.</strong> Every added concept earns its page, and that is beside the point: a
+protocol whose vocabulary grows every time it is corrected gets harder to hold
+in mind at exactly the rate it gets more precise.</p>
+<p>This is recorded as an open finding, not a resolved item. The remedy is merges,
+and merges are the work of noticing that two named objects are one object seen
+twice — which cannot be done by asking for it in a checklist.</p>
 <h3 id="specification--distrust-a-predicate-that-asks-about-a-declaration" data-heading="distrust-a-predicate-that-asks-about-a-declaration">Distrust a predicate that asks about a declaration</h3>
 <p>One failure mode is worth naming for whoever implements this next, because it
 produced two real violations here and both times the gate reported <code>OK</code>.</p>
@@ -7839,6 +7945,11 @@ also read the ledger has become a second ledger and has failed.</p>
 </thead>
 <tbody>
 <tr>
+<td style="text-align:left"><code>written_by</code></td>
+<td style="text-align:left">participant id</td>
+<td style="text-align:left">who refreshed this brief. Required so a cold-resume pilot can tell a practice problem from a schema problem; git authorship cannot, because one committer may publish several participants’ work</td>
+</tr>
+<tr>
 <td style="text-align:left"><code>checkpoint</code></td>
 <td style="text-align:left">full object id</td>
 <td style="text-align:left">the last <strong>retained</strong> checkpoint; the exact resume point</td>
@@ -7970,6 +8081,11 @@ contract, and refreshing it is part of the next work unit.</p>
 in front of <code>AGENTS.md</code>, this brief, and the repository at <code>checkpoint</code>, and ask
 them to perform the next action. Record whether they did it correctly and how
 long it took to the first correct action.</p>
+<p>Record <code>written_by</code> and the path id with <strong>every</strong> trial. The aggregate over the
+eight questions is the least useful reading: failures clustering by writer mean
+the schema is fine and the practice is not, failures clustering by path mean the
+schema is underspecified for a class of work, and those point in opposite
+directions. The aggregate hides which one you are in.</p>
 <p>This is the pilot’s <strong>primary</strong> metric, ahead of ceremony time, artifact count,
 or advisory volume. A protocol whose briefs cannot be resumed cold has failed at
 the thing it exists for, however cheap its ceremony has become.</p>
@@ -7981,6 +8097,7 @@ timestamp: 2026-01-15T16:00:00Z
 cairn:
   path: CP-EXAMPLE-001
   branch: path/cp-example-001
+  written_by: participant-id
   checkpoint: fedcba9876543210fedcba9876543210fedcba98
   checkpoint_unit: 07
   checkpoint_pushed: true
@@ -9919,7 +10036,8 @@ bootstrap contract, and a bootstrap contract with no specified fields is not a
 contract.</p>
 <p>The brief lives at <code>project/briefs/&lt;lowercase-id&gt;-handoff.md</code>. Its frontmatter
 MUST carry:</p>
-<pre><code class="language-yaml">checkpoint: &lt;full object id of the last retained checkpoint&gt;
+<pre><code class="language-yaml">written_by: &lt;participant id of whoever refreshed this brief&gt;
+checkpoint: &lt;full object id of the last retained checkpoint&gt;
 checkpoint_unit: &lt;its ledger ordinal&gt;
 checkpoint_pushed: true
 base_commit: &lt;full object id&gt;
@@ -9976,6 +10094,22 @@ action. Success rate and time-to-first-correct-action are the pilot’s primary
 metric, ahead of ceremony time or artifact count: a protocol whose briefs cannot
 be resumed cold has failed at the thing it exists for, however cheap its
 ceremony is.</p>
+<h5 id="specification--record-the-writer-and-the-path-with-every-trial" data-heading="record-the-writer-and-the-path-with-every-trial">Record the writer and the path with every trial</h5>
+<p>A pilot MUST record, for each trial, which of the eight questions was
+unanswerable, <strong>who wrote the brief</strong>, and <strong>which path it belongs to</strong>. The
+aggregate count over the eight questions is the least useful of the three
+readings, because the two informative outcomes point in opposite directions and
+the aggregate hides which one holds:</p>
+<ul>
+<li>failures cluster by <strong>writer</strong> — the schema is adequate and the practice is
+not. A template and a worked example fix it, and no normative text changes;</li>
+<li>failures cluster by <strong>path</strong> — the schema is underspecified for a class of
+work, and that is a specification change.</li>
+</ul>
+<p><code>written_by</code> is required in the brief for this reason and no other. Git
+authorship is not a substitute: a repository where one participant commits work
+produced by several records one identity for all of them, and the writer axis
+collapses before the pilot begins.</p>
 <h3 id="specification--the-ledger-boundary" data-heading="the-ledger-boundary">The ledger boundary</h3>
 <p>The work ledger is append-only in protocol semantics. Completed ledger sections
 MAY move byte-for-byte into uniquely named files under
@@ -10814,8 +10948,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Cold-resume pilot</td>
 <td style="text-align:left">required before general release</td>
-<td style="text-align:left"><strong>not run</strong></td>
-<td style="text-align:left">representative team</td>
+<td style="text-align:left"><strong>run once</strong>: 20 trials, 35% would act without asking; failures flat across paths, so no schema change is indicated</td>
+<td style="text-align:left">a writer axis, which needs <code>written_by</code> populated across more than one writer</td>
 </tr>
 </tbody>
 </table>
@@ -10834,6 +10968,42 @@ contract</strong> is a judgement measured by cold resume, the <strong>temporal h
 checkpoint retention</strong> is unobservable to a validator that sees one commit, and
 <strong>live-ledger prefix proof</strong> awaits explicit ledger markers. Naming what cannot
 be checked is part of the claim.</p>
+<h3 id="specification--open-finding-this-revision-grew-its-own-surface" data-heading="open-finding-this-revision-grew-its-own-surface">Open finding: this revision grew its own surface</h3>
+<p>Separating borrowed vocabulary from Cairn’s own is not presentation. It is the
+only way to measure how large the protocol actually is, and running it as a
+measurement produces a finding rather than a tidier index.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left"></th>
+<th style="text-align:right">Borrowed</th>
+<th style="text-align:right">Cairn’s own</th>
+<th style="text-align:right">Total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">Before</td>
+<td style="text-align:right">24</td>
+<td style="text-align:right">41</td>
+<td style="text-align:right">65</td>
+</tr>
+<tr>
+<td style="text-align:left">After</td>
+<td style="text-align:right">21</td>
+<td style="text-align:right"><strong>45</strong></td>
+<td style="text-align:right">66</td>
+</tr>
+</tbody>
+</table>
+<p>The revision was meant to be net-neutral in concept count. It was, in total —
+and only because the borrowed glossary shrank. <strong>Cairn’s own surface grew by
+four.</strong> Every added concept earns its page, and that is beside the point: a
+protocol whose vocabulary grows every time it is corrected gets harder to hold
+in mind at exactly the rate it gets more precise.</p>
+<p>This is recorded as an open finding, not a resolved item. The remedy is merges,
+and merges are the work of noticing that two named objects are one object seen
+twice — which cannot be done by asking for it in a checklist.</p>
 <h3 id="specification--distrust-a-predicate-that-asks-about-a-declaration" data-heading="distrust-a-predicate-that-asks-about-a-declaration">Distrust a predicate that asks about a declaration</h3>
 <p>One failure mode is worth naming for whoever implements this next, because it
 produced two real violations here and both times the gate reported <code>OK</code>.</p>
@@ -13830,6 +14000,11 @@ also read the ledger has become a second ledger and has failed.</p>
 </thead>
 <tbody>
 <tr>
+<td style="text-align:left"><code>written_by</code></td>
+<td style="text-align:left">participant id</td>
+<td style="text-align:left">who refreshed this brief. Required so a cold-resume pilot can tell a practice problem from a schema problem; git authorship cannot, because one committer may publish several participants’ work</td>
+</tr>
+<tr>
 <td style="text-align:left"><code>checkpoint</code></td>
 <td style="text-align:left">full object id</td>
 <td style="text-align:left">the last <strong>retained</strong> checkpoint; the exact resume point</td>
@@ -13961,6 +14136,11 @@ contract, and refreshing it is part of the next work unit.</p>
 in front of <code>AGENTS.md</code>, this brief, and the repository at <code>checkpoint</code>, and ask
 them to perform the next action. Record whether they did it correctly and how
 long it took to the first correct action.</p>
+<p>Record <code>written_by</code> and the path id with <strong>every</strong> trial. The aggregate over the
+eight questions is the least useful reading: failures clustering by writer mean
+the schema is fine and the practice is not, failures clustering by path mean the
+schema is underspecified for a class of work, and those point in opposite
+directions. The aggregate hides which one you are in.</p>
 <p>This is the pilot’s <strong>primary</strong> metric, ahead of ceremony time, artifact count,
 or advisory volume. A protocol whose briefs cannot be resumed cold has failed at
 the thing it exists for, however cheap its ceremony has become.</p>
@@ -13972,6 +14152,7 @@ timestamp: 2026-01-15T16:00:00Z
 cairn:
   path: CP-EXAMPLE-001
   branch: path/cp-example-001
+  written_by: participant-id
   checkpoint: fedcba9876543210fedcba9876543210fedcba98
   checkpoint_unit: 07
   checkpoint_pushed: true

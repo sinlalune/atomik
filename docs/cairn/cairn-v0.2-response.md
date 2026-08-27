@@ -214,15 +214,43 @@ lifecycle) · `1e29195` (S07k, repair) · `a523afb` (S07l, repair).
 this repository's own `decision-drift` advisory that is a live gap: architecture
 moved and the decisions recording it have not landed.
 
-## What v0.3 should be
+## The cold-resume pilot has now been run
 
-Not more rules. Rules went 24 → 40 across this work; the cold-resume row still
-reads **not run**. The central claim — that a cold participant can resume a path
-from files alone — now has a specification, a schema, seven sections, a budget
-and a predicate checking its shape, and zero measurements. Meanwhile every rule
-added is a thing an agent can fail, and the mechanism meant to hold cost down is
-the one that is voluntary.
+Twenty trials, one participant per brief, no prior context, `AGENTS.md` plus one
+brief, the eight questions. Full record:
+[`cairn-cold-resume-pilot-2026-08-26.md`](./cairn-cold-resume-pilot-2026-08-26.md).
 
-The next step is twenty cold resumes on real handoffs, with failures classified
-by which of the eight answerable-alone questions was unanswerable, and that
-result deciding v0.3.
+> **7 of 20 (35%) would have begun work without asking a human.**
+
+| Reading | Result |
+| :-- | :-- |
+| By question | `resume_commit` 16/20 and `must_read` 15/20 dominate; `blocking` never failed |
+| By path | **flat** — five of six paths between 2.5 and 3.0 unanswerable per trial |
+| By writer | **could not be computed** — one Git author across the entire corpus |
+| By schema era | pre-contract 2.7 vs v0.2 0.5 unanswerable per trial, **n = 2** |
+
+Three things follow, and only the second is a change.
+
+1. **No specification change is indicated.** The flat path distribution rules out
+   the diagnosis that would have justified one. The two dominant failures map
+   onto fields v0.2 already added, which makes this retrospective validation
+   rather than a v0.3 input.
+2. **`written_by` is now required**, and a pilot MUST record the writer and the
+   path with every trial. This is an instrument fix: without it the pilot can
+   rule out a path-class problem and cannot confirm a practice problem. Your
+   point, arriving as a spec change.
+3. **The best-scoring briefs are the least protocol-shaped.** The two WSLg
+   briefs score 0.5 — no seven sections, not even coding paths, one
+   self-declared "not a path step". They contain the facts. Section conformance
+   is a way of making those facts likely; it is not what made them resumable,
+   and a brief can pass every rule in `brief-schema` while failing every
+   question a resumer actually has.
+
+The single v0.2-era failure was `checkpoint: PENDING` — a placeholder in a field
+the schema specifies. Seven of eight answered. A practice failure of a schema
+that worked, which is the category the writer axis exists to count.
+
+**What v0.3 should be: not yet.** Keep writing briefs under the contract with
+`written_by` populated; re-run at fifteen v0.2-era briefs from more than one
+writer; read the writer axis then. A protocol that revises itself faster than it
+can measure itself is the failure this pilot was commissioned to prevent.

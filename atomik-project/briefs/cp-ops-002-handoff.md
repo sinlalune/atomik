@@ -4,6 +4,7 @@ title: Handoff — CP-OPS-002
 timestamp: 2026-08-26T00:00:00Z
 atomik:
   path: CP-OPS-002
+  written_by: cp-ops-002-writer
   branch: path/cp-ops-002
   checkpoint: a523afb0fd576715ed1fd0988d8f5afe7970cd38
   checkpoint_unit: 08
