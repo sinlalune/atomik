@@ -39,6 +39,8 @@ import {
   readFrontmatter,
   registrationMatches,
   resolveBranch,
+  resolveBase,
+  TRUNK_BASE_CANDIDATES,
   staleRunningPaths,
   stripCode,
   transitionErrors,
@@ -668,6 +670,81 @@ test('a detached checkout touching no guarded root is advisory only', () => {
 test('a normally resolved branch raises no identity finding', () => {
   const found = run(['docs/index.md'], 'path/cp-mvp-010')
   assert.ok(![...rules(found, 'blocking'), ...rules(found, 'advisory')].includes('branch-identity'))
+})
+
+/* ------------------------------------------------------------------ *
+ * S08 finding 5 — the local command and the CI command asked different
+ * questions of the same tree
+ *
+ *   npm run cairn-check                     -> working tree vs HEAD
+ *   node cairn-check.mjs --base origin/x    -> branch vs trunk
+ *
+ * Every changed-file rule inherits that choice. On path/cp-ops-002 the local
+ * run saw 0 changed files and printed OK for many pushes while CI saw 224 and
+ * reported nine blocking findings. Both were right about the question they
+ * were asked; only one decides the merge, and it was the one nobody ran.
+ * ------------------------------------------------------------------ */
+
+test('a path branch defaults to the trunk base, and prefers the ref CI uses', () => {
+  const everyRef = () => true
+  assert.deepEqual(
+    resolveBase({ branch: 'path/cp-mvp-010', refExists: everyRef }),
+    { base: 'origin/master', source: 'default-trunk' }
+  )
+  // The candidate order is the point, not an accident: CI compares against
+  // origin/<trunk>, and a local branch can sit behind it.
+  assert.equal(TRUNK_BASE_CANDIDATES[0], 'origin/master')
+  // No remote in this clone — the local trunk is the weaker fallback, taken.
+  assert.deepEqual(
+    resolveBase({ branch: 'path/cp-mvp-010', refExists: (ref) => ref === 'master' }),
+    { base: 'master', source: 'default-trunk' }
+  )
+})
+
+test('narrowing the base is an opt-out, and every narrowing is named', () => {
+  // --working-tree: still available, no longer silent.
+  assert.deepEqual(
+    resolveBase({ workingTree: true, branch: 'path/cp-mvp-010', refExists: () => true }),
+    { base: null, source: 'opt-out' }
+  )
+  // Nothing to fetch from: fall back rather than refuse, and say which.
+  assert.deepEqual(
+    resolveBase({ branch: 'path/cp-mvp-010', refExists: () => false }),
+    { base: null, source: 'unresolvable' }
+  )
+  // An explicit --base outranks the default, so CI and the tests stay in charge.
+  assert.deepEqual(
+    resolveBase({ flag: 'origin/main', branch: 'path/cp-mvp-010', refExists: () => true }),
+    { base: 'origin/main', source: 'flag' }
+  )
+  // Off a path branch there is no pending merge, so no parity claim is made.
+  assert.deepEqual(
+    resolveBase({ branch: 'master', refExists: () => true }),
+    { base: null, source: 'trunk-work' }
+  )
+})
+
+test('a narrowed run on a path branch is REPORTED, never silently OK', () => {
+  // The fixture: the exact invocation that was reporting OK over 224 unseen
+  // files. The rule name must appear, because that string is what a reader
+  // greps for when a ledger says "cairn-check OK".
+  for (const source of ['opt-out', 'unresolvable']) {
+    const found = run(['docs/index.md'], 'path/cp-mvp-010', [A_PATH], { baseSource: source })
+    assert.ok(rules(found, 'advisory').includes('base-parity'),
+      `baseSource ${source} must raise base-parity`)
+    assert.deepEqual(rules(found, 'blocking'), [],
+      'a narrower run is not a protocol violation — it must not block')
+  }
+})
+
+test('the merge-deciding run raises no parity finding, on a path branch or off one', () => {
+  for (const source of ['flag', 'default-trunk']) {
+    const found = run(['docs/index.md'], 'path/cp-mvp-010', [A_PATH], { baseSource: source })
+    assert.ok(!rules(found, 'advisory').includes('base-parity'))
+  }
+  // master with no base is the working tree by design, not a narrowing.
+  const trunk = run(['docs/index.md'], 'master', [A_PATH], { baseSource: 'trunk-work' })
+  assert.ok(!rules(trunk, 'advisory').includes('base-parity'))
 })
 
 /* ------------------------------------------------------------------ *

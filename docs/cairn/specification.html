@@ -1591,6 +1591,17 @@ completed Cairn work unit.</p>
 observed. A process <a href="#article-concept-exit-code" data-article="concept-exit-code" data-anchor="" class="wiki-link">exit code</a> is zero for success and
 non-zero for failure. Gates MUST be run directly so their exit code remains the
 verdict; output MUST NOT be filtered in a way that hides or replaces it.</p>
+<p>A gate that evaluates <em>changed files</em> is also deciding <strong>which two states it
+compares</strong>, and that choice is not a detail of invocation — it selects the input
+every such rule sees. On a path branch the comparison that matters is the branch
+against the trunk, because that is what integration will judge. The checker’s
+default invocation on a path branch MUST therefore make that comparison. A
+narrower comparison — the working tree alone, mid-edit — MUST remain available as
+an explicit opt-out, and a run that makes it MUST say so in its own output, so a
+narrow verdict cannot be recorded as a full one. Where the trunk cannot be
+resolved at all, the run MUST report that rather than answer the narrower
+question silently. This is <a href="#article-concept-gate-parity" data-article="concept-gate-parity" data-anchor="" class="wiki-link">gate parity</a> applied to
+the gate’s input rather than to its rules.</p>
 <h3 id="specification--publish-incomplete-work-as-a-provisional-commit" data-heading="publish-incomplete-work-as-a-provisional-commit">Publish incomplete work as a provisional commit</h3>
 <p>Work that is not yet a completed unit — mid-refactor, failing, or waiting for a
 user or reviewer to test it — MUST NOT be left only in a
@@ -2524,7 +2535,7 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Local and CI invocations of one gate reach the same verdict</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong>; asserted in <code>AGENTS.md</code> prose, tested nowhere</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the default base on a path branch is now the trunk, matching CI, and a narrowed run raises <code>base-parity</code> rather than passing quietly. The verdicts are not yet asserted equal by a test</td>
 <td style="text-align:left">a fixture run in both contexts</td>
 </tr>
 <tr>
@@ -2969,6 +2980,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Subsystem source changed without touching matching area module note</td>
 <td style="text-align:left"><code>areaOf(file) =&gt; changed.includes(note)</code></td>
+</tr>
+<tr data-rule="base-parity" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>base-parity</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A path-branch run compared the working tree with HEAD instead of the branch with the trunk</td>
+<td style="text-align:left"><code>resolveBase() source is 'opt-out' or 'unresolvable' while isPathBranch(branch)</code></td>
 </tr>
 <tr data-rule="branch-identity" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>branch-identity</code></td>
@@ -3912,6 +3929,17 @@ completed Cairn work unit.</p>
 observed. A process <a href="#article-concept-exit-code" data-article="concept-exit-code" data-anchor="" class="wiki-link">exit code</a> is zero for success and
 non-zero for failure. Gates MUST be run directly so their exit code remains the
 verdict; output MUST NOT be filtered in a way that hides or replaces it.</p>
+<p>A gate that evaluates <em>changed files</em> is also deciding <strong>which two states it
+compares</strong>, and that choice is not a detail of invocation — it selects the input
+every such rule sees. On a path branch the comparison that matters is the branch
+against the trunk, because that is what integration will judge. The checker’s
+default invocation on a path branch MUST therefore make that comparison. A
+narrower comparison — the working tree alone, mid-edit — MUST remain available as
+an explicit opt-out, and a run that makes it MUST say so in its own output, so a
+narrow verdict cannot be recorded as a full one. Where the trunk cannot be
+resolved at all, the run MUST report that rather than answer the narrower
+question silently. This is <a href="#article-concept-gate-parity" data-article="concept-gate-parity" data-anchor="" class="wiki-link">gate parity</a> applied to
+the gate’s input rather than to its rules.</p>
 <h3 id="specification--publish-incomplete-work-as-a-provisional-commit" data-heading="publish-incomplete-work-as-a-provisional-commit">Publish incomplete work as a provisional commit</h3>
 <p>Work that is not yet a completed unit — mid-refactor, failing, or waiting for a
 user or reviewer to test it — MUST NOT be left only in a
@@ -4845,7 +4873,7 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Local and CI invocations of one gate reach the same verdict</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong>; asserted in <code>AGENTS.md</code> prose, tested nowhere</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the default base on a path branch is now the trunk, matching CI, and a narrowed run raises <code>base-parity</code> rather than passing quietly. The verdicts are not yet asserted equal by a test</td>
 <td style="text-align:left">a fixture run in both contexts</td>
 </tr>
 <tr>
@@ -5290,6 +5318,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Subsystem source changed without touching matching area module note</td>
 <td style="text-align:left"><code>areaOf(file) =&gt; changed.includes(note)</code></td>
+</tr>
+<tr data-rule="base-parity" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>base-parity</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A path-branch run compared the working tree with HEAD instead of the branch with the trunk</td>
+<td style="text-align:left"><code>resolveBase() source is 'opt-out' or 'unresolvable' while isPathBranch(branch)</code></td>
 </tr>
 <tr data-rule="branch-identity" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>branch-identity</code></td>
@@ -6810,6 +6844,21 @@ CI,    on HEAD (detached)         FAILED — the derived running-paths view is s
 </code></pre>
 <p>Both runs were correct about the question they asked. Only one of them asked the
 right one.</p>
+<p>The second break is plainer, and therefore the more useful example: not a rule
+skipping itself, but the two invocations handing every rule a different <strong>input</strong>.</p>
+<pre><code class="language-text">npm run cairn-check                            working tree vs HEAD    0 files    OK
+node cairn-check.mjs --base origin/master      branch vs trunk       224 files    9 blocking
+</code></pre>
+<p>One branch, one tree, one command name, two verdicts — and the green one is the
+one a developer runs before every commit. Nothing exotic is involved: no
+detached ref, no CI-only condition. The local run had been reporting <code>OK</code> for
+many pushes while the branch was red in CI, and ledger entries recorded that
+<code>OK</code> as their verification.</p>
+<p>What makes this a parity break rather than a preference is that the base is
+chosen <em>before</em> any predicate runs, so every changed-file rule inherits it
+without ever mentioning it. The repair is to make the default the comparison
+that decides the merge, keep the narrower one as an opt-out, and have the run
+name the base it used in the line people copy into a record.</p>
 <h2 id="concept-gate-parity--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
 <p>Parity is agreement, not correctness. Two environments can agree perfectly on the
 same wrong answer, and a rule that is <a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">unsound</a> is unsound
@@ -10964,6 +11013,17 @@ completed Cairn work unit.</p>
 observed. A process <a href="#article-concept-exit-code" data-article="concept-exit-code" data-anchor="" class="wiki-link">exit code</a> is zero for success and
 non-zero for failure. Gates MUST be run directly so their exit code remains the
 verdict; output MUST NOT be filtered in a way that hides or replaces it.</p>
+<p>A gate that evaluates <em>changed files</em> is also deciding <strong>which two states it
+compares</strong>, and that choice is not a detail of invocation — it selects the input
+every such rule sees. On a path branch the comparison that matters is the branch
+against the trunk, because that is what integration will judge. The checker’s
+default invocation on a path branch MUST therefore make that comparison. A
+narrower comparison — the working tree alone, mid-edit — MUST remain available as
+an explicit opt-out, and a run that makes it MUST say so in its own output, so a
+narrow verdict cannot be recorded as a full one. Where the trunk cannot be
+resolved at all, the run MUST report that rather than answer the narrower
+question silently. This is <a href="#article-concept-gate-parity" data-article="concept-gate-parity" data-anchor="" class="wiki-link">gate parity</a> applied to
+the gate’s input rather than to its rules.</p>
 <h3 id="specification--publish-incomplete-work-as-a-provisional-commit" data-heading="publish-incomplete-work-as-a-provisional-commit">Publish incomplete work as a provisional commit</h3>
 <p>Work that is not yet a completed unit — mid-refactor, failing, or waiting for a
 user or reviewer to test it — MUST NOT be left only in a
@@ -11897,7 +11957,7 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Local and CI invocations of one gate reach the same verdict</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong>; asserted in <code>AGENTS.md</code> prose, tested nowhere</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the default base on a path branch is now the trunk, matching CI, and a narrowed run raises <code>base-parity</code> rather than passing quietly. The verdicts are not yet asserted equal by a test</td>
 <td style="text-align:left">a fixture run in both contexts</td>
 </tr>
 <tr>
@@ -12342,6 +12402,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Subsystem source changed without touching matching area module note</td>
 <td style="text-align:left"><code>areaOf(file) =&gt; changed.includes(note)</code></td>
+</tr>
+<tr data-rule="base-parity" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>base-parity</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A path-branch run compared the working tree with HEAD instead of the branch with the trunk</td>
+<td style="text-align:left"><code>resolveBase() source is 'opt-out' or 'unresolvable' while isPathBranch(branch)</code></td>
 </tr>
 <tr data-rule="branch-identity" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>branch-identity</code></td>
@@ -13726,6 +13792,21 @@ CI,    on HEAD (detached)         FAILED — the derived running-paths view is s
 </code></pre>
 <p>Both runs were correct about the question they asked. Only one of them asked the
 right one.</p>
+<p>The second break is plainer, and therefore the more useful example: not a rule
+skipping itself, but the two invocations handing every rule a different <strong>input</strong>.</p>
+<pre><code class="language-text">npm run cairn-check                            working tree vs HEAD    0 files    OK
+node cairn-check.mjs --base origin/master      branch vs trunk       224 files    9 blocking
+</code></pre>
+<p>One branch, one tree, one command name, two verdicts — and the green one is the
+one a developer runs before every commit. Nothing exotic is involved: no
+detached ref, no CI-only condition. The local run had been reporting <code>OK</code> for
+many pushes while the branch was red in CI, and ledger entries recorded that
+<code>OK</code> as their verification.</p>
+<p>What makes this a parity break rather than a preference is that the base is
+chosen <em>before</em> any predicate runs, so every changed-file rule inherits it
+without ever mentioning it. The repair is to make the default the comparison
+that decides the merge, keep the narrower one as an opt-out, and have the run
+name the base it used in the line people copy into a record.</p>
 <h2 id="concept-gate-parity--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
 <p>Parity is agreement, not correctness. Two environments can agree perfectly on the
 same wrong answer, and a rule that is <a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">unsound</a> is unsound

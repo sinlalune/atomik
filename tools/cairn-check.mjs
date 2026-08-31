@@ -12,7 +12,11 @@
  * idea must be able to read it in one sitting and run it locally with the
  * same command CI runs.
  *
- *   node tools/cairn-check.mjs [--base <ref>] [--previous <ref>] [--json]
+ *   node tools/cairn-check.mjs [--base <ref>] [--previous <ref>]
+ *                              [--working-tree] [--branch <name>] [--json]
+ *
+ * On a `path/*` branch the base DEFAULTS to the trunk, because that is the
+ * comparison which decides the merge. `--working-tree` opts out of it.
  *
  * BLOCKING failures exit 1. ADVISORY findings are printed and never fail:
  * a declared write surface is a signal, not a lock (owner ruling 4), and a
@@ -677,6 +681,49 @@ export function resolveBranch({ flag, env = {}, symbolicRef, abbrevRef }) {
   return { branch: abbrevRef ?? 'HEAD', source: 'detached' }
 }
 
+/** The trunk this repository integrates into. Hard-coded until the config
+ *  loader lands (S08 part 4); named once so the base default and the rebase
+ *  gate cannot drift apart. */
+export const TRUNK_BRANCH = 'master'
+
+/** Tried in order. `origin/<trunk>` first because it is the ref CI compares
+ *  against, and gate parity is about matching CI rather than matching the
+ *  local checkout. The local branch is the fallback for a clone with no
+ *  remote, and it is a WEAKER answer: it can sit behind the real trunk. */
+export const TRUNK_BASE_CANDIDATES = [`origin/${TRUNK_BRANCH}`, TRUNK_BRANCH]
+
+/**
+ * WHICH BASE? The question every changed-file rule silently inherits.
+ *
+ * `npm run cairn-check` used to compare the WORKING TREE with HEAD, while CI
+ * compared the BRANCH with the trunk. Both answers are correct about the
+ * question they were asked, and only the second one decides the merge. On
+ * `path/cp-ops-002` the local run saw 0 changed files and printed OK for many
+ * pushes while CI saw 224 and reported nine blocking findings (S08 finding 5).
+ *
+ * The verdict a developer runs must therefore be the merge-deciding one by
+ * DEFAULT, on the branch where a merge is pending. Narrowing it stays
+ * available — `--working-tree` — because an uncommitted-only run is genuinely
+ * useful mid-edit; it is now an opt-out, and it announces itself through
+ * `base-parity` so a ledger cannot record a narrow verdict as a full one.
+ *
+ * Pure: the caller supplies ref resolution, so the decision is testable
+ * without a repository.
+ */
+export function resolveBase({ flag = null, workingTree = false, branch, refExists = () => false }) {
+  if (flag) return { base: flag, source: 'flag' }
+  if (workingTree) return { base: null, source: 'opt-out' }
+  // Off a path branch there is no pending merge to decide, so the working
+  // tree is the right question and no parity claim is being made.
+  if (!isPathBranch(branch)) return { base: null, source: 'trunk-work' }
+  const resolved = TRUNK_BASE_CANDIDATES.find((ref) => refExists(ref))
+  if (resolved) return { base: resolved, source: 'default-trunk' }
+  // An unfetched or remote-less checkout cannot be given the merge-deciding
+  // comparison. Fall back rather than refuse — and SAY SO, because a silent
+  // fallback is the exact defect this function exists to remove.
+  return { base: null, source: 'unresolvable' }
+}
+
 /** Roots where an unenforced protocol leaves something WRONG in the repo
  *  rather than merely unconventional — the admission test for blocking. */
 export const GUARDED_ROOTS = ['apps/', 'packages/', 'shared/']
@@ -1251,6 +1298,7 @@ export function evaluate({
   previousPaths = new Map(),
   immutableMutations = [],
   branchSource = 'symbolic-ref',
+  baseSource = 'flag',
   workUnits = null,
   retainedRefs = new Map(),
   provisionalInCandidate = [],
@@ -1296,6 +1344,27 @@ export function evaluate({
       add('advisory', 'branch-identity',
         `detached checkout: path rules were skipped because the branch could not be identified — ${how}`)
     }
+  }
+
+  // 0b. base parity — is this the verdict that decides the merge? -----
+  // The sibling of branch identity. There, a rule could not name the branch;
+  // here, it names the branch but judges a smaller set of files than the run
+  // that will actually gate the merge. Both produce a green line over a
+  // question nobody asked, and only one of them used to be visible.
+  //
+  // Advisory, never blocking: a developer with no fetched trunk must still be
+  // able to run the checker, and a narrower run is not a protocol violation.
+  // What it must not be is INVISIBLE, because "cairn-check OK" is copied into
+  // ledgers as evidence.
+  if (onPath && baseSource !== 'flag' && baseSource !== 'default-trunk') {
+    const why =
+      baseSource === 'opt-out'
+        ? '--working-tree was requested'
+        : `neither ${TRUNK_BASE_CANDIDATES.join(' nor ')} resolves in this checkout — fetch the trunk`
+    add('advisory', 'base-parity',
+      `this run compared the working tree with HEAD, not the branch with the trunk (${why}). ` +
+      'Every changed-file rule therefore saw a smaller set than the run that decides the merge; ' +
+      'record this verdict as the narrow one, or re-run without --working-tree')
   }
 
   // 1. branch → path -------------------------------------------------
@@ -2456,7 +2525,7 @@ function corpusFindings(branch, trunkRef = 'master') {
 
 function main() {
   const argv = process.argv.slice(2)
-  const base = argv.includes('--base') ? argv[argv.indexOf('--base') + 1] : null
+  const baseFlag = argv.includes('--base') ? argv[argv.indexOf('--base') + 1] : null
   const explicitPrevious = argv.includes('--previous')
     ? argv[argv.indexOf('--previous') + 1]
     : null
@@ -2469,10 +2538,16 @@ function main() {
     symbolicRef: gitOrNull(['symbolic-ref', '--short', 'HEAD']),
     abbrevRef: git(['rev-parse', '--abbrev-ref', 'HEAD'])
   })
+  const { base, source: baseSource } = resolveBase({
+    flag: baseFlag,
+    workingTree: argv.includes('--working-tree'),
+    branch,
+    refExists: (ref) => gitOrNull(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]) != null
+  })
   const changed = changedFiles(base)
   const paths = loadPaths()
   const pathForBranch = paths.find((path) => path.front?.branch === branch) ?? null
-  const trunkRef = base ?? 'master'
+  const trunkRef = base ?? TRUNK_BRANCH
   const previousRef = comparisonRef(base, explicitPrevious)
   const stateChanged = previousRef ? changedFiles(previousRef) : changed
   // Record immutability is forward-scoped per proposed change. CI passes the
@@ -2498,6 +2573,7 @@ function main() {
       previousPaths: previousPathStates(paths, previousRef),
       immutableMutations: immutableRecordMutations(recordRef),
       branchSource,
+      baseSource,
       workUnits: pathForBranch ? parseWorkUnits(readFileSync(join(REPO, pathForBranch.file), 'utf8')) : null,
       scopeDigestFor: scopeDigestOf,
       openingRecordFor: (id) => openingRecordFromSessions(loadSessions(), id),
@@ -2524,10 +2600,15 @@ function main() {
   const failed = blocking.filter((f) => f.outcome !== 'inconclusive')
   const advisory = findings.filter((f) => f.level === 'advisory')
 
+  // The header names the base as well as the branch. A verdict that does not
+  // say what it compared cannot be read as evidence a year later, and this is
+  // the line people paste into ledgers.
+  const baseLabel = base ? `${base} (${baseSource})` : `working tree vs HEAD (${baseSource})`
   if (asJson) {
-    console.log(JSON.stringify({ branch, changed: changed.length, findings }, null, 2))
+    console.log(JSON.stringify(
+      { branch, base, baseSource, changed: changed.length, findings }, null, 2))
   } else {
-    console.log(`cairn-check — branch ${branch}, ${changed.length} changed file(s)`)
+    console.log(`cairn-check — branch ${branch}, base ${baseLabel}, ${changed.length} changed file(s)`)
     for (const group of [
       ['FAIL', failed],
       ['INCONCLUSIVE', inconclusive],

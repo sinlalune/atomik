@@ -707,15 +707,24 @@ test('cairn-spec: every new requirement carries its own conformance row', () => 
   // The specification's own promise: "Every requirement below appears as one row
   // of the conformance matrix." A directive with no row is the failure mode the
   // directive's fourth requirement is about.
+  //
+  // The row must EXIST and must state a status in the vocabulary. It must not
+  // pin one particular status: these requirements are being implemented, and a
+  // test that hard-codes "not implemented" turns every honest status update into
+  // a test edit — which teaches the editor to change the test rather than to
+  // check the claim. What the matrix owes is a visible status per requirement,
+  // not a permanently pessimistic one.
   const matrix = markdown.slice(markdown.indexOf('## Current conformance'))
-  for (const row of [
-    /\| An adversarial fixture per blocking rule \| required \| \*\*not implemented\*\*/,
-    /\| No predicate branches on a value that varies by execution context \| required \| \*\*not implemented, and violated\*\*/,
-    /\| Local and CI invocations of one gate reach the same verdict \| required \| \*\*not implemented\*\*/,
-    /\| Every stated requirement is enforced or listed as unenforced \| required \|/,
-    /\| Merge-time journal entry, one file per integrated outcome \| required \| \*\*not implemented\*\*/
+  const STATUS = String.raw`(?:implemented|\*\*(?:not implemented|partially implemented)[^|]*\*\*)`
+  for (const capability of [
+    'An adversarial fixture per blocking rule',
+    'No predicate branches on a value that varies by execution context',
+    'Local and CI invocations of one gate reach the same verdict',
+    'Every stated requirement is enforced or listed as unenforced',
+    'Merge-time journal entry, one file per integrated outcome'
   ]) {
-    assert.match(matrix, row)
+    const escaped = capability.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    assert.match(matrix, new RegExp(`\\| ${escaped} \\| required \\| ${STATUS}`), capability)
   }
 })
 

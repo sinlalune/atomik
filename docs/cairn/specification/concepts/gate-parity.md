@@ -59,6 +59,26 @@ CI,    on HEAD (detached)         FAILED — the derived running-paths view is s
 Both runs were correct about the question they asked. Only one of them asked the
 right one.
 
+The second break is plainer, and therefore the more useful example: not a rule
+skipping itself, but the two invocations handing every rule a different **input**.
+
+```text
+npm run cairn-check                            working tree vs HEAD    0 files    OK
+node cairn-check.mjs --base origin/master      branch vs trunk       224 files    9 blocking
+```
+
+One branch, one tree, one command name, two verdicts — and the green one is the
+one a developer runs before every commit. Nothing exotic is involved: no
+detached ref, no CI-only condition. The local run had been reporting `OK` for
+many pushes while the branch was red in CI, and ledger entries recorded that
+`OK` as their verification.
+
+What makes this a parity break rather than a preference is that the base is
+chosen *before* any predicate runs, so every changed-file rule inherits it
+without ever mentioning it. The repair is to make the default the comparison
+that decides the merge, keep the narrower one as an opt-out, and have the run
+name the base it used in the line people copy into a record.
+
 ## It does not prove
 
 Parity is agreement, not correctness. Two environments can agree perfectly on the

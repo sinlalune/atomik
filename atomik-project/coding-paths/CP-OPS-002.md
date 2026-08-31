@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-002
   route: full            # control plane + decision plane; escalation is one-way
   status: running
-  current_step: S07u
+  current_step: S08a
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
   writes:                    # ADVISORY — a signal, never a lock
@@ -473,8 +473,9 @@ number of adopters.
    working tree versus HEAD, against branch versus trunk. Nine findings were
    invisible locally for many pushes. `npm run cairn-check` on a `path/*` branch
    must default to the trunk base; a developer should opt *out* of the
-   merge-deciding comparison, not into it. Do this **first**: until it lands,
-   every "gates green" claim in a ledger is weaker than it reads.
+   merge-deciding comparison, not into it. Done first, at **S08a**, for the
+   reason the item itself gives: until it landed, every "gates green" claim in
+   this ledger — including the ones already written — was weaker than it read.
 3c. **A record's filename date MUST equal its frontmatter `timestamp:`.** Cheap
    and sound — it compares two things the author wrote, so the checker never
    needs to know what day it is. Found because every CP-UI-TYPOGRAPHY record is
@@ -539,6 +540,94 @@ thing.
     **tiers 0 and 1 only**: the validator, the config, the docs skeleton and the
     workflow file. No host configuration, no account, nothing to click.
 
+### S08a — The local gate and the CI gate compared different trees — **COMPLETE**
+
+```cairn-unit
+step: S08a
+unit: 19
+type: repair
+verified: cairn-check, cairn-check:test, typecheck, test, build
+```
+
+Taken first out of S08 Part 1, ahead of `hasCeremony`, because the item says to:
+until it lands, every gate verdict a work unit records is the narrow one. Doing
+`hasCeremony` first would have verified that repair with the command this one
+fixes. Noted as a disagreement between two records — the handoff brief's next
+action read "Part 1 in order" as numeric and named `hasCeremony` — and settled by
+the reason, which both the S08 brief and this plan state in the item itself.
+
+**One tree, one command name, two questions.**
+
+```text
+npm run cairn-check                              working tree vs HEAD     0 files   OK
+node cairn-check.mjs --base origin/master        branch vs trunk        228 files   11 advisory
+```
+
+The base is chosen once, before any predicate runs, and every changed-file rule
+inherits it without ever mentioning it. So this is not one unsound rule but a
+whole class of them evaluated over the wrong input — and the green line came from
+the invocation a developer runs before every commit, while CI ran the other one.
+This branch was red in CI for many pushes with local runs saying `OK`, and those
+`OK`s are what the ledger recorded as verification.
+
+**The repair.** `resolveBase()` is the sibling of `resolveBranch()`: pure, given
+ref resolution by its caller, and answering one question the rules used to answer
+implicitly.
+
+```text
+--base <ref>          flag           explicit; CI and the tests stay in charge
+--working-tree        opt-out        still available, no longer the default
+path/* branch         default-trunk  origin/master, then master
+master or a tag       trunk-work     no pending merge, so no parity claim
+nothing resolvable    unresolvable   fall back, and SAY so
+```
+
+Two things make it more than a flag flip. The header line now names the base and
+how it was chosen, because that line is what people paste into a ledger as
+evidence and a verdict that does not say what it compared cannot be read a year
+later. And a narrowed run raises the advisory `base-parity`, so the narrowing
+cannot be recorded as a full verdict by someone who forgot which flag they typed.
+
+**On requirement 2 of the directive** — *a predicate MUST NOT branch on a value
+that varies with where it runs.* `base-parity` does branch on how the run was
+invoked, and that is the point rather than an exception. Every changed-file rule
+was already branching on it silently; this rule is the one place the branching is
+named, in the same shape as `branch-identity`. Advisory, never blocking: a
+developer with no fetched trunk must still be able to run the checker, and a
+narrower run is not a protocol violation. What it must not be is invisible.
+
+**Fixtures, and the mutations that prove they bite.** Four cases pin
+`resolveBase` — default, opt-out, unresolvable, off-branch — and two pin the
+finding. Both repairs were then broken on purpose: making the rule unreachable
+and making the trunk candidate never resolve each fail exactly the tests written
+for them, and nothing else.
+
+The catalogue guard also did its job unprompted: adding one `add('advisory',
+'base-parity', …)` failed `cairn-rules` until the rule was given its published
+condition and enforcing logic, which is the drift check S07t built working on its
+first new rule.
+
+**One test was relaxed, deliberately.** `every new requirement carries its own
+conformance row` hard-coded `**not implemented**` for five rows. The row must
+exist and state a status in the vocabulary; pinning *which* status turns every
+honest matrix update into a test edit, which teaches an editor to change the test
+rather than check the claim. It now asserts the row and the vocabulary, and was
+mutation-checked against a row whose status is prose.
+
+**The brief budget bit, and it was right to.** Refreshing the handoff brief with
+this unit took it from 1172 tokens to 1693 against a declared 1200, and
+`brief-schema` blocked. The fix was not a bigger budget: five settled *Tried and
+rejected* entries were merged or dropped — every one of them recorded in full in
+this ledger, which is the primary record the brief is a view of — and the rest
+were tightened. The brief now carries S08 rather than a history of S07. Worth
+noting for the next refresh: HEAD had only 28 tokens of headroom, so this is not
+a one-off.
+
+Conformance moves from `not implemented` to `partially implemented` for *local
+and CI invocations reach the same verdict*: the default now matches CI and a
+narrowing announces itself, but no test yet runs one gate in both contexts and
+asserts one verdict. That is Part 2 item 6, and it stays open in the matrix.
+
 ### S09 — Greenfield pilot, coherence audit, closing ceremony, self-merge
 
 Initialize one real ex-nihilo repository from the kit — the research-paper workspace the
@@ -573,7 +662,10 @@ brief names — and fix what the pilot finds before merging.
 | Corrections (S07e) | **2026-08-25, owner** — S07c and S07d superseded. Two differently directed documents shared one design system instead of receiving a new pedagogical one; the downward version reduced Cairn to foundations instead of specifying Cairn top down and explaining foundations when first manipulated. Replaced by one canonical, history-free specification project and one universal three-pane reader; no alternate normative reading remains |
 | Corrections (S07f specification) | **2026-08-25/26, user** — research-paper restraint replaces the artful study-desk design; precision replaces decorative artifice; every specialised IT or Cairn concept receives its own wiki article; the second reading pane is a peer object surface, not subordinate help; and the learning route builds simple ideas into complex protocol behaviour instead of presenting a cryptic downward taxonomy. The reviewed protocol corrections are integrated only after that information architecture |
 | Second inspection (S07f) | **2026-08-26, user** — preserve the large visual improvement, but introduce or link every abstract term before use; make “the complete protocol” readable rather than cryptic; compare the repository map with the current Cairn repository and make it exhaustive; repair pane scrolling and cross-pane wiki loading; remove section gutters; and add only a restrained frozen-glass modernity to the flat research aesthetic. Implemented in the same uncommitted candidate; a fresh inspection is required |
-| Next action | S08 — extract Cairn from Atomik: `cairn.config.json`, the generated enforcement header, `cairn-new`, and the tier-0/1 `cairn-init` seed. The v0.2 predicates land here or in a successor path, never by quietly marking a matrix row `implemented` |
+| Gates at S08a | `npm run cairn-check` OK (11 advisory, all pre-existing: nine grandfathered `CP-MVP-008` findings and two `single-truth` notes) — and this is the FIRST verdict in this ledger taken against the trunk by default rather than against `HEAD` · `npm run cairn-check:test` PASS, 197 subtests (193 → 197) · `npm run cairn-spec:build` deterministic · `npm run typecheck` PASS · product suite 79 files, 1,109 passed / 1 skipped · `npm run build` PASS |
+| Verification caveat, retroactive (S08a) | Every `cairn-check` row above this one recorded the working-tree-versus-`HEAD` verdict, because that was the default. Those rows are not false — the command ran and printed what they say — but they are **narrower than they read**, and on this branch that difference was 0 changed files against 228. Recorded here rather than edited into each row: a record is corrected by a later record. |
+| Next action | S08 Part 1 item 1 — `hasCeremony` reads the `ceremony:` frontmatter key instead of matching a filename, with a fixture that rejects a `done` path whose only session note is its opening check. Then item 2 (the journal-entry predicate), item 3 (the derived-view rule keyed on declared `status`), item 3c (filename date equals frontmatter `timestamp:`), and item 4 (the retention-generation ADR, design before code) |
+| Superseded next action (S08a, done) | S08 — extract Cairn from Atomik: `cairn.config.json`, the generated enforcement header, `cairn-new`, and the tier-0/1 `cairn-init` seed. The v0.2 predicates land here or in a successor path, never by quietly marking a matrix row `implemented` |
 | Superseded next action (S07, done) | the specification and lexicon: `docs/cairn/specification.md` (planes, the ADR-017 lifecycle by reference, the rule table generated from `cairn-check.mjs`, the blocking-rule admission test, the three enforcement tiers with tier 2 as a repository property, the CP-MVP-011/012 migration window as a property), `docs/cairn/lexicon.md` (one definition per term, each pointing at the file that enforces it; a term with no enforcing file marked aspirational), and the step-by-step operator guide carrying the optional tier-2 ruleset as a copy-paste `gh api` payload |
 | Widening (S05) | `writes:` gained `docs/adr/**`, `docs/bedrock/index.md`, `docs/modules/**`, `docs/index.md`, `atomik-project/index.md` — S05 was always the OKF backfill; the declaration named only the two ADRs this path authors. Deliberate `single-truth` edit: `docs/modules/atomik-desktop.md`, one stale sentence naming the removed integrator |
 | Corrections (S07c) | **2026-08-25, owner** — S07 and S07b redone. *"It needs to be universal without borrowing concept from research worlds"*: a stated possibility (this **could** reach a researcher) had been read as a specification, and the whole explanatory apparatus was built on research-world concepts, making a document that claimed to teach from zero **depend on** a background. Also: one file instead of three, alternating concept and protocol; and a new theme rather than the earlier page's house style. Analogies were **removed, not replaced** — substituting another profession's would reproduce the defect with a different dependency |

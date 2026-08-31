@@ -110,6 +110,10 @@ export const RULE_METADATA = {
     condition: 'A proposed candidate still contains commits marked Cairn-Provisional, or HEAD is itself provisional',
     enforcing: "git log --grep=^Cairn-Provisional: base..subject_commit (blocking on a ready path, advisory at HEAD)"
   },
+  'base-parity': {
+    condition: 'A path-branch run compared the working tree with HEAD instead of the branch with the trunk',
+    enforcing: "resolveBase() source is 'opt-out' or 'unresolvable' while isPathBranch(branch)"
+  },
   'branch-identity': {
     condition: 'Detached checkout where branch cannot be identified from host or git ref',
     enforcing: "branchSource === 'detached' (blocking on guarded roots, advisory on others)"

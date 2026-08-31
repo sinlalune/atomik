@@ -384,10 +384,25 @@ channels). Rebase early and often; do not paper over it with bookkeeping.
 ## Enforcement — `cairn-check`
 
 ```bash
-npm run cairn-check                            # the working tree
-npm run cairn-check -- --base origin/master    # a branch, as CI sees it
+npm run cairn-check                            # on a path/* branch: the branch
+                                               # vs the trunk, as CI sees it
+npm run cairn-check -- --working-tree          # narrow it to uncommitted work
 npm run cairn-check:test                       # the validator's own tests
 ```
+
+The default is the **merge-deciding** comparison, and that is a correction. The
+two commands used to ask different questions of one tree — the working tree
+against `HEAD` locally, the branch against the trunk in CI — so every rule that
+evaluates *changed files* saw a different set depending on who ran it. On
+`path/cp-ops-002` the local run reported `OK` over 0 changed files for many
+pushes while CI reported nine blocking findings over 224. Both answers were
+correct; only one of them decided the merge, and it was the one nobody ran
+locally (CP-OPS-002 S08, finding 5).
+
+Narrowing is still available and is now an opt-out rather than the default. A
+narrowed run announces itself with the advisory `base-parity`, so a ledger
+cannot record a narrow verdict as if it were the full one — the same reason the
+`--base` ref and its origin are printed in the header line.
 
 ```text
 BLOCKING   branch → path (a path/* branch is declared by a running path
@@ -403,7 +418,9 @@ BLOCKING   branch → path (a path/* branch is declared by a running path
            relative links in docs/ and atomik-project/ resolve
            derived views current (trunk only)
 
-ADVISORY   coherence audit missing for this head
+ADVISORY   base parity — a path-branch run compared the working tree with
+                          HEAD instead of the branch with the trunk
+           coherence audit missing for this head
            remote checkpoint — path HEAD is not yet on its upstream branch
            scope drift vs declared writes:
            ledger size — a path file in the diff is over its token budget

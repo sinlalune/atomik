@@ -585,6 +585,18 @@ observed. A process [exit code](./concepts/exit-code.md) is zero for success and
 non-zero for failure. Gates MUST be run directly so their exit code remains the
 verdict; output MUST NOT be filtered in a way that hides or replaces it.
 
+A gate that evaluates *changed files* is also deciding **which two states it
+compares**, and that choice is not a detail of invocation — it selects the input
+every such rule sees. On a path branch the comparison that matters is the branch
+against the trunk, because that is what integration will judge. The checker's
+default invocation on a path branch MUST therefore make that comparison. A
+narrower comparison — the working tree alone, mid-edit — MUST remain available as
+an explicit opt-out, and a run that makes it MUST say so in its own output, so a
+narrow verdict cannot be recorded as a full one. Where the trunk cannot be
+resolved at all, the run MUST report that rather than answer the narrower
+question silently. This is [gate parity](./concepts/gate-parity.md) applied to
+the gate's input rather than to its rules.
+
 ### Publish incomplete work as a provisional commit
 
 Work that is not yet a completed unit — mid-refactor, failing, or waiting for a
@@ -1448,7 +1460,7 @@ not in a separate document a reader may never open.
 | Field-level administrative closure surface | required | implemented; closure may move only `status`, `subject_commit`, `current_step` and `resolution` | ledger append-only proof, which remains a separate open row |
 | An adversarial fixture per blocking rule | required | **not implemented**; the checker suite exercises valid repositories and asserts `OK`, which a rule that never fires also satisfies. No rule is currently required to demonstrate a rejection | a fixture repository per blocking rule |
 | No predicate branches on a value that varies by execution context | required | **not implemented, and violated**; the derived-view check skips itself when the branch matches `path/*`, so a local run and a CI run on a detached ref reach different verdicts on one tree | trunk-context resolution that reads the tree, not the branch name |
-| Local and CI invocations of one gate reach the same verdict | required | **not implemented**; asserted in `AGENTS.md` prose, tested nowhere | a fixture run in both contexts |
+| Local and CI invocations of one gate reach the same verdict | required | **partially implemented**; the default base on a path branch is now the trunk, matching CI, and a narrowed run raises `base-parity` rather than passing quietly. The verdicts are not yet asserted equal by a test | a fixture run in both contexts |
 | Every stated requirement is enforced or listed as unenforced | required | **partially implemented**; this table is the mechanism, and it is maintained by hand. The merge-time journal entry is required by `AGENTS.md` and had no row and no predicate until this revision | generation of the matrix from the checker and the normative text |
 | Merge-time journal entry, one file per integrated outcome | required | **not implemented**; no predicate asks for one. A path closed, was audited and was proposed for merge with the entry missing, and every gate reported `OK` | integration-time hook, since the entry is written in the closing unit |
 | Scope digest recorded at opening and re-verified at closing | required | implemented; the resolved section is digested and compared at closure | a path opened before the rule cannot amend its immutable opening record — see the migration exception |
@@ -1639,6 +1651,7 @@ honest state of the work.
 | *Advisory* | `acceptance` | diff | Ready/done path lacks exact-commit acceptance or changed implementation after acceptance | `closingAcceptanceErrors(record, pathId) + pathClosureState(path, record)` |
 | *Advisory* | `advisory-disposition` | diff | advisory_disposition is not a structured list matching the advisories raised against the candidate | `dispositionErrors(record.advisory_disposition, raised) with set equality on rule names` |
 | *Advisory* | `area-note` | diff | Subsystem source changed without touching matching area module note | `areaOf(file) => changed.includes(note)` |
+| *Advisory* | `base-parity` | diff | A path-branch run compared the working tree with HEAD instead of the branch with the trunk | `resolveBase() source is 'opt-out' or 'unresolvable' while isPathBranch(branch)` |
 | *Advisory* | `branch-identity` | diff | Detached checkout where branch cannot be identified from host or git ref | `branchSource === 'detached' (blocking on guarded roots, advisory on others)` |
 | *Advisory* | `brief-schema` | diff | The handoff brief is missing, or lacks its eight fields, its seven exact sections, pinned governs entries, or its token budget | `briefErrors(front, body) over BRIEF_FIELDS and BRIEF_SECTIONS` |
 | *Advisory* | `checkpoint-retention` | diff | A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint | `retentionDue(units) => retainedRefs.has(refs/cairn/checkpoints/<id>/<n>) (newest unit advisory)` |
