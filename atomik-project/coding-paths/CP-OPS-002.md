@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-002
   route: full            # control plane + decision plane; escalation is one-way
   status: running
-  current_step: S07t
+  current_step: S07u
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
   writes:                    # ADVISORY — a signal, never a lock
@@ -406,6 +406,46 @@ single-level rule gains no phantom second one. Checker suite 193.
 cut-and-paste as the convention requires. Two relative links were re-depthed —
 the records moved one directory down, and `links` caught both. Path depth is not
 prose: the text reads exactly as it did.
+
+### S07u — Make the brief survive the handoff it is for — **COMPLETE**
+
+```cairn-unit
+step: S07u
+unit: 18
+type: repair
+verified: cairn-check, cairn-check:test, typecheck, test, build
+```
+
+The owner asked whether a fresh session could open S08. Checking the brief
+against the contract this path rewrote at S07o — rather than assuming — found
+three defects, all of which would have cost a cold reader real time.
+
+- **`checkpoint_unit: 13` against `checkpoint: 0b7f993`, which is unit 16.** The
+  brief named a real, retained commit and gave it the wrong ordinal, so the
+  retention ref and the brief disagreed about the same object — the precise
+  disagreement `checkpoint_unit` exists to make impossible. A bad `sed` pattern
+  in an earlier refresh silently matched nothing. Now unit 17 at `292ae08`.
+- **The S08 brief was not in `governs:`.** The next session's entire job is S08,
+  and the document carrying its context was named nowhere in the read surface and
+  pinned to no object id. Question 5 of the answerable-alone contract — *what it
+  must read, and at which object id* — was unanswerable for the one document that
+  matters most. Added, pinned, and promoted to first in the reading order.
+- **`writes:` had drifted.** It omitted `coding-paths/history/**` and `log/**`,
+  both written during this path.
+
+And `timestamp: 2026-08-27` on a brief refreshed on 2026-08-31 — the same defect
+found in the CP-UI-TYPOGRAPHY records at S07r, recurring in a document written
+four units after it was recorded. The difference is that a brief is **mutable by
+design**, so this one is corrected in place rather than by a later record. That
+contrast is the useful part: immutability is what decides whether a wrong date
+gets fixed or annotated, not the wrongness.
+
+The general lesson, and the reason this is its own unit: **the brief is the one
+record whose defects are invisible to the person who wrote it**, because they
+already know the answers. It has to be checked against the contract by reading
+it, and nothing in the checker can do that — `brief-schema` proves the fields are
+present and well-formed, never that they are true. The conformance matrix says
+so; this is what that row costs when nobody checks.
 
 ### S08 — Make the rules honest, then extract Cairn from Atomik
 

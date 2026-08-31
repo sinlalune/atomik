@@ -1,13 +1,13 @@
 ---
 type: Atomik Brief
 title: Handoff — CP-OPS-002
-timestamp: 2026-08-27T00:00:00Z
+timestamp: 2026-08-31T00:00:00Z
 atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: 0b7f993b2b26aee57ec381d3d33ddd248f9214d9
-  checkpoint_unit: 13
+  checkpoint: 292ae08c5af89e546b07ea0ab4204b0fc81a5f0e
+  checkpoint_unit: 17
   checkpoint_pushed: true
   base_commit: 7aa3b1d
   trunk_seen: dfcd09d
@@ -16,11 +16,14 @@ atomik:
     - docs/cairn/**
     - docs/adr/**
     - atomik-project/coding-paths/CP-OPS-002.md
+    - atomik-project/coding-paths/history/**
     - atomik-project/briefs/**
+    - atomik-project/log/**
   governs:
     - atomik-project/coding-paths/paths.md@2e7747c5ffb4e0b3def150a112752cf417205c75
     - docs/bedrock/22_22-agent-handoff.md@c10ed0a11bc501336f449be204b57408f80c196e
     - docs/cairn/cairn-audit-2026-08-24.md@319d54d2035b03dddb03f379cc7874bcbc448154
+    - docs/cairn/cairn-s08-opening-brief-2026-08-31.md@7d753d473b1f7542f3003dc4e11e83346485a35a
   verify:
     - npm run cairn-check
     - npm run cairn-check:test
@@ -114,14 +117,20 @@ immutability rule — the records stand and later records carry the correction.
 
 ## Reading order
 
-1. `atomik-project/coding-paths/paths.md@2e7747c5` — how paths run; read before
+1. `docs/cairn/cairn-s08-opening-brief-2026-08-31.md@7d753d47` — **read this
+   first.** It carries the five findings that reorder S08, the two owner rulings,
+   and the teaching axis, each with the fixture that would catch it.
+2. `atomik-project/coding-paths/paths.md@2e7747c5` — how paths run; read before
    resuming or opening any path.
-2. `docs/bedrock/22_22-agent-handoff.md@c10ed0a1` — the per-step protocol.
-3. `docs/cairn/cairn-audit-2026-08-24.md@319d54d2` — the audit that opened this
+3. `docs/bedrock/22_22-agent-handoff.md@c10ed0a1` — the per-step protocol.
+4. `docs/cairn/cairn-audit-2026-08-24.md@319d54d2` — the audit that opened this
    path and named the failure mode it exists to fix.
 
-The S07f–S07j ledger entries in `CP-OPS-002.md` carry the decisions and their
-reasons; `docs/cairn/specification/index.md` is the normative target.
+The four concept articles named in the S08 brief — `proxy-predicate`,
+`unsound-gate`, `adversarial-fixture`, `gate-parity` — are the vocabulary the
+rest of this path is written in. Completed steps live in
+`coding-paths/history/`; `docs/cairn/specification/index.md` is the normative
+target.
 
 ## Verification
 
