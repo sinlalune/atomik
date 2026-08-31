@@ -1,3 +1,23 @@
+/* Inter v4.1 (SIL OFL 1.1) — see fonts/LICENSE-Inter.txt. The roman file
+   carries no italics, so the italic file is bundled too: markdown `em` would
+   otherwise be synthesised oblique, which is the class of defect S05f
+   recorded when the inline AI widget lost its real bold and italic faces. */
+@font-face {
+  font-family: Inter;
+  src: url('./fonts/InterVariable.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: Inter;
+  src: url('./fonts/InterVariable-Italic.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: block;
+}
+
 :root {
   color-scheme: light dark;
   font-family: var(--note-text-font);
@@ -66,17 +86,21 @@
   --note-quote-border: 3px solid var(--accent);
   --note-code-size: 0.85em;
   --note-code-pad: 0.1em 0.35em;
-  /* S01 (CP-UI-TYPOGRAPHY): the PROPORTIONAL counterpart of
+  /* S01/S02 (CP-UI-TYPOGRAPHY): the PROPORTIONAL counterpart of
      --note-code-font. It was written out four times — :root, the live
      editor's scroller, the live-preview limit notice and the inline AI
      widget — which is the "own copies" this block forbids: changing one
-     moved rendered notes and left the live editor on the old face. The
-     stack leads with faces the reader uses, so Windows resolves Segoe UI
-     Variable rather than Segoe UI; every platform without them falls
-     through to the same system-ui it resolved before. */
-  --note-text-font: 'Inter var', Inter, ui-sans-serif, system-ui,
-    -apple-system, 'Segoe UI Variable Text', 'Segoe UI', Roboto,
-    'Helvetica Neue', sans-serif;
+     moved rendered notes and left the live editor on the old face.
+
+     Inter is BUNDLED, not requested from the OS (S02, owner ruling).
+     Electron is here for OS universality, and a stack that resolves to a
+     different face per platform hands that back: the developer's WSL2 dev
+     loop rendered DejaVu while Windows rendered something else, so a
+     typography change could not be seen on the machine making it. The
+     system stack stays behind Inter as a fallback for a failed font load,
+     never as the expected outcome. */
+  --note-text-font: Inter, system-ui, -apple-system, 'Segoe UI', Roboto,
+    sans-serif;
   --note-code-font: ui-monospace, 'Cascadia Mono', Menlo, monospace;
   --note-code-block-max-height: min(32rem, 70vh);
   --note-code-tab-size: 2;

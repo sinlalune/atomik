@@ -13,6 +13,7 @@ atomik:
   branch: path/cp-ui-typography
   writes:                    # ADVISORY — a signal, never a lock
     - apps/desktop/renderer/src/styles.css
+    - apps/desktop/renderer/src/fonts/**
     - apps/desktop/tests/**
     - docs/modules/atomik-desktop.md
     - docs/modules/atomik-desktop-shell.md
@@ -108,6 +109,59 @@ an empty `vitest/` directory, so a symlink to it typechecks as
 `TS2307 Cannot find module 'vitest'` across every test file. Worth knowing before
 diagnosing it as a tsconfig problem.
 
+### S02 — Bundle the face, because Electron is here for universality — **COMPLETE**
+
+```cairn-unit
+step: S02
+unit: 02
+type: implementation
+verified: cairn-check, typecheck, test, build
+```
+
+Owner ruling, and the sharpest correction of this path:
+
+> "we are building electron for the OS universality capability and you
+> implemented an os specific feature/design ?"
+
+Correct, and S01 was worse than it looked. The stack it shipped was neither of
+the two coherent strategies. **Native per OS** — what the app already did — is
+universal by adaptation: every platform supplies its own UI font. **One bundled
+face** is universal by control. S01 was native-per-OS with a Windows-only name
+wedged in front: an OS-specific improvement in an app chosen for not being
+OS-specific.
+
+The tell was available the whole time and I kept filing it as a footnote: the
+change is invisible in `npm run dev` on WSL2. A design decision the developer
+cannot observe on their own machine cannot be reviewed there, and this one
+survived a PR review, a ceremony draft and four gate runs precisely because
+nobody could see it.
+
+- **Inter v4.1 ships in `apps/desktop/renderer/src/fonts/`** under the SIL OFL,
+  with `LICENSE-Inter.txt` beside it. Two `@font-face` rules; the bundler emits
+  both files to `out/renderer/assets/`, verified in the build output.
+- **Both roman and italic.** The variable roman covers 100–900 so bold is drawn,
+  not synthesised — but it carries no italics, and synthetic oblique on markdown
+  `em` is the defect class S05f already recorded. 352 KB + 388 KB.
+- **`font-display: block`**, because a flash of fallback text re-wraps a note
+  mid-read.
+- **The token leads with `Inter` and keeps `system-ui` behind it** as a
+  fallback for a failed font load, never as the expected outcome. Every
+  OS-specific family name is gone.
+- **Verified in the engine, not in `fc-match`.** CDP
+  `CSS.getPlatformFontsForNode` reports `Inter Variable`, flagged custom, for
+  normal, bold and italic. `fc-match` cannot see a font the app loads itself and
+  would have said DejaVu — worth knowing before trusting it again.
+- **The test grew to eight.** New: Inter is first; no OS-specific name appears at
+  all; both files exist and begin with the `wOF2` magic, so a placeholder or an
+  LFS pointer fails; two `@font-face` rules with the full weight axis and a real
+  italic file. `writes:` gains `apps/desktop/renderer/src/fonts/**`, recorded
+  here per the drift rule.
+
+A finding that is now moot but was true: `'Segoe UI Variable Text'` is a
+Windows-only family name. DirectWrite exposes the optical-size instances as
+separate families; fontconfig sees one family, `Segoe UI Variable`. The S01 stack
+could therefore never have matched off Windows, even with the file present.
+
 ## Documentation coverage
 
 **Required:** `docs/bedrock/36_36-ui-design-system.md` (chrome token contract —
@@ -118,11 +172,12 @@ colour, and the remaining monospace literals.
 
 ## Work Ledger
 
-S01 is the path's only planned step and is complete; the ledger above carries it.
+S01 and S02 are complete; the ledger above carries both. S02 was not planned —
+it is the owner's correction of S01's design, not an extension of it.
 
 ## Current checkpoint
 
-S01 on `path/cp-ui-typography`, rebased onto trunk `39127e7`.
+S02 on `path/cp-ui-typography`, based on trunk `39127e7`.
 
 ## Next action
 

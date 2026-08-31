@@ -1,58 +1,45 @@
 /**
- * The proportional face is ONE token with four consumers.
+ * The proportional face is BUNDLED and defined ONCE.
  *
- * It used to be four literals. Changing `:root` alone moved rendered notes to
- * the new face and left the live editor on the old one — which the stylesheet
- * forbids twice in its own words: "so read <-> live never shifts the text"
- * (`.editor-host.live .cm-content`) and "both consume THESE, never their own
- * copies" (the `--note-*` block). These tests exist so the fifth copy cannot be
- * added quietly.
+ * Two rules, learned in that order:
+ *
+ * 1. It used to be four literals. Changing `:root` alone moved rendered notes
+ *    to a new face and left the live editor on the old one — which the
+ *    stylesheet forbids in its own words at `.cm-content` ("read <-> live never
+ *    shifts the text") and in the `--note-*` block ("both consume THESE, never
+ *    their own copies").
+ * 2. It then briefly asked the OS for a platform-specific face. Electron is here
+ *    for OS universality, and a per-OS stack hands that back: the change was
+ *    invisible in a WSL2 dev loop, so it could not be reviewed on the machine
+ *    that made it. Inter ships with the app instead.
  */
 import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 
-const STYLES = readFileSync(
-  new URL('../renderer/src/styles.css', import.meta.url),
-  'utf8'
-)
+const url = (rel: string) => new URL(rel, import.meta.url)
+const STYLES = readFileSync(url('../renderer/src/styles.css'), 'utf8')
 
-/** The literal that was duplicated, in the exact shape it took. */
-const LEGACY_STACK = /system-ui,\s*-apple-system,\s*'Segoe UI',\s*Roboto,\s*sans-serif/g
+/** The literal that was duplicated across four rules. */
+const INLINE_STACK = /font-family:\s*system-ui/
 
 describe('note typography', () => {
   it('defines the proportional face exactly once', () => {
-    const definitions = STYLES.match(/^\s*--note-text-font:/gm) ?? []
-    expect(definitions).toHaveLength(1)
-  })
-
-  it('leads with the faces that make Windows resolve Segoe UI Variable', () => {
-    const value = STYLES.match(/--note-text-font:([\s\S]*?);/)?.[1] ?? ''
-    const order = ['Inter var', 'ui-sans-serif', 'system-ui', 'Segoe UI Variable Text']
-    let cursor = -1
-    for (const face of order) {
-      const next = value.indexOf(face)
-      expect(next, `${face} missing from --note-text-font`).toBeGreaterThan(-1)
-      expect(next, `${face} is out of order`).toBeGreaterThan(cursor)
-      cursor = next
-    }
-    // Plain 'Segoe UI' must remain BEHIND the variable face, or Windows 11
-    // resolves the older one and the change does nothing there.
-    expect(value.indexOf("'Segoe UI Variable Text'"))
-      .toBeLessThan(value.lastIndexOf("'Segoe UI'"))
+    expect(STYLES.match(/^\s*--note-text-font:/gm) ?? []).toHaveLength(1)
   })
 
   it('routes every proportional surface through the token', () => {
     // Four consumers: :root, the live editor's scroller, the live-preview
     // limit notice, and the inline AI widget.
-    const consumers = STYLES.match(/font-family:\s*var\(--note-text-font\)/g) ?? []
-    expect(consumers).toHaveLength(4)
+    expect(STYLES.match(/font-family:\s*var\(--note-text-font\)/g) ?? []).toHaveLength(4)
   })
 
-  it('leaves no copy of the old stack anywhere in the sheet', () => {
-    expect(STYLES.match(LEGACY_STACK)).toBeNull()
+  it('leaves no rule writing a proportional stack inline', () => {
+    // The token's own value still names system-ui as a fallback; a `font-family`
+    // PROPERTY that does is a fifth copy.
+    expect(STYLES).not.toMatch(INLINE_STACK)
   })
 
-  it('keeps the read and live surfaces on the same face by construction', () => {
+  it('keeps read and live on the same face by construction', () => {
     for (const selector of [
       /^:root \{[\s\S]*?font-family: var\(--note-text-font\);/m,
       /\.editor-host\.live \.cm-scroller \{[^}]*font-family: var\(--note-text-font\)/,
@@ -62,9 +49,39 @@ describe('note typography', () => {
     }
   })
 
+  it('leads with the bundled face, not with whatever the OS supplies', () => {
+    const value = STYLES.match(/--note-text-font:([\s\S]*?);/)?.[1] ?? ''
+    expect(value.trimStart().startsWith('Inter')).toBe(true)
+    // The system stack stays as a fallback for a failed font load. It must not
+    // be the expected outcome, and no OS-specific face may be named at all:
+    // one of those is what made this change invisible on the dev platform.
+    expect(value).toMatch(/system-ui/)
+    expect(value).not.toMatch(/Segoe UI Variable|Helvetica Neue|ui-sans-serif/)
+  })
+
+  it('bundles both the roman and the italic file', () => {
+    for (const file of ['InterVariable.woff2', 'InterVariable-Italic.woff2']) {
+      const path = url(`../renderer/src/fonts/${file}`)
+      expect(existsSync(path), `${file} is not in the repository`).toBe(true)
+      // wOF2 magic — a text placeholder or an LFS pointer would pass existsSync.
+      expect(readFileSync(path).subarray(0, 4).toString('latin1')).toBe('wOF2')
+    }
+    expect(existsSync(url('../renderer/src/fonts/LICENSE-Inter.txt'))).toBe(true)
+  })
+
+  it('declares the full weight axis and a real italic', () => {
+    const faces = STYLES.match(/@font-face \{[^}]*\}/g) ?? []
+    const inter = faces.filter((face) => /font-family:\s*Inter\b/.test(face))
+    expect(inter).toHaveLength(2)
+    // A variable range, so bold is drawn rather than synthesised; and a
+    // separate italic file, so `em` is not a slant. S05f is what that costs.
+    for (const face of inter) expect(face).toMatch(/font-weight:\s*100 900/)
+    expect(inter.some((f) => /font-style:\s*normal/.test(f))).toBe(true)
+    expect(inter.some((f) => /font-style:\s*italic/.test(f))).toBe(true)
+    expect(inter.some((f) => /InterVariable-Italic\.woff2/.test(f))).toBe(true)
+  })
+
   it('does not put tracking on :root, where content would inherit it', () => {
-    // letter-spacing is the one property measured to change metrics (~0.5%),
-    // and bedrock 36 keeps content typography off the chrome vocabulary.
     const root = STYLES.match(/^:root \{[\s\S]*?\n\}/m)?.[0] ?? ''
     expect(root).not.toMatch(/^\s*letter-spacing:/m)
   })

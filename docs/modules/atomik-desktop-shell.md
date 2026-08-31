@@ -140,13 +140,13 @@ timestamp: 2026-08-17T00:00:00Z
   which would win over the `#dev-docs` hash.
 
 
-## Typography: one proportional face, one token
+## Typography: one bundled face, one token
 
 `--note-text-font` in `:root` is the app's proportional stack; `--note-code-font`
 beside it is the monospace one. Four rules consume the proportional token and
 nothing else may restate it:
 
-| Site | Why it needs an explicit declaration |
+| Site | Why it declares a face at all |
 | :-- | :-- |
 | `:root` | the document default every chrome and content surface inherits |
 | `.editor-host.live .cm-scroller` | escapes the monospace `.editor-host .cm-scroller` sets for source mode |
@@ -155,39 +155,61 @@ nothing else may restate it:
 
 Those four were four copies of the same literal until CP-UI-TYPOGRAPHY S01. The
 copies are the failure mode, not the count: changing `:root` alone moved rendered
-notes to the new face and left the **live editor** on the old one, which breaks
-the invariant `.editor-host.live .cm-content` states outright — *read <-> live
-never shifts the text*. `note-typography.test.ts` fails if a fifth copy appears.
+notes and left the **live editor** on the old face, breaking the invariant
+`.editor-host.live .cm-content` states outright — *read <-> live never shifts the
+text*. `note-typography.test.ts` fails if a fifth copy appears.
 
-`font-family: inherit` is the tempting shortcut and it is wrong here. It is
-correct at `.cm-scroller`, whose parent chain reaches `:root`; at
-`.cm-inline-ai-rendered` the parent **is** the monospace scroller, so `inherit`
-reproduces S05f exactly. One token is right at all four sites.
+### Inter is bundled, and that is the point
+
+`apps/desktop/renderer/src/fonts/` carries Inter v4.1 under the SIL OFL
+(`LICENSE-Inter.txt`), declared as two `@font-face` rules and referenced by name
+from the token. The bundler emits both files into `out/renderer/assets/`.
+
+The app ships the face rather than requesting one from the OS because **Electron
+is here for OS universality, and a per-OS font stack hands that back.** S01 first
+tried a stack led by platform names; it rendered one face on Windows and another
+under WSLg, which meant the developer's own `npm run dev` could not show the
+change being made. A design decision that is invisible on the machine making it
+cannot be reviewed there. Ruled by the owner at S02.
+
+Two files, not one. The variable roman covers weight 100–900, so bold is drawn
+rather than synthesised; it carries **no italics**, so the italic file ships too
+and markdown `em` is a real italic instead of a slant. That is the same defect
+class as S05f. `font-display: block` because a flash of fallback text would
+re-wrap a note mid-read.
+
+The system stack stays behind Inter in the token as a fallback for a failed font
+load — never as the expected outcome. The test asserts Inter is first, that
+`system-ui` is still present, and that **no OS-specific family name appears at
+all**.
 
 ### What was measured, so nobody re-derives it
 
-Resolved faces read with CDP `CSS.getPlatformFontsForNode`, not inferred from the
-stack. On a WSL host with no Inter installed, every proportional stack in play —
-old and new — resolves to **DejaVu Sans**, because `system-ui` maps there through
-fontconfig. The stack's visible effect is on Windows 11 only, where
-`ui-sans-serif` and `'Segoe UI Variable Text'` sit ahead of `'Segoe UI'` and
-resolve to the newer face. The test pins that ordering; reversing it silently
-reverts the change on the only platform it shows up on.
+Resolved faces were read with CDP `CSS.getPlatformFontsForNode`, not inferred.
+Before bundling, every proportional stack in play resolved to **DejaVu Sans**
+under WSLg — `system-ui` maps there through fontconfig and neither Inter nor any
+Windows face was visible to it. After bundling, all three of normal, bold and
+italic report `Inter Variable`, flagged custom. That probe is the check worth
+repeating if the face ever looks wrong; `fc-match` alone will mislead, because it
+knows nothing about fonts the app loads itself.
 
-Four rendering properties were proposed alongside the stack and **all four are
-inert**. Rendering the same paragraph per variant and hashing the PNG gives one
-digest for all of them:
+Two dead ends, recorded so they are not re-proposed:
 
-- `-webkit-font-smoothing` / `-moz-osx-font-smoothing` — macOS only;
-- `font-optical-sizing: auto` — already the CSS initial value;
-- `text-rendering: optimizeLegibility` — only forces on kerning and standard
-  ligatures Chromium already applies.
-
-`letter-spacing` is the one that does something, and it does not belong on
-`:root`: it changes advance width by ~0.5% (measured: 555.063 → 552.141 px over
-65 characters), which re-wraps existing notes, and
-`docs/bedrock/36_36-ui-design-system.md` keeps content typography off the chrome
-vocabulary. The test asserts `:root` carries no `letter-spacing`.
+- **Four rendering properties are inert here** — rendered pixels are
+  byte-identical with and without each. `-webkit-font-smoothing` and
+  `-moz-osx-font-smoothing` are macOS-only, `font-optical-sizing: auto` is the
+  CSS initial value, and `text-rendering: optimizeLegibility` only forces on what
+  Chromium already applies.
+- **`letter-spacing` does not belong on `:root`.** It is the only property
+  measured to change anything — advance width 555.063 → 552.141 px over 65
+  characters — which re-wraps existing notes, and
+  `docs/bedrock/36_36-ui-design-system.md` keeps content typography off the
+  chrome vocabulary. The test asserts `:root` carries none.
+- **`'Segoe UI Variable Text'` is a Windows-only family name.** DirectWrite
+  exposes the optical-size instances as separate families; fontconfig sees one
+  family, `Segoe UI Variable`. A stack naming only the former can never match off
+  Windows. Moot now that the face ships, and worth knowing before anyone reaches
+  for a platform font again.
 
 ## The index-changed push (CP-MVP-010 S03)
 
