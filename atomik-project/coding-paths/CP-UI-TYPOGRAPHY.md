@@ -7,8 +7,9 @@ timestamp: 2026-08-27T00:00:00Z
 atomik:
   id: CP-UI-TYPOGRAPHY
   route: full            # escalated at S03; see the ledger
-  status: running
+  status: done
   accepted: 2026-08-27
+  subject_commit: a380f2ad1d03f3f5c3fe6629875f8dc55c704018
   base_commit: df875e6
   branch: path/cp-ui-typography
   writes:                    # ADVISORY — a signal, never a lock
@@ -210,7 +211,11 @@ S03 on `path/cp-ui-typography`, based on trunk `39127e7`.
 
 ## Next action
 
-Closing ceremony, then the coherence audit and self-merge.
+None — the path is closed. Closing ceremony recorded
+([session note](../sessions/2026-08-27-cp-ui-typography-closing-ceremony.md)),
+coherence audit filled at the exact candidate
+([audit](../audits/cp-ui-typography-a380f2a.md), verdict *drift noted,
+proceeding*), and the candidate is proposed for integration.
 
 ## Blockers
 

@@ -56,13 +56,12 @@ with one advisory (the coherence audit, which runs after the pre-merge rebase).
 
 ## Next action
 
-Closing ceremony — owner acceptance recorded as a session note with root-level
-`path:` and `ceremony: closing`. Then `npm run cairn-audit`, rebase on the trunk
-tip, and self-merge.
+None — closed. The candidate `a380f2a` is proposed for integration through a
+pull request, because the trunk requires one. Nothing remains on this branch.
 
 ## Blockers
 
-None. Closing acceptance is an owner decision, not a technical block.
+None. The merge itself waits on the trunk's pull-request rule, not on this path.
 
 ## Tried and rejected
 
