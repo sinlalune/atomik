@@ -131,11 +131,20 @@ Retain every ledger-named checkpoint **before** the rebase, because the rebase i
 what orphans them:
 
 ```bash
+git fetch origin '+refs/cairn/*:refs/cairn/*'   # the namespace is NOT fetched by default
 npm run cairn-check   # blocks on any declared unit that is not yet retained
 git for-each-ref refs/cairn/checkpoints/cp-example-001
 git update-ref refs/cairn/checkpoints/cp-example-001/<unit> <checkpoint-oid>
 git push origin refs/cairn/checkpoints/cp-example-001/<unit>
 ```
+
+The fetch is first, and it is not a convenience. `refs/cairn/*` lies outside
+`refs/heads/*` and `refs/tags/*`, so a fresh clone and every CI checkout action
+see none of it — and listing an unfetched namespace succeeds with no output,
+which reads exactly like a namespace that is empty. Write the same fetch into
+the continuous-integration job, before the checker runs. Both halves of a
+retention ref are required: `update-ref` makes it local, `push` makes it
+retention.
 
 Record the trunk tip as `T`, then rebase onto it:
 

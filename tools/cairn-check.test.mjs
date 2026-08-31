@@ -1363,12 +1363,39 @@ test('retention exempts only the newest unit, because its ref is written after t
   assert.deepEqual(retentionDue([UNITS[0]]).map((u) => u.unit), [])
 })
 
-test('a completed unit with no retention ref is blocked', () => {
+test('a completed unit with no retention ref is blocked, and the claim is confident', () => {
+  // The namespace is VISIBLE — it holds another ref — so "unit 01 is not
+  // retained" is a fact this checkout can actually establish.
+  const found = run([UNIT_PATH.file], 'path/cp-mvp-010', [UNIT_PATH], {
+    workUnits: UNITS,
+    retainedRefs: new Map([[ref('99'), CANDIDATE]])
+  })
+  const retention = found.filter((f) => f.rule === 'checkpoint-retention')
+  assert.ok(rules(found, 'blocking').includes('checkpoint-retention'))
+  assert.ok(retention.every((f) => f.outcome !== 'inconclusive'),
+    'a visible namespace supports a confident finding, not an inconclusive one')
+  assert.match(retention[0].message, /unit 01/)
+})
+
+test('an EMPTY namespace is missing evidence, not evidence of absence', () => {
+  // The fixture for S08b. `git for-each-ref` over a namespace that was never
+  // fetched exits 0 and prints nothing — identical to a namespace that is
+  // present and empty. actions/checkout fetches refs/heads and refs/tags only,
+  // so CI reported eighteen refs missing while all eighteen sat on the remote,
+  // and told the reader to create refs that already existed.
   const found = run([UNIT_PATH.file], 'path/cp-mvp-010', [UNIT_PATH], {
     workUnits: UNITS,
     retainedRefs: new Map()
   })
-  assert.ok(rules(found, 'blocking').includes('checkpoint-retention'))
+  const retention = found.filter((f) => f.rule === 'checkpoint-retention')
+  assert.equal(retention.length, 1, 'one honest finding, not one confident lie per unit')
+  assert.equal(retention[0].level, 'blocking', 'the verdict does not soften')
+  assert.equal(retention[0].outcome, 'inconclusive', 'the claim does')
+  // The instruction must be the one that helps: fetch, not create.
+  assert.match(retention[0].message, /never fetched/)
+  assert.match(retention[0].message, /actions\/checkout/)
+  // and it must still name what is at stake
+  assert.match(retention[0].message, /01 \(S01\)/)
 })
 
 test('a retained completed unit passes, and the newest one is only advised', () => {

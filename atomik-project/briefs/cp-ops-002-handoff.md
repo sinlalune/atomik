@@ -6,13 +6,14 @@ atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: 1b1491aa645acb53c3e6184064b38edf9e2e91e2
-  checkpoint_unit: 18
+  checkpoint: 1090eadfa14a8e79a1eda3f44d5add58961d6094
+  checkpoint_unit: 19
   checkpoint_pushed: true
   base_commit: 7aa3b1d
   trunk_seen: dfcd09d
   writes:
     - tools/cairn-*.mjs
+    - .github/workflows/cairn.yml
     - atomik-project/coding-paths/paths.md
     - docs/cairn/**
     - docs/adr/**
@@ -52,23 +53,27 @@ predicate at all.
 
 Landed for it: four concept articles, the directive *Prove that the gate can
 fail* with four MUSTs, five conformance rows, and the first adversarial fixtures.
-S07r rebased onto `dfcd09d` and found the worst instance: `unretainedCheckpoints`
-reports "nothing orphaned" once the retained set stops intersecting the branch —
-which is what a rebase causes, and rebase-before-merge is mandatory. The ref
-namespace cannot express the fix, so it is an ADR first. S07s drained
-`CP-MVP-008` into the self-deleting `V02_MIGRATION_PATHS`; S07t caught a rule
-catalogue publishing five rules as blocking-only when all five can go advisory.
+S07r rebased onto `dfcd09d` and found the worst instance, still open:
+`unretainedCheckpoints` reports "nothing orphaned" once the retained set stops
+intersecting the branch — which is what a rebase causes, and rebase-before-merge
+is mandatory. The ref namespace cannot express the fix, so it is an ADR first.
 
-**S08 is open and S08a is done: the local gate now asks the CI question.** On a
-`path/*` branch `npm run cairn-check` defaults its base to the trunk. The base is
-chosen before any predicate runs, so every changed-file rule had been inheriting
-the wrong one — 0 changed files locally against 228 in CI, on this branch, for
-many pushes. `--working-tree` narrows it as an opt-out, the header names the base
-and how it was chosen, and a narrowed run raises the new advisory `base-parity`.
-**Read every `cairn-check` verdict recorded before unit 19 as the narrow one.**
+**S08a — the local gate now asks the CI question.** On a `path/*` branch the base
+defaults to the trunk. It is chosen before any predicate runs, so every
+changed-file rule had been inheriting the wrong one: 0 changed files locally
+against 228 in CI. `--working-tree` narrows it as an opt-out and raises the new
+advisory `base-parity`. **Read every verdict recorded before unit 19 as narrow.**
 
-Refs 01–18; refs 01–13 hold PRE-rebase commits and no ref was moved. Checker
-suite 197, specification suite 33.
+**S08b — an empty ref namespace is missing evidence, not evidence of absence.**
+CI called five retention refs missing while all eighteen sat on the remote:
+`actions/checkout` fetches only `refs/heads/*` and `refs/tags/*`, and
+`for-each-ref` over an unfetched namespace exits 0 with no output. The workflow
+now fetches `+refs/cairn/*:refs/cairn/*`, and an empty namespace is inconclusive.
+**Any environment judging retention must fetch it.** First defect here that leans
+strict rather than lenient.
+
+Refs 01–19 on the remote; 01–13 hold PRE-rebase commits and no ref was moved.
+Checker suite 198, specification suite 33.
 
 ## Next action
 
@@ -85,33 +90,33 @@ retention-generation question — an ADR before any code).
 ## Blockers
 
 None. Both owner questions are settled: `CP-MVP-008` by the named migration
-exception (S07s), and the inaccurate CP-UI-TYPOGRAPHY dates by record
-immutability — they stand, and later records carry the correction.
+exception (S07s), and the CP-UI-TYPOGRAPHY dates by record immutability — they
+stand, and later records carry the correction.
 
 ## Tried and rejected
 
 - **`remote_trunk == T` at integration.** Every landing would invalidate every
-  other open acceptance. The drift predicate over `writes:` ∪ `governs:`
-  replaces it, pinned by a test.
+  other open acceptance; the drift predicate over `writes:` ∪ `governs:` replaces
+  it.
 - **A YAML dependency for the extended parser.** The control plane must install
-  with no network, which the S08 `cairn-init` kit needs.
+  with no network, which `cairn-init` needs.
 - **Grandfathering by date or forward scope**, and **retention checked per
-  declared unit.** Both agree too easily: the exception set is named and finite
-  and reports itself once spent, and the branch is walked directly.
-- **Dispositions compared against the closure commit**, and **route triggers left
-  to declaration.** Both let a rule pass on the narrower reading; the record now
-  attests the advisory set, and a second work unit forces `full`.
+  declared unit.** Both agree too easily; the exception set is now named, finite
+  and self-deleting, and the branch is walked directly.
+- **Dispositions compared against the closure commit**, and **route triggers
+  left to declaration.** Both let a rule pass on the narrower reading.
 - **Renaming the `atomik-project/` folder now.** 736 occurrences, 120 files, two
   paths branched against it; owner ruled documents-only, folder at S08.
 - **A self-sufficient brief, and an `objective:` field in it.** Both make the
   brief a second copy of the path record, drifting from the day it is written.
   It owes the last link of the entry route, exactly.
-- **Taking "Part 1 in order" as numeric order.** Item 3b says do it first, and
-  gives the reason: any earlier repair would be verified by the command it
-  fixes. Done as S08a — the reason outranks the numbering.
+- **Taking "Part 1 in order" as numeric order.** Item 3b says do it first: any
+  earlier repair would be verified by the command it fixes.
 - **Pinning each conformance row's status in its test.** The row must exist and
   state a status in the vocabulary; pinning *which* makes every honest matrix
-  update a test edit, and teaches an editor to change the test.
+  update a test edit.
+- **Treating an empty ref namespace as absent refs.** Indistinguishable from
+  unfetched, from inside one clone; inconclusive is the only honest verdict.
 
 ## Reading order
 
@@ -123,10 +128,9 @@ immutability — they stand, and later records carry the correction.
 4. `docs/cairn/cairn-audit-2026-08-24.md@319d54d2` — the audit that opened this
    path and named the failure mode it exists to fix.
 
-`proxy-predicate`, `unsound-gate`, `adversarial-fixture` and `gate-parity` under
-`specification/concepts/` are the vocabulary the rest of this path is written in.
-Completed steps live in `coding-paths/history/`;
-`docs/cairn/specification/index.md` is the normative target.
+`proxy-predicate`, `unsound-gate`, `adversarial-fixture`, `gate-parity` under
+`specification/concepts/` are this path's vocabulary. Completed steps live in
+`coding-paths/history/`; `docs/cairn/specification/index.md` is normative.
 
 ## Verification
 
@@ -134,10 +138,11 @@ Completed steps live in `coding-paths/history/`;
 reports OK with 11 pre-existing advisories: nine grandfathered `CP-MVP-008`
 findings carrying their reason, two `single-truth` notes on generated files. A
 twelfth appears for the newest unit's retention ref, written after the commit
-that declares it. A run reporting `base-parity` is a NARROWED run: re-run without
-`--working-tree` before recording it.
+that declares it. A run reporting `base-parity` is a NARROWED run, and one
+reporting an inconclusive `checkpoint-retention` has not fetched `refs/cairn/*`:
+neither is a verdict to record.
 
-`npm run cairn-check:test` passes 197 subtests (140 checker, 33 specification, 24
+`npm run cairn-check:test` passes 198 subtests (141 checker, 33 specification, 24
 generators). `npm run cairn-spec:build` reproduces the checked-in HTML
 byte-for-byte. `npm run typecheck`, `npm test` (1109 passing) and `npm run build`
 all pass.

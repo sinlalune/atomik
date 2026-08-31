@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-002
   route: full            # control plane + decision plane; escalation is one-way
   status: running
-  current_step: S08a
+  current_step: S08b
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
   writes:                    # ADVISORY — a signal, never a lock
@@ -628,6 +628,75 @@ and CI invocations reach the same verdict*: the default now matches CI and a
 narrowing announces itself, but no test yet runs one gate in both contexts and
 asserts one verdict. That is Part 2 item 6, and it stays open in the matrix.
 
+### S08b — The rule reported eighteen refs missing while eighteen sat on the remote — **COMPLETE**
+
+```cairn-unit
+step: S08b
+unit: 20
+type: repair
+verified: cairn-check, cairn-check:test, typecheck, test, build
+```
+
+Unplanned, and found the only way it could be: the owner showed the CI run for
+S08a. Five blocking `checkpoint-retention` findings — units 13, 14, 16, 17, 18 —
+on a branch whose local gate said `OK`.
+
+**The refs were all on the remote.** `git ls-remote origin 'refs/cairn/*'`
+returns eighteen for this path. `actions/checkout` fetches `refs/heads/*` and
+`refs/tags/*`; `refs/cairn/*` is neither, so the CI checkout held zero. The rule
+reads local refs, found none, and stated with confidence that eighteen refs did
+not exist — then told the reader to *create* them, which in that checkout would
+have accomplished nothing.
+
+Reproduced before anything was changed, in a clone fetched the way
+`actions/checkout` fetches: 0 refs under `refs/cairn`, the same five findings,
+same wording.
+
+**The mechanism is one line, and the author had already anticipated it.**
+
+```js
+if (retainedRefs == null) {
+  add('blocking', 'checkpoint-retention',
+    `cannot list ... — fetch the retention namespace and rerun the gate; missing evidence is not a pass`,
+    'inconclusive')
+```
+
+That sentence is exactly right, and it was **unreachable**. `retainedRefs` is
+null only when the Git command fails, and `git for-each-ref` over a namespace
+that was never fetched **exits 0 and prints nothing** — byte-identical to a
+namespace that is present and empty. Verified directly. So the guard written for
+this case could never see it, and the case fell through to the confident branch.
+
+A new shape for this path's collection, and the first one that does not lean
+lenient: the proxy here is `gitOrNull() === null` standing in for *the namespace
+is unreadable*, and it is **too narrow**, so the rule speaks where it should have
+abstained. The S08 brief's organising sentence — *not one rule was too strict* —
+has its first counterexample. It is still the same underlying error: a
+computable stand-in substituted for the sentence the comment states.
+
+**Both halves repaired, because either alone would be wrong.**
+
+- The checker now treats an empty namespace with units due as inconclusive. The
+  verdict does not soften — still blocking, still exit 1 — only the claim and the
+  instruction change, and the message names both possible causes plus the fetch
+  refspec. The newest-unit advisory is suppressed in that state too: it was the
+  same unfounded claim in a quieter voice.
+- The workflow fetches `+refs/cairn/*:refs/cairn/*` before the checker runs.
+  Without it CI would now be permanently inconclusive instead of permanently
+  wrong, which is more honest and no more useful. With it, CI can judge the real
+  question.
+
+**Verified as a parity pair, not asserted.** The CI-shaped clone, after the
+workflow's fetch, reports `OK — protocol satisfied (11 advisory)` over 228
+changed files — the same verdict, the same count and the same eleven advisories
+as this worktree. That is Part 2 item 6 demonstrated by hand; it is still not a
+test, and the conformance row still says so.
+
+**Also repaired: S08a wrote its retention ref locally and never pushed it.** The
+ledger's promise is that another participant can fetch a checkpoint; a ref in one
+working copy is orphaned by the same push it exists to survive. `19` is now on
+the remote, and the concept note says the property is remote rather than local.
+
 ### S09 — Greenfield pilot, coherence audit, closing ceremony, self-merge
 
 Initialize one real ex-nihilo repository from the kit — the research-paper workspace the
@@ -664,6 +733,9 @@ brief names — and fix what the pilot finds before merging.
 | Second inspection (S07f) | **2026-08-26, user** — preserve the large visual improvement, but introduce or link every abstract term before use; make “the complete protocol” readable rather than cryptic; compare the repository map with the current Cairn repository and make it exhaustive; repair pane scrolling and cross-pane wiki loading; remove section gutters; and add only a restrained frozen-glass modernity to the flat research aesthetic. Implemented in the same uncommitted candidate; a fresh inspection is required |
 | Gates at S08a | `npm run cairn-check` OK (11 advisory, all pre-existing: nine grandfathered `CP-MVP-008` findings and two `single-truth` notes) — and this is the FIRST verdict in this ledger taken against the trunk by default rather than against `HEAD` · `npm run cairn-check:test` PASS, 197 subtests (193 → 197) · `npm run cairn-spec:build` deterministic · `npm run typecheck` PASS · product suite 79 files, 1,109 passed / 1 skipped · `npm run build` PASS |
 | Verification caveat, retroactive (S08a) | Every `cairn-check` row above this one recorded the working-tree-versus-`HEAD` verdict, because that was the default. Those rows are not false — the command ran and printed what they say — but they are **narrower than they read**, and on this branch that difference was 0 changed files against 228. Recorded here rather than edited into each row: a record is corrected by a later record. |
+| Gates at S08b | `npm run cairn-check` OK, 11 advisory · **and the same verdict in a CI-shaped clone**: 228 changed files, `OK — protocol satisfied (11 advisory)`, identical list · `npm run cairn-check:test` PASS, 198 subtests · `npm run cairn-spec:build` deterministic · `npm run typecheck` PASS · product suite 79 files, 1,109 passed / 1 skipped · `npm run build` PASS |
+| Machine-local state (S08b) | Retention refs `01`–`19` for this path exist on the remote; `19` was pushed at S08b after S08a left it local. `refs/cairn/*` is fetched by no clone and no checkout action, so any environment judging retention must fetch it explicitly — now written into the workflow, the operator guide and the concept note |
+| Ledger boundary due (S08b) | `ledger-size` fires at ~10.6 k against the 10 k budget, which is the rule working: it speaks to whoever is editing the file. Roll **S07q–S08b** into [`history/`](./history/index.md) verbatim at the next step boundary, leaving one index line each. Advisory and not urgent, so it is recorded rather than folded into a repair unit |
 | Next action | S08 Part 1 item 1 — `hasCeremony` reads the `ceremony:` frontmatter key instead of matching a filename, with a fixture that rejects a `done` path whose only session note is its opening check. Then item 2 (the journal-entry predicate), item 3 (the derived-view rule keyed on declared `status`), item 3c (filename date equals frontmatter `timestamp:`), and item 4 (the retention-generation ADR, design before code) |
 | Superseded next action (S08a, done) | S08 — extract Cairn from Atomik: `cairn.config.json`, the generated enforcement header, `cairn-new`, and the tier-0/1 `cairn-init` seed. The v0.2 predicates land here or in a successor path, never by quietly marking a matrix row `implemented` |
 | Superseded next action (S07, done) | the specification and lexicon: `docs/cairn/specification.md` (planes, the ADR-017 lifecycle by reference, the rule table generated from `cairn-check.mjs`, the blocking-rule admission test, the three enforcement tiers with tier 2 as a repository property, the CP-MVP-011/012 migration window as a property), `docs/cairn/lexicon.md` (one definition per term, each pointing at the file that enforces it; a term with no enforcing file marked aspirational), and the step-by-step operator guide carrying the optional tier-2 ruleset as a copy-paste `gh api` payload |

@@ -44,12 +44,34 @@ option — forbid rewriting pushes on path branches entirely, and reach a curren
 base by [merge](./merge.md) instead of rebase. Silently rewriting without
 retention is not a third option.
 
+**The namespace is not a branch, and it is not fetched by default.** `refs/cairn/*`
+sits outside `refs/heads/*` and `refs/tags/*`, which are the only two namespaces
+an ordinary clone or a CI checkout action retrieves. Any environment that judges
+retention MUST fetch it explicitly:
+
+```bash
+git fetch origin '+refs/cairn/*:refs/cairn/*'
+```
+
+An environment that has not done so sees an empty namespace, and an empty
+namespace is **missing evidence, not evidence of absence** — the two are
+indistinguishable from inside one checkout, because listing refs under a
+namespace that was never fetched succeeds and prints nothing, exactly as listing
+a namespace that is genuinely empty does. A checker MUST report that state as
+[inconclusive](./inconclusive-finding.md) rather than as a set of confident
+findings naming refs it cannot see.
+
 ## It does not prove
 
 A retained ref proves an object is reachable, not that the working state it
 captured was correct or complete. Retention also does not make history
 immutable: a participant who can delete refs can delete these. It removes an
 accident, not an adversary.
+
+Nor does a *local* retention ref prove retention. The property is about the
+remote: a ref that exists only in one working copy is orphaned by the same push
+it was meant to survive. Retention is checked where the refs are visible and
+claimed only for what a fetch can reach.
 
 Related: [remote checkpoint](./remote-checkpoint.md), [rebase](./rebase.md),
 [work ledger](./work-ledger.md), [fetch and push](./fetch-and-push.md),

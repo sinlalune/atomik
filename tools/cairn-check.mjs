@@ -1653,22 +1653,48 @@ export function evaluate({
   // be reachable.
   if (onPath && match && workUnits != null) {
     const id = String(match.front.id ?? '').toLowerCase()
-    for (const unit of retentionDue(workUnits)) {
-      const ref = `${CHECKPOINT_REF_PREFIX}/${id}/${unit.unit}`
-      if (retainedRefs == null) {
-        add('blocking', 'checkpoint-retention',
-          `cannot list ${CHECKPOINT_REF_PREFIX}/${id}/* — fetch the retention namespace and rerun the gate; missing evidence is not a pass`,
-          'inconclusive')
-        break
-      }
-      if (!retainedRefs.has(ref)) {
-        add('blocking', 'checkpoint-retention',
-          `${match.file} declares unit ${unit.unit} (${unit.step}) with no retention ref at ${ref} — create it before any rewriting push, or the next rebase orphans that checkpoint`)
+    const due = retentionDue(workUnits)
+    // AN EMPTY NAMESPACE IS NOT AN ANSWER.
+    //
+    // `git for-each-ref refs/cairn/...` over a namespace that was never fetched
+    // exits 0 and prints nothing — the same result as a namespace that is
+    // present and empty. The guard below already carried the right sentence for
+    // the second case, and it was UNREACHABLE, because the only thing that made
+    // `retainedRefs` null was the command failing, and the command never fails.
+    //
+    // So the rule stated, with confidence, that eighteen refs did not exist
+    // while all eighteen sat on the remote — and told the reader to create them,
+    // which in that checkout would have accomplished nothing. `actions/checkout`
+    // fetches `refs/heads/*` and `refs/tags/*` only, so this fired on every CI
+    // run of every path (CP-OPS-002 S08b).
+    //
+    // The verdict does not soften: it stays blocking, and the run still exits
+    // non-zero. What changes is the CLAIM and the instruction. A checkout that
+    // cannot see the namespace has missing evidence, not evidence of absence.
+    const invisible = retainedRefs != null && retainedRefs.size === 0 && due.length > 0
+    if (retainedRefs == null || invisible) {
+      const units = due.map((unit) => `${unit.unit} (${unit.step})`).join(', ')
+      add('blocking', 'checkpoint-retention',
+        `${CHECKPOINT_REF_PREFIX}/${id}/* is empty in this checkout while ${match.file} declares ${due.length} unit(s) due retention — ${units}. ` +
+        `Either the namespace was never fetched (\`git fetch origin '+${CHECKPOINT_REF_PREFIX}/*:${CHECKPOINT_REF_PREFIX}/*'\`, which \`actions/checkout\` does NOT do) ` +
+        'or the refs were never written. This checkout cannot tell which, and missing evidence is not a pass',
+        'inconclusive')
+    } else {
+      for (const unit of due) {
+        const ref = `${CHECKPOINT_REF_PREFIX}/${id}/${unit.unit}`
+        if (!retainedRefs.has(ref)) {
+          add('blocking', 'checkpoint-retention',
+            `${match.file} declares unit ${unit.unit} (${unit.step}) with no retention ref at ${ref} — create it before any rewriting push, or the next rebase orphans that checkpoint`)
+        }
       }
     }
+    // Suppressed when the namespace is invisible: "the newest ref is not
+    // written yet" is the same unfounded claim as the blocking one, in a
+    // quieter voice, and the inconclusive finding above already says what is
+    // actually known.
     const newest = workUnits.at(-1)
     const newestRef = newest ? `${CHECKPOINT_REF_PREFIX}/${id}/${newest.unit}` : null
-    if (newest && retainedRefs != null && !retainedRefs.has(newestRef)) {
+    if (newest && retainedRefs != null && !invisible && !retainedRefs.has(newestRef)) {
       add('advisory', 'checkpoint-retention',
         `unit ${newest.unit} has no retention ref yet — write ${newestRef} once this commit exists, before the next rebase`)
     }

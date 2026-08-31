@@ -66,6 +66,22 @@ jobs:
           # so the gate judges the branch that will actually land. Empty on a
           # push event, where the default ref is already correct.
           ref: ${{ github.event.pull_request.head.sha }}
+      # THE RETENTION NAMESPACE IS NOT A BRANCH.
+      #
+      # `actions/checkout` fetches `refs/heads/*` and `refs/tags/*`. Checkpoint
+      # retention lives under `refs/cairn/*`, so a default checkout sees ZERO of
+      # it — and `git for-each-ref` over an unfetched namespace exits 0 with no
+      # output, which is indistinguishable from "nothing was ever retained".
+      # Every CI run of every path therefore reported the refs missing while
+      # they sat on the remote (CP-OPS-002 S08b). The checker now refuses to
+      # call that a fact; this is what lets it judge the real one instead.
+      #
+      # `|| true`: a repository that has never written a retention ref has no
+      # such namespace to fetch, and that is not a CI failure. The checker
+      # decides what an empty namespace means — the fetch only makes sure the
+      # question is asked with the evidence available.
+      - name: fetch the checkpoint retention namespace
+        run: git fetch origin '+refs/cairn/*:refs/cairn/*' || true
       - uses: actions/setup-node@v4
         with:
           node-version: 22

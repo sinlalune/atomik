@@ -2499,8 +2499,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Checkpoint retention refs before any rewriting push</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; every declared unit except the newest must resolve a local retention ref, and every branch commit that is neither retained, provisional, nor <code>HEAD</code> is reported as orphaned</td>
-<td style="text-align:left">remote push of the namespace; a ref <em>moving</em> is unobservable to a single-commit validator — only the orphan it leaves behind is</td>
+<td style="text-align:left"><strong>partially implemented</strong>; every declared unit except the newest must resolve a retention ref visible to the checkout, and every branch commit that is neither retained, provisional, nor <code>HEAD</code> is reported as orphaned. A namespace that is empty in this checkout is reported inconclusive rather than as absent refs, because the two are indistinguishable from inside one clone</td>
+<td style="text-align:left">the environment must FETCH <code>refs/cairn/*</code>, which no clone or checkout action does by default; a ref <em>moving</em> is unobservable to a single-commit validator — only the orphan it leaves behind is</td>
 </tr>
 <tr>
 <td style="text-align:left">Marked provisional commits excluded from candidate identity</td>
@@ -2846,8 +2846,8 @@ honest state of the work.</p>
 <tr data-rule="checkpoint-retention" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>checkpoint-retention</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint</td>
-<td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory)</code></td>
+<td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint — or the namespace is empty here and the question cannot be answered</td>
+<td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory; an empty namespace is inconclusive, not absent)</code></td>
 </tr>
 <tr data-rule="closure-surface" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>closure-surface</code></td>
@@ -3002,8 +3002,8 @@ honest state of the work.</p>
 <tr data-rule="checkpoint-retention" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>checkpoint-retention</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint</td>
-<td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory)</code></td>
+<td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint — or the namespace is empty here and the question cannot be answered</td>
+<td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory; an empty namespace is inconclusive, not absent)</code></td>
 </tr>
 <tr data-rule="decision-drift" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>decision-drift</code></td>
@@ -4837,8 +4837,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Checkpoint retention refs before any rewriting push</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; every declared unit except the newest must resolve a local retention ref, and every branch commit that is neither retained, provisional, nor <code>HEAD</code> is reported as orphaned</td>
-<td style="text-align:left">remote push of the namespace; a ref <em>moving</em> is unobservable to a single-commit validator — only the orphan it leaves behind is</td>
+<td style="text-align:left"><strong>partially implemented</strong>; every declared unit except the newest must resolve a retention ref visible to the checkout, and every branch commit that is neither retained, provisional, nor <code>HEAD</code> is reported as orphaned. A namespace that is empty in this checkout is reported inconclusive rather than as absent refs, because the two are indistinguishable from inside one clone</td>
+<td style="text-align:left">the environment must FETCH <code>refs/cairn/*</code>, which no clone or checkout action does by default; a ref <em>moving</em> is unobservable to a single-commit validator — only the orphan it leaves behind is</td>
 </tr>
 <tr>
 <td style="text-align:left">Marked provisional commits excluded from candidate identity</td>
@@ -5184,8 +5184,8 @@ honest state of the work.</p>
 <tr data-rule="checkpoint-retention" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>checkpoint-retention</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint</td>
-<td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory)</code></td>
+<td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint — or the namespace is empty here and the question cannot be answered</td>
+<td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory; an empty namespace is inconclusive, not absent)</code></td>
 </tr>
 <tr data-rule="closure-surface" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>closure-surface</code></td>
@@ -5340,8 +5340,8 @@ honest state of the work.</p>
 <tr data-rule="checkpoint-retention" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>checkpoint-retention</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint</td>
-<td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory)</code></td>
+<td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint — or the namespace is empty here and the question cannot be answered</td>
+<td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory; an empty namespace is inconclusive, not absent)</code></td>
 </tr>
 <tr data-rule="decision-drift" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>decision-drift</code></td>
@@ -6112,11 +6112,28 @@ pushed, is never moved or deleted while the path record is retained.</p>
 option — forbid rewriting pushes on path branches entirely, and reach a current
 base by <a href="#article-concept-merge" data-article="concept-merge" data-anchor="" class="wiki-link">merge</a> instead of rebase. Silently rewriting without
 retention is not a third option.</p>
+<p><strong>The namespace is not a branch, and it is not fetched by default.</strong> <code>refs/cairn/*</code>
+sits outside <code>refs/heads/*</code> and <code>refs/tags/*</code>, which are the only two namespaces
+an ordinary clone or a CI checkout action retrieves. Any environment that judges
+retention MUST fetch it explicitly:</p>
+<pre><code class="language-bash">git fetch origin '+refs/cairn/*:refs/cairn/*'
+</code></pre>
+<p>An environment that has not done so sees an empty namespace, and an empty
+namespace is <strong>missing evidence, not evidence of absence</strong> — the two are
+indistinguishable from inside one checkout, because listing refs under a
+namespace that was never fetched succeeds and prints nothing, exactly as listing
+a namespace that is genuinely empty does. A checker MUST report that state as
+<a href="#article-concept-inconclusive-finding" data-article="concept-inconclusive-finding" data-anchor="" class="wiki-link">inconclusive</a> rather than as a set of confident
+findings naming refs it cannot see.</p>
 <h2 id="concept-checkpoint-retention--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
 <p>A retained ref proves an object is reachable, not that the working state it
 captured was correct or complete. Retention also does not make history
 immutable: a participant who can delete refs can delete these. It removes an
 accident, not an adversary.</p>
+<p>Nor does a <em>local</em> retention ref prove retention. The property is about the
+remote: a ref that exists only in one working copy is orphaned by the same push
+it was meant to survive. Retention is checked where the refs are visible and
+claimed only for what a fetch can reach.</p>
 <p>Related: <a href="#article-concept-remote-checkpoint" data-article="concept-remote-checkpoint" data-anchor="" class="wiki-link">remote checkpoint</a>, <a href="#article-concept-rebase" data-article="concept-rebase" data-anchor="" class="wiki-link">rebase</a>,
 <a href="#article-concept-work-ledger" data-article="concept-work-ledger" data-anchor="" class="wiki-link">work ledger</a>, <a href="#article-concept-fetch-and-push" data-article="concept-fetch-and-push" data-anchor="" class="wiki-link">fetch and push</a>,
 <a href="#article-concept-tamper-evidence" data-article="concept-tamper-evidence" data-anchor="" class="wiki-link">tamper evidence</a>.</p>
@@ -9493,11 +9510,19 @@ already be retained before the force push that follows.</p>
 <h2 id="reference-operations--produce-implementation-candidate-c" data-heading="produce-implementation-candidate-c">Produce implementation candidate C</h2>
 <p>Retain every ledger-named checkpoint <strong>before</strong> the rebase, because the rebase is
 what orphans them:</p>
-<pre><code class="language-bash">npm run cairn-check   # blocks on any declared unit that is not yet retained
+<pre><code class="language-bash">git fetch origin '+refs/cairn/*:refs/cairn/*'   # the namespace is NOT fetched by default
+npm run cairn-check   # blocks on any declared unit that is not yet retained
 git for-each-ref refs/cairn/checkpoints/cp-example-001
 git update-ref refs/cairn/checkpoints/cp-example-001/&lt;unit&gt; &lt;checkpoint-oid&gt;
 git push origin refs/cairn/checkpoints/cp-example-001/&lt;unit&gt;
 </code></pre>
+<p>The fetch is first, and it is not a convenience. <code>refs/cairn/*</code> lies outside
+<code>refs/heads/*</code> and <code>refs/tags/*</code>, so a fresh clone and every CI checkout action
+see none of it — and listing an unfetched namespace succeeds with no output,
+which reads exactly like a namespace that is empty. Write the same fetch into
+the continuous-integration job, before the checker runs. Both halves of a
+retention ref are required: <code>update-ref</code> makes it local, <code>push</code> makes it
+retention.</p>
 <p>Record the trunk tip as <code>T</code>, then rebase onto it:</p>
 <pre><code class="language-bash">git fetch origin main
 git rev-parse origin/main    # this is T; record it in the closing record
@@ -11921,8 +11946,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Checkpoint retention refs before any rewriting push</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; every declared unit except the newest must resolve a local retention ref, and every branch commit that is neither retained, provisional, nor <code>HEAD</code> is reported as orphaned</td>
-<td style="text-align:left">remote push of the namespace; a ref <em>moving</em> is unobservable to a single-commit validator — only the orphan it leaves behind is</td>
+<td style="text-align:left"><strong>partially implemented</strong>; every declared unit except the newest must resolve a retention ref visible to the checkout, and every branch commit that is neither retained, provisional, nor <code>HEAD</code> is reported as orphaned. A namespace that is empty in this checkout is reported inconclusive rather than as absent refs, because the two are indistinguishable from inside one clone</td>
+<td style="text-align:left">the environment must FETCH <code>refs/cairn/*</code>, which no clone or checkout action does by default; a ref <em>moving</em> is unobservable to a single-commit validator — only the orphan it leaves behind is</td>
 </tr>
 <tr>
 <td style="text-align:left">Marked provisional commits excluded from candidate identity</td>
@@ -12268,8 +12293,8 @@ honest state of the work.</p>
 <tr data-rule="checkpoint-retention" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>checkpoint-retention</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint</td>
-<td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory)</code></td>
+<td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint — or the namespace is empty here and the question cannot be answered</td>
+<td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory; an empty namespace is inconclusive, not absent)</code></td>
 </tr>
 <tr data-rule="closure-surface" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>closure-surface</code></td>
@@ -12424,8 +12449,8 @@ honest state of the work.</p>
 <tr data-rule="checkpoint-retention" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>checkpoint-retention</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint</td>
-<td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory)</code></td>
+<td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint — or the namespace is empty here and the question cannot be answered</td>
+<td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory; an empty namespace is inconclusive, not absent)</code></td>
 </tr>
 <tr data-rule="decision-drift" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>decision-drift</code></td>
@@ -13140,11 +13165,28 @@ pushed, is never moved or deleted while the path record is retained.</p>
 option — forbid rewriting pushes on path branches entirely, and reach a current
 base by <a href="#article-concept-merge" data-article="concept-merge" data-anchor="" class="wiki-link">merge</a> instead of rebase. Silently rewriting without
 retention is not a third option.</p>
+<p><strong>The namespace is not a branch, and it is not fetched by default.</strong> <code>refs/cairn/*</code>
+sits outside <code>refs/heads/*</code> and <code>refs/tags/*</code>, which are the only two namespaces
+an ordinary clone or a CI checkout action retrieves. Any environment that judges
+retention MUST fetch it explicitly:</p>
+<pre><code class="language-bash">git fetch origin '+refs/cairn/*:refs/cairn/*'
+</code></pre>
+<p>An environment that has not done so sees an empty namespace, and an empty
+namespace is <strong>missing evidence, not evidence of absence</strong> — the two are
+indistinguishable from inside one checkout, because listing refs under a
+namespace that was never fetched succeeds and prints nothing, exactly as listing
+a namespace that is genuinely empty does. A checker MUST report that state as
+<a href="#article-concept-inconclusive-finding" data-article="concept-inconclusive-finding" data-anchor="" class="wiki-link">inconclusive</a> rather than as a set of confident
+findings naming refs it cannot see.</p>
 <h2 id="concept-checkpoint-retention--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
 <p>A retained ref proves an object is reachable, not that the working state it
 captured was correct or complete. Retention also does not make history
 immutable: a participant who can delete refs can delete these. It removes an
 accident, not an adversary.</p>
+<p>Nor does a <em>local</em> retention ref prove retention. The property is about the
+remote: a ref that exists only in one working copy is orphaned by the same push
+it was meant to survive. Retention is checked where the refs are visible and
+claimed only for what a fetch can reach.</p>
 <p>Related: <a href="#article-concept-remote-checkpoint" data-article="concept-remote-checkpoint" data-anchor="" class="wiki-link">remote checkpoint</a>, <a href="#article-concept-rebase" data-article="concept-rebase" data-anchor="" class="wiki-link">rebase</a>,
 <a href="#article-concept-work-ledger" data-article="concept-work-ledger" data-anchor="" class="wiki-link">work ledger</a>, <a href="#article-concept-fetch-and-push" data-article="concept-fetch-and-push" data-anchor="" class="wiki-link">fetch and push</a>,
 <a href="#article-concept-tamper-evidence" data-article="concept-tamper-evidence" data-anchor="" class="wiki-link">tamper evidence</a>.</p>
@@ -16265,11 +16307,19 @@ already be retained before the force push that follows.</p>
 <h2 id="reference-operations--produce-implementation-candidate-c" data-heading="produce-implementation-candidate-c">Produce implementation candidate C</h2>
 <p>Retain every ledger-named checkpoint <strong>before</strong> the rebase, because the rebase is
 what orphans them:</p>
-<pre><code class="language-bash">npm run cairn-check   # blocks on any declared unit that is not yet retained
+<pre><code class="language-bash">git fetch origin '+refs/cairn/*:refs/cairn/*'   # the namespace is NOT fetched by default
+npm run cairn-check   # blocks on any declared unit that is not yet retained
 git for-each-ref refs/cairn/checkpoints/cp-example-001
 git update-ref refs/cairn/checkpoints/cp-example-001/&lt;unit&gt; &lt;checkpoint-oid&gt;
 git push origin refs/cairn/checkpoints/cp-example-001/&lt;unit&gt;
 </code></pre>
+<p>The fetch is first, and it is not a convenience. <code>refs/cairn/*</code> lies outside
+<code>refs/heads/*</code> and <code>refs/tags/*</code>, so a fresh clone and every CI checkout action
+see none of it — and listing an unfetched namespace succeeds with no output,
+which reads exactly like a namespace that is empty. Write the same fetch into
+the continuous-integration job, before the checker runs. Both halves of a
+retention ref are required: <code>update-ref</code> makes it local, <code>push</code> makes it
+retention.</p>
 <p>Record the trunk tip as <code>T</code>, then rebase onto it:</p>
 <pre><code class="language-bash">git fetch origin main
 git rev-parse origin/main    # this is T; record it in the closing record
