@@ -51,6 +51,7 @@ import {
   acceptanceDrift,
   dispositionErrors,
   migrationDebt,
+  V02_MIGRATION_PATHS,
   openingRecordFromSessions,
   CLOSURE_MUTABLE_FIELDS,
   closureMutableFields,
@@ -1932,4 +1933,33 @@ test('a lightweight path that has already spanned two units must escalate', () =
   const escalated = { ...A_PATH, front: { ...A_PATH.front, route: 'full' } }
   const ok = run([escalated.file], 'path/cp-mvp-010', [escalated], { workUnits: twoUnits })
   assert.ok(!rules(ok, 'blocking').includes('route'))
+})
+
+/**
+ * ADVERSARIAL FIXTURES — the directive's first requirement.
+ *
+ * These do not assert that a valid repository passes. They assert that a
+ * CRAFTED VIOLATION is REJECTED, and that the finding names the rule under
+ * test. A rule that never fires passes every valid-input test identically, so
+ * a green suite is not evidence a gate works; a rejection is.
+ */
+test('cairn-check: a legacy record is exempted, a current one is not', () => {
+  const legacy = { front: { id: 'CP-MVP-008', status: 'done' } }
+  const current = { front: { id: 'CP-FUTURE-001', status: 'done' } }
+
+  // The exception is finite and named — membership is the whole mechanism.
+  assert.equal(V02_MIGRATION_PATHS.has('CP-MVP-008'), true)
+  assert.equal(V02_MIGRATION_PATHS.has('CP-FUTURE-001'), false)
+
+  // ...and it deletes itself. A listed path that is archived, or gone, is a
+  // bypass, and the gate says so rather than waiting to be noticed.
+  assert.deepEqual(migrationDebt([legacy, current], new Set(['CP-MVP-008'])), [])
+  assert.match(
+    migrationDebt([{ front: { id: 'CP-MVP-008', status: 'archived' } }], new Set(['CP-MVP-008']))[0],
+    /exception is spent — delete the entry/
+  )
+  assert.match(
+    migrationDebt([current], new Set(['CP-MVP-008']))[0],
+    /no longer exists — delete the entry/
+  )
 })

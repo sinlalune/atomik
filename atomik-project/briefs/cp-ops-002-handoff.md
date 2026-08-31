@@ -6,7 +6,7 @@ atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: a02ab85462f9e8e57bbebc5f47e37aeb6565add1
+  checkpoint: 7e6f8611c9cc0ff0ac094189df256b677749c7eb
   checkpoint_unit: 13
   checkpoint_pushed: true
   base_commit: 7aa3b1d
@@ -58,9 +58,13 @@ mandatory, so retention evaporates before every merge on every path. The ref
 namespace cannot express the fix, so it is an ADR before it is code.
 
 Refs 01–13 hold the PRE-rebase commits; the 31 rebased commits are unretained and
-no ref was moved. Checker suite 191, specification suite 33.
+no ref was moved. Checker suite 192, specification suite 33.
 
-**This branch is red in CI on pre-existing findings** — see *Blockers*.
+S07s drained the record that had this branch red in CI. `CP-MVP-008` never
+merged from a branch — it ran on the trunk and predates candidate-bound closure,
+so no candidate commit exists to name. It joins the finite, self-deleting
+`V02_MIGRATION_PATHS`, now wired into `transition` and `acceptance` as well as
+`scope-digest`. Faithful CI invocation: **OK, 12 advisory**, was 9 blocking.
 
 ## Next action
 
@@ -72,12 +76,9 @@ note is its opening check.
 
 ## Blockers
 
-`CP-MVP-008.md` fails eight acceptance and transition rules under the CI
-invocation. Pre-existing, present before S07r, and **not visible to the default
-local command**, which compares against HEAD rather than `origin/master`. Fixing
-it means writing `accepted_by`, `accepted_at`, `scope_ref` and
-`advisory_disposition` onto a path closed weeks ago — that is fabricating a
-signature and needs an owner ruling, not a repair.
+None. Both open owner questions are settled: `CP-MVP-008` by the named migration
+exception (S07s), and the inaccurate CP-UI-TYPOGRAPHY dates by the protocol's own
+immutability rule — the records stand and later records carry the correction.
 
 ## Tried and rejected
 

@@ -244,6 +244,117 @@ should read before proposing anything.
 frontmatter `timestamp:` date. That catches disagreement between two things the
 author wrote, without requiring the checker to know what day it is.
 
+## Owner rulings, 2026-08-31
+
+Two questions were put to the owner and both are settled, with the reasoning
+recorded so the next reader can check it rather than trust it.
+
+### CP-MVP-008 — the named migration exception, not a hand-written signature
+
+**Settled: add it to `V02_MIGRATION_PATHS`. Done in S07s.**
+
+An **acceptance record** is the part of a path record that says a named person,
+at a named time, looked at one exact commit and accepted it. Its fields exist so
+that "done" is a claim somebody made about a specific object, rather than a word
+somebody typed.
+
+CP-MVP-008 fails eight of those checks, and the reason is not carelessness. It
+closed on 2026-08-04, **ran entirely on the trunk**, and predates path branches,
+candidate-bound closure and the v0.2 acceptance schema together. `git log
+--merges` shows no merge commit for it — only linear trunk commits. So there is
+no candidate commit to name, because the protocol it ran under had no such
+object.
+
+Its acceptance is not missing. It is in
+`sessions/2026-08-04-cp-mvp-008-acceptance.md`, with the owner's ruling quoted
+verbatim. What is missing is a *schema that did not exist yet*.
+
+Filling the fields by hand would convert an unstructured record into a structured
+signature by typing. The exception says *this record predates the schema*;
+inventing the fields would say *someone signed a form nobody had written*. Those
+are different claims and only one of them is true.
+
+The mechanism was already built for exactly this — S07i's finite, named,
+**self-deleting** exception set. `migrationDebt` reports any listed path that is
+archived or gone, so the exception is removed by a failing gate rather than by
+someone remembering. The findings stay visible as advisories carrying the reason.
+
+### The wrong dates — they stand, and a new record says so
+
+**Settled by the protocol, not by preference.**
+
+Session, audit and journal records are immutable once written, and
+[redaction](./specification/concepts/record-integrity.md) is the **only**
+sanctioned exception — it exists for removing content that must not persist, not
+for correcting content that is merely wrong. Editing a merged event record to fix
+its date would use the one power the protocol grants for the one purpose it does
+not grant it for.
+
+So the CP-UI-TYPOGRAPHY records keep their `2026-08-27` dates, and the correction
+lives in a **new** record: this brief, the CP-OPS-002 ledger, and that path's
+journal entry when it merges. That is the general shape — *a record is corrected
+by a later record, never by an edit* — and it is why the journal is append-only
+in the first place.
+
+The rule that prevents a recurrence is cheap and sound: **a record's filename
+date MUST equal its frontmatter `timestamp:` date.** It compares two things the
+author wrote, so the checker never needs to know what day it is. In S08 Part 1.
+
+## The teaching axis — a protocol artifact, not a habit
+
+Owner directive, 2026-08-31:
+
+> "it is the only way to truly understand something, by decomposing complex into
+> simpler concept units … creating a shared knowledge base that we can leverage
+> as the project goes on, and even maybe export it to another md base"
+
+This is a **protocol requirement**, not a documentation preference, and S08 owns
+it.
+
+Cairn already has the form and uses it for one thing only: its own vocabulary, in
+`specification/concepts/`. Each page is one idea, in a fixed shape — a plain
+definition, *Build the idea* (why it exists, from first principles), *In Cairn*
+(how the protocol uses it), *It does not prove* (its limits), and *Related* links.
+The specification then **links to those names instead of re-explaining them**,
+which is what lets the normative text stay short without becoming compressed.
+
+The host repository's `docs/learning/` does not work this way. Its notes are
+excellent and they are **walkthroughs**: chronological, scoped to a path's steps
+("everything built in CP-MVP-001 S02–S03"). A walkthrough teaches a build. It
+cannot be linked to from somewhere else, because it is not *about* one idea.
+
+The two forms are complements, and the protocol should name both:
+
+| Form | Organised by | Answers | Reusable from elsewhere |
+| :-- | :-- | :-- | :-- |
+| **Concept note** | one idea | *what is this, why does it exist, what does it not prove* | yes — it is a link target |
+| **Learning note** | one build, in order | *how were these pieces assembled, and why in this order* | no, and it should not be |
+
+S08 work items:
+
+1. **Specify the concept note as an artifact type** — its shape, its frontmatter,
+   and the rule that a concept note is about exactly one idea. The four articles
+   written in S07q are the worked examples.
+2. **Require the link, not the re-explanation.** Where a specialised term has a
+   concept note, normative and learning text SHOULD link it rather than redefine
+   it. Redefinition in two places is the drift the `--note-*` block already warns
+   about, applied to prose.
+3. **Scaffold it in `cairn-init`** — a `concepts/` directory, an index that
+   separates borrowed vocabulary from vocabulary the project defines, and the
+   page template. An adopting repository gets the form on day one.
+4. **Make it exportable.** The concept graph is plain Markdown with relative
+   links, and `cairn-spec-build.mjs` already projects it into one self-contained
+   HTML reader. Generalise that projection so any project's concept wiki renders
+   the same way — that is the "export to another md base" the directive asks for.
+5. **Rebuild `docs/learning/` on it, incrementally.** Not a rewrite: when a
+   learning note explains an idea that deserves a name, extract the idea into a
+   concept note and link to it. The learning note keeps the walkthrough.
+
+The measurement, borrowed from the cold-resume pilot's discipline: a concept note
+works when a reader who has never seen the code can state what the idea is, why
+it exists, and one thing it does not prove. If it cannot do that, it is a
+walkthrough wearing a concept note's frontmatter.
+
 ## Revised order for S08
 
 The goal is unchanged: extract Cairn so another repository can adopt it. The
@@ -278,7 +389,14 @@ the unsoundness by the number of adopters.
 7. Generate the conformance matrix from the checker plus the normative text, so
    requirement 4 of the directive is mechanical rather than clerical.
 
-### Third — the portability work as originally planned
+### Third — the teaching axis, which the init kit must carry
+
+The concept-note artifact type, the link-don't-redefine rule, and the
+generalised reader. It lands before portability because `cairn-init` scaffolds
+it: a form added after adoption is a migration, and a form added before adoption
+is just the shape of the thing.
+
+### Fourth — the portability work as originally planned
 
 8. `cairn.config.json` and its loader, so `cairn-check.mjs` stops hard-coding the
    plane roots, the source roots, `AREA_MAP` and the grandfather set.

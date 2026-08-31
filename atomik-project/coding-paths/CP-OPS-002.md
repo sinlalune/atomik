@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-002
   route: full            # control plane + decision plane; escalation is one-way
   status: running
-  current_step: S07r
+  current_step: S07s
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
   writes:                    # ADVISORY — a signal, never a lock
@@ -531,6 +531,75 @@ record says what was actually run.
 Landed: [`docs/cairn/cairn-s08-opening-brief-2026-08-31.md`](../../docs/cairn/cairn-s08-opening-brief-2026-08-31.md),
 which carries all four findings with their fixtures and reorders S08 into three
 parts — honest rules first, structural soundness second, portability third.
+
+### S07s — Drain a record the newer rules could not judge — **COMPLETE**
+
+```cairn-unit
+step: S07s
+unit: 16
+type: implementation
+verified: cairn-check, cairn-check:test, typecheck, test, build
+```
+
+The nine `CP-MVP-008` findings that had this branch red in CI are resolved by the
+mechanism this path already built, not by a ruling about fabrication. Establishing
+that took one command:
+
+```bash
+$ git log --merges --grep="CP-MVP-008" origin/master      # (no output)
+```
+
+**CP-MVP-008 never merged from a branch.** It ran on the trunk, closed
+2026-08-04, and predates path branches, candidate-bound closure and the v0.2
+acceptance schema together. There is no candidate commit to name because the
+protocol it ran under had no such object — which is why `subject_commit`,
+`accepted_by`, `scope_ref` and `advisory_disposition` are absent. Its acceptance
+is not missing: `sessions/2026-08-04-cp-mvp-008-acceptance.md` records it with
+the owner's ruling quoted. The schema is what is missing.
+
+This is the audit's own opening sentence, arriving as a live failure: *Cairn
+writes rules forward and never drains the state that predates them.*
+
+- **`CP-MVP-008` joins `V02_MIGRATION_PATHS`**, the finite, named, self-deleting
+  set from S07i. `migrationDebt` reports any listed path that is archived or
+  gone, so the exception is removed by a failing gate rather than by memory.
+- **The exception is now wired into `transition` and `acceptance`**, which never
+  consulted it — only `scope-digest` did. A listed path's findings drop from
+  blocking to advisory and carry the reason inline, so the debt stays visible.
+- **An adversarial fixture**, the first written under the S07q directive. It
+  asserts the exception is *rejected* when spent: a listed path that is archived,
+  and a listed path that no longer exists, both produce a finding. Testing that a
+  valid set passes would have proved nothing.
+
+Verified against the faithful CI invocation, not the local one:
+`--base origin/master --branch path/cp-ops-002` → **OK, 12 advisory**. It was 9
+blocking before.
+
+Not fabricated, and worth being explicit about: no `accepted_by`, `accepted_at`,
+`scope_ref` or `advisory_disposition` was written for CP-MVP-008. Converting an
+unstructured record into a structured signature by typing is the one thing an
+acceptance record exists to make impossible.
+
+**The date question is settled by the protocol rather than by preference.**
+Records are immutable once written and redaction is the only sanctioned
+exception — it exists to remove content that must not persist, not to correct
+content that is merely wrong. So the CP-UI-TYPOGRAPHY records keep their
+`2026-08-27` dates and the correction lives in later records: the S08 brief, this
+ledger, and this path's journal entry at merge. *A record is corrected by a
+later record, never by an edit* — which is why the journal is append-only. The
+recurrence rule is cheap and sound and belongs to S08: a record's filename date
+MUST equal its frontmatter `timestamp:`, comparing two things the author wrote so
+the checker never needs to know the date.
+
+**And the teaching axis is now a protocol requirement**, at the owner's
+direction: the concept note becomes a specified artifact type, normative and
+learning text link to concept notes rather than redefining terms, `cairn-init`
+scaffolds a `concepts/` directory, and the reader generalises so any project's
+concept wiki exports the same way. The distinction that makes it work: a
+**concept note** is organised by one idea and is a link target; a **learning
+note** is organised by one build in order and is not. `docs/learning/` is
+excellent at the second and does not attempt the first. Both belong; only one is
+reusable from elsewhere. Full statement in the S08 brief.
 
 ### S08 — Make the rules honest, then extract Cairn from Atomik
 

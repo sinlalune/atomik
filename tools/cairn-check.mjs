@@ -175,6 +175,19 @@ export const LEGACY_UNDECLARED_OPENINGS = new Set(['CP-MVP-011', 'CP-MVP-012'])
  * acquire one. Blocking it would fail an in-flight path for a convention that
  * postdates its own ceremony — the failure that gets a validator switched off.
  *
+ * `CP-MVP-008` is the other case, and a stronger one. It closed on 2026-08-04,
+ * ran entirely ON THE TRUNK, and predates path branches, candidate-bound closure
+ * and the v0.2 acceptance schema together. There is no candidate commit to name
+ * because the protocol it ran under had no such object: `git log --merges` shows
+ * no merge for it, only linear trunk commits. Its acceptance IS recorded, in
+ * `sessions/2026-08-04-cp-mvp-008-acceptance.md`, with the owner's ruling
+ * quoted — what is missing is a schema that did not exist yet, not a decision.
+ *
+ * Supplying `accepted_by`, `accepted_at`, `scope_ref` and `advisory_disposition`
+ * by hand would manufacture a structured signature from an unstructured record.
+ * The exception says the record predates the schema; inventing the fields would
+ * say someone signed a form nobody wrote.
+ *
  * The set is finite, named, and cannot outlive the migration: `migrationDebt`
  * below reports a listed path that no longer needs the exception, so the
  * exception is deleted by a failing gate rather than by anyone remembering.
@@ -197,7 +210,7 @@ export const DECISION_PLANE = ['docs/bedrock/', 'docs/adr/']
  *  documents plus the draft path records it produces — and nothing else. */
 export const FOUNDATION_SURFACE = [/^docs\//, /^project\//, /^atomik-project\/coding-paths\//]
 
-export const V02_MIGRATION_PATHS = new Set(['CP-OPS-002'])
+export const V02_MIGRATION_PATHS = new Set(['CP-OPS-002', 'CP-MVP-008'])
 
 /** An exception that has served its purpose is a bypass. A listed path that is
  *  archived, or that now carries what the exception excused, must leave the
@@ -1370,8 +1383,10 @@ export function evaluate({
           `${path.file}: previous path state is unavailable — provide a complete comparison ref`,
           'inconclusive')
       } else {
+        const legacy = migrationExempt.has(String(path.front?.id ?? ''))
         for (const error of transitionErrors(previous, path.front, onPath && path === match)) {
-          add('blocking', 'transition', `${path.file}: ${error}`)
+          add(legacy ? 'advisory' : 'blocking', 'transition',
+            `${path.file}: ${error}${legacy ? ' (grandfathered: this record predates the v0.2 schema)' : ''}`)
         }
       }
     }
@@ -1379,9 +1394,14 @@ export function evaluate({
     const validatesReady = path.front?.status === 'ready' && onPath && path === match
     const validatesDone = path.front?.status === 'done' && stateChanged.includes(path.file)
     if (!validatesReady && !validatesDone) continue
+    // A record written under an earlier protocol cannot satisfy a later schema
+    // by being told to. The exception is named and self-deleting; the finding
+    // stays visible as an advisory so the debt is not forgotten.
+    const legacyRecord = migrationExempt.has(String(path.front?.id ?? ''))
     const record = closureFor?.(path.front.id, path.front.subject_commit) ?? null
     for (const error of closingAcceptanceErrors(record, path.front.id)) {
-      add('blocking', 'acceptance', `${path.file}: ${error}`)
+      add(legacyRecord ? 'advisory' : 'blocking', 'acceptance',
+        `${path.file}: ${error}${legacyRecord ? ' (grandfathered: closed before candidate-bound closure existed)' : ''}`)
     }
     if (record?.subject_commit && path.front.subject_commit !== record.subject_commit) {
       add('blocking', 'acceptance',
@@ -1389,9 +1409,9 @@ export function evaluate({
     }
     const state = closureStateFor?.(path, record)
     if (state == null) {
-      add('blocking', 'acceptance',
-        `${path.file}: cannot inspect the accepted candidate and administrative closure commit`,
-        'inconclusive')
+      add(legacyRecord ? 'advisory' : 'blocking', 'acceptance',
+        `${path.file}: cannot inspect the accepted candidate and administrative closure commit${legacyRecord ? ' (grandfathered: it ran on the trunk, so no candidate commit exists to inspect)' : ''}`,
+        legacyRecord ? undefined : 'inconclusive')
     } else {
       if (!state.subjectIsAncestor) {
         add('blocking', 'acceptance', `${path.file}: accepted subject_commit is not an ancestor of HEAD`)
