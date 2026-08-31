@@ -19,7 +19,6 @@ the inputs globally complete; derivation keeps the output single-sourced.
 
 <!-- cairn:paths:begin -->
 - **CP-OPS-002** — Cairn 2.0 · branch `path/cp-ops-002` · base `7aa3b1d`
-- **CP-UI-TYPOGRAPHY** — Reader typography in the app · branch `path/cp-ui-typography` · base `df875e6`
 <!-- cairn:paths:end -->
 
 ## Grandfathered in flight
@@ -35,6 +34,7 @@ merge; no new path may copy the exception.
 
 ## Done
 
+- [CP-UI-TYPOGRAPHY — one bundled proportional face, defined once](./CP-UI-TYPOGRAPHY.md) — done 2026-08-27 ([opening check](../sessions/2026-08-27-cp-ui-typography-opening-check.md) · [closing](../sessions/2026-08-27-cp-ui-typography-closing-ceremony.md) · [audit](../audits/cp-ui-typography-a380f2a.md))
 - [CP-WORKTREE-CLEANUP — retire a merged path's clean secondary worktree while retaining its branch](./CP-WORKTREE-CLEANUP.md) — done 2026-08-24 ([opening check](../sessions/2026-08-24-cp-worktree-cleanup-opening-check.md) · [closing](../sessions/2026-08-24-cp-worktree-cleanup-closing-ceremony.md))
 - [CP-RENDER-REPAIRS — math, Vega, chat slug and diagram canvas repairs](./CP-RENDER-REPAIRS.md) — done 2026-08-20 (merge `cc78d2f`)
 - [CP-OPEN-DOCK — open-target interaction and five-zone docking](./CP-OPEN-DOCK.md) — done 2026-08-20 (merge `7f8d026`)

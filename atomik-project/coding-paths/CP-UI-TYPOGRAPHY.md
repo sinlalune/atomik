@@ -19,6 +19,7 @@ atomik:
     - docs/modules/atomik-desktop.md
     - docs/modules/atomik-desktop-shell.md
     - atomik-project/coding-paths/CP-UI-TYPOGRAPHY.md
+    - atomik-project/coding-paths/ACTIVE.md
     - atomik-project/briefs/cp-ui-typography-handoff.md
   governs:
     - docs/bedrock/36_36-ui-design-system.md@ce97f012630db0c45bda7a62b40b6019e3670b33
@@ -192,6 +193,50 @@ The full route's artifacts were already being produced: a standalone opening
 record, a standalone closing record, and a coherence audit bound to the exact
 candidate. What changes is the declaration matching them.
 
+### S04 — Regenerate the view the closure invalidated — **COMPLETE**
+
+```cairn-unit
+step: S04
+unit: 04
+type: repair
+verified: cairn-check, typecheck, test, build
+```
+
+CI failed on the merge PR with a finding the local gate had reported OK:
+
+```text
+[derived-view] atomik-project/coding-paths/ACTIVE.md: the derived
+running-paths view is stale — run `npm run cairn-active`
+```
+
+Both statements were true, and that is the finding.
+
+- **The defect.** Setting `status: done` at closure changes what `ACTIVE.md`
+  derives — the path leaves the running block — and nothing regenerated it. The
+  path also earns a `## Done` entry, which is hand-maintained. Both landed here,
+  and `ACTIVE.md` joins `writes:` per the drift rule.
+- **Why the local gate could not see it.** `corpusFindings` skips the derived-view
+  check when `isPathBranch(branch)`, reasoning that "path branches legitimately
+  carry a stale copy because they never hand-write `ACTIVE.md`". CI checks out a
+  detached merge ref, so its branch is `HEAD`, not `path/*`, and the check runs.
+  Locally green, remotely red, on the same command.
+- **The reasoning behind the skip is sound everywhere except closure.** A running
+  path genuinely does not own that view. But under self-merge a path is the last
+  writer of its own `status`, so at the moment it sets `done` it becomes exactly
+  the writer the skip assumes does not exist. The exemption should be keyed on
+  the path's declared status, not on the branch name.
+
+`single-truth` fires on `ACTIVE.md` and the edit is deliberate: only the block
+between the `cairn:paths` markers is generated, and that block was produced by
+`cairn-active`. The `## Done` entry is hand-maintained by convention, which is
+how every earlier closed path appears there.
+
+Recorded for CP-OPS-002 S08, which owns `cairn-check.mjs`: **the local and CI
+invocations of one gate must not disagree.** `AGENTS.md` promises "these run
+locally with the same command CI runs", and here they did not — a branch-name
+predicate stood in for a question about ownership, which is the same unsound
+shape S07m and S07k both repaired.
+
 ## Documentation coverage
 
 **Required:** `docs/bedrock/36_36-ui-design-system.md` (chrome token contract —
@@ -202,12 +247,12 @@ colour, and the remaining monospace literals.
 
 ## Work Ledger
 
-S01, S02 and S03 are complete; the ledger above carries all three. S02 was not planned —
+S01–S04 are complete; the ledger above carries all four. S02 was not planned —
 it is the owner's correction of S01's design, not an extension of it.
 
 ## Current checkpoint
 
-S03 on `path/cp-ui-typography`, based on trunk `39127e7`.
+S04 on `path/cp-ui-typography`, based on trunk `39127e7`.
 
 ## Next action
 
