@@ -6,11 +6,11 @@ atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: 5954095e744ede5e0fa77d20e068ab920fd447c0
-  checkpoint_unit: 12
+  checkpoint: 6adc217b4f681a7d49c709b078316dd20c5906c0
+  checkpoint_unit: 13
   checkpoint_pushed: true
   base_commit: 7aa3b1d
-  trunk_seen: df875e68c383f6e82b833b755e8925f2fb4651ed
+  trunk_seen: dfcd09d
   writes:
     - tools/cairn-*.mjs
     - docs/cairn/**
@@ -69,15 +69,24 @@ ceremony; the merge-time journal entry has no predicate). Landed as four concept
 articles, a normative directive with four MUSTs, five conformance rows, and three
 tests.
 
-Checker suite 191, specification suite 33. Retention refs 01–12.
+S07r rebased onto the trunk after CP-UI-TYPOGRAPHY merged, and the rebase
+exposed the worst finding yet: `unretainedCheckpoints` returns "nothing orphaned"
+when the retained set stops intersecting the branch, which is exactly what a
+rebase causes. Measured here — 13 refs, 41 commits in range, 0 intersecting, gate
+`OK`. Rebase-before-merge is mandatory, so retention evaporates immediately
+before every merge on every path. The ref namespace has no room for the fix, so
+it is an ADR before it is code.
+
+Checker suite 191, specification suite 33. Retention refs 01–13 hold the
+PRE-rebase commits; the 31 rebased commits are unretained and no ref was moved.
 
 ## Next action
 
-Begin S08 — extract Cairn from Atomik. First unit: `cairn.config.json` and the
-loader, so `cairn-check.mjs` stops hardcoding `atomik-project/`, `apps/`,
-`AREA_MAP` and the grandfather set. The folder rename `atomik-project/` →
-`project/` lands in that same work unit, once the binding is selectable rather
-than documented-but-unimplemented.
+Open S08 from
+`docs/cairn/cairn-s08-opening-brief-2026-08-31.md`, and take its Part 1 in order.
+The first unit is `hasCeremony`: read the `ceremony:` frontmatter key instead of
+matching a filename, with a fixture that rejects a `done` path whose only session
+note is its opening check.
 
 ## Blockers
 

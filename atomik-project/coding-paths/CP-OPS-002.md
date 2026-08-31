@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-002
   route: full            # control plane + decision plane; escalation is one-way
   status: running
-  current_step: S07q
+  current_step: S07r
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
   writes:                    # ADVISORY — a signal, never a lock
@@ -427,21 +427,135 @@ rule in the same unit as the doctrine would leave the doctrine untested against 
 second implementation. The conformance matrix now says so out loud rather than
 leaving a reader to assume enforcement.
 
-### S08 — Extract Cairn from Atomik
+### S07r — Rebase onto the trunk, and find what the rebase turns off — **COMPLETE**
 
-Cairn is not portable today: `cairn-check.mjs` hardcodes `atomik-project/`, `apps/`,
-`AREA_MAP`, and the grandfather set.
+```cairn-unit
+step: S07r
+unit: 14
+type: repair
+verified: cairn-check, cairn-check:test, typecheck, test, build
+```
 
-- `cairn.config.json` — plane roots, source roots, area map, trunk name, and
-  `"enforcement": "local" | "ci" | "protected"` (S06b).
-- `cairn-check` prints the declared tier in its header line, so "CI observes" versus "CI
-  prevents" is generated from the repository rather than written into prose that drifts.
-- `tools/cairn-new.mjs` — registration commit and worktree in one command, so the
-  registration precondition stops depending on memory.
-- `cairn-init` seed template + the ex-nihilo bootstrap prompt. It scaffolds **tiers 0 and
-  1 only**: the validator, the config, the docs skeleton and the workflow file. No host
-  configuration, no account, nothing to click — adoption must not require someone else's
-  web UI.
+CP-UI-TYPOGRAPHY merged, so the trunk moved and this branch had to rebase before
+it can. The rebase itself is routine — 31 commits onto `dfcd09d`. What it exposed
+is not.
+
+**`unretainedCheckpoints` disables itself on the rebase it exists to survive.**
+S07k rewrote that rule to walk the branch rather than trust the ledger's list of
+units. The rewrite opens with a guard whose reasoning is stated and sound —
+*"the range starts at the oldest retained checkpoint, because commits older than
+the convention cannot be judged by it"* — implemented as:
+
+```js
+const oldest = commits.findIndex((commit) => retainedSet.has(commit))
+if (oldest === -1) return []
+```
+
+A rebase gives every commit a new object id. The retention refs still name the
+pre-rebase commits, which are now off the branch, so the retained set and the
+branch range stop intersecting entirely. `findIndex` returns `-1`, and the
+function returns "nothing orphaned" where the truth is "nothing retained".
+
+Measured immediately after this branch's own rebase:
+
+```text
+retention refs                13
+commits in the branch range   41
+retained oids still in range   0     →  findIndex -1  →  []
+npm run cairn-check           OK — protocol satisfied
+```
+
+Rebase-before-merge is mandatory, so this is not an edge case: the guarantee
+evaporates immediately before every merge, on every path.
+
+Underneath it is a **specification** gap, not only an implementation one. The
+namespace `refs/cairn/checkpoints/<path-id>/<n>` keys on the ledger ordinal, and
+after a rebase unit 07 names a different commit than before. Both deserve
+retention — the old one because history must survive the rewrite, the new one
+because the next rewrite must not orphan it — and the refs are specified
+append-only and never moved, so the existing ref cannot be repointed. The ordinal
+alone cannot name both. A generation component is the obvious candidate and is
+deliberately **not** decided here: inventing namespace structure outside the
+specification is what `AGENTS.md` forbids, and this is ADR-sized.
+
+One correction the gate caught, worth keeping because the mistake is easy: I
+updated `base_commit` to the new rebase base and `registration-base` refused it.
+`base_commit` is not what the branch currently sits on — it is the trunk state
+immediately *before this path was registered*, and it must stay the parent of the
+commit that added the path record. It is a historical fact and a rebase cannot
+change it. The rule was right and the edit was wrong.
+
+State recorded rather than tidied: refs `01`–`13` hold the pre-rebase commits, so
+every historical checkpoint remains fetchable; the 31 rebased commits are
+unretained; **no ref was moved to make that look otherwise.** Moving one is the
+S07k violation, and those refs are currently the only thing keeping the
+pre-rebase history reachable.
+
+Also found, and not fixed: **dated records can carry a date that is not the
+date.** Every CP-UI-TYPOGRAPHY record — opening check, closing ceremony,
+coherence audit, journal entry, and their filenames — reads `2026-08-27`. Only
+S01 happened then; S02–S05 and every closing record happened on `2026-08-31`. The
+journal is the record that says when work was integrated, and this one says a day
+it was not. The checker validates that frontmatter keys are present and
+well-formed, never that a `timestamp:` is true or that a filename's date agrees
+with it. The records are merged and immutable, so correcting them is an owner
+ruling about record integrity, not a repair to make silently.
+
+Landed: [`docs/cairn/cairn-s08-opening-brief-2026-08-31.md`](../../docs/cairn/cairn-s08-opening-brief-2026-08-31.md),
+which carries all four findings with their fixtures and reorders S08 into three
+parts — honest rules first, structural soundness second, portability third.
+
+### S08 — Make the rules honest, then extract Cairn from Atomik
+
+Opening context: [`docs/cairn/cairn-s08-opening-brief-2026-08-31.md`](../../docs/cairn/cairn-s08-opening-brief-2026-08-31.md).
+Read it before the first unit — it carries four findings that reorder this step,
+three of them live and one of them new as of the rebase on 2026-08-31.
+
+S08 was planned as portability alone. It now runs in three parts, because
+shipping a portable copy of an unsound checker multiplies the unsoundness by the
+number of adopters.
+
+#### Part 1 — the live defects
+
+1. **`hasCeremony` passes from the day a path opens.** It matches any session
+   note whose *filename* contains the path id, so the opening check satisfies the
+   closing gate — in the rule `paths.md` calls "the only human guard left once
+   the integrator is gone". Read the `ceremony:` key instead; bedrock 24 already
+   specifies it and this branch already has `ceremonyFromSessions`.
+2. **The merge-time journal entry has no predicate.** Required by `AGENTS.md`,
+   enforced nowhere. CP-UI-TYPOGRAPHY closed, was audited and was proposed for
+   merge with none, and every gate reported `OK`.
+3. **The derived-view rule keys on the branch name**, so a local run and a CI run
+   disagree on one tree. Key on the path's declared `status`.
+4. **Retention switches itself off during the mandatory pre-merge rebase.** A
+   rebase renames every commit, the retained set stops intersecting the branch,
+   `findIndex` returns `-1`, and `unretainedCheckpoints` concludes "nothing to
+   judge" instead of "everything is unretained". Measured on this branch: 13
+   refs, 41 commits in range, 0 intersecting, gate `OK`. The ref namespace has no
+   room for the fix — `<path-id>/<n>` cannot name the same unit before and after
+   a rewrite — so this is **an ADR before it is code**.
+
+#### Part 2 — make soundness structural
+
+5. An adversarial fixture for every blocking rule, asserting the rule's own name
+   in the finding. Twenty-six of them. This is what converts "four bugs fixed"
+   into "this class of bug fails the build".
+6. A test running one gate in both invocation contexts, asserting one verdict.
+7. Generate the conformance matrix, so directive requirement 4 is mechanical.
+
+#### Part 3 — portability, as originally planned
+
+8. `cairn.config.json` and the loader — plane roots, source roots, `AREA_MAP`,
+   trunk name, and `"enforcement": "local" | "ci" | "protected"` (S06b).
+   `cairn-check` prints the declared tier, so "CI observes" versus "CI prevents"
+   is generated rather than asserted in drifting prose.
+9. The folder rename to the portable role name, which the loader makes real.
+10. `tools/cairn-new.mjs` — registration commit, gates and worktree in one
+    command. The trunk now requires a pull request, so it must open one; the
+    registration done by hand on 2026-08-31 is the worked example.
+11. `cairn-init` seed template and the ex-nihilo bootstrap prompt, scaffolding
+    **tiers 0 and 1 only**: the validator, the config, the docs skeleton and the
+    workflow file. No host configuration, no account, nothing to click.
 
 ### S09 — Greenfield pilot, coherence audit, closing ceremony, self-merge
 
