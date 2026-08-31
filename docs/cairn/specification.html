@@ -2553,8 +2553,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Merge-time journal entry, one file per integrated outcome</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong>; no predicate asks for one. A path closed, was audited and was proposed for merge with the entry missing, and every gate reported <code>OK</code></td>
-<td style="text-align:left">integration-time hook, since the entry is written in the closing unit</td>
+<td style="text-align:left"><strong>implemented</strong>; a path record reaching <code>done</code> in a change must be declared by a journal entry’s <code>path</code> field, read from the entry rather than from its filename, and an unreadable journal is inconclusive rather than a pass</td>
+<td style="text-align:left">none — the entry is written in the closing unit, which is the change the rule binds</td>
 </tr>
 <tr>
 <td style="text-align:left">Scope digest recorded at opening and re-verified at closing</td>
@@ -2883,6 +2883,12 @@ honest state of the work.</p>
 <td style="text-align:left">corpus</td>
 <td style="text-align:left"><a href="http://ACTIVE.md">ACTIVE.md</a> running-paths block does not match trunk path files</td>
 <td style="text-align:left"><code>tools/cairn-active.mjs --check</code></td>
+</tr>
+<tr data-rule="journal-entry" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>journal-entry</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A path record reaches <code>done</code> in this change and no journal entry declares that path</td>
+<td style="text-align:left"><code>journalRecords(loadJournal(), id) on the transition into done; inconclusive when the journal cannot be read</code></td>
 </tr>
 <tr data-rule="links" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>links</code></td>
@@ -4912,8 +4918,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Merge-time journal entry, one file per integrated outcome</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong>; no predicate asks for one. A path closed, was audited and was proposed for merge with the entry missing, and every gate reported <code>OK</code></td>
-<td style="text-align:left">integration-time hook, since the entry is written in the closing unit</td>
+<td style="text-align:left"><strong>implemented</strong>; a path record reaching <code>done</code> in a change must be declared by a journal entry’s <code>path</code> field, read from the entry rather than from its filename, and an unreadable journal is inconclusive rather than a pass</td>
+<td style="text-align:left">none — the entry is written in the closing unit, which is the change the rule binds</td>
 </tr>
 <tr>
 <td style="text-align:left">Scope digest recorded at opening and re-verified at closing</td>
@@ -5242,6 +5248,12 @@ honest state of the work.</p>
 <td style="text-align:left">corpus</td>
 <td style="text-align:left"><a href="http://ACTIVE.md">ACTIVE.md</a> running-paths block does not match trunk path files</td>
 <td style="text-align:left"><code>tools/cairn-active.mjs --check</code></td>
+</tr>
+<tr data-rule="journal-entry" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>journal-entry</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A path record reaches <code>done</code> in this change and no journal entry declares that path</td>
+<td style="text-align:left"><code>journalRecords(loadJournal(), id) on the transition into done; inconclusive when the journal cannot be read</code></td>
 </tr>
 <tr data-rule="links" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>links</code></td>
@@ -12107,8 +12119,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Merge-time journal entry, one file per integrated outcome</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong>; no predicate asks for one. A path closed, was audited and was proposed for merge with the entry missing, and every gate reported <code>OK</code></td>
-<td style="text-align:left">integration-time hook, since the entry is written in the closing unit</td>
+<td style="text-align:left"><strong>implemented</strong>; a path record reaching <code>done</code> in a change must be declared by a journal entry’s <code>path</code> field, read from the entry rather than from its filename, and an unreadable journal is inconclusive rather than a pass</td>
+<td style="text-align:left">none — the entry is written in the closing unit, which is the change the rule binds</td>
 </tr>
 <tr>
 <td style="text-align:left">Scope digest recorded at opening and re-verified at closing</td>
@@ -12437,6 +12449,12 @@ honest state of the work.</p>
 <td style="text-align:left">corpus</td>
 <td style="text-align:left"><a href="http://ACTIVE.md">ACTIVE.md</a> running-paths block does not match trunk path files</td>
 <td style="text-align:left"><code>tools/cairn-active.mjs --check</code></td>
+</tr>
+<tr data-rule="journal-entry" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>journal-entry</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A path record reaches <code>done</code> in this change and no journal entry declares that path</td>
+<td style="text-align:left"><code>journalRecords(loadJournal(), id) on the transition into done; inconclusive when the journal cannot be read</code></td>
 </tr>
 <tr data-rule="links" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>links</code></td>

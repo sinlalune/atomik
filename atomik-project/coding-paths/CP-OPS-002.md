@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-002
   route: full            # control plane + decision plane; escalation is one-way
   status: running
-  current_step: S08g
+  current_step: S08h
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
   writes:                    # ADVISORY — a signal, never a lock
@@ -1000,6 +1000,63 @@ it returned `OK`. `addedConcepts(null, …)` returns `null` rather than an empty
 list — the S08b lesson applied where it would otherwise have recurred, since an
 unreadable previous state is not evidence of no growth.
 
+### S08h — The two live trunk defects: one was already fixed, one had no rule at all — **COMPLETE**
+
+```cairn-unit
+step: S08h
+unit: 26
+type: repair
+verified: cairn-check, cairn-check:test, typecheck, test, build
+```
+
+S08 Part 1 items 1 and 2, taken together because they are one class: the
+merge-time guards did not guard.
+
+**Item 1 needed no work, and saying so is the finding.** `hasCeremony` on this
+branch already reads the `ceremony:` frontmatter key through
+`ceremonyFromSessions`, and the adversarial fixture the S08 brief asked for
+already exists — *an opening check is not a closing ceremony*, plus a second
+pinning that a note about `CP-MVP-0010` never satisfies `CP-MVP-001`. The defect
+is live **on the trunk**, where `hasCeremony` still matches filenames, and it is
+repaired by merging this branch rather than by writing anything.
+
+The brief and this ledger both listed it as the next unit to implement. Checking
+before writing found it done. Recorded because the alternative — reimplementing
+what exists to make a plan come true — is how a ledger starts describing work
+that did not happen.
+
+**Item 2 was real.** No predicate asked for the merge-time journal entry.
+`same-work-unit` fires when *source* changes without a module note or ledger, and
+a closing unit changes neither, so nothing asked. `journal-entry` now fires when a
+path record **reaches** `done` in a change and no entry declares it.
+
+Four decisions inside it, each one this path has learned:
+
+- **It reads `atomik.path`, not the filename.** The convention does encode the id
+  in the filename and matching that would have been easier — and wrong in exactly
+  the way `hasCeremony` was wrong. A file that exists is not a file that says
+  anything. A fixture pins it: an entry with no declaration proves nothing.
+- **It binds the transition, not the corpus.** A sweep would fire on ten
+  historical paths that merged before the convention; draining those is a
+  migration, not a repair. A path already `done` is not asked twice, so editing a
+  closed record does not re-raise it.
+- **An unreadable journal is inconclusive, not a pass** — the S08b lesson applied
+  where it would otherwise have recurred.
+- **No migration exemption**, and this one nearly went the other way. `CP-OPS-002`
+  is in `V02_MIGRATION_PATHS`, so the first implementation only *advised* on this
+  path's own closure — the path that built the rule. The exemption excuses records
+  predating the acceptance schema, where the missing fields are a signature nobody
+  can honestly supply now. A journal entry is written at merge time by whoever
+  merges: every listed path can produce one, so exempting them is a bypass rather
+  than a migration. A fixture pins that a listed path still owes its entry.
+
+**Verified by mutation and end to end.** Disabling the transition test fails
+exactly its own two fixtures and nothing else. Flipping this path's own record to
+`done` in the working tree made the real checker print the real blocking finding;
+reverting cleared it. The conformance row moves to `implemented`, and the status
+vocabulary in the row test gained `**implemented**` — a row reaching the strongest
+status must not fail the test that only asks it to state one.
+
 ### S09 — Greenfield pilot, coherence audit, closing ceremony, self-merge
 
 Initialize one real ex-nihilo repository from the kit — the research-paper workspace the
@@ -1039,6 +1096,8 @@ brief names — and fix what the pilot finds before merging.
 | Gates at S08b | `npm run cairn-check` OK, 11 advisory · **and the same verdict in a CI-shaped clone**: 228 changed files, `OK — protocol satisfied (11 advisory)`, identical list · `npm run cairn-check:test` PASS, 198 subtests · `npm run cairn-spec:build` deterministic · `npm run typecheck` PASS · product suite 79 files, 1,109 passed / 1 skipped · `npm run build` PASS |
 | Machine-local state (S08b) | Retention refs `01`–`19` for this path exist on the remote; `19` was pushed at S08b after S08a left it local. `refs/cairn/*` is fetched by no clone and no checkout action, so any environment judging retention must fetch it explicitly — now written into the workflow, the operator guide and the concept note |
 | The maxim, applied on its first day (S08d) | The brief budget blocked this refresh too — the fourth in four units. The first three were answered by shortening prose, which is what ADR-020 says a budget teaches. This one was answered its way: the State section stopped retelling S08a–S08d and became four pointers to records that hold them in full. **Separation, not compression** — the words moved rather than shrank, and the section is now shorter *and* more complete. That is the test the ADR proposes, run once, on the artefact that provoked it |
+| Gates at S08h | `npm run cairn-check` OK · `npm run cairn-check:test` PASS, **205** subtests (200 → 205) · `npm run cairn-spec:build` deterministic · `npm run typecheck` PASS · product suite 1,109 passed / 1 skipped · `npm run build` PASS |
+| This path now owes its own journal entry (S08h) | `journal-entry` blocks `CP-OPS-002` at closure, with no exemption, by its own rule. Verified by flipping the record to `done` in the working tree: the real checker printed the real blocking finding. The entry is written in the closing unit, which is where the protocol always said it goes |
 | Gates at S08g | `npm run cairn-check` OK · `npm run cairn-check:test` PASS, **200** subtests (198 → 200) · `npm run cairn-spec:build` deterministic · `npm run typecheck` PASS · product suite 1,109 passed / 1 skipped · `npm run build` PASS |
 | Owner rulings (S08g) | **Remove the brief's token budget** — done, and recorded as ADR-020 decision 6 rather than as an unexplained deletion. **Validate the ADR** — `accepted`, both halves, with migration stage 1 landed in the same unit |
 | Concept budget (S08g) | The hard cap is gone. 71 → **72** with `instruction-parity`; growth is now an advisory naming what was added, and an orphan blocks. The wiki's health is unchanged and is now measured by reachability rather than by a number |
@@ -1055,7 +1114,8 @@ brief names — and fix what the pilot finds before merging.
 | Records corrected (S08c) | The S08 opening brief attributed the CI redness to nine `CP-MVP-008` findings that CI never reported — they were a local branch-versus-trunk run's, promoted to a claim about CI. `gate-parity` said *no CI-only condition* while one was running. Both are `docs/` documents, not immutable records, so both are corrected in place with a dated, visible correction; the brief's `governs:` pin is refreshed here and in the handoff brief |
 | Brief budget, third unit running (S08c) | The 1200-token budget blocked the refresh at S08a, S08b and S08c, each time costing real editing. That is the rule working — but three in a row is a signal about the *brief's shape*, not its size: it had become a chronicle appending one paragraph per step. S08c consolidated the three S08 units into one themed block and pruned two spent *Tried and rejected* entries. If a fourth refresh fights the budget, the answer is the ledger boundary below, not a bigger number |
 | Ledger boundary due (S08b) | `ledger-size` fires at ~10.6 k against the 10 k budget, which is the rule working: it speaks to whoever is editing the file. Roll **S07q–S08b** into [`history/`](./history/index.md) verbatim at the next step boundary, leaving one index line each. Advisory and not urgent, so it is recorded rather than folded into a repair unit |
-| Next action | S08 Part 1 items 1 and 2, both live on the trunk and neither blocked: `hasCeremony` must read the `ceremony:` frontmatter key instead of matching a filename, with a fixture rejecting a `done` path whose only session note is its opening check; then a predicate for the merge-time journal entry. ADR-020 stages 2–5 (the `CP-OPS-002` folder migration, the checker's shape, the artefact classification, `cairn-init`) follow, and stage 2 supersedes the queued ledger roll |
+| Next action | S08 Part 1 items 3, 3c and 4 — the derived-view rule keyed on declared `status` rather than the branch name; a record's filename date equal to its frontmatter `timestamp:`; and the retention-generation question, which is an ADR before it is code. Then ADR-020 stages 2–5, where stage 2 (the folder migration) supersedes the queued ledger roll |
+| Superseded next action (S08h, done) | S08 Part 1 items 1 and 2, both live on the trunk and neither blocked: `hasCeremony` must read the `ceremony:` frontmatter key instead of matching a filename, with a fixture rejecting a `done` path whose only session note is its opening check; then a predicate for the merge-time journal entry. ADR-020 stages 2–5 (the `CP-OPS-002` folder migration, the checker's shape, the artefact classification, `cairn-init`) follow, and stage 2 supersedes the queued ledger roll |
 | Superseded next action (S08g, ruled) | Owner ruling on ADR-020. If accepted: the `instruction-parity` article plus its concept-cap decision, then the `CP-OPS-002` folder migration as the worked example. Independently of that ruling, the two live trunk defects remain S08 Part 1 items 1 and 2 — `hasCeremony` reading the `ceremony:` key, and a predicate for the merge-time journal entry — and neither depends on the ADR |
 | Superseded next action (S08d, pending ruling) | S08 Part 1 item 1 — `hasCeremony` reads the `ceremony:` frontmatter key instead of matching a filename, with a fixture that rejects a `done` path whose only session note is its opening check. Then item 2 (the journal-entry predicate), item 3 (the derived-view rule keyed on declared `status`), item 3c (filename date equals frontmatter `timestamp:`), and item 4 (the retention-generation ADR, design before code) |
 | Superseded next action (S08a, done) | S08 — extract Cairn from Atomik: `cairn.config.json`, the generated enforcement header, `cairn-new`, and the tier-0/1 `cairn-init` seed. The v0.2 predicates land here or in a successor path, never by quietly marking a matrix row `implemented` |

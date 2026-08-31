@@ -114,6 +114,10 @@ export const RULE_METADATA = {
     condition: 'A path-branch run compared the working tree with HEAD instead of the branch with the trunk',
     enforcing: "resolveBase() source is 'opt-out' or 'unresolvable' while isPathBranch(branch)"
   },
+  'journal-entry': {
+    condition: 'A path record reaches `done` in this change and no journal entry declares that path',
+    enforcing: "journalRecords(loadJournal(), id) on the transition into done; inconclusive when the journal cannot be read"
+  },
   'concept-orphan': {
     condition: 'A concept note that no normative or learning text outside the wiki links to',
     enforcing: 'orphanConcepts(conceptFiles, links from documents outside the concepts folder)'

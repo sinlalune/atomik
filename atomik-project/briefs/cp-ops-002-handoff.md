@@ -6,8 +6,8 @@ atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: dfc435238e2e5765858807e77ede16f65415fad1
-  checkpoint_unit: 24
+  checkpoint: 9332b99b8c8908e00f0807c0dc6f6c89c762888a
+  checkpoint_unit: 25
   checkpoint_pushed: true
   base_commit: 7aa3b1d
   trunk_seen: dfcd09d
@@ -53,9 +53,8 @@ reports "nothing orphaned" once the retained set stops intersecting the branch,
 which is what a rebase causes — and rebase-before-merge is mandatory. The ref
 namespace cannot express the fix, so it is an ADR first.
 
-**S08 so far — four units, one question:** *is the verdict I am recording the one
-that decides the merge?* Full records in the path file; what a resuming session
-needs from them:
+**S08 so far — eight units.** Full records in the path file; what a resuming
+session needs from them:
 
 - The local gate now defaults to the **trunk** base on a path branch (S08a).
   `--working-tree` is the opt-out and raises `base-parity`. **Every verdict
@@ -65,6 +64,12 @@ needs from them:
 - **CI is read, not reproduced** (S08c). `gh run view --log` is the source for any
   claim about what CI reported; a look-alike local run is what put a false
   attribution in the S08 opening brief.
+- **Both live trunk defects are closed** (S08h). `hasCeremony` needed no work —
+  this branch already reads the `ceremony:` key and carries the fixture; it is
+  broken only on the trunk and repaired by merging. `journal-entry` is new and
+  blocks a record **reaching** `done` with no entry declaring it, reading
+  `atomik.path` not a filename, with **no migration exemption** — so this path
+  owes its own entry at closure.
 - **[`ADR-020`](../../docs/adr/ADR-020-protocol-context-weight.md) is `accepted`**
   (S08d–S08g). Read it rather than a summary. What binds a resuming session:
   **no token counts anywhere** — the brief's budget and the concept cap are both
@@ -77,20 +82,14 @@ Checker suite 198, specification suite 33.
 
 ## Next action
 
-**Owner ruling on ADR-020 first.** If accepted it carries three things: the
-`instruction-parity` article, the concept-cap retirement with its two replacement
-rules, and the `CP-OPS-002` folder migration as worked example.
+S08 Part 1 items **3, 3c and 4**: key the derived-view rule on the path's declared
+`status` rather than the branch name; require a record's filename date to equal its
+frontmatter `timestamp:`; and settle the retention-generation question, which is an
+**ADR before it is code** — a rebase renames every commit, so `<path-id>/<n>`
+cannot name the same unit before and after one.
 
-Independent of that ruling, and unblocked either way: **`hasCeremony`** must read
-the `ceremony:` frontmatter key instead of matching a filename, with a fixture
-rejecting a `done` path whose only session note is its opening check.
-`ceremonyFromSessions` on this branch already does it and has never reached the
-trunk. Then item 2, a predicate for the merge-time journal entry.
-
-Then: item 2 (a journal-entry predicate), item 3 (the derived-view rule keyed on
-declared `status`, not the branch name), item 3c (a record's filename date equals
-its `timestamp:`), item 4 (retention generation — an ADR before code).
-
+Then ADR-020 stages 2–5: the `CP-OPS-002` folder migration (which supersedes the
+queued ledger roll), the checker's shape, the artefact classification, `cairn-init`.
 
 ## Blockers
 

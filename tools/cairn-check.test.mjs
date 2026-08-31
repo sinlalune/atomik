@@ -20,6 +20,7 @@ import {
   closingRecordFromSessions,
   areaOf,
   ceremonyFromSessions,
+  journalRecords,
   duplicatePathIdentityFindings,
   openingFromSessions,
   evaluate,
@@ -1352,6 +1353,86 @@ test('an invalid declared type blocks even when a block is present', () => {
     workUnits: [{ step: 'S01', unit: '01', type: 'refactor', verified: 'all' }]
   })
   assert.ok(rules(found, 'blocking').includes('work-unit'))
+})
+
+/* ------------------------------------------------------------------ *
+ * S08 finding 2 — the merge-time journal entry had no predicate
+ *
+ * AGENTS.md requires one journal file per entry, written at merge time. No
+ * rule asked: `same-work-unit` fires when SOURCE changes without a module note
+ * or ledger, and a closing unit changes neither. Observed, not hypothesised —
+ * CP-UI-TYPOGRAPHY was closed, audited, set to `done` and proposed for merge
+ * with none, and every gate reported OK.
+ * ------------------------------------------------------------------ */
+
+test('a journal entry is recognised by its declaration, never by its filename', () => {
+  assert.equal(journalRecords([{ path: 'CP-MVP-010' }], 'CP-MVP-010'), true)
+  assert.equal(journalRecords([{ path: 'CP-MVP-011' }], 'CP-MVP-010'), false)
+  // An entry with no declaration proves nothing, which is the whole lesson of
+  // hasCeremony: a file that exists is not a file that says anything.
+  assert.equal(journalRecords([{ __file: 'atomik-project/log/2026-08-31-cp-mvp-010.md' }], 'CP-MVP-010'), false)
+  assert.equal(journalRecords([], 'CP-MVP-010'), false)
+})
+
+test('a path reaching done with no journal entry is blocked', () => {
+  // The fixture is the observed state: done, audited, accepted, no entry.
+  const done = { ...A_PATH, front: { ...A_PATH.front, status: 'done', subject_commit: CANDIDATE } }
+  const found = run([done.file], 'master', [done], {
+    stateChanged: [done.file],
+    previousPaths: new Map([[done.file, { ...A_PATH.front, status: 'running' }]]),
+    journalEntries: []
+  })
+  assert.ok(rules(found, 'blocking').includes('journal-entry'))
+})
+
+test('the entry satisfies it, and a path already done is not asked twice', () => {
+  const done = { ...A_PATH, front: { ...A_PATH.front, status: 'done', subject_commit: CANDIDATE } }
+  const withEntry = run([done.file], 'master', [done], {
+    stateChanged: [done.file],
+    previousPaths: new Map([[done.file, { ...A_PATH.front, status: 'running' }]]),
+    journalEntries: [{ path: done.front.id }]
+  })
+  assert.ok(!rules(withEntry, 'blocking').includes('journal-entry'))
+
+  // Already `done` before this change: the entry was owed at integration, and
+  // re-asking would fire on every later edit of a closed record.
+  const alreadyDone = run([done.file], 'master', [done], {
+    stateChanged: [done.file],
+    previousPaths: new Map([[done.file, { ...done.front }]]),
+    journalEntries: []
+  })
+  assert.ok(!rules(alreadyDone, 'blocking').includes('journal-entry'))
+})
+
+test('a v0.2 migration path is NOT excused from its journal entry', () => {
+  // The exemption excuses records predating the acceptance schema, where the
+  // missing fields are a signature nobody can honestly supply now. A journal
+  // entry is written at merge time by whoever merges, so every listed path can
+  // produce one — exempting them would be a bypass, not a migration.
+  const [listed] = [...V02_MIGRATION_PATHS]
+  const done = {
+    ...A_PATH,
+    front: { ...A_PATH.front, id: listed, status: 'done', subject_commit: CANDIDATE }
+  }
+  const found = run([done.file], 'master', [done], {
+    stateChanged: [done.file],
+    previousPaths: new Map([[done.file, { ...A_PATH.front, id: listed, status: 'running' }]]),
+    journalEntries: []
+  })
+  assert.ok(rules(found, 'blocking').includes('journal-entry'),
+    'a listed path still owes its journal entry')
+})
+
+test('an unreadable journal is inconclusive, not a pass', () => {
+  const done = { ...A_PATH, front: { ...A_PATH.front, status: 'done', subject_commit: CANDIDATE } }
+  const found = run([done.file], 'master', [done], {
+    stateChanged: [done.file],
+    previousPaths: new Map([[done.file, { ...A_PATH.front, status: 'running' }]]),
+    journalEntries: null
+  })
+  const entry = found.filter((f) => f.rule === 'journal-entry')
+  assert.equal(entry.length, 1)
+  assert.equal(entry[0].outcome, 'inconclusive')
 })
 
 /* ------------------------------------------------------------------ *

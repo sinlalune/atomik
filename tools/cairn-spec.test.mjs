@@ -718,7 +718,10 @@ test('cairn-spec: every new requirement carries its own conformance row', () => 
   // check the claim. What the matrix owes is a visible status per requirement,
   // not a permanently pessimistic one.
   const matrix = markdown.slice(markdown.indexOf('## Current conformance'))
-  const STATUS = String.raw`(?:implemented|\*\*(?:not implemented|partially implemented)[^|]*\*\*)`
+  // The vocabulary, not one particular value. `**implemented**` was added when
+  // the journal-entry row reached it at S08h — a row moving to the strongest
+  // status must not fail the test that only asks it to state one.
+  const STATUS = String.raw`(?:implemented|\*\*(?:implemented|not implemented|partially implemented)[^|]*\*\*)`
   for (const capability of [
     'An adversarial fixture per blocking rule',
     'No predicate branches on a value that varies by execution context',

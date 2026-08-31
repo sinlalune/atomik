@@ -108,6 +108,8 @@ const PATH_BRANCH_STATUSES = ['running', 'blocked', 'ready']
 const CLOSED_STATUSES = ['ready', 'done']
 const PATH_RESOLUTIONS = ['completed', 'abandoned', 'superseded']
 const SESSION_DIR = 'atomik-project/sessions'
+/** One file per integrated outcome. `log.md` beside it is the frozen archive. */
+const JOURNAL_DIR = 'atomik-project/log'
 const HISTORY_DIR = `${PATH_DIR}/history`
 const ADR_DIR = 'docs/adr'
 const ADR_STATUSES = ['proposed', 'accepted', 'superseded', 'rejected']
@@ -1356,6 +1358,7 @@ export function evaluate({
   headProvisional = false,
   scopeDigestFor = null,
   previousFronts = new Map(),
+  journalEntries = [],
   trunkDelta = null,
   openingRecordFor = null,
   migrationExempt = V02_MIGRATION_PATHS,
@@ -1508,6 +1511,34 @@ export function evaluate({
           add(legacy ? 'advisory' : 'blocking', 'transition',
             `${path.file}: ${error}${legacy ? ' (grandfathered: this record predates the v0.2 schema)' : ''}`)
         }
+      }
+    }
+
+    // 4b. the merge-time journal entry ------------------------------
+    // Required by AGENTS.md, enforced nowhere until now. It binds the change
+    // that performs the integration, not the corpus: paths that merged before
+    // the convention existed are not in any diff, and draining them is a
+    // migration rather than a repair.
+    if (path.front?.status === 'done' && stateChanged.includes(path.file)) {
+      const previous = previousPaths instanceof Map
+        ? previousPaths.get(path.file)
+        : previousPaths?.[path.file]
+      const arriving = previous !== undefined && previous?.status !== 'done'
+      const id = String(path.front?.id ?? '')
+      if (arriving && journalEntries == null) {
+        add('blocking', 'journal-entry',
+          `${path.file} reaches done, and the journal could not be read to check for its entry — missing evidence is not a pass`,
+          'inconclusive')
+      } else if (arriving && !journalRecords(journalEntries, id)) {
+        // NO MIGRATION EXEMPTION HERE, deliberately. The v0.2 exception excuses
+        // records that predate the ACCEPTANCE SCHEMA — a path closed weeks ago
+        // cannot supply `accepted_by` without fabricating a signature. A journal
+        // entry is not a schema field: it is written at merge time, in the
+        // present, by whoever is merging, and every listed path can produce one.
+        // Exempting them would grandfather a requirement they can satisfy today,
+        // which is a bypass rather than a migration.
+        add('blocking', 'journal-entry',
+          `${path.file} reaches done with no journal entry declaring \`path: ${id}\` — write one file under ${JOURNAL_DIR}/ in this same change`)
       }
     }
 
@@ -2360,6 +2391,29 @@ export function ceremonyFromSessions(sessions, pathId) {
   return ceremonyOfKind(sessions, pathId, 'closing')
 }
 
+/**
+ * Does the journal record this path's integration?
+ *
+ * `AGENTS.md` requires one journal file per entry, written at merge time. Until
+ * now NO RULE ASKED. `same-work-unit` fires when *source* changes without a
+ * module note or ledger, and a closing unit changes neither — so nothing asked.
+ * Observed rather than hypothesised: CP-UI-TYPOGRAPHY was closed, audited, set
+ * to `done` and proposed for merge with no entry, and every gate reported `OK`.
+ * A human reviewer caught it (S08 brief, finding 2).
+ *
+ * It reads `atomik.path`, NOT the filename. The convention does encode the id in
+ * the filename, and matching that would have been easier and wrong for the same
+ * reason `hasCeremony` was wrong: a filename is not a declaration, and this path
+ * has already repaired one rule that asked a filename question while its comment
+ * claimed a semantic one. An entry declares which path it records, or it does
+ * not record it.
+ *
+ * Pure: the caller supplies the loaded entries.
+ */
+export function journalRecords(entries, pathId) {
+  return entries.some((entry) => entry?.path === pathId)
+}
+
 export function closingRecordFromSessions(sessions, pathId, subjectCommit = null) {
   const matches = sessions.filter(
     (note) =>
@@ -2404,6 +2458,19 @@ function loadSessions() {
       .map((file) => ({
         ...(readFrontmatter(readFileSync(join(REPO, SESSION_DIR, file), 'utf8'))?.data ?? {}),
         __file: `${SESSION_DIR}/${file}`
+      }))
+  } catch {
+    return []
+  }
+}
+
+function loadJournal() {
+  try {
+    return readdirSync(join(REPO, JOURNAL_DIR))
+      .filter((file) => file.endsWith('.md') && file !== 'index.md' && file !== 'log.md')
+      .map((file) => ({
+        ...(readFrontmatter(readFileSync(join(REPO, JOURNAL_DIR, file), 'utf8'))?.data?.atomik ?? {}),
+        __file: `${JOURNAL_DIR}/${file}`
       }))
   } catch {
     return []
@@ -2707,6 +2774,7 @@ function main() {
       scopeDigestFor: scopeDigestOf,
       openingRecordFor: (id) => openingRecordFromSessions(loadSessions(), id),
       previousFronts: previousFrontStates(paths, previousRef),
+      journalEntries: loadJournal(),
       trunkDelta: pathForBranch?.front?.status === 'ready'
         ? trunkDeltaSince(closingRecord(pathForBranch.front.id)?.base, trunkRef)
         : [],
