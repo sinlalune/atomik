@@ -191,6 +191,29 @@ records as its verification — said `OK`. Ledger entries in this path claim
 `verified: cairn-check` on that basis. They are not false, but they are weaker
 than they read.
 
+> **Correction, 2026-08-31 (S08b/S08c), from the CI runs themselves.** When this
+> brief was written the runs could not be read from this machine, and the
+> redness was attributed below to the `CP-MVP-008` findings the local
+> branch-versus-trunk run reported. **CI never reported those.** Its command
+> passes `--previous`, which forward-scopes the record rules to the pushed
+> commit, and `CP-MVP-008.md` had not changed — so those rules never evaluated
+> it there.
+>
+> The real cause, on **every** red run, was `checkpoint-retention`:
+> `actions/checkout` does not fetch `refs/cairn/*`, and the rule read that empty
+> namespace as absent refs. Measured: last green `6dd7fb2` (2026-08-26T21:25Z),
+> then ten consecutive failures through `1090ead` (2026-08-31T11:36Z), green
+> again at `3b40648` once S08b landed the fetch and the inconclusive verdict.
+>
+> `6dd7fb2` is the sharpest part. It was green because the path record declared
+> exactly **one** work unit, and the newest unit is exempt — so the rule had
+> nothing to ask. A second unit appeared in the next commit and it went red
+> immediately. **`checkpoint-retention` has never once produced a true verdict in
+> CI**: vacuous while it had no question, wrong from the moment it had one.
+>
+> The lesson is the brief's own: a claim about what a gate reported must come
+> from the gate's output, not from a local run that resembles it.
+
 This is the same [gate parity](./specification/concepts/gate-parity.md) property
 as the derived-view defect, and a better worked example, because nothing exotic
 is involved: it is the documented local command against the documented CI
@@ -202,7 +225,11 @@ comparison, not opt in to it.
 
 **Fixture:** one branch, both invocations, one verdict asserted.
 
-### What it is currently hiding on this branch
+### What the local default is hiding on this branch
+
+(Corrected heading: these are what the **local** branch-versus-trunk run reports
+and the local default hides. They are not what CI reported — see the correction
+above.)
 
 Eight blocking findings and one inconclusive, all on `CP-MVP-008.md`, all
 pre-existing before S07r: a `done` path whose record predates the v0.2 acceptance

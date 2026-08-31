@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-002
   route: full            # control plane + decision plane; escalation is one-way
   status: running
-  current_step: S08b
+  current_step: S08c
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
   writes:                    # ADVISORY — a signal, never a lock
@@ -46,7 +46,7 @@ atomik:
     - atomik-project/audits/index.md
     - atomik-project/log/**
   governs:                   # declared READ surface, pinned at exact blob ids
-    - atomik-project/coding-paths/paths.md@2e7747c5ffb4e0b3def150a112752cf417205c75
+    - atomik-project/coding-paths/paths.md@c8776b293f1c49cc7450481ea9de0d3151ecb2f9
     - docs/bedrock/22_22-agent-handoff.md@c10ed0a11bc501336f449be204b57408f80c196e
     - docs/bedrock/24_24-doc-templates.md@d8d8d00d466fd5e456dece1f5a8284a5c3a8c15a
     - docs/bedrock/26_26-okf-agent-context.md@867ef9c288e036b2b69fef464d0e8f5aef9960d6
@@ -697,6 +697,71 @@ ledger's promise is that another participant can fetch a checkpoint; a ref in on
 working copy is orphaned by the same push it exists to survive. `19` is now on
 the remote, and the concept note says the property is remote rather than local.
 
+### S08c — Read the gate instead of a run that resembles it — **COMPLETE**
+
+```cairn-unit
+step: S08c
+unit: 21
+type: repair
+verified: cairn-check, cairn-check:test, typecheck, test, build
+```
+
+The owner installed the GitHub CLI, so this machine can read the CI runs it had
+been reasoning about. The first thing that reading produced was a correction to
+two documents this path wrote, including the one S08 reads first.
+
+**S08b is green in CI, and the run matches the local simulation exactly** —
+`3b40648`, both jobs `success`, `cairn-check — branch path/cp-ops-002, base
+origin/master (flag), 228 changed file(s)`, `OK — protocol satisfied (3
+advisory)`, the same three advisories in the same words. The namespace fetch step
+pulled twenty-six refs. So the S08b claim, which was made from a reproduced
+checkout rather than from CI, holds as stated.
+
+**What the runs corrected.** The S08 opening brief said the branch had been *red
+in CI for many pushes* and then, under *What it is currently hiding*, listed
+eight blocking and one inconclusive finding on `CP-MVP-008.md`. CI never reported
+those. Its command passes `--previous`, which forward-scopes the record rules to
+the pushed commit, and `CP-MVP-008.md` had not changed — so those rules never
+evaluated it there. The nine findings were the **local** branch-versus-trunk
+run's, and the brief silently promoted a local measurement to a claim about CI.
+
+The real cause, on every red run, was `checkpoint-retention`:
+
+```text
+6dd7fb2   2026-08-26T21:25Z   success     — one work unit declared: nothing to ask
+9627ef7   2026-08-27T08:57Z   failure     — a second unit appears; the rule fires
+...       ten consecutive failures across five days
+1090ead   2026-08-31T11:36Z   failure     — S08a; still retention
+3b40648   2026-08-31T12:56Z   success     — S08b lands the fetch
+```
+
+`6dd7fb2` is the sharpest part and it was nearly missed. It passed because the
+path record declared exactly **one** work unit, and the newest unit is exempt, so
+`retentionDue` returned nothing and the rule had no question. One commit later a
+second unit appeared and it went red immediately. **`checkpoint-retention` never
+produced a true verdict in CI over its whole life** — vacuous while it had no
+question, wrong from the moment it had one. A green run is not evidence a rule
+works; it is evidence the rule did not object, and those are different sentences.
+
+**Corrected in place, with the correction visible.** The S08 brief and the
+`gate-parity` concept note are `docs/` documents, not session, audit or journal
+records, so record immutability does not apply — S07u settled that contrast:
+mutability, not wrongness, decides whether an error is edited or annotated. Both
+carry an explicit dated correction rather than a silent rewrite, and the brief's
+pin is refreshed in `governs:` here and in the handoff brief.
+
+The `gate-parity` note also said of the base-selection break that *nothing exotic
+is involved: no detached ref, no CI-only condition.* True of that break, and it
+read as a claim about the branch, on which a CI-only condition was in fact
+running the whole time. The note now carries both breaks side by side, because
+they are indistinguishable from a green local run and share nothing else.
+
+**The method, not just the fix.** Every parity claim in this path before today
+was made from a checkout built to resemble CI. The resemblance was good — S08b's
+simulation was exact — but *resembling* the gate is what the brief did when it
+attributed CI's redness to a local run's findings. `gh run view --log` is now the
+source for any statement about what CI reported, and the handoff brief says so.
+
 ### S09 — Greenfield pilot, coherence audit, closing ceremony, self-merge
 
 Initialize one real ex-nihilo repository from the kit — the research-paper workspace the
@@ -735,6 +800,10 @@ brief names — and fix what the pilot finds before merging.
 | Verification caveat, retroactive (S08a) | Every `cairn-check` row above this one recorded the working-tree-versus-`HEAD` verdict, because that was the default. Those rows are not false — the command ran and printed what they say — but they are **narrower than they read**, and on this branch that difference was 0 changed files against 228. Recorded here rather than edited into each row: a record is corrected by a later record. |
 | Gates at S08b | `npm run cairn-check` OK, 11 advisory · **and the same verdict in a CI-shaped clone**: 228 changed files, `OK — protocol satisfied (11 advisory)`, identical list · `npm run cairn-check:test` PASS, 198 subtests · `npm run cairn-spec:build` deterministic · `npm run typecheck` PASS · product suite 79 files, 1,109 passed / 1 skipped · `npm run build` PASS |
 | Machine-local state (S08b) | Retention refs `01`–`19` for this path exist on the remote; `19` was pushed at S08b after S08a left it local. `refs/cairn/*` is fetched by no clone and no checkout action, so any environment judging retention must fetch it explicitly — now written into the workflow, the operator guide and the concept note |
+| Gates at S08c | `npm run cairn-check` OK · `npm run cairn-check:test` PASS, 198 subtests · `npm run cairn-spec:build` deterministic · `npm run typecheck` PASS · product suite 79 files, 1,109 passed / 1 skipped · `npm run build` PASS |
+| CI, now readable (S08c) | `gh` is installed on this machine and authenticated, so CI verdicts are read rather than reproduced. `3b40648` — both jobs green, `OK — protocol satisfied (3 advisory)`, identical to the local simulation. Branch history: last green `6dd7fb2` (2026-08-26), ten consecutive `checkpoint-retention` failures through `1090ead`, green again at `3b40648`. Any future claim about what CI reported comes from `gh run view --log` |
+| Records corrected (S08c) | The S08 opening brief attributed the CI redness to nine `CP-MVP-008` findings that CI never reported — they were a local branch-versus-trunk run's, promoted to a claim about CI. `gate-parity` said *no CI-only condition* while one was running. Both are `docs/` documents, not immutable records, so both are corrected in place with a dated, visible correction; the brief's `governs:` pin is refreshed here and in the handoff brief |
+| Brief budget, third unit running (S08c) | The 1200-token budget blocked the refresh at S08a, S08b and S08c, each time costing real editing. That is the rule working — but three in a row is a signal about the *brief's shape*, not its size: it had become a chronicle appending one paragraph per step. S08c consolidated the three S08 units into one themed block and pruned two spent *Tried and rejected* entries. If a fourth refresh fights the budget, the answer is the ledger boundary below, not a bigger number |
 | Ledger boundary due (S08b) | `ledger-size` fires at ~10.6 k against the 10 k budget, which is the rule working: it speaks to whoever is editing the file. Roll **S07q–S08b** into [`history/`](./history/index.md) verbatim at the next step boundary, leaving one index line each. Advisory and not urgent, so it is recorded rather than folded into a repair unit |
 | Next action | S08 Part 1 item 1 — `hasCeremony` reads the `ceremony:` frontmatter key instead of matching a filename, with a fixture that rejects a `done` path whose only session note is its opening check. Then item 2 (the journal-entry predicate), item 3 (the derived-view rule keyed on declared `status`), item 3c (filename date equals frontmatter `timestamp:`), and item 4 (the retention-generation ADR, design before code) |
 | Superseded next action (S08a, done) | S08 — extract Cairn from Atomik: `cairn.config.json`, the generated enforcement header, `cairn-new`, and the tier-0/1 `cairn-init` seed. The v0.2 predicates land here or in a successor path, never by quietly marking a matrix row `implemented` |

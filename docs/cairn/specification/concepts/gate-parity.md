@@ -67,11 +67,18 @@ npm run cairn-check                            working tree vs HEAD    0 files  
 node cairn-check.mjs --base origin/master      branch vs trunk       224 files    9 blocking
 ```
 
-One branch, one tree, one command name, two verdicts — and the green one is the
-one a developer runs before every commit. Nothing exotic is involved: no
-detached ref, no CI-only condition. The local run had been reporting `OK` for
-many pushes while the branch was red in CI, and ledger entries recorded that
-`OK` as their verification.
+Both runs are local, on one branch, one tree, one command name — and the green
+one is what a developer runs before every commit. Nothing exotic is involved: no
+detached ref, no environment-only condition. The green line had been going into
+ledger entries as their verification.
+
+A second, independent break was running underneath this one on the same branch,
+and it is worth keeping beside it because the two look identical from a green
+local run and have nothing else in common. The remote checkout was ALSO missing
+a ref namespace the local one had, so a rule there answered a question it could
+not see the evidence for. Parity can break through the *inputs* a gate is given
+as easily as through the predicates it runs, and neither is visible from inside
+the passing side.
 
 What makes this a parity break rather than a preference is that the base is
 chosen *before* any predicate runs, so every changed-file rule inherits it
