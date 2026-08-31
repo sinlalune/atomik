@@ -20,6 +20,33 @@ remains the complete record; this is the readable one. If two paths ever start
 colliding on this file, it takes the amendment the journal already took — one file
 per entry in a `log/` subfolder — which was a concurrency fix, never a size one.
 
+## 2026-08-31
+
+- `S08d` proposes `ADR-020`, which makes protocol context weight a first-order
+  constraint rather than an afterthought. Measured for one running path, the
+  cold-resume read is ~23.9 k tokens before any work begins, and the path record
+  is half of it. The `history/` rollup answered the growth with discipline — grow,
+  then move steps out verbatim — and the measurement found what it cannot reach:
+  the Work Ledger, a 42-row table that is the file's largest section, is not a
+  step and does not roll. Almost every row is a fact about one step, held in the
+  parent because the parent used to be the only file.
+- The decision generalises past the path record on owner directive: slicing and
+  indexing every artefact becomes the maxim, tested by separation rather than by
+  a token budget — *the must-do is the index, the why is linked, and a reader who
+  follows only the index executes correctly.* A budget would be satisfiable by
+  compression, and compressing an explanation is how a record starts saying
+  something slightly untrue.
+- Two findings landed with it. The entry chain is protocol wearing a host
+  wrapper: `bedrock 22`'s body carries exactly one host-specific line, while
+  `bedrock 00` is entirely the product's constitution and sits in front of every
+  first session. And the same text produces different behaviour in different
+  harnesses — named here as **instruction parity**, the reader-side twin of gate
+  parity, distinct because it breaks on a document's own volume and interleaving
+  rather than on an environment value.
+- The concept wiki is at its hard cap of 71, so the new article is deferred to
+  acceptance rather than added quietly: the cap exists to make vocabulary growth
+  a visible decision.
+
 ## 2026-08-26
 
 - `S07g` proposes `ADR-019`, the Cairn v0.2 revision. Two of its nineteen items

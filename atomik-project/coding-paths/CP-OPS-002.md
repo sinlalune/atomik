@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-002
   route: full            # control plane + decision plane; escalation is one-way
   status: running
-  current_step: S08c
+  current_step: S08d
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
   writes:                    # ADVISORY — a signal, never a lock
@@ -762,6 +762,83 @@ simulation was exact — but *resembling* the gate is what the brief did when it
 attributed CI's redness to a local run's findings. `gh run view --log` is now the
 source for any statement about what CI reported, and the handoff brief says so.
 
+### S08d — Make the protocol's own weight a constraint it can be measured against — **COMPLETE**
+
+```cairn-unit
+step: S08d
+unit: 22
+type: decision
+verified: cairn-check, cairn-check:test, typecheck, test, build
+```
+
+Owner directive, after the ledger-boundary question turned into a design one:
+
+> "the optimizing of the weight of protocol context should be the MAXIM of the
+> protocol, always trying to make it the lighter possible by using slicing and
+> indexing on every part and every artefact."
+
+Decision only — [`ADR-020`](../../docs/adr/ADR-020-protocol-context-weight.md),
+`proposed`. No checker rule, no migration, no concept article. The v0.2 sequencing
+holds: the specification is corrected first so the tooling has a correct target,
+and a matrix row that lies about a mechanism is the failure this path exists to
+remove.
+
+**What the measurement changed about the proposal.** The owner's sketch was to
+slice steps into files from step 1 rather than roll them up later. Measuring the
+file first found that this fixes the smaller half:
+
+```text
+  3252  ## Work Ledger          <- largest section, and not a step
+  1115  ### S07r      1057  ### S08a      937  ### S07q
+ 11869  TOTAL
+```
+
+The Work Ledger is 42 rows, three of them added in one day, and nearly every row
+is a fact about **one step** — `Gates at S08a`, `Widening (S05)` — held in the
+parent because the parent used to be the only file. Its largest row restates the
+step index five hundred lines above it. Slicing steps leaves all of it behind. So
+the ADR takes the further step the sketch implied: the ledger **dissolves** into
+the steps it describes, and what stays is a live header that does not grow.
+
+**Two findings the owner raised, both verified rather than accepted.**
+
+*The entry chain is protocol wearing a host wrapper.* `bedrock 22`'s body is
+~1,950 tokens with exactly **one** host-specific line, under ~575 tokens of host
+frontmatter. `paths.md` is ~5,300 with roughly 300 host-specific. `bedrock 00` is
+entirely the product's constitution — *north star*, *product promise*, *founding
+invariant* — and `AGENTS.md` puts all 1,384 tokens of it in front of every first
+session, where none of it changes how a path executes. Stronger than the owner
+put it: not "mostly host", but protocol plus a wrapper, plus one document that
+should not be in a protocol read at all.
+
+*The same text behaves differently in different harnesses.* Named here as
+**instruction parity** — one protocol text, one repository state, the same
+workflow whoever reads it. The reader-side twin of
+[gate parity](../../docs/cairn/specification/concepts/gate-parity.md), and a
+distinct concept rather than a second half of it: gate parity breaks on an
+environment value, instruction parity breaks on the document's own volume and on
+instruction interleaved with rationale. Neither implies the other. Its three
+mechanisms are the three findings above, which is why the ADR treats them as one
+problem.
+
+**The test is separation, not a budget** — and that choice came from this path's
+own week. The brief budget blocked all three of S08a/b/c, and each time the fix
+was to shorten prose. That is what a budget teaches. A budget is satisfiable by
+compression, and compressing an explanation is how a record begins to say
+something slightly untrue, which is the failure eight units here have corrected.
+Separation moves the words instead of cutting them.
+
+**Two things deliberately not done.** The `instruction-parity` article is not
+written: the concept wiki is at its hard cap of 71, pinned by a test, and that cap
+exists to make vocabulary growth a visible decision — spending it as a side effect
+of needing one more word is the erosion it guards. And the OKF question was
+settled *against* the position drafted first: a proposal that a path folder earn
+its `log.md` was overruled by the owner, correctly. Uniform structure is cheaper
+than optimal structure for a reader doing lookups, because it removes the question
+"does this folder have one?". Checked rather than assumed — the folder logs are
+live, with 8 commits on `docs/cairn/log.md` and 5 on `coding-paths/log.md` since
+the S05c seed.
+
 ### S09 — Greenfield pilot, coherence audit, closing ceremony, self-merge
 
 Initialize one real ex-nihilo repository from the kit — the research-paper workspace the
@@ -800,12 +877,17 @@ brief names — and fix what the pilot finds before merging.
 | Verification caveat, retroactive (S08a) | Every `cairn-check` row above this one recorded the working-tree-versus-`HEAD` verdict, because that was the default. Those rows are not false — the command ran and printed what they say — but they are **narrower than they read**, and on this branch that difference was 0 changed files against 228. Recorded here rather than edited into each row: a record is corrected by a later record. |
 | Gates at S08b | `npm run cairn-check` OK, 11 advisory · **and the same verdict in a CI-shaped clone**: 228 changed files, `OK — protocol satisfied (11 advisory)`, identical list · `npm run cairn-check:test` PASS, 198 subtests · `npm run cairn-spec:build` deterministic · `npm run typecheck` PASS · product suite 79 files, 1,109 passed / 1 skipped · `npm run build` PASS |
 | Machine-local state (S08b) | Retention refs `01`–`19` for this path exist on the remote; `19` was pushed at S08b after S08a left it local. `refs/cairn/*` is fetched by no clone and no checkout action, so any environment judging retention must fetch it explicitly — now written into the workflow, the operator guide and the concept note |
+| The maxim, applied on its first day (S08d) | The brief budget blocked this refresh too — the fourth in four units. The first three were answered by shortening prose, which is what ADR-020 says a budget teaches. This one was answered its way: the State section stopped retelling S08a–S08d and became four pointers to records that hold them in full. **Separation, not compression** — the words moved rather than shrank, and the section is now shorter *and* more complete. That is the test the ADR proposes, run once, on the artefact that provoked it |
+| Gates at S08d | `npm run cairn-check` OK · `npm run cairn-check:test` PASS, 198 subtests · `npm run cairn-spec:build` deterministic · `npm run typecheck` PASS · product suite 1,109 passed / 1 skipped · `npm run build` PASS |
+| ADR-020 (S08d) | `proposed`, deliberately. It reshapes S08 Part 4 rather than extending it — the portable/host/binding classification is what `cairn-init` scaffolds, and a shape that is wrong at adoption becomes every adopter's migration. Accepting it carries three commitments together: the `instruction-parity` article, the concept-cap decision it forces, and the `CP-OPS-002` migration as the worked example |
+| Ledger boundary, superseded (S08d) | The roll queued at S08b is **not** done, and ADR-020 is why: if the path record becomes a folder, the rollup operation and its `ledger-size` advisory both disappear. Rolling now would be work performed to be undone. `ledger-size` stays advisory and stays firing — the honest state, not a suppressed one |
 | Gates at S08c | `npm run cairn-check` OK · `npm run cairn-check:test` PASS, 198 subtests · `npm run cairn-spec:build` deterministic · `npm run typecheck` PASS · product suite 79 files, 1,109 passed / 1 skipped · `npm run build` PASS |
 | CI, now readable (S08c) | `gh` is installed on this machine and authenticated, so CI verdicts are read rather than reproduced. `3b40648` — both jobs green, `OK — protocol satisfied (3 advisory)`, identical to the local simulation. Branch history: last green `6dd7fb2` (2026-08-26), ten consecutive `checkpoint-retention` failures through `1090ead`, green again at `3b40648`. Any future claim about what CI reported comes from `gh run view --log` |
 | Records corrected (S08c) | The S08 opening brief attributed the CI redness to nine `CP-MVP-008` findings that CI never reported — they were a local branch-versus-trunk run's, promoted to a claim about CI. `gate-parity` said *no CI-only condition* while one was running. Both are `docs/` documents, not immutable records, so both are corrected in place with a dated, visible correction; the brief's `governs:` pin is refreshed here and in the handoff brief |
 | Brief budget, third unit running (S08c) | The 1200-token budget blocked the refresh at S08a, S08b and S08c, each time costing real editing. That is the rule working — but three in a row is a signal about the *brief's shape*, not its size: it had become a chronicle appending one paragraph per step. S08c consolidated the three S08 units into one themed block and pruned two spent *Tried and rejected* entries. If a fourth refresh fights the budget, the answer is the ledger boundary below, not a bigger number |
 | Ledger boundary due (S08b) | `ledger-size` fires at ~10.6 k against the 10 k budget, which is the rule working: it speaks to whoever is editing the file. Roll **S07q–S08b** into [`history/`](./history/index.md) verbatim at the next step boundary, leaving one index line each. Advisory and not urgent, so it is recorded rather than folded into a repair unit |
-| Next action | S08 Part 1 item 1 — `hasCeremony` reads the `ceremony:` frontmatter key instead of matching a filename, with a fixture that rejects a `done` path whose only session note is its opening check. Then item 2 (the journal-entry predicate), item 3 (the derived-view rule keyed on declared `status`), item 3c (filename date equals frontmatter `timestamp:`), and item 4 (the retention-generation ADR, design before code) |
+| Next action | Owner ruling on ADR-020. If accepted: the `instruction-parity` article plus its concept-cap decision, then the `CP-OPS-002` folder migration as the worked example. Independently of that ruling, the two live trunk defects remain S08 Part 1 items 1 and 2 — `hasCeremony` reading the `ceremony:` key, and a predicate for the merge-time journal entry — and neither depends on the ADR |
+| Superseded next action (S08d, pending ruling) | S08 Part 1 item 1 — `hasCeremony` reads the `ceremony:` frontmatter key instead of matching a filename, with a fixture that rejects a `done` path whose only session note is its opening check. Then item 2 (the journal-entry predicate), item 3 (the derived-view rule keyed on declared `status`), item 3c (filename date equals frontmatter `timestamp:`), and item 4 (the retention-generation ADR, design before code) |
 | Superseded next action (S08a, done) | S08 — extract Cairn from Atomik: `cairn.config.json`, the generated enforcement header, `cairn-new`, and the tier-0/1 `cairn-init` seed. The v0.2 predicates land here or in a successor path, never by quietly marking a matrix row `implemented` |
 | Superseded next action (S07, done) | the specification and lexicon: `docs/cairn/specification.md` (planes, the ADR-017 lifecycle by reference, the rule table generated from `cairn-check.mjs`, the blocking-rule admission test, the three enforcement tiers with tier 2 as a repository property, the CP-MVP-011/012 migration window as a property), `docs/cairn/lexicon.md` (one definition per term, each pointing at the file that enforces it; a term with no enforcing file marked aspirational), and the step-by-step operator guide carrying the optional tier-2 ruleset as a copy-paste `gh api` payload |
 | Widening (S05) | `writes:` gained `docs/adr/**`, `docs/bedrock/index.md`, `docs/modules/**`, `docs/index.md`, `atomik-project/index.md` — S05 was always the OKF backfill; the declaration named only the two ADRs this path authors. Deliberate `single-truth` edit: `docs/modules/atomik-desktop.md`, one stale sentence naming the removed integrator |

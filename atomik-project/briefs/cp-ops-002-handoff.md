@@ -6,8 +6,8 @@ atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: 3b4064870ed1ea11f55f236952ff0fc81f0e461a
-  checkpoint_unit: 20
+  checkpoint: c254c01bf5069fd274dbfd54de2f77d676aebfce
+  checkpoint_unit: 21
   checkpoint_pushed: true
   base_commit: 7aa3b1d
   trunk_seen: dfcd09d
@@ -54,43 +54,44 @@ reports "nothing orphaned" once the retained set stops intersecting the branch,
 which is what a rebase causes — and rebase-before-merge is mandatory. The ref
 namespace cannot express the fix, so it is an ADR first.
 
-**S08 Part 1 so far — three parity repairs, all found by one question: *is the
-verdict I am recording the one that decides the merge?***
+**S08 so far — four units, one question:** *is the verdict I am recording the one
+that decides the merge?* Full records in the path file; what a resuming session
+needs from them:
 
-- **S08a.** On a `path/*` branch the base now defaults to the trunk. It is chosen
-  before any predicate runs, so every changed-file rule inherited the wrong one:
-  0 changed files locally against 228 in CI. `--working-tree` is the opt-out and
-  raises the new advisory `base-parity`. **Read every verdict before unit 19 as
-  the narrow one.**
-- **S08b.** An empty ref namespace is missing evidence, not evidence of absence.
-  CI called five retention refs missing while all eighteen sat on the remote:
-  `actions/checkout` fetches only `refs/heads/*` and `refs/tags/*`, and
-  `for-each-ref` over an unfetched namespace exits 0 with no output. The workflow
-  now fetches `+refs/cairn/*:refs/cairn/*`. **Any environment judging retention
-  must fetch it.**
-- **S08c.** `gh` is installed and authenticated, so CI is read, not reproduced.
-  `3b40648` is green and matches the simulation exactly. Reading it corrected two
-  of this path's documents: the S08 brief blamed the redness on nine
-  `CP-MVP-008` findings **CI never reported**, when every red run was retention.
-  And `6dd7fb2` was green only because one unit was declared and the newest is
-  exempt — so that rule never once produced a true verdict in CI.
+- The local gate now defaults to the **trunk** base on a path branch (S08a).
+  `--working-tree` is the opt-out and raises `base-parity`. **Every verdict
+  recorded before unit 19 is the narrow one.**
+- An **empty ref namespace is inconclusive, not absent** (S08b). CI fetches
+  `+refs/cairn/*:refs/cairn/*`; without that step retention cannot be judged.
+- **CI is read, not reproduced** (S08c). `gh run view --log` is the source for any
+  claim about what CI reported — substituting a look-alike local run is what put a
+  false attribution in the S08 opening brief.
+- **[`ADR-020`](../../docs/adr/ADR-020-protocol-context-weight.md) is `proposed`**
+  (S08d): context weight as a maxim tested by separation, `instruction parity`
+  named, a portable/host/binding boundary, and a path record **born sliced** with
+  the Work Ledger dissolving into its steps. The `history/` rollup and
+  `ledger-size` retire with it, so **the queued ledger roll is deliberately not
+  done** — it would be work performed to be undone.
 
 Refs 01–19 on the remote; 01–13 hold PRE-rebase commits and no ref was moved.
 Checker suite 198, specification suite 33.
 
 ## Next action
 
-S08 Part 1 item 1: **`hasCeremony`** must read the `ceremony:` frontmatter key
-instead of matching a filename, with a fixture that rejects a `done` path whose
-only session note is its opening check. `ceremonyFromSessions` on this branch
-already does it and has never reached the trunk.
+**Owner ruling on ADR-020 first.** If accepted it carries three things together:
+the `instruction-parity` article, the concept-cap decision it forces (the wiki is
+at its hard cap of 71), and the `CP-OPS-002` folder migration as worked example.
+
+Independent of that ruling, and unblocked either way: **`hasCeremony`** must read
+the `ceremony:` frontmatter key instead of matching a filename, with a fixture
+rejecting a `done` path whose only session note is its opening check.
+`ceremonyFromSessions` on this branch already does it and has never reached the
+trunk. Then item 2, a predicate for the merge-time journal entry.
 
 Then: item 2 (a journal-entry predicate), item 3 (the derived-view rule keyed on
 declared `status`, not the branch name), item 3c (a record's filename date equals
 its `timestamp:`), item 4 (retention generation — an ADR before code).
 
-At the next boundary, roll S07q–S08c into `history/` verbatim: `ledger-size`
-fires at ~10.7 k against 10 k.
 
 ## Blockers
 
@@ -106,8 +107,8 @@ exception (S07s), and the CP-UI-TYPOGRAPHY dates by record immutability.
 - **Grandfathering by date or forward scope**, and **retention checked per
   declared unit.** Both agree too easily; the exception set is now named, finite
   and self-deleting, and the branch is walked directly.
-- **Trusting a local run that resembles CI.** It is how the S08 brief came to
-  attribute findings to CI that CI never reported. Read `gh run view --log`.
+- **Trusting a local run that resembles CI.** How the S08 brief came to attribute
+  findings to CI that CI never reported.
 - **Renaming `atomik-project/` now.** 736 occurrences, 120 files, two paths
   branched against it; owner ruled documents-only, folder at S08.
 - **A self-sufficient brief, and an `objective:` field in it.** Both make it a
