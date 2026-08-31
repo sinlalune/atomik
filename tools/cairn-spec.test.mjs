@@ -347,7 +347,7 @@ test('cairn-spec: the concept wiki separates borrowed vocabulary from Cairn conc
   )
   const concepts = readdirSync(CONCEPTS)
     .filter((name) => name.endsWith('.md') && name !== 'index.md')
-  assert.ok(concepts.length <= 67, 'the concept budget is 67 articles, found ' + concepts.length)
+  assert.ok(concepts.length <= 71, 'the concept budget is 71 articles, found ' + concepts.length)
   for (const borrowed of ['git.md', 'rebase.md', 'merge.md', 'test.md', 'schema.md']) {
     assert.ok(concepts.includes(borrowed))
   }
@@ -360,7 +360,11 @@ test('cairn-spec: the concept wiki separates borrowed vocabulary from Cairn conc
     'scope-digest.md',
     'acceptance-drift.md',
     'foundation-path.md',
-    'route.md'
+    'route.md',
+    'proxy-predicate.md',
+    'unsound-gate.md',
+    'adversarial-fixture.md',
+    'gate-parity.md'
   ]) {
     assert.ok(concepts.includes(added), 'v0.2 concept missing: ' + added)
   }
@@ -673,10 +677,46 @@ test('cairn-spec: every inline script parses as JavaScript', () => {
   assert.ok(scripts.length >= 2)
   for (const script of scripts) assert.doesNotThrow(() => new Function(script))
 })
-test('cairn-spec: v0.2 names the predicate failure mode it hit twice', () => {
-  assert.match(markdown, /### Distrust a predicate that asks about a declaration/)
+test('cairn-spec: v0.2 names the predicate failure mode it kept hitting', () => {
+  assert.match(markdown, /#### The declaration and the fact/)
   assert.match(markdown, /A ref moved forward keeps every declared unit\s+resolving/)
   assert.match(markdown, /write the one that can\s+disagree with the record/)
+})
+
+test('cairn-spec: the rule-soundness directive states all four requirements', () => {
+  assert.match(markdown, /### Prove that the gate can fail/)
+  // The observation the directive rests on: the errors all lean one way.
+  assert.match(markdown, /Not one rule was too\s+strict\./)
+  for (const requirement of [
+    /\*\*1\. Every blocking rule MUST have a fixture it rejects\.\*\*/,
+    /\*\*2\. A predicate MUST NOT branch on a value that varies with where it runs\.\*\*/,
+    /\*\*3\. When a predicate can be written to ask about a declaration or about a[\s>]+fact, it MUST ask about the fact\.\*\*/,
+    /\*\*4\. A stated requirement with no predicate MUST be listed as unenforced\.\*\*/
+  ]) {
+    assert.match(markdown, requirement)
+  }
+  // Each requirement is taught by one concept article, linked from the directive.
+  for (const concept of [
+    'proxy-predicate', 'unsound-gate', 'adversarial-fixture', 'gate-parity'
+  ]) {
+    assert.match(markdown, new RegExp('\\./concepts/' + concept + '\\.md'), concept)
+  }
+})
+
+test('cairn-spec: every new requirement carries its own conformance row', () => {
+  // The specification's own promise: "Every requirement below appears as one row
+  // of the conformance matrix." A directive with no row is the failure mode the
+  // directive's fourth requirement is about.
+  const matrix = markdown.slice(markdown.indexOf('## Current conformance'))
+  for (const row of [
+    /\| An adversarial fixture per blocking rule \| required \| \*\*not implemented\*\*/,
+    /\| No predicate branches on a value that varies by execution context \| required \| \*\*not implemented, and violated\*\*/,
+    /\| Local and CI invocations of one gate reach the same verdict \| required \| \*\*not implemented\*\*/,
+    /\| Every stated requirement is enforced or listed as unenforced \| required \|/,
+    /\| Merge-time journal entry, one file per integrated outcome \| required \| \*\*not implemented\*\*/
+  ]) {
+    assert.match(matrix, row)
+  }
 })
 
 test('cairn-spec: the route has a structural backstop, not only declarations', () => {

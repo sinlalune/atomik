@@ -1446,6 +1446,11 @@ not in a separate document a reader may never open.
 | Marked provisional commits excluded from candidate identity | required | implemented; a ready path whose candidate range still contains a marked commit is blocked | the fold itself is not verified to preserve content |
 | Handoff-brief field schema and answerable-alone contract | required | **partially implemented**; the eight fields, the seven exact sections, pinned `governs` entries and the token budget are checked | the answerable-alone contract is a judgement and a cold-resume harness, and is never claimed by a checker |
 | Field-level administrative closure surface | required | implemented; closure may move only `status`, `subject_commit`, `current_step` and `resolution` | ledger append-only proof, which remains a separate open row |
+| An adversarial fixture per blocking rule | required | **not implemented**; the checker suite exercises valid repositories and asserts `OK`, which a rule that never fires also satisfies. No rule is currently required to demonstrate a rejection | a fixture repository per blocking rule |
+| No predicate branches on a value that varies by execution context | required | **not implemented, and violated**; the derived-view check skips itself when the branch matches `path/*`, so a local run and a CI run on a detached ref reach different verdicts on one tree | trunk-context resolution that reads the tree, not the branch name |
+| Local and CI invocations of one gate reach the same verdict | required | **not implemented**; asserted in `AGENTS.md` prose, tested nowhere | a fixture run in both contexts |
+| Every stated requirement is enforced or listed as unenforced | required | **partially implemented**; this table is the mechanism, and it is maintained by hand. The merge-time journal entry is required by `AGENTS.md` and had no row and no predicate until this revision | generation of the matrix from the checker and the normative text |
+| Merge-time journal entry, one file per integrated outcome | required | **not implemented**; no predicate asks for one. A path closed, was audited and was proposed for merge with the entry missing, and every gate reported `OK` | integration-time hook, since the entry is written in the closing unit |
 | Scope digest recorded at opening and re-verified at closing | required | implemented; the resolved section is digested and compared at closure | a path opened before the rule cannot amend its immutable opening record — see the migration exception |
 | Candidate base `T` and the acceptance-drift predicate | required | implemented; the trunk delta since the recorded base is tested against `writes:` ∪ `governs:` | path matching is a proxy for semantic overlap, as stated |
 | Structured `advisory_disposition` matching findings at `C` | required | **partially implemented**; dispositions must cover the attested `advisories_at_candidate` exactly, and any advisory raised at `A` and absent from it is proved missing | an advisory that fires only at `C` stays attested rather than derived; closing that needs evaluation replayed at `C` |
@@ -1501,7 +1506,64 @@ This is recorded as an open finding, not a resolved item. The remedy is merges,
 and merges are the work of noticing that two named objects are one object seen
 twice — which cannot be done by asking for it in a checklist.
 
-### Distrust a predicate that asks about a declaration
+### Prove that the gate can fail
+
+Cairn's rules are the only thing standing between its records and wishful
+thinking, so the rules themselves need a discipline. This section states it.
+
+Everything below exists because of one observed fact: **every enforcement defect
+found in the reference checker has been the same kind.** Not one rule was too
+strict. All of them agreed too easily, and every one reported `OK` over a
+condition that was false.
+
+That is not a coincidence, and the reason is worth understanding before the
+rules are stated. A rule turns a sentence into code, and something has to bridge
+the two — a measurable stand-in, a [proxy predicate](./concepts/proxy-predicate.md).
+The stand-in is almost always the *broader* condition, because the easy thing to
+compute is usually necessary for the sentence rather than sufficient for it. So
+the errors all lean the same way, and the result is an
+[unsound gate](./concepts/unsound-gate.md): one whose passing does not mean what
+it says.
+
+An unsound gate is worse than a missing one. A missing rule leaves a visible
+gap. An unsound rule fills the gap with a **claim**, and Cairn writes that claim
+down — a closing acceptance records that gates were green, and a journal entry
+repeats it. The false statement becomes durable, exact, and signed.
+
+Four requirements follow.
+
+> **1. Every blocking rule MUST have a fixture it rejects.**
+> An [adversarial fixture](./concepts/adversarial-fixture.md) is a crafted
+> violation, and the rule's own name MUST appear in the resulting finding. A
+> green suite of valid inputs proves only that a rule is quiet; a rule that never
+> fires at all passes those tests identically. A blocking rule with no fixture is
+> unproven, and SHOULD be treated as unsound until one exists.
+
+> **2. A predicate MUST NOT branch on a value that varies with where it runs.**
+> The tree is the same locally and in CI; the environment is not. Branch names,
+> fetched refs, the working directory and the clock are all properties of the
+> environment. Where a rule needs to know its context, it MUST derive that from
+> the tree — a declared `status`, the presence of a record — and the two
+> invocations MUST reach the same verdict. This is
+> [gate parity](./concepts/gate-parity.md).
+
+> **3. When a predicate can be written to ask about a declaration or about a
+> fact, it MUST ask about the fact.**
+> Walk the branch rather than the ledger's list of units. Attest the candidate's
+> advisory set rather than recomputing it at closure. The two readings are
+> identical in a healthy repository and diverge exactly when something has gone
+> wrong, because a broken state usually leaves the declarations internally
+> consistent.
+
+> **4. A stated requirement with no predicate MUST be listed as unenforced.**
+> The [conformance matrix](#current-conformance) is where that is said. An
+> unenforced requirement and an unsound gate are indistinguishable from inside a
+> green run — both produce a passing check over a condition nobody verified — and
+> only the matrix can tell a reader which one they are looking at.
+
+The rest of this section is the worked example that produced requirement 3.
+
+#### The declaration and the fact
 
 One failure mode is worth naming for whoever implements this next, because it
 produced two real violations here and both times the gate reported `OK`.
@@ -1518,6 +1580,14 @@ Both rules passed over a live violation. Both were rewritten to walk the
 repository instead: the branch itself for retention, an attested candidate set for
 dispositions. When a predicate can be written either way, write the one that can
 disagree with the record.
+
+The same substitution appears wherever a rule needs to know something it cannot
+compute. `hasCeremony` asks whether a session note *names* the path, standing in
+for whether a closing ceremony happened — so the note written when the path
+opened satisfies the closing gate. A derived-view check asked whether the branch
+was named `path/*`, standing in for whether this checkout owns the generated
+view — which was true until self-merge made a path the last writer of its own
+`status`. Neither rule was edited; the world each described moved underneath it.
 
 A requirement whose reference row names a migration exception is not exempt from
 the requirement. The exception is finite, listed in the checker, and reported as

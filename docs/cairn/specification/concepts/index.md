@@ -20,7 +20,7 @@ it, and a reader who does not can learn it here without learning Cairn at the
 same time. **Cairn's own concepts** are the objects and rules the protocol
 actually adds — the ideas you are being asked to evaluate.
 
-Twenty-one borrowed terms, forty-six Cairn concepts. A protocol that presents
+Twenty-one borrowed terms, fifty Cairn concepts. A protocol that presents
 those as one undifferentiated glossary looks twice as large as it is, and hides
 which half a criticism belongs to.
 
@@ -112,6 +112,15 @@ the path worktree now.
 [enforcement profile](./enforcement-profile.md) →
 [conformance](./conformance.md).
 
+### Whether a rule can be trusted
+
+A rule is a sentence turned into code, and the join is where the defects live.
+[Proxy predicate](./proxy-predicate.md) names the substitution,
+[unsound gate](./unsound-gate.md) names what it produces,
+[adversarial fixture](./adversarial-fixture.md) is the only evidence a rule
+works, and [gate parity](./gate-parity.md) is the property that one gate does not
+change its mind between a laptop and CI.
+
 ## Alphabetical index
 
 Borrowed terms are marked *(borrowed)*.
@@ -119,6 +128,7 @@ Borrowed terms are marked *(borrowed)*.
 - [Acceptance drift](./acceptance-drift.md)
 - [Administrative closure](./administrative-closure.md)
 - [Advisory finding](./advisory-finding.md)
+- [Adversarial fixture](./adversarial-fixture.md)
 - [Architecture](./architecture.md) *(borrowed)*
 - [Archived state](./archived-state.md)
 - [Auditor](./auditor.md)
@@ -145,6 +155,7 @@ Borrowed terms are marked *(borrowed)*.
 - [Exit code](./exit-code.md) *(borrowed)*
 - [Fetch and push](./fetch-and-push.md) *(borrowed)*
 - [Foundation path](./foundation-path.md)
+- [Gate parity](./gate-parity.md)
 - [Git](./git.md) *(borrowed)*
 - [Handoff brief](./handoff.md)
 - [Implementation candidate](./implementation-candidate.md)
@@ -164,6 +175,7 @@ Borrowed terms are marked *(borrowed)*.
 - [Path record](./path-record.md)
 - [Path writer](./path-writer.md)
 - [Project memory](./project-memory.md)
+- [Proxy predicate](./proxy-predicate.md)
 - [Provisional commit](./provisional-commit.md)
 - [Ready state](./ready-state.md)
 - [Rebase](./rebase.md) *(borrowed)*
@@ -179,6 +191,7 @@ Borrowed terms are marked *(borrowed)*.
 - [Test](./test.md) *(borrowed)*
 - [Trunk](./trunk.md) *(borrowed)*
 - [Trunk registration](./trunk-registration.md)
+- [Unsound gate](./unsound-gate.md)
 - [Work ledger](./work-ledger.md)
 - [Work unit](./work-unit.md)
 - [Working tree and worktree](./worktree.md) *(borrowed)*
