@@ -146,13 +146,70 @@ breaks when a predicate reads a value belonging to the environment. Instruction
 parity breaks on properties of the *document*: its volume, and the interleaving
 of instruction with rationale. Neither failure implies the other.
 
-**Budget consequence, stated rather than absorbed.** The concept wiki is at its
-hard cap of 71 articles, pinned by a test, and that cap exists for a reason
-recorded at S07g: a protocol whose vocabulary grows every time it is corrected
-gets harder to hold in mind at exactly the rate it gets more precise. Adding
-`instruction-parity` therefore requires either a merge or an explicit raise, and
-this ADR does **not** silently do either. The article and the budget decision
-land when this ADR is accepted, together, as one visible choice.
+The article is written when this ADR is accepted. It does not need to displace
+another, for the reason decision 2b records.
+
+### 2b. The concept cap is retired as a blocking rule and replaced
+
+The concept wiki carries a hard cap on article count, pinned by a test. Its
+motivation is sound and survives: every concept is something a reader must learn
+before the normative text is readable, and there is a one-way gradient, because
+every correction wants new vocabulary and nothing pushes back. S07g did real work
+under it, merging four pairs of concepts that turned out to be one object seen
+twice.
+
+The mechanism does not survive. Its own history:
+
+```text
+cap=66   actual=66    S07g  2026-08-26   set
+cap=67   actual=67    S07o  2026-08-27   raised by one
+cap=71   actual=71    S07q  2026-08-31   raised by four
+```
+
+**It has never once bound.** Every time it would have blocked it was raised to
+exactly the new count, so it is not a cap but the current count restated as an
+assertion. The merges at S07g happened because an author chose to merge; the cap
+has never caused one.
+
+Three reasons to retire it rather than raise it again:
+
+1. **It fails this protocol's own admission test for blocking rules** —
+   *objectively checkable AND breaking it leaves something wrong in the repository,
+   not merely unconventional.* A further concept is not wrong. This rule should
+   never have blocked.
+2. **It is the pattern removed at S08a**, where a test hard-coding
+   `**not implemented**` for five conformance rows was relaxed on the reasoning
+   that pinning a value which legitimately changes turns every honest update into
+   a test edit, and so teaches an editor to change the test rather than check the
+   claim. The cap's history is that prediction confirmed three times.
+3. **It can be satisfied in ways that make the wiki worse.** The cheapest way to
+   fit a new concept under a fixed count is to merge two *unrelated* articles,
+   which breaks the rule that a concept note is about exactly one idea. The metric
+   holds while the thing it protects degrades.
+
+And it now measures the wrong quantity. The cap counts the **corpus**; the maxim
+in decision 1 measures what a **reader must consume**. A well-indexed wiki of a
+hundred articles where a reader opens four is cheaper than seventy-one where they
+open twenty. Under the maxim, article count is a
+[proxy predicate](../cairn/specification/concepts/proxy-predicate.md) for *can a
+reader hold this protocol in mind*, and it is the broader condition — the usual
+direction of that error. Slicing and indexing produce more files deliberately, so
+a rule that counts files fights the maxim.
+
+**Replaced by two rules that aim at the thing the cap was aiming at:**
+
+- **Advisory when the count grows**, naming the article added. Growth becomes a
+  visible decision, which was the stated goal, without a build failing over a
+  judgement.
+- **Blocking on an orphan.** A concept note that no normative or learning text
+  links to is a real defect: nobody needed the word. This is objectively checkable
+  and its breach leaves something wrong — a page nothing points at. It catches
+  vocabulary bloat where bloat actually begins, rather than at an arbitrary
+  threshold.
+
+Measured before proposing it: **0 of 71 concept notes are orphans.** The wiki is
+healthy, the cap was not what kept it healthy, and the orphan rule is what would
+notice if the authoring discipline slipped.
 
 ### 3. The Cairn/host artefact boundary is declared
 
@@ -245,6 +302,9 @@ assumed — commits touching folder logs since the S05c seed: `docs/cairn` 8,
   folder rather than one file, `same-work-unit` must recognise a step file as the
   path changing, and `ledger-size` loses its subject and is retired with the
   rollup it policed.
+- The concept-count assertion is removed from the specification test suite and
+  replaced by the growth advisory and the orphan rule, which move from a test into
+  `cairn-check` where the other catalogue rules live.
 - Relative-link depth shifts one level for path records, as it did at the S07c
   rollup. A link is an address rather than content, so repointing it is not a
   record edit.
@@ -270,9 +330,18 @@ assumed — commits touching folder logs since the S05c seed: `docs/cairn` 8,
   note is about exactly one idea, and the two properties break through different
   causes. Folding them would hide that a document's own volume is a parity
   hazard.
-- **Raise the concept cap quietly to fit the new article.** Rejected: the cap
-  exists to make vocabulary growth a visible decision. Raising it as a side effect
-  of needing one more word is precisely the erosion it guards against.
+- **Raise the concept cap again to fit the new article.** Rejected, and it was the
+  first draft of this ADR. Raising it as a side effect of needing one more word is
+  the erosion the cap was meant to guard against — but checking the cap's history
+  showed the guard has never held: three raises, each to exactly the new count.
+  The honest reading is not that the cap was misused, but that a hard count cannot
+  do this job.
+- **Keep the cap and merge two concepts to make room.** Rejected: the cheapest
+  merges available are between unrelated articles, which breaks the one-idea rule
+  and degrades the wiki while the number holds.
+- **Delete the cap with no replacement.** Rejected: the concern is real and the
+  gradient is one-way. The growth advisory keeps it visible, and the orphan rule
+  gives the concern a blocking form that passes the admission test.
 - **Extract Cairn from the host after `cairn-init` ships.** Rejected: a shape that
   is wrong at adoption becomes every adopter's migration rather than this
   repository's.
@@ -284,8 +353,8 @@ assumed — commits touching folder logs since the S05c seed: `docs/cairn` 8,
 Migration is staged, and no stage is required by the one before it to be
 complete:
 
-1. This ADR is accepted, together with the `instruction-parity` article and its
-   budget decision.
+1. This ADR is accepted. The `instruction-parity` article is written, the concept
+   cap is retired, and the growth advisory and orphan rule replace it.
 2. `CP-OPS-002` migrates to the folder shape as the worked example, verbatim, and
    its Work Ledger rows are distributed to the steps they describe — a move, not
    a rewrite.

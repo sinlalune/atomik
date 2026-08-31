@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-002
   route: full            # control plane + decision plane; escalation is one-way
   status: running
-  current_step: S08d
+  current_step: S08e
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
   writes:                    # ADVISORY — a signal, never a lock
@@ -839,6 +839,65 @@ than optimal structure for a reader doing lookups, because it removes the questi
 live, with 8 commits on `docs/cairn/log.md` and 5 on `coding-paths/log.md` since
 the S05c seed.
 
+### S08e — A cap that has never bound is a count, not a constraint — **COMPLETE**
+
+```cairn-unit
+step: S08e
+unit: 23
+type: decision
+verified: cairn-check, cairn-check:test, typecheck, test, build
+```
+
+Owner question on the ADR-020 draft: *"why do we need an hard cap in concept wiki
+folder?"* Checked before answering, and the history answers it:
+
+```text
+cap=66   actual=66    S07g  2026-08-26   set
+cap=67   actual=67    S07o  2026-08-27   raised by one
+cap=71   actual=71    S07q  2026-08-31   raised by four
+```
+
+**It has never once bound.** Every time it would have blocked it was raised to
+exactly the new count — so it is not a cap, it is the current count restated as an
+assertion. The four merges at S07g happened because an author chose to merge; the
+cap has never caused one. Its motivation survives and its mechanism does not.
+
+Three reasons, and each is a rule this path already wrote:
+
+1. It fails the **admission test for blocking rules** — *objectively checkable AND
+   breaking it leaves something wrong in the repository, not merely
+   unconventional.* A further concept is not wrong.
+2. It is the pattern **S08a removed** five units ago: a test hard-coding a value
+   that legitimately changes turns every honest update into a test edit, and so
+   teaches an editor to change the test rather than check the claim. The cap's
+   history is that prediction confirmed three times. The parallel should have been
+   noticed when S08a was written.
+3. It can be satisfied in ways that make the wiki **worse**: the cheapest way to
+   fit a new concept under a fixed count is to merge two unrelated articles, which
+   breaks the one-idea rule. The metric holds while the thing it protects degrades.
+
+And ADR-020 itself makes it measure the wrong quantity. The cap counts the
+**corpus**; the maxim measures what a **reader must consume**. A hundred
+well-indexed articles where a reader opens four are cheaper than seventy-one where
+they open twenty — so article count is a `proxy-predicate` for *can a reader hold
+this protocol in mind*, and the broader condition, which is the usual direction of
+that error. Slicing and indexing produce more files deliberately; a rule counting
+files fights the maxim it now sits under.
+
+**Replaced, not deleted** — the concern is real and the gradient is one-way.
+Advisory when the count grows, naming the article added, so growth stays a visible
+decision. Blocking on an **orphan**: a concept note nothing links to is a real
+defect, because nobody needed the word, and its breach leaves a page nothing points
+at. Measured before proposing it: **0 of 71 are orphans.** The wiki is healthy, the
+cap was not what kept it healthy, and the orphan rule is what would notice if the
+authoring discipline slipped.
+
+`ADR-020` is amended in place rather than superseded: it is still `proposed` and
+has had no ruling, so there is no decision to correct — only a draft to improve
+before it is read. Decision 2 loses the budget paragraph, decision **2b** carries
+the retirement, and three alternatives are recorded including the first draft's
+own position.
+
 ### S09 — Greenfield pilot, coherence audit, closing ceremony, self-merge
 
 Initialize one real ex-nihilo repository from the kit — the research-paper workspace the
@@ -878,6 +937,8 @@ brief names — and fix what the pilot finds before merging.
 | Gates at S08b | `npm run cairn-check` OK, 11 advisory · **and the same verdict in a CI-shaped clone**: 228 changed files, `OK — protocol satisfied (11 advisory)`, identical list · `npm run cairn-check:test` PASS, 198 subtests · `npm run cairn-spec:build` deterministic · `npm run typecheck` PASS · product suite 79 files, 1,109 passed / 1 skipped · `npm run build` PASS |
 | Machine-local state (S08b) | Retention refs `01`–`19` for this path exist on the remote; `19` was pushed at S08b after S08a left it local. `refs/cairn/*` is fetched by no clone and no checkout action, so any environment judging retention must fetch it explicitly — now written into the workflow, the operator guide and the concept note |
 | The maxim, applied on its first day (S08d) | The brief budget blocked this refresh too — the fourth in four units. The first three were answered by shortening prose, which is what ADR-020 says a budget teaches. This one was answered its way: the State section stopped retelling S08a–S08d and became four pointers to records that hold them in full. **Separation, not compression** — the words moved rather than shrank, and the section is now shorter *and* more complete. That is the test the ADR proposes, run once, on the artefact that provoked it |
+| Gates at S08e | `npm run cairn-check` OK · `npm run cairn-check:test` PASS, 198 subtests · `npm run cairn-spec:build` deterministic · `npm run typecheck` PASS · product suite 1,109 passed / 1 skipped · `npm run build` PASS |
+| Amending a proposed ADR (S08e) | ADR-020 is edited in place, not superseded. It carries no ruling yet, so nothing was decided that could need correcting — the distinction is `proposed` versus `accepted`, and it is the same distinction S07u drew for mutable versus immutable records. Once ruled on, a change of substance would need a superseding ADR instead |
 | Gates at S08d | `npm run cairn-check` OK · `npm run cairn-check:test` PASS, 198 subtests · `npm run cairn-spec:build` deterministic · `npm run typecheck` PASS · product suite 1,109 passed / 1 skipped · `npm run build` PASS |
 | ADR-020 (S08d) | `proposed`, deliberately. It reshapes S08 Part 4 rather than extending it — the portable/host/binding classification is what `cairn-init` scaffolds, and a shape that is wrong at adoption becomes every adopter's migration. Accepting it carries three commitments together: the `instruction-parity` article, the concept-cap decision it forces, and the `CP-OPS-002` migration as the worked example |
 | Ledger boundary, superseded (S08d) | The roll queued at S08b is **not** done, and ADR-020 is why: if the path record becomes a folder, the rollup operation and its `ledger-size` advisory both disappear. Rolling now would be work performed to be undone. `ledger-size` stays advisory and stays firing — the honest state, not a suppressed one |

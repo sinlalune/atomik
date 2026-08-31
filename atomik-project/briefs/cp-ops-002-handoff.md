@@ -6,8 +6,8 @@ atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: c254c01bf5069fd274dbfd54de2f77d676aebfce
-  checkpoint_unit: 21
+  checkpoint: bc5c083670194a0f1e9d26093dd8be7724c76913
+  checkpoint_unit: 22
   checkpoint_pushed: true
   base_commit: 7aa3b1d
   trunk_seen: dfcd09d
@@ -67,20 +67,19 @@ needs from them:
   claim about what CI reported — substituting a look-alike local run is what put a
   false attribution in the S08 opening brief.
 - **[`ADR-020`](../../docs/adr/ADR-020-protocol-context-weight.md) is `proposed`**
-  (S08d): context weight as a maxim tested by separation, `instruction parity`
-  named, a portable/host/binding boundary, and a path record **born sliced** with
-  the Work Ledger dissolving into its steps. The `history/` rollup and
-  `ledger-size` retire with it, so **the queued ledger roll is deliberately not
-  done** — it would be work performed to be undone.
+  (S08d, amended S08e). Read it rather than a summary; two consequences bind now:
+  **the queued ledger roll is deliberately not done** (the rollup and
+  `ledger-size` retire with it, so it is work performed to be undone), and the
+  concept cap is **retired rather than raised** — it never bound once.
 
 Refs 01–19 on the remote; 01–13 hold PRE-rebase commits and no ref was moved.
 Checker suite 198, specification suite 33.
 
 ## Next action
 
-**Owner ruling on ADR-020 first.** If accepted it carries three things together:
-the `instruction-parity` article, the concept-cap decision it forces (the wiki is
-at its hard cap of 71), and the `CP-OPS-002` folder migration as worked example.
+**Owner ruling on ADR-020 first.** If accepted it carries three things: the
+`instruction-parity` article, the concept-cap retirement with its two replacement
+rules, and the `CP-OPS-002` folder migration as worked example.
 
 Independent of that ruling, and unblocked either way: **`hasCeremony`** must read
 the `ceremony:` frontmatter key instead of matching a filename, with a fixture

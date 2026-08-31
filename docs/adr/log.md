@@ -43,9 +43,15 @@ per entry in a `log/` subfolder — which was a concurrency fix, never a size on
   harnesses — named here as **instruction parity**, the reader-side twin of gate
   parity, distinct because it breaks on a document's own volume and interleaving
   rather than on an environment value.
-- The concept wiki is at its hard cap of 71, so the new article is deferred to
-  acceptance rather than added quietly: the cap exists to make vocabulary growth
-  a visible decision.
+- The concept cap is retired rather than raised, on the owner's question *why do
+  we need a hard cap*. Its history answers it: `cap=66` at S07g, `67` at S07o,
+  `71` at S07q — three raises, each to exactly the new count. It has never once
+  bound, so it is the current count restated as an assertion. It also fails the
+  protocol's own admission test (a further concept is not *wrong*), repeats the
+  pattern S08a removed from the conformance test, and can be satisfied by merging
+  unrelated articles — degrading the wiki while the number holds. Replaced by an
+  advisory when the count grows and a blocking rule against an orphan concept,
+  which is where bloat actually begins. Measured first: 0 of 71 are orphans.
 
 ## 2026-08-26
 
