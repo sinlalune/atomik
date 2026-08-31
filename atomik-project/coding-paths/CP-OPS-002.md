@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-002
   route: full            # control plane + decision plane; escalation is one-way
   status: running
-  current_step: S08f
+  current_step: S08g
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
   writes:                    # ADVISORY — a signal, never a lock
@@ -946,6 +946,60 @@ exist. Both readings are written down, neither is taken, and it is flagged as
 needing an owner ruling. Deciding it quietly in either direction would be the
 worse outcome.
 
+### S08g — Accept ADR-020, and retire the two token counts it argues against — **COMPLETE**
+
+```cairn-unit
+step: S08g
+unit: 25
+type: repair
+verified: cairn-check, cairn-check:test, typecheck, test, build
+```
+
+Owner ruling: *"remove it and validate the adr."* Both done, in one unit, because
+the ADR's own migration stage 1 is what the removal belongs to.
+
+**`ADR-020` is `accepted`** — frontmatter and body `Status:` together, index row
+updated. Its open question becomes **decision 6**: the brief's `budget_tokens`
+was put to the owner with both readings and ruled on the same day. The case for
+keeping it was real — the concept cap counted a *corpus* while this counted one
+*required-reading artefact*, exactly the quantity the maxim cares about. What
+decided it was behaviour, not principle: five firings in one day, four answered by
+rewriting sentences shorter, including one that dropped what a predicate operates
+on and that a test pins it. The sentence got shorter and said less than the truth.
+
+**Stage 1 landed in full.**
+
+- `budget_tokens` removed from `BRIEF_FIELDS`, from `briefErrors`, from the
+  specification, the brief reference, the configuration surface, the conformance
+  checklist, the `handoff` concept and both live briefs. `BRIEF_FIELDS.length` is
+  pinned at 9 with a test asserting the field is gone.
+- The concept cap assertion is deleted from the specification suite, replaced by
+  two rules in `cairn-check` where the other catalogue rules live:
+  **`concept-orphan`** (blocking) and **`concept-growth`** (advisory, diff-scoped
+  like `ledger-size`, for the same reason — it speaks to whoever is adding a word).
+- The `instruction-parity` article is written, and the wiki is at 72.
+
+**The orphan rule caught its own article before anything else did.** Writing
+`instruction-parity.md` and adding it to the wiki index left it *blocking*: the
+index lists everything by construction, so counting it would make the rule
+unfailable, which is the defect it replaces. It passed only once the normative
+directive linked it — the *link, don't redefine* doctrine enforced on its first
+new concept, by a rule that had existed for twenty minutes.
+
+**A loophole closed by measuring first.** The first reading counted a link from
+any document except the wiki index — which would let two mutually-linking orphans
+pass, since a word reachable only from other words is a word the protocol never
+needed. The strict reading counts only links from **outside the wiki**. Before
+choosing it: all 71 pre-existing concepts already satisfy it, so the tightening
+fails none of them and is not merely severe.
+
+**Fixtures.** Three pure ones for `orphanConcepts`, `addedConcepts` and
+`namesForReading`, plus an end-to-end adversarial check: a crafted orphan note was
+added to the real wiki, the real checker blocked with the rule named, and removing
+it returned `OK`. `addedConcepts(null, …)` returns `null` rather than an empty
+list — the S08b lesson applied where it would otherwise have recurred, since an
+unreadable previous state is not evidence of no growth.
+
 ### S09 — Greenfield pilot, coherence audit, closing ceremony, self-merge
 
 Initialize one real ex-nihilo repository from the kit — the research-paper workspace the
@@ -985,6 +1039,9 @@ brief names — and fix what the pilot finds before merging.
 | Gates at S08b | `npm run cairn-check` OK, 11 advisory · **and the same verdict in a CI-shaped clone**: 228 changed files, `OK — protocol satisfied (11 advisory)`, identical list · `npm run cairn-check:test` PASS, 198 subtests · `npm run cairn-spec:build` deterministic · `npm run typecheck` PASS · product suite 79 files, 1,109 passed / 1 skipped · `npm run build` PASS |
 | Machine-local state (S08b) | Retention refs `01`–`19` for this path exist on the remote; `19` was pushed at S08b after S08a left it local. `refs/cairn/*` is fetched by no clone and no checkout action, so any environment judging retention must fetch it explicitly — now written into the workflow, the operator guide and the concept note |
 | The maxim, applied on its first day (S08d) | The brief budget blocked this refresh too — the fourth in four units. The first three were answered by shortening prose, which is what ADR-020 says a budget teaches. This one was answered its way: the State section stopped retelling S08a–S08d and became four pointers to records that hold them in full. **Separation, not compression** — the words moved rather than shrank, and the section is now shorter *and* more complete. That is the test the ADR proposes, run once, on the artefact that provoked it |
+| Gates at S08g | `npm run cairn-check` OK · `npm run cairn-check:test` PASS, **200** subtests (198 → 200) · `npm run cairn-spec:build` deterministic · `npm run typecheck` PASS · product suite 1,109 passed / 1 skipped · `npm run build` PASS |
+| Owner rulings (S08g) | **Remove the brief's token budget** — done, and recorded as ADR-020 decision 6 rather than as an unexplained deletion. **Validate the ADR** — `accepted`, both halves, with migration stage 1 landed in the same unit |
+| Concept budget (S08g) | The hard cap is gone. 71 → **72** with `instruction-parity`; growth is now an advisory naming what was added, and an orphan blocks. The wiki's health is unchanged and is now measured by reachability rather than by a number |
 | Gates at S08f | `npm run cairn-check` OK · `npm run cairn-check:test` PASS, 198 subtests · `npm run cairn-spec:build` deterministic · `npm run typecheck` PASS · product suite 1,109 passed / 1 skipped · `npm run build` PASS |
 | Owner rulings (S08f) | **No token counts** as the maxim's test — ratified, recorded in ADR-020 decision 1 and its alternatives. **The `index` ambiguity** — found by the owner reading the draft, repaired by naming `normative` and `explanatory` content and stating the narrower true relationship to OKF's `index.md` |
 | Open, needs a ruling (S08f) | The handoff brief's own `budget_tokens: 1200`, blocking via `brief-schema`, is a token count. Retire it for consistency with the ruling, or keep it because required reading is the one place a bound is legitimate? Both readings are in ADR-020; neither is taken |
@@ -998,7 +1055,8 @@ brief names — and fix what the pilot finds before merging.
 | Records corrected (S08c) | The S08 opening brief attributed the CI redness to nine `CP-MVP-008` findings that CI never reported — they were a local branch-versus-trunk run's, promoted to a claim about CI. `gate-parity` said *no CI-only condition* while one was running. Both are `docs/` documents, not immutable records, so both are corrected in place with a dated, visible correction; the brief's `governs:` pin is refreshed here and in the handoff brief |
 | Brief budget, third unit running (S08c) | The 1200-token budget blocked the refresh at S08a, S08b and S08c, each time costing real editing. That is the rule working — but three in a row is a signal about the *brief's shape*, not its size: it had become a chronicle appending one paragraph per step. S08c consolidated the three S08 units into one themed block and pruned two spent *Tried and rejected* entries. If a fourth refresh fights the budget, the answer is the ledger boundary below, not a bigger number |
 | Ledger boundary due (S08b) | `ledger-size` fires at ~10.6 k against the 10 k budget, which is the rule working: it speaks to whoever is editing the file. Roll **S07q–S08b** into [`history/`](./history/index.md) verbatim at the next step boundary, leaving one index line each. Advisory and not urgent, so it is recorded rather than folded into a repair unit |
-| Next action | Owner ruling on ADR-020. If accepted: the `instruction-parity` article plus its concept-cap decision, then the `CP-OPS-002` folder migration as the worked example. Independently of that ruling, the two live trunk defects remain S08 Part 1 items 1 and 2 — `hasCeremony` reading the `ceremony:` key, and a predicate for the merge-time journal entry — and neither depends on the ADR |
+| Next action | S08 Part 1 items 1 and 2, both live on the trunk and neither blocked: `hasCeremony` must read the `ceremony:` frontmatter key instead of matching a filename, with a fixture rejecting a `done` path whose only session note is its opening check; then a predicate for the merge-time journal entry. ADR-020 stages 2–5 (the `CP-OPS-002` folder migration, the checker's shape, the artefact classification, `cairn-init`) follow, and stage 2 supersedes the queued ledger roll |
+| Superseded next action (S08g, ruled) | Owner ruling on ADR-020. If accepted: the `instruction-parity` article plus its concept-cap decision, then the `CP-OPS-002` folder migration as the worked example. Independently of that ruling, the two live trunk defects remain S08 Part 1 items 1 and 2 — `hasCeremony` reading the `ceremony:` key, and a predicate for the merge-time journal entry — and neither depends on the ADR |
 | Superseded next action (S08d, pending ruling) | S08 Part 1 item 1 — `hasCeremony` reads the `ceremony:` frontmatter key instead of matching a filename, with a fixture that rejects a `done` path whose only session note is its opening check. Then item 2 (the journal-entry predicate), item 3 (the derived-view rule keyed on declared `status`), item 3c (filename date equals frontmatter `timestamp:`), and item 4 (the retention-generation ADR, design before code) |
 | Superseded next action (S08a, done) | S08 — extract Cairn from Atomik: `cairn.config.json`, the generated enforcement header, `cairn-new`, and the tier-0/1 `cairn-init` seed. The v0.2 predicates land here or in a successor path, never by quietly marking a matrix row `implemented` |
 | Superseded next action (S07, done) | the specification and lexicon: `docs/cairn/specification.md` (planes, the ADR-017 lifecycle by reference, the rule table generated from `cairn-check.mjs`, the blocking-rule admission test, the three enforcement tiers with tier 2 as a repository property, the CP-MVP-011/012 migration window as a property), `docs/cairn/lexicon.md` (one definition per term, each pointing at the file that enforces it; a term with no enforcing file marked aspirational), and the step-by-step operator guide carrying the optional tier-2 ruleset as a copy-paste `gh api` payload |

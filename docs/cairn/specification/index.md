@@ -698,7 +698,6 @@ governs:
 verify:
   - npm run cairn-check
   - npm test
-budget_tokens: 1200
 ```
 
 `checkpoint` names the last **retained** checkpoint, not the commit containing
@@ -711,9 +710,11 @@ brief agree.
 
 Its body MUST hold seven capped sections, and no others: **outcome**, **state**,
 **next action**, **blockers**, **tried and rejected**, **reading order**, and
-**verification**. The whole brief SHOULD fit inside `budget_tokens`, whose
-default is 1200; a brief that cannot say where a path stands in that budget is
-describing a path that has lost its shape.
+**verification**. The brief carries **no token budget**: it is required reading
+like any protocol artefact, so it separates its normative content from its
+explanatory content and links the second rather than shortening it. A budget is
+satisfiable by compression, and compressing an explanation is how a record comes
+to say something slightly untrue.
 
 #### The answerable-alone contract
 
@@ -1456,7 +1457,7 @@ not in a separate document a reader may never open.
 | Existing session, audit, history, and journal immutability | required | implemented for new or changed records | complete comparison ref |
 | Checkpoint retention refs before any rewriting push | required | **partially implemented**; every declared unit except the newest must resolve a retention ref visible to the checkout, and every branch commit that is neither retained, provisional, nor `HEAD` is reported as orphaned. A namespace that is empty in this checkout is reported inconclusive rather than as absent refs, because the two are indistinguishable from inside one clone | the environment must FETCH `refs/cairn/*`, which no clone or checkout action does by default; a ref *moving* is unobservable to a single-commit validator — only the orphan it leaves behind is |
 | Marked provisional commits excluded from candidate identity | required | implemented; a ready path whose candidate range still contains a marked commit is blocked | the fold itself is not verified to preserve content |
-| Handoff-brief field schema and answerable-alone contract | required | **partially implemented**; the eight fields, the seven exact sections, pinned `governs` entries and the token budget are checked | the answerable-alone contract is a judgement and a cold-resume harness, and is never claimed by a checker |
+| Handoff-brief field schema and answerable-alone contract | required | **partially implemented**; the nine fields, the seven exact sections and pinned `governs` entries are checked. The token budget is retired (ADR-020 decision 6): what will not fit is linked, not compressed, and that is a judgement rather than a predicate | the answerable-alone contract is a judgement and a cold-resume harness, and is never claimed by a checker |
 | Field-level administrative closure surface | required | implemented; closure may move only `status`, `subject_commit`, `current_step` and `resolution` | ledger append-only proof, which remains a separate open row |
 | An adversarial fixture per blocking rule | required | **not implemented**; the checker suite exercises valid repositories and asserts `OK`, which a rule that never fires also satisfies. No rule is currently required to demonstrate a rejection | a fixture repository per blocking rule |
 | No predicate branches on a value that varies by execution context | required | **not implemented, and violated**; the derived-view check skips itself when the branch matches `path/*`, so a local run and a CI run on a detached ref reach different verdicts on one tree | trunk-context resolution that reads the tree, not the branch name |
@@ -1558,6 +1559,12 @@ Four requirements follow.
 > the tree — a declared `status`, the presence of a record — and the two
 > invocations MUST reach the same verdict. This is
 > [gate parity](./concepts/gate-parity.md).
+>
+> Its reader-side twin is
+> [instruction parity](./concepts/instruction-parity.md): one protocol text, over
+> one repository state, produces the same workflow whoever reads it. A predicate
+> that varies by environment and a document that varies by reader are the same
+> defect on two sides of the gate, and neither is visible from the passing side.
 
 > **3. When a predicate can be written to ask about a declaration or about a
 > fact, it MUST ask about the fact.**
@@ -1627,10 +1634,11 @@ honest state of the work.
 | **Blocking** | `advisory-disposition` | diff | advisory_disposition is not a structured list matching the advisories raised against the candidate | `dispositionErrors(record.advisory_disposition, raised) with set equality on rule names` |
 | **Blocking** | `branch-identity` | diff | Detached checkout where branch cannot be identified from host or git ref | `branchSource === 'detached' (blocking on guarded roots, advisory on others)` |
 | **Blocking** | `branch-path` | diff | Path branch not declared by a running path file, or missing base_commit | `isPathBranch(branch) && (!match \|\| !PATH_BRANCH_STATUSES.includes(status) \|\| !isCommitPin(base))` |
-| **Blocking** | `brief-schema` | diff | The handoff brief is missing, or lacks its eight fields, its seven exact sections, pinned governs entries, or its token budget | `briefErrors(front, body) over BRIEF_FIELDS and BRIEF_SECTIONS` |
+| **Blocking** | `brief-schema` | diff | The handoff brief is missing, or lacks its nine fields, its seven exact sections, or pinned governs entries | `briefErrors(front, body) over BRIEF_FIELDS and BRIEF_SECTIONS` |
 | **Blocking** | `checkpoint-retention` | diff | A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint — or the namespace is empty here and the question cannot be answered | `retentionDue(units) => retainedRefs.has(refs/cairn/checkpoints/<id>/<n>) (newest unit advisory; an empty namespace is inconclusive, not absent)` |
 | **Blocking** | `closure-surface` | diff | An administrative closure commit changed a path field other than status, subject_commit, current_step or resolution | `closureFieldErrors(previousFront, currentFront) over CLOSURE_MUTABLE_FIELDS` |
 | **Blocking** | `coherence-audit` | corpus | Ready path lacks a filled coherence audit bound to its exact subject_commit | `cairn-audit --check --subject path.subject_commit` |
+| **Blocking** | `concept-orphan` | corpus | A concept note that no normative or learning text outside the wiki links to | `orphanConcepts(conceptFiles, links from documents outside the concepts folder)` |
 | **Blocking** | `derived-view` | corpus | ACTIVE.md running-paths block does not match trunk path files | `tools/cairn-active.mjs --check` |
 | **Blocking** | `links` | corpus | Relative Markdown link points to non-existent target (code fences stripped) | `stripCode(text) => !existsSync(target)` |
 | **Blocking** | `migration-debt` | diff | A path listed in the v0.2 migration exception no longer needs it | `migrationDebt(paths, V02_MIGRATION_PATHS) — a spent exception is a bypass` |
@@ -1653,8 +1661,9 @@ honest state of the work.
 | *Advisory* | `area-note` | diff | Subsystem source changed without touching matching area module note | `areaOf(file) => changed.includes(note)` |
 | *Advisory* | `base-parity` | diff | A path-branch run compared the working tree with HEAD instead of the branch with the trunk | `resolveBase() source is 'opt-out' or 'unresolvable' while isPathBranch(branch)` |
 | *Advisory* | `branch-identity` | diff | Detached checkout where branch cannot be identified from host or git ref | `branchSource === 'detached' (blocking on guarded roots, advisory on others)` |
-| *Advisory* | `brief-schema` | diff | The handoff brief is missing, or lacks its eight fields, its seven exact sections, pinned governs entries, or its token budget | `briefErrors(front, body) over BRIEF_FIELDS and BRIEF_SECTIONS` |
+| *Advisory* | `brief-schema` | diff | The handoff brief is missing, or lacks its nine fields, its seven exact sections, or pinned governs entries | `briefErrors(front, body) over BRIEF_FIELDS and BRIEF_SECTIONS` |
 | *Advisory* | `checkpoint-retention` | diff | A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint — or the namespace is empty here and the question cannot be answered | `retentionDue(units) => retainedRefs.has(refs/cairn/checkpoints/<id>/<n>) (newest unit advisory; an empty namespace is inconclusive, not absent)` |
+| *Advisory* | `concept-growth` | corpus | A change adds concept articles; reported so vocabulary growth is a visible decision | `addedConcepts(previousRef listing, current listing), diff-scoped to the concepts folder` |
 | *Advisory* | `decision-drift` | diff | Configured architecture changed without an ADR in the same changeset | `touched(architectureRoot) => touched(decisionRoot)` |
 | *Advisory* | `ledger-size` | diff | A path file in the diff exceeds the ledger token budget | `changed.includes(path.file) && path.tokens > LEDGER_TOKEN_BUDGET` |
 | *Advisory* | `opening-ceremony` | diff | Path declared running without an opening-check session note | `!openingFor(pathId) via session frontmatter { path, ceremony: 'opening' }` |

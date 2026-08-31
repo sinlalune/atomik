@@ -513,7 +513,7 @@
     <nav class="tree-panel" aria-label="Article tree">
       <header>
         <h2>Article tree</h2>
-        <span>82 objects</span>
+        <span>83 objects</span>
       </header>
       <label>
         <span hidden>Filter articles</span>
@@ -535,7 +535,7 @@
     </details>
 
     <details class="tree-group" open>
-      <summary>Concepts<span>72</span></summary>
+      <summary>Concepts<span>73</span></summary>
       <ul>
 
           <li data-tree-item data-search="concepts this wiki defines the specialised ideas used by the cairn specification. each page is about one object or rule. it starts with a plain definition, connects the idea to cairn, and states its ">
@@ -726,6 +726,11 @@
           <li data-tree-item data-search="inconclusive finding an inconclusive finding means the checker cannot prove or disprove a predicate because a required input is unavailable.">
             <a href="#article-concept-inconclusive-finding" data-tree-article="concept-inconclusive-finding">
               <span>Inconclusive finding</span>
+            </a>
+          </li>
+          <li data-tree-item data-search="instruction parity instruction parity is the property that one protocol text, over one repository state, produces the same workflow whoever — or whatever — reads it.">
+            <a href="#article-concept-instruction-parity" data-tree-article="concept-instruction-parity">
+              <span>Instruction parity</span>
             </a>
           </li>
           <li data-tree-item data-search="integration transport an integration transport is the complete route by which a proposed git commit is checked and made the remote trunk.">
@@ -1680,7 +1685,6 @@ governs:
 verify:
   - npm run cairn-check
   - npm test
-budget_tokens: 1200
 </code></pre>
 <p><code>checkpoint</code> names the last <strong>retained</strong> checkpoint, not the commit containing
 the brief. This is the same self-reference the <code>cairn-unit</code> ordinal solves: a
@@ -1691,9 +1695,11 @@ the last checkpoint that is already retained and resumable, and
 brief agree.</p>
 <p>Its body MUST hold seven capped sections, and no others: <strong>outcome</strong>, <strong>state</strong>,
 <strong>next action</strong>, <strong>blockers</strong>, <strong>tried and rejected</strong>, <strong>reading order</strong>, and
-<strong>verification</strong>. The whole brief SHOULD fit inside <code>budget_tokens</code>, whose
-default is 1200; a brief that cannot say where a path stands in that budget is
-describing a path that has lost its shape.</p>
+<strong>verification</strong>. The brief carries <strong>no token budget</strong>: it is required reading
+like any protocol artefact, so it separates its normative content from its
+explanatory content and links the second rather than shortening it. A budget is
+satisfiable by compression, and compressing an explanation is how a record comes
+to say something slightly untrue.</p>
 <h4 id="specification--the-answerable-alone-contract" data-heading="the-answerable-alone-contract">The answerable-alone contract</h4>
 <p><strong>“Alone” is a claim about what the reader must already carry in their head, not
 about how many files they may open.</strong> A participant arriving at a Cairn
@@ -2511,7 +2517,7 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Handoff-brief field schema and answerable-alone contract</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; the eight fields, the seven exact sections, pinned <code>governs</code> entries and the token budget are checked</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the nine fields, the seven exact sections and pinned <code>governs</code> entries are checked. The token budget is retired (ADR-020 decision 6): what will not fit is linked, not compressed, and that is a judgement rather than a predicate</td>
 <td style="text-align:left">the answerable-alone contract is a judgement and a cold-resume harness, and is never claimed by a checker</td>
 </tr>
 <tr>
@@ -2741,6 +2747,11 @@ environment. Where a rule needs to know its context, it MUST derive that from
 the tree — a declared <code>status</code>, the presence of a record — and the two
 invocations MUST reach the same verdict. This is
 <a href="#article-concept-gate-parity" data-article="concept-gate-parity" data-anchor="" class="wiki-link">gate parity</a>.</p>
+<p>Its reader-side twin is
+<a href="#article-concept-instruction-parity" data-article="concept-instruction-parity" data-anchor="" class="wiki-link">instruction parity</a>: one protocol text, over
+one repository state, produces the same workflow whoever reads it. A predicate
+that varies by environment and a document that varies by reader are the same
+defect on two sides of the gate, and neither is visible from the passing side.</p>
 </blockquote>
 <blockquote>
 <p><strong>3. When a predicate can be written to ask about a declaration or about a
@@ -2840,7 +2851,7 @@ honest state of the work.</p>
 <tr data-rule="brief-schema" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>brief-schema</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">The handoff brief is missing, or lacks its eight fields, its seven exact sections, pinned governs entries, or its token budget</td>
+<td style="text-align:left">The handoff brief is missing, or lacks its nine fields, its seven exact sections, or pinned governs entries</td>
 <td style="text-align:left"><code>briefErrors(front, body) over BRIEF_FIELDS and BRIEF_SECTIONS</code></td>
 </tr>
 <tr data-rule="checkpoint-retention" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
@@ -2860,6 +2871,12 @@ honest state of the work.</p>
 <td style="text-align:left">corpus</td>
 <td style="text-align:left">Ready path lacks a filled coherence audit bound to its exact subject_commit</td>
 <td style="text-align:left"><code>cairn-audit --check --subject path.subject_commit</code></td>
+</tr>
+<tr data-rule="concept-orphan" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>concept-orphan</code></td>
+<td style="text-align:left">corpus</td>
+<td style="text-align:left">A concept note that no normative or learning text outside the wiki links to</td>
+<td style="text-align:left"><code>orphanConcepts(conceptFiles, links from documents outside the concepts folder)</code></td>
 </tr>
 <tr data-rule="derived-view" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>derived-view</code></td>
@@ -2996,7 +3013,7 @@ honest state of the work.</p>
 <tr data-rule="brief-schema" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>brief-schema</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">The handoff brief is missing, or lacks its eight fields, its seven exact sections, pinned governs entries, or its token budget</td>
+<td style="text-align:left">The handoff brief is missing, or lacks its nine fields, its seven exact sections, or pinned governs entries</td>
 <td style="text-align:left"><code>briefErrors(front, body) over BRIEF_FIELDS and BRIEF_SECTIONS</code></td>
 </tr>
 <tr data-rule="checkpoint-retention" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
@@ -3004,6 +3021,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint — or the namespace is empty here and the question cannot be answered</td>
 <td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory; an empty namespace is inconclusive, not absent)</code></td>
+</tr>
+<tr data-rule="concept-growth" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>concept-growth</code></td>
+<td style="text-align:left">corpus</td>
+<td style="text-align:left">A change adds concept articles; reported so vocabulary growth is a visible decision</td>
+<td style="text-align:left"><code>addedConcepts(previousRef listing, current listing), diff-scoped to the concepts folder</code></td>
 </tr>
 <tr data-rule="decision-drift" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>decision-drift</code></td>
@@ -3215,7 +3238,9 @@ the path worktree now.</p>
 <a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">unsound gate</a> names what it produces,
 <a href="#article-concept-adversarial-fixture" data-article="concept-adversarial-fixture" data-anchor="" class="wiki-link">adversarial fixture</a> is the only evidence a rule
 works, and <a href="#article-concept-gate-parity" data-article="concept-gate-parity" data-anchor="" class="wiki-link">gate parity</a> is the property that one gate does not
-change its mind between a laptop and CI.</p>
+change its mind between a laptop and CI.
+<a href="#article-concept-instruction-parity" data-article="concept-instruction-parity" data-anchor="" class="wiki-link">Instruction parity</a> is its reader-side twin: one
+protocol text produces one workflow, whoever reads it.</p>
 <h2 id="concepts--alphabetical-index" data-heading="alphabetical-index">Alphabetical index</h2>
 <p>Borrowed terms are marked <em>(borrowed)</em>.</p>
 <ul>
@@ -3254,6 +3279,7 @@ change its mind between a laptop and CI.</p>
 <li><a href="#article-concept-handoff" data-article="concept-handoff" data-anchor="" class="wiki-link">Handoff brief</a></li>
 <li><a href="#article-concept-implementation-candidate" data-article="concept-implementation-candidate" data-anchor="" class="wiki-link">Implementation candidate</a></li>
 <li><a href="#article-concept-inconclusive-finding" data-article="concept-inconclusive-finding" data-anchor="" class="wiki-link">Inconclusive finding</a></li>
+<li><a href="#article-concept-instruction-parity" data-article="concept-instruction-parity" data-anchor="" class="wiki-link">Instruction parity</a></li>
 <li><a href="#article-concept-integration-transport" data-article="concept-integration-transport" data-anchor="" class="wiki-link">Integration transport</a></li>
 <li><a href="#article-concept-integrator" data-article="concept-integrator" data-anchor="" class="wiki-link">Integrator</a></li>
 <li><a href="#article-concept-journal" data-article="concept-journal" data-anchor="" class="wiki-link">Journal</a></li>
@@ -4018,7 +4044,6 @@ governs:
 verify:
   - npm run cairn-check
   - npm test
-budget_tokens: 1200
 </code></pre>
 <p><code>checkpoint</code> names the last <strong>retained</strong> checkpoint, not the commit containing
 the brief. This is the same self-reference the <code>cairn-unit</code> ordinal solves: a
@@ -4029,9 +4054,11 @@ the last checkpoint that is already retained and resumable, and
 brief agree.</p>
 <p>Its body MUST hold seven capped sections, and no others: <strong>outcome</strong>, <strong>state</strong>,
 <strong>next action</strong>, <strong>blockers</strong>, <strong>tried and rejected</strong>, <strong>reading order</strong>, and
-<strong>verification</strong>. The whole brief SHOULD fit inside <code>budget_tokens</code>, whose
-default is 1200; a brief that cannot say where a path stands in that budget is
-describing a path that has lost its shape.</p>
+<strong>verification</strong>. The brief carries <strong>no token budget</strong>: it is required reading
+like any protocol artefact, so it separates its normative content from its
+explanatory content and links the second rather than shortening it. A budget is
+satisfiable by compression, and compressing an explanation is how a record comes
+to say something slightly untrue.</p>
 <h4 id="specification--the-answerable-alone-contract" data-heading="the-answerable-alone-contract">The answerable-alone contract</h4>
 <p><strong>“Alone” is a claim about what the reader must already carry in their head, not
 about how many files they may open.</strong> A participant arriving at a Cairn
@@ -4849,7 +4876,7 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Handoff-brief field schema and answerable-alone contract</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; the eight fields, the seven exact sections, pinned <code>governs</code> entries and the token budget are checked</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the nine fields, the seven exact sections and pinned <code>governs</code> entries are checked. The token budget is retired (ADR-020 decision 6): what will not fit is linked, not compressed, and that is a judgement rather than a predicate</td>
 <td style="text-align:left">the answerable-alone contract is a judgement and a cold-resume harness, and is never claimed by a checker</td>
 </tr>
 <tr>
@@ -5079,6 +5106,11 @@ environment. Where a rule needs to know its context, it MUST derive that from
 the tree — a declared <code>status</code>, the presence of a record — and the two
 invocations MUST reach the same verdict. This is
 <a href="#article-concept-gate-parity" data-article="concept-gate-parity" data-anchor="" class="wiki-link">gate parity</a>.</p>
+<p>Its reader-side twin is
+<a href="#article-concept-instruction-parity" data-article="concept-instruction-parity" data-anchor="" class="wiki-link">instruction parity</a>: one protocol text, over
+one repository state, produces the same workflow whoever reads it. A predicate
+that varies by environment and a document that varies by reader are the same
+defect on two sides of the gate, and neither is visible from the passing side.</p>
 </blockquote>
 <blockquote>
 <p><strong>3. When a predicate can be written to ask about a declaration or about a
@@ -5178,7 +5210,7 @@ honest state of the work.</p>
 <tr data-rule="brief-schema" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>brief-schema</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">The handoff brief is missing, or lacks its eight fields, its seven exact sections, pinned governs entries, or its token budget</td>
+<td style="text-align:left">The handoff brief is missing, or lacks its nine fields, its seven exact sections, or pinned governs entries</td>
 <td style="text-align:left"><code>briefErrors(front, body) over BRIEF_FIELDS and BRIEF_SECTIONS</code></td>
 </tr>
 <tr data-rule="checkpoint-retention" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
@@ -5198,6 +5230,12 @@ honest state of the work.</p>
 <td style="text-align:left">corpus</td>
 <td style="text-align:left">Ready path lacks a filled coherence audit bound to its exact subject_commit</td>
 <td style="text-align:left"><code>cairn-audit --check --subject path.subject_commit</code></td>
+</tr>
+<tr data-rule="concept-orphan" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>concept-orphan</code></td>
+<td style="text-align:left">corpus</td>
+<td style="text-align:left">A concept note that no normative or learning text outside the wiki links to</td>
+<td style="text-align:left"><code>orphanConcepts(conceptFiles, links from documents outside the concepts folder)</code></td>
 </tr>
 <tr data-rule="derived-view" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>derived-view</code></td>
@@ -5334,7 +5372,7 @@ honest state of the work.</p>
 <tr data-rule="brief-schema" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>brief-schema</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">The handoff brief is missing, or lacks its eight fields, its seven exact sections, pinned governs entries, or its token budget</td>
+<td style="text-align:left">The handoff brief is missing, or lacks its nine fields, its seven exact sections, or pinned governs entries</td>
 <td style="text-align:left"><code>briefErrors(front, body) over BRIEF_FIELDS and BRIEF_SECTIONS</code></td>
 </tr>
 <tr data-rule="checkpoint-retention" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
@@ -5342,6 +5380,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint — or the namespace is empty here and the question cannot be answered</td>
 <td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory; an empty namespace is inconclusive, not absent)</code></td>
+</tr>
+<tr data-rule="concept-growth" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>concept-growth</code></td>
+<td style="text-align:left">corpus</td>
+<td style="text-align:left">A change adds concept articles; reported so vocabulary growth is a visible decision</td>
+<td style="text-align:left"><code>addedConcepts(previousRef listing, current listing), diff-scoped to the concepts folder</code></td>
 </tr>
 <tr data-rule="decision-drift" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>decision-drift</code></td>
@@ -5549,7 +5593,9 @@ the path worktree now.</p>
 <a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">unsound gate</a> names what it produces,
 <a href="#article-concept-adversarial-fixture" data-article="concept-adversarial-fixture" data-anchor="" class="wiki-link">adversarial fixture</a> is the only evidence a rule
 works, and <a href="#article-concept-gate-parity" data-article="concept-gate-parity" data-anchor="" class="wiki-link">gate parity</a> is the property that one gate does not
-change its mind between a laptop and CI.</p>
+change its mind between a laptop and CI.
+<a href="#article-concept-instruction-parity" data-article="concept-instruction-parity" data-anchor="" class="wiki-link">Instruction parity</a> is its reader-side twin: one
+protocol text produces one workflow, whoever reads it.</p>
 <h2 id="concepts--alphabetical-index" data-heading="alphabetical-index">Alphabetical index</h2>
 <p>Borrowed terms are marked <em>(borrowed)</em>.</p>
 <ul>
@@ -5588,6 +5634,7 @@ change its mind between a laptop and CI.</p>
 <li><a href="#article-concept-handoff" data-article="concept-handoff" data-anchor="" class="wiki-link">Handoff brief</a></li>
 <li><a href="#article-concept-implementation-candidate" data-article="concept-implementation-candidate" data-anchor="" class="wiki-link">Implementation candidate</a></li>
 <li><a href="#article-concept-inconclusive-finding" data-article="concept-inconclusive-finding" data-anchor="" class="wiki-link">Inconclusive finding</a></li>
+<li><a href="#article-concept-instruction-parity" data-article="concept-instruction-parity" data-anchor="" class="wiki-link">Instruction parity</a></li>
 <li><a href="#article-concept-integration-transport" data-article="concept-integration-transport" data-anchor="" class="wiki-link">Integration transport</a></li>
 <li><a href="#article-concept-integrator" data-article="concept-integrator" data-anchor="" class="wiki-link">Integrator</a></li>
 <li><a href="#article-concept-journal" data-article="concept-journal" data-anchor="" class="wiki-link">Journal</a></li>
@@ -6955,8 +7002,8 @@ other’s job.</p>
 <h2 id="concept-handoff--in-cairn" data-heading="in-cairn">In Cairn</h2>
 <p>The brief lives at <code>project/briefs/&lt;lowercase-id&gt;-handoff.md</code>. Its frontmatter
 carries the machine-checkable state — <code>checkpoint</code>, <code>checkpoint_pushed</code>,
-<code>base_commit</code>, <code>trunk_seen</code>, <code>writes</code>, <code>governs</code> as <code>path@&lt;object-id&gt;</code>, <code>verify</code>
-as exact runnable commands, and <code>budget_tokens</code>. Its body holds seven capped
+<code>base_commit</code>, <code>trunk_seen</code>, <code>writes</code>, <code>governs</code> as <code>path@&lt;object-id&gt;</code>, and
+<code>verify</code> as exact runnable commands. Its body holds seven capped
 sections: outcome, state, next action, blockers, tried and rejected, reading
 order, and verification. The complete field list, caps, and template are in the
 <a href="#article-reference-handoff-brief" data-article="reference-handoff-brief" data-anchor="" class="wiki-link">handoff-brief reference</a>.</p>
@@ -7058,6 +7105,76 @@ name the evidence to fetch or provide.</p>
 stale or safe.</p>
 <p>Related: <a href="#article-concept-blocking-finding" data-article="concept-blocking-finding" data-anchor="" class="wiki-link">blocking finding</a>, <a href="#article-concept-fetch-and-push" data-article="concept-fetch-and-push" data-anchor="" class="wiki-link">fetch and push</a>,
 <a href="#article-concept-exit-code" data-article="concept-exit-code" data-anchor="" class="wiki-link">exit code</a>.</p>
+
+    </article>
+    </template>
+    <template id="template-concept-instruction-parity"
+      data-article-template="concept-instruction-parity"
+      data-title="Instruction parity"
+      data-kind="Concept"
+      data-source="concepts/instruction-parity.md">
+
+    <div class="article-meta">
+      <span>Concept</span>
+      <code>concepts/instruction-parity.md</code>
+    </div>
+    <article class="article-body" data-rendered-article="concept-instruction-parity">
+      <h1 id="concept-instruction-parity--instruction-parity" data-heading="instruction-parity">Instruction parity</h1>
+<p>Instruction parity is the property that one protocol text, over one repository
+state, produces the same workflow whoever — or whatever — reads it.</p>
+<h2 id="concept-instruction-parity--build-the-idea" data-heading="build-the-idea">Build the idea</h2>
+<p>A protocol is written down so that different people, at different times, do the
+same thing. That only works if the writing has one reading.</p>
+<p>For a protocol executed partly by language models, “different readers” is a wider
+set than it used to be. A human reads the whole page. One model reads it inside a
+large context window; another summarises it first; a third has it truncated by
+the harness carrying it. These are not misuses — they are the ordinary conditions
+the protocol runs under.</p>
+<p>So the text meets readers with different capacities, and any part of the document
+that depends on being read <em>whole</em> has become a part that some readers will not
+get. The failure is quiet: nobody reports a truncation, they just execute a
+slightly different workflow.</p>
+<p>Two properties of the document cause it, and neither is a property of the
+environment:</p>
+<ul>
+<li><strong>Volume.</strong> Past some size, a reader must choose what to keep, and different
+readers choose differently.</li>
+<li><strong>Interleaving.</strong> When an instruction sits inside a paragraph of justification
+— the rejected alternative, the date of the ruling, the incident that motivated
+it — a reader that skims picks up different sentences than one that reads
+linearly, from the same file.</li>
+</ul>
+<h2 id="concept-instruction-parity--in-cairn" data-heading="in-cairn">In Cairn</h2>
+<p>The protocol MUST be executable from its
+<a href="#article-specification" data-article="specification" data-anchor="1-protocol-context-weight-is-a-stated-maxim-with-an-operational-test" class="wiki-link">normative content</a>
+alone. Every artefact separates what a reader must do from why it is so; only the
+first is required reading, and the second sits one link away, unabridged.</p>
+<p>That separation is what buys instruction parity. A required read that is small
+and carries no rationale has nothing left to summarise differently and nothing
+worth truncating, so the readings converge.</p>
+<p>The property is measured, not asserted: a reader is given only the required
+content and either executes correctly or does not, and a failure names the exact
+sentence they needed and did not have.</p>
+<p>It is the reader-side twin of <a href="#article-concept-gate-parity" data-article="concept-gate-parity" data-anchor="" class="wiki-link">gate parity</a> and a distinct
+property rather than a second half of it, because the two break through different
+causes. Gate parity breaks when a <em>predicate</em> reads a value belonging to the
+environment. Instruction parity breaks on the <em>document’s</em> own volume and
+interleaving. Neither failure implies the other, and a protocol can hold one
+perfectly while losing the other.</p>
+<h2 id="concept-instruction-parity--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
+<p>Parity is agreement, not correctness. Every reader reaching the same workflow
+says nothing about whether that workflow is the right one — a clear instruction
+can be clearly wrong, and it will then be wrong identically everywhere.</p>
+<p>It also does not survive its own definition being ambiguous. The first draft of
+Cairn’s separation test used the word <em>index</em> for “the part a reader must read”,
+while <a href="../../../bedrock/26_26-okf-agent-context.md">OKF</a> uses <code>index.md</code> for a
+folder’s map. One word, two meanings, inside the sentence defining this property
+— which is exactly the failure the property names, and it was found by a reader
+asking what the word meant.</p>
+<p>Related: <a href="#article-concept-gate-parity" data-article="concept-gate-parity" data-anchor="" class="wiki-link">gate parity</a>,
+<a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy predicate</a>,
+<a href="#article-concept-project-memory" data-article="concept-project-memory" data-anchor="" class="wiki-link">project memory</a>,
+<a href="#article-concept-handoff" data-article="concept-handoff" data-anchor="" class="wiki-link">handoff brief</a>.</p>
 
     </article>
     </template>
@@ -8582,7 +8699,6 @@ Therefore the reference implementation MUST NOT claim portable conformance.</p>
   &quot;defaultRoute&quot;: &quot;lightweight&quot;,
   &quot;checkpointRetentionRef&quot;: &quot;refs/cairn/checkpoints&quot;,
   &quot;scopeDigestAlgorithm&quot;: &quot;sha256&quot;,
-  &quot;briefBudgetTokens&quot;: 1200,
   &quot;transport&quot;: {
     &quot;registration&quot;: &quot;declared-adapter-name&quot;,
     &quot;integration&quot;: &quot;declared-adapter-name&quot;
@@ -8678,11 +8794,6 @@ implemented and validated.</p>
 <td style="text-align:left">a named algorithm; the digest is never abbreviated</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>briefBudgetTokens</code></td>
-<td style="text-align:left">default <code>budget_tokens</code> for a <a href="#article-reference-handoff-brief" data-article="reference-handoff-brief" data-anchor="" class="wiki-link">handoff brief</a></td>
-<td style="text-align:left">positive integer</td>
-</tr>
-<tr>
 <td style="text-align:left"><code>transport</code></td>
 <td style="text-align:left">registration and integration adapters</td>
 <td style="text-align:left">installed and tested adapter identifiers</td>
@@ -8772,9 +8883,9 @@ rewriting pushes on path branches.</li>
 retained.</li>
 <li>[ ] The handoff brief carries <code>checkpoint</code>, <code>checkpoint_pushed</code>,
 <code>base_commit</code>, <code>trunk_seen</code>, <code>writes</code>, <code>governs</code> as <code>path@&lt;object-id&gt;</code>,
-<code>verify</code>, and <code>budget_tokens</code>.</li>
-<li>[ ] The brief’s body holds the seven capped sections and stays within
-<code>budget_tokens</code>.</li>
+and <code>verify</code>.</li>
+<li>[ ] The brief’s body holds the seven capped sections, and what will not fit is
+linked rather than compressed.</li>
 <li>[ ] A reader with <code>AGENTS.md</code>, the brief, and the repository at <code>checkpoint</code> —
 and no conversation, prior session, or memory of the path — can answer all
 eight answerable-alone questions from the brief or from a record it names
@@ -8947,11 +9058,6 @@ retell.</p>
 <td style="text-align:left">list of exact commands</td>
 <td style="text-align:left">run verbatim to confirm the checkpoint is what the brief says</td>
 </tr>
-<tr>
-<td style="text-align:left"><code>budget_tokens</code></td>
-<td style="text-align:left">integer</td>
-<td style="text-align:left">the size budget for the whole brief; default <code>1200</code></td>
-</tr>
 </tbody>
 </table>
 <p><code>checkpoint</code> cannot be the commit that contains the brief. A brief is refreshed
@@ -8965,8 +9071,9 @@ the field exists to remove.</p>
 description of a command. A reader must be able to paste them.</p>
 <h2 id="reference-handoff-brief--body-seven-capped-sections" data-heading="body-seven-capped-sections">Body — seven capped sections</h2>
 <p>The body holds these seven sections, in this order, and no others. Each SHOULD
-stay within roughly 150 tokens; the whole brief SHOULD stay within
-<code>budget_tokens</code>.</p>
+stay within roughly 150 tokens. There is <strong>no budget on the whole brief</strong>: a
+section that will not fit is separated, not compressed — the detail moves to the
+record that owns it and the brief links there.</p>
 <table>
 <thead>
 <tr>
@@ -9127,7 +9234,6 @@ cairn:
   verify:
     - npm run cairn-check
     - npm test
-  budget_tokens: 1200
 ---
 
 # Resume CP-EXAMPLE-001 here
@@ -11133,7 +11239,6 @@ governs:
 verify:
   - npm run cairn-check
   - npm test
-budget_tokens: 1200
 </code></pre>
 <p><code>checkpoint</code> names the last <strong>retained</strong> checkpoint, not the commit containing
 the brief. This is the same self-reference the <code>cairn-unit</code> ordinal solves: a
@@ -11144,9 +11249,11 @@ the last checkpoint that is already retained and resumable, and
 brief agree.</p>
 <p>Its body MUST hold seven capped sections, and no others: <strong>outcome</strong>, <strong>state</strong>,
 <strong>next action</strong>, <strong>blockers</strong>, <strong>tried and rejected</strong>, <strong>reading order</strong>, and
-<strong>verification</strong>. The whole brief SHOULD fit inside <code>budget_tokens</code>, whose
-default is 1200; a brief that cannot say where a path stands in that budget is
-describing a path that has lost its shape.</p>
+<strong>verification</strong>. The brief carries <strong>no token budget</strong>: it is required reading
+like any protocol artefact, so it separates its normative content from its
+explanatory content and links the second rather than shortening it. A budget is
+satisfiable by compression, and compressing an explanation is how a record comes
+to say something slightly untrue.</p>
 <h4 id="specification--the-answerable-alone-contract" data-heading="the-answerable-alone-contract">The answerable-alone contract</h4>
 <p><strong>“Alone” is a claim about what the reader must already carry in their head, not
 about how many files they may open.</strong> A participant arriving at a Cairn
@@ -11964,7 +12071,7 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Handoff-brief field schema and answerable-alone contract</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; the eight fields, the seven exact sections, pinned <code>governs</code> entries and the token budget are checked</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the nine fields, the seven exact sections and pinned <code>governs</code> entries are checked. The token budget is retired (ADR-020 decision 6): what will not fit is linked, not compressed, and that is a judgement rather than a predicate</td>
 <td style="text-align:left">the answerable-alone contract is a judgement and a cold-resume harness, and is never claimed by a checker</td>
 </tr>
 <tr>
@@ -12194,6 +12301,11 @@ environment. Where a rule needs to know its context, it MUST derive that from
 the tree — a declared <code>status</code>, the presence of a record — and the two
 invocations MUST reach the same verdict. This is
 <a href="#article-concept-gate-parity" data-article="concept-gate-parity" data-anchor="" class="wiki-link">gate parity</a>.</p>
+<p>Its reader-side twin is
+<a href="#article-concept-instruction-parity" data-article="concept-instruction-parity" data-anchor="" class="wiki-link">instruction parity</a>: one protocol text, over
+one repository state, produces the same workflow whoever reads it. A predicate
+that varies by environment and a document that varies by reader are the same
+defect on two sides of the gate, and neither is visible from the passing side.</p>
 </blockquote>
 <blockquote>
 <p><strong>3. When a predicate can be written to ask about a declaration or about a
@@ -12293,7 +12405,7 @@ honest state of the work.</p>
 <tr data-rule="brief-schema" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>brief-schema</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">The handoff brief is missing, or lacks its eight fields, its seven exact sections, pinned governs entries, or its token budget</td>
+<td style="text-align:left">The handoff brief is missing, or lacks its nine fields, its seven exact sections, or pinned governs entries</td>
 <td style="text-align:left"><code>briefErrors(front, body) over BRIEF_FIELDS and BRIEF_SECTIONS</code></td>
 </tr>
 <tr data-rule="checkpoint-retention" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
@@ -12313,6 +12425,12 @@ honest state of the work.</p>
 <td style="text-align:left">corpus</td>
 <td style="text-align:left">Ready path lacks a filled coherence audit bound to its exact subject_commit</td>
 <td style="text-align:left"><code>cairn-audit --check --subject path.subject_commit</code></td>
+</tr>
+<tr data-rule="concept-orphan" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>concept-orphan</code></td>
+<td style="text-align:left">corpus</td>
+<td style="text-align:left">A concept note that no normative or learning text outside the wiki links to</td>
+<td style="text-align:left"><code>orphanConcepts(conceptFiles, links from documents outside the concepts folder)</code></td>
 </tr>
 <tr data-rule="derived-view" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>derived-view</code></td>
@@ -12449,7 +12567,7 @@ honest state of the work.</p>
 <tr data-rule="brief-schema" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>brief-schema</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">The handoff brief is missing, or lacks its eight fields, its seven exact sections, pinned governs entries, or its token budget</td>
+<td style="text-align:left">The handoff brief is missing, or lacks its nine fields, its seven exact sections, or pinned governs entries</td>
 <td style="text-align:left"><code>briefErrors(front, body) over BRIEF_FIELDS and BRIEF_SECTIONS</code></td>
 </tr>
 <tr data-rule="checkpoint-retention" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
@@ -12457,6 +12575,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint — or the namespace is empty here and the question cannot be answered</td>
 <td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory; an empty namespace is inconclusive, not absent)</code></td>
+</tr>
+<tr data-rule="concept-growth" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>concept-growth</code></td>
+<td style="text-align:left">corpus</td>
+<td style="text-align:left">A change adds concept articles; reported so vocabulary growth is a visible decision</td>
+<td style="text-align:left"><code>addedConcepts(previousRef listing, current listing), diff-scoped to the concepts folder</code></td>
 </tr>
 <tr data-rule="decision-drift" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>decision-drift</code></td>
@@ -12660,7 +12784,9 @@ the path worktree now.</p>
 <a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">unsound gate</a> names what it produces,
 <a href="#article-concept-adversarial-fixture" data-article="concept-adversarial-fixture" data-anchor="" class="wiki-link">adversarial fixture</a> is the only evidence a rule
 works, and <a href="#article-concept-gate-parity" data-article="concept-gate-parity" data-anchor="" class="wiki-link">gate parity</a> is the property that one gate does not
-change its mind between a laptop and CI.</p>
+change its mind between a laptop and CI.
+<a href="#article-concept-instruction-parity" data-article="concept-instruction-parity" data-anchor="" class="wiki-link">Instruction parity</a> is its reader-side twin: one
+protocol text produces one workflow, whoever reads it.</p>
 <h2 id="concepts--alphabetical-index" data-heading="alphabetical-index">Alphabetical index</h2>
 <p>Borrowed terms are marked <em>(borrowed)</em>.</p>
 <ul>
@@ -12699,6 +12825,7 @@ change its mind between a laptop and CI.</p>
 <li><a href="#article-concept-handoff" data-article="concept-handoff" data-anchor="" class="wiki-link">Handoff brief</a></li>
 <li><a href="#article-concept-implementation-candidate" data-article="concept-implementation-candidate" data-anchor="" class="wiki-link">Implementation candidate</a></li>
 <li><a href="#article-concept-inconclusive-finding" data-article="concept-inconclusive-finding" data-anchor="" class="wiki-link">Inconclusive finding</a></li>
+<li><a href="#article-concept-instruction-parity" data-article="concept-instruction-parity" data-anchor="" class="wiki-link">Instruction parity</a></li>
 <li><a href="#article-concept-integration-transport" data-article="concept-integration-transport" data-anchor="" class="wiki-link">Integration transport</a></li>
 <li><a href="#article-concept-integrator" data-article="concept-integrator" data-anchor="" class="wiki-link">Integrator</a></li>
 <li><a href="#article-concept-journal" data-article="concept-journal" data-anchor="" class="wiki-link">Journal</a></li>
@@ -13926,8 +14053,8 @@ other’s job.</p>
 <h2 id="concept-handoff--in-cairn" data-heading="in-cairn">In Cairn</h2>
 <p>The brief lives at <code>project/briefs/&lt;lowercase-id&gt;-handoff.md</code>. Its frontmatter
 carries the machine-checkable state — <code>checkpoint</code>, <code>checkpoint_pushed</code>,
-<code>base_commit</code>, <code>trunk_seen</code>, <code>writes</code>, <code>governs</code> as <code>path@&lt;object-id&gt;</code>, <code>verify</code>
-as exact runnable commands, and <code>budget_tokens</code>. Its body holds seven capped
+<code>base_commit</code>, <code>trunk_seen</code>, <code>writes</code>, <code>governs</code> as <code>path@&lt;object-id&gt;</code>, and
+<code>verify</code> as exact runnable commands. Its body holds seven capped
 sections: outcome, state, next action, blockers, tried and rejected, reading
 order, and verification. The complete field list, caps, and template are in the
 <a href="#article-reference-handoff-brief" data-article="reference-handoff-brief" data-anchor="" class="wiki-link">handoff-brief reference</a>.</p>
@@ -14021,6 +14148,72 @@ name the evidence to fetch or provide.</p>
 stale or safe.</p>
 <p>Related: <a href="#article-concept-blocking-finding" data-article="concept-blocking-finding" data-anchor="" class="wiki-link">blocking finding</a>, <a href="#article-concept-fetch-and-push" data-article="concept-fetch-and-push" data-anchor="" class="wiki-link">fetch and push</a>,
 <a href="#article-concept-exit-code" data-article="concept-exit-code" data-anchor="" class="wiki-link">exit code</a>.</p>
+
+    </article>
+      </section>
+      <section class="sequential-article" id="article-concept-instruction-parity">
+
+    <div class="article-meta">
+      <span>Concept</span>
+      <code>concepts/instruction-parity.md</code>
+    </div>
+    <article class="article-body" data-rendered-article="concept-instruction-parity">
+      <h1 id="concept-instruction-parity--instruction-parity" data-heading="instruction-parity">Instruction parity</h1>
+<p>Instruction parity is the property that one protocol text, over one repository
+state, produces the same workflow whoever — or whatever — reads it.</p>
+<h2 id="concept-instruction-parity--build-the-idea" data-heading="build-the-idea">Build the idea</h2>
+<p>A protocol is written down so that different people, at different times, do the
+same thing. That only works if the writing has one reading.</p>
+<p>For a protocol executed partly by language models, “different readers” is a wider
+set than it used to be. A human reads the whole page. One model reads it inside a
+large context window; another summarises it first; a third has it truncated by
+the harness carrying it. These are not misuses — they are the ordinary conditions
+the protocol runs under.</p>
+<p>So the text meets readers with different capacities, and any part of the document
+that depends on being read <em>whole</em> has become a part that some readers will not
+get. The failure is quiet: nobody reports a truncation, they just execute a
+slightly different workflow.</p>
+<p>Two properties of the document cause it, and neither is a property of the
+environment:</p>
+<ul>
+<li><strong>Volume.</strong> Past some size, a reader must choose what to keep, and different
+readers choose differently.</li>
+<li><strong>Interleaving.</strong> When an instruction sits inside a paragraph of justification
+— the rejected alternative, the date of the ruling, the incident that motivated
+it — a reader that skims picks up different sentences than one that reads
+linearly, from the same file.</li>
+</ul>
+<h2 id="concept-instruction-parity--in-cairn" data-heading="in-cairn">In Cairn</h2>
+<p>The protocol MUST be executable from its
+<a href="#article-specification" data-article="specification" data-anchor="1-protocol-context-weight-is-a-stated-maxim-with-an-operational-test" class="wiki-link">normative content</a>
+alone. Every artefact separates what a reader must do from why it is so; only the
+first is required reading, and the second sits one link away, unabridged.</p>
+<p>That separation is what buys instruction parity. A required read that is small
+and carries no rationale has nothing left to summarise differently and nothing
+worth truncating, so the readings converge.</p>
+<p>The property is measured, not asserted: a reader is given only the required
+content and either executes correctly or does not, and a failure names the exact
+sentence they needed and did not have.</p>
+<p>It is the reader-side twin of <a href="#article-concept-gate-parity" data-article="concept-gate-parity" data-anchor="" class="wiki-link">gate parity</a> and a distinct
+property rather than a second half of it, because the two break through different
+causes. Gate parity breaks when a <em>predicate</em> reads a value belonging to the
+environment. Instruction parity breaks on the <em>document’s</em> own volume and
+interleaving. Neither failure implies the other, and a protocol can hold one
+perfectly while losing the other.</p>
+<h2 id="concept-instruction-parity--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
+<p>Parity is agreement, not correctness. Every reader reaching the same workflow
+says nothing about whether that workflow is the right one — a clear instruction
+can be clearly wrong, and it will then be wrong identically everywhere.</p>
+<p>It also does not survive its own definition being ambiguous. The first draft of
+Cairn’s separation test used the word <em>index</em> for “the part a reader must read”,
+while <a href="../../../bedrock/26_26-okf-agent-context.md">OKF</a> uses <code>index.md</code> for a
+folder’s map. One word, two meanings, inside the sentence defining this property
+— which is exactly the failure the property names, and it was found by a reader
+asking what the word meant.</p>
+<p>Related: <a href="#article-concept-gate-parity" data-article="concept-gate-parity" data-anchor="" class="wiki-link">gate parity</a>,
+<a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy predicate</a>,
+<a href="#article-concept-project-memory" data-article="concept-project-memory" data-anchor="" class="wiki-link">project memory</a>,
+<a href="#article-concept-handoff" data-article="concept-handoff" data-anchor="" class="wiki-link">handoff brief</a>.</p>
 
     </article>
       </section>
@@ -15401,7 +15594,6 @@ Therefore the reference implementation MUST NOT claim portable conformance.</p>
   &quot;defaultRoute&quot;: &quot;lightweight&quot;,
   &quot;checkpointRetentionRef&quot;: &quot;refs/cairn/checkpoints&quot;,
   &quot;scopeDigestAlgorithm&quot;: &quot;sha256&quot;,
-  &quot;briefBudgetTokens&quot;: 1200,
   &quot;transport&quot;: {
     &quot;registration&quot;: &quot;declared-adapter-name&quot;,
     &quot;integration&quot;: &quot;declared-adapter-name&quot;
@@ -15497,11 +15689,6 @@ implemented and validated.</p>
 <td style="text-align:left">a named algorithm; the digest is never abbreviated</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>briefBudgetTokens</code></td>
-<td style="text-align:left">default <code>budget_tokens</code> for a <a href="#article-reference-handoff-brief" data-article="reference-handoff-brief" data-anchor="" class="wiki-link">handoff brief</a></td>
-<td style="text-align:left">positive integer</td>
-</tr>
-<tr>
 <td style="text-align:left"><code>transport</code></td>
 <td style="text-align:left">registration and integration adapters</td>
 <td style="text-align:left">installed and tested adapter identifiers</td>
@@ -15587,9 +15774,9 @@ rewriting pushes on path branches.</li>
 retained.</li>
 <li>[ ] The handoff brief carries <code>checkpoint</code>, <code>checkpoint_pushed</code>,
 <code>base_commit</code>, <code>trunk_seen</code>, <code>writes</code>, <code>governs</code> as <code>path@&lt;object-id&gt;</code>,
-<code>verify</code>, and <code>budget_tokens</code>.</li>
-<li>[ ] The brief’s body holds the seven capped sections and stays within
-<code>budget_tokens</code>.</li>
+and <code>verify</code>.</li>
+<li>[ ] The brief’s body holds the seven capped sections, and what will not fit is
+linked rather than compressed.</li>
 <li>[ ] A reader with <code>AGENTS.md</code>, the brief, and the repository at <code>checkpoint</code> —
 and no conversation, prior session, or memory of the path — can answer all
 eight answerable-alone questions from the brief or from a record it names
@@ -15758,11 +15945,6 @@ retell.</p>
 <td style="text-align:left">list of exact commands</td>
 <td style="text-align:left">run verbatim to confirm the checkpoint is what the brief says</td>
 </tr>
-<tr>
-<td style="text-align:left"><code>budget_tokens</code></td>
-<td style="text-align:left">integer</td>
-<td style="text-align:left">the size budget for the whole brief; default <code>1200</code></td>
-</tr>
 </tbody>
 </table>
 <p><code>checkpoint</code> cannot be the commit that contains the brief. A brief is refreshed
@@ -15776,8 +15958,9 @@ the field exists to remove.</p>
 description of a command. A reader must be able to paste them.</p>
 <h2 id="reference-handoff-brief--body-seven-capped-sections" data-heading="body-seven-capped-sections">Body — seven capped sections</h2>
 <p>The body holds these seven sections, in this order, and no others. Each SHOULD
-stay within roughly 150 tokens; the whole brief SHOULD stay within
-<code>budget_tokens</code>.</p>
+stay within roughly 150 tokens. There is <strong>no budget on the whole brief</strong>: a
+section that will not fit is separated, not compressed — the detail moves to the
+record that owns it and the brief links there.</p>
 <table>
 <thead>
 <tr>
@@ -15938,7 +16121,6 @@ cairn:
   verify:
     - npm run cairn-check
     - npm test
-  budget_tokens: 1200
 ---
 
 # Resume CP-EXAMPLE-001 here

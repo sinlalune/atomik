@@ -42,7 +42,6 @@ Therefore the reference implementation MUST NOT claim portable conformance.
   "defaultRoute": "lightweight",
   "checkpointRetentionRef": "refs/cairn/checkpoints",
   "scopeDigestAlgorithm": "sha256",
-  "briefBudgetTokens": 1200,
   "transport": {
     "registration": "declared-adapter-name",
     "integration": "declared-adapter-name"
@@ -73,7 +72,6 @@ implemented and validated.
 | `defaultRoute` | route assumed when a path omits `route:` | `lightweight \| full` |
 | `checkpointRetentionRef` | ref prefix for [checkpoint retention](../concepts/checkpoint-retention.md) | a ref prefix the remote accepts, or `null` where the repository forbids rewriting pushes instead |
 | `scopeDigestAlgorithm` | digest used for [scope digests](../concepts/scope-digest.md) | a named algorithm; the digest is never abbreviated |
-| `briefBudgetTokens` | default `budget_tokens` for a [handoff brief](./handoff-brief.md) | positive integer |
 | `transport` | registration and integration adapters | installed and tested adapter identifiers |
 
 `checkpointRetentionRef: null` is a conforming value only when the repository

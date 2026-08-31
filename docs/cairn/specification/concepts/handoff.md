@@ -33,8 +33,8 @@ other's job.
 
 The brief lives at `project/briefs/<lowercase-id>-handoff.md`. Its frontmatter
 carries the machine-checkable state — `checkpoint`, `checkpoint_pushed`,
-`base_commit`, `trunk_seen`, `writes`, `governs` as `path@<object-id>`, `verify`
-as exact runnable commands, and `budget_tokens`. Its body holds seven capped
+`base_commit`, `trunk_seen`, `writes`, `governs` as `path@<object-id>`, and
+`verify` as exact runnable commands. Its body holds seven capped
 sections: outcome, state, next action, blockers, tried and rejected, reading
 order, and verification. The complete field list, caps, and template are in the
 [handoff-brief reference](../reference/handoff-brief.md).

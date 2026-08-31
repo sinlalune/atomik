@@ -120,6 +120,8 @@ A rule is a sentence turned into code, and the join is where the defects live.
 [adversarial fixture](./adversarial-fixture.md) is the only evidence a rule
 works, and [gate parity](./gate-parity.md) is the property that one gate does not
 change its mind between a laptop and CI.
+[Instruction parity](./instruction-parity.md) is its reader-side twin: one
+protocol text produces one workflow, whoever reads it.
 
 ## Alphabetical index
 
@@ -160,6 +162,7 @@ Borrowed terms are marked *(borrowed)*.
 - [Handoff brief](./handoff.md)
 - [Implementation candidate](./implementation-candidate.md)
 - [Inconclusive finding](./inconclusive-finding.md)
+- [Instruction parity](./instruction-parity.md)
 - [Integration transport](./integration-transport.md)
 - [Integrator](./integrator.md)
 - [Journal](./journal.md)

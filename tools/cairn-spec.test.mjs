@@ -208,7 +208,6 @@ test('cairn-spec: v0.2 closes the retention, provisional, and brief promises', (
     'trunk_seen',
     'governs',
     'verify',
-    'budget_tokens'
   ]) {
     assert.ok(markdown.includes(field), 'brief frontmatter omits ' + field)
   }
@@ -347,7 +346,11 @@ test('cairn-spec: the concept wiki separates borrowed vocabulary from Cairn conc
   )
   const concepts = readdirSync(CONCEPTS)
     .filter((name) => name.endsWith('.md') && name !== 'index.md')
-  assert.ok(concepts.length <= 71, 'the concept budget is 71 articles, found ' + concepts.length)
+  // NO COUNT ASSERTION. The hard cap was retired by ADR-020 decision 2b: it was
+  // raised to exactly the new count all three times it would have bound, so it
+  // was the current count restated as an assertion. `concept-orphan` (blocking)
+  // and `concept-growth` (advisory) replace it in cairn-check, where the rest of
+  // the catalogue rules live.
   for (const borrowed of ['git.md', 'rebase.md', 'merge.md', 'test.md', 'schema.md']) {
     assert.ok(concepts.includes(borrowed))
   }

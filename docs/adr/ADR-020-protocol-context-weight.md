@@ -6,14 +6,15 @@ tags: [adr, cairn, protocol, context, okf, portability, parity, cost]
 timestamp: 2026-08-31T00:00:00Z
 adr:
   id: ADR-020
-  status: proposed
+  status: accepted
   date: 2026-08-31
 ---
 
 # ADR-020: Protocol context weight is a first-order constraint
 
-Status: proposed
+Status: accepted
 Date: 2026-08-31
+Accepted: 2026-08-31, owner
 Extends: ADR-009 (dual plane), ADR-012 (parallel paths, self-merge), ADR-019 (Cairn v0.2)
 
 ## Context
@@ -314,32 +315,30 @@ The convention is also live rather than decorative, which was checked rather tha
 assumed — commits touching folder logs since the S05c seed: `docs/cairn` 8,
 `coding-paths` 5, `docs/adr` 4, `specification` 4, `audits` 3.
 
-### Open: the handoff brief's own token budget
+### 6. The handoff brief's token budget is retired
 
-The owner's ruling retires token counts as a *test for this maxim*. It leaves one
-question this ADR deliberately does not answer, because the answer is not obvious
-and pretending otherwise would hide it.
+Put to the owner as an open question with both readings, and ruled on the same
+day: *"remove it."*
 
-`brief-schema` enforces `budget_tokens: 1200` on the handoff brief, blocking. That
-is a token count, and it has the defect described above: it blocked five brief
-refreshes in one day, four of which were answered by shortening prose — the exact
-behaviour a budget teaches — and only two by separation.
+`brief-schema` enforced `budget_tokens: 1200` on the handoff brief, blocking. The
+argument for keeping it was real — the concept cap counted a *corpus* while this
+counted one *required-reading artefact*, which is exactly the quantity the maxim
+cares about, so a bound here was far more defensible than a bound on how many
+things exist.
 
-It is also not straightforwardly the same thing as the concept cap. The cap
-counted a **corpus**; this counts one **required-reading artefact**, which is
-precisely the quantity the maxim cares about. A bound on required reading is far
-more defensible than a bound on how many things exist.
+The evidence against it was that it did not behave that way in practice. It fired
+five times in one day and four of those were answered by rewriting sentences
+shorter, including one that dropped what a predicate operates on and that a test
+pins it. The sentence got shorter and said less than the truth. Only the fifth
+was answered by separation, and only because the ADR being drafted named the
+distinction.
 
-Both readings are available and this ADR takes neither:
-
-- *Retire it*, consistent with the ruling, and let the separation test carry the
-  brief like every other artefact.
-- *Keep it*, on the grounds that required reading is the one place a bound is
-  legitimate — and fix the remedy rather than the rule, since no predicate can
-  force an author to separate rather than compress.
-
-Recorded as open. It needs an owner ruling, and it is small enough not to hold up
-the rest.
+`budget_tokens` is removed from the brief schema, from the field list, from the
+configuration surface and from the two live briefs. What replaces it is the
+separation test in decision 1: the brief is required reading like any protocol
+artefact, so what will not fit is **linked to the record that owns it**, never
+compressed. That is a judgement measured by cold resume, not a predicate, and the
+conformance matrix says so rather than claiming a mechanism that does not exist.
 
 ## Consequences
 

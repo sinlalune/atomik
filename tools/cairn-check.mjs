@@ -681,6 +681,49 @@ export function resolveBranch({ flag, env = {}, symbolicRef, abbrevRef }) {
   return { branch: abbrevRef ?? 'HEAD', source: 'detached' }
 }
 
+/** Where the concept wiki lives. A concept note is one idea, and the normative
+ *  and learning text links to it instead of redefining it. */
+export const CONCEPTS_DIR = 'docs/cairn/specification/concepts'
+
+/**
+ * A concept note nothing points at.
+ *
+ * REPLACES A HARD CAP, and the replacement is the point. The wiki carried a
+ * blocking assertion that the article count stay under a fixed number. Its own
+ * history: 66 at S07g, 67 at S07o, 71 at S07q — raised to exactly the new count
+ * every time, so it never once bound. It also failed this protocol's admission
+ * test (a further concept is not WRONG in the repository, only unconventional),
+ * and it could be satisfied by merging two unrelated articles, which breaks the
+ * one-idea rule while the number holds.
+ *
+ * Vocabulary bloat is real, but it begins where a word is added that nothing
+ * needed — not at an arbitrary threshold. An unreferenced note is that, it is
+ * objectively checkable, and its breach leaves something genuinely wrong: a page
+ * no reader can arrive at. Growth itself is reported separately and never blocks
+ * (ADR-020 decision 2b, owner ruling 2026-08-31).
+ *
+ * Pure: the caller supplies the file list and the set of linked targets.
+ */
+export function namesForReading(names, limit = 5) {
+  return names.length <= limit
+    ? names.join(', ')
+    : `${names.slice(0, limit).join(', ')}, and ${names.length - limit} more`
+}
+
+export function orphanConcepts(conceptFiles, linkedTargets) {
+  const linked = linkedTargets instanceof Set ? linkedTargets : new Set(linkedTargets)
+  return conceptFiles.filter((file) => file !== 'index.md' && !linked.has(file))
+}
+
+/** Concept notes present now and absent at the comparison ref. `null` previous
+ *  means the ref could not be read, which is not evidence of no growth — the
+ *  caller reports nothing rather than claiming a number it does not have. */
+export function addedConcepts(previous, current) {
+  if (previous == null) return null
+  const before = new Set(previous)
+  return current.filter((file) => file !== 'index.md' && !before.has(file))
+}
+
 /** The trunk this repository integrates into. Hard-coded until the config
  *  loader lands (S08 part 4); named once so the base default and the rebase
  *  gate cannot drift apart. */
@@ -1183,8 +1226,7 @@ export const BRIEF_FIELDS = [
   'trunk_seen',
   'writes',
   'governs',
-  'verify',
-  'budget_tokens'
+  'verify'
 ]
 
 export const BRIEF_SECTIONS = [
@@ -1200,7 +1242,7 @@ export const BRIEF_SECTIONS = [
 /** The brief is the bootstrap contract, and a contract with no fields is not a
  *  contract. The SHAPE is checkable here; whether the brief can actually be
  *  resumed cold is a judgement and a benchmark, and is never claimed. */
-export function briefErrors(front, body, budget = 1200, tokensOf = approxTokens) {
+export function briefErrors(front, body) {
   const errors = []
   if (!front) return ['the handoff brief has no readable frontmatter']
   for (const field of BRIEF_FIELDS) {
@@ -1227,13 +1269,22 @@ export function briefErrors(front, body, budget = 1200, tokensOf = approxTokens)
   if (missing.length > 0) errors.push(`the handoff brief is missing: ${missing.join(', ')}`)
   const extra = headings.filter((heading) => !BRIEF_SECTIONS.includes(heading))
   if (extra.length > 0) errors.push(`the handoff brief carries sections outside the seven: ${extra.join(', ')}`)
-  const limit = Number.parseInt(front.budget_tokens, 10)
-  const size = tokensOf(String(body))
-  if (Number.isInteger(limit) && size > limit) {
-    errors.push(`the handoff brief is ~${size} tokens against its declared budget of ${limit} — a path whose situation will not fit in the budget has lost its shape`)
-  } else if (!Number.isInteger(limit) && size > budget) {
-    errors.push(`the handoff brief is ~${size} tokens against the default budget of ${budget}`)
-  }
+  // NO TOKEN BUDGET. Retired by owner ruling, 2026-08-31, under ADR-020.
+  //
+  // The brief carried `budget_tokens: 1200`, blocking. It fired five times in one
+  // day and four of those were answered by rewriting sentences shorter — which is
+  // what a budget teaches, because a budget is satisfiable by compression and
+  // compressing an explanation is how a record starts saying something slightly
+  // untrue. That is the failure this path spent nine units correcting.
+  //
+  // What replaces it is not nothing. ADR-020 requires the brief, like every
+  // protocol artefact, to separate its normative content from its explanatory
+  // content and keep only the first as required reading. A brief that has become
+  // a chronicle fails that test — and it fails it for the right reason, by naming
+  // what a cold reader could not answer, rather than by a number.
+  //
+  // That test is a judgement measured by cold resume, so it is not a predicate
+  // here and is not claimed to be one. The conformance matrix says so.
   return errors
 }
 
@@ -2434,9 +2485,61 @@ function branchAges(paths) {
 
 /** Schema + link integrity over the whole corpus, not just the diff: these
  *  are cheap and catching them late is the expensive part. */
-function corpusFindings(branch, trunkRef = 'master') {
+function corpusFindings(branch, trunkRef = 'master', previousRef = null, changed = []) {
   const findings = []
   const corpus = loadPaths()
+
+  // Concept wiki: an orphan blocks, growth is only reported. See orphanConcepts.
+  const conceptDir = join(REPO, CONCEPTS_DIR)
+  if (existsSync(conceptDir)) {
+    const conceptFiles = readdirSync(conceptDir).filter((f) => f.endsWith('.md'))
+    // A note counts as reached only from OUTSIDE the wiki. Two reasons, and the
+    // second is why this is not merely strict:
+    //   - the wiki index lists everything by construction, so counting it would
+    //     make the rule unfailable — the defect this rule replaces;
+    //   - counting sibling concepts would let two mutually-linking orphans pass,
+    //     and a word reachable only from other words is a word the protocol
+    //     itself never needed.
+    // Measured before choosing it: all 71 pre-existing concepts are linked from
+    // normative or learning text, so the strict reading fails none of them.
+    const linked = new Set()
+    const corpusDocs = [
+      ...walk('docs').filter((f) => f.endsWith('.md')),
+      ...walk('atomik-project').filter((f) => f.endsWith('.md'))
+    ]
+    for (const doc of corpusDocs) {
+      if (doc.startsWith(`${CONCEPTS_DIR}/`)) continue
+      const text = stripCode(readFileSync(join(REPO, doc), 'utf8'))
+      for (const match of text.matchAll(/(?:concepts\/|\.\/)([a-z0-9-]+\.md)/g)) {
+        linked.add(match[1])
+      }
+    }
+    for (const orphan of orphanConcepts(conceptFiles, linked)) {
+      findings.push({
+        level: 'blocking',
+        rule: 'concept-orphan',
+        message: `${CONCEPTS_DIR}/${orphan}: no normative or learning text links this concept — a word nobody needed is where vocabulary bloat begins; link it where it is used, or remove it`
+      })
+    }
+    // Growth is DIFF-SCOPED, like ledger-size and for the same reason: it speaks
+    // to whoever is adding a concept, in the change where they add it. A corpus
+    // sweep would report the same articles on every run for months, and a check
+    // that cries wolf is one people switch off.
+    if (changed.some((file) => file.startsWith(`${CONCEPTS_DIR}/`))) {
+      const previous = previousRef
+        ? (gitOrNull(['ls-tree', '--name-only', previousRef, `${CONCEPTS_DIR}/`]) ?? '')
+            .split('\n').filter(Boolean).map((f) => f.split('/').at(-1))
+        : null
+      const added = addedConcepts(previous, conceptFiles)
+      if (added && added.length > 0) {
+        findings.push({
+          level: 'advisory',
+          rule: 'concept-growth',
+          message: `the concept wiki gained ${added.length} article(s): ${namesForReading(added)}. Every concept is something a reader must learn before the normative text is readable, and the gradient runs one way — say in the ledger why each earns its page`
+        })
+      }
+    }
+  }
 
   // The derived running-paths view must match the path files it projects.
   // Objective, no judgment, one-command fix. Skipped on path branches, which
@@ -2582,7 +2685,7 @@ function main() {
   // historical migrations that were valid under their then-current schema.
   const recordRef = explicitPrevious ? previousRef : comparisonRef(null, null)
   const findings = [
-    ...corpusFindings(branch, trunkRef),
+    ...corpusFindings(branch, trunkRef, previousRef, changed),
     ...evaluate({
       changed,
       stateChanged,

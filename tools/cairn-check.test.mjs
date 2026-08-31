@@ -40,6 +40,9 @@ import {
   registrationMatches,
   resolveBranch,
   resolveBase,
+  orphanConcepts,
+  addedConcepts,
+  namesForReading,
   TRUNK_BASE_CANDIDATES,
   staleRunningPaths,
   stripCode,
@@ -1352,6 +1355,48 @@ test('an invalid declared type blocks even when a block is present', () => {
 })
 
 /* ------------------------------------------------------------------ *
+ * ADR-020 — the concept cap is replaced by an orphan rule and a growth
+ * advisory
+ *
+ * The cap asserted that the article count stay under a fixed number. Its own
+ * history — 66 at S07g, 67 at S07o, 71 at S07q, each raise to exactly the new
+ * count — shows it never once bound. It also failed the admission test (a
+ * further concept is not WRONG in the repo) and could be satisfied by merging
+ * two unrelated articles, breaking the one-idea rule while the number held.
+ * ------------------------------------------------------------------ */
+
+test('a concept reached only from inside the wiki is still an orphan', () => {
+  // The fixture: a note present in the folder and reached from nowhere.
+  assert.deepEqual(
+    orphanConcepts(['gate-parity.md', 'invented.md', 'index.md'], new Set(['gate-parity.md'])),
+    ['invented.md']
+  )
+  // index.md is never itself an orphan; it is the map, not a concept.
+  assert.deepEqual(orphanConcepts(['index.md'], new Set()), [])
+  // A linked note passes, and a plain array is accepted as well as a Set.
+  assert.deepEqual(orphanConcepts(['gate-parity.md'], ['gate-parity.md']), [])
+  // The caller builds `linkedTargets` from documents OUTSIDE the wiki, so a pair
+  // of concepts citing only each other reaches this function as two orphans —
+  // the loophole a same-folder reading would have left open.
+  assert.deepEqual(orphanConcepts(['a.md', 'b.md'], new Set()), ['a.md', 'b.md'])
+})
+
+test('growth is measured, and an unreadable previous state is not "no growth"', () => {
+  assert.deepEqual(addedConcepts(['a.md'], ['a.md', 'b.md']), ['b.md'])
+  assert.deepEqual(addedConcepts(['a.md', 'b.md'], ['a.md', 'b.md']), [])
+  // index.md is not an article, so it never counts as growth.
+  assert.deepEqual(addedConcepts(['a.md'], ['a.md', 'index.md']), [])
+  // A ref that could not be read is missing evidence, not evidence of no
+  // growth — the S08b lesson, applied where it would have recurred.
+  assert.equal(addedConcepts(null, ['a.md', 'b.md']), null)
+})
+
+test('a finding never prints an unreadable wall of names', () => {
+  assert.equal(namesForReading(['a', 'b']), 'a, b')
+  assert.equal(namesForReading(['a', 'b', 'c', 'd', 'e', 'f', 'g']), 'a, b, c, d, e, and 2 more')
+})
+
+/* ------------------------------------------------------------------ *
  * v0.2 — checkpoint retention
  * ------------------------------------------------------------------ */
 
@@ -1875,7 +1920,6 @@ const briefFront = {
   writes: ['src/**'],
   governs: ['docs/a.md@cccc'],
   verify: ['npm run cairn-check'],
-  budget_tokens: '1200'
 }
 const briefBody = BRIEF_SECTIONS.map((section) => `## ${section}\n\nshort.\n`).join('\n')
 
@@ -1883,7 +1927,12 @@ test('a complete brief passes and each missing field is named', () => {
   assert.deepEqual(briefErrors(briefFront, briefBody), [])
   const { trunk_seen: _dropped, ...missing } = briefFront
   assert.ok(briefErrors(missing, briefBody).some((e) => e.includes('trunk_seen')))
-  assert.deepEqual(BRIEF_FIELDS.length, 10)
+  // Nine, not ten: `budget_tokens` was retired with the brief's token budget
+  // (ADR-020, owner ruling 2026-08-31). A budget is satisfiable by compression,
+  // and compressing an explanation is how a record starts saying something
+  // slightly untrue. The separation test replaces it, measured by cold resume.
+  assert.deepEqual(BRIEF_FIELDS.length, 9)
+  assert.ok(!BRIEF_FIELDS.includes('budget_tokens'))
   // written_by exists so a cold-resume pilot can separate a practice problem
   // from a schema problem. The first pilot could not: one Git author across the
   // whole corpus collapsed the writer axis before it could be read.
@@ -1907,11 +1956,6 @@ test('the seven sections are exact — none missing, none extra', () => {
   assert.ok(briefErrors(briefFront, extra).some((e) => /outside the seven: Appendix/.test(e)))
 })
 
-test('a brief over its declared budget is reported with both numbers', () => {
-  const bloated = briefBody.replace('## State\n\nshort.', `## State\n\n${'word '.repeat(4000)}`)
-  const errors = briefErrors({ ...briefFront, budget_tokens: '1200' }, bloated)
-  assert.ok(errors.some((e) => /against its declared budget of 1200/.test(e)))
-})
 
 test('a missing brief blocks, and is only advised for a listed migration path', () => {
   const strict = run(['README.md'], 'path/cp-mvp-010', [A_PATH], {

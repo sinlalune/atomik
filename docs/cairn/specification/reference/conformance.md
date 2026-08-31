@@ -49,9 +49,9 @@ For each row it records `pass`, `fail`, `inconclusive`, `host-dependent`, or
       retained.
 - [ ] The handoff brief carries `checkpoint`, `checkpoint_pushed`,
       `base_commit`, `trunk_seen`, `writes`, `governs` as `path@<object-id>`,
-      `verify`, and `budget_tokens`.
-- [ ] The brief's body holds the seven capped sections and stays within
-      `budget_tokens`.
+      and `verify`.
+- [ ] The brief's body holds the seven capped sections, and what will not fit is
+      linked rather than compressed.
 - [ ] A reader with `AGENTS.md`, the brief, and the repository at `checkpoint` —
       and no conversation, prior session, or memory of the path — can answer all
       eight answerable-alone questions from the brief or from a record it names

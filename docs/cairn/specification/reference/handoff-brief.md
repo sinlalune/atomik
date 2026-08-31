@@ -43,7 +43,6 @@ retell.
 | `writes` | list of path patterns | copied from the path record; what this path may change |
 | `governs` | list of `path@<object-id>` | the documents that bind this work, each pinned at an exact id |
 | `verify` | list of exact commands | run verbatim to confirm the checkpoint is what the brief says |
-| `budget_tokens` | integer | the size budget for the whole brief; default `1200` |
 
 `checkpoint` cannot be the commit that contains the brief. A brief is refreshed
 inside the work unit it describes, so at write time that commit does not exist —
@@ -60,8 +59,9 @@ description of a command. A reader must be able to paste them.
 ## Body — seven capped sections
 
 The body holds these seven sections, in this order, and no others. Each SHOULD
-stay within roughly 150 tokens; the whole brief SHOULD stay within
-`budget_tokens`.
+stay within roughly 150 tokens. There is **no budget on the whole brief**: a
+section that will not fit is separated, not compressed — the detail moves to the
+record that owns it and the brief links there.
 
 | Section | Answers | Cap guidance |
 | :-- | :-- | :-- |
@@ -161,7 +161,6 @@ cairn:
   verify:
     - npm run cairn-check
     - npm test
-  budget_tokens: 1200
 ---
 
 # Resume CP-EXAMPLE-001 here

@@ -67,7 +67,7 @@ export const RULE_METADATA = {
     enforcing: 'fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)'
   },
   'brief-schema': {
-    condition: 'The handoff brief is missing, or lacks its eight fields, its seven exact sections, pinned governs entries, or its token budget',
+    condition: 'The handoff brief is missing, or lacks its nine fields, its seven exact sections, or pinned governs entries',
     enforcing: 'briefErrors(front, body) over BRIEF_FIELDS and BRIEF_SECTIONS'
   },
   'redaction': {
@@ -113,6 +113,14 @@ export const RULE_METADATA = {
   'base-parity': {
     condition: 'A path-branch run compared the working tree with HEAD instead of the branch with the trunk',
     enforcing: "resolveBase() source is 'opt-out' or 'unresolvable' while isPathBranch(branch)"
+  },
+  'concept-orphan': {
+    condition: 'A concept note that no normative or learning text outside the wiki links to',
+    enforcing: 'orphanConcepts(conceptFiles, links from documents outside the concepts folder)'
+  },
+  'concept-growth': {
+    condition: 'A change adds concept articles; reported so vocabulary growth is a visible decision',
+    enforcing: 'addedConcepts(previousRef listing, current listing), diff-scoped to the concepts folder'
   },
   'branch-identity': {
     condition: 'Detached checkout where branch cannot be identified from host or git ref',

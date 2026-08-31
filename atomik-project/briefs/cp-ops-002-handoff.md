@@ -6,8 +6,8 @@ atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: e82d250f23771aff40474286ccf749141cd19129
-  checkpoint_unit: 23
+  checkpoint: dfc435238e2e5765858807e77ede16f65415fad1
+  checkpoint_unit: 24
   checkpoint_pushed: true
   base_commit: 7aa3b1d
   trunk_seen: dfcd09d
@@ -30,7 +30,6 @@ atomik:
     - npm run cairn-check
     - npm run cairn-check:test
     - npm run cairn-spec:build
-  budget_tokens: 1200
 ---
 
 # Resume CP-OPS-002 here
@@ -66,12 +65,12 @@ needs from them:
 - **CI is read, not reproduced** (S08c). `gh run view --log` is the source for any
   claim about what CI reported; a look-alike local run is what put a false
   attribution in the S08 opening brief.
-- **[`ADR-020`](../../docs/adr/ADR-020-protocol-context-weight.md) is `proposed`**
-  (S08d, amended S08e/S08f). Read it rather than a summary. Three things bind now:
-  **the queued ledger roll is deliberately not done** (the rollup and
-  `ledger-size` retire with it); the concept cap is **retired, not raised** — it
-  never bound once; and the maxim's halves are **normative** and **explanatory**
-  content, *not* OKF's `index.md`, which is a folder's map.
+- **[`ADR-020`](../../docs/adr/ADR-020-protocol-context-weight.md) is `accepted`**
+  (S08d–S08g). Read it rather than a summary. What binds a resuming session:
+  **no token counts anywhere** — the brief's budget and the concept cap are both
+  gone; what will not fit is **linked, never compressed**; the maxim's halves are
+  **normative** and **explanatory** content, *not* OKF's `index.md`; and **the
+  queued ledger roll is deliberately not done**, superseded by stage 2.
 
 Refs 01–19 on the remote; 01–13 hold PRE-rebase commits and no ref was moved.
 Checker suite 198, specification suite 33.
@@ -95,8 +94,7 @@ its `timestamp:`), item 4 (retention generation — an ADR before code).
 
 ## Blockers
 
-None that stop work. One small ruling is open — ADR-020 §*Open: the handoff
-brief's own token budget*. Both owner questions are settled: `CP-MVP-008` by the named migration
+None. Both owner questions are settled: `CP-MVP-008` by the named migration
 exception (S07s), and the CP-UI-TYPOGRAPHY dates by record immutability.
 
 ## Tried and rejected
