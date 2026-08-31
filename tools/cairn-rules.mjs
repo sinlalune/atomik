@@ -26,12 +26,26 @@ export const TABLE_END = '<!-- cairn:rules:end -->'
 export function extractRules(source) {
   const rules = []
 
-  // Rules from evaluate(): add('blocking'|'advisory', 'rule-name', ...)
-  const evalMatches = source.matchAll(/add\('(blocking|advisory)',\s*'([a-z-]+)'/g)
+  // Rules from evaluate(). The level is a literal —
+  //     add('blocking', 'rule-name', …)
+  // — or an expression that chooses between two literals, because a rule may be
+  // advisory for a grandfathered path and blocking for everyone else:
+  //     add(exempt ? 'advisory' : 'blocking', 'rule-name', …)
+  //
+  // Matching only the literal form was a silent under-report, not a gap: five
+  // rules could emit advisory findings while the published catalogue said all
+  // five were blocking. The test that guards the catalogue passed throughout,
+  // because it compared the catalogue with this same extraction rather than with
+  // the checker's behaviour.
+  const evalMatches = source.matchAll(
+    /add\(\s*(?:'(blocking|advisory)'|[^,]*?\?\s*'(blocking|advisory)'\s*:\s*'(blocking|advisory)')\s*,\s*'([a-z-]+)'/g
+  )
   for (const match of evalMatches) {
-    const [, level, name] = match
-    if (!rules.some((r) => r.name === name && r.level === level && r.scope === 'diff')) {
-      rules.push({ name, level, scope: 'diff' })
+    const [, literal, whenTrue, whenFalse, name] = match
+    for (const level of [literal, whenTrue, whenFalse].filter(Boolean)) {
+      if (!rules.some((r) => r.name === name && r.level === level && r.scope === 'diff')) {
+        rules.push({ name, level, scope: 'diff' })
+      }
     }
   }
 

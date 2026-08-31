@@ -6,7 +6,7 @@ atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: 7e6f8611c9cc0ff0ac094189df256b677749c7eb
+  checkpoint: 0b7f993b2b26aee57ec381d3d33ddd248f9214d9
   checkpoint_unit: 13
   checkpoint_pushed: true
   base_commit: 7aa3b1d
@@ -37,34 +37,34 @@ extract the protocol from Atomik as a portable specification and init kit.
 
 ## State
 
-Cairn's specification is v0.2 and its predicates are implemented in the review's
-own severity order. Landed since: the canonical specification project, the v0.2
-text, the P0 and P1 predicates, routes, the brief contract and redaction, three
-predicate repairs, and the cold-resume pilot — whose verdict was *do not change
-the normative text yet*.
+The specification is v0.2 and its predicates are implemented. Since then the work
+has been about whether the rules are honest, not whether there are enough of
+them.
 
-S07o corrected the answerable-alone contract, which had forbidden the reader from
-following the entry route `AGENTS.md` points at. S07q answered whether the
-enforcement failures are structural: partly, and narrowly. **Every defect found
-is a rule that agreed too easily; not one was too strict.** It landed as four
-concept articles, the directive *Prove that the gate can fail* with four MUSTs,
-five conformance rows, and three tests.
+**The finding that organises everything else:** every enforcement defect found in
+this checker is a rule that agreed too easily; not one was too strict. Seven
+instances now, including two still live on the trunk — `hasCeremony` accepts a
+path's *opening* note as its closing ceremony, and the merge-time journal entry
+has no predicate at all.
 
-S07r rebased onto `dfcd09d` and the rebase exposed the worst finding yet:
-`unretainedCheckpoints` reports "nothing orphaned" when the retained set stops
-intersecting the branch — which is exactly what a rebase causes. Measured here:
-13 refs, 41 commits in range, 0 intersecting, gate `OK`. Rebase-before-merge is
-mandatory, so retention evaporates before every merge on every path. The ref
-namespace cannot express the fix, so it is an ADR before it is code.
+Landed for it: four concept articles, the directive *Prove that the gate can
+fail* with four MUSTs, five conformance rows, and the first adversarial fixtures.
 
-Refs 01–13 hold the PRE-rebase commits; the 31 rebased commits are unretained and
-no ref was moved. Checker suite 192, specification suite 33.
+S07r rebased onto `dfcd09d` and found the worst instance: `unretainedCheckpoints`
+returns "nothing orphaned" when the retained set stops intersecting the branch —
+exactly what a rebase causes. 13 refs, 41 commits, 0 intersecting, gate `OK`.
+Rebase-before-merge is mandatory, so retention evaporates before every merge on
+every path. The ref namespace cannot express the fix, so it is an ADR first.
 
-S07s drained the record that had this branch red in CI. `CP-MVP-008` never
-merged from a branch — it ran on the trunk and predates candidate-bound closure,
-so no candidate commit exists to name. It joins the finite, self-deleting
-`V02_MIGRATION_PATHS`, now wired into `transition` and `acceptance` as well as
-`scope-digest`. Faithful CI invocation: **OK, 12 advisory**, was 9 blocking.
+S07s drained `CP-MVP-008`, which never merged from a branch and so has no
+candidate commit to name; it joins the self-deleting `V02_MIGRATION_PATHS`, now
+wired into `transition` and `acceptance`. S07t fixed the rule catalogue, which
+published five rules as blocking-only while all five can emit advisory findings —
+guarded by a test comparing the table against the same blind extraction that
+wrote it.
+
+Refs 01–16; refs 01–13 hold PRE-rebase commits and no ref was moved. Checker
+suite 193, specification suite 33.
 
 ## Next action
 

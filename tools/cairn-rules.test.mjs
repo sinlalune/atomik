@@ -110,3 +110,27 @@ test('cairn-rules: splicing replaces only what is between the markers', () => {
   assert.throws(() => spliceTable('no markers here', 'x'), /splice point/)
   assert.equal(tableIn('no markers here'), null)
 })
+
+/**
+ * ADVERSARIAL FIXTURE — the catalogue must see a level it has to compute.
+ *
+ * The extractor matched only a literal level, so five rules that emit advisory
+ * findings for grandfathered paths were published as blocking-only. The test
+ * that guards the catalogue passed throughout, because it compared the
+ * catalogue against this same extraction rather than against behaviour. This
+ * fixture asserts the shape that was invisible.
+ */
+test('cairn-rules: a conditional level yields BOTH levels, not the literal one', () => {
+  const source = `
+    add(exempt ? 'advisory' : 'blocking', 'scope-digest', 'x')
+    add(legacyRecord ? 'advisory' : 'blocking', 'acceptance', 'y')
+    add('blocking', 'rebase', 'z')
+  `
+  const rules = extractRules(source)
+  const levels = (name) => rules.filter((r) => r.name === name).map((r) => r.level).sort()
+
+  assert.deepEqual(levels('scope-digest'), ['advisory', 'blocking'])
+  assert.deepEqual(levels('acceptance'), ['advisory', 'blocking'])
+  // A genuinely single-level rule must not gain a phantom second level.
+  assert.deepEqual(levels('rebase'), ['blocking'])
+})

@@ -2952,6 +2952,12 @@ honest state of the work.</p>
 <td style="text-align:left">A changed path record carries no <code>cairn-unit</code> block, or one declares an unknown type</td>
 <td style="text-align:left"><code>parseWorkUnits(record) =&gt; workUnitErrors(unit) over WORK_UNIT_TYPES</code></td>
 </tr>
+<tr data-rule="acceptance" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>acceptance</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">Ready/done path lacks exact-commit acceptance or changed implementation after acceptance</td>
+<td style="text-align:left"><code>closingAcceptanceErrors(record, pathId) + pathClosureState(path, record)</code></td>
+</tr>
 <tr data-rule="advisory-disposition" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>advisory-disposition</code></td>
 <td style="text-align:left">diff</td>
@@ -2969,6 +2975,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Detached checkout where branch cannot be identified from host or git ref</td>
 <td style="text-align:left"><code>branchSource === 'detached' (blocking on guarded roots, advisory on others)</code></td>
+</tr>
+<tr data-rule="brief-schema" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>brief-schema</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">The handoff brief is missing, or lacks its eight fields, its seven exact sections, pinned governs entries, or its token budget</td>
+<td style="text-align:left"><code>briefErrors(front, body) over BRIEF_FIELDS and BRIEF_SECTIONS</code></td>
 </tr>
 <tr data-rule="checkpoint-retention" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>checkpoint-retention</code></td>
@@ -3024,6 +3036,18 @@ honest state of the work.</p>
 <td style="text-align:left">One actor recorded both the opening and the closing acceptance for a path</td>
 <td style="text-align:left"><code>opening.accepted_by === closing.accepted_by (advisory: visible, never forbidden)</code></td>
 </tr>
+<tr data-rule="route" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>route</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A path declares no route, an unknown route, a lightweight route that meets a full-route trigger, a foundation surface outside documents, or a descent from full</td>
+<td style="text-align:left"><code>fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)</code></td>
+</tr>
+<tr data-rule="scope-digest" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>scope-digest</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">The accepted definition of done moved after acceptance, or was accepted without a digest</td>
+<td style="text-align:left"><code>scopeDigest(resolveScopeSection(pathRecord, scope_ref)) === record.scope_digest</code></td>
+</tr>
 <tr data-rule="scope-drift" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>scope-drift</code></td>
 <td style="text-align:left">diff</td>
@@ -3035,6 +3059,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Manual edits to shared/derived statements of record</td>
 <td style="text-align:left"><code>SINGLE_TRUTH.includes(file)</code></td>
+</tr>
+<tr data-rule="transition" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>transition</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">Changed path state is not an allowed lifecycle transition, or prior state is unavailable</td>
+<td style="text-align:left"><code>transitionErrors(previous, current, onPathBranch)</code></td>
 </tr>
 <tr>
 <td style="text-align:left">&lt;!-- cairn:rules:end --&gt;</td>
@@ -5243,6 +5273,12 @@ honest state of the work.</p>
 <td style="text-align:left">A changed path record carries no <code>cairn-unit</code> block, or one declares an unknown type</td>
 <td style="text-align:left"><code>parseWorkUnits(record) =&gt; workUnitErrors(unit) over WORK_UNIT_TYPES</code></td>
 </tr>
+<tr data-rule="acceptance" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>acceptance</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">Ready/done path lacks exact-commit acceptance or changed implementation after acceptance</td>
+<td style="text-align:left"><code>closingAcceptanceErrors(record, pathId) + pathClosureState(path, record)</code></td>
+</tr>
 <tr data-rule="advisory-disposition" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>advisory-disposition</code></td>
 <td style="text-align:left">diff</td>
@@ -5260,6 +5296,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Detached checkout where branch cannot be identified from host or git ref</td>
 <td style="text-align:left"><code>branchSource === 'detached' (blocking on guarded roots, advisory on others)</code></td>
+</tr>
+<tr data-rule="brief-schema" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>brief-schema</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">The handoff brief is missing, or lacks its eight fields, its seven exact sections, pinned governs entries, or its token budget</td>
+<td style="text-align:left"><code>briefErrors(front, body) over BRIEF_FIELDS and BRIEF_SECTIONS</code></td>
 </tr>
 <tr data-rule="checkpoint-retention" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>checkpoint-retention</code></td>
@@ -5315,6 +5357,18 @@ honest state of the work.</p>
 <td style="text-align:left">One actor recorded both the opening and the closing acceptance for a path</td>
 <td style="text-align:left"><code>opening.accepted_by === closing.accepted_by (advisory: visible, never forbidden)</code></td>
 </tr>
+<tr data-rule="route" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>route</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A path declares no route, an unknown route, a lightweight route that meets a full-route trigger, a foundation surface outside documents, or a descent from full</td>
+<td style="text-align:left"><code>fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)</code></td>
+</tr>
+<tr data-rule="scope-digest" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>scope-digest</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">The accepted definition of done moved after acceptance, or was accepted without a digest</td>
+<td style="text-align:left"><code>scopeDigest(resolveScopeSection(pathRecord, scope_ref)) === record.scope_digest</code></td>
+</tr>
 <tr data-rule="scope-drift" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>scope-drift</code></td>
 <td style="text-align:left">diff</td>
@@ -5326,6 +5380,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Manual edits to shared/derived statements of record</td>
 <td style="text-align:left"><code>SINGLE_TRUTH.includes(file)</code></td>
+</tr>
+<tr data-rule="transition" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>transition</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">Changed path state is not an allowed lifecycle transition, or prior state is unavailable</td>
+<td style="text-align:left"><code>transitionErrors(previous, current, onPathBranch)</code></td>
 </tr>
 <tr>
 <td style="text-align:left">&lt;!-- cairn:rules:end --&gt;</td>
@@ -12265,6 +12325,12 @@ honest state of the work.</p>
 <td style="text-align:left">A changed path record carries no <code>cairn-unit</code> block, or one declares an unknown type</td>
 <td style="text-align:left"><code>parseWorkUnits(record) =&gt; workUnitErrors(unit) over WORK_UNIT_TYPES</code></td>
 </tr>
+<tr data-rule="acceptance" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>acceptance</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">Ready/done path lacks exact-commit acceptance or changed implementation after acceptance</td>
+<td style="text-align:left"><code>closingAcceptanceErrors(record, pathId) + pathClosureState(path, record)</code></td>
+</tr>
 <tr data-rule="advisory-disposition" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>advisory-disposition</code></td>
 <td style="text-align:left">diff</td>
@@ -12282,6 +12348,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Detached checkout where branch cannot be identified from host or git ref</td>
 <td style="text-align:left"><code>branchSource === 'detached' (blocking on guarded roots, advisory on others)</code></td>
+</tr>
+<tr data-rule="brief-schema" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>brief-schema</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">The handoff brief is missing, or lacks its eight fields, its seven exact sections, pinned governs entries, or its token budget</td>
+<td style="text-align:left"><code>briefErrors(front, body) over BRIEF_FIELDS and BRIEF_SECTIONS</code></td>
 </tr>
 <tr data-rule="checkpoint-retention" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>checkpoint-retention</code></td>
@@ -12337,6 +12409,18 @@ honest state of the work.</p>
 <td style="text-align:left">One actor recorded both the opening and the closing acceptance for a path</td>
 <td style="text-align:left"><code>opening.accepted_by === closing.accepted_by (advisory: visible, never forbidden)</code></td>
 </tr>
+<tr data-rule="route" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>route</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A path declares no route, an unknown route, a lightweight route that meets a full-route trigger, a foundation surface outside documents, or a descent from full</td>
+<td style="text-align:left"><code>fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)</code></td>
+</tr>
+<tr data-rule="scope-digest" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>scope-digest</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">The accepted definition of done moved after acceptance, or was accepted without a digest</td>
+<td style="text-align:left"><code>scopeDigest(resolveScopeSection(pathRecord, scope_ref)) === record.scope_digest</code></td>
+</tr>
 <tr data-rule="scope-drift" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>scope-drift</code></td>
 <td style="text-align:left">diff</td>
@@ -12348,6 +12432,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Manual edits to shared/derived statements of record</td>
 <td style="text-align:left"><code>SINGLE_TRUTH.includes(file)</code></td>
+</tr>
+<tr data-rule="transition" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>transition</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">Changed path state is not an allowed lifecycle transition, or prior state is unavailable</td>
+<td style="text-align:left"><code>transitionErrors(previous, current, onPathBranch)</code></td>
 </tr>
 <tr>
 <td style="text-align:left">&lt;!-- cairn:rules:end --&gt;</td>

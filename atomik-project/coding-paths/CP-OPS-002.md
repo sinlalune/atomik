@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-002
   route: full            # control plane + decision plane; escalation is one-way
   status: running
-  current_step: S07s
+  current_step: S07t
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
   writes:                    # ADVISORY — a signal, never a lock
@@ -103,253 +103,10 @@ Convention: [paths.md](./paths.md#the-ledger-has-a-boundary) · index:
 - **[S07j](./history/CP-OPS-002-S07j.md)** — The v0.2 predicates, part three: routes, the brief contract, redaction — COMPLETE
 - **[S07k](./history/CP-OPS-002-S07k.md)** — Repair: a retention ref was moved, and the rule could not see it — COMPLETE
 - **[S07l](./history/CP-OPS-002-S07l.md)** — Repair: the brief could not name its own commit — COMPLETE
-
-### S07m — Review round two: two unsound predicates and a fabricated figure — **COMPLETE**
-
-```cairn-unit
-step: S07m
-unit: 09
-type: implementation
-verified: cairn-check, cairn-check:test, typecheck, test, build
-```
-
-The reviewer checked the response against the generated specification rather than taking it
-at its word, and found four things. Three were defects in this work; one was a compliment
-that does not survive counting.
-
-- **`closure-surface` was more permissive than the prose it enforces.** The rule allowed
-  `current_step` and `resolution` on any closure. `resolution` at closure is incoherent —
-  a `ready` path has resolved nothing — and neither field appears in the normative list.
-  The surface is now scoped by the fact being recorded: `ready` may move `status` and
-  `subject_commit`; `done` additionally moves `resolution`, because that is the trunk
-  integration unit. This was the exact seam the document claims to track, and the predicate
-  was on the wrong side of it.
-- **`advisory-disposition` was unsound, not merely partial.** It compared dispositions
-  against the advisories raised while evaluating `A` — and `A` is field-restricted by
-  construction, so its advisory set is a strict SUBSET of `C`'s. The rule could pass while
-  an advisory raised at the candidate went undisposed, which is the failure the requirement
-  exists to prevent. The closing record now **attests** `advisories_at_candidate`, bound to
-  `C` by the audit's subject; dispositions must cover that set exactly, and any advisory
-  that fires at `A` and is missing from it proves the attestation incomplete. An advisory
-  firing only at `C` remains attested rather than derived, and the matrix says so.
-- **Item 14 was conformance-breaking, not editorial.** The text disowned "forty hexadecimal
-  characters" while the checker matched `[0-9a-f]{40}` in five places, so a SHA-256
-  repository conformed to the specification and failed the reference tool — the tool and the
-  spec disagreeing about what a valid repository is. `isObjectId` now accepts either format
-  and refuses every prefix; `isCommitPin` widens to 64.
-- **`route` gained a structural backstop.** Two of five triggers are self-declared, whose
-  honest failure mode is that everything declares itself lightweight and no rule ever fires.
-  *Expected* to span more than one work unit is unobservable; **having** spanned one is a
-  fact in the ledger. A path whose ledger declares more than one `cairn-unit` must be
-  `full`. It is the same trigger one unit late, and it cannot be declared away.
-- **A fabricated figure, removed.** The response document reported v0.1 conformance as
-  `9 / 0 / 21`. The real count is `6 / 1 / 8` across 15 rows — v0.1 shipped fifteen rows and
-  at least one partial, so zero partials was impossible on its face. The number was not
-  mis-transcribed; it was invented. It is now generated from the v0.1 table rather than
-  asserted.
-- **A compliment declined.** The reviewer read the split as surface area falling —
-  "45 Cairn concepts, down from ~55". Classifying v0.1's 65 articles under the same
-  taxonomy gives **41 Cairn and 24 borrowed**, so Cairn concepts went **41 → 45, up four**,
-  while borrowed fell 24 → 21. The brief's "~25 real ideas" was an estimate; the split
-  revealed the real number rather than reducing it. Accepting a flattering figure that
-  counting contradicts is the failure this whole path exists to remove.
-- **The failure mode both violations share is now named in the specification**, in a section
-  addressed to the next implementer: a predicate can ask about a **declaration** or about a
-  **fact**, the two read almost identically, and they diverge exactly when something has
-  gone wrong — because a broken state usually leaves the declarations internally consistent.
-  A moved ref keeps every declared unit resolving; a closure commit's advisory set stays a
-  tidy subset. When a predicate can be written either way, write the one that can disagree
-  with the record.
-- Nine regression tests; checker suite 129 → 135, full suite 176 → 184. **No new rules** —
-  every change corrects or scopes an existing one.
-
-### S07n — The cold-resume pilot, and what it says not to do — **COMPLETE**
-
-```cairn-unit
-step: S07n
-unit: 10
-type: documentation
-verified: cairn-check, cairn-check:test, typecheck, test, build
-```
-
-The conformance matrix had carried `Cold-resume pilot — not run` since the row was written,
-while the specification named cold resume its **primary** metric. Rules went 24 → 40 in four
-days against a central claim with zero measurements. This is the first run.
-
-- **Method.** Twenty distinct handoff briefs, taken as they stood at real commits across six
-  paths and seven weeks. One participant per brief, no prior context, exactly two documents
-  — `AGENTS.md` and the brief — and the eight answerable-alone questions. Participants were
-  told to report UNANSWERABLE rather than reconstruct from plausibility. One participant per
-  brief so no trial could be informed by another.
-- **Headline: 7 of 20 (35%) would have begun work without asking a human.** Thirteen would
-  have stopped. Confidence in the first action: 2 high, 7 medium, 11 low.
-- **By question**, two failures dominate: `resume_commit` 16/20 and `must_read` (at which
-  object id) 15/20 — precisely the two the v0.2 contract added fields for. Briefs
-  consistently named *which* documents to read and consistently failed to say *at which
-  version*. `blocking` never failed once.
-- **By path, the distribution is flat** — five of six paths sit between 2.5 and 3.0
-  unanswerable per trial, across work as different as an OCR bench, a protocol path and a
-  worktree cleanup. That **rules out** the one diagnosis this reading exists to detect: the
-  schema is not underspecified for a class of work, so no specification change is indicated.
-- **The writer axis could not be computed at all.** Every brief in this repository's history
-  carries one Git author, because one participant commits work produced by several. This is
-  the pilot's most actionable output and it is an instrument fix, not a protocol fix:
-  `written_by` is now a required brief field, because without it the pilot can rule out a
-  path-class problem and cannot confirm a practice problem.
-- **Schema era stands in, at n = 2.** Pre-contract briefs average 2.7 unanswerable per
-  trial; the two written under the v0.2 contract average 0.5. The direction is large and
-  **two trials establish nothing** — recorded as suggestive and labelled as such. The single
-  v0.2-era failure is the interesting one: `checkpoint: PENDING`, a placeholder left in a
-  field the schema does specify. Seven of eight answered, stopped at the resume point. A
-  practice failure of a schema that worked — the category the writer axis exists to count,
-  appearing at n = 1.
-- **The outlier argues against my own rule.** The two best-scoring briefs are the WSLg pair
-  at 0.5 unanswerable per trial, and they are the **least** protocol-shaped documents in the
-  corpus: not coding paths, no seven sections, one self-declared "a side micro-unit, not a
-  path step". They score well because they are dense narratives that happen to contain the
-  facts. Section conformance is a way of making those facts likely; it is not what made
-  these briefs resumable, and a brief can satisfy every structural rule in `brief-schema`
-  while failing every question a resumer actually has. Worth holding onto now, while the
-  schema is new and its passing grade is still being mistaken for the goal.
-- **Limits, stated rather than buried.** Graders are language models — consistent and
-  literal, which suits a schema test, and unlike a real resumer they never get impatient or
-  resourceful. At least one grading inconsistency survived (a trial marked `must_read`
-  ANSWERED while its own justification says no object id was given), so the true count is
-  ≥ 15. The path sample is unbalanced, 10 of 20 from one path. The corpus is historical,
-  which is fair as a baseline and unfair to whoever wrote those briefs. `would_act` is
-  self-reported: nobody was asked to actually perform the action.
-- **What it says about v0.3: do not change the normative text yet.** The flat path
-  distribution removes the outcome that would justify a schema change; the dominant failures
-  map onto fields v0.2 already added; the only clean signal rests on two trials. The next
-  step is to keep writing briefs under the contract with `written_by` populated, re-run at
-  fifteen v0.2-era briefs from more than one writer, and read the writer axis then. **A
-  protocol that revises itself faster than it can measure itself is the failure this pilot
-  was commissioned to prevent.**
-- Record: [`docs/cairn/cairn-cold-resume-pilot-2026-08-26.md`](../../docs/cairn/cairn-cold-resume-pilot-2026-08-26.md).
-  No rule added; no normative text changed except the two the reviewer's own points
-  required — `written_by`, and the requirement to record writer and path with every trial.
-
-### S07o — Owner review: the brief is a stone, not a hero — **COMPLETE**
-
-```cairn-unit
-step: S07o
-unit: 11
-type: documentation
-verified: cairn-check, cairn-check:test, typecheck, test, build
-```
-
-Owner feedback on v0.2 ([record](../briefs/2026-08-27-cairn-v0.2-owner-feedback.md)).
-Two items are doctrine, six are editorial, four are the reader. The doctrine two are the
-ones worth the space: both say the specification asserts the opposite of what it builds.
-
-- **The answerable-alone contract contradicted the entry route.** It demanded a reader
-  holding "only `AGENTS.md` and the brief — **no ledger**" answer eight questions. But
-  `AGENTS.md` exists to point at the operating convention, which points at the live view,
-  which names the path and its ledger — so the contract forbade the reader from doing the
-  one thing the bootloader is for. The owner's framing is the fix: *a brief is a rock on
-  the trail, not a do-it-all hero.* "Alone" now constrains **context, not file count** —
-  no conversation, no prior session, no memory of how the path got here — and each answer
-  MUST be in the brief **or in a record the brief names at an exact object id**.
-- **The second-ledger sentence was inverted.** It named only the *thick* failure — a brief
-  that reproduces the ledger becomes a second one — while the brief that is actually
-  shipped is terse enough to need the ledger, which the sentence describes as the healthy
-  state. Both failure modes are now stated, and the reason they are not symmetric: deciding
-  *which part of the ledger's history is still the situation* is the brief's own job, so a
-  brief that hands that judgement back has been **silent**, not terse. The section is
-  `Two failure modes, not one`; a test pins both.
-- **Why there is no `objective:` in the brief frontmatter** — the owner noticed the gap and
-  read it, fairly, as evidence against the contract. Considered and rejected: the objective
-  is prose, the frontmatter is machine-checkable state, and an objective maintained in two
-  schemas eventually disagrees with itself while no predicate can adjudicate between two
-  paragraphs. It is answered by `## Outcome` and argued in the path record. The
-  specification now says this rather than leaving it to be inferred.
-- **The pilot was measured under the old wording**, so it carries a note saying which of its
-  numbers move. `resume_commit` (16/20) and `must_read` (15/20) test brief fields and do
-  not move; `outcome` (10/20) becomes an upper bound and 35% "would act" a lower bound; the
-  flat-by-path distribution that decides v0.3 is unaffected. The findings are not rewritten
-  — a dated measurement that gets edited to match a later rule is not a measurement.
-  ADR-019's own statement of the contract is corrected in place, marked as a correction.
-
-Editorial, in the order the owner raised them:
-
-- **`atomik-project/` → `project/`, fifty-six times.** The plane is named after the product
-  Cairn was extracted from, and the specification carried that name through every example,
-  template and command sequence. Every one now reads `project/`. Scope was the owner's call:
-  documents only, not a `git mv` — the folder rename lands with S08's config loader, where
-  the binding becomes selectable instead of documented-but-unimplemented. **Exactly one**
-  place still names it, the installed binding table, which gained a column separating role
-  from binding and a paragraph saying no adopter should inherit the prefix. A test asserts
-  the count is two and that no other article mentions it.
-- **`git rev-parse HEAD:docs/architecture/example.md` had no explanation.** The prose
-  demanded a *blob* object id, then dropped an unusual command with no output, no account of
-  the `<commit>:<path>` form, and no way to read the pinned version back. All three added.
-- **`[route]` linked to the lightweight path**, collapsing the field into its default. Route
-  is now its own concept — the four routes, the five `full` triggers, the ledger backstop,
-  one-way escalation — and every `[route]` link points at the field.
-- **`refs/cairn/checkpoints/` was described but never located.** It is now in the reference
-  tree under `.git/refs/`, in the role table, and has a paragraph on why no directory
-  listing will ever show it and which three commands do.
-- **`sources/`, `projects/` and the frozen `log.md` left the tree.** The first two are vault
-  fixtures from the repository's first use as an Atomik vault; the third predates the
-  one-file-per-entry journal. None is Cairn structure, and the tree claims to be exhaustive
-  for what Cairn defines.
-
-The reader, per the owner's four points:
-
-- **Active state was a coloured rule line** on the pane top edge and the tree item's left
-  edge — a second layer of line over a layout whose separators are already minimal. Both
-  are gone; current state is a subtle fill.
-- **Pane A / Pane B labels removed**, along with the active-pane model they belonged to.
-- **The specification is now fixed in the left pane** and every link and tree entry opens on
-  the right. That deletes the select-a-pane-then-click step the owner reported as not
-  working, and stops a right-pane link from evicting the specification. The left pane keeps
-  no history because it never navigates; the right pane keeps all of it. Deep links moved
-  from `#read=a|b` to `#article-<id>`, with the old form still accepted.
-- **Modern, not old.** Body text is a contemporary sans with a serif display title — the
-  serif-everywhere stack fell back to something dated on any machine without it, which is
-  the opposite of what a research aesthetic should do. Rounded corners on the search field,
-  code blocks, tables, quotes, buttons and badges. Still flat: no shadows, no gradients, and
-  glass confined to the two chrome surfaces that already had it.
-- **The edition label was lying.** It read `v0.1` in the masthead and the meta description
-  while the specification had been v0.2 since S07g. It is now read from the specification's
-  own frontmatter and the build throws if that frontmatter declares no version.
-
-Checker suite 188, specification suite 30 (four new: the contract, the blob explanation,
-the route concept, the fixed-pane reader; two rewritten). Nothing outside the feedback was
-changed.
-
-### S07p — Repair: a dead button, a low glyph, and the face that stayed old — **COMPLETE**
-
-```cairn-unit
-step: S07p
-unit: 12
-type: repair
-verified: cairn-check, cairn-check:test, typecheck, test, build
-```
-
-Owner review of S07o's reader. Three defects, one of which the new test suite should
-have caught and did not.
-
-- **The back and forward buttons did nothing.** Each pane sets `data-article` on itself
-  to say what it is showing, and the click handler looked for `closest('[data-article]')`
-  before it looked for the history button. Every click anywhere inside a pane — the
-  buttons included — therefore matched the *pane*, re-rendered the article already open,
-  and returned before the history branch was ever reached. Fixed by matching the history
-  button first and by matching links as anchors (`a[data-article]`) rather than as any
-  element carrying the attribute.
-- **The test suite could not see it.** Both reader tests dispatched clicks on `<a>`
-  elements, where the bug does not appear, and asserted on `disabled` state, which was
-  computed correctly the whole time. A test now clicks the buttons themselves and walks
-  two steps back and two forward. The lesson is the one this path keeps relearning:
-  a predicate that asks about a *declaration* passes while the behaviour it names is
-  broken — here, asserting the control was enabled rather than that it moved.
-- **The h1 was still wearing the old face.** S07o kept a serif for display titles on the
-  theory that it carried research character. It carries whatever the machine has, and on
-  a machine with no Source Serif that is a dated fallback — the exact thing the owner
-  asked to be rid of. The `--serif` token is gone; one face for prose and display, with
-  the display weight and tracking doing the work instead.
-- **The arrow glyphs sat on their baseline** inside a fixed-size box. The buttons are
-  `inline-flex` and centre both axes.
+- **[S07m](./history/CP-OPS-002-S07m.md)** — Review round two: two unsound predicates and a fabricated figure — COMPLETE
+- **[S07n](./history/CP-OPS-002-S07n.md)** — The cold-resume pilot, and what it says not to do — COMPLETE
+- **[S07o](./history/CP-OPS-002-S07o.md)** — Owner review: the brief is a stone, not a hero — COMPLETE
+- **[S07p](./history/CP-OPS-002-S07p.md)** — Repair: a dead button, a low glyph, and the face that stayed old — COMPLETE
 
 ### S07q — Every defect leans the same way, so name the shape — **COMPLETE**
 
@@ -601,6 +358,55 @@ note** is organised by one build in order and is not. `docs/learning/` is
 excellent at the second and does not attempt the first. Both belong; only one is
 reusable from elsewhere. Full statement in the S08 brief.
 
+### S07t — The catalogue could not see a level it had to compute — **COMPLETE**
+
+```cairn-unit
+step: S07t
+unit: 17
+type: repair
+verified: cairn-check, cairn-check:test, typecheck, test, build
+```
+
+Owner question: *is there pre-S08 work on the protocol that has not updated the
+spec docs?* Yes, in two places, and the second was hiding behind a passing test.
+
+**The ledger's S08 plan had drifted from the S08 brief.** The brief carried the
+base-divergence finding, the filename-date rule and the whole teaching axis; the
+ledger's numbered plan carried none of them. Two statements of one plan, one of
+them stale — the drift this path keeps naming, committed by me two units ago.
+Synced: Part 1 gains 3b and 3c, and the teaching axis is Part 3, ahead of
+portability because `cairn-init` scaffolds it.
+
+**The generated rule catalogue under-reported five rules.** `extractRules`
+matched only a literal level:
+
+```js
+/add\('(blocking|advisory)',\s*'([a-z-]+)'/g
+```
+
+A rule that is advisory for a grandfathered path and blocking for everyone else
+is written `add(exempt ? 'advisory' : 'blocking', 'scope-digest', …)`, which that
+regex cannot see. So the specification published `acceptance`, `transition`,
+`brief-schema`, `route` and `scope-digest` as **blocking-only** while all five can
+emit advisory findings. Three of the five predate today; S07s made it five.
+
+The part worth keeping: **the test guarding the catalogue passed the whole time.**
+It compares the shipped table against `extractRules` — the same blind extraction
+that produced it. Two views of one flawed reading agreeing with each other is not
+verification, and this is the sharpest instance yet of the directive's first
+requirement: a green suite of valid inputs proves a rule is quiet, never that it
+is awake.
+
+Landed: the extractor reads both a literal level and a conditional one; the
+catalogue regenerates with five advisory rows it had never carried; and an
+adversarial fixture asserts a ternary yields **both** levels while a genuinely
+single-level rule gains no phantom second one. Checker suite 193.
+
+`ledger-size` fired in the same unit, so S07m–S07p rolled to `history/`
+cut-and-paste as the convention requires. Two relative links were re-depthed —
+the records moved one directory down, and `links` caught both. Path depth is not
+prose: the text reads exactly as it did.
+
 ### S08 — Make the rules honest, then extract Cairn from Atomik
 
 Opening context: [`docs/cairn/cairn-s08-opening-brief-2026-08-31.md`](../../docs/cairn/cairn-s08-opening-brief-2026-08-31.md).
@@ -623,6 +429,16 @@ number of adopters.
    merge with none, and every gate reported `OK`.
 3. **The derived-view rule keys on the branch name**, so a local run and a CI run
    disagree on one tree. Key on the path's declared `status`.
+3b. **The default local command and the CI command compare different bases** —
+   working tree versus HEAD, against branch versus trunk. Nine findings were
+   invisible locally for many pushes. `npm run cairn-check` on a `path/*` branch
+   must default to the trunk base; a developer should opt *out* of the
+   merge-deciding comparison, not into it. Do this **first**: until it lands,
+   every "gates green" claim in a ledger is weaker than it reads.
+3c. **A record's filename date MUST equal its frontmatter `timestamp:`.** Cheap
+   and sound — it compares two things the author wrote, so the checker never
+   needs to know what day it is. Found because every CP-UI-TYPOGRAPHY record is
+   dated four days before the work happened.
 4. **Retention switches itself off during the mandatory pre-merge rebase.** A
    rebase renames every commit, the retained set stops intersecting the branch,
    `findIndex` returns `-1`, and `unretainedCheckpoints` concludes "nothing to
@@ -639,7 +455,37 @@ number of adopters.
 6. A test running one gate in both invocation contexts, asserting one verdict.
 7. Generate the conformance matrix, so directive requirement 4 is mechanical.
 
-#### Part 3 — portability, as originally planned
+#### Part 3 — the teaching axis, which the init kit must carry
+
+Owner directive: *decomposing complex into simpler concept units is the only way
+to truly understand something*, and the knowledge base must be exportable. This
+is a protocol requirement, not a documentation habit.
+
+The distinction that makes it work: a **concept note** is organised by one idea
+and is a link target; a **learning note** is organised by one build in order and
+is not. `docs/learning/` is excellent at the second and does not attempt the
+first. Both belong; only one is reusable from elsewhere.
+
+7b. Specify the concept note as an artifact type — shape, frontmatter, and the
+   rule that it is about exactly one idea. The four written in S07q are the
+   worked examples.
+7c. **Link, don't redefine.** Where a term has a concept note, normative and
+   learning text SHOULD link it. Redefinition in two places is the same drift as
+   four copies of a font stack, applied to prose.
+7d. `cairn-init` scaffolds `concepts/` with an index separating borrowed
+   vocabulary from vocabulary the project defines, plus the page template.
+7e. Generalise `cairn-spec-build.mjs` so **any** project's concept wiki exports
+   as one self-contained reader — the "export to another md base" the directive
+   asks for.
+7f. Rebuild `docs/learning/` on it **incrementally**: when a learning note
+   explains an idea that deserves a name, extract the idea and link to it. The
+   walkthrough stays.
+
+It lands before portability because `cairn-init` scaffolds it. A form added after
+adoption is a migration; a form added before adoption is just the shape of the
+thing.
+
+#### Part 4 — portability, as originally planned
 
 8. `cairn.config.json` and the loader — plane roots, source roots, `AREA_MAP`,
    trunk name, and `"enforcement": "local" | "ci" | "protected"` (S06b).
