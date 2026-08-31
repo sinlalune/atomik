@@ -6,16 +6,21 @@ tags: [coding-path, ui, typography, design-system, dogfooding]
 timestamp: 2026-08-27T00:00:00Z
 atomik:
   id: CP-UI-TYPOGRAPHY
-  route: lightweight
-  status: running
+  route: full            # escalated at S03; see the ledger
+  status: done
   accepted: 2026-08-27
+  subject_commit: a380f2ad1d03f3f5c3fe6629875f8dc55c704018
   base_commit: df875e6
   branch: path/cp-ui-typography
   writes:                    # ADVISORY — a signal, never a lock
     - apps/desktop/renderer/src/styles.css
+    - apps/desktop/renderer/src/fonts/**
     - apps/desktop/tests/**
     - docs/modules/atomik-desktop.md
+    - docs/modules/atomik-desktop-shell.md
     - atomik-project/coding-paths/CP-UI-TYPOGRAPHY.md
+    - atomik-project/coding-paths/ACTIVE.md
+    - atomik-project/log/**
     - atomik-project/briefs/cp-ui-typography-handoff.md
   governs:
     - docs/bedrock/36_36-ui-design-system.md@ce97f012630db0c45bda7a62b40b6019e3670b33
@@ -57,11 +62,211 @@ resolves to DejaVu Sans — and removes a standing duplication instead.
 
 ## Steps
 
-### S01 — One proportional token, four consumers, and a test that sees the fifth
+### S01 — One proportional token, four consumers, and a test that sees the fifth — **COMPLETE**
 
-Add `--note-text-font` beside the existing `--note-code-font`, point all four
-sites at it, pin both the token and the absence of any surviving stack literal in
-a test, and record the measurement in the module note.
+```cairn-unit
+step: S01
+unit: 01
+type: implementation
+verified: cairn-check, typecheck, test, build
+```
+
+`--note-text-font` joins the `--note-*` block beside `--note-code-font`, and the
+four proportional literals — `:root`, `.editor-host.live .cm-scroller`,
+`.editor-host .lp-rich-limit`, `.cm-inline-ai-rendered` — become four consumers
+of it. Nothing else changed: no tracking, no smoothing, no sizes.
+
+- **The token is declared after its first use and that is fine.** `:root` reads
+  `font-family: var(--note-text-font)` at line 3 while the definition sits at
+  line 77 of the same rule. Custom properties resolve at computed-value time, not
+  in source order, so declaration order within one rule does not matter. Verified
+  in the engine rather than assumed: `getComputedStyle` on both
+  `documentElement` and `body` returns the full new stack.
+- **`note-typography.test.ts`, six assertions.** One definition; the stack order
+  that makes Windows resolve Segoe UI Variable, including that plain `'Segoe UI'`
+  stays *behind* the variable face; four consumers; no surviving literal of the
+  old stack anywhere in the sheet; the three parity-critical selectors on the
+  token; and no `letter-spacing` on `:root`. The fourth is the one that matters
+  most — it is what makes a fifth copy fail rather than pass quietly.
+- **The module note records the measurement**, including the four inert
+  properties and the DejaVu finding, so the next person does not re-derive it
+  and does not re-propose the dead CSS.
+
+- **`writes:` widened, and the checker is why.** The declaration named only
+  `docs/modules/atomik-desktop.md`. The `area-note` advisory pointed out that
+  `styles.css` maps to the **shell** area, whose note had not changed — and the
+  root note states the split outright: it keeps what is cross-cutting, the area
+  note keeps what the area owns. The typography section therefore belongs in
+  `atomik-desktop-shell.md` and moved there; only the one-line *Common mistakes*
+  entry stays in the root note, which is a section the split assigns to it.
+  `docs/modules/atomik-desktop-shell.md` is added to `writes:` in this same work
+  unit, per the drift rule.
+- **`single-truth` on the root note is deliberate.** It fires because that note
+  is shared across areas. The edit is one bullet in *Common mistakes*, which the
+  documented split assigns to the root note specifically; the area-owned detail
+  is not there.
+
+Environment note, not a code finding: this worktree needed
+`apps/desktop/node_modules` copied from a sibling. The main checkout's copy has
+an empty `vitest/` directory, so a symlink to it typechecks as
+`TS2307 Cannot find module 'vitest'` across every test file. Worth knowing before
+diagnosing it as a tsconfig problem.
+
+### S02 — Bundle the face, because Electron is here for universality — **COMPLETE**
+
+```cairn-unit
+step: S02
+unit: 02
+type: implementation
+verified: cairn-check, typecheck, test, build
+```
+
+Owner ruling, and the sharpest correction of this path:
+
+> "we are building electron for the OS universality capability and you
+> implemented an os specific feature/design ?"
+
+Correct, and S01 was worse than it looked. The stack it shipped was neither of
+the two coherent strategies. **Native per OS** — what the app already did — is
+universal by adaptation: every platform supplies its own UI font. **One bundled
+face** is universal by control. S01 was native-per-OS with a Windows-only name
+wedged in front: an OS-specific improvement in an app chosen for not being
+OS-specific.
+
+The tell was available the whole time and I kept filing it as a footnote: the
+change is invisible in `npm run dev` on WSL2. A design decision the developer
+cannot observe on their own machine cannot be reviewed there, and this one
+survived a PR review, a ceremony draft and four gate runs precisely because
+nobody could see it.
+
+- **Inter v4.1 ships in `apps/desktop/renderer/src/fonts/`** under the SIL OFL,
+  with `LICENSE-Inter.txt` beside it. Two `@font-face` rules; the bundler emits
+  both files to `out/renderer/assets/`, verified in the build output.
+- **Both roman and italic.** The variable roman covers 100–900 so bold is drawn,
+  not synthesised — but it carries no italics, and synthetic oblique on markdown
+  `em` is the defect class S05f already recorded. 352 KB + 388 KB.
+- **`font-display: block`**, because a flash of fallback text re-wraps a note
+  mid-read.
+- **The token leads with `Inter` and keeps `system-ui` behind it** as a
+  fallback for a failed font load, never as the expected outcome. Every
+  OS-specific family name is gone.
+- **Verified in the engine, not in `fc-match`.** CDP
+  `CSS.getPlatformFontsForNode` reports `Inter Variable`, flagged custom, for
+  normal, bold and italic. `fc-match` cannot see a font the app loads itself and
+  would have said DejaVu — worth knowing before trusting it again.
+- **The test grew to eight.** New: Inter is first; no OS-specific name appears at
+  all; both files exist and begin with the `wOF2` magic, so a placeholder or an
+  LFS pointer fails; two `@font-face` rules with the full weight axis and a real
+  italic file. `writes:` gains `apps/desktop/renderer/src/fonts/**`, recorded
+  here per the drift rule.
+
+A finding that is now moot but was true: `'Segoe UI Variable Text'` is a
+Windows-only family name. DirectWrite exposes the optical-size instances as
+separate families; fontconfig sees one family, `Segoe UI Variable`. The S01 stack
+could therefore never have matched off Windows, even with the file present.
+
+### S03 — Escalate the route, before closing under a false one — **COMPLETE**
+
+```cairn-unit
+step: S03
+unit: 03
+type: documentation
+verified: cairn-check, typecheck, test, build
+```
+
+The path opened `route: lightweight` on an honest expectation: one work unit,
+one area, six lines of CSS. It has now run three, and the second was a design
+reversal rather than an extension.
+
+Under the v0.2 route rules being written next door in CP-OPS-002, that is trigger
+4 — *expected to span more than one work unit* — with the structural backstop
+that catches it after the fact: **a path whose ledger declares more than one
+`cairn-unit` MUST declare `route: full`.** Escalation is one-way and may not be
+declared away.
+
+The trunk's checker has no route concept yet, so nothing here was enforced and
+nothing would have failed. That is exactly why it is worth doing: the rule exists
+because self-declared smallness is the obvious bypass, and a path that quietly
+kept `lightweight` after reversing its own design would be the first example of
+the bypass in this repository — recorded by the same session that wrote the rule.
+
+The full route's artifacts were already being produced: a standalone opening
+record, a standalone closing record, and a coherence audit bound to the exact
+candidate. What changes is the declaration matching them.
+
+### S04 — Regenerate the view the closure invalidated — **COMPLETE**
+
+```cairn-unit
+step: S04
+unit: 04
+type: repair
+verified: cairn-check, typecheck, test, build
+```
+
+CI failed on the merge PR with a finding the local gate had reported OK:
+
+```text
+[derived-view] atomik-project/coding-paths/ACTIVE.md: the derived
+running-paths view is stale — run `npm run cairn-active`
+```
+
+Both statements were true, and that is the finding.
+
+- **The defect.** Setting `status: done` at closure changes what `ACTIVE.md`
+  derives — the path leaves the running block — and nothing regenerated it. The
+  path also earns a `## Done` entry, which is hand-maintained. Both landed here,
+  and `ACTIVE.md` joins `writes:` per the drift rule.
+- **Why the local gate could not see it.** `corpusFindings` skips the derived-view
+  check when `isPathBranch(branch)`, reasoning that "path branches legitimately
+  carry a stale copy because they never hand-write `ACTIVE.md`". CI checks out a
+  detached merge ref, so its branch is `HEAD`, not `path/*`, and the check runs.
+  Locally green, remotely red, on the same command.
+- **The reasoning behind the skip is sound everywhere except closure.** A running
+  path genuinely does not own that view. But under self-merge a path is the last
+  writer of its own `status`, so at the moment it sets `done` it becomes exactly
+  the writer the skip assumes does not exist. The exemption should be keyed on
+  the path's declared status, not on the branch name.
+
+`single-truth` fires on `ACTIVE.md` and the edit is deliberate: only the block
+between the `cairn:paths` markers is generated, and that block was produced by
+`cairn-active`. The `## Done` entry is hand-maintained by convention, which is
+how every earlier closed path appears there.
+
+Recorded for CP-OPS-002 S08, which owns `cairn-check.mjs`: **the local and CI
+invocations of one gate must not disagree.** `AGENTS.md` promises "these run
+locally with the same command CI runs", and here they did not — a branch-name
+predicate stood in for a question about ownership, which is the same unsound
+shape S07m and S07k both repaired.
+
+### S05 — The merge-time journal entry — **COMPLETE**
+
+```cairn-unit
+step: S05
+unit: 05
+type: documentation
+verified: cairn-check, typecheck, test, build
+```
+
+Reviewer finding on the merge PR, and correct:
+
+> a repo-wide search of `atomik-project/log/` and the frozen
+> `atomik-project/log.md` finds no CP-UI-TYPOGRAPHY entry, so the integrated
+> work has no durable journal record of what changed, why, cost, or deviations.
+
+`AGENTS.md` requires one file per entry under `atomik-project/log/`, written at
+merge time. The closure unit recorded the ceremony, the audit and the status
+transition, and omitted the journal — the one record written for readers who were
+never on this path. `atomik-project/log/2026-08-27-cp-ui-typography.md` lands
+here; `atomik-project/log/**` joins `writes:` per the drift rule.
+
+The reviewer's other finding — that `ACTIVE.md` still listed this path as running
+— was already repaired at S04 (`e34d552`); the review was reading `28b8080`.
+
+Worth noting about the omission itself: no rule caught it. `same-work-unit` fires
+when source changes without a module note or ledger, and closure changed neither
+source nor a module note, so nothing asked for the journal. The requirement is
+real, stated in `AGENTS.md`, and unenforced — which is the same gap between prose
+and predicate this path has now hit four times.
 
 ## Documentation coverage
 
@@ -73,15 +278,20 @@ colour, and the remaining monospace literals.
 
 ## Work Ledger
 
-_No work unit executed yet. S01 is the next action._
+S01–S05 are complete; the ledger above carries all five. S02 was not planned —
+it is the owner's correction of S01's design, not an extension of it.
 
 ## Current checkpoint
 
-Registered on the trunk at `df875e6`; no implementation branch yet.
+S05 on `path/cp-ui-typography`, based on trunk `39127e7`.
 
 ## Next action
 
-Create the worktree from the registration commit and execute S01.
+None — the path is closed. Closing ceremony recorded
+([session note](../sessions/2026-08-27-cp-ui-typography-closing-ceremony.md)),
+coherence audit filled at the exact candidate
+([audit](../audits/cp-ui-typography-a380f2a.md), verdict *drift noted,
+proceeding*), and the candidate is proposed for integration.
 
 ## Blockers
 

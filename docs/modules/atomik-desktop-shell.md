@@ -140,6 +140,77 @@ timestamp: 2026-08-17T00:00:00Z
   which would win over the `#dev-docs` hash.
 
 
+## Typography: one bundled face, one token
+
+`--note-text-font` in `:root` is the app's proportional stack; `--note-code-font`
+beside it is the monospace one. Four rules consume the proportional token and
+nothing else may restate it:
+
+| Site | Why it declares a face at all |
+| :-- | :-- |
+| `:root` | the document default every chrome and content surface inherits |
+| `.editor-host.live .cm-scroller` | escapes the monospace `.editor-host .cm-scroller` sets for source mode |
+| `.editor-host .lp-rich-limit` | a notice label rendered inside the live editor |
+| `.cm-inline-ai-rendered` | escapes the monospace of the `.cm-scroller` it sits inside (S05f: bold and italic vanished under WSLg when it inherited) |
+
+Those four were four copies of the same literal until CP-UI-TYPOGRAPHY S01. The
+copies are the failure mode, not the count: changing `:root` alone moved rendered
+notes and left the **live editor** on the old face, breaking the invariant
+`.editor-host.live .cm-content` states outright — *read <-> live never shifts the
+text*. `note-typography.test.ts` fails if a fifth copy appears.
+
+### Inter is bundled, and that is the point
+
+`apps/desktop/renderer/src/fonts/` carries Inter v4.1 under the SIL OFL
+(`LICENSE-Inter.txt`), declared as two `@font-face` rules and referenced by name
+from the token. The bundler emits both files into `out/renderer/assets/`.
+
+The app ships the face rather than requesting one from the OS because **Electron
+is here for OS universality, and a per-OS font stack hands that back.** S01 first
+tried a stack led by platform names; it rendered one face on Windows and another
+under WSLg, which meant the developer's own `npm run dev` could not show the
+change being made. A design decision that is invisible on the machine making it
+cannot be reviewed there. Ruled by the owner at S02.
+
+Two files, not one. The variable roman covers weight 100–900, so bold is drawn
+rather than synthesised; it carries **no italics**, so the italic file ships too
+and markdown `em` is a real italic instead of a slant. That is the same defect
+class as S05f. `font-display: block` because a flash of fallback text would
+re-wrap a note mid-read.
+
+The system stack stays behind Inter in the token as a fallback for a failed font
+load — never as the expected outcome. The test asserts Inter is first, that
+`system-ui` is still present, and that **no OS-specific family name appears at
+all**.
+
+### What was measured, so nobody re-derives it
+
+Resolved faces were read with CDP `CSS.getPlatformFontsForNode`, not inferred.
+Before bundling, every proportional stack in play resolved to **DejaVu Sans**
+under WSLg — `system-ui` maps there through fontconfig and neither Inter nor any
+Windows face was visible to it. After bundling, all three of normal, bold and
+italic report `Inter Variable`, flagged custom. That probe is the check worth
+repeating if the face ever looks wrong; `fc-match` alone will mislead, because it
+knows nothing about fonts the app loads itself.
+
+Two dead ends, recorded so they are not re-proposed:
+
+- **Four rendering properties are inert here** — rendered pixels are
+  byte-identical with and without each. `-webkit-font-smoothing` and
+  `-moz-osx-font-smoothing` are macOS-only, `font-optical-sizing: auto` is the
+  CSS initial value, and `text-rendering: optimizeLegibility` only forces on what
+  Chromium already applies.
+- **`letter-spacing` does not belong on `:root`.** It is the only property
+  measured to change anything — advance width 555.063 → 552.141 px over 65
+  characters — which re-wraps existing notes, and
+  `docs/bedrock/36_36-ui-design-system.md` keeps content typography off the
+  chrome vocabulary. The test asserts `:root` carries none.
+- **`'Segoe UI Variable Text'` is a Windows-only family name.** DirectWrite
+  exposes the optical-size instances as separate families; fontconfig sees one
+  family, `Segoe UI Variable`. A stack naming only the former can never match off
+  Windows. Moot now that the face ships, and worth knowing before anyone reaches
+  for a platform font again.
+
 ## The index-changed push (CP-MVP-010 S03)
 
 - `atomik:index-changed` carries `{ reason, paths }` from main to the

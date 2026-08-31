@@ -241,6 +241,9 @@ pdf extraction (10: renderer fidelity and extraction fidelity separate)
 - Adding a preload method without extending `ipc-contract.ts` and the surface
   test in the same change — the test fails by design; re-read 13 §IPC first
   (CP-MVP-001 conditional trigger).
+- Writing a proportional font stack literally instead of consuming
+  `--note-text-font` — the read/live parity invariant depends on one
+  definition, and `note-typography.test.ts` fails on any surviving copy.
 - Setting `"type": "module"` in `package.json` — silently breaks the
   sandboxed preload.
 - Loosening any `webPreferences` key — `security-contract.test.ts` asserts
