@@ -121,19 +121,43 @@ possible by using slicing and indexing on every part and every artefact."*
 
 Adopted as normative. A maxim without a test is a slogan, so it takes this one:
 
-> **Every protocol artefact separates what a reader MUST do from why it is so.
-> The must-do is the index; the why is linked. A reader who follows only the
-> index executes the protocol correctly.**
+> **Every protocol artefact separates its NORMATIVE content — what a reader must
+> do — from its EXPLANATORY content — why it is so. Only the normative content is
+> required reading; the explanatory content sits one link away, unabridged. A
+> reader who consumes only the required reading executes the protocol correctly.**
 
-The test is not a token count, deliberately. A budget invites compression, and
-compressing an explanation is how a record comes to say something slightly untrue
-— the failure this protocol has spent eight units correcting. The rule is
-*separation*, not brevity: the explanatory half is not deleted, shortened or
-merged away, it is moved one link out of the mandatory read and stays exactly as
-long as it needs to be.
+Two terms, because the protocol has to be able to say which half it means:
+
+```text
+normative content    what a reader MUST do          required reading
+explanatory content  why it is so                   linked, read on demand
+```
+
+**This is not the OKF `index.md`, and an earlier draft of this test said "index"
+where it meant "required reading".** That was a borrowed term used for a
+different idea, and it is worth recording rather than quietly correcting, because
+it is an [instruction parity](#2-instruction-parity-is-a-named-property) failure
+inside the sentence defining instruction parity: two readers would have read it
+two ways.
+
+The relationship between the two is real but narrower than the word suggested.
+OKF's `index.md` is a **folder's** map, read before opening many files. Where a
+protocol artefact is a folder, its `index.md` is the natural home for the
+normative content — that is a consequence. The rule itself is about the
+normative/explanatory split and applies equally to a **single file**, which has no
+`index.md` at all and satisfies the test by moving its rationale into linked
+documents while remaining one file.
+
+The test is not a token count, and the owner ratified that on 2026-08-31: *"i
+agree with no more token counts."* A budget invites compression, and compressing
+an explanation is how a record comes to say something slightly untrue — the
+failure this protocol has spent nine units correcting. The rule is *separation*,
+not brevity: the explanatory half is not deleted, shortened or merged away; it
+moves out of the required reading and stays exactly as long as it needs to be.
 
 The test is checkable by the cold-resume trial harness CP-OPS-002 S07n already
-built: a reader given only the index either executes correctly or does not.
+built: a reader given only the required reading either executes correctly or does
+not, and a failure names the sentence they needed and did not have.
 
 ### 2. Instruction parity is a named property
 
@@ -243,7 +267,8 @@ divided:
 ```text
 <paths-root>/CP-EXAMPLE-001/
   index.md          the declaration, the step index, the live header,
-                    the next action, blockers          <- MANDATORY READ
+                    the next action, blockers      <- the REQUIRED READING,
+                                                      and an OKF folder index
   log.md            OKF folder log
   plan.md           the forward plan, read when planning
   steps/S01.md      one file per step, written there from the first step
@@ -259,9 +284,9 @@ Four consequences follow, and the fourth is the one that was nearly missed:
    below"* — is a defect at authoring time rather than a casualty at rollup time.
    The existing `history/` convention already names this hazard; born-sliced
    removes the occasion for it.
-3. **The index line is load-bearing** and this is the design's real risk. Slicing
-   saves nothing if a reader cannot decide *from the index* whether it needs a
-   step file; it then opens several and pays more than before. No predicate can
+3. **The step-index line is load-bearing** and this is the design's real risk.
+   Slicing saves nothing if a reader cannot decide, from the one-line summary in
+   `index.md`, whether it needs a step file; it then opens several and pays more than before. No predicate can
    check that a summary line is informative, so this is a stated writing
    obligation, measured by cold resume, and named here rather than assumed away.
 4. **The Work Ledger dissolves.** Its step-scoped rows move to the step they
@@ -271,7 +296,7 @@ Four consequences follow, and the fourth is the one that was nearly missed:
    next action, blockers — which does not grow.
 
 The forward plan takes its own file: it is explanatory until it is executed, so
-by the maxim's test it belongs one link out of the mandatory read.
+by the maxim's test it is not required reading.
 
 ### 5. OKF is applied uniformly, with no earning test
 
@@ -288,6 +313,33 @@ the file saves.
 The convention is also live rather than decorative, which was checked rather than
 assumed — commits touching folder logs since the S05c seed: `docs/cairn` 8,
 `coding-paths` 5, `docs/adr` 4, `specification` 4, `audits` 3.
+
+### Open: the handoff brief's own token budget
+
+The owner's ruling retires token counts as a *test for this maxim*. It leaves one
+question this ADR deliberately does not answer, because the answer is not obvious
+and pretending otherwise would hide it.
+
+`brief-schema` enforces `budget_tokens: 1200` on the handoff brief, blocking. That
+is a token count, and it has the defect described above: it blocked five brief
+refreshes in one day, four of which were answered by shortening prose — the exact
+behaviour a budget teaches — and only two by separation.
+
+It is also not straightforwardly the same thing as the concept cap. The cap
+counted a **corpus**; this counts one **required-reading artefact**, which is
+precisely the quantity the maxim cares about. A bound on required reading is far
+more defensible than a bound on how many things exist.
+
+Both readings are available and this ADR takes neither:
+
+- *Retire it*, consistent with the ruling, and let the separation test carry the
+  brief like every other artefact.
+- *Keep it*, on the grounds that required reading is the one place a bound is
+  legitimate — and fix the remedy rather than the rule, since no predicate can
+  force an author to separate rather than compress.
+
+Recorded as open. It needs an owner ruling, and it is small enough not to hold up
+the rest.
 
 ## Consequences
 
@@ -320,7 +372,8 @@ assumed — commits touching folder logs since the S05c seed: `docs/cairn` 8,
   it makes the discipline fire earlier without removing the operation, and the
   operation is the hazard. It also does nothing about the Work Ledger, which the
   measurement shows is the larger and faster-growing half.
-- **A token budget per artefact instead of the separation test.** Rejected: a
+- **A token budget per artefact instead of the separation test.** Rejected, and
+  ratified by the owner on 2026-08-31 — *"i agree with no more token counts"*: a
   budget is satisfiable by compression, and compressing an explanation is how a
   record starts saying something slightly untrue. Three brief refreshes in one
   day (S08a, S08b, S08c) each fought a token budget by shortening prose, which is

@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-002
   route: full            # control plane + decision plane; escalation is one-way
   status: running
-  current_step: S08e
+  current_step: S08f
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
   writes:                    # ADVISORY — a signal, never a lock
@@ -898,6 +898,54 @@ before it is read. Decision 2 loses the budget paragraph, decision **2b** carrie
 the retirement, and three alternatives are recorded including the first draft's
 own position.
 
+### S08f — The sentence defining instruction parity failed it — **COMPLETE**
+
+```cairn-unit
+step: S08f
+unit: 24
+type: repair
+verified: cairn-check, cairn-check:test, typecheck, test, build
+```
+
+Owner, on the ADR-020 draft: *"I still dont understand of what index you are
+talking about, it is a specific OKF terms, are you using it as illustration?"*
+
+Yes, and that was the defect. The test read *"the must-do is the index; the why is
+linked"*, using **index** to mean *the part a reader must read* — while `index.md`
+is a specific OKF artefact, a **folder's** map read before opening many files
+([bedrock 26](../../docs/bedrock/26_26-okf-agent-context.md)). One word, two
+meanings, in the sentence that defines a property about two readers reading one
+text the same way. It is an instruction-parity failure inside the definition of
+instruction parity, and it is recorded rather than quietly corrected because that
+is the whole point of the property.
+
+The two ideas coincide in one case and diverge in the other, which is what the
+metaphor hid. A path folder's `index.md` *is* its required reading — a
+consequence. But `paths.md` is a single file with no `index.md` at all, and it
+satisfies the test by moving rationale into linked documents while remaining one
+file. A rule phrased around `index.md` would not have applied to it.
+
+The test now names its halves so the protocol can say which one it means:
+
+```text
+normative content    what a reader MUST do          required reading
+explanatory content  why it is so                   linked, read on demand
+```
+
+**Owner ruling, same message:** *"i agree with no more token counts."* Recorded in
+decision 1 and in the alternatives, so the rejection of a token budget is now a
+ruling rather than this path's reasoning.
+
+That ruling has a consequence the ADR names instead of absorbing: `brief-schema`
+enforces `budget_tokens: 1200`, blocking, and that is a token count. It carries
+the defect — five refreshes blocked in one day, four answered by shortening prose.
+It is also **not** the concept cap: that counted a corpus, this counts one
+required-reading artefact, which is exactly the quantity the maxim cares about. A
+bound on required reading is far more defensible than a bound on how many things
+exist. Both readings are written down, neither is taken, and it is flagged as
+needing an owner ruling. Deciding it quietly in either direction would be the
+worse outcome.
+
 ### S09 — Greenfield pilot, coherence audit, closing ceremony, self-merge
 
 Initialize one real ex-nihilo repository from the kit — the research-paper workspace the
@@ -937,6 +985,9 @@ brief names — and fix what the pilot finds before merging.
 | Gates at S08b | `npm run cairn-check` OK, 11 advisory · **and the same verdict in a CI-shaped clone**: 228 changed files, `OK — protocol satisfied (11 advisory)`, identical list · `npm run cairn-check:test` PASS, 198 subtests · `npm run cairn-spec:build` deterministic · `npm run typecheck` PASS · product suite 79 files, 1,109 passed / 1 skipped · `npm run build` PASS |
 | Machine-local state (S08b) | Retention refs `01`–`19` for this path exist on the remote; `19` was pushed at S08b after S08a left it local. `refs/cairn/*` is fetched by no clone and no checkout action, so any environment judging retention must fetch it explicitly — now written into the workflow, the operator guide and the concept note |
 | The maxim, applied on its first day (S08d) | The brief budget blocked this refresh too — the fourth in four units. The first three were answered by shortening prose, which is what ADR-020 says a budget teaches. This one was answered its way: the State section stopped retelling S08a–S08d and became four pointers to records that hold them in full. **Separation, not compression** — the words moved rather than shrank, and the section is now shorter *and* more complete. That is the test the ADR proposes, run once, on the artefact that provoked it |
+| Gates at S08f | `npm run cairn-check` OK · `npm run cairn-check:test` PASS, 198 subtests · `npm run cairn-spec:build` deterministic · `npm run typecheck` PASS · product suite 1,109 passed / 1 skipped · `npm run build` PASS |
+| Owner rulings (S08f) | **No token counts** as the maxim's test — ratified, recorded in ADR-020 decision 1 and its alternatives. **The `index` ambiguity** — found by the owner reading the draft, repaired by naming `normative` and `explanatory` content and stating the narrower true relationship to OKF's `index.md` |
+| Open, needs a ruling (S08f) | The handoff brief's own `budget_tokens: 1200`, blocking via `brief-schema`, is a token count. Retire it for consistency with the ruling, or keep it because required reading is the one place a bound is legitimate? Both readings are in ADR-020; neither is taken |
 | Gates at S08e | `npm run cairn-check` OK · `npm run cairn-check:test` PASS, 198 subtests · `npm run cairn-spec:build` deterministic · `npm run typecheck` PASS · product suite 1,109 passed / 1 skipped · `npm run build` PASS |
 | Amending a proposed ADR (S08e) | ADR-020 is edited in place, not superseded. It carries no ruling yet, so nothing was decided that could need correcting — the distinction is `proposed` versus `accepted`, and it is the same distinction S07u drew for mutable versus immutable records. Once ruled on, a change of substance would need a superseding ADR instead |
 | Gates at S08d | `npm run cairn-check` OK · `npm run cairn-check:test` PASS, 198 subtests · `npm run cairn-spec:build` deterministic · `npm run typecheck` PASS · product suite 1,109 passed / 1 skipped · `npm run build` PASS |
