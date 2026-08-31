@@ -20,6 +20,7 @@ atomik:
     - docs/modules/atomik-desktop-shell.md
     - atomik-project/coding-paths/CP-UI-TYPOGRAPHY.md
     - atomik-project/coding-paths/ACTIVE.md
+    - atomik-project/log/**
     - atomik-project/briefs/cp-ui-typography-handoff.md
   governs:
     - docs/bedrock/36_36-ui-design-system.md@ce97f012630db0c45bda7a62b40b6019e3670b33
@@ -237,6 +238,36 @@ locally with the same command CI runs", and here they did not — a branch-name
 predicate stood in for a question about ownership, which is the same unsound
 shape S07m and S07k both repaired.
 
+### S05 — The merge-time journal entry — **COMPLETE**
+
+```cairn-unit
+step: S05
+unit: 05
+type: documentation
+verified: cairn-check, typecheck, test, build
+```
+
+Reviewer finding on the merge PR, and correct:
+
+> a repo-wide search of `atomik-project/log/` and the frozen
+> `atomik-project/log.md` finds no CP-UI-TYPOGRAPHY entry, so the integrated
+> work has no durable journal record of what changed, why, cost, or deviations.
+
+`AGENTS.md` requires one file per entry under `atomik-project/log/`, written at
+merge time. The closure unit recorded the ceremony, the audit and the status
+transition, and omitted the journal — the one record written for readers who were
+never on this path. `atomik-project/log/2026-08-27-cp-ui-typography.md` lands
+here; `atomik-project/log/**` joins `writes:` per the drift rule.
+
+The reviewer's other finding — that `ACTIVE.md` still listed this path as running
+— was already repaired at S04 (`e34d552`); the review was reading `28b8080`.
+
+Worth noting about the omission itself: no rule caught it. `same-work-unit` fires
+when source changes without a module note or ledger, and closure changed neither
+source nor a module note, so nothing asked for the journal. The requirement is
+real, stated in `AGENTS.md`, and unenforced — which is the same gap between prose
+and predicate this path has now hit four times.
+
 ## Documentation coverage
 
 **Required:** `docs/bedrock/36_36-ui-design-system.md` (chrome token contract —
@@ -247,12 +278,12 @@ colour, and the remaining monospace literals.
 
 ## Work Ledger
 
-S01–S04 are complete; the ledger above carries all four. S02 was not planned —
+S01–S05 are complete; the ledger above carries all five. S02 was not planned —
 it is the owner's correction of S01's design, not an extension of it.
 
 ## Current checkpoint
 
-S04 on `path/cp-ui-typography`, based on trunk `39127e7`.
+S05 on `path/cp-ui-typography`, based on trunk `39127e7`.
 
 ## Next action
 
