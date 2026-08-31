@@ -513,7 +513,7 @@
     <nav class="tree-panel" aria-label="Article tree">
       <header>
         <h2>Article tree</h2>
-        <span>78 objects</span>
+        <span>82 objects</span>
       </header>
       <label>
         <span hidden>Filter articles</span>
@@ -535,7 +535,7 @@
     </details>
 
     <details class="tree-group" open>
-      <summary>Concepts<span>68</span></summary>
+      <summary>Concepts<span>72</span></summary>
       <ul>
 
           <li data-tree-item data-search="concepts this wiki defines the specialised ideas used by the cairn specification. each page is about one object or rule. it starts with a plain definition, connects the idea to cairn, and states its ">
@@ -551,6 +551,11 @@
           <li data-tree-item data-search="administrative closure administrative closure is one commit, a, immediately after candidate c that records facts about c without changing its implementation.">
             <a href="#article-concept-administrative-closure" data-tree-article="concept-administrative-closure">
               <span>Administrative closure</span>
+            </a>
+          </li>
+          <li data-tree-item data-search="adversarial fixture an adversarial fixture is a test that builds a violation on purpose and asserts the rule rejects it.">
+            <a href="#article-concept-adversarial-fixture" data-tree-article="concept-adversarial-fixture">
+              <span>Adversarial fixture</span>
             </a>
           </li>
           <li data-tree-item data-search="advisory finding an advisory finding identifies a condition worth attention without claiming that automation can forbid the work.">
@@ -698,6 +703,11 @@
               <span>Markdown and frontmatter</span>
             </a>
           </li>
+          <li data-tree-item data-search="gate parity gate parity is the property that one gate, run on one tree, reaches the same verdict wherever it runs.">
+            <a href="#article-concept-gate-parity" data-tree-article="concept-gate-parity">
+              <span>Gate parity</span>
+            </a>
+          </li>
           <li data-tree-item data-search="git git is a version-control system: it records linked snapshots of a repository and lets several copies exchange those histories.">
             <a href="#article-concept-git" data-tree-article="concept-git">
               <span>Git</span>
@@ -788,6 +798,11 @@
               <span>Provisional commit</span>
             </a>
           </li>
+          <li data-tree-item data-search="proxy predicate a proxy predicate is an automated rule that checks something close to what it means, because the thing it means cannot be computed directly.">
+            <a href="#article-concept-proxy-predicate" data-tree-article="concept-proxy-predicate">
+              <span>Proxy predicate</span>
+            </a>
+          </li>
           <li data-tree-item data-search="ready state ready is the final state a path branch may declare. it requires the running identity, the full subjectcommit object id of candidate c, completed checks, a coherence audit of c, closing accep">
             <a href="#article-concept-ready-state" data-tree-article="concept-ready-state">
               <span>Ready state</span>
@@ -856,6 +871,11 @@
           <li data-tree-item data-search="trunk the trunk is the repository's shared integration branch, commonly named main.">
             <a href="#article-concept-trunk" data-tree-article="concept-trunk">
               <span>Trunk</span>
+            </a>
+          </li>
+          <li data-tree-item data-search="unsound gate a gate is unsound when passing it does not mean what it says.">
+            <a href="#article-concept-unsound-gate" data-tree-article="concept-unsound-gate">
+              <span>Unsound gate</span>
             </a>
           </li>
           <li data-tree-item data-search="work ledger a work ledger is the chronological account of what a coding path attempted, changed, learned, verified, reversed, and will do next.">
@@ -2490,6 +2510,36 @@ not in a separate document a reader may never open.</p>
 <td style="text-align:left">ledger append-only proof, which remains a separate open row</td>
 </tr>
 <tr>
+<td style="text-align:left">An adversarial fixture per blocking rule</td>
+<td style="text-align:left">required</td>
+<td style="text-align:left"><strong>not implemented</strong>; the checker suite exercises valid repositories and asserts <code>OK</code>, which a rule that never fires also satisfies. No rule is currently required to demonstrate a rejection</td>
+<td style="text-align:left">a fixture repository per blocking rule</td>
+</tr>
+<tr>
+<td style="text-align:left">No predicate branches on a value that varies by execution context</td>
+<td style="text-align:left">required</td>
+<td style="text-align:left"><strong>not implemented, and violated</strong>; the derived-view check skips itself when the branch matches <code>path/*</code>, so a local run and a CI run on a detached ref reach different verdicts on one tree</td>
+<td style="text-align:left">trunk-context resolution that reads the tree, not the branch name</td>
+</tr>
+<tr>
+<td style="text-align:left">Local and CI invocations of one gate reach the same verdict</td>
+<td style="text-align:left">required</td>
+<td style="text-align:left"><strong>not implemented</strong>; asserted in <code>AGENTS.md</code> prose, tested nowhere</td>
+<td style="text-align:left">a fixture run in both contexts</td>
+</tr>
+<tr>
+<td style="text-align:left">Every stated requirement is enforced or listed as unenforced</td>
+<td style="text-align:left">required</td>
+<td style="text-align:left"><strong>partially implemented</strong>; this table is the mechanism, and it is maintained by hand. The merge-time journal entry is required by <code>AGENTS.md</code> and had no row and no predicate until this revision</td>
+<td style="text-align:left">generation of the matrix from the checker and the normative text</td>
+</tr>
+<tr>
+<td style="text-align:left">Merge-time journal entry, one file per integrated outcome</td>
+<td style="text-align:left">required</td>
+<td style="text-align:left"><strong>not implemented</strong>; no predicate asks for one. A path closed, was audited and was proposed for merge with the entry missing, and every gate reported <code>OK</code></td>
+<td style="text-align:left">integration-time hook, since the entry is written in the closing unit</td>
+</tr>
+<tr>
 <td style="text-align:left">Scope digest recorded at opening and re-verified at closing</td>
 <td style="text-align:left">required</td>
 <td style="text-align:left">implemented; the resolved section is digested and compared at closure</td>
@@ -2644,7 +2694,61 @@ in mind at exactly the rate it gets more precise.</p>
 <p>This is recorded as an open finding, not a resolved item. The remedy is merges,
 and merges are the work of noticing that two named objects are one object seen
 twice — which cannot be done by asking for it in a checklist.</p>
-<h3 id="specification--distrust-a-predicate-that-asks-about-a-declaration" data-heading="distrust-a-predicate-that-asks-about-a-declaration">Distrust a predicate that asks about a declaration</h3>
+<h3 id="specification--prove-that-the-gate-can-fail" data-heading="prove-that-the-gate-can-fail">Prove that the gate can fail</h3>
+<p>Cairn’s rules are the only thing standing between its records and wishful
+thinking, so the rules themselves need a discipline. This section states it.</p>
+<p>Everything below exists because of one observed fact: <strong>every enforcement defect
+found in the reference checker has been the same kind.</strong> Not one rule was too
+strict. All of them agreed too easily, and every one reported <code>OK</code> over a
+condition that was false.</p>
+<p>That is not a coincidence, and the reason is worth understanding before the
+rules are stated. A rule turns a sentence into code, and something has to bridge
+the two — a measurable stand-in, a <a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy predicate</a>.
+The stand-in is almost always the <em>broader</em> condition, because the easy thing to
+compute is usually necessary for the sentence rather than sufficient for it. So
+the errors all lean the same way, and the result is an
+<a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">unsound gate</a>: one whose passing does not mean what
+it says.</p>
+<p>An unsound gate is worse than a missing one. A missing rule leaves a visible
+gap. An unsound rule fills the gap with a <strong>claim</strong>, and Cairn writes that claim
+down — a closing acceptance records that gates were green, and a journal entry
+repeats it. The false statement becomes durable, exact, and signed.</p>
+<p>Four requirements follow.</p>
+<blockquote>
+<p><strong>1. Every blocking rule MUST have a fixture it rejects.</strong>
+An <a href="#article-concept-adversarial-fixture" data-article="concept-adversarial-fixture" data-anchor="" class="wiki-link">adversarial fixture</a> is a crafted
+violation, and the rule’s own name MUST appear in the resulting finding. A
+green suite of valid inputs proves only that a rule is quiet; a rule that never
+fires at all passes those tests identically. A blocking rule with no fixture is
+unproven, and SHOULD be treated as unsound until one exists.</p>
+</blockquote>
+<blockquote>
+<p><strong>2. A predicate MUST NOT branch on a value that varies with where it runs.</strong>
+The tree is the same locally and in CI; the environment is not. Branch names,
+fetched refs, the working directory and the clock are all properties of the
+environment. Where a rule needs to know its context, it MUST derive that from
+the tree — a declared <code>status</code>, the presence of a record — and the two
+invocations MUST reach the same verdict. This is
+<a href="#article-concept-gate-parity" data-article="concept-gate-parity" data-anchor="" class="wiki-link">gate parity</a>.</p>
+</blockquote>
+<blockquote>
+<p><strong>3. When a predicate can be written to ask about a declaration or about a
+fact, it MUST ask about the fact.</strong>
+Walk the branch rather than the ledger’s list of units. Attest the candidate’s
+advisory set rather than recomputing it at closure. The two readings are
+identical in a healthy repository and diverge exactly when something has gone
+wrong, because a broken state usually leaves the declarations internally
+consistent.</p>
+</blockquote>
+<blockquote>
+<p><strong>4. A stated requirement with no predicate MUST be listed as unenforced.</strong>
+The <a href="#specification--current-conformance" data-local-anchor="current-conformance" class="section-link">conformance matrix</a> is where that is said. An
+unenforced requirement and an unsound gate are indistinguishable from inside a
+green run — both produce a passing check over a condition nobody verified — and
+only the matrix can tell a reader which one they are looking at.</p>
+</blockquote>
+<p>The rest of this section is the worked example that produced requirement 3.</p>
+<h4 id="specification--the-declaration-and-the-fact" data-heading="the-declaration-and-the-fact">The declaration and the fact</h4>
 <p>One failure mode is worth naming for whoever implements this next, because it
 produced two real violations here and both times the gate reported <code>OK</code>.</p>
 <p>A predicate can ask about a <strong>declaration</strong> — does every unit the ledger names
@@ -2658,6 +2762,13 @@ resolving. A closure commit’s advisory set stays a tidy subset of the candidat
 repository instead: the branch itself for retention, an attested candidate set for
 dispositions. When a predicate can be written either way, write the one that can
 disagree with the record.</p>
+<p>The same substitution appears wherever a rule needs to know something it cannot
+compute. <code>hasCeremony</code> asks whether a session note <em>names</em> the path, standing in
+for whether a closing ceremony happened — so the note written when the path
+opened satisfies the closing gate. A derived-view check asked whether the branch
+was named <code>path/*</code>, standing in for whether this checkout owns the generated
+view — which was true until self-merge made a path the last writer of its own
+<code>status</code>. Neither rule was edited; the world each described moved underneath it.</p>
 <p>A requirement whose reference row names a migration exception is not exempt from
 the requirement. The exception is finite, listed in the checker, and reported as
 a blocking finding once it is spent — an exception that outlives its migration
@@ -2985,7 +3096,7 @@ software practice: a reader who already knows what a rebase is can skip all of
 it, and a reader who does not can learn it here without learning Cairn at the
 same time. <strong>Cairn’s own concepts</strong> are the objects and rules the protocol
 actually adds — the ideas you are being asked to evaluate.</p>
-<p>Twenty-one borrowed terms, forty-six Cairn concepts. A protocol that presents
+<p>Twenty-one borrowed terms, fifty Cairn concepts. A protocol that presents
 those as one undifferentiated glossary looks twice as large as it is, and hides
 which half a criticism belongs to.</p>
 <h2 id="concepts--borrowed-vocabulary" data-heading="borrowed-vocabulary">Borrowed vocabulary</h2>
@@ -3051,12 +3162,20 @@ the path worktree now.</p>
 <p><a href="#article-concept-control-plane" data-article="concept-control-plane" data-anchor="" class="wiki-link">Control plane</a> →
 <a href="#article-concept-enforcement-profile" data-article="concept-enforcement-profile" data-anchor="" class="wiki-link">enforcement profile</a> →
 <a href="#article-concept-conformance" data-article="concept-conformance" data-anchor="" class="wiki-link">conformance</a>.</p>
+<h3 id="concepts--whether-a-rule-can-be-trusted" data-heading="whether-a-rule-can-be-trusted">Whether a rule can be trusted</h3>
+<p>A rule is a sentence turned into code, and the join is where the defects live.
+<a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">Proxy predicate</a> names the substitution,
+<a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">unsound gate</a> names what it produces,
+<a href="#article-concept-adversarial-fixture" data-article="concept-adversarial-fixture" data-anchor="" class="wiki-link">adversarial fixture</a> is the only evidence a rule
+works, and <a href="#article-concept-gate-parity" data-article="concept-gate-parity" data-anchor="" class="wiki-link">gate parity</a> is the property that one gate does not
+change its mind between a laptop and CI.</p>
 <h2 id="concepts--alphabetical-index" data-heading="alphabetical-index">Alphabetical index</h2>
 <p>Borrowed terms are marked <em>(borrowed)</em>.</p>
 <ul>
 <li><a href="#article-concept-acceptance-drift" data-article="concept-acceptance-drift" data-anchor="" class="wiki-link">Acceptance drift</a></li>
 <li><a href="#article-concept-administrative-closure" data-article="concept-administrative-closure" data-anchor="" class="wiki-link">Administrative closure</a></li>
 <li><a href="#article-concept-advisory-finding" data-article="concept-advisory-finding" data-anchor="" class="wiki-link">Advisory finding</a></li>
+<li><a href="#article-concept-adversarial-fixture" data-article="concept-adversarial-fixture" data-anchor="" class="wiki-link">Adversarial fixture</a></li>
 <li><a href="#article-concept-architecture" data-article="concept-architecture" data-anchor="" class="wiki-link">Architecture</a> <em>(borrowed)</em></li>
 <li><a href="#article-concept-archived-state" data-article="concept-archived-state" data-anchor="" class="wiki-link">Archived state</a></li>
 <li><a href="#article-concept-auditor" data-article="concept-auditor" data-anchor="" class="wiki-link">Auditor</a></li>
@@ -3083,6 +3202,7 @@ the path worktree now.</p>
 <li><a href="#article-concept-exit-code" data-article="concept-exit-code" data-anchor="" class="wiki-link">Exit code</a> <em>(borrowed)</em></li>
 <li><a href="#article-concept-fetch-and-push" data-article="concept-fetch-and-push" data-anchor="" class="wiki-link">Fetch and push</a> <em>(borrowed)</em></li>
 <li><a href="#article-concept-foundation-path" data-article="concept-foundation-path" data-anchor="" class="wiki-link">Foundation path</a></li>
+<li><a href="#article-concept-gate-parity" data-article="concept-gate-parity" data-anchor="" class="wiki-link">Gate parity</a></li>
 <li><a href="#article-concept-git" data-article="concept-git" data-anchor="" class="wiki-link">Git</a> <em>(borrowed)</em></li>
 <li><a href="#article-concept-handoff" data-article="concept-handoff" data-anchor="" class="wiki-link">Handoff brief</a></li>
 <li><a href="#article-concept-implementation-candidate" data-article="concept-implementation-candidate" data-anchor="" class="wiki-link">Implementation candidate</a></li>
@@ -3102,6 +3222,7 @@ the path worktree now.</p>
 <li><a href="#article-concept-path-record" data-article="concept-path-record" data-anchor="" class="wiki-link">Path record</a></li>
 <li><a href="#article-concept-path-writer" data-article="concept-path-writer" data-anchor="" class="wiki-link">Path writer</a></li>
 <li><a href="#article-concept-project-memory" data-article="concept-project-memory" data-anchor="" class="wiki-link">Project memory</a></li>
+<li><a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">Proxy predicate</a></li>
 <li><a href="#article-concept-provisional-commit" data-article="concept-provisional-commit" data-anchor="" class="wiki-link">Provisional commit</a></li>
 <li><a href="#article-concept-ready-state" data-article="concept-ready-state" data-anchor="" class="wiki-link">Ready state</a></li>
 <li><a href="#article-concept-rebase" data-article="concept-rebase" data-anchor="" class="wiki-link">Rebase</a> <em>(borrowed)</em></li>
@@ -3117,6 +3238,7 @@ the path worktree now.</p>
 <li><a href="#article-concept-test" data-article="concept-test" data-anchor="" class="wiki-link">Test</a> <em>(borrowed)</em></li>
 <li><a href="#article-concept-trunk" data-article="concept-trunk" data-anchor="" class="wiki-link">Trunk</a> <em>(borrowed)</em></li>
 <li><a href="#article-concept-trunk-registration" data-article="concept-trunk-registration" data-anchor="" class="wiki-link">Trunk registration</a></li>
+<li><a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">Unsound gate</a></li>
 <li><a href="#article-concept-work-ledger" data-article="concept-work-ledger" data-anchor="" class="wiki-link">Work ledger</a></li>
 <li><a href="#article-concept-work-unit" data-article="concept-work-unit" data-anchor="" class="wiki-link">Work unit</a></li>
 <li><a href="#article-concept-worktree" data-article="concept-worktree" data-anchor="" class="wiki-link">Working tree and worktree</a> <em>(borrowed)</em></li>
@@ -4679,6 +4801,36 @@ not in a separate document a reader may never open.</p>
 <td style="text-align:left">ledger append-only proof, which remains a separate open row</td>
 </tr>
 <tr>
+<td style="text-align:left">An adversarial fixture per blocking rule</td>
+<td style="text-align:left">required</td>
+<td style="text-align:left"><strong>not implemented</strong>; the checker suite exercises valid repositories and asserts <code>OK</code>, which a rule that never fires also satisfies. No rule is currently required to demonstrate a rejection</td>
+<td style="text-align:left">a fixture repository per blocking rule</td>
+</tr>
+<tr>
+<td style="text-align:left">No predicate branches on a value that varies by execution context</td>
+<td style="text-align:left">required</td>
+<td style="text-align:left"><strong>not implemented, and violated</strong>; the derived-view check skips itself when the branch matches <code>path/*</code>, so a local run and a CI run on a detached ref reach different verdicts on one tree</td>
+<td style="text-align:left">trunk-context resolution that reads the tree, not the branch name</td>
+</tr>
+<tr>
+<td style="text-align:left">Local and CI invocations of one gate reach the same verdict</td>
+<td style="text-align:left">required</td>
+<td style="text-align:left"><strong>not implemented</strong>; asserted in <code>AGENTS.md</code> prose, tested nowhere</td>
+<td style="text-align:left">a fixture run in both contexts</td>
+</tr>
+<tr>
+<td style="text-align:left">Every stated requirement is enforced or listed as unenforced</td>
+<td style="text-align:left">required</td>
+<td style="text-align:left"><strong>partially implemented</strong>; this table is the mechanism, and it is maintained by hand. The merge-time journal entry is required by <code>AGENTS.md</code> and had no row and no predicate until this revision</td>
+<td style="text-align:left">generation of the matrix from the checker and the normative text</td>
+</tr>
+<tr>
+<td style="text-align:left">Merge-time journal entry, one file per integrated outcome</td>
+<td style="text-align:left">required</td>
+<td style="text-align:left"><strong>not implemented</strong>; no predicate asks for one. A path closed, was audited and was proposed for merge with the entry missing, and every gate reported <code>OK</code></td>
+<td style="text-align:left">integration-time hook, since the entry is written in the closing unit</td>
+</tr>
+<tr>
 <td style="text-align:left">Scope digest recorded at opening and re-verified at closing</td>
 <td style="text-align:left">required</td>
 <td style="text-align:left">implemented; the resolved section is digested and compared at closure</td>
@@ -4833,7 +4985,61 @@ in mind at exactly the rate it gets more precise.</p>
 <p>This is recorded as an open finding, not a resolved item. The remedy is merges,
 and merges are the work of noticing that two named objects are one object seen
 twice — which cannot be done by asking for it in a checklist.</p>
-<h3 id="specification--distrust-a-predicate-that-asks-about-a-declaration" data-heading="distrust-a-predicate-that-asks-about-a-declaration">Distrust a predicate that asks about a declaration</h3>
+<h3 id="specification--prove-that-the-gate-can-fail" data-heading="prove-that-the-gate-can-fail">Prove that the gate can fail</h3>
+<p>Cairn’s rules are the only thing standing between its records and wishful
+thinking, so the rules themselves need a discipline. This section states it.</p>
+<p>Everything below exists because of one observed fact: <strong>every enforcement defect
+found in the reference checker has been the same kind.</strong> Not one rule was too
+strict. All of them agreed too easily, and every one reported <code>OK</code> over a
+condition that was false.</p>
+<p>That is not a coincidence, and the reason is worth understanding before the
+rules are stated. A rule turns a sentence into code, and something has to bridge
+the two — a measurable stand-in, a <a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy predicate</a>.
+The stand-in is almost always the <em>broader</em> condition, because the easy thing to
+compute is usually necessary for the sentence rather than sufficient for it. So
+the errors all lean the same way, and the result is an
+<a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">unsound gate</a>: one whose passing does not mean what
+it says.</p>
+<p>An unsound gate is worse than a missing one. A missing rule leaves a visible
+gap. An unsound rule fills the gap with a <strong>claim</strong>, and Cairn writes that claim
+down — a closing acceptance records that gates were green, and a journal entry
+repeats it. The false statement becomes durable, exact, and signed.</p>
+<p>Four requirements follow.</p>
+<blockquote>
+<p><strong>1. Every blocking rule MUST have a fixture it rejects.</strong>
+An <a href="#article-concept-adversarial-fixture" data-article="concept-adversarial-fixture" data-anchor="" class="wiki-link">adversarial fixture</a> is a crafted
+violation, and the rule’s own name MUST appear in the resulting finding. A
+green suite of valid inputs proves only that a rule is quiet; a rule that never
+fires at all passes those tests identically. A blocking rule with no fixture is
+unproven, and SHOULD be treated as unsound until one exists.</p>
+</blockquote>
+<blockquote>
+<p><strong>2. A predicate MUST NOT branch on a value that varies with where it runs.</strong>
+The tree is the same locally and in CI; the environment is not. Branch names,
+fetched refs, the working directory and the clock are all properties of the
+environment. Where a rule needs to know its context, it MUST derive that from
+the tree — a declared <code>status</code>, the presence of a record — and the two
+invocations MUST reach the same verdict. This is
+<a href="#article-concept-gate-parity" data-article="concept-gate-parity" data-anchor="" class="wiki-link">gate parity</a>.</p>
+</blockquote>
+<blockquote>
+<p><strong>3. When a predicate can be written to ask about a declaration or about a
+fact, it MUST ask about the fact.</strong>
+Walk the branch rather than the ledger’s list of units. Attest the candidate’s
+advisory set rather than recomputing it at closure. The two readings are
+identical in a healthy repository and diverge exactly when something has gone
+wrong, because a broken state usually leaves the declarations internally
+consistent.</p>
+</blockquote>
+<blockquote>
+<p><strong>4. A stated requirement with no predicate MUST be listed as unenforced.</strong>
+The <a href="#specification--current-conformance" data-local-anchor="current-conformance" class="section-link">conformance matrix</a> is where that is said. An
+unenforced requirement and an unsound gate are indistinguishable from inside a
+green run — both produce a passing check over a condition nobody verified — and
+only the matrix can tell a reader which one they are looking at.</p>
+</blockquote>
+<p>The rest of this section is the worked example that produced requirement 3.</p>
+<h4 id="specification--the-declaration-and-the-fact" data-heading="the-declaration-and-the-fact">The declaration and the fact</h4>
 <p>One failure mode is worth naming for whoever implements this next, because it
 produced two real violations here and both times the gate reported <code>OK</code>.</p>
 <p>A predicate can ask about a <strong>declaration</strong> — does every unit the ledger names
@@ -4847,6 +5053,13 @@ resolving. A closure commit’s advisory set stays a tidy subset of the candidat
 repository instead: the branch itself for retention, an attested candidate set for
 dispositions. When a predicate can be written either way, write the one that can
 disagree with the record.</p>
+<p>The same substitution appears wherever a rule needs to know something it cannot
+compute. <code>hasCeremony</code> asks whether a session note <em>names</em> the path, standing in
+for whether a closing ceremony happened — so the note written when the path
+opened satisfies the closing gate. A derived-view check asked whether the branch
+was named <code>path/*</code>, standing in for whether this checkout owns the generated
+view — which was true until self-merge made a path the last writer of its own
+<code>status</code>. Neither rule was edited; the world each described moved underneath it.</p>
 <p>A requirement whose reference row names a migration exception is not exempt from
 the requirement. The exception is finite, listed in the checker, and reported as
 a blocking finding once it is spent — an exception that outlives its migration
@@ -5170,7 +5383,7 @@ software practice: a reader who already knows what a rebase is can skip all of
 it, and a reader who does not can learn it here without learning Cairn at the
 same time. <strong>Cairn’s own concepts</strong> are the objects and rules the protocol
 actually adds — the ideas you are being asked to evaluate.</p>
-<p>Twenty-one borrowed terms, forty-six Cairn concepts. A protocol that presents
+<p>Twenty-one borrowed terms, fifty Cairn concepts. A protocol that presents
 those as one undifferentiated glossary looks twice as large as it is, and hides
 which half a criticism belongs to.</p>
 <h2 id="concepts--borrowed-vocabulary" data-heading="borrowed-vocabulary">Borrowed vocabulary</h2>
@@ -5236,12 +5449,20 @@ the path worktree now.</p>
 <p><a href="#article-concept-control-plane" data-article="concept-control-plane" data-anchor="" class="wiki-link">Control plane</a> →
 <a href="#article-concept-enforcement-profile" data-article="concept-enforcement-profile" data-anchor="" class="wiki-link">enforcement profile</a> →
 <a href="#article-concept-conformance" data-article="concept-conformance" data-anchor="" class="wiki-link">conformance</a>.</p>
+<h3 id="concepts--whether-a-rule-can-be-trusted" data-heading="whether-a-rule-can-be-trusted">Whether a rule can be trusted</h3>
+<p>A rule is a sentence turned into code, and the join is where the defects live.
+<a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">Proxy predicate</a> names the substitution,
+<a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">unsound gate</a> names what it produces,
+<a href="#article-concept-adversarial-fixture" data-article="concept-adversarial-fixture" data-anchor="" class="wiki-link">adversarial fixture</a> is the only evidence a rule
+works, and <a href="#article-concept-gate-parity" data-article="concept-gate-parity" data-anchor="" class="wiki-link">gate parity</a> is the property that one gate does not
+change its mind between a laptop and CI.</p>
 <h2 id="concepts--alphabetical-index" data-heading="alphabetical-index">Alphabetical index</h2>
 <p>Borrowed terms are marked <em>(borrowed)</em>.</p>
 <ul>
 <li><a href="#article-concept-acceptance-drift" data-article="concept-acceptance-drift" data-anchor="" class="wiki-link">Acceptance drift</a></li>
 <li><a href="#article-concept-administrative-closure" data-article="concept-administrative-closure" data-anchor="" class="wiki-link">Administrative closure</a></li>
 <li><a href="#article-concept-advisory-finding" data-article="concept-advisory-finding" data-anchor="" class="wiki-link">Advisory finding</a></li>
+<li><a href="#article-concept-adversarial-fixture" data-article="concept-adversarial-fixture" data-anchor="" class="wiki-link">Adversarial fixture</a></li>
 <li><a href="#article-concept-architecture" data-article="concept-architecture" data-anchor="" class="wiki-link">Architecture</a> <em>(borrowed)</em></li>
 <li><a href="#article-concept-archived-state" data-article="concept-archived-state" data-anchor="" class="wiki-link">Archived state</a></li>
 <li><a href="#article-concept-auditor" data-article="concept-auditor" data-anchor="" class="wiki-link">Auditor</a></li>
@@ -5268,6 +5489,7 @@ the path worktree now.</p>
 <li><a href="#article-concept-exit-code" data-article="concept-exit-code" data-anchor="" class="wiki-link">Exit code</a> <em>(borrowed)</em></li>
 <li><a href="#article-concept-fetch-and-push" data-article="concept-fetch-and-push" data-anchor="" class="wiki-link">Fetch and push</a> <em>(borrowed)</em></li>
 <li><a href="#article-concept-foundation-path" data-article="concept-foundation-path" data-anchor="" class="wiki-link">Foundation path</a></li>
+<li><a href="#article-concept-gate-parity" data-article="concept-gate-parity" data-anchor="" class="wiki-link">Gate parity</a></li>
 <li><a href="#article-concept-git" data-article="concept-git" data-anchor="" class="wiki-link">Git</a> <em>(borrowed)</em></li>
 <li><a href="#article-concept-handoff" data-article="concept-handoff" data-anchor="" class="wiki-link">Handoff brief</a></li>
 <li><a href="#article-concept-implementation-candidate" data-article="concept-implementation-candidate" data-anchor="" class="wiki-link">Implementation candidate</a></li>
@@ -5287,6 +5509,7 @@ the path worktree now.</p>
 <li><a href="#article-concept-path-record" data-article="concept-path-record" data-anchor="" class="wiki-link">Path record</a></li>
 <li><a href="#article-concept-path-writer" data-article="concept-path-writer" data-anchor="" class="wiki-link">Path writer</a></li>
 <li><a href="#article-concept-project-memory" data-article="concept-project-memory" data-anchor="" class="wiki-link">Project memory</a></li>
+<li><a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">Proxy predicate</a></li>
 <li><a href="#article-concept-provisional-commit" data-article="concept-provisional-commit" data-anchor="" class="wiki-link">Provisional commit</a></li>
 <li><a href="#article-concept-ready-state" data-article="concept-ready-state" data-anchor="" class="wiki-link">Ready state</a></li>
 <li><a href="#article-concept-rebase" data-article="concept-rebase" data-anchor="" class="wiki-link">Rebase</a> <em>(borrowed)</em></li>
@@ -5302,6 +5525,7 @@ the path worktree now.</p>
 <li><a href="#article-concept-test" data-article="concept-test" data-anchor="" class="wiki-link">Test</a> <em>(borrowed)</em></li>
 <li><a href="#article-concept-trunk" data-article="concept-trunk" data-anchor="" class="wiki-link">Trunk</a> <em>(borrowed)</em></li>
 <li><a href="#article-concept-trunk-registration" data-article="concept-trunk-registration" data-anchor="" class="wiki-link">Trunk registration</a></li>
+<li><a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">Unsound gate</a></li>
 <li><a href="#article-concept-work-ledger" data-article="concept-work-ledger" data-anchor="" class="wiki-link">Work ledger</a></li>
 <li><a href="#article-concept-work-unit" data-article="concept-work-unit" data-anchor="" class="wiki-link">Work unit</a></li>
 <li><a href="#article-concept-worktree" data-article="concept-worktree" data-anchor="" class="wiki-link">Working tree and worktree</a> <em>(borrowed)</em></li>
@@ -5413,6 +5637,66 @@ implementation documentation.</p>
 <p>Related: <a href="#article-concept-implementation-candidate" data-article="concept-implementation-candidate" data-anchor="" class="wiki-link">implementation candidate</a>,
 <a href="#article-concept-ready-state" data-article="concept-ready-state" data-anchor="" class="wiki-link">ready state</a>, <a href="#article-concept-path-record" data-article="concept-path-record" data-anchor="" class="wiki-link">path record</a>,
 <a href="#article-concept-record-integrity" data-article="concept-record-integrity" data-anchor="" class="wiki-link">record integrity</a>.</p>
+
+    </article>
+    </template>
+    <template id="template-concept-adversarial-fixture"
+      data-article-template="concept-adversarial-fixture"
+      data-title="Adversarial fixture"
+      data-kind="Concept"
+      data-source="concepts/adversarial-fixture.md">
+
+    <div class="article-meta">
+      <span>Concept</span>
+      <code>concepts/adversarial-fixture.md</code>
+    </div>
+    <article class="article-body" data-rendered-article="concept-adversarial-fixture">
+      <h1 id="concept-adversarial-fixture--adversarial-fixture" data-heading="adversarial-fixture">Adversarial fixture</h1>
+<p>An adversarial fixture is a test that builds a violation on purpose and asserts
+the rule <strong>rejects</strong> it.</p>
+<h2 id="concept-adversarial-fixture--build-the-idea" data-heading="build-the-idea">Build the idea</h2>
+<p>Start with a question that sounds silly and is not: <em>how do you know a check
+works?</em></p>
+<p>The usual answer is that the test suite is green. Consider what a green suite
+actually establishes. The tests feed the checker valid repositories and assert it
+reports OK. That is a real property, and it rules out one thing: the rule does
+not fire when it should not.</p>
+<p>Now consider a rule that never fires at all — one whose predicate is a tautology,
+or that returns early on the branch under test, or that asks a filename question
+already true for every input. <strong>It passes every one of those tests too.</strong> A
+green suite cannot distinguish a working rule from a rule that has been asleep
+since the day it was written.</p>
+<p>So a suite of valid-input tests, however large, is not evidence that a gate
+works. The only evidence is a case the gate <strong>must reject</strong>, which it does.</p>
+<pre><code class="language-text">this proves the rule is quiet   →  a valid repository, gate reports OK
+this proves the rule is awake   →  a crafted violation, gate reports FAILED
+                                   with that rule's name in the finding
+</code></pre>
+<p>The second is what an adversarial fixture is, and the finding must name the rule
+— otherwise a test can pass because some <em>other</em> rule fired, and the rule under
+test is still asleep.</p>
+<h2 id="concept-adversarial-fixture--in-cairn" data-heading="in-cairn">In Cairn</h2>
+<p>Every <strong>blocking</strong> rule MUST have at least one fixture that it rejects. A
+blocking rule with no such fixture is unproven and SHOULD be treated as
+<a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">unsound</a> until one exists.</p>
+<p>This is not a stylistic preference; it is the check that would have caught every
+enforcement defect found so far. The reference checker’s suite was large and
+green while four of its rules were passing over live violations, because the
+suite asked all of them the only question they could already answer.</p>
+<p>A fixture is cheap in a way the rule is not. Writing <code>checkpoint-retention</code> means
+reasoning about refs, rewrites and orphaned commits. Writing its fixture means
+producing one repository with one orphaned commit and asserting the gate says so.</p>
+<h2 id="concept-adversarial-fixture--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
+<p>A fixture proves the rule catches <strong>that</strong> violation, not the class of violation.
+<code>checkpoint-retention</code> had a fixture for a missing ref and still passed over a
+<em>moved</em> ref, because a moved ref is a different shape of the same idea and nobody
+had built one.</p>
+<p>So the fixture set is itself incomplete, always, and the honest response is to
+add a fixture every time a real violation escapes — the violation that got
+through is, by definition, the shape nobody imagined.</p>
+<p>Related: <a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">unsound gate</a>,
+<a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy predicate</a>, <a href="#article-concept-test" data-article="concept-test" data-anchor="" class="wiki-link">test</a>,
+<a href="#article-concept-cairn-checker" data-article="concept-cairn-checker" data-anchor="" class="wiki-link">Cairn checker</a>.</p>
 
     </article>
     </template>
@@ -6414,6 +6698,70 @@ format rather than borrow YAML’s name.</p>
 
     </article>
     </template>
+    <template id="template-concept-gate-parity"
+      data-article-template="concept-gate-parity"
+      data-title="Gate parity"
+      data-kind="Concept"
+      data-source="concepts/gate-parity.md">
+
+    <div class="article-meta">
+      <span>Concept</span>
+      <code>concepts/gate-parity.md</code>
+    </div>
+    <article class="article-body" data-rendered-article="concept-gate-parity">
+      <h1 id="concept-gate-parity--gate-parity" data-heading="gate-parity">Gate parity</h1>
+<p>Gate parity is the property that one gate, run on one tree, reaches the same
+verdict wherever it runs.</p>
+<h2 id="concept-gate-parity--build-the-idea" data-heading="build-the-idea">Build the idea</h2>
+<p>A Cairn gate runs at least twice on the way to integration. A person runs it
+locally before committing, and
+<a href="#article-concept-continuous-integration" data-article="concept-continuous-integration" data-anchor="" class="wiki-link">continuous integration</a> runs it again on the
+proposed result. The whole point of the local run is that it answers the same
+question the remote one will: work is checked before it is published, not after.</p>
+<p>If the two can disagree, the local run stops being a check and becomes a guess.
+Worse, it is a <em>confident</em> guess — it prints the same OK, in the same format,
+from the same command.</p>
+<p>Parity breaks when a predicate reads something that is a property of the
+<strong>environment</strong> rather than of the <strong>tree</strong>. The tree is the same in both places;
+the environment is not. Anything the checker learns from outside the tree is a
+candidate:</p>
+<ul>
+<li>the current branch name — a person is on <code>path/x</code>, CI is on a detached ref;</li>
+<li>whether a remote ref is fetched — a person has origin, a shallow clone may not;</li>
+<li>the working directory, the user, the clock;</li>
+<li>which comparison base is passed in.</li>
+</ul>
+<h2 id="concept-gate-parity--in-cairn" data-heading="in-cairn">In Cairn</h2>
+<p>The local and CI invocations of one gate MUST reach the same verdict on the same
+tree. <code>AGENTS.md</code> already promises it in prose — <em>“These run locally with the
+same command CI runs”</em> — and a promise with no test is a
+<a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy</a> for the property, not the property.</p>
+<p>A predicate MUST NOT branch on a value that varies with where it runs. Where a
+rule genuinely needs to know its context, it MUST derive that from the tree — the
+path record’s declared <code>status</code>, the presence of a record — never from the name
+of the branch it happens to be sitting on.</p>
+<p>The reference checker broke this once, and the break is worth keeping as the
+worked example. The derived-view rule skipped itself when the branch matched
+<code>path/*</code>, on reasoning that was sound when it was written: a running path never
+hand-writes the generated view. CI checks out a detached merge ref, whose branch
+is <code>HEAD</code>, so the rule ran there. One tree, two verdicts, one command:</p>
+<pre><code class="language-text">local, on path/cp-ui-typography   OK — protocol satisfied
+CI,    on HEAD (detached)         FAILED — the derived running-paths view is stale
+</code></pre>
+<p>Both runs were correct about the question they asked. Only one of them asked the
+right one.</p>
+<h2 id="concept-gate-parity--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
+<p>Parity is agreement, not correctness. Two environments can agree perfectly on the
+same wrong answer, and a rule that is <a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">unsound</a> is unsound
+identically everywhere. Parity removes one class of surprise — the gate that
+changes its mind — and says nothing about whether the verdict was ever right.</p>
+<p>Related: <a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">unsound gate</a>,
+<a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy predicate</a>,
+<a href="#article-concept-continuous-integration" data-article="concept-continuous-integration" data-anchor="" class="wiki-link">continuous integration</a>,
+<a href="#article-concept-enforcement-profile" data-article="concept-enforcement-profile" data-anchor="" class="wiki-link">enforcement profile</a>, <a href="#article-concept-exit-code" data-article="concept-exit-code" data-anchor="" class="wiki-link">exit code</a>.</p>
+
+    </article>
+    </template>
     <template id="template-concept-git"
       data-article-template="concept-git"
       data-title="Git"
@@ -7097,6 +7445,104 @@ that the work is recoverable and is not being counted as something it is not.</p
 
     </article>
     </template>
+    <template id="template-concept-proxy-predicate"
+      data-article-template="concept-proxy-predicate"
+      data-title="Proxy predicate"
+      data-kind="Concept"
+      data-source="concepts/proxy-predicate.md">
+
+    <div class="article-meta">
+      <span>Concept</span>
+      <code>concepts/proxy-predicate.md</code>
+    </div>
+    <article class="article-body" data-rendered-article="concept-proxy-predicate">
+      <h1 id="concept-proxy-predicate--proxy-predicate" data-heading="proxy-predicate">Proxy predicate</h1>
+<p>A proxy predicate is an automated rule that checks something <em>close to</em> what it
+means, because the thing it means cannot be computed directly.</p>
+<h2 id="concept-proxy-predicate--build-the-idea" data-heading="build-the-idea">Build the idea</h2>
+<p>Every automated rule turns a sentence into code. The sentence is about the world
+— <em>the work is resumable</em>, <em>this path was accepted</em>, <em>the view is current</em>. The
+code can only read repository state. Something has to bridge that gap, and what
+bridges it is a choice: pick a measurable condition that stands in for the
+sentence.</p>
+<p>That choice is where the interesting bugs live, and it is invisible in the code.
+Both of these look like ordinary checks:</p>
+<pre><code class="language-text">the sentence   &quot;every completed checkpoint survives a rewriting push&quot;
+the proxy      &quot;every unit named in the ledger resolves to a ref&quot;
+</code></pre>
+<p>They agree in every healthy repository, which is why the substitution feels
+free. They diverge exactly when something has gone wrong — because <strong>a broken
+state usually leaves the declarations internally consistent.</strong> Move a retention
+ref forward and every declared unit still resolves; the ledger still names the
+same units; the proxy still passes. Only the fact it was standing in for has
+become false.</p>
+<h3 id="concept-proxy-predicate--substitutions-drift-in-one-direction" data-heading="substitutions-drift-in-one-direction">Substitutions drift in one direction</h3>
+<p>The proxy is not merely <em>different</em> from the intent. It is nearly always
+<strong>broader</strong> — it accepts more situations than the sentence does.</p>
+<p>That follows from how proxies get chosen. The easy thing to compute is usually a
+<em>necessary</em> condition of the intent rather than a <em>sufficient</em> one: a resumable
+path does have a brief, an accepted path does have a session note, a current view
+does live on a branch. Checking the necessary part is one line. Checking the
+sufficient part means reconstructing the intent.</p>
+<p>So the predictable failure is not a rule that complains too much. It is a rule
+that <strong>agrees too easily</strong> — see <a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">unsound gate</a>.</p>
+<h2 id="concept-proxy-predicate--in-cairn" data-heading="in-cairn">In Cairn</h2>
+<p>Four proxies in the reference checker were found standing in for something they
+did not imply. Each is written here as the pair, because the pair is the lesson:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">The rule meant</th>
+<th style="text-align:left">The proxy asked</th>
+<th style="text-align:left">How they came apart</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">every completed checkpoint is retained</td>
+<td style="text-align:left">every <em>declared unit</em> resolves a ref</td>
+<td style="text-align:left">a ref moved forward: every unit resolved, one real commit was orphaned</td>
+</tr>
+<tr>
+<td style="text-align:left">every advisory at the candidate was disposed</td>
+<td style="text-align:left">the disposition matches what the checker raises <em>now</em></td>
+<td style="text-align:left">closure is field-restricted, so its advisory set is a strict subset — the rule could pass with an advisory undisposed</td>
+</tr>
+<tr>
+<td style="text-align:left">this checkout owns the derived view</td>
+<td style="text-align:left">the branch name matches <code>path/*</code></td>
+<td style="text-align:left">CI checks out a detached ref, so the same tree gave two verdicts</td>
+</tr>
+<tr>
+<td style="text-align:left">a closing ceremony happened</td>
+<td style="text-align:left">a session note <em>names</em> the path</td>
+<td style="text-align:left">the note written when the path <strong>opened</strong> satisfies the closing gate</td>
+</tr>
+</tbody>
+</table>
+<p>The fourth is the clearest, because the substitution is visible in one line:</p>
+<pre><code class="language-js">/** A closing ceremony leaves a session note naming the path. */
+return readdirSync(SESSION_DIR).some((file) =&gt; file.includes(id))
+</code></pre>
+<p>The comment states the sentence. The code asks a filename question. Every path
+satisfies it from the moment it opens.</p>
+<p><strong>When a predicate can be written either way, write the one that can disagree
+with the record.</strong> Walk the branch rather than the ledger’s list of units; attest
+the candidate’s advisory set rather than recomputing it; ask what a checkout owns
+rather than what it is called.</p>
+<h2 id="concept-proxy-predicate--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
+<p>A proxy that is exact today can become a proxy again when the model around it
+changes, without anybody editing it. <code>isPathBranch(branch)</code> was a fair stand-in
+for <em>does this checkout own the derived view</em> while a running path never wrote
+that view. Self-merge made a path the last writer of its own <code>status</code>, so at
+closure it became precisely the writer the exemption assumed could not exist.</p>
+<p>Nothing in the rule changed. The world it described did.</p>
+<p>Related: <a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">unsound gate</a>,
+<a href="#article-concept-adversarial-fixture" data-article="concept-adversarial-fixture" data-anchor="" class="wiki-link">adversarial fixture</a>,
+<a href="#article-concept-cairn-checker" data-article="concept-cairn-checker" data-anchor="" class="wiki-link">Cairn checker</a>, <a href="#article-concept-conformance" data-article="concept-conformance" data-anchor="" class="wiki-link">conformance</a>.</p>
+
+    </article>
+    </template>
     <template id="template-concept-ready-state"
       data-article-template="concept-ready-state"
       data-title="Ready state"
@@ -7642,6 +8088,98 @@ recorded on the trunk.</p>
 remote trunk must be fetched and its exact state verified.</p>
 <p>Related: <a href="#article-concept-branch" data-article="concept-branch" data-anchor="" class="wiki-link">branch</a>, <a href="#article-concept-trunk-registration" data-article="concept-trunk-registration" data-anchor="" class="wiki-link">trunk registration</a>,
 <a href="#article-concept-done-state" data-article="concept-done-state" data-anchor="" class="wiki-link">done state</a>.</p>
+
+    </article>
+    </template>
+    <template id="template-concept-unsound-gate"
+      data-article-template="concept-unsound-gate"
+      data-title="Unsound gate"
+      data-kind="Concept"
+      data-source="concepts/unsound-gate.md">
+
+    <div class="article-meta">
+      <span>Concept</span>
+      <code>concepts/unsound-gate.md</code>
+    </div>
+    <article class="article-body" data-rendered-article="concept-unsound-gate">
+      <h1 id="concept-unsound-gate--unsound-gate" data-heading="unsound-gate">Unsound gate</h1>
+<p>A gate is <strong>unsound</strong> when passing it does not mean what it says.</p>
+<h2 id="concept-unsound-gate--build-the-idea" data-heading="build-the-idea">Build the idea</h2>
+<p>An automated check can be wrong in two directions, and it is tempting to treat
+them as two faces of one problem. They are not remotely equivalent.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left"></th>
+<th style="text-align:left">What it does</th>
+<th style="text-align:left">How you find out</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>Noisy</strong></td>
+<td style="text-align:left">fails when nothing is wrong</td>
+<td style="text-align:left">immediately, and repeatedly, because it blocks working people</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Unsound</strong></td>
+<td style="text-align:left">passes when something <em>is</em> wrong</td>
+<td style="text-align:left">never, unless someone goes looking</td>
+</tr>
+</tbody>
+</table>
+<p>A noisy gate is self-reporting. It costs somebody time today, they complain
+today, it gets fixed. It cannot accumulate.</p>
+<p>An unsound gate produces no signal at all. Nothing is slower, nothing is
+blocked, nobody is annoyed. Its output is indistinguishable from the output of a
+gate that is working perfectly — a green line. So unsound gates <strong>accumulate
+silently</strong>, and a rule set left alone drifts toward permissiveness rather than
+toward noise.</p>
+<h3 id="concept-unsound-gate--green-is-not-neutral-it-is-used-as-evidence" data-heading="green-is-not-neutral-it-is-used-as-evidence">Green is not neutral; it is used as evidence</h3>
+<p>This is what makes unsoundness worse than an unwritten rule.</p>
+<p>A missing check leaves a gap, and everyone can see the gap. An unsound check
+fills the gap with a <strong>claim</strong>. In Cairn that claim is durable: a
+<a href="#article-concept-closing-acceptance" data-article="concept-closing-acceptance" data-anchor="" class="wiki-link">closing acceptance</a> records that gates were green, and
+a <a href="#article-concept-journal" data-article="concept-journal" data-anchor="" class="wiki-link">journal</a> entry repeats it. The record then says a condition
+held, at an exact commit, signed by whoever accepted it.</p>
+<p>An unsound gate therefore does not merely fail to catch something. It <strong>launders
+a false statement into the permanent record</strong>, and does it with the full
+authority of an automated check. A protocol whose whole purpose is durable, exact
+records cannot tolerate that quietly.</p>
+<h3 id="concept-unsound-gate--the-direction-is-the-diagnosis" data-heading="the-direction-is-the-diagnosis">The direction is the diagnosis</h3>
+<p>If a rule set’s failures were randomly distributed, roughly half would be noisy
+and half unsound. When every one found is unsound, that is not luck. It is the
+signature of <a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy predicates</a>: the easy stand-in is
+almost always the broader condition, so the errors inherit its direction.</p>
+<h2 id="concept-unsound-gate--in-cairn" data-heading="in-cairn">In Cairn</h2>
+<p>Every enforcement defect found in the reference checker so far has been unsound.
+Not one has been noisy.</p>
+<ul>
+<li>retention passed over an orphaned commit;</li>
+<li>advisory disposition passed with an advisory undisposed;</li>
+<li>closure surface accepted fields its own prose forbade;</li>
+<li>the derived-view check skipped itself on the branch that most needed it;</li>
+<li>the ceremony gate accepts the note written when the path opened.</li>
+</ul>
+<p>A sixth is not a rule at all: <code>AGENTS.md</code> requires a <a href="#article-concept-journal" data-article="concept-journal" data-anchor="" class="wiki-link">journal</a>
+entry at merge time, and no predicate asks for one. A path closed, was audited
+and was proposed for merge with the entry missing, and every gate reported OK —
+because none of them was about that requirement. <strong>An unenforced requirement and
+an unsound gate feel identical from inside a green run</strong>, which is why the
+<a href="#article-concept-conformance" data-article="concept-conformance" data-anchor="" class="wiki-link">conformance matrix</a> has to say which requirements are checked
+and which are not.</p>
+<p>Cairn therefore prefers a rule set that is <strong>sound but incomplete</strong> to one that
+is complete but unsound. Incomplete is honest: it misses things, and it says so.
+Unsound is not: it misses things, and it certifies that it did not.</p>
+<h2 id="concept-unsound-gate--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
+<p>Soundness is a property of each rule, not of the set. A repository can hold
+forty sound rules and still be badly governed, because soundness says only that
+a passing rule told the truth — never that the rules asked about the things that
+matter. Proving a gate cannot lie is a different job from choosing what to check.</p>
+<p>Related: <a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy predicate</a>,
+<a href="#article-concept-adversarial-fixture" data-article="concept-adversarial-fixture" data-anchor="" class="wiki-link">adversarial fixture</a>,
+<a href="#article-concept-gate-parity" data-article="concept-gate-parity" data-anchor="" class="wiki-link">gate parity</a>, <a href="#article-concept-conformance" data-article="concept-conformance" data-anchor="" class="wiki-link">conformance</a>,
+<a href="#article-concept-exit-code" data-article="concept-exit-code" data-anchor="" class="wiki-link">exit code</a>.</p>
 
     </article>
     </template>
@@ -11285,6 +11823,36 @@ not in a separate document a reader may never open.</p>
 <td style="text-align:left">ledger append-only proof, which remains a separate open row</td>
 </tr>
 <tr>
+<td style="text-align:left">An adversarial fixture per blocking rule</td>
+<td style="text-align:left">required</td>
+<td style="text-align:left"><strong>not implemented</strong>; the checker suite exercises valid repositories and asserts <code>OK</code>, which a rule that never fires also satisfies. No rule is currently required to demonstrate a rejection</td>
+<td style="text-align:left">a fixture repository per blocking rule</td>
+</tr>
+<tr>
+<td style="text-align:left">No predicate branches on a value that varies by execution context</td>
+<td style="text-align:left">required</td>
+<td style="text-align:left"><strong>not implemented, and violated</strong>; the derived-view check skips itself when the branch matches <code>path/*</code>, so a local run and a CI run on a detached ref reach different verdicts on one tree</td>
+<td style="text-align:left">trunk-context resolution that reads the tree, not the branch name</td>
+</tr>
+<tr>
+<td style="text-align:left">Local and CI invocations of one gate reach the same verdict</td>
+<td style="text-align:left">required</td>
+<td style="text-align:left"><strong>not implemented</strong>; asserted in <code>AGENTS.md</code> prose, tested nowhere</td>
+<td style="text-align:left">a fixture run in both contexts</td>
+</tr>
+<tr>
+<td style="text-align:left">Every stated requirement is enforced or listed as unenforced</td>
+<td style="text-align:left">required</td>
+<td style="text-align:left"><strong>partially implemented</strong>; this table is the mechanism, and it is maintained by hand. The merge-time journal entry is required by <code>AGENTS.md</code> and had no row and no predicate until this revision</td>
+<td style="text-align:left">generation of the matrix from the checker and the normative text</td>
+</tr>
+<tr>
+<td style="text-align:left">Merge-time journal entry, one file per integrated outcome</td>
+<td style="text-align:left">required</td>
+<td style="text-align:left"><strong>not implemented</strong>; no predicate asks for one. A path closed, was audited and was proposed for merge with the entry missing, and every gate reported <code>OK</code></td>
+<td style="text-align:left">integration-time hook, since the entry is written in the closing unit</td>
+</tr>
+<tr>
 <td style="text-align:left">Scope digest recorded at opening and re-verified at closing</td>
 <td style="text-align:left">required</td>
 <td style="text-align:left">implemented; the resolved section is digested and compared at closure</td>
@@ -11439,7 +12007,61 @@ in mind at exactly the rate it gets more precise.</p>
 <p>This is recorded as an open finding, not a resolved item. The remedy is merges,
 and merges are the work of noticing that two named objects are one object seen
 twice — which cannot be done by asking for it in a checklist.</p>
-<h3 id="specification--distrust-a-predicate-that-asks-about-a-declaration" data-heading="distrust-a-predicate-that-asks-about-a-declaration">Distrust a predicate that asks about a declaration</h3>
+<h3 id="specification--prove-that-the-gate-can-fail" data-heading="prove-that-the-gate-can-fail">Prove that the gate can fail</h3>
+<p>Cairn’s rules are the only thing standing between its records and wishful
+thinking, so the rules themselves need a discipline. This section states it.</p>
+<p>Everything below exists because of one observed fact: <strong>every enforcement defect
+found in the reference checker has been the same kind.</strong> Not one rule was too
+strict. All of them agreed too easily, and every one reported <code>OK</code> over a
+condition that was false.</p>
+<p>That is not a coincidence, and the reason is worth understanding before the
+rules are stated. A rule turns a sentence into code, and something has to bridge
+the two — a measurable stand-in, a <a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy predicate</a>.
+The stand-in is almost always the <em>broader</em> condition, because the easy thing to
+compute is usually necessary for the sentence rather than sufficient for it. So
+the errors all lean the same way, and the result is an
+<a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">unsound gate</a>: one whose passing does not mean what
+it says.</p>
+<p>An unsound gate is worse than a missing one. A missing rule leaves a visible
+gap. An unsound rule fills the gap with a <strong>claim</strong>, and Cairn writes that claim
+down — a closing acceptance records that gates were green, and a journal entry
+repeats it. The false statement becomes durable, exact, and signed.</p>
+<p>Four requirements follow.</p>
+<blockquote>
+<p><strong>1. Every blocking rule MUST have a fixture it rejects.</strong>
+An <a href="#article-concept-adversarial-fixture" data-article="concept-adversarial-fixture" data-anchor="" class="wiki-link">adversarial fixture</a> is a crafted
+violation, and the rule’s own name MUST appear in the resulting finding. A
+green suite of valid inputs proves only that a rule is quiet; a rule that never
+fires at all passes those tests identically. A blocking rule with no fixture is
+unproven, and SHOULD be treated as unsound until one exists.</p>
+</blockquote>
+<blockquote>
+<p><strong>2. A predicate MUST NOT branch on a value that varies with where it runs.</strong>
+The tree is the same locally and in CI; the environment is not. Branch names,
+fetched refs, the working directory and the clock are all properties of the
+environment. Where a rule needs to know its context, it MUST derive that from
+the tree — a declared <code>status</code>, the presence of a record — and the two
+invocations MUST reach the same verdict. This is
+<a href="#article-concept-gate-parity" data-article="concept-gate-parity" data-anchor="" class="wiki-link">gate parity</a>.</p>
+</blockquote>
+<blockquote>
+<p><strong>3. When a predicate can be written to ask about a declaration or about a
+fact, it MUST ask about the fact.</strong>
+Walk the branch rather than the ledger’s list of units. Attest the candidate’s
+advisory set rather than recomputing it at closure. The two readings are
+identical in a healthy repository and diverge exactly when something has gone
+wrong, because a broken state usually leaves the declarations internally
+consistent.</p>
+</blockquote>
+<blockquote>
+<p><strong>4. A stated requirement with no predicate MUST be listed as unenforced.</strong>
+The <a href="#specification--current-conformance" data-local-anchor="current-conformance" class="section-link">conformance matrix</a> is where that is said. An
+unenforced requirement and an unsound gate are indistinguishable from inside a
+green run — both produce a passing check over a condition nobody verified — and
+only the matrix can tell a reader which one they are looking at.</p>
+</blockquote>
+<p>The rest of this section is the worked example that produced requirement 3.</p>
+<h4 id="specification--the-declaration-and-the-fact" data-heading="the-declaration-and-the-fact">The declaration and the fact</h4>
 <p>One failure mode is worth naming for whoever implements this next, because it
 produced two real violations here and both times the gate reported <code>OK</code>.</p>
 <p>A predicate can ask about a <strong>declaration</strong> — does every unit the ledger names
@@ -11453,6 +12075,13 @@ resolving. A closure commit’s advisory set stays a tidy subset of the candidat
 repository instead: the branch itself for retention, an attested candidate set for
 dispositions. When a predicate can be written either way, write the one that can
 disagree with the record.</p>
+<p>The same substitution appears wherever a rule needs to know something it cannot
+compute. <code>hasCeremony</code> asks whether a session note <em>names</em> the path, standing in
+for whether a closing ceremony happened — so the note written when the path
+opened satisfies the closing gate. A derived-view check asked whether the branch
+was named <code>path/*</code>, standing in for whether this checkout owns the generated
+view — which was true until self-merge made a path the last writer of its own
+<code>status</code>. Neither rule was edited; the world each described moved underneath it.</p>
 <p>A requirement whose reference row names a migration exception is not exempt from
 the requirement. The exception is finite, listed in the checker, and reported as
 a blocking finding once it is spent — an exception that outlives its migration
@@ -11772,7 +12401,7 @@ software practice: a reader who already knows what a rebase is can skip all of
 it, and a reader who does not can learn it here without learning Cairn at the
 same time. <strong>Cairn’s own concepts</strong> are the objects and rules the protocol
 actually adds — the ideas you are being asked to evaluate.</p>
-<p>Twenty-one borrowed terms, forty-six Cairn concepts. A protocol that presents
+<p>Twenty-one borrowed terms, fifty Cairn concepts. A protocol that presents
 those as one undifferentiated glossary looks twice as large as it is, and hides
 which half a criticism belongs to.</p>
 <h2 id="concepts--borrowed-vocabulary" data-heading="borrowed-vocabulary">Borrowed vocabulary</h2>
@@ -11838,12 +12467,20 @@ the path worktree now.</p>
 <p><a href="#article-concept-control-plane" data-article="concept-control-plane" data-anchor="" class="wiki-link">Control plane</a> →
 <a href="#article-concept-enforcement-profile" data-article="concept-enforcement-profile" data-anchor="" class="wiki-link">enforcement profile</a> →
 <a href="#article-concept-conformance" data-article="concept-conformance" data-anchor="" class="wiki-link">conformance</a>.</p>
+<h3 id="concepts--whether-a-rule-can-be-trusted" data-heading="whether-a-rule-can-be-trusted">Whether a rule can be trusted</h3>
+<p>A rule is a sentence turned into code, and the join is where the defects live.
+<a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">Proxy predicate</a> names the substitution,
+<a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">unsound gate</a> names what it produces,
+<a href="#article-concept-adversarial-fixture" data-article="concept-adversarial-fixture" data-anchor="" class="wiki-link">adversarial fixture</a> is the only evidence a rule
+works, and <a href="#article-concept-gate-parity" data-article="concept-gate-parity" data-anchor="" class="wiki-link">gate parity</a> is the property that one gate does not
+change its mind between a laptop and CI.</p>
 <h2 id="concepts--alphabetical-index" data-heading="alphabetical-index">Alphabetical index</h2>
 <p>Borrowed terms are marked <em>(borrowed)</em>.</p>
 <ul>
 <li><a href="#article-concept-acceptance-drift" data-article="concept-acceptance-drift" data-anchor="" class="wiki-link">Acceptance drift</a></li>
 <li><a href="#article-concept-administrative-closure" data-article="concept-administrative-closure" data-anchor="" class="wiki-link">Administrative closure</a></li>
 <li><a href="#article-concept-advisory-finding" data-article="concept-advisory-finding" data-anchor="" class="wiki-link">Advisory finding</a></li>
+<li><a href="#article-concept-adversarial-fixture" data-article="concept-adversarial-fixture" data-anchor="" class="wiki-link">Adversarial fixture</a></li>
 <li><a href="#article-concept-architecture" data-article="concept-architecture" data-anchor="" class="wiki-link">Architecture</a> <em>(borrowed)</em></li>
 <li><a href="#article-concept-archived-state" data-article="concept-archived-state" data-anchor="" class="wiki-link">Archived state</a></li>
 <li><a href="#article-concept-auditor" data-article="concept-auditor" data-anchor="" class="wiki-link">Auditor</a></li>
@@ -11870,6 +12507,7 @@ the path worktree now.</p>
 <li><a href="#article-concept-exit-code" data-article="concept-exit-code" data-anchor="" class="wiki-link">Exit code</a> <em>(borrowed)</em></li>
 <li><a href="#article-concept-fetch-and-push" data-article="concept-fetch-and-push" data-anchor="" class="wiki-link">Fetch and push</a> <em>(borrowed)</em></li>
 <li><a href="#article-concept-foundation-path" data-article="concept-foundation-path" data-anchor="" class="wiki-link">Foundation path</a></li>
+<li><a href="#article-concept-gate-parity" data-article="concept-gate-parity" data-anchor="" class="wiki-link">Gate parity</a></li>
 <li><a href="#article-concept-git" data-article="concept-git" data-anchor="" class="wiki-link">Git</a> <em>(borrowed)</em></li>
 <li><a href="#article-concept-handoff" data-article="concept-handoff" data-anchor="" class="wiki-link">Handoff brief</a></li>
 <li><a href="#article-concept-implementation-candidate" data-article="concept-implementation-candidate" data-anchor="" class="wiki-link">Implementation candidate</a></li>
@@ -11889,6 +12527,7 @@ the path worktree now.</p>
 <li><a href="#article-concept-path-record" data-article="concept-path-record" data-anchor="" class="wiki-link">Path record</a></li>
 <li><a href="#article-concept-path-writer" data-article="concept-path-writer" data-anchor="" class="wiki-link">Path writer</a></li>
 <li><a href="#article-concept-project-memory" data-article="concept-project-memory" data-anchor="" class="wiki-link">Project memory</a></li>
+<li><a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">Proxy predicate</a></li>
 <li><a href="#article-concept-provisional-commit" data-article="concept-provisional-commit" data-anchor="" class="wiki-link">Provisional commit</a></li>
 <li><a href="#article-concept-ready-state" data-article="concept-ready-state" data-anchor="" class="wiki-link">Ready state</a></li>
 <li><a href="#article-concept-rebase" data-article="concept-rebase" data-anchor="" class="wiki-link">Rebase</a> <em>(borrowed)</em></li>
@@ -11904,6 +12543,7 @@ the path worktree now.</p>
 <li><a href="#article-concept-test" data-article="concept-test" data-anchor="" class="wiki-link">Test</a> <em>(borrowed)</em></li>
 <li><a href="#article-concept-trunk" data-article="concept-trunk" data-anchor="" class="wiki-link">Trunk</a> <em>(borrowed)</em></li>
 <li><a href="#article-concept-trunk-registration" data-article="concept-trunk-registration" data-anchor="" class="wiki-link">Trunk registration</a></li>
+<li><a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">Unsound gate</a></li>
 <li><a href="#article-concept-work-ledger" data-article="concept-work-ledger" data-anchor="" class="wiki-link">Work ledger</a></li>
 <li><a href="#article-concept-work-unit" data-article="concept-work-unit" data-anchor="" class="wiki-link">Work unit</a></li>
 <li><a href="#article-concept-worktree" data-article="concept-worktree" data-anchor="" class="wiki-link">Working tree and worktree</a> <em>(borrowed)</em></li>
@@ -12007,6 +12647,62 @@ implementation documentation.</p>
 <p>Related: <a href="#article-concept-implementation-candidate" data-article="concept-implementation-candidate" data-anchor="" class="wiki-link">implementation candidate</a>,
 <a href="#article-concept-ready-state" data-article="concept-ready-state" data-anchor="" class="wiki-link">ready state</a>, <a href="#article-concept-path-record" data-article="concept-path-record" data-anchor="" class="wiki-link">path record</a>,
 <a href="#article-concept-record-integrity" data-article="concept-record-integrity" data-anchor="" class="wiki-link">record integrity</a>.</p>
+
+    </article>
+      </section>
+      <section class="sequential-article" id="article-concept-adversarial-fixture">
+
+    <div class="article-meta">
+      <span>Concept</span>
+      <code>concepts/adversarial-fixture.md</code>
+    </div>
+    <article class="article-body" data-rendered-article="concept-adversarial-fixture">
+      <h1 id="concept-adversarial-fixture--adversarial-fixture" data-heading="adversarial-fixture">Adversarial fixture</h1>
+<p>An adversarial fixture is a test that builds a violation on purpose and asserts
+the rule <strong>rejects</strong> it.</p>
+<h2 id="concept-adversarial-fixture--build-the-idea" data-heading="build-the-idea">Build the idea</h2>
+<p>Start with a question that sounds silly and is not: <em>how do you know a check
+works?</em></p>
+<p>The usual answer is that the test suite is green. Consider what a green suite
+actually establishes. The tests feed the checker valid repositories and assert it
+reports OK. That is a real property, and it rules out one thing: the rule does
+not fire when it should not.</p>
+<p>Now consider a rule that never fires at all — one whose predicate is a tautology,
+or that returns early on the branch under test, or that asks a filename question
+already true for every input. <strong>It passes every one of those tests too.</strong> A
+green suite cannot distinguish a working rule from a rule that has been asleep
+since the day it was written.</p>
+<p>So a suite of valid-input tests, however large, is not evidence that a gate
+works. The only evidence is a case the gate <strong>must reject</strong>, which it does.</p>
+<pre><code class="language-text">this proves the rule is quiet   →  a valid repository, gate reports OK
+this proves the rule is awake   →  a crafted violation, gate reports FAILED
+                                   with that rule's name in the finding
+</code></pre>
+<p>The second is what an adversarial fixture is, and the finding must name the rule
+— otherwise a test can pass because some <em>other</em> rule fired, and the rule under
+test is still asleep.</p>
+<h2 id="concept-adversarial-fixture--in-cairn" data-heading="in-cairn">In Cairn</h2>
+<p>Every <strong>blocking</strong> rule MUST have at least one fixture that it rejects. A
+blocking rule with no such fixture is unproven and SHOULD be treated as
+<a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">unsound</a> until one exists.</p>
+<p>This is not a stylistic preference; it is the check that would have caught every
+enforcement defect found so far. The reference checker’s suite was large and
+green while four of its rules were passing over live violations, because the
+suite asked all of them the only question they could already answer.</p>
+<p>A fixture is cheap in a way the rule is not. Writing <code>checkpoint-retention</code> means
+reasoning about refs, rewrites and orphaned commits. Writing its fixture means
+producing one repository with one orphaned commit and asserting the gate says so.</p>
+<h2 id="concept-adversarial-fixture--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
+<p>A fixture proves the rule catches <strong>that</strong> violation, not the class of violation.
+<code>checkpoint-retention</code> had a fixture for a missing ref and still passed over a
+<em>moved</em> ref, because a moved ref is a different shape of the same idea and nobody
+had built one.</p>
+<p>So the fixture set is itself incomplete, always, and the honest response is to
+add a fixture every time a real violation escapes — the violation that got
+through is, by definition, the shape nobody imagined.</p>
+<p>Related: <a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">unsound gate</a>,
+<a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy predicate</a>, <a href="#article-concept-test" data-article="concept-test" data-anchor="" class="wiki-link">test</a>,
+<a href="#article-concept-cairn-checker" data-article="concept-cairn-checker" data-anchor="" class="wiki-link">Cairn checker</a>.</p>
 
     </article>
       </section>
@@ -12892,6 +13588,66 @@ format rather than borrow YAML’s name.</p>
 
     </article>
       </section>
+      <section class="sequential-article" id="article-concept-gate-parity">
+
+    <div class="article-meta">
+      <span>Concept</span>
+      <code>concepts/gate-parity.md</code>
+    </div>
+    <article class="article-body" data-rendered-article="concept-gate-parity">
+      <h1 id="concept-gate-parity--gate-parity" data-heading="gate-parity">Gate parity</h1>
+<p>Gate parity is the property that one gate, run on one tree, reaches the same
+verdict wherever it runs.</p>
+<h2 id="concept-gate-parity--build-the-idea" data-heading="build-the-idea">Build the idea</h2>
+<p>A Cairn gate runs at least twice on the way to integration. A person runs it
+locally before committing, and
+<a href="#article-concept-continuous-integration" data-article="concept-continuous-integration" data-anchor="" class="wiki-link">continuous integration</a> runs it again on the
+proposed result. The whole point of the local run is that it answers the same
+question the remote one will: work is checked before it is published, not after.</p>
+<p>If the two can disagree, the local run stops being a check and becomes a guess.
+Worse, it is a <em>confident</em> guess — it prints the same OK, in the same format,
+from the same command.</p>
+<p>Parity breaks when a predicate reads something that is a property of the
+<strong>environment</strong> rather than of the <strong>tree</strong>. The tree is the same in both places;
+the environment is not. Anything the checker learns from outside the tree is a
+candidate:</p>
+<ul>
+<li>the current branch name — a person is on <code>path/x</code>, CI is on a detached ref;</li>
+<li>whether a remote ref is fetched — a person has origin, a shallow clone may not;</li>
+<li>the working directory, the user, the clock;</li>
+<li>which comparison base is passed in.</li>
+</ul>
+<h2 id="concept-gate-parity--in-cairn" data-heading="in-cairn">In Cairn</h2>
+<p>The local and CI invocations of one gate MUST reach the same verdict on the same
+tree. <code>AGENTS.md</code> already promises it in prose — <em>“These run locally with the
+same command CI runs”</em> — and a promise with no test is a
+<a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy</a> for the property, not the property.</p>
+<p>A predicate MUST NOT branch on a value that varies with where it runs. Where a
+rule genuinely needs to know its context, it MUST derive that from the tree — the
+path record’s declared <code>status</code>, the presence of a record — never from the name
+of the branch it happens to be sitting on.</p>
+<p>The reference checker broke this once, and the break is worth keeping as the
+worked example. The derived-view rule skipped itself when the branch matched
+<code>path/*</code>, on reasoning that was sound when it was written: a running path never
+hand-writes the generated view. CI checks out a detached merge ref, whose branch
+is <code>HEAD</code>, so the rule ran there. One tree, two verdicts, one command:</p>
+<pre><code class="language-text">local, on path/cp-ui-typography   OK — protocol satisfied
+CI,    on HEAD (detached)         FAILED — the derived running-paths view is stale
+</code></pre>
+<p>Both runs were correct about the question they asked. Only one of them asked the
+right one.</p>
+<h2 id="concept-gate-parity--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
+<p>Parity is agreement, not correctness. Two environments can agree perfectly on the
+same wrong answer, and a rule that is <a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">unsound</a> is unsound
+identically everywhere. Parity removes one class of surprise — the gate that
+changes its mind — and says nothing about whether the verdict was ever right.</p>
+<p>Related: <a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">unsound gate</a>,
+<a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy predicate</a>,
+<a href="#article-concept-continuous-integration" data-article="concept-continuous-integration" data-anchor="" class="wiki-link">continuous integration</a>,
+<a href="#article-concept-enforcement-profile" data-article="concept-enforcement-profile" data-anchor="" class="wiki-link">enforcement profile</a>, <a href="#article-concept-exit-code" data-article="concept-exit-code" data-anchor="" class="wiki-link">exit code</a>.</p>
+
+    </article>
+      </section>
       <section class="sequential-article" id="article-concept-git">
 
     <div class="article-meta">
@@ -13503,6 +14259,100 @@ that the work is recoverable and is not being counted as something it is not.</p
 
     </article>
       </section>
+      <section class="sequential-article" id="article-concept-proxy-predicate">
+
+    <div class="article-meta">
+      <span>Concept</span>
+      <code>concepts/proxy-predicate.md</code>
+    </div>
+    <article class="article-body" data-rendered-article="concept-proxy-predicate">
+      <h1 id="concept-proxy-predicate--proxy-predicate" data-heading="proxy-predicate">Proxy predicate</h1>
+<p>A proxy predicate is an automated rule that checks something <em>close to</em> what it
+means, because the thing it means cannot be computed directly.</p>
+<h2 id="concept-proxy-predicate--build-the-idea" data-heading="build-the-idea">Build the idea</h2>
+<p>Every automated rule turns a sentence into code. The sentence is about the world
+— <em>the work is resumable</em>, <em>this path was accepted</em>, <em>the view is current</em>. The
+code can only read repository state. Something has to bridge that gap, and what
+bridges it is a choice: pick a measurable condition that stands in for the
+sentence.</p>
+<p>That choice is where the interesting bugs live, and it is invisible in the code.
+Both of these look like ordinary checks:</p>
+<pre><code class="language-text">the sentence   &quot;every completed checkpoint survives a rewriting push&quot;
+the proxy      &quot;every unit named in the ledger resolves to a ref&quot;
+</code></pre>
+<p>They agree in every healthy repository, which is why the substitution feels
+free. They diverge exactly when something has gone wrong — because <strong>a broken
+state usually leaves the declarations internally consistent.</strong> Move a retention
+ref forward and every declared unit still resolves; the ledger still names the
+same units; the proxy still passes. Only the fact it was standing in for has
+become false.</p>
+<h3 id="concept-proxy-predicate--substitutions-drift-in-one-direction" data-heading="substitutions-drift-in-one-direction">Substitutions drift in one direction</h3>
+<p>The proxy is not merely <em>different</em> from the intent. It is nearly always
+<strong>broader</strong> — it accepts more situations than the sentence does.</p>
+<p>That follows from how proxies get chosen. The easy thing to compute is usually a
+<em>necessary</em> condition of the intent rather than a <em>sufficient</em> one: a resumable
+path does have a brief, an accepted path does have a session note, a current view
+does live on a branch. Checking the necessary part is one line. Checking the
+sufficient part means reconstructing the intent.</p>
+<p>So the predictable failure is not a rule that complains too much. It is a rule
+that <strong>agrees too easily</strong> — see <a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">unsound gate</a>.</p>
+<h2 id="concept-proxy-predicate--in-cairn" data-heading="in-cairn">In Cairn</h2>
+<p>Four proxies in the reference checker were found standing in for something they
+did not imply. Each is written here as the pair, because the pair is the lesson:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">The rule meant</th>
+<th style="text-align:left">The proxy asked</th>
+<th style="text-align:left">How they came apart</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">every completed checkpoint is retained</td>
+<td style="text-align:left">every <em>declared unit</em> resolves a ref</td>
+<td style="text-align:left">a ref moved forward: every unit resolved, one real commit was orphaned</td>
+</tr>
+<tr>
+<td style="text-align:left">every advisory at the candidate was disposed</td>
+<td style="text-align:left">the disposition matches what the checker raises <em>now</em></td>
+<td style="text-align:left">closure is field-restricted, so its advisory set is a strict subset — the rule could pass with an advisory undisposed</td>
+</tr>
+<tr>
+<td style="text-align:left">this checkout owns the derived view</td>
+<td style="text-align:left">the branch name matches <code>path/*</code></td>
+<td style="text-align:left">CI checks out a detached ref, so the same tree gave two verdicts</td>
+</tr>
+<tr>
+<td style="text-align:left">a closing ceremony happened</td>
+<td style="text-align:left">a session note <em>names</em> the path</td>
+<td style="text-align:left">the note written when the path <strong>opened</strong> satisfies the closing gate</td>
+</tr>
+</tbody>
+</table>
+<p>The fourth is the clearest, because the substitution is visible in one line:</p>
+<pre><code class="language-js">/** A closing ceremony leaves a session note naming the path. */
+return readdirSync(SESSION_DIR).some((file) =&gt; file.includes(id))
+</code></pre>
+<p>The comment states the sentence. The code asks a filename question. Every path
+satisfies it from the moment it opens.</p>
+<p><strong>When a predicate can be written either way, write the one that can disagree
+with the record.</strong> Walk the branch rather than the ledger’s list of units; attest
+the candidate’s advisory set rather than recomputing it; ask what a checkout owns
+rather than what it is called.</p>
+<h2 id="concept-proxy-predicate--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
+<p>A proxy that is exact today can become a proxy again when the model around it
+changes, without anybody editing it. <code>isPathBranch(branch)</code> was a fair stand-in
+for <em>does this checkout own the derived view</em> while a running path never wrote
+that view. Self-merge made a path the last writer of its own <code>status</code>, so at
+closure it became precisely the writer the exemption assumed could not exist.</p>
+<p>Nothing in the rule changed. The world it described did.</p>
+<p>Related: <a href="#article-concept-unsound-gate" data-article="concept-unsound-gate" data-anchor="" class="wiki-link">unsound gate</a>,
+<a href="#article-concept-adversarial-fixture" data-article="concept-adversarial-fixture" data-anchor="" class="wiki-link">adversarial fixture</a>,
+<a href="#article-concept-cairn-checker" data-article="concept-cairn-checker" data-anchor="" class="wiki-link">Cairn checker</a>, <a href="#article-concept-conformance" data-article="concept-conformance" data-anchor="" class="wiki-link">conformance</a>.</p>
+
+    </article>
+      </section>
       <section class="sequential-article" id="article-concept-ready-state">
 
     <div class="article-meta">
@@ -13992,6 +14842,94 @@ recorded on the trunk.</p>
 remote trunk must be fetched and its exact state verified.</p>
 <p>Related: <a href="#article-concept-branch" data-article="concept-branch" data-anchor="" class="wiki-link">branch</a>, <a href="#article-concept-trunk-registration" data-article="concept-trunk-registration" data-anchor="" class="wiki-link">trunk registration</a>,
 <a href="#article-concept-done-state" data-article="concept-done-state" data-anchor="" class="wiki-link">done state</a>.</p>
+
+    </article>
+      </section>
+      <section class="sequential-article" id="article-concept-unsound-gate">
+
+    <div class="article-meta">
+      <span>Concept</span>
+      <code>concepts/unsound-gate.md</code>
+    </div>
+    <article class="article-body" data-rendered-article="concept-unsound-gate">
+      <h1 id="concept-unsound-gate--unsound-gate" data-heading="unsound-gate">Unsound gate</h1>
+<p>A gate is <strong>unsound</strong> when passing it does not mean what it says.</p>
+<h2 id="concept-unsound-gate--build-the-idea" data-heading="build-the-idea">Build the idea</h2>
+<p>An automated check can be wrong in two directions, and it is tempting to treat
+them as two faces of one problem. They are not remotely equivalent.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left"></th>
+<th style="text-align:left">What it does</th>
+<th style="text-align:left">How you find out</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>Noisy</strong></td>
+<td style="text-align:left">fails when nothing is wrong</td>
+<td style="text-align:left">immediately, and repeatedly, because it blocks working people</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Unsound</strong></td>
+<td style="text-align:left">passes when something <em>is</em> wrong</td>
+<td style="text-align:left">never, unless someone goes looking</td>
+</tr>
+</tbody>
+</table>
+<p>A noisy gate is self-reporting. It costs somebody time today, they complain
+today, it gets fixed. It cannot accumulate.</p>
+<p>An unsound gate produces no signal at all. Nothing is slower, nothing is
+blocked, nobody is annoyed. Its output is indistinguishable from the output of a
+gate that is working perfectly — a green line. So unsound gates <strong>accumulate
+silently</strong>, and a rule set left alone drifts toward permissiveness rather than
+toward noise.</p>
+<h3 id="concept-unsound-gate--green-is-not-neutral-it-is-used-as-evidence" data-heading="green-is-not-neutral-it-is-used-as-evidence">Green is not neutral; it is used as evidence</h3>
+<p>This is what makes unsoundness worse than an unwritten rule.</p>
+<p>A missing check leaves a gap, and everyone can see the gap. An unsound check
+fills the gap with a <strong>claim</strong>. In Cairn that claim is durable: a
+<a href="#article-concept-closing-acceptance" data-article="concept-closing-acceptance" data-anchor="" class="wiki-link">closing acceptance</a> records that gates were green, and
+a <a href="#article-concept-journal" data-article="concept-journal" data-anchor="" class="wiki-link">journal</a> entry repeats it. The record then says a condition
+held, at an exact commit, signed by whoever accepted it.</p>
+<p>An unsound gate therefore does not merely fail to catch something. It <strong>launders
+a false statement into the permanent record</strong>, and does it with the full
+authority of an automated check. A protocol whose whole purpose is durable, exact
+records cannot tolerate that quietly.</p>
+<h3 id="concept-unsound-gate--the-direction-is-the-diagnosis" data-heading="the-direction-is-the-diagnosis">The direction is the diagnosis</h3>
+<p>If a rule set’s failures were randomly distributed, roughly half would be noisy
+and half unsound. When every one found is unsound, that is not luck. It is the
+signature of <a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy predicates</a>: the easy stand-in is
+almost always the broader condition, so the errors inherit its direction.</p>
+<h2 id="concept-unsound-gate--in-cairn" data-heading="in-cairn">In Cairn</h2>
+<p>Every enforcement defect found in the reference checker so far has been unsound.
+Not one has been noisy.</p>
+<ul>
+<li>retention passed over an orphaned commit;</li>
+<li>advisory disposition passed with an advisory undisposed;</li>
+<li>closure surface accepted fields its own prose forbade;</li>
+<li>the derived-view check skipped itself on the branch that most needed it;</li>
+<li>the ceremony gate accepts the note written when the path opened.</li>
+</ul>
+<p>A sixth is not a rule at all: <code>AGENTS.md</code> requires a <a href="#article-concept-journal" data-article="concept-journal" data-anchor="" class="wiki-link">journal</a>
+entry at merge time, and no predicate asks for one. A path closed, was audited
+and was proposed for merge with the entry missing, and every gate reported OK —
+because none of them was about that requirement. <strong>An unenforced requirement and
+an unsound gate feel identical from inside a green run</strong>, which is why the
+<a href="#article-concept-conformance" data-article="concept-conformance" data-anchor="" class="wiki-link">conformance matrix</a> has to say which requirements are checked
+and which are not.</p>
+<p>Cairn therefore prefers a rule set that is <strong>sound but incomplete</strong> to one that
+is complete but unsound. Incomplete is honest: it misses things, and it says so.
+Unsound is not: it misses things, and it certifies that it did not.</p>
+<h2 id="concept-unsound-gate--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
+<p>Soundness is a property of each rule, not of the set. A repository can hold
+forty sound rules and still be badly governed, because soundness says only that
+a passing rule told the truth — never that the rules asked about the things that
+matter. Proving a gate cannot lie is a different job from choosing what to check.</p>
+<p>Related: <a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy predicate</a>,
+<a href="#article-concept-adversarial-fixture" data-article="concept-adversarial-fixture" data-anchor="" class="wiki-link">adversarial fixture</a>,
+<a href="#article-concept-gate-parity" data-article="concept-gate-parity" data-anchor="" class="wiki-link">gate parity</a>, <a href="#article-concept-conformance" data-article="concept-conformance" data-anchor="" class="wiki-link">conformance</a>,
+<a href="#article-concept-exit-code" data-article="concept-exit-code" data-anchor="" class="wiki-link">exit code</a>.</p>
 
     </article>
       </section>

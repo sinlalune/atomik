@@ -22,7 +22,7 @@ integration transport; there is no standing central integrator.
   conformance.
 - [Concept wiki](./specification/concepts/index.md) — one article per
   specialised idea, with the twenty-one borrowed Git and general-practice terms
-  kept separate from the forty-six concepts Cairn defines.
+  kept separate from the fifty concepts Cairn defines.
 - [Implementation reference](./specification/reference/index.md) — exact layout,
   templates, record schemas, commands, configuration status, and conformance
   checklist.

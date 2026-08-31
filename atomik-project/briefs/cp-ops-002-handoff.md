@@ -6,8 +6,8 @@ atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: 631d653
-  checkpoint_unit: 11
+  checkpoint: 5954095e744ede5e0fa77d20e068ab920fd447c0
+  checkpoint_unit: 12
   checkpoint_pushed: true
   base_commit: 7aa3b1d
   trunk_seen: df875e68c383f6e82b833b755e8925f2fb4651ed
@@ -60,7 +60,16 @@ it), the arrow glyphs were not centred, and the h1 kept a serif that falls back
 to a dated face. One face now, and a test that clicks the buttons rather than
 asserting they are enabled.
 
-Checker suite 189, specification suite 31. Retention refs 01–11.
+S07q answered the owner's question — *is it a structural problem of the
+protocol?* — after a fifth defect surfaced on CP-UI-TYPOGRAPHY. Partly, and
+narrowly: every enforcement defect found so far is a rule that agreed too easily,
+never one that was too strict. Six instances are tabulated in the ledger, two of
+them still live on the trunk (`hasCeremony` accepts the opening note as a closing
+ceremony; the merge-time journal entry has no predicate). Landed as four concept
+articles, a normative directive with four MUSTs, five conformance rows, and three
+tests.
+
+Checker suite 191, specification suite 33. Retention refs 01–12.
 
 ## Next action
 

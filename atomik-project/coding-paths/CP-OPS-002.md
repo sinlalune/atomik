@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-002
   route: full            # control plane + decision plane; escalation is one-way
   status: running
-  current_step: S07p
+  current_step: S07q
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
   writes:                    # ADVISORY — a signal, never a lock
@@ -350,6 +350,82 @@ have caught and did not.
   the display weight and tracking doing the work instead.
 - **The arrow glyphs sat on their baseline** inside a fixed-size box. The buttons are
   `inline-flex` and centre both axes.
+
+### S07q — Every defect leans the same way, so name the shape — **COMPLETE**
+
+```cairn-unit
+step: S07q
+unit: 13
+type: documentation
+verified: cairn-check, cairn-check:test, typecheck, test, build
+```
+
+Owner request, after a fifth enforcement defect surfaced on a sibling path:
+
+> "Is it a structural problem of the protocol?"
+
+Partly, and the structural part is narrower and more useful than "the protocol is
+wrong". **Every enforcement defect found in the reference checker so far is the
+same kind, and they all lean the same way.** Not one rule was too strict; all of
+them agreed too easily, and each reported `OK` over a condition that was false.
+
+Six instances, five in rules and one in the absence of a rule:
+
+| The rule meant | The proxy asked | How it came apart |
+| :-- | :-- | :-- |
+| every completed checkpoint is retained | every *declared unit* resolves a ref | S07k: a ref moved, every unit resolved, a commit was orphaned |
+| every advisory at the candidate was disposed | matches what the checker raises *now* | S07m: closure's advisory set is a strict subset |
+| closure touches only permitted fields | a looser field set than its own prose | S07m |
+| this checkout owns the derived view | the branch name matches `path/*` | CP-UI-TYPOGRAPHY S04: local `OK`, CI `FAILED`, one tree |
+| a closing ceremony happened | a session note *names* the path | **live on the trunk**: the opening note satisfies the closing gate |
+| a journal entry exists at merge | *(no predicate at all)* | CP-UI-TYPOGRAPHY S05: closed, audited, proposed for merge with none |
+
+The last two are the argument. `hasCeremony` is one line, its own comment states
+the sentence it means, and its code asks a filename question every path satisfies
+from the moment it opens — in the rule `paths.md` calls "the only human guard
+left once the integrator is gone". And the journal requirement is stated in
+`AGENTS.md`, enforced nowhere, and indistinguishable from an enforced one from
+inside a green run.
+
+Why the direction is not luck: a rule turns a sentence into code, and something
+must bridge them. The stand-in is nearly always the **broader** condition,
+because the easy thing to compute is usually *necessary* for the sentence rather
+than *sufficient* for it. So the errors inherit that direction, and a rule set
+left alone drifts toward permissiveness rather than toward noise — where noise
+would at least announce itself.
+
+And permissiveness here is not a gap. Cairn writes gate results into closing
+acceptances and journal entries, so an unsound gate **launders a false statement
+into the durable record**, with the authority of an automated check.
+
+Landed, at the owner's request, as teachable vocabulary rather than another
+paragraph of analysis:
+
+- **Four concept articles.** [`proxy-predicate`](../../docs/cairn/specification/concepts/proxy-predicate.md)
+  names the substitution, [`unsound-gate`](../../docs/cairn/specification/concepts/unsound-gate.md)
+  names what it produces and why it is invisible,
+  [`adversarial-fixture`](../../docs/cairn/specification/concepts/adversarial-fixture.md)
+  is the only evidence a rule works, and
+  [`gate-parity`](../../docs/cairn/specification/concepts/gate-parity.md) is the
+  property that one gate does not change its mind between a laptop and CI.
+- **A normative directive**, *Prove that the gate can fail*, with four MUSTs: a
+  fixture per blocking rule; no predicate branching on a value that varies by
+  execution context; ask about the fact rather than the declaration; and every
+  stated requirement either enforced or listed as unenforced. The existing
+  declaration-versus-fact passage is kept intact beneath it as the worked example
+  that produced requirement 3.
+- **Five conformance rows**, four of them `not implemented` and one
+  `not implemented, and violated`. The directive's own fourth requirement
+  demanded that: a requirement with no row is the failure it describes.
+- **Three new spec tests** (33 total). One pins all four requirements and that
+  each links its concept article; one pins the five matrix rows, enforcing the
+  specification's promise that every requirement appears in the matrix.
+
+Deliberately not done: fixing `hasCeremony`, or implementing any of the four
+requirements. They belong to S08, which owns `cairn-check.mjs`, and writing the
+rule in the same unit as the doctrine would leave the doctrine untested against a
+second implementation. The conformance matrix now says so out loud rather than
+leaving a reader to assume enforcement.
 
 ### S08 — Extract Cairn from Atomik
 
