@@ -169,6 +169,54 @@ still fetchable. The 31 rebased commits are **unretained**, and no ref was moved
 to make it look otherwise. That state is recorded here rather than papered over,
 because papering over it is precisely the S07k violation.
 
+## Finding 5 — the default local command and the CI command use different bases
+
+**Found while verifying Finding 3. The most consequential gate-parity break, and
+it is not an edge case.**
+
+```text
+npm run cairn-check                              → compares the working tree with HEAD
+node tools/cairn-check.mjs --base origin/master  → compares the branch with the trunk
+```
+
+Every rule that evaluates *changed files* therefore sees a different set. On this
+branch the local run sees **0 changed files** and reports `OK`; the CI run sees
+**224** and reports nine blocking findings. Both commands are correct about the
+question they were asked, and only one of them is the question that decides the
+merge.
+
+The consequence is worse than a surprise at merge time. `CP-OPS-002` has been
+**red in CI for many pushes**, and every local gate run — the one a work unit
+records as its verification — said `OK`. Ledger entries in this path claim
+`verified: cairn-check` on that basis. They are not false, but they are weaker
+than they read.
+
+This is the same [gate parity](./specification/concepts/gate-parity.md) property
+as the derived-view defect, and a better worked example, because nothing exotic
+is involved: it is the documented local command against the documented CI
+command, on an ordinary branch, every single time.
+
+**Fix:** `npm run cairn-check` on a `path/*` branch MUST default its base to the
+trunk, the way CI does. A developer should have to opt *out* of the merge-deciding
+comparison, not opt in to it.
+
+**Fixture:** one branch, both invocations, one verdict asserted.
+
+### What it is currently hiding on this branch
+
+Eight blocking findings and one inconclusive, all on `CP-MVP-008.md`, all
+pre-existing before S07r: a `done` path whose record predates the v0.2 acceptance
+schema and lacks `resolution`, a full-length `subject_commit`, `accepted_by`,
+`accepted_at`, `decision`, `scope_ref` and `advisory_disposition`.
+
+**Deliberately not repaired.** Supplying those fields means writing who accepted a
+path, when, and against what scope — for a path closed weeks ago by someone else.
+That is fabricating a signature, and it is the one thing the acceptance record
+exists to prevent. The options are an owner ruling, a named migration exception
+of the kind S07i already implements and which reports itself once spent, or a
+deliberate schema carve-out for pre-v0.2 records. All three are decisions; none
+is a repair.
+
 ## Finding 4 — dated records can carry a date that is not the date
 
 **Records accuracy. Already merged, and therefore immutable.**
@@ -209,6 +257,13 @@ the unsoundness by the number of adopters.
 3. Fix the derived-view rule to key on the path's declared `status`, not on the
    branch name — the [gate parity](./specification/concepts/gate-parity.md)
    requirement, and a defect already demonstrated once.
+3b. Make `npm run cairn-check` default to the trunk base on a `path/*` branch,
+   so the local verdict is the one that decides the merge (Finding 5). Do this
+   **early**: until it lands, every "gates green" claim in a ledger is weaker
+   than it reads, including the ones this path has already written.
+3c. Rule on `CP-MVP-008.md` before the merge — owner decision, migration
+   exception, or schema carve-out. Not a repair, because the missing fields are
+   a signature.
 4. Decide the retention-generation question, record it as an ADR, then implement
    the check. This one is design work before code.
 

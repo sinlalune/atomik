@@ -501,6 +501,33 @@ well-formed, never that a `timestamp:` is true or that a filename's date agrees
 with it. The records are merged and immutable, so correcting them is an owner
 ruling about record integrity, not a repair to make silently.
 
+**And a fifth finding, from verifying the fourth.** Reproducing the CI invocation
+faithfully — `--base origin/master --branch path/cp-ops-002` — showed that the
+default local command and the CI command **use different comparison bases**:
+
+```text
+npm run cairn-check                              working tree vs HEAD      0 changed files  OK
+node tools/cairn-check.mjs --base origin/master  branch vs the trunk     224 changed files  9 findings
+```
+
+Every rule that evaluates changed files therefore sees a different set, and this
+branch has been **red in CI for many pushes** while every local run said `OK`.
+The findings are eight blocking plus one inconclusive on `CP-MVP-008.md`, all
+pre-existing before S07r: a `done` record that predates the v0.2 acceptance
+schema.
+
+Not repaired here, and not because it is hard. Supplying `accepted_by`,
+`accepted_at`, `scope_ref` and `advisory_disposition` means writing who accepted
+a path, when, and against what scope, for a path closed weeks ago by someone
+else — **fabricating a signature**, which is the one thing an acceptance record
+exists to prevent. Owner ruling, a self-deleting migration exception like the one
+S07i already implements, or a deliberate pre-v0.2 carve-out. All decisions.
+
+One thing this does change retroactively: ledger entries in this path record
+`verified: cairn-check`, obtained from the local command. That claim is true and
+weaker than it reads, and it stays as written rather than being edited — the
+record says what was actually run.
+
 Landed: [`docs/cairn/cairn-s08-opening-brief-2026-08-31.md`](../../docs/cairn/cairn-s08-opening-brief-2026-08-31.md),
 which carries all four findings with their fixtures and reorders S08 into three
 parts — honest rules first, structural soundness second, portability third.

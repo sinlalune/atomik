@@ -6,7 +6,7 @@ atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: 6adc217b4f681a7d49c709b078316dd20c5906c0
+  checkpoint: a02ab85462f9e8e57bbebc5f47e37aeb6565add1
   checkpoint_unit: 13
   checkpoint_pushed: true
   base_commit: 7aa3b1d
@@ -37,48 +37,30 @@ extract the protocol from Atomik as a portable specification and init kit.
 
 ## State
 
-The Cairn specification is v0.2, its predicates are implemented in the review's
-own severity order (S07g–S07j), and two repair units closed a moved retention ref
-and the rule that could not see it (S07k–S07l). A second review round corrected
-three predicates rather than adding any (S07m). The cold-resume pilot ran at
-S07n: 20 trials, 35% would act, failures flat across paths, and its own verdict
-is *do not change the normative text yet*.
+Cairn's specification is v0.2 and its predicates are implemented in the review's
+own severity order. Landed since: the canonical specification project, the v0.2
+text, the P0 and P1 predicates, routes, the brief contract and redaction, three
+predicate repairs, and the cold-resume pilot — whose verdict was *do not change
+the normative text yet*.
 
-S07o answered owner feedback on v0.2. Two doctrine corrections: the
-answerable-alone contract forbade the reader from following the entry route
-`AGENTS.md` points at, and now constrains context rather than file count; and the
-second-ledger sentence named only one of the two ways a brief fails. Editorial:
-`project/` replaces `atomik-project/` everywhere except one binding table, the
-blob object id is explained, route is its own concept, the retention ref
-namespace is located in the tree, and three non-Cairn rows left it. The reader
-pins the specification to the left pane, opens everything on the right, and drops
-the active-pane model, its coloured rule lines, and the Pane A/B labels.
+S07o corrected the answerable-alone contract, which had forbidden the reader from
+following the entry route `AGENTS.md` points at. S07q answered whether the
+enforcement failures are structural: partly, and narrowly. **Every defect found
+is a rule that agreed too easily; not one was too strict.** It landed as four
+concept articles, the directive *Prove that the gate can fail* with four MUSTs,
+five conformance rows, and three tests.
 
-S07p repaired three defects owner review found in that reader: the history
-buttons were dead (the pane's own `data-article` swallowed every click inside
-it), the arrow glyphs were not centred, and the h1 kept a serif that falls back
-to a dated face. One face now, and a test that clicks the buttons rather than
-asserting they are enabled.
+S07r rebased onto `dfcd09d` and the rebase exposed the worst finding yet:
+`unretainedCheckpoints` reports "nothing orphaned" when the retained set stops
+intersecting the branch — which is exactly what a rebase causes. Measured here:
+13 refs, 41 commits in range, 0 intersecting, gate `OK`. Rebase-before-merge is
+mandatory, so retention evaporates before every merge on every path. The ref
+namespace cannot express the fix, so it is an ADR before it is code.
 
-S07q answered the owner's question — *is it a structural problem of the
-protocol?* — after a fifth defect surfaced on CP-UI-TYPOGRAPHY. Partly, and
-narrowly: every enforcement defect found so far is a rule that agreed too easily,
-never one that was too strict. Six instances are tabulated in the ledger, two of
-them still live on the trunk (`hasCeremony` accepts the opening note as a closing
-ceremony; the merge-time journal entry has no predicate). Landed as four concept
-articles, a normative directive with four MUSTs, five conformance rows, and three
-tests.
+Refs 01–13 hold the PRE-rebase commits; the 31 rebased commits are unretained and
+no ref was moved. Checker suite 191, specification suite 33.
 
-S07r rebased onto the trunk after CP-UI-TYPOGRAPHY merged, and the rebase
-exposed the worst finding yet: `unretainedCheckpoints` returns "nothing orphaned"
-when the retained set stops intersecting the branch, which is exactly what a
-rebase causes. Measured here — 13 refs, 41 commits in range, 0 intersecting, gate
-`OK`. Rebase-before-merge is mandatory, so retention evaporates immediately
-before every merge on every path. The ref namespace has no room for the fix, so
-it is an ADR before it is code.
-
-Checker suite 191, specification suite 33. Retention refs 01–13 hold the
-PRE-rebase commits; the 31 rebased commits are unretained and no ref was moved.
+**This branch is red in CI on pre-existing findings** — see *Blockers*.
 
 ## Next action
 
@@ -90,7 +72,12 @@ note is its opening check.
 
 ## Blockers
 
-None.
+`CP-MVP-008.md` fails eight acceptance and transition rules under the CI
+invocation. Pre-existing, present before S07r, and **not visible to the default
+local command**, which compares against HEAD rather than `origin/master`. Fixing
+it means writing `accepted_by`, `accepted_at`, `scope_ref` and
+`advisory_disposition` onto a path closed weeks ago — that is fabricating a
+signature and needs an owner ruling, not a repair.
 
 ## Tried and rejected
 
