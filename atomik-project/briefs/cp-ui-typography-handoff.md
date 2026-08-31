@@ -6,8 +6,8 @@ atomik:
   path: CP-UI-TYPOGRAPHY
   written_by: cp-ui-typography-writer
   branch: path/cp-ui-typography
-  checkpoint: 817086e2645875515fa6e666af87449a051d9fde
-  checkpoint_unit: 01
+  checkpoint: 2d77b128f45743f4118f4a6551aa2a2910380cae
+  checkpoint_unit: 02
   checkpoint_pushed: true
   base_commit: df875e6
   trunk_seen: 39127e7

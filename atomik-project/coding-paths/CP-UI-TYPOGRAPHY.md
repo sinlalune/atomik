@@ -6,7 +6,7 @@ tags: [coding-path, ui, typography, design-system, dogfooding]
 timestamp: 2026-08-27T00:00:00Z
 atomik:
   id: CP-UI-TYPOGRAPHY
-  route: lightweight
+  route: full            # escalated at S03; see the ledger
   status: running
   accepted: 2026-08-27
   base_commit: df875e6
@@ -162,6 +162,35 @@ Windows-only family name. DirectWrite exposes the optical-size instances as
 separate families; fontconfig sees one family, `Segoe UI Variable`. The S01 stack
 could therefore never have matched off Windows, even with the file present.
 
+### S03 — Escalate the route, before closing under a false one — **COMPLETE**
+
+```cairn-unit
+step: S03
+unit: 03
+type: documentation
+verified: cairn-check, typecheck, test, build
+```
+
+The path opened `route: lightweight` on an honest expectation: one work unit,
+one area, six lines of CSS. It has now run three, and the second was a design
+reversal rather than an extension.
+
+Under the v0.2 route rules being written next door in CP-OPS-002, that is trigger
+4 — *expected to span more than one work unit* — with the structural backstop
+that catches it after the fact: **a path whose ledger declares more than one
+`cairn-unit` MUST declare `route: full`.** Escalation is one-way and may not be
+declared away.
+
+The trunk's checker has no route concept yet, so nothing here was enforced and
+nothing would have failed. That is exactly why it is worth doing: the rule exists
+because self-declared smallness is the obvious bypass, and a path that quietly
+kept `lightweight` after reversing its own design would be the first example of
+the bypass in this repository — recorded by the same session that wrote the rule.
+
+The full route's artifacts were already being produced: a standalone opening
+record, a standalone closing record, and a coherence audit bound to the exact
+candidate. What changes is the declaration matching them.
+
 ## Documentation coverage
 
 **Required:** `docs/bedrock/36_36-ui-design-system.md` (chrome token contract —
@@ -172,12 +201,12 @@ colour, and the remaining monospace literals.
 
 ## Work Ledger
 
-S01 and S02 are complete; the ledger above carries both. S02 was not planned —
+S01, S02 and S03 are complete; the ledger above carries all three. S02 was not planned —
 it is the owner's correction of S01's design, not an extension of it.
 
 ## Current checkpoint
 
-S02 on `path/cp-ui-typography`, based on trunk `39127e7`.
+S03 on `path/cp-ui-typography`, based on trunk `39127e7`.
 
 ## Next action
 
