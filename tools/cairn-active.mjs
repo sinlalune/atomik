@@ -23,7 +23,7 @@
  *   node tools/cairn-active.mjs --check   # exit 1 if stale, write nothing
  */
 
-import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ACTIVE_FILE, PATHS_BEGIN, PATHS_END, readFrontmatter } from './cairn-check.mjs'
@@ -68,7 +68,7 @@ export function collectPaths(files) {
     const front = parsed?.data?.atomik
     if (!front || !LIVE_STATUSES.has(front.status) || !front.branch) continue
     live.push({
-      id: front.id ?? name.replace(/\.md$/, ''),
+      id: front.id ?? name,
       title: (parsed.data.title ?? '').replace(/^['"]|['"]$/g, '').split(' — ')[0],
       status: front.status,
       branch: front.branch,
@@ -80,9 +80,17 @@ export function collectPaths(files) {
 
 function main() {
   const check = process.argv.includes('--check')
-  const files = readdirSync(join(REPO, PATH_DIR))
-    .filter((file) => file.startsWith('CP-') && file.endsWith('.md'))
-    .map((name) => ({ name, text: readFileSync(join(REPO, PATH_DIR, name), 'utf8') }))
+  // Two record shapes: the flat `CP-<id>.md` every path used, and the folder
+  // `CP-<id>/index.md` a path is born in under ADR-020 decision 4. The view is a
+  // projection of declarations, so it has to see both or it silently omits a
+  // running path — which is the exact failure trunk registration was added for.
+  const files = readdirSync(join(REPO, PATH_DIR), { withFileTypes: true })
+    .filter((entry) => entry.name.startsWith('CP-'))
+    .map((entry) => (entry.isDirectory()
+      ? { name: entry.name, file: join(entry.name, 'index.md') }
+      : { name: entry.name.replace(/\.md$/, ''), file: entry.name }))
+    .filter((entry) => entry.file.endsWith('.md') && existsSync(join(REPO, PATH_DIR, entry.file)))
+    .map(({ name, file }) => ({ name, text: readFileSync(join(REPO, PATH_DIR, file), 'utf8') }))
 
   const active = join(REPO, ACTIVE_FILE)
   const current = readFileSync(active, 'utf8')

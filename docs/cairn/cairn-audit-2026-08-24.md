@@ -588,7 +588,7 @@ The brief names four artifacts for the milestone. None exists in the repository:
    document in the repository and is written for someone who already knows the protocol.
 
 `CP-OPS-002` is drafted at
-[`atomik-project/coding-paths/CP-OPS-002.md`](../../atomik-project/coding-paths/CP-OPS-002.md)
+[`atomik-project/coding-paths/CP-OPS-002/index.md`](../../atomik-project/coding-paths/CP-OPS-002/index.md)
 with the ordering these findings imply. It is `status: draft` and **not registered on the
 trunk**: `paths.md` requires an owner opening check before activation, and registering it
 unilaterally would repeat, in the audit itself, the failure this record documents.

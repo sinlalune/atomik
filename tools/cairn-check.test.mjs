@@ -54,6 +54,7 @@ import {
   unretainedCheckpoints,
   retentionGenerations,
   currentGeneration,
+  isVerbatimRelocation,
   workUnitErrors,
   resolveScopeSection,
   scopeDigest,
@@ -522,7 +523,7 @@ test('path identity, filename, and branch use one reconstructable convention', (
   assert.ok(pathFrontmatterErrors(
     A_PATH.front,
     'atomik-project/coding-paths/CP-WRONG.md'
-  ).some((error) => error.includes('does not match the file name')))
+  ).some((error) => error.includes("does not match the record's own name")))
 })
 
 test('area mapping routes source to its module note', () => {
@@ -2377,6 +2378,82 @@ test('an unreadable branch range makes the generation unknown, not violated', ()
   assert.equal(retention[0].level, 'blocking')
   assert.equal(retention[0].outcome, 'inconclusive')
   assert.match(retention[0].message, /commit range/)
+})
+
+/* ------------------------------------------------------------------ *
+ * ADR-020 decision 4 — a record is a folder, and a record may move
+ * ------------------------------------------------------------------ */
+
+const PATHS_ROOT = 'atomik-project/coding-paths'
+
+test('a record identifies itself by its id in either shape, never by index.md', () => {
+  const front = { id: 'CP-OPS-002', status: 'running', branch: 'path/cp-ops-002', base_commit: 'abc1234' }
+  assert.deepEqual(pathFrontmatterErrors(front, `${PATHS_ROOT}/CP-OPS-002.md`), [])
+  assert.deepEqual(pathFrontmatterErrors(front, `${PATHS_ROOT}/CP-OPS-002/index.md`), [])
+  // The last segment alone would tell every migrated record its id is "index".
+  const wrong = pathFrontmatterErrors(front, `${PATHS_ROOT}/CP-MVP-010/index.md`)
+  assert.equal(wrong.length, 1)
+  assert.match(wrong[0], /CP-OPS-002\/index\.md/)
+})
+
+test('a step record inside a path folder is append-only, like the ones it replaced', () => {
+  // These were immutable in history/. A record does not stop being append-only
+  // by moving house, and forgetting that turns a migration into a hole.
+  assert.ok(isImmutableRecord(`${PATHS_ROOT}/CP-OPS-002/steps/S07q.md`))
+  assert.ok(isImmutableRecord(`${PATHS_ROOT}/history/CP-OPS-002-S07q.md`))
+  // The folder's own index and log are maintained, not appended-to-once.
+  assert.ok(!isImmutableRecord(`${PATHS_ROOT}/CP-OPS-002/steps/index.md`))
+  assert.ok(!isImmutableRecord(`${PATHS_ROOT}/CP-OPS-002/steps/log.md`))
+  assert.ok(!isImmutableRecord(`${PATHS_ROOT}/CP-OPS-002/index.md`))
+})
+
+test('a relocation may repoint links and append, and may do nothing else', () => {
+  const before = '---\ntitle: S01\n---\n\nSee [paths](../paths.md) and [x](./x.md).\n'
+  const repointed = '---\ntitle: S01\n---\n\nSee [paths](../../paths.md) and [x](../x.md).\n'
+  assert.ok(isVerbatimRelocation(before, repointed), 'a link is an address, not content')
+  assert.ok(isVerbatimRelocation(before, repointed + '\n## Ledger rows\n\n| a | b |\n'),
+    'appending is how a record grows without an earlier sentence changing')
+
+  // A rewrite wearing a rename.
+  assert.ok(!isVerbatimRelocation(before, repointed.replace('See', 'Do not see')))
+  // Frontmatter sits at the very start, so it is covered by the same test: a
+  // relocation cannot quietly change which record it claims to be.
+  assert.ok(!isVerbatimRelocation(before, repointed.replace('title: S01', 'title: S02')))
+  // Truncation is not an append.
+  assert.ok(!isVerbatimRelocation(before, '---\ntitle: S01\n---\n'))
+  // An empty original proves nothing and must not pass by vacuous prefix.
+  assert.ok(!isVerbatimRelocation('', 'anything'))
+})
+
+test('a relocated record is not a mutation, and the exemption is stated out loud', () => {
+  const moved = [[`${PATHS_ROOT}/history/CP-OPS-002-S00.md`, `${PATHS_ROOT}/CP-OPS-002/steps/S00.md`]]
+  const found = run([A_PATH.file], 'path/cp-mvp-010', [A_PATH], {
+    immutableMutations: moved.flat(),
+    relocations: moved
+  })
+  assert.ok(!rules(found, 'blocking').includes('record-integrity'))
+  const stated = found.filter((f) => f.rule === 'record-integrity')
+  assert.equal(stated.length, 1)
+  assert.equal(stated[0].level, 'advisory')
+  assert.match(stated[0].message, /relocated verbatim/)
+
+  // Without the pairing, the same two paths are still a deletion and a rewrite.
+  const unpaired = run([A_PATH.file], 'path/cp-mvp-010', [A_PATH], {
+    immutableMutations: moved.flat(),
+    relocations: []
+  })
+  assert.equal(unpaired.filter((f) => f.rule === 'record-integrity' && f.level === 'blocking').length, 2)
+})
+
+test('a declaration that moved between shapes has not been deleted', () => {
+  const folder = { ...A_PATH, file: `${PATHS_ROOT}/CP-MVP-010/index.md` }
+  const gone = `${PATHS_ROOT}/CP-MVP-010.md`
+  // The flat file disappeared and the folder record declares the same id.
+  const moved = run([gone], 'path/cp-mvp-010', [folder], { stateChanged: [gone] })
+  assert.ok(!rules(moved, 'blocking').includes('transition'))
+  // A declaration that disappeared with nothing declaring its id is still gone.
+  const deleted = run([gone], 'path/cp-mvp-010', [], { stateChanged: [gone] })
+  assert.ok(rules(deleted, 'blocking').includes('transition'))
 })
 
 test('a lightweight path that has already spanned two units must escalate', () => {

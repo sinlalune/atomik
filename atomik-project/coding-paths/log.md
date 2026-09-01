@@ -20,6 +20,31 @@ remains the complete record; this is the readable one. If two paths ever start
 colliding on this file, it takes the amendment the journal already took — one file
 per entry in a `log/` subfolder — which was a concurrency fix, never a size one.
 
+## 2026-09-01
+
+- `CP-OPS-002 S08l` made `CP-OPS-002` a folder — [ADR-020](../../docs/adr/ADR-020-protocol-context-weight.md)
+  migration stage 2, and the worked example it asked for. `CP-OPS-002.md` became
+  `CP-OPS-002/index.md`, thirty-nine steps became one file each under `steps/`,
+  the forward plan became `plan.md`, and the seventy-four-row Work Ledger
+  dissolved: ten live rows stayed in the header, sixty-three step-scoped rows
+  went to the steps they describe, and `Steps complete` became the commit index
+  in `steps/index.md`. Nothing was summarised, and it was verified mechanically
+  rather than asserted.
+- The move found three rules that knew a record by its address. `registration`
+  reported a path registered since August as never registered; `transition`
+  reported a declaration that had moved as deleted; `record-integrity` reported
+  twenty-three relocated records as destroyed. A record's identity is the id it
+  declares, not the file that carries it, and all three now key on the id.
+- It also found two holes that would have opened in silence: step records inside
+  a path folder were not covered by `isImmutableRecord`, and work units were read
+  from the declaration file, which after slicing carries none — a path with
+  thirty completed units would have reported zero, disarming `work-unit` and
+  `checkpoint-retention` together.
+- `paths.md` §*The path record is a folder, born sliced* replaces §*The ledger has
+  a boundary*. `ledger-size` is deliberately kept, against ADR-020 stage 3, for as
+  long as `CP-MVP-008`, `CP-MVP-011` and `CP-MVP-012` remain flat: it is the only
+  signal an unsliced record gets.
+
 ## 2026-08-25
 
 - `S07c` The three Cairn documents become one handbook (owner correction), and this path's own

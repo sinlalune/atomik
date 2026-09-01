@@ -451,7 +451,7 @@ cairn-init/
 
 ## 8. CP-OPS-002: Refined Operational Roadmap
 
-[`atomik-project/coding-paths/CP-OPS-002.md`](../../atomik-project/coding-paths/CP-OPS-002.md) is structured in four strict sequential phases:
+[`atomik-project/coding-paths/CP-OPS-002/index.md`](../../atomik-project/coding-paths/CP-OPS-002/index.md) is structured in four strict sequential phases:
 
 ```text
 [PHASE 1: ENFORCEMENT INTEGRITY — CLOSING THE GAPS]

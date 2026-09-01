@@ -61,6 +61,32 @@ ceremony rather than an edit.
    rewritten object id, and the redaction record names both the old and the new
    ids.
 
+## Relocation is not mutation
+
+A record may MOVE. The steps of a path record moved out of a shared rollup
+directory and into the path's own folder when path records became folders, and
+nothing about any of those records changed.
+
+A checker that keys on the file path reads a move as a deletion *and* an
+addition, so it reports every relocated record as destroyed and every arrival as
+unaccounted for. That is a [proxy predicate](./proxy-predicate.md): the path is
+where a record sits, and immutability is about what the record says.
+
+Two operations are sanctioned on a record that moves, and no others:
+
+- **Repointing a link**, because a link is an address rather than content and the
+  same target must keep resolving from the new location.
+- **Appending**, because that is how a record grows without any earlier sentence
+  changing.
+
+So a rename is a relocation when, with every link target normalised away, the old
+text is a PREFIX of the new one. The test is exact rather than a similarity
+score, it covers the frontmatter — which sits at the very start, so a relocation
+cannot quietly change which record it claims to be — and anything else is a
+rewrite wearing a rename. A conforming checker states its relocations rather than
+passing them in silence: an exemption nobody can see is indistinguishable from a
+rule nobody enforces.
+
 ## It does not prove
 
 Repository-level checks protect observable diffs. Stronger resistance to an
@@ -69,5 +95,6 @@ completed redaction proves only that the repository no longer serves the text �
 never that the disclosure was contained.
 
 Related: [work ledger](./work-ledger.md), [journal](./journal.md),
+[proxy predicate](./proxy-predicate.md),
 [tamper evidence](./tamper-evidence.md),
 [checkpoint retention](./checkpoint-retention.md).

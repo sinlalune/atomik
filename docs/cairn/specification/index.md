@@ -171,14 +171,42 @@ does not is a false assurance.
 
 ### The path record
 
-The canonical path filename is:
+A path record is a FOLDER, and it is born one rather than divided into one later
+([ADR-020](../../adr/ADR-020-protocol-context-weight.md) decision 4):
 
 ```text
-project/coding-paths/CP-<ID>.md
+project/coding-paths/CP-<ID>/
+  index.md      the declaration, the step index, the live header, the next
+                action, blockers   <- the REQUIRED READING
+  plan.md       the forward plan, read when planning rather than before working
+  log.md        the OKF folder log
+  steps/S0N.md  one file per step, written there from the first step
 ```
 
-Its [Markdown frontmatter](./concepts/frontmatter.md) begins with an exact
-machine-readable [schema](./concepts/schema.md):
+Four things follow. There is **no rollup operation**, so nothing is ever
+summarised during a move. A step file is **written to be read alone**, which
+makes deixis — *"the checkpoint below"* — a defect at authoring time rather than
+a casualty later. The **step-index line in `index.md` is load-bearing**: slicing
+saves nothing if a reader cannot decide from it whether to open a step file, and
+no predicate can check that a summary line is informative, so it is a stated
+writing obligation measured by cold resume. And the **Work Ledger dissolves** —
+a row about one step goes to that step, where its `cairn-unit` block already
+carries the machine-readable half of the same fact. What stays in `index.md` is
+the live header, which does not grow.
+
+The record's IDENTITY is the id it declares, not the file that carries it. The
+flat `project/coding-paths/CP-<ID>.md` is the older shape and stays conforming;
+every rule keys on the id, so a record may migrate between the two shapes without
+its registration, its lifecycle or its history appearing to restart.
+
+A step record is [append-only](./concepts/record-integrity.md) wherever it sits.
+It may be RELOCATED — its links repointed, because a link is an address rather
+than content, and text appended — and a checker MUST distinguish that from a
+rewrite by comparing the two blobs with their link targets normalised away: the
+old text must be a prefix of the new one.
+
+The declaration's [Markdown frontmatter](./concepts/frontmatter.md) begins with
+an exact machine-readable [schema](./concepts/schema.md):
 
 ```yaml
 cairn:
@@ -1723,6 +1751,7 @@ honest state of the work.
 | *Advisory* | `path-staleness` | corpus | A path declaring running whose branch has had no commit for longer than the declared window | `staleRunningPaths(corpus, branchAges(corpus)) — advisory always; an unresolvable branch reports nothing` |
 | *Advisory* | `provisional` | diff | A proposed candidate still contains commits marked Cairn-Provisional, or HEAD is itself provisional | `git log --grep=^Cairn-Provisional: base..subject_commit (blocking on a ready path, advisory at HEAD)` |
 | *Advisory* | `record-date` | diff | A record this change adds carries two dates that disagree (blocking), or a date more than a day from the commit that wrote it (advisory) | `recordDateFindings(addedRecords) — filename date vs timestamp: vs the adding commit author date` |
+| *Advisory* | `record-integrity` | diff | Existing session, audit, journal, or rolled-history record was modified, renamed, or deleted | `immutableRecordMutations(previousRef) + isImmutableRecord(file)` |
 | *Advisory* | `registration` | diff | Path declaration tuple (id, running, branch, base) missing from trunk | `pathRegistrationState() === 'missing' (blocking) or declared migration exception (advisory)` |
 | *Advisory* | `remote-checkpoint` | diff | Local path HEAD not present on upstream tracking branch | `pathRemoteCheckpoint(branch).state === 'missing' \| 'unpushed'` |
 | *Advisory* | `role-collapse` | diff | One actor recorded both the opening and the closing acceptance for a path | `opening.accepted_by === closing.accepted_by (advisory: visible, never forbidden)` |

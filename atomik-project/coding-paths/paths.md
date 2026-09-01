@@ -334,45 +334,63 @@ The path branch then owns the evolving checklist and Work Ledger. Without that
 ordering, `ACTIVE.md` is only a projection of whichever branches happen to be
 ancestors of the current checkout — not a portfolio view.
 
-### The ledger has a boundary
+### The path record is a folder, born sliced
 
-A path file is MANDATORY reading for whoever resumes that path, and it only ever
-grows: every step appends. CP-MVP-008 reached ~23.5 k tokens while the entry chain
-that must be read before opening any path file at all — `AGENTS.md`, this page,
-`ACTIVE.md`, bedrock 22 and 00 — costs ~9.3 k (audit 2026-08-24, F4). A path file
-that costs more than the whole entry chain has stopped being a ledger and become an
-archive.
+A path record is MANDATORY reading for whoever resumes that path, so its size is
+a protocol cost rather than a housekeeping detail. Measured on 2026-08-31 for one
+running path: ~23.9 k tokens of cold-resume reading, and the record was half of
+it ([ADR-020](../../docs/adr/ADR-020-protocol-context-weight.md)).
 
-This is NOT the return of the `log.md` bottleneck. That file was frozen so parallel
-paths stop colliding on one file, and it worked. This is an independent observation
-that happens to concern size, and it is treated as a boundary, not a defect.
+A record is therefore a FOLDER from the moment it is registered:
 
 ```text
-CP-MVP-008.md                    declaration · step index · ledger · next action
-history/CP-MVP-008-S04.md        the full record of S04 and its sub-steps
+CP-EXAMPLE-001/
+  index.md      declaration · step index · live header · next action · blockers
+  plan.md       the forward plan, read when planning
+  log.md        the OKF folder log
+  steps/S01.md  one file per step, written there from the first step
 ```
 
-- **Roll completed steps into `atomik-project/coding-paths/history/<id>-S0N.md`**,
-  one file per major step, sub-steps with the step they belong to.
-- **The move is VERBATIM.** Cut and paste, never summarize. A rolled step reads
-  exactly as it did in the path file; what stays behind is one index line per step
-  with a link. Summarizing at rollup time would quietly rewrite the record, which
-  is the one thing a ledger may not do. Deixis is the one casualty — an entry
-  saying "the checkpoint below" now points at another file — so each record's
-  header says where "below" went rather than editing the entry to match.
-- **What stays**: the declaration, the step index, the Work Ledger, the next
-  action, blockers. Everything a resuming session needs before it needs detail.
-- **When**: at any step boundary once the file is over budget, and at closure. It
-  is never urgent — `ledger-size` is advisory.
+- **There is no rollup.** The older convention let a record grow and then cut
+  completed steps out of it, verbatim, into `history/`. It worked — CP-OPS-002
+  did it twice — but it is a *discipline* fix: it depends on someone noticing an
+  advisory and then performing a delicate move correctly. This protocol has three
+  times preferred to remove such an operation by construction instead (one
+  journal file per entry, a generated `ACTIVE.md`, a registration commit). This
+  is the fourth.
+- **A step file is written to be read alone.** Deixis — *"the checkpoint below"* —
+  is a defect at authoring time rather than a casualty at rollup time.
+- **The step-index line in `index.md` is load-bearing**, and it is the design's
+  real risk. Slicing saves nothing if a reader cannot decide from that one line
+  whether it needs the step file; it then opens several and pays more than
+  before. No predicate can check that a summary line is informative, so this is a
+  stated writing obligation, measured by cold resume.
+- **The Work Ledger dissolves.** A row about one step — `Gates at S08a`,
+  `Widening (S05)` — goes to that step, where its `cairn-unit` block already
+  carries the machine-readable half of the same fact. What stays in `index.md` is
+  the live header: status, base commit, branch, next action, blockers. It does
+  not grow.
 
-`cairn-check` reports `ledger-size` when a path file **in the diff** exceeds
-10,000 tokens (`LEDGER_TOKEN_BUDGET`). Diff-scoped on purpose: a corpus sweep would
-report the same historical files on every run for months, and a check that cries
-wolf is a check people switch off. It speaks to whoever is already editing the
-file, who is the only one who can act on it.
+**A record's identity is the id it declares, not the file that carries it.** The
+flat `CP-<id>.md` is the older shape and stays conforming; every rule keys on the
+id, so a record migrates between shapes without its registration, its lifecycle
+or its history appearing to restart. A step record stays append-only wherever it
+sits: it may be RELOCATED — links repointed, text appended — and `cairn-check`
+tells that apart from a rewrite by normalising link targets away and requiring
+the old text to be a prefix of the new.
 
-CP-MVP-008 is the migrated proof: ~23.5 k tokens to ~4.7 k, with its seven step
-records under [`history/`](./history/index.md) holding what moved.
+`cairn-check` still reports `ledger-size` when a **flat** path record in the diff
+exceeds 10,000 tokens (`LEDGER_TOKEN_BUDGET`). It is retired when the last flat
+record migrates, and not before — until then it is the only signal a record that
+has not been sliced ever gets. Diff-scoped on purpose: a corpus sweep would report
+the same historical files on every run for months, and a check that cries wolf is
+a check people switch off.
+
+CP-OPS-002 is the migrated proof (S08l): one 21.2 k-token file became a folder
+whose required reading is `index.md`, with thirty-nine step records beside it and
+a seventy-four-row Work Ledger distributed to the steps it described. CP-MVP-008
+is the older proof of the older convention: ~23.5 k tokens to ~4.7 k, with its
+seven step records still under [`history/`](./history/index.md).
 
 ### Hot files that still conflict
 

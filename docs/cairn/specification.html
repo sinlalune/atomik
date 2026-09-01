@@ -1197,11 +1197,36 @@ several agents. It refuses to let the collapse be invisible: a self-issued
 signature that says so is a known weakness, and a self-issued signature that
 does not is a false assurance.</p>
 <h3 id="specification--the-path-record" data-heading="the-path-record">The path record</h3>
-<p>The canonical path filename is:</p>
-<pre><code class="language-text">project/coding-paths/CP-&lt;ID&gt;.md
+<p>A path record is a FOLDER, and it is born one rather than divided into one later
+(<a href="../../adr/ADR-020-protocol-context-weight.md">ADR-020</a> decision 4):</p>
+<pre><code class="language-text">project/coding-paths/CP-&lt;ID&gt;/
+  index.md      the declaration, the step index, the live header, the next
+                action, blockers   &lt;- the REQUIRED READING
+  plan.md       the forward plan, read when planning rather than before working
+  log.md        the OKF folder log
+  steps/S0N.md  one file per step, written there from the first step
 </code></pre>
-<p>Its <a href="#article-concept-frontmatter" data-article="concept-frontmatter" data-anchor="" class="wiki-link">Markdown frontmatter</a> begins with an exact
-machine-readable <a href="#article-concept-schema" data-article="concept-schema" data-anchor="" class="wiki-link">schema</a>:</p>
+<p>Four things follow. There is <strong>no rollup operation</strong>, so nothing is ever
+summarised during a move. A step file is <strong>written to be read alone</strong>, which
+makes deixis — <em>“the checkpoint below”</em> — a defect at authoring time rather than
+a casualty later. The <strong>step-index line in <code>index.md</code> is load-bearing</strong>: slicing
+saves nothing if a reader cannot decide from it whether to open a step file, and
+no predicate can check that a summary line is informative, so it is a stated
+writing obligation measured by cold resume. And the <strong>Work Ledger dissolves</strong> —
+a row about one step goes to that step, where its <code>cairn-unit</code> block already
+carries the machine-readable half of the same fact. What stays in <code>index.md</code> is
+the live header, which does not grow.</p>
+<p>The record’s IDENTITY is the id it declares, not the file that carries it. The
+flat <code>project/coding-paths/CP-&lt;ID&gt;.md</code> is the older shape and stays conforming;
+every rule keys on the id, so a record may migrate between the two shapes without
+its registration, its lifecycle or its history appearing to restart.</p>
+<p>A step record is <a href="#article-concept-record-integrity" data-article="concept-record-integrity" data-anchor="" class="wiki-link">append-only</a> wherever it sits.
+It may be RELOCATED — its links repointed, because a link is an address rather
+than content, and text appended — and a checker MUST distinguish that from a
+rewrite by comparing the two blobs with their link targets normalised away: the
+old text must be a prefix of the new one.</p>
+<p>The declaration’s <a href="#article-concept-frontmatter" data-article="concept-frontmatter" data-anchor="" class="wiki-link">Markdown frontmatter</a> begins with
+an exact machine-readable <a href="#article-concept-schema" data-article="concept-schema" data-anchor="" class="wiki-link">schema</a>:</p>
 <pre><code class="language-yaml">cairn:
   id: CP-EXAMPLE-001
   route: lightweight
@@ -3143,6 +3168,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">A record this change adds carries two dates that disagree (blocking), or a date more than a day from the commit that wrote it (advisory)</td>
 <td style="text-align:left"><code>recordDateFindings(addedRecords) — filename date vs timestamp: vs the adding commit author date</code></td>
+</tr>
+<tr data-rule="record-integrity" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>record-integrity</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">Existing session, audit, journal, or rolled-history record was modified, renamed, or deleted</td>
+<td style="text-align:left"><code>immutableRecordMutations(previousRef) + isImmutableRecord(file)</code></td>
 </tr>
 <tr data-rule="registration" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>registration</code></td>
@@ -3642,11 +3673,36 @@ several agents. It refuses to let the collapse be invisible: a self-issued
 signature that says so is a known weakness, and a self-issued signature that
 does not is a false assurance.</p>
 <h3 id="specification--the-path-record" data-heading="the-path-record">The path record</h3>
-<p>The canonical path filename is:</p>
-<pre><code class="language-text">project/coding-paths/CP-&lt;ID&gt;.md
+<p>A path record is a FOLDER, and it is born one rather than divided into one later
+(<a href="../../adr/ADR-020-protocol-context-weight.md">ADR-020</a> decision 4):</p>
+<pre><code class="language-text">project/coding-paths/CP-&lt;ID&gt;/
+  index.md      the declaration, the step index, the live header, the next
+                action, blockers   &lt;- the REQUIRED READING
+  plan.md       the forward plan, read when planning rather than before working
+  log.md        the OKF folder log
+  steps/S0N.md  one file per step, written there from the first step
 </code></pre>
-<p>Its <a href="#article-concept-frontmatter" data-article="concept-frontmatter" data-anchor="" class="wiki-link">Markdown frontmatter</a> begins with an exact
-machine-readable <a href="#article-concept-schema" data-article="concept-schema" data-anchor="" class="wiki-link">schema</a>:</p>
+<p>Four things follow. There is <strong>no rollup operation</strong>, so nothing is ever
+summarised during a move. A step file is <strong>written to be read alone</strong>, which
+makes deixis — <em>“the checkpoint below”</em> — a defect at authoring time rather than
+a casualty later. The <strong>step-index line in <code>index.md</code> is load-bearing</strong>: slicing
+saves nothing if a reader cannot decide from it whether to open a step file, and
+no predicate can check that a summary line is informative, so it is a stated
+writing obligation measured by cold resume. And the <strong>Work Ledger dissolves</strong> —
+a row about one step goes to that step, where its <code>cairn-unit</code> block already
+carries the machine-readable half of the same fact. What stays in <code>index.md</code> is
+the live header, which does not grow.</p>
+<p>The record’s IDENTITY is the id it declares, not the file that carries it. The
+flat <code>project/coding-paths/CP-&lt;ID&gt;.md</code> is the older shape and stays conforming;
+every rule keys on the id, so a record may migrate between the two shapes without
+its registration, its lifecycle or its history appearing to restart.</p>
+<p>A step record is <a href="#article-concept-record-integrity" data-article="concept-record-integrity" data-anchor="" class="wiki-link">append-only</a> wherever it sits.
+It may be RELOCATED — its links repointed, because a link is an address rather
+than content, and text appended — and a checker MUST distinguish that from a
+rewrite by comparing the two blobs with their link targets normalised away: the
+old text must be a prefix of the new one.</p>
+<p>The declaration’s <a href="#article-concept-frontmatter" data-article="concept-frontmatter" data-anchor="" class="wiki-link">Markdown frontmatter</a> begins with
+an exact machine-readable <a href="#article-concept-schema" data-article="concept-schema" data-anchor="" class="wiki-link">schema</a>:</p>
 <pre><code class="language-yaml">cairn:
   id: CP-EXAMPLE-001
   route: lightweight
@@ -5588,6 +5644,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">A record this change adds carries two dates that disagree (blocking), or a date more than a day from the commit that wrote it (advisory)</td>
 <td style="text-align:left"><code>recordDateFindings(addedRecords) — filename date vs timestamp: vs the adding commit author date</code></td>
+</tr>
+<tr data-rule="record-integrity" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>record-integrity</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">Existing session, audit, journal, or rolled-history record was modified, renamed, or deleted</td>
+<td style="text-align:left"><code>immutableRecordMutations(previousRef) + isImmutableRecord(file)</code></td>
 </tr>
 <tr data-rule="registration" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>registration</code></td>
@@ -8135,12 +8197,35 @@ leave Git history, that is its own work unit: it updates every
 rewritten object id, and the redaction record names both the old and the new
 ids.</li>
 </ol>
+<h2 id="concept-record-integrity--relocation-is-not-mutation" data-heading="relocation-is-not-mutation">Relocation is not mutation</h2>
+<p>A record may MOVE. The steps of a path record moved out of a shared rollup
+directory and into the path’s own folder when path records became folders, and
+nothing about any of those records changed.</p>
+<p>A checker that keys on the file path reads a move as a deletion <em>and</em> an
+addition, so it reports every relocated record as destroyed and every arrival as
+unaccounted for. That is a <a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy predicate</a>: the path is
+where a record sits, and immutability is about what the record says.</p>
+<p>Two operations are sanctioned on a record that moves, and no others:</p>
+<ul>
+<li><strong>Repointing a link</strong>, because a link is an address rather than content and the
+same target must keep resolving from the new location.</li>
+<li><strong>Appending</strong>, because that is how a record grows without any earlier sentence
+changing.</li>
+</ul>
+<p>So a rename is a relocation when, with every link target normalised away, the old
+text is a PREFIX of the new one. The test is exact rather than a similarity
+score, it covers the frontmatter — which sits at the very start, so a relocation
+cannot quietly change which record it claims to be — and anything else is a
+rewrite wearing a rename. A conforming checker states its relocations rather than
+passing them in silence: an exemption nobody can see is indistinguishable from a
+rule nobody enforces.</p>
 <h2 id="concept-record-integrity--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
 <p>Repository-level checks protect observable diffs. Stronger resistance to an
 authorised history rewrite needs protected refs or an external anchor. And a
 completed redaction proves only that the repository no longer serves the text —
 never that the disclosure was contained.</p>
 <p>Related: <a href="#article-concept-work-ledger" data-article="concept-work-ledger" data-anchor="" class="wiki-link">work ledger</a>, <a href="#article-concept-journal" data-article="concept-journal" data-anchor="" class="wiki-link">journal</a>,
+<a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy predicate</a>,
 <a href="#article-concept-tamper-evidence" data-article="concept-tamper-evidence" data-anchor="" class="wiki-link">tamper evidence</a>,
 <a href="#article-concept-checkpoint-retention" data-article="concept-checkpoint-retention" data-anchor="" class="wiki-link">checkpoint retention</a>.</p>
 
@@ -10979,11 +11064,36 @@ several agents. It refuses to let the collapse be invisible: a self-issued
 signature that says so is a known weakness, and a self-issued signature that
 does not is a false assurance.</p>
 <h3 id="specification--the-path-record" data-heading="the-path-record">The path record</h3>
-<p>The canonical path filename is:</p>
-<pre><code class="language-text">project/coding-paths/CP-&lt;ID&gt;.md
+<p>A path record is a FOLDER, and it is born one rather than divided into one later
+(<a href="../../adr/ADR-020-protocol-context-weight.md">ADR-020</a> decision 4):</p>
+<pre><code class="language-text">project/coding-paths/CP-&lt;ID&gt;/
+  index.md      the declaration, the step index, the live header, the next
+                action, blockers   &lt;- the REQUIRED READING
+  plan.md       the forward plan, read when planning rather than before working
+  log.md        the OKF folder log
+  steps/S0N.md  one file per step, written there from the first step
 </code></pre>
-<p>Its <a href="#article-concept-frontmatter" data-article="concept-frontmatter" data-anchor="" class="wiki-link">Markdown frontmatter</a> begins with an exact
-machine-readable <a href="#article-concept-schema" data-article="concept-schema" data-anchor="" class="wiki-link">schema</a>:</p>
+<p>Four things follow. There is <strong>no rollup operation</strong>, so nothing is ever
+summarised during a move. A step file is <strong>written to be read alone</strong>, which
+makes deixis — <em>“the checkpoint below”</em> — a defect at authoring time rather than
+a casualty later. The <strong>step-index line in <code>index.md</code> is load-bearing</strong>: slicing
+saves nothing if a reader cannot decide from it whether to open a step file, and
+no predicate can check that a summary line is informative, so it is a stated
+writing obligation measured by cold resume. And the <strong>Work Ledger dissolves</strong> —
+a row about one step goes to that step, where its <code>cairn-unit</code> block already
+carries the machine-readable half of the same fact. What stays in <code>index.md</code> is
+the live header, which does not grow.</p>
+<p>The record’s IDENTITY is the id it declares, not the file that carries it. The
+flat <code>project/coding-paths/CP-&lt;ID&gt;.md</code> is the older shape and stays conforming;
+every rule keys on the id, so a record may migrate between the two shapes without
+its registration, its lifecycle or its history appearing to restart.</p>
+<p>A step record is <a href="#article-concept-record-integrity" data-article="concept-record-integrity" data-anchor="" class="wiki-link">append-only</a> wherever it sits.
+It may be RELOCATED — its links repointed, because a link is an address rather
+than content, and text appended — and a checker MUST distinguish that from a
+rewrite by comparing the two blobs with their link targets normalised away: the
+old text must be a prefix of the new one.</p>
+<p>The declaration’s <a href="#article-concept-frontmatter" data-article="concept-frontmatter" data-anchor="" class="wiki-link">Markdown frontmatter</a> begins with
+an exact machine-readable <a href="#article-concept-schema" data-article="concept-schema" data-anchor="" class="wiki-link">schema</a>:</p>
 <pre><code class="language-yaml">cairn:
   id: CP-EXAMPLE-001
   route: lightweight
@@ -12925,6 +13035,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">A record this change adds carries two dates that disagree (blocking), or a date more than a day from the commit that wrote it (advisory)</td>
 <td style="text-align:left"><code>recordDateFindings(addedRecords) — filename date vs timestamp: vs the adding commit author date</code></td>
+</tr>
+<tr data-rule="record-integrity" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>record-integrity</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">Existing session, audit, journal, or rolled-history record was modified, renamed, or deleted</td>
+<td style="text-align:left"><code>immutableRecordMutations(previousRef) + isImmutableRecord(file)</code></td>
 </tr>
 <tr data-rule="registration" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>registration</code></td>
@@ -15244,12 +15360,35 @@ leave Git history, that is its own work unit: it updates every
 rewritten object id, and the redaction record names both the old and the new
 ids.</li>
 </ol>
+<h2 id="concept-record-integrity--relocation-is-not-mutation" data-heading="relocation-is-not-mutation">Relocation is not mutation</h2>
+<p>A record may MOVE. The steps of a path record moved out of a shared rollup
+directory and into the path’s own folder when path records became folders, and
+nothing about any of those records changed.</p>
+<p>A checker that keys on the file path reads a move as a deletion <em>and</em> an
+addition, so it reports every relocated record as destroyed and every arrival as
+unaccounted for. That is a <a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy predicate</a>: the path is
+where a record sits, and immutability is about what the record says.</p>
+<p>Two operations are sanctioned on a record that moves, and no others:</p>
+<ul>
+<li><strong>Repointing a link</strong>, because a link is an address rather than content and the
+same target must keep resolving from the new location.</li>
+<li><strong>Appending</strong>, because that is how a record grows without any earlier sentence
+changing.</li>
+</ul>
+<p>So a rename is a relocation when, with every link target normalised away, the old
+text is a PREFIX of the new one. The test is exact rather than a similarity
+score, it covers the frontmatter — which sits at the very start, so a relocation
+cannot quietly change which record it claims to be — and anything else is a
+rewrite wearing a rename. A conforming checker states its relocations rather than
+passing them in silence: an exemption nobody can see is indistinguishable from a
+rule nobody enforces.</p>
 <h2 id="concept-record-integrity--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
 <p>Repository-level checks protect observable diffs. Stronger resistance to an
 authorised history rewrite needs protected refs or an external anchor. And a
 completed redaction proves only that the repository no longer serves the text —
 never that the disclosure was contained.</p>
 <p>Related: <a href="#article-concept-work-ledger" data-article="concept-work-ledger" data-anchor="" class="wiki-link">work ledger</a>, <a href="#article-concept-journal" data-article="concept-journal" data-anchor="" class="wiki-link">journal</a>,
+<a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy predicate</a>,
 <a href="#article-concept-tamper-evidence" data-article="concept-tamper-evidence" data-anchor="" class="wiki-link">tamper evidence</a>,
 <a href="#article-concept-checkpoint-retention" data-article="concept-checkpoint-retention" data-anchor="" class="wiki-link">checkpoint retention</a>.</p>
 

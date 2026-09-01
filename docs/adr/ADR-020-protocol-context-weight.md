@@ -32,7 +32,7 @@ at CP-OPS-002 S08c, for one running path:
    709  atomik-project/coding-paths/ACTIVE.md
   2525  docs/bedrock/22_22-agent-handoff.md
   1384  docs/bedrock/00_00-orientation.md
- 11869  atomik-project/coding-paths/CP-OPS-002.md
+ 11869  atomik-project/coding-paths/CP-OPS-002/index.md
   1293  atomik-project/briefs/cp-ops-002-handoff.md
  23868  TOTAL, before the first line of work
 ```

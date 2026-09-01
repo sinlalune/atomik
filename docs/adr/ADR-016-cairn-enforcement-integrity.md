@@ -198,7 +198,7 @@ the condition this ADR exists to end.
 
 - Audit record: [`docs/cairn/cairn-audit-2026-08-24.md`](../cairn/cairn-audit-2026-08-24.md)
 - Opening check: [`atomik-project/sessions/2026-08-24-cp-ops-002-opening-check.md`](../../atomik-project/sessions/2026-08-24-cp-ops-002-opening-check.md)
-- Path: [`atomik-project/coding-paths/CP-OPS-002.md`](../../atomik-project/coding-paths/CP-OPS-002.md)
+- Path: [`atomik-project/coding-paths/CP-OPS-002/index.md`](../../atomik-project/coding-paths/CP-OPS-002/index.md)
 - Ceremony schema: [`docs/bedrock/24_24-doc-templates.md`](../bedrock/24_24-doc-templates.md#session-note-and-ceremony-template)
 - Convention: [`atomik-project/coding-paths/paths.md`](../../atomik-project/coding-paths/paths.md)
 - Amends: [`ADR-012`](./ADR-012-parallel-paths-self-merge.md)

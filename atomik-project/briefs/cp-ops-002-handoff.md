@@ -6,8 +6,8 @@ atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: 6d92077e519f56b6699d6b53efedb8340920623d
-  checkpoint_unit: 28
+  checkpoint: fbfce25888c8b3355247032ae43d45bda57331d6
+  checkpoint_unit: 29
   checkpoint_pushed: true
   base_commit: 7aa3b1d
   trunk_seen: dfcd09d
@@ -18,7 +18,7 @@ atomik:
     - atomik-project/coding-paths/paths.md
     - docs/cairn/**
     - docs/adr/**
-    - atomik-project/coding-paths/CP-OPS-002.md
+    - atomik-project/coding-paths/CP-OPS-002/index.md
     - atomik-project/coding-paths/history/**
     - atomik-project/briefs/**
     - atomik-project/log/**
@@ -51,7 +51,7 @@ now closed.** The last, `unretainedCheckpoints`, reported "nothing orphaned" onc
 the retained set stopped intersecting the branch — which is what the mandatory
 pre-merge rebase causes — and is repaired under `ADR-021`.
 
-**S08 so far — eleven units.** Full records in the path file; what a resuming
+**S08 so far — twelve units.** Full records in the path file; what a resuming
 session needs from them:
 
 - The local gate defaults to the **trunk** base on a path branch (S08a).
@@ -86,24 +86,36 @@ session needs from them:
   blocking and definite**, distinct from an unreadable namespace or range, which
   stay inconclusive; and the retention range is `merge-base(trunk, HEAD)..HEAD`,
   not `base_commit..HEAD`. Read the ADR rather than a summary.
-- **This branch runs on `g01`, 28 refs from `53b11f0`** (S08k). The 28 flat refs
+- **This branch runs on `g01`, 29 refs from `53b11f0`** (S08k). The 28 flat refs
   are untouched and stay that way. **After the next rebase, opening `g02` is part
   of that rebase's work unit** — the gate will say so, and say it definitely.
+- **This record is a FOLDER** (S08l), and it is the worked example for
+  [ADR-020](../../docs/adr/ADR-020-protocol-context-weight.md) decision 4. Read
+  `CP-OPS-002/index.md` and nothing else by default; steps are one file each
+  under `steps/`, the forward plan is `plan.md`, and there is **no rollup** — a
+  step is written where it lives. What binds a resuming session: **a record's
+  identity is the id it declares, not the file that carries it** (three rules
+  keyed on the path and all three were wrong about a record that had merely
+  moved); **a step record is append-only wherever it sits**; and a record may be
+  RELOCATED — links repointed, text appended, nothing else — which the checker
+  tells from a rewrite by normalising link targets away and requiring a prefix.
 
 Flat refs 01–28 and `g01/01`–`g01/28` on the remote; flat 01–13 hold PRE-rebase
 commits and no ref has ever been moved. Checker suite 221, specification suite 33.
 
 ## Next action
 
-**ADR-020 stage 2** — the `CP-OPS-002` folder migration. It supersedes the queued
-ledger roll and is what `ledger-size` has been advising about; the record is
-~19.9 k tokens against a 10 k budget.
+**ADR-020 stages 3–5.** Stage 3's remaining half is to retire `ledger-size` — but
+only once `CP-MVP-008`, `CP-MVP-011` and `CP-MVP-012` migrate, because until then
+it is the only signal an unsliced record gets. Then stage 4 (the artefact
+classification: the protocol page moves, the binding appendix is extracted, the
+host constitution leaves the entry chain) and stage 5, `cairn-init`.
 
-Then stages 3–5 (the checker's shape, the artefact classification, `cairn-init`)
-and S08 Part 2: an adversarial fixture for every blocking rule, one gate run in
-both invocation contexts asserting one verdict, and a generated conformance
-matrix. `cairn-init` must scaffold generation-aware retention from the start — a
-flat namespace handed to an adopter is a migration handed to an adopter.
+S08 Part 2 also remains: an adversarial fixture for every blocking rule, one gate
+run in both invocation contexts asserting one verdict, and a generated
+conformance matrix. `cairn-init` must scaffold the folder shape and
+generation-aware retention from the start — either one handed to an adopter in
+the old shape is a migration handed to an adopter.
 
 ## Blockers
 
@@ -134,6 +146,9 @@ that ADDS a record.
   (S08i). Measured first: all three misdated CP-UI-TYPOGRAPHY records agree with
   themselves, and 67 dated records corpus-wide disagree zero times. It would have
   shipped green and closed the finding without touching it.
+- **Retiring `ledger-size` with the folder migration** (S08l). ADR-020 stage 3
+  schedules it, and three flat records remain; it is the only signal an unsliced
+  record gets, so it now applies to flat records only and goes when they do.
 - **Blocking on divergence from the adding commit's date** (S08i). A note taken
   on one day and committed two days later is dated correctly; blocking it teaches
   the author to write a false date to pass a gate.
@@ -160,9 +175,10 @@ that ADDS a record.
    path and named its failure mode.
 
 `proxy-predicate`, `unsound-gate`, `adversarial-fixture`, `gate-parity`,
-`record-integrity` under `specification/concepts/` are this path's vocabulary.
+`record-integrity` (read its *Relocation is not mutation* section) and
+`checkpoint-retention` under `specification/concepts/` are this path's vocabulary.
 `specification/index.md` is normative; completed steps live in
-`coding-paths/history/`.
+`coding-paths/CP-OPS-002/steps/`.
 
 ## Verification
 

@@ -22,6 +22,15 @@ per entry in a `log/` subfolder — which was a concurrency fix, never a size on
 
 ## 2026-09-01
 
+- `S08l` executes `ADR-020` migration stage 2 and finds that a shape change is the
+  only thing that asks a rule what it actually reads. Three blocking rules keyed
+  on a record's file path — registration, lifecycle, append-only integrity — and
+  all three were wrong about a record that had merely moved. A record's identity
+  is the id it declares. Relocation got an exact predicate rather than a
+  similarity score: normalise every link target away, and the old text must be a
+  prefix of the new. `ledger-size` is kept rather than retired while three flat
+  records remain.
+
 - `S08k` accepts `ADR-021` on the owner's ruling and implements it in the same
   unit, because the code and the refs are one change: the checker looks for
   `g<NN>` and the branch has none until `g01` is opened, so landing either alone

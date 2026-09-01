@@ -27,7 +27,7 @@ of its statements were true when written and are false now.
 ```text
 1. the repository itself          — always wins, always verify against it
 2. docs/cairn/cairn-audit-2026-08-24.md   — the CURRENT audit record (F1–F11)
-3. atomik-project/coding-paths/CP-OPS-002.md — the CURRENT roadmap
+3. atomik-project/coding-paths/CP-OPS-002/index.md — the CURRENT roadmap
 4. round 2                        — a superseded outline; harvest its shape, not its claims
 ```
 

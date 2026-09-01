@@ -96,6 +96,11 @@ export const PATHS_BEGIN = '<!-- cairn:paths:begin -->'
 export const PATHS_END = '<!-- cairn:paths:end -->'
 
 const PATH_DIR = 'atomik-project/coding-paths'
+
+/** Both shapes a path declaration takes, capturing the id either one declares:
+ *  the flat `CP-<id>.md`, and the folder `CP-<id>/index.md` a path is born in
+ *  under ADR-020 decision 4. */
+const DECLARATION_FILE = new RegExp(`^${PATH_DIR}/(CP-[^/]+?)(?:\\.md|/index\\.md)$`)
 /** ADR-017: `archived` is the single terminal state and the exit for an
  *  abandoned path too, so `active` is gone. It was accepted here and rejected
  *  by PATH_BRANCH_STATUSES, which meant a path declaring it passed `schema`
@@ -476,9 +481,16 @@ export function pathFrontmatterErrors(front, file = null) {
     if (!/^CP-[A-Z0-9][A-Z0-9-]*$/.test(front.id)) {
       errors.push('atomik.id must use canonical CP-<UPPERCASE-ID> form')
     }
-    const expected = file?.split('/').at(-1)
-    if (expected && expected !== `${front.id}.md`) {
-      errors.push(`atomik.id "${front.id}" does not match the file name (${expected})`)
+    // Two shapes carry a path record, and the identity lives in a different
+    // segment of each: `CP-<id>.md` names it in the file, `CP-<id>/index.md`
+    // names it in the folder (ADR-020 decision 4). Reading only the last segment
+    // would tell every migrated record that its id is `index`.
+    const parts = file?.split('/') ?? []
+    const last = parts.at(-1)
+    const named = last === 'index.md' ? parts.at(-2) : last?.replace(/\.md$/, '')
+    const shape = last === 'index.md' ? `${front.id}/index.md` : `${front.id}.md`
+    if (last && named !== front.id) {
+      errors.push(`atomik.id "${front.id}" does not match the record's own name (expected ${shape}, got ${parts.slice(-2).join('/')})`)
     }
   }
   if (!PATH_STATUSES.includes(front.status)) {
@@ -618,10 +630,41 @@ const IMMUTABLE_RECORD_PREFIXES = [
   'atomik-project/log/'
 ]
 
+/** A step record inside a born-sliced path folder (ADR-020 decision 4). These
+ *  were immutable while they lived in `history/`, and a record does not stop
+ *  being append-only by moving house. */
+const PATH_STEP_RECORD = new RegExp(`^${PATH_DIR}/CP-[^/]+/steps/[^/]+$`)
+
 export function isImmutableRecord(file) {
   if (file === JOURNAL) return true
-  if (!IMMUTABLE_RECORD_PREFIXES.some((prefix) => file.startsWith(prefix))) return false
+  const known = IMMUTABLE_RECORD_PREFIXES.some((prefix) => file.startsWith(prefix)) ||
+    PATH_STEP_RECORD.test(file)
+  if (!known) return false
   return !['index.md', 'log.md', '.gitkeep'].includes(file.split('/').at(-1))
+}
+
+/**
+ * Is this rename the SAME RECORD, relocated?
+ *
+ * `record-integrity` protects a record from being rewritten or from ceasing to
+ * exist. It used to key on the file path, so it read a move as both — which is
+ * how a migration that changed nothing about twenty-three records reported
+ * twenty-three violations (CP-OPS-002 S08l). A path is where a record sits; it
+ * is not what the record is.
+ *
+ * Two operations are sanctioned on a record that moves, and no others.
+ * REPOINTING a link, because a link is an address rather than content and the
+ * same target must keep resolving — the `history/` rollup convention already
+ * said so. And APPENDING, because that is how a record grows without any earlier
+ * sentence changing. So: strip every link target from both sides, and the old
+ * text must be a PREFIX of the new one. Anything else is a rewrite wearing a
+ * rename, and the frontmatter — which sits at the very start — is covered by the
+ * same test, so a relocation cannot quietly change what record it claims to be.
+ */
+export function isVerbatimRelocation(before, after) {
+  const strip = (text) => String(text ?? '').replace(/\]\([^)]*\)/g, '](-)')
+  const from = strip(before)
+  return from.length > 0 && strip(after).startsWith(from)
 }
 
 /** The ISO date at the head of a string, or null. Used on a filename and on a
@@ -1494,6 +1537,7 @@ export function evaluate({
   openingFor,
   previousPaths = new Map(),
   immutableMutations = [],
+  relocations = [],
   branchSource = 'symbolic-ref',
   baseSource = 'flag',
   workUnits = null,
@@ -1632,10 +1676,12 @@ export function evaluate({
   }
 
   // 4. lifecycle transitions and exact candidate acceptance ------------
-  for (const file of stateChanged.filter(
-    (entry) => /^atomik-project\/coding-paths\/CP-[^/]+\.md$/.test(entry)
-  )) {
-    if (!paths.some((path) => path.file === file)) {
+  for (const file of stateChanged.filter((entry) => DECLARATION_FILE.test(entry))) {
+    // A declaration is identified by the id it declares, not by the file it
+    // happens to sit in: `CP-<id>.md` and `CP-<id>/index.md` are the same
+    // record in two shapes, and a migration between them retains it.
+    const declared = DECLARATION_FILE.exec(file)[1]
+    if (!paths.some((path) => path.file === file || path.front?.id === declared)) {
       add('blocking', 'transition',
         `${file}: path declarations are retained; archive with an explicit resolution instead of deleting the record`)
     }
@@ -1732,8 +1778,13 @@ export function evaluate({
         'inconclusive')
     }
   } else {
+    const relocated = new Set(relocations.flat())
+    if (relocations.length > 0) {
+      add('advisory', 'record-integrity',
+        `${relocations.length} append-only record(s) were relocated verbatim: ${relocations.slice(0, 3).map(([from, to]) => `${from.split('/').at(-1)} → ${to}`).join(', ')}${relocations.length > 3 ? ', …' : ''}. Links were repointed and nothing earlier was rewritten — stated rather than exempted in silence`)
+    }
     for (const file of immutableMutations) {
-      if (isImmutableRecord(file)) {
+      if (isImmutableRecord(file) && !relocated.has(file)) {
         add('blocking', 'record-integrity',
           `${file} is an existing append-only record and may not be modified, renamed, or deleted; add a superseding record instead`)
       }
@@ -2260,6 +2311,16 @@ function previousPathStates(paths, ref) {
 /** `base_commit` is not merely any ancestor. It names the trunk state just
  * before registration, so it must resolve to the first parent of the commit
  * that introduced this path declaration on the trunk. */
+/** Where this record's declaration lives on the trunk, in either shape, or null.
+ *  Looked up by the declared id for the same reason `pathRegistrationState` is:
+ *  a record's history is not erased by moving the file that carries it. */
+function declarationOnTrunk(trunkRef, id) {
+  for (const candidate of [`${PATH_DIR}/${id}.md`, `${PATH_DIR}/${id}/index.md`]) {
+    if (gitOrNull(['log', '-1', '--format=%H', trunkRef, '--', candidate])) return candidate
+  }
+  return null
+}
+
 function pathRegistrationBaseState(trunkRef, branch, paths) {
   if (!isPathBranch(branch)) return null
   const match = paths.find((path) => path.front?.branch === branch)
@@ -2268,8 +2329,10 @@ function pathRegistrationBaseState(trunkRef, branch, paths) {
   if (LEGACY_UNREGISTERED_PATHS.has(id)) return 'grandfathered'
   if (!gitOrNull(['rev-parse', '--verify', trunkRef])) return null
 
+  const onTrunk = declarationOnTrunk(trunkRef, id)
+  if (!onTrunk) return null
   const additions = gitOrNull([
-    'log', '--diff-filter=A', '--format=%H', '--reverse', trunkRef, '--', match.file
+    'log', '--diff-filter=A', '--format=%H', '--reverse', trunkRef, '--', onTrunk
   ])
   const registration = additions?.split('\n').filter(Boolean)[0]
   if (!registration) return null
@@ -2334,6 +2397,47 @@ function pathClosureState(path, record) {
 
 /** Existing append-only records may not be rewritten in either committed or
  * working-tree changes. An unavailable comparison ref is inconclusive. */
+/**
+ * Renames in this change that moved an append-only record without rewriting it.
+ * The predicate is `isVerbatimRelocation`; this half is only the git plumbing
+ * that finds the pairs and reads the two blobs.
+ */
+function verbatimRelocations(ref) {
+  if (!ref || !gitOrNull(['rev-parse', '--verify', ref])) return []
+  const pairs = []
+
+  // Committed renames. `--name-status -z` emits status, then OLD, then NEW.
+  const committed = String(gitRaw([
+    'diff', '--find-renames', '--diff-filter=R', '--name-status', '-z', `${ref}..HEAD`
+  ])).split('\0')
+  for (let i = 0; i < committed.length;) {
+    if (!committed[i]?.startsWith('R')) { i += 1; continue }
+    pairs.push([committed[i + 1], committed[i + 2]])
+    i += 3
+  }
+
+  // Staged renames, which is where a migration in progress lives. Porcelain v1
+  // with -z emits the NEW path in the record and the ORIGINAL in the next field
+  // — the opposite order from `diff --name-status`, and reading it the other way
+  // round finds nothing and says so silently.
+  const working = String(gitRaw(['status', '--porcelain', '-z'])).split('\0')
+  for (let i = 0; i < working.length; i += 1) {
+    const record = working[i]
+    if (!record || record.length <= 3 || !record.slice(0, 2).includes('R')) continue
+    pairs.push([working[i + 1], record.slice(3)])
+    i += 1
+  }
+
+  const out = []
+  for (const [from, to] of pairs) {
+    if (!from || !to || !isImmutableRecord(from)) continue
+    const before = gitOrNull(['show', `${ref}:${from}`])
+    const after = existsSync(join(REPO, to)) ? readFileSync(join(REPO, to), 'utf8') : null
+    if (before != null && after != null && isVerbatimRelocation(before, after)) out.push([from, to])
+  }
+  return out
+}
+
 function immutableRecordMutations(ref) {
   if (!ref || !gitOrNull(['rev-parse', '--verify', ref])) return null
   const working = porcelainMutations(gitRaw(['status', '--porcelain', '-z']))
@@ -2386,15 +2490,23 @@ function pathRegistrationState(trunkRef, branch, paths) {
     return null
   }
 
-  try {
-    const text = execFileSync('git', ['show', `${trunkRef}:${match.file}`], {
-      cwd: REPO,
-      encoding: 'utf8'
-    })
-    return registrationMatches(text, id, branch, match.front.base_commit) ? 'registered' : 'missing'
-  } catch {
-    return 'missing'
+  // The declaration is looked up on the trunk by the ID it declares, in either
+  // shape. Keying on this checkout's file path made a record's registration
+  // depend on where the record sits TODAY, so migrating `CP-<id>.md` to
+  // `CP-<id>/index.md` reported a path that has been registered since August as
+  // never registered at all (CP-OPS-002 S08l).
+  for (const candidate of [`${PATH_DIR}/${id}.md`, `${PATH_DIR}/${id}/index.md`]) {
+    try {
+      const text = execFileSync('git', ['show', `${trunkRef}:${candidate}`], {
+        cwd: REPO,
+        encoding: 'utf8'
+      })
+      if (registrationMatches(text, id, branch, match.front.base_commit)) return 'registered'
+    } catch {
+      // this shape is not on the trunk; try the other
+    }
   }
+  return 'missing'
 }
 
 /**
@@ -2749,10 +2861,56 @@ function loadAdrs() {
     })
 }
 
-function loadPaths() {
+/** Where a path record lives. Two shapes, and the folder is the one a new path
+ *  is born in (ADR-020 decision 4): `CP-<id>/index.md` carries the declaration,
+ *  the step index and the live header, with one file per step beside it. The
+ *  flat `CP-<id>.md` is what every path used before, and it keeps working — a
+ *  record is not migrated by a rule, it is migrated by someone doing the move. */
+function pathRecordFiles() {
   if (!existsSync(join(REPO, PATH_DIR))) return []
-  return readdirSync(join(REPO, PATH_DIR))
-    .filter((file) => file.startsWith('CP-') && file.endsWith('.md'))
+  const out = []
+  for (const entry of readdirSync(join(REPO, PATH_DIR), { withFileTypes: true })) {
+    if (!entry.name.startsWith('CP-')) continue
+    if (entry.isDirectory()) {
+      if (existsSync(join(REPO, PATH_DIR, entry.name, 'index.md'))) {
+        out.push(`${entry.name}/index.md`)
+      }
+    } else if (entry.name.endsWith('.md')) {
+      out.push(entry.name)
+    }
+  }
+  return out
+}
+
+/**
+ * The work units a path record declares.
+ *
+ * A flat record holds them all in one file. A born-sliced record holds them in
+ * `steps/`, one per file, and `index.md` holds none — so reading the declaration
+ * file alone reports a path that has completed twenty-nine units as having
+ * completed zero, which silently disarms `work-unit` AND `checkpoint-retention`
+ * at once. The record is the FOLDER; the ledger is every step file in it.
+ *
+ * Sorted by ordinal, because "the newest unit" is what the retention exemption
+ * turns on and directory order is not chronology.
+ */
+function pathWorkUnits(file) {
+  const dir = file.endsWith('/index.md') ? file.slice(0, -'/index.md'.length) : null
+  const files = [file]
+  if (dir && existsSync(join(REPO, dir, 'steps'))) {
+    for (const entry of readdirSync(join(REPO, dir, 'steps')).sort()) {
+      if (entry.endsWith('.md') && !['index.md', 'log.md'].includes(entry)) {
+        files.push(`${dir}/steps/${entry}`)
+      }
+    }
+  }
+  const units = files.flatMap((rel) => parseWorkUnits(readFileSync(join(REPO, rel), 'utf8')))
+  return units.sort((a, b) =>
+    (Number.parseInt(a.unit, 10) || 0) - (Number.parseInt(b.unit, 10) || 0))
+}
+
+function loadPaths() {
+  return pathRecordFiles()
     .map((file) => {
       const rel = `${PATH_DIR}/${file}`
       const text = readFileSync(join(REPO, rel), 'utf8')
@@ -3026,9 +3184,10 @@ function main() {
       openingFor: hasOpening,
       previousPaths: previousPathStates(paths, previousRef),
       immutableMutations: immutableRecordMutations(recordRef),
+      relocations: verbatimRelocations(recordRef),
       branchSource,
       baseSource,
-      workUnits: pathForBranch ? parseWorkUnits(readFileSync(join(REPO, pathForBranch.file), 'utf8')) : null,
+      workUnits: pathForBranch ? pathWorkUnits(pathForBranch.file) : null,
       // Judged against the SAME comparison every other changed-file rule uses,
       // so the local default and the CI command see one set of added records.
       addedRecords: addedRecordDates(changed, comparisonRef(base, null)),
