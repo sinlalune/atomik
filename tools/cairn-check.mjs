@@ -2825,9 +2825,15 @@ function addedRecordDates(changed, ref) {
         file,
         named: filenameDate(file),
         declared: text ? dateOf(readFrontmatter(text)?.data?.timestamp) : null,
+        // `--follow` because the question is WHEN THIS RECORD WAS WRITTEN, and
+        // without it the answer is when its current path first appeared. A
+        // record that moved would report the migration's date and be accused of
+        // carrying an earlier one — the same substitution `record-integrity`
+        // made about the same move, in a quieter voice (CP-OPS-002 S08l).
         addedOn:
-          gitOrNull(['log', '--diff-filter=A', '--format=%ad', '--date=short', '-1', '--', file]) ||
-          null
+          gitOrNull([
+            'log', '--follow', '--diff-filter=A', '--format=%ad', '--date=short', '-1', '--', file
+          ]) || null
       }
     })
 }

@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-002
   route: full            # control plane + decision plane; escalation is one-way
   status: running
-  current_step: S08l
+  current_step: S08m
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
   writes:                    # ADVISORY — a signal, never a lock
@@ -142,6 +142,7 @@ written where it lives from the moment it is worked.
 - **[S08j](./steps/S08j.md)** — A rebase gives one unit two ids, and the namespace has one slot — COMPLETE
 - **[S08k](./steps/S08k.md)** — Accepted, implemented, and the branch given a generation — COMPLETE
 - **[S08l](./steps/S08l.md)** — The record moves, and three rules that knew it by its address — COMPLETE
+- **[S08m](./steps/S08m.md)** — A fifth rule dated a record by the commit that moved it — COMPLETE
 
 Forward steps — **S08** (in progress) and **S09** — are in [plan.md](./plan.md).
 
