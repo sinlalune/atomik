@@ -655,12 +655,43 @@ Before any rewriting push of a path branch, every commit the ledger names MUST
 already be reachable from a retention ref on the same remote:
 
 ```text
-refs/cairn/checkpoints/<path-id>/<n>
+refs/cairn/checkpoints/<path-id>/g<NN>/<n>
 ```
 
 `<n>` is the `unit` ordinal declared by the ledger entry, so a ledger entry and
 its retained ref name the same thing. Retention refs are append-only: once
 written, a ref MUST NOT be moved or deleted while the path record is retained.
+
+`g<NN>` is the **generation** — one linear version of the branch, opened when the
+branch is created or rewritten and closed by the next rewriting push
+([ADR-021](../../adr/ADR-021-checkpoint-retention-generations.md)). It exists
+because a rebase gives one unit two truthful object ids — the commit it was
+verified as, and the reconstructed copy now on the branch — and a namespace with
+one slot per ordinal can hold only one of them while refs may not move. Each
+generation holds one of the two, and both promises hold at once.
+
+The current generation is **derived, never stored**: it is the highest-numbered
+generation present while all of its refs are ancestors of the branch tip. When
+one of them is not, that generation was closed by a rewrite and retention
+continues at the next number. A recorded generation would be a claim about a fact
+the refs already carry.
+
+Opening a generation is a step of the rewrite, in the same work unit: before the
+rewriting push completes, every completed commit of the rebased branch from the
+current generation's floor upward MUST be retained under the new generation.
+
+Three states MUST read differently, and conflating the last two is how this rule
+came to report `OK` over its own failure:
+
+| State | Verdict |
+| :-- | :-- |
+| The path's namespace is empty in this checkout | [inconclusive](./concepts/inconclusive-finding.md) — `refs/cairn/*` is fetched by no clone and no checkout action |
+| The branch's own commit range cannot be resolved | inconclusive — the generation is an ancestry question |
+| The current generation is empty while older ones exist | **blocking and definite** — the branch was rewritten and nothing has been retained since |
+
+A ref written before this notation has no generation segment. It MUST NOT be
+moved into one; it is judged for reachability only, and the objects it holds stay
+reachable, which is all it was ever asked to guarantee.
 
 A validator sees one commit and cannot observe "before the push". What it can
 require is that every declared unit **except the newest** is already retained:
@@ -1369,6 +1400,7 @@ Where a record is owed, repair supersedes it rather than replacing it.
 | An immutable record was edited | The edit cannot be undone by another edit. Add a superseding correction record naming both object ids and stating what was changed, and record the violation in the ledger. |
 | Branch force-pushed without retention | Recover the orphaned commits from reflog or any surviving ref and push them to `refs/cairn/checkpoints/` immediately. Ledger entries naming commits that cannot be recovered are marked `unrecoverable`, never deleted. |
 | A retention ref was moved | Restore it to the commit it originally named. Give the commit it was moved onto its own ordinal and its own ledger entry — moving a ref usually means a completed work unit was shipped under the previous unit's block, so both facts need repairing, not one. |
+| A rewriting push landed with no generation opened | Open the current generation from the rebased branch and retain every completed commit from the previous generation's floor upward. Move nothing: the previous generation keeps the commits its ledger rows were verified against, and the two answer different questions. |
 | A path branch declared `done` | Return the declaration to `ready` in a `repair` unit and re-run integration through the declared transport. `done` on a branch is a claim about the trunk that the branch cannot make. |
 | Scope digest mismatch at closing | Either restore the accepted text or record a scope amendment — a new opening acceptance with a new digest, naming the record it supersedes — then re-close. |
 | Work outside `writes:` already committed | Update the declaration and record the reason in the same repair unit. A widening that is recorded is ordinary; one that is hidden is the violation. |
@@ -1473,7 +1505,7 @@ not in a separate document a reader may never open.
 | Full object id in the repository's configured format | required | implemented; the checker accepts SHA-1 and SHA-256 ids and refuses every prefix | a repository configured for another object format |
 | Fail-closed critical inconclusive outcomes | required | implemented | complete trunk and comparison refs |
 | Existing session, audit, history, and journal immutability | required | implemented for new or changed records | complete comparison ref |
-| Checkpoint retention refs before any rewriting push | required | **partially implemented**; every declared unit except the newest must resolve a retention ref visible to the checkout, and every branch commit that is neither retained, provisional, nor `HEAD` is reported as orphaned. A namespace that is empty in this checkout is reported inconclusive rather than as absent refs, because the two are indistinguishable from inside one clone | the environment must FETCH `refs/cairn/*`, which no clone or checkout action does by default; a ref *moving* is unobservable to a single-commit validator — only the orphan it leaves behind is |
+| Checkpoint retention refs before any rewriting push | required | **implemented**; every declared unit except the newest must resolve a retention ref in the CURRENT generation, and every branch commit in `merge-base(trunk, HEAD)..HEAD` that is neither retained there, provisional, nor `HEAD` is reported as orphaned. The current generation is derived from ancestry; an empty one beside older generations is blocking and definite, while an unreadable namespace or branch range is inconclusive | the environment must FETCH `refs/cairn/*`, which no clone or checkout action does by default; a ref *moving* is unobservable to a single-commit validator — only the orphan it leaves behind is |
 | Marked provisional commits excluded from candidate identity | required | implemented; a ready path whose candidate range still contains a marked commit is blocked | the fold itself is not verified to preserve content |
 | Handoff-brief field schema and answerable-alone contract | required | **partially implemented**; the nine fields, the seven exact sections and pinned `governs` entries are checked. The token budget is retired (ADR-020 decision 6): what will not fit is linked, not compressed, and that is a judgement rather than a predicate | the answerable-alone contract is a judgement and a cold-resume harness, and is never claimed by a checker |
 | Field-level administrative closure surface | required | implemented; closure may move only `status`, `subject_commit`, `current_step` and `resolution` | ledger append-only proof, which remains a separate open row |
@@ -1654,7 +1686,7 @@ honest state of the work.
 | **Blocking** | `branch-identity` | diff | Detached checkout where branch cannot be identified from host or git ref | `branchSource === 'detached' (blocking on guarded roots, advisory on others)` |
 | **Blocking** | `branch-path` | diff | Path branch not declared by a running path file, or missing base_commit | `isPathBranch(branch) && (!match \|\| !PATH_BRANCH_STATUSES.includes(status) \|\| !isCommitPin(base))` |
 | **Blocking** | `brief-schema` | diff | The handoff brief is missing, or lacks its nine fields, its seven exact sections, or pinned governs entries | `briefErrors(front, body) over BRIEF_FIELDS and BRIEF_SECTIONS` |
-| **Blocking** | `checkpoint-retention` | diff | A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint — or the namespace is empty here and the question cannot be answered | `retentionDue(units) => retainedRefs.has(refs/cairn/checkpoints/<id>/<n>) (newest unit advisory; an empty namespace is inconclusive, not absent)` |
+| **Blocking** | `checkpoint-retention` | diff | A completed work unit has no retention ref in the current generation, the current generation is empty because a rewrite closed the last one, or the namespace or branch range cannot be read here and the question cannot be answered | `currentGeneration(retentionGenerations(refs), onBranch) => retainedRefs.has(refs/cairn/checkpoints/<id>/g<NN>/<n>), and unretainedCheckpoints over that generation (newest unit advisory; an unreadable namespace or range is inconclusive, an empty current generation is not)` |
 | **Blocking** | `closure-surface` | diff | An administrative closure commit changed a path field other than status, subject_commit, current_step or resolution | `closureFieldErrors(previousFront, currentFront) over CLOSURE_MUTABLE_FIELDS` |
 | **Blocking** | `coherence-audit` | corpus | Ready path lacks a filled coherence audit bound to its exact subject_commit | `cairn-audit --check --subject path.subject_commit` |
 | **Blocking** | `concept-orphan` | corpus | A concept note that no normative or learning text outside the wiki links to | `orphanConcepts(conceptFiles, links from documents outside the concepts folder)` |
@@ -1683,7 +1715,7 @@ honest state of the work.
 | *Advisory* | `base-parity` | diff | A path-branch run compared the working tree with HEAD instead of the branch with the trunk | `resolveBase() source is 'opt-out' or 'unresolvable' while isPathBranch(branch)` |
 | *Advisory* | `branch-identity` | diff | Detached checkout where branch cannot be identified from host or git ref | `branchSource === 'detached' (blocking on guarded roots, advisory on others)` |
 | *Advisory* | `brief-schema` | diff | The handoff brief is missing, or lacks its nine fields, its seven exact sections, or pinned governs entries | `briefErrors(front, body) over BRIEF_FIELDS and BRIEF_SECTIONS` |
-| *Advisory* | `checkpoint-retention` | diff | A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint — or the namespace is empty here and the question cannot be answered | `retentionDue(units) => retainedRefs.has(refs/cairn/checkpoints/<id>/<n>) (newest unit advisory; an empty namespace is inconclusive, not absent)` |
+| *Advisory* | `checkpoint-retention` | diff | A completed work unit has no retention ref in the current generation, the current generation is empty because a rewrite closed the last one, or the namespace or branch range cannot be read here and the question cannot be answered | `currentGeneration(retentionGenerations(refs), onBranch) => retainedRefs.has(refs/cairn/checkpoints/<id>/g<NN>/<n>), and unretainedCheckpoints over that generation (newest unit advisory; an unreadable namespace or range is inconclusive, an empty current generation is not)` |
 | *Advisory* | `concept-growth` | corpus | A change adds concept articles; reported so vocabulary growth is a visible decision | `addedConcepts(previousRef listing, current listing), diff-scoped to the concepts folder` |
 | *Advisory* | `decision-drift` | diff | Configured architecture changed without an ADR in the same changeset | `touched(architectureRoot) => touched(decisionRoot)` |
 | *Advisory* | `ledger-size` | diff | A path file in the diff exceeds the ledger token budget | `changed.includes(path.file) && path.tokens > LEDGER_TOKEN_BUDGET` |

@@ -1650,11 +1650,53 @@ Rebase-before-close therefore attacks resumability directly, and it does so at
 the exact moment the ledger is most complete.</p>
 <p>Before any rewriting push of a path branch, every commit the ledger names MUST
 already be reachable from a retention ref on the same remote:</p>
-<pre><code class="language-text">refs/cairn/checkpoints/&lt;path-id&gt;/&lt;n&gt;
+<pre><code class="language-text">refs/cairn/checkpoints/&lt;path-id&gt;/g&lt;NN&gt;/&lt;n&gt;
 </code></pre>
 <p><code>&lt;n&gt;</code> is the <code>unit</code> ordinal declared by the ledger entry, so a ledger entry and
 its retained ref name the same thing. Retention refs are append-only: once
 written, a ref MUST NOT be moved or deleted while the path record is retained.</p>
+<p><code>g&lt;NN&gt;</code> is the <strong>generation</strong> — one linear version of the branch, opened when the
+branch is created or rewritten and closed by the next rewriting push
+(<a href="../../adr/ADR-021-checkpoint-retention-generations.md">ADR-021</a>). It exists
+because a rebase gives one unit two truthful object ids — the commit it was
+verified as, and the reconstructed copy now on the branch — and a namespace with
+one slot per ordinal can hold only one of them while refs may not move. Each
+generation holds one of the two, and both promises hold at once.</p>
+<p>The current generation is <strong>derived, never stored</strong>: it is the highest-numbered
+generation present while all of its refs are ancestors of the branch tip. When
+one of them is not, that generation was closed by a rewrite and retention
+continues at the next number. A recorded generation would be a claim about a fact
+the refs already carry.</p>
+<p>Opening a generation is a step of the rewrite, in the same work unit: before the
+rewriting push completes, every completed commit of the rebased branch from the
+current generation’s floor upward MUST be retained under the new generation.</p>
+<p>Three states MUST read differently, and conflating the last two is how this rule
+came to report <code>OK</code> over its own failure:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">State</th>
+<th style="text-align:left">Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">The path’s namespace is empty in this checkout</td>
+<td style="text-align:left"><a href="#article-concept-inconclusive-finding" data-article="concept-inconclusive-finding" data-anchor="" class="wiki-link">inconclusive</a> — <code>refs/cairn/*</code> is fetched by no clone and no checkout action</td>
+</tr>
+<tr>
+<td style="text-align:left">The branch’s own commit range cannot be resolved</td>
+<td style="text-align:left">inconclusive — the generation is an ancestry question</td>
+</tr>
+<tr>
+<td style="text-align:left">The current generation is empty while older ones exist</td>
+<td style="text-align:left"><strong>blocking and definite</strong> — the branch was rewritten and nothing has been retained since</td>
+</tr>
+</tbody>
+</table>
+<p>A ref written before this notation has no generation segment. It MUST NOT be
+moved into one; it is judged for reachability only, and the objects it holds stay
+reachable, which is all it was ever asked to guarantee.</p>
 <p>A validator sees one commit and cannot observe “before the push”. What it can
 require is that every declared unit <strong>except the newest</strong> is already retained:
 the newest unit’s ref is written immediately after the commit that declares it,
@@ -2307,6 +2349,10 @@ Where a record is owed, repair supersedes it rather than replacing it.</p>
 <td style="text-align:left">Restore it to the commit it originally named. Give the commit it was moved onto its own ordinal and its own ledger entry — moving a ref usually means a completed work unit was shipped under the previous unit’s block, so both facts need repairing, not one.</td>
 </tr>
 <tr>
+<td style="text-align:left">A rewriting push landed with no generation opened</td>
+<td style="text-align:left">Open the current generation from the rebased branch and retain every completed commit from the previous generation’s floor upward. Move nothing: the previous generation keeps the commits its ledger rows were verified against, and the two answer different questions.</td>
+</tr>
+<tr>
 <td style="text-align:left">A path branch declared <code>done</code></td>
 <td style="text-align:left">Return the declaration to <code>ready</code> in a <code>repair</code> unit and re-run integration through the declared transport. <code>done</code> on a branch is a claim about the trunk that the branch cannot make.</td>
 </tr>
@@ -2521,7 +2567,7 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Checkpoint retention refs before any rewriting push</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; every declared unit except the newest must resolve a retention ref visible to the checkout, and every branch commit that is neither retained, provisional, nor <code>HEAD</code> is reported as orphaned. A namespace that is empty in this checkout is reported inconclusive rather than as absent refs, because the two are indistinguishable from inside one clone</td>
+<td style="text-align:left"><strong>implemented</strong>; every declared unit except the newest must resolve a retention ref in the CURRENT generation, and every branch commit in <code>merge-base(trunk, HEAD)..HEAD</code> that is neither retained there, provisional, nor <code>HEAD</code> is reported as orphaned. The current generation is derived from ancestry; an empty one beside older generations is blocking and definite, while an unreadable namespace or branch range is inconclusive</td>
 <td style="text-align:left">the environment must FETCH <code>refs/cairn/*</code>, which no clone or checkout action does by default; a ref <em>moving</em> is unobservable to a single-commit validator — only the orphan it leaves behind is</td>
 </tr>
 <tr>
@@ -2879,8 +2925,8 @@ honest state of the work.</p>
 <tr data-rule="checkpoint-retention" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>checkpoint-retention</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint — or the namespace is empty here and the question cannot be answered</td>
-<td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory; an empty namespace is inconclusive, not absent)</code></td>
+<td style="text-align:left">A completed work unit has no retention ref in the current generation, the current generation is empty because a rewrite closed the last one, or the namespace or branch range cannot be read here and the question cannot be answered</td>
+<td style="text-align:left"><code>currentGeneration(retentionGenerations(refs), onBranch) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/g&lt;NN&gt;/&lt;n&gt;), and unretainedCheckpoints over that generation (newest unit advisory; an unreadable namespace or range is inconclusive, an empty current generation is not)</code></td>
 </tr>
 <tr data-rule="closure-surface" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>closure-surface</code></td>
@@ -3053,8 +3099,8 @@ honest state of the work.</p>
 <tr data-rule="checkpoint-retention" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>checkpoint-retention</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint — or the namespace is empty here and the question cannot be answered</td>
-<td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory; an empty namespace is inconclusive, not absent)</code></td>
+<td style="text-align:left">A completed work unit has no retention ref in the current generation, the current generation is empty because a rewrite closed the last one, or the namespace or branch range cannot be read here and the question cannot be answered</td>
+<td style="text-align:left"><code>currentGeneration(retentionGenerations(refs), onBranch) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/g&lt;NN&gt;/&lt;n&gt;), and unretainedCheckpoints over that generation (newest unit advisory; an unreadable namespace or range is inconclusive, an empty current generation is not)</code></td>
 </tr>
 <tr data-rule="concept-growth" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>concept-growth</code></td>
@@ -4049,11 +4095,53 @@ Rebase-before-close therefore attacks resumability directly, and it does so at
 the exact moment the ledger is most complete.</p>
 <p>Before any rewriting push of a path branch, every commit the ledger names MUST
 already be reachable from a retention ref on the same remote:</p>
-<pre><code class="language-text">refs/cairn/checkpoints/&lt;path-id&gt;/&lt;n&gt;
+<pre><code class="language-text">refs/cairn/checkpoints/&lt;path-id&gt;/g&lt;NN&gt;/&lt;n&gt;
 </code></pre>
 <p><code>&lt;n&gt;</code> is the <code>unit</code> ordinal declared by the ledger entry, so a ledger entry and
 its retained ref name the same thing. Retention refs are append-only: once
 written, a ref MUST NOT be moved or deleted while the path record is retained.</p>
+<p><code>g&lt;NN&gt;</code> is the <strong>generation</strong> — one linear version of the branch, opened when the
+branch is created or rewritten and closed by the next rewriting push
+(<a href="../../adr/ADR-021-checkpoint-retention-generations.md">ADR-021</a>). It exists
+because a rebase gives one unit two truthful object ids — the commit it was
+verified as, and the reconstructed copy now on the branch — and a namespace with
+one slot per ordinal can hold only one of them while refs may not move. Each
+generation holds one of the two, and both promises hold at once.</p>
+<p>The current generation is <strong>derived, never stored</strong>: it is the highest-numbered
+generation present while all of its refs are ancestors of the branch tip. When
+one of them is not, that generation was closed by a rewrite and retention
+continues at the next number. A recorded generation would be a claim about a fact
+the refs already carry.</p>
+<p>Opening a generation is a step of the rewrite, in the same work unit: before the
+rewriting push completes, every completed commit of the rebased branch from the
+current generation’s floor upward MUST be retained under the new generation.</p>
+<p>Three states MUST read differently, and conflating the last two is how this rule
+came to report <code>OK</code> over its own failure:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">State</th>
+<th style="text-align:left">Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">The path’s namespace is empty in this checkout</td>
+<td style="text-align:left"><a href="#article-concept-inconclusive-finding" data-article="concept-inconclusive-finding" data-anchor="" class="wiki-link">inconclusive</a> — <code>refs/cairn/*</code> is fetched by no clone and no checkout action</td>
+</tr>
+<tr>
+<td style="text-align:left">The branch’s own commit range cannot be resolved</td>
+<td style="text-align:left">inconclusive — the generation is an ancestry question</td>
+</tr>
+<tr>
+<td style="text-align:left">The current generation is empty while older ones exist</td>
+<td style="text-align:left"><strong>blocking and definite</strong> — the branch was rewritten and nothing has been retained since</td>
+</tr>
+</tbody>
+</table>
+<p>A ref written before this notation has no generation segment. It MUST NOT be
+moved into one; it is judged for reachability only, and the objects it holds stay
+reachable, which is all it was ever asked to guarantee.</p>
 <p>A validator sees one commit and cannot observe “before the push”. What it can
 require is that every declared unit <strong>except the newest</strong> is already retained:
 the newest unit’s ref is written immediately after the commit that declares it,
@@ -4706,6 +4794,10 @@ Where a record is owed, repair supersedes it rather than replacing it.</p>
 <td style="text-align:left">Restore it to the commit it originally named. Give the commit it was moved onto its own ordinal and its own ledger entry — moving a ref usually means a completed work unit was shipped under the previous unit’s block, so both facts need repairing, not one.</td>
 </tr>
 <tr>
+<td style="text-align:left">A rewriting push landed with no generation opened</td>
+<td style="text-align:left">Open the current generation from the rebased branch and retain every completed commit from the previous generation’s floor upward. Move nothing: the previous generation keeps the commits its ledger rows were verified against, and the two answer different questions.</td>
+</tr>
+<tr>
 <td style="text-align:left">A path branch declared <code>done</code></td>
 <td style="text-align:left">Return the declaration to <code>ready</code> in a <code>repair</code> unit and re-run integration through the declared transport. <code>done</code> on a branch is a claim about the trunk that the branch cannot make.</td>
 </tr>
@@ -4920,7 +5012,7 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Checkpoint retention refs before any rewriting push</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; every declared unit except the newest must resolve a retention ref visible to the checkout, and every branch commit that is neither retained, provisional, nor <code>HEAD</code> is reported as orphaned. A namespace that is empty in this checkout is reported inconclusive rather than as absent refs, because the two are indistinguishable from inside one clone</td>
+<td style="text-align:left"><strong>implemented</strong>; every declared unit except the newest must resolve a retention ref in the CURRENT generation, and every branch commit in <code>merge-base(trunk, HEAD)..HEAD</code> that is neither retained there, provisional, nor <code>HEAD</code> is reported as orphaned. The current generation is derived from ancestry; an empty one beside older generations is blocking and definite, while an unreadable namespace or branch range is inconclusive</td>
 <td style="text-align:left">the environment must FETCH <code>refs/cairn/*</code>, which no clone or checkout action does by default; a ref <em>moving</em> is unobservable to a single-commit validator — only the orphan it leaves behind is</td>
 </tr>
 <tr>
@@ -5278,8 +5370,8 @@ honest state of the work.</p>
 <tr data-rule="checkpoint-retention" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>checkpoint-retention</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint — or the namespace is empty here and the question cannot be answered</td>
-<td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory; an empty namespace is inconclusive, not absent)</code></td>
+<td style="text-align:left">A completed work unit has no retention ref in the current generation, the current generation is empty because a rewrite closed the last one, or the namespace or branch range cannot be read here and the question cannot be answered</td>
+<td style="text-align:left"><code>currentGeneration(retentionGenerations(refs), onBranch) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/g&lt;NN&gt;/&lt;n&gt;), and unretainedCheckpoints over that generation (newest unit advisory; an unreadable namespace or range is inconclusive, an empty current generation is not)</code></td>
 </tr>
 <tr data-rule="closure-surface" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>closure-surface</code></td>
@@ -5452,8 +5544,8 @@ honest state of the work.</p>
 <tr data-rule="checkpoint-retention" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>checkpoint-retention</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint — or the namespace is empty here and the question cannot be answered</td>
-<td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory; an empty namespace is inconclusive, not absent)</code></td>
+<td style="text-align:left">A completed work unit has no retention ref in the current generation, the current generation is empty because a rewrite closed the last one, or the namespace or branch range cannot be read here and the question cannot be answered</td>
+<td style="text-align:left"><code>currentGeneration(retentionGenerations(refs), onBranch) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/g&lt;NN&gt;/&lt;n&gt;), and unretainedCheckpoints over that generation (newest unit advisory; an unreadable namespace or range is inconclusive, an empty current generation is not)</code></td>
 </tr>
 <tr data-rule="concept-growth" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>concept-growth</code></td>
@@ -6230,11 +6322,37 @@ side effect.</p>
 <h2 id="concept-checkpoint-retention--in-cairn" data-heading="in-cairn">In Cairn</h2>
 <p>Before any rewriting push of a path branch, every commit the ledger names MUST
 already be reachable from a retention ref on the same remote:</p>
-<pre><code class="language-text">refs/cairn/checkpoints/&lt;path-id&gt;/&lt;n&gt;
+<pre><code class="language-text">refs/cairn/checkpoints/&lt;path-id&gt;/g&lt;NN&gt;/&lt;n&gt;
 </code></pre>
 <p><code>&lt;n&gt;</code> is the ledger’s own ordinal for that checkpoint, so a ledger entry and its
 retained ref name the same thing. Retention refs are append-only: a ref, once
 pushed, is never moved or deleted while the path record is retained.</p>
+<h2 id="concept-checkpoint-retention--generations" data-heading="generations">Generations</h2>
+<p>Append-only and one slot per ordinal cannot both survive a rebase, and the rebase
+is the thing this concept exists to survive. After one, unit 13 exists twice: the
+commit it was verified as, and the reconstructed copy now on the branch. Both
+deserve retention — the first because the ledger row points at it, the second
+because the next rewrite will orphan it — and moving the ref to the second is how
+you lose the first.</p>
+<p><code>g&lt;NN&gt;</code> is a <strong>generation</strong>: one linear version of the branch, opened when the
+branch is created or rewritten, closed by the next rewriting push. Each
+generation holds one of the two commits, nothing moves, and both promises hold.</p>
+<p>Which generation is current is <strong>derived, not recorded</strong>: it is the highest one
+present while all of its refs are still ancestors of the branch tip. A rewrite
+announces itself — the refs it wrote stop being ancestors — so no counter has to
+be maintained and no participant has to remember. A recorded generation would be
+a claim about a fact the refs already carry, and a claim needs a rule of its own.</p>
+<p>Opening a generation belongs to the rewrite that forced it, in the same work
+unit: every completed commit of the rebased branch, from the current generation’s
+floor upward, is retained under the new number before the rewriting push
+completes.</p>
+<p>The <code>g</code> prefix is not decoration. A Git ref is a path, so a ref cannot be both a
+leaf and a directory: with an ordinal generation segment,
+<code>refs/cairn/checkpoints/&lt;id&gt;/01/14</code> is refused while the flat
+<code>refs/cairn/checkpoints/&lt;id&gt;/01</code> exists. Keeping the generation out of the
+ordinal alphabet is what lets refs written before this notation stay exactly
+where they are — judged for reachability, never moved into a generation.</p>
+<p>Settled by <a href="../../../adr/ADR-021-checkpoint-retention-generations.md">ADR-021</a>.</p>
 <p>A repository that cannot create or push that namespace has one other conforming
 option — forbid rewriting pushes on path branches entirely, and reach a current
 base by <a href="#article-concept-merge" data-article="concept-merge" data-anchor="" class="wiki-link">merge</a> instead of rebase. Silently rewriting without
@@ -6245,7 +6363,15 @@ an ordinary clone or a CI checkout action retrieves. Any environment that judges
 retention MUST fetch it explicitly:</p>
 <pre><code class="language-bash">git fetch origin '+refs/cairn/*:refs/cairn/*'
 </code></pre>
-<p>An environment that has not done so sees an empty namespace, and an empty
+<p><strong>An empty CURRENT GENERATION is a different claim, and the difference decides the
+verdict.</strong> An unfetched namespace and an unreadable branch range are both missing
+evidence. A current generation that is empty <em>while older generations sit beside
+it</em> is not: the namespace was read, the rewrite is visible in it, and nothing has
+been retained since. That state is blocking and definite. Reading it as “nothing
+to judge” is how the rule came to report <code>OK</code> at the exact moment the mandatory
+pre-merge rebase had orphaned everything — 41 of 55 commits below the floor, 13
+refs naming commits that had left the branch, gate green (CP-OPS-002 S08j).</p>
+<p>An environment that has not fetched the namespace sees it empty, and an empty
 namespace is <strong>missing evidence, not evidence of absence</strong> — the two are
 indistinguishable from inside one checkout, because listing refs under a
 namespace that was never fetched succeeds and prints nothing, exactly as listing
@@ -11306,11 +11432,53 @@ Rebase-before-close therefore attacks resumability directly, and it does so at
 the exact moment the ledger is most complete.</p>
 <p>Before any rewriting push of a path branch, every commit the ledger names MUST
 already be reachable from a retention ref on the same remote:</p>
-<pre><code class="language-text">refs/cairn/checkpoints/&lt;path-id&gt;/&lt;n&gt;
+<pre><code class="language-text">refs/cairn/checkpoints/&lt;path-id&gt;/g&lt;NN&gt;/&lt;n&gt;
 </code></pre>
 <p><code>&lt;n&gt;</code> is the <code>unit</code> ordinal declared by the ledger entry, so a ledger entry and
 its retained ref name the same thing. Retention refs are append-only: once
 written, a ref MUST NOT be moved or deleted while the path record is retained.</p>
+<p><code>g&lt;NN&gt;</code> is the <strong>generation</strong> — one linear version of the branch, opened when the
+branch is created or rewritten and closed by the next rewriting push
+(<a href="../../adr/ADR-021-checkpoint-retention-generations.md">ADR-021</a>). It exists
+because a rebase gives one unit two truthful object ids — the commit it was
+verified as, and the reconstructed copy now on the branch — and a namespace with
+one slot per ordinal can hold only one of them while refs may not move. Each
+generation holds one of the two, and both promises hold at once.</p>
+<p>The current generation is <strong>derived, never stored</strong>: it is the highest-numbered
+generation present while all of its refs are ancestors of the branch tip. When
+one of them is not, that generation was closed by a rewrite and retention
+continues at the next number. A recorded generation would be a claim about a fact
+the refs already carry.</p>
+<p>Opening a generation is a step of the rewrite, in the same work unit: before the
+rewriting push completes, every completed commit of the rebased branch from the
+current generation’s floor upward MUST be retained under the new generation.</p>
+<p>Three states MUST read differently, and conflating the last two is how this rule
+came to report <code>OK</code> over its own failure:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">State</th>
+<th style="text-align:left">Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">The path’s namespace is empty in this checkout</td>
+<td style="text-align:left"><a href="#article-concept-inconclusive-finding" data-article="concept-inconclusive-finding" data-anchor="" class="wiki-link">inconclusive</a> — <code>refs/cairn/*</code> is fetched by no clone and no checkout action</td>
+</tr>
+<tr>
+<td style="text-align:left">The branch’s own commit range cannot be resolved</td>
+<td style="text-align:left">inconclusive — the generation is an ancestry question</td>
+</tr>
+<tr>
+<td style="text-align:left">The current generation is empty while older ones exist</td>
+<td style="text-align:left"><strong>blocking and definite</strong> — the branch was rewritten and nothing has been retained since</td>
+</tr>
+</tbody>
+</table>
+<p>A ref written before this notation has no generation segment. It MUST NOT be
+moved into one; it is judged for reachability only, and the objects it holds stay
+reachable, which is all it was ever asked to guarantee.</p>
 <p>A validator sees one commit and cannot observe “before the push”. What it can
 require is that every declared unit <strong>except the newest</strong> is already retained:
 the newest unit’s ref is written immediately after the commit that declares it,
@@ -11963,6 +12131,10 @@ Where a record is owed, repair supersedes it rather than replacing it.</p>
 <td style="text-align:left">Restore it to the commit it originally named. Give the commit it was moved onto its own ordinal and its own ledger entry — moving a ref usually means a completed work unit was shipped under the previous unit’s block, so both facts need repairing, not one.</td>
 </tr>
 <tr>
+<td style="text-align:left">A rewriting push landed with no generation opened</td>
+<td style="text-align:left">Open the current generation from the rebased branch and retain every completed commit from the previous generation’s floor upward. Move nothing: the previous generation keeps the commits its ledger rows were verified against, and the two answer different questions.</td>
+</tr>
+<tr>
 <td style="text-align:left">A path branch declared <code>done</code></td>
 <td style="text-align:left">Return the declaration to <code>ready</code> in a <code>repair</code> unit and re-run integration through the declared transport. <code>done</code> on a branch is a claim about the trunk that the branch cannot make.</td>
 </tr>
@@ -12177,7 +12349,7 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Checkpoint retention refs before any rewriting push</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; every declared unit except the newest must resolve a retention ref visible to the checkout, and every branch commit that is neither retained, provisional, nor <code>HEAD</code> is reported as orphaned. A namespace that is empty in this checkout is reported inconclusive rather than as absent refs, because the two are indistinguishable from inside one clone</td>
+<td style="text-align:left"><strong>implemented</strong>; every declared unit except the newest must resolve a retention ref in the CURRENT generation, and every branch commit in <code>merge-base(trunk, HEAD)..HEAD</code> that is neither retained there, provisional, nor <code>HEAD</code> is reported as orphaned. The current generation is derived from ancestry; an empty one beside older generations is blocking and definite, while an unreadable namespace or branch range is inconclusive</td>
 <td style="text-align:left">the environment must FETCH <code>refs/cairn/*</code>, which no clone or checkout action does by default; a ref <em>moving</em> is unobservable to a single-commit validator — only the orphan it leaves behind is</td>
 </tr>
 <tr>
@@ -12535,8 +12707,8 @@ honest state of the work.</p>
 <tr data-rule="checkpoint-retention" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>checkpoint-retention</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint — or the namespace is empty here and the question cannot be answered</td>
-<td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory; an empty namespace is inconclusive, not absent)</code></td>
+<td style="text-align:left">A completed work unit has no retention ref in the current generation, the current generation is empty because a rewrite closed the last one, or the namespace or branch range cannot be read here and the question cannot be answered</td>
+<td style="text-align:left"><code>currentGeneration(retentionGenerations(refs), onBranch) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/g&lt;NN&gt;/&lt;n&gt;), and unretainedCheckpoints over that generation (newest unit advisory; an unreadable namespace or range is inconclusive, an empty current generation is not)</code></td>
 </tr>
 <tr data-rule="closure-surface" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>closure-surface</code></td>
@@ -12709,8 +12881,8 @@ honest state of the work.</p>
 <tr data-rule="checkpoint-retention" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>checkpoint-retention</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">A completed work unit has no retention ref, so a rewriting push would orphan its checkpoint — or the namespace is empty here and the question cannot be answered</td>
-<td style="text-align:left"><code>retentionDue(units) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;) (newest unit advisory; an empty namespace is inconclusive, not absent)</code></td>
+<td style="text-align:left">A completed work unit has no retention ref in the current generation, the current generation is empty because a rewrite closed the last one, or the namespace or branch range cannot be read here and the question cannot be answered</td>
+<td style="text-align:left"><code>currentGeneration(retentionGenerations(refs), onBranch) =&gt; retainedRefs.has(refs/cairn/checkpoints/&lt;id&gt;/g&lt;NN&gt;/&lt;n&gt;), and unretainedCheckpoints over that generation (newest unit advisory; an unreadable namespace or range is inconclusive, an empty current generation is not)</code></td>
 </tr>
 <tr data-rule="concept-growth" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>concept-growth</code></td>
@@ -13431,11 +13603,37 @@ side effect.</p>
 <h2 id="concept-checkpoint-retention--in-cairn" data-heading="in-cairn">In Cairn</h2>
 <p>Before any rewriting push of a path branch, every commit the ledger names MUST
 already be reachable from a retention ref on the same remote:</p>
-<pre><code class="language-text">refs/cairn/checkpoints/&lt;path-id&gt;/&lt;n&gt;
+<pre><code class="language-text">refs/cairn/checkpoints/&lt;path-id&gt;/g&lt;NN&gt;/&lt;n&gt;
 </code></pre>
 <p><code>&lt;n&gt;</code> is the ledger’s own ordinal for that checkpoint, so a ledger entry and its
 retained ref name the same thing. Retention refs are append-only: a ref, once
 pushed, is never moved or deleted while the path record is retained.</p>
+<h2 id="concept-checkpoint-retention--generations" data-heading="generations">Generations</h2>
+<p>Append-only and one slot per ordinal cannot both survive a rebase, and the rebase
+is the thing this concept exists to survive. After one, unit 13 exists twice: the
+commit it was verified as, and the reconstructed copy now on the branch. Both
+deserve retention — the first because the ledger row points at it, the second
+because the next rewrite will orphan it — and moving the ref to the second is how
+you lose the first.</p>
+<p><code>g&lt;NN&gt;</code> is a <strong>generation</strong>: one linear version of the branch, opened when the
+branch is created or rewritten, closed by the next rewriting push. Each
+generation holds one of the two commits, nothing moves, and both promises hold.</p>
+<p>Which generation is current is <strong>derived, not recorded</strong>: it is the highest one
+present while all of its refs are still ancestors of the branch tip. A rewrite
+announces itself — the refs it wrote stop being ancestors — so no counter has to
+be maintained and no participant has to remember. A recorded generation would be
+a claim about a fact the refs already carry, and a claim needs a rule of its own.</p>
+<p>Opening a generation belongs to the rewrite that forced it, in the same work
+unit: every completed commit of the rebased branch, from the current generation’s
+floor upward, is retained under the new number before the rewriting push
+completes.</p>
+<p>The <code>g</code> prefix is not decoration. A Git ref is a path, so a ref cannot be both a
+leaf and a directory: with an ordinal generation segment,
+<code>refs/cairn/checkpoints/&lt;id&gt;/01/14</code> is refused while the flat
+<code>refs/cairn/checkpoints/&lt;id&gt;/01</code> exists. Keeping the generation out of the
+ordinal alphabet is what lets refs written before this notation stay exactly
+where they are — judged for reachability, never moved into a generation.</p>
+<p>Settled by <a href="../../../adr/ADR-021-checkpoint-retention-generations.md">ADR-021</a>.</p>
 <p>A repository that cannot create or push that namespace has one other conforming
 option — forbid rewriting pushes on path branches entirely, and reach a current
 base by <a href="#article-concept-merge" data-article="concept-merge" data-anchor="" class="wiki-link">merge</a> instead of rebase. Silently rewriting without
@@ -13446,7 +13644,15 @@ an ordinary clone or a CI checkout action retrieves. Any environment that judges
 retention MUST fetch it explicitly:</p>
 <pre><code class="language-bash">git fetch origin '+refs/cairn/*:refs/cairn/*'
 </code></pre>
-<p>An environment that has not done so sees an empty namespace, and an empty
+<p><strong>An empty CURRENT GENERATION is a different claim, and the difference decides the
+verdict.</strong> An unfetched namespace and an unreadable branch range are both missing
+evidence. A current generation that is empty <em>while older generations sit beside
+it</em> is not: the namespace was read, the rewrite is visible in it, and nothing has
+been retained since. That state is blocking and definite. Reading it as “nothing
+to judge” is how the rule came to report <code>OK</code> at the exact moment the mandatory
+pre-merge rebase had orphaned everything — 41 of 55 commits below the floor, 13
+refs naming commits that had left the branch, gate green (CP-OPS-002 S08j).</p>
+<p>An environment that has not fetched the namespace sees it empty, and an empty
 namespace is <strong>missing evidence, not evidence of absence</strong> — the two are
 indistinguishable from inside one checkout, because listing refs under a
 namespace that was never fetched succeeds and prints nothing, exactly as listing

@@ -6,14 +6,15 @@ tags: [adr, cairn, protocol, retention, rebase, resumability, refs]
 timestamp: 2026-09-01T00:00:00Z
 adr:
   id: ADR-021
-  status: proposed
+  status: accepted
   date: 2026-09-01
 ---
 
 # ADR-021: Retention refs carry a generation
 
-Status: proposed
+Status: accepted
 Date: 2026-09-01
+Accepted: 2026-09-01, owner
 Amends: ADR-019 decision 1 (checkpoint retention precedes any rewriting push)
 Extends: ADR-012 (parallel paths, self-merge — the rebase gate), ADR-016 (enforcement integrity)
 
@@ -129,12 +130,20 @@ namespace could not do.
 
 ### 2. The current generation is derived from ancestry, never stored
 
-> The current generation is the highest-numbered generation all of whose refs are
-> ancestors of the branch tip.
+> The current generation is the highest-numbered generation present, while all of
+> its refs are ancestors of the branch tip. When one of them is not, that
+> generation was closed by a rewrite and the current generation is the next
+> number, which is empty until it is opened.
 
-A generation with even one ref that is not an ancestor of the tip has been closed
-by a rewrite, and retention continues at the next number. A path with no
-generation opens `g01`.
+A path with no generation opens `g01`.
+
+*Sharpened at implementation, before the rule was enforced.* The first drafting
+said "the highest-numbered generation all of whose refs are ancestors", which is
+the same sentence whenever generations are opened in order — always, under this
+protocol — and ambiguous when they are not: with an open `g03` sitting under a
+closed `g05`, it selects `g03` and writes new ordinals into a generation older
+than one already closed. Retention continues *after* the last generation, not in
+the newest one that happens to still fit.
 
 This is derived from two facts already in the checkout — the ref list and
 ancestry — and needs no counter, no field in the path record, and no memory

@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-002
   route: full            # control plane + decision plane; escalation is one-way
   status: running
-  current_step: S08j
+  current_step: S08k
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
   writes:                    # ADVISORY — a signal, never a lock
@@ -1235,6 +1235,82 @@ one: the flat slot for each is taken by the pre-rebase commit, which may not be
 moved. It would have shipped as a red gate with no green move available, which is
 how a team learns to switch a gate off.
 
+### S08k — Accepted, implemented, and the branch given a generation — **COMPLETE**
+
+```cairn-unit
+step: S08k
+unit: 29
+type: implementation
+verified: cairn-check, cairn-check:test, cairn-rules, cairn-spec:build, typecheck, test, build
+```
+
+Owner ruling on [`ADR-021`](../../docs/adr/ADR-021-checkpoint-retention-generations.md):
+**accepted**. The ADR, its predicates and the `g01` migration land together,
+because they are one change — the checker looks for `g<NN>` and this branch had
+none, so either half alone is a red gate with no green move, which is the exact
+reason S08j declined to land the range floor early.
+
+**What the predicates do now.** `retentionGenerations` splits a path's refs into
+generations and reports pre-notation refs *apart* rather than reclassifying them.
+`currentGeneration` derives the current one from ancestry. The per-unit check and
+the newest-unit advisory both name it, `unretainedCheckpoints` judges it, and the
+range floor moved from the declared `base_commit` to `merge-base(trunk, HEAD)`.
+
+**The one-line change that was the whole defect:**
+
+```diff
+   const oldest = commits.findIndex((commit) => retainedSet.has(commit))
+-  if (oldest === -1) return []
+-  return commits.slice(oldest)
++  return commits.slice(oldest === -1 ? 0 : oldest)
+```
+
+A retained set that does not touch the branch is not an absent subject; it is a
+branch on which nothing is retained. The floor existed to spare history older
+than the convention, and under decision 5 that history is outside the range
+already — so the guard had nothing left to protect and one thing left to hide.
+
+**An ambiguity was found while implementing, and the text was sharpened before
+the rule was enforced.** Decision 2 said *"the highest-numbered generation all of
+whose refs are ancestors of the tip"*. That is the same sentence as *"the highest
+generation present, if all of its refs are ancestors"* whenever generations open
+in order — always, under this protocol — and a different one when they do not:
+with an open `g03` under a closed `g05`, the first selects `g03` and writes new
+ordinals into a generation older than one already closed. Retention continues
+*after* the last generation. The ADR carries the operative sentence and a dated
+note saying which reading was taken and why; correcting an accepted decision
+after it has shipped would have been the more expensive half of this.
+
+**A third verdict state, because two were doing the work of three.** An unfetched
+namespace and an unreadable branch range are missing evidence and stay
+inconclusive. A current generation that is empty *beside older generations* is
+not missing anything — the namespace was read, the rewrite is visible in it, and
+nothing has been retained since. Blocking, definite, and carrying the move:
+*open `g<NN>` by retaining every completed commit of this branch, and move no
+existing ref.*
+
+**`g01` opened on this branch: 28 refs, nothing moved.** The migration script
+refuses to write at all unless every unit resolves to a distinct commit and no
+commit above the floor is left uncovered, and it refuses to overwrite an existing
+ref. Units 01–13 are the rebased copies matched to the orphaned flat refs by
+subject; 14–28 were already on the branch.
+
+```text
+g01/01  53b11f0  rebased copy of e787174
+...
+g01/28  6d92077  already on branch
+floor 53b11f0 at index 18/46; uncovered commits above the floor: 0
+flat refs before 28, after 28
+```
+
+The eighteen commits below the floor are steps S00–S07e, which predate retention
+and stay below it. Seven adversarial fixtures were added (214 → 221), each
+asserting `checkpoint-retention` by name: the pre-notation split, the three
+generation states, the `-1` regression with its measured history in the comment,
+the flat-refs-only migration message, a rewrite closing a generation, a unit
+resolving in the current generation rather than an older one, and an unreadable
+range reporting inconclusive.
+
 ### S09 — Greenfield pilot, coherence audit, closing ceremony, self-merge
 
 Initialize one real ex-nihilo repository from the kit — the research-paper workspace the
@@ -1302,7 +1378,12 @@ brief names — and fix what the pilot finds before merging.
 | A second substitution, found while measuring the first (S08j) | Ten of the 41 unjudged commits belong to other paths, six of them CP-UI-TYPOGRAPHY's, retained under its own path id. They are in range because the retention floor is the declared `base_commit` — where the path was *registered* — while after a rebase the path's own commits begin at the trunk tip. ADR-021 decision 5 moves the floor to `merge-base(trunk, HEAD)`; open hole 1 in `paths.md` is narrowed by it, not closed |
 | Git decided the notation (S08j) | A ref cannot be both a leaf and a directory, so any ordinal generation segment collides with the flat unit refs already pushed. Verified by probe — `refs/cairn/probe/01/14` is refused while `refs/cairn/probe/01` exists — and the probe refs were deleted in the same command. Hence `g<NN>`. **No retention ref was read for content, written, or moved in this unit** |
 | Deliberate non-implementation (S08j) | Decision 5 looks independent of generations and was measured for landing alone: with the floor at the merge-base, 31 of this path's 45 commits report unretained, all 31 are genuine completed steps with no provisional trailer among them, and no conforming way to retain any of them exists until generations do — each flat slot is held by the pre-rebase commit, which may not be moved. A red gate with no green move is how a team learns to switch a gate off |
-| Next action | **Owner ruling on [ADR-021](../../docs/adr/ADR-021-checkpoint-retention-generations.md).** If accepted, the implementing unit lands the six decisions together — the `g<NN>` namespace, the derived current generation, the three-state verdict replacing `findIndex → -1`, the merge-base floor, generation-scoped `retentionDue` — amends the `checkpoint-retention` concept note, and opens `g01` on this branch by retaining every completed commit from `53b11f0` upward: twenty-seven refs, one push, no deletion. Then ADR-020 stages 2–5, where stage 2 (the folder migration) supersedes the queued ledger roll |
+| Gates at S08k | `npm run cairn-check` OK, 13 advisory (unit 28's retention advisory is gone: the ref exists) · `npm run cairn-check:test` PASS, **221** subtests (214 → 221) · `node tools/cairn-rules.mjs --write` current · `npm run cairn-spec:build` deterministic · `npm run typecheck` PASS · product suite 1,109 passed / 1 skipped · `npm run build` PASS |
+| Owner ruling (S08k) | **ADR-021 accepted.** Implemented in the same unit rather than the next, because the checker looks for `g<NN>` and this branch had none: either half alone is a red gate with no green move, which is precisely why S08j declined to land decision 5 early |
+| An accepted sentence sharpened before it was enforced (S08k) | Decision 2 read *"the highest-numbered generation all of whose refs are ancestors"*, which is ambiguous when generations are not opened in order — it selects an open `g03` sitting under a closed `g05` and writes new ordinals into the older one. The operative sentence is *the highest generation present, if all of its refs are ancestors; otherwise the next number*. Changed in the ADR with a dated note naming both readings, at acceptance rather than after shipping |
+| `g01` opened, nothing moved (S08k) | 28 refs from `53b11f0` upward, units 01–13 being the rebased copies matched by subject to the orphaned flat refs. The script refuses to write unless every unit resolves to a distinct commit and no commit above the floor is uncovered, and refuses to overwrite any existing ref. Flat refs: 28 before, 28 after. The eighteen commits below the floor are S00–S07e, which predate retention |
+| Next action | **ADR-020 stage 2** — the `CP-OPS-002` folder migration, which supersedes the queued ledger roll and is what `ledger-size` has been advising about at ~19.9 k tokens. Then stages 3–5 (the checker's shape, the artefact classification, `cairn-init`), and S08 Part 2 — an adversarial fixture for every blocking rule, the two-context gate-parity test, and the generated conformance matrix. `cairn-init` must scaffold generation-aware retention from the start: a flat namespace handed to an adopter is a migration handed to an adopter |
+| Superseded next action (S08j, ruled) | **Owner ruling on [ADR-021](../../docs/adr/ADR-021-checkpoint-retention-generations.md).** If accepted, the implementing unit lands the six decisions together — the `g<NN>` namespace, the derived current generation, the three-state verdict replacing `findIndex → -1`, the merge-base floor, generation-scoped `retentionDue` — amends the `checkpoint-retention` concept note, and opens `g01` on this branch by retaining every completed commit from `53b11f0` upward: twenty-seven refs, one push, no deletion. Then ADR-020 stages 2–5, where stage 2 (the folder migration) supersedes the queued ledger roll |
 | Superseded next action (S08j, ruled on) | S08 Part 1 item 4 — the retention-generation question, an ADR before it is code. `ADR-021` is `proposed`; the code waits on the ruling, which is the same order S08d/S08g took with ADR-020 |
 | Superseded next action (S08i, done) | S08 Part 1 items 3, 3c and 4 — the derived-view rule keyed on declared `status` rather than the branch name; a record's filename date equal to its frontmatter `timestamp:`; and the retention-generation question, which is an ADR before it is code. Items 3 and 3c landed here; item 4 stays next, untouched, because design work does not belong in a repair unit |
 | Superseded next action (S08h, done) | S08 Part 1 items 1 and 2, both live on the trunk and neither blocked: `hasCeremony` must read the `ceremony:` frontmatter key instead of matching a filename, with a fixture rejecting a `done` path whose only session note is its opening check; then a predicate for the merge-time journal entry. ADR-020 stages 2–5 (the `CP-OPS-002` folder migration, the checker's shape, the artefact classification, `cairn-init`) follow, and stage 2 supersedes the queued ledger roll |

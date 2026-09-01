@@ -6,8 +6,8 @@ atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: cec817bd39d9c61052d9e67e9d6e0840b0c397cc
-  checkpoint_unit: 27
+  checkpoint: 6d92077e519f56b6699d6b53efedb8340920623d
+  checkpoint_unit: 28
   checkpoint_pushed: true
   base_commit: 7aa3b1d
   trunk_seen: dfcd09d
@@ -46,13 +46,12 @@ The specification is v0.2 and its predicates are implemented. The work since is
 about whether the rules are honest, not whether there are enough.
 
 **The finding that organises everything else:** every enforcement defect here is
-a proxy predicate substituted for the sentence the rule states. **One is still
-live and now has a design: `unretainedCheckpoints`** reports "nothing orphaned"
-once the retained set stops intersecting the branch, which is what the mandatory
-pre-merge rebase causes. The ref namespace could not express the fix, so it was
-an ADR first; `ADR-021` is written, `proposed`, and the ruling is the next action.
+a proxy predicate substituted for the sentence the rule states. **All of them are
+now closed.** The last, `unretainedCheckpoints`, reported "nothing orphaned" once
+the retained set stopped intersecting the branch — which is what the mandatory
+pre-merge rebase causes — and is repaired under `ADR-021`.
 
-**S08 so far — ten units.** Full records in the path file; what a resuming
+**S08 so far — eleven units.** Full records in the path file; what a resuming
 session needs from them:
 
 - The local gate defaults to the **trunk** base on a path branch (S08a).
@@ -79,30 +78,32 @@ session needs from them:
   the adding commit's author date. Item 4's figure had lost its date in transit
   and was three weeks out of true; the ADR was written on a fresh measurement.
 - **[`ADR-021`](../../docs/adr/ADR-021-checkpoint-retention-generations.md) is
-  `proposed` and awaits a ruling** (S08j). Retention refs gain a generation
-  (`.../g<NN>/<n>`), the current generation is derived from ancestry rather than
-  stored, an empty current generation becomes blocking instead of an exemption,
-  and the range floor becomes `merge-base(trunk, HEAD)`. **No predicate changed**;
-  read the ADR rather than a summary. Its migration opens `g01` on this branch
-  and **moves no existing ref**.
+  `accepted` and implemented** (S08j designed it, S08k landed it). Retention refs
+  carry a generation, `.../g<NN>/<n>`. What binds a resuming session: **the
+  current generation is derived from ancestry, never recorded** — do not add a
+  `generation:` field anywhere; **no retention ref is ever moved**, including the
+  flat pre-notation ones; **an empty current generation beside older ones is
+  blocking and definite**, distinct from an unreadable namespace or range, which
+  stay inconclusive; and the retention range is `merge-base(trunk, HEAD)..HEAD`,
+  not `base_commit..HEAD`. Read the ADR rather than a summary.
+- **This branch runs on `g01`, 28 refs from `53b11f0`** (S08k). The 28 flat refs
+  are untouched and stay that way. **After the next rebase, opening `g02` is part
+  of that rebase's work unit** — the gate will say so, and say it definitely.
 
-Refs 01–27 on the remote; 01–13 hold PRE-rebase commits and no ref was moved.
-Checker suite 214, specification suite 33.
+Flat refs 01–28 and `g01/01`–`g01/28` on the remote; flat 01–13 hold PRE-rebase
+commits and no ref has ever been moved. Checker suite 221, specification suite 33.
 
 ## Next action
 
-**Owner ruling on ADR-021.** If accepted, one implementing unit lands its six
-decisions together — the `g<NN>` namespace, the derived current generation, the
-three-state verdict that replaces `findIndex → -1`, the merge-base range floor,
-generation-scoped `retentionDue` — amends the `checkpoint-retention` concept
-note, and opens `g01` on this branch by retaining every completed commit from
-`53b11f0` upward: twenty-seven refs, one push, **no deletion and no repointing**.
-Expect the gate to go red between the code and the refs; that is the honest state,
-and it is why the two belong in one unit.
+**ADR-020 stage 2** — the `CP-OPS-002` folder migration. It supersedes the queued
+ledger roll and is what `ledger-size` has been advising about; the record is
+~19.9 k tokens against a 10 k budget.
 
-Then ADR-020 stages 2–5: the `CP-OPS-002` folder migration (which supersedes the
-queued ledger roll), the checker's shape, the artefact classification,
-`cairn-init`.
+Then stages 3–5 (the checker's shape, the artefact classification, `cairn-init`)
+and S08 Part 2: an adversarial fixture for every blocking rule, one gate run in
+both invocation contexts asserting one verdict, and a generated conformance
+matrix. `cairn-init` must scaffold generation-aware retention from the start — a
+flat namespace handed to an adopter is a migration handed to an adopter.
 
 ## Blockers
 

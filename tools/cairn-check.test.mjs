@@ -52,6 +52,8 @@ import {
   transitionErrors,
   retentionDue,
   unretainedCheckpoints,
+  retentionGenerations,
+  currentGeneration,
   workUnitErrors,
   resolveScopeSection,
   scopeDigest,
@@ -1580,8 +1582,15 @@ test('a finding never prints an unreadable wall of names', () => {
  * v0.2 — checkpoint retention
  * ------------------------------------------------------------------ */
 
-const ref = (n) => `${CHECKPOINT_REF_PREFIX}/cp-mvp-010/${n}`
+/** A generational retention ref (ADR-021). `flatRef` is the pre-notation shape,
+ *  kept because those refs exist on real remotes and are never moved. */
+const ref = (n, generation = 'g01') => `${CHECKPOINT_REF_PREFIX}/cp-mvp-010/${generation}/${n}`
+const flatRef = (n) => `${CHECKPOINT_REF_PREFIX}/cp-mvp-010/${n}`
 const UNITS = parseWorkUnits(LEDGER)
+/** The branch the retention fixtures are judged against. A generation is current
+ *  only while its refs are ancestors of the tip, so every fixture that expects a
+ *  generation to be OPEN has to put its commits on the branch. */
+const RETAINED_BRANCH = { pathCommits: [CANDIDATE, 'c9'], head: 'c9' }
 
 test('retention exempts only the newest unit, because its ref is written after the commit', () => {
   assert.deepEqual(retentionDue(UNITS).map((u) => u.unit), ['01'])
@@ -1592,6 +1601,7 @@ test('a completed unit with no retention ref is blocked, and the claim is confid
   // The namespace is VISIBLE — it holds another ref — so "unit 01 is not
   // retained" is a fact this checkout can actually establish.
   const found = run([UNIT_PATH.file], 'path/cp-mvp-010', [UNIT_PATH], {
+    ...RETAINED_BRANCH,
     workUnits: UNITS,
     retainedRefs: new Map([[ref('99'), CANDIDATE]])
   })
@@ -1609,6 +1619,7 @@ test('an EMPTY namespace is missing evidence, not evidence of absence', () => {
   // so CI reported eighteen refs missing while all eighteen sat on the remote,
   // and told the reader to create refs that already existed.
   const found = run([UNIT_PATH.file], 'path/cp-mvp-010', [UNIT_PATH], {
+    ...RETAINED_BRANCH,
     workUnits: UNITS,
     retainedRefs: new Map()
   })
@@ -1625,6 +1636,7 @@ test('an EMPTY namespace is missing evidence, not evidence of absence', () => {
 
 test('a retained completed unit passes, and the newest one is only advised', () => {
   const found = run([UNIT_PATH.file], 'path/cp-mvp-010', [UNIT_PATH], {
+    ...RETAINED_BRANCH,
     workUnits: UNITS,
     retainedRefs: new Map([[ref('01'), CANDIDATE]])
   })
@@ -1634,6 +1646,7 @@ test('a retained completed unit passes, and the newest one is only advised', () 
 
 test('unreadable retention refs are inconclusive and non-zero, never a pass', () => {
   const found = run([UNIT_PATH.file], 'path/cp-mvp-010', [UNIT_PATH], {
+    ...RETAINED_BRANCH,
     workUnits: UNITS,
     retainedRefs: null
   })
@@ -2245,6 +2258,125 @@ test('an orphaned checkpoint blocks the gate', () => {
     head: 'c4'
   })
   assert.ok(rules(found, 'blocking').includes('checkpoint-retention'))
+})
+
+/* ------------------------------------------------------------------ *
+ * ADR-021 — retention generations
+ * ------------------------------------------------------------------ */
+
+const gen = (entries) => retentionGenerations(new Map(entries), 'cp-mvp-010')
+
+test('a pre-notation ref is reported apart, never reclassified into a generation', () => {
+  // Refs written before ADR-021 sit flat. They are not moved — moving a
+  // retention ref is the violation the rule exists to catch — so they are
+  // reported separately and judged for reachability only.
+  const split = gen([[flatRef('01'), 'c1'], [ref('01'), 'c2'], [ref('02', 'g02'), 'c3']])
+  assert.deepEqual([...split.preNotation], [['01', 'c1']])
+  assert.deepEqual([...split.generations.keys()], ['g01', 'g02'])
+  assert.deepEqual([...split.generations.get('g01')], [['01', 'c2']])
+  // Another path's refs are not this path's, however similar the prefix looks.
+  assert.equal(gen([[`${CHECKPOINT_REF_PREFIX}/cp-mvp-011/g01/01`, 'c1']]).generations.size, 0)
+})
+
+test('the current generation is derived from ancestry, and a rewrite closes one', () => {
+  const onBranch = (set) => (oid) => set.has(oid)
+  const two = gen([[ref('01'), 'c1'], [ref('02'), 'c2'], [ref('01', 'g02'), 'c3']])
+
+  // g02 is highest and its refs are on the branch: it is current.
+  assert.deepEqual(
+    currentGeneration(two.generations, onBranch(new Set(['c1', 'c2', 'c3']))),
+    { name: 'g02', units: two.generations.get('g02'), state: 'open' }
+  )
+
+  // g02's ref has left the branch, which is what a rebase does. It is closed,
+  // and retention continues at g03 — which is empty until someone opens it.
+  const rewritten = currentGeneration(two.generations, onBranch(new Set(['c1', 'c2'])))
+  assert.equal(rewritten.state, 'rewritten')
+  assert.equal(rewritten.name, 'g03')
+  assert.equal(rewritten.closed, 'g02')
+  assert.equal(rewritten.units.size, 0)
+
+  // No generation at all opens g01 — including for a path whose only refs are flat.
+  const flatOnly = gen([[flatRef('01'), 'c1']])
+  assert.deepEqual(
+    currentGeneration(flatOnly.generations, onBranch(new Set(['c1']))),
+    { name: 'g01', units: new Map(), state: 'unopened' }
+  )
+})
+
+test('a retained set that does not touch the branch reports every commit, not none', () => {
+  // THE S08j REGRESSION. This returned [] — "no commits to judge" — which is the
+  // reading a rebase produces, and rebase-before-merge is mandatory. Measured on
+  // path/cp-ops-002 at the time: 41 of 55 commits below the floor, 13 refs
+  // naming commits that had left the branch, gate OK.
+  assert.deepEqual(
+    unretainedCheckpoints(CHAIN, ['x1', 'x2'], new Set(), 'c4'),
+    ['c1', 'c2', 'c3']
+  )
+})
+
+test('flat refs alone do not open a generation, and the finding says how to open one', () => {
+  const found = run([UNIT_PATH.file], 'path/cp-mvp-010', [UNIT_PATH], {
+    ...RETAINED_BRANCH,
+    workUnits: UNITS,
+    retainedRefs: new Map([[flatRef('01'), CANDIDATE]])
+  })
+  const retention = found.filter((f) => f.rule === 'checkpoint-retention')
+  assert.ok(rules(found, 'blocking').includes('checkpoint-retention'))
+  assert.equal(retention.length, 1, 'one finding about the generation, not one per unit')
+  assert.notEqual(retention[0].outcome, 'inconclusive',
+    'the namespace is visible, so this is a fact rather than missing evidence')
+  assert.match(retention[0].message, /g01/)
+  assert.match(retention[0].message, /predate the notation/)
+  assert.match(retention[0].message, /move no existing ref/)
+})
+
+test('a rewrite that empties the current generation blocks, and names the closed one', () => {
+  // g01's ref has left the branch. This is the exact state the mandatory
+  // pre-merge rebase produces, and it used to report OK.
+  const found = run([UNIT_PATH.file], 'path/cp-mvp-010', [UNIT_PATH], {
+    ...RETAINED_BRANCH,
+    workUnits: UNITS,
+    retainedRefs: new Map([[ref('01'), 'gone-in-the-rebase']])
+  })
+  const retention = found.filter((f) => f.rule === 'checkpoint-retention')
+  assert.ok(rules(found, 'blocking').includes('checkpoint-retention'))
+  assert.notEqual(retention[0].outcome, 'inconclusive')
+  assert.match(retention[0].message, /g02/)
+  assert.match(retention[0].message, /closed by a rewrite/)
+})
+
+test('a declared unit resolves in the CURRENT generation, not in an older one', () => {
+  // Unit 01 is retained — in g01, which the rebase closed. The commit it names
+  // stays reachable and answers what the ledger row was verified against; it
+  // does not answer whether the branch as it stands is retained.
+  const found = run([UNIT_PATH.file], 'path/cp-mvp-010', [UNIT_PATH], {
+    ...RETAINED_BRANCH,
+    workUnits: UNITS,
+    retainedRefs: new Map([
+      [ref('01'), 'pre-rebase'],
+      [ref('02', 'g02'), CANDIDATE]
+    ])
+  })
+  const retention = found.filter((f) => f.rule === 'checkpoint-retention')
+  assert.ok(rules(found, 'blocking').includes('checkpoint-retention'))
+  assert.match(retention[0].message, /unit 01/)
+  assert.match(retention[0].message, /g02\/01/)
+})
+
+test('an unreadable branch range makes the generation unknown, not violated', () => {
+  // Same lesson as the unfetched namespace: a checkout that cannot see the
+  // evidence reports inconclusive rather than a confident verdict.
+  const found = run([UNIT_PATH.file], 'path/cp-mvp-010', [UNIT_PATH], {
+    workUnits: UNITS,
+    retainedRefs: new Map([[ref('01'), CANDIDATE]]),
+    pathCommits: null
+  })
+  const retention = found.filter((f) => f.rule === 'checkpoint-retention')
+  assert.equal(retention.length, 1)
+  assert.equal(retention[0].level, 'blocking')
+  assert.equal(retention[0].outcome, 'inconclusive')
+  assert.match(retention[0].message, /commit range/)
 })
 
 test('a lightweight path that has already spanned two units must escalate', () => {

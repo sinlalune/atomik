@@ -22,6 +22,30 @@ per entry in a `log/` subfolder — which was a concurrency fix, never a size on
 
 ## 2026-09-01
 
+- `S08k` accepts `ADR-021` on the owner's ruling and implements it in the same
+  unit, because the code and the refs are one change: the checker looks for
+  `g<NN>` and the branch has none until `g01` is opened, so landing either alone
+  is a red gate with no green move.
+- Six decisions in the predicates. `retentionGenerations` splits a path's refs
+  into generations and reports pre-notation refs apart rather than reclassifying
+  them; `currentGeneration` derives the current one from ancestry; the per-unit
+  check and the newest-unit advisory both name the current generation;
+  `unretainedCheckpoints` judges that generation and no longer answers `[]` when
+  the retained set fails to touch the branch; and the range floor moved from the
+  declared `base_commit` to `merge-base(trunk, HEAD)`, which drops ten commits
+  belonging to other paths out of this path's range.
+- An ambiguity was found while implementing and the accepted text was sharpened
+  before the rule was enforced, not after. *"The highest generation all of whose
+  refs are ancestors"* and *"the highest generation, if all of its refs are
+  ancestors"* are the same sentence whenever generations open in order, and
+  differ when they do not — the first writes new ordinals into a generation older
+  than one already closed. Retention continues after the last generation.
+- `g01` opened on `path/cp-ops-002`: 28 refs, from unit 01's rebased copy
+  `53b11f0` upward, verified to leave no commit above the floor unretained. Every
+  flat ref stayed exactly where it was — 28 before, 28 after — which is the whole
+  point of a notation that cannot collide with them.
+
+
 - `S08j` proposes `ADR-021`, which gives retention refs a generation. The flat
   namespace `refs/cairn/checkpoints/<path-id>/<n>` holds one slot per unit, and a
   rebase gives every unit a second truthful object id — the commit the ledger row

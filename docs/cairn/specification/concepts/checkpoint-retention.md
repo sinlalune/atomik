@@ -32,12 +32,45 @@ Before any rewriting push of a path branch, every commit the ledger names MUST
 already be reachable from a retention ref on the same remote:
 
 ```text
-refs/cairn/checkpoints/<path-id>/<n>
+refs/cairn/checkpoints/<path-id>/g<NN>/<n>
 ```
 
 `<n>` is the ledger's own ordinal for that checkpoint, so a ledger entry and its
 retained ref name the same thing. Retention refs are append-only: a ref, once
 pushed, is never moved or deleted while the path record is retained.
+
+## Generations
+
+Append-only and one slot per ordinal cannot both survive a rebase, and the rebase
+is the thing this concept exists to survive. After one, unit 13 exists twice: the
+commit it was verified as, and the reconstructed copy now on the branch. Both
+deserve retention — the first because the ledger row points at it, the second
+because the next rewrite will orphan it — and moving the ref to the second is how
+you lose the first.
+
+`g<NN>` is a **generation**: one linear version of the branch, opened when the
+branch is created or rewritten, closed by the next rewriting push. Each
+generation holds one of the two commits, nothing moves, and both promises hold.
+
+Which generation is current is **derived, not recorded**: it is the highest one
+present while all of its refs are still ancestors of the branch tip. A rewrite
+announces itself — the refs it wrote stop being ancestors — so no counter has to
+be maintained and no participant has to remember. A recorded generation would be
+a claim about a fact the refs already carry, and a claim needs a rule of its own.
+
+Opening a generation belongs to the rewrite that forced it, in the same work
+unit: every completed commit of the rebased branch, from the current generation's
+floor upward, is retained under the new number before the rewriting push
+completes.
+
+The `g` prefix is not decoration. A Git ref is a path, so a ref cannot be both a
+leaf and a directory: with an ordinal generation segment,
+`refs/cairn/checkpoints/<id>/01/14` is refused while the flat
+`refs/cairn/checkpoints/<id>/01` exists. Keeping the generation out of the
+ordinal alphabet is what lets refs written before this notation stay exactly
+where they are — judged for reachability, never moved into a generation.
+
+Settled by [ADR-021](../../../adr/ADR-021-checkpoint-retention-generations.md).
 
 A repository that cannot create or push that namespace has one other conforming
 option — forbid rewriting pushes on path branches entirely, and reach a current
@@ -53,7 +86,16 @@ retention MUST fetch it explicitly:
 git fetch origin '+refs/cairn/*:refs/cairn/*'
 ```
 
-An environment that has not done so sees an empty namespace, and an empty
+**An empty CURRENT GENERATION is a different claim, and the difference decides the
+verdict.** An unfetched namespace and an unreadable branch range are both missing
+evidence. A current generation that is empty *while older generations sit beside
+it* is not: the namespace was read, the rewrite is visible in it, and nothing has
+been retained since. That state is blocking and definite. Reading it as "nothing
+to judge" is how the rule came to report `OK` at the exact moment the mandatory
+pre-merge rebase had orphaned everything — 41 of 55 commits below the floor, 13
+refs naming commits that had left the branch, gate green (CP-OPS-002 S08j).
+
+An environment that has not fetched the namespace sees it empty, and an empty
 namespace is **missing evidence, not evidence of absence** — the two are
 indistinguishable from inside one checkout, because listing refs under a
 namespace that was never fetched succeeds and prints nothing, exactly as listing

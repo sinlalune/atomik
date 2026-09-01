@@ -247,8 +247,21 @@ export const WORK_UNIT_TYPES = [
 /** The retention ref namespace. `<n>` is the ledger's own ordinal for the
  *  unit, so a ledger entry and its retained ref name the same thing without
  *  the entry having to contain an object id it cannot know until after it is
- *  committed. */
+ *  committed. `g<NN>` is the GENERATION — one linear version of the branch,
+ *  opened when the branch is created or rewritten (ADR-021).
+ *
+ *      refs/cairn/checkpoints/<path-id>/g<NN>/<n>
+ *
+ *  The `g` prefix is not decoration. A Git ref is a path, so a ref cannot be
+ *  both a leaf and a directory: with an ordinal generation segment,
+ *  `…/cp-ops-002/01/14` is refused while the flat `…/cp-ops-002/01` exists.
+ *  Keeping the generation out of the ordinal alphabet is what lets refs written
+ *  before this notation stay exactly where they are. */
 export const CHECKPOINT_REF_PREFIX = 'refs/cairn/checkpoints'
+
+/** A generation segment. Two digits is the notation; more are accepted rather
+ *  than silently reclassified as pre-notation. */
+export const GENERATION_SEGMENT = /^g(\d{2,4})$/
 
 /** The trailer that marks a pushed commit as deliberately incomplete. */
 export const PROVISIONAL_TRAILER = 'Cairn-Provisional'
@@ -1031,6 +1044,63 @@ export function workUnitErrors(unit) {
 }
 
 /**
+ * Split a path's retention refs into generations.
+ *
+ * A ref written before ADR-021 has no generation segment. It is NOT reclassified
+ * and NOT moved — moving a retention ref is the violation the whole rule exists
+ * to catch — so it is reported separately, under `preNotation`, and judged for
+ * reachability only. The flat namespace mixes two generations by construction
+ * and cannot be made internally consistent without moving something.
+ */
+export function retentionGenerations(refs, pathId) {
+  const prefix = `${CHECKPOINT_REF_PREFIX}/${String(pathId ?? '').toLowerCase()}/`
+  const generations = new Map()
+  const preNotation = new Map()
+  for (const [ref, oid] of refs ?? []) {
+    if (!ref.startsWith(prefix)) continue
+    const rest = ref.slice(prefix.length).split('/')
+    if (rest.length === 1) {
+      preNotation.set(rest[0], oid)
+      continue
+    }
+    if (rest.length !== 2 || !GENERATION_SEGMENT.test(rest[0])) continue
+    if (!generations.has(rest[0])) generations.set(rest[0], new Map())
+    generations.get(rest[0]).set(rest[1], oid)
+  }
+  return { generations, preNotation }
+}
+
+/**
+ * Which generation retention continues in, derived from ancestry rather than
+ * stored (ADR-021 decision 2).
+ *
+ * A generation is one linear version of the branch. It closes at the next
+ * rewriting push, and a rewrite is visible without being recorded: the refs it
+ * wrote stop being ancestors of the tip. So the highest generation present is
+ * the current one while all of its refs are still on the branch; when one is
+ * not, that generation is closed and retention continues at the next number,
+ * which is empty until someone opens it.
+ *
+ * A stored counter would be a claim, a claim needs a rule to check it, and the
+ * rule would have nothing to check it against but these same refs. That is why
+ * `base_commit` accuracy is still an open hole, and why this number is not
+ * written down anywhere.
+ */
+export function currentGeneration(generations, onBranch) {
+  const numbered = [...(generations ?? new Map()).keys()]
+    .map((name) => ({ name, n: Number.parseInt(GENERATION_SEGMENT.exec(name)?.[1] ?? '', 10) }))
+    .filter((entry) => Number.isInteger(entry.n))
+    .sort((a, b) => b.n - a.n)
+  const label = (n) => `g${String(n).padStart(2, '0')}`
+  if (numbered.length === 0) return { name: label(1), units: new Map(), state: 'unopened' }
+  const highest = numbered[0]
+  const units = generations.get(highest.name)
+  const open = [...units.values()].every((oid) => onBranch(oid))
+  if (open) return { name: highest.name, units, state: 'open' }
+  return { name: label(highest.n + 1), units: new Map(), state: 'rewritten', closed: highest.name }
+}
+
+/**
  * Commits on the path branch that were completed work and were never retained.
  *
  * `retentionDue` asks whether each DECLARED unit has a ref. That is not the same
@@ -1042,14 +1112,25 @@ export function workUnitErrors(unit) {
  * The range starts at the oldest retained checkpoint, because commits older than
  * the convention cannot be judged by it. HEAD is exempt for the same reason the
  * newest unit is: its ref is written after the commit that declares it.
+ *
+ * WHAT `-1` MEANS. This used to return `[]` when no retained commit was on the
+ * branch — "no commits to judge". That is the reading a rebase produces, and a
+ * rebase is mandatory before every merge, so the rule switched itself off at the
+ * one moment it was written for: 41 of 55 commits below the floor, 13 refs
+ * naming commits that had left the branch, gate `OK` (CP-OPS-002 S08j).
+ *
+ * A retained set that does not touch the branch is not an absent subject. It is
+ * a branch on which nothing is retained, which is the finding. The floor exists
+ * to spare history older than the convention, and under ADR-021 that history is
+ * already outside the range — the range now starts at the path's own first
+ * commit, not at its registration base.
  */
 export function unretainedCheckpoints(commits, retained, provisional = new Set(), head = null) {
   const retainedSet = new Set(retained)
   if (retainedSet.size === 0) return []
   const oldest = commits.findIndex((commit) => retainedSet.has(commit))
-  if (oldest === -1) return []
   return commits
-    .slice(oldest)
+    .slice(oldest === -1 ? 0 : oldest)
     .filter((commit) =>
       commit !== head && !retainedSet.has(commit) && !provisional.has(commit))
 }
@@ -1816,6 +1897,16 @@ export function evaluate({
   if (onPath && match && workUnits != null) {
     const id = String(match.front.id ?? '').toLowerCase()
     const due = retentionDue(workUnits)
+    // Which generation retention continues in is an ANCESTRY question, so a
+    // checkout that cannot resolve this branch's own commit range cannot answer
+    // it. That is missing evidence, and it gets the same treatment as an
+    // unfetched namespace rather than a confident verdict about a range nobody
+    // could read.
+    const branchOids = pathCommits == null ? null : new Set(pathCommits)
+    const split = retentionGenerations(retainedRefs ?? new Map(), id)
+    const generation = branchOids == null
+      ? null
+      : currentGeneration(split.generations, (oid) => branchOids.has(oid))
     // AN EMPTY NAMESPACE IS NOT AN ANSWER.
     //
     // `git for-each-ref refs/cairn/...` over a namespace that was never fetched
@@ -1841,9 +1932,28 @@ export function evaluate({
         `Either the namespace was never fetched (\`git fetch origin '+${CHECKPOINT_REF_PREFIX}/*:${CHECKPOINT_REF_PREFIX}/*'\`, which \`actions/checkout\` does NOT do) ` +
         'or the refs were never written. This checkout cannot tell which, and missing evidence is not a pass',
         'inconclusive')
+    } else if (generation == null && due.length > 0) {
+      add('blocking', 'checkpoint-retention',
+        `cannot resolve this branch's own commit range against the trunk, so the current retention generation for ${id} is unknown while ${match.file} declares ${due.length} unit(s) due retention — fetch the trunk and the complete path history, then rerun the gate`,
+        'inconclusive')
+    } else if (generation != null && generation.state !== 'open' && due.length > 0) {
+      // AN EMPTY CURRENT GENERATION IS THE FINDING, NOT THE ABSENCE OF ONE.
+      //
+      // Distinct from the inconclusive case above, and the distinction is the
+      // whole of ADR-021 decision 4. There, the namespace could not be seen. Here
+      // it is seen, older generations are in it, and the current one is empty —
+      // which is exactly what a rewriting push leaves behind. The instruction is
+      // specific because a finding nobody can act on is one people learn to
+      // scroll past.
+      const why = generation.state === 'rewritten'
+        ? `${generation.closed} stopped being an ancestor of this branch, so it was closed by a rewrite`
+        : `no generation has been opened for this path, and ${split.preNotation.size} ref(s) predate the notation`
+      add('blocking', 'checkpoint-retention',
+        `${CHECKPOINT_REF_PREFIX}/${id}/${generation.name}/ is empty while ${match.file} declares ${due.length} unit(s) due retention — ${why}. ` +
+        `Open ${generation.name} by retaining every completed commit of this branch at ${CHECKPOINT_REF_PREFIX}/${id}/${generation.name}/<unit>, and move no existing ref`)
     } else {
       for (const unit of due) {
-        const ref = `${CHECKPOINT_REF_PREFIX}/${id}/${unit.unit}`
+        const ref = `${CHECKPOINT_REF_PREFIX}/${id}/${generation?.name}/${unit.unit}`
         if (!retainedRefs.has(ref)) {
           add('blocking', 'checkpoint-retention',
             `${match.file} declares unit ${unit.unit} (${unit.step}) with no retention ref at ${ref} — create it before any rewriting push, or the next rebase orphans that checkpoint`)
@@ -1855,8 +1965,11 @@ export function evaluate({
     // quieter voice, and the inconclusive finding above already says what is
     // actually known.
     const newest = workUnits.at(-1)
-    const newestRef = newest ? `${CHECKPOINT_REF_PREFIX}/${id}/${newest.unit}` : null
-    if (newest && retainedRefs != null && !invisible && !retainedRefs.has(newestRef)) {
+    const newestRef = newest && generation
+      ? `${CHECKPOINT_REF_PREFIX}/${id}/${generation.name}/${newest.unit}`
+      : null
+    if (newestRef && retainedRefs != null && !invisible && generation.state === 'open' &&
+        !retainedRefs.has(newestRef)) {
       add('advisory', 'checkpoint-retention',
         `unit ${newest.unit} has no retention ref yet — write ${newestRef} once this commit exists, before the next rebase`)
     }
@@ -1864,9 +1977,12 @@ export function evaluate({
     // Every declared unit resolving a ref is NOT the same as every completed
     // commit being retained: a ref moved forward leaves the commit it used to
     // name unretained while every unit still checks out.
-    if (pathCommits != null && retainedRefs != null) {
+    // Judged against the CURRENT generation only. Earlier generations answer the
+    // other question — what a ledger row was verified against — and their refs
+    // are deliberately off this branch.
+    if (pathCommits != null && retainedRefs != null && generation?.state === 'open') {
       const orphaned = unretainedCheckpoints(
-        pathCommits, retainedRefs.values(), provisionalCommitOids, head
+        pathCommits, generation.units.values(), provisionalCommitOids, head
       )
       if (orphaned.length > 0) {
         add('blocking', 'checkpoint-retention',
@@ -2393,9 +2509,25 @@ function provisionalCommits(from, to) {
 }
 
 /** Path-branch commits, oldest first, from the registered base to HEAD. */
-function branchCommits(base) {
-  if (!isCommitPin(base)) return null
-  const raw = gitOrNull(['log', '--format=%H', '--reverse', `${base}..HEAD`])
+/**
+ * The path's OWN commits, oldest first.
+ *
+ * The floor is `merge-base(<trunk>, HEAD)`, not the declared `base_commit`
+ * (ADR-021 decision 5). `base_commit` is where the path was REGISTERED; after a
+ * rebase the path's commits begin at the trunk tip the branch was rebased onto,
+ * and everything between the two belongs to whoever landed it. Measured on
+ * `path/cp-ops-002`: ten commits in the old range were other paths', six of them
+ * CP-UI-TYPOGRAPHY's, retained under its own path id. Judging them here would
+ * mean either ten false findings or an exemption for the state that caused them.
+ *
+ * A trunk that cannot be resolved — a shallow clone, a checkout with no trunk —
+ * makes the range unknown, and unknown returns null so the caller reports
+ * inconclusive rather than a pass.
+ */
+function branchCommits(trunkRef) {
+  const floor = gitOrNull(['merge-base', trunkRef, 'HEAD'])
+  if (!isCommitPin(floor)) return null
+  const raw = gitOrNull(['log', '--format=%H', '--reverse', `${floor}..HEAD`])
   if (raw == null) return null
   return raw.split('\n').map((line) => line.trim()).filter(Boolean)
 }
@@ -2911,7 +3043,7 @@ function main() {
       briefFor: briefRecord,
       redactionRecordExists: redactionIndex(),
       retainedRefs: retainedCheckpointRefs(pathForBranch?.front?.id),
-      pathCommits: pathForBranch ? branchCommits(pathForBranch.front?.base_commit) : null,
+      pathCommits: pathForBranch ? branchCommits(trunkRef) : null,
       provisionalCommitOids: provisionalOids(pathForBranch?.front?.base_commit),
       head: gitOrNull(['rev-parse', 'HEAD']),
       provisionalInCandidate: pathForBranch
