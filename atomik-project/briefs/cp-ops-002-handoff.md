@@ -6,8 +6,8 @@ atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: fbfce25888c8b3355247032ae43d45bda57331d6
-  checkpoint_unit: 29
+  checkpoint: 9b3a6d1f6bbed07ed1319a8441a2e649b1c4f33d
+  checkpoint_unit: 31
   checkpoint_pushed: true
   base_commit: 7aa3b1d
   trunk_seen: dfcd09d
@@ -51,7 +51,7 @@ now closed.** The last, `unretainedCheckpoints`, reported "nothing orphaned" onc
 the retained set stopped intersecting the branch — which is what the mandatory
 pre-merge rebase causes — and is repaired under `ADR-021`.
 
-**S08 so far — twelve units.** Full records in the path file; what a resuming
+**S08 so far — thirteen units.** Full records in the path file; what a resuming
 session needs from them:
 
 - The local gate defaults to the **trunk** base on a path branch (S08a).
@@ -99,9 +99,18 @@ session needs from them:
   moved); **a step record is append-only wherever it sits**; and a record may be
   RELOCATED — links repointed, text appended, nothing else — which the checker
   tells from a rewrite by normalising link targets away and requiring a prefix.
+- **Dates follow renames** (S08m). `record-date` asked when a file's PATH first
+  appeared and called it when the record was written, so every relocated record
+  was accused of the migration's own date — nineteen false advisories, the same
+  substitution as the three blocking rules above, one volume down. `--follow`
+  fixes it, and the rule still reports a genuinely misdated new record.
 
-Flat refs 01–28 and `g01/01`–`g01/28` on the remote; flat 01–13 hold PRE-rebase
-commits and no ref has ever been moved. Checker suite 221, specification suite 33.
+The gate's advisory COUNT is a signal even while the verdict stays green: S08l
+read 14 before its commit and 31 after, for one tree, and the only reason to look
+was that the number moved.
+
+Flat refs 01–28 and `g01/01`–`g01/31` on the remote; flat 01–13 hold PRE-rebase
+commits and no ref has ever been moved. Checker suite 226, specification suite 33.
 
 ## Next action
 
