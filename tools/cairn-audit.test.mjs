@@ -11,6 +11,7 @@ import { test } from 'node:test'
 import {
   auditBindingErrors,
   auditName,
+  auditPathRecordFiles,
   auditTemplate,
   fillErrors,
   findAudit,
@@ -25,6 +26,21 @@ const PARENT = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
 const TRUNK = 'dddddddddddddddddddddddddddddddddddddddd'
 
 const files = [auditName(PATH, HEAD), auditName(PATH, PARENT)]
+
+test('audit path discovery sees flat and born-sliced records', () => {
+  const entries = [
+    { name: 'CP-FLAT.md', isDirectory: () => false },
+    { name: 'CP-SLICED', isDirectory: () => true },
+    { name: 'README.md', isDirectory: () => false }
+  ]
+  assert.deepEqual(auditPathRecordFiles(entries), [
+    'CP-FLAT.md',
+    'CP-SLICED/index.md'
+  ])
+  assert.deepEqual(auditPathRecordFiles(entries, (file) => file !== 'CP-SLICED/index.md'), [
+    'CP-FLAT.md'
+  ])
+})
 
 test('the host-resolved branch overrides detached HEAD for audit checks', () => {
   assert.equal(resolveAuditBranch(['node', 'audit', '--branch', 'path/cp-mvp-010'], 'HEAD'),

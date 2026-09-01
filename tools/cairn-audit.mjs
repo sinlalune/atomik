@@ -32,14 +32,16 @@
 
 import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { readFrontmatter } from './cairn-check.mjs'
-
-const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const AUDIT_DIR = 'atomik-project/audits'
-const PATH_DIR = 'atomik-project/coding-paths'
-const SESSION_DIR = 'atomik-project/sessions'
+import {
+  AUDIT_DIR,
+  METADATA_NAMESPACE,
+  PATH_DIR,
+  SESSION_DIR,
+  readFrontmatter
+} from './cairn-check.mjs'
+import { REPO, metadataOf } from './cairn-config.mjs'
 
 const PLACEHOLDER = 'TO BE FILLED BY THE AUDITING AGENT'
 
@@ -52,10 +54,10 @@ export function auditName(pathId, subjectCommit) {
 
 export function auditTemplate({ pathId, branch, subjectCommit, base }) {
   return `---
-type: Atomik Coherence Audit
+type: Cairn Coherence Audit
 title: Coherence audit — ${pathId} @ ${subjectCommit.slice(0, 7)}
 timestamp: ${new Date().toISOString()}
-atomik:
+${METADATA_NAMESPACE}:
   path: ${pathId}
   branch: ${branch}
   subject_commit: ${subjectCommit}
@@ -161,7 +163,7 @@ export function fillErrors(text) {
   const errors = []
   if (text.includes(PLACEHOLDER)) errors.push('still carries the scaffold placeholder')
 
-  const verdict = String(readFrontmatter(text)?.data?.atomik?.verdict ?? '').trim()
+  const verdict = String(metadataOf(readFrontmatter(text)?.data)?.verdict ?? '').trim()
   if (!verdict) errors.push('no `verdict:` in its frontmatter')
   else if (!VERDICT_STEMS.some((stem) => verdict.toLowerCase().startsWith(stem)))
     errors.push(
@@ -190,7 +192,7 @@ function git(args) {
  * subject to HEAD or to any earlier path commit.
  */
 export function findAudit(files, subjectCommit, pathId) {
-  if (!/^[0-9a-f]{40}$/i.test(String(subjectCommit))) return undefined
+  if (!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i.test(String(subjectCommit))) return undefined
   const expected = auditName(pathId, subjectCommit)
   return files.find((file) => file === expected)
 }
@@ -199,24 +201,39 @@ export function auditBindingErrors(
   text,
   { pathId, subjectCommit, branch = null, baseCommit = null }
 ) {
-  const front = readFrontmatter(text)?.data?.atomik
+  const front = metadataOf(readFrontmatter(text)?.data)
   const errors = []
-  if (!front) return ['missing atomik audit frontmatter']
-  if (front.path !== pathId) errors.push(`atomik.path must equal ${pathId}`)
+  if (!front) return [`missing ${METADATA_NAMESPACE} audit frontmatter`]
+  if (front.path !== pathId) errors.push(`${METADATA_NAMESPACE}.path must equal ${pathId}`)
   if (front.subject_commit !== subjectCommit) {
-    errors.push(`atomik.subject_commit must equal ${subjectCommit}`)
+    errors.push(`${METADATA_NAMESPACE}.subject_commit must equal ${subjectCommit}`)
   }
-  if (branch && front.branch !== branch) errors.push(`atomik.branch must equal ${branch}`)
+  if (branch && front.branch !== branch) {
+    errors.push(`${METADATA_NAMESPACE}.branch must equal ${branch}`)
+  }
   if (baseCommit && front.base !== baseCommit) {
-    errors.push(`atomik.base must equal ${baseCommit}`)
+    errors.push(`${METADATA_NAMESPACE}.base must equal ${baseCommit}`)
   }
   return errors
 }
 
+/** Both conforming path-record shapes. Kept pure so the folder-born shape
+ * cannot disappear from the audit command without a focused test failing. */
+export function auditPathRecordFiles(entries, exists = () => true) {
+  return entries
+    .filter((entry) => entry.name.startsWith('CP-'))
+    .map((entry) => entry.isDirectory() ? join(entry.name, 'index.md') : entry.name)
+    .filter((file) => file.endsWith('.md') && exists(file))
+}
+
 function currentPath(branch) {
   const dir = join(REPO, PATH_DIR)
-  for (const name of readdirSync(dir).filter((f) => f.startsWith('CP-') && f.endsWith('.md'))) {
-    const front = readFrontmatter(readFileSync(join(dir, name), 'utf8'))?.data?.atomik
+  const records = auditPathRecordFiles(
+    readdirSync(dir, { withFileTypes: true }),
+    (file) => existsSync(join(dir, file))
+  )
+  for (const file of records) {
+    const front = metadataOf(readFrontmatter(readFileSync(join(dir, file), 'utf8'))?.data)
     if (front?.branch === branch) return front
   }
   return null
@@ -229,7 +246,9 @@ function closingSubject(pathId) {
       const data = readFrontmatter(readFileSync(join(REPO, SESSION_DIR, name), 'utf8'))?.data
       if (data?.path !== pathId || String(data?.ceremony).toLowerCase() !== 'closing') continue
       if (data?.decision !== 'accepted') continue
-      if (/^[0-9a-f]{40}$/i.test(String(data?.subject_commit))) subject = data.subject_commit
+      if (/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i.test(String(data?.subject_commit))) {
+        subject = data.subject_commit
+      }
     }
     return subject
   } catch {
@@ -260,9 +279,9 @@ function main() {
       ? process.argv[process.argv.indexOf('--subject') + 1]
       : null
     const subject = explicitSubject || closingSubject(front.id)
-    if (!/^[0-9a-f]{40}$/i.test(String(subject))) {
+    if (!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i.test(String(subject))) {
       console.error(
-        `cairn-audit — no accepted 40-character subject_commit for ${front.id}; ` +
+        `cairn-audit — no accepted full subject_commit for ${front.id}; ` +
         'record the exact closing candidate or pass --subject <sha>')
       process.exit(1)
     }

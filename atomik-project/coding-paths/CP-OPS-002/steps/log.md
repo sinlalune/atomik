@@ -18,6 +18,9 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-01
 
+- `S08p` installs and validates the schema-1 host binding, routes the checker,
+  active view and audit scaffold through it, and prints the effective binding
+  without claiming the still-missing installer, updater or schema migrations.
 - `S08o` moves the per-session procedure into the portable Cairn reference,
   separates Atomik's binding from the portable `paths.md`, removes bedrock 00
   from the protocol start route, and retains both former combined pages as

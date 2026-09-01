@@ -24,6 +24,7 @@ import {
   filenameDate,
   recordDateFindings,
   duplicatePathIdentityFindings,
+  effectiveBinding,
   openingFromSessions,
   evaluate,
   globToRegExp,
@@ -48,6 +49,12 @@ import {
   orphanConcepts,
   addedConcepts,
   namesForReading,
+  CONCEPTS_DIR,
+  GUARDED_ROOTS,
+  METADATA_NAMESPACE,
+  PROJECT_DIR,
+  REMOTE,
+  TRUNK_BRANCH,
   TRUNK_BASE_CANDIDATES,
   staleRunningPaths,
   stripCode,
@@ -84,6 +91,7 @@ import {
   PROVISIONAL_TRAILER,
   WORK_UNIT_TYPES
 } from './cairn-check.mjs'
+import { CAIRN_CONFIG, slash } from './cairn-config.mjs'
 
 const A_PATH = {
   file: 'atomik-project/coding-paths/CP-MVP-010.md',
@@ -98,6 +106,22 @@ const A_PATH = {
 }
 
 const CANDIDATE = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+
+test('the checker exposes the installed host binding instead of parallel constants', () => {
+  assert.equal(TRUNK_BRANCH, CAIRN_CONFIG.trunk)
+  assert.equal(REMOTE, CAIRN_CONFIG.remote)
+  assert.equal(METADATA_NAMESPACE, CAIRN_CONFIG.metadataNamespace)
+  assert.equal(PROJECT_DIR, CAIRN_CONFIG.roots.project)
+  assert.equal(CONCEPTS_DIR, CAIRN_CONFIG.roots.concepts)
+  assert.deepEqual(GUARDED_ROOTS, CAIRN_CONFIG.roots.source.map(slash))
+  assert.deepEqual(TRUNK_BASE_CANDIDATES, [
+    `${CAIRN_CONFIG.remote}/${CAIRN_CONFIG.trunk}`,
+    CAIRN_CONFIG.trunk
+  ])
+  assert.deepEqual(effectiveBinding().sourceRoots, CAIRN_CONFIG.roots.source)
+  assert.equal(effectiveBinding().enforcementProfile, CAIRN_CONFIG.enforcementProfile)
+  assert.equal(effectiveBinding().defaultRoute, CAIRN_CONFIG.defaultRoute)
+})
 
 const acceptedRecord = (pathId = A_PATH.front.id, subject = CANDIDATE) => ({
   path: pathId,
@@ -1364,6 +1388,22 @@ test('an invalid declared type blocks even when a block is present', () => {
   assert.ok(rules(found, 'blocking').includes('work-unit'))
 })
 
+test('a no-rewrite host disables retention, not typed work-unit validation', () => {
+  const missing = run([UNIT_PATH.file], 'path/cp-mvp-010', [UNIT_PATH], {
+    workUnits: [],
+    retentionEnabled: false
+  })
+  assert.ok(rules(missing, 'blocking').includes('work-unit'))
+  assert.ok(!rules(missing, 'blocking').includes('checkpoint-retention'))
+
+  const valid = run([UNIT_PATH.file], 'path/cp-mvp-010', [UNIT_PATH], {
+    workUnits: [{ step: 'S01', unit: '01', type: 'implementation', verified: 'all' }],
+    retentionEnabled: false
+  })
+  assert.ok(!rules(valid, 'blocking').includes('work-unit'))
+  assert.ok(!rules(valid, 'blocking').includes('checkpoint-retention'))
+})
+
 /* ------------------------------------------------------------------ *
  * S08 finding 2 — the merge-time journal entry had no predicate
  *
@@ -2090,6 +2130,19 @@ test('escalation is one-way and an unknown route is rejected', () => {
     previousFronts: new Map([[descended.file, { ...descended.front, route: 'full' }]])
   })
   assert.ok(rules(found, 'blocking').includes('route'))
+})
+
+test('an omitted route is rejected and names the configured new-path default', () => {
+  const implicit = {
+    ...A_PATH,
+    front: { ...A_PATH.front }
+  }
+  delete implicit.front.route
+  implicit.writes = ['README.md']
+  const found = run(['README.md'], 'path/cp-mvp-010', [implicit])
+  assert.ok(rules(found, 'blocking').includes('route'))
+  assert.match(found.find((finding) => finding.rule === 'route').message,
+    new RegExp(`configured default.*${CAIRN_CONFIG.defaultRoute}`))
 })
 
 test("a foundation path's write surface is documents and the paths it produces", () => {

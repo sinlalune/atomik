@@ -42,8 +42,10 @@ For each row it records `pass`, `fail`, `inconclusive`, `host-dependent`, or
 - [ ] Incomplete work under review is a pushed commit carrying
       `Cairn-Provisional:`, not an uncommitted working tree.
 - [ ] Every declared unit except the newest resolves a retention ref at
-      `refs/cairn/checkpoints/<path-id>/<unit>`, or the repository forbids
-      rewriting pushes on path branches.
+      `refs/cairn/checkpoints/<path-id>/g<NN>/<unit>` in the current generation,
+      or the repository forbids rewriting pushes on path branches.
+- [ ] The current generation is derived from ref ancestry, and a rewriting push
+      opens the next generation without moving any earlier ref.
 - [ ] Those refs are pushed, so retention survives the machine that wrote it.
 - [ ] No retention ref has been moved or deleted while its path record is
       retained.
@@ -115,6 +117,8 @@ For each row it records `pass`, `fail`, `inconclusive`, `host-dependent`, or
       transports.
 - [ ] A `protected` claim independently protects control-plane changes.
 - [ ] Configuration and record schemas are versioned.
+- [ ] Configuration is validated before repository rules run; unknown versions,
+      fields, and unsafe paths fail rather than falling back to host constants.
 - [ ] Runtime, package manager, Git, shell, path-normalisation, installation,
       update, and migration requirements are published.
 - [ ] Transactional `init`, `new`, and `close` commands are either present or
@@ -127,14 +131,12 @@ For each row it records `pass`, `fail`, `inconclusive`, `host-dependent`, or
 ## Reference v0.2 result
 
 The current reference tools satisfy only the subset marked “implemented” in the
-[canonical matrix](../index.md#current-conformance). Every requirement added in
-v0.2 — checkpoint retention, provisional commits, the brief contract,
-field-level closure, scope digests, the drift predicate, structured
-dispositions, recorded roles, blocking scope drift, typed work units, routes,
-repair, and redaction — is canonical and **not implemented** by those tools.
-They also do not yet satisfy portable configuration, ledger-prefix proof,
-protected transport, independent control-plane protection, transaction commands,
-or a measured general-release pilot.
+[canonical matrix](../index.md#current-conformance). That matrix distinguishes
+implemented predicates from partial schema or judgement contracts and remains
+the authoritative inventory. Schema-1 configuration loading is now installed,
+but portable installation, update and schema migration are not. Flat-ledger
+prefix proof, protected transport, independent control-plane protection,
+transaction commands, and a measured general-release pilot also remain open.
 
 A conformance report that marks any of those rows `pass` on the strength of the
 reference tools alone is wrong. They can be satisfied by a repository's practice

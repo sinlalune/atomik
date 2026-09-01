@@ -18,6 +18,9 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-01
 
+- `S08p` makes the S08o adapter boundary executable. Atomik's concrete roots,
+  trunk, remote, metadata key, area notes and retention policy now live in one
+  validated schema-1 binding consumed by all three repository-reading tools.
 - `S08o` applies ADR-020 migration stage 4. Required reading is now two portable
   execution documents plus one Atomik binding; the product constitution leaves
   the unconditional route, while both former combined pages remain linked as

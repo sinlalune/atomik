@@ -11,6 +11,16 @@ timestamp: 2026-08-26T00:00:00Z
 The companion entry point is [index.md](./index.md). This log records changes to
 the documentation project; it is not part of the protocol's normative prose.
 
+## 2026-09-01 — the host binding becomes executable
+
+Schema 1, its JSON Schema and a dependency-free loader now bind portable Cairn
+roles to one repository before the checker, active view or audit scaffold reads
+state. The tools consume configured roots, source areas, trunk, remote, metadata
+namespace, route default, digest and retention policy, and the checker prints
+the effective binding and enforcement profile. The conformance matrix remains
+narrow: schema migrations, install/update mechanics, generated adapters and
+transport tests are still open, and `cairn-init` is the next unit.
+
 ## 2026-09-01 — portable protocol, host constitution, named binding
 
 ADR-020's PORTABLE / HOST / BINDING classification is now the installed entry

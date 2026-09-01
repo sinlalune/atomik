@@ -66,6 +66,7 @@ born here, one complete record per step.
 - **[S08m](./S08m.md)** — A fifth rule dated a record by the commit that moved it — COMPLETE
 - **[S08n](./S08n.md)** — An append is not a rewrite, and the baseline belongs to the record — COMPLETE
 - **[S08o](./S08o.md)** — The protocol moves, and the host becomes an adapter — COMPLETE
+- **[S08p](./S08p.md)** — The host binding becomes executable — COMPLETE
 
 ## Which commit landed which step
 

@@ -64,7 +64,7 @@ export function extractRules(source) {
 export const RULE_METADATA = {
   'route': {
     condition: 'A path declares no route, an unknown route, a lightweight route that meets a full-route trigger, a foundation surface outside documents, or a descent from full',
-    enforcing: 'fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)'
+    enforcing: 'configured new-path default + fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)'
   },
   'brief-schema': {
     condition: 'The handoff brief is missing, or lacks its nine fields, its seven exact sections, or pinned governs entries',
@@ -172,7 +172,7 @@ export const RULE_METADATA = {
   },
   'same-work-unit': {
     condition: 'Source changed without accompanying module note and coding path update',
-    enforcing: 'touched(GUARDED_ROOTS) => touched(docs/modules/) && touched(PATH_DIR)'
+    enforcing: 'touched(configured source roots) => touched(configured modules root) && touched(PATH_DIR)'
   },
   'area-note': {
     condition: 'Subsystem source changed without touching matching area module note',

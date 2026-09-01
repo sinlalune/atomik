@@ -441,9 +441,13 @@ test('cairn-spec: repository reference exhaustively maps the installed Cairn str
   const layout = readFileSync(LAYOUT, 'utf8')
   for (const installed of [
     'AGENTS.md',
+    'cairn.config.json',
     'package.json',
     '.github/workflows/cairn.yml',
     'tools/cairn-check.mjs',
+    'tools/cairn-config.mjs',
+    'tools/cairn-config.schema.json',
+    'tools/cairn-config.test.mjs',
     'tools/cairn-active.mjs',
     'tools/cairn-audit.mjs',
     'tools/cairn-rules.mjs',
@@ -468,8 +472,11 @@ test('cairn-spec: repository reference exhaustively maps the installed Cairn str
     assert.ok(existsSync(join(REPO, installed)), 'reference binding is missing ' + installed)
   }
   for (const required of [
+    'cairn.config.json',
     '.github/workflows/cairn.yml',
     'tools/cairn-check.mjs',
+    'tools/cairn-config.mjs',
+    'tools/cairn-config.schema.json',
     'tools/cairn-active.mjs',
     'tools/cairn-audit.mjs',
     'tools/cairn-rules.mjs',
@@ -502,7 +509,7 @@ test('cairn-spec: repository reference exhaustively maps the installed Cairn str
   assert.doesNotMatch(layout, /sources\/|projects\/|frozen compatibility archive/)
 
   assert.match(layout, /This tree is exhaustive for active Cairn-defined files, folder roles, and refs/)
-  assert.match(layout, /`cairn\.config\.json` is not shown because it is a specified portability\s+target, not an installed reference file/)
+  assert.match(layout, /`cairn\.config\.json`, its schema, and its loader are shown because the\s+reference tools now consume that binding/)
   assert.doesNotMatch(layout, /atomik/i)
   assert.match(layout, /project\/coding-paths\/binding\.md/)
 

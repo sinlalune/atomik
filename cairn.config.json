@@ -1,0 +1,104 @@
+{
+  "$schema": "./tools/cairn-config.schema.json",
+  "version": 1,
+  "trunk": "master",
+  "remote": "origin",
+  "metadataNamespace": "atomik",
+  "enforcementProfile": "ci",
+  "roots": {
+    "documentation": "docs",
+    "project": "atomik-project",
+    "architecture": "docs/bedrock",
+    "decisions": "docs/adr",
+    "modules": "docs/modules",
+    "concepts": "docs/cairn/specification/concepts",
+    "source": ["apps", "packages", "shared"]
+  },
+  "areas": [
+    {
+      "name": "graph",
+      "match": [
+        "apps/desktop/shared/graph-core*",
+        "apps/desktop/electron-main/graph-index*",
+        "**/*relations*"
+      ],
+      "note": "docs/modules/atomik-desktop-graph.md"
+    },
+    {
+      "name": "editor",
+      "match": ["apps/desktop/renderer/src/editor/**"],
+      "note": "docs/modules/atomik-desktop-editor.md"
+    },
+    {
+      "name": "sources",
+      "match": [
+        "apps/desktop/electron-main/capture*",
+        "apps/desktop/electron-main/pdf*",
+        "apps/desktop/electron-main/web*",
+        "apps/desktop/electron-main/transcription*",
+        "apps/desktop/electron-main/whisper*",
+        "apps/desktop/electron-main/ocr*",
+        "apps/desktop/electron-main/mistral-ocr*",
+        "apps/desktop/electron-main/scan-filter*",
+        "apps/desktop/electron-main/reader-worker*",
+        "apps/desktop/renderer/src/source/**",
+        "apps/desktop/renderer/src/web/**",
+        "apps/desktop/renderer/src/import/**"
+      ],
+      "note": "docs/modules/atomik-desktop-sources.md"
+    },
+    {
+      "name": "ai",
+      "match": [
+        "apps/desktop/electron-main/ai-*",
+        "apps/desktop/electron-main/generation*",
+        "apps/desktop/electron-main/mistral-generation*",
+        "apps/desktop/electron-main/action-trace*",
+        "apps/desktop/electron-main/truth*",
+        "apps/desktop/electron-main/web-provenance*"
+      ],
+      "note": "docs/modules/atomik-desktop-ai.md"
+    },
+    {
+      "name": "vault",
+      "match": [
+        "apps/desktop/shared/retrieval-core*",
+        "apps/desktop/electron-main/vault*",
+        "apps/desktop/electron-main/search*",
+        "apps/desktop/electron-main/retrieval*",
+        "apps/desktop/electron-main/project*",
+        "apps/desktop/electron-main/folder-index*",
+        "apps/desktop/renderer/src/vault/**",
+        "apps/desktop/renderer/src/project/**"
+      ],
+      "note": "docs/modules/atomik-desktop-vault.md"
+    },
+    {
+      "name": "shell",
+      "match": ["apps/desktop/**"],
+      "note": "docs/modules/atomik-desktop-shell.md"
+    }
+  ],
+  "sharedFiles": [
+    "atomik-project/coding-paths/ACTIVE.md",
+    "atomik-project/coding-paths/index.md",
+    "atomik-project/log.md",
+    "docs/modules/atomik-desktop.md",
+    "docs/learning/index.md",
+    "docs/diagrams/index.md"
+  ],
+  "staleAfterDays": 14,
+  "defaultRoute": "lightweight",
+  "checkpointRetentionRef": "refs/cairn/checkpoints",
+  "pathHistoryPolicy": "retained",
+  "scopeDigestAlgorithm": "sha256",
+  "transport": {
+    "registration": "manual-git",
+    "integration": "manual-git"
+  },
+  "migration": {
+    "unregisteredPaths": ["CP-OPS-001", "CP-MVP-011", "CP-MVP-012"],
+    "undeclaredOpenings": ["CP-MVP-011", "CP-MVP-012"],
+    "v02Records": ["CP-OPS-002", "CP-MVP-008"]
+  }
+}

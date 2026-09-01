@@ -315,7 +315,7 @@ what to read first. It MUST point separately to the PORTABLE
 [execution protocol](./reference/execution-protocol.md), the portable path
 convention, and one human-readable host binding appendix. HOST architecture is
 selected by the path's documentation coverage; it is not required merely
-because a coding session began. `cairn.config.json` is the intended
+because a coding session began. `cairn.config.json` is the versioned
 machine-readable binding of portable role names to repository paths. The
 workflow and `cairn-*` tools form the executable control plane. Three optional
 [project-memory](./concepts/project-memory.md) spaces may accompany execution:
@@ -336,6 +336,8 @@ repository/
 │       └── cairn.yml
 ├── tools/
 │   ├── cairn-check.<runtime>
+│   ├── cairn-config.<runtime>
+│   ├── cairn-config.schema.json
 │   ├── cairn-active.<runtime>
 │   ├── cairn-audit.<runtime>
 │   ├── cairn-rules.<runtime>
@@ -430,8 +432,11 @@ the ledger names reachable after a path branch is rewritten. They are files in
 no directory listing, and a repository that forgets they exist will
 garbage-collect exactly the history its ledger promised.
 
-`cairn.config.json` is the specified portable binding file. It is part of the
-protocol layout but is not yet loaded or installed by the v0.2 reference tools.
+`cairn.config.json` is the specified portable binding file. The schema-1
+reference loader validates it before the checker, active-view generator, or
+audit scaffold evaluates repository state. Distribution, schema migrations, and
+host-adapter generation remain open; loading one installed binding is not the
+same claim as portable installation and update.
 
 The names used throughout this specification — `project/`,
 `docs/architecture/` — are **role names**, not required folder names. A
@@ -1497,11 +1502,13 @@ collapse; it is between a weakness that is written down and one that is
 invisible until an incident finds it.
 
 The versioned [configuration reference](./reference/configuration.md) specifies
-portable role bindings. The current reference checker remains bound to one
-repository layout and a deliberately limited frontmatter subset; it does not
-yet implement that portable configuration contract. A conforming portable
-implementation MUST either use a standard YAML parser or publish and validate a
-distinct format without calling it full YAML.
+portable role bindings. The current checker, active-view generator, and audit
+scaffold consume one schema-1 host binding, while installation, updates,
+schema-to-schema migrations, and transport tests remain unimplemented. The
+reference frontmatter reader is a deliberately named subset rather than a claim
+of full YAML. A conforming portable implementation MUST either use a standard
+YAML parser or publish and validate a distinct format without calling it full
+YAML.
 
 ## Deliberate non-goals
 
@@ -1556,12 +1563,12 @@ not in a separate document a reader may never open.
 | Recorded roles and the collapsed-actor advisory | required | **partially implemented**; a shared opening/closing actor is reported | `accepted_roles` itself is recorded and not yet validated |
 | `scope-drift` blocking unless the declaration moves in the same commit | required | implemented; drift blocks unless `writes:` moved in the same change | none |
 | Typed work units keyed to their required parts | required | **partially implemented**; the `cairn-unit` block and its type vocabulary are checked | `same-work-unit` does not yet key its requirement to the declared type |
-| `lightweight` default route and one-way escalation | required | **partially implemented**; the vocabulary, the three structural triggers, the second-unit backstop and one-way escalation are checked | the *high-risk* trigger is a policy and stays declared; the multi-unit trigger is caught one unit late rather than in advance |
+| `lightweight` default route and one-way escalation | required | **partially implemented**; the configured new-path default is reported when an explicit route is missing, and the vocabulary, three structural triggers, second-unit backstop and one-way escalation are checked | `cairn-init` / `cairn-new` do not yet write the configured default; the *high-risk* trigger is policy and the multi-unit trigger is caught one unit late |
 | `foundation` and adoption routes | required | **partially implemented**; the route is declarable and its write surface is confined to documents and the path records it produces | the adoption variant is a use of the same route, not a separate predicate |
 | Repair procedures for protocol violations | required | **not implemented**; procedural, with no predicate proposed | none — repair is recorded, not gated |
 | Redaction ceremony | required | **partially implemented**; every `[redacted: …]` marker must name a redaction record that exists | rotation-first ordering is a procedure, not a predicate |
 | Live-ledger prefix and verbatim-roll proof | required | **partially implemented**; a born-sliced step record is followed through renames to its adding blob, which must remain a prefix of the current file. Flat live-ledger prefix and verbatim-roll proof remain open | explicit markers/schema for flat ledgers and rolls |
-| Versioned portable configuration and schema migration | required for portable profile | **not implemented** | configuration loader and migrations |
+| Versioned portable configuration and schema migration | required for portable profile | **partially implemented**; schema 1, its JSON Schema, strict dependency-free validation, configured checker/active/audit bindings, and effective profile/binding output are installed | schema-to-schema migrations, install/update mechanics, generated adapters, and transport tests |
 | Exact protected integration transport | required for protected profile | **not installed or tested** | repository-host adapter |
 | Independently protected control plane | required for protected profile | **not installed or tested** | host ownership/approval policy |
 | Transactional `init`, `new`, and `close` commands | required before general release | **not implemented** | command tooling |
@@ -1737,8 +1744,8 @@ honest state of the work.
 | **Blocking** | `redaction` | diff | A `[redacted: …]` marker names no redaction record (code spans and fences stripped first) | `redactionMarkers(stripCode(text)) => redaction record exists` |
 | **Blocking** | `registration` | diff | Path declaration tuple (id, running, branch, base) missing from trunk | `pathRegistrationState() === 'missing' (blocking) or declared migration exception (advisory)` |
 | **Blocking** | `registration-base` | diff | Path base_commit cannot be proved to equal the registration commit parent | `pathRegistrationBaseState() === 'mismatch' \| null` |
-| **Blocking** | `route` | diff | A path declares no route, an unknown route, a lightweight route that meets a full-route trigger, a foundation surface outside documents, or a descent from full | `fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)` |
-| **Blocking** | `same-work-unit` | diff | Source changed without accompanying module note and coding path update | `touched(GUARDED_ROOTS) => touched(docs/modules/) && touched(PATH_DIR)` |
+| **Blocking** | `route` | diff | A path declares no route, an unknown route, a lightweight route that meets a full-route trigger, a foundation surface outside documents, or a descent from full | `configured new-path default + fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)` |
+| **Blocking** | `same-work-unit` | diff | Source changed without accompanying module note and coding path update | `touched(configured source roots) => touched(configured modules root) && touched(PATH_DIR)` |
 | **Blocking** | `schema` | corpus | Path or ADR frontmatter fails parsing, or an id/status/date is outside vocabulary | `pathFrontmatterErrors(front) + adrFrontmatterErrors(front, file, bodyStatus)` |
 | **Blocking** | `scope-digest` | diff | The accepted definition of done moved after acceptance, or was accepted without a digest | `scopeDigest(resolveScopeSection(pathRecord, scope_ref)) === record.scope_digest` |
 | **Blocking** | `scope-drift` | diff | Changed files outside path frontmatter declared writes: patterns | `!matchesAny(file, declaredWrites)` |
@@ -1762,7 +1769,7 @@ honest state of the work.
 | *Advisory* | `registration` | diff | Path declaration tuple (id, running, branch, base) missing from trunk | `pathRegistrationState() === 'missing' (blocking) or declared migration exception (advisory)` |
 | *Advisory* | `remote-checkpoint` | diff | Local path HEAD not present on upstream tracking branch | `pathRemoteCheckpoint(branch).state === 'missing' \| 'unpushed'` |
 | *Advisory* | `role-collapse` | diff | One actor recorded both the opening and the closing acceptance for a path | `opening.accepted_by === closing.accepted_by (advisory: visible, never forbidden)` |
-| *Advisory* | `route` | diff | A path declares no route, an unknown route, a lightweight route that meets a full-route trigger, a foundation surface outside documents, or a descent from full | `fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)` |
+| *Advisory* | `route` | diff | A path declares no route, an unknown route, a lightweight route that meets a full-route trigger, a foundation surface outside documents, or a descent from full | `configured new-path default + fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)` |
 | *Advisory* | `scope-digest` | diff | The accepted definition of done moved after acceptance, or was accepted without a digest | `scopeDigest(resolveScopeSection(pathRecord, scope_ref)) === record.scope_digest` |
 | *Advisory* | `scope-drift` | diff | Changed files outside path frontmatter declared writes: patterns | `!matchesAny(file, declaredWrites)` |
 | *Advisory* | `single-truth` | diff | Manual edits to shared/derived statements of record | `SINGLE_TRUTH.includes(file)` |

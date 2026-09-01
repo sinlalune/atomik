@@ -1323,7 +1323,7 @@ what to read first. It MUST point separately to the PORTABLE
 <a href="#article-reference-execution-protocol" data-article="reference-execution-protocol" data-anchor="" class="wiki-link">execution protocol</a>, the portable path
 convention, and one human-readable host binding appendix. HOST architecture is
 selected by the path’s documentation coverage; it is not required merely
-because a coding session began. <code>cairn.config.json</code> is the intended
+because a coding session began. <code>cairn.config.json</code> is the versioned
 machine-readable binding of portable role names to repository paths. The
 workflow and <code>cairn-*</code> tools form the executable control plane. Three optional
 <a href="#article-concept-project-memory" data-article="concept-project-memory" data-anchor="" class="wiki-link">project-memory</a> spaces may accompany execution:
@@ -1341,6 +1341,8 @@ knowledge may add other folders without changing Cairn:</p>
 │       └── cairn.yml
 ├── tools/
 │   ├── cairn-check.&lt;runtime&gt;
+│   ├── cairn-config.&lt;runtime&gt;
+│   ├── cairn-config.schema.json
 │   ├── cairn-active.&lt;runtime&gt;
 │   ├── cairn-audit.&lt;runtime&gt;
 │   ├── cairn-rules.&lt;runtime&gt;
@@ -1430,8 +1432,11 @@ knowledge may add other folders without changing Cairn:</p>
 the ledger names reachable after a path branch is rewritten. They are files in
 no directory listing, and a repository that forgets they exist will
 garbage-collect exactly the history its ledger promised.</p>
-<p><code>cairn.config.json</code> is the specified portable binding file. It is part of the
-protocol layout but is not yet loaded or installed by the v0.2 reference tools.</p>
+<p><code>cairn.config.json</code> is the specified portable binding file. The schema-1
+reference loader validates it before the checker, active-view generator, or
+audit scaffold evaluates repository state. Distribution, schema migrations, and
+host-adapter generation remain open; loading one installed binding is not the
+same claim as portable installation and update.</p>
 <p>The names used throughout this specification — <code>project/</code>,
 <code>docs/architecture/</code> — are <strong>role names</strong>, not required folder names. A
 repository binds each role to a folder it already has. Those installed names
@@ -2473,11 +2478,13 @@ acceptances alone. The distinction that matters is not between separation and
 collapse; it is between a weakness that is written down and one that is
 invisible until an incident finds it.</p>
 <p>The versioned <a href="#article-reference-configuration" data-article="reference-configuration" data-anchor="" class="wiki-link">configuration reference</a> specifies
-portable role bindings. The current reference checker remains bound to one
-repository layout and a deliberately limited frontmatter subset; it does not
-yet implement that portable configuration contract. A conforming portable
-implementation MUST either use a standard YAML parser or publish and validate a
-distinct format without calling it full YAML.</p>
+portable role bindings. The current checker, active-view generator, and audit
+scaffold consume one schema-1 host binding, while installation, updates,
+schema-to-schema migrations, and transport tests remain unimplemented. The
+reference frontmatter reader is a deliberately named subset rather than a claim
+of full YAML. A conforming portable implementation MUST either use a standard
+YAML parser or publish and validate a distinct format without calling it full
+YAML.</p>
 <h2 id="specification--deliberate-non-goals" data-heading="deliberate-non-goals">Deliberate non-goals</h2>
 <p>These are decisions, not omissions. Each is something a reader could reasonably
 expect Cairn to do, and each is refused for a stated reason.</p>
@@ -2705,8 +2712,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left"><code>lightweight</code> default route and one-way escalation</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; the vocabulary, the three structural triggers, the second-unit backstop and one-way escalation are checked</td>
-<td style="text-align:left">the <em>high-risk</em> trigger is a policy and stays declared; the multi-unit trigger is caught one unit late rather than in advance</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the configured new-path default is reported when an explicit route is missing, and the vocabulary, three structural triggers, second-unit backstop and one-way escalation are checked</td>
+<td style="text-align:left"><code>cairn-init</code> / <code>cairn-new</code> do not yet write the configured default; the <em>high-risk</em> trigger is policy and the multi-unit trigger is caught one unit late</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>foundation</code> and adoption routes</td>
@@ -2735,8 +2742,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Versioned portable configuration and schema migration</td>
 <td style="text-align:left">required for portable profile</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">configuration loader and migrations</td>
+<td style="text-align:left"><strong>partially implemented</strong>; schema 1, its JSON Schema, strict dependency-free validation, configured checker/active/audit bindings, and effective profile/binding output are installed</td>
+<td style="text-align:left">schema-to-schema migrations, install/update mechanics, generated adapters, and transport tests</td>
 </tr>
 <tr>
 <td style="text-align:left">Exact protected integration transport</td>
@@ -3064,13 +3071,13 @@ honest state of the work.</p>
 <td style="text-align:left"><code>route</code></td>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">A path declares no route, an unknown route, a lightweight route that meets a full-route trigger, a foundation surface outside documents, or a descent from full</td>
-<td style="text-align:left"><code>fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)</code></td>
+<td style="text-align:left"><code>configured new-path default + fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)</code></td>
 </tr>
 <tr data-rule="same-work-unit" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>same-work-unit</code></td>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Source changed without accompanying module note and coding path update</td>
-<td style="text-align:left"><code>touched(GUARDED_ROOTS) =&gt; touched(docs/modules/) &amp;&amp; touched(PATH_DIR)</code></td>
+<td style="text-align:left"><code>touched(configured source roots) =&gt; touched(configured modules root) &amp;&amp; touched(PATH_DIR)</code></td>
 </tr>
 <tr data-rule="schema" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>schema</code></td>
@@ -3214,7 +3221,7 @@ honest state of the work.</p>
 <td style="text-align:left"><code>route</code></td>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">A path declares no route, an unknown route, a lightweight route that meets a full-route trigger, a foundation surface outside documents, or a descent from full</td>
-<td style="text-align:left"><code>fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)</code></td>
+<td style="text-align:left"><code>configured new-path default + fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)</code></td>
 </tr>
 <tr data-rule="scope-digest" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>scope-digest</code></td>
@@ -3811,7 +3818,7 @@ what to read first. It MUST point separately to the PORTABLE
 <a href="#article-reference-execution-protocol" data-article="reference-execution-protocol" data-anchor="" class="wiki-link">execution protocol</a>, the portable path
 convention, and one human-readable host binding appendix. HOST architecture is
 selected by the path’s documentation coverage; it is not required merely
-because a coding session began. <code>cairn.config.json</code> is the intended
+because a coding session began. <code>cairn.config.json</code> is the versioned
 machine-readable binding of portable role names to repository paths. The
 workflow and <code>cairn-*</code> tools form the executable control plane. Three optional
 <a href="#article-concept-project-memory" data-article="concept-project-memory" data-anchor="" class="wiki-link">project-memory</a> spaces may accompany execution:
@@ -3829,6 +3836,8 @@ knowledge may add other folders without changing Cairn:</p>
 │       └── cairn.yml
 ├── tools/
 │   ├── cairn-check.&lt;runtime&gt;
+│   ├── cairn-config.&lt;runtime&gt;
+│   ├── cairn-config.schema.json
 │   ├── cairn-active.&lt;runtime&gt;
 │   ├── cairn-audit.&lt;runtime&gt;
 │   ├── cairn-rules.&lt;runtime&gt;
@@ -3918,8 +3927,11 @@ knowledge may add other folders without changing Cairn:</p>
 the ledger names reachable after a path branch is rewritten. They are files in
 no directory listing, and a repository that forgets they exist will
 garbage-collect exactly the history its ledger promised.</p>
-<p><code>cairn.config.json</code> is the specified portable binding file. It is part of the
-protocol layout but is not yet loaded or installed by the v0.2 reference tools.</p>
+<p><code>cairn.config.json</code> is the specified portable binding file. The schema-1
+reference loader validates it before the checker, active-view generator, or
+audit scaffold evaluates repository state. Distribution, schema migrations, and
+host-adapter generation remain open; loading one installed binding is not the
+same claim as portable installation and update.</p>
 <p>The names used throughout this specification — <code>project/</code>,
 <code>docs/architecture/</code> — are <strong>role names</strong>, not required folder names. A
 repository binds each role to a folder it already has. Those installed names
@@ -4961,11 +4973,13 @@ acceptances alone. The distinction that matters is not between separation and
 collapse; it is between a weakness that is written down and one that is
 invisible until an incident finds it.</p>
 <p>The versioned <a href="#article-reference-configuration" data-article="reference-configuration" data-anchor="" class="wiki-link">configuration reference</a> specifies
-portable role bindings. The current reference checker remains bound to one
-repository layout and a deliberately limited frontmatter subset; it does not
-yet implement that portable configuration contract. A conforming portable
-implementation MUST either use a standard YAML parser or publish and validate a
-distinct format without calling it full YAML.</p>
+portable role bindings. The current checker, active-view generator, and audit
+scaffold consume one schema-1 host binding, while installation, updates,
+schema-to-schema migrations, and transport tests remain unimplemented. The
+reference frontmatter reader is a deliberately named subset rather than a claim
+of full YAML. A conforming portable implementation MUST either use a standard
+YAML parser or publish and validate a distinct format without calling it full
+YAML.</p>
 <h2 id="specification--deliberate-non-goals" data-heading="deliberate-non-goals">Deliberate non-goals</h2>
 <p>These are decisions, not omissions. Each is something a reader could reasonably
 expect Cairn to do, and each is refused for a stated reason.</p>
@@ -5193,8 +5207,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left"><code>lightweight</code> default route and one-way escalation</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; the vocabulary, the three structural triggers, the second-unit backstop and one-way escalation are checked</td>
-<td style="text-align:left">the <em>high-risk</em> trigger is a policy and stays declared; the multi-unit trigger is caught one unit late rather than in advance</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the configured new-path default is reported when an explicit route is missing, and the vocabulary, three structural triggers, second-unit backstop and one-way escalation are checked</td>
+<td style="text-align:left"><code>cairn-init</code> / <code>cairn-new</code> do not yet write the configured default; the <em>high-risk</em> trigger is policy and the multi-unit trigger is caught one unit late</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>foundation</code> and adoption routes</td>
@@ -5223,8 +5237,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Versioned portable configuration and schema migration</td>
 <td style="text-align:left">required for portable profile</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">configuration loader and migrations</td>
+<td style="text-align:left"><strong>partially implemented</strong>; schema 1, its JSON Schema, strict dependency-free validation, configured checker/active/audit bindings, and effective profile/binding output are installed</td>
+<td style="text-align:left">schema-to-schema migrations, install/update mechanics, generated adapters, and transport tests</td>
 </tr>
 <tr>
 <td style="text-align:left">Exact protected integration transport</td>
@@ -5552,13 +5566,13 @@ honest state of the work.</p>
 <td style="text-align:left"><code>route</code></td>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">A path declares no route, an unknown route, a lightweight route that meets a full-route trigger, a foundation surface outside documents, or a descent from full</td>
-<td style="text-align:left"><code>fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)</code></td>
+<td style="text-align:left"><code>configured new-path default + fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)</code></td>
 </tr>
 <tr data-rule="same-work-unit" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>same-work-unit</code></td>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Source changed without accompanying module note and coding path update</td>
-<td style="text-align:left"><code>touched(GUARDED_ROOTS) =&gt; touched(docs/modules/) &amp;&amp; touched(PATH_DIR)</code></td>
+<td style="text-align:left"><code>touched(configured source roots) =&gt; touched(configured modules root) &amp;&amp; touched(PATH_DIR)</code></td>
 </tr>
 <tr data-rule="schema" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>schema</code></td>
@@ -5702,7 +5716,7 @@ honest state of the work.</p>
 <td style="text-align:left"><code>route</code></td>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">A path declares no route, an unknown route, a lightweight route that meets a full-route trigger, a foundation surface outside documents, or a descent from full</td>
-<td style="text-align:left"><code>fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)</code></td>
+<td style="text-align:left"><code>configured new-path default + fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)</code></td>
 </tr>
 <tr data-rule="scope-digest" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>scope-digest</code></td>
@@ -9030,10 +9044,16 @@ disagree, the specification is authoritative and the disagreement is a defect.</
     <article class="article-body" data-rendered-article="reference-configuration">
       <h1 id="reference-configuration--versioned-cairn-configuration" data-heading="versioned-cairn-configuration">Versioned Cairn configuration</h1>
 <h2 id="reference-configuration--status" data-heading="status">Status</h2>
-<p>This page specifies the portable configuration contract. The reference
-checker does <strong>not</strong> yet load it: its layout, metadata namespace, source roots,
-area map, runtime assumptions, and trunk binding remain repository-specific.
-Therefore the reference implementation MUST NOT claim portable conformance.</p>
+<p>The schema-1 binding and its dependency-free loader are installed. Before any
+repository rule runs, <code>cairn-check</code>, <code>cairn-active</code>, and <code>cairn-audit</code> load and
+validate <code>cairn.config.json</code>. The checker prints the effective enforcement
+profile and consumes the configured roots, source areas, trunk, remote,
+metadata namespace, route default, checkpoint policy, and digest algorithm.</p>
+<p>This is <strong>partial portable conformance</strong>, not the completed distribution story.
+The reference implementation does not yet ship schema-to-schema migrations,
+installation or update mechanics, transport tests, or <code>cairn-init</code>. The checked
+in workflow is an installed host adapter. Those open obligations remain visible
+in <a href="#article-specification" data-article="specification" data-anchor="current-conformance" class="wiki-link">current conformance</a>.</p>
 <h2 id="reference-configuration--intended-file" data-heading="intended-file">Intended file</h2>
 <pre><code class="language-json">{
   &quot;$schema&quot;: &quot;./tools/cairn-config.schema.json&quot;,
@@ -9043,33 +9063,47 @@ Therefore the reference implementation MUST NOT claim portable conformance.</p>
   &quot;metadataNamespace&quot;: &quot;cairn&quot;,
   &quot;enforcementProfile&quot;: &quot;local&quot;,
   &quot;roots&quot;: {
+    &quot;documentation&quot;: &quot;docs&quot;,
     &quot;project&quot;: &quot;project&quot;,
     &quot;architecture&quot;: &quot;docs/architecture&quot;,
     &quot;decisions&quot;: &quot;docs/adr&quot;,
     &quot;modules&quot;: &quot;docs/modules&quot;,
+    &quot;concepts&quot;: &quot;docs/cairn/specification/concepts&quot;,
     &quot;source&quot;: [&quot;src&quot;, &quot;packages&quot;]
   },
   &quot;areas&quot;: [
     {
-      &quot;match&quot;: &quot;src/**&quot;,
+      &quot;name&quot;: &quot;application&quot;,
+      &quot;match&quot;: [&quot;src/**&quot;],
       &quot;note&quot;: &quot;docs/modules/application.md&quot;
     }
+  ],
+  &quot;sharedFiles&quot;: [
+    &quot;project/coding-paths/ACTIVE.md&quot;,
+    &quot;project/coding-paths/index.md&quot;
   ],
   &quot;staleAfterDays&quot;: 14,
   &quot;defaultRoute&quot;: &quot;lightweight&quot;,
   &quot;checkpointRetentionRef&quot;: &quot;refs/cairn/checkpoints&quot;,
+  &quot;pathHistoryPolicy&quot;: &quot;retained&quot;,
   &quot;scopeDigestAlgorithm&quot;: &quot;sha256&quot;,
   &quot;transport&quot;: {
     &quot;registration&quot;: &quot;declared-adapter-name&quot;,
     &quot;integration&quot;: &quot;declared-adapter-name&quot;
+  },
+  &quot;migration&quot;: {
+    &quot;unregisteredPaths&quot;: [],
+    &quot;undeclaredOpenings&quot;: [],
+    &quot;v02Records&quot;: []
   }
 }
 </code></pre>
 <p>These are role-name defaults rather than one installed repository’s paths. A
-host records its concrete names in the binding appendix described by the
-<a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="host-binding-appendix" class="wiki-link">repository-layout reference</a>,
-and may choose different paths once the configuration loader is implemented and
-validated.</p>
+host records its concrete names here and explains operational details in the
+binding appendix described by the
+<a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="host-binding-appendix" class="wiki-link">repository-layout reference</a>.
+Repository paths use forward slashes on every operating system; absolute,
+parent-traversing, dot-segment, empty-segment, and backslash forms are rejected.</p>
 <h2 id="reference-configuration--fields" data-heading="fields">Fields</h2>
 <table>
 <thead>
@@ -9081,9 +9115,14 @@ validated.</p>
 </thead>
 <tbody>
 <tr>
+<td style="text-align:left"><code>$schema</code></td>
+<td style="text-align:left">editor and validator pointer</td>
+<td style="text-align:left">optional non-empty string</td>
+</tr>
+<tr>
 <td style="text-align:left"><code>version</code></td>
 <td style="text-align:left">configuration schema version</td>
-<td style="text-align:left">positive supported integer</td>
+<td style="text-align:left">exactly one supported integer; unknown versions fail before any rule runs</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>trunk</code></td>
@@ -9106,6 +9145,11 @@ validated.</p>
 <td style="text-align:left"><code>local | ci | protected</code></td>
 </tr>
 <tr>
+<td style="text-align:left"><code>roots.documentation</code></td>
+<td style="text-align:left">durable documentation plane</td>
+<td style="text-align:left">normalised repository-relative path</td>
+</tr>
+<tr>
 <td style="text-align:left"><code>roots.project</code></td>
 <td style="text-align:left">execution-state plane</td>
 <td style="text-align:left">normalised repository-relative path</td>
@@ -9126,6 +9170,11 @@ validated.</p>
 <td style="text-align:left">normalised repository-relative path</td>
 </tr>
 <tr>
+<td style="text-align:left"><code>roots.concepts</code></td>
+<td style="text-align:left">one-idea explanatory wiki</td>
+<td style="text-align:left">normalised repository-relative path</td>
+</tr>
+<tr>
 <td style="text-align:left"><code>roots.source</code></td>
 <td style="text-align:left">guarded source roots</td>
 <td style="text-align:left">non-empty path array</td>
@@ -9133,7 +9182,12 @@ validated.</p>
 <tr>
 <td style="text-align:left"><code>areas</code></td>
 <td style="text-align:left">source pattern to module-note routing</td>
-<td style="text-align:left">deterministic ordered matches</td>
+<td style="text-align:left">ordered <code>{ name, match[], note }</code> entries; first matching entry wins</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>sharedFiles</code></td>
+<td style="text-align:left">generated or shared statements of record</td>
+<td style="text-align:left">repository-relative file array</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>staleAfterDays</code></td>
@@ -9142,13 +9196,18 @@ validated.</p>
 </tr>
 <tr>
 <td style="text-align:left"><code>defaultRoute</code></td>
-<td style="text-align:left">route assumed when a path omits <code>route:</code></td>
-<td style="text-align:left"><code>lightweight | full</code></td>
+<td style="text-align:left">route a new-path generator writes and a missing-field diagnostic recommends</td>
+<td style="text-align:left"><code>lightweight | full</code>; the resulting path record still declares it explicitly</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>checkpointRetentionRef</code></td>
 <td style="text-align:left">ref prefix for <a href="#article-concept-checkpoint-retention" data-article="concept-checkpoint-retention" data-anchor="" class="wiki-link">checkpoint retention</a></td>
 <td style="text-align:left">a ref prefix the remote accepts, or <code>null</code> where the repository forbids rewriting pushes instead</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>pathHistoryPolicy</code></td>
+<td style="text-align:left">which conforming rewrite policy the host chose</td>
+<td style="text-align:left"><code>retained</code> with a ref prefix, or <code>forbidden</code> with a null prefix</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>scopeDigestAlgorithm</code></td>
@@ -9159,6 +9218,11 @@ validated.</p>
 <td style="text-align:left"><code>transport</code></td>
 <td style="text-align:left">registration and integration adapters</td>
 <td style="text-align:left">installed and tested adapter identifiers</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>migration</code></td>
+<td style="text-align:left">finite exceptions for records predating installed predicates</td>
+<td style="text-align:left">three explicit path-id arrays; not a schema-version migration mechanism</td>
 </tr>
 </tbody>
 </table>
@@ -9183,6 +9247,13 @@ diagnostics, templates, and generated views;</li>
 has not also declared that rewriting pushes are forbidden on path branches.</li>
 </ol>
 <p>Configuration may rename a role. It may not weaken a protocol <code>MUST</code>.</p>
+<p>The installed schema-1 loader currently satisfies obligations 1, 3, and the
+binding portion of 5; rejects unknown versions for obligation 2; and prints the
+effective profile plus branch/base binding for obligation 8. It does <strong>not</strong>
+claim the missing half of 2 or obligations 4, 6, and 7. A declaration of
+<code>pathHistoryPolicy: forbidden</code> satisfies the paired declaration in obligation
+9; whether a host actually prevents the push is an enforcement-profile claim,
+not something a local JSON reader can prove.</p>
 <h2 id="reference-configuration--metadata-syntax" data-heading="metadata-syntax">Metadata syntax</h2>
 <p>A portable implementation SHOULD use a maintained YAML parser for
 YAML-frontmatter. If it intentionally accepts a smaller grammar, it MUST name
@@ -9238,8 +9309,10 @@ ordinal, a type from the vocabulary, and a verification result.</li>
 <li>[ ] Incomplete work under review is a pushed commit carrying
 <code>Cairn-Provisional:</code>, not an uncommitted working tree.</li>
 <li>[ ] Every declared unit except the newest resolves a retention ref at
-<code>refs/cairn/checkpoints/&lt;path-id&gt;/&lt;unit&gt;</code>, or the repository forbids
-rewriting pushes on path branches.</li>
+<code>refs/cairn/checkpoints/&lt;path-id&gt;/g&lt;NN&gt;/&lt;unit&gt;</code> in the current generation,
+or the repository forbids rewriting pushes on path branches.</li>
+<li>[ ] The current generation is derived from ref ancestry, and a rewriting push
+opens the next generation without moving any earlier ref.</li>
 <li>[ ] Those refs are pushed, so retention survives the machine that wrote it.</li>
 <li>[ ] No retention ref has been moved or deleted while its path record is
 retained.</li>
@@ -9311,6 +9384,8 @@ same commit.</li>
 transports.</li>
 <li>[ ] A <code>protected</code> claim independently protects control-plane changes.</li>
 <li>[ ] Configuration and record schemas are versioned.</li>
+<li>[ ] Configuration is validated before repository rules run; unknown versions,
+fields, and unsafe paths fail rather than falling back to host constants.</li>
 <li>[ ] Runtime, package manager, Git, shell, path-normalisation, installation,
 update, and migration requirements are published.</li>
 <li>[ ] Transactional <code>init</code>, <code>new</code>, and <code>close</code> commands are either present or
@@ -9322,14 +9397,12 @@ general-purpose claim is made.</li>
 </ul>
 <h2 id="reference-conformance--reference-v0-2-result" data-heading="reference-v0-2-result">Reference v0.2 result</h2>
 <p>The current reference tools satisfy only the subset marked “implemented” in the
-<a href="#article-specification" data-article="specification" data-anchor="current-conformance" class="wiki-link">canonical matrix</a>. Every requirement added in
-v0.2 — checkpoint retention, provisional commits, the brief contract,
-field-level closure, scope digests, the drift predicate, structured
-dispositions, recorded roles, blocking scope drift, typed work units, routes,
-repair, and redaction — is canonical and <strong>not implemented</strong> by those tools.
-They also do not yet satisfy portable configuration, ledger-prefix proof,
-protected transport, independent control-plane protection, transaction commands,
-or a measured general-release pilot.</p>
+<a href="#article-specification" data-article="specification" data-anchor="current-conformance" class="wiki-link">canonical matrix</a>. That matrix distinguishes
+implemented predicates from partial schema or judgement contracts and remains
+the authoritative inventory. Schema-1 configuration loading is now installed,
+but portable installation, update and schema migration are not. Flat-ledger
+prefix proof, protected transport, independent control-plane protection,
+transaction commands, and a measured general-release pilot also remain open.</p>
 <p>A conformance report that marks any of those rows <code>pass</code> on the strength of the
 reference tools alone is wrong. They can be satisfied by a repository’s practice
 and evidenced by hand; the column that says so is “Additional dependency”, not
@@ -10598,6 +10671,7 @@ protocol structure.</p>
 │               └── &lt;lowercase-path-id&gt;/
 │                   └── &lt;ledger-unit-ordinal&gt;
 ├── AGENTS.md
+├── cairn.config.json
 ├── package.json
 ├── .github/
 │   └── workflows/
@@ -10605,6 +10679,9 @@ protocol structure.</p>
 ├── tools/
 │   ├── cairn-check.mjs
 │   ├── cairn-check.test.mjs
+│   ├── cairn-config.mjs
+│   ├── cairn-config.schema.json
+│   ├── cairn-config.test.mjs
 │   ├── cairn-active.mjs
 │   ├── cairn-active.test.mjs
 │   ├── cairn-audit.mjs
@@ -10688,11 +10765,11 @@ than files and are therefore invisible to every directory listing: the path
 branches, and the <a href="#article-concept-checkpoint-retention" data-article="concept-checkpoint-retention" data-anchor="" class="wiki-link">checkpoint retention</a>
 namespace described <a href="#reference-repository-layout--the-cairn-ref-namespace" data-local-anchor="the-cairn-ref-namespace" class="section-link">below</a>. A reader who searches the
 working tree for them finds nothing and reasonably concludes they do not exist.</p>
-<p><code>shared/</code> is a guarded source root supported by the checker even when a
+<p><code>shared/</code> is a guarded source root supported by the example binding even when a
 repository does not currently contain it. Repeatable records may be absent when
 no event of that kind exists; their directory, index, and folder log still name
-the role. <code>cairn.config.json</code> is not shown because it is a specified portability
-target, not an installed reference file.</p>
+the role. <code>cairn.config.json</code>, its schema, and its loader are shown because the
+reference tools now consume that binding before evaluating repository rules.</p>
 <p>A host repository may of course hold folders Cairn says nothing about. Those are
 that repository’s business and are deliberately absent here: this tree lists
 what Cairn defines, not what any one adoption happens to contain.</p>
@@ -10712,6 +10789,11 @@ what Cairn defines, not what any one adoption happens to contain.</p>
 <td style="text-align:left">change only with the protocol entry route</td>
 </tr>
 <tr>
+<td style="text-align:left"><code>cairn.config.json</code></td>
+<td style="text-align:left">versioned machine-readable binding from portable roles to this host</td>
+<td style="text-align:left">host configuration change</td>
+</tr>
+<tr>
 <td style="text-align:left"><code>package.json</code></td>
 <td style="text-align:left">exposes the reference commands without making Node a protocol requirement</td>
 <td style="text-align:left">control-plane change</td>
@@ -10725,6 +10807,16 @@ what Cairn defines, not what any one adoption happens to contain.</p>
 <td style="text-align:left"><code>tools/cairn-check.mjs</code></td>
 <td style="text-align:left">deterministic blocking and advisory predicates</td>
 <td style="text-align:left">independently reviewed control-plane change</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>tools/cairn-config.mjs</code></td>
+<td style="text-align:left">dependency-free binding loader and schema-1 validator</td>
+<td style="text-align:left">independently reviewed control-plane change</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>tools/cairn-config.schema.json</code></td>
+<td style="text-align:left">editor-readable schema for the installed binding</td>
+<td style="text-align:left">same work unit as the loader</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>tools/cairn-active.mjs</code></td>
@@ -10905,10 +10997,12 @@ the portable path convention and
 <a href="#article-reference-execution-protocol" data-article="reference-execution-protocol" data-anchor="" class="wiki-link">execution protocol</a>. Host architecture remains outside
 the unconditional protocol route and is selected through each path’s
 documentation coverage.</p>
-<p>The <a href="#article-reference-configuration" data-article="reference-configuration" data-anchor="" class="wiki-link">configuration contract</a> is the intended
-machine-readable counterpart. Until the loader exists, reference tools may
-resolve one installed binding as constants, but MUST NOT copy those names into
-portable documentation or claim portable conformance on the strength of them.</p>
+<p>The <a href="#article-reference-configuration" data-article="reference-configuration" data-anchor="" class="wiki-link">configuration contract</a> is the machine-readable
+counterpart. The schema-1 loader now resolves the installed binding for the
+checker, active view, and audit scaffold. Schema migrations, installation,
+updates, and generated host adapters remain open, so that loader is not by
+itself a claim of complete portable conformance. Installed names still MUST NOT
+leak into portable documentation.</p>
 <h2 id="reference-repository-layout--naming-relationships" data-heading="naming-relationships">Naming relationships</h2>
 <h3 id="reference-repository-layout--path-identity" data-heading="path-identity">Path identity</h3>
 <pre><code class="language-text">CP-ROADMAP-010
@@ -11306,7 +11400,7 @@ what to read first. It MUST point separately to the PORTABLE
 <a href="#article-reference-execution-protocol" data-article="reference-execution-protocol" data-anchor="" class="wiki-link">execution protocol</a>, the portable path
 convention, and one human-readable host binding appendix. HOST architecture is
 selected by the path’s documentation coverage; it is not required merely
-because a coding session began. <code>cairn.config.json</code> is the intended
+because a coding session began. <code>cairn.config.json</code> is the versioned
 machine-readable binding of portable role names to repository paths. The
 workflow and <code>cairn-*</code> tools form the executable control plane. Three optional
 <a href="#article-concept-project-memory" data-article="concept-project-memory" data-anchor="" class="wiki-link">project-memory</a> spaces may accompany execution:
@@ -11324,6 +11418,8 @@ knowledge may add other folders without changing Cairn:</p>
 │       └── cairn.yml
 ├── tools/
 │   ├── cairn-check.&lt;runtime&gt;
+│   ├── cairn-config.&lt;runtime&gt;
+│   ├── cairn-config.schema.json
 │   ├── cairn-active.&lt;runtime&gt;
 │   ├── cairn-audit.&lt;runtime&gt;
 │   ├── cairn-rules.&lt;runtime&gt;
@@ -11413,8 +11509,11 @@ knowledge may add other folders without changing Cairn:</p>
 the ledger names reachable after a path branch is rewritten. They are files in
 no directory listing, and a repository that forgets they exist will
 garbage-collect exactly the history its ledger promised.</p>
-<p><code>cairn.config.json</code> is the specified portable binding file. It is part of the
-protocol layout but is not yet loaded or installed by the v0.2 reference tools.</p>
+<p><code>cairn.config.json</code> is the specified portable binding file. The schema-1
+reference loader validates it before the checker, active-view generator, or
+audit scaffold evaluates repository state. Distribution, schema migrations, and
+host-adapter generation remain open; loading one installed binding is not the
+same claim as portable installation and update.</p>
 <p>The names used throughout this specification — <code>project/</code>,
 <code>docs/architecture/</code> — are <strong>role names</strong>, not required folder names. A
 repository binds each role to a folder it already has. Those installed names
@@ -12456,11 +12555,13 @@ acceptances alone. The distinction that matters is not between separation and
 collapse; it is between a weakness that is written down and one that is
 invisible until an incident finds it.</p>
 <p>The versioned <a href="#article-reference-configuration" data-article="reference-configuration" data-anchor="" class="wiki-link">configuration reference</a> specifies
-portable role bindings. The current reference checker remains bound to one
-repository layout and a deliberately limited frontmatter subset; it does not
-yet implement that portable configuration contract. A conforming portable
-implementation MUST either use a standard YAML parser or publish and validate a
-distinct format without calling it full YAML.</p>
+portable role bindings. The current checker, active-view generator, and audit
+scaffold consume one schema-1 host binding, while installation, updates,
+schema-to-schema migrations, and transport tests remain unimplemented. The
+reference frontmatter reader is a deliberately named subset rather than a claim
+of full YAML. A conforming portable implementation MUST either use a standard
+YAML parser or publish and validate a distinct format without calling it full
+YAML.</p>
 <h2 id="specification--deliberate-non-goals" data-heading="deliberate-non-goals">Deliberate non-goals</h2>
 <p>These are decisions, not omissions. Each is something a reader could reasonably
 expect Cairn to do, and each is refused for a stated reason.</p>
@@ -12688,8 +12789,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left"><code>lightweight</code> default route and one-way escalation</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; the vocabulary, the three structural triggers, the second-unit backstop and one-way escalation are checked</td>
-<td style="text-align:left">the <em>high-risk</em> trigger is a policy and stays declared; the multi-unit trigger is caught one unit late rather than in advance</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the configured new-path default is reported when an explicit route is missing, and the vocabulary, three structural triggers, second-unit backstop and one-way escalation are checked</td>
+<td style="text-align:left"><code>cairn-init</code> / <code>cairn-new</code> do not yet write the configured default; the <em>high-risk</em> trigger is policy and the multi-unit trigger is caught one unit late</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>foundation</code> and adoption routes</td>
@@ -12718,8 +12819,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Versioned portable configuration and schema migration</td>
 <td style="text-align:left">required for portable profile</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">configuration loader and migrations</td>
+<td style="text-align:left"><strong>partially implemented</strong>; schema 1, its JSON Schema, strict dependency-free validation, configured checker/active/audit bindings, and effective profile/binding output are installed</td>
+<td style="text-align:left">schema-to-schema migrations, install/update mechanics, generated adapters, and transport tests</td>
 </tr>
 <tr>
 <td style="text-align:left">Exact protected integration transport</td>
@@ -13047,13 +13148,13 @@ honest state of the work.</p>
 <td style="text-align:left"><code>route</code></td>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">A path declares no route, an unknown route, a lightweight route that meets a full-route trigger, a foundation surface outside documents, or a descent from full</td>
-<td style="text-align:left"><code>fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)</code></td>
+<td style="text-align:left"><code>configured new-path default + fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)</code></td>
 </tr>
 <tr data-rule="same-work-unit" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>same-work-unit</code></td>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">Source changed without accompanying module note and coding path update</td>
-<td style="text-align:left"><code>touched(GUARDED_ROOTS) =&gt; touched(docs/modules/) &amp;&amp; touched(PATH_DIR)</code></td>
+<td style="text-align:left"><code>touched(configured source roots) =&gt; touched(configured modules root) &amp;&amp; touched(PATH_DIR)</code></td>
 </tr>
 <tr data-rule="schema" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>schema</code></td>
@@ -13197,7 +13298,7 @@ honest state of the work.</p>
 <td style="text-align:left"><code>route</code></td>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">A path declares no route, an unknown route, a lightweight route that meets a full-route trigger, a foundation surface outside documents, or a descent from full</td>
-<td style="text-align:left"><code>fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)</code></td>
+<td style="text-align:left"><code>configured new-path default + fullRouteTriggers(writes) + foundationSurfaceViolations(writes) + routeDescent(previous, current)</code></td>
 </tr>
 <tr data-rule="scope-digest" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>scope-digest</code></td>
@@ -16225,10 +16326,16 @@ disagree, the specification is authoritative and the disagreement is a defect.</
     <article class="article-body" data-rendered-article="reference-configuration">
       <h1 id="reference-configuration--versioned-cairn-configuration" data-heading="versioned-cairn-configuration">Versioned Cairn configuration</h1>
 <h2 id="reference-configuration--status" data-heading="status">Status</h2>
-<p>This page specifies the portable configuration contract. The reference
-checker does <strong>not</strong> yet load it: its layout, metadata namespace, source roots,
-area map, runtime assumptions, and trunk binding remain repository-specific.
-Therefore the reference implementation MUST NOT claim portable conformance.</p>
+<p>The schema-1 binding and its dependency-free loader are installed. Before any
+repository rule runs, <code>cairn-check</code>, <code>cairn-active</code>, and <code>cairn-audit</code> load and
+validate <code>cairn.config.json</code>. The checker prints the effective enforcement
+profile and consumes the configured roots, source areas, trunk, remote,
+metadata namespace, route default, checkpoint policy, and digest algorithm.</p>
+<p>This is <strong>partial portable conformance</strong>, not the completed distribution story.
+The reference implementation does not yet ship schema-to-schema migrations,
+installation or update mechanics, transport tests, or <code>cairn-init</code>. The checked
+in workflow is an installed host adapter. Those open obligations remain visible
+in <a href="#article-specification" data-article="specification" data-anchor="current-conformance" class="wiki-link">current conformance</a>.</p>
 <h2 id="reference-configuration--intended-file" data-heading="intended-file">Intended file</h2>
 <pre><code class="language-json">{
   &quot;$schema&quot;: &quot;./tools/cairn-config.schema.json&quot;,
@@ -16238,33 +16345,47 @@ Therefore the reference implementation MUST NOT claim portable conformance.</p>
   &quot;metadataNamespace&quot;: &quot;cairn&quot;,
   &quot;enforcementProfile&quot;: &quot;local&quot;,
   &quot;roots&quot;: {
+    &quot;documentation&quot;: &quot;docs&quot;,
     &quot;project&quot;: &quot;project&quot;,
     &quot;architecture&quot;: &quot;docs/architecture&quot;,
     &quot;decisions&quot;: &quot;docs/adr&quot;,
     &quot;modules&quot;: &quot;docs/modules&quot;,
+    &quot;concepts&quot;: &quot;docs/cairn/specification/concepts&quot;,
     &quot;source&quot;: [&quot;src&quot;, &quot;packages&quot;]
   },
   &quot;areas&quot;: [
     {
-      &quot;match&quot;: &quot;src/**&quot;,
+      &quot;name&quot;: &quot;application&quot;,
+      &quot;match&quot;: [&quot;src/**&quot;],
       &quot;note&quot;: &quot;docs/modules/application.md&quot;
     }
+  ],
+  &quot;sharedFiles&quot;: [
+    &quot;project/coding-paths/ACTIVE.md&quot;,
+    &quot;project/coding-paths/index.md&quot;
   ],
   &quot;staleAfterDays&quot;: 14,
   &quot;defaultRoute&quot;: &quot;lightweight&quot;,
   &quot;checkpointRetentionRef&quot;: &quot;refs/cairn/checkpoints&quot;,
+  &quot;pathHistoryPolicy&quot;: &quot;retained&quot;,
   &quot;scopeDigestAlgorithm&quot;: &quot;sha256&quot;,
   &quot;transport&quot;: {
     &quot;registration&quot;: &quot;declared-adapter-name&quot;,
     &quot;integration&quot;: &quot;declared-adapter-name&quot;
+  },
+  &quot;migration&quot;: {
+    &quot;unregisteredPaths&quot;: [],
+    &quot;undeclaredOpenings&quot;: [],
+    &quot;v02Records&quot;: []
   }
 }
 </code></pre>
 <p>These are role-name defaults rather than one installed repository’s paths. A
-host records its concrete names in the binding appendix described by the
-<a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="host-binding-appendix" class="wiki-link">repository-layout reference</a>,
-and may choose different paths once the configuration loader is implemented and
-validated.</p>
+host records its concrete names here and explains operational details in the
+binding appendix described by the
+<a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="host-binding-appendix" class="wiki-link">repository-layout reference</a>.
+Repository paths use forward slashes on every operating system; absolute,
+parent-traversing, dot-segment, empty-segment, and backslash forms are rejected.</p>
 <h2 id="reference-configuration--fields" data-heading="fields">Fields</h2>
 <table>
 <thead>
@@ -16276,9 +16397,14 @@ validated.</p>
 </thead>
 <tbody>
 <tr>
+<td style="text-align:left"><code>$schema</code></td>
+<td style="text-align:left">editor and validator pointer</td>
+<td style="text-align:left">optional non-empty string</td>
+</tr>
+<tr>
 <td style="text-align:left"><code>version</code></td>
 <td style="text-align:left">configuration schema version</td>
-<td style="text-align:left">positive supported integer</td>
+<td style="text-align:left">exactly one supported integer; unknown versions fail before any rule runs</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>trunk</code></td>
@@ -16301,6 +16427,11 @@ validated.</p>
 <td style="text-align:left"><code>local | ci | protected</code></td>
 </tr>
 <tr>
+<td style="text-align:left"><code>roots.documentation</code></td>
+<td style="text-align:left">durable documentation plane</td>
+<td style="text-align:left">normalised repository-relative path</td>
+</tr>
+<tr>
 <td style="text-align:left"><code>roots.project</code></td>
 <td style="text-align:left">execution-state plane</td>
 <td style="text-align:left">normalised repository-relative path</td>
@@ -16321,6 +16452,11 @@ validated.</p>
 <td style="text-align:left">normalised repository-relative path</td>
 </tr>
 <tr>
+<td style="text-align:left"><code>roots.concepts</code></td>
+<td style="text-align:left">one-idea explanatory wiki</td>
+<td style="text-align:left">normalised repository-relative path</td>
+</tr>
+<tr>
 <td style="text-align:left"><code>roots.source</code></td>
 <td style="text-align:left">guarded source roots</td>
 <td style="text-align:left">non-empty path array</td>
@@ -16328,7 +16464,12 @@ validated.</p>
 <tr>
 <td style="text-align:left"><code>areas</code></td>
 <td style="text-align:left">source pattern to module-note routing</td>
-<td style="text-align:left">deterministic ordered matches</td>
+<td style="text-align:left">ordered <code>{ name, match[], note }</code> entries; first matching entry wins</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>sharedFiles</code></td>
+<td style="text-align:left">generated or shared statements of record</td>
+<td style="text-align:left">repository-relative file array</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>staleAfterDays</code></td>
@@ -16337,13 +16478,18 @@ validated.</p>
 </tr>
 <tr>
 <td style="text-align:left"><code>defaultRoute</code></td>
-<td style="text-align:left">route assumed when a path omits <code>route:</code></td>
-<td style="text-align:left"><code>lightweight | full</code></td>
+<td style="text-align:left">route a new-path generator writes and a missing-field diagnostic recommends</td>
+<td style="text-align:left"><code>lightweight | full</code>; the resulting path record still declares it explicitly</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>checkpointRetentionRef</code></td>
 <td style="text-align:left">ref prefix for <a href="#article-concept-checkpoint-retention" data-article="concept-checkpoint-retention" data-anchor="" class="wiki-link">checkpoint retention</a></td>
 <td style="text-align:left">a ref prefix the remote accepts, or <code>null</code> where the repository forbids rewriting pushes instead</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>pathHistoryPolicy</code></td>
+<td style="text-align:left">which conforming rewrite policy the host chose</td>
+<td style="text-align:left"><code>retained</code> with a ref prefix, or <code>forbidden</code> with a null prefix</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>scopeDigestAlgorithm</code></td>
@@ -16354,6 +16500,11 @@ validated.</p>
 <td style="text-align:left"><code>transport</code></td>
 <td style="text-align:left">registration and integration adapters</td>
 <td style="text-align:left">installed and tested adapter identifiers</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>migration</code></td>
+<td style="text-align:left">finite exceptions for records predating installed predicates</td>
+<td style="text-align:left">three explicit path-id arrays; not a schema-version migration mechanism</td>
 </tr>
 </tbody>
 </table>
@@ -16378,6 +16529,13 @@ diagnostics, templates, and generated views;</li>
 has not also declared that rewriting pushes are forbidden on path branches.</li>
 </ol>
 <p>Configuration may rename a role. It may not weaken a protocol <code>MUST</code>.</p>
+<p>The installed schema-1 loader currently satisfies obligations 1, 3, and the
+binding portion of 5; rejects unknown versions for obligation 2; and prints the
+effective profile plus branch/base binding for obligation 8. It does <strong>not</strong>
+claim the missing half of 2 or obligations 4, 6, and 7. A declaration of
+<code>pathHistoryPolicy: forbidden</code> satisfies the paired declaration in obligation
+9; whether a host actually prevents the push is an enforcement-profile claim,
+not something a local JSON reader can prove.</p>
 <h2 id="reference-configuration--metadata-syntax" data-heading="metadata-syntax">Metadata syntax</h2>
 <p>A portable implementation SHOULD use a maintained YAML parser for
 YAML-frontmatter. If it intentionally accepts a smaller grammar, it MUST name
@@ -16429,8 +16587,10 @@ ordinal, a type from the vocabulary, and a verification result.</li>
 <li>[ ] Incomplete work under review is a pushed commit carrying
 <code>Cairn-Provisional:</code>, not an uncommitted working tree.</li>
 <li>[ ] Every declared unit except the newest resolves a retention ref at
-<code>refs/cairn/checkpoints/&lt;path-id&gt;/&lt;unit&gt;</code>, or the repository forbids
-rewriting pushes on path branches.</li>
+<code>refs/cairn/checkpoints/&lt;path-id&gt;/g&lt;NN&gt;/&lt;unit&gt;</code> in the current generation,
+or the repository forbids rewriting pushes on path branches.</li>
+<li>[ ] The current generation is derived from ref ancestry, and a rewriting push
+opens the next generation without moving any earlier ref.</li>
 <li>[ ] Those refs are pushed, so retention survives the machine that wrote it.</li>
 <li>[ ] No retention ref has been moved or deleted while its path record is
 retained.</li>
@@ -16502,6 +16662,8 @@ same commit.</li>
 transports.</li>
 <li>[ ] A <code>protected</code> claim independently protects control-plane changes.</li>
 <li>[ ] Configuration and record schemas are versioned.</li>
+<li>[ ] Configuration is validated before repository rules run; unknown versions,
+fields, and unsafe paths fail rather than falling back to host constants.</li>
 <li>[ ] Runtime, package manager, Git, shell, path-normalisation, installation,
 update, and migration requirements are published.</li>
 <li>[ ] Transactional <code>init</code>, <code>new</code>, and <code>close</code> commands are either present or
@@ -16513,14 +16675,12 @@ general-purpose claim is made.</li>
 </ul>
 <h2 id="reference-conformance--reference-v0-2-result" data-heading="reference-v0-2-result">Reference v0.2 result</h2>
 <p>The current reference tools satisfy only the subset marked “implemented” in the
-<a href="#article-specification" data-article="specification" data-anchor="current-conformance" class="wiki-link">canonical matrix</a>. Every requirement added in
-v0.2 — checkpoint retention, provisional commits, the brief contract,
-field-level closure, scope digests, the drift predicate, structured
-dispositions, recorded roles, blocking scope drift, typed work units, routes,
-repair, and redaction — is canonical and <strong>not implemented</strong> by those tools.
-They also do not yet satisfy portable configuration, ledger-prefix proof,
-protected transport, independent control-plane protection, transaction commands,
-or a measured general-release pilot.</p>
+<a href="#article-specification" data-article="specification" data-anchor="current-conformance" class="wiki-link">canonical matrix</a>. That matrix distinguishes
+implemented predicates from partial schema or judgement contracts and remains
+the authoritative inventory. Schema-1 configuration loading is now installed,
+but portable installation, update and schema migration are not. Flat-ledger
+prefix proof, protected transport, independent control-plane protection,
+transaction commands, and a measured general-release pilot also remain open.</p>
 <p>A conformance report that marks any of those rows <code>pass</code> on the strength of the
 reference tools alone is wrong. They can be satisfied by a repository’s practice
 and evidenced by hand; the column that says so is “Additional dependency”, not
@@ -17761,6 +17921,7 @@ protocol structure.</p>
 │               └── &lt;lowercase-path-id&gt;/
 │                   └── &lt;ledger-unit-ordinal&gt;
 ├── AGENTS.md
+├── cairn.config.json
 ├── package.json
 ├── .github/
 │   └── workflows/
@@ -17768,6 +17929,9 @@ protocol structure.</p>
 ├── tools/
 │   ├── cairn-check.mjs
 │   ├── cairn-check.test.mjs
+│   ├── cairn-config.mjs
+│   ├── cairn-config.schema.json
+│   ├── cairn-config.test.mjs
 │   ├── cairn-active.mjs
 │   ├── cairn-active.test.mjs
 │   ├── cairn-audit.mjs
@@ -17851,11 +18015,11 @@ than files and are therefore invisible to every directory listing: the path
 branches, and the <a href="#article-concept-checkpoint-retention" data-article="concept-checkpoint-retention" data-anchor="" class="wiki-link">checkpoint retention</a>
 namespace described <a href="#reference-repository-layout--the-cairn-ref-namespace" data-local-anchor="the-cairn-ref-namespace" class="section-link">below</a>. A reader who searches the
 working tree for them finds nothing and reasonably concludes they do not exist.</p>
-<p><code>shared/</code> is a guarded source root supported by the checker even when a
+<p><code>shared/</code> is a guarded source root supported by the example binding even when a
 repository does not currently contain it. Repeatable records may be absent when
 no event of that kind exists; their directory, index, and folder log still name
-the role. <code>cairn.config.json</code> is not shown because it is a specified portability
-target, not an installed reference file.</p>
+the role. <code>cairn.config.json</code>, its schema, and its loader are shown because the
+reference tools now consume that binding before evaluating repository rules.</p>
 <p>A host repository may of course hold folders Cairn says nothing about. Those are
 that repository’s business and are deliberately absent here: this tree lists
 what Cairn defines, not what any one adoption happens to contain.</p>
@@ -17875,6 +18039,11 @@ what Cairn defines, not what any one adoption happens to contain.</p>
 <td style="text-align:left">change only with the protocol entry route</td>
 </tr>
 <tr>
+<td style="text-align:left"><code>cairn.config.json</code></td>
+<td style="text-align:left">versioned machine-readable binding from portable roles to this host</td>
+<td style="text-align:left">host configuration change</td>
+</tr>
+<tr>
 <td style="text-align:left"><code>package.json</code></td>
 <td style="text-align:left">exposes the reference commands without making Node a protocol requirement</td>
 <td style="text-align:left">control-plane change</td>
@@ -17888,6 +18057,16 @@ what Cairn defines, not what any one adoption happens to contain.</p>
 <td style="text-align:left"><code>tools/cairn-check.mjs</code></td>
 <td style="text-align:left">deterministic blocking and advisory predicates</td>
 <td style="text-align:left">independently reviewed control-plane change</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>tools/cairn-config.mjs</code></td>
+<td style="text-align:left">dependency-free binding loader and schema-1 validator</td>
+<td style="text-align:left">independently reviewed control-plane change</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>tools/cairn-config.schema.json</code></td>
+<td style="text-align:left">editor-readable schema for the installed binding</td>
+<td style="text-align:left">same work unit as the loader</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>tools/cairn-active.mjs</code></td>
@@ -18068,10 +18247,12 @@ the portable path convention and
 <a href="#article-reference-execution-protocol" data-article="reference-execution-protocol" data-anchor="" class="wiki-link">execution protocol</a>. Host architecture remains outside
 the unconditional protocol route and is selected through each path’s
 documentation coverage.</p>
-<p>The <a href="#article-reference-configuration" data-article="reference-configuration" data-anchor="" class="wiki-link">configuration contract</a> is the intended
-machine-readable counterpart. Until the loader exists, reference tools may
-resolve one installed binding as constants, but MUST NOT copy those names into
-portable documentation or claim portable conformance on the strength of them.</p>
+<p>The <a href="#article-reference-configuration" data-article="reference-configuration" data-anchor="" class="wiki-link">configuration contract</a> is the machine-readable
+counterpart. The schema-1 loader now resolves the installed binding for the
+checker, active view, and audit scaffold. Schema migrations, installation,
+updates, and generated host adapters remain open, so that loader is not by
+itself a claim of complete portable conformance. Installed names still MUST NOT
+leak into portable documentation.</p>
 <h2 id="reference-repository-layout--naming-relationships" data-heading="naming-relationships">Naming relationships</h2>
 <h3 id="reference-repository-layout--path-identity" data-heading="path-identity">Path identity</h3>
 <pre><code class="language-text">CP-ROADMAP-010

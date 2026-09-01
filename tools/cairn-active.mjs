@@ -24,12 +24,17 @@
  */
 
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ACTIVE_FILE, PATHS_BEGIN, PATHS_END, readFrontmatter } from './cairn-check.mjs'
+import {
+  ACTIVE_FILE,
+  PATH_DIR,
+  PATHS_BEGIN,
+  PATHS_END,
+  readFrontmatter
+} from './cairn-check.mjs'
+import { REPO, metadataOf } from './cairn-config.mjs'
 
-const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const PATH_DIR = 'atomik-project/coding-paths'
 const LIVE_STATUSES = new Set(['running', 'blocked', 'ready'])
 
 /** Deterministic by construction: sorted by id, so two people regenerating
@@ -65,7 +70,7 @@ export function collectPaths(files) {
   const live = []
   for (const { name, text } of files) {
     const parsed = readFrontmatter(text)
-    const front = parsed?.data?.atomik
+    const front = metadataOf(parsed?.data)
     if (!front || !LIVE_STATUSES.has(front.status) || !front.branch) continue
     live.push({
       id: front.id ?? name,

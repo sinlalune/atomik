@@ -28,8 +28,33 @@ import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { CAIRN_CONFIG, REPO, metadataOf, slash } from './cairn-config.mjs'
 
-const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+export const METADATA_NAMESPACE = CAIRN_CONFIG.metadataNamespace
+export const PROJECT_DIR = CAIRN_CONFIG.roots.project
+export const DOCUMENTATION_DIR = CAIRN_CONFIG.roots.documentation
+export const PATH_DIR = `${PROJECT_DIR}/coding-paths`
+export const SESSION_DIR = `${PROJECT_DIR}/sessions`
+export const AUDIT_DIR = `${PROJECT_DIR}/audits`
+export const BRIEF_DIR = `${PROJECT_DIR}/briefs`
+export const JOURNAL_DIR = `${PROJECT_DIR}/log`
+export const ADR_DIR = CAIRN_CONFIG.roots.decisions
+export const MODULE_DIR = CAIRN_CONFIG.roots.modules
+export const DEFAULT_ROUTE = CAIRN_CONFIG.defaultRoute
+
+export function effectiveBinding(config = CAIRN_CONFIG) {
+  return {
+    version: config.version,
+    enforcementProfile: config.enforcementProfile,
+    trunk: config.trunk,
+    remote: config.remote,
+    metadataNamespace: config.metadataNamespace,
+    defaultRoute: config.defaultRoute,
+    documentationRoot: config.roots.documentation,
+    projectRoot: config.roots.project,
+    sourceRoots: [...config.roots.source]
+  }
+}
 
 /**
  * SHARED FILES — generated, or otherwise touched by more than one path.
@@ -48,7 +73,7 @@ const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
  *
  * The answer was therefore never a lock. It is to stop these files being
  * shared at all: ACTIVE.md is GENERATED (cairn-active), the journal is now one
- * file per entry under atomik-project/log/, and the root module note is an
+ * file per entry under the configured project log, and the root module note is an
  * index over per-area notes. What survives here is a warning — edit it by hand
  * and you are hand-writing something that is meant to be regenerated.
  *
@@ -56,14 +81,7 @@ const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
  * path merging itself, deriving is the only thing keeping shared files
  * unshared.
  */
-export const SINGLE_TRUTH = [
-  'atomik-project/coding-paths/ACTIVE.md',
-  'atomik-project/coding-paths/index.md',
-  'atomik-project/log.md',
-  'docs/modules/atomik-desktop.md',
-  'docs/learning/index.md',
-  'docs/diagrams/index.md'
-]
+export const SINGLE_TRUTH = CAIRN_CONFIG.sharedFiles
 
 /**
  * The journal records INTEGRATED work only (owner ruling 9) — a practice,
@@ -85,17 +103,15 @@ export const SINGLE_TRUTH = [
  * Undocumented code is wrong. A journal entry authored by the lane that did
  * the work is unconventional. Only the first blocks.
  */
-export const JOURNAL = 'atomik-project/log.md'
+export const JOURNAL = `${PROJECT_DIR}/log.md`
 
 /** The running-paths view in ACTIVE.md is DERIVED from path declarations
  *  registered on the trunk before implementation branches. Registration makes
  *  the inputs globally complete; tools/cairn-active.mjs keeps the output
  *  single-sourced. Both halves are required when there is no integrator. */
-export const ACTIVE_FILE = 'atomik-project/coding-paths/ACTIVE.md'
+export const ACTIVE_FILE = `${PATH_DIR}/ACTIVE.md`
 export const PATHS_BEGIN = '<!-- cairn:paths:begin -->'
 export const PATHS_END = '<!-- cairn:paths:end -->'
-
-const PATH_DIR = 'atomik-project/coding-paths'
 
 /** Both shapes a path declaration takes, capturing the id either one declares:
  *  the flat `CP-<id>.md`, and the folder `CP-<id>/index.md` a path is born in
@@ -112,11 +128,8 @@ const PATH_STATUSES = ['draft', 'blocked', 'running', 'ready', 'done', 'archived
 const PATH_BRANCH_STATUSES = ['running', 'blocked', 'ready']
 const CLOSED_STATUSES = ['ready', 'done']
 const PATH_RESOLUTIONS = ['completed', 'abandoned', 'superseded']
-const SESSION_DIR = 'atomik-project/sessions'
 /** One file per integrated outcome. `log.md` beside it is the frozen archive. */
-const JOURNAL_DIR = 'atomik-project/log'
 const HISTORY_DIR = `${PATH_DIR}/history`
-const ADR_DIR = 'docs/adr'
 const ADR_STATUSES = ['proposed', 'accepted', 'superseded', 'rejected']
 
 /**
@@ -144,20 +157,16 @@ export const LEDGER_TOKEN_BUDGET = 10_000
  * failed for it would teach people to lie about status rather than to archive.
  * The window is a declared property of a REPOSITORY, not a truth about
  * software, the same shape enforcement tiers took in ADR-016 §3; it becomes
- * configurable when `cairn.config.json` lands.
+ * configured by `cairn.config.json`.
  */
-export const PATH_STALE_DAYS = 14
+export const PATH_STALE_DAYS = CAIRN_CONFIG.staleAfterDays
 
 /**
  * These paths were already running before trunk registration became a rule.
  * They cannot be made historically registered without rewriting their base;
  * keep the migration finite and named instead of adding a general bypass.
  */
-export const LEGACY_UNREGISTERED_PATHS = new Set([
-  'CP-OPS-001',
-  'CP-MVP-011',
-  'CP-MVP-012'
-])
+export const LEGACY_UNREGISTERED_PATHS = new Set(CAIRN_CONFIG.migration.unregisteredPaths)
 
 /**
  * Paths whose opening check was recorded BEFORE ceremonies were declared in
@@ -170,7 +179,7 @@ export const LEGACY_UNREGISTERED_PATHS = new Set([
  * set is finite and named, it drains when those two paths merge, and any path in
  * it clears itself by adding two keys to the note it already has.
  */
-export const LEGACY_UNDECLARED_OPENINGS = new Set(['CP-MVP-011', 'CP-MVP-012'])
+export const LEGACY_UNDECLARED_OPENINGS = new Set(CAIRN_CONFIG.migration.undeclaredOpenings)
 
 /**
  * A work unit declares what kind of change it is, and the kind fixes which
@@ -215,13 +224,21 @@ export const CONTROL_PLANE = [
 ]
 
 /** Where accepted doctrine and decisions live. */
-export const DECISION_PLANE = ['docs/bedrock/', 'docs/adr/']
+export const DECISION_PLANE = [
+  slash(CAIRN_CONFIG.roots.architecture),
+  slash(CAIRN_CONFIG.roots.decisions)
+]
 
 /** A foundation path's work units are documents, so its write surface is
  *  documents plus the draft path records it produces — and nothing else. */
-export const FOUNDATION_SURFACE = [/^docs\//, /^project\//, /^atomik-project\/coding-paths\//]
+const prefixPattern = (path) => new RegExp(`^${path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:/|$)`)
+export const FOUNDATION_SURFACE = [
+  prefixPattern(DOCUMENTATION_DIR),
+  prefixPattern(`${PROJECT_DIR}/coding-paths`),
+  prefixPattern('project')
+]
 
-export const V02_MIGRATION_PATHS = new Set(['CP-OPS-002', 'CP-MVP-008'])
+export const V02_MIGRATION_PATHS = new Set(CAIRN_CONFIG.migration.v02Records)
 
 /** An exception that has served its purpose is a bypass. A listed path that is
  *  archived, or that now carries what the exception excused, must leave the
@@ -262,7 +279,8 @@ export const WORK_UNIT_TYPES = [
  *  `…/cp-ops-002/01/14` is refused while the flat `…/cp-ops-002/01` exists.
  *  Keeping the generation out of the ordinal alphabet is what lets refs written
  *  before this notation stay exactly where they are. */
-export const CHECKPOINT_REF_PREFIX = 'refs/cairn/checkpoints'
+export const CHECKPOINT_REF_PREFIX = CAIRN_CONFIG.checkpointRetentionRef
+export const RETENTION_ENABLED = CHECKPOINT_REF_PREFIX !== null
 
 /** A generation segment. Two digits is the notation; more are accepted rather
  *  than silently reclassified as pre-notation. */
@@ -462,7 +480,7 @@ export function isCommitPin(value) {
  * path starts implementation. The evolving ledger stays on the path branch;
  * status, branch and base are the small global registration projection. */
 export function registrationMatches(text, id, branch, baseCommit) {
-  const front = readFrontmatter(text)?.data?.atomik
+  const front = metadataOf(readFrontmatter(text)?.data)
   return Boolean(
     front &&
     front.id === id &&
@@ -474,12 +492,12 @@ export function registrationMatches(text, id, branch, baseCommit) {
 }
 
 export function pathFrontmatterErrors(front, file = null) {
-  if (!front) return ['missing atomik: frontmatter block']
+  if (!front) return [`missing ${METADATA_NAMESPACE}: frontmatter block`]
   const errors = []
-  if (!front.id) errors.push('missing atomik.id')
+  if (!front.id) errors.push(`missing ${METADATA_NAMESPACE}.id`)
   else {
     if (!/^CP-[A-Z0-9][A-Z0-9-]*$/.test(front.id)) {
-      errors.push('atomik.id must use canonical CP-<UPPERCASE-ID> form')
+      errors.push(`${METADATA_NAMESPACE}.id must use canonical CP-<UPPERCASE-ID> form`)
     }
     // Two shapes carry a path record, and the identity lives in a different
     // segment of each: `CP-<id>.md` names it in the file, `CP-<id>/index.md`
@@ -490,14 +508,14 @@ export function pathFrontmatterErrors(front, file = null) {
     const named = last === 'index.md' ? parts.at(-2) : last?.replace(/\.md$/, '')
     const shape = last === 'index.md' ? `${front.id}/index.md` : `${front.id}.md`
     if (last && named !== front.id) {
-      errors.push(`atomik.id "${front.id}" does not match the record's own name (expected ${shape}, got ${parts.slice(-2).join('/')})`)
+      errors.push(`${METADATA_NAMESPACE}.id "${front.id}" does not match the record's own name (expected ${shape}, got ${parts.slice(-2).join('/')})`)
     }
   }
   if (!PATH_STATUSES.includes(front.status)) {
     errors.push(`status "${front.status}" is outside the vocabulary (${PATH_STATUSES.join(' | ')})`)
   }
   if (['running', 'blocked', 'ready'].includes(front.status) && !front.branch) {
-    errors.push(`status "${front.status}" requires atomik.branch`)
+    errors.push(`status "${front.status}" requires ${METADATA_NAMESPACE}.branch`)
   }
   if (
     ['running', 'blocked', 'ready'].includes(front.status) &&
@@ -505,17 +523,17 @@ export function pathFrontmatterErrors(front, file = null) {
     front.branch &&
     front.branch !== `path/${front.id.toLowerCase()}`
   ) {
-    errors.push(`atomik.branch must equal path/${front.id.toLowerCase()}`)
+    errors.push(`${METADATA_NAMESPACE}.branch must equal path/${front.id.toLowerCase()}`)
   }
   if (['running', 'blocked', 'ready'].includes(front.status) && !isCommitPin(front.base_commit)) {
-    errors.push(`status "${front.status}" requires atomik.base_commit as a 7–40 digit Git hash`)
+    errors.push(`status "${front.status}" requires ${METADATA_NAMESPACE}.base_commit as a 7–64 digit Git hash`)
   }
   if (front.status === 'ready' && !isObjectId(front.subject_commit)) {
-    errors.push(`status "ready" requires atomik.subject_commit as a full object id — ${OBJECT_ID_FORMATS}`)
+    errors.push(`status "ready" requires ${METADATA_NAMESPACE}.subject_commit as a full object id — ${OBJECT_ID_FORMATS}`)
   }
   if (front.status === 'archived' && front.resolution && !PATH_RESOLUTIONS.includes(front.resolution)) {
     errors.push(
-      `atomik.resolution "${front.resolution}" is outside the vocabulary (${PATH_RESOLUTIONS.join(' | ')})`
+      `${METADATA_NAMESPACE}.resolution "${front.resolution}" is outside the vocabulary (${PATH_RESOLUTIONS.join(' | ')})`
     )
   }
   return errors
@@ -624,10 +642,10 @@ export function closingAcceptanceErrors(record, pathId) {
 }
 
 const IMMUTABLE_RECORD_PREFIXES = [
-  'atomik-project/sessions/',
-  'atomik-project/audits/',
+  slash(SESSION_DIR),
+  slash(AUDIT_DIR),
   `${HISTORY_DIR}/`,
-  'atomik-project/log/'
+  slash(JOURNAL_DIR)
 ]
 
 /** A step record inside a born-sliced path folder (ADR-020 decision 4). These
@@ -793,7 +811,7 @@ export function adrFrontmatterErrors(front, file, bodyStatus = null) {
   return errors
 }
 
-/** A path branch is `path/<id>`; everything else (master, a bootstrap branch)
+/** A path branch is `path/<id>`; everything else (the configured trunk, a bootstrap branch)
  *  is trunk work and skips the path-only rules. Renamed from `lane/` when the
  *  owner removed the integrator and made coding paths the unit of parallelism
  *  directly — there is no lane layer above a path any more. */
@@ -833,7 +851,7 @@ export function resolveBranch({ flag, env = {}, symbolicRef, abbrevRef }) {
 
 /** Where the concept wiki lives. A concept note is one idea, and the normative
  *  and learning text links to it instead of redefining it. */
-export const CONCEPTS_DIR = 'docs/cairn/specification/concepts'
+export const CONCEPTS_DIR = CAIRN_CONFIG.roots.concepts
 
 /**
  * A concept note nothing points at.
@@ -874,16 +892,17 @@ export function addedConcepts(previous, current) {
   return current.filter((file) => file !== 'index.md' && !before.has(file))
 }
 
-/** The trunk this repository integrates into. Hard-coded until the config
- *  loader lands (S08 part 4); named once so the base default and the rebase
- *  gate cannot drift apart. */
-export const TRUNK_BRANCH = 'master'
+/** The trunk this repository integrates into, supplied by the host binding so
+ *  the base default and the rebase gate cannot drift apart. */
+export const TRUNK_BRANCH = CAIRN_CONFIG.trunk
+export const REMOTE = CAIRN_CONFIG.remote
+export const ENFORCEMENT_PROFILE = CAIRN_CONFIG.enforcementProfile
 
-/** Tried in order. `origin/<trunk>` first because it is the ref CI compares
+/** Tried in order. `<configured-remote>/<trunk>` first because it is the ref CI compares
  *  against, and gate parity is about matching CI rather than matching the
  *  local checkout. The local branch is the fallback for a clone with no
  *  remote, and it is a WEAKER answer: it can sit behind the real trunk. */
-export const TRUNK_BASE_CANDIDATES = [`origin/${TRUNK_BRANCH}`, TRUNK_BRANCH]
+export const TRUNK_BASE_CANDIDATES = [`${REMOTE}/${TRUNK_BRANCH}`, TRUNK_BRANCH]
 
 /**
  * WHICH BASE? The question every changed-file rule silently inherits.
@@ -919,7 +938,7 @@ export function resolveBase({ flag = null, workingTree = false, branch, refExist
 
 /** Roots where an unenforced protocol leaves something WRONG in the repo
  *  rather than merely unconventional — the admission test for blocking. */
-export const GUARDED_ROOTS = ['apps/', 'packages/', 'shared/']
+export const GUARDED_ROOTS = CAIRN_CONFIG.roots.source.map(slash)
 
 /** Minimal glob: `**` spans separators, `*` does not. Enough for the
  *  `writes:` surfaces people actually declare, and small enough to trust. */
@@ -1038,14 +1057,10 @@ export function nameStatusMutations(raw) {
 /** Which module area note a source file belongs to. Used ADVISORY only:
  *  the map is a judgment call and a wrong blocking verdict would teach
  *  people to bypass the validator. */
-export const AREA_MAP = [
-  [/^apps\/desktop\/(shared\/graph-core|electron-main\/graph-index)|relations/, 'graph'],
-  [/^apps\/desktop\/renderer\/src\/editor\//, 'editor'],
-  [/^apps\/desktop\/(electron-main\/(capture|pdf|web|transcription|whisper|ocr|mistral-ocr|scan-filter|reader-worker)|renderer\/src\/(source|web|import)\/)/, 'sources'],
-  [/^apps\/desktop\/electron-main\/(ai-|generation|mistral-generation|action-trace|truth|web-provenance)/, 'ai'],
-  [/^apps\/desktop\/(shared\/retrieval-core|electron-main\/(vault|search|retrieval|project|folder-index)|renderer\/src\/(vault|project)\/)/, 'vault'],
-  [/^apps\/desktop\//, 'shell']
-]
+export const AREA_MAP = CAIRN_CONFIG.areas.map((area) => ({
+  ...area,
+  patterns: area.match.map(globToRegExp)
+}))
 
 /**
  * Documentation here ILLUSTRATES file layouts constantly — a bedrock page
@@ -1125,6 +1140,7 @@ export function workUnitErrors(unit) {
  * and cannot be made internally consistent without moving something.
  */
 export function retentionGenerations(refs, pathId) {
+  if (!RETENTION_ENABLED) return { generations: new Map(), preNotation: new Map() }
   const prefix = `${CHECKPOINT_REF_PREFIX}/${String(pathId ?? '').toLowerCase()}/`
   const generations = new Map()
   const preNotation = new Map()
@@ -1258,7 +1274,7 @@ export function resolveScopeSection(text, anchor) {
   return lines.slice(start, end).map((line) => line.replace(/[ \t]+$/, '')).join('\n').trim()
 }
 
-export function scopeDigest(section, algorithm = 'sha256') {
+export function scopeDigest(section, algorithm = CAIRN_CONFIG.scopeDigestAlgorithm) {
   if (section == null) return null
   return `${algorithm}:${createHash(algorithm).update(section, 'utf8').digest('hex')}`
 }
@@ -1519,8 +1535,14 @@ export function redactionMarkers(text) {
 }
 
 export function areaOf(file) {
-  for (const [pattern, area] of AREA_MAP) if (pattern.test(file)) return area
+  for (const area of AREA_MAP) {
+    if (area.patterns.some((pattern) => pattern.test(file))) return area.name
+  }
   return null
+}
+
+export function areaNote(areaName) {
+  return AREA_MAP.find((area) => area.name === areaName)?.note ?? null
 }
 
 /**
@@ -1570,6 +1592,7 @@ export function evaluate({
   branchSource = 'symbolic-ref',
   baseSource = 'flag',
   workUnits = null,
+  retentionEnabled = RETENTION_ENABLED,
   addedRecords = [],
   retainedRefs = new Map(),
   provisionalInCandidate = [],
@@ -1643,12 +1666,12 @@ export function evaluate({
   if (onPath) {
     if (!match) {
       add('blocking', 'branch-path',
-        `branch "${branch}" has no coding path declaring it (expected a file in ${PATH_DIR}/ with atomik.branch: ${branch})`)
+        `branch "${branch}" has no coding path declaring it (expected a file in ${PATH_DIR}/ with ${METADATA_NAMESPACE}.branch: ${branch})`)
     } else if (!PATH_BRANCH_STATUSES.includes(match.front.status)) {
       add('blocking', 'branch-path',
         `${match.file} declares this branch but its status is "${match.front.status}" — a path branch must be running, blocked, or ready; done is recorded by integration on the trunk`)
     } else if (!isCommitPin(match.front.base_commit)) {
-      add('blocking', 'branch-path', `${match.file} needs atomik.base_commit as a 7–40 digit Git hash`)
+      add('blocking', 'branch-path', `${match.file} needs ${METADATA_NAMESPACE}.base_commit as a 7–64 digit Git hash`)
     }
   }
 
@@ -1685,7 +1708,7 @@ export function evaluate({
   // prove whether older commits were pushed one-by-one or later as a batch.
   if (onPath && remoteCheckpoint?.state === 'missing') {
     add('advisory', 'remote-checkpoint',
-      `branch "${branch}" has no upstream — push every commit and set origin/${branch} as upstream before reporting the step complete`)
+      `branch "${branch}" has no upstream — push every commit and set ${REMOTE}/${branch} as upstream before reporting the step complete`)
   } else if (onPath && remoteCheckpoint?.state === 'unpushed') {
     add('advisory', 'remote-checkpoint',
       `HEAD is not contained in ${remoteCheckpoint.upstream} — push this commit before reporting the step complete or offering an ordinary fresh-session handoff`)
@@ -1776,7 +1799,7 @@ export function evaluate({
     }
     if (record?.subject_commit && path.front.subject_commit !== record.subject_commit) {
       add('blocking', 'acceptance',
-        `${path.file}: atomik.subject_commit must equal the closing record subject_commit`)
+        `${path.file}: ${METADATA_NAMESPACE}.subject_commit must equal the closing record subject_commit`)
     }
     const state = closureStateFor?.(path, record)
     if (state == null) {
@@ -1886,7 +1909,7 @@ export function evaluate({
       !file.includes('/tests/')
   )
   if (sourceChanged.length > 0) {
-    if (touched('docs/modules/').length === 0) {
+    if (touched(slash(MODULE_DIR)).length === 0) {
       add('blocking', 'same-work-unit',
         'source changed but no module note did — code, tests, docs and the ledger land in ONE work unit (bedrock 22 step 9)')
     }
@@ -1897,7 +1920,7 @@ export function evaluate({
     // area precision is advisory: the map is a judgment call
     const areas = new Set(sourceChanged.map(areaOf).filter(Boolean))
     for (const area of areas) {
-      const note = `docs/modules/atomik-desktop-${area}.md`
+      const note = areaNote(area)
       if (resolveFile(note) && !changed.includes(note)) {
         add('advisory', 'area-note',
           `${area} source changed but ${note} did not — is the contract still accurate?`)
@@ -1934,7 +1957,7 @@ export function evaluate({
   }
 
   // 5b. ledger size (advisory) ----------------------------------------
-  // Completed steps roll into atomik-project/coding-paths/history/<id>-S0N.md,
+  // Completed steps roll into the configured coding-path history directory,
   // linked rather than inlined, leaving the path file holding its declaration,
   // its index over those records, its ledger and its next action. Nothing is
   // summarized in that move; it is a move.
@@ -1980,7 +2003,7 @@ export function evaluate({
   // most complete. The newest unit is exempt because its ref is written
   // immediately after the commit declaring it; every older one must already
   // be reachable.
-  if (onPath && match && workUnits != null) {
+  if (retentionEnabled && onPath && match && workUnits != null) {
     const id = String(match.front.id ?? '').toLowerCase()
     const due = retentionDue(workUnits)
     // Which generation retention continues in is an ANCESTRY question, so a
@@ -2015,7 +2038,7 @@ export function evaluate({
       const units = due.map((unit) => `${unit.unit} (${unit.step})`).join(', ')
       add('blocking', 'checkpoint-retention',
         `${CHECKPOINT_REF_PREFIX}/${id}/* is empty in this checkout while ${match.file} declares ${due.length} unit(s) due retention — ${units}. ` +
-        `Either the namespace was never fetched (\`git fetch origin '+${CHECKPOINT_REF_PREFIX}/*:${CHECKPOINT_REF_PREFIX}/*'\`, which \`actions/checkout\` does NOT do) ` +
+        `Either the namespace was never fetched (\`git fetch ${REMOTE} '+${CHECKPOINT_REF_PREFIX}/*:${CHECKPOINT_REF_PREFIX}/*'\`, which \`actions/checkout\` does NOT do) ` +
         'or the refs were never written. This checkout cannot tell which, and missing evidence is not a pass',
         'inconclusive')
     } else if (generation == null && due.length > 0) {
@@ -2209,7 +2232,7 @@ export function evaluate({
     const exempt = migrationExempt.has(id)
     if (!route) {
       add(exempt ? 'advisory' : 'blocking', 'route',
-        `${match.file} declares no route: — every path declares ${ROUTES.join(' | ')}${exempt ? ' (grandfathered: this path predates the rule)' : ''}`)
+        `${match.file} declares no route: — add ${ROUTES.join(' | ')} explicitly; this host's configured default for newly generated paths is ${DEFAULT_ROUTE}${exempt ? ' (grandfathered: this path predates the rule)' : ''}`)
     } else if (!ROUTES.includes(route)) {
       add('blocking', 'route', `${match.file} declares route "${route}", outside ${ROUTES.join(' | ')}`)
     } else {
@@ -2262,9 +2285,10 @@ export function evaluate({
   }
 
   // 6. decision drift (advisory) --------------------------------------
-  if (touched('docs/bedrock/').length > 0 && touched('docs/adr/').length === 0) {
+  if (touched(slash(CAIRN_CONFIG.roots.architecture)).length > 0 &&
+      touched(slash(ADR_DIR)).length === 0) {
     add('advisory', 'decision-drift',
-      'the constitution changed with no ADR in the same change — architecture decisions live in docs/adr/')
+      `the constitution changed with no ADR in the same change — architecture decisions live in ${slash(ADR_DIR)}`)
   }
 
   return findings
@@ -2334,7 +2358,7 @@ function frontmatterAt(ref, file) {
     // ref was rejected above and remains `undefined` (inconclusive).
     return gitOrNull(['rev-parse', '--verify', ref]) == null ? undefined : null
   }
-  return readFrontmatter(`${text}\n`)?.data?.atomik ?? undefined
+  return metadataOf(readFrontmatter(`${text}\n`)?.data) ?? undefined
 }
 
 function previousPathStates(paths, ref) {
@@ -2382,13 +2406,13 @@ function closureAllowedFiles(path, record) {
   const subject = String(record?.subject_commit ?? '')
   const exact = new Set([
     path.file,
-    `atomik-project/briefs/${id}-handoff.md`,
-    `atomik-project/audits/${id}-${subject}.md`,
+    `${BRIEF_DIR}/${id}-handoff.md`,
+    `${AUDIT_DIR}/${id}-${subject}.md`,
     record?.__file
   ].filter(Boolean))
   if (path.front?.status === 'done') exact.add(ACTIVE_FILE)
   const journal = new RegExp(
-    `^atomik-project/log/\\d{4}-\\d{2}-\\d{2}-${id.replace(/[.*+?^\${}()|[\]\\]/g, '\\$&')}\\.md$`
+    `^${JOURNAL_DIR.replace(/[.*+?^\${}()|[\]\\]/g, '\\$&')}/\\d{4}-\\d{2}-\\d{2}-${id.replace(/[.*+?^\${}()|[\]\\]/g, '\\$&')}\\.md$`
   )
   return (file) => exact.has(file) || (
     path.front?.status === 'done' && journal.test(file)
@@ -2563,6 +2587,13 @@ function walk(dir, out = []) {
   return out
 }
 
+function markdownCorpus() {
+  const roots = [...new Set([DOCUMENTATION_DIR, PROJECT_DIR])]
+  return [...new Set(roots.flatMap((root) =>
+    existsSync(join(REPO, root)) ? walk(root, []).filter((file) => file.endsWith('.md')) : []
+  ))]
+}
+
 /**
  * Does this branch already contain the trunk tip? `null` when the trunk ref
  * cannot be resolved (a fresh clone, a detached CI checkout) — unknown must
@@ -2636,7 +2667,7 @@ function pathRegistrationState(trunkRef, branch, paths) {
 function scopeDigestOf(scopeRef) {
   if (!scopeRef) return undefined
   const [file, anchor] = String(scopeRef).split('#')
-  const local = file.replace(/^project\//, `${PATH_DIR.split('/')[0]}/`)
+  const local = file.replace(/^project\//, slash(PROJECT_DIR))
   const target = existsSync(join(REPO, file))
     ? file
     : existsSync(join(REPO, local)) ? local : null
@@ -2653,7 +2684,7 @@ function previousFrontStates(paths, ref) {
   for (const path of paths) {
     const text = gitOrNull(['show', `${ref}:${path.file}`])
     if (text == null) continue
-    const front = readFrontmatter(text)?.data?.atomik ?? null
+    const front = metadataOf(readFrontmatter(text)?.data)
     if (front) states.set(path.file, front)
     states.set(`${path.file}::writes`, parseWrites(text))
   }
@@ -2673,11 +2704,11 @@ function trunkDeltaSince(base, trunkRef) {
  *  there is. The distinction matters — a missing brief and an unreadable one
  *  are different findings. */
 function briefRecord(pathId) {
-  const rel = `atomik-project/briefs/${String(pathId).toLowerCase()}-handoff.md`
+  const rel = `${BRIEF_DIR}/${String(pathId).toLowerCase()}-handoff.md`
   if (!existsSync(join(REPO, rel))) return null
   const text = readFileSync(join(REPO, rel), 'utf8')
   const parsed = readFrontmatter(text)
-  const front = parsed?.data?.atomik ?? parsed?.data ?? null
+  const front = metadataOf(parsed?.data) ?? parsed?.data ?? null
   const body = text.startsWith('---\n')
     ? text.slice(text.indexOf('\n---', 4) + 4)
     : text
@@ -2703,7 +2734,7 @@ function redactionIndex() {
 }
 
 function retainedCheckpointRefs(pathId) {
-  if (!pathId) return new Map()
+  if (!RETENTION_ENABLED || !pathId) return new Map()
   const prefix = `${CHECKPOINT_REF_PREFIX}/${String(pathId).toLowerCase()}`
   const raw = gitOrNull(['for-each-ref', '--format=%(refname) %(objectname)', prefix])
   if (raw == null) return null
@@ -2831,7 +2862,7 @@ export function ceremonyFromSessions(sessions, pathId) {
  * to `done` and proposed for merge with no entry, and every gate reported `OK`.
  * A human reviewer caught it (S08 brief, finding 2).
  *
- * It reads `atomik.path`, NOT the filename. The convention does encode the id in
+ * It reads the configured metadata block's `path`, NOT the filename. The convention does encode the id in
  * the filename, and matching that would have been easier and wrong for the same
  * reason `hasCeremony` was wrong: a filename is not a declaration, and this path
  * has already repaired one rule that asked a filename question while its comment
@@ -2899,7 +2930,7 @@ function loadJournal() {
     return readdirSync(join(REPO, JOURNAL_DIR))
       .filter((file) => file.endsWith('.md') && file !== 'index.md' && file !== 'log.md')
       .map((file) => ({
-        ...(readFrontmatter(readFileSync(join(REPO, JOURNAL_DIR, file), 'utf8'))?.data?.atomik ?? {}),
+        ...(metadataOf(readFrontmatter(readFileSync(join(REPO, JOURNAL_DIR, file), 'utf8'))?.data) ?? {}),
         __file: `${JOURNAL_DIR}/${file}`
       }))
   } catch {
@@ -3027,7 +3058,7 @@ function loadPaths() {
       const rel = `${PATH_DIR}/${file}`
       const text = readFileSync(join(REPO, rel), 'utf8')
       const parsed = readFrontmatter(text)
-      const front = parsed?.data?.atomik ?? null
+      const front = metadataOf(parsed?.data)
       return {
         file: rel,
         front,
@@ -3065,7 +3096,7 @@ function branchAges(paths) {
 
 /** Schema + link integrity over the whole corpus, not just the diff: these
  *  are cheap and catching them late is the expensive part. */
-function corpusFindings(branch, trunkRef = 'master', previousRef = null, changed = []) {
+function corpusFindings(branch, trunkRef = TRUNK_BRANCH, previousRef = null, changed = []) {
   const findings = []
   const corpus = loadPaths()
 
@@ -3083,10 +3114,7 @@ function corpusFindings(branch, trunkRef = 'master', previousRef = null, changed
     // Measured before choosing it: all 71 pre-existing concepts are linked from
     // normative or learning text, so the strict reading fails none of them.
     const linked = new Set()
-    const corpusDocs = [
-      ...walk('docs').filter((f) => f.endsWith('.md')),
-      ...walk('atomik-project').filter((f) => f.endsWith('.md'))
-    ]
+    const corpusDocs = markdownCorpus()
     for (const doc of corpusDocs) {
       if (doc.startsWith(`${CONCEPTS_DIR}/`)) continue
       const text = stripCode(readFileSync(join(REPO, doc), 'utf8'))
@@ -3226,11 +3254,9 @@ function corpusFindings(branch, trunkRef = 'master', previousRef = null, changed
   //                     links point into that imaginary vault by design
   //   log.md          — an append-only historical narrative; its links
   //                     describe past states and must never be rewritten
-  const linkExempt = (file) => file.startsWith('docs/fixtures/') || file === JOURNAL
-  const docs = [
-    ...walk('docs').filter((f) => f.endsWith('.md')),
-    ...walk('atomik-project').filter((f) => f.endsWith('.md'))
-  ].filter((f) => !linkExempt(f))
+  const linkExempt = (file) =>
+    file.startsWith(`${DOCUMENTATION_DIR}/fixtures/`) || file === JOURNAL
+  const docs = markdownCorpus().filter((file) => !linkExempt(file))
   for (const doc of docs) {
     const text = stripCode(readFileSync(join(REPO, doc), 'utf8'))
     for (const match of text.matchAll(/\[[^\]]*\]\((\.[^)#\s]+)(?:#[^)\s]*)?\)/g)) {
@@ -3335,11 +3361,19 @@ function main() {
   // say what it compared cannot be read as evidence a year later, and this is
   // the line people paste into ledgers.
   const baseLabel = base ? `${base} (${baseSource})` : `working tree vs HEAD (${baseSource})`
+  const binding = effectiveBinding()
   if (asJson) {
     console.log(JSON.stringify(
-      { branch, base, baseSource, changed: changed.length, findings }, null, 2))
+      { binding, branch, base, baseSource, changed: changed.length, findings }, null, 2))
   } else {
-    console.log(`cairn-check — branch ${branch}, base ${baseLabel}, ${changed.length} changed file(s)`)
+    console.log(
+      `cairn-check — profile ${ENFORCEMENT_PROFILE}, branch ${branch}, base ${baseLabel}, ${changed.length} changed file(s)`
+    )
+    console.log(
+      `binding — schema ${binding.version}; trunk ${binding.trunk} via ${binding.remote}; ` +
+      `metadata ${binding.metadataNamespace}; new-path route ${binding.defaultRoute}; docs ${binding.documentationRoot}; ` +
+      `project ${binding.projectRoot}; source ${binding.sourceRoots.join(', ')}`
+    )
     for (const group of [
       ['FAIL', failed],
       ['INCONCLUSIVE', inconclusive],

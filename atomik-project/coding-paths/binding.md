@@ -21,19 +21,28 @@ cairn:
 
 | Portable role | Atomik binding |
 | :-- | :-- |
+| documentation plane | `docs/` |
 | execution-state plane | `atomik-project/` |
 | path records and live view | `atomik-project/coding-paths/` |
 | accepted architecture | `docs/bedrock/` |
 | decisions | `docs/adr/` |
 | implemented-area notes | `docs/modules/` |
+| concept wiki | `docs/cairn/specification/concepts/` |
 | source roots | `apps/`, `packages/`, `shared/` |
 | trunk | `master` |
 | checkpoint remote | `origin` |
+| metadata namespace | `atomik` |
+| enforcement profile | `ci` — remote checks report; host protection is not claimed |
+| generated new-path default | `lightweight` (the path record writes it explicitly) |
+| path-history policy | retained at `refs/cairn/checkpoints/<id>/g<NN>/<unit>` |
 | path branch | `path/<lowercase-path-id>` |
 
-The intended machine-readable form is `cairn.config.json`; its loader is a later
-CP-OPS-002 unit. Until then, the reference tools carry these bindings as
-constants.
+The machine-readable authority is repository-root `cairn.config.json`, schema 1,
+validated by `tools/cairn-config.mjs` before the checker, active view or audit
+scaffold reads repository state. This page remains the human adapter for
+commands, worktree/runtime details and host-only examples that do not belong in
+configuration. If the table and configuration disagree, that is a binding
+defect; neither is permission to copy an Atomik name into portable protocol.
 
 ## Mechanical contract
 

@@ -40,6 +40,7 @@ repository/
 │               └── <lowercase-path-id>/
 │                   └── <ledger-unit-ordinal>
 ├── AGENTS.md
+├── cairn.config.json
 ├── package.json
 ├── .github/
 │   └── workflows/
@@ -47,6 +48,9 @@ repository/
 ├── tools/
 │   ├── cairn-check.mjs
 │   ├── cairn-check.test.mjs
+│   ├── cairn-config.mjs
+│   ├── cairn-config.schema.json
+│   ├── cairn-config.test.mjs
 │   ├── cairn-active.mjs
 │   ├── cairn-active.test.mjs
 │   ├── cairn-audit.mjs
@@ -132,11 +136,11 @@ branches, and the [checkpoint retention](../concepts/checkpoint-retention.md)
 namespace described [below](#the-cairn-ref-namespace). A reader who searches the
 working tree for them finds nothing and reasonably concludes they do not exist.
 
-`shared/` is a guarded source root supported by the checker even when a
+`shared/` is a guarded source root supported by the example binding even when a
 repository does not currently contain it. Repeatable records may be absent when
 no event of that kind exists; their directory, index, and folder log still name
-the role. `cairn.config.json` is not shown because it is a specified portability
-target, not an installed reference file.
+the role. `cairn.config.json`, its schema, and its loader are shown because the
+reference tools now consume that binding before evaluating repository rules.
 
 A host repository may of course hold folders Cairn says nothing about. Those are
 that repository's business and are deliberately absent here: this tree lists
@@ -147,9 +151,12 @@ what Cairn defines, not what any one adoption happens to contain.
 | Path | Role | Write rule |
 | :-- | :-- | :-- |
 | `AGENTS.md` | small bootloader pointing participants to operating state and doctrine | change only with the protocol entry route |
+| `cairn.config.json` | versioned machine-readable binding from portable roles to this host | host configuration change |
 | `package.json` | exposes the reference commands without making Node a protocol requirement | control-plane change |
 | `.github/workflows/cairn.yml` | current CI adapter; reports checks for the supplied comparison refs | independently reviewed control-plane change |
 | `tools/cairn-check.mjs` | deterministic blocking and advisory predicates | independently reviewed control-plane change |
+| `tools/cairn-config.mjs` | dependency-free binding loader and schema-1 validator | independently reviewed control-plane change |
+| `tools/cairn-config.schema.json` | editor-readable schema for the installed binding | same work unit as the loader |
 | `tools/cairn-active.mjs` | rebuilds the live-path projection | independently reviewed control-plane change |
 | `tools/cairn-audit.mjs` | scaffolds and checks one exact-candidate audit | independently reviewed control-plane change |
 | `tools/cairn-rules.mjs` | projects checker metadata into the rule catalogue | independently reviewed control-plane change |
@@ -236,10 +243,12 @@ the portable path convention and
 the unconditional protocol route and is selected through each path's
 documentation coverage.
 
-The [configuration contract](./configuration.md) is the intended
-machine-readable counterpart. Until the loader exists, reference tools may
-resolve one installed binding as constants, but MUST NOT copy those names into
-portable documentation or claim portable conformance on the strength of them.
+The [configuration contract](./configuration.md) is the machine-readable
+counterpart. The schema-1 loader now resolves the installed binding for the
+checker, active view, and audit scaffold. Schema migrations, installation,
+updates, and generated host adapters remain open, so that loader is not by
+itself a claim of complete portable conformance. Installed names still MUST NOT
+leak into portable documentation.
 
 ## Naming relationships
 
