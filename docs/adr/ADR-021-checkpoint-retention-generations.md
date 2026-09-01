@@ -15,6 +15,7 @@ adr:
 Status: accepted
 Date: 2026-09-01
 Accepted: 2026-09-01, owner
+Superseded as the DEFAULT by: [ADR-022](./ADR-022-path-branches-are-not-rewritten.md) — this design stays accepted and correct for any host that keeps rewriting path branches; Cairn's default is now that they are not rewritten
 Amends: ADR-019 decision 1 (checkpoint retention precedes any rewriting push)
 Extends: ADR-012 (parallel paths, self-merge — the rebase gate), ADR-016 (enforcement integrity)
 

@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-002
   route: full            # control plane + decision plane; escalation is one-way
   status: running
-  current_step: S08q
+  current_step: S08r
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
   writes:                    # ADVISORY — a signal, never a lock
@@ -155,6 +155,7 @@ written where it lives from the moment it is worked.
 - **[S08o](./steps/S08o.md)** — The protocol moves, and the host becomes an adapter — COMPLETE
 - **[S08p](./steps/S08p.md)** — The host binding becomes executable — COMPLETE
 - **[S08q](./steps/S08q.md)** — The seed teaches the shape the protocol states — COMPLETE
+- **[S08r](./steps/S08r.md)** — The rebase is the cause, so the rebase goes — COMPLETE
 
 Forward steps — **S08** (in progress) and **S09** — are in [plan.md](./plan.md).
 

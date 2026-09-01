@@ -18,6 +18,9 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-01
 
+- `S08r` removes the cause instead of maintaining the compensation. The whole
+  retention apparatus is downstream of the mandatory rebase, and the reason given
+  for that rebase does not distinguish it from a merge.
 - `S08q` opens ADR-020 stage 5 by reconciling the seed. The pages an adopter
   copies from taught a flat record and an ungenerated ref namespace that the
   normative text had already superseded; writing `cairn-init` against them would

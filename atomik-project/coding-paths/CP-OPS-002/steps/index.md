@@ -68,6 +68,7 @@ born here, one complete record per step.
 - **[S08o](./S08o.md)** — The protocol moves, and the host becomes an adapter — COMPLETE
 - **[S08p](./S08p.md)** — The host binding becomes executable — COMPLETE
 - **[S08q](./S08q.md)** — The seed teaches the shape the protocol states — COMPLETE
+- **[S08r](./S08r.md)** — The rebase is the cause, so the rebase goes — COMPLETE
 
 ## Which commit landed which step
 

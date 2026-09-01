@@ -22,6 +22,16 @@ per entry in a `log/` subfolder — which was a concurrency fix, never a size on
 
 ## 2026-09-01
 
+- `S08r` accepts `ADR-022`. The retention namespace, its generations and its
+  three-state verdict are all downstream of the mandatory pre-merge rebase, and
+  ADR-021's stated reason for preferring rebase — that requiring the branch to
+  contain the trunk tip serializes the merge without an integrator — is satisfied
+  equally by merging the trunk INTO the branch, which rewrites nothing. Path
+  branches stop being rewritten; retention is disabled by configuration rather
+  than deleted, because it remains the correct design for a rewriting host; and
+  no-rewriting becomes a predicate on the published tip rather than a claim.
+  ADR-021 stays accepted and is superseded only as the DEFAULT.
+
 - `S08l` executes `ADR-020` migration stage 2 and finds that a shape change is the
   only thing that asks a rule what it actually reads. Three blocking rules keyed
   on a record's file path — registration, lifecycle, append-only integrity — and

@@ -18,6 +18,9 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-01
 
+- `S08r` accepts `ADR-022`: path branches are not rewritten, a current base is
+  reached by merge, and retention is disabled by configuration rather than
+  deleted. ADR-021's rationale for the rebase is satisfied equally by a merge.
 - `S08q` reconciles the four seed pages and two surviving notations in the
   canonical index with the born-sliced record and generation-aware retention the
   specification already states, and adds a test that holds them there.
