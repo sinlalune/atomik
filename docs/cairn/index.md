@@ -26,6 +26,8 @@ integration transport; there is no standing central integrator.
 - [Implementation reference](./specification/reference/index.md) — exact layout,
   templates, record schemas, commands, configuration status, and conformance
   checklist.
+- [Portable execution protocol](./specification/reference/execution-protocol.md)
+  — the required session route, separated from every host binding.
 - [Universal HTML edition](./specification.html) — the same article graph in one
   self-contained reader: an article tree, the full specification fixed in the
   left pane, and every link or tree entry opening its object in the right.
@@ -50,8 +52,9 @@ same navigation as the standalone HTML reader.
 - [ADR-019](../adr/ADR-019-cairn-v0-2-revision.md) — proposed v0.2 revision:
   retention, provisional commits, the brief contract, scope digests, the drift
   predicate, and the lightweight default.
-- [Live operating detail](../../atomik-project/coding-paths/paths.md) — the
-  current repository's configured workflow.
+- [Portable path convention](../../atomik-project/coding-paths/paths.md) and
+  [Atomik binding](../../atomik-project/coding-paths/binding.md) — the split
+  operating route installed in this repository.
 
 ## Other views and retained design records
 

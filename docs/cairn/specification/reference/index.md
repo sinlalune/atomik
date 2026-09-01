@@ -14,6 +14,8 @@ reference supplies exact forms:
 
 - [Repository layout](./repository-layout.md) — directories, file roles, and
   naming conventions.
+- [Execution protocol](./execution-protocol.md) — the ordered portable route for
+  entering, advancing, handing off, resuming, and closing one path.
 - [Coding-path template](./path-template.md) — a complete path record.
 - [Handoff-brief contract](./handoff-brief.md) — frontmatter fields, capped body
   sections, and the answerable-alone test.

@@ -18,6 +18,10 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-01
 
+- `S08o` applies ADR-020 migration stage 4. Required reading is now two portable
+  execution documents plus one Atomik binding; the product constitution leaves
+  the unconditional route, while both former combined pages remain linked as
+  explanatory history.
 - `S08n` resolves the `record-integrity` parity finding with the record's own
   adding blob as its baseline. A step may append and may not rewrite; the
   remaining flat-ledger and verbatim-roll proof stays explicitly partial.

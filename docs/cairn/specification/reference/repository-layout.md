@@ -1,12 +1,12 @@
 ---
 type: Cairn Reference
-title: Repository layout and reference binding
-description: The complete Cairn-owned directory tree and ref namespace, installed reference bindings, file roles, identifiers, and ownership conventions.
+title: Repository layout and binding boundary
+description: The complete portable Cairn-owned directory tree and ref namespace, file roles, identifiers, ownership conventions, and the boundary where a host supplies its own names.
 tags: [cairn, reference, repository, layout, naming]
 timestamp: 2026-08-26T00:00:00Z
 ---
 
-# Repository layout and reference binding
+# Repository layout and binding boundary
 
 The [specification](../index.md#the-repository-around-the-path) defines roles
 before paths: application source, the Cairn
@@ -16,11 +16,10 @@ folders it already has.
 
 This page uses the protocol's own **role names** throughout — `project/`,
 `docs/architecture/`. Which folder a given repository binds each role to is
-recorded in exactly one place, the
-[installed binding table](#portable-roles-and-installed-names) at the foot of
-this page. Nothing else here repeats a host repository's local vocabulary,
-because a specification that carries one adoption's folder names through every
-example is teaching that adoption rather than the protocol.
+recorded in its [host binding appendix](#host-binding-appendix). Nothing here
+repeats an installed repository's local vocabulary, because a specification
+that carries one adoption's folder names through every example is teaching that
+adoption rather than the protocol.
 
 ## The reference tree
 
@@ -63,7 +62,7 @@ repository/
 ├── shared/
 │   └── <optional-shared-source-files>
 ├── docs/
-│   ├── bedrock/
+│   ├── architecture/
 │   │   ├── index.md
 │   │   ├── log.md
 │   │   ├── <numbered-architecture-page>.md
@@ -96,6 +95,7 @@ repository/
     │   ├── index.md
     │   ├── log.md
     │   ├── paths.md
+    │   ├── binding.md
     │   ├── ACTIVE.md
     │   ├── CP-<ID>.md
     │   └── history/
@@ -155,7 +155,7 @@ what Cairn defines, not what any one adoption happens to contain.
 | `tools/cairn-rules.mjs` | projects checker metadata into the rule catalogue | independently reviewed control-plane change |
 | `tools/cairn-spec-build.mjs` | projects canonical Markdown into the universal HTML reader | specification tooling change |
 | `tools/*.test.mjs` | executable contract for each reference tool | same work unit as the tool |
-| `docs/bedrock/` | accepted architecture and constitutional doctrine | path plus decision record when meaning changes |
+| `docs/architecture/` | accepted architecture and constitutional doctrine | path plus decision record when meaning changes |
 | `docs/adr/ADR-*.md` | one durable architecture or protocol decision | path making the decision |
 | `docs/modules/<area>.md` | implemented-area flow, boundaries, and tests | path changing that area |
 | `docs/cairn/specification/index.md` | canonical normative protocol | accepted specification change |
@@ -163,7 +163,8 @@ what Cairn defines, not what any one adoption happens to contain.
 | `docs/cairn/specification/reference/*.md` | exact layouts, schemas, and operations | same specification work unit |
 | `docs/cairn/specification.html` | generated self-contained reader | generator only |
 | `project/index.md` | entry map for durable project knowledge and execution state | project-plane change |
-| `project/coding-paths/paths.md` | current operating convention for opening, running, integrating, and cleaning paths | accepted protocol operation change |
+| `project/coding-paths/paths.md` | portable operating convention for opening, running, integrating, and cleaning paths | accepted protocol operation change |
+| `project/coding-paths/binding.md` | human-readable host adapter: installed roots, commands, worktree/runtime details, and local examples | host configuration change |
 | `project/coding-paths/CP-*.md` | one path's plan, state, ledger, checkpoint, and next action | current assigned writer |
 | `project/coding-paths/ACTIVE.md` | generated live-path index | generator only |
 | `project/coding-paths/history/*.md` | verbatim completed ledger sections | created by that path; immutable thereafter |
@@ -217,33 +218,28 @@ A repository that clones with a restricted refspec, or a mirror that copies only
 conforming to [checkpoint retention](../concepts/checkpoint-retention.md), not an
 optional convenience.
 
-## Portable roles and installed names
+## Host binding appendix
 
-Everything above this heading uses role names. This table is the one place where
-they are traded for the folders a real repository holds, and it is written for
-**the repository the reference tools were built in** — the adoption Cairn was
-extracted from.
+Everything above this heading uses role names. A repository trades them for its
+installed folders, commands, branch, remote and runtime details in exactly one
+human-readable file:
 
-| Protocol role | Role name used in this specification | Bound in the reference repository to | Intended configuration field |
-| :-- | :-- | :-- | :-- |
-| execution-state plane | `project/` | **`atomik-project/`** | `roots.project` |
-| accepted architecture | `docs/architecture/` | **`docs/bedrock/`** | `roots.architecture` |
-| decision records | `docs/adr/` | `docs/adr/` | `roots.decisions` |
-| implemented-area notes | `docs/modules/` | `docs/modules/` | `roots.modules` |
-| guarded application source | `apps/`, `packages/`, `shared/` | same | `roots.source` |
-| shared integration branch | `<trunk>` | `main` | `trunk` |
-| shared checkpoint remote | `<remote>` | `origin` | `remote` |
+```text
+project/coding-paths/binding.md
+```
 
-Two roles are bound to a different name, and both for the same uninteresting
-reason: those folders were named before Cairn existed, by the application the
-protocol grew inside. Neither name is protocol structure. A repository adopting
-Cairn should bind these roles to whatever it already calls them and never inherit
-`atomik-project/` — the prefix names one product, not a protocol.
+That file is classified **BINDING**, not PORTABLE. It names the host and MAY
+contain application paths, local command names, worktree examples, runtime
+variables and known conflict surfaces. The root `AGENTS.md` points to it beside
+the portable path convention and
+[execution protocol](./execution-protocol.md). Host architecture remains outside
+the unconditional protocol route and is selected through each path's
+documentation coverage.
 
-The [configuration contract](./configuration.md) defines the intended mapping.
-Until the loader exists, the reference tools resolve the bound names above as
-constants: an operator working **in that repository** MUST use them, and MUST NOT
-claim portable conformance on the strength of them.
+The [configuration contract](./configuration.md) is the intended
+machine-readable counterpart. Until the loader exists, reference tools may
+resolve one installed binding as constants, but MUST NOT copy those names into
+portable documentation or claim portable conformance on the strength of them.
 
 ## Naming relationships
 

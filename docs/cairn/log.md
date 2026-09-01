@@ -22,6 +22,10 @@ per entry in a `log/` subfolder — which was a concurrency fix, never a size on
 
 ## 2026-09-01
 
+- `CP-OPS-002 S08o` applies ADR-020's artefact boundary. The session procedure
+  moves into the portable reference, the path convention becomes lightweight
+  required reading, and Atomik's installed names and examples leave the
+  specification for one binding appendix.
 - `CP-OPS-002 S08n` makes a born-sliced step's adding blob the stable
   `record-integrity` baseline. Exact suffix appends pass locally and in CI;
   earlier-byte rewrites block, and the specification still labels flat-ledger

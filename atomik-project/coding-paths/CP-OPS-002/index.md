@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-002
   route: full            # control plane + decision plane; escalation is one-way
   status: running
-  current_step: S08n
+  current_step: S08o
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
   writes:                    # ADVISORY — a signal, never a lock
@@ -27,6 +27,7 @@ atomik:
     - cairn.config.json
     - .github/workflows/cairn.yml
     - AGENTS.md               # S08i: the mechanical contract names this rule set
+    - docs/agents/*.md        # S08o: live agent entry pointers follow the classified route
     - docs/index.md
     - docs/**/index.md         # S05/S05b backfill the OKF entry points
     - docs/**/log.md           # S05c: the other half of the OKF folder pair
@@ -36,8 +37,12 @@ atomik:
     - docs/adr/**              # S05 backfills frontmatter across every ADR
     - docs/modules/**
     - docs/bedrock/24_24-doc-templates.md
+    - docs/bedrock/22_22-agent-handoff.md # S08o: host pointer replaces the portable copy
+    - docs/bedrock/archive/22_22-agent-handoff-pre-cairn-extraction.md
     - atomik-project/index.md
     - atomik-project/coding-paths/paths.md
+    - atomik-project/coding-paths/binding.md
+    - atomik-project/coding-paths/paths-history.md
     - atomik-project/coding-paths/CP-OPS-002/index.md
     - atomik-project/coding-paths/index.md
     - atomik-project/coding-paths/history/**
@@ -144,6 +149,7 @@ written where it lives from the moment it is worked.
 - **[S08l](./steps/S08l.md)** — The record moves, and three rules that knew it by its address — COMPLETE
 - **[S08m](./steps/S08m.md)** — A fifth rule dated a record by the commit that moved it — COMPLETE
 - **[S08n](./steps/S08n.md)** — An append is not a rewrite, and the baseline belongs to the record — COMPLETE
+- **[S08o](./steps/S08o.md)** — The protocol moves, and the host becomes an adapter — COMPLETE
 
 Forward steps — **S08** (in progress) and **S09** — are in [plan.md](./plan.md).
 
@@ -169,7 +175,7 @@ half of the same thing.
 | Opening check | accepted 2026-08-24, eight rulings ([note](../../sessions/2026-08-24-cp-ops-002-opening-check.md)) |
 | Scope note | protocol tooling and doctrine only; no product code changed. The full `typecheck`, product `test`, and production `build` gates were nevertheless run and passed at the completed-step boundary |
 | Widening | `writes:` gained `atomik-project/briefs/cp-ops-002-handoff.md` at S01 — the per-step handoff brief is required by bedrock 22 and the original declaration simply omitted it. **Widened again at S06d** to `atomik-project/briefs/**`: F7's residue lives in that folder, and `scope-drift` said so the moment the owner ruled on `feedback on  MVP-001.md`. Recorded here and kept going, which is what `paths.md` asks of a widening |
-| Next action | **ADR-020 stage 4: apply the artefact classification.** Move the portable execution protocol into the Cairn specification, extract Atomik's worktree/lane/hot-file examples into a binding appendix, and remove the host constitution from the protocol entry chain. Stage 3's last operation — retiring `ledger-size` — remains deliberately pending until `CP-MVP-008`, `CP-MVP-011` and `CP-MVP-012` are folders; stage 5 then makes `cairn-init` scaffold the classified, generation-aware shape. S08 Part 2 also remains: an adversarial fixture for every blocking rule, one gate run in both invocation contexts asserting one verdict, and a generated conformance matrix |
+| Next action | **ADR-020 stage 5: make `cairn-init` scaffold the classified shape.** The seed must install the portable execution route and path convention, a separate host binding, born-sliced path records, and generation-aware checkpoint retention from its first commit. Stage 3's last operation — retiring `ledger-size` — remains deliberately pending until `CP-MVP-008`, `CP-MVP-011` and `CP-MVP-012` are folders. S08 Part 2 also remains: an adversarial fixture for every blocking rule, one gate run in both invocation contexts asserting one verdict, and a generated conformance matrix |
 | Superseded next action (S08k, done) | **ADR-020 stage 2** — the `CP-OPS-002` folder migration, which supersedes the queued ledger roll and is what `ledger-size` has been advising about at ~19.9 k tokens. Then stages 3–5 (the checker's shape, the artefact classification, `cairn-init`), and S08 Part 2 — an adversarial fixture for every blocking rule, the two-context gate-parity test, and the generated conformance matrix. `cairn-init` must scaffold generation-aware retention from the start: a flat namespace handed to an adopter is a migration handed to an adopter |
 | Amendments | **2026-08-24, owner ruling 9** — S06b rescoped from "configure branch protection" to "declare the enforcement tier"; its deliverables move into S07 (specification + operator guide) and S08 (`enforcement` config field, generated header line, tier-0/1 `cairn-init`). This repository stays at tier 1, declared ([note](../../sessions/2026-08-24-cp-ops-002-s06b-rescope.md)) |
-| Blockers | None. `ledger-size` retirement waits on the three flat records above, but ADR-020 says its migration stages are independent, so stage 4 can proceed |
+| Blockers | None. `ledger-size` retirement waits on the three flat records above, but ADR-020 says its migration stages are independent, so stage 5 can proceed |

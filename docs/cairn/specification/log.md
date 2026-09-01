@@ -11,6 +11,15 @@ timestamp: 2026-08-26T00:00:00Z
 The companion entry point is [index.md](./index.md). This log records changes to
 the documentation project; it is not part of the protocol's normative prose.
 
+## 2026-09-01 — portable protocol, host constitution, named binding
+
+ADR-020's PORTABLE / HOST / BINDING classification is now the installed entry
+shape. A new reference article carries the portable coding-session order;
+canonical, concept and reference pages carry role names only; and the
+repository-layout reference sends installed paths, commands and examples to one
+host binding appendix. The conformance row says what remains: `cairn-init` must
+scaffold this classified shape before general release.
+
 ## 2026-09-01 — a step append is proved from the record, not the gate's base
 
 `record-integrity` treated any Git `M` status on a born-sliced step as a

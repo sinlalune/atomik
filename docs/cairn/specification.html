@@ -513,7 +513,7 @@
     <nav class="tree-panel" aria-label="Article tree">
       <header>
         <h2>Article tree</h2>
-        <span>83 objects</span>
+        <span>84 objects</span>
       </header>
       <label>
         <span hidden>Filter articles</span>
@@ -907,7 +907,7 @@
     </details>
 
     <details class="tree-group" open>
-      <summary>Reference<span>9</span></summary>
+      <summary>Reference<span>10</span></summary>
       <ul>
 
           <li data-tree-item data-search="implementation reference the canonical specification teaches and defines the protocol. the concept wiki explains one object per article. this reference supplies exact forms: - repository layout — directories, file r">
@@ -923,6 +923,11 @@
           <li data-tree-item data-search="cairn conformance checklist a conformance report names the protocol version, implementation version, configuration version, enforcement profile, host adapter, and date evaluated. for each row it records pass, fail, inc">
             <a href="#article-reference-conformance" data-tree-article="reference-conformance">
               <span>Cairn conformance checklist</span>
+            </a>
+          </li>
+          <li data-tree-item data-search="portable coding-session execution protocol this is the required execution route projected from the canonical specification. it adds no requirements: exact command forms live in operations, schemas live in the other reference pages, a">
+            <a href="#article-reference-execution-protocol" data-tree-article="reference-execution-protocol">
+              <span>Portable coding-session execution protocol</span>
             </a>
           </li>
           <li data-tree-item data-search="the handoff-brief contract the handoff brief is the protocol's bootstrap document: the last stop on the entry route from agents.md, and the first document a new participant acts from. this page gives it exact fields, ">
@@ -950,9 +955,9 @@
               <span>Repair procedures</span>
             </a>
           </li>
-          <li data-tree-item data-search="repository layout and reference binding the specification defines roles before paths: application source, the cairn control plane, durable project knowledge, and durable execution state. a portable implementation may bind those ro">
+          <li data-tree-item data-search="repository layout and binding boundary the specification defines roles before paths: application source, the cairn control plane, durable project knowledge, and durable execution state. a portable implementation may bind those ro">
             <a href="#article-reference-repository-layout" data-tree-article="reference-repository-layout">
-              <span>Repository layout and reference binding</span>
+              <span>Repository layout and binding boundary</span>
             </a>
           </li>
       </ul>
@@ -1313,8 +1318,13 @@ there and how to navigate it; <code>log.md</code> summarises recent changes in t
 Independent events use one file per event. Generated
 <a href="#article-concept-live-view" data-article="concept-live-view" data-anchor="" class="wiki-link">live views</a> are rebuilt from their source records
 rather than edited as another truth.</p>
-<p><code>AGENTS.md</code> is the small entry point that tells a new participant what to read
-first. <code>cairn.config.json</code> binds portable role names to repository paths. The
+<p><code>AGENTS.md</code> is the small <strong>BINDING</strong> entry point that tells a new participant
+what to read first. It MUST point separately to the PORTABLE
+<a href="#article-reference-execution-protocol" data-article="reference-execution-protocol" data-anchor="" class="wiki-link">execution protocol</a>, the portable path
+convention, and one human-readable host binding appendix. HOST architecture is
+selected by the path’s documentation coverage; it is not required merely
+because a coding session began. <code>cairn.config.json</code> is the intended
+machine-readable binding of portable role names to repository paths. The
 workflow and <code>cairn-*</code> tools form the executable control plane. Three optional
 <a href="#article-concept-project-memory" data-article="concept-project-memory" data-anchor="" class="wiki-link">project-memory</a> spaces may accompany execution:
 <code>brainstorm/</code> for explicitly provisional thinking, <code>sources/</code> for imported
@@ -1372,6 +1382,7 @@ knowledge may add other folders without changing Cairn:</p>
     │   ├── index.md
     │   ├── log.md
     │   ├── paths.md
+    │   ├── binding.md
     │   ├── ACTIVE.md
     │   ├── CP-&lt;ID&gt;.md
     │   └── history/
@@ -1423,12 +1434,9 @@ garbage-collect exactly the history its ledger promised.</p>
 protocol layout but is not yet loaded or installed by the v0.2 reference tools.</p>
 <p>The names used throughout this specification — <code>project/</code>,
 <code>docs/architecture/</code> — are <strong>role names</strong>, not required folder names. A
-repository binds each role to a folder it already has, and the current reference
-tools bind two of them to different names than the ones written here. Those
-bindings are recorded once, in the
-<a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="portable-roles-and-installed-names" class="wiki-link">installed binding table</a>,
-so that no other page has to repeat a host repository’s local vocabulary. The
-tree, file roles, naming rules, and the mapping are all in the
+repository binds each role to a folder it already has. Those installed names
+belong in the repository’s <code>project/coding-paths/binding.md</code>, never in a portable
+article. The generic tree, file roles and naming rules are in the
 <a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="" class="wiki-link">repository-layout reference</a>.</p>
 <h2 id="specification--choose-the-route-the-change-earns" data-heading="choose-the-route-the-change-earns">Choose the route the change earns</h2>
 <p>Not every bounded change deserves the same ceremony. A protocol that demands
@@ -1771,8 +1779,9 @@ to say something slightly untrue.</p>
 <p><strong>“Alone” is a claim about what the reader must already carry in their head, not
 about how many files they may open.</strong> A participant arriving at a Cairn
 repository follows the entry route the repository itself publishes: <code>AGENTS.md</code>
-names the operating convention, the convention names the <a href="#article-concept-live-view" data-article="concept-live-view" data-anchor="" class="wiki-link">live
-view</a>, the live view names the path, and the
+names the portable execution protocol, portable path convention and host
+binding; the convention names the <a href="#article-concept-live-view" data-article="concept-live-view" data-anchor="" class="wiki-link">live view</a>, the live
+view names the path, and the
 <a href="#article-concept-path-record" data-article="concept-path-record" data-anchor="" class="wiki-link">path record</a> carries the plan and the ledger. That
 chain is the protocol working. A brief that set out to replace it would be a
 lossy copy of records that are already canonical, refreshed by hand, drifting
@@ -2608,6 +2617,12 @@ not in a separate document a reader may never open.</p>
 <td style="text-align:left">required</td>
 <td style="text-align:left"><strong>partially implemented</strong>; the nine fields, the seven exact sections and pinned <code>governs</code> entries are checked. The token budget is retired (ADR-020 decision 6): what will not fit is linked, not compressed, and that is a judgement rather than a predicate</td>
 <td style="text-align:left">the answerable-alone contract is a judgement and a cold-resume harness, and is never claimed by a checker</td>
+</tr>
+<tr>
+<td style="text-align:left">Portable, host, and binding artefact separation</td>
+<td style="text-align:left">required</td>
+<td style="text-align:left"><strong>implemented in the reference documentation</strong>; the portable execution route and path convention carry no host names, the root bootloader points at one explicit binding appendix, and host architecture is absent from the unconditional entry chain</td>
+<td style="text-align:left"><code>cairn-init</code> must scaffold the classified shape before general release; classification itself is a documentation property rather than a repository predicate</td>
 </tr>
 <tr>
 <td style="text-align:left">Field-level administrative closure surface</td>
@@ -3791,8 +3806,13 @@ there and how to navigate it; <code>log.md</code> summarises recent changes in t
 Independent events use one file per event. Generated
 <a href="#article-concept-live-view" data-article="concept-live-view" data-anchor="" class="wiki-link">live views</a> are rebuilt from their source records
 rather than edited as another truth.</p>
-<p><code>AGENTS.md</code> is the small entry point that tells a new participant what to read
-first. <code>cairn.config.json</code> binds portable role names to repository paths. The
+<p><code>AGENTS.md</code> is the small <strong>BINDING</strong> entry point that tells a new participant
+what to read first. It MUST point separately to the PORTABLE
+<a href="#article-reference-execution-protocol" data-article="reference-execution-protocol" data-anchor="" class="wiki-link">execution protocol</a>, the portable path
+convention, and one human-readable host binding appendix. HOST architecture is
+selected by the path’s documentation coverage; it is not required merely
+because a coding session began. <code>cairn.config.json</code> is the intended
+machine-readable binding of portable role names to repository paths. The
 workflow and <code>cairn-*</code> tools form the executable control plane. Three optional
 <a href="#article-concept-project-memory" data-article="concept-project-memory" data-anchor="" class="wiki-link">project-memory</a> spaces may accompany execution:
 <code>brainstorm/</code> for explicitly provisional thinking, <code>sources/</code> for imported
@@ -3850,6 +3870,7 @@ knowledge may add other folders without changing Cairn:</p>
     │   ├── index.md
     │   ├── log.md
     │   ├── paths.md
+    │   ├── binding.md
     │   ├── ACTIVE.md
     │   ├── CP-&lt;ID&gt;.md
     │   └── history/
@@ -3901,12 +3922,9 @@ garbage-collect exactly the history its ledger promised.</p>
 protocol layout but is not yet loaded or installed by the v0.2 reference tools.</p>
 <p>The names used throughout this specification — <code>project/</code>,
 <code>docs/architecture/</code> — are <strong>role names</strong>, not required folder names. A
-repository binds each role to a folder it already has, and the current reference
-tools bind two of them to different names than the ones written here. Those
-bindings are recorded once, in the
-<a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="portable-roles-and-installed-names" class="wiki-link">installed binding table</a>,
-so that no other page has to repeat a host repository’s local vocabulary. The
-tree, file roles, naming rules, and the mapping are all in the
+repository binds each role to a folder it already has. Those installed names
+belong in the repository’s <code>project/coding-paths/binding.md</code>, never in a portable
+article. The generic tree, file roles and naming rules are in the
 <a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="" class="wiki-link">repository-layout reference</a>.</p>
 <h2 id="specification--choose-the-route-the-change-earns" data-heading="choose-the-route-the-change-earns">Choose the route the change earns</h2>
 <p>Not every bounded change deserves the same ceremony. A protocol that demands
@@ -4249,8 +4267,9 @@ to say something slightly untrue.</p>
 <p><strong>“Alone” is a claim about what the reader must already carry in their head, not
 about how many files they may open.</strong> A participant arriving at a Cairn
 repository follows the entry route the repository itself publishes: <code>AGENTS.md</code>
-names the operating convention, the convention names the <a href="#article-concept-live-view" data-article="concept-live-view" data-anchor="" class="wiki-link">live
-view</a>, the live view names the path, and the
+names the portable execution protocol, portable path convention and host
+binding; the convention names the <a href="#article-concept-live-view" data-article="concept-live-view" data-anchor="" class="wiki-link">live view</a>, the live
+view names the path, and the
 <a href="#article-concept-path-record" data-article="concept-path-record" data-anchor="" class="wiki-link">path record</a> carries the plan and the ledger. That
 chain is the protocol working. A brief that set out to replace it would be a
 lossy copy of records that are already canonical, refreshed by hand, drifting
@@ -5086,6 +5105,12 @@ not in a separate document a reader may never open.</p>
 <td style="text-align:left">required</td>
 <td style="text-align:left"><strong>partially implemented</strong>; the nine fields, the seven exact sections and pinned <code>governs</code> entries are checked. The token budget is retired (ADR-020 decision 6): what will not fit is linked, not compressed, and that is a judgement rather than a predicate</td>
 <td style="text-align:left">the answerable-alone contract is a judgement and a cold-resume harness, and is never claimed by a checker</td>
+</tr>
+<tr>
+<td style="text-align:left">Portable, host, and binding artefact separation</td>
+<td style="text-align:left">required</td>
+<td style="text-align:left"><strong>implemented in the reference documentation</strong>; the portable execution route and path convention carry no host names, the root bootloader points at one explicit binding appendix, and host architecture is absent from the unconditional entry chain</td>
+<td style="text-align:left"><code>cairn-init</code> must scaffold the classified shape before general release; classification itself is a documentation property rather than a repository predicate</td>
 </tr>
 <tr>
 <td style="text-align:left">Field-level administrative closure surface</td>
@@ -7905,9 +7930,10 @@ why: <a href="#article-concept-architecture" data-article="concept-architecture"
 records what bounded work is doing now: paths, sessions, audits, handoffs, and
 integrated outcomes.</p>
 <p><code>project/</code> is a protocol <strong>role name</strong>, not a required folder name. Which folder
-a given repository installs it in is recorded once, in the
-<a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="portable-roles-and-installed-names" class="wiki-link">installed binding table</a>,
-and nowhere else.</p>
+a given repository installs it in is recorded once, in its
+<code>project/coding-paths/binding.md</code>, under the
+<a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="host-binding-appendix" class="wiki-link">host-binding boundary</a>,
+and nowhere in the portable articles.</p>
 <p>The path ledger connects them by recording which knowledge governed a concrete
 work unit and which knowledge changed with it. A path’s
 <a href="#article-concept-path-record" data-article="concept-path-record" data-anchor="" class="wiki-link"><code>governs:</code></a> declaration pins each governing document at an
@@ -8971,6 +8997,8 @@ reference supplies exact forms:</p>
 <ul>
 <li><a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="" class="wiki-link">Repository layout</a> — directories, file roles, and
 naming conventions.</li>
+<li><a href="#article-reference-execution-protocol" data-article="reference-execution-protocol" data-anchor="" class="wiki-link">Execution protocol</a> — the ordered portable route for
+entering, advancing, handing off, resuming, and closing one path.</li>
 <li><a href="#article-reference-path-template" data-article="reference-path-template" data-anchor="" class="wiki-link">Coding-path template</a> — a complete path record.</li>
 <li><a href="#article-reference-handoff-brief" data-article="reference-handoff-brief" data-anchor="" class="wiki-link">Handoff-brief contract</a> — frontmatter fields, capped body
 sections, and the answerable-alone test.</li>
@@ -9015,15 +9043,15 @@ Therefore the reference implementation MUST NOT claim portable conformance.</p>
   &quot;metadataNamespace&quot;: &quot;cairn&quot;,
   &quot;enforcementProfile&quot;: &quot;local&quot;,
   &quot;roots&quot;: {
-    &quot;project&quot;: &quot;atomik-project&quot;,
-    &quot;architecture&quot;: &quot;docs/bedrock&quot;,
+    &quot;project&quot;: &quot;project&quot;,
+    &quot;architecture&quot;: &quot;docs/architecture&quot;,
     &quot;decisions&quot;: &quot;docs/adr&quot;,
     &quot;modules&quot;: &quot;docs/modules&quot;,
-    &quot;source&quot;: [&quot;apps&quot;, &quot;packages&quot;, &quot;shared&quot;]
+    &quot;source&quot;: [&quot;src&quot;, &quot;packages&quot;]
   },
   &quot;areas&quot;: [
     {
-      &quot;match&quot;: &quot;apps/**&quot;,
+      &quot;match&quot;: &quot;src/**&quot;,
       &quot;note&quot;: &quot;docs/modules/application.md&quot;
     }
   ],
@@ -9037,9 +9065,11 @@ Therefore the reference implementation MUST NOT claim portable conformance.</p>
   }
 }
 </code></pre>
-<p>These values describe the <a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="portable-roles-and-installed-names" class="wiki-link">installed reference binding</a>.
-Another repository may choose different paths once the configuration loader is
-implemented and validated.</p>
+<p>These are role-name defaults rather than one installed repository’s paths. A
+host records its concrete names in the binding appendix described by the
+<a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="host-binding-appendix" class="wiki-link">repository-layout reference</a>,
+and may choose different paths once the configuration loader is implemented and
+validated.</p>
 <h2 id="reference-configuration--fields" data-heading="fields">Fields</h2>
 <table>
 <thead>
@@ -9304,6 +9334,124 @@ or a measured general-release pilot.</p>
 reference tools alone is wrong. They can be satisfied by a repository’s practice
 and evidenced by hand; the column that says so is “Additional dependency”, not
 “Reference tools”.</p>
+
+    </article>
+    </template>
+    <template id="template-reference-execution-protocol"
+      data-article-template="reference-execution-protocol"
+      data-title="Portable coding-session execution protocol"
+      data-kind="Reference"
+      data-source="reference/execution-protocol.md">
+
+    <div class="article-meta">
+      <span>Reference</span>
+      <code>reference/execution-protocol.md</code>
+    </div>
+    <article class="article-body" data-rendered-article="reference-execution-protocol">
+      <h1 id="reference-execution-protocol--portable-coding-session-execution-protocol" data-heading="portable-coding-session-execution-protocol">Portable coding-session execution protocol</h1>
+<p>This is the required execution route projected from the
+<a href="#article-specification" data-article="specification" data-anchor="" class="wiki-link">canonical specification</a>. It adds no requirements: exact command
+forms live in <a href="#article-reference-operations" data-article="reference-operations" data-anchor="" class="wiki-link">operations</a>, schemas live in the other reference
+pages, and explanatory terms live in the <a href="#article-concepts" data-article="concepts" data-anchor="" class="wiki-link">concept wiki</a>.</p>
+<p>The page is <strong>PORTABLE</strong>. It uses protocol role names and contains no application
+name, host path, product command, runtime variable or product-specific security
+rule. A repository’s root bootloader pairs it with one named host binding.</p>
+<h2 id="reference-execution-protocol--enter-or-resume-one-path" data-heading="enter-or-resume-one-path">Enter or resume one path</h2>
+<ol>
+<li>Read the repository bootloader, then the portable path convention and host
+binding it names.</li>
+<li>Open the generated <a href="#article-concept-live-view" data-article="concept-live-view" data-anchor="" class="wiki-link">live view</a> and follow it to the
+path assigned to this writable worktree. Several paths may be running; write
+exactly one.</li>
+<li>Verify repository reality against durable state: branch, upstream, working
+tree, trunk base, checkpoint refs and last recorded gate verdict. Reconcile a
+mismatch in the path record before implementation.</li>
+<li>Read every document under the path’s <strong>Required</strong> coverage. Note each
+<strong>Conditional</strong> trigger and read it when it fires. Respect every
+<strong>Deliberately excluded</strong> entry; record any widening.</li>
+<li>Read the path index and handoff brief. Read the forward plan only when
+planning, and open earlier step records only when their index summaries make
+them relevant.</li>
+<li>Start the persisted next action. Conversation memory is never stronger than
+the branch, path record, brief and repository state.</li>
+</ol>
+<h2 id="reference-execution-protocol--advance-exactly-one-work-unit" data-heading="advance-exactly-one-work-unit">Advance exactly one work unit</h2>
+<p>A work unit is coherent only when all of its required surfaces move together:</p>
+<ul>
+<li>implementation or protocol artefact;</li>
+<li>adversarial and ordinary tests;</li>
+<li>affected durable documentation;</li>
+<li>one self-contained path step with its <code>cairn-unit</code> block;</li>
+<li>the path’s live header and refreshed handoff brief.</li>
+</ul>
+<p>Execute one step at a time. A step file is written where it will live and must be
+readable by itself. Progress, corrections, rejected approaches, widening,
+verification and the next action persist in files before the unit is called
+complete.</p>
+<p>Run relevant gates directly so their exit codes remain visible. Review the
+working tree, stage explicit paths, commit the coherent unit, push it immediately
+to its owning branch, and publish its append-only checkpoint-retention ref. A
+unit whose push or retention fails is implemented locally, not complete.</p>
+<p>When incomplete work is valuable enough to preserve, publish a marked
+<a href="#article-concept-provisional-commit" data-article="concept-provisional-commit" data-anchor="" class="wiki-link">provisional commit</a>. Do not call it a
+checkpoint or hand it off as the next completed unit. Fold every provisional
+commit before candidate acceptance.</p>
+<h2 id="reference-execution-protocol--preserve-one-writer-safety" data-heading="preserve-one-writer-safety">Preserve one-writer safety</h2>
+<p>One writable worktree has one assigned writer. Other participants may inspect,
+diagnose and review it. Never overwrite, delete or absorb an unexpected dirty or
+untracked file merely because it is outside the current plan; first determine
+whether it belongs to another participant.</p>
+<p>Before every commit:</p>
+<pre><code class="language-text">review status
+separate the coherent work unit
+stage explicit paths
+verify the staged diff
+</code></pre>
+<p>Do not blind-add a live repository. Do not use a gate-output pipeline whose last
+process hides the gate’s exit code.</p>
+<p>An externally reported experiment is evidence, not anecdote. Pin the exact
+artifact, version and configuration before comparing the repository against it.</p>
+<h2 id="reference-execution-protocol--complete-the-session-boundary" data-heading="complete-the-session-boundary">Complete the session boundary</h2>
+<p>Every completed, pushed and retained work unit is a safe chat boundary. Refresh
+the <a href="#article-concept-handoff" data-article="concept-handoff" data-anchor="" class="wiki-link">handoff brief</a> in that same unit, then report:</p>
+<ul>
+<li>the outcome rather than an activity list;</li>
+<li>the exact remote commit and retention ref;</li>
+<li>the gate verdict, including known advisories;</li>
+<li>the persisted next action and blockers;</li>
+<li>whether the next step should run here or in a fresh session.</li>
+</ul>
+<p>A fresh session reuses the worktree while the path remains running. It follows
+the entry route above and starts from durable next action without asking a
+participant to reconstruct the previous conversation.</p>
+<h2 id="reference-execution-protocol--open-and-close-around-implementation" data-heading="open-and-close-around-implementation">Open and close around implementation</h2>
+<p>Implementation starts only after recorded
+<a href="#article-concept-opening-acceptance" data-article="concept-opening-acceptance" data-anchor="" class="wiki-link">opening acceptance</a> and
+<a href="#article-concept-trunk-registration" data-article="concept-trunk-registration" data-anchor="" class="wiki-link">trunk registration</a>. The accepted path
+declaration and live view reach the trunk before the implementation branch
+diverges. The registration unit contains no implementation.</p>
+<p>Closure binds one exact <a href="#article-concept-implementation-candidate" data-article="concept-implementation-candidate" data-anchor="" class="wiki-link">implementation candidate</a>:</p>
+<ol>
+<li>fetch the trunk and retention namespace;</li>
+<li>retain all completed checkpoints;</li>
+<li>rebase and fold provisional work;</li>
+<li>run the complete gates on candidate <code>C</code>;</li>
+<li>record the <a href="#article-concept-coherence-audit" data-article="concept-coherence-audit" data-anchor="" class="wiki-link">coherence audit</a> for <code>C</code>;</li>
+<li>obtain <a href="#article-concept-closing-acceptance" data-article="concept-closing-acceptance" data-anchor="" class="wiki-link">closing acceptance</a> for <code>C</code>;</li>
+<li>add only <a href="#article-concept-administrative-closure" data-article="concept-administrative-closure" data-anchor="" class="wiki-link">administrative closure</a>;</li>
+<li>check <a href="#article-concept-acceptance-drift" data-article="concept-acceptance-drift" data-anchor="" class="wiki-link">acceptance drift</a>;</li>
+<li>integrate the accepted tree and verify the exact remote trunk commit;</li>
+<li>from another checkout, remove only the exact clean secondary worktree,
+without force, while retaining the path branch.</li>
+</ol>
+<p>If implementation changes after acceptance, stop and produce a new candidate.
+If integration succeeds but local cleanup does not, report those outcomes
+separately and leave the checkout intact.</p>
+<h2 id="reference-execution-protocol--host-boundary" data-heading="host-boundary">Host boundary</h2>
+<p>Application architecture, credentials, provider policy, UI rules, local
+directory names, dependency sharing, runtime isolation and product hot files are
+host concerns. They belong in the named binding or in documents selected by the
+path’s coverage. They do not enter this portable page.</p>
 
     </article>
     </template>
@@ -9700,7 +9848,7 @@ cairn:
   subject_commit: fedcba9876543210fedcba9876543210fedcba98
   base: 0123456789abcdef0123456789abcdef01234567
   governs:
-    - docs/bedrock/example.md@89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
+    - docs/architecture/example.md@89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
   verdict: clean
 ---
 
@@ -10136,7 +10284,7 @@ cairn:
     - project/coding-paths/CP-EXAMPLE-001.md
     - project/briefs/cp-example-001-handoff.md
   governs:
-    - docs/bedrock/example.md@89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
+    - docs/architecture/example.md@89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
 ---
 
 # CP-EXAMPLE-001 — Short title
@@ -10167,15 +10315,15 @@ acceptance until a scope amendment is recorded.
 
 ### Required
 
-- `docs/bedrock/example.md` — why this document governs the work
+- `docs/architecture/example.md` — why this document governs the work
 
 ### Conditional
 
-- `docs/bedrock/security.md` — read before changing a trust boundary
+- `docs/architecture/security.md` — read before changing a trust boundary
 
 ### Deliberately excluded
 
-- `docs/bedrock/unrelated.md` — outside this path's bounded outcome
+- `docs/architecture/unrelated.md` — outside this path's bounded outcome
 
 ## Execution
 
@@ -10413,7 +10561,7 @@ rather than inheriting a history that looks like it never happened.</p>
     </template>
     <template id="template-reference-repository-layout"
       data-article-template="reference-repository-layout"
-      data-title="Repository layout and reference binding"
+      data-title="Repository layout and binding boundary"
       data-kind="Reference"
       data-source="reference/repository-layout.md">
 
@@ -10422,7 +10570,7 @@ rather than inheriting a history that looks like it never happened.</p>
       <code>reference/repository-layout.md</code>
     </div>
     <article class="article-body" data-rendered-article="reference-repository-layout">
-      <h1 id="reference-repository-layout--repository-layout-and-reference-binding" data-heading="repository-layout-and-reference-binding">Repository layout and reference binding</h1>
+      <h1 id="reference-repository-layout--repository-layout-and-binding-boundary" data-heading="repository-layout-and-binding-boundary">Repository layout and binding boundary</h1>
 <p>The <a href="#article-specification" data-article="specification" data-anchor="the-repository-around-the-path" class="wiki-link">specification</a> defines roles
 before paths: application source, the Cairn
 <a href="#article-concept-control-plane" data-article="concept-control-plane" data-anchor="" class="wiki-link">control plane</a>, durable project knowledge, and
@@ -10430,11 +10578,10 @@ durable execution state. A portable implementation may bind those roles to
 folders it already has.</p>
 <p>This page uses the protocol’s own <strong>role names</strong> throughout — <code>project/</code>,
 <code>docs/architecture/</code>. Which folder a given repository binds each role to is
-recorded in exactly one place, the
-<a href="#reference-repository-layout--portable-roles-and-installed-names" data-local-anchor="portable-roles-and-installed-names" class="section-link">installed binding table</a> at the foot of
-this page. Nothing else here repeats a host repository’s local vocabulary,
-because a specification that carries one adoption’s folder names through every
-example is teaching that adoption rather than the protocol.</p>
+recorded in its <a href="#reference-repository-layout--host-binding-appendix" data-local-anchor="host-binding-appendix" class="section-link">host binding appendix</a>. Nothing here
+repeats an installed repository’s local vocabulary, because a specification
+that carries one adoption’s folder names through every example is teaching that
+adoption rather than the protocol.</p>
 <h2 id="reference-repository-layout--the-reference-tree" data-heading="the-reference-tree">The reference tree</h2>
 <p>This tree is exhaustive for active Cairn-defined files, folder roles, and refs.
 Angle brackets mark repeatable names. Application code, domain knowledge, and
@@ -10473,7 +10620,7 @@ protocol structure.</p>
 ├── shared/
 │   └── &lt;optional-shared-source-files&gt;
 ├── docs/
-│   ├── bedrock/
+│   ├── architecture/
 │   │   ├── index.md
 │   │   ├── log.md
 │   │   ├── &lt;numbered-architecture-page&gt;.md
@@ -10506,6 +10653,7 @@ protocol structure.</p>
     │   ├── index.md
     │   ├── log.md
     │   ├── paths.md
+    │   ├── binding.md
     │   ├── ACTIVE.md
     │   ├── CP-&lt;ID&gt;.md
     │   └── history/
@@ -10604,7 +10752,7 @@ what Cairn defines, not what any one adoption happens to contain.</p>
 <td style="text-align:left">same work unit as the tool</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>docs/bedrock/</code></td>
+<td style="text-align:left"><code>docs/architecture/</code></td>
 <td style="text-align:left">accepted architecture and constitutional doctrine</td>
 <td style="text-align:left">path plus decision record when meaning changes</td>
 </tr>
@@ -10645,8 +10793,13 @@ what Cairn defines, not what any one adoption happens to contain.</p>
 </tr>
 <tr>
 <td style="text-align:left"><code>project/coding-paths/paths.md</code></td>
-<td style="text-align:left">current operating convention for opening, running, integrating, and cleaning paths</td>
+<td style="text-align:left">portable operating convention for opening, running, integrating, and cleaning paths</td>
 <td style="text-align:left">accepted protocol operation change</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>project/coding-paths/binding.md</code></td>
+<td style="text-align:left">human-readable host adapter: installed roots, commands, worktree/runtime details, and local examples</td>
+<td style="text-align:left">host configuration change</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>project/coding-paths/CP-*.md</code></td>
@@ -10739,74 +10892,23 @@ operation — a rewriting push — that rewrites files.</p>
 <code>refs/heads/*</code>, will silently lose this namespace. Fetch configuration is part of
 conforming to <a href="#article-concept-checkpoint-retention" data-article="concept-checkpoint-retention" data-anchor="" class="wiki-link">checkpoint retention</a>, not an
 optional convenience.</p>
-<h2 id="reference-repository-layout--portable-roles-and-installed-names" data-heading="portable-roles-and-installed-names">Portable roles and installed names</h2>
-<p>Everything above this heading uses role names. This table is the one place where
-they are traded for the folders a real repository holds, and it is written for
-<strong>the repository the reference tools were built in</strong> — the adoption Cairn was
-extracted from.</p>
-<table>
-<thead>
-<tr>
-<th style="text-align:left">Protocol role</th>
-<th style="text-align:left">Role name used in this specification</th>
-<th style="text-align:left">Bound in the reference repository to</th>
-<th style="text-align:left">Intended configuration field</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left">execution-state plane</td>
-<td style="text-align:left"><code>project/</code></td>
-<td style="text-align:left"><strong><code>atomik-project/</code></strong></td>
-<td style="text-align:left"><code>roots.project</code></td>
-</tr>
-<tr>
-<td style="text-align:left">accepted architecture</td>
-<td style="text-align:left"><code>docs/architecture/</code></td>
-<td style="text-align:left"><strong><code>docs/bedrock/</code></strong></td>
-<td style="text-align:left"><code>roots.architecture</code></td>
-</tr>
-<tr>
-<td style="text-align:left">decision records</td>
-<td style="text-align:left"><code>docs/adr/</code></td>
-<td style="text-align:left"><code>docs/adr/</code></td>
-<td style="text-align:left"><code>roots.decisions</code></td>
-</tr>
-<tr>
-<td style="text-align:left">implemented-area notes</td>
-<td style="text-align:left"><code>docs/modules/</code></td>
-<td style="text-align:left"><code>docs/modules/</code></td>
-<td style="text-align:left"><code>roots.modules</code></td>
-</tr>
-<tr>
-<td style="text-align:left">guarded application source</td>
-<td style="text-align:left"><code>apps/</code>, <code>packages/</code>, <code>shared/</code></td>
-<td style="text-align:left">same</td>
-<td style="text-align:left"><code>roots.source</code></td>
-</tr>
-<tr>
-<td style="text-align:left">shared integration branch</td>
-<td style="text-align:left"><code>&lt;trunk&gt;</code></td>
-<td style="text-align:left"><code>main</code></td>
-<td style="text-align:left"><code>trunk</code></td>
-</tr>
-<tr>
-<td style="text-align:left">shared checkpoint remote</td>
-<td style="text-align:left"><code>&lt;remote&gt;</code></td>
-<td style="text-align:left"><code>origin</code></td>
-<td style="text-align:left"><code>remote</code></td>
-</tr>
-</tbody>
-</table>
-<p>Two roles are bound to a different name, and both for the same uninteresting
-reason: those folders were named before Cairn existed, by the application the
-protocol grew inside. Neither name is protocol structure. A repository adopting
-Cairn should bind these roles to whatever it already calls them and never inherit
-<code>atomik-project/</code> — the prefix names one product, not a protocol.</p>
-<p>The <a href="#article-reference-configuration" data-article="reference-configuration" data-anchor="" class="wiki-link">configuration contract</a> defines the intended mapping.
-Until the loader exists, the reference tools resolve the bound names above as
-constants: an operator working <strong>in that repository</strong> MUST use them, and MUST NOT
-claim portable conformance on the strength of them.</p>
+<h2 id="reference-repository-layout--host-binding-appendix" data-heading="host-binding-appendix">Host binding appendix</h2>
+<p>Everything above this heading uses role names. A repository trades them for its
+installed folders, commands, branch, remote and runtime details in exactly one
+human-readable file:</p>
+<pre><code class="language-text">project/coding-paths/binding.md
+</code></pre>
+<p>That file is classified <strong>BINDING</strong>, not PORTABLE. It names the host and MAY
+contain application paths, local command names, worktree examples, runtime
+variables and known conflict surfaces. The root <code>AGENTS.md</code> points to it beside
+the portable path convention and
+<a href="#article-reference-execution-protocol" data-article="reference-execution-protocol" data-anchor="" class="wiki-link">execution protocol</a>. Host architecture remains outside
+the unconditional protocol route and is selected through each path’s
+documentation coverage.</p>
+<p>The <a href="#article-reference-configuration" data-article="reference-configuration" data-anchor="" class="wiki-link">configuration contract</a> is the intended
+machine-readable counterpart. Until the loader exists, reference tools may
+resolve one installed binding as constants, but MUST NOT copy those names into
+portable documentation or claim portable conformance on the strength of them.</p>
 <h2 id="reference-repository-layout--naming-relationships" data-heading="naming-relationships">Naming relationships</h2>
 <h3 id="reference-repository-layout--path-identity" data-heading="path-identity">Path identity</h3>
 <pre><code class="language-text">CP-ROADMAP-010
@@ -11199,8 +11301,13 @@ there and how to navigate it; <code>log.md</code> summarises recent changes in t
 Independent events use one file per event. Generated
 <a href="#article-concept-live-view" data-article="concept-live-view" data-anchor="" class="wiki-link">live views</a> are rebuilt from their source records
 rather than edited as another truth.</p>
-<p><code>AGENTS.md</code> is the small entry point that tells a new participant what to read
-first. <code>cairn.config.json</code> binds portable role names to repository paths. The
+<p><code>AGENTS.md</code> is the small <strong>BINDING</strong> entry point that tells a new participant
+what to read first. It MUST point separately to the PORTABLE
+<a href="#article-reference-execution-protocol" data-article="reference-execution-protocol" data-anchor="" class="wiki-link">execution protocol</a>, the portable path
+convention, and one human-readable host binding appendix. HOST architecture is
+selected by the path’s documentation coverage; it is not required merely
+because a coding session began. <code>cairn.config.json</code> is the intended
+machine-readable binding of portable role names to repository paths. The
 workflow and <code>cairn-*</code> tools form the executable control plane. Three optional
 <a href="#article-concept-project-memory" data-article="concept-project-memory" data-anchor="" class="wiki-link">project-memory</a> spaces may accompany execution:
 <code>brainstorm/</code> for explicitly provisional thinking, <code>sources/</code> for imported
@@ -11258,6 +11365,7 @@ knowledge may add other folders without changing Cairn:</p>
     │   ├── index.md
     │   ├── log.md
     │   ├── paths.md
+    │   ├── binding.md
     │   ├── ACTIVE.md
     │   ├── CP-&lt;ID&gt;.md
     │   └── history/
@@ -11309,12 +11417,9 @@ garbage-collect exactly the history its ledger promised.</p>
 protocol layout but is not yet loaded or installed by the v0.2 reference tools.</p>
 <p>The names used throughout this specification — <code>project/</code>,
 <code>docs/architecture/</code> — are <strong>role names</strong>, not required folder names. A
-repository binds each role to a folder it already has, and the current reference
-tools bind two of them to different names than the ones written here. Those
-bindings are recorded once, in the
-<a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="portable-roles-and-installed-names" class="wiki-link">installed binding table</a>,
-so that no other page has to repeat a host repository’s local vocabulary. The
-tree, file roles, naming rules, and the mapping are all in the
+repository binds each role to a folder it already has. Those installed names
+belong in the repository’s <code>project/coding-paths/binding.md</code>, never in a portable
+article. The generic tree, file roles and naming rules are in the
 <a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="" class="wiki-link">repository-layout reference</a>.</p>
 <h2 id="specification--choose-the-route-the-change-earns" data-heading="choose-the-route-the-change-earns">Choose the route the change earns</h2>
 <p>Not every bounded change deserves the same ceremony. A protocol that demands
@@ -11657,8 +11762,9 @@ to say something slightly untrue.</p>
 <p><strong>“Alone” is a claim about what the reader must already carry in their head, not
 about how many files they may open.</strong> A participant arriving at a Cairn
 repository follows the entry route the repository itself publishes: <code>AGENTS.md</code>
-names the operating convention, the convention names the <a href="#article-concept-live-view" data-article="concept-live-view" data-anchor="" class="wiki-link">live
-view</a>, the live view names the path, and the
+names the portable execution protocol, portable path convention and host
+binding; the convention names the <a href="#article-concept-live-view" data-article="concept-live-view" data-anchor="" class="wiki-link">live view</a>, the live
+view names the path, and the
 <a href="#article-concept-path-record" data-article="concept-path-record" data-anchor="" class="wiki-link">path record</a> carries the plan and the ledger. That
 chain is the protocol working. A brief that set out to replace it would be a
 lossy copy of records that are already canonical, refreshed by hand, drifting
@@ -12494,6 +12600,12 @@ not in a separate document a reader may never open.</p>
 <td style="text-align:left">required</td>
 <td style="text-align:left"><strong>partially implemented</strong>; the nine fields, the seven exact sections and pinned <code>governs</code> entries are checked. The token budget is retired (ADR-020 decision 6): what will not fit is linked, not compressed, and that is a judgement rather than a predicate</td>
 <td style="text-align:left">the answerable-alone contract is a judgement and a cold-resume harness, and is never claimed by a checker</td>
+</tr>
+<tr>
+<td style="text-align:left">Portable, host, and binding artefact separation</td>
+<td style="text-align:left">required</td>
+<td style="text-align:left"><strong>implemented in the reference documentation</strong>; the portable execution route and path convention carry no host names, the root bootloader points at one explicit binding appendix, and host architecture is absent from the unconditional entry chain</td>
+<td style="text-align:left"><code>cairn-init</code> must scaffold the classified shape before general release; classification itself is a documentation property rather than a repository predicate</td>
 </tr>
 <tr>
 <td style="text-align:left">Field-level administrative closure surface</td>
@@ -15105,9 +15217,10 @@ why: <a href="#article-concept-architecture" data-article="concept-architecture"
 records what bounded work is doing now: paths, sessions, audits, handoffs, and
 integrated outcomes.</p>
 <p><code>project/</code> is a protocol <strong>role name</strong>, not a required folder name. Which folder
-a given repository installs it in is recorded once, in the
-<a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="portable-roles-and-installed-names" class="wiki-link">installed binding table</a>,
-and nowhere else.</p>
+a given repository installs it in is recorded once, in its
+<code>project/coding-paths/binding.md</code>, under the
+<a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="host-binding-appendix" class="wiki-link">host-binding boundary</a>,
+and nowhere in the portable articles.</p>
 <p>The path ledger connects them by recording which knowledge governed a concrete
 work unit and which knowledge changed with it. A path’s
 <a href="#article-concept-path-record" data-article="concept-path-record" data-anchor="" class="wiki-link"><code>governs:</code></a> declaration pins each governing document at an
@@ -16083,6 +16196,8 @@ reference supplies exact forms:</p>
 <ul>
 <li><a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="" class="wiki-link">Repository layout</a> — directories, file roles, and
 naming conventions.</li>
+<li><a href="#article-reference-execution-protocol" data-article="reference-execution-protocol" data-anchor="" class="wiki-link">Execution protocol</a> — the ordered portable route for
+entering, advancing, handing off, resuming, and closing one path.</li>
 <li><a href="#article-reference-path-template" data-article="reference-path-template" data-anchor="" class="wiki-link">Coding-path template</a> — a complete path record.</li>
 <li><a href="#article-reference-handoff-brief" data-article="reference-handoff-brief" data-anchor="" class="wiki-link">Handoff-brief contract</a> — frontmatter fields, capped body
 sections, and the answerable-alone test.</li>
@@ -16123,15 +16238,15 @@ Therefore the reference implementation MUST NOT claim portable conformance.</p>
   &quot;metadataNamespace&quot;: &quot;cairn&quot;,
   &quot;enforcementProfile&quot;: &quot;local&quot;,
   &quot;roots&quot;: {
-    &quot;project&quot;: &quot;atomik-project&quot;,
-    &quot;architecture&quot;: &quot;docs/bedrock&quot;,
+    &quot;project&quot;: &quot;project&quot;,
+    &quot;architecture&quot;: &quot;docs/architecture&quot;,
     &quot;decisions&quot;: &quot;docs/adr&quot;,
     &quot;modules&quot;: &quot;docs/modules&quot;,
-    &quot;source&quot;: [&quot;apps&quot;, &quot;packages&quot;, &quot;shared&quot;]
+    &quot;source&quot;: [&quot;src&quot;, &quot;packages&quot;]
   },
   &quot;areas&quot;: [
     {
-      &quot;match&quot;: &quot;apps/**&quot;,
+      &quot;match&quot;: &quot;src/**&quot;,
       &quot;note&quot;: &quot;docs/modules/application.md&quot;
     }
   ],
@@ -16145,9 +16260,11 @@ Therefore the reference implementation MUST NOT claim portable conformance.</p>
   }
 }
 </code></pre>
-<p>These values describe the <a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="portable-roles-and-installed-names" class="wiki-link">installed reference binding</a>.
-Another repository may choose different paths once the configuration loader is
-implemented and validated.</p>
+<p>These are role-name defaults rather than one installed repository’s paths. A
+host records its concrete names in the binding appendix described by the
+<a href="#article-reference-repository-layout" data-article="reference-repository-layout" data-anchor="host-binding-appendix" class="wiki-link">repository-layout reference</a>,
+and may choose different paths once the configuration loader is implemented and
+validated.</p>
 <h2 id="reference-configuration--fields" data-heading="fields">Fields</h2>
 <table>
 <thead>
@@ -16408,6 +16525,120 @@ or a measured general-release pilot.</p>
 reference tools alone is wrong. They can be satisfied by a repository’s practice
 and evidenced by hand; the column that says so is “Additional dependency”, not
 “Reference tools”.</p>
+
+    </article>
+      </section>
+      <section class="sequential-article" id="article-reference-execution-protocol">
+
+    <div class="article-meta">
+      <span>Reference</span>
+      <code>reference/execution-protocol.md</code>
+    </div>
+    <article class="article-body" data-rendered-article="reference-execution-protocol">
+      <h1 id="reference-execution-protocol--portable-coding-session-execution-protocol" data-heading="portable-coding-session-execution-protocol">Portable coding-session execution protocol</h1>
+<p>This is the required execution route projected from the
+<a href="#article-specification" data-article="specification" data-anchor="" class="wiki-link">canonical specification</a>. It adds no requirements: exact command
+forms live in <a href="#article-reference-operations" data-article="reference-operations" data-anchor="" class="wiki-link">operations</a>, schemas live in the other reference
+pages, and explanatory terms live in the <a href="#article-concepts" data-article="concepts" data-anchor="" class="wiki-link">concept wiki</a>.</p>
+<p>The page is <strong>PORTABLE</strong>. It uses protocol role names and contains no application
+name, host path, product command, runtime variable or product-specific security
+rule. A repository’s root bootloader pairs it with one named host binding.</p>
+<h2 id="reference-execution-protocol--enter-or-resume-one-path" data-heading="enter-or-resume-one-path">Enter or resume one path</h2>
+<ol>
+<li>Read the repository bootloader, then the portable path convention and host
+binding it names.</li>
+<li>Open the generated <a href="#article-concept-live-view" data-article="concept-live-view" data-anchor="" class="wiki-link">live view</a> and follow it to the
+path assigned to this writable worktree. Several paths may be running; write
+exactly one.</li>
+<li>Verify repository reality against durable state: branch, upstream, working
+tree, trunk base, checkpoint refs and last recorded gate verdict. Reconcile a
+mismatch in the path record before implementation.</li>
+<li>Read every document under the path’s <strong>Required</strong> coverage. Note each
+<strong>Conditional</strong> trigger and read it when it fires. Respect every
+<strong>Deliberately excluded</strong> entry; record any widening.</li>
+<li>Read the path index and handoff brief. Read the forward plan only when
+planning, and open earlier step records only when their index summaries make
+them relevant.</li>
+<li>Start the persisted next action. Conversation memory is never stronger than
+the branch, path record, brief and repository state.</li>
+</ol>
+<h2 id="reference-execution-protocol--advance-exactly-one-work-unit" data-heading="advance-exactly-one-work-unit">Advance exactly one work unit</h2>
+<p>A work unit is coherent only when all of its required surfaces move together:</p>
+<ul>
+<li>implementation or protocol artefact;</li>
+<li>adversarial and ordinary tests;</li>
+<li>affected durable documentation;</li>
+<li>one self-contained path step with its <code>cairn-unit</code> block;</li>
+<li>the path’s live header and refreshed handoff brief.</li>
+</ul>
+<p>Execute one step at a time. A step file is written where it will live and must be
+readable by itself. Progress, corrections, rejected approaches, widening,
+verification and the next action persist in files before the unit is called
+complete.</p>
+<p>Run relevant gates directly so their exit codes remain visible. Review the
+working tree, stage explicit paths, commit the coherent unit, push it immediately
+to its owning branch, and publish its append-only checkpoint-retention ref. A
+unit whose push or retention fails is implemented locally, not complete.</p>
+<p>When incomplete work is valuable enough to preserve, publish a marked
+<a href="#article-concept-provisional-commit" data-article="concept-provisional-commit" data-anchor="" class="wiki-link">provisional commit</a>. Do not call it a
+checkpoint or hand it off as the next completed unit. Fold every provisional
+commit before candidate acceptance.</p>
+<h2 id="reference-execution-protocol--preserve-one-writer-safety" data-heading="preserve-one-writer-safety">Preserve one-writer safety</h2>
+<p>One writable worktree has one assigned writer. Other participants may inspect,
+diagnose and review it. Never overwrite, delete or absorb an unexpected dirty or
+untracked file merely because it is outside the current plan; first determine
+whether it belongs to another participant.</p>
+<p>Before every commit:</p>
+<pre><code class="language-text">review status
+separate the coherent work unit
+stage explicit paths
+verify the staged diff
+</code></pre>
+<p>Do not blind-add a live repository. Do not use a gate-output pipeline whose last
+process hides the gate’s exit code.</p>
+<p>An externally reported experiment is evidence, not anecdote. Pin the exact
+artifact, version and configuration before comparing the repository against it.</p>
+<h2 id="reference-execution-protocol--complete-the-session-boundary" data-heading="complete-the-session-boundary">Complete the session boundary</h2>
+<p>Every completed, pushed and retained work unit is a safe chat boundary. Refresh
+the <a href="#article-concept-handoff" data-article="concept-handoff" data-anchor="" class="wiki-link">handoff brief</a> in that same unit, then report:</p>
+<ul>
+<li>the outcome rather than an activity list;</li>
+<li>the exact remote commit and retention ref;</li>
+<li>the gate verdict, including known advisories;</li>
+<li>the persisted next action and blockers;</li>
+<li>whether the next step should run here or in a fresh session.</li>
+</ul>
+<p>A fresh session reuses the worktree while the path remains running. It follows
+the entry route above and starts from durable next action without asking a
+participant to reconstruct the previous conversation.</p>
+<h2 id="reference-execution-protocol--open-and-close-around-implementation" data-heading="open-and-close-around-implementation">Open and close around implementation</h2>
+<p>Implementation starts only after recorded
+<a href="#article-concept-opening-acceptance" data-article="concept-opening-acceptance" data-anchor="" class="wiki-link">opening acceptance</a> and
+<a href="#article-concept-trunk-registration" data-article="concept-trunk-registration" data-anchor="" class="wiki-link">trunk registration</a>. The accepted path
+declaration and live view reach the trunk before the implementation branch
+diverges. The registration unit contains no implementation.</p>
+<p>Closure binds one exact <a href="#article-concept-implementation-candidate" data-article="concept-implementation-candidate" data-anchor="" class="wiki-link">implementation candidate</a>:</p>
+<ol>
+<li>fetch the trunk and retention namespace;</li>
+<li>retain all completed checkpoints;</li>
+<li>rebase and fold provisional work;</li>
+<li>run the complete gates on candidate <code>C</code>;</li>
+<li>record the <a href="#article-concept-coherence-audit" data-article="concept-coherence-audit" data-anchor="" class="wiki-link">coherence audit</a> for <code>C</code>;</li>
+<li>obtain <a href="#article-concept-closing-acceptance" data-article="concept-closing-acceptance" data-anchor="" class="wiki-link">closing acceptance</a> for <code>C</code>;</li>
+<li>add only <a href="#article-concept-administrative-closure" data-article="concept-administrative-closure" data-anchor="" class="wiki-link">administrative closure</a>;</li>
+<li>check <a href="#article-concept-acceptance-drift" data-article="concept-acceptance-drift" data-anchor="" class="wiki-link">acceptance drift</a>;</li>
+<li>integrate the accepted tree and verify the exact remote trunk commit;</li>
+<li>from another checkout, remove only the exact clean secondary worktree,
+without force, while retaining the path branch.</li>
+</ol>
+<p>If implementation changes after acceptance, stop and produce a new candidate.
+If integration succeeds but local cleanup does not, report those outcomes
+separately and leave the checkout intact.</p>
+<h2 id="reference-execution-protocol--host-boundary" data-heading="host-boundary">Host boundary</h2>
+<p>Application architecture, credentials, provider policy, UI rules, local
+directory names, dependency sharing, runtime isolation and product hot files are
+host concerns. They belong in the named binding or in documents selected by the
+path’s coverage. They do not enter this portable page.</p>
 
     </article>
       </section>
@@ -16796,7 +17027,7 @@ cairn:
   subject_commit: fedcba9876543210fedcba9876543210fedcba98
   base: 0123456789abcdef0123456789abcdef01234567
   governs:
-    - docs/bedrock/example.md@89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
+    - docs/architecture/example.md@89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
   verdict: clean
 ---
 
@@ -17224,7 +17455,7 @@ cairn:
     - project/coding-paths/CP-EXAMPLE-001.md
     - project/briefs/cp-example-001-handoff.md
   governs:
-    - docs/bedrock/example.md@89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
+    - docs/architecture/example.md@89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
 ---
 
 # CP-EXAMPLE-001 — Short title
@@ -17255,15 +17486,15 @@ acceptance until a scope amendment is recorded.
 
 ### Required
 
-- `docs/bedrock/example.md` — why this document governs the work
+- `docs/architecture/example.md` — why this document governs the work
 
 ### Conditional
 
-- `docs/bedrock/security.md` — read before changing a trust boundary
+- `docs/architecture/security.md` — read before changing a trust boundary
 
 ### Deliberately excluded
 
-- `docs/bedrock/unrelated.md` — outside this path's bounded outcome
+- `docs/architecture/unrelated.md` — outside this path's bounded outcome
 
 ## Execution
 
@@ -17502,7 +17733,7 @@ rather than inheriting a history that looks like it never happened.</p>
       <code>reference/repository-layout.md</code>
     </div>
     <article class="article-body" data-rendered-article="reference-repository-layout">
-      <h1 id="reference-repository-layout--repository-layout-and-reference-binding" data-heading="repository-layout-and-reference-binding">Repository layout and reference binding</h1>
+      <h1 id="reference-repository-layout--repository-layout-and-binding-boundary" data-heading="repository-layout-and-binding-boundary">Repository layout and binding boundary</h1>
 <p>The <a href="#article-specification" data-article="specification" data-anchor="the-repository-around-the-path" class="wiki-link">specification</a> defines roles
 before paths: application source, the Cairn
 <a href="#article-concept-control-plane" data-article="concept-control-plane" data-anchor="" class="wiki-link">control plane</a>, durable project knowledge, and
@@ -17510,11 +17741,10 @@ durable execution state. A portable implementation may bind those roles to
 folders it already has.</p>
 <p>This page uses the protocol’s own <strong>role names</strong> throughout — <code>project/</code>,
 <code>docs/architecture/</code>. Which folder a given repository binds each role to is
-recorded in exactly one place, the
-<a href="#reference-repository-layout--portable-roles-and-installed-names" data-local-anchor="portable-roles-and-installed-names" class="section-link">installed binding table</a> at the foot of
-this page. Nothing else here repeats a host repository’s local vocabulary,
-because a specification that carries one adoption’s folder names through every
-example is teaching that adoption rather than the protocol.</p>
+recorded in its <a href="#reference-repository-layout--host-binding-appendix" data-local-anchor="host-binding-appendix" class="section-link">host binding appendix</a>. Nothing here
+repeats an installed repository’s local vocabulary, because a specification
+that carries one adoption’s folder names through every example is teaching that
+adoption rather than the protocol.</p>
 <h2 id="reference-repository-layout--the-reference-tree" data-heading="the-reference-tree">The reference tree</h2>
 <p>This tree is exhaustive for active Cairn-defined files, folder roles, and refs.
 Angle brackets mark repeatable names. Application code, domain knowledge, and
@@ -17553,7 +17783,7 @@ protocol structure.</p>
 ├── shared/
 │   └── &lt;optional-shared-source-files&gt;
 ├── docs/
-│   ├── bedrock/
+│   ├── architecture/
 │   │   ├── index.md
 │   │   ├── log.md
 │   │   ├── &lt;numbered-architecture-page&gt;.md
@@ -17586,6 +17816,7 @@ protocol structure.</p>
     │   ├── index.md
     │   ├── log.md
     │   ├── paths.md
+    │   ├── binding.md
     │   ├── ACTIVE.md
     │   ├── CP-&lt;ID&gt;.md
     │   └── history/
@@ -17684,7 +17915,7 @@ what Cairn defines, not what any one adoption happens to contain.</p>
 <td style="text-align:left">same work unit as the tool</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>docs/bedrock/</code></td>
+<td style="text-align:left"><code>docs/architecture/</code></td>
 <td style="text-align:left">accepted architecture and constitutional doctrine</td>
 <td style="text-align:left">path plus decision record when meaning changes</td>
 </tr>
@@ -17725,8 +17956,13 @@ what Cairn defines, not what any one adoption happens to contain.</p>
 </tr>
 <tr>
 <td style="text-align:left"><code>project/coding-paths/paths.md</code></td>
-<td style="text-align:left">current operating convention for opening, running, integrating, and cleaning paths</td>
+<td style="text-align:left">portable operating convention for opening, running, integrating, and cleaning paths</td>
 <td style="text-align:left">accepted protocol operation change</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>project/coding-paths/binding.md</code></td>
+<td style="text-align:left">human-readable host adapter: installed roots, commands, worktree/runtime details, and local examples</td>
+<td style="text-align:left">host configuration change</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>project/coding-paths/CP-*.md</code></td>
@@ -17819,74 +18055,23 @@ operation — a rewriting push — that rewrites files.</p>
 <code>refs/heads/*</code>, will silently lose this namespace. Fetch configuration is part of
 conforming to <a href="#article-concept-checkpoint-retention" data-article="concept-checkpoint-retention" data-anchor="" class="wiki-link">checkpoint retention</a>, not an
 optional convenience.</p>
-<h2 id="reference-repository-layout--portable-roles-and-installed-names" data-heading="portable-roles-and-installed-names">Portable roles and installed names</h2>
-<p>Everything above this heading uses role names. This table is the one place where
-they are traded for the folders a real repository holds, and it is written for
-<strong>the repository the reference tools were built in</strong> — the adoption Cairn was
-extracted from.</p>
-<table>
-<thead>
-<tr>
-<th style="text-align:left">Protocol role</th>
-<th style="text-align:left">Role name used in this specification</th>
-<th style="text-align:left">Bound in the reference repository to</th>
-<th style="text-align:left">Intended configuration field</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left">execution-state plane</td>
-<td style="text-align:left"><code>project/</code></td>
-<td style="text-align:left"><strong><code>atomik-project/</code></strong></td>
-<td style="text-align:left"><code>roots.project</code></td>
-</tr>
-<tr>
-<td style="text-align:left">accepted architecture</td>
-<td style="text-align:left"><code>docs/architecture/</code></td>
-<td style="text-align:left"><strong><code>docs/bedrock/</code></strong></td>
-<td style="text-align:left"><code>roots.architecture</code></td>
-</tr>
-<tr>
-<td style="text-align:left">decision records</td>
-<td style="text-align:left"><code>docs/adr/</code></td>
-<td style="text-align:left"><code>docs/adr/</code></td>
-<td style="text-align:left"><code>roots.decisions</code></td>
-</tr>
-<tr>
-<td style="text-align:left">implemented-area notes</td>
-<td style="text-align:left"><code>docs/modules/</code></td>
-<td style="text-align:left"><code>docs/modules/</code></td>
-<td style="text-align:left"><code>roots.modules</code></td>
-</tr>
-<tr>
-<td style="text-align:left">guarded application source</td>
-<td style="text-align:left"><code>apps/</code>, <code>packages/</code>, <code>shared/</code></td>
-<td style="text-align:left">same</td>
-<td style="text-align:left"><code>roots.source</code></td>
-</tr>
-<tr>
-<td style="text-align:left">shared integration branch</td>
-<td style="text-align:left"><code>&lt;trunk&gt;</code></td>
-<td style="text-align:left"><code>main</code></td>
-<td style="text-align:left"><code>trunk</code></td>
-</tr>
-<tr>
-<td style="text-align:left">shared checkpoint remote</td>
-<td style="text-align:left"><code>&lt;remote&gt;</code></td>
-<td style="text-align:left"><code>origin</code></td>
-<td style="text-align:left"><code>remote</code></td>
-</tr>
-</tbody>
-</table>
-<p>Two roles are bound to a different name, and both for the same uninteresting
-reason: those folders were named before Cairn existed, by the application the
-protocol grew inside. Neither name is protocol structure. A repository adopting
-Cairn should bind these roles to whatever it already calls them and never inherit
-<code>atomik-project/</code> — the prefix names one product, not a protocol.</p>
-<p>The <a href="#article-reference-configuration" data-article="reference-configuration" data-anchor="" class="wiki-link">configuration contract</a> defines the intended mapping.
-Until the loader exists, the reference tools resolve the bound names above as
-constants: an operator working <strong>in that repository</strong> MUST use them, and MUST NOT
-claim portable conformance on the strength of them.</p>
+<h2 id="reference-repository-layout--host-binding-appendix" data-heading="host-binding-appendix">Host binding appendix</h2>
+<p>Everything above this heading uses role names. A repository trades them for its
+installed folders, commands, branch, remote and runtime details in exactly one
+human-readable file:</p>
+<pre><code class="language-text">project/coding-paths/binding.md
+</code></pre>
+<p>That file is classified <strong>BINDING</strong>, not PORTABLE. It names the host and MAY
+contain application paths, local command names, worktree examples, runtime
+variables and known conflict surfaces. The root <code>AGENTS.md</code> points to it beside
+the portable path convention and
+<a href="#article-reference-execution-protocol" data-article="reference-execution-protocol" data-anchor="" class="wiki-link">execution protocol</a>. Host architecture remains outside
+the unconditional protocol route and is selected through each path’s
+documentation coverage.</p>
+<p>The <a href="#article-reference-configuration" data-article="reference-configuration" data-anchor="" class="wiki-link">configuration contract</a> is the intended
+machine-readable counterpart. Until the loader exists, reference tools may
+resolve one installed binding as constants, but MUST NOT copy those names into
+portable documentation or claim portable conformance on the strength of them.</p>
 <h2 id="reference-repository-layout--naming-relationships" data-heading="naming-relationships">Naming relationships</h2>
 <h3 id="reference-repository-layout--path-identity" data-heading="path-identity">Path identity</h3>
 <pre><code class="language-text">CP-ROADMAP-010

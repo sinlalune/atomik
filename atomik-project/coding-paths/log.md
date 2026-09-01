@@ -22,6 +22,10 @@ per entry in a `log/` subfolder — which was a concurrency fix, never a size on
 
 ## 2026-09-01
 
+- `CP-OPS-002 S08o` applies the artefact classification: `paths.md` is now the
+  portable required convention, `binding.md` owns Atomik's exact commands and
+  examples, and `paths-history.md` retains the former explanatory page. The root
+  bootloader points separately to portable protocol and host adapter.
 - `CP-OPS-002 S08n` replaces file-status proxying with an adding-blob prefix
   proof for born-sliced step records. The late S08m append is conforming; a
   changed earlier byte blocks, and immutable session/audit/journal identities

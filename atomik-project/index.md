@@ -48,4 +48,5 @@ wrote doctrine on its own authority. Retracted.)*
 
 - Bedrock and ADRs stay canonical under `docs/`; promotion from `brainstorm/` goes through reviewed patches.
 - Durable decisions and dated external facts never live only in this plane's provisional folders.
-- Agents: read `docs/bedrock/22_22-agent-handoff.md` before doing anything else.
+- Agents: follow `AGENTS.md` into the portable path and session protocols plus
+  `coding-paths/binding.md`; product bedrock is selected by the active path.

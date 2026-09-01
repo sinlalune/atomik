@@ -26,15 +26,15 @@ Therefore the reference implementation MUST NOT claim portable conformance.
   "metadataNamespace": "cairn",
   "enforcementProfile": "local",
   "roots": {
-    "project": "atomik-project",
-    "architecture": "docs/bedrock",
+    "project": "project",
+    "architecture": "docs/architecture",
     "decisions": "docs/adr",
     "modules": "docs/modules",
-    "source": ["apps", "packages", "shared"]
+    "source": ["src", "packages"]
   },
   "areas": [
     {
-      "match": "apps/**",
+      "match": "src/**",
       "note": "docs/modules/application.md"
     }
   ],
@@ -49,9 +49,11 @@ Therefore the reference implementation MUST NOT claim portable conformance.
 }
 ```
 
-These values describe the [installed reference binding](./repository-layout.md#portable-roles-and-installed-names).
-Another repository may choose different paths once the configuration loader is
-implemented and validated.
+These are role-name defaults rather than one installed repository's paths. A
+host records its concrete names in the binding appendix described by the
+[repository-layout reference](./repository-layout.md#host-binding-appendix),
+and may choose different paths once the configuration loader is implemented and
+validated.
 
 ## Fields
 

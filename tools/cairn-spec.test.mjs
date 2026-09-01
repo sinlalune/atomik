@@ -20,6 +20,11 @@ const HTML = join(REPO, 'docs/cairn/specification.html')
 const CHECK = join(REPO, 'tools/cairn-check.mjs')
 const LAYOUT = join(REFERENCES, 'repository-layout.md')
 const OPERATIONS = join(REFERENCES, 'operations.md')
+const EXECUTION = join(REFERENCES, 'execution-protocol.md')
+const BOOTLOADER = join(REPO, 'AGENTS.md')
+const PATH_CONVENTION = join(REPO, 'atomik-project/coding-paths/paths.md')
+const HOST_BINDING = join(REPO, 'atomik-project/coding-paths/binding.md')
+const HOST_POINTER = join(REPO, 'docs/bedrock/22_22-agent-handoff.md')
 
 const markdown = readFileSync(SPEC, 'utf8')
 const html = readFileSync(HTML, 'utf8')
@@ -379,19 +384,57 @@ test('cairn-spec: canonical prose is history-free and distinguishes roles from b
   assert.match(markdown, /project\/coding-paths\/CP-<ID>\.md/)
   assert.match(markdown, /cairn:\n\s+id: CP-EXAMPLE-001/)
   assert.match(markdown, /project\/audits\/cp-example-001-[0-9a-f]{40}\.md/)
-  // The canonical prose uses role names only. Every host-repository binding
-  // lives in exactly one table, in the layout reference — a specification that
-  // repeats one adoption's folder names through its examples is teaching that
-  // adoption rather than the protocol.
+  // Portable prose uses role names only. Installed names live in the host's
+  // binding appendix — a specification that repeats one adoption's folders in
+  // examples is teaching that adoption rather than the protocol.
   assert.match(markdown, /are\s+\*\*role names\*\*, not required folder names/)
-  assert.match(markdown, /installed binding table\]\(\.\/reference\/repository-layout\.md#portable-roles-and-installed-names\)/)
-  assert.doesNotMatch(markdown, /atomik/i)
+  assert.match(markdown, /installed names\s+belong in the repository's `project\/coding-paths\/binding\.md`/)
+  assert.doesNotMatch(markdown, /atomik|docs\/bedrock|4tom1k|ATOMIK_LANE|apps\/desktop/i)
   for (const article of readdirSync(CONCEPTS).filter((name) => name.endsWith('.md'))) {
     assert.doesNotMatch(
-      readFileSync(join(CONCEPTS, article), 'utf8'), /atomik/i,
-      article + ' repeats a host repository binding; only the layout table may'
+      readFileSync(join(CONCEPTS, article), 'utf8'), /atomik|docs\/bedrock|4tom1k|ATOMIK_LANE|apps\/desktop/i,
+      article + ' repeats a host repository binding; concept pages may not'
     )
   }
+  for (const article of readdirSync(REFERENCES).filter((name) => name.endsWith('.md'))) {
+    assert.doesNotMatch(
+      readFileSync(join(REFERENCES, article), 'utf8'), /atomik|docs\/bedrock|4tom1k|ATOMIK_LANE|apps\/desktop/i,
+      article + ' repeats a host repository binding; portable reference pages may not'
+    )
+  }
+})
+
+test('cairn-spec: the required entry route separates portable protocol from its host binding', () => {
+  const execution = readFileSync(EXECUTION, 'utf8')
+  const paths = readFileSync(PATH_CONVENTION, 'utf8')
+  const binding = readFileSync(HOST_BINDING, 'utf8')
+  const bootloader = readFileSync(BOOTLOADER, 'utf8')
+  const hostPointer = readFileSync(HOST_POINTER, 'utf8')
+  const startRoute = bootloader.slice(
+    bootloader.indexOf('## Start here, in order'),
+    bootloader.indexOf('## The mechanical contract')
+  )
+
+  assert.match(execution, /classification: portable/)
+  assert.match(paths, /classification: portable/)
+  assert.doesNotMatch(execution, /atomik|docs\/bedrock|4tom1k|ATOMIK_LANE|apps\/desktop/i)
+  assert.doesNotMatch(paths, /atomik|docs\/bedrock|4tom1k|ATOMIK_LANE|apps\/desktop/i)
+
+  assert.match(binding, /classification: binding/)
+  assert.match(binding, /\| execution-state plane \| `atomik-project\/` \|/)
+  assert.match(binding, /ATOMIK_LANE=<slug> ATOMIK_LANE_PORT=<port>/)
+  assert.match(binding, /apps\/desktop\/electron-main\/index\.ts/)
+  assert.match(binding, /apps\/desktop\/shared\/ipc-contract\.ts/)
+
+  assert.match(startRoute, /coding-paths\/paths\.md/)
+  assert.match(startRoute, /coding-paths\/binding\.md/)
+  assert.match(startRoute, /reference\/execution-protocol\.md/)
+  assert.ok(startRoute.indexOf('coding-paths/paths.md') < startRoute.indexOf('coding-paths/binding.md'))
+  assert.ok(startRoute.indexOf('coding-paths/binding.md') < startRoute.indexOf('reference/execution-protocol.md'))
+  assert.ok(startRoute.indexOf('reference/execution-protocol.md') < startRoute.indexOf('coding-paths/ACTIVE.md'))
+  assert.doesNotMatch(startRoute, /00_00-orientation\.md/)
+  assert.match(hostPointer, /reference\/execution-protocol\.md/)
+  assert.doesNotMatch(hostPointer, /^## The protocol$/m)
 })
 
 test('cairn-spec: repository reference exhaustively maps the installed Cairn structure', () => {
@@ -409,9 +452,11 @@ test('cairn-spec: repository reference exhaustively maps the installed Cairn str
     'docs/adr/index.md',
     'docs/modules/index.md',
     'docs/cairn/specification/index.md',
+    'docs/cairn/specification/reference/execution-protocol.md',
     'docs/cairn/specification.html',
     'atomik-project/index.md',
     'atomik-project/coding-paths/paths.md',
+    'atomik-project/coding-paths/binding.md',
     'atomik-project/coding-paths/ACTIVE.md',
     'atomik-project/coding-paths/history/index.md',
     'atomik-project/sessions/index.md',
@@ -429,12 +474,13 @@ test('cairn-spec: repository reference exhaustively maps the installed Cairn str
     'tools/cairn-audit.mjs',
     'tools/cairn-rules.mjs',
     'tools/cairn-spec-build.mjs',
-    'docs/bedrock/',
+    'docs/architecture/',
     'docs/adr/',
     'docs/modules/',
     'docs/cairn/specification/index.md',
     'docs/cairn/specification.html',
     'project/coding-paths/paths.md',
+    'project/coding-paths/binding.md',
     'project/coding-paths/ACTIVE.md',
     'project/coding-paths/history/',
     'project/sessions/',
@@ -457,9 +503,8 @@ test('cairn-spec: repository reference exhaustively maps the installed Cairn str
 
   assert.match(layout, /This tree is exhaustive for active Cairn-defined files, folder roles, and refs/)
   assert.match(layout, /`cairn\.config\.json` is not shown because it is a specified portability\s+target, not an installed reference file/)
-  // The one sanctioned mention of the host binding, and the only one.
-  assert.match(layout, /\| execution-state plane \| `project\/` \| \*\*`atomik-project\/`\*\* \| `roots\.project` \|/)
-  assert.equal(layout.match(/atomik/gi).length, 2)
+  assert.doesNotMatch(layout, /atomik/i)
+  assert.match(layout, /project\/coding-paths\/binding\.md/)
 
   const operations = readFileSync(OPERATIONS, 'utf8')
   assert.match(operations, /git add project\/coding-paths\/CP-EXAMPLE-001\.md/)

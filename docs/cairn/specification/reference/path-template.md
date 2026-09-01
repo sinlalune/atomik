@@ -36,7 +36,7 @@ cairn:
     - project/coding-paths/CP-EXAMPLE-001.md
     - project/briefs/cp-example-001-handoff.md
   governs:
-    - docs/bedrock/example.md@89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
+    - docs/architecture/example.md@89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
 ---
 
 # CP-EXAMPLE-001 — Short title
@@ -67,15 +67,15 @@ acceptance until a scope amendment is recorded.
 
 ### Required
 
-- `docs/bedrock/example.md` — why this document governs the work
+- `docs/architecture/example.md` — why this document governs the work
 
 ### Conditional
 
-- `docs/bedrock/security.md` — read before changing a trust boundary
+- `docs/architecture/security.md` — read before changing a trust boundary
 
 ### Deliberately excluded
 
-- `docs/bedrock/unrelated.md` — outside this path's bounded outcome
+- `docs/architecture/unrelated.md` — outside this path's bounded outcome
 
 ## Execution
 

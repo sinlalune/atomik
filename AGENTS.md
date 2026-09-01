@@ -5,20 +5,22 @@ Durable knowledge lives in `docs/`; durable execution state lives in `atomik-pro
 
 ## Start here, in order
 
-1. `atomik-project/coding-paths/paths.md` — **how work runs**: parallel coding
-   paths, one per worktree, each merging itself. Read it before opening or
-   resuming any path.
-2. `atomik-project/coding-paths/ACTIVE.md` — which paths are running now, and
+1. `atomik-project/coding-paths/paths.md` — the **portable** parallel-path
+   convention: registration, one writer per worktree, checkpoints, closure and
+   cleanup.
+2. `atomik-project/coding-paths/binding.md` — Atomik's **binding**: exact roots,
+   commands, worktree layout, runtime isolation, hot files and product rules.
+3. `docs/cairn/specification/reference/execution-protocol.md` — the portable
+   per-session protocol: reconcile reality, read the path's selected documents,
+   execute one unit, persist it, push it and hand it off.
+4. `atomik-project/coding-paths/ACTIVE.md` — which paths are running now, and
    where each stands. The running list is generated; do not hand-edit it.
-3. `docs/bedrock/22_22-agent-handoff.md` — the per-step protocol (read the
-   documents your path lists, execute one step at a time, persist progress).
-4. `docs/bedrock/00_00-orientation.md` — the constitution, if this is your
-   first session.
 
-> Bedrock 22, 24 and 35 were amended to this model on 2026-08-15 (`ADR-012`),
-> so they no longer contradict `paths.md`. Bedrock states the doctrine;
-> `paths.md` carries the operating detail and may change without amending a
-> bedrock page. If they ever disagree again, that is a defect — report it.
+> `ADR-020` separates portable protocol, host binding and host constitution.
+> Bedrock 22 is now Atomik's pointer to the portable route; bedrock 24 and 35
+> remain host doctrine. Product architecture — including bedrock 00 — is read
+> when the active path selects it, not merely because a coding session starts.
+> If the portable route, binding and bedrock disagree, report the defect.
 
 ## The mechanical contract
 

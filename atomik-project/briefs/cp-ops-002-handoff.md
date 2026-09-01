@@ -16,6 +16,11 @@ atomik:
     - .github/workflows/cairn.yml
     - AGENTS.md
     - atomik-project/coding-paths/paths.md
+    - atomik-project/coding-paths/binding.md
+    - atomik-project/coding-paths/paths-history.md
+    - docs/agents/*.md
+    - docs/bedrock/22_22-agent-handoff.md
+    - docs/bedrock/archive/22_22-agent-handoff-pre-cairn-extraction.md
     - docs/cairn/**
     - docs/adr/**
     - atomik-project/coding-paths/CP-OPS-002/index.md
@@ -51,7 +56,7 @@ now closed.** The last, `unretainedCheckpoints`, reported "nothing orphaned" onc
 the retained set stopped intersecting the branch — which is what the mandatory
 pre-merge rebase causes — and is repaired under `ADR-021`.
 
-**S08 so far — fourteen units.** Full records in the path file; what a resuming
+**S08 so far — fifteen units.** Full records in the path file; what a resuming
 session needs from them:
 
 - The local gate defaults to the **trunk** base on a path branch (S08a).
@@ -110,25 +115,30 @@ session needs from them:
   adding blob: that blob must remain a prefix wherever the step sits. This makes
   the predicate independent of the local/CI comparison ref, while flat-ledger
   prefix and verbatim-roll proof remain explicitly partial.
+- **The host is an adapter, not part of the protocol** (S08o). Required reading
+  is now the portable `paths.md`, the portable Cairn execution reference, and one
+  explicit Atomik `binding.md`. Bedrock 22 is a stable host pointer; bedrock 00
+  is product constitution selected by coverage, not an unconditional protocol
+  read. Both former combined pages remain linked explanatory records.
 
 The gate's advisory COUNT is a signal even while the verdict stays green: S08l
 read 14 before its commit and 31 after, for one tree, and the only reason to look
 was that the number moved.
 
-Flat refs 01–28 and `g01/01`–`g01/33` on the remote; flat 01–13 hold PRE-rebase
+Flat refs 01–28 and `g01/01`–`g01/34` on the remote; flat 01–13 hold PRE-rebase
 commits and no ref has ever been moved. `g01/32` and `g01/33` are recovery pins
 for the two pushed S08m repair commits that carried no new work-unit block.
-Checker and specification suite counts are recorded in the S08n step.
+`g01/34` retains S08n. Checker and specification suite counts are recorded in
+the latest step.
 
 ## Next action
 
-**ADR-020 stage 4: apply the artefact classification.** Move the portable
-execution protocol into the Cairn specification, extract Atomik's worktree,
-lane and hot-file examples into a binding appendix, and remove the host
-constitution from the protocol entry chain. Stage 3's last operation — retire
-`ledger-size` — waits until `CP-MVP-008`, `CP-MVP-011` and `CP-MVP-012` migrate;
-the ADR makes its stages independent, so that wait does not block stage 4.
-Stage 5 then makes `cairn-init` scaffold the classified, generation-aware shape.
+**ADR-020 stage 5: make `cairn-init` scaffold the classified shape.** The seed
+must install the portable execution protocol and path convention, one separate
+host binding, born-sliced path records, and generation-aware checkpoint
+retention from its first commit. Stage 3's last operation — retire `ledger-size`
+— waits until `CP-MVP-008`, `CP-MVP-011` and `CP-MVP-012` migrate; the ADR makes
+its stages independent, so that wait does not block stage 5.
 
 S08 Part 2 also remains: an adversarial fixture for every blocking rule, one gate
 run in both invocation contexts asserting one verdict, and a generated
@@ -172,6 +182,13 @@ that ADDS a record.
   pre-trunk rewrite nor a post-push mutation: it was a conforming suffix append.
   Choosing either proposed baseline would preserve the proxy predicate. The
   adding blob belongs to the record and is the baseline both contexts can read.
+- **Keeping an installed-host exception inside the portable reference** (S08o).
+  It had been the one sanctioned Atomik mapping, which meant the portable corpus
+  still named its origin host. The human mapping now lives only in the binding;
+  the configuration example uses role names until its loader exists.
+- **Deleting or compressing the former combined entry pages** (S08o). The maxim
+  says explanation moves one link away unabridged. Bedrock 22's former body and
+  the 533-line path page remain linked history; neither stays required reading.
 - **Retiring `ledger-size` with the folder migration** (S08l). ADR-020 stage 3
   schedules it, and three flat records remain; it is the only signal an unsliced
   record gets, so it now applies to flat records only and goes when they do.
@@ -188,16 +205,19 @@ that ADDS a record.
 
 ## Reading order
 
-1. `docs/cairn/cairn-s08-opening-brief-2026-08-31.md@7f52feaa` — **first.** The
+1. `atomik-project/coding-paths/paths.md` — portable path lifecycle.
+2. `atomik-project/coding-paths/binding.md` — Atomik's exact commands and
+   examples; never infer them from the portable page.
+3. `docs/cairn/specification/reference/execution-protocol.md` — portable
+   per-session execution order.
+4. `docs/cairn/cairn-s08-opening-brief-2026-08-31.md@7f52feaa` — the
    five findings that reorder S08, the owner rulings, the teaching axis, and a
    dated correction where it got CI wrong. Its Finding 4 proposes the rule S08i
    then measured and replaced, and its Finding 3 carries a retention measurement
    labelled *"immediately after its rebase"* that no longer describes the branch
    and two namespace candidates `ADR-021` rules out; read the S08i and S08j
    records beside it.
-2. `atomik-project/coding-paths/paths.md@468a922f` — how paths run.
-3. `docs/bedrock/22_22-agent-handoff.md@c10ed0a1` — the per-step protocol.
-4. `docs/cairn/cairn-audit-2026-08-24.md@319d54d2` — the audit that opened this
+5. `docs/cairn/cairn-audit-2026-08-24.md@319d54d2` — the audit that opened this
    path and named its failure mode.
 
 `proxy-predicate`, `unsound-gate`, `adversarial-fixture`, `gate-parity`,
@@ -208,13 +228,16 @@ that ADDS a record.
 
 ## Verification
 
-`npm run cairn-check` — branch against trunk by default since S08a — reports OK
-with pre-existing advisories: nine grandfathered `CP-MVP-008` findings carrying
-their reason, two `single-truth` notes on generated files, `ledger-size`, and the
-newest unit's retention ref, written after the commit that declares it. A run
-reporting `base-parity` is NARROWED, and one reporting an inconclusive
-`checkpoint-retention` has not fetched `refs/cairn/*`: neither is recordable.
+`npm run cairn-check` — branch against trunk by default since S08a — reports OK.
+Before the newest unit's ref can exist, S08o records 14 advisories: concept
+growth, nine grandfathered `CP-MVP-008` findings carrying their reason, three
+accounted-for `single-truth` notes on shared/generated files, and unit 35's
+retention ref. Publishing `g01/35` removes only that last notice, so a correctly
+fetched safe-boundary checkout reports 13. A run reporting `base-parity` is
+NARROWED, and one reporting an inconclusive `checkpoint-retention` has not
+fetched `refs/cairn/*`: neither is recordable.
 
-`npm run cairn-check:test` passes 228 subtests. `npm run cairn-spec:build`
-reproduces the checked-in HTML byte-for-byte. `npm run typecheck`, `npm test`
-(1,109 passing, 1 skipped) and `npm run build` all pass.
+`npm run cairn-check:test` passes 229 subtests. `npm run cairn-spec:build`
+reproduces the checked-in HTML byte-for-byte; `npm run cairn-active` reports the
+running-path view current. `npm run typecheck`, `npm test` (1,109 passing, 1
+skipped) and `npm run build` all pass.

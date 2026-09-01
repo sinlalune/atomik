@@ -310,8 +310,13 @@ Independent events use one file per event. Generated
 [live views](./concepts/live-view.md) are rebuilt from their source records
 rather than edited as another truth.
 
-`AGENTS.md` is the small entry point that tells a new participant what to read
-first. `cairn.config.json` binds portable role names to repository paths. The
+`AGENTS.md` is the small **BINDING** entry point that tells a new participant
+what to read first. It MUST point separately to the PORTABLE
+[execution protocol](./reference/execution-protocol.md), the portable path
+convention, and one human-readable host binding appendix. HOST architecture is
+selected by the path's documentation coverage; it is not required merely
+because a coding session began. `cairn.config.json` is the intended
+machine-readable binding of portable role names to repository paths. The
 workflow and `cairn-*` tools form the executable control plane. Three optional
 [project-memory](./concepts/project-memory.md) spaces may accompany execution:
 `brainstorm/` for explicitly provisional thinking, `sources/` for imported
@@ -372,6 +377,7 @@ repository/
     │   ├── index.md
     │   ├── log.md
     │   ├── paths.md
+    │   ├── binding.md
     │   ├── ACTIVE.md
     │   ├── CP-<ID>.md
     │   └── history/
@@ -429,12 +435,9 @@ protocol layout but is not yet loaded or installed by the v0.2 reference tools.
 
 The names used throughout this specification — `project/`,
 `docs/architecture/` — are **role names**, not required folder names. A
-repository binds each role to a folder it already has, and the current reference
-tools bind two of them to different names than the ones written here. Those
-bindings are recorded once, in the
-[installed binding table](./reference/repository-layout.md#portable-roles-and-installed-names),
-so that no other page has to repeat a host repository's local vocabulary. The
-tree, file roles, naming rules, and the mapping are all in the
+repository binds each role to a folder it already has. Those installed names
+belong in the repository's `project/coding-paths/binding.md`, never in a portable
+article. The generic tree, file roles and naming rules are in the
 [repository-layout reference](./reference/repository-layout.md).
 
 ## Choose the route the change earns
@@ -780,8 +783,9 @@ to say something slightly untrue.
 **"Alone" is a claim about what the reader must already carry in their head, not
 about how many files they may open.** A participant arriving at a Cairn
 repository follows the entry route the repository itself publishes: `AGENTS.md`
-names the operating convention, the convention names the [live
-view](./concepts/live-view.md), the live view names the path, and the
+names the portable execution protocol, portable path convention and host
+binding; the convention names the [live view](./concepts/live-view.md), the live
+view names the path, and the
 [path record](./concepts/path-record.md) carries the plan and the ledger. That
 chain is the protocol working. A brief that set out to replace it would be a
 lossy copy of records that are already canonical, refreshed by hand, drifting
@@ -1538,6 +1542,7 @@ not in a separate document a reader may never open.
 | Checkpoint retention refs before any rewriting push | required | **implemented**; every declared unit except the newest must resolve a retention ref in the CURRENT generation, and every branch commit in `merge-base(trunk, HEAD)..HEAD` that is neither retained there, provisional, nor `HEAD` is reported as orphaned. The current generation is derived from ancestry; an empty one beside older generations is blocking and definite, while an unreadable namespace or branch range is inconclusive | the environment must FETCH `refs/cairn/*`, which no clone or checkout action does by default; a ref *moving* is unobservable to a single-commit validator — only the orphan it leaves behind is |
 | Marked provisional commits excluded from candidate identity | required | implemented; a ready path whose candidate range still contains a marked commit is blocked | the fold itself is not verified to preserve content |
 | Handoff-brief field schema and answerable-alone contract | required | **partially implemented**; the nine fields, the seven exact sections and pinned `governs` entries are checked. The token budget is retired (ADR-020 decision 6): what will not fit is linked, not compressed, and that is a judgement rather than a predicate | the answerable-alone contract is a judgement and a cold-resume harness, and is never claimed by a checker |
+| Portable, host, and binding artefact separation | required | **implemented in the reference documentation**; the portable execution route and path convention carry no host names, the root bootloader points at one explicit binding appendix, and host architecture is absent from the unconditional entry chain | `cairn-init` must scaffold the classified shape before general release; classification itself is a documentation property rather than a repository predicate |
 | Field-level administrative closure surface | required | implemented; closure may move only `status`, `subject_commit`, `current_step` and `resolution` | ledger append-only proof, which remains a separate open row |
 | An adversarial fixture per blocking rule | required | **not implemented**; the checker suite exercises valid repositories and asserts `OK`, which a rule that never fires also satisfies. No rule is currently required to demonstrate a rejection | a fixture repository per blocking rule |
 | No predicate branches on a value that varies by execution context | required | **implemented**; the derived-view exemption for `path/*` branches is removed rather than replaced. The view is already a pure projection of the statuses declared in the tree, so a checkout disagrees with it only when something there moved a status without regenerating, and no rule now reads the branch name to decide whether to run | the branch name still selects which path-scoped rules APPLY, which is a different question from whether a rule runs at all |

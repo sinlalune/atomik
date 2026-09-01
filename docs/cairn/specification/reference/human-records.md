@@ -112,7 +112,7 @@ cairn:
   subject_commit: fedcba9876543210fedcba9876543210fedcba98
   base: 0123456789abcdef0123456789abcdef01234567
   governs:
-    - docs/bedrock/example.md@89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
+    - docs/architecture/example.md@89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
   verdict: clean
 ---
 

@@ -18,6 +18,10 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-01
 
+- `S08o` moves the per-session procedure into the portable Cairn reference,
+  separates Atomik's binding from the portable `paths.md`, removes bedrock 00
+  from the protocol start route, and retains both former combined pages as
+  explanatory history rather than compressing them.
 - `S08n` makes born-sliced step integrity content-based: the blob that added a
   step must remain a prefix, exact suffix appends pass, and immutable event
   records cannot borrow the step-relocation exemption. The two late S08m repair

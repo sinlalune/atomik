@@ -16,14 +16,18 @@ Bedrock is never invented in passing — a page changes with a decision beside i
 ## Start here
 
 - **[00 — orientation](./00_00-orientation.md)** if this is your first session: the thesis everything else serves.
-- **[22 — agent handoff](./22_22-agent-handoff.md)** to execute: the per-step protocol, ceremonies, gate discipline.
+- **[Cairn execution protocol](../cairn/specification/reference/execution-protocol.md)**
+  to execute: the portable per-session order, checkpoint and handoff discipline.
+- **[22 — agent handoff](./22_22-agent-handoff.md)** for the Atomik pointer to
+  that protocol and the separate host binding.
 - **[24 — doc templates](./24_24-doc-templates.md)** to write anything durable: path, ADR, module note, session note, brief.
 - **[35 — coding paths and the execution-state plane](./35_35-coding-path-execution-state.md)** for how execution state lives in files.
 
-Operating detail for parallel work is NOT here: it is in
-[`paths.md`](../../atomik-project/coding-paths/paths.md), which may change without
-amending a bedrock page. Bedrock states doctrine; where the two disagree, that is a
-defect to report (`AGENTS.md`).
+Operating detail for parallel work is NOT here: the portable convention is
+[`paths.md`](../../atomik-project/coding-paths/paths.md), paired with Atomik's
+[`binding.md`](../../atomik-project/coding-paths/binding.md). Product doctrine
+is selected through a path's documentation coverage. Where portable protocol,
+binding and bedrock disagree, that is a defect to report (`AGENTS.md`).
 
 ## Status vocabulary
 
@@ -86,8 +90,8 @@ deletion.
   Prepare typed graph structure without prematurely forcing every note into graph-first modeling.
 - **[21 — Canvas future](./21_21-canvas-future.md)** · reserved  
   Keep canvas as a projection layer over files, not an app-owned knowledge database.
-- **[22 — Coding agent bootstrap protocol](./22_22-agent-handoff.md)** · ready-to-use  
-  Define how any coding agent enters, executes, and leaves work on Atomik so that all execution state survives in files rather than conversation threads.
+- **[22 — Atomik host pointer to Cairn execution](./22_22-agent-handoff.md)** · ready-to-use
+  Point implementation sessions to Cairn's portable execution protocol and Atomik's separate host binding without duplicating either.
 - **[23 — External references and current constraints](./23_23-references.md)** · supporting  
   Use official documentation as the source for platform, security, provider, pricing, licensing, and format claims; preserve checked dates and update links when they change.
 - **[24 — Documentation templates](./24_24-doc-templates.md)** · ready-to-use  

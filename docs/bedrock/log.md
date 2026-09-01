@@ -20,6 +20,13 @@ remains the complete record; this is the readable one. If two paths ever start
 colliding on this file, it takes the amendment the journal already took — one file
 per entry in a `log/` subfolder — which was a concurrency fix, never a size one.
 
+## 2026-09-01
+
+- `CP-OPS-002 S08o` turns bedrock 22 into Atomik's stable host pointer to the
+  portable Cairn execution route and binding. The former combined page remains
+  unabridged in `archive/`; bedrock 00 remains product doctrine but leaves the
+  unconditional coding-session entry chain.
+
 ## 2026-08-24
 
 - `3df9073` CP-OPS-002 S05: backfill OKF — five indexes, ADR frontmatter, schema over the decision plane
