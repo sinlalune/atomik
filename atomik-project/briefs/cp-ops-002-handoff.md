@@ -6,8 +6,8 @@ atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: e17c9c7
-  checkpoint_unit: 39
+  checkpoint: a304bff
+  checkpoint_unit: 40
   checkpoint_pushed: true
   base_commit: 7aa3b1d
   trunk_seen: dfcd09d
@@ -58,7 +58,7 @@ now closed.** The last, `unretainedCheckpoints`, reported "nothing orphaned" onc
 the retained set stopped intersecting the branch — which is what the mandatory
 pre-merge rebase causes — and is repaired under `ADR-021`.
 
-**S08 so far — twenty units.** Full records in the path file; what a resuming
+**S08 so far — twenty-one units.** Full records in the path file; what a resuming
 session needs from them:
 
 - The local gate defaults to the **trunk** base on a path branch (S08a).
@@ -187,6 +187,22 @@ session needs from them:
   locally tested merge commit, so checked identity equals landed identity by
   construction, and no PR adapter is needed.
 
+- **`cairn-init` exists, and it proved the corpus was not portable** (S08u).
+  Its first end-to-end run installed cleanly and then failed its own first gate
+  with **seventeen broken links**, none visible from inside this repository. The
+  specification linked the host decision records that settled it; those records
+  cite `atomik-project/`, `docs/bedrock/` and session notes; one concept article
+  linked bedrock directly; and the portable `paths.md` linked this repository's
+  own history. What binds a resuming session: **a decision record is a HOST
+  artefact** — portable text NAMES a decision (`ADR-021`) and never links into a
+  decision plane; **`outwardLinks()` refuses to install a corpus with any link
+  that resolves nowhere in it**, so the command is a portability test that runs;
+  and the only claim that matters is the test that installs, commits and runs
+  the installed checker, asserting `OK — protocol satisfied`. **Updating an
+  installation is NOT implemented** — `cairn.lock.json` records the release and
+  a per-file digest so a migrator could tell pristine from edited, and nothing
+  reads it yet.
+
 The gate's advisory COUNT is a signal even while the verdict stays green: S08l
 read 14 before its commit and 31 after, for one tree, and the only reason to look
 was that the number moved.
@@ -200,7 +216,13 @@ the latest step.
 
 ## Next action
 
-**ADR-020 stage 5, second unit: implement `cairn-init`.** The seed is
+**S08 Part 2, and the extraction question.** `cairn-init` is done (S08u), so
+what remains in S08 is the adversarial fixture per blocking rule, one gate run
+in both invocation contexts asserting one verdict, and a generated conformance
+matrix. Beyond it, forward-plan item 12 is now the live architectural question:
+this command COPIES a portable corpus into an adopter, and the public extraction
+must MOVE its authority rather than leave two hand-maintained copies. Superseded
+next action: The seed is
 reconciled (S08q), so the initializer has one correct shape to scaffold. Make
 one transactional command install the PORTABLE / HOST / BINDING route, schema-1
 config, reference tools, tier-1 workflow, concept-wiki index and one-concept
@@ -311,7 +333,7 @@ that ADDS a record.
 ## Verification
 
 `npm run cairn-check` — branch against trunk by default since S08a — reports OK.
-S08t records **13 advisories, and 13 is the steady state**: concept growth,
+S08u records **13 advisories, and 13 is the steady state**: concept growth,
 nine grandfathered `CP-MVP-008` findings carrying their reason, and three
 accounted-for `single-truth` notes on shared/generated files. The
 `checkpoint-retention` notice that used to make it 14 before each unit's ref was
@@ -320,7 +342,7 @@ onward. A run reporting `base-parity` is NARROWED and is not recordable. A run r
 NARROWED, and one reporting an inconclusive `checkpoint-retention` has not
 fetched `refs/cairn/*`: neither is recordable.
 
-`npm run cairn-check:test` passes 243 subtests across six tool suites. `npm run cairn-spec:build`
+`npm run cairn-check:test` passes 253 subtests across seven tool suites. A repository created by `npm run cairn-init -- --target <dir>` reports `OK — protocol satisfied` with zero advisories. `npm run cairn-spec:build`
 reproduces the checked-in HTML byte-for-byte; `npm run cairn-active` reports the
 running-path view current. `npm run typecheck`, `npm test` (1,109 passing, 1
 skipped) and `npm run build` all pass.

@@ -17,6 +17,7 @@
     "cairn-audit": "node tools/cairn-audit.mjs",
     "cairn-spec:build": "node tools/cairn-spec-build.mjs",
     "cairn-check:test": "node --test 'tools/**/*.test.mjs'",
+    "cairn-init": "node tools/cairn-init.mjs",
     "retrieval-eval": "npm --workspace atomik-desktop run retrieval-eval"
   },
   "engines": {

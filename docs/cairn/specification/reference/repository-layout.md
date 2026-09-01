@@ -42,6 +42,7 @@ repository/
 │                       └── <ledger-unit-ordinal>
 ├── AGENTS.md
 ├── cairn.config.json
+├── cairn.lock.json
 ├── package.json
 ├── .github/
 │   └── workflows/
@@ -56,6 +57,8 @@ repository/
 │   ├── cairn-active.test.mjs
 │   ├── cairn-audit.mjs
 │   ├── cairn-audit.test.mjs
+│   ├── cairn-init.mjs
+│   ├── cairn-init.test.mjs
 │   ├── cairn-rules.mjs
 │   ├── cairn-rules.test.mjs
 │   ├── cairn-spec-build.mjs
@@ -161,6 +164,8 @@ what Cairn defines, not what any one adoption happens to contain.
 | :-- | :-- | :-- |
 | `AGENTS.md` | small bootloader pointing participants to operating state and doctrine | change only with the protocol entry route |
 | `cairn.config.json` | versioned machine-readable binding from portable roles to this host | host configuration change |
+| `cairn.lock.json` | the protocol release installed here, and one digest per installed file, so an update can tell a pristine file from an edited one | written by `cairn-init`; never hand-edited |
+| `tools/cairn-init.mjs` | transactional installer: resolves the whole file set, refuses to overwrite, rolls back on failure | independently reviewed control-plane change |
 | `package.json` | exposes the reference commands without making Node a protocol requirement | control-plane change |
 | `.github/workflows/cairn.yml` | current CI adapter; reports checks for the supplied comparison refs | independently reviewed control-plane change |
 | `tools/cairn-check.mjs` | deterministic blocking and advisory predicates | independently reviewed control-plane change |
@@ -212,7 +217,7 @@ refs/cairn/checkpoints/<path-id>/g<NN>/<n>
 
 **This namespace exists only where the host declares
 `pathHistoryPolicy: retained`.** Under `forbidden` — the default
-([ADR-022](../../../adr/ADR-022-path-branches-are-not-rewritten.md)) — nothing is
+(**ADR-022**) — nothing is
 rewritten, the branch itself keeps every ledger-named commit reachable, and this
 part of the tree is simply absent.
 

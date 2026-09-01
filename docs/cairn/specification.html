@@ -1203,7 +1203,7 @@ signature that says so is a known weakness, and a self-issued signature that
 does not is a false assurance.</p>
 <h3 id="specification--the-path-record" data-heading="the-path-record">The path record</h3>
 <p>A path record is a FOLDER, and it is born one rather than divided into one later
-(<a href="../../adr/ADR-020-protocol-context-weight.md">ADR-020</a> decision 4):</p>
+(<strong>ADR-020</strong> decision 4):</p>
 <pre><code class="language-text">project/coding-paths/CP-&lt;ID&gt;/
   index.md      the declaration, the step index, the live header, the next
                 action, blockers   &lt;- the REQUIRED READING
@@ -1695,7 +1695,7 @@ its retained ref name the same thing. Retention refs are append-only: once
 written, a ref MUST NOT be moved or deleted while the path record is retained.</p>
 <p>This entire namespace is the cost of rewriting, and a host that declines to
 rewrite does not pay it. Under <code>pathHistoryPolicy: forbidden</code> — the DEFAULT,
-settled by <a href="../../adr/ADR-022-path-branches-are-not-rewritten.md">ADR-022</a> — a
+settled by <strong>ADR-022</strong> — a
 published path branch is never rebased, amended, folded or force-pushed, a
 current base is reached by merging the trunk in, and the branch itself keeps
 every ledger-named commit reachable. Retention below describes the <code>retained</code>
@@ -1703,7 +1703,7 @@ alternative, which stays fully specified and supported for a host that keeps
 rewriting.</p>
 <p><code>g&lt;NN&gt;</code> is the <strong>generation</strong> — one linear version of the branch, opened when the
 branch is created or rewritten and closed by the next rewriting push
-(<a href="../../adr/ADR-021-checkpoint-retention-generations.md">ADR-021</a>). It exists
+(<strong>ADR-021</strong>). It exists
 because a rebase gives one unit two truthful object ids — the commit it was
 verified as, and the reconstructed copy now on the branch — and a namespace with
 one slot per ordinal can hold only one of them while refs may not move. Each
@@ -2624,8 +2624,14 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">A published path branch is not rewritten</td>
 <td style="text-align:left">required on a <code>forbidden</code> host</td>
-<td style="text-align:left"><strong>implemented</strong>; where <code>pathHistoryPolicy</code> is <code>forbidden</code> the branch’s own upstream MUST remain an ancestor of <code>HEAD</code>, so a rebase, amend, soft-reset fold or force-push of published work is blocking. This is the DEFAULT policy (<a href="../../adr/ADR-022-path-branches-are-not-rewritten.md">ADR-022</a>), and it replaces retention rather than joining it: if nothing is rewritten the branch already keeps every ledger-named commit reachable</td>
+<td style="text-align:left"><strong>implemented</strong>; where <code>pathHistoryPolicy</code> is <code>forbidden</code> the branch’s own upstream MUST remain an ancestor of <code>HEAD</code>, so a rebase, amend, soft-reset fold or force-push of published work is blocking. This is the DEFAULT policy (<strong>ADR-022</strong>), and it replaces retention rather than joining it: if nothing is rewritten the branch already keeps every ledger-named commit reachable</td>
 <td style="text-align:left">it proves only that THIS checkout has not rewritten what it published — a remote rewritten by someone else is invisible here, and preventing the push itself needs host protection, which tier <code>ci</code> does not claim. It is also silent while no remote-tracking ref exists</td>
+</tr>
+<tr>
+<td style="text-align:left">A repository can be created in the current shapes</td>
+<td style="text-align:left">required</td>
+<td style="text-align:left"><strong>implemented</strong>; <code>cairn-init</code> resolves the complete installation in memory, validates the generated binding before writing, refuses to overwrite any existing file, rolls back on failure, and generates the derived view rather than shipping one by hand. A new repository is born-sliced and no-rewrite, and it passes its own gate on the first command — asserted end-to-end by a test that installs, commits and runs the checker</td>
+<td style="text-align:left">updating an existing installation is NOT implemented: <code>cairn.lock.json</code> records the release and a per-file digest so a migrator could tell a pristine file from an edited one, and no migrator reads it yet. <code>cairn-new</code> and <code>cairn-close</code> remain manual, and <code>--profile protected</code> is refused because it asserts host protection no local command can configure</td>
 </tr>
 <tr>
 <td style="text-align:left">Marked provisional commits excluded from candidate identity</td>
@@ -3718,7 +3724,7 @@ signature that says so is a known weakness, and a self-issued signature that
 does not is a false assurance.</p>
 <h3 id="specification--the-path-record" data-heading="the-path-record">The path record</h3>
 <p>A path record is a FOLDER, and it is born one rather than divided into one later
-(<a href="../../adr/ADR-020-protocol-context-weight.md">ADR-020</a> decision 4):</p>
+(<strong>ADR-020</strong> decision 4):</p>
 <pre><code class="language-text">project/coding-paths/CP-&lt;ID&gt;/
   index.md      the declaration, the step index, the live header, the next
                 action, blockers   &lt;- the REQUIRED READING
@@ -4210,7 +4216,7 @@ its retained ref name the same thing. Retention refs are append-only: once
 written, a ref MUST NOT be moved or deleted while the path record is retained.</p>
 <p>This entire namespace is the cost of rewriting, and a host that declines to
 rewrite does not pay it. Under <code>pathHistoryPolicy: forbidden</code> — the DEFAULT,
-settled by <a href="../../adr/ADR-022-path-branches-are-not-rewritten.md">ADR-022</a> — a
+settled by <strong>ADR-022</strong> — a
 published path branch is never rebased, amended, folded or force-pushed, a
 current base is reached by merging the trunk in, and the branch itself keeps
 every ledger-named commit reachable. Retention below describes the <code>retained</code>
@@ -4218,7 +4224,7 @@ alternative, which stays fully specified and supported for a host that keeps
 rewriting.</p>
 <p><code>g&lt;NN&gt;</code> is the <strong>generation</strong> — one linear version of the branch, opened when the
 branch is created or rewritten and closed by the next rewriting push
-(<a href="../../adr/ADR-021-checkpoint-retention-generations.md">ADR-021</a>). It exists
+(<strong>ADR-021</strong>). It exists
 because a rebase gives one unit two truthful object ids — the commit it was
 verified as, and the reconstructed copy now on the branch — and a namespace with
 one slot per ordinal can hold only one of them while refs may not move. Each
@@ -5139,8 +5145,14 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">A published path branch is not rewritten</td>
 <td style="text-align:left">required on a <code>forbidden</code> host</td>
-<td style="text-align:left"><strong>implemented</strong>; where <code>pathHistoryPolicy</code> is <code>forbidden</code> the branch’s own upstream MUST remain an ancestor of <code>HEAD</code>, so a rebase, amend, soft-reset fold or force-push of published work is blocking. This is the DEFAULT policy (<a href="../../adr/ADR-022-path-branches-are-not-rewritten.md">ADR-022</a>), and it replaces retention rather than joining it: if nothing is rewritten the branch already keeps every ledger-named commit reachable</td>
+<td style="text-align:left"><strong>implemented</strong>; where <code>pathHistoryPolicy</code> is <code>forbidden</code> the branch’s own upstream MUST remain an ancestor of <code>HEAD</code>, so a rebase, amend, soft-reset fold or force-push of published work is blocking. This is the DEFAULT policy (<strong>ADR-022</strong>), and it replaces retention rather than joining it: if nothing is rewritten the branch already keeps every ledger-named commit reachable</td>
 <td style="text-align:left">it proves only that THIS checkout has not rewritten what it published — a remote rewritten by someone else is invisible here, and preventing the push itself needs host protection, which tier <code>ci</code> does not claim. It is also silent while no remote-tracking ref exists</td>
+</tr>
+<tr>
+<td style="text-align:left">A repository can be created in the current shapes</td>
+<td style="text-align:left">required</td>
+<td style="text-align:left"><strong>implemented</strong>; <code>cairn-init</code> resolves the complete installation in memory, validates the generated binding before writing, refuses to overwrite any existing file, rolls back on failure, and generates the derived view rather than shipping one by hand. A new repository is born-sliced and no-rewrite, and it passes its own gate on the first command — asserted end-to-end by a test that installs, commits and runs the checker</td>
+<td style="text-align:left">updating an existing installation is NOT implemented: <code>cairn.lock.json</code> records the release and a per-file digest so a migrator could tell a pristine file from an edited one, and no migrator reads it yet. <code>cairn-new</code> and <code>cairn-close</code> remain manual, and <code>--profile protected</code> is refused because it asserts host protection no local command can configure</td>
 </tr>
 <tr>
 <td style="text-align:left">Marked provisional commits excluded from candidate identity</td>
@@ -6497,7 +6509,7 @@ leaf and a directory: with an ordinal generation segment,
 <code>refs/cairn/checkpoints/&lt;id&gt;/01</code> exists. Keeping the generation out of the
 ordinal alphabet is what lets refs written before this notation stay exactly
 where they are — judged for reachability, never moved into a generation.</p>
-<p>Settled by <a href="../../../adr/ADR-021-checkpoint-retention-generations.md">ADR-021</a>.</p>
+<p>Settled by <strong>ADR-021</strong>.</p>
 <p>A repository that cannot create or push that namespace has one other conforming
 option — forbid rewriting pushes on path branches entirely, and reach a current
 base by <a href="#article-concept-merge" data-article="concept-merge" data-anchor="" class="wiki-link">merge</a> instead of rebase. Silently rewriting without
@@ -7526,7 +7538,7 @@ says nothing about whether that workflow is the right one — a clear instructio
 can be clearly wrong, and it will then be wrong identically everywhere.</p>
 <p>It also does not survive its own definition being ambiguous. The first draft of
 Cairn’s separation test used the word <em>index</em> for “the part a reader must read”,
-while <a href="../../../bedrock/26_26-okf-agent-context.md">OKF</a> uses <code>index.md</code> for a
+while OKF — one host’s documentation convention — uses <code>index.md</code> for a
 folder’s map. One word, two meanings, inside the sentence defining this property
 — which is exactly the failure the property names, and it was found by a reader
 asking what the word meant.</p>
@@ -9090,9 +9102,11 @@ validate <code>cairn.config.json</code>. The checker prints the effective enforc
 profile and consumes the configured roots, source areas, trunk, remote,
 metadata namespace, route default, checkpoint policy, and digest algorithm.</p>
 <p>This is <strong>partial portable conformance</strong>, not the completed distribution story.
-The reference implementation does not yet ship schema-to-schema migrations,
-installation or update mechanics, transport tests, or <code>cairn-init</code>. The checked
-in workflow is an installed host adapter. Those open obligations remain visible
+<code>cairn-init</code> now installs a repository transactionally and writes this file, and
+<code>cairn.lock.json</code> records the release and a digest per installed file — which is
+what an update would need to tell a pristine file from an edited one. The update
+itself, and schema-to-schema migrations and transport tests, are still absent.
+The checked-in workflow is an installed host adapter. Those open obligations remain visible
 in <a href="#article-specification" data-article="specification" data-anchor="current-conformance" class="wiki-link">current conformance</a>.</p>
 <h2 id="reference-configuration--intended-file" data-heading="intended-file">Intended file</h2>
 <pre><code class="language-json">{
@@ -9124,8 +9138,8 @@ in <a href="#article-specification" data-article="specification" data-anchor="cu
   ],
   &quot;staleAfterDays&quot;: 14,
   &quot;defaultRoute&quot;: &quot;lightweight&quot;,
-  &quot;checkpointRetentionRef&quot;: &quot;refs/cairn/checkpoints&quot;,
-  &quot;pathHistoryPolicy&quot;: &quot;retained&quot;,
+  &quot;checkpointRetentionRef&quot;: null,
+  &quot;pathHistoryPolicy&quot;: &quot;forbidden&quot;,
   &quot;scopeDigestAlgorithm&quot;: &quot;sha256&quot;,
   &quot;transport&quot;: {
     &quot;registration&quot;: &quot;declared-adapter-name&quot;,
@@ -10141,8 +10155,9 @@ record — <code>CP-EXAMPLE-001/index.md</code> with one file per step under <co
 that is the shape a new path should be created in. A flat <code>CP-EXAMPLE-001.md</code>
 stays conforming and every rule keys on the declared id, so a repository holding
 the older shape substitutes that one path and changes nothing else here.</p>
-<p>The manual sequence is normative while transactional <code>cairn-init</code>,
-<code>cairn-new</code>, and <code>cairn-close</code> commands remain unimplemented.</p>
+<p><code>cairn-init</code> installs a repository; the sequences below are what a participant
+then runs. <code>cairn-new</code> and <code>cairn-close</code> remain unimplemented, so registration
+and closure are manual.</p>
 <h2 id="reference-operations--register-an-accepted-path" data-heading="register-an-accepted-path">Register an accepted path</h2>
 <p>Use the repository’s declared registration transport. For a local or CI profile
 whose policy permits an exact direct trunk update:</p>
@@ -10244,7 +10259,7 @@ already be retained before the force push that follows.</p>
 <p><strong>Which sequence applies is a host policy</strong>, declared as <code>pathHistoryPolicy</code> in
 <a href="#article-reference-configuration" data-article="reference-configuration" data-anchor="" class="wiki-link">configuration</a>. Run the one your repository declares; they
 are not interchangeable.</p>
-<h3 id="reference-operations--on-a-no-rewrite-host-forbidden-the-default-adr-022-adr-adr-022-path-branches-are-not-rewritten-md" data-heading="on-a-no-rewrite-host-forbidden-the-default-adr-022-adr-adr-022-path-branches-are-not-rewritten-md">On a no-rewrite host (<code>forbidden</code>, the default — <a href="../../../adr/ADR-022-path-branches-are-not-rewritten.md">ADR-022</a>)</h3>
+<h3 id="reference-operations--on-a-no-rewrite-host-forbidden-the-default-adr-022" data-heading="on-a-no-rewrite-host-forbidden-the-default-adr-022">On a no-rewrite host (<code>forbidden</code>, the default — <strong>ADR-022</strong>)</h3>
 <p>Nothing is rewritten, so nothing needs retaining. Bring the trunk into the branch
 instead of moving the branch onto the trunk:</p>
 <pre><code class="language-bash">git fetch origin main
@@ -10268,7 +10283,7 @@ npm run build
 provisional commit is superseded by the completed unit’s commit and stays in the
 branch’s history as what it was — folding it with <code>git reset --soft</code> is a rewrite
 and is not available here.</p>
-<h3 id="reference-operations--on-a-rewriting-host-retained-adr-021-adr-adr-021-checkpoint-retention-generations-md" data-heading="on-a-rewriting-host-retained-adr-021-adr-adr-021-checkpoint-retention-generations-md">On a rewriting host (<code>retained</code> — <a href="../../../adr/ADR-021-checkpoint-retention-generations.md">ADR-021</a>)</h3>
+<h3 id="reference-operations--on-a-rewriting-host-retained-adr-021" data-heading="on-a-rewriting-host-retained-adr-021">On a rewriting host (<code>retained</code> — <strong>ADR-021</strong>)</h3>
 <p>Retain every ledger-named checkpoint <strong>before</strong> the rebase, because the rebase is
 what orphans them:</p>
 <pre><code class="language-bash">git fetch origin '+refs/cairn/*:refs/cairn/*'   # the namespace is NOT fetched by default
@@ -10833,6 +10848,7 @@ protocol structure.</p>
 │                       └── &lt;ledger-unit-ordinal&gt;
 ├── AGENTS.md
 ├── cairn.config.json
+├── cairn.lock.json
 ├── package.json
 ├── .github/
 │   └── workflows/
@@ -10847,6 +10863,8 @@ protocol structure.</p>
 │   ├── cairn-active.test.mjs
 │   ├── cairn-audit.mjs
 │   ├── cairn-audit.test.mjs
+│   ├── cairn-init.mjs
+│   ├── cairn-init.test.mjs
 │   ├── cairn-rules.mjs
 │   ├── cairn-rules.test.mjs
 │   ├── cairn-spec-build.mjs
@@ -10961,6 +10979,16 @@ what Cairn defines, not what any one adoption happens to contain.</p>
 <td style="text-align:left"><code>cairn.config.json</code></td>
 <td style="text-align:left">versioned machine-readable binding from portable roles to this host</td>
 <td style="text-align:left">host configuration change</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>cairn.lock.json</code></td>
+<td style="text-align:left">the protocol release installed here, and one digest per installed file, so an update can tell a pristine file from an edited one</td>
+<td style="text-align:left">written by <code>cairn-init</code>; never hand-edited</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>tools/cairn-init.mjs</code></td>
+<td style="text-align:left">transactional installer: resolves the whole file set, refuses to overwrite, rolls back on failure</td>
+<td style="text-align:left">independently reviewed control-plane change</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>package.json</code></td>
@@ -11145,7 +11173,7 @@ working tree and outside every directory listing:</p>
 </code></pre>
 <p><strong>This namespace exists only where the host declares
 <code>pathHistoryPolicy: retained</code>.</strong> Under <code>forbidden</code> — the default
-(<a href="../../../adr/ADR-022-path-branches-are-not-rewritten.md">ADR-022</a>) — nothing is
+(<strong>ADR-022</strong>) — nothing is
 rewritten, the branch itself keeps every ledger-named commit reachable, and this
 part of the tree is simply absent.</p>
 <p>Each ref pins one ledger-named checkpoint so that a rewriting push cannot orphan
@@ -11477,7 +11505,7 @@ signature that says so is a known weakness, and a self-issued signature that
 does not is a false assurance.</p>
 <h3 id="specification--the-path-record" data-heading="the-path-record">The path record</h3>
 <p>A path record is a FOLDER, and it is born one rather than divided into one later
-(<a href="../../adr/ADR-020-protocol-context-weight.md">ADR-020</a> decision 4):</p>
+(<strong>ADR-020</strong> decision 4):</p>
 <pre><code class="language-text">project/coding-paths/CP-&lt;ID&gt;/
   index.md      the declaration, the step index, the live header, the next
                 action, blockers   &lt;- the REQUIRED READING
@@ -11969,7 +11997,7 @@ its retained ref name the same thing. Retention refs are append-only: once
 written, a ref MUST NOT be moved or deleted while the path record is retained.</p>
 <p>This entire namespace is the cost of rewriting, and a host that declines to
 rewrite does not pay it. Under <code>pathHistoryPolicy: forbidden</code> — the DEFAULT,
-settled by <a href="../../adr/ADR-022-path-branches-are-not-rewritten.md">ADR-022</a> — a
+settled by <strong>ADR-022</strong> — a
 published path branch is never rebased, amended, folded or force-pushed, a
 current base is reached by merging the trunk in, and the branch itself keeps
 every ledger-named commit reachable. Retention below describes the <code>retained</code>
@@ -11977,7 +12005,7 @@ alternative, which stays fully specified and supported for a host that keeps
 rewriting.</p>
 <p><code>g&lt;NN&gt;</code> is the <strong>generation</strong> — one linear version of the branch, opened when the
 branch is created or rewritten and closed by the next rewriting push
-(<a href="../../adr/ADR-021-checkpoint-retention-generations.md">ADR-021</a>). It exists
+(<strong>ADR-021</strong>). It exists
 because a rebase gives one unit two truthful object ids — the commit it was
 verified as, and the reconstructed copy now on the branch — and a namespace with
 one slot per ordinal can hold only one of them while refs may not move. Each
@@ -12898,8 +12926,14 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">A published path branch is not rewritten</td>
 <td style="text-align:left">required on a <code>forbidden</code> host</td>
-<td style="text-align:left"><strong>implemented</strong>; where <code>pathHistoryPolicy</code> is <code>forbidden</code> the branch’s own upstream MUST remain an ancestor of <code>HEAD</code>, so a rebase, amend, soft-reset fold or force-push of published work is blocking. This is the DEFAULT policy (<a href="../../adr/ADR-022-path-branches-are-not-rewritten.md">ADR-022</a>), and it replaces retention rather than joining it: if nothing is rewritten the branch already keeps every ledger-named commit reachable</td>
+<td style="text-align:left"><strong>implemented</strong>; where <code>pathHistoryPolicy</code> is <code>forbidden</code> the branch’s own upstream MUST remain an ancestor of <code>HEAD</code>, so a rebase, amend, soft-reset fold or force-push of published work is blocking. This is the DEFAULT policy (<strong>ADR-022</strong>), and it replaces retention rather than joining it: if nothing is rewritten the branch already keeps every ledger-named commit reachable</td>
 <td style="text-align:left">it proves only that THIS checkout has not rewritten what it published — a remote rewritten by someone else is invisible here, and preventing the push itself needs host protection, which tier <code>ci</code> does not claim. It is also silent while no remote-tracking ref exists</td>
+</tr>
+<tr>
+<td style="text-align:left">A repository can be created in the current shapes</td>
+<td style="text-align:left">required</td>
+<td style="text-align:left"><strong>implemented</strong>; <code>cairn-init</code> resolves the complete installation in memory, validates the generated binding before writing, refuses to overwrite any existing file, rolls back on failure, and generates the derived view rather than shipping one by hand. A new repository is born-sliced and no-rewrite, and it passes its own gate on the first command — asserted end-to-end by a test that installs, commits and runs the checker</td>
+<td style="text-align:left">updating an existing installation is NOT implemented: <code>cairn.lock.json</code> records the release and a per-file digest so a migrator could tell a pristine file from an edited one, and no migrator reads it yet. <code>cairn-new</code> and <code>cairn-close</code> remain manual, and <code>--profile protected</code> is refused because it asserts host protection no local command can configure</td>
 </tr>
 <tr>
 <td style="text-align:left">Marked provisional commits excluded from candidate identity</td>
@@ -14200,7 +14234,7 @@ leaf and a directory: with an ordinal generation segment,
 <code>refs/cairn/checkpoints/&lt;id&gt;/01</code> exists. Keeping the generation out of the
 ordinal alphabet is what lets refs written before this notation stay exactly
 where they are — judged for reachability, never moved into a generation.</p>
-<p>Settled by <a href="../../../adr/ADR-021-checkpoint-retention-generations.md">ADR-021</a>.</p>
+<p>Settled by <strong>ADR-021</strong>.</p>
 <p>A repository that cannot create or push that namespace has one other conforming
 option — forbid rewriting pushes on path branches entirely, and reach a current
 base by <a href="#article-concept-merge" data-article="concept-merge" data-anchor="" class="wiki-link">merge</a> instead of rebase. Silently rewriting without
@@ -15129,7 +15163,7 @@ says nothing about whether that workflow is the right one — a clear instructio
 can be clearly wrong, and it will then be wrong identically everywhere.</p>
 <p>It also does not survive its own definition being ambiguous. The first draft of
 Cairn’s separation test used the word <em>index</em> for “the part a reader must read”,
-while <a href="../../../bedrock/26_26-okf-agent-context.md">OKF</a> uses <code>index.md</code> for a
+while OKF — one host’s documentation convention — uses <code>index.md</code> for a
 folder’s map. One word, two meanings, inside the sentence defining this property
 — which is exactly the failure the property names, and it was found by a reader
 asking what the word meant.</p>
@@ -16549,9 +16583,11 @@ validate <code>cairn.config.json</code>. The checker prints the effective enforc
 profile and consumes the configured roots, source areas, trunk, remote,
 metadata namespace, route default, checkpoint policy, and digest algorithm.</p>
 <p>This is <strong>partial portable conformance</strong>, not the completed distribution story.
-The reference implementation does not yet ship schema-to-schema migrations,
-installation or update mechanics, transport tests, or <code>cairn-init</code>. The checked
-in workflow is an installed host adapter. Those open obligations remain visible
+<code>cairn-init</code> now installs a repository transactionally and writes this file, and
+<code>cairn.lock.json</code> records the release and a digest per installed file — which is
+what an update would need to tell a pristine file from an edited one. The update
+itself, and schema-to-schema migrations and transport tests, are still absent.
+The checked-in workflow is an installed host adapter. Those open obligations remain visible
 in <a href="#article-specification" data-article="specification" data-anchor="current-conformance" class="wiki-link">current conformance</a>.</p>
 <h2 id="reference-configuration--intended-file" data-heading="intended-file">Intended file</h2>
 <pre><code class="language-json">{
@@ -16583,8 +16619,8 @@ in <a href="#article-specification" data-article="specification" data-anchor="cu
   ],
   &quot;staleAfterDays&quot;: 14,
   &quot;defaultRoute&quot;: &quot;lightweight&quot;,
-  &quot;checkpointRetentionRef&quot;: &quot;refs/cairn/checkpoints&quot;,
-  &quot;pathHistoryPolicy&quot;: &quot;retained&quot;,
+  &quot;checkpointRetentionRef&quot;: null,
+  &quot;pathHistoryPolicy&quot;: &quot;forbidden&quot;,
   &quot;scopeDigestAlgorithm&quot;: &quot;sha256&quot;,
   &quot;transport&quot;: {
     &quot;registration&quot;: &quot;declared-adapter-name&quot;,
@@ -17580,8 +17616,9 @@ record — <code>CP-EXAMPLE-001/index.md</code> with one file per step under <co
 that is the shape a new path should be created in. A flat <code>CP-EXAMPLE-001.md</code>
 stays conforming and every rule keys on the declared id, so a repository holding
 the older shape substitutes that one path and changes nothing else here.</p>
-<p>The manual sequence is normative while transactional <code>cairn-init</code>,
-<code>cairn-new</code>, and <code>cairn-close</code> commands remain unimplemented.</p>
+<p><code>cairn-init</code> installs a repository; the sequences below are what a participant
+then runs. <code>cairn-new</code> and <code>cairn-close</code> remain unimplemented, so registration
+and closure are manual.</p>
 <h2 id="reference-operations--register-an-accepted-path" data-heading="register-an-accepted-path">Register an accepted path</h2>
 <p>Use the repository’s declared registration transport. For a local or CI profile
 whose policy permits an exact direct trunk update:</p>
@@ -17683,7 +17720,7 @@ already be retained before the force push that follows.</p>
 <p><strong>Which sequence applies is a host policy</strong>, declared as <code>pathHistoryPolicy</code> in
 <a href="#article-reference-configuration" data-article="reference-configuration" data-anchor="" class="wiki-link">configuration</a>. Run the one your repository declares; they
 are not interchangeable.</p>
-<h3 id="reference-operations--on-a-no-rewrite-host-forbidden-the-default-adr-022-adr-adr-022-path-branches-are-not-rewritten-md" data-heading="on-a-no-rewrite-host-forbidden-the-default-adr-022-adr-adr-022-path-branches-are-not-rewritten-md">On a no-rewrite host (<code>forbidden</code>, the default — <a href="../../../adr/ADR-022-path-branches-are-not-rewritten.md">ADR-022</a>)</h3>
+<h3 id="reference-operations--on-a-no-rewrite-host-forbidden-the-default-adr-022" data-heading="on-a-no-rewrite-host-forbidden-the-default-adr-022">On a no-rewrite host (<code>forbidden</code>, the default — <strong>ADR-022</strong>)</h3>
 <p>Nothing is rewritten, so nothing needs retaining. Bring the trunk into the branch
 instead of moving the branch onto the trunk:</p>
 <pre><code class="language-bash">git fetch origin main
@@ -17707,7 +17744,7 @@ npm run build
 provisional commit is superseded by the completed unit’s commit and stays in the
 branch’s history as what it was — folding it with <code>git reset --soft</code> is a rewrite
 and is not available here.</p>
-<h3 id="reference-operations--on-a-rewriting-host-retained-adr-021-adr-adr-021-checkpoint-retention-generations-md" data-heading="on-a-rewriting-host-retained-adr-021-adr-adr-021-checkpoint-retention-generations-md">On a rewriting host (<code>retained</code> — <a href="../../../adr/ADR-021-checkpoint-retention-generations.md">ADR-021</a>)</h3>
+<h3 id="reference-operations--on-a-rewriting-host-retained-adr-021" data-heading="on-a-rewriting-host-retained-adr-021">On a rewriting host (<code>retained</code> — <strong>ADR-021</strong>)</h3>
 <p>Retain every ledger-named checkpoint <strong>before</strong> the rebase, because the rebase is
 what orphans them:</p>
 <pre><code class="language-bash">git fetch origin '+refs/cairn/*:refs/cairn/*'   # the namespace is NOT fetched by default
@@ -18260,6 +18297,7 @@ protocol structure.</p>
 │                       └── &lt;ledger-unit-ordinal&gt;
 ├── AGENTS.md
 ├── cairn.config.json
+├── cairn.lock.json
 ├── package.json
 ├── .github/
 │   └── workflows/
@@ -18274,6 +18312,8 @@ protocol structure.</p>
 │   ├── cairn-active.test.mjs
 │   ├── cairn-audit.mjs
 │   ├── cairn-audit.test.mjs
+│   ├── cairn-init.mjs
+│   ├── cairn-init.test.mjs
 │   ├── cairn-rules.mjs
 │   ├── cairn-rules.test.mjs
 │   ├── cairn-spec-build.mjs
@@ -18388,6 +18428,16 @@ what Cairn defines, not what any one adoption happens to contain.</p>
 <td style="text-align:left"><code>cairn.config.json</code></td>
 <td style="text-align:left">versioned machine-readable binding from portable roles to this host</td>
 <td style="text-align:left">host configuration change</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>cairn.lock.json</code></td>
+<td style="text-align:left">the protocol release installed here, and one digest per installed file, so an update can tell a pristine file from an edited one</td>
+<td style="text-align:left">written by <code>cairn-init</code>; never hand-edited</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>tools/cairn-init.mjs</code></td>
+<td style="text-align:left">transactional installer: resolves the whole file set, refuses to overwrite, rolls back on failure</td>
+<td style="text-align:left">independently reviewed control-plane change</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>package.json</code></td>
@@ -18572,7 +18622,7 @@ working tree and outside every directory listing:</p>
 </code></pre>
 <p><strong>This namespace exists only where the host declares
 <code>pathHistoryPolicy: retained</code>.</strong> Under <code>forbidden</code> — the default
-(<a href="../../../adr/ADR-022-path-branches-are-not-rewritten.md">ADR-022</a>) — nothing is
+(<strong>ADR-022</strong>) — nothing is
 rewritten, the branch itself keeps every ledger-named commit reachable, and this
 part of the tree is simply absent.</p>
 <p>Each ref pins one ledger-named checkpoint so that a rewriting push cannot orphan

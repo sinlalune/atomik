@@ -71,6 +71,7 @@ born here, one complete record per step.
 - **[S08r](./S08r.md)** — The rebase is the cause, so the rebase goes — COMPLETE
 - **[S08s](./S08s.md)** — Rewriting stops, and the policy becomes a predicate — COMPLETE
 - **[S08t](./S08t.md)** — The required-reading route stops teaching the forbidden operation — COMPLETE
+- **[S08u](./S08u.md)** — cairn-init, and the portability it proved was missing — COMPLETE
 
 ## Which commit landed which step
 

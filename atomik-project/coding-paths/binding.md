@@ -44,6 +44,15 @@ commands, worktree/runtime details and host-only examples that do not belong in
 configuration. If the table and configuration disagree, that is a binding
 defect; neither is permission to copy an Atomik name into portable protocol.
 
+## Explanatory history
+
+Atomik's former combined operating page — the one that carried the portable
+convention and this binding together before ADR-020 separated them — is retained
+verbatim as [`paths-history.md`](./paths-history.md). It is explanatory history,
+never required reading. It is named here rather than from the portable
+convention, because a portable page that links one repository's history only
+resolves inside that repository.
+
 ## Mechanical contract
 
 Run gates directly. Their exit codes are the verdict; never pipe their output

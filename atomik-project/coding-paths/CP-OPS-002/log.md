@@ -18,6 +18,9 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-01
 
+- `S08u` lands the initializer. Its value was less the installing than the
+  proving: portability claims that held from inside this repository failed the
+  moment a repository was created from them.
 - `S08t` closes the gap S08s left: the gate said one thing and required reading
   said the opposite. Second occurrence of the S08q shape, so it ends in a
   predicate rather than another careful pass — which then caught a sentence the

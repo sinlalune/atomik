@@ -172,7 +172,7 @@ does not is a false assurance.
 ### The path record
 
 A path record is a FOLDER, and it is born one rather than divided into one later
-([ADR-020](../../adr/ADR-020-protocol-context-weight.md) decision 4):
+(**ADR-020** decision 4):
 
 ```text
 project/coding-paths/CP-<ID>/
@@ -700,7 +700,7 @@ written, a ref MUST NOT be moved or deleted while the path record is retained.
 
 This entire namespace is the cost of rewriting, and a host that declines to
 rewrite does not pay it. Under `pathHistoryPolicy: forbidden` — the DEFAULT,
-settled by [ADR-022](../../adr/ADR-022-path-branches-are-not-rewritten.md) — a
+settled by **ADR-022** — a
 published path branch is never rebased, amended, folded or force-pushed, a
 current base is reached by merging the trunk in, and the branch itself keeps
 every ledger-named commit reachable. Retention below describes the `retained`
@@ -709,7 +709,7 @@ rewriting.
 
 `g<NN>` is the **generation** — one linear version of the branch, opened when the
 branch is created or rewritten and closed by the next rewriting push
-([ADR-021](../../adr/ADR-021-checkpoint-retention-generations.md)). It exists
+(**ADR-021**). It exists
 because a rebase gives one unit two truthful object ids — the commit it was
 verified as, and the reconstructed copy now on the branch — and a namespace with
 one slot per ordinal can hold only one of them while refs may not move. Each
@@ -1556,7 +1556,8 @@ not in a separate document a reader may never open.
 | Fail-closed critical inconclusive outcomes | required | implemented | complete trunk and comparison refs |
 | Existing session, audit, history, and journal immutability | required | implemented for new or changed records | complete comparison ref |
 | Checkpoint retention refs before any rewriting push | required | **implemented**; every declared unit except the newest must resolve a retention ref in the CURRENT generation, and every branch commit in `merge-base(trunk, HEAD)..HEAD` that is neither retained there, provisional, nor `HEAD` is reported as orphaned. The current generation is derived from ancestry; an empty one beside older generations is blocking and definite, while an unreadable namespace or branch range is inconclusive | the environment must FETCH `refs/cairn/*`, which no clone or checkout action does by default; a ref *moving* is unobservable to a single-commit validator — only the orphan it leaves behind is |
-| A published path branch is not rewritten | required on a `forbidden` host | **implemented**; where `pathHistoryPolicy` is `forbidden` the branch's own upstream MUST remain an ancestor of `HEAD`, so a rebase, amend, soft-reset fold or force-push of published work is blocking. This is the DEFAULT policy ([ADR-022](../../adr/ADR-022-path-branches-are-not-rewritten.md)), and it replaces retention rather than joining it: if nothing is rewritten the branch already keeps every ledger-named commit reachable | it proves only that THIS checkout has not rewritten what it published — a remote rewritten by someone else is invisible here, and preventing the push itself needs host protection, which tier `ci` does not claim. It is also silent while no remote-tracking ref exists |
+| A published path branch is not rewritten | required on a `forbidden` host | **implemented**; where `pathHistoryPolicy` is `forbidden` the branch's own upstream MUST remain an ancestor of `HEAD`, so a rebase, amend, soft-reset fold or force-push of published work is blocking. This is the DEFAULT policy (**ADR-022**), and it replaces retention rather than joining it: if nothing is rewritten the branch already keeps every ledger-named commit reachable | it proves only that THIS checkout has not rewritten what it published — a remote rewritten by someone else is invisible here, and preventing the push itself needs host protection, which tier `ci` does not claim. It is also silent while no remote-tracking ref exists |
+| A repository can be created in the current shapes | required | **implemented**; `cairn-init` resolves the complete installation in memory, validates the generated binding before writing, refuses to overwrite any existing file, rolls back on failure, and generates the derived view rather than shipping one by hand. A new repository is born-sliced and no-rewrite, and it passes its own gate on the first command — asserted end-to-end by a test that installs, commits and runs the checker | updating an existing installation is NOT implemented: `cairn.lock.json` records the release and a per-file digest so a migrator could tell a pristine file from an edited one, and no migrator reads it yet. `cairn-new` and `cairn-close` remain manual, and `--profile protected` is refused because it asserts host protection no local command can configure |
 | Marked provisional commits excluded from candidate identity | required | implemented; a ready path whose candidate range still contains a marked commit is blocked | the fold itself is not verified to preserve content |
 | Handoff-brief field schema and answerable-alone contract | required | **partially implemented**; the nine fields, the seven exact sections and pinned `governs` entries are checked. The token budget is retired (ADR-020 decision 6): what will not fit is linked, not compressed, and that is a judgement rather than a predicate | the answerable-alone contract is a judgement and a cold-resume harness, and is never claimed by a checker |
 | Portable, host, and binding artefact separation | required | **implemented in the reference documentation**; the portable execution route and path convention carry no host names, the root bootloader points at one explicit binding appendix, and host architecture is absent from the unconditional entry chain | `cairn-init` must scaffold the classified shape before general release; classification itself is a documentation property rather than a repository predicate |

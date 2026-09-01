@@ -18,6 +18,9 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-01
 
+- `S08u` implements `cairn-init`, whose first end-to-end run failed its own gate
+  with seventeen broken links and so proved the portable corpus was not portable:
+  it linked host decision records and host architecture. Now zero, and refused.
 - `S08t` sweeps the required-reading route, the repair/layout references, the CI
   adapter and the audit template onto the declared policy, corrects a false claim
   that the trunk requires a pull request, and adds the guard that holds them.

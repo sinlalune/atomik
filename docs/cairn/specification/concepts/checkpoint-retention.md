@@ -70,7 +70,7 @@ leaf and a directory: with an ordinal generation segment,
 ordinal alphabet is what lets refs written before this notation stay exactly
 where they are — judged for reachability, never moved into a generation.
 
-Settled by [ADR-021](../../../adr/ADR-021-checkpoint-retention-generations.md).
+Settled by **ADR-021**.
 
 A repository that cannot create or push that namespace has one other conforming
 option — forbid rewriting pushes on path branches entirely, and reach a current

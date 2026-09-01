@@ -17,9 +17,11 @@ profile and consumes the configured roots, source areas, trunk, remote,
 metadata namespace, route default, checkpoint policy, and digest algorithm.
 
 This is **partial portable conformance**, not the completed distribution story.
-The reference implementation does not yet ship schema-to-schema migrations,
-installation or update mechanics, transport tests, or `cairn-init`. The checked
-in workflow is an installed host adapter. Those open obligations remain visible
+`cairn-init` now installs a repository transactionally and writes this file, and
+`cairn.lock.json` records the release and a digest per installed file — which is
+what an update would need to tell a pristine file from an edited one. The update
+itself, and schema-to-schema migrations and transport tests, are still absent.
+The checked-in workflow is an installed host adapter. Those open obligations remain visible
 in [current conformance](../index.md#current-conformance).
 
 ## Intended file
@@ -54,8 +56,8 @@ in [current conformance](../index.md#current-conformance).
   ],
   "staleAfterDays": 14,
   "defaultRoute": "lightweight",
-  "checkpointRetentionRef": "refs/cairn/checkpoints",
-  "pathHistoryPolicy": "retained",
+  "checkpointRetentionRef": null,
+  "pathHistoryPolicy": "forbidden",
   "scopeDigestAlgorithm": "sha256",
   "transport": {
     "registration": "declared-adapter-name",

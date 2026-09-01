@@ -67,7 +67,7 @@ can be clearly wrong, and it will then be wrong identically everywhere.
 
 It also does not survive its own definition being ambiguous. The first draft of
 Cairn's separation test used the word *index* for "the part a reader must read",
-while [OKF](../../../bedrock/26_26-okf-agent-context.md) uses `index.md` for a
+while OKF — one host's documentation convention — uses `index.md` for a
 folder's map. One word, two meanings, inside the sentence defining this property
 — which is exactly the failure the property names, and it was found by a reader
 asking what the word meant.

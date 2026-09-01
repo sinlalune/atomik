@@ -14,8 +14,10 @@ cairn:
 > [Cairn specification](../../docs/cairn/specification/index.md) into the order
 > used to operate one path. Repository-specific roots, commands, runtime
 > isolation and examples belong in the adjacent [binding appendix](./binding.md).
-> The former combined operating page is retained as
-> [explanatory history](./paths-history.md), not compressed into this route.
+> A host that had a combined operating page before this split keeps it as
+> explanatory history and names it from its binding, not from here: a portable
+> page that links one repository's history is a portable page that only resolves
+> in that repository.
 
 ## The model
 
@@ -119,7 +121,7 @@ participant never has to guess which of the two sequences below is theirs.
 
 A published path branch is never rewritten: no rebase, no amend, no
 `reset --soft` fold, no force-push
-([ADR-022](../../docs/adr/ADR-022-path-branches-are-not-rewritten.md)). Every
+(**ADR-022**). Every
 commit keeps the object id it was verified as, so **the branch itself keeps every
 checkpoint the ledger names reachable**, and after a `--no-ff` integration merge
 the trunk keeps them permanently. There is no namespace to write and none to

@@ -18,8 +18,9 @@ that is the shape a new path should be created in. A flat `CP-EXAMPLE-001.md`
 stays conforming and every rule keys on the declared id, so a repository holding
 the older shape substitutes that one path and changes nothing else here.
 
-The manual sequence is normative while transactional `cairn-init`,
-`cairn-new`, and `cairn-close` commands remain unimplemented.
+`cairn-init` installs a repository; the sequences below are what a participant
+then runs. `cairn-new` and `cairn-close` remain unimplemented, so registration
+and closure are manual.
 
 ## Register an accepted path
 
@@ -158,7 +159,7 @@ already be retained before the force push that follows.
 [configuration](./configuration.md). Run the one your repository declares; they
 are not interchangeable.
 
-### On a no-rewrite host (`forbidden`, the default — [ADR-022](../../../adr/ADR-022-path-branches-are-not-rewritten.md))
+### On a no-rewrite host (`forbidden`, the default — **ADR-022**)
 
 Nothing is rewritten, so nothing needs retaining. Bring the trunk into the branch
 instead of moving the branch onto the trunk:
@@ -190,7 +191,7 @@ provisional commit is superseded by the completed unit's commit and stays in the
 branch's history as what it was — folding it with `git reset --soft` is a rewrite
 and is not available here.
 
-### On a rewriting host (`retained` — [ADR-021](../../../adr/ADR-021-checkpoint-retention-generations.md))
+### On a rewriting host (`retained` — **ADR-021**)
 
 Retain every ledger-named checkpoint **before** the rebase, because the rebase is
 what orphans them:
