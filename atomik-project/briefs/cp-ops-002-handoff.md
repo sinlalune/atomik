@@ -114,7 +114,19 @@ commits and no ref has ever been moved. Checker suite 226, specification suite 3
 
 ## Next action
 
-**ADR-020 stages 3–5.** Stage 3's remaining half is to retire `ledger-size` — but
+**Settle a gate-parity break found at S08m and deliberately not fixed there.**
+`record-integrity` reads one tree two ways: appending to a step record that
+exists in `HEAD` but not on the trunk is BLOCKING in a `--working-tree` run and
+fine in the merge-deciding run. Measured — one line appended to
+`steps/S08m.md`, local exit 1, branch-versus-trunk `OK`. It is a decision, not a
+patch: either a published step record is frozen the moment its commit is pushed,
+and the merge-deciding half must enforce that too, or a record is established
+only once it reaches the trunk, and the working-tree half must stop claiming
+otherwise. Nothing is blocked on the merge path, so it is not urgent — but a
+local run disagreeing with CI about one tree is the failure S08a spent a unit
+removing.
+
+Then **ADR-020 stages 3–5.** Stage 3's remaining half is to retire `ledger-size` — but
 only once `CP-MVP-008`, `CP-MVP-011` and `CP-MVP-012` migrate, because until then
 it is the only signal an unsliced record gets. Then stage 4 (the artefact
 classification: the protocol page moves, the binding appendix is extracted, the
@@ -155,6 +167,9 @@ that ADDS a record.
   (S08i). Measured first: all three misdated CP-UI-TYPOGRAPHY records agree with
   themselves, and 67 dated records corpus-wide disagree zero times. It would have
   shipped green and closed the finding without touching it.
+- **Reading a gate verdict through a pipe** (S08m). `npm run cairn-check 2>&1 |
+  tail -2` gives the shell `tail`'s exit code, so an `&&` chain runs on after a
+  `FAILED`. `AGENTS.md` already forbids it; this is the session that shows why.
 - **Retiring `ledger-size` with the folder migration** (S08l). ADR-020 stage 3
   schedules it, and three flat records remain; it is the only signal an unsliced
   record gets, so it now applies to flat records only and goes when they do.
