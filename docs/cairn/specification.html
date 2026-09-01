@@ -1471,6 +1471,12 @@ candidate, its scope digest, and its base, with the coherence questions
 <p>What a lightweight path MUST NOT drop is exactness. The candidate is still one
 <a href="#article-concept-commit-hash" data-article="concept-commit-hash" data-anchor="" class="wiki-link">object id</a>; acceptance still names it; the ledger
 still records what happened. Fewer files, not weaker facts.</p>
+<p><strong>Reference checker, v0.2: the combined forms are not yet accepted.</strong> The
+checker reads opening acceptance only from a session record and requires a
+separate, filled coherence audit on every route, so a lightweight path
+currently writes the same records as a full one. The greenfield pilot
+(2026-09-01) paid that cost on the default route; the
+<a href="#specification--conformance-matrix" data-local-anchor="conformance-matrix" class="section-link">conformance matrix</a> carries the gap.</p>
 <h3 id="specification--full-required-not-merely-available" data-heading="full-required-not-merely-available"><code>full</code> — required, not merely available</h3>
 <p>A path MUST declare <code>route: full</code> when any of these is true:</p>
 <ol>
@@ -1969,7 +1975,8 @@ scope_digest: sha256:9f2c4b1d…
 </code></pre>
 <p>On the <code>lightweight</code> route this block lives in the path record itself; on the
 <code>full</code> route it is a separate session record. The fields are identical either
-way.</p>
+way. <strong>The v0.2 reference checker reads it only from a session record, on
+every route</strong> — the combined form is stated, not implemented.</p>
 <h3 id="specification--bind-the-scope-not-a-pointer-to-it" data-heading="bind-the-scope-not-a-pointer-to-it">Bind the scope, not a pointer to it</h3>
 <p><code>scope_ref</code> is a file path and a heading — a mutable pointer. Implementation is
 bound to an object id and cannot quietly become something else; scope, as a
@@ -2654,7 +2661,7 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Field-level administrative closure surface</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left">implemented; closure may move only <code>status</code>, <code>subject_commit</code>, <code>current_step</code> and <code>resolution</code></td>
+<td style="text-align:left">implemented; closure may move only <code>status</code> and <code>subject_commit</code> at <code>ready</code>, and additionally <code>resolution</code> at <code>done</code>, compared against the record at the accepted candidate rather than the trunk’s copy</td>
 <td style="text-align:left">ledger append-only proof, which remains a separate open row</td>
 </tr>
 <tr>
@@ -2733,7 +2740,7 @@ not in a separate document a reader may never open.</p>
 <td style="text-align:left"><code>lightweight</code> default route and one-way escalation</td>
 <td style="text-align:left">required</td>
 <td style="text-align:left"><strong>partially implemented</strong>; the configured new-path default is reported when an explicit route is missing, and the vocabulary, three structural triggers, second-unit backstop and one-way escalation are checked</td>
-<td style="text-align:left"><code>cairn-init</code> / <code>cairn-new</code> do not yet write the configured default; the <em>high-risk</em> trigger is policy and the multi-unit trigger is caught one unit late</td>
+<td style="text-align:left"><code>cairn-init</code> / <code>cairn-new</code> do not yet write the configured default; the <em>high-risk</em> trigger is policy and the multi-unit trigger is caught one unit late; the combined lightweight records — opening acceptance inside the path record, audit questions inline in the closing record — are not accepted, so every route writes the same separate records (greenfield pilot, 2026-09-01)</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>foundation</code> and adoption routes</td>
@@ -2794,6 +2801,12 @@ not in a separate document a reader may never open.</p>
 <td style="text-align:left">required before general release</td>
 <td style="text-align:left"><strong>run once</strong>: 20 trials, 35% would act without asking; failures flat across paths, so no schema change is indicated</td>
 <td style="text-align:left">a writer axis, which needs <code>written_by</code> populated across more than one writer</td>
+</tr>
+<tr>
+<td style="text-align:left">Greenfield pilot</td>
+<td style="text-align:left">required before general release</td>
+<td style="text-align:left"><strong>run once</strong> (2026-09-01): a repository created by <code>cairn-init</code> could not close an honest path on the first run — nineteen findings, ten of them predicates reading a proxy — and reached <code>done</code> on the repaired kit with zero red gates; 24 protocol files for 5 product files on the default route</td>
+<td style="text-align:left">a second writer, a hosted remote with the CI adapter, a trunk that moves during the path, and the lightweight reliefs once implemented</td>
 </tr>
 </tbody>
 </table>
@@ -3182,7 +3195,7 @@ honest state of the work.</p>
 <tr data-rule="closure-surface" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>closure-surface</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">An administrative closure commit changed a path field other than status, subject_commit, current_step or resolution</td>
+<td style="text-align:left">An administrative closure commit changed a path field other than status and subject_commit at ready, or those plus resolution at done — compared against the record at the accepted candidate</td>
 <td style="text-align:left"><code>closureFieldErrors(previousFront, currentFront) over CLOSURE_MUTABLE_FIELDS</code></td>
 </tr>
 <tr data-rule="coherence-audit" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
@@ -4174,6 +4187,12 @@ candidate, its scope digest, and its base, with the coherence questions
 <p>What a lightweight path MUST NOT drop is exactness. The candidate is still one
 <a href="#article-concept-commit-hash" data-article="concept-commit-hash" data-anchor="" class="wiki-link">object id</a>; acceptance still names it; the ledger
 still records what happened. Fewer files, not weaker facts.</p>
+<p><strong>Reference checker, v0.2: the combined forms are not yet accepted.</strong> The
+checker reads opening acceptance only from a session record and requires a
+separate, filled coherence audit on every route, so a lightweight path
+currently writes the same records as a full one. The greenfield pilot
+(2026-09-01) paid that cost on the default route; the
+<a href="#specification--conformance-matrix" data-local-anchor="conformance-matrix" class="section-link">conformance matrix</a> carries the gap.</p>
 <h3 id="specification--full-required-not-merely-available" data-heading="full-required-not-merely-available"><code>full</code> — required, not merely available</h3>
 <p>A path MUST declare <code>route: full</code> when any of these is true:</p>
 <ol>
@@ -4672,7 +4691,8 @@ scope_digest: sha256:9f2c4b1d…
 </code></pre>
 <p>On the <code>lightweight</code> route this block lives in the path record itself; on the
 <code>full</code> route it is a separate session record. The fields are identical either
-way.</p>
+way. <strong>The v0.2 reference checker reads it only from a session record, on
+every route</strong> — the combined form is stated, not implemented.</p>
 <h3 id="specification--bind-the-scope-not-a-pointer-to-it" data-heading="bind-the-scope-not-a-pointer-to-it">Bind the scope, not a pointer to it</h3>
 <p><code>scope_ref</code> is a file path and a heading — a mutable pointer. Implementation is
 bound to an object id and cannot quietly become something else; scope, as a
@@ -5357,7 +5377,7 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Field-level administrative closure surface</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left">implemented; closure may move only <code>status</code>, <code>subject_commit</code>, <code>current_step</code> and <code>resolution</code></td>
+<td style="text-align:left">implemented; closure may move only <code>status</code> and <code>subject_commit</code> at <code>ready</code>, and additionally <code>resolution</code> at <code>done</code>, compared against the record at the accepted candidate rather than the trunk’s copy</td>
 <td style="text-align:left">ledger append-only proof, which remains a separate open row</td>
 </tr>
 <tr>
@@ -5436,7 +5456,7 @@ not in a separate document a reader may never open.</p>
 <td style="text-align:left"><code>lightweight</code> default route and one-way escalation</td>
 <td style="text-align:left">required</td>
 <td style="text-align:left"><strong>partially implemented</strong>; the configured new-path default is reported when an explicit route is missing, and the vocabulary, three structural triggers, second-unit backstop and one-way escalation are checked</td>
-<td style="text-align:left"><code>cairn-init</code> / <code>cairn-new</code> do not yet write the configured default; the <em>high-risk</em> trigger is policy and the multi-unit trigger is caught one unit late</td>
+<td style="text-align:left"><code>cairn-init</code> / <code>cairn-new</code> do not yet write the configured default; the <em>high-risk</em> trigger is policy and the multi-unit trigger is caught one unit late; the combined lightweight records — opening acceptance inside the path record, audit questions inline in the closing record — are not accepted, so every route writes the same separate records (greenfield pilot, 2026-09-01)</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>foundation</code> and adoption routes</td>
@@ -5497,6 +5517,12 @@ not in a separate document a reader may never open.</p>
 <td style="text-align:left">required before general release</td>
 <td style="text-align:left"><strong>run once</strong>: 20 trials, 35% would act without asking; failures flat across paths, so no schema change is indicated</td>
 <td style="text-align:left">a writer axis, which needs <code>written_by</code> populated across more than one writer</td>
+</tr>
+<tr>
+<td style="text-align:left">Greenfield pilot</td>
+<td style="text-align:left">required before general release</td>
+<td style="text-align:left"><strong>run once</strong> (2026-09-01): a repository created by <code>cairn-init</code> could not close an honest path on the first run — nineteen findings, ten of them predicates reading a proxy — and reached <code>done</code> on the repaired kit with zero red gates; 24 protocol files for 5 product files on the default route</td>
+<td style="text-align:left">a second writer, a hosted remote with the CI adapter, a trunk that moves during the path, and the lightweight reliefs once implemented</td>
 </tr>
 </tbody>
 </table>
@@ -5885,7 +5911,7 @@ honest state of the work.</p>
 <tr data-rule="closure-surface" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>closure-surface</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">An administrative closure commit changed a path field other than status, subject_commit, current_step or resolution</td>
+<td style="text-align:left">An administrative closure commit changed a path field other than status and subject_commit at ready, or those plus resolution at done — compared against the record at the accepted candidate</td>
 <td style="text-align:left"><code>closureFieldErrors(previousFront, currentFront) over CLOSURE_MUTABLE_FIELDS</code></td>
 </tr>
 <tr data-rule="coherence-audit" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
@@ -7032,7 +7058,9 @@ documents before integration, <a href="#article-concept-acceptance-drift" data-a
 so, because the audit recorded which version it reasoned from.</p>
 <p>On the <a href="#article-concept-lightweight-path" data-article="concept-lightweight-path" data-anchor="" class="wiki-link">lightweight route</a> the same questions are
 answered inside the closing record rather than in a separate audit file. The
-questions do not change; the number of files does.</p>
+questions do not change; the number of files does. <strong>The v0.2 reference
+checker does not yet read them there</strong>: it requires the separate audit file on
+every route, and a lightweight path that answers inline is blocked at <code>ready</code>.</p>
 <h2 id="concept-coherence-audit--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
 <p>The checker can prove binding and completeness, not the quality of the auditor’s
 reasoning. The verdict remains human or agent judgement.</p>
@@ -8099,6 +8127,13 @@ closing record rather than in a separate audit file; and
 <a href="#article-concept-administrative-closure" data-article="concept-administrative-closure" data-anchor="" class="wiki-link">administrative closure</a> may share the candidate’s
 commit where the repository’s transport can still bind acceptance to an exact
 id.</p>
+<p><strong>What the v0.2 reference checker actually grants: none of those three.</strong> It
+reads opening acceptance only from a session record, requires a separate filled
+audit bound to the candidate, and requires exactly one administrative commit
+after it — on every route. The greenfield pilot (2026-09-01) ran the default
+route and wrote every record a full path writes. The reliefs above are the
+stated intent; the <a href="#article-concept-conformance" data-article="concept-conformance" data-anchor="" class="wiki-link">conformance</a> matrix records them as
+unimplemented.</p>
 <h3 id="concept-lightweight-path--when-the-full-route-is-required" data-heading="when-the-full-route-is-required">When the full route is required</h3>
 <p>A path MUST use <code>route: full</code> when it changes the
 <a href="#article-concept-control-plane" data-article="concept-control-plane" data-anchor="" class="wiki-link">control plane</a>, changes
@@ -9820,7 +9855,7 @@ implemented predicates from partial schema or judgement contracts and remains
 the authoritative inventory. Schema-1 configuration loading is now installed,
 but portable installation, update and schema migration are not. Flat-ledger
 prefix proof, protected transport, independent control-plane protection,
-transaction commands, and a measured general-release pilot also remain open.</p>
+transaction commands, and a general-release pilot with more than one writer also remain open — the greenfield pilot has been run once, on one writer and a local remote.</p>
 <p>A conformance report that marks any of those rows <code>pass</code> on the strength of the
 reference tools alone is wrong. They can be satisfied by a repository’s practice
 and evidenced by hand; the column that says so is “Additional dependency”, not
@@ -10042,6 +10077,11 @@ retell.</p>
 inside the work unit it describes, so at write time that commit does not exist —
 the same self-reference the <code>cairn-unit</code> ordinal solves. It names the last
 checkpoint that is already retained and resumable.</p>
+<p>Before the first work unit there is no such checkpoint. The brief written at
+registration, and the one refreshed inside the first unit, name the
+<strong>registration commit</strong> with <code>checkpoint_unit: 0</code>: it is the exact commit a
+resumer can start from, and zero is the honest ordinal of a unit that has not
+landed.</p>
 <p><code>governs</code> entries MUST carry the <code>@&lt;object-id&gt;</code> pin. An unpinned document
 reference means “read whatever this says now”, which is precisely the ambiguity
 the field exists to remove.</p>
@@ -10267,9 +10307,11 @@ What `npm run cairn-check` and `npm test` should print at this checkpoint.
 object. Their shape and their binding — to a candidate, to a scope digest, to a
 base — are mechanical; their reasoning is not.</p>
 <p>On the <a href="#article-concept-lightweight-path" data-article="concept-lightweight-path" data-anchor="" class="wiki-link"><code>full</code> route</a> each record below is its
-own file. On the default <code>lightweight</code> route the opening block lives in the path
-record and the audit questions are answered inside the closing record. The
-fields are identical either way; only the number of files changes.</p>
+own file. On the default <code>lightweight</code> route the specification lets the opening
+block live in the path record and the audit questions be answered inside the
+closing record — <strong>but the v0.2 reference checker does not accept either form
+yet</strong>. Write each record below as its own file on every route until the
+conformance matrix says otherwise. The fields are identical either way.</p>
 <h2 id="reference-human-records--opening-acceptance" data-heading="opening-acceptance">Opening acceptance</h2>
 <p>Filename:</p>
 <pre><code class="language-text">project/sessions/YYYY-MM-DD-cp-example-001-opening.md
@@ -10320,6 +10362,12 @@ commit: the named heading and its body up to the next heading of the same or
 higher level, normalised for line endings and trailing whitespace, with no other
 transformation. The algorithm is named in the value and the digest is never
 abbreviated.</p>
+<p>Compute it with the code that will verify it, never by hand:</p>
+<pre><code class="language-bash">node tools/cairn-check.mjs --scope-digest project/coding-paths/CP-EXAMPLE-001/index.md#definition-of-done
+</code></pre>
+<p>A <code>sed | sha256sum</code> pipeline that looks equivalent is not: it includes the next
+heading, skips the normalisation and omits the algorithm prefix, and the gate
+then reports at closure that the definition of done moved.</p>
 <p>Without it, <code>scope_ref</code> is a mutable pointer: the definition of done can be
 edited after acceptance, and every record still looks valid. Closing acceptance
 re-computes the digest and refuses to proceed on a mismatch.</p>
@@ -10390,6 +10438,15 @@ candidate.</p>
 repositories are configured for. The requirement is the <strong>full object id in the
 repository’s configured format</strong>: a SHA-256 repository writes sixty-four
 characters in the same field and the same filename.</p>
+<h3 id="reference-human-records--what-base-names-in-each-record" data-heading="what-base-names-in-each-record">What <code>base</code> names in each record</h3>
+<p>The audit’s <code>base</code> is the path’s registration <code>base_commit</code>: the scaffolder
+writes it and <code>cairn-audit --check</code> requires it, so the audit is bound to the
+same base the path record declares. The closing record’s <code>base</code> is <code>T</code>, the
+trunk tip the candidate was read against, because that is what the
+<a href="#article-concept-acceptance-drift" data-article="concept-acceptance-drift" data-anchor="" class="wiki-link">acceptance-drift</a> predicate diffs from. On a
+path that merged the trunk in before closing, <code>T</code> is the trunk tip at that
+merge; it equals <code>base_commit</code> only when the trunk did not move while the path
+ran.</p>
 <h2 id="reference-human-records--closing-acceptance" data-heading="closing-acceptance">Closing acceptance</h2>
 <p>Filename:</p>
 <pre><code class="language-text">project/sessions/YYYY-MM-DD-cp-example-001-closing.md
@@ -10711,20 +10768,32 @@ at their pinned ids.</p>
 <p>An authorised reviewer inspects exactly <code>C</code> and creates the closing acceptance
 record naming the same object id, the base <code>T</code>, the roles the reviewer held, the
 re-computed scope digest, and one structured entry per advisory raised at <code>C</code>:</p>
-<pre><code class="language-bash">sed -n '/^## Definition of done$/,/^## /p' \
-  project/coding-paths/CP-EXAMPLE-001/index.md | sha256sum
+<pre><code class="language-bash">node tools/cairn-check.mjs --scope-digest project/coding-paths/CP-EXAMPLE-001/index.md#definition-of-done
 npm run cairn-check -- --base origin/main   # the advisories to disposition
 </code></pre>
+<p>The digest is computed by the same code that verifies it. A hand-built
+<code>sed | sha256sum</code> pipeline produces a different value — it includes the next
+heading and omits the algorithm prefix — and the gate then reports at closure
+that the definition of done moved.</p>
 <p>If the digest differs from the one recorded at opening, stop: the definition of
 done moved after acceptance. Restore it or record a scope amendment.</p>
 <p>If implementation changes, stop: commit a new <code>C</code>, rerun all checks, generate a
 new audit file, and obtain new acceptance.</p>
 <h2 id="reference-operations--create-administrative-commit-a" data-heading="create-administrative-commit-a">Create administrative commit A</h2>
-<p>Set the path to <code>status: ready</code> and <code>subject_commit: &lt;C&gt;</code>, append one ledger
-entry, and move the brief’s checkpoint pointer. Change no other field of the path
-record — not the definition of done, not <code>scope_ref</code>, not <code>writes:</code>, not
-<code>governs:</code>, not the step plan. Stage only the four closure surfaces:</p>
-<pre><code class="language-bash">git add project/coding-paths/CP-EXAMPLE-001/index.md
+<p>Set the path to <code>status: ready</code> and <code>subject_commit: &lt;C&gt;</code>, append one line to
+the record’s folder log, and move the brief’s checkpoint pointer to <code>C</code>. Change
+no other field of the path record — not the definition of done, not
+<code>scope_ref</code>, not <code>writes:</code>, not <code>governs:</code>, not the step plan; the comparison is
+against the record as it stood at <code>C</code>, so a field that moved while the path ran
+is not a closure change. The live view projects the status, so regenerate it in
+this same unit. Run the gate BEFORE committing — an uncommitted closure counts
+as the pending administrative commit and its files are judged — then stage only
+the closure surfaces:</p>
+<pre><code class="language-bash">npm run cairn-active
+npm run cairn-check -- --base origin/main
+git add project/coding-paths/CP-EXAMPLE-001/index.md
+git add project/coding-paths/CP-EXAMPLE-001/log.md
+git add project/coding-paths/ACTIVE.md
 git add project/briefs/cp-example-001-handoff.md
 git add project/audits/cp-example-001-&lt;C&gt;.md
 git add project/sessions/YYYY-MM-DD-cp-example-001-closing.md
@@ -10912,7 +10981,11 @@ reader cannot decide from it whether to open the file. Forward steps live in
 `plan.md` until they are executed.
 
 - **[S01](./steps/S01.md)** — what it established, in a phrase — COMPLETE
-- **[S02](./steps/S02.md)** — in progress
+- **S02** — in progress; its file is linked when it is written
+
+A step is linked only once its file exists: the gate refuses a link that
+resolves nowhere, and the record is committed at registration before any step
+has been executed.
 
 No rollup operation exists. A step is written where it lives, and nothing is
 summarised when it moves.
@@ -11034,12 +11107,15 @@ one administrative commit that:</p>
 <ul>
 <li>sets <code>status: ready</code>;</li>
 <li>sets <code>subject_commit</code> to the full object id of <code>C</code>;</li>
-<li>appends one ledger entry;</li>
+<li>appends one line to the record’s folder <code>log.md</code>;</li>
+<li>regenerates the live view, which projects the status it just moved;</li>
 <li>adds the exact audit and exact closing record, and moves the brief’s
-checkpoint pointer.</li>
+checkpoint pointer to <code>C</code>.</li>
 </ul>
 <p>It changes no other field of this record — not the definition of done, not
-<code>scope_ref</code>, not <code>writes:</code>, not <code>governs:</code>, not the step plan.</p>
+<code>scope_ref</code>, not <code>writes:</code>, not <code>governs:</code>, not the step plan. The comparison
+is against the record at <code>C</code>, so a <code>writes:</code> widened while the path ran is not
+a closure change.</p>
 <h3 id="reference-path-template--recording-done" data-heading="recording-done">Recording done</h3>
 <p>Only the trunk integration unit sets <code>status: done</code> and
 <code>resolution: completed</code>. A path branch never claims done.</p>
@@ -12137,6 +12213,12 @@ candidate, its scope digest, and its base, with the coherence questions
 <p>What a lightweight path MUST NOT drop is exactness. The candidate is still one
 <a href="#article-concept-commit-hash" data-article="concept-commit-hash" data-anchor="" class="wiki-link">object id</a>; acceptance still names it; the ledger
 still records what happened. Fewer files, not weaker facts.</p>
+<p><strong>Reference checker, v0.2: the combined forms are not yet accepted.</strong> The
+checker reads opening acceptance only from a session record and requires a
+separate, filled coherence audit on every route, so a lightweight path
+currently writes the same records as a full one. The greenfield pilot
+(2026-09-01) paid that cost on the default route; the
+<a href="#specification--conformance-matrix" data-local-anchor="conformance-matrix" class="section-link">conformance matrix</a> carries the gap.</p>
 <h3 id="specification--full-required-not-merely-available" data-heading="full-required-not-merely-available"><code>full</code> — required, not merely available</h3>
 <p>A path MUST declare <code>route: full</code> when any of these is true:</p>
 <ol>
@@ -12635,7 +12717,8 @@ scope_digest: sha256:9f2c4b1d…
 </code></pre>
 <p>On the <code>lightweight</code> route this block lives in the path record itself; on the
 <code>full</code> route it is a separate session record. The fields are identical either
-way.</p>
+way. <strong>The v0.2 reference checker reads it only from a session record, on
+every route</strong> — the combined form is stated, not implemented.</p>
 <h3 id="specification--bind-the-scope-not-a-pointer-to-it" data-heading="bind-the-scope-not-a-pointer-to-it">Bind the scope, not a pointer to it</h3>
 <p><code>scope_ref</code> is a file path and a heading — a mutable pointer. Implementation is
 bound to an object id and cannot quietly become something else; scope, as a
@@ -13320,7 +13403,7 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Field-level administrative closure surface</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left">implemented; closure may move only <code>status</code>, <code>subject_commit</code>, <code>current_step</code> and <code>resolution</code></td>
+<td style="text-align:left">implemented; closure may move only <code>status</code> and <code>subject_commit</code> at <code>ready</code>, and additionally <code>resolution</code> at <code>done</code>, compared against the record at the accepted candidate rather than the trunk’s copy</td>
 <td style="text-align:left">ledger append-only proof, which remains a separate open row</td>
 </tr>
 <tr>
@@ -13399,7 +13482,7 @@ not in a separate document a reader may never open.</p>
 <td style="text-align:left"><code>lightweight</code> default route and one-way escalation</td>
 <td style="text-align:left">required</td>
 <td style="text-align:left"><strong>partially implemented</strong>; the configured new-path default is reported when an explicit route is missing, and the vocabulary, three structural triggers, second-unit backstop and one-way escalation are checked</td>
-<td style="text-align:left"><code>cairn-init</code> / <code>cairn-new</code> do not yet write the configured default; the <em>high-risk</em> trigger is policy and the multi-unit trigger is caught one unit late</td>
+<td style="text-align:left"><code>cairn-init</code> / <code>cairn-new</code> do not yet write the configured default; the <em>high-risk</em> trigger is policy and the multi-unit trigger is caught one unit late; the combined lightweight records — opening acceptance inside the path record, audit questions inline in the closing record — are not accepted, so every route writes the same separate records (greenfield pilot, 2026-09-01)</td>
 </tr>
 <tr>
 <td style="text-align:left"><code>foundation</code> and adoption routes</td>
@@ -13460,6 +13543,12 @@ not in a separate document a reader may never open.</p>
 <td style="text-align:left">required before general release</td>
 <td style="text-align:left"><strong>run once</strong>: 20 trials, 35% would act without asking; failures flat across paths, so no schema change is indicated</td>
 <td style="text-align:left">a writer axis, which needs <code>written_by</code> populated across more than one writer</td>
+</tr>
+<tr>
+<td style="text-align:left">Greenfield pilot</td>
+<td style="text-align:left">required before general release</td>
+<td style="text-align:left"><strong>run once</strong> (2026-09-01): a repository created by <code>cairn-init</code> could not close an honest path on the first run — nineteen findings, ten of them predicates reading a proxy — and reached <code>done</code> on the repaired kit with zero red gates; 24 protocol files for 5 product files on the default route</td>
+<td style="text-align:left">a second writer, a hosted remote with the CI adapter, a trunk that moves during the path, and the lightweight reliefs once implemented</td>
 </tr>
 </tbody>
 </table>
@@ -13848,7 +13937,7 @@ honest state of the work.</p>
 <tr data-rule="closure-surface" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>closure-surface</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">An administrative closure commit changed a path field other than status, subject_commit, current_step or resolution</td>
+<td style="text-align:left">An administrative closure commit changed a path field other than status and subject_commit at ready, or those plus resolution at done — compared against the record at the accepted candidate</td>
 <td style="text-align:left"><code>closureFieldErrors(previousFront, currentFront) over CLOSURE_MUTABLE_FIELDS</code></td>
 </tr>
 <tr data-rule="coherence-audit" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
@@ -14927,7 +15016,9 @@ documents before integration, <a href="#article-concept-acceptance-drift" data-a
 so, because the audit recorded which version it reasoned from.</p>
 <p>On the <a href="#article-concept-lightweight-path" data-article="concept-lightweight-path" data-anchor="" class="wiki-link">lightweight route</a> the same questions are
 answered inside the closing record rather than in a separate audit file. The
-questions do not change; the number of files does.</p>
+questions do not change; the number of files does. <strong>The v0.2 reference
+checker does not yet read them there</strong>: it requires the separate audit file on
+every route, and a lightweight path that answers inline is blocked at <code>ready</code>.</p>
 <h2 id="concept-coherence-audit--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
 <p>The checker can prove binding and completeness, not the quality of the auditor’s
 reasoning. The verdict remains human or agent judgement.</p>
@@ -15886,6 +15977,13 @@ closing record rather than in a separate audit file; and
 <a href="#article-concept-administrative-closure" data-article="concept-administrative-closure" data-anchor="" class="wiki-link">administrative closure</a> may share the candidate’s
 commit where the repository’s transport can still bind acceptance to an exact
 id.</p>
+<p><strong>What the v0.2 reference checker actually grants: none of those three.</strong> It
+reads opening acceptance only from a session record, requires a separate filled
+audit bound to the candidate, and requires exactly one administrative commit
+after it — on every route. The greenfield pilot (2026-09-01) ran the default
+route and wrote every record a full path writes. The reliefs above are the
+stated intent; the <a href="#article-concept-conformance" data-article="concept-conformance" data-anchor="" class="wiki-link">conformance</a> matrix records them as
+unimplemented.</p>
 <h3 id="concept-lightweight-path--when-the-full-route-is-required" data-heading="when-the-full-route-is-required">When the full route is required</h3>
 <p>A path MUST use <code>route: full</code> when it changes the
 <a href="#article-concept-control-plane" data-article="concept-control-plane" data-anchor="" class="wiki-link">control plane</a>, changes
@@ -17479,7 +17577,7 @@ implemented predicates from partial schema or judgement contracts and remains
 the authoritative inventory. Schema-1 configuration loading is now installed,
 but portable installation, update and schema migration are not. Flat-ledger
 prefix proof, protected transport, independent control-plane protection,
-transaction commands, and a measured general-release pilot also remain open.</p>
+transaction commands, and a general-release pilot with more than one writer also remain open — the greenfield pilot has been run once, on one writer and a local remote.</p>
 <p>A conformance report that marks any of those rows <code>pass</code> on the strength of the
 reference tools alone is wrong. They can be satisfied by a repository’s practice
 and evidenced by hand; the column that says so is “Additional dependency”, not
@@ -17693,6 +17791,11 @@ retell.</p>
 inside the work unit it describes, so at write time that commit does not exist —
 the same self-reference the <code>cairn-unit</code> ordinal solves. It names the last
 checkpoint that is already retained and resumable.</p>
+<p>Before the first work unit there is no such checkpoint. The brief written at
+registration, and the one refreshed inside the first unit, name the
+<strong>registration commit</strong> with <code>checkpoint_unit: 0</code>: it is the exact commit a
+resumer can start from, and zero is the honest ordinal of a unit that has not
+landed.</p>
 <p><code>governs</code> entries MUST carry the <code>@&lt;object-id&gt;</code> pin. An unpinned document
 reference means “read whatever this says now”, which is precisely the ambiguity
 the field exists to remove.</p>
@@ -17914,9 +18017,11 @@ What `npm run cairn-check` and `npm test` should print at this checkpoint.
 object. Their shape and their binding — to a candidate, to a scope digest, to a
 base — are mechanical; their reasoning is not.</p>
 <p>On the <a href="#article-concept-lightweight-path" data-article="concept-lightweight-path" data-anchor="" class="wiki-link"><code>full</code> route</a> each record below is its
-own file. On the default <code>lightweight</code> route the opening block lives in the path
-record and the audit questions are answered inside the closing record. The
-fields are identical either way; only the number of files changes.</p>
+own file. On the default <code>lightweight</code> route the specification lets the opening
+block live in the path record and the audit questions be answered inside the
+closing record — <strong>but the v0.2 reference checker does not accept either form
+yet</strong>. Write each record below as its own file on every route until the
+conformance matrix says otherwise. The fields are identical either way.</p>
 <h2 id="reference-human-records--opening-acceptance" data-heading="opening-acceptance">Opening acceptance</h2>
 <p>Filename:</p>
 <pre><code class="language-text">project/sessions/YYYY-MM-DD-cp-example-001-opening.md
@@ -17967,6 +18072,12 @@ commit: the named heading and its body up to the next heading of the same or
 higher level, normalised for line endings and trailing whitespace, with no other
 transformation. The algorithm is named in the value and the digest is never
 abbreviated.</p>
+<p>Compute it with the code that will verify it, never by hand:</p>
+<pre><code class="language-bash">node tools/cairn-check.mjs --scope-digest project/coding-paths/CP-EXAMPLE-001/index.md#definition-of-done
+</code></pre>
+<p>A <code>sed | sha256sum</code> pipeline that looks equivalent is not: it includes the next
+heading, skips the normalisation and omits the algorithm prefix, and the gate
+then reports at closure that the definition of done moved.</p>
 <p>Without it, <code>scope_ref</code> is a mutable pointer: the definition of done can be
 edited after acceptance, and every record still looks valid. Closing acceptance
 re-computes the digest and refuses to proceed on a mismatch.</p>
@@ -18037,6 +18148,15 @@ candidate.</p>
 repositories are configured for. The requirement is the <strong>full object id in the
 repository’s configured format</strong>: a SHA-256 repository writes sixty-four
 characters in the same field and the same filename.</p>
+<h3 id="reference-human-records--what-base-names-in-each-record" data-heading="what-base-names-in-each-record">What <code>base</code> names in each record</h3>
+<p>The audit’s <code>base</code> is the path’s registration <code>base_commit</code>: the scaffolder
+writes it and <code>cairn-audit --check</code> requires it, so the audit is bound to the
+same base the path record declares. The closing record’s <code>base</code> is <code>T</code>, the
+trunk tip the candidate was read against, because that is what the
+<a href="#article-concept-acceptance-drift" data-article="concept-acceptance-drift" data-anchor="" class="wiki-link">acceptance-drift</a> predicate diffs from. On a
+path that merged the trunk in before closing, <code>T</code> is the trunk tip at that
+merge; it equals <code>base_commit</code> only when the trunk did not move while the path
+ran.</p>
 <h2 id="reference-human-records--closing-acceptance" data-heading="closing-acceptance">Closing acceptance</h2>
 <p>Filename:</p>
 <pre><code class="language-text">project/sessions/YYYY-MM-DD-cp-example-001-closing.md
@@ -18354,20 +18474,32 @@ at their pinned ids.</p>
 <p>An authorised reviewer inspects exactly <code>C</code> and creates the closing acceptance
 record naming the same object id, the base <code>T</code>, the roles the reviewer held, the
 re-computed scope digest, and one structured entry per advisory raised at <code>C</code>:</p>
-<pre><code class="language-bash">sed -n '/^## Definition of done$/,/^## /p' \
-  project/coding-paths/CP-EXAMPLE-001/index.md | sha256sum
+<pre><code class="language-bash">node tools/cairn-check.mjs --scope-digest project/coding-paths/CP-EXAMPLE-001/index.md#definition-of-done
 npm run cairn-check -- --base origin/main   # the advisories to disposition
 </code></pre>
+<p>The digest is computed by the same code that verifies it. A hand-built
+<code>sed | sha256sum</code> pipeline produces a different value — it includes the next
+heading and omits the algorithm prefix — and the gate then reports at closure
+that the definition of done moved.</p>
 <p>If the digest differs from the one recorded at opening, stop: the definition of
 done moved after acceptance. Restore it or record a scope amendment.</p>
 <p>If implementation changes, stop: commit a new <code>C</code>, rerun all checks, generate a
 new audit file, and obtain new acceptance.</p>
 <h2 id="reference-operations--create-administrative-commit-a" data-heading="create-administrative-commit-a">Create administrative commit A</h2>
-<p>Set the path to <code>status: ready</code> and <code>subject_commit: &lt;C&gt;</code>, append one ledger
-entry, and move the brief’s checkpoint pointer. Change no other field of the path
-record — not the definition of done, not <code>scope_ref</code>, not <code>writes:</code>, not
-<code>governs:</code>, not the step plan. Stage only the four closure surfaces:</p>
-<pre><code class="language-bash">git add project/coding-paths/CP-EXAMPLE-001/index.md
+<p>Set the path to <code>status: ready</code> and <code>subject_commit: &lt;C&gt;</code>, append one line to
+the record’s folder log, and move the brief’s checkpoint pointer to <code>C</code>. Change
+no other field of the path record — not the definition of done, not
+<code>scope_ref</code>, not <code>writes:</code>, not <code>governs:</code>, not the step plan; the comparison is
+against the record as it stood at <code>C</code>, so a field that moved while the path ran
+is not a closure change. The live view projects the status, so regenerate it in
+this same unit. Run the gate BEFORE committing — an uncommitted closure counts
+as the pending administrative commit and its files are judged — then stage only
+the closure surfaces:</p>
+<pre><code class="language-bash">npm run cairn-active
+npm run cairn-check -- --base origin/main
+git add project/coding-paths/CP-EXAMPLE-001/index.md
+git add project/coding-paths/CP-EXAMPLE-001/log.md
+git add project/coding-paths/ACTIVE.md
 git add project/briefs/cp-example-001-handoff.md
 git add project/audits/cp-example-001-&lt;C&gt;.md
 git add project/sessions/YYYY-MM-DD-cp-example-001-closing.md
@@ -18551,7 +18683,11 @@ reader cannot decide from it whether to open the file. Forward steps live in
 `plan.md` until they are executed.
 
 - **[S01](./steps/S01.md)** — what it established, in a phrase — COMPLETE
-- **[S02](./steps/S02.md)** — in progress
+- **S02** — in progress; its file is linked when it is written
+
+A step is linked only once its file exists: the gate refuses a link that
+resolves nowhere, and the record is committed at registration before any step
+has been executed.
 
 No rollup operation exists. A step is written where it lives, and nothing is
 summarised when it moves.
@@ -18673,12 +18809,15 @@ one administrative commit that:</p>
 <ul>
 <li>sets <code>status: ready</code>;</li>
 <li>sets <code>subject_commit</code> to the full object id of <code>C</code>;</li>
-<li>appends one ledger entry;</li>
+<li>appends one line to the record’s folder <code>log.md</code>;</li>
+<li>regenerates the live view, which projects the status it just moved;</li>
 <li>adds the exact audit and exact closing record, and moves the brief’s
-checkpoint pointer.</li>
+checkpoint pointer to <code>C</code>.</li>
 </ul>
 <p>It changes no other field of this record — not the definition of done, not
-<code>scope_ref</code>, not <code>writes:</code>, not <code>governs:</code>, not the step plan.</p>
+<code>scope_ref</code>, not <code>writes:</code>, not <code>governs:</code>, not the step plan. The comparison
+is against the record at <code>C</code>, so a <code>writes:</code> widened while the path ran is not
+a closure change.</p>
 <h3 id="reference-path-template--recording-done" data-heading="recording-done">Recording done</h3>
 <p>Only the trunk integration unit sets <code>status: done</code> and
 <code>resolution: completed</code>. A path branch never claims done.</p>

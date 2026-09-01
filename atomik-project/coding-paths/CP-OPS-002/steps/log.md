@@ -18,6 +18,8 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-01
 
+- `S09a` records the greenfield pilot: two runs, nineteen findings, five closure
+  rules newly covered by a real closed candidate in the fixture harness.
 - `S08w` generates the rule-to-requirement linkage and declares the rules that
   stand behind no row, closing S08 Part 2. Its own fixture caught the check
   reading its own generated output.

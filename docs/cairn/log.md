@@ -22,6 +22,11 @@ per entry in a `log/` subfolder — which was a concurrency fix, never a size on
 
 ## 2026-09-01
 
+- `CP-OPS-002 S09a` records the greenfield pilot: a repository created by
+  `cairn-init` could not close an honest path on the first run; nineteen
+  findings repaired or stated, and the second run reached `done`. The
+  operations, template, human-records and handoff-brief pages now describe
+  closure as the checker enforces it.
 - `CP-OPS-002 S08o` applies ADR-020's artefact boundary. The session procedure
   moves into the portable reference, the path convention becomes lightweight
   required reading, and Atomik's installed names and examples leave the

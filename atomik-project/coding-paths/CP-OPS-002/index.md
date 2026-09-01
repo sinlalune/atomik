@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-002
   route: full            # control plane + decision plane; escalation is one-way
   status: running
-  current_step: S08w
+  current_step: S09a
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
   writes:                    # ADVISORY — a signal, never a lock
@@ -25,6 +25,9 @@ atomik:
     - tools/cairn-config.mjs       # S08p: executable schema-1 host binding
     - tools/cairn-config.schema.json
     - tools/cairn-config.test.mjs
+    - tools/cairn-fixture.test.mjs  # S09a: created at S08v, declared now
+    - tools/cairn-init.mjs          # S09a: created at S08u, declared now
+    - tools/cairn-init.test.mjs
     - package.json
     - tools/cairn-new.mjs
     - cairn.config.json
@@ -161,8 +164,9 @@ written where it lives from the moment it is worked.
 - **[S08u](./steps/S08u.md)** — cairn-init, and the portability it proved was missing — COMPLETE
 - **[S08v](./steps/S08v.md)** — Adversarial fixtures, and parity asserted on one tree — COMPLETE
 - **[S08w](./steps/S08w.md)** — The conformance linkage is generated, and stops reading its own output — COMPLETE
+- **[S09a](./steps/S09a.md)** — The greenfield pilot, and the closure it could not complete — COMPLETE
 
-Forward steps — **S08** (in progress) and **S09** — are in [plan.md](./plan.md).
+The forward step — **S09b**, this path's own closure — is in [plan.md](./plan.md).
 
 ## Documentation coverage
 
@@ -182,11 +186,12 @@ half of the same thing.
 | Status | `running` on `path/cp-ops-002` |
 | Base commit | `7aa3b1d` — registered on the trunk by `df875e6` before this branch existed |
 | Branch | `path/cp-ops-002`, worktree `../4tom1k-cp-ops-002`, `node_modules` symlinked |
-| Remaining | S08 and S09. Stage 5 still needs the transactional `cairn-init` command and explicit release identity — its seed shape is now reconciled; Part 2 still needs adversarial fixtures, invocation-parity proof and generated conformance; the teaching axis still needs the generic wiki exporter and incremental learning-note extraction. The pilot re-run gates any further brief-schema change (S03 withdrawn by owner ruling; S06b rescoped across S07 + S08 by ruling 9) |
+| Remaining | S09b: this path's own candidate, audit, closing acceptance and integration. The greenfield pilot is run and its findings repaired (S09a). Deferred and stated: a `brief-stale` advisory (pilot finding 7), the initializer's area note (finding 16), the lightweight route's three reliefs, forward-plan item 12 (extraction moves authority), `cairn-new`, `cairn-close`, the update path the lock file enables, and the teaching axis (items 7e, 7f). Stage 3's `ledger-size` retirement still waits on the three flat records (S03 withdrawn by owner ruling; S06b rescoped across S07 + S08 by ruling 9) |
 | Opening check | accepted 2026-08-24, eight rulings ([note](../../sessions/2026-08-24-cp-ops-002-opening-check.md)) |
 | Scope note | protocol tooling and doctrine only; no product code changed. The full `typecheck`, product `test`, and production `build` gates were nevertheless run and passed at the completed-step boundary |
 | Widening | `writes:` gained `atomik-project/briefs/cp-ops-002-handoff.md` at S01 — the per-step handoff brief is required by bedrock 22 and the original declaration simply omitted it. **Widened again at S06d** to `atomik-project/briefs/**`: F7's residue lives in that folder, and `scope-drift` said so the moment the owner ruled on `feedback on  MVP-001.md`. Recorded here and kept going, which is what `paths.md` asks of a widening |
-| Next action | **ADR-020 stage 5, second unit: implement `cairn-init`.** The seed is reconciled (S08q), so the initializer now has one correct shape to scaffold: born-sliced records, generation-aware retention, the classified PORTABLE / HOST / BINDING route, schema-1 config, reference tools, tier-1 workflow, concept-wiki index and one-concept template — installed transactionally. It must also write an explicit protocol release identity/lock so a later public Cairn can migrate an adopter rather than silently overwrite it, and honour forward-plan item 12: extraction MOVES authority and never maintains the portable protocol by hand in two places. Stage 3's last operation — retiring `ledger-size` — remains deliberately pending until `CP-MVP-008`, `CP-MVP-011` and `CP-MVP-012` are folders. S08 Part 2 also remains: an adversarial fixture for every blocking rule, one gate run in both invocation contexts asserting one verdict, and a generated conformance matrix |
+| Next action | **S09b — close this path.** Merge `master` in, run every gate on the candidate, scaffold and fill the coherence audit bound to it, then hand the owner the closing acceptance to record: the reviewer is the owner, not this writer. The pilot's closure sequence is the one to follow — the operations page now describes it as the checker enforces it, because S09a made them agree. Stage 3's last operation — retiring `ledger-size` — remains deliberately pending until `CP-MVP-008`, `CP-MVP-011` and `CP-MVP-012` are folders |
+| Superseded next action (S09a, done) | **ADR-020 stage 5, second unit: implement `cairn-init`.** The seed is reconciled (S08q), so the initializer now has one correct shape to scaffold: born-sliced records, generation-aware retention, the classified PORTABLE / HOST / BINDING route, schema-1 config, reference tools, tier-1 workflow, concept-wiki index and one-concept template — installed transactionally. It must also write an explicit protocol release identity/lock so a later public Cairn can migrate an adopter rather than silently overwrite it, and honour forward-plan item 12: extraction MOVES authority and never maintains the portable protocol by hand in two places. Stage 3's last operation — retiring `ledger-size` — remains deliberately pending until `CP-MVP-008`, `CP-MVP-011` and `CP-MVP-012` are folders. S08 Part 2 also remains: an adversarial fixture for every blocking rule, one gate run in both invocation contexts asserting one verdict, and a generated conformance matrix |
 | Superseded next action (S08k, done) | **ADR-020 stage 2** — the `CP-OPS-002` folder migration, which supersedes the queued ledger roll and is what `ledger-size` has been advising about at ~19.9 k tokens. Then stages 3–5 (the checker's shape, the artefact classification, `cairn-init`), and S08 Part 2 — an adversarial fixture for every blocking rule, the two-context gate-parity test, and the generated conformance matrix. `cairn-init` must scaffold generation-aware retention from the start: a flat namespace handed to an adopter is a migration handed to an adopter |
 | Amendments | **2026-08-24, owner ruling 9** — S06b rescoped from "configure branch protection" to "declare the enforcement tier"; its deliverables move into S07 (specification + operator guide) and S08 (`enforcement` config field, generated header line, tier-0/1 `cairn-init`). This repository stays at tier 1, declared ([note](../../sessions/2026-08-24-cp-ops-002-s06b-rescope.md)) |
 | Blockers | None. `ledger-size` retirement waits on the three flat records above, but ADR-020 says its migration stages are independent, so stage 5 can proceed |

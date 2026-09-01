@@ -6,8 +6,8 @@ atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: 51f499e
-  checkpoint_unit: 42
+  checkpoint: 4ffdf477c9c8c919f4c1e545a1ebf32828f4a3d5
+  checkpoint_unit: 43
   checkpoint_pushed: true
   base_commit: 7aa3b1d
   trunk_seen: dfcd09d
@@ -15,6 +15,7 @@ atomik:
     - cairn.config.json
     - tools/cairn-*.mjs
     - tools/cairn-config.schema.json
+    - tools/cairn-fixture.test.mjs
     - .github/workflows/cairn.yml
     - AGENTS.md
     - atomik-project/coding-paths/paths.md
@@ -58,7 +59,7 @@ now closed.** The last, `unretainedCheckpoints`, reported "nothing orphaned" onc
 the retained set stopped intersecting the branch — which is what the mandatory
 pre-merge rebase causes — and is repaired under `ADR-021`.
 
-**S08 so far — twenty-three units. Part 2 is COMPLETE.** Full records in the path file; what a resuming
+**S08 is complete in twenty-three units, and S09a has run the pilot.** Full records in the path folder; what a resuming
 session needs from them:
 
 - The local gate defaults to the **trunk** base on a path branch (S08a).
@@ -231,6 +232,24 @@ session needs from them:
   table, where a renamed row's old title still sat. A predicate satisfied by the
   artefact it produces — found only because the fixture demanded a rejection.
 
+- **The greenfield pilot ran, and the kit could not close a path** (S09a).
+  A research-paper workspace created by `cairn-init` was driven by hand from
+  the installed pages. Run 1 stopped at closure with five blocking findings on
+  an honest record; run 2 on the repaired kit reached `done` with zero red
+  gates. Nineteen findings, ten of them predicates reading a proxy — the
+  trunk's copy for the candidate's, a directory entry for its files, a string
+  for a list, one commit's advisories for another's. What binds a resuming
+  session: **`closure-surface` compares against the record at `subject_commit`**,
+  so a `writes:` widened while running is not a closure change; **an
+  uncommitted closure is the pending administrative commit** and the gate runs
+  before it; **the generated view is regenerated at closure** and admitted;
+  **`role-collapse` and `remote-checkpoint` at A are not attested at C**;
+  **lifecycle records are never scope drift**; and the digest is computed by
+  `cairn-check --scope-digest`, never by hand. Two findings are deferred and
+  named in the record: a `brief-stale` advisory, and the initializer's area
+  note. Read the record rather than a summary:
+  `docs/cairn/cairn-greenfield-pilot-2026-09-01.md`.
+
 The gate's advisory COUNT is a signal even while the verdict stays green: S08l
 read 14 before its commit and 31 after, for one tree, and the only reason to look
 was that the number moved.
@@ -244,34 +263,18 @@ the latest step.
 
 ## Next action
 
-**S08 is complete; the extraction question is next.** Forward-plan item 12 is
-the live architectural work: `cairn-init` COPIES the portable corpus into an
-adopter, and the public extraction must MOVE its authority rather than leave two
-hand-maintained copies. Remaining smaller debts: twenty-two blocking rules
-without an adversarial fixture (named in `UNCOVERED`), `cairn-new`,
-`cairn-close`, and the update/migration path the lock file exists to enable.
-**S09** — the greenfield pilot — is now unblocked: `cairn-init` is what it was
-waiting for. Beyond it, forward-plan item 12 is now the live architectural question:
-this command COPIES a portable corpus into an adopter, and the public extraction
-must MOVE its authority rather than leave two hand-maintained copies. Superseded
-next action: The seed is
-reconciled (S08q), so the initializer has one correct shape to scaffold. Make
-one transactional command install the PORTABLE / HOST / BINDING route, schema-1
-config, reference tools, tier-1 workflow, concept-wiki index and one-concept
-template — born-sliced records and generation-aware retention from the first
-commit. It also needs an explicit protocol-release identity/lock so a later
-public Cairn release can migrate an existing adopter instead of silently
-overwriting it, and it must honour forward-plan item 12: **extraction MOVES
-authority**; the portable protocol is never maintained by hand in two places. Stage 3's last
-operation — retire `ledger-size` — waits until `CP-MVP-008`, `CP-MVP-011` and
-`CP-MVP-012` migrate; the ADR makes its stages independent, so that wait does
-not block stage 5.
-
-S08 Part 2 also remains: an adversarial fixture for every blocking rule, one gate
-run in both invocation contexts asserting one verdict, and a generated
-conformance matrix. `cairn-init` must scaffold the folder shape and
-generation-aware retention from the start — either one handed to an adopter in
-the old shape is a migration handed to an adopter.
+**S09b — close this path.** Fetch and merge `master` into `path/cp-ops-002`
+(never rebase: `pathHistoryPolicy: forbidden`), run every gate on the candidate,
+scaffold the coherence audit with `npm run cairn-audit -- --subject <C> --branch
+path/cp-ops-002` and fill it, then hand the owner the closing acceptance to
+record — the reviewer is the owner, not this writer. Follow the operations page
+for A, the drift check and the trunk integration; S09a made the page and the
+checker agree, and the pilot ran that exact sequence to `done`. Deferred debts
+stay named, not implied: forward-plan item 12 (extraction MOVES authority),
+`cairn-new`, `cairn-close`, the update path the lock file enables, sixteen
+blocking rules without a fixture (`UNCOVERED`), and the pilot's findings 7 and
+16. Stage 3's `ledger-size` retirement waits until `CP-MVP-008`, `CP-MVP-011`
+and `CP-MVP-012` are folders.
 
 ## Blockers
 
@@ -282,6 +285,17 @@ that ADDS a record.
 
 ## Tried and rejected
 
+- **Attesting an advisory at the candidate that only fired at the closure**
+  (S09a). It passes the gate and it is false: `role-collapse` and
+  `remote-checkpoint` at A are raised by the closure itself. The rule now
+  excludes them from the subset check and still reports them.
+- **A `sed | sha256sum` scope digest** (S09a). It includes the next heading
+  and omits the algorithm prefix; the gate rejects it at closure as a moved
+  definition of done. `cairn-check --scope-digest` is the only source.
+- **Fixing the pilot repository's installed tools in place** (S09a). `tools/`
+  is the control plane and would have forced the pilot path onto the full
+  route for a change it did not make; run 2 was re-installed from the repaired
+  tree instead, and run 1 is retained as it stopped.
 - **A repository predicate for the born-sliced shape** (S08q). The obvious
   companion to reconciling the seed, and wrong: the normative text says the flat
   record STAYS conforming, so there is nothing to block on and a rule would
@@ -365,16 +379,17 @@ that ADDS a record.
 ## Verification
 
 `npm run cairn-check` — branch against trunk by default since S08a — reports OK.
-S08w records **13 advisories, and 13 is the steady state**: concept growth,
-nine grandfathered `CP-MVP-008` findings carrying their reason, and three
-accounted-for `single-truth` notes on shared/generated files. The
-`checkpoint-retention` notice that used to make it 14 before each unit's ref was
-published is gone for good — retention is off, and no ref is written from unit 39
-onward. A run reporting `base-parity` is NARROWED and is not recordable. A run reporting `base-parity` is
+S09a records **12 advisories, and 12 is the steady state**: concept growth,
+nine grandfathered `CP-MVP-008` findings carrying their reason, and two
+accounted-for `single-truth` notes on shared files. The regenerated view no
+longer draws `single-truth` (pilot finding 19), and the three tool files are
+declared, so `scope-drift` no longer advises on them. The `checkpoint-retention` notice that
+used to make it 14 before each unit's ref was published is gone for good —
+retention is off, and no ref is written from unit 39 onward. A run reporting `base-parity` is NARROWED and is not recordable. A run reporting `base-parity` is
 NARROWED, and one reporting an inconclusive `checkpoint-retention` has not
 fetched `refs/cairn/*`: neither is recordable.
 
-`npm run cairn-check:test` passes 268 subtests across eight tool suites. A repository created by `npm run cairn-init -- --target <dir>` reports `OK — protocol satisfied` with zero advisories. `npm run cairn-spec:build`
+`npm run cairn-check:test` passes 275 subtests across eight tool suites. A repository created by `npm run cairn-init -- --target <dir>` reports `OK — protocol satisfied` with zero advisories, and the pilot's replay script drives one from install to `done`. `npm run cairn-spec:build`
 reproduces the checked-in HTML byte-for-byte; `npm run cairn-active` reports the
 running-path view current. `npm run typecheck`, `npm test` (1,109 passing, 1
 skipped) and `npm run build` all pass.

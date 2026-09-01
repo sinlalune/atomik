@@ -18,6 +18,9 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-01
 
+- `S09a` runs the greenfield pilot. The first run could not close an honest
+  record; nineteen findings, ten of them predicates reading a proxy, repaired or
+  stated; the second run reached `done` with zero red gates.
 - `S08w` closes S08 Part 2. The matrix's prose stays human and its linkage is
   generated; the unit's own adversarial fixture found the new check satisfied by
   the artefact it produces.

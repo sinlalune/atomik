@@ -169,7 +169,7 @@ export const RULE_METADATA = {
     enforcing: 'scopeDigest(resolveScopeSection(pathRecord, scope_ref)) === record.scope_digest'
   },
   'closure-surface': {
-    condition: 'An administrative closure commit changed a path field other than status, subject_commit, current_step or resolution',
+    condition: 'An administrative closure commit changed a path field other than status and subject_commit at ready, or those plus resolution at done — compared against the record at the accepted candidate',
     enforcing: 'closureFieldErrors(previousFront, currentFront) over CLOSURE_MUTABLE_FIELDS'
   },
   'acceptance-drift': {

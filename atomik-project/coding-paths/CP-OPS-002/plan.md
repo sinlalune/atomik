@@ -127,3 +127,16 @@ thing.
 
 Initialize one real ex-nihilo repository from the kit — the research-paper workspace the
 brief names — and fix what the pilot finds before merging.
+
+- **S09a — done.** The pilot ran twice; the record is
+  [`docs/cairn/cairn-greenfield-pilot-2026-09-01.md`](../../../docs/cairn/cairn-greenfield-pilot-2026-09-01.md)
+  and the step is [`steps/S09a.md`](./steps/S09a.md). Two findings are deferred
+  and named there: a `brief-stale` advisory, and the initializer's area note.
+- **S09b — this path's own closure.** On a `forbidden` host: fetch and merge
+  `master` into the branch, run every gate on candidate `C`, scaffold and fill
+  the coherence audit bound to `C`, obtain the owner's closing acceptance, land
+  the administrative commit, check acceptance drift, integrate from the owner's
+  trunk checkout with a `--no-ff` merge that records `done`, regenerates the
+  live view and writes the journal entry, verify the remote trunk, and remove
+  the clean secondary worktree from another checkout. The operations page now
+  states this sequence as the checker enforces it; follow the page.

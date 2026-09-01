@@ -478,6 +478,13 @@ What a lightweight path MUST NOT drop is exactness. The candidate is still one
 [object id](./concepts/commit-hash.md); acceptance still names it; the ledger
 still records what happened. Fewer files, not weaker facts.
 
+**Reference checker, v0.2: the combined forms are not yet accepted.** The
+checker reads opening acceptance only from a session record and requires a
+separate, filled coherence audit on every route, so a lightweight path
+currently writes the same records as a full one. The greenfield pilot
+(2026-09-01) paid that cost on the default route; the
+[conformance matrix](#conformance-matrix) carries the gap.
+
 ### `full` — required, not merely available
 
 A path MUST declare `route: full` when any of these is true:
@@ -1006,7 +1013,8 @@ scope_digest: sha256:9f2c4b1d…
 
 On the `lightweight` route this block lives in the path record itself; on the
 `full` route it is a separate session record. The fields are identical either
-way.
+way. **The v0.2 reference checker reads it only from a session record, on
+every route** — the combined form is stated, not implemented.
 
 ### Bind the scope, not a pointer to it
 
@@ -1561,7 +1569,7 @@ not in a separate document a reader may never open.
 | Marked provisional commits excluded from candidate identity | required | implemented; a ready path whose candidate range still contains a marked commit is blocked | the fold itself is not verified to preserve content |
 | Handoff-brief field schema and answerable-alone contract | required | **partially implemented**; the nine fields, the seven exact sections and pinned `governs` entries are checked. The token budget is retired (ADR-020 decision 6): what will not fit is linked, not compressed, and that is a judgement rather than a predicate | the answerable-alone contract is a judgement and a cold-resume harness, and is never claimed by a checker |
 | Portable, host, and binding artefact separation | required | **implemented in the reference documentation**; the portable execution route and path convention carry no host names, the root bootloader points at one explicit binding appendix, and host architecture is absent from the unconditional entry chain | `cairn-init` must scaffold the classified shape before general release; classification itself is a documentation property rather than a repository predicate |
-| Field-level administrative closure surface | required | implemented; closure may move only `status`, `subject_commit`, `current_step` and `resolution` | ledger append-only proof, which remains a separate open row |
+| Field-level administrative closure surface | required | implemented; closure may move only `status` and `subject_commit` at `ready`, and additionally `resolution` at `done`, compared against the record at the accepted candidate rather than the trunk's copy | ledger append-only proof, which remains a separate open row |
 | An adversarial fixture per blocking rule | required | **partially implemented**; eight of thirty blocking rules now have a fixture that installs a REAL repository with `cairn-init`, proves it green, introduces exactly one violation, and requires that rule among the blocking findings. The green baseline is half the assertion — a fixture that blocks for an unrelated reason proves nothing about the rule it names. Coverage is DECLARED: every blocking rule is either covered or listed as uncovered, so adding a rule forces the choice | twenty-two rules remain uncovered, most needing states the harness cannot yet reach cheaply — a closed candidate with its audit and acceptance, a rewritten published tip, a detached checkout, a trunk that moved inside a declared surface |
 | No predicate branches on a value that varies by execution context | required | **implemented**; the derived-view exemption for `path/*` branches is removed rather than replaced. The view is already a pure projection of the statuses declared in the tree, so a checkout disagrees with it only when something there moved a status without regenerating, and no rule now reads the branch name to decide whether to run | the branch name still selects which path-scoped rules APPLY, which is a different question from whether a rule runs at all |
 | A dated record carries the date of its event | required | **partially implemented**; the two dates an author writes — the filename date and `timestamp:` — must agree, blocking, on records the change adds. Drift between the record's date and the author date of the commit that added it is reported and never blocks | agreement is not accuracy: a record with the same wrong date in both places passes the blocking half, which is why the drift half exists |
@@ -1574,7 +1582,7 @@ not in a separate document a reader may never open.
 | Recorded roles and the collapsed-actor advisory | required | **partially implemented**; a shared opening/closing actor is reported | `accepted_roles` itself is recorded and not yet validated |
 | `scope-drift` blocking unless the declaration moves in the same commit | required | implemented; drift blocks unless `writes:` moved in the same change | none |
 | Typed work units keyed to their required parts | required | **partially implemented**; the `cairn-unit` block and its type vocabulary are checked | `same-work-unit` does not yet key its requirement to the declared type |
-| `lightweight` default route and one-way escalation | required | **partially implemented**; the configured new-path default is reported when an explicit route is missing, and the vocabulary, three structural triggers, second-unit backstop and one-way escalation are checked | `cairn-init` / `cairn-new` do not yet write the configured default; the *high-risk* trigger is policy and the multi-unit trigger is caught one unit late |
+| `lightweight` default route and one-way escalation | required | **partially implemented**; the configured new-path default is reported when an explicit route is missing, and the vocabulary, three structural triggers, second-unit backstop and one-way escalation are checked | `cairn-init` / `cairn-new` do not yet write the configured default; the *high-risk* trigger is policy and the multi-unit trigger is caught one unit late; the combined lightweight records — opening acceptance inside the path record, audit questions inline in the closing record — are not accepted, so every route writes the same separate records (greenfield pilot, 2026-09-01) |
 | `foundation` and adoption routes | required | **partially implemented**; the route is declarable and its write surface is confined to documents and the path records it produces | the adoption variant is a use of the same route, not a separate predicate |
 | Repair procedures for protocol violations | required | **not implemented**; procedural, with no predicate proposed | none — repair is recorded, not gated |
 | Redaction ceremony | required | **partially implemented**; every `[redacted: …]` marker must name a redaction record that exists | rotation-first ordering is a procedure, not a predicate |
@@ -1585,6 +1593,7 @@ not in a separate document a reader may never open.
 | Transactional `init`, `new`, and `close` commands | required before general release | **not implemented** | command tooling |
 | [Emergency path](./concepts/emergency-path.md) | deliberately unspecified | **not implemented** | incident policy and retrospective |
 | Cold-resume pilot | required before general release | **run once**: 20 trials, 35% would act without asking; failures flat across paths, so no schema change is indicated | a writer axis, which needs `written_by` populated across more than one writer |
+| Greenfield pilot | required before general release | **run once** (2026-09-01): a repository created by `cairn-init` could not close an honest path on the first run — nineteen findings, ten of them predicates reading a proxy — and reached `done` on the repaired kit with zero red gates; 24 protocol files for 5 product files on the default route | a second writer, a hosted remote with the CI adapter, a trunk that moves during the path, and the lightweight reliefs once implemented |
 
 The current supported claim is therefore:
 
@@ -1798,7 +1807,7 @@ honest state of the work.
 | **Blocking** | `branch-path` | diff | Path branch not declared by a running path file, or missing base_commit | `isPathBranch(branch) && (!match \|\| !PATH_BRANCH_STATUSES.includes(status) \|\| !isCommitPin(base))` |
 | **Blocking** | `brief-schema` | diff | The handoff brief is missing, or lacks its nine fields, its seven exact sections, or pinned governs entries | `briefErrors(front, body) over BRIEF_FIELDS and BRIEF_SECTIONS` |
 | **Blocking** | `checkpoint-retention` | diff | A completed work unit has no retention ref in the current generation, the current generation is empty because a rewrite closed the last one, or the namespace or branch range cannot be read here and the question cannot be answered | `currentGeneration(retentionGenerations(refs), onBranch) => retainedRefs.has(refs/cairn/checkpoints/<id>/g<NN>/<n>), and unretainedCheckpoints over that generation (newest unit advisory; an unreadable namespace or range is inconclusive, an empty current generation is not)` |
-| **Blocking** | `closure-surface` | diff | An administrative closure commit changed a path field other than status, subject_commit, current_step or resolution | `closureFieldErrors(previousFront, currentFront) over CLOSURE_MUTABLE_FIELDS` |
+| **Blocking** | `closure-surface` | diff | An administrative closure commit changed a path field other than status and subject_commit at ready, or those plus resolution at done — compared against the record at the accepted candidate | `closureFieldErrors(previousFront, currentFront) over CLOSURE_MUTABLE_FIELDS` |
 | **Blocking** | `coherence-audit` | corpus | Ready path lacks a filled coherence audit bound to its exact subject_commit | `cairn-audit --check --subject path.subject_commit` |
 | **Blocking** | `concept-orphan` | corpus | A concept note that no normative or learning text outside the wiki links to | `orphanConcepts(conceptFiles, links from documents outside the concepts folder)` |
 | **Blocking** | `derived-view` | corpus | ACTIVE.md running-paths block does not match trunk path files | `tools/cairn-active.mjs --check` |

@@ -102,7 +102,11 @@ reader cannot decide from it whether to open the file. Forward steps live in
 `plan.md` until they are executed.
 
 - **[S01](./steps/S01.md)** — what it established, in a phrase — COMPLETE
-- **[S02](./steps/S02.md)** — in progress
+- **S02** — in progress; its file is linked when it is written
+
+A step is linked only once its file exists: the gate refuses a link that
+resolves nowhere, and the record is committed at registration before any step
+has been executed.
 
 No rollup operation exists. A step is written where it lives, and nothing is
 summarised when it moves.
@@ -237,12 +241,15 @@ one administrative commit that:
 
 - sets `status: ready`;
 - sets `subject_commit` to the full object id of `C`;
-- appends one ledger entry;
+- appends one line to the record's folder `log.md`;
+- regenerates the live view, which projects the status it just moved;
 - adds the exact audit and exact closing record, and moves the brief's
-  checkpoint pointer.
+  checkpoint pointer to `C`.
 
 It changes no other field of this record — not the definition of done, not
-`scope_ref`, not `writes:`, not `governs:`, not the step plan.
+`scope_ref`, not `writes:`, not `governs:`, not the step plan. The comparison
+is against the record at `C`, so a `writes:` widened while the path ran is not
+a closure change.
 
 ### Recording done
 

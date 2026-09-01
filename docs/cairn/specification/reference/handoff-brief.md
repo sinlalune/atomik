@@ -49,6 +49,12 @@ inside the work unit it describes, so at write time that commit does not exist â
 the same self-reference the `cairn-unit` ordinal solves. It names the last
 checkpoint that is already retained and resumable.
 
+Before the first work unit there is no such checkpoint. The brief written at
+registration, and the one refreshed inside the first unit, name the
+**registration commit** with `checkpoint_unit: 0`: it is the exact commit a
+resumer can start from, and zero is the honest ordinal of a unit that has not
+landed.
+
 `governs` entries MUST carry the `@<object-id>` pin. An unpinned document
 reference means "read whatever this says now", which is precisely the ambiguity
 the field exists to remove.

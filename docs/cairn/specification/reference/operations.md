@@ -280,10 +280,14 @@ record naming the same object id, the base `T`, the roles the reviewer held, the
 re-computed scope digest, and one structured entry per advisory raised at `C`:
 
 ```bash
-sed -n '/^## Definition of done$/,/^## /p' \
-  project/coding-paths/CP-EXAMPLE-001/index.md | sha256sum
+node tools/cairn-check.mjs --scope-digest project/coding-paths/CP-EXAMPLE-001/index.md#definition-of-done
 npm run cairn-check -- --base origin/main   # the advisories to disposition
 ```
+
+The digest is computed by the same code that verifies it. A hand-built
+`sed | sha256sum` pipeline produces a different value — it includes the next
+heading and omits the algorithm prefix — and the gate then reports at closure
+that the definition of done moved.
 
 If the digest differs from the one recorded at opening, stop: the definition of
 done moved after acceptance. Restore it or record a scope amendment.
@@ -293,13 +297,22 @@ new audit file, and obtain new acceptance.
 
 ## Create administrative commit A
 
-Set the path to `status: ready` and `subject_commit: <C>`, append one ledger
-entry, and move the brief's checkpoint pointer. Change no other field of the path
-record — not the definition of done, not `scope_ref`, not `writes:`, not
-`governs:`, not the step plan. Stage only the four closure surfaces:
+Set the path to `status: ready` and `subject_commit: <C>`, append one line to
+the record's folder log, and move the brief's checkpoint pointer to `C`. Change
+no other field of the path record — not the definition of done, not
+`scope_ref`, not `writes:`, not `governs:`, not the step plan; the comparison is
+against the record as it stood at `C`, so a field that moved while the path ran
+is not a closure change. The live view projects the status, so regenerate it in
+this same unit. Run the gate BEFORE committing — an uncommitted closure counts
+as the pending administrative commit and its files are judged — then stage only
+the closure surfaces:
 
 ```bash
+npm run cairn-active
+npm run cairn-check -- --base origin/main
 git add project/coding-paths/CP-EXAMPLE-001/index.md
+git add project/coding-paths/CP-EXAMPLE-001/log.md
+git add project/coding-paths/ACTIVE.md
 git add project/briefs/cp-example-001-handoff.md
 git add project/audits/cp-example-001-<C>.md
 git add project/sessions/YYYY-MM-DD-cp-example-001-closing.md

@@ -136,7 +136,7 @@ implemented predicates from partial schema or judgement contracts and remains
 the authoritative inventory. Schema-1 configuration loading is now installed,
 but portable installation, update and schema migration are not. Flat-ledger
 prefix proof, protected transport, independent control-plane protection,
-transaction commands, and a measured general-release pilot also remain open.
+transaction commands, and a general-release pilot with more than one writer also remain open — the greenfield pilot has been run once, on one writer and a local remote.
 
 A conformance report that marks any of those rows `pass` on the strength of the
 reference tools alone is wrong. They can be satisfied by a repository's practice

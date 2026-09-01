@@ -74,6 +74,7 @@ born here, one complete record per step.
 - **[S08u](./S08u.md)** — cairn-init, and the portability it proved was missing — COMPLETE
 - **[S08v](./S08v.md)** — Adversarial fixtures, and parity asserted on one tree — COMPLETE
 - **[S08w](./S08w.md)** — The conformance linkage is generated, and stops reading its own output — COMPLETE
+- **[S09a](./S09a.md)** — The greenfield pilot, and the closure it could not complete — COMPLETE
 
 ## Which commit landed which step
 

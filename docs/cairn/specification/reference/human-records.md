@@ -13,9 +13,11 @@ object. Their shape and their binding — to a candidate, to a scope digest, to 
 base — are mechanical; their reasoning is not.
 
 On the [`full` route](../concepts/lightweight-path.md) each record below is its
-own file. On the default `lightweight` route the opening block lives in the path
-record and the audit questions are answered inside the closing record. The
-fields are identical either way; only the number of files changes.
+own file. On the default `lightweight` route the specification lets the opening
+block live in the path record and the audit questions be answered inside the
+closing record — **but the v0.2 reference checker does not accept either form
+yet**. Write each record below as its own file on every route until the
+conformance matrix says otherwise. The fields are identical either way.
 
 ## Opening acceptance
 
@@ -75,6 +77,16 @@ commit: the named heading and its body up to the next heading of the same or
 higher level, normalised for line endings and trailing whitespace, with no other
 transformation. The algorithm is named in the value and the digest is never
 abbreviated.
+
+Compute it with the code that will verify it, never by hand:
+
+```bash
+node tools/cairn-check.mjs --scope-digest project/coding-paths/CP-EXAMPLE-001/index.md#definition-of-done
+```
+
+A `sed | sha256sum` pipeline that looks equivalent is not: it includes the next
+heading, skips the normalisation and omits the algorithm prefix, and the gate
+then reports at closure that the definition of done moved.
 
 Without it, `scope_ref` is a mutable pointer: the definition of done can be
 edited after acceptance, and every record still looks valid. Closing acceptance
@@ -158,6 +170,17 @@ The object-id length above is SHA-1's forty characters because that is what most
 repositories are configured for. The requirement is the **full object id in the
 repository's configured format**: a SHA-256 repository writes sixty-four
 characters in the same field and the same filename.
+
+### What `base` names in each record
+
+The audit's `base` is the path's registration `base_commit`: the scaffolder
+writes it and `cairn-audit --check` requires it, so the audit is bound to the
+same base the path record declares. The closing record's `base` is `T`, the
+trunk tip the candidate was read against, because that is what the
+[acceptance-drift](../concepts/acceptance-drift.md) predicate diffs from. On a
+path that merged the trunk in before closing, `T` is the trunk tip at that
+merge; it equals `base_commit` only when the trunk did not move while the path
+ran.
 
 ## Closing acceptance
 

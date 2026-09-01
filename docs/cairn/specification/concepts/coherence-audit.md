@@ -29,7 +29,9 @@ so, because the audit recorded which version it reasoned from.
 
 On the [lightweight route](./lightweight-path.md) the same questions are
 answered inside the closing record rather than in a separate audit file. The
-questions do not change; the number of files does.
+questions do not change; the number of files does. **The v0.2 reference
+checker does not yet read them there**: it requires the separate audit file on
+every route, and a lightweight path that answers inline is blocked at `ready`.
 
 ## It does not prove
 

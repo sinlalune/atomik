@@ -650,8 +650,12 @@ export function closingAcceptanceErrors(record, pathId) {
   }
   if (record.decision !== 'accepted') errors.push('decision must equal accepted')
   if (!String(record.scope_ref ?? '').trim()) errors.push('scope_ref is required')
-  if (!String(record.advisory_disposition ?? '').trim()) {
-    errors.push('advisory_disposition is required')
+  // An empty list is the honest disposition of a candidate that raised no
+  // advisory; `String([])` is '', and reading it as absent forced a reviewer
+  // to invent an entry (greenfield pilot, 2026-09-01).
+  if (!Array.isArray(record.advisory_disposition) &&
+      !String(record.advisory_disposition ?? '').trim()) {
+    errors.push('advisory_disposition is required — a structured list, empty when the candidate raised none')
   }
   return errors
 }
@@ -1615,6 +1619,8 @@ export function evaluate({
   provisionalInCandidate = [],
   headProvisional = false,
   scopeDigestFor = null,
+  subjectFrontFor = null,
+  derivedViewCurrent = null,
   previousFronts = new Map(),
   journalEntries = [],
   trunkDelta = null,
@@ -1941,6 +1947,14 @@ export function evaluate({
   //    only fires on the few that are still hand-written.
   if (onPath) {
     for (const file of changed) {
+      // A generated view that equals its generator's output was regenerated,
+      // not edited — and closure MUST regenerate it, because the view projects
+      // the status closure moves. Advising "regenerate rather than edit" over
+      // a regeneration made every honest closure carry an advisory it could
+      // only dispose by attesting it at a candidate where it never fired
+      // (greenfield pilot, 2026-09-01). `derived-view` still blocks the
+      // hand-edited case, and this advisory still names it.
+      if (file === ACTIVE_FILE && derivedViewCurrent === true) continue
       if (SINGLE_TRUTH.includes(file)) {
         add('advisory', 'single-truth',
           `${file} is generated or shared — regenerate it (npm run cairn-active) rather than editing it by hand, or say in the ledger why this edit is deliberate.`)
@@ -1957,7 +1971,7 @@ export function evaluate({
   if (sourceChanged.length > 0) {
     if (touched(slash(MODULE_DIR)).length === 0) {
       add('blocking', 'same-work-unit',
-        'source changed but no module note did — code, tests, docs and the ledger land in ONE work unit (bedrock 22 step 9)')
+        'source changed but no module note did — code, tests, docs and the ledger land in ONE work unit')
     }
     if (touched(`${PATH_DIR}/`).length === 0) {
       add('blocking', 'same-work-unit',
@@ -1984,7 +1998,8 @@ export function evaluate({
     const declared = match?.writes ?? []
     if (declared.length > 0) {
       const drift = changed.filter(
-        (file) => !matchesAny(file, declared) && !file.startsWith(`${PATH_DIR}/`)
+        (file) => !matchesAny(file, declared) && !file.startsWith(`${PATH_DIR}/`) &&
+          !isLifecycleRecord(file, match?.front?.id)
       )
       if (drift.length > 0) {
         const previousWrites = previousFronts.get(`${match.file}::writes`)
@@ -2202,7 +2217,12 @@ export function evaluate({
 
   // 9b. closure moves fields, not files ----------------------------------
   if (onPath && match && CLOSED_STATUSES.includes(match.front.status)) {
-    const previous = previousFronts.get(match.file)
+    // Against the record AT THE CANDIDATE, not the trunk's copy. Acceptance
+    // was measured against C; the trunk holds the record as it was registered,
+    // and every field that legitimately moved while the path ran — a widened
+    // `writes:`, the current step — read as a closure change (greenfield
+    // pilot, 2026-09-01). Without a readable candidate copy, fall back.
+    const previous = subjectFrontFor?.(match) ?? previousFronts.get(match.file)
     for (const error of closureFieldErrors(previous, match.front)) {
       add('blocking', 'closure-surface', `${match.file}: ${error}`)
     }
@@ -2233,7 +2253,14 @@ export function evaluate({
   if (onPath && match && CLOSED_STATUSES.includes(match.front.status)) {
     const id = String(match.front.id ?? '')
     const record = closureFor?.(id)
-    const raised = [...new Set(findings.filter((f) => f.level === 'advisory').map((f) => f.rule))]
+    // `A ⊂ C` holds for advisories about the WORK. It does not hold for an
+    // advisory the closing record itself causes: `role-collapse` needs a
+    // closing record to exist, so it fires at A and never at C, and requiring
+    // it in the set attested AT C demanded a false attestation (greenfield
+    // pilot, 2026-09-01). It stays visible in every run; it is not disposed.
+    const raised = [...new Set(findings
+      .filter((f) => f.level === 'advisory' && !CLOSURE_RAISED_ADVISORIES.has(f.rule))
+      .map((f) => f.rule))]
     if (record && !migrationExempt.has(id)) {
       for (const error of dispositionErrors(
         record.advisory_disposition, record.advisories_at_candidate, raised
@@ -2371,12 +2398,18 @@ function gitRaw(args) {
 }
 
 function changedFiles(base) {
+  // --untracked-files=all, because without it Git lists a NEW DIRECTORY as one
+  // entry and none of the files inside it. A born-sliced path record is born
+  // in a new folder, so at registration the record itself was invisible to
+  // every rule keyed on the changed set: the greenfield pilot (2026-09-01)
+  // removed the opening acceptance, ran the gate on the untracked tree and
+  // read OK; staging the same tree read FAILED on `opening-ceremony`.
   // -z on BOTH halves: the readable forms C-quote any path with a space or a
   // non-ASCII byte, and a quoted path matches no glob and no guarded root (see
   // porcelainPaths). The --base half is the one CI runs, so it had the same
   // hole. NUL separation also removes the "is a newline in this name?" question
   // rather than answering it.
-  const working = porcelainPaths(gitRaw(['status', '--porcelain', '-z']))
+  const working = porcelainPaths(gitRaw(['status', '--porcelain', '-z', '--untracked-files=all']))
   if (base) {
     const merge = git(['merge-base', base, 'HEAD'])
     const committed = gitRaw(['diff', '--name-only', '-z', `${merge}..HEAD`]).split('\0')
@@ -2447,6 +2480,30 @@ function pathRegistrationBaseState(trunkRef, branch, paths) {
   return parent === declared ? 'match' : 'mismatch'
 }
 
+/** Advisories the closure itself raises, which therefore cannot have been
+ *  raised at the candidate and are not part of the attested set:
+ *  `role-collapse` needs the closing record to exist, and `remote-checkpoint`
+ *  at A is about the closure commit's own push state — the documented order
+ *  commits A, runs the gate, then pushes, so it fires at every honest closure
+ *  (greenfield pilot, 2026-09-01). Both stay visible; neither is disposed. */
+export const CLOSURE_RAISED_ADVISORIES = new Set(['role-collapse', 'remote-checkpoint'])
+
+/** The records the lifecycle itself requires a path to write — its opening
+ *  and closing acceptance, its coherence audit, its journal entry and its
+ *  handoff brief. They are outputs of the protocol, not of the work, so a
+ *  `writes:` declaration that omits them is not stale. Before this, every
+ *  closure raised `scope-drift` on its own audit and closing record, and the
+ *  attestation rule then demanded that advisory be attested as raised at the
+ *  candidate, where it never was (greenfield pilot, 2026-09-01). */
+export function isLifecycleRecord(file, pathId) {
+  const id = String(pathId ?? '').toLowerCase()
+  if (!id || !file) return false
+  if (file === `${BRIEF_DIR}/${id}-handoff.md`) return true
+  const name = String(file).split('/').at(-1)
+  return [SESSION_DIR, AUDIT_DIR, JOURNAL_DIR].some((dir) => file.startsWith(`${dir}/`)) &&
+    name.includes(id)
+}
+
 function closureAllowedFiles(path, record) {
   const id = String(path.front?.id ?? '').toLowerCase()
   const subject = String(record?.subject_commit ?? '')
@@ -2456,7 +2513,17 @@ function closureAllowedFiles(path, record) {
     `${AUDIT_DIR}/${id}-${subject}.md`,
     record?.__file
   ].filter(Boolean))
-  if (path.front?.status === 'done') exact.add(ACTIVE_FILE)
+  // The live view is DERIVED from the record's status, so a closure that
+  // moves the status must regenerate it — `derived-view` blocks otherwise.
+  // Admitting it only at `done` made `ready` unreachable: the view was stale
+  // and regenerating it was "implementation after acceptance" (greenfield
+  // pilot, 2026-09-01). A generated projection is never implementation.
+  exact.add(ACTIVE_FILE)
+  // A born-sliced record's folder log is the readable history of the record
+  // itself, appended in the same unit as every change to it; closure is one.
+  if (path.file.endsWith('/index.md')) {
+    exact.add(`${path.file.slice(0, -'/index.md'.length)}/log.md`)
+  }
   const journal = new RegExp(
     `^${JOURNAL_DIR.replace(/[.*+?^\${}()|[\]\\]/g, '\\$&')}/\\d{4}-\\d{2}-\\d{2}-${id.replace(/[.*+?^\${}()|[\]\\]/g, '\\$&')}\\.md$`
   )
@@ -2488,14 +2555,23 @@ function pathClosureState(path, record) {
     return { subjectIsAncestor: false, commitsAfterSubject: 0, forbiddenFiles: [] }
   }
 
-  const count = Number(gitOrNull(['rev-list', '--count', `${subject}..HEAD`]))
-  const files = gitRaw(['diff', '--name-only', '-z', `${subject}..HEAD`])
-    .split('\0')
-    .filter(Boolean)
+  // The closure commit is prepared in the working tree BEFORE it exists, and
+  // the protocol requires the gate to run before that commit. An uncommitted
+  // closure therefore counts as the pending administrative commit, and its
+  // files are judged. The committed-only diff never judged them: the
+  // pre-commit run at A saw zero commits and an empty file list, so it blocked
+  // on the count while checking nothing (greenfield pilot, 2026-09-01).
+  const pending = porcelainPaths(gitRaw(['status', '--porcelain', '-z', '--untracked-files=all']))
+  const committed = Number(gitOrNull(['rev-list', '--count', `${subject}..HEAD`]))
+  const count = Number.isFinite(committed) ? committed + (pending.length > 0 ? 1 : 0) : null
+  const files = [...new Set([
+    ...gitRaw(['diff', '--name-only', '-z', `${subject}..HEAD`]).split('\0'),
+    ...pending
+  ])].filter(Boolean)
   const allowed = closureAllowedFiles(path, record)
   return {
     subjectIsAncestor: true,
-    commitsAfterSubject: Number.isFinite(count) ? count : null,
+    commitsAfterSubject: count,
     forbiddenFiles: files.filter((file) => !allowed(file))
   }
 }
@@ -2525,7 +2601,7 @@ function verbatimRelocations(ref) {
   // with -z emits the NEW path in the record and the ORIGINAL in the next field
   // — the opposite order from `diff --name-status`, and reading it the other way
   // round finds nothing and says so silently.
-  const working = String(gitRaw(['status', '--porcelain', '-z'])).split('\0')
+  const working = String(gitRaw(['status', '--porcelain', '-z', '--untracked-files=all'])).split('\0')
   for (let i = 0; i < working.length; i += 1) {
     const record = working[i]
     if (!record || record.length <= 3 || !record.slice(0, 2).includes('R')) continue
@@ -2612,7 +2688,7 @@ function appendOnlyStepRecordMutations(files) {
 
 function immutableRecordMutations(ref, changed = []) {
   if (!ref || !gitOrNull(['rev-parse', '--verify', ref])) return null
-  const working = porcelainMutations(gitRaw(['status', '--porcelain', '-z']))
+  const working = porcelainMutations(gitRaw(['status', '--porcelain', '-z', '--untracked-files=all']))
   const committed = nameStatusMutations(gitRaw([
     'diff', '--diff-filter=MDRTUXB', '--name-status', '-z', `${ref}..HEAD`
   ]))
@@ -2680,9 +2756,13 @@ function pathRegistrationState(trunkRef, branch, paths) {
   // never registered at all (CP-OPS-002 S08l).
   for (const candidate of [`${PATH_DIR}/${id}.md`, `${PATH_DIR}/${id}/index.md`]) {
     try {
+      // stderr piped: the first shape tried is usually absent, and Git's
+      // `fatal: path ... does not exist` above an OK verdict teaches people to
+      // ignore the output (greenfield pilot, 2026-09-01).
       const text = execFileSync('git', ['show', `${trunkRef}:${candidate}`], {
         cwd: REPO,
-        encoding: 'utf8'
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe']
       })
       if (registrationMatches(text, id, branch, match.front.base_commit)) return 'registered'
     } catch {
@@ -2707,6 +2787,17 @@ function pathRegistrationState(trunkRef, branch, paths) {
  *  restricted runner would turn a protocol failure into a protocol pass. The
  *  ref is written locally and pushed in the same breath; `remote-checkpoint`
  *  already carries the separate, advisory question of what the remote has. */
+/** The path record as it stood at its accepted candidate — the baseline a
+ *  closure commit is allowed to differ from. `undefined` when there is no
+ *  candidate or its copy cannot be read, so the caller can fall back. */
+function subjectFrontOf(path) {
+  const subject = path?.front?.subject_commit
+  if (!isObjectId(subject)) return undefined
+  const text = gitOrNull(['show', `${subject}:${path.file}`])
+  if (text == null) return undefined
+  return metadataOf(readFrontmatter(text)?.data) ?? undefined
+}
+
 /** The digest of the text a `scope_ref` actually resolves to, right now.
  *  `undefined` means the reference could not be read at all — inconclusive,
  *  never a pass. `null` means the file exists and names no such section. */
@@ -3154,7 +3245,20 @@ function branchAges(paths) {
 
 /** Schema + link integrity over the whole corpus, not just the diff: these
  *  are cheap and catching them late is the expensive part. */
-function corpusFindings(branch, trunkRef = TRUNK_BRANCH, previousRef = null, changed = []) {
+/** Whether the generated live view equals what its generator produces now. */
+function activeViewCurrent() {
+  try {
+    execFileSync('node', [join(REPO, 'tools/cairn-active.mjs'), '--check'], {
+      cwd: REPO,
+      stdio: 'pipe'
+    })
+    return true
+  } catch {
+    return false
+  }
+}
+
+function corpusFindings(branch, trunkRef = TRUNK_BRANCH, previousRef = null, changed = [], viewCurrent = null) {
   const findings = []
   const corpus = loadPaths()
 
@@ -3227,12 +3331,7 @@ function corpusFindings(branch, trunkRef = TRUNK_BRANCH, previousRef = null, cha
   // what the exemption was protecting — and a path setting its own
   // `status: done` at closure is caught, which is what it was hiding, because
   // under self-merge that path IS the last writer of this view.
-  try {
-    execFileSync('node', [join(REPO, 'tools/cairn-active.mjs'), '--check'], {
-      cwd: REPO,
-      stdio: 'pipe'
-    })
-  } catch {
+  if (!(viewCurrent ?? activeViewCurrent())) {
     findings.push({
       level: 'blocking',
       rule: 'derived-view',
@@ -3333,6 +3432,25 @@ function corpusFindings(branch, trunkRef = TRUNK_BRANCH, previousRef = null, cha
 
 function main() {
   const argv = process.argv.slice(2)
+  if (argv.includes('--scope-digest')) {
+    // The digest a record carries is verified by `scopeDigestOf`, so it is
+    // produced by `scopeDigestOf`. The operations page used to hand the human
+    // a `sed | sha256sum` pipeline that included the next heading and omitted
+    // the algorithm prefix — a digest the gate rejected at closure as "the
+    // definition of done moved" (greenfield pilot, 2026-09-01).
+    const ref = argv[argv.indexOf('--scope-digest') + 1]
+    const digest = scopeDigestOf(ref)
+    if (digest === undefined) {
+      console.error(`cairn-check: cannot read ${ref ?? 'the scope_ref'} — pass <file>#<heading-anchor>`)
+      process.exit(1)
+    }
+    if (digest === null) {
+      console.error(`cairn-check: ${ref} names no such section`)
+      process.exit(1)
+    }
+    console.log(digest)
+    process.exit(0)
+  }
   const baseFlag = argv.includes('--base') ? argv[argv.indexOf('--base') + 1] : null
   const explicitPrevious = argv.includes('--previous')
     ? argv[argv.indexOf('--previous') + 1]
@@ -3353,6 +3471,7 @@ function main() {
     refExists: (ref) => gitOrNull(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]) != null
   })
   const changed = changedFiles(base)
+  const viewCurrent = activeViewCurrent()
   const paths = loadPaths()
   const pathForBranch = paths.find((path) => path.front?.branch === branch) ?? null
   const trunkRef = base ?? TRUNK_BRANCH
@@ -3366,7 +3485,7 @@ function main() {
   // adding blob is stable and appendOnlyStepRecordMutations follows it directly.
   const recordRef = explicitPrevious ? previousRef : comparisonRef(null, null)
   const findings = [
-    ...corpusFindings(branch, trunkRef, previousRef, changed),
+    ...corpusFindings(branch, trunkRef, previousRef, changed, viewCurrent),
     ...evaluate({
       changed,
       stateChanged,
@@ -3390,6 +3509,8 @@ function main() {
       // so the local default and the CI command see one set of added records.
       addedRecords: addedRecordDates(changed, comparisonRef(base, null)),
       scopeDigestFor: scopeDigestOf,
+      subjectFrontFor: subjectFrontOf,
+      derivedViewCurrent: viewCurrent,
       openingRecordFor: (id) => openingRecordFromSessions(loadSessions(), id),
       previousFronts: previousFrontStates(paths, previousRef),
       journalEntries: loadJournal(),

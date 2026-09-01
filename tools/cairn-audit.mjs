@@ -11,8 +11,9 @@
  * costs money, and needs credentials CI should not hold — so it must never be
  * the thing that fails a build. The split:
  *
- *   the AGENT produces the judgment    reads the rebased diff against bedrock,
- *                                      the ADRs, and the path's declared coverage
+ *   the AGENT produces the judgment    reads the candidate diff against the
+ *                                      architecture, the decision records, and
+ *                                      the path's declared coverage
  *   CI checks binding + completeness   a deterministic gate on a
  *                                      non-deterministic activity
  *   its verdict is not machine-judged  findings are disposed by the acceptor
@@ -76,7 +77,7 @@ different directions.
 ## What to read
 
 - the candidate diff for this branch, against the trunk it will land on
-- every bedrock page and ADR named in this path's documentation coverage
+- every architecture page and decision record named in this path's documentation coverage
 - the module area notes the diff touches
 - any OTHER path currently \`running\` that declares an overlapping surface
 

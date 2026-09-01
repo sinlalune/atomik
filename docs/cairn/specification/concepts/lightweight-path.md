@@ -46,6 +46,14 @@ closing record rather than in a separate audit file; and
 commit where the repository's transport can still bind acceptance to an exact
 id.
 
+**What the v0.2 reference checker actually grants: none of those three.** It
+reads opening acceptance only from a session record, requires a separate filled
+audit bound to the candidate, and requires exactly one administrative commit
+after it — on every route. The greenfield pilot (2026-09-01) ran the default
+route and wrote every record a full path writes. The reliefs above are the
+stated intent; the [conformance](./conformance.md) matrix records them as
+unimplemented.
+
 ### When the full route is required
 
 A path MUST use `route: full` when it changes the
