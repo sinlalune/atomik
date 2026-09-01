@@ -54,14 +54,21 @@ verification and the next action persist in files before the unit is called
 complete.
 
 Run relevant gates directly so their exit codes remain visible. Review the
-working tree, stage explicit paths, commit the coherent unit, push it immediately
-to its owning branch, and publish its append-only checkpoint-retention ref. A
-unit whose push or retention fails is implemented locally, not complete.
+working tree, stage explicit paths, commit the coherent unit, and push it
+immediately to its owning branch. Where the host declares
+`pathHistoryPolicy: retained`, also publish the unit's append-only
+checkpoint-retention ref; where it declares `forbidden` — the default — nothing
+is rewritten, so the branch already keeps the commit reachable and there is no
+ref to write. A unit whose push, or whose required retention, fails is
+implemented locally, not complete.
 
 When incomplete work is valuable enough to preserve, publish a marked
 [provisional commit](../concepts/provisional-commit.md). Do not call it a
-checkpoint or hand it off as the next completed unit. Fold every provisional
-commit before candidate acceptance.
+checkpoint or hand it off as the next completed unit. No provisional marker
+survives into the accepted candidate: under `pathHistoryPolicy: retained` each
+one is folded into the unit it was drafting before acceptance, and under
+`forbidden` — where folding is a rewrite and unavailable — it is superseded by
+the completed unit's own commit and stays in the history as what it was.
 
 ## Preserve one-writer safety
 
@@ -87,11 +94,11 @@ artifact, version and configuration before comparing the repository against it.
 
 ## Complete the session boundary
 
-Every completed, pushed and retained work unit is a safe chat boundary. Refresh
+Every completed and pushed work unit is a safe chat boundary. Refresh
 the [handoff brief](../concepts/handoff.md) in that same unit, then report:
 
 - the outcome rather than an activity list;
-- the exact remote commit and retention ref;
+- the exact remote commit, and its retention ref where the host retains;
 - the gate verdict, including known advisories;
 - the persisted next action and blockers;
 - whether the next step should run here or in a fresh session.
@@ -110,17 +117,17 @@ diverges. The registration unit contains no implementation.
 
 Closure binds one exact [implementation candidate](../concepts/implementation-candidate.md):
 
-1. fetch the trunk and retention namespace;
-2. retain all completed checkpoints;
-3. rebase and fold provisional work;
-4. run the complete gates on candidate `C`;
-5. record the [coherence audit](../concepts/coherence-audit.md) for `C`;
-6. obtain [closing acceptance](../concepts/closing-acceptance.md) for `C`;
-7. add only [administrative closure](../concepts/administrative-closure.md);
-8. check [acceptance drift](../concepts/acceptance-drift.md);
-9. integrate the accepted tree and verify the exact remote trunk commit;
-10. from another checkout, remove only the exact clean secondary worktree,
-    without force, while retaining the path branch.
+1. make the branch contain the current trunk tip — **merge the trunk in** on a
+   `forbidden` host; on a `retained` host fetch the retention namespace, retain
+   every completed checkpoint, then rebase and fold provisional work;
+2. run the complete gates on candidate `C`;
+3. record the [coherence audit](../concepts/coherence-audit.md) for `C`;
+4. obtain [closing acceptance](../concepts/closing-acceptance.md) for `C`;
+5. add only [administrative closure](../concepts/administrative-closure.md);
+6. check [acceptance drift](../concepts/acceptance-drift.md);
+7. integrate the accepted tree and verify the exact remote trunk commit;
+8. from another checkout, remove only the exact clean secondary worktree,
+   without force, while retaining the path branch.
 
 If implementation changes after acceptance, stop and produce a new candidate.
 If integration succeeds but local cleanup does not, report those outcomes

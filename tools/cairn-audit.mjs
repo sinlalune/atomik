@@ -67,7 +67,7 @@ ${METADATA_NAMESPACE}:
 
 # Coherence audit — ${pathId} @ ${subjectCommit.slice(0, 7)}
 
-Run after the rebase, before acceptance. The judgement in this record is not a
+Run on the exact candidate, before acceptance. The judgement in this record is not a
 machine verdict; its existence, completeness, and exact candidate binding are
 mechanical closure gates. Its job is to catch what deterministic checks cannot
 — two paths that each pass every rule and still pull the architecture in
@@ -75,7 +75,7 @@ different directions.
 
 ## What to read
 
-- the rebased diff for this branch
+- the candidate diff for this branch, against the trunk it will land on
 - every bedrock page and ADR named in this path's documentation coverage
 - the module area notes the diff touches
 - any OTHER path currently \`running\` that declares an overlapping surface

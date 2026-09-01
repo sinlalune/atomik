@@ -103,8 +103,13 @@ thing.
    is generated rather than asserted in drifting prose.
 9. The folder rename to the portable role name, which the loader makes real.
 10. `tools/cairn-new.mjs` — registration commit, gates and worktree in one
-    command. The trunk now requires a pull request, so it must open one; the
-    registration done by hand on 2026-08-31 is the worked example.
+    command. The registration done by hand on 2026-08-31 is the worked example.
+    An earlier revision of this item claimed the trunk requires a pull request;
+    it does not — `master` carries no branch protection, which is consistent with
+    the declared `ci` tier and with `transport.integration: manual-git`. Checked
+    identity and landed identity are equal because the tested merge commit is the
+    one pushed. Corrected at S08t rather than left as a claim about the host that
+    the host contradicts.
 11. `cairn-init` seed template and the ex-nihilo bootstrap prompt, scaffolding
     **tiers 0 and 1 only**: the validator, the config, the docs skeleton and the
     workflow file. No host configuration, no account, nothing to click.

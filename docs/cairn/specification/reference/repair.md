@@ -78,6 +78,11 @@ no longer resolve is worse than one that admits a gap.
 
 ## A retention ref was moved
 
+*(`pathHistoryPolicy: retained` only. A host that forbids rewriting has no
+retention refs to move; its equivalent failure is a rewritten published tip,
+which `path-history` blocks and whose repair is to restore the published commit
+and merge the trunk in rather than rebasing onto it.)*
+
 Every declared unit still resolves a ref, so the per-unit check reports nothing.
 The commit the ref used to name is the evidence.
 

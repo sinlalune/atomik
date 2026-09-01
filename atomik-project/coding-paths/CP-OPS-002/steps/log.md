@@ -18,6 +18,9 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-01
 
+- `S08t` sweeps the required-reading route, the repair/layout references, the CI
+  adapter and the audit template onto the declared policy, corrects a false claim
+  that the trunk requires a pull request, and adds the guard that holds them.
 - `S08s` lands `ADR-022`: the configuration declares a no-rewrite host, retention
   is disabled rather than deleted, and `path-history` blocks a rewritten
   published tip so the policy is a predicate rather than a claim.

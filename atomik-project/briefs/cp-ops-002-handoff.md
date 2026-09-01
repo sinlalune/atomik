@@ -6,8 +6,8 @@ atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: 4cb8ca1
-  checkpoint_unit: 38
+  checkpoint: e17c9c7
+  checkpoint_unit: 39
   checkpoint_pushed: true
   base_commit: 7aa3b1d
   trunk_seen: dfcd09d
@@ -58,7 +58,7 @@ now closed.** The last, `unretainedCheckpoints`, reported "nothing orphaned" onc
 the retained set stopped intersecting the branch — which is what the mandatory
 pre-merge rebase causes — and is repaired under `ADR-021`.
 
-**S08 so far — nineteen units.** Full records in the path file; what a resuming
+**S08 so far — twenty units.** Full records in the path file; what a resuming
 session needs from them:
 
 - The local gate defaults to the **trunk** base on a path branch (S08a).
@@ -171,6 +171,21 @@ session needs from them:
   supply their own), and the `rebase` rule's REMEDY was instructing the very
   operation `path-history` blocks — its id is kept because audits name it, and
   the remedy now follows the declared policy.
+
+- **The required-reading route outlived the decision** (S08t). S08s updated the
+  pages it was looking at and did not sweep, so the gate printed `path history
+  forbidden` while `paths.md` — required reading item 1 — still said "publish an
+  append-only retention ref" and "rebase on the current trunk". **Second
+  occurrence of the S08q shape**, so it ends in a predicate: `cairn-spec` now
+  requires every rewriting operation named in `paths.md`,
+  `execution-protocol.md`, `binding.md` or `AGENTS.md` to carry its governing
+  policy within 400 characters, and both portable route documents to name both
+  policies. The guard failed on first run against a sentence the sweep had
+  missed. What also binds a resuming session: **`master` carries NO branch
+  protection** — the `plan.md` claim that the trunk requires a pull request was
+  false and is corrected; integration is a direct push of the locally built and
+  locally tested merge commit, so checked identity equals landed identity by
+  construction, and no PR adapter is needed.
 
 The gate's advisory COUNT is a signal even while the verdict stays green: S08l
 read 14 before its commit and 31 after, for one tree, and the only reason to look
@@ -296,7 +311,7 @@ that ADDS a record.
 ## Verification
 
 `npm run cairn-check` — branch against trunk by default since S08a — reports OK.
-S08s records **13 advisories, and 13 is now the steady state**: concept growth,
+S08t records **13 advisories, and 13 is the steady state**: concept growth,
 nine grandfathered `CP-MVP-008` findings carrying their reason, and three
 accounted-for `single-truth` notes on shared/generated files. The
 `checkpoint-retention` notice that used to make it 14 before each unit's ref was
@@ -305,7 +320,7 @@ onward. A run reporting `base-parity` is NARROWED and is not recordable. A run r
 NARROWED, and one reporting an inconclusive `checkpoint-retention` has not
 fetched `refs/cairn/*`: neither is recordable.
 
-`npm run cairn-check:test` passes 242 subtests across six tool suites. `npm run cairn-spec:build`
+`npm run cairn-check:test` passes 243 subtests across six tool suites. `npm run cairn-spec:build`
 reproduces the checked-in HTML byte-for-byte; `npm run cairn-active` reports the
 running-path view current. `npm run typecheck`, `npm test` (1,109 passing, 1
 skipped) and `npm run build` all pass.

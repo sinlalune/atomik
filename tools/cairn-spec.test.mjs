@@ -562,6 +562,44 @@ test('cairn-spec: the seed teaches the shapes a new path is created in', () => {
   assert.match(layout, /derived, never stored/)
 })
 
+test('cairn-spec: required reading never teaches an operation the policy forbids', () => {
+  // S08q found the SEED teaching a superseded shape. S08t found the same fault
+  // in the required-reading route: the checker printed "path history forbidden"
+  // while the first document it sends a participant to still said "rebase on the
+  // current trunk". Fixing the pages was not enough twice running, so this holds
+  // them.
+  //
+  // The rule is not "never say rebase" — a portable protocol must document the
+  // `retained` host too. It is that a rewriting operation is never mentioned
+  // WITHOUT the policy that governs it nearby, because an unconditional
+  // instruction is what a reader follows.
+  const route = {
+    'paths.md': readFileSync(PATH_CONVENTION, 'utf8'),
+    'execution-protocol.md': readFileSync(EXECUTION, 'utf8'),
+    'binding.md': readFileSync(HOST_BINDING, 'utf8'),
+    'AGENTS.md': readFileSync(BOOTLOADER, 'utf8')
+  }
+
+  const rewriting = /rebase|force-push|--force|reset --soft|\bfold(?:ed|ing)?\b/gi
+  const policy = /pathHistoryPolicy|`?forbidden`?|`?retained`?|ADR-022|no-rewrite|not rewritten|never rewritten/i
+
+  for (const [name, source] of Object.entries(route)) {
+    for (const match of source.matchAll(rewriting)) {
+      const from = Math.max(0, match.index - 400)
+      const context = source.slice(from, match.index + 400)
+      assert.ok(policy.test(context),
+        `${name} mentions "${match[0]}" with no governing policy nearby — a reader takes that as an instruction`)
+    }
+  }
+
+  // The two portable route documents must actually carry both policies, so a
+  // participant on either host finds their own sequence rather than inferring it.
+  for (const name of ['paths.md', 'execution-protocol.md']) {
+    assert.match(route[name], /forbidden/, name + ' must name the default policy')
+    assert.match(route[name], /retained/, name + ' must name the alternative')
+  }
+})
+
 test('cairn-spec: each concept is one indexed Markdown article', () => {
   const files = readdirSync(CONCEPTS).filter((name) => name.endsWith('.md')).sort()
   const concepts = files.filter((name) => name !== 'index.md')

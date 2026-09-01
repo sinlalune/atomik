@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-002
   route: full            # control plane + decision plane; escalation is one-way
   status: running
-  current_step: S08s
+  current_step: S08t
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
   writes:                    # ADVISORY — a signal, never a lock
@@ -157,6 +157,7 @@ written where it lives from the moment it is worked.
 - **[S08q](./steps/S08q.md)** — The seed teaches the shape the protocol states — COMPLETE
 - **[S08r](./steps/S08r.md)** — The rebase is the cause, so the rebase goes — COMPLETE
 - **[S08s](./steps/S08s.md)** — Rewriting stops, and the policy becomes a predicate — COMPLETE
+- **[S08t](./steps/S08t.md)** — The required-reading route stops teaching the forbidden operation — COMPLETE
 
 Forward steps — **S08** (in progress) and **S09** — are in [plan.md](./plan.md).
 

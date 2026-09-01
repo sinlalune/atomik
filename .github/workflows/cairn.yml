@@ -80,6 +80,13 @@ jobs:
       # such namespace to fetch, and that is not a CI failure. The checker
       # decides what an empty namespace means — the fetch only makes sure the
       # question is asked with the evidence available.
+      #
+      # This repository now declares `pathHistoryPolicy: forbidden` (ADR-022), so
+      # it writes no retention refs and the checker does not read them. The step
+      # STAYS: it is harmless when the namespace is empty, it keeps this workflow
+      # correct as the adapter a `retained` host copies, and removing it is how a
+      # host that later switches back gets a green CI run over an unfetched
+      # namespace — the exact S08b failure, reintroduced by a cleanup.
       - name: fetch the checkpoint retention namespace
         run: git fetch origin '+refs/cairn/*:refs/cairn/*' || true
       - uses: actions/setup-node@v4

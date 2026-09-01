@@ -70,6 +70,7 @@ born here, one complete record per step.
 - **[S08q](./S08q.md)** — The seed teaches the shape the protocol states — COMPLETE
 - **[S08r](./S08r.md)** — The rebase is the cause, so the rebase goes — COMPLETE
 - **[S08s](./S08s.md)** — Rewriting stops, and the policy becomes a predicate — COMPLETE
+- **[S08t](./S08t.md)** — The required-reading route stops teaching the forbidden operation — COMPLETE
 
 ## Which commit landed which step
 

@@ -149,7 +149,7 @@ atomik:
 
 ## What to read
 
-- the rebased diff for this branch
+- the candidate diff for this branch, against the trunk it will land on
 
 ## Findings
 

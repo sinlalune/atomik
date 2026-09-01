@@ -210,6 +210,12 @@ working tree and outside every directory listing:
 refs/cairn/checkpoints/<path-id>/g<NN>/<n>
 ```
 
+**This namespace exists only where the host declares
+`pathHistoryPolicy: retained`.** Under `forbidden` — the default
+([ADR-022](../../../adr/ADR-022-path-branches-are-not-rewritten.md)) — nothing is
+rewritten, the branch itself keeps every ledger-named commit reachable, and this
+part of the tree is simply absent.
+
 Each ref pins one ledger-named checkpoint so that a rewriting push cannot orphan
 it. `<n>` is the ledger's own ordinal for that checkpoint. `g<NN>` is the
 [generation](../concepts/checkpoint-retention.md) — one linear version of the

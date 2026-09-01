@@ -9502,13 +9502,20 @@ readable by itself. Progress, corrections, rejected approaches, widening,
 verification and the next action persist in files before the unit is called
 complete.</p>
 <p>Run relevant gates directly so their exit codes remain visible. Review the
-working tree, stage explicit paths, commit the coherent unit, push it immediately
-to its owning branch, and publish its append-only checkpoint-retention ref. A
-unit whose push or retention fails is implemented locally, not complete.</p>
+working tree, stage explicit paths, commit the coherent unit, and push it
+immediately to its owning branch. Where the host declares
+<code>pathHistoryPolicy: retained</code>, also publish the unit’s append-only
+checkpoint-retention ref; where it declares <code>forbidden</code> — the default — nothing
+is rewritten, so the branch already keeps the commit reachable and there is no
+ref to write. A unit whose push, or whose required retention, fails is
+implemented locally, not complete.</p>
 <p>When incomplete work is valuable enough to preserve, publish a marked
 <a href="#article-concept-provisional-commit" data-article="concept-provisional-commit" data-anchor="" class="wiki-link">provisional commit</a>. Do not call it a
-checkpoint or hand it off as the next completed unit. Fold every provisional
-commit before candidate acceptance.</p>
+checkpoint or hand it off as the next completed unit. No provisional marker
+survives into the accepted candidate: under <code>pathHistoryPolicy: retained</code> each
+one is folded into the unit it was drafting before acceptance, and under
+<code>forbidden</code> — where folding is a rewrite and unavailable — it is superseded by
+the completed unit’s own commit and stays in the history as what it was.</p>
 <h2 id="reference-execution-protocol--preserve-one-writer-safety" data-heading="preserve-one-writer-safety">Preserve one-writer safety</h2>
 <p>One writable worktree has one assigned writer. Other participants may inspect,
 diagnose and review it. Never overwrite, delete or absorb an unexpected dirty or
@@ -9525,11 +9532,11 @@ process hides the gate’s exit code.</p>
 <p>An externally reported experiment is evidence, not anecdote. Pin the exact
 artifact, version and configuration before comparing the repository against it.</p>
 <h2 id="reference-execution-protocol--complete-the-session-boundary" data-heading="complete-the-session-boundary">Complete the session boundary</h2>
-<p>Every completed, pushed and retained work unit is a safe chat boundary. Refresh
+<p>Every completed and pushed work unit is a safe chat boundary. Refresh
 the <a href="#article-concept-handoff" data-article="concept-handoff" data-anchor="" class="wiki-link">handoff brief</a> in that same unit, then report:</p>
 <ul>
 <li>the outcome rather than an activity list;</li>
-<li>the exact remote commit and retention ref;</li>
+<li>the exact remote commit, and its retention ref where the host retains;</li>
 <li>the gate verdict, including known advisories;</li>
 <li>the persisted next action and blockers;</li>
 <li>whether the next step should run here or in a fresh session.</li>
@@ -9545,9 +9552,9 @@ declaration and live view reach the trunk before the implementation branch
 diverges. The registration unit contains no implementation.</p>
 <p>Closure binds one exact <a href="#article-concept-implementation-candidate" data-article="concept-implementation-candidate" data-anchor="" class="wiki-link">implementation candidate</a>:</p>
 <ol>
-<li>fetch the trunk and retention namespace;</li>
-<li>retain all completed checkpoints;</li>
-<li>rebase and fold provisional work;</li>
+<li>make the branch contain the current trunk tip — <strong>merge the trunk in</strong> on a
+<code>forbidden</code> host; on a <code>retained</code> host fetch the retention namespace, retain
+every completed checkpoint, then rebase and fold provisional work;</li>
 <li>run the complete gates on candidate <code>C</code>;</li>
 <li>record the <a href="#article-concept-coherence-audit" data-article="concept-coherence-audit" data-anchor="" class="wiki-link">coherence audit</a> for <code>C</code>;</li>
 <li>obtain <a href="#article-concept-closing-acceptance" data-article="concept-closing-acceptance" data-anchor="" class="wiki-link">closing acceptance</a> for <code>C</code>;</li>
@@ -10735,6 +10742,10 @@ Ledger entries naming commits that cannot be recovered are marked
 <code>unrecoverable</code> — never deleted. A ledger that quietly loses the entries it can
 no longer resolve is worse than one that admits a gap.</p>
 <h2 id="reference-repair--a-retention-ref-was-moved" data-heading="a-retention-ref-was-moved">A retention ref was moved</h2>
+<p><em>(<code>pathHistoryPolicy: retained</code> only. A host that forbids rewriting has no
+retention refs to move; its equivalent failure is a rewritten published tip,
+which <code>path-history</code> blocks and whose repair is to restore the published commit
+and merge the trunk in rather than rebasing onto it.)</em></p>
 <p>Every declared unit still resolves a ref, so the per-unit check reports nothing.
 The commit the ref used to name is the evidence.</p>
 <pre><code class="language-bash">git for-each-ref refs/cairn/checkpoints/cp-example-001
@@ -11132,6 +11143,11 @@ one shared record.</p>
 working tree and outside every directory listing:</p>
 <pre><code class="language-text">refs/cairn/checkpoints/&lt;path-id&gt;/g&lt;NN&gt;/&lt;n&gt;
 </code></pre>
+<p><strong>This namespace exists only where the host declares
+<code>pathHistoryPolicy: retained</code>.</strong> Under <code>forbidden</code> — the default
+(<a href="../../../adr/ADR-022-path-branches-are-not-rewritten.md">ADR-022</a>) — nothing is
+rewritten, the branch itself keeps every ledger-named commit reachable, and this
+part of the tree is simply absent.</p>
 <p>Each ref pins one ledger-named checkpoint so that a rewriting push cannot orphan
 it. <code>&lt;n&gt;</code> is the ledger’s own ordinal for that checkpoint. <code>g&lt;NN&gt;</code> is the
 <a href="#article-concept-checkpoint-retention" data-article="concept-checkpoint-retention" data-anchor="" class="wiki-link">generation</a> — one linear version of the
@@ -16937,13 +16953,20 @@ readable by itself. Progress, corrections, rejected approaches, widening,
 verification and the next action persist in files before the unit is called
 complete.</p>
 <p>Run relevant gates directly so their exit codes remain visible. Review the
-working tree, stage explicit paths, commit the coherent unit, push it immediately
-to its owning branch, and publish its append-only checkpoint-retention ref. A
-unit whose push or retention fails is implemented locally, not complete.</p>
+working tree, stage explicit paths, commit the coherent unit, and push it
+immediately to its owning branch. Where the host declares
+<code>pathHistoryPolicy: retained</code>, also publish the unit’s append-only
+checkpoint-retention ref; where it declares <code>forbidden</code> — the default — nothing
+is rewritten, so the branch already keeps the commit reachable and there is no
+ref to write. A unit whose push, or whose required retention, fails is
+implemented locally, not complete.</p>
 <p>When incomplete work is valuable enough to preserve, publish a marked
 <a href="#article-concept-provisional-commit" data-article="concept-provisional-commit" data-anchor="" class="wiki-link">provisional commit</a>. Do not call it a
-checkpoint or hand it off as the next completed unit. Fold every provisional
-commit before candidate acceptance.</p>
+checkpoint or hand it off as the next completed unit. No provisional marker
+survives into the accepted candidate: under <code>pathHistoryPolicy: retained</code> each
+one is folded into the unit it was drafting before acceptance, and under
+<code>forbidden</code> — where folding is a rewrite and unavailable — it is superseded by
+the completed unit’s own commit and stays in the history as what it was.</p>
 <h2 id="reference-execution-protocol--preserve-one-writer-safety" data-heading="preserve-one-writer-safety">Preserve one-writer safety</h2>
 <p>One writable worktree has one assigned writer. Other participants may inspect,
 diagnose and review it. Never overwrite, delete or absorb an unexpected dirty or
@@ -16960,11 +16983,11 @@ process hides the gate’s exit code.</p>
 <p>An externally reported experiment is evidence, not anecdote. Pin the exact
 artifact, version and configuration before comparing the repository against it.</p>
 <h2 id="reference-execution-protocol--complete-the-session-boundary" data-heading="complete-the-session-boundary">Complete the session boundary</h2>
-<p>Every completed, pushed and retained work unit is a safe chat boundary. Refresh
+<p>Every completed and pushed work unit is a safe chat boundary. Refresh
 the <a href="#article-concept-handoff" data-article="concept-handoff" data-anchor="" class="wiki-link">handoff brief</a> in that same unit, then report:</p>
 <ul>
 <li>the outcome rather than an activity list;</li>
-<li>the exact remote commit and retention ref;</li>
+<li>the exact remote commit, and its retention ref where the host retains;</li>
 <li>the gate verdict, including known advisories;</li>
 <li>the persisted next action and blockers;</li>
 <li>whether the next step should run here or in a fresh session.</li>
@@ -16980,9 +17003,9 @@ declaration and live view reach the trunk before the implementation branch
 diverges. The registration unit contains no implementation.</p>
 <p>Closure binds one exact <a href="#article-concept-implementation-candidate" data-article="concept-implementation-candidate" data-anchor="" class="wiki-link">implementation candidate</a>:</p>
 <ol>
-<li>fetch the trunk and retention namespace;</li>
-<li>retain all completed checkpoints;</li>
-<li>rebase and fold provisional work;</li>
+<li>make the branch contain the current trunk tip — <strong>merge the trunk in</strong> on a
+<code>forbidden</code> host; on a <code>retained</code> host fetch the retention namespace, retain
+every completed checkpoint, then rebase and fold provisional work;</li>
 <li>run the complete gates on candidate <code>C</code>;</li>
 <li>record the <a href="#article-concept-coherence-audit" data-article="concept-coherence-audit" data-anchor="" class="wiki-link">coherence audit</a> for <code>C</code>;</li>
 <li>obtain <a href="#article-concept-closing-acceptance" data-article="concept-closing-acceptance" data-anchor="" class="wiki-link">closing acceptance</a> for <code>C</code>;</li>
@@ -18150,6 +18173,10 @@ Ledger entries naming commits that cannot be recovered are marked
 <code>unrecoverable</code> — never deleted. A ledger that quietly loses the entries it can
 no longer resolve is worse than one that admits a gap.</p>
 <h2 id="reference-repair--a-retention-ref-was-moved" data-heading="a-retention-ref-was-moved">A retention ref was moved</h2>
+<p><em>(<code>pathHistoryPolicy: retained</code> only. A host that forbids rewriting has no
+retention refs to move; its equivalent failure is a rewritten published tip,
+which <code>path-history</code> blocks and whose repair is to restore the published commit
+and merge the trunk in rather than rebasing onto it.)</em></p>
 <p>Every declared unit still resolves a ref, so the per-unit check reports nothing.
 The commit the ref used to name is the evidence.</p>
 <pre><code class="language-bash">git for-each-ref refs/cairn/checkpoints/cp-example-001
@@ -18543,6 +18570,11 @@ one shared record.</p>
 working tree and outside every directory listing:</p>
 <pre><code class="language-text">refs/cairn/checkpoints/&lt;path-id&gt;/g&lt;NN&gt;/&lt;n&gt;
 </code></pre>
+<p><strong>This namespace exists only where the host declares
+<code>pathHistoryPolicy: retained</code>.</strong> Under <code>forbidden</code> — the default
+(<a href="../../../adr/ADR-022-path-branches-are-not-rewritten.md">ADR-022</a>) — nothing is
+rewritten, the branch itself keeps every ledger-named commit reachable, and this
+part of the tree is simply absent.</p>
 <p>Each ref pins one ledger-named checkpoint so that a rewriting push cannot orphan
 it. <code>&lt;n&gt;</code> is the ledger’s own ordinal for that checkpoint. <code>g&lt;NN&gt;</code> is the
 <a href="#article-concept-checkpoint-retention" data-article="concept-checkpoint-retention" data-anchor="" class="wiki-link">generation</a> — one linear version of the

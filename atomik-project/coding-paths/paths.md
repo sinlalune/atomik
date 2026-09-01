@@ -103,15 +103,32 @@ In one coherent unit:
 5. run every relevant gate bare;
 6. review status and stage explicit paths;
 7. commit and immediately push to the path branch;
-8. publish an append-only retention ref for the unit.
+8. on a `retained` host only, publish an append-only retention ref for the unit.
 
 If the push fails, report the unit as implemented locally, not complete.
 Incomplete but valuable work is published as a marked provisional commit; it is
-not a completed checkpoint and is folded before candidate acceptance.
+never a completed checkpoint.
 
-## Retain every completed checkpoint
+## Keep every completed checkpoint reachable
 
-Every `cairn-unit` ordinal is pinned under:
+**Which mechanism applies is declared by the host**, as `pathHistoryPolicy` in
+its configuration. The gate prints it with every ordinary verdict, so a
+participant never has to guess which of the two sequences below is theirs.
+
+### `forbidden` — the default
+
+A published path branch is never rewritten: no rebase, no amend, no
+`reset --soft` fold, no force-push
+([ADR-022](../../docs/adr/ADR-022-path-branches-are-not-rewritten.md)). Every
+commit keeps the object id it was verified as, so **the branch itself keeps every
+checkpoint the ledger names reachable**, and after a `--no-ff` integration merge
+the trunk keeps them permanently. There is no namespace to write and none to
+fetch. A provisional commit is superseded by the completed unit's commit and
+stays in the history as what it was.
+
+### `retained`
+
+The branch may be rewritten, so every `cairn-unit` ordinal is pinned first, under:
 
 ```text
 refs/cairn/checkpoints/<lowercase-path-id>/g<NN>/<unit>
@@ -125,7 +142,7 @@ unfetched empty listing is missing evidence, not evidence of absence.
 
 ## Treat every pushed unit as a session boundary
 
-After a unit is pushed and retained, report its remote commit, gate verdict and
+After a unit is pushed, report its remote commit, gate verdict and
 persisted next action. Proactively offer a fresh session. This ends a chat, not
 the still-running path.
 
@@ -148,9 +165,12 @@ implementation candidate C
   -> integration of the accepted tree
 ```
 
-Before producing `C`, fetch the trunk and retention namespace, retain every
-completed unit, rebase on the current trunk, fold provisional commits, and rerun
-all gates. If implementation changes after acceptance, produce a new candidate
+Before producing `C`, make the branch contain the current trunk tip and rerun
+all gates. On a `forbidden` host that means fetching the trunk and **merging it
+into the branch**; on a `retained` host it means fetching the trunk and retention
+namespace, retaining every completed unit, rebasing onto the trunk and folding
+provisional commits. Either way the branch ends up containing the trunk tip,
+which is the property that serializes the merge without an integrator. If implementation changes after acceptance, produce a new candidate
 and repeat audit and acceptance.
 
 The path branch does not claim `done` for itself. The integration unit records

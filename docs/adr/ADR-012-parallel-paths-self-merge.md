@@ -17,6 +17,7 @@ Date: 2026-08-15
 Amended: 2026-08-20 (register accepted paths on the trunk before branching)
 Amended: 2026-08-24 (remote checkpoint and fresh-session boundary per step)
 Amended: 2026-08-24 (verified post-merge cleanup of the path worktree)
+Amended: 2026-09-01 by [ADR-022](./ADR-022-path-branches-are-not-rewritten.md) — the rebase gate keeps its REQUIREMENT, that the branch contain the trunk tip, and loses its operation: a no-rewrite host reaches that state by merging the trunk in
 Amends: ADR-009 (durable coding paths, work ledger, dual-plane repository)
 
 ## Context
