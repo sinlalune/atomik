@@ -424,7 +424,7 @@ repository/
 Cairn also claims one ref namespace outside the working tree:
 
 ```text
-refs/cairn/checkpoints/<path-id>/<n>
+refs/cairn/checkpoints/<path-id>/g<NN>/<n>
 ```
 
 These [retention refs](./concepts/checkpoint-retention.md) keep every checkpoint
@@ -601,7 +601,7 @@ commit a work unit produces does not exist while the unit is being written, so a
 block naming its own object id could never be written truthfully — the same
 self-reference that [administrative closure](./concepts/administrative-closure.md)
 solves with a following commit. The ordinal is knowable in advance, and
-`refs/cairn/checkpoints/<path-id>/<unit>` supplies the object id afterwards. The
+`refs/cairn/checkpoints/<path-id>/g<NN>/<unit>` supplies the object id afterwards. The
 ledger says which unit; the ref says which commit; neither has to lie about the
 other.
 

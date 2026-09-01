@@ -6,8 +6,8 @@ atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: 75e4bb7ac71dec235821f15194b8256f38926d5b
-  checkpoint_unit: 35
+  checkpoint: e786ecc301079ec22d758bc91f91111aba0423d6
+  checkpoint_unit: 36
   checkpoint_pushed: true
   base_commit: 7aa3b1d
   trunk_seen: dfcd09d
@@ -58,7 +58,7 @@ now closed.** The last, `unretainedCheckpoints`, reported "nothing orphaned" onc
 the retained set stopped intersecting the branch — which is what the mandatory
 pre-merge rebase causes — and is repaired under `ADR-021`.
 
-**S08 so far — sixteen units.** Full records in the path file; what a resuming
+**S08 so far — seventeen units.** Full records in the path file; what a resuming
 session needs from them:
 
 - The local gate defaults to the **trunk** base on a path branch (S08a).
@@ -131,6 +131,17 @@ session needs from them:
   schema migrations, installation/update, generated adapters, public extraction
   and `cairn-init` remain open. The concept root is bound now; its pedagogical
   index and template are initializer work, not implied by a path.
+- **The seed taught a shape the specification had already superseded** (S08q).
+  Canonical text moved to born-sliced records and generation-aware retention;
+  the pages an adopter copies from — layout, operations, repair, template — did
+  not, and two flat notations survived inside the canonical index. Same
+  substitution as every earlier finding, one plane up: not a predicate reading a
+  proxy, but a **seed** teaching a superseded shape, invisible until an adopter
+  owns it. Reconciling it is a PREREQUISITE of `cairn-init`, not a tidy-up
+  beside it. What binds a resuming session: **the flat record and pre-notation
+  refs stay conforming**, and every changed page says so — this unit changed
+  what a new path is CREATED in, never what an existing repository must become;
+  and the new seed test checks **documentation currency, not repository state**.
 
 The gate's advisory COUNT is a signal even while the verdict stays green: S08l
 read 14 before its commit and 31 after, for one tree, and the only reason to look
@@ -139,18 +150,20 @@ was that the number moved.
 Flat refs 01–28 and `g01/01`–`g01/35` on the remote; flat 01–13 hold PRE-rebase
 commits and no ref has ever been moved. `g01/32` and `g01/33` are recovery pins
 for the two pushed S08m repair commits that carried no new work-unit block.
-`g01/34` retains S08n and `g01/35` retains S08o. Checker and specification suite counts are recorded in
+`g01/34` retains S08n, `g01/35` retains S08o and `g01/36` retains S08p. Checker and specification suite counts are recorded in
 the latest step.
 
 ## Next action
 
-**ADR-020 stage 5, second unit: implement `cairn-init`.** Reconcile the seed
-references and templates with the accepted born-sliced path and
-generation-aware retention shapes, then make one transactional command install
-the PORTABLE / HOST / BINDING route, schema-1 config, reference tools, tier-1
-workflow, concept-wiki index and one-concept template. The seed also needs an
-explicit protocol-release identity/lock so a later public Cairn release can
-migrate an existing adopter instead of silently overwriting it. Stage 3's last
+**ADR-020 stage 5, second unit: implement `cairn-init`.** The seed is
+reconciled (S08q), so the initializer has one correct shape to scaffold. Make
+one transactional command install the PORTABLE / HOST / BINDING route, schema-1
+config, reference tools, tier-1 workflow, concept-wiki index and one-concept
+template — born-sliced records and generation-aware retention from the first
+commit. It also needs an explicit protocol-release identity/lock so a later
+public Cairn release can migrate an existing adopter instead of silently
+overwriting it, and it must honour forward-plan item 12: **extraction MOVES
+authority**; the portable protocol is never maintained by hand in two places. Stage 3's last
 operation — retire `ledger-size` — waits until `CP-MVP-008`, `CP-MVP-011` and
 `CP-MVP-012` migrate; the ADR makes its stages independent, so that wait does
 not block stage 5.
@@ -170,6 +183,15 @@ that ADDS a record.
 
 ## Tried and rejected
 
+- **A repository predicate for the born-sliced shape** (S08q). The obvious
+  companion to reconciling the seed, and wrong: the normative text says the flat
+  record STAYS conforming, so there is nothing to block on and a rule would
+  invent a requirement the specification declines to make. The guard added
+  instead holds the seed PAGES to the current shapes — documentation currency,
+  not repository state — and says so in its own comment.
+- **Writing `cairn-init` first and fixing the seed inside it** (S08q). It would
+  have compiled a superseded record shape and an ungenerated ref namespace into
+  the one artefact whose output an adopter can never retroactively correct.
 - **`remote_trunk == T` at integration.** Every landing would invalidate every
   other open acceptance; the drift predicate replaces it.
 - **A YAML dependency for the extended parser.** The control plane must install
@@ -244,15 +266,15 @@ that ADDS a record.
 ## Verification
 
 `npm run cairn-check` — branch against trunk by default since S08a — reports OK.
-Before the newest unit's ref can exist, S08p records 14 advisories: concept
+Before the newest unit's ref can exist, S08q records 14 advisories: concept
 growth, nine grandfathered `CP-MVP-008` findings carrying their reason, three
-accounted-for `single-truth` notes on shared/generated files, and unit 36's
-retention ref. Publishing `g01/36` removes only that last notice, so a correctly
+accounted-for `single-truth` notes on shared/generated files, and unit 37's
+retention ref. Publishing `g01/37` removes only that last notice, so a correctly
 fetched safe-boundary checkout reports 13. A run reporting `base-parity` is
 NARROWED, and one reporting an inconclusive `checkpoint-retention` has not
 fetched `refs/cairn/*`: neither is recordable.
 
-`npm run cairn-check:test` passes 238 subtests across six tool suites. `npm run cairn-spec:build`
+`npm run cairn-check:test` passes 239 subtests across six tool suites. `npm run cairn-spec:build`
 reproduces the checked-in HTML byte-for-byte; `npm run cairn-active` reports the
 running-path view current. `npm run typecheck`, `npm test` (1,109 passing, 1
 skipped) and `npm run build` all pass.

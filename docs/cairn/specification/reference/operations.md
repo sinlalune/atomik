@@ -12,6 +12,12 @@ These commands use the canonical defaults `main`, `origin`, and
 `path/cp-example-001`. Substitute validated bindings. Run gates directly; never
 pipe their verdict through another command.
 
+The examples write a [born-sliced](../index.md#put-one-bounded-change-on-a-coding-path)
+record — `CP-EXAMPLE-001/index.md` with one file per step under `steps/` — because
+that is the shape a new path should be created in. A flat `CP-EXAMPLE-001.md`
+stays conforming and every rule keys on the declared id, so a repository holding
+the older shape substitutes that one path and changes nothing else here.
+
 The manual sequence is normative while transactional `cairn-init`,
 `cairn-new`, and `cairn-close` commands remain unimplemented.
 
@@ -35,7 +41,7 @@ view:
 npm run cairn-active
 npm run cairn-check
 git status --short
-git add project/coding-paths/CP-EXAMPLE-001.md
+git add project/coding-paths/CP-EXAMPLE-001/
 git add project/coding-paths/ACTIVE.md
 git add project/sessions/YYYY-MM-DD-cp-example-001-opening.md
 git commit -m "Register CP-EXAMPLE-001 before branching"
@@ -77,7 +83,8 @@ git status --short
 git add path/to/implementation
 git add path/to/tests
 git add docs/modules/example.md
-git add project/coding-paths/CP-EXAMPLE-001.md
+git add project/coding-paths/CP-EXAMPLE-001/index.md
+git add project/coding-paths/CP-EXAMPLE-001/steps/S01.md
 git add project/briefs/cp-example-001-handoff.md
 git commit -m "CP-EXAMPLE-001 S01: coherent outcome"
 git push origin path/cp-example-001
@@ -89,15 +96,20 @@ The final command must exit zero before the step is called complete. Then record
 the checkpoint in the ledger and retain it:
 
 ```bash
-git update-ref refs/cairn/checkpoints/cp-example-001/01 HEAD
-git push origin refs/cairn/checkpoints/cp-example-001/01
+git update-ref refs/cairn/checkpoints/cp-example-001/g01/01 HEAD
+git push origin refs/cairn/checkpoints/cp-example-001/g01/01
 git for-each-ref refs/cairn/checkpoints/cp-example-001
 ```
 
-The ordinal is the `unit:` value in that entry's `cairn-unit` block. The local
-ref is what the gate reads — deliberately, so a restricted runner or an offline
-checkout cannot turn a protocol failure into a protocol pass. The push is what
-makes it survive the machine.
+The ordinal is the `unit:` value in that entry's `cairn-unit` block. `g01` is the
+first [generation](../concepts/checkpoint-retention.md), opened with the branch
+itself. Do not record the generation anywhere: it is derived by asking which
+numbered generation is highest while all of its refs remain ancestors of the
+branch tip, and a written-down copy is a claim ancestry already answers.
+
+The local ref is what the gate reads — deliberately, so a restricted runner or an
+offline checkout cannot turn a protocol failure into a protocol pass. The push is
+what makes it survive the machine.
 
 ## Publish incomplete work
 
@@ -134,9 +146,13 @@ what orphans them:
 git fetch origin '+refs/cairn/*:refs/cairn/*'   # the namespace is NOT fetched by default
 npm run cairn-check   # blocks on any declared unit that is not yet retained
 git for-each-ref refs/cairn/checkpoints/cp-example-001
-git update-ref refs/cairn/checkpoints/cp-example-001/<unit> <checkpoint-oid>
-git push origin refs/cairn/checkpoints/cp-example-001/<unit>
+git update-ref refs/cairn/checkpoints/cp-example-001/g<NN>/<unit> <checkpoint-oid>
+git push origin refs/cairn/checkpoints/cp-example-001/g<NN>/<unit>
 ```
+
+`g<NN>` here is the generation that is still current — the one holding the commits
+these units were actually verified as. Nothing in it is moved or deleted; the
+rebase is about to close it, not rewrite it.
 
 The fetch is first, and it is not a convenience. `refs/cairn/*` lies outside
 `refs/heads/*` and `refs/tags/*`, so a fresh clone and every CI checkout action
@@ -162,6 +178,24 @@ marker survives, then record `C`, publish it, and run all checks against it:
 ```bash
 git log origin/main..HEAD --grep='Cairn-Provisional' --oneline    # must print nothing
 ```
+
+The rebase rewrote every commit, which CLOSED the generation retained above.
+Opening the next one is part of this same work unit, not a follow-up: every
+completed commit of the REBASED branch, from the closed generation's floor
+upward, is retained under `g<NN+1>` before the rewriting push completes.
+
+```bash
+git for-each-ref refs/cairn/checkpoints/cp-example-001   # highest generation = <NN>
+git update-ref refs/cairn/checkpoints/cp-example-001/g<NN+1>/<unit> <rebased-oid>
+git push origin refs/cairn/checkpoints/cp-example-001/g<NN+1>/<unit>
+```
+
+Both generations now stand. `g<NN>` holds the object each unit was verified as
+and `g<NN+1>` holds the reconstructed copy the branch now carries; they answer
+different questions and neither is corrected into the other. Skipping this leaves
+the current generation empty beside older ones, which the checker reports as
+**blocking and definite** rather than inconclusive — the branch was rewritten and
+nothing has been retained since.
 
 ```bash
 # if final candidate changes are present:
@@ -193,7 +227,7 @@ re-computed scope digest, and one structured entry per advisory raised at `C`:
 
 ```bash
 sed -n '/^## Definition of done$/,/^## /p' \
-  project/coding-paths/CP-EXAMPLE-001.md | sha256sum
+  project/coding-paths/CP-EXAMPLE-001/index.md | sha256sum
 npm run cairn-check -- --base origin/main   # the advisories to disposition
 ```
 
@@ -211,7 +245,7 @@ record — not the definition of done, not `scope_ref`, not `writes:`, not
 `governs:`, not the step plan. Stage only the four closure surfaces:
 
 ```bash
-git add project/coding-paths/CP-EXAMPLE-001.md
+git add project/coding-paths/CP-EXAMPLE-001/index.md
 git add project/briefs/cp-example-001-handoff.md
 git add project/audits/cp-example-001-<C>.md
 git add project/sessions/YYYY-MM-DD-cp-example-001-closing.md
@@ -263,7 +297,7 @@ In that pending integration unit only:
 Then create and test the exact merge candidate:
 
 ```bash
-git add project/coding-paths/CP-EXAMPLE-001.md
+git add project/coding-paths/CP-EXAMPLE-001/index.md
 git add project/coding-paths/ACTIVE.md
 git add project/log/YYYY-MM-DD-cp-example-001.md
 git commit -m "Integrate CP-EXAMPLE-001"

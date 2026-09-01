@@ -1,17 +1,35 @@
 ---
 type: Cairn Reference
 title: Coding-path template
-description: A complete Cairn path record with identity, plan, work ledger, handoff state, and exact-candidate closure fields.
+description: A complete born-sliced Cairn path record — the folder layout, the index.md live header, one step file, and the exact-candidate closure fields.
 tags: [cairn, reference, template, coding-path, ledger]
 timestamp: 2026-08-26T00:00:00Z
 ---
 
 # Coding-path template
 
-For the installed reference binding, copy this file to
-`project/coding-paths/CP-<ID>.md`. Keep the path id, filename, and branch
-mechanically related. A portable implementation substitutes its configured
-execution-state root.
+A path record is **born sliced**: a folder whose `index.md` carries the live
+header that does not grow, whose forward plan is `plan.md`, and whose steps are
+one file each under `steps/`. Create it in that shape — a record created flat is
+a migration handed to whoever inherits it.
+
+```text
+project/coding-paths/CP-<ID>/
+├── index.md      identity, goal, definition of done, coverage, step index
+├── log.md        newest-first readable history of this record
+├── plan.md       forward steps, explanatory until executed
+└── steps/
+    ├── index.md  one load-bearing line per step
+    ├── log.md
+    └── S<NN>.md  one complete step record, written to be read alone
+```
+
+The body below is `index.md`. Keep the path id, folder name, and branch
+mechanically related; a portable implementation substitutes its configured
+execution-state root. A flat `project/coding-paths/CP-<ID>.md` remains
+conforming — every rule keys on the declared id, not the file carrying it — so an
+existing flat record is not a defect and may migrate without restarting its
+lifecycle.
 
 ````md
 ---
@@ -33,7 +51,7 @@ cairn:
   writes:
     - apps/example/**
     - docs/modules/example.md
-    - project/coding-paths/CP-EXAMPLE-001.md
+    - project/coding-paths/CP-EXAMPLE-001/**
     - project/briefs/cp-example-001-handoff.md
   governs:
     - docs/architecture/example.md@89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
@@ -77,15 +95,55 @@ acceptance until a scope amendment is recorded.
 
 - `docs/architecture/unrelated.md` — outside this path's bounded outcome
 
-## Execution
+## Steps
 
-- [ ] S01 — first coherent, independently verifiable result
-- [ ] S02 — second coherent result
-- [ ] S03 — hardening and closure preparation
+One line per step, and this line is load-bearing: slicing saves nothing if a
+reader cannot decide from it whether to open the file. Forward steps live in
+`plan.md` until they are executed.
 
-## Work ledger
+- **[S01](./steps/S01.md)** — what it established, in a phrase — COMPLETE
+- **[S02](./steps/S02.md)** — in progress
 
-### S01 — title
+No rollup operation exists. A step is written where it lives, and nothing is
+summarised when it moves.
+
+## Current checkpoint
+
+```text
+base commit : <trunk tip immediately before registration>
+branch      : path/cp-example-001
+writer      : <current assigned participant>
+remote      : origin/path/cp-example-001 @ <last completed checkpoint>
+gates       : exact latest verdicts
+session     : safe boundary, or a pushed provisional commit under review
+next action : exact next action
+blockers    : none | named condition and unblock condition
+cleanup plan: after remote integration proof, remove the exact clean secondary
+              worktree without force
+```
+
+## Blockers
+
+- None.
+````
+
+The step file `steps/S01.md` is a complete record on its own — deixis such as
+*"the checkpoint below"* is a defect at authoring time, because the file will be
+read alone:
+
+````md
+---
+type: Cairn Coding Path Step
+title: 'CP-EXAMPLE-001 S01 — title'
+timestamp: YYYY-MM-DDT00:00:00Z
+cairn:
+  path: CP-EXAMPLE-001
+  step: S01
+---
+
+# CP-EXAMPLE-001 S01
+
+### S01 — title — **COMPLETE**
 
 #### Intent
 
@@ -121,31 +179,13 @@ remote      : not pushed | origin/path/cp-example-001 @ <full commit>
 ```text
 status      : running
 current step: S01 complete only after required review and remote proof
-retention   : refs/cairn/checkpoints/cp-example-001/01 — written after this commit
+retention   : refs/cairn/checkpoints/cp-example-001/g01/01 — written after this commit
 changed     : exact surfaces or concise groups
 session     : safe boundary only after successful push
 next action : S02 — exact first action
 blockers    : none | named condition and responsible participant
 ```
 
-## Current checkpoint
-
-```text
-base commit : <trunk tip immediately before registration>
-branch      : path/cp-example-001
-writer      : <current assigned participant>
-remote      : origin/path/cp-example-001 @ <last completed checkpoint>
-gates       : exact latest verdicts
-session     : safe boundary, or a pushed provisional commit under review
-next action : exact next action
-blockers    : none | named condition and unblock condition
-cleanup plan: after remote integration proof, remove the exact clean secondary
-              worktree without force
-```
-
-## Blockers
-
-- None.
 ````
 
 ## State-specific edits
@@ -178,9 +218,13 @@ trunk moved inside `writes:` or `governs:`. Record why the transition occurred.
 ### Producing a candidate
 
 Before rebasing, retain every declared unit at
-`refs/cairn/checkpoints/<path-id>/<unit>`, where `<unit>` is the ordinal in that
-entry's `cairn-unit` block. Then rebase, fold every provisional commit into the
-work unit it was drafting, and push `C`.
+`refs/cairn/checkpoints/<path-id>/g<NN>/<unit>`, where `<unit>` is the ordinal in
+that entry's `cairn-unit` block and `g<NN>` is the generation still current. Then
+rebase, fold every provisional commit into the work unit it was drafting, and —
+in that same work unit, before the rewriting push completes — open `g<NN+1>` by
+retaining every completed commit of the rebased branch from the closed
+generation's floor upward. Move nothing: the two generations hold the object each
+unit was verified as and the copy the branch now carries. Then push `C`.
 
 ### Becoming ready
 

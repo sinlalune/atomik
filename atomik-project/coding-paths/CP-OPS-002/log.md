@@ -18,6 +18,10 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-01
 
+- `S08q` opens ADR-020 stage 5 by reconciling the seed. The pages an adopter
+  copies from taught a flat record and an ungenerated ref namespace that the
+  normative text had already superseded; writing `cairn-init` against them would
+  have compiled the superseded shapes into every adopter's first day.
 - `S08p` makes the S08o adapter boundary executable. Atomik's concrete roots,
   trunk, remote, metadata key, area notes and retention policy now live in one
   validated schema-1 binding consumed by all three repository-reading tools.

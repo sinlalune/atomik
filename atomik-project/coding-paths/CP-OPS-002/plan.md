@@ -108,6 +108,15 @@ thing.
 11. `cairn-init` seed template and the ex-nihilo bootstrap prompt, scaffolding
     **tiers 0 and 1 only**: the validator, the config, the docs skeleton and the
     workflow file. No host configuration, no account, nothing to click.
+12. **Extraction has one authority, and the cutover is deterministic.** The
+    portable corpus lives in `docs/cairn/` inside this host today. Publishing it
+    must MOVE that authority, not copy it: at no point may the portable protocol
+    be maintained by hand in two places, because a hand-synchronised second copy
+    is how a specification and its implementation drift apart while both look
+    maintained. The cutover names which side is authoritative from which commit,
+    and the losing side becomes a generated or linked mirror — never an edited
+    one. Recovered from the interrupted S08p session, where it existed only in
+    the session and in no file; recorded here before it could be lost twice.
 
 ### S09 — Greenfield pilot, coherence audit, closing ceremony, self-merge
 

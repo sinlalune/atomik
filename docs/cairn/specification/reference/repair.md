@@ -68,7 +68,7 @@ the ledger. The edited file stays as it is.
 git reflog show path/<id>
 
 # Push every recovered checkpoint to retention before doing anything else.
-git push origin <recovered-oid>:refs/cairn/checkpoints/<path-id>/<n>
+git push origin <recovered-oid>:refs/cairn/checkpoints/<path-id>/g<NN>/<n>
 ```
 
 Recover from any surviving ref, another participant's clone, or a CI cache.
@@ -85,12 +85,14 @@ The commit the ref used to name is the evidence.
 git for-each-ref refs/cairn/checkpoints/cp-example-001
 git log --format='%H %s' <base>..HEAD
 # any commit in that range that is neither retained, nor provisional, nor HEAD
-git update-ref refs/cairn/checkpoints/cp-example-001/<n> <original-oid>
-git update-ref refs/cairn/checkpoints/cp-example-001/<n+1> <moved-onto-oid>
+git update-ref refs/cairn/checkpoints/cp-example-001/g<NN>/<n> <original-oid>
+git update-ref refs/cairn/checkpoints/cp-example-001/g<NN>/<n+1> <moved-onto-oid>
 ```
 
 Restore the ref to the commit it originally named, then give the commit it was
-moved onto its own ordinal and its own ledger entry. A moved ref usually means a
+moved onto its own ordinal and its own ledger entry. Repair inside the generation
+the ref belongs to; a ref written before the generation notation stays where it
+is and is judged for reachability only. A moved ref usually means a
 completed work unit was shipped under the previous unit's block, so there are
 two facts to repair rather than one.
 

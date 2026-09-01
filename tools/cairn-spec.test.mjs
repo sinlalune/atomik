@@ -21,6 +21,8 @@ const CHECK = join(REPO, 'tools/cairn-check.mjs')
 const LAYOUT = join(REFERENCES, 'repository-layout.md')
 const OPERATIONS = join(REFERENCES, 'operations.md')
 const EXECUTION = join(REFERENCES, 'execution-protocol.md')
+const TEMPLATE = join(REFERENCES, 'path-template.md')
+const REPAIR = join(REFERENCES, 'repair.md')
 const BOOTLOADER = join(REPO, 'AGENTS.md')
 const PATH_CONVENTION = join(REPO, 'atomik-project/coding-paths/paths.md')
 const HOST_BINDING = join(REPO, 'atomik-project/coding-paths/binding.md')
@@ -198,7 +200,7 @@ test('cairn-spec: trust, protection, and incomplete capabilities are stated narr
 })
 
 test('cairn-spec: v0.2 closes the retention, provisional, and brief promises', () => {
-  assert.match(markdown, /refs\/cairn\/checkpoints\/<path-id>\/<n>/)
+  assert.match(markdown, /refs\/cairn\/checkpoints\/<path-id>\/g<NN>\/<n>/)
   assert.match(
     markdown,
     /Before any rewriting push of a path branch, every commit the ledger names MUST\s+already be reachable from a retention ref/
@@ -502,7 +504,7 @@ test('cairn-spec: repository reference exhaustively maps the installed Cairn str
   // The tree names them or a reader concludes they do not exist.
   assert.match(layout, /refs\/\n│\s+├── heads\//)
   assert.match(layout, /└── cairn\/\n│\s+└── checkpoints\//)
-  assert.match(layout, /refs\/cairn\/checkpoints\/<path-id>\/<n>/)
+  assert.match(layout, /refs\/cairn\/checkpoints\/<path-id>\/g<NN>\/<n>/)
   assert.match(layout, /git for-each-ref refs\/cairn\/checkpoints/)
 
   // Host-repository residue is not protocol structure and must stay out.
@@ -514,8 +516,50 @@ test('cairn-spec: repository reference exhaustively maps the installed Cairn str
   assert.match(layout, /project\/coding-paths\/binding\.md/)
 
   const operations = readFileSync(OPERATIONS, 'utf8')
-  assert.match(operations, /git add project\/coding-paths\/CP-EXAMPLE-001\.md/)
+  assert.match(operations, /git add project\/coding-paths\/CP-EXAMPLE-001\/index\.md/)
   assert.doesNotMatch(operations, /atomik/i)
+})
+
+test('cairn-spec: the seed teaches the shapes a new path is created in', () => {
+  // A seed page is what an adopter copies. When the normative text moves and
+  // these pages do not, the protocol ships one shape and teaches another, and
+  // every adopter inherits a migration on their first day.
+  const seeds = {
+    'repository-layout.md': readFileSync(LAYOUT, 'utf8'),
+    'operations.md': readFileSync(OPERATIONS, 'utf8'),
+    'path-template.md': readFileSync(TEMPLATE, 'utf8'),
+    'repair.md': readFileSync(REPAIR, 'utf8')
+  }
+
+  // Retention refs a reader would copy must carry their generation. The concept
+  // article is exempt by design: it explains why the `g` prefix exists by
+  // showing the ordinal-only notation the ADR rejected.
+  const flatRetention = /refs\/cairn\/checkpoints\/[A-Za-z0-9<>_-]+\/(?!g[<0-9])/
+  for (const [name, source] of Object.entries(seeds)) {
+    assert.doesNotMatch(source, flatRetention, name + ' teaches a retention ref with no generation')
+  }
+
+  // The template creates a born-sliced record, because a record created flat is
+  // a migration handed to whoever inherits it.
+  const template = seeds['path-template.md']
+  assert.match(template, /project\/coding-paths\/CP-<ID>\//)
+  assert.match(template, /steps\//)
+  assert.match(template, /plan\.md/)
+  assert.match(template, /type: Cairn Coding Path Step/)
+  assert.doesNotMatch(template, /^## Work ledger$/m, 'the ledger dissolves into steps/ and does not survive in the template')
+  assert.match(template, /flat `project\/coding-paths\/CP-<ID>\.md` remains\s+conforming/, 'the older shape stays conforming and the template must say so')
+
+  // The rebase unit opens the next generation. Omitting it is what made
+  // retention report OK over its own failure.
+  const operations = seeds['operations.md']
+  assert.match(operations, /g<NN\+1>/, 'the rebase sequence must open the next generation')
+  assert.match(operations, /before the rewriting push completes/)
+
+  // The layout tree shows the generation level and the record folder.
+  const layout = seeds['repository-layout.md']
+  assert.match(layout, /└── g<NN>\//)
+  assert.match(layout, /├── CP-<ID>\//)
+  assert.match(layout, /derived, never stored/)
 })
 
 test('cairn-spec: each concept is one indexed Markdown article', () => {

@@ -940,12 +940,12 @@
               <span>Human and agent judgement records</span>
             </a>
           </li>
-          <li data-tree-item data-search="cairn operations these commands use the canonical defaults main, origin, and path/cp-example-001. substitute validated bindings. run gates directly; never pipe their verdict through another command. the manu">
+          <li data-tree-item data-search="cairn operations these commands use the canonical defaults main, origin, and path/cp-example-001. substitute validated bindings. run gates directly; never pipe their verdict through another command. the exam">
             <a href="#article-reference-operations" data-tree-article="reference-operations">
               <span>Cairn operations</span>
             </a>
           </li>
-          <li data-tree-item data-search="coding-path template for the installed reference binding, copy this file to project/coding-paths/cp-&lt;id&gt;.md. keep the path id, filename, and branch mechanically related. a portable implementation substitutes its">
+          <li data-tree-item data-search="coding-path template a path record is born sliced: a folder whose index.md carries the live header that does not grow, whose forward plan is plan.md, and whose steps are one file each under steps/. create it in ">
             <a href="#article-reference-path-template" data-tree-article="reference-path-template">
               <span>Coding-path template</span>
             </a>
@@ -1426,7 +1426,7 @@ knowledge may add other folders without changing Cairn:</p>
             └── &lt;project-descriptor&gt;.json
 </code></pre>
 <p>Cairn also claims one ref namespace outside the working tree:</p>
-<pre><code class="language-text">refs/cairn/checkpoints/&lt;path-id&gt;/&lt;n&gt;
+<pre><code class="language-text">refs/cairn/checkpoints/&lt;path-id&gt;/g&lt;NN&gt;/&lt;n&gt;
 </code></pre>
 <p>These <a href="#article-concept-checkpoint-retention" data-article="concept-checkpoint-retention" data-anchor="" class="wiki-link">retention refs</a> keep every checkpoint
 the ledger names reachable after a path branch is rewritten. They are files in
@@ -1619,7 +1619,7 @@ commit a work unit produces does not exist while the unit is being written, so a
 block naming its own object id could never be written truthfully — the same
 self-reference that <a href="#article-concept-administrative-closure" data-article="concept-administrative-closure" data-anchor="" class="wiki-link">administrative closure</a>
 solves with a following commit. The ordinal is knowable in advance, and
-<code>refs/cairn/checkpoints/&lt;path-id&gt;/&lt;unit&gt;</code> supplies the object id afterwards. The
+<code>refs/cairn/checkpoints/&lt;path-id&gt;/g&lt;NN&gt;/&lt;unit&gt;</code> supplies the object id afterwards. The
 ledger says which unit; the ref says which commit; neither has to lie about the
 other.</p>
 <p>The typing is not bureaucracy; it is what makes “where relevant” checkable. An
@@ -3921,7 +3921,7 @@ knowledge may add other folders without changing Cairn:</p>
             └── &lt;project-descriptor&gt;.json
 </code></pre>
 <p>Cairn also claims one ref namespace outside the working tree:</p>
-<pre><code class="language-text">refs/cairn/checkpoints/&lt;path-id&gt;/&lt;n&gt;
+<pre><code class="language-text">refs/cairn/checkpoints/&lt;path-id&gt;/g&lt;NN&gt;/&lt;n&gt;
 </code></pre>
 <p>These <a href="#article-concept-checkpoint-retention" data-article="concept-checkpoint-retention" data-anchor="" class="wiki-link">retention refs</a> keep every checkpoint
 the ledger names reachable after a path branch is rewritten. They are files in
@@ -4114,7 +4114,7 @@ commit a work unit produces does not exist while the unit is being written, so a
 block naming its own object id could never be written truthfully — the same
 self-reference that <a href="#article-concept-administrative-closure" data-article="concept-administrative-closure" data-anchor="" class="wiki-link">administrative closure</a>
 solves with a following commit. The ordinal is knowable in advance, and
-<code>refs/cairn/checkpoints/&lt;path-id&gt;/&lt;unit&gt;</code> supplies the object id afterwards. The
+<code>refs/cairn/checkpoints/&lt;path-id&gt;/g&lt;NN&gt;/&lt;unit&gt;</code> supplies the object id afterwards. The
 ledger says which unit; the ref says which commit; neither has to lie about the
 other.</p>
 <p>The typing is not bureaucracy; it is what makes “where relevant” checkable. An
@@ -10089,6 +10089,11 @@ or open <a href="#article-concept-closing-acceptance" data-article="concept-clos
 <p>These commands use the canonical defaults <code>main</code>, <code>origin</code>, and
 <code>path/cp-example-001</code>. Substitute validated bindings. Run gates directly; never
 pipe their verdict through another command.</p>
+<p>The examples write a <a href="#article-specification" data-article="specification" data-anchor="put-one-bounded-change-on-a-coding-path" class="wiki-link">born-sliced</a>
+record — <code>CP-EXAMPLE-001/index.md</code> with one file per step under <code>steps/</code> — because
+that is the shape a new path should be created in. A flat <code>CP-EXAMPLE-001.md</code>
+stays conforming and every rule keys on the declared id, so a repository holding
+the older shape substitutes that one path and changes nothing else here.</p>
 <p>The manual sequence is normative while transactional <code>cairn-init</code>,
 <code>cairn-new</code>, and <code>cairn-close</code> commands remain unimplemented.</p>
 <h2 id="reference-operations--register-an-accepted-path" data-heading="register-an-accepted-path">Register an accepted path</h2>
@@ -10105,7 +10110,7 @@ view:</p>
 <pre><code class="language-bash">npm run cairn-active
 npm run cairn-check
 git status --short
-git add project/coding-paths/CP-EXAMPLE-001.md
+git add project/coding-paths/CP-EXAMPLE-001/
 git add project/coding-paths/ACTIVE.md
 git add project/sessions/YYYY-MM-DD-cp-example-001-opening.md
 git commit -m &quot;Register CP-EXAMPLE-001 before branching&quot;
@@ -10137,7 +10142,8 @@ git status --short
 git add path/to/implementation
 git add path/to/tests
 git add docs/modules/example.md
-git add project/coding-paths/CP-EXAMPLE-001.md
+git add project/coding-paths/CP-EXAMPLE-001/index.md
+git add project/coding-paths/CP-EXAMPLE-001/steps/S01.md
 git add project/briefs/cp-example-001-handoff.md
 git commit -m &quot;CP-EXAMPLE-001 S01: coherent outcome&quot;
 git push origin path/cp-example-001
@@ -10146,14 +10152,18 @@ git merge-base --is-ancestor HEAD origin/path/cp-example-001
 </code></pre>
 <p>The final command must exit zero before the step is called complete. Then record
 the checkpoint in the ledger and retain it:</p>
-<pre><code class="language-bash">git update-ref refs/cairn/checkpoints/cp-example-001/01 HEAD
-git push origin refs/cairn/checkpoints/cp-example-001/01
+<pre><code class="language-bash">git update-ref refs/cairn/checkpoints/cp-example-001/g01/01 HEAD
+git push origin refs/cairn/checkpoints/cp-example-001/g01/01
 git for-each-ref refs/cairn/checkpoints/cp-example-001
 </code></pre>
-<p>The ordinal is the <code>unit:</code> value in that entry’s <code>cairn-unit</code> block. The local
-ref is what the gate reads — deliberately, so a restricted runner or an offline
-checkout cannot turn a protocol failure into a protocol pass. The push is what
-makes it survive the machine.</p>
+<p>The ordinal is the <code>unit:</code> value in that entry’s <code>cairn-unit</code> block. <code>g01</code> is the
+first <a href="#article-concept-checkpoint-retention" data-article="concept-checkpoint-retention" data-anchor="" class="wiki-link">generation</a>, opened with the branch
+itself. Do not record the generation anywhere: it is derived by asking which
+numbered generation is highest while all of its refs remain ancestors of the
+branch tip, and a written-down copy is a claim ancestry already answers.</p>
+<p>The local ref is what the gate reads — deliberately, so a restricted runner or an
+offline checkout cannot turn a protocol failure into a protocol pass. The push is
+what makes it survive the machine.</p>
 <h2 id="reference-operations--publish-incomplete-work" data-heading="publish-incomplete-work">Publish incomplete work</h2>
 <p>Work that is not a completed unit — mid-refactor, failing, or awaiting a user’s
 inspection — is pushed rather than held on disk:</p>
@@ -10178,9 +10188,12 @@ what orphans them:</p>
 <pre><code class="language-bash">git fetch origin '+refs/cairn/*:refs/cairn/*'   # the namespace is NOT fetched by default
 npm run cairn-check   # blocks on any declared unit that is not yet retained
 git for-each-ref refs/cairn/checkpoints/cp-example-001
-git update-ref refs/cairn/checkpoints/cp-example-001/&lt;unit&gt; &lt;checkpoint-oid&gt;
-git push origin refs/cairn/checkpoints/cp-example-001/&lt;unit&gt;
+git update-ref refs/cairn/checkpoints/cp-example-001/g&lt;NN&gt;/&lt;unit&gt; &lt;checkpoint-oid&gt;
+git push origin refs/cairn/checkpoints/cp-example-001/g&lt;NN&gt;/&lt;unit&gt;
 </code></pre>
+<p><code>g&lt;NN&gt;</code> here is the generation that is still current — the one holding the commits
+these units were actually verified as. Nothing in it is moved or deleted; the
+rebase is about to close it, not rewrite it.</p>
 <p>The fetch is first, and it is not a convenience. <code>refs/cairn/*</code> lies outside
 <code>refs/heads/*</code> and <code>refs/tags/*</code>, so a fresh clone and every CI checkout action
 see none of it — and listing an unfetched namespace succeeds with no output,
@@ -10199,6 +10212,20 @@ otherwise the rebased <code>HEAD</code> is already the candidate. Confirm no pro
 marker survives, then record <code>C</code>, publish it, and run all checks against it:</p>
 <pre><code class="language-bash">git log origin/main..HEAD --grep='Cairn-Provisional' --oneline    # must print nothing
 </code></pre>
+<p>The rebase rewrote every commit, which CLOSED the generation retained above.
+Opening the next one is part of this same work unit, not a follow-up: every
+completed commit of the REBASED branch, from the closed generation’s floor
+upward, is retained under <code>g&lt;NN+1&gt;</code> before the rewriting push completes.</p>
+<pre><code class="language-bash">git for-each-ref refs/cairn/checkpoints/cp-example-001   # highest generation = &lt;NN&gt;
+git update-ref refs/cairn/checkpoints/cp-example-001/g&lt;NN+1&gt;/&lt;unit&gt; &lt;rebased-oid&gt;
+git push origin refs/cairn/checkpoints/cp-example-001/g&lt;NN+1&gt;/&lt;unit&gt;
+</code></pre>
+<p>Both generations now stand. <code>g&lt;NN&gt;</code> holds the object each unit was verified as
+and <code>g&lt;NN+1&gt;</code> holds the reconstructed copy the branch now carries; they answer
+different questions and neither is corrected into the other. Skipping this leaves
+the current generation empty beside older ones, which the checker reports as
+<strong>blocking and definite</strong> rather than inconclusive — the branch was rewritten and
+nothing has been retained since.</p>
 <pre><code class="language-bash"># if final candidate changes are present:
 git commit -m &quot;CP-EXAMPLE-001: final implementation candidate&quot;
 git rev-parse HEAD
@@ -10220,7 +10247,7 @@ at their pinned ids.</p>
 record naming the same object id, the base <code>T</code>, the roles the reviewer held, the
 re-computed scope digest, and one structured entry per advisory raised at <code>C</code>:</p>
 <pre><code class="language-bash">sed -n '/^## Definition of done$/,/^## /p' \
-  project/coding-paths/CP-EXAMPLE-001.md | sha256sum
+  project/coding-paths/CP-EXAMPLE-001/index.md | sha256sum
 npm run cairn-check -- --base origin/main   # the advisories to disposition
 </code></pre>
 <p>If the digest differs from the one recorded at opening, stop: the definition of
@@ -10232,7 +10259,7 @@ new audit file, and obtain new acceptance.</p>
 entry, and move the brief’s checkpoint pointer. Change no other field of the path
 record — not the definition of done, not <code>scope_ref</code>, not <code>writes:</code>, not
 <code>governs:</code>, not the step plan. Stage only the four closure surfaces:</p>
-<pre><code class="language-bash">git add project/coding-paths/CP-EXAMPLE-001.md
+<pre><code class="language-bash">git add project/coding-paths/CP-EXAMPLE-001/index.md
 git add project/briefs/cp-example-001-handoff.md
 git add project/audits/cp-example-001-&lt;C&gt;.md
 git add project/sessions/YYYY-MM-DD-cp-example-001-closing.md
@@ -10270,7 +10297,7 @@ git merge --no-ff --no-commit origin/path/cp-example-001
 <li>add one <code>project/log/YYYY-MM-DD-cp-example-001.md</code> entry.</li>
 </ul>
 <p>Then create and test the exact merge candidate:</p>
-<pre><code class="language-bash">git add project/coding-paths/CP-EXAMPLE-001.md
+<pre><code class="language-bash">git add project/coding-paths/CP-EXAMPLE-001/index.md
 git add project/coding-paths/ACTIVE.md
 git add project/log/YYYY-MM-DD-cp-example-001.md
 git commit -m &quot;Integrate CP-EXAMPLE-001&quot;
@@ -10331,10 +10358,25 @@ satisfied. The <a href="#article-reference-repair" data-article="reference-repai
     </div>
     <article class="article-body" data-rendered-article="reference-path-template">
       <h1 id="reference-path-template--coding-path-template" data-heading="coding-path-template">Coding-path template</h1>
-<p>For the installed reference binding, copy this file to
-<code>project/coding-paths/CP-&lt;ID&gt;.md</code>. Keep the path id, filename, and branch
-mechanically related. A portable implementation substitutes its configured
-execution-state root.</p>
+<p>A path record is <strong>born sliced</strong>: a folder whose <code>index.md</code> carries the live
+header that does not grow, whose forward plan is <code>plan.md</code>, and whose steps are
+one file each under <code>steps/</code>. Create it in that shape — a record created flat is
+a migration handed to whoever inherits it.</p>
+<pre><code class="language-text">project/coding-paths/CP-&lt;ID&gt;/
+├── index.md      identity, goal, definition of done, coverage, step index
+├── log.md        newest-first readable history of this record
+├── plan.md       forward steps, explanatory until executed
+└── steps/
+    ├── index.md  one load-bearing line per step
+    ├── log.md
+    └── S&lt;NN&gt;.md  one complete step record, written to be read alone
+</code></pre>
+<p>The body below is <code>index.md</code>. Keep the path id, folder name, and branch
+mechanically related; a portable implementation substitutes its configured
+execution-state root. A flat <code>project/coding-paths/CP-&lt;ID&gt;.md</code> remains
+conforming — every rule keys on the declared id, not the file carrying it — so an
+existing flat record is not a defect and may migrate without restarting its
+lifecycle.</p>
 <pre><code class="language-md">---
 type: Cairn Coding Path
 title: Short outcome-oriented title
@@ -10354,7 +10396,7 @@ cairn:
   writes:
     - apps/example/**
     - docs/modules/example.md
-    - project/coding-paths/CP-EXAMPLE-001.md
+    - project/coding-paths/CP-EXAMPLE-001/**
     - project/briefs/cp-example-001-handoff.md
   governs:
     - docs/architecture/example.md@89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
@@ -10398,15 +10440,52 @@ acceptance until a scope amendment is recorded.
 
 - `docs/architecture/unrelated.md` — outside this path's bounded outcome
 
-## Execution
+## Steps
 
-- [ ] S01 — first coherent, independently verifiable result
-- [ ] S02 — second coherent result
-- [ ] S03 — hardening and closure preparation
+One line per step, and this line is load-bearing: slicing saves nothing if a
+reader cannot decide from it whether to open the file. Forward steps live in
+`plan.md` until they are executed.
 
-## Work ledger
+- **[S01](./steps/S01.md)** — what it established, in a phrase — COMPLETE
+- **[S02](./steps/S02.md)** — in progress
 
-### S01 — title
+No rollup operation exists. A step is written where it lives, and nothing is
+summarised when it moves.
+
+## Current checkpoint
+
+```text
+base commit : &lt;trunk tip immediately before registration&gt;
+branch      : path/cp-example-001
+writer      : &lt;current assigned participant&gt;
+remote      : origin/path/cp-example-001 @ &lt;last completed checkpoint&gt;
+gates       : exact latest verdicts
+session     : safe boundary, or a pushed provisional commit under review
+next action : exact next action
+blockers    : none | named condition and unblock condition
+cleanup plan: after remote integration proof, remove the exact clean secondary
+              worktree without force
+```
+
+## Blockers
+
+- None.
+</code></pre>
+<p>The step file <code>steps/S01.md</code> is a complete record on its own — deixis such as
+<em>“the checkpoint below”</em> is a defect at authoring time, because the file will be
+read alone:</p>
+<pre><code class="language-md">---
+type: Cairn Coding Path Step
+title: 'CP-EXAMPLE-001 S01 — title'
+timestamp: YYYY-MM-DDT00:00:00Z
+cairn:
+  path: CP-EXAMPLE-001
+  step: S01
+---
+
+# CP-EXAMPLE-001 S01
+
+### S01 — title — **COMPLETE**
 
 #### Intent
 
@@ -10442,31 +10521,13 @@ remote      : not pushed | origin/path/cp-example-001 @ &lt;full commit&gt;
 ```text
 status      : running
 current step: S01 complete only after required review and remote proof
-retention   : refs/cairn/checkpoints/cp-example-001/01 — written after this commit
+retention   : refs/cairn/checkpoints/cp-example-001/g01/01 — written after this commit
 changed     : exact surfaces or concise groups
 session     : safe boundary only after successful push
 next action : S02 — exact first action
 blockers    : none | named condition and responsible participant
 ```
 
-## Current checkpoint
-
-```text
-base commit : &lt;trunk tip immediately before registration&gt;
-branch      : path/cp-example-001
-writer      : &lt;current assigned participant&gt;
-remote      : origin/path/cp-example-001 @ &lt;last completed checkpoint&gt;
-gates       : exact latest verdicts
-session     : safe boundary, or a pushed provisional commit under review
-next action : exact next action
-blockers    : none | named condition and unblock condition
-cleanup plan: after remote integration proof, remove the exact clean secondary
-              worktree without force
-```
-
-## Blockers
-
-- None.
 </code></pre>
 <h2 id="reference-path-template--state-specific-edits" data-heading="state-specific-edits">State-specific edits</h2>
 <h3 id="reference-path-template--registering" data-heading="registering">Registering</h3>
@@ -10492,9 +10553,13 @@ invalid by a finding, or when
 trunk moved inside <code>writes:</code> or <code>governs:</code>. Record why the transition occurred.</p>
 <h3 id="reference-path-template--producing-a-candidate" data-heading="producing-a-candidate">Producing a candidate</h3>
 <p>Before rebasing, retain every declared unit at
-<code>refs/cairn/checkpoints/&lt;path-id&gt;/&lt;unit&gt;</code>, where <code>&lt;unit&gt;</code> is the ordinal in that
-entry’s <code>cairn-unit</code> block. Then rebase, fold every provisional commit into the
-work unit it was drafting, and push <code>C</code>.</p>
+<code>refs/cairn/checkpoints/&lt;path-id&gt;/g&lt;NN&gt;/&lt;unit&gt;</code>, where <code>&lt;unit&gt;</code> is the ordinal in
+that entry’s <code>cairn-unit</code> block and <code>g&lt;NN&gt;</code> is the generation still current. Then
+rebase, fold every provisional commit into the work unit it was drafting, and —
+in that same work unit, before the rewriting push completes — open <code>g&lt;NN+1&gt;</code> by
+retaining every completed commit of the rebased branch from the closed
+generation’s floor upward. Move nothing: the two generations hold the object each
+unit was verified as and the copy the branch now carries. Then push <code>C</code>.</p>
 <h3 id="reference-path-template--becoming-ready" data-heading="becoming-ready">Becoming ready</h3>
 <p>After exact candidate <code>C</code> has passed its checks, audit, and acceptance, create
 one administrative commit that:</p>
@@ -10581,7 +10646,7 @@ the ledger. The edited file stays as it is.</p>
 git reflog show path/&lt;id&gt;
 
 # Push every recovered checkpoint to retention before doing anything else.
-git push origin &lt;recovered-oid&gt;:refs/cairn/checkpoints/&lt;path-id&gt;/&lt;n&gt;
+git push origin &lt;recovered-oid&gt;:refs/cairn/checkpoints/&lt;path-id&gt;/g&lt;NN&gt;/&lt;n&gt;
 </code></pre>
 <p>Recover from any surviving ref, another participant’s clone, or a CI cache.
 Ledger entries naming commits that cannot be recovered are marked
@@ -10593,11 +10658,13 @@ The commit the ref used to name is the evidence.</p>
 <pre><code class="language-bash">git for-each-ref refs/cairn/checkpoints/cp-example-001
 git log --format='%H %s' &lt;base&gt;..HEAD
 # any commit in that range that is neither retained, nor provisional, nor HEAD
-git update-ref refs/cairn/checkpoints/cp-example-001/&lt;n&gt; &lt;original-oid&gt;
-git update-ref refs/cairn/checkpoints/cp-example-001/&lt;n+1&gt; &lt;moved-onto-oid&gt;
+git update-ref refs/cairn/checkpoints/cp-example-001/g&lt;NN&gt;/&lt;n&gt; &lt;original-oid&gt;
+git update-ref refs/cairn/checkpoints/cp-example-001/g&lt;NN&gt;/&lt;n+1&gt; &lt;moved-onto-oid&gt;
 </code></pre>
 <p>Restore the ref to the commit it originally named, then give the commit it was
-moved onto its own ordinal and its own ledger entry. A moved ref usually means a
+moved onto its own ordinal and its own ledger entry. Repair inside the generation
+the ref belongs to; a ref written before the generation notation stays where it
+is and is judged for reachability only. A moved ref usually means a
 completed work unit was shipped under the previous unit’s block, so there are
 two facts to repair rather than one.</p>
 <h2 id="reference-repair--a-path-branch-declared-done" data-heading="a-path-branch-declared-done">A path branch declared <code>done</code></h2>
@@ -10669,7 +10736,8 @@ protocol structure.</p>
 │       └── cairn/
 │           └── checkpoints/
 │               └── &lt;lowercase-path-id&gt;/
-│                   └── &lt;ledger-unit-ordinal&gt;
+│                   └── g&lt;NN&gt;/
+│                       └── &lt;ledger-unit-ordinal&gt;
 ├── AGENTS.md
 ├── cairn.config.json
 ├── package.json
@@ -10732,6 +10800,14 @@ protocol structure.</p>
     │   ├── paths.md
     │   ├── binding.md
     │   ├── ACTIVE.md
+    │   ├── CP-&lt;ID&gt;/
+    │   │   ├── index.md
+    │   │   ├── log.md
+    │   │   ├── plan.md
+    │   │   └── steps/
+    │   │       ├── index.md
+    │   │       ├── log.md
+    │   │       └── S&lt;NN&gt;.md
     │   ├── CP-&lt;ID&gt;.md
     │   └── history/
     │       ├── index.md
@@ -10894,8 +10970,18 @@ what Cairn defines, not what any one adoption happens to contain.</p>
 <td style="text-align:left">host configuration change</td>
 </tr>
 <tr>
+<td style="text-align:left"><code>project/coding-paths/CP-&lt;ID&gt;/</code></td>
+<td style="text-align:left">one path as a born-sliced record: live header in <code>index.md</code>, forward plan in <code>plan.md</code>, one file per step under <code>steps/</code></td>
+<td style="text-align:left">current assigned writer</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>project/coding-paths/CP-&lt;ID&gt;/steps/S&lt;NN&gt;.md</code></td>
+<td style="text-align:left">one step’s complete record, written to be read alone</td>
+<td style="text-align:left">append-only once written</td>
+</tr>
+<tr>
 <td style="text-align:left"><code>project/coding-paths/CP-*.md</code></td>
-<td style="text-align:left">one path’s plan, state, ledger, checkpoint, and next action</td>
+<td style="text-align:left">the same path as a flat record — the older shape, still conforming</td>
 <td style="text-align:left">current assigned writer</td>
 </tr>
 <tr>
@@ -10905,7 +10991,7 @@ what Cairn defines, not what any one adoption happens to contain.</p>
 </tr>
 <tr>
 <td style="text-align:left"><code>project/coding-paths/history/*.md</code></td>
-<td style="text-align:left">verbatim completed ledger sections</td>
+<td style="text-align:left">verbatim completed ledger sections rolled out of a FLAT record; a born-sliced record has no rollup and writes the step where it lives</td>
 <td style="text-align:left">created by that path; immutable thereafter</td>
 </tr>
 <tr>
@@ -10939,8 +11025,8 @@ what Cairn defines, not what any one adoption happens to contain.</p>
 <td style="text-align:left">current assigned writer</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;</code></td>
-<td style="text-align:left">one immovable pin per ledger-named checkpoint</td>
+<td style="text-align:left"><code>refs/cairn/checkpoints/&lt;id&gt;/g&lt;NN&gt;/&lt;n&gt;</code></td>
+<td style="text-align:left">one immovable pin per ledger-named checkpoint, inside the generation that was current when it was written</td>
 <td style="text-align:left">append-only; never moved or deleted while the path record lives</td>
 </tr>
 <tr>
@@ -10962,12 +11048,20 @@ one shared record.</p>
 <h2 id="reference-repository-layout--the-cairn-ref-namespace" data-heading="the-cairn-ref-namespace">The Cairn ref namespace</h2>
 <p>Not everything Cairn owns is a file. One ref namespace lives outside every
 working tree and outside every directory listing:</p>
-<pre><code class="language-text">refs/cairn/checkpoints/&lt;path-id&gt;/&lt;n&gt;
+<pre><code class="language-text">refs/cairn/checkpoints/&lt;path-id&gt;/g&lt;NN&gt;/&lt;n&gt;
 </code></pre>
 <p>Each ref pins one ledger-named checkpoint so that a rewriting push cannot orphan
-it. <code>&lt;n&gt;</code> is the ledger’s own ordinal for that checkpoint. The refs are
-append-only for the life of the path record, and they are not released by
-integration.</p>
+it. <code>&lt;n&gt;</code> is the ledger’s own ordinal for that checkpoint. <code>g&lt;NN&gt;</code> is the
+<a href="#article-concept-checkpoint-retention" data-article="concept-checkpoint-retention" data-anchor="" class="wiki-link">generation</a> — one linear version of the
+branch, opened when a rewrite closes the previous one. The refs are append-only
+for the life of the path record, and they are not released by integration.</p>
+<p>The current generation is <strong>derived, never stored</strong>: it is the highest-numbered
+generation present whose refs are all ancestors of the branch tip. Nothing in
+this tree records it, and nothing should — a stored generation is a claim about
+ancestry that ancestry can already answer, and the two drift apart at the first
+rewrite. A ref written before this notation carries no generation segment; it
+MUST NOT be moved into one. Opening a generation belongs to the same work unit
+as the rewrite that forced it.</p>
 <p><strong>Where this actually is.</strong> Refs are not in the working tree, so no amount of
 <code>ls</code> will find them. They live inside the repository’s own database — under
 <code>.git/refs/</code> and <code>.git/packed-refs</code> locally, and in the equivalent store on the
@@ -11006,10 +11100,15 @@ leak into portable documentation.</p>
 <h2 id="reference-repository-layout--naming-relationships" data-heading="naming-relationships">Naming relationships</h2>
 <h3 id="reference-repository-layout--path-identity" data-heading="path-identity">Path identity</h3>
 <pre><code class="language-text">CP-ROADMAP-010
-  → project/coding-paths/CP-ROADMAP-010.md
+  → project/coding-paths/CP-ROADMAP-010/index.md   (born-sliced record)
+  → project/coding-paths/CP-ROADMAP-010.md         (flat record, older shape)
   → path/cp-roadmap-010
   → project/briefs/cp-roadmap-010-handoff.md
 </code></pre>
+<p>A record’s identity is the id it declares, not the file that carries it. Both
+shapes above are the same path, and a record may migrate between them without
+its registration, lifecycle or history appearing to restart. Every rule keys on
+the id; a rule that keys on the filename is reading an address for a fact.</p>
 <p>The id uses uppercase <code>CP-</code> followed by uppercase letters, digits, and hyphens.
 It is stable, globally unique within the repository, and never reused. The
 branch field remains present for <code>running</code>, <code>blocked</code>, and <code>ready</code>.</p>
@@ -11032,7 +11131,7 @@ an existing entry.</p>
 
 one path ledger
   ├── project/briefs/&lt;id&gt;-handoff.md
-  └── project/coding-paths/history/&lt;id&gt;-S&lt;NN&gt;.md
+  └── project/coding-paths/history/&lt;id&gt;-S&lt;NN&gt;.md   (FLAT records only)
 
 integrated path + exact audit + exact closing acceptance
   └── project/log/YYYY-MM-DD-&lt;id&gt;.md
@@ -11503,7 +11602,7 @@ knowledge may add other folders without changing Cairn:</p>
             └── &lt;project-descriptor&gt;.json
 </code></pre>
 <p>Cairn also claims one ref namespace outside the working tree:</p>
-<pre><code class="language-text">refs/cairn/checkpoints/&lt;path-id&gt;/&lt;n&gt;
+<pre><code class="language-text">refs/cairn/checkpoints/&lt;path-id&gt;/g&lt;NN&gt;/&lt;n&gt;
 </code></pre>
 <p>These <a href="#article-concept-checkpoint-retention" data-article="concept-checkpoint-retention" data-anchor="" class="wiki-link">retention refs</a> keep every checkpoint
 the ledger names reachable after a path branch is rewritten. They are files in
@@ -11696,7 +11795,7 @@ commit a work unit produces does not exist while the unit is being written, so a
 block naming its own object id could never be written truthfully — the same
 self-reference that <a href="#article-concept-administrative-closure" data-article="concept-administrative-closure" data-anchor="" class="wiki-link">administrative closure</a>
 solves with a following commit. The ordinal is knowable in advance, and
-<code>refs/cairn/checkpoints/&lt;path-id&gt;/&lt;unit&gt;</code> supplies the object id afterwards. The
+<code>refs/cairn/checkpoints/&lt;path-id&gt;/g&lt;NN&gt;/&lt;unit&gt;</code> supplies the object id afterwards. The
 ledger says which unit; the ref says which commit; neither has to lie about the
 other.</p>
 <p>The typing is not bureaucracy; it is what makes “where relevant” checkable. An
@@ -17351,6 +17450,11 @@ or open <a href="#article-concept-closing-acceptance" data-article="concept-clos
 <p>These commands use the canonical defaults <code>main</code>, <code>origin</code>, and
 <code>path/cp-example-001</code>. Substitute validated bindings. Run gates directly; never
 pipe their verdict through another command.</p>
+<p>The examples write a <a href="#article-specification" data-article="specification" data-anchor="put-one-bounded-change-on-a-coding-path" class="wiki-link">born-sliced</a>
+record — <code>CP-EXAMPLE-001/index.md</code> with one file per step under <code>steps/</code> — because
+that is the shape a new path should be created in. A flat <code>CP-EXAMPLE-001.md</code>
+stays conforming and every rule keys on the declared id, so a repository holding
+the older shape substitutes that one path and changes nothing else here.</p>
 <p>The manual sequence is normative while transactional <code>cairn-init</code>,
 <code>cairn-new</code>, and <code>cairn-close</code> commands remain unimplemented.</p>
 <h2 id="reference-operations--register-an-accepted-path" data-heading="register-an-accepted-path">Register an accepted path</h2>
@@ -17367,7 +17471,7 @@ view:</p>
 <pre><code class="language-bash">npm run cairn-active
 npm run cairn-check
 git status --short
-git add project/coding-paths/CP-EXAMPLE-001.md
+git add project/coding-paths/CP-EXAMPLE-001/
 git add project/coding-paths/ACTIVE.md
 git add project/sessions/YYYY-MM-DD-cp-example-001-opening.md
 git commit -m &quot;Register CP-EXAMPLE-001 before branching&quot;
@@ -17399,7 +17503,8 @@ git status --short
 git add path/to/implementation
 git add path/to/tests
 git add docs/modules/example.md
-git add project/coding-paths/CP-EXAMPLE-001.md
+git add project/coding-paths/CP-EXAMPLE-001/index.md
+git add project/coding-paths/CP-EXAMPLE-001/steps/S01.md
 git add project/briefs/cp-example-001-handoff.md
 git commit -m &quot;CP-EXAMPLE-001 S01: coherent outcome&quot;
 git push origin path/cp-example-001
@@ -17408,14 +17513,18 @@ git merge-base --is-ancestor HEAD origin/path/cp-example-001
 </code></pre>
 <p>The final command must exit zero before the step is called complete. Then record
 the checkpoint in the ledger and retain it:</p>
-<pre><code class="language-bash">git update-ref refs/cairn/checkpoints/cp-example-001/01 HEAD
-git push origin refs/cairn/checkpoints/cp-example-001/01
+<pre><code class="language-bash">git update-ref refs/cairn/checkpoints/cp-example-001/g01/01 HEAD
+git push origin refs/cairn/checkpoints/cp-example-001/g01/01
 git for-each-ref refs/cairn/checkpoints/cp-example-001
 </code></pre>
-<p>The ordinal is the <code>unit:</code> value in that entry’s <code>cairn-unit</code> block. The local
-ref is what the gate reads — deliberately, so a restricted runner or an offline
-checkout cannot turn a protocol failure into a protocol pass. The push is what
-makes it survive the machine.</p>
+<p>The ordinal is the <code>unit:</code> value in that entry’s <code>cairn-unit</code> block. <code>g01</code> is the
+first <a href="#article-concept-checkpoint-retention" data-article="concept-checkpoint-retention" data-anchor="" class="wiki-link">generation</a>, opened with the branch
+itself. Do not record the generation anywhere: it is derived by asking which
+numbered generation is highest while all of its refs remain ancestors of the
+branch tip, and a written-down copy is a claim ancestry already answers.</p>
+<p>The local ref is what the gate reads — deliberately, so a restricted runner or an
+offline checkout cannot turn a protocol failure into a protocol pass. The push is
+what makes it survive the machine.</p>
 <h2 id="reference-operations--publish-incomplete-work" data-heading="publish-incomplete-work">Publish incomplete work</h2>
 <p>Work that is not a completed unit — mid-refactor, failing, or awaiting a user’s
 inspection — is pushed rather than held on disk:</p>
@@ -17440,9 +17549,12 @@ what orphans them:</p>
 <pre><code class="language-bash">git fetch origin '+refs/cairn/*:refs/cairn/*'   # the namespace is NOT fetched by default
 npm run cairn-check   # blocks on any declared unit that is not yet retained
 git for-each-ref refs/cairn/checkpoints/cp-example-001
-git update-ref refs/cairn/checkpoints/cp-example-001/&lt;unit&gt; &lt;checkpoint-oid&gt;
-git push origin refs/cairn/checkpoints/cp-example-001/&lt;unit&gt;
+git update-ref refs/cairn/checkpoints/cp-example-001/g&lt;NN&gt;/&lt;unit&gt; &lt;checkpoint-oid&gt;
+git push origin refs/cairn/checkpoints/cp-example-001/g&lt;NN&gt;/&lt;unit&gt;
 </code></pre>
+<p><code>g&lt;NN&gt;</code> here is the generation that is still current — the one holding the commits
+these units were actually verified as. Nothing in it is moved or deleted; the
+rebase is about to close it, not rewrite it.</p>
 <p>The fetch is first, and it is not a convenience. <code>refs/cairn/*</code> lies outside
 <code>refs/heads/*</code> and <code>refs/tags/*</code>, so a fresh clone and every CI checkout action
 see none of it — and listing an unfetched namespace succeeds with no output,
@@ -17461,6 +17573,20 @@ otherwise the rebased <code>HEAD</code> is already the candidate. Confirm no pro
 marker survives, then record <code>C</code>, publish it, and run all checks against it:</p>
 <pre><code class="language-bash">git log origin/main..HEAD --grep='Cairn-Provisional' --oneline    # must print nothing
 </code></pre>
+<p>The rebase rewrote every commit, which CLOSED the generation retained above.
+Opening the next one is part of this same work unit, not a follow-up: every
+completed commit of the REBASED branch, from the closed generation’s floor
+upward, is retained under <code>g&lt;NN+1&gt;</code> before the rewriting push completes.</p>
+<pre><code class="language-bash">git for-each-ref refs/cairn/checkpoints/cp-example-001   # highest generation = &lt;NN&gt;
+git update-ref refs/cairn/checkpoints/cp-example-001/g&lt;NN+1&gt;/&lt;unit&gt; &lt;rebased-oid&gt;
+git push origin refs/cairn/checkpoints/cp-example-001/g&lt;NN+1&gt;/&lt;unit&gt;
+</code></pre>
+<p>Both generations now stand. <code>g&lt;NN&gt;</code> holds the object each unit was verified as
+and <code>g&lt;NN+1&gt;</code> holds the reconstructed copy the branch now carries; they answer
+different questions and neither is corrected into the other. Skipping this leaves
+the current generation empty beside older ones, which the checker reports as
+<strong>blocking and definite</strong> rather than inconclusive — the branch was rewritten and
+nothing has been retained since.</p>
 <pre><code class="language-bash"># if final candidate changes are present:
 git commit -m &quot;CP-EXAMPLE-001: final implementation candidate&quot;
 git rev-parse HEAD
@@ -17482,7 +17608,7 @@ at their pinned ids.</p>
 record naming the same object id, the base <code>T</code>, the roles the reviewer held, the
 re-computed scope digest, and one structured entry per advisory raised at <code>C</code>:</p>
 <pre><code class="language-bash">sed -n '/^## Definition of done$/,/^## /p' \
-  project/coding-paths/CP-EXAMPLE-001.md | sha256sum
+  project/coding-paths/CP-EXAMPLE-001/index.md | sha256sum
 npm run cairn-check -- --base origin/main   # the advisories to disposition
 </code></pre>
 <p>If the digest differs from the one recorded at opening, stop: the definition of
@@ -17494,7 +17620,7 @@ new audit file, and obtain new acceptance.</p>
 entry, and move the brief’s checkpoint pointer. Change no other field of the path
 record — not the definition of done, not <code>scope_ref</code>, not <code>writes:</code>, not
 <code>governs:</code>, not the step plan. Stage only the four closure surfaces:</p>
-<pre><code class="language-bash">git add project/coding-paths/CP-EXAMPLE-001.md
+<pre><code class="language-bash">git add project/coding-paths/CP-EXAMPLE-001/index.md
 git add project/briefs/cp-example-001-handoff.md
 git add project/audits/cp-example-001-&lt;C&gt;.md
 git add project/sessions/YYYY-MM-DD-cp-example-001-closing.md
@@ -17532,7 +17658,7 @@ git merge --no-ff --no-commit origin/path/cp-example-001
 <li>add one <code>project/log/YYYY-MM-DD-cp-example-001.md</code> entry.</li>
 </ul>
 <p>Then create and test the exact merge candidate:</p>
-<pre><code class="language-bash">git add project/coding-paths/CP-EXAMPLE-001.md
+<pre><code class="language-bash">git add project/coding-paths/CP-EXAMPLE-001/index.md
 git add project/coding-paths/ACTIVE.md
 git add project/log/YYYY-MM-DD-cp-example-001.md
 git commit -m &quot;Integrate CP-EXAMPLE-001&quot;
@@ -17589,10 +17715,25 @@ satisfied. The <a href="#article-reference-repair" data-article="reference-repai
     </div>
     <article class="article-body" data-rendered-article="reference-path-template">
       <h1 id="reference-path-template--coding-path-template" data-heading="coding-path-template">Coding-path template</h1>
-<p>For the installed reference binding, copy this file to
-<code>project/coding-paths/CP-&lt;ID&gt;.md</code>. Keep the path id, filename, and branch
-mechanically related. A portable implementation substitutes its configured
-execution-state root.</p>
+<p>A path record is <strong>born sliced</strong>: a folder whose <code>index.md</code> carries the live
+header that does not grow, whose forward plan is <code>plan.md</code>, and whose steps are
+one file each under <code>steps/</code>. Create it in that shape — a record created flat is
+a migration handed to whoever inherits it.</p>
+<pre><code class="language-text">project/coding-paths/CP-&lt;ID&gt;/
+├── index.md      identity, goal, definition of done, coverage, step index
+├── log.md        newest-first readable history of this record
+├── plan.md       forward steps, explanatory until executed
+└── steps/
+    ├── index.md  one load-bearing line per step
+    ├── log.md
+    └── S&lt;NN&gt;.md  one complete step record, written to be read alone
+</code></pre>
+<p>The body below is <code>index.md</code>. Keep the path id, folder name, and branch
+mechanically related; a portable implementation substitutes its configured
+execution-state root. A flat <code>project/coding-paths/CP-&lt;ID&gt;.md</code> remains
+conforming — every rule keys on the declared id, not the file carrying it — so an
+existing flat record is not a defect and may migrate without restarting its
+lifecycle.</p>
 <pre><code class="language-md">---
 type: Cairn Coding Path
 title: Short outcome-oriented title
@@ -17612,7 +17753,7 @@ cairn:
   writes:
     - apps/example/**
     - docs/modules/example.md
-    - project/coding-paths/CP-EXAMPLE-001.md
+    - project/coding-paths/CP-EXAMPLE-001/**
     - project/briefs/cp-example-001-handoff.md
   governs:
     - docs/architecture/example.md@89ab89ab89ab89ab89ab89ab89ab89ab89ab89ab
@@ -17656,15 +17797,52 @@ acceptance until a scope amendment is recorded.
 
 - `docs/architecture/unrelated.md` — outside this path's bounded outcome
 
-## Execution
+## Steps
 
-- [ ] S01 — first coherent, independently verifiable result
-- [ ] S02 — second coherent result
-- [ ] S03 — hardening and closure preparation
+One line per step, and this line is load-bearing: slicing saves nothing if a
+reader cannot decide from it whether to open the file. Forward steps live in
+`plan.md` until they are executed.
 
-## Work ledger
+- **[S01](./steps/S01.md)** — what it established, in a phrase — COMPLETE
+- **[S02](./steps/S02.md)** — in progress
 
-### S01 — title
+No rollup operation exists. A step is written where it lives, and nothing is
+summarised when it moves.
+
+## Current checkpoint
+
+```text
+base commit : &lt;trunk tip immediately before registration&gt;
+branch      : path/cp-example-001
+writer      : &lt;current assigned participant&gt;
+remote      : origin/path/cp-example-001 @ &lt;last completed checkpoint&gt;
+gates       : exact latest verdicts
+session     : safe boundary, or a pushed provisional commit under review
+next action : exact next action
+blockers    : none | named condition and unblock condition
+cleanup plan: after remote integration proof, remove the exact clean secondary
+              worktree without force
+```
+
+## Blockers
+
+- None.
+</code></pre>
+<p>The step file <code>steps/S01.md</code> is a complete record on its own — deixis such as
+<em>“the checkpoint below”</em> is a defect at authoring time, because the file will be
+read alone:</p>
+<pre><code class="language-md">---
+type: Cairn Coding Path Step
+title: 'CP-EXAMPLE-001 S01 — title'
+timestamp: YYYY-MM-DDT00:00:00Z
+cairn:
+  path: CP-EXAMPLE-001
+  step: S01
+---
+
+# CP-EXAMPLE-001 S01
+
+### S01 — title — **COMPLETE**
 
 #### Intent
 
@@ -17700,31 +17878,13 @@ remote      : not pushed | origin/path/cp-example-001 @ &lt;full commit&gt;
 ```text
 status      : running
 current step: S01 complete only after required review and remote proof
-retention   : refs/cairn/checkpoints/cp-example-001/01 — written after this commit
+retention   : refs/cairn/checkpoints/cp-example-001/g01/01 — written after this commit
 changed     : exact surfaces or concise groups
 session     : safe boundary only after successful push
 next action : S02 — exact first action
 blockers    : none | named condition and responsible participant
 ```
 
-## Current checkpoint
-
-```text
-base commit : &lt;trunk tip immediately before registration&gt;
-branch      : path/cp-example-001
-writer      : &lt;current assigned participant&gt;
-remote      : origin/path/cp-example-001 @ &lt;last completed checkpoint&gt;
-gates       : exact latest verdicts
-session     : safe boundary, or a pushed provisional commit under review
-next action : exact next action
-blockers    : none | named condition and unblock condition
-cleanup plan: after remote integration proof, remove the exact clean secondary
-              worktree without force
-```
-
-## Blockers
-
-- None.
 </code></pre>
 <h2 id="reference-path-template--state-specific-edits" data-heading="state-specific-edits">State-specific edits</h2>
 <h3 id="reference-path-template--registering" data-heading="registering">Registering</h3>
@@ -17750,9 +17910,13 @@ invalid by a finding, or when
 trunk moved inside <code>writes:</code> or <code>governs:</code>. Record why the transition occurred.</p>
 <h3 id="reference-path-template--producing-a-candidate" data-heading="producing-a-candidate">Producing a candidate</h3>
 <p>Before rebasing, retain every declared unit at
-<code>refs/cairn/checkpoints/&lt;path-id&gt;/&lt;unit&gt;</code>, where <code>&lt;unit&gt;</code> is the ordinal in that
-entry’s <code>cairn-unit</code> block. Then rebase, fold every provisional commit into the
-work unit it was drafting, and push <code>C</code>.</p>
+<code>refs/cairn/checkpoints/&lt;path-id&gt;/g&lt;NN&gt;/&lt;unit&gt;</code>, where <code>&lt;unit&gt;</code> is the ordinal in
+that entry’s <code>cairn-unit</code> block and <code>g&lt;NN&gt;</code> is the generation still current. Then
+rebase, fold every provisional commit into the work unit it was drafting, and —
+in that same work unit, before the rewriting push completes — open <code>g&lt;NN+1&gt;</code> by
+retaining every completed commit of the rebased branch from the closed
+generation’s floor upward. Move nothing: the two generations hold the object each
+unit was verified as and the copy the branch now carries. Then push <code>C</code>.</p>
 <h3 id="reference-path-template--becoming-ready" data-heading="becoming-ready">Becoming ready</h3>
 <p>After exact candidate <code>C</code> has passed its checks, audit, and acceptance, create
 one administrative commit that:</p>
@@ -17835,7 +17999,7 @@ the ledger. The edited file stays as it is.</p>
 git reflog show path/&lt;id&gt;
 
 # Push every recovered checkpoint to retention before doing anything else.
-git push origin &lt;recovered-oid&gt;:refs/cairn/checkpoints/&lt;path-id&gt;/&lt;n&gt;
+git push origin &lt;recovered-oid&gt;:refs/cairn/checkpoints/&lt;path-id&gt;/g&lt;NN&gt;/&lt;n&gt;
 </code></pre>
 <p>Recover from any surviving ref, another participant’s clone, or a CI cache.
 Ledger entries naming commits that cannot be recovered are marked
@@ -17847,11 +18011,13 @@ The commit the ref used to name is the evidence.</p>
 <pre><code class="language-bash">git for-each-ref refs/cairn/checkpoints/cp-example-001
 git log --format='%H %s' &lt;base&gt;..HEAD
 # any commit in that range that is neither retained, nor provisional, nor HEAD
-git update-ref refs/cairn/checkpoints/cp-example-001/&lt;n&gt; &lt;original-oid&gt;
-git update-ref refs/cairn/checkpoints/cp-example-001/&lt;n+1&gt; &lt;moved-onto-oid&gt;
+git update-ref refs/cairn/checkpoints/cp-example-001/g&lt;NN&gt;/&lt;n&gt; &lt;original-oid&gt;
+git update-ref refs/cairn/checkpoints/cp-example-001/g&lt;NN&gt;/&lt;n+1&gt; &lt;moved-onto-oid&gt;
 </code></pre>
 <p>Restore the ref to the commit it originally named, then give the commit it was
-moved onto its own ordinal and its own ledger entry. A moved ref usually means a
+moved onto its own ordinal and its own ledger entry. Repair inside the generation
+the ref belongs to; a ref written before the generation notation stays where it
+is and is judged for reachability only. A moved ref usually means a
 completed work unit was shipped under the previous unit’s block, so there are
 two facts to repair rather than one.</p>
 <h2 id="reference-repair--a-path-branch-declared-done" data-heading="a-path-branch-declared-done">A path branch declared <code>done</code></h2>
@@ -17919,7 +18085,8 @@ protocol structure.</p>
 │       └── cairn/
 │           └── checkpoints/
 │               └── &lt;lowercase-path-id&gt;/
-│                   └── &lt;ledger-unit-ordinal&gt;
+│                   └── g&lt;NN&gt;/
+│                       └── &lt;ledger-unit-ordinal&gt;
 ├── AGENTS.md
 ├── cairn.config.json
 ├── package.json
@@ -17982,6 +18149,14 @@ protocol structure.</p>
     │   ├── paths.md
     │   ├── binding.md
     │   ├── ACTIVE.md
+    │   ├── CP-&lt;ID&gt;/
+    │   │   ├── index.md
+    │   │   ├── log.md
+    │   │   ├── plan.md
+    │   │   └── steps/
+    │   │       ├── index.md
+    │   │       ├── log.md
+    │   │       └── S&lt;NN&gt;.md
     │   ├── CP-&lt;ID&gt;.md
     │   └── history/
     │       ├── index.md
@@ -18144,8 +18319,18 @@ what Cairn defines, not what any one adoption happens to contain.</p>
 <td style="text-align:left">host configuration change</td>
 </tr>
 <tr>
+<td style="text-align:left"><code>project/coding-paths/CP-&lt;ID&gt;/</code></td>
+<td style="text-align:left">one path as a born-sliced record: live header in <code>index.md</code>, forward plan in <code>plan.md</code>, one file per step under <code>steps/</code></td>
+<td style="text-align:left">current assigned writer</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>project/coding-paths/CP-&lt;ID&gt;/steps/S&lt;NN&gt;.md</code></td>
+<td style="text-align:left">one step’s complete record, written to be read alone</td>
+<td style="text-align:left">append-only once written</td>
+</tr>
+<tr>
 <td style="text-align:left"><code>project/coding-paths/CP-*.md</code></td>
-<td style="text-align:left">one path’s plan, state, ledger, checkpoint, and next action</td>
+<td style="text-align:left">the same path as a flat record — the older shape, still conforming</td>
 <td style="text-align:left">current assigned writer</td>
 </tr>
 <tr>
@@ -18155,7 +18340,7 @@ what Cairn defines, not what any one adoption happens to contain.</p>
 </tr>
 <tr>
 <td style="text-align:left"><code>project/coding-paths/history/*.md</code></td>
-<td style="text-align:left">verbatim completed ledger sections</td>
+<td style="text-align:left">verbatim completed ledger sections rolled out of a FLAT record; a born-sliced record has no rollup and writes the step where it lives</td>
 <td style="text-align:left">created by that path; immutable thereafter</td>
 </tr>
 <tr>
@@ -18189,8 +18374,8 @@ what Cairn defines, not what any one adoption happens to contain.</p>
 <td style="text-align:left">current assigned writer</td>
 </tr>
 <tr>
-<td style="text-align:left"><code>refs/cairn/checkpoints/&lt;id&gt;/&lt;n&gt;</code></td>
-<td style="text-align:left">one immovable pin per ledger-named checkpoint</td>
+<td style="text-align:left"><code>refs/cairn/checkpoints/&lt;id&gt;/g&lt;NN&gt;/&lt;n&gt;</code></td>
+<td style="text-align:left">one immovable pin per ledger-named checkpoint, inside the generation that was current when it was written</td>
 <td style="text-align:left">append-only; never moved or deleted while the path record lives</td>
 </tr>
 <tr>
@@ -18212,12 +18397,20 @@ one shared record.</p>
 <h2 id="reference-repository-layout--the-cairn-ref-namespace" data-heading="the-cairn-ref-namespace">The Cairn ref namespace</h2>
 <p>Not everything Cairn owns is a file. One ref namespace lives outside every
 working tree and outside every directory listing:</p>
-<pre><code class="language-text">refs/cairn/checkpoints/&lt;path-id&gt;/&lt;n&gt;
+<pre><code class="language-text">refs/cairn/checkpoints/&lt;path-id&gt;/g&lt;NN&gt;/&lt;n&gt;
 </code></pre>
 <p>Each ref pins one ledger-named checkpoint so that a rewriting push cannot orphan
-it. <code>&lt;n&gt;</code> is the ledger’s own ordinal for that checkpoint. The refs are
-append-only for the life of the path record, and they are not released by
-integration.</p>
+it. <code>&lt;n&gt;</code> is the ledger’s own ordinal for that checkpoint. <code>g&lt;NN&gt;</code> is the
+<a href="#article-concept-checkpoint-retention" data-article="concept-checkpoint-retention" data-anchor="" class="wiki-link">generation</a> — one linear version of the
+branch, opened when a rewrite closes the previous one. The refs are append-only
+for the life of the path record, and they are not released by integration.</p>
+<p>The current generation is <strong>derived, never stored</strong>: it is the highest-numbered
+generation present whose refs are all ancestors of the branch tip. Nothing in
+this tree records it, and nothing should — a stored generation is a claim about
+ancestry that ancestry can already answer, and the two drift apart at the first
+rewrite. A ref written before this notation carries no generation segment; it
+MUST NOT be moved into one. Opening a generation belongs to the same work unit
+as the rewrite that forced it.</p>
 <p><strong>Where this actually is.</strong> Refs are not in the working tree, so no amount of
 <code>ls</code> will find them. They live inside the repository’s own database — under
 <code>.git/refs/</code> and <code>.git/packed-refs</code> locally, and in the equivalent store on the
@@ -18256,10 +18449,15 @@ leak into portable documentation.</p>
 <h2 id="reference-repository-layout--naming-relationships" data-heading="naming-relationships">Naming relationships</h2>
 <h3 id="reference-repository-layout--path-identity" data-heading="path-identity">Path identity</h3>
 <pre><code class="language-text">CP-ROADMAP-010
-  → project/coding-paths/CP-ROADMAP-010.md
+  → project/coding-paths/CP-ROADMAP-010/index.md   (born-sliced record)
+  → project/coding-paths/CP-ROADMAP-010.md         (flat record, older shape)
   → path/cp-roadmap-010
   → project/briefs/cp-roadmap-010-handoff.md
 </code></pre>
+<p>A record’s identity is the id it declares, not the file that carries it. Both
+shapes above are the same path, and a record may migrate between them without
+its registration, lifecycle or history appearing to restart. Every rule keys on
+the id; a rule that keys on the filename is reading an address for a fact.</p>
 <p>The id uses uppercase <code>CP-</code> followed by uppercase letters, digits, and hyphens.
 It is stable, globally unique within the repository, and never reused. The
 branch field remains present for <code>running</code>, <code>blocked</code>, and <code>ready</code>.</p>
@@ -18282,7 +18480,7 @@ an existing entry.</p>
 
 one path ledger
   ├── project/briefs/&lt;id&gt;-handoff.md
-  └── project/coding-paths/history/&lt;id&gt;-S&lt;NN&gt;.md
+  └── project/coding-paths/history/&lt;id&gt;-S&lt;NN&gt;.md   (FLAT records only)
 
 integrated path + exact audit + exact closing acceptance
   └── project/log/YYYY-MM-DD-&lt;id&gt;.md

@@ -18,6 +18,9 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-01
 
+- `S08q` reconciles the four seed pages and two surviving notations in the
+  canonical index with the born-sliced record and generation-aware retention the
+  specification already states, and adds a test that holds them there.
 - `S08p` installs and validates the schema-1 host binding, routes the checker,
   active view and audit scaffold through it, and prints the effective binding
   without claiming the still-missing installer, updater or schema migrations.

@@ -67,6 +67,7 @@ born here, one complete record per step.
 - **[S08n](./S08n.md)** — An append is not a rewrite, and the baseline belongs to the record — COMPLETE
 - **[S08o](./S08o.md)** — The protocol moves, and the host becomes an adapter — COMPLETE
 - **[S08p](./S08p.md)** — The host binding becomes executable — COMPLETE
+- **[S08q](./S08q.md)** — The seed teaches the shape the protocol states — COMPLETE
 
 ## Which commit landed which step
 

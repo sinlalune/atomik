@@ -11,6 +11,20 @@ timestamp: 2026-08-26T00:00:00Z
 The companion entry point is [index.md](./index.md). This log records changes to
 the documentation project; it is not part of the protocol's normative prose.
 
+## 2026-09-01 — the seed teaches the shape the protocol already states
+
+The normative text moved to born-sliced path records at the folder migration and
+to generation-aware retention at ADR-021, but the pages an adopter copies from —
+the layout reference, the operations sequences, the repair procedures and the
+path template — still taught the flat record and the ungenerated ref namespace.
+Two of those notations also survived inside the canonical index itself. They are
+now one shape: the layout tree carries `g<NN>/` and the record folder, the
+operations rebase sequence opens the next generation before the rewriting push
+completes, and the template creates a folder with one file per step. The flat
+record and pre-notation refs remain conforming and are documented as such. A test
+now holds the seed pages to the current shapes, so this particular drift cannot
+reopen quietly; it checks documentation currency, not repository state.
+
 ## 2026-09-01 — the host binding becomes executable
 
 Schema 1, its JSON Schema and a dependency-free loader now bind portable Cairn

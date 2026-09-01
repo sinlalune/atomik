@@ -38,7 +38,8 @@ repository/
 │       └── cairn/
 │           └── checkpoints/
 │               └── <lowercase-path-id>/
-│                   └── <ledger-unit-ordinal>
+│                   └── g<NN>/
+│                       └── <ledger-unit-ordinal>
 ├── AGENTS.md
 ├── cairn.config.json
 ├── package.json
@@ -101,6 +102,14 @@ repository/
     │   ├── paths.md
     │   ├── binding.md
     │   ├── ACTIVE.md
+    │   ├── CP-<ID>/
+    │   │   ├── index.md
+    │   │   ├── log.md
+    │   │   ├── plan.md
+    │   │   └── steps/
+    │   │       ├── index.md
+    │   │       ├── log.md
+    │   │       └── S<NN>.md
     │   ├── CP-<ID>.md
     │   └── history/
     │       ├── index.md
@@ -172,16 +181,18 @@ what Cairn defines, not what any one adoption happens to contain.
 | `project/index.md` | entry map for durable project knowledge and execution state | project-plane change |
 | `project/coding-paths/paths.md` | portable operating convention for opening, running, integrating, and cleaning paths | accepted protocol operation change |
 | `project/coding-paths/binding.md` | human-readable host adapter: installed roots, commands, worktree/runtime details, and local examples | host configuration change |
-| `project/coding-paths/CP-*.md` | one path's plan, state, ledger, checkpoint, and next action | current assigned writer |
+| `project/coding-paths/CP-<ID>/` | one path as a born-sliced record: live header in `index.md`, forward plan in `plan.md`, one file per step under `steps/` | current assigned writer |
+| `project/coding-paths/CP-<ID>/steps/S<NN>.md` | one step's complete record, written to be read alone | append-only once written |
+| `project/coding-paths/CP-*.md` | the same path as a flat record — the older shape, still conforming | current assigned writer |
 | `project/coding-paths/ACTIVE.md` | generated live-path index | generator only |
-| `project/coding-paths/history/*.md` | verbatim completed ledger sections | created by that path; immutable thereafter |
+| `project/coding-paths/history/*.md` | verbatim completed ledger sections rolled out of a FLAT record; a born-sliced record has no rollup and writes the step where it lives | created by that path; immutable thereafter |
 | `project/sessions/*.md` | opening, closing, and other human decisions | participant recording the event; immutable thereafter |
 | `project/audits/*.md` | one audit bound to one full candidate hash | auditor; immutable thereafter |
 | `project/briefs/*.md` | disposable current handoff projection | current assigned writer |
 | `project/log/*.md` | one integrated outcome per file | integration unit; immutable thereafter |
 | `project/brainstorm/` | explicitly provisional thinking | normal path work; never treated as accepted doctrine |
 | `refs/heads/path/<id>` | one path's branch, carrying every checkpoint it has pushed | current assigned writer |
-| `refs/cairn/checkpoints/<id>/<n>` | one immovable pin per ledger-named checkpoint | append-only; never moved or deleted while the path record lives |
+| `refs/cairn/checkpoints/<id>/g<NN>/<n>` | one immovable pin per ledger-named checkpoint, inside the generation that was current when it was written | append-only; never moved or deleted while the path record lives |
 | each meaningful folder's `index.md` | what belongs there and how to navigate it | update when folder meaning or contents change materially |
 | each meaningful folder's `log.md` | recent meaningful changes in that scope | newest-first folder history; not an event record |
 
@@ -196,13 +207,22 @@ Not everything Cairn owns is a file. One ref namespace lives outside every
 working tree and outside every directory listing:
 
 ```text
-refs/cairn/checkpoints/<path-id>/<n>
+refs/cairn/checkpoints/<path-id>/g<NN>/<n>
 ```
 
 Each ref pins one ledger-named checkpoint so that a rewriting push cannot orphan
-it. `<n>` is the ledger's own ordinal for that checkpoint. The refs are
-append-only for the life of the path record, and they are not released by
-integration.
+it. `<n>` is the ledger's own ordinal for that checkpoint. `g<NN>` is the
+[generation](../concepts/checkpoint-retention.md) — one linear version of the
+branch, opened when a rewrite closes the previous one. The refs are append-only
+for the life of the path record, and they are not released by integration.
+
+The current generation is **derived, never stored**: it is the highest-numbered
+generation present whose refs are all ancestors of the branch tip. Nothing in
+this tree records it, and nothing should — a stored generation is a claim about
+ancestry that ancestry can already answer, and the two drift apart at the first
+rewrite. A ref written before this notation carries no generation segment; it
+MUST NOT be moved into one. Opening a generation belongs to the same work unit
+as the rewrite that forced it.
 
 **Where this actually is.** Refs are not in the working tree, so no amount of
 `ls` will find them. They live inside the repository's own database — under
@@ -256,10 +276,16 @@ leak into portable documentation.
 
 ```text
 CP-ROADMAP-010
-  → project/coding-paths/CP-ROADMAP-010.md
+  → project/coding-paths/CP-ROADMAP-010/index.md   (born-sliced record)
+  → project/coding-paths/CP-ROADMAP-010.md         (flat record, older shape)
   → path/cp-roadmap-010
   → project/briefs/cp-roadmap-010-handoff.md
 ```
+
+A record's identity is the id it declares, not the file that carries it. Both
+shapes above are the same path, and a record may migrate between them without
+its registration, lifecycle or history appearing to restart. Every rule keys on
+the id; a rule that keys on the filename is reading an address for a fact.
 
 The id uses uppercase `CP-` followed by uppercase letters, digits, and hyphens.
 It is stable, globally unique within the repository, and never reused. The
@@ -297,7 +323,7 @@ live path records
 
 one path ledger
   ├── project/briefs/<id>-handoff.md
-  └── project/coding-paths/history/<id>-S<NN>.md
+  └── project/coding-paths/history/<id>-S<NN>.md   (FLAT records only)
 
 integrated path + exact audit + exact closing acceptance
   └── project/log/YYYY-MM-DD-<id>.md
