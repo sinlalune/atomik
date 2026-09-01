@@ -1693,6 +1693,14 @@ already be reachable from a retention ref on the same remote:</p>
 <p><code>&lt;n&gt;</code> is the <code>unit</code> ordinal declared by the ledger entry, so a ledger entry and
 its retained ref name the same thing. Retention refs are append-only: once
 written, a ref MUST NOT be moved or deleted while the path record is retained.</p>
+<p>This entire namespace is the cost of rewriting, and a host that declines to
+rewrite does not pay it. Under <code>pathHistoryPolicy: forbidden</code> — the DEFAULT,
+settled by <a href="../../adr/ADR-022-path-branches-are-not-rewritten.md">ADR-022</a> — a
+published path branch is never rebased, amended, folded or force-pushed, a
+current base is reached by merging the trunk in, and the branch itself keeps
+every ledger-named commit reachable. Retention below describes the <code>retained</code>
+alternative, which stays fully specified and supported for a host that keeps
+rewriting.</p>
 <p><code>g&lt;NN&gt;</code> is the <strong>generation</strong> — one linear version of the branch, opened when the
 branch is created or rewritten and closed by the next rewriting push
 (<a href="../../adr/ADR-021-checkpoint-retention-generations.md">ADR-021</a>). It exists
@@ -2614,6 +2622,12 @@ not in a separate document a reader may never open.</p>
 <td style="text-align:left">the environment must FETCH <code>refs/cairn/*</code>, which no clone or checkout action does by default; a ref <em>moving</em> is unobservable to a single-commit validator — only the orphan it leaves behind is</td>
 </tr>
 <tr>
+<td style="text-align:left">A published path branch is not rewritten</td>
+<td style="text-align:left">required on a <code>forbidden</code> host</td>
+<td style="text-align:left"><strong>implemented</strong>; where <code>pathHistoryPolicy</code> is <code>forbidden</code> the branch’s own upstream MUST remain an ancestor of <code>HEAD</code>, so a rebase, amend, soft-reset fold or force-push of published work is blocking. This is the DEFAULT policy (<a href="../../adr/ADR-022-path-branches-are-not-rewritten.md">ADR-022</a>), and it replaces retention rather than joining it: if nothing is rewritten the branch already keeps every ledger-named commit reachable</td>
+<td style="text-align:left">it proves only that THIS checkout has not rewritten what it published — a remote rewritten by someone else is invisible here, and preventing the push itself needs host protection, which tier <code>ci</code> does not claim. It is also silent while no remote-tracking ref exists</td>
+</tr>
+<tr>
 <td style="text-align:left">Marked provisional commits excluded from candidate identity</td>
 <td style="text-align:left">required</td>
 <td style="text-align:left">implemented; a ready path whose candidate range still contains a marked commit is blocked</td>
@@ -3025,6 +3039,12 @@ honest state of the work.</p>
 <td style="text-align:left">Path declared running without an opening-check session note</td>
 <td style="text-align:left"><code>!openingFor(pathId) via session frontmatter { path, ceremony: 'opening' }</code></td>
 </tr>
+<tr data-rule="path-history" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>path-history</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A published path commit was rewritten while this host forbids rewriting (ADR-022)</td>
+<td style="text-align:left"><code>pathHistoryPolicy === 'forbidden' &amp;&amp; pathRemoteCheckpoint(branch).diverged</code></td>
+</tr>
 <tr data-rule="provisional" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>provisional</code></td>
 <td style="text-align:left">diff</td>
@@ -3034,7 +3054,7 @@ honest state of the work.</p>
 <tr data-rule="rebase" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>rebase</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">Path branch does not contain latest trunk tip (stale branch)</td>
+<td style="text-align:left">Path branch does not contain latest trunk tip (stale branch). The id is historical: the requirement is trunk containment, and a no-rewrite host satisfies it by merging the trunk in (ADR-022)</td>
 <td style="text-align:left"><code>trunkContained(trunkRef) === false</code></td>
 </tr>
 <tr data-rule="record-date" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
@@ -4188,6 +4208,14 @@ already be reachable from a retention ref on the same remote:</p>
 <p><code>&lt;n&gt;</code> is the <code>unit</code> ordinal declared by the ledger entry, so a ledger entry and
 its retained ref name the same thing. Retention refs are append-only: once
 written, a ref MUST NOT be moved or deleted while the path record is retained.</p>
+<p>This entire namespace is the cost of rewriting, and a host that declines to
+rewrite does not pay it. Under <code>pathHistoryPolicy: forbidden</code> — the DEFAULT,
+settled by <a href="../../adr/ADR-022-path-branches-are-not-rewritten.md">ADR-022</a> — a
+published path branch is never rebased, amended, folded or force-pushed, a
+current base is reached by merging the trunk in, and the branch itself keeps
+every ledger-named commit reachable. Retention below describes the <code>retained</code>
+alternative, which stays fully specified and supported for a host that keeps
+rewriting.</p>
 <p><code>g&lt;NN&gt;</code> is the <strong>generation</strong> — one linear version of the branch, opened when the
 branch is created or rewritten and closed by the next rewriting push
 (<a href="../../adr/ADR-021-checkpoint-retention-generations.md">ADR-021</a>). It exists
@@ -5109,6 +5137,12 @@ not in a separate document a reader may never open.</p>
 <td style="text-align:left">the environment must FETCH <code>refs/cairn/*</code>, which no clone or checkout action does by default; a ref <em>moving</em> is unobservable to a single-commit validator — only the orphan it leaves behind is</td>
 </tr>
 <tr>
+<td style="text-align:left">A published path branch is not rewritten</td>
+<td style="text-align:left">required on a <code>forbidden</code> host</td>
+<td style="text-align:left"><strong>implemented</strong>; where <code>pathHistoryPolicy</code> is <code>forbidden</code> the branch’s own upstream MUST remain an ancestor of <code>HEAD</code>, so a rebase, amend, soft-reset fold or force-push of published work is blocking. This is the DEFAULT policy (<a href="../../adr/ADR-022-path-branches-are-not-rewritten.md">ADR-022</a>), and it replaces retention rather than joining it: if nothing is rewritten the branch already keeps every ledger-named commit reachable</td>
+<td style="text-align:left">it proves only that THIS checkout has not rewritten what it published — a remote rewritten by someone else is invisible here, and preventing the push itself needs host protection, which tier <code>ci</code> does not claim. It is also silent while no remote-tracking ref exists</td>
+</tr>
+<tr>
 <td style="text-align:left">Marked provisional commits excluded from candidate identity</td>
 <td style="text-align:left">required</td>
 <td style="text-align:left">implemented; a ready path whose candidate range still contains a marked commit is blocked</td>
@@ -5520,6 +5554,12 @@ honest state of the work.</p>
 <td style="text-align:left">Path declared running without an opening-check session note</td>
 <td style="text-align:left"><code>!openingFor(pathId) via session frontmatter { path, ceremony: 'opening' }</code></td>
 </tr>
+<tr data-rule="path-history" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>path-history</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A published path commit was rewritten while this host forbids rewriting (ADR-022)</td>
+<td style="text-align:left"><code>pathHistoryPolicy === 'forbidden' &amp;&amp; pathRemoteCheckpoint(branch).diverged</code></td>
+</tr>
 <tr data-rule="provisional" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>provisional</code></td>
 <td style="text-align:left">diff</td>
@@ -5529,7 +5569,7 @@ honest state of the work.</p>
 <tr data-rule="rebase" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>rebase</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">Path branch does not contain latest trunk tip (stale branch)</td>
+<td style="text-align:left">Path branch does not contain latest trunk tip (stale branch). The id is historical: the requirement is trunk containment, and a no-rewrite host satisfies it by merging the trunk in (ADR-022)</td>
 <td style="text-align:left"><code>trunkContained(trunkRef) === false</code></td>
 </tr>
 <tr data-rule="record-date" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
@@ -10151,7 +10191,14 @@ git fetch origin path/cp-example-001
 git merge-base --is-ancestor HEAD origin/path/cp-example-001
 </code></pre>
 <p>The final command must exit zero before the step is called complete. Then record
-the checkpoint in the ledger and retain it:</p>
+the checkpoint in the ledger.</p>
+<p><strong>On a no-rewrite host</strong> (<code>pathHistoryPolicy: forbidden</code>, the default) that is
+the whole of it. The commit keeps its object id for the life of the path, so the
+branch itself keeps every checkpoint the ledger names reachable, and after a
+<code>--no-ff</code> integration merge the trunk keeps them permanently. There is no
+namespace to write and none to fetch.</p>
+<p><strong>On a rewriting host</strong> (<code>retained</code>) the checkpoint must also be pinned, because
+the mandatory rebase is about to orphan it:</p>
 <pre><code class="language-bash">git update-ref refs/cairn/checkpoints/cp-example-001/g01/01 HEAD
 git push origin refs/cairn/checkpoints/cp-example-001/g01/01
 git for-each-ref refs/cairn/checkpoints/cp-example-001
@@ -10175,14 +10222,46 @@ git push origin path/cp-example-001
 git rev-parse HEAD
 </code></pre>
 <p>Present that exact object id for inspection. A provisional commit is never
-reported as a completed checkpoint and never named as a resume point. After the
-inspection passes, fold it into the work unit it was drafting:</p>
+reported as a completed checkpoint and never named as a resume point.</p>
+<p><strong>On a no-rewrite host</strong> it stays where it is. The completed work unit’s own
+commit supersedes it, and the provisional commit remains in the branch’s history,
+marked as what it was. The history is longer and less tidy; that is the stated
+cost of never rewriting.</p>
+<p><strong>On a rewriting host</strong> it may be folded into the work unit it was drafting:</p>
 <pre><code class="language-bash">git reset --soft &lt;last-checkpoint&gt;
 git commit -m &quot;CP-EXAMPLE-001 S02: coherent outcome&quot;
 </code></pre>
 <p>Folding rewrites published commits, so every ledger-named checkpoint must
 already be retained before the force push that follows.</p>
 <h2 id="reference-operations--produce-implementation-candidate-c" data-heading="produce-implementation-candidate-c">Produce implementation candidate C</h2>
+<p><strong>Which sequence applies is a host policy</strong>, declared as <code>pathHistoryPolicy</code> in
+<a href="#article-reference-configuration" data-article="reference-configuration" data-anchor="" class="wiki-link">configuration</a>. Run the one your repository declares; they
+are not interchangeable.</p>
+<h3 id="reference-operations--on-a-no-rewrite-host-forbidden-the-default-adr-022-adr-adr-022-path-branches-are-not-rewritten-md" data-heading="on-a-no-rewrite-host-forbidden-the-default-adr-022-adr-adr-022-path-branches-are-not-rewritten-md">On a no-rewrite host (<code>forbidden</code>, the default — <a href="../../../adr/ADR-022-path-branches-are-not-rewritten.md">ADR-022</a>)</h3>
+<p>Nothing is rewritten, so nothing needs retaining. Bring the trunk into the branch
+instead of moving the branch onto the trunk:</p>
+<pre><code class="language-bash">git fetch origin main
+git rev-parse origin/main    # this is T; record it in the closing record
+git merge origin/main
+</code></pre>
+<p>Resolve conflicts and commit the merge. The branch now contains the trunk tip —
+the property that serializes the merge without an integrator — and every commit
+the ledger names still has the object id it was verified as. Finish any final
+implementation, confirm no provisional marker survives, then record <code>C</code>:</p>
+<pre><code class="language-bash">git log origin/main..HEAD --grep='Cairn-Provisional' --oneline    # must print nothing
+git commit -m &quot;CP-EXAMPLE-001: final implementation candidate&quot;   # if changes remain
+git rev-parse HEAD
+git push origin path/cp-example-001
+npm run cairn-check -- --base origin/main
+npm run typecheck
+npm test
+npm run build
+</code></pre>
+<p>The push is ordinary. There is no force, no lease, and no generation to open. A
+provisional commit is superseded by the completed unit’s commit and stays in the
+branch’s history as what it was — folding it with <code>git reset --soft</code> is a rewrite
+and is not available here.</p>
+<h3 id="reference-operations--on-a-rewriting-host-retained-adr-021-adr-adr-021-checkpoint-retention-generations-md" data-heading="on-a-rewriting-host-retained-adr-021-adr-adr-021-checkpoint-retention-generations-md">On a rewriting host (<code>retained</code> — <a href="../../../adr/ADR-021-checkpoint-retention-generations.md">ADR-021</a>)</h3>
 <p>Retain every ledger-named checkpoint <strong>before</strong> the rebase, because the rebase is
 what orphans them:</p>
 <pre><code class="language-bash">git fetch origin '+refs/cairn/*:refs/cairn/*'   # the namespace is NOT fetched by default
@@ -10521,7 +10600,7 @@ remote      : not pushed | origin/path/cp-example-001 @ &lt;full commit&gt;
 ```text
 status      : running
 current step: S01 complete only after required review and remote proof
-retention   : refs/cairn/checkpoints/cp-example-001/g01/01 — written after this commit
+retention   : none (no-rewrite host) | refs/cairn/checkpoints/cp-example-001/g01/01
 changed     : exact surfaces or concise groups
 session     : safe boundary only after successful push
 next action : S02 — exact first action
@@ -10552,14 +10631,17 @@ invalid by a finding, or when
 <a href="#article-concept-acceptance-drift" data-article="concept-acceptance-drift" data-anchor="" class="wiki-link">acceptance drift</a> invalidates it because the
 trunk moved inside <code>writes:</code> or <code>governs:</code>. Record why the transition occurred.</p>
 <h3 id="reference-path-template--producing-a-candidate" data-heading="producing-a-candidate">Producing a candidate</h3>
-<p>Before rebasing, retain every declared unit at
-<code>refs/cairn/checkpoints/&lt;path-id&gt;/g&lt;NN&gt;/&lt;unit&gt;</code>, where <code>&lt;unit&gt;</code> is the ordinal in
-that entry’s <code>cairn-unit</code> block and <code>g&lt;NN&gt;</code> is the generation still current. Then
-rebase, fold every provisional commit into the work unit it was drafting, and —
-in that same work unit, before the rewriting push completes — open <code>g&lt;NN+1&gt;</code> by
-retaining every completed commit of the rebased branch from the closed
-generation’s floor upward. Move nothing: the two generations hold the object each
-unit was verified as and the copy the branch now carries. Then push <code>C</code>.</p>
+<p>On a no-rewrite host (<code>pathHistoryPolicy: forbidden</code>, the default) merge the
+trunk into the branch, finish the candidate, and push <code>C</code> with an ordinary push.
+Nothing is retained because nothing is rewritten, and provisional commits stay in
+the history rather than being folded.</p>
+<p>On a rewriting host (<code>retained</code>) retain every declared unit at
+<code>refs/cairn/checkpoints/&lt;path-id&gt;/g&lt;NN&gt;/&lt;unit&gt;</code> before rebasing, where <code>&lt;unit&gt;</code> is
+the ordinal in that entry’s <code>cairn-unit</code> block and <code>g&lt;NN&gt;</code> is the generation still
+current. Then rebase, fold every provisional commit into the work unit it was
+drafting, and — in that same work unit, before the rewriting push completes —
+open <code>g&lt;NN+1&gt;</code> by retaining every completed commit of the rebased branch from the
+closed generation’s floor upward. Move nothing. Then push <code>C</code>.</p>
 <h3 id="reference-path-template--becoming-ready" data-heading="becoming-ready">Becoming ready</h3>
 <p>After exact candidate <code>C</code> has passed its checks, audit, and acceptance, create
 one administrative commit that:</p>
@@ -11869,6 +11951,14 @@ already be reachable from a retention ref on the same remote:</p>
 <p><code>&lt;n&gt;</code> is the <code>unit</code> ordinal declared by the ledger entry, so a ledger entry and
 its retained ref name the same thing. Retention refs are append-only: once
 written, a ref MUST NOT be moved or deleted while the path record is retained.</p>
+<p>This entire namespace is the cost of rewriting, and a host that declines to
+rewrite does not pay it. Under <code>pathHistoryPolicy: forbidden</code> — the DEFAULT,
+settled by <a href="../../adr/ADR-022-path-branches-are-not-rewritten.md">ADR-022</a> — a
+published path branch is never rebased, amended, folded or force-pushed, a
+current base is reached by merging the trunk in, and the branch itself keeps
+every ledger-named commit reachable. Retention below describes the <code>retained</code>
+alternative, which stays fully specified and supported for a host that keeps
+rewriting.</p>
 <p><code>g&lt;NN&gt;</code> is the <strong>generation</strong> — one linear version of the branch, opened when the
 branch is created or rewritten and closed by the next rewriting push
 (<a href="../../adr/ADR-021-checkpoint-retention-generations.md">ADR-021</a>). It exists
@@ -12790,6 +12880,12 @@ not in a separate document a reader may never open.</p>
 <td style="text-align:left">the environment must FETCH <code>refs/cairn/*</code>, which no clone or checkout action does by default; a ref <em>moving</em> is unobservable to a single-commit validator — only the orphan it leaves behind is</td>
 </tr>
 <tr>
+<td style="text-align:left">A published path branch is not rewritten</td>
+<td style="text-align:left">required on a <code>forbidden</code> host</td>
+<td style="text-align:left"><strong>implemented</strong>; where <code>pathHistoryPolicy</code> is <code>forbidden</code> the branch’s own upstream MUST remain an ancestor of <code>HEAD</code>, so a rebase, amend, soft-reset fold or force-push of published work is blocking. This is the DEFAULT policy (<a href="../../adr/ADR-022-path-branches-are-not-rewritten.md">ADR-022</a>), and it replaces retention rather than joining it: if nothing is rewritten the branch already keeps every ledger-named commit reachable</td>
+<td style="text-align:left">it proves only that THIS checkout has not rewritten what it published — a remote rewritten by someone else is invisible here, and preventing the push itself needs host protection, which tier <code>ci</code> does not claim. It is also silent while no remote-tracking ref exists</td>
+</tr>
+<tr>
 <td style="text-align:left">Marked provisional commits excluded from candidate identity</td>
 <td style="text-align:left">required</td>
 <td style="text-align:left">implemented; a ready path whose candidate range still contains a marked commit is blocked</td>
@@ -13201,6 +13297,12 @@ honest state of the work.</p>
 <td style="text-align:left">Path declared running without an opening-check session note</td>
 <td style="text-align:left"><code>!openingFor(pathId) via session frontmatter { path, ceremony: 'opening' }</code></td>
 </tr>
+<tr data-rule="path-history" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>path-history</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A published path commit was rewritten while this host forbids rewriting (ADR-022)</td>
+<td style="text-align:left"><code>pathHistoryPolicy === 'forbidden' &amp;&amp; pathRemoteCheckpoint(branch).diverged</code></td>
+</tr>
 <tr data-rule="provisional" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>provisional</code></td>
 <td style="text-align:left">diff</td>
@@ -13210,7 +13312,7 @@ honest state of the work.</p>
 <tr data-rule="rebase" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>rebase</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">Path branch does not contain latest trunk tip (stale branch)</td>
+<td style="text-align:left">Path branch does not contain latest trunk tip (stale branch). The id is historical: the requirement is trunk containment, and a no-rewrite host satisfies it by merging the trunk in (ADR-022)</td>
 <td style="text-align:left"><code>trunkContained(trunkRef) === false</code></td>
 </tr>
 <tr data-rule="record-date" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
@@ -17512,7 +17614,14 @@ git fetch origin path/cp-example-001
 git merge-base --is-ancestor HEAD origin/path/cp-example-001
 </code></pre>
 <p>The final command must exit zero before the step is called complete. Then record
-the checkpoint in the ledger and retain it:</p>
+the checkpoint in the ledger.</p>
+<p><strong>On a no-rewrite host</strong> (<code>pathHistoryPolicy: forbidden</code>, the default) that is
+the whole of it. The commit keeps its object id for the life of the path, so the
+branch itself keeps every checkpoint the ledger names reachable, and after a
+<code>--no-ff</code> integration merge the trunk keeps them permanently. There is no
+namespace to write and none to fetch.</p>
+<p><strong>On a rewriting host</strong> (<code>retained</code>) the checkpoint must also be pinned, because
+the mandatory rebase is about to orphan it:</p>
 <pre><code class="language-bash">git update-ref refs/cairn/checkpoints/cp-example-001/g01/01 HEAD
 git push origin refs/cairn/checkpoints/cp-example-001/g01/01
 git for-each-ref refs/cairn/checkpoints/cp-example-001
@@ -17536,14 +17645,46 @@ git push origin path/cp-example-001
 git rev-parse HEAD
 </code></pre>
 <p>Present that exact object id for inspection. A provisional commit is never
-reported as a completed checkpoint and never named as a resume point. After the
-inspection passes, fold it into the work unit it was drafting:</p>
+reported as a completed checkpoint and never named as a resume point.</p>
+<p><strong>On a no-rewrite host</strong> it stays where it is. The completed work unit’s own
+commit supersedes it, and the provisional commit remains in the branch’s history,
+marked as what it was. The history is longer and less tidy; that is the stated
+cost of never rewriting.</p>
+<p><strong>On a rewriting host</strong> it may be folded into the work unit it was drafting:</p>
 <pre><code class="language-bash">git reset --soft &lt;last-checkpoint&gt;
 git commit -m &quot;CP-EXAMPLE-001 S02: coherent outcome&quot;
 </code></pre>
 <p>Folding rewrites published commits, so every ledger-named checkpoint must
 already be retained before the force push that follows.</p>
 <h2 id="reference-operations--produce-implementation-candidate-c" data-heading="produce-implementation-candidate-c">Produce implementation candidate C</h2>
+<p><strong>Which sequence applies is a host policy</strong>, declared as <code>pathHistoryPolicy</code> in
+<a href="#article-reference-configuration" data-article="reference-configuration" data-anchor="" class="wiki-link">configuration</a>. Run the one your repository declares; they
+are not interchangeable.</p>
+<h3 id="reference-operations--on-a-no-rewrite-host-forbidden-the-default-adr-022-adr-adr-022-path-branches-are-not-rewritten-md" data-heading="on-a-no-rewrite-host-forbidden-the-default-adr-022-adr-adr-022-path-branches-are-not-rewritten-md">On a no-rewrite host (<code>forbidden</code>, the default — <a href="../../../adr/ADR-022-path-branches-are-not-rewritten.md">ADR-022</a>)</h3>
+<p>Nothing is rewritten, so nothing needs retaining. Bring the trunk into the branch
+instead of moving the branch onto the trunk:</p>
+<pre><code class="language-bash">git fetch origin main
+git rev-parse origin/main    # this is T; record it in the closing record
+git merge origin/main
+</code></pre>
+<p>Resolve conflicts and commit the merge. The branch now contains the trunk tip —
+the property that serializes the merge without an integrator — and every commit
+the ledger names still has the object id it was verified as. Finish any final
+implementation, confirm no provisional marker survives, then record <code>C</code>:</p>
+<pre><code class="language-bash">git log origin/main..HEAD --grep='Cairn-Provisional' --oneline    # must print nothing
+git commit -m &quot;CP-EXAMPLE-001: final implementation candidate&quot;   # if changes remain
+git rev-parse HEAD
+git push origin path/cp-example-001
+npm run cairn-check -- --base origin/main
+npm run typecheck
+npm test
+npm run build
+</code></pre>
+<p>The push is ordinary. There is no force, no lease, and no generation to open. A
+provisional commit is superseded by the completed unit’s commit and stays in the
+branch’s history as what it was — folding it with <code>git reset --soft</code> is a rewrite
+and is not available here.</p>
+<h3 id="reference-operations--on-a-rewriting-host-retained-adr-021-adr-adr-021-checkpoint-retention-generations-md" data-heading="on-a-rewriting-host-retained-adr-021-adr-adr-021-checkpoint-retention-generations-md">On a rewriting host (<code>retained</code> — <a href="../../../adr/ADR-021-checkpoint-retention-generations.md">ADR-021</a>)</h3>
 <p>Retain every ledger-named checkpoint <strong>before</strong> the rebase, because the rebase is
 what orphans them:</p>
 <pre><code class="language-bash">git fetch origin '+refs/cairn/*:refs/cairn/*'   # the namespace is NOT fetched by default
@@ -17878,7 +18019,7 @@ remote      : not pushed | origin/path/cp-example-001 @ &lt;full commit&gt;
 ```text
 status      : running
 current step: S01 complete only after required review and remote proof
-retention   : refs/cairn/checkpoints/cp-example-001/g01/01 — written after this commit
+retention   : none (no-rewrite host) | refs/cairn/checkpoints/cp-example-001/g01/01
 changed     : exact surfaces or concise groups
 session     : safe boundary only after successful push
 next action : S02 — exact first action
@@ -17909,14 +18050,17 @@ invalid by a finding, or when
 <a href="#article-concept-acceptance-drift" data-article="concept-acceptance-drift" data-anchor="" class="wiki-link">acceptance drift</a> invalidates it because the
 trunk moved inside <code>writes:</code> or <code>governs:</code>. Record why the transition occurred.</p>
 <h3 id="reference-path-template--producing-a-candidate" data-heading="producing-a-candidate">Producing a candidate</h3>
-<p>Before rebasing, retain every declared unit at
-<code>refs/cairn/checkpoints/&lt;path-id&gt;/g&lt;NN&gt;/&lt;unit&gt;</code>, where <code>&lt;unit&gt;</code> is the ordinal in
-that entry’s <code>cairn-unit</code> block and <code>g&lt;NN&gt;</code> is the generation still current. Then
-rebase, fold every provisional commit into the work unit it was drafting, and —
-in that same work unit, before the rewriting push completes — open <code>g&lt;NN+1&gt;</code> by
-retaining every completed commit of the rebased branch from the closed
-generation’s floor upward. Move nothing: the two generations hold the object each
-unit was verified as and the copy the branch now carries. Then push <code>C</code>.</p>
+<p>On a no-rewrite host (<code>pathHistoryPolicy: forbidden</code>, the default) merge the
+trunk into the branch, finish the candidate, and push <code>C</code> with an ordinary push.
+Nothing is retained because nothing is rewritten, and provisional commits stay in
+the history rather than being folded.</p>
+<p>On a rewriting host (<code>retained</code>) retain every declared unit at
+<code>refs/cairn/checkpoints/&lt;path-id&gt;/g&lt;NN&gt;/&lt;unit&gt;</code> before rebasing, where <code>&lt;unit&gt;</code> is
+the ordinal in that entry’s <code>cairn-unit</code> block and <code>g&lt;NN&gt;</code> is the generation still
+current. Then rebase, fold every provisional commit into the work unit it was
+drafting, and — in that same work unit, before the rewriting push completes —
+open <code>g&lt;NN+1&gt;</code> by retaining every completed commit of the rebased branch from the
+closed generation’s floor upward. Move nothing. Then push <code>C</code>.</p>
 <h3 id="reference-path-template--becoming-ready" data-heading="becoming-ready">Becoming ready</h3>
 <p>After exact candidate <code>C</code> has passed its checks, audit, and acceptance, create
 one administrative commit that:</p>

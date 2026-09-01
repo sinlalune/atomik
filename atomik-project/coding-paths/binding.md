@@ -34,7 +34,7 @@ cairn:
 | metadata namespace | `atomik` |
 | enforcement profile | `ci` — remote checks report; host protection is not claimed |
 | generated new-path default | `lightweight` (the path record writes it explicitly) |
-| path-history policy | retained at `refs/cairn/checkpoints/<id>/g<NN>/<unit>` |
+| path-history policy | **forbidden** — a published path branch is never rewritten ([ADR-022](../../docs/adr/ADR-022-path-branches-are-not-rewritten.md)); a current base is reached by merging `master` in, and `checkpointRetentionRef` is `null` |
 | path branch | `path/<lowercase-path-id>` |
 
 The machine-readable authority is repository-root `cairn.config.json`, schema 1,
@@ -98,7 +98,8 @@ never share one profile.
 - `apps/desktop/shared/ipc-contract.ts`
 
 Paths adding IPC channels commonly touch both. Conflicts are usually mechanical
-append conflicts; rebase early and preserve both independently typed surfaces.
+append conflicts; merge the trunk in early and preserve both independently typed
+surfaces. Do not rebase — this host declares `pathHistoryPolicy: forbidden`.
 
 ## Atomik-only invariants
 

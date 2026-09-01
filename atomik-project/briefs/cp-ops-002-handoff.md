@@ -6,8 +6,8 @@ atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: 578eeb6
-  checkpoint_unit: 37
+  checkpoint: 4cb8ca1
+  checkpoint_unit: 38
   checkpoint_pushed: true
   base_commit: 7aa3b1d
   trunk_seen: dfcd09d
@@ -58,7 +58,7 @@ now closed.** The last, `unretainedCheckpoints`, reported "nothing orphaned" onc
 the retained set stopped intersecting the branch — which is what the mandatory
 pre-merge rebase causes — and is repaired under `ADR-021`.
 
-**S08 so far — eighteen units.** Full records in the path file; what a resuming
+**S08 so far — nineteen units.** Full records in the path file; what a resuming
 session needs from them:
 
 - The local gate defaults to the **trunk** base on a path branch (S08a).
@@ -158,26 +158,34 @@ session needs from them:
   rewriting host; **no existing ref is touched**; and `reset --soft` folding is
   gone, which is the real price. S08r is the decision only — **S08s lands it**.
 
+- **Rewriting has stopped, and the policy is a predicate** (S08s). The binding
+  declares `checkpointRetentionRef: null` and `pathHistoryPolicy: forbidden`;
+  `path-history` blocks when the branch's upstream is not an ancestor of `HEAD`.
+  What binds a resuming session: **do not rebase, amend, `reset --soft` or
+  force-push this branch** — merge `master` in instead; **no retention ref is
+  written from unit 39 onward**, and the 38 existing ones stay as history,
+  unread; **retention is disabled, not deleted**, so its predicates, generations
+  and tests remain for a `retained` host. Two things the flip exposed and a
+  resuming session should not re-learn: the retention tests inherited the host's
+  live prefix, so the design was one config field from being untested (they now
+  supply their own), and the `rebase` rule's REMEDY was instructing the very
+  operation `path-history` blocks — its id is kept because audits name it, and
+  the remedy now follows the declared policy.
+
 The gate's advisory COUNT is a signal even while the verdict stays green: S08l
 read 14 before its commit and 31 after, for one tree, and the only reason to look
 was that the number moved.
 
-Flat refs 01–28 and `g01/01`–`g01/35` on the remote; flat 01–13 hold PRE-rebase
-commits and no ref has ever been moved. `g01/32` and `g01/33` are recovery pins
+Flat refs 01–28 and `g01/01`–`g01/38` on the remote; flat 01–13 hold PRE-rebase
+commits and no ref has ever been moved, nor will be — the namespace is closed at
+`g01/38` and is history rather than enforcement. `g01/32` and `g01/33` are recovery pins
 for the two pushed S08m repair commits that carried no new work-unit block.
 `g01/34` retains S08n, `g01/35` retains S08o and `g01/36` retains S08p. Checker and specification suite counts are recorded in
 the latest step.
 
 ## Next action
 
-**S08s: land `ADR-022`.** Flip `checkpointRetentionRef` to `null` and
-`pathHistoryPolicy` to `forbidden`, add the no-rewriting predicate (the published
-tip stays an ancestor of `HEAD`), and move the specification and reference text
-off the rebase. Retention code, tests and text stay in place for a rewriting
-host. **Only then** `cairn-init` — otherwise the initializer ships an apparatus
-whose cause has been removed.
-
-Then **ADR-020 stage 5, second unit: implement `cairn-init`.** The seed is
+**ADR-020 stage 5, second unit: implement `cairn-init`.** The seed is
 reconciled (S08q), so the initializer has one correct shape to scaffold. Make
 one transactional command install the PORTABLE / HOST / BINDING route, schema-1
 config, reference tools, tier-1 workflow, concept-wiki index and one-concept
@@ -288,16 +296,16 @@ that ADDS a record.
 ## Verification
 
 `npm run cairn-check` — branch against trunk by default since S08a — reports OK.
-Before the newest unit's ref can exist, S08r records 14 advisories: concept
-growth, nine grandfathered `CP-MVP-008` findings carrying their reason, three
-accounted-for `single-truth` notes on shared/generated files, and unit 38's
-retention ref. Publishing `g01/38` removes only that last notice, so a correctly
-fetched safe-boundary checkout reports 13. **Retention is still enforced until
-S08s flips the configuration**, so unit 38 is retained like every unit before it. A run reporting `base-parity` is
+S08s records **13 advisories, and 13 is now the steady state**: concept growth,
+nine grandfathered `CP-MVP-008` findings carrying their reason, and three
+accounted-for `single-truth` notes on shared/generated files. The
+`checkpoint-retention` notice that used to make it 14 before each unit's ref was
+published is gone for good — retention is off, and no ref is written from unit 39
+onward. A run reporting `base-parity` is NARROWED and is not recordable. A run reporting `base-parity` is
 NARROWED, and one reporting an inconclusive `checkpoint-retention` has not
 fetched `refs/cairn/*`: neither is recordable.
 
-`npm run cairn-check:test` passes 239 subtests across six tool suites (S08r adds no predicate; S08s does). `npm run cairn-spec:build`
+`npm run cairn-check:test` passes 242 subtests across six tool suites. `npm run cairn-spec:build`
 reproduces the checked-in HTML byte-for-byte; `npm run cairn-active` reports the
 running-path view current. `npm run typecheck`, `npm test` (1,109 passing, 1
 skipped) and `npm run build` all pass.

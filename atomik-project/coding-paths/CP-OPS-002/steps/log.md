@@ -18,6 +18,9 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-01
 
+- `S08s` lands `ADR-022`: the configuration declares a no-rewrite host, retention
+  is disabled rather than deleted, and `path-history` blocks a rewritten
+  published tip so the policy is a predicate rather than a claim.
 - `S08r` accepts `ADR-022`: path branches are not rewritten, a current base is
   reached by merge, and retention is disabled by configuration rather than
   deleted. ADR-021's rationale for the rebase is satisfied equally by a merge.

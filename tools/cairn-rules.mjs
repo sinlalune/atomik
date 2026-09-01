@@ -146,8 +146,12 @@ export const RULE_METADATA = {
     condition: 'Local path HEAD not present on upstream tracking branch',
     enforcing: "pathRemoteCheckpoint(branch).state === 'missing' | 'unpushed'"
   },
+  'path-history': {
+    condition: 'A published path commit was rewritten while this host forbids rewriting (ADR-022)',
+    enforcing: "pathHistoryPolicy === 'forbidden' && pathRemoteCheckpoint(branch).diverged"
+  },
   'rebase': {
-    condition: 'Path branch does not contain latest trunk tip (stale branch)',
+    condition: 'Path branch does not contain latest trunk tip (stale branch). The id is historical: the requirement is trunk containment, and a no-rewrite host satisfies it by merging the trunk in (ADR-022)',
     enforcing: "trunkContained(trunkRef) === false"
   },
   'opening-ceremony': {

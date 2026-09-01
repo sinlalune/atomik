@@ -282,6 +282,21 @@ export const WORK_UNIT_TYPES = [
 export const CHECKPOINT_REF_PREFIX = CAIRN_CONFIG.checkpointRetentionRef
 export const RETENTION_ENABLED = CHECKPOINT_REF_PREFIX !== null
 
+/** How this host keeps a path's history (ADR-022).
+ *
+ *  `retained` — path branches may be rewritten, and every ledger-named commit
+ *  is pinned in the retention namespace first (ADR-021).
+ *
+ *  `forbidden` — a published path branch is never rewritten, so the branch IS
+ *  the retention and the namespace is unnecessary. Retention is then disabled
+ *  rather than deleted: it stays the correct design for a rewriting host.
+ *
+ *  A policy that lives only in configuration is a claim, and unchecked claims
+ *  are what this path was opened to find. `forbidden` is enforced by
+ *  `path-history` below. */
+export const PATH_HISTORY_POLICY = CAIRN_CONFIG.pathHistoryPolicy
+export const REWRITING_FORBIDDEN = PATH_HISTORY_POLICY === 'forbidden'
+
 /** A generation segment. Two digits is the notation; more are accepted rather
  *  than silently reclassified as pre-notation. */
 export const GENERATION_SEGMENT = /^g(\d{2,4})$/
@@ -1139,9 +1154,9 @@ export function workUnitErrors(unit) {
  * reachability only. The flat namespace mixes two generations by construction
  * and cannot be made internally consistent without moving something.
  */
-export function retentionGenerations(refs, pathId) {
-  if (!RETENTION_ENABLED) return { generations: new Map(), preNotation: new Map() }
-  const prefix = `${CHECKPOINT_REF_PREFIX}/${String(pathId ?? '').toLowerCase()}/`
+export function retentionGenerations(refs, pathId, refPrefix = CHECKPOINT_REF_PREFIX) {
+  if (refPrefix == null) return { generations: new Map(), preNotation: new Map() }
+  const prefix = `${refPrefix}/${String(pathId ?? '').toLowerCase()}/`
   const generations = new Map()
   const preNotation = new Map()
   for (const [ref, oid] of refs ?? []) {
@@ -1593,6 +1608,8 @@ export function evaluate({
   baseSource = 'flag',
   workUnits = null,
   retentionEnabled = RETENTION_ENABLED,
+  retentionPrefix = CHECKPOINT_REF_PREFIX,
+  rewritingForbidden = REWRITING_FORBIDDEN,
   addedRecords = [],
   retainedRefs = new Map(),
   provisionalInCandidate = [],
@@ -1714,13 +1731,42 @@ export function evaluate({
       `HEAD is not contained in ${remoteCheckpoint.upstream} — push this commit before reporting the step complete or offering an ordinary fresh-session handoff`)
   }
 
+  // 2b. a published path branch is not rewritten (ADR-022) ------------------
+  //
+  // This REPLACES checkpoint retention rather than joining it. Retention exists
+  // to keep ledger-named commits reachable across a rewrite; if nothing is
+  // rewritten, the branch already keeps them, and after a --no-ff integration
+  // merge the trunk keeps them permanently.
+  //
+  // Deliberately narrow, and the message says so. It proves that THIS checkout
+  // has not rewritten what it published; it cannot prove a remote was never
+  // rewritten by someone else, and it can only speak while a remote-tracking
+  // ref is present to compare against.
+  if (rewritingForbidden && onPath && remoteCheckpoint?.diverged) {
+    add('blocking', 'path-history',
+      `${remoteCheckpoint.upstream} is not an ancestor of HEAD, so a published commit was rewritten — this host declares pathHistoryPolicy: forbidden, under which a path branch is never rebased, amended, soft-reset or force-pushed once published. ` +
+      'Recover the published tip and merge the trunk in rather than rebasing onto it; if the divergence is a concurrent push, this branch has more than one writer, which the path convention forbids')
+  }
+
   // 3. the rebase gate (owner directive: "the rebase need should be an
   //    automated gate"). Every path merges ITSELF, so nothing else stops a
   //    stale branch from landing on a trunk it never saw. Objective, and one
   //    command fixes it — it serializes the MERGE, never the WORK.
+  //
+  //    The rule NAME is historical. What it checks is that the branch contains
+  //    the trunk tip, and ADR-022 keeps that requirement exactly — it is the
+  //    property that serializes the merge without an integrator. What changed is
+  //    the operation that satisfies it: a no-rewrite host merges the trunk in
+  //    rather than rebasing onto it. The id stays because audits and recorded
+  //    advisory dispositions name it; the REMEDY follows the declared policy,
+  //    because telling an operator to rebase under `pathHistoryPolicy:
+  //    forbidden` would instruct the violation the next rule blocks.
   if (onPath && trunkContained === false) {
+    const remedy = rewritingForbidden
+      ? `merge the trunk into "${branch}"`
+      : `rebase "${branch}" onto the trunk`
     add('blocking', 'rebase',
-      `branch "${branch}" does not contain the trunk tip — rebase before merging, and let CI run on the REBASED result, not a stale branch`)
+      `branch "${branch}" does not contain the trunk tip — ${remedy} before merging, and let CI run on that result, not a stale branch`)
   } else if (onPath && trunkContained == null) {
     add('blocking', 'rebase',
       `cannot resolve the trunk tip for branch "${branch}" — fetch the complete trunk ref and rerun the rebase gate`,
@@ -2012,7 +2058,7 @@ export function evaluate({
     // unfetched namespace rather than a confident verdict about a range nobody
     // could read.
     const branchOids = pathCommits == null ? null : new Set(pathCommits)
-    const split = retentionGenerations(retainedRefs ?? new Map(), id)
+    const split = retentionGenerations(retainedRefs ?? new Map(), id, retentionPrefix)
     const generation = branchOids == null
       ? null
       : currentGeneration(split.generations, (oid) => branchOids.has(oid))
@@ -2037,8 +2083,8 @@ export function evaluate({
     if (retainedRefs == null || invisible) {
       const units = due.map((unit) => `${unit.unit} (${unit.step})`).join(', ')
       add('blocking', 'checkpoint-retention',
-        `${CHECKPOINT_REF_PREFIX}/${id}/* is empty in this checkout while ${match.file} declares ${due.length} unit(s) due retention — ${units}. ` +
-        `Either the namespace was never fetched (\`git fetch ${REMOTE} '+${CHECKPOINT_REF_PREFIX}/*:${CHECKPOINT_REF_PREFIX}/*'\`, which \`actions/checkout\` does NOT do) ` +
+        `${retentionPrefix}/${id}/* is empty in this checkout while ${match.file} declares ${due.length} unit(s) due retention — ${units}. ` +
+        `Either the namespace was never fetched (\`git fetch ${REMOTE} '+${retentionPrefix}/*:${retentionPrefix}/*'\`, which \`actions/checkout\` does NOT do) ` +
         'or the refs were never written. This checkout cannot tell which, and missing evidence is not a pass',
         'inconclusive')
     } else if (generation == null && due.length > 0) {
@@ -2058,11 +2104,11 @@ export function evaluate({
         ? `${generation.closed} stopped being an ancestor of this branch, so it was closed by a rewrite`
         : `no generation has been opened for this path, and ${split.preNotation.size} ref(s) predate the notation`
       add('blocking', 'checkpoint-retention',
-        `${CHECKPOINT_REF_PREFIX}/${id}/${generation.name}/ is empty while ${match.file} declares ${due.length} unit(s) due retention — ${why}. ` +
-        `Open ${generation.name} by retaining every completed commit of this branch at ${CHECKPOINT_REF_PREFIX}/${id}/${generation.name}/<unit>, and move no existing ref`)
+        `${retentionPrefix}/${id}/${generation.name}/ is empty while ${match.file} declares ${due.length} unit(s) due retention — ${why}. ` +
+        `Open ${generation.name} by retaining every completed commit of this branch at ${retentionPrefix}/${id}/${generation.name}/<unit>, and move no existing ref`)
     } else {
       for (const unit of due) {
-        const ref = `${CHECKPOINT_REF_PREFIX}/${id}/${generation?.name}/${unit.unit}`
+        const ref = `${retentionPrefix}/${id}/${generation?.name}/${unit.unit}`
         if (!retainedRefs.has(ref)) {
           add('blocking', 'checkpoint-retention',
             `${match.file} declares unit ${unit.unit} (${unit.step}) with no retention ref at ${ref} — create it before any rewriting push, or the next rebase orphans that checkpoint`)
@@ -2075,7 +2121,7 @@ export function evaluate({
     // actually known.
     const newest = workUnits.at(-1)
     const newestRef = newest && generation
-      ? `${CHECKPOINT_REF_PREFIX}/${id}/${generation.name}/${newest.unit}`
+      ? `${retentionPrefix}/${id}/${generation.name}/${newest.unit}`
       : null
     if (newestRef && retainedRefs != null && !invisible && generation.state === 'open' &&
         !retainedRefs.has(newestRef)) {
@@ -2806,15 +2852,27 @@ function pathRemoteCheckpoint(branch) {
     return { state: 'missing', upstream: null }
   }
 
-  try {
-    execFileSync('git', ['merge-base', '--is-ancestor', 'HEAD', upstream], {
-      cwd: REPO,
-      stdio: 'ignore'
-    })
-    return { state: 'published', upstream }
-  } catch {
-    return { state: 'unpushed', upstream }
+  const ancestor = (a, b) => {
+    try {
+      execFileSync('git', ['merge-base', '--is-ancestor', a, b], { cwd: REPO, stdio: 'ignore' })
+      return true
+    } catch {
+      return false
+    }
   }
+
+  // Three shapes, and only the third is a rewrite.
+  //
+  //   HEAD reachable from upstream  → published (or simply behind)
+  //   upstream reachable from HEAD  → ahead, the ordinary unpushed commit
+  //   neither                       → DIVERGED
+  //
+  // With one writer per path branch, divergence means what was published is no
+  // longer in this branch's history: a rebase, an amend, a soft-reset fold, or
+  // a force-push. That is exactly what ADR-022 forbids, and unlike the policy
+  // field itself it is a fact a local checkout can read.
+  if (ancestor('HEAD', upstream)) return { state: 'published', upstream, diverged: false }
+  return { state: 'unpushed', upstream, diverged: !ancestor(upstream, 'HEAD') }
 }
 
 /**
@@ -3372,7 +3430,8 @@ function main() {
     console.log(
       `binding — schema ${binding.version}; trunk ${binding.trunk} via ${binding.remote}; ` +
       `metadata ${binding.metadataNamespace}; new-path route ${binding.defaultRoute}; docs ${binding.documentationRoot}; ` +
-      `project ${binding.projectRoot}; source ${binding.sourceRoots.join(', ')}`
+      `project ${binding.projectRoot}; source ${binding.sourceRoots.join(', ')}; ` +
+      `path history ${PATH_HISTORY_POLICY}${REWRITING_FORBIDDEN ? ' (no rewriting; retention off)' : ` at ${CHECKPOINT_REF_PREFIX}`}`
     )
     for (const group of [
       ['FAIL', failed],

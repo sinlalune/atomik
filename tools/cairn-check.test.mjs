@@ -1404,6 +1404,58 @@ test('a no-rewrite host disables retention, not typed work-unit validation', () 
   assert.ok(!rules(valid, 'blocking').includes('checkpoint-retention'))
 })
 
+test('a rewritten published tip blocks when the host forbids rewriting', () => {
+  // ADR-022 decision 5. Retention is disabled on a no-rewrite host, so this is
+  // the ONLY thing standing between the policy and an unnoticed force-push.
+  const diverged = { state: 'unpushed', upstream: 'origin/path/cp-mvp-010', diverged: true }
+
+  const found = run([UNIT_PATH.file], 'path/cp-mvp-010', [UNIT_PATH], {
+    workUnits: [{ step: 'S01', unit: '01', type: 'implementation', verified: 'all' }],
+    retentionEnabled: false,
+    rewritingForbidden: true,
+    remoteCheckpoint: diverged
+  })
+  assert.ok(rules(found, 'blocking').includes('path-history'),
+    'a diverged upstream is a rewritten published commit')
+
+  // The same divergence on a retaining host is retention's business, not this
+  // rule's — otherwise both fire and the operator gets two names for one fact.
+  const retaining = run([UNIT_PATH.file], 'path/cp-mvp-010', [UNIT_PATH], {
+    workUnits: [{ step: 'S01', unit: '01', type: 'implementation', verified: 'all' }],
+    rewritingForbidden: false,
+    remoteCheckpoint: diverged
+  })
+  assert.ok(!rules(retaining, 'blocking').includes('path-history'))
+})
+
+test('being merely ahead of the upstream is not a rewrite', () => {
+  // The ordinary unpushed commit. If this blocked, the rule would fire on every
+  // work unit between its commit and its push, and be switched off within a day.
+  const ahead = { state: 'unpushed', upstream: 'origin/path/cp-mvp-010', diverged: false }
+  const found = run([UNIT_PATH.file], 'path/cp-mvp-010', [UNIT_PATH], {
+    workUnits: [{ step: 'S01', unit: '01', type: 'implementation', verified: 'all' }],
+    retentionEnabled: false,
+    rewritingForbidden: true,
+    remoteCheckpoint: ahead
+  })
+  assert.ok(!rules(found, 'blocking').includes('path-history'))
+  assert.ok(rules(found, 'advisory').includes('remote-checkpoint'),
+    'it is still an unpushed commit, and that is what should be reported')
+})
+
+test('a path branch with no upstream cannot have rewritten anything', () => {
+  // Nothing published means nothing to rewrite. The missing upstream is already
+  // remote-checkpoint's finding; claiming a rewrite here would be an invention.
+  const found = run([UNIT_PATH.file], 'path/cp-mvp-010', [UNIT_PATH], {
+    workUnits: [{ step: 'S01', unit: '01', type: 'implementation', verified: 'all' }],
+    retentionEnabled: false,
+    rewritingForbidden: true,
+    remoteCheckpoint: { state: 'missing', upstream: null }
+  })
+  assert.ok(!rules(found, 'blocking').includes('path-history'))
+  assert.ok(rules(found, 'advisory').includes('remote-checkpoint'))
+})
+
 /* ------------------------------------------------------------------ *
  * S08 finding 2 — the merge-time journal entry had no predicate
  *
@@ -1629,13 +1681,26 @@ test('a finding never prints an unreadable wall of names', () => {
 
 /** A generational retention ref (ADR-021). `flatRef` is the pre-notation shape,
  *  kept because those refs exist on real remotes and are never moved. */
-const ref = (n, generation = 'g01') => `${CHECKPOINT_REF_PREFIX}/cp-mvp-010/${generation}/${n}`
-const flatRef = (n) => `${CHECKPOINT_REF_PREFIX}/cp-mvp-010/${n}`
+// This host forbids rewriting (ADR-022), so its configured prefix is null and
+// retention is off here. The DESIGN stays supported for a rewriting host, so its
+// tests supply their own prefix rather than inheriting this repository's choice.
+// A reference implementation that can only be tested by the hosts that enable it
+// is one config flip away from being untested.
+const RETENTION_PREFIX = CHECKPOINT_REF_PREFIX ?? 'refs/cairn/checkpoints'
+const ref = (n, generation = 'g01') => `${RETENTION_PREFIX}/cp-mvp-010/${generation}/${n}`
+const flatRef = (n) => `${RETENTION_PREFIX}/cp-mvp-010/${n}`
 const UNITS = parseWorkUnits(LEDGER)
 /** The branch the retention fixtures are judged against. A generation is current
  *  only while its refs are ancestors of the tip, so every fixture that expects a
  *  generation to be OPEN has to put its commits on the branch. */
-const RETAINED_BRANCH = { pathCommits: [CANDIDATE, 'c9'], head: 'c9' }
+const RETAINED_BRANCH = {
+  pathCommits: [CANDIDATE, 'c9'],
+  head: 'c9',
+  // Retention is off in this repository's binding; these fixtures test the rule
+  // itself, so they turn it on explicitly and name their own namespace.
+  retentionEnabled: true,
+  retentionPrefix: RETENTION_PREFIX
+}
 
 test('retention exempts only the newest unit, because its ref is written after the commit', () => {
   assert.deepEqual(retentionDue(UNITS).map((u) => u.unit), ['01'])
@@ -2313,7 +2378,9 @@ test('an orphaned checkpoint blocks the gate', () => {
     workUnits: UNITS,
     retainedRefs: new Map([[ref('01'), 'c1'], [ref('02'), 'c4']]),
     pathCommits: CHAIN,
-    head: 'c4'
+    head: 'c4',
+    retentionEnabled: true,
+    retentionPrefix: RETENTION_PREFIX
   })
   assert.ok(rules(found, 'blocking').includes('checkpoint-retention'))
 })
@@ -2322,7 +2389,7 @@ test('an orphaned checkpoint blocks the gate', () => {
  * ADR-021 — retention generations
  * ------------------------------------------------------------------ */
 
-const gen = (entries) => retentionGenerations(new Map(entries), 'cp-mvp-010')
+const gen = (entries) => retentionGenerations(new Map(entries), 'cp-mvp-010', RETENTION_PREFIX)
 
 test('a pre-notation ref is reported apart, never reclassified into a generation', () => {
   // Refs written before ADR-021 sit flat. They are not moved — moving a
@@ -2333,7 +2400,7 @@ test('a pre-notation ref is reported apart, never reclassified into a generation
   assert.deepEqual([...split.generations.keys()], ['g01', 'g02'])
   assert.deepEqual([...split.generations.get('g01')], [['01', 'c2']])
   // Another path's refs are not this path's, however similar the prefix looks.
-  assert.equal(gen([[`${CHECKPOINT_REF_PREFIX}/cp-mvp-011/g01/01`, 'c1']]).generations.size, 0)
+  assert.equal(gen([[`${RETENTION_PREFIX}/cp-mvp-011/g01/01`, 'c1']]).generations.size, 0)
 })
 
 test('the current generation is derived from ancestry, and a rewrite closes one', () => {
@@ -2428,7 +2495,9 @@ test('an unreadable branch range makes the generation unknown, not violated', ()
   const found = run([UNIT_PATH.file], 'path/cp-mvp-010', [UNIT_PATH], {
     workUnits: UNITS,
     retainedRefs: new Map([[ref('01'), CANDIDATE]]),
-    pathCommits: null
+    pathCommits: null,
+    retentionEnabled: true,
+    retentionPrefix: RETENTION_PREFIX
   })
   const retention = found.filter((f) => f.rule === 'checkpoint-retention')
   assert.equal(retention.length, 1)

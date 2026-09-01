@@ -93,7 +93,16 @@ git merge-base --is-ancestor HEAD origin/path/cp-example-001
 ```
 
 The final command must exit zero before the step is called complete. Then record
-the checkpoint in the ledger and retain it:
+the checkpoint in the ledger.
+
+**On a no-rewrite host** (`pathHistoryPolicy: forbidden`, the default) that is
+the whole of it. The commit keeps its object id for the life of the path, so the
+branch itself keeps every checkpoint the ledger names reachable, and after a
+`--no-ff` integration merge the trunk keeps them permanently. There is no
+namespace to write and none to fetch.
+
+**On a rewriting host** (`retained`) the checkpoint must also be pinned, because
+the mandatory rebase is about to orphan it:
 
 ```bash
 git update-ref refs/cairn/checkpoints/cp-example-001/g01/01 HEAD
@@ -126,8 +135,14 @@ git rev-parse HEAD
 ```
 
 Present that exact object id for inspection. A provisional commit is never
-reported as a completed checkpoint and never named as a resume point. After the
-inspection passes, fold it into the work unit it was drafting:
+reported as a completed checkpoint and never named as a resume point.
+
+**On a no-rewrite host** it stays where it is. The completed work unit's own
+commit supersedes it, and the provisional commit remains in the branch's history,
+marked as what it was. The history is longer and less tidy; that is the stated
+cost of never rewriting.
+
+**On a rewriting host** it may be folded into the work unit it was drafting:
 
 ```bash
 git reset --soft <last-checkpoint>
@@ -138,6 +153,44 @@ Folding rewrites published commits, so every ledger-named checkpoint must
 already be retained before the force push that follows.
 
 ## Produce implementation candidate C
+
+**Which sequence applies is a host policy**, declared as `pathHistoryPolicy` in
+[configuration](./configuration.md). Run the one your repository declares; they
+are not interchangeable.
+
+### On a no-rewrite host (`forbidden`, the default — [ADR-022](../../../adr/ADR-022-path-branches-are-not-rewritten.md))
+
+Nothing is rewritten, so nothing needs retaining. Bring the trunk into the branch
+instead of moving the branch onto the trunk:
+
+```bash
+git fetch origin main
+git rev-parse origin/main    # this is T; record it in the closing record
+git merge origin/main
+```
+
+Resolve conflicts and commit the merge. The branch now contains the trunk tip —
+the property that serializes the merge without an integrator — and every commit
+the ledger names still has the object id it was verified as. Finish any final
+implementation, confirm no provisional marker survives, then record `C`:
+
+```bash
+git log origin/main..HEAD --grep='Cairn-Provisional' --oneline    # must print nothing
+git commit -m "CP-EXAMPLE-001: final implementation candidate"   # if changes remain
+git rev-parse HEAD
+git push origin path/cp-example-001
+npm run cairn-check -- --base origin/main
+npm run typecheck
+npm test
+npm run build
+```
+
+The push is ordinary. There is no force, no lease, and no generation to open. A
+provisional commit is superseded by the completed unit's commit and stays in the
+branch's history as what it was — folding it with `git reset --soft` is a rewrite
+and is not available here.
+
+### On a rewriting host (`retained` — [ADR-021](../../../adr/ADR-021-checkpoint-retention-generations.md))
 
 Retain every ledger-named checkpoint **before** the rebase, because the rebase is
 what orphans them:

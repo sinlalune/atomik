@@ -69,6 +69,7 @@ born here, one complete record per step.
 - **[S08p](./S08p.md)** — The host binding becomes executable — COMPLETE
 - **[S08q](./S08q.md)** — The seed teaches the shape the protocol states — COMPLETE
 - **[S08r](./S08r.md)** — The rebase is the cause, so the rebase goes — COMPLETE
+- **[S08s](./S08s.md)** — Rewriting stops, and the policy becomes a predicate — COMPLETE
 
 ## Which commit landed which step
 

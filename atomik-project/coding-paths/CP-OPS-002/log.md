@@ -18,6 +18,9 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-01
 
+- `S08s` stops rewriting. Flipping the binding also showed the retention design
+  was one config field from being untested, and the `rebase` rule's remedy was
+  instructing the very operation the new predicate blocks.
 - `S08r` removes the cause instead of maintaining the compensation. The whole
   retention apparatus is downstream of the mandatory rebase, and the reason given
   for that rebase does not distinguish it from a merge.

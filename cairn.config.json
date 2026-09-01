@@ -89,8 +89,8 @@
   ],
   "staleAfterDays": 14,
   "defaultRoute": "lightweight",
-  "checkpointRetentionRef": "refs/cairn/checkpoints",
-  "pathHistoryPolicy": "retained",
+  "checkpointRetentionRef": null,
+  "pathHistoryPolicy": "forbidden",
   "scopeDigestAlgorithm": "sha256",
   "transport": {
     "registration": "manual-git",

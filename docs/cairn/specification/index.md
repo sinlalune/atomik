@@ -698,6 +698,15 @@ refs/cairn/checkpoints/<path-id>/g<NN>/<n>
 its retained ref name the same thing. Retention refs are append-only: once
 written, a ref MUST NOT be moved or deleted while the path record is retained.
 
+This entire namespace is the cost of rewriting, and a host that declines to
+rewrite does not pay it. Under `pathHistoryPolicy: forbidden` — the DEFAULT,
+settled by [ADR-022](../../adr/ADR-022-path-branches-are-not-rewritten.md) — a
+published path branch is never rebased, amended, folded or force-pushed, a
+current base is reached by merging the trunk in, and the branch itself keeps
+every ledger-named commit reachable. Retention below describes the `retained`
+alternative, which stays fully specified and supported for a host that keeps
+rewriting.
+
 `g<NN>` is the **generation** — one linear version of the branch, opened when the
 branch is created or rewritten and closed by the next rewriting push
 ([ADR-021](../../adr/ADR-021-checkpoint-retention-generations.md)). It exists
@@ -1547,6 +1556,7 @@ not in a separate document a reader may never open.
 | Fail-closed critical inconclusive outcomes | required | implemented | complete trunk and comparison refs |
 | Existing session, audit, history, and journal immutability | required | implemented for new or changed records | complete comparison ref |
 | Checkpoint retention refs before any rewriting push | required | **implemented**; every declared unit except the newest must resolve a retention ref in the CURRENT generation, and every branch commit in `merge-base(trunk, HEAD)..HEAD` that is neither retained there, provisional, nor `HEAD` is reported as orphaned. The current generation is derived from ancestry; an empty one beside older generations is blocking and definite, while an unreadable namespace or branch range is inconclusive | the environment must FETCH `refs/cairn/*`, which no clone or checkout action does by default; a ref *moving* is unobservable to a single-commit validator — only the orphan it leaves behind is |
+| A published path branch is not rewritten | required on a `forbidden` host | **implemented**; where `pathHistoryPolicy` is `forbidden` the branch's own upstream MUST remain an ancestor of `HEAD`, so a rebase, amend, soft-reset fold or force-push of published work is blocking. This is the DEFAULT policy ([ADR-022](../../adr/ADR-022-path-branches-are-not-rewritten.md)), and it replaces retention rather than joining it: if nothing is rewritten the branch already keeps every ledger-named commit reachable | it proves only that THIS checkout has not rewritten what it published — a remote rewritten by someone else is invisible here, and preventing the push itself needs host protection, which tier `ci` does not claim. It is also silent while no remote-tracking ref exists |
 | Marked provisional commits excluded from candidate identity | required | implemented; a ready path whose candidate range still contains a marked commit is blocked | the fold itself is not verified to preserve content |
 | Handoff-brief field schema and answerable-alone contract | required | **partially implemented**; the nine fields, the seven exact sections and pinned `governs` entries are checked. The token budget is retired (ADR-020 decision 6): what will not fit is linked, not compressed, and that is a judgement rather than a predicate | the answerable-alone contract is a judgement and a cold-resume harness, and is never claimed by a checker |
 | Portable, host, and binding artefact separation | required | **implemented in the reference documentation**; the portable execution route and path convention carry no host names, the root bootloader points at one explicit binding appendix, and host architecture is absent from the unconditional entry chain | `cairn-init` must scaffold the classified shape before general release; classification itself is a documentation property rather than a repository predicate |
@@ -1737,8 +1747,9 @@ honest state of the work.
 | **Blocking** | `links` | corpus | Relative Markdown link points to non-existent target (code fences stripped) | `stripCode(text) => !existsSync(target)` |
 | **Blocking** | `migration-debt` | diff | A path listed in the v0.2 migration exception no longer needs it | `migrationDebt(paths, V02_MIGRATION_PATHS) — a spent exception is a bypass` |
 | **Blocking** | `opening-ceremony` | diff | Path declared running without an opening-check session note | `!openingFor(pathId) via session frontmatter { path, ceremony: 'opening' }` |
+| **Blocking** | `path-history` | diff | A published path commit was rewritten while this host forbids rewriting (ADR-022) | `pathHistoryPolicy === 'forbidden' && pathRemoteCheckpoint(branch).diverged` |
 | **Blocking** | `provisional` | diff | A proposed candidate still contains commits marked Cairn-Provisional, or HEAD is itself provisional | `git log --grep=^Cairn-Provisional: base..subject_commit (blocking on a ready path, advisory at HEAD)` |
-| **Blocking** | `rebase` | diff | Path branch does not contain latest trunk tip (stale branch) | `trunkContained(trunkRef) === false` |
+| **Blocking** | `rebase` | diff | Path branch does not contain latest trunk tip (stale branch). The id is historical: the requirement is trunk containment, and a no-rewrite host satisfies it by merging the trunk in (ADR-022) | `trunkContained(trunkRef) === false` |
 | **Blocking** | `record-date` | diff | A record this change adds carries two dates that disagree (blocking), or a date more than a day from the commit that wrote it (advisory) | `recordDateFindings(addedRecords) — filename date vs timestamp: vs the adding commit author date` |
 | **Blocking** | `record-integrity` | diff | An immutable event/history record changed, or a born-sliced step no longer preserves its adding blob as a prefix | `immutableRecordMutations(previousRef) + appendOnlyStepRecordMutations(changed) + preservesAppendOnlyRecord(before, after)` |
 | **Blocking** | `redaction` | diff | A `[redacted: …]` marker names no redaction record (code spans and fences stripped first) | `redactionMarkers(stripCode(text)) => redaction record exists` |

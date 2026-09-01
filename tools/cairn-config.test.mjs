@@ -38,13 +38,24 @@ test('cairn-config: unknown schemas and unsafe roots fail before a gate runs', (
   assert.ok(errors.some((error) => error.includes('unknown top-level field surprise')))
 })
 
-test('cairn-config: disabling retention requires a declared no-rewrite host', () => {
-  const invalid = structuredClone(CAIRN_CONFIG)
-  invalid.checkpointRetentionRef = null
-  assert.ok(configErrors(invalid).some((error) => error.includes('pathHistoryPolicy: forbidden')))
+test('cairn-config: the retention ref and the history policy must agree', () => {
+  // Both directions, stated independently of what THIS repository chose — the
+  // pairing is the invariant, and a test that starts from the live binding
+  // silently changes meaning the day that binding flips (it did, at ADR-022).
+  const withPolicy = (ref, policy) => {
+    const config = structuredClone(CAIRN_CONFIG)
+    config.checkpointRetentionRef = ref
+    config.pathHistoryPolicy = policy
+    return configErrors(config)
+  }
 
-  invalid.pathHistoryPolicy = 'forbidden'
-  assert.deepEqual(configErrors(invalid), [])
+  assert.ok(withPolicy(null, 'retained').some((error) => error.includes('pathHistoryPolicy: forbidden')),
+    'a null prefix without the no-rewrite declaration is retention silently switched off')
+  assert.ok(withPolicy('refs/cairn/checkpoints', 'forbidden').some((error) => error.includes('requires pathHistoryPolicy: retained')),
+    'a namespace nothing will ever write to is a claim with no operation behind it')
+
+  assert.deepEqual(withPolicy(null, 'forbidden'), [])
+  assert.deepEqual(withPolicy('refs/cairn/checkpoints', 'retained'), [])
 })
 
 test('cairn-config: metadata and path helpers carry no host assumption', () => {

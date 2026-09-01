@@ -179,7 +179,7 @@ remote      : not pushed | origin/path/cp-example-001 @ <full commit>
 ```text
 status      : running
 current step: S01 complete only after required review and remote proof
-retention   : refs/cairn/checkpoints/cp-example-001/g01/01 — written after this commit
+retention   : none (no-rewrite host) | refs/cairn/checkpoints/cp-example-001/g01/01
 changed     : exact surfaces or concise groups
 session     : safe boundary only after successful push
 next action : S02 — exact first action
@@ -217,14 +217,18 @@ trunk moved inside `writes:` or `governs:`. Record why the transition occurred.
 
 ### Producing a candidate
 
-Before rebasing, retain every declared unit at
-`refs/cairn/checkpoints/<path-id>/g<NN>/<unit>`, where `<unit>` is the ordinal in
-that entry's `cairn-unit` block and `g<NN>` is the generation still current. Then
-rebase, fold every provisional commit into the work unit it was drafting, and —
-in that same work unit, before the rewriting push completes — open `g<NN+1>` by
-retaining every completed commit of the rebased branch from the closed
-generation's floor upward. Move nothing: the two generations hold the object each
-unit was verified as and the copy the branch now carries. Then push `C`.
+On a no-rewrite host (`pathHistoryPolicy: forbidden`, the default) merge the
+trunk into the branch, finish the candidate, and push `C` with an ordinary push.
+Nothing is retained because nothing is rewritten, and provisional commits stay in
+the history rather than being folded.
+
+On a rewriting host (`retained`) retain every declared unit at
+`refs/cairn/checkpoints/<path-id>/g<NN>/<unit>` before rebasing, where `<unit>` is
+the ordinal in that entry's `cairn-unit` block and `g<NN>` is the generation still
+current. Then rebase, fold every provisional commit into the work unit it was
+drafting, and — in that same work unit, before the rewriting push completes —
+open `g<NN+1>` by retaining every completed commit of the rebased branch from the
+closed generation's floor upward. Move nothing. Then push `C`.
 
 ### Becoming ready
 
