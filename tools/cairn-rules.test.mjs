@@ -10,7 +10,10 @@ import { readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
+  conformanceLinkage,
   extractRules,
+  generateLinkageTable,
+  linkageIn,
   generateMarkdownTable,
   RULE_METADATA,
   SPEC_FILE,
@@ -133,4 +136,39 @@ test('cairn-rules: a conditional level yields BOTH levels, not the literal one',
   assert.deepEqual(levels('acceptance'), ['advisory', 'blocking'])
   // A genuinely single-level rule must not gain a phantom second level.
   assert.deepEqual(levels('rebase'), ['blocking'])
+})
+
+test('cairn-rules: every implemented rule is mapped to a requirement or declared outside one', () => {
+  // The half of the conformance matrix that a validator CAN check. Prose rows
+  // stay human; the linkage between rule and stated requirement does not, and
+  // until it was generated it drifted with nothing to notice.
+  const check = readFileSync(join(REPO, 'tools/cairn-check.mjs'), 'utf8')
+  const spec = readFileSync(join(REPO, 'docs/cairn/specification/index.md'), 'utf8')
+  const linkage = conformanceLinkage(extractRules(check), spec)
+
+  assert.deepEqual(linkage.unaccounted, [],
+    'a new rule must be mapped to a conformance row or declared as standing behind none')
+  assert.deepEqual(linkage.bothWays, [], 'a rule cannot both stand behind a row and stand behind none')
+  assert.deepEqual(linkage.missingRows, [],
+    'a mapped row title no longer appears in the matrix — renaming a row must not orphan its rules')
+  assert.deepEqual(linkage.phantomRules, [],
+    'the map names a rule the checker does not implement, which is a claim with no code behind it')
+})
+
+test('cairn-rules: the generated linkage in the specification is current', () => {
+  const check = readFileSync(join(REPO, 'tools/cairn-check.mjs'), 'utf8')
+  const spec = readFileSync(join(REPO, 'docs/cairn/specification/index.md'), 'utf8')
+  assert.equal(linkageIn(spec), generateLinkageTable(check, spec).trim(),
+    'run `node tools/cairn-rules.mjs --write` — the shipped linkage has drifted from the checker')
+})
+
+test('cairn-rules: a renamed conformance row breaks the build rather than orphaning its rules', () => {
+  // The failure this is built to prevent: a row is reworded, its rules quietly
+  // stand behind nothing, and the matrix still reads as complete.
+  const check = readFileSync(join(REPO, 'tools/cairn-check.mjs'), 'utf8')
+  const spec = readFileSync(join(REPO, 'docs/cairn/specification/index.md'), 'utf8')
+  const renamed = spec.replace('| Redaction ceremony |', '| Redaction ritual |')
+  assert.notEqual(renamed, spec, 'the fixture must actually rename a row')
+  assert.ok(conformanceLinkage(extractRules(check), renamed).missingRows.includes('Redaction ceremony'))
+  assert.throws(() => generateLinkageTable(check, renamed), /absent from the matrix/)
 })

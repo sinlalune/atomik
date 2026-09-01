@@ -18,6 +18,9 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-01
 
+- `S08w` generates the rule-to-requirement linkage and declares the rules that
+  stand behind no row, closing S08 Part 2. Its own fixture caught the check
+  reading its own generated output.
 - `S08v` gives eight blocking rules an adversarial fixture over a real installed
   repository, asserts invocation parity on one tree, and declares the twenty-two
   rules still uncovered so a new rule forces the choice.

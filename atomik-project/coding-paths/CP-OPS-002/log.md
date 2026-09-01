@@ -18,6 +18,9 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-01
 
+- `S08w` closes S08 Part 2. The matrix's prose stays human and its linkage is
+  generated; the unit's own adversarial fixture found the new check satisfied by
+  the artefact it produces.
 - `S08v` makes rejection demonstrable. Two fixtures failed first and both were
   facts about the rules: `route` cannot fire on the trunk, and a committed
   mutation is invisible to a diff-scoped rule.

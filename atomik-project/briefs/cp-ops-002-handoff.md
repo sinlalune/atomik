@@ -6,8 +6,8 @@ atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: 1983644
-  checkpoint_unit: 41
+  checkpoint: 51f499e
+  checkpoint_unit: 42
   checkpoint_pushed: true
   base_commit: 7aa3b1d
   trunk_seen: dfcd09d
@@ -58,7 +58,7 @@ now closed.** The last, `unretainedCheckpoints`, reported "nothing orphaned" onc
 the retained set stopped intersecting the branch — which is what the mandatory
 pre-merge rebase causes — and is repaired under `ADR-021`.
 
-**S08 so far — twenty-two units.** Full records in the path file; what a resuming
+**S08 so far — twenty-three units. Part 2 is COMPLETE.** Full records in the path file; what a resuming
 session needs from them:
 
 - The local gate defaults to the **trunk** base on a path branch (S08a).
@@ -217,6 +217,20 @@ session needs from them:
   asserted on one tree: local default and `--base main` agree green and broken,
   and `--working-tree` raises `base-parity`.
 
+- **The conformance linkage is generated** (S08w), closing S08 Part 2. The
+  matrix ROWS stay human — a row is a judgement in prose and no validator writes
+  one — but the linkage between rule and stated requirement is generated and
+  checked: thirty-one rules map to the exact first column of the row they
+  enforce, eight are declared as standing behind none with a reason, and four
+  conditions fail the build. What binds a resuming session: **do not try to
+  generate the rows**; adding a rule means mapping it or declaring it; renaming a
+  matrix row breaks the build rather than orphaning its rules; and the remaining
+  half is stated — a requirement nobody wrote a row for is still invisible.
+  **The unit's own fixture caught the new check reading its own output**: the
+  searched region ran to the next `##` heading and so included the GENERATED
+  table, where a renamed row's old title still sat. A predicate satisfied by the
+  artefact it produces — found only because the fixture demanded a rejection.
+
 The gate's advisory COUNT is a signal even while the verdict stays green: S08l
 read 14 before its commit and 31 after, for one tree, and the only reason to look
 was that the number moved.
@@ -230,11 +244,14 @@ the latest step.
 
 ## Next action
 
-**The generated conformance matrix, then the extraction question.** S08 Part 2
-is down to one item: the matrix is still maintained BY HAND, and generating it
-from the checker and the normative text is what stops it drifting from either.
-Adversarial fixtures and invocation parity landed at S08v; twenty-two blocking
-rules remain without a fixture and are named in `UNCOVERED`. Beyond it, forward-plan item 12 is now the live architectural question:
+**S08 is complete; the extraction question is next.** Forward-plan item 12 is
+the live architectural work: `cairn-init` COPIES the portable corpus into an
+adopter, and the public extraction must MOVE its authority rather than leave two
+hand-maintained copies. Remaining smaller debts: twenty-two blocking rules
+without an adversarial fixture (named in `UNCOVERED`), `cairn-new`,
+`cairn-close`, and the update/migration path the lock file exists to enable.
+**S09** — the greenfield pilot — is now unblocked: `cairn-init` is what it was
+waiting for. Beyond it, forward-plan item 12 is now the live architectural question:
 this command COPIES a portable corpus into an adopter, and the public extraction
 must MOVE its authority rather than leave two hand-maintained copies. Superseded
 next action: The seed is
@@ -348,7 +365,7 @@ that ADDS a record.
 ## Verification
 
 `npm run cairn-check` — branch against trunk by default since S08a — reports OK.
-S08v records **13 advisories, and 13 is the steady state**: concept growth,
+S08w records **13 advisories, and 13 is the steady state**: concept growth,
 nine grandfathered `CP-MVP-008` findings carrying their reason, and three
 accounted-for `single-truth` notes on shared/generated files. The
 `checkpoint-retention` notice that used to make it 14 before each unit's ref was
@@ -357,7 +374,7 @@ onward. A run reporting `base-parity` is NARROWED and is not recordable. A run r
 NARROWED, and one reporting an inconclusive `checkpoint-retention` has not
 fetched `refs/cairn/*`: neither is recordable.
 
-`npm run cairn-check:test` passes 265 subtests across eight tool suites. A repository created by `npm run cairn-init -- --target <dir>` reports `OK — protocol satisfied` with zero advisories. `npm run cairn-spec:build`
+`npm run cairn-check:test` passes 268 subtests across eight tool suites. A repository created by `npm run cairn-init -- --target <dir>` reports `OK — protocol satisfied` with zero advisories. `npm run cairn-spec:build`
 reproduces the checked-in HTML byte-for-byte; `npm run cairn-active` reports the
 running-path view current. `npm run typecheck`, `npm test` (1,109 passing, 1
 skipped) and `npm run build` all pass.

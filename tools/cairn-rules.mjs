@@ -22,6 +22,8 @@ const CHECK_FILE = join(REPO, 'tools/cairn-check.mjs')
 export const SPEC_FILE = 'docs/cairn/specification/index.md'
 export const TABLE_BEGIN = '<!-- cairn:rules:begin -->'
 export const TABLE_END = '<!-- cairn:rules:end -->'
+export const LINKAGE_BEGIN = '<!-- cairn:conformance:begin -->'
+export const LINKAGE_END = '<!-- cairn:conformance:end -->'
 
 export function extractRules(source) {
   const rules = []
@@ -59,6 +61,94 @@ export function extractRules(source) {
   }
 
   return rules
+}
+
+/** Which conformance row each implemented rule stands behind.
+ *
+ *  The matrix states requirements in prose, and prose cannot be generated from
+ *  a validator. What CAN be generated — and what was silently hand-maintained
+ *  until now — is the LINKAGE: which rule enforces which stated requirement.
+ *  A row claiming `implemented` with no rule behind it, and a rule enforcing
+ *  nothing the matrix states, are both invisible without this map.
+ *
+ *  The key is the row's exact first column, so a renamed row breaks the build
+ *  rather than quietly orphaning its rules.
+ */
+export const RULE_CONFORMANCE = {
+  'branch-identity': 'Path record, branch identity, registration, and remote checkpoints',
+  'branch-path': 'Path record, branch identity, registration, and remote checkpoints',
+  'registration': 'Path record, branch identity, registration, and remote checkpoints',
+  'registration-base': 'Path record, branch identity, registration, and remote checkpoints',
+  'remote-checkpoint': 'Path record, branch identity, registration, and remote checkpoints',
+  'opening-ceremony': 'Full opening decision, actor, time, scope, and authority schema',
+  'schema': 'Full opening decision, actor, time, scope, and authority schema',
+  'transition': '`running`, `blocked`, `ready`, `done`, `archived` lifecycle',
+  'acceptance': 'Exact-candidate audit and closing acceptance',
+  'coherence-audit': 'Exact-candidate audit and closing acceptance',
+  'checkpoint-retention': 'Checkpoint retention refs before any rewriting push',
+  'path-history': 'A published path branch is not rewritten',
+  'provisional': 'Marked provisional commits excluded from candidate identity',
+  'brief-schema': 'Handoff-brief field schema and answerable-alone contract',
+  'closure-surface': 'Field-level administrative closure surface',
+  'derived-view': 'No predicate branches on a value that varies by execution context',
+  'record-date': 'A dated record carries the date of its event',
+  'base-parity': 'Local and CI invocations of one gate reach the same verdict',
+  'journal-entry': 'Merge-time journal entry, one file per integrated outcome',
+  'scope-digest': 'Scope digest recorded at opening and re-verified at closing',
+  'acceptance-drift': 'Candidate base `T` and the acceptance-drift predicate',
+  'advisory-disposition': 'Structured `advisory_disposition` matching findings at `C`',
+  'role-collapse': 'Recorded roles and the collapsed-actor advisory',
+  'scope-drift': '`scope-drift` blocking unless the declaration moves in the same commit',
+  'same-work-unit': '`scope-drift` blocking unless the declaration moves in the same commit',
+  'work-unit': 'Typed work units keyed to their required parts',
+  'route': '`lightweight` default route and one-way escalation',
+  'redaction': 'Redaction ceremony',
+  'record-integrity': 'Live-ledger prefix and verbatim-roll proof',
+  'ledger-size': 'Live-ledger prefix and verbatim-roll proof',
+  'migration-debt': 'Versioned portable configuration and schema migration'
+}
+
+/** Rules the conformance matrix does not represent, and why.
+ *
+ *  Declared rather than force-fitted. Every one of these keeps the DOCUMENTATION
+ *  plane coherent — links resolve, vocabulary is accounted for, derived files are
+ *  regenerated, notes stay current — while the matrix states protocol
+ *  capabilities. Mapping them to a row that does not mean them would make the
+ *  linkage look complete while saying something false, which is the exact
+ *  failure the matrix exists to prevent.
+ */
+export const RULES_OUTSIDE_CONFORMANCE = {
+  'links': 'documentation coherence: a relative link that resolves nowhere',
+  'concept-orphan': 'documentation coherence: vocabulary nothing needed',
+  'concept-growth': 'documentation coherence: vocabulary growth made visible',
+  'area-note': 'documentation coherence: an implemented area whose note did not move',
+  'decision-drift': 'documentation coherence: a decision the change did not carry',
+  'path-staleness': 'operational hygiene: a quiet path noticed without blocking',
+  'single-truth': 'documentation coherence: a generated or shared file edited by hand',
+  'rebase': 'branch currency: the branch must contain the trunk tip before it merges, which the matrix treats as integration transport rather than a stated capability'
+}
+
+export function conformanceLinkage(rules, specSource) {
+  const start = specSource.indexOf('## Current conformance')
+  // Stop at the generated block. Including it would let this check be satisfied
+  // by its OWN output: rename a matrix row, and the generated table still holds
+  // the old title, so nothing is reported. A predicate that reads its own
+  // output is the proxy-predicate failure this path exists to find.
+  const generated = specSource.indexOf(LINKAGE_BEGIN)
+  const nextSection = specSource.indexOf('\n## ', start + 10)
+  const ends = [generated, nextSection].filter((index) => index > start)
+  const table = start < 0 ? '' : specSource.slice(start, ends.length ? Math.min(...ends) : specSource.length)
+  const names = [...new Set(rules.map((rule) => rule.name))].sort()
+  const unaccounted = names.filter(
+    (name) => !(name in RULE_CONFORMANCE) && !(name in RULES_OUTSIDE_CONFORMANCE)
+  )
+  const bothWays = names.filter((name) => name in RULE_CONFORMANCE && name in RULES_OUTSIDE_CONFORMANCE)
+  const missingRows = [...new Set(Object.values(RULE_CONFORMANCE))].filter(
+    (row) => !table.includes(`| ${row} |`)
+  )
+  const phantomRules = [...Object.keys(RULE_CONFORMANCE), ...Object.keys(RULES_OUTSIDE_CONFORMANCE)]
+    .filter((name) => !names.includes(name))
+  return { unaccounted, bothWays, missingRows, phantomRules, table }
 }
 
 export const RULE_METADATA = {
@@ -248,6 +338,34 @@ export function generateMarkdownTable(source) {
   return md
 }
 
+/** The generated rule-to-requirement linkage.
+ *
+ *  Prose cannot be generated from a validator, so the matrix's CLAIMS stay
+ *  human. This is the half that was silently hand-maintained: which rule stands
+ *  behind which stated requirement, and which rules stand behind none. */
+export function generateLinkageTable(checkSource, specSource) {
+  const rules = extractRules(checkSource)
+  const linkage = conformanceLinkage(rules, specSource)
+  for (const [label, list] of [
+    ['rules in neither map', linkage.unaccounted],
+    ['rules in both maps', linkage.bothWays],
+    ['mapped rows absent from the matrix', linkage.missingRows],
+    ['mapped rules the checker does not implement', linkage.phantomRules]
+  ]) {
+    if (list.length) throw new Error(`cairn-rules: ${label} — ${list.join(', ')}`)
+  }
+
+  const names = [...new Set(rules.map((rule) => rule.name))].sort()
+  let md = '| Rule | Stands behind |\n| :-- | :-- |\n'
+  for (const name of names) {
+    const row = RULE_CONFORMANCE[name]
+    md += row
+      ? `| \`${name}\` | ${escapePipes(row)} |\n`
+      : `| \`${name}\` | *(no conformance row)* — ${escapePipes(RULES_OUTSIDE_CONFORMANCE[name])} |\n`
+  }
+  return md
+}
+
 /** The text currently sitting between the markers, or null when the document
  *  carries no splice point. Pure, so the test can read the shipped file. */
 export function tableIn(doc) {
@@ -257,13 +375,20 @@ export function tableIn(doc) {
   return doc.slice(from + TABLE_BEGIN.length, to).trim()
 }
 
-export function spliceTable(doc, table) {
-  const from = doc.indexOf(TABLE_BEGIN)
-  const to = doc.indexOf(TABLE_END)
+export function spliceTable(doc, table, begin = TABLE_BEGIN, end = TABLE_END) {
+  const from = doc.indexOf(begin)
+  const to = doc.indexOf(end)
   if (from === -1 || to === -1 || to < from) {
-    throw new Error(`no ${TABLE_BEGIN} / ${TABLE_END} splice point in the document`)
+    throw new Error(`no ${begin} / ${end} splice point in the document`)
   }
-  return `${doc.slice(0, from + TABLE_BEGIN.length)}\n${table.trim()}\n${doc.slice(to)}`
+  return `${doc.slice(0, from + begin.length)}\n${table.trim()}\n${doc.slice(to)}`
+}
+
+export function linkageIn(doc) {
+  const from = doc.indexOf(LINKAGE_BEGIN)
+  const to = doc.indexOf(LINKAGE_END)
+  if (from === -1 || to === -1 || to < from) return null
+  return doc.slice(from + LINKAGE_BEGIN.length, to).trim()
 }
 
 function main() {
@@ -274,8 +399,11 @@ function main() {
     return
   }
   const specPath = join(REPO, SPEC_FILE)
-  writeFileSync(specPath, spliceTable(readFileSync(specPath, 'utf8'), table), 'utf8')
-  console.log(`cairn-rules — rewrote the catalogue in ${SPEC_FILE}`)
+  let doc = readFileSync(specPath, 'utf8')
+  doc = spliceTable(doc, table)
+  doc = spliceTable(doc, generateLinkageTable(source, doc), LINKAGE_BEGIN, LINKAGE_END)
+  writeFileSync(specPath, doc, 'utf8')
+  console.log(`cairn-rules — rewrote the catalogue and the conformance linkage in ${SPEC_FILE}`)
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

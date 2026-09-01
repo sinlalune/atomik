@@ -73,6 +73,7 @@ born here, one complete record per step.
 - **[S08t](./S08t.md)** — The required-reading route stops teaching the forbidden operation — COMPLETE
 - **[S08u](./S08u.md)** — cairn-init, and the portability it proved was missing — COMPLETE
 - **[S08v](./S08v.md)** — Adversarial fixtures, and parity asserted on one tree — COMPLETE
+- **[S08w](./S08w.md)** — The conformance linkage is generated, and stops reading its own output — COMPLETE
 
 ## Which commit landed which step
 
