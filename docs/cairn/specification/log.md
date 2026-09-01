@@ -11,6 +11,16 @@ timestamp: 2026-08-26T00:00:00Z
 The companion entry point is [index.md](./index.md). This log records changes to
 the documentation project; it is not part of the protocol's normative prose.
 
+## 2026-09-01 — a step append is proved from the record, not the gate's base
+
+`record-integrity` treated any Git `M` status on a born-sliced step as a
+rewrite, even though the specification permits exact suffix appends. The
+reference checker now follows the step through renames to its adding blob: that
+blob must remain a prefix, link targets may be repointed only during a step
+relocation, and immutable event records keep their original path. The
+conformance matrix moves only the born-sliced prefix half to implemented; flat
+live-ledger and verbatim-roll proof remain open.
+
 ## 2026-08-27 — owner review: the trail, the role names, and a modern reader
 
 **The answerable-alone contract said the wrong thing.** It required a reader

@@ -20,6 +20,13 @@ remains the complete record; this is the readable one. If two paths ever start
 colliding on this file, it takes the amendment the journal already took — one file
 per entry in a `log/` subfolder — which was a concurrency fix, never a size one.
 
+## 2026-09-01
+
+- `CP-OPS-002 S08n` makes a born-sliced step's adding blob the stable
+  `record-integrity` baseline. Exact suffix appends pass locally and in CI;
+  earlier-byte rewrites block, and the specification still labels flat-ledger
+  plus verbatim-roll proof partial.
+
 ## 2026-08-25
 
 - `S07e` **Canonical top-down rewrite on owner correction.** The competing

@@ -1859,9 +1859,11 @@ collapses before the pilot begins.</p>
 MAY move byte-for-byte into uniquely named files under
 <code>project/coding-paths/history/</code> when the live record becomes too large.
 Summarising a rolled entry is not equivalent to retaining it. The reference
-checker protects existing history records from rewrite, but does not yet prove
-that live ledger text remains a byte prefix or was rolled verbatim; the
-<a href="#specification--current-conformance" data-local-anchor="current-conformance" class="section-link">conformance matrix</a> states this limit explicitly.</p>
+checker protects existing history records from rewrite and proves the prefix of
+a born-sliced step record by following it to the blob that added it. It does not
+yet prove that a flat live ledger remains a byte prefix or that a roll was
+verbatim; the <a href="#specification--current-conformance" data-local-anchor="current-conformance" class="section-link">conformance matrix</a> states this limit
+explicitly.</p>
 <h2 id="specification--let-paths-work-beside-one-another" data-heading="let-paths-work-beside-one-another">Let paths work beside one another</h2>
 <p>A <a href="#article-concept-worktree" data-article="concept-worktree" data-anchor="" class="wiki-link">working tree</a> is the checked-out files a process
 can edit. A Git worktree gives another working tree for the same repository.
@@ -2516,7 +2518,7 @@ expect Cairn to do, and each is refused for a stated reason.</p>
 </tr>
 <tr>
 <td style="text-align:left"><strong>Byte-level proof that a ledger was rolled verbatim</strong></td>
-<td style="text-align:left">Stated as a requirement, unimplemented in the reference tools, and listed as such in the matrix below rather than quietly dropped.</td>
+<td style="text-align:left">Stated as a requirement, unimplemented for flat-ledger rolls in the reference tools, and listed as such in the matrix below rather than quietly dropped. Born-sliced step records have a direct adding-blob prefix proof and do not roll.</td>
 </tr>
 </tbody>
 </table>
@@ -2712,8 +2714,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Live-ledger prefix and verbatim-roll proof</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">explicit ledger markers/schema</td>
+<td style="text-align:left"><strong>partially implemented</strong>; a born-sliced step record is followed through renames to its adding blob, which must remain a prefix of the current file. Flat live-ledger prefix and verbatim-roll proof remain open</td>
+<td style="text-align:left">explicit markers/schema for flat ledgers and rolls</td>
 </tr>
 <tr>
 <td style="text-align:left">Versioned portable configuration and schema migration</td>
@@ -2761,13 +2763,13 @@ branches. Its reference tools enforce a substantial but incomplete subset of
 the protocol. It is not yet a general-purpose merge, governance, or security
 system.</p>
 </blockquote>
-<p>Three rows remain <code>not implemented</code> among the requirements v0.2 added, and they
-are the honest residue rather than a backlog:
-<strong>repair procedures</strong> have no predicate to propose, the <strong>answerable-alone
-contract</strong> is a judgement measured by cold resume, the <strong>temporal half of
-checkpoint retention</strong> is unobservable to a validator that sees one commit, and
-<strong>live-ledger prefix proof</strong> awaits explicit ledger markers. Naming what cannot
-be checked is part of the claim.</p>
+<p>The honest residue is named rather than hidden: <strong>repair procedures</strong> have no
+predicate to propose, the <strong>answerable-alone contract</strong> is a judgement measured
+by cold resume, the <strong>temporal half of checkpoint retention</strong> is unobservable to
+a validator that sees one commit, and flat-ledger prefix plus verbatim-roll
+proof still await explicit markers. Born-sliced step records now have those
+markers and an adding-blob prefix proof; that closes one shape, not the whole
+row. Naming what cannot be checked is part of the claim.</p>
 <h3 id="specification--open-finding-this-revision-grew-its-own-surface" data-heading="open-finding-this-revision-grew-its-own-surface">Open finding: this revision grew its own surface</h3>
 <p>Separating borrowed vocabulary from Cairn’s own is not presentation. It is the
 only way to measure how large the protocol actually is, and running it as a
@@ -3022,8 +3024,8 @@ honest state of the work.</p>
 <tr data-rule="record-integrity" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>record-integrity</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">Existing session, audit, journal, or rolled-history record was modified, renamed, or deleted</td>
-<td style="text-align:left"><code>immutableRecordMutations(previousRef) + isImmutableRecord(file)</code></td>
+<td style="text-align:left">An immutable event/history record changed, or a born-sliced step no longer preserves its adding blob as a prefix</td>
+<td style="text-align:left"><code>immutableRecordMutations(previousRef) + appendOnlyStepRecordMutations(changed) + preservesAppendOnlyRecord(before, after)</code></td>
 </tr>
 <tr data-rule="redaction" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>redaction</code></td>
@@ -3172,8 +3174,8 @@ honest state of the work.</p>
 <tr data-rule="record-integrity" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>record-integrity</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">Existing session, audit, journal, or rolled-history record was modified, renamed, or deleted</td>
-<td style="text-align:left"><code>immutableRecordMutations(previousRef) + isImmutableRecord(file)</code></td>
+<td style="text-align:left">An immutable event/history record changed, or a born-sliced step no longer preserves its adding blob as a prefix</td>
+<td style="text-align:left"><code>immutableRecordMutations(previousRef) + appendOnlyStepRecordMutations(changed) + preservesAppendOnlyRecord(before, after)</code></td>
 </tr>
 <tr data-rule="registration" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>registration</code></td>
@@ -4335,9 +4337,11 @@ collapses before the pilot begins.</p>
 MAY move byte-for-byte into uniquely named files under
 <code>project/coding-paths/history/</code> when the live record becomes too large.
 Summarising a rolled entry is not equivalent to retaining it. The reference
-checker protects existing history records from rewrite, but does not yet prove
-that live ledger text remains a byte prefix or was rolled verbatim; the
-<a href="#specification--current-conformance" data-local-anchor="current-conformance" class="section-link">conformance matrix</a> states this limit explicitly.</p>
+checker protects existing history records from rewrite and proves the prefix of
+a born-sliced step record by following it to the blob that added it. It does not
+yet prove that a flat live ledger remains a byte prefix or that a roll was
+verbatim; the <a href="#specification--current-conformance" data-local-anchor="current-conformance" class="section-link">conformance matrix</a> states this limit
+explicitly.</p>
 <h2 id="specification--let-paths-work-beside-one-another" data-heading="let-paths-work-beside-one-another">Let paths work beside one another</h2>
 <p>A <a href="#article-concept-worktree" data-article="concept-worktree" data-anchor="" class="wiki-link">working tree</a> is the checked-out files a process
 can edit. A Git worktree gives another working tree for the same repository.
@@ -4992,7 +4996,7 @@ expect Cairn to do, and each is refused for a stated reason.</p>
 </tr>
 <tr>
 <td style="text-align:left"><strong>Byte-level proof that a ledger was rolled verbatim</strong></td>
-<td style="text-align:left">Stated as a requirement, unimplemented in the reference tools, and listed as such in the matrix below rather than quietly dropped.</td>
+<td style="text-align:left">Stated as a requirement, unimplemented for flat-ledger rolls in the reference tools, and listed as such in the matrix below rather than quietly dropped. Born-sliced step records have a direct adding-blob prefix proof and do not roll.</td>
 </tr>
 </tbody>
 </table>
@@ -5188,8 +5192,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Live-ledger prefix and verbatim-roll proof</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">explicit ledger markers/schema</td>
+<td style="text-align:left"><strong>partially implemented</strong>; a born-sliced step record is followed through renames to its adding blob, which must remain a prefix of the current file. Flat live-ledger prefix and verbatim-roll proof remain open</td>
+<td style="text-align:left">explicit markers/schema for flat ledgers and rolls</td>
 </tr>
 <tr>
 <td style="text-align:left">Versioned portable configuration and schema migration</td>
@@ -5237,13 +5241,13 @@ branches. Its reference tools enforce a substantial but incomplete subset of
 the protocol. It is not yet a general-purpose merge, governance, or security
 system.</p>
 </blockquote>
-<p>Three rows remain <code>not implemented</code> among the requirements v0.2 added, and they
-are the honest residue rather than a backlog:
-<strong>repair procedures</strong> have no predicate to propose, the <strong>answerable-alone
-contract</strong> is a judgement measured by cold resume, the <strong>temporal half of
-checkpoint retention</strong> is unobservable to a validator that sees one commit, and
-<strong>live-ledger prefix proof</strong> awaits explicit ledger markers. Naming what cannot
-be checked is part of the claim.</p>
+<p>The honest residue is named rather than hidden: <strong>repair procedures</strong> have no
+predicate to propose, the <strong>answerable-alone contract</strong> is a judgement measured
+by cold resume, the <strong>temporal half of checkpoint retention</strong> is unobservable to
+a validator that sees one commit, and flat-ledger prefix plus verbatim-roll
+proof still await explicit markers. Born-sliced step records now have those
+markers and an adding-blob prefix proof; that closes one shape, not the whole
+row. Naming what cannot be checked is part of the claim.</p>
 <h3 id="specification--open-finding-this-revision-grew-its-own-surface" data-heading="open-finding-this-revision-grew-its-own-surface">Open finding: this revision grew its own surface</h3>
 <p>Separating borrowed vocabulary from Cairn’s own is not presentation. It is the
 only way to measure how large the protocol actually is, and running it as a
@@ -5498,8 +5502,8 @@ honest state of the work.</p>
 <tr data-rule="record-integrity" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>record-integrity</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">Existing session, audit, journal, or rolled-history record was modified, renamed, or deleted</td>
-<td style="text-align:left"><code>immutableRecordMutations(previousRef) + isImmutableRecord(file)</code></td>
+<td style="text-align:left">An immutable event/history record changed, or a born-sliced step no longer preserves its adding blob as a prefix</td>
+<td style="text-align:left"><code>immutableRecordMutations(previousRef) + appendOnlyStepRecordMutations(changed) + preservesAppendOnlyRecord(before, after)</code></td>
 </tr>
 <tr data-rule="redaction" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>redaction</code></td>
@@ -5648,8 +5652,8 @@ honest state of the work.</p>
 <tr data-rule="record-integrity" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>record-integrity</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">Existing session, audit, journal, or rolled-history record was modified, renamed, or deleted</td>
-<td style="text-align:left"><code>immutableRecordMutations(previousRef) + isImmutableRecord(file)</code></td>
+<td style="text-align:left">An immutable event/history record changed, or a born-sliced step no longer preserves its adding blob as a prefix</td>
+<td style="text-align:left"><code>immutableRecordMutations(previousRef) + appendOnlyStepRecordMutations(changed) + preservesAppendOnlyRecord(before, after)</code></td>
 </tr>
 <tr data-rule="registration" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>registration</code></td>
@@ -8159,7 +8163,17 @@ its original identity and content.</p>
 creation: later work cannot modify, rename, or delete them. A correction adds a
 superseding file. Mutable <code>index.md</code> and <code>log.md</code> navigation views are excluded.</p>
 <p>The protocol also requires the live ledger to be append-only or rolled verbatim.
-That predicate awaits explicit ledger markers in the reference tools.</p>
+Born-sliced step files carry explicit <code>cairn-unit</code> markers, so the reference
+checker now proves their prefix: it follows each file through renames to the
+blob that added the record and requires that blob to remain an exact prefix of
+the current text. A suffix append is growth; changing an earlier byte is a
+rewrite. Flat live ledgers and the byte-level proof of a roll remain explicit
+conformance gaps.</p>
+<p>The adding blob is the baseline because it belongs to the RECORD rather than to
+the environment running the check. Comparing with <code>HEAD</code> locally and the prior
+pushed commit in CI made a valid suffix append fail in one place and disappear
+in the other. Following the record to its origin makes both contexts ask the
+same question and keeps a rewrite visible for the life of the branch diff.</p>
 <h3 id="concept-record-integrity--integrity-is-not-accuracy" data-heading="integrity-is-not-accuracy">Integrity is not accuracy</h3>
 <p>Immutability protects a record from being changed after the fact. It does
 nothing about a record that was already wrong when it was written, and the two
@@ -8198,14 +8212,17 @@ rewritten object id, and the redaction record names both the old and the new
 ids.</li>
 </ol>
 <h2 id="concept-record-integrity--relocation-is-not-mutation" data-heading="relocation-is-not-mutation">Relocation is not mutation</h2>
-<p>A record may MOVE. The steps of a path record moved out of a shared rollup
-directory and into the path’s own folder when path records became folders, and
-nothing about any of those records changed.</p>
+<p>An append-only step record may MOVE. The steps of a path record moved out of a
+shared rollup directory and into the path’s own folder when path records became
+folders, and nothing about any of those records changed. Immutable event
+records—sessions, audits and journal entries—still use a superseding record
+rather than a rename.</p>
 <p>A checker that keys on the file path reads a move as a deletion <em>and</em> an
 addition, so it reports every relocated record as destroyed and every arrival as
 unaccounted for. That is a <a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy predicate</a>: the path is
 where a record sits, and immutability is about what the record says.</p>
-<p>Two operations are sanctioned on a record that moves, and no others:</p>
+<p>Two operations are sanctioned on an append-only step record that moves, and no
+others:</p>
 <ul>
 <li><strong>Repointing a link</strong>, because a link is an address rather than content and the
 same target must keep resolving from the new location.</li>
@@ -8779,8 +8796,10 @@ portable role path <code>project/coding-paths/history/&lt;ID&gt;-SNN.md</code> a
 a link.</p>
 <h2 id="concept-work-ledger--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
 <p>The reference checker prevents an existing rolled-history file from being
-rewritten, but it does not yet prove that live ledger content was preserved as a
-prefix or rolled verbatim. That remains a visible conformance gap.</p>
+rewritten and proves the prefix of a born-sliced step record by following it to
+the blob that added it. It does not yet prove the prefix of a flat live ledger
+or that a roll was byte-for-byte verbatim. Those remain visible conformance
+gaps.</p>
 <p>Related: <a href="#article-concept-work-unit" data-article="concept-work-unit" data-anchor="" class="wiki-link">work unit</a>, <a href="#article-concept-handoff" data-article="concept-handoff" data-anchor="" class="wiki-link">handoff brief</a>,
 <a href="#article-concept-checkpoint-retention" data-article="concept-checkpoint-retention" data-anchor="" class="wiki-link">checkpoint retention</a>,
 <a href="#article-concept-record-integrity" data-article="concept-record-integrity" data-anchor="" class="wiki-link">record integrity</a>.</p>
@@ -11726,9 +11745,11 @@ collapses before the pilot begins.</p>
 MAY move byte-for-byte into uniquely named files under
 <code>project/coding-paths/history/</code> when the live record becomes too large.
 Summarising a rolled entry is not equivalent to retaining it. The reference
-checker protects existing history records from rewrite, but does not yet prove
-that live ledger text remains a byte prefix or was rolled verbatim; the
-<a href="#specification--current-conformance" data-local-anchor="current-conformance" class="section-link">conformance matrix</a> states this limit explicitly.</p>
+checker protects existing history records from rewrite and proves the prefix of
+a born-sliced step record by following it to the blob that added it. It does not
+yet prove that a flat live ledger remains a byte prefix or that a roll was
+verbatim; the <a href="#specification--current-conformance" data-local-anchor="current-conformance" class="section-link">conformance matrix</a> states this limit
+explicitly.</p>
 <h2 id="specification--let-paths-work-beside-one-another" data-heading="let-paths-work-beside-one-another">Let paths work beside one another</h2>
 <p>A <a href="#article-concept-worktree" data-article="concept-worktree" data-anchor="" class="wiki-link">working tree</a> is the checked-out files a process
 can edit. A Git worktree gives another working tree for the same repository.
@@ -12383,7 +12404,7 @@ expect Cairn to do, and each is refused for a stated reason.</p>
 </tr>
 <tr>
 <td style="text-align:left"><strong>Byte-level proof that a ledger was rolled verbatim</strong></td>
-<td style="text-align:left">Stated as a requirement, unimplemented in the reference tools, and listed as such in the matrix below rather than quietly dropped.</td>
+<td style="text-align:left">Stated as a requirement, unimplemented for flat-ledger rolls in the reference tools, and listed as such in the matrix below rather than quietly dropped. Born-sliced step records have a direct adding-blob prefix proof and do not roll.</td>
 </tr>
 </tbody>
 </table>
@@ -12579,8 +12600,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Live-ledger prefix and verbatim-roll proof</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong></td>
-<td style="text-align:left">explicit ledger markers/schema</td>
+<td style="text-align:left"><strong>partially implemented</strong>; a born-sliced step record is followed through renames to its adding blob, which must remain a prefix of the current file. Flat live-ledger prefix and verbatim-roll proof remain open</td>
+<td style="text-align:left">explicit markers/schema for flat ledgers and rolls</td>
 </tr>
 <tr>
 <td style="text-align:left">Versioned portable configuration and schema migration</td>
@@ -12628,13 +12649,13 @@ branches. Its reference tools enforce a substantial but incomplete subset of
 the protocol. It is not yet a general-purpose merge, governance, or security
 system.</p>
 </blockquote>
-<p>Three rows remain <code>not implemented</code> among the requirements v0.2 added, and they
-are the honest residue rather than a backlog:
-<strong>repair procedures</strong> have no predicate to propose, the <strong>answerable-alone
-contract</strong> is a judgement measured by cold resume, the <strong>temporal half of
-checkpoint retention</strong> is unobservable to a validator that sees one commit, and
-<strong>live-ledger prefix proof</strong> awaits explicit ledger markers. Naming what cannot
-be checked is part of the claim.</p>
+<p>The honest residue is named rather than hidden: <strong>repair procedures</strong> have no
+predicate to propose, the <strong>answerable-alone contract</strong> is a judgement measured
+by cold resume, the <strong>temporal half of checkpoint retention</strong> is unobservable to
+a validator that sees one commit, and flat-ledger prefix plus verbatim-roll
+proof still await explicit markers. Born-sliced step records now have those
+markers and an adding-blob prefix proof; that closes one shape, not the whole
+row. Naming what cannot be checked is part of the claim.</p>
 <h3 id="specification--open-finding-this-revision-grew-its-own-surface" data-heading="open-finding-this-revision-grew-its-own-surface">Open finding: this revision grew its own surface</h3>
 <p>Separating borrowed vocabulary from Cairn’s own is not presentation. It is the
 only way to measure how large the protocol actually is, and running it as a
@@ -12889,8 +12910,8 @@ honest state of the work.</p>
 <tr data-rule="record-integrity" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>record-integrity</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">Existing session, audit, journal, or rolled-history record was modified, renamed, or deleted</td>
-<td style="text-align:left"><code>immutableRecordMutations(previousRef) + isImmutableRecord(file)</code></td>
+<td style="text-align:left">An immutable event/history record changed, or a born-sliced step no longer preserves its adding blob as a prefix</td>
+<td style="text-align:left"><code>immutableRecordMutations(previousRef) + appendOnlyStepRecordMutations(changed) + preservesAppendOnlyRecord(before, after)</code></td>
 </tr>
 <tr data-rule="redaction" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>redaction</code></td>
@@ -13039,8 +13060,8 @@ honest state of the work.</p>
 <tr data-rule="record-integrity" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>record-integrity</code></td>
 <td style="text-align:left">diff</td>
-<td style="text-align:left">Existing session, audit, journal, or rolled-history record was modified, renamed, or deleted</td>
-<td style="text-align:left"><code>immutableRecordMutations(previousRef) + isImmutableRecord(file)</code></td>
+<td style="text-align:left">An immutable event/history record changed, or a born-sliced step no longer preserves its adding blob as a prefix</td>
+<td style="text-align:left"><code>immutableRecordMutations(previousRef) + appendOnlyStepRecordMutations(changed) + preservesAppendOnlyRecord(before, after)</code></td>
 </tr>
 <tr data-rule="registration" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>registration</code></td>
@@ -15322,7 +15343,17 @@ its original identity and content.</p>
 creation: later work cannot modify, rename, or delete them. A correction adds a
 superseding file. Mutable <code>index.md</code> and <code>log.md</code> navigation views are excluded.</p>
 <p>The protocol also requires the live ledger to be append-only or rolled verbatim.
-That predicate awaits explicit ledger markers in the reference tools.</p>
+Born-sliced step files carry explicit <code>cairn-unit</code> markers, so the reference
+checker now proves their prefix: it follows each file through renames to the
+blob that added the record and requires that blob to remain an exact prefix of
+the current text. A suffix append is growth; changing an earlier byte is a
+rewrite. Flat live ledgers and the byte-level proof of a roll remain explicit
+conformance gaps.</p>
+<p>The adding blob is the baseline because it belongs to the RECORD rather than to
+the environment running the check. Comparing with <code>HEAD</code> locally and the prior
+pushed commit in CI made a valid suffix append fail in one place and disappear
+in the other. Following the record to its origin makes both contexts ask the
+same question and keeps a rewrite visible for the life of the branch diff.</p>
 <h3 id="concept-record-integrity--integrity-is-not-accuracy" data-heading="integrity-is-not-accuracy">Integrity is not accuracy</h3>
 <p>Immutability protects a record from being changed after the fact. It does
 nothing about a record that was already wrong when it was written, and the two
@@ -15361,14 +15392,17 @@ rewritten object id, and the redaction record names both the old and the new
 ids.</li>
 </ol>
 <h2 id="concept-record-integrity--relocation-is-not-mutation" data-heading="relocation-is-not-mutation">Relocation is not mutation</h2>
-<p>A record may MOVE. The steps of a path record moved out of a shared rollup
-directory and into the path’s own folder when path records became folders, and
-nothing about any of those records changed.</p>
+<p>An append-only step record may MOVE. The steps of a path record moved out of a
+shared rollup directory and into the path’s own folder when path records became
+folders, and nothing about any of those records changed. Immutable event
+records—sessions, audits and journal entries—still use a superseding record
+rather than a rename.</p>
 <p>A checker that keys on the file path reads a move as a deletion <em>and</em> an
 addition, so it reports every relocated record as destroyed and every arrival as
 unaccounted for. That is a <a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy predicate</a>: the path is
 where a record sits, and immutability is about what the record says.</p>
-<p>Two operations are sanctioned on a record that moves, and no others:</p>
+<p>Two operations are sanctioned on an append-only step record that moves, and no
+others:</p>
 <ul>
 <li><strong>Repointing a link</strong>, because a link is an address rather than content and the
 same target must keep resolving from the new location.</li>
@@ -15890,8 +15924,10 @@ portable role path <code>project/coding-paths/history/&lt;ID&gt;-SNN.md</code> a
 a link.</p>
 <h2 id="concept-work-ledger--it-does-not-prove" data-heading="it-does-not-prove">It does not prove</h2>
 <p>The reference checker prevents an existing rolled-history file from being
-rewritten, but it does not yet prove that live ledger content was preserved as a
-prefix or rolled verbatim. That remains a visible conformance gap.</p>
+rewritten and proves the prefix of a born-sliced step record by following it to
+the blob that added it. It does not yet prove the prefix of a flat live ledger
+or that a roll was byte-for-byte verbatim. Those remain visible conformance
+gaps.</p>
 <p>Related: <a href="#article-concept-work-unit" data-article="concept-work-unit" data-anchor="" class="wiki-link">work unit</a>, <a href="#article-concept-handoff" data-article="concept-handoff" data-anchor="" class="wiki-link">handoff brief</a>,
 <a href="#article-concept-checkpoint-retention" data-article="concept-checkpoint-retention" data-anchor="" class="wiki-link">checkpoint retention</a>,
 <a href="#article-concept-record-integrity" data-article="concept-record-integrity" data-anchor="" class="wiki-link">record integrity</a>.</p>

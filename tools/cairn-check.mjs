@@ -631,16 +631,45 @@ const IMMUTABLE_RECORD_PREFIXES = [
 ]
 
 /** A step record inside a born-sliced path folder (ADR-020 decision 4). These
- *  were immutable while they lived in `history/`, and a record does not stop
- *  being append-only by moving house. */
+ *  were protected while they lived in `history/`, and a record does not stop
+ *  being append-only by moving house. Unlike event records, a step record MAY
+ *  grow by exact suffix append; changing any earlier byte is still a rewrite. */
 const PATH_STEP_RECORD = new RegExp(`^${PATH_DIR}/CP-[^/]+/steps/[^/]+$`)
+
+export function isAppendOnlyStepRecord(file) {
+  if (!PATH_STEP_RECORD.test(String(file ?? ''))) return false
+  return !['index.md', 'log.md', '.gitkeep'].includes(String(file).split('/').at(-1))
+}
+
+/** Only ledger steps may change address. Immutable event records keep both
+ * their content and their original path; a correction supersedes them. */
+export function isStepRecordRelocation(from, to) {
+  const sourceIsStep = isAppendOnlyStepRecord(from) ||
+    String(from ?? '').startsWith(`${HISTORY_DIR}/`)
+  return sourceIsStep && isAppendOnlyStepRecord(to)
+}
 
 export function isImmutableRecord(file) {
   if (file === JOURNAL) return true
   const known = IMMUTABLE_RECORD_PREFIXES.some((prefix) => file.startsWith(prefix)) ||
-    PATH_STEP_RECORD.test(file)
+    isAppendOnlyStepRecord(file)
   if (!known) return false
   return !['index.md', 'log.md', '.gitkeep'].includes(file.split('/').at(-1))
+}
+
+/**
+ * Did an append-only record preserve everything it already said?
+ *
+ * In place, the old blob must be an exact byte prefix. During a relocation,
+ * link targets may be repointed because the same destination has a different
+ * relative address; `isVerbatimRelocation` normalises only those addresses and
+ * still requires the entire earlier record to be a prefix.
+ */
+export function preservesAppendOnlyRecord(before, after, relocated = false) {
+  if (before == null || after == null || String(before).length === 0) return false
+  return relocated
+    ? isVerbatimRelocation(before, after)
+    : String(after).startsWith(String(before))
 }
 
 /**
@@ -1774,19 +1803,25 @@ export function evaluate({
     const records = changed.filter(isImmutableRecord)
     if (records.length > 0) {
       add('blocking', 'record-integrity',
-        `cannot determine whether ${records.length} append-only record(s) are additions or rewrites — provide a complete comparison ref`,
+        `cannot determine whether ${records.length} protected record(s) are additions, exact appends, or rewrites — provide complete record history and a comparison ref`,
         'inconclusive')
     }
   } else {
-    const relocated = new Set(relocations.flat())
-    if (relocations.length > 0) {
+    const validRelocations = relocations.filter(([from, to]) => isStepRecordRelocation(from, to))
+    const relocated = new Set(validRelocations.flat())
+    if (validRelocations.length > 0) {
       add('advisory', 'record-integrity',
-        `${relocations.length} append-only record(s) were relocated verbatim: ${relocations.slice(0, 3).map(([from, to]) => `${from.split('/').at(-1)} → ${to}`).join(', ')}${relocations.length > 3 ? ', …' : ''}. Links were repointed and nothing earlier was rewritten — stated rather than exempted in silence`)
+        `${validRelocations.length} append-only record(s) were relocated verbatim: ${validRelocations.slice(0, 3).map(([from, to]) => `${from.split('/').at(-1)} → ${to}`).join(', ')}${validRelocations.length > 3 ? ', …' : ''}. Links were repointed and nothing earlier was rewritten — stated rather than exempted in silence`)
     }
     for (const file of immutableMutations) {
       if (isImmutableRecord(file) && !relocated.has(file)) {
-        add('blocking', 'record-integrity',
-          `${file} is an existing append-only record and may not be modified, renamed, or deleted; add a superseding record instead`)
+        if (isAppendOnlyStepRecord(file)) {
+          add('blocking', 'record-integrity',
+            `${file} no longer preserves its adding blob as a prefix — append a suffix, or add a superseding record instead of changing earlier text`)
+        } else {
+          add('blocking', 'record-integrity',
+            `${file} is an existing immutable record and may not be modified, renamed, or deleted; add a superseding record instead`)
+        }
       }
     }
   }
@@ -2430,7 +2465,7 @@ function verbatimRelocations(ref) {
 
   const out = []
   for (const [from, to] of pairs) {
-    if (!from || !to || !isImmutableRecord(from)) continue
+    if (!from || !to || !isStepRecordRelocation(from, to)) continue
     const before = gitOrNull(['show', `${ref}:${from}`])
     const after = existsSync(join(REPO, to)) ? readFileSync(join(REPO, to), 'utf8') : null
     if (before != null && after != null && isVerbatimRelocation(before, after)) out.push([from, to])
@@ -2438,13 +2473,84 @@ function verbatimRelocations(ref) {
   return out
 }
 
-function immutableRecordMutations(ref) {
+/**
+ * The adding commit and path reported by `git log --follow`.
+ *
+ * `--follow --diff-filter=A --format=%H --name-only` emits newest first. A
+ * delete/re-add can therefore yield several pairs; the oldest pair is the
+ * identity the current record claims to preserve. Kept pure so the plumbing
+ * format has an adversarial fixture rather than being trusted by inspection.
+ */
+export function recordOriginFromFollowLog(raw) {
+  const lines = String(raw ?? '').split('\n').map((line) => line.trim()).filter(Boolean)
+  const entries = []
+  let commit = null
+  for (const line of lines) {
+    if (/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(line)) {
+      commit = line
+    } else if (commit) {
+      entries.push({ commit, file: line })
+      commit = null
+    }
+  }
+  return entries.at(-1) ?? null
+}
+
+function stepRecordOrigin(file) {
+  const raw = gitOrNull([
+    'log', '--follow', '--diff-filter=A', '--format=%H', '--name-only', '--', file
+  ])
+  return raw == null ? null : recordOriginFromFollowLog(raw)
+}
+
+/**
+ * Born-sliced step records are compared with the blob that CREATED them, not
+ * with whichever environmental ref the caller happened to supply.
+ *
+ * That distinction is the S08n gate-parity repair. CI compared S08m with the
+ * previous pushed SHA and called a pure suffix append a rewrite; the next local
+ * run compared with HEAD and forgot the question. Following the record to its
+ * adding blob makes both contexts read one fact. Exact suffix appends pass;
+ * changing any earlier byte, deleting the record, or an unreadable origin does
+ * not. Flat live ledgers remain outside this predicate and stay declared as a
+ * conformance gap.
+ */
+function appendOnlyStepRecordMutations(files) {
+  const mutations = []
+  for (const file of [...new Set(files.filter(isAppendOnlyStepRecord))]) {
+    const after = existsSync(join(REPO, file)) ? readFileSync(join(REPO, file), 'utf8') : null
+    const origin = stepRecordOrigin(file)
+
+    if (!origin) {
+      // A genuinely new working-tree record has no adding commit yet. A tracked
+      // record with no readable origin is UNKNOWN, never silently an addition.
+      const tracked = gitOrNull(['ls-files', '--error-unmatch', '--', file]) != null
+      const stagedAddition = Boolean(gitOrNull([
+        'diff', '--cached', '--diff-filter=A', '--name-only', '--', file
+      ])?.trim())
+      if (after != null && (!tracked || stagedAddition)) continue
+      return null
+    }
+
+    const before = gitOrNull(['show', `${origin.commit}:${origin.file}`])
+    if (!preservesAppendOnlyRecord(before, after, origin.file !== file)) {
+      mutations.push(file)
+    }
+  }
+  return mutations
+}
+
+function immutableRecordMutations(ref, changed = []) {
   if (!ref || !gitOrNull(['rev-parse', '--verify', ref])) return null
   const working = porcelainMutations(gitRaw(['status', '--porcelain', '-z']))
   const committed = nameStatusMutations(gitRaw([
     'diff', '--diff-filter=MDRTUXB', '--name-status', '-z', `${ref}..HEAD`
   ]))
-  return [...new Set([...committed, ...working])]
+  const strict = [...new Set([...committed, ...working])]
+    .filter((file) => !isAppendOnlyStepRecord(file))
+  const steps = appendOnlyStepRecordMutations(changed)
+  if (steps == null) return null
+  return [...new Set([...strict, ...steps])]
 }
 
 function walk(dir, out = []) {
@@ -3172,6 +3278,8 @@ function main() {
   // previous pushed SHA; an ordinary local run compares the working tree with
   // HEAD. The broader trunk merge-base can predate the rule and would punish
   // historical migrations that were valid under their then-current schema.
+  // Born-sliced step records do NOT inherit this environmental baseline: their
+  // adding blob is stable and appendOnlyStepRecordMutations follows it directly.
   const recordRef = explicitPrevious ? previousRef : comparisonRef(null, null)
   const findings = [
     ...corpusFindings(branch, trunkRef, previousRef, changed),
@@ -3189,7 +3297,7 @@ function main() {
       closureStateFor: pathClosureState,
       openingFor: hasOpening,
       previousPaths: previousPathStates(paths, previousRef),
-      immutableMutations: immutableRecordMutations(recordRef),
+      immutableMutations: immutableRecordMutations(recordRef, changed),
       relocations: verbatimRelocations(recordRef),
       branchSource,
       baseSource,

@@ -18,6 +18,11 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-01
 
+- `S08n` makes born-sliced step integrity content-based: the blob that added a
+  step must remain a prefix, exact suffix appends pass, and immutable event
+  records cannot borrow the step-relocation exemption. The two late S08m repair
+  commits also gained the missing append-only retention refs `g01/32` and
+  `g01/33` before the repair began.
 - `S08l` seeded this folder with thirty-nine step records: S00–S07p moved from
   `coding-paths/history/` and S07q–S08k came out of the live record, both
   verbatim. Sixty-three Work Ledger rows were appended to the steps they describe,

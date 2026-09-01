@@ -51,7 +51,7 @@ now closed.** The last, `unretainedCheckpoints`, reported "nothing orphaned" onc
 the retained set stopped intersecting the branch — which is what the mandatory
 pre-merge rebase causes — and is repaired under `ADR-021`.
 
-**S08 so far — thirteen units.** Full records in the path file; what a resuming
+**S08 so far — fourteen units.** Full records in the path file; what a resuming
 session needs from them:
 
 - The local gate defaults to the **trunk** base on a path branch (S08a).
@@ -104,33 +104,31 @@ session needs from them:
   was accused of the migration's own date — nineteen false advisories, the same
   substitution as the three blocking rules above, one volume down. `--follow`
   fixes it, and the rule still reports a genuinely misdated new record.
+- **A step append is not a rewrite** (S08n). The late S08m ledger row was an
+  exact suffix append, which the specification permits and the checker rejected
+  from Git status alone. Born-sliced steps now follow their own identity to the
+  adding blob: that blob must remain a prefix wherever the step sits. This makes
+  the predicate independent of the local/CI comparison ref, while flat-ledger
+  prefix and verbatim-roll proof remain explicitly partial.
 
 The gate's advisory COUNT is a signal even while the verdict stays green: S08l
 read 14 before its commit and 31 after, for one tree, and the only reason to look
 was that the number moved.
 
-Flat refs 01–28 and `g01/01`–`g01/31` on the remote; flat 01–13 hold PRE-rebase
-commits and no ref has ever been moved. Checker suite 226, specification suite 33.
+Flat refs 01–28 and `g01/01`–`g01/33` on the remote; flat 01–13 hold PRE-rebase
+commits and no ref has ever been moved. `g01/32` and `g01/33` are recovery pins
+for the two pushed S08m repair commits that carried no new work-unit block.
+Checker and specification suite counts are recorded in the S08n step.
 
 ## Next action
 
-**Settle a gate-parity break found at S08m and deliberately not fixed there.**
-`record-integrity` reads one tree two ways: appending to a step record that
-exists in `HEAD` but not on the trunk is BLOCKING in a `--working-tree` run and
-fine in the merge-deciding run. Measured — one line appended to
-`steps/S08m.md`, local exit 1, branch-versus-trunk `OK`. It is a decision, not a
-patch: either a published step record is frozen the moment its commit is pushed,
-and the merge-deciding half must enforce that too, or a record is established
-only once it reaches the trunk, and the working-tree half must stop claiming
-otherwise. Nothing is blocked on the merge path, so it is not urgent — but a
-local run disagreeing with CI about one tree is the failure S08a spent a unit
-removing.
-
-Then **ADR-020 stages 3–5.** Stage 3's remaining half is to retire `ledger-size` — but
-only once `CP-MVP-008`, `CP-MVP-011` and `CP-MVP-012` migrate, because until then
-it is the only signal an unsliced record gets. Then stage 4 (the artefact
-classification: the protocol page moves, the binding appendix is extracted, the
-host constitution leaves the entry chain) and stage 5, `cairn-init`.
+**ADR-020 stage 4: apply the artefact classification.** Move the portable
+execution protocol into the Cairn specification, extract Atomik's worktree,
+lane and hot-file examples into a binding appendix, and remove the host
+constitution from the protocol entry chain. Stage 3's last operation — retire
+`ledger-size` — waits until `CP-MVP-008`, `CP-MVP-011` and `CP-MVP-012` migrate;
+the ADR makes its stages independent, so that wait does not block stage 4.
+Stage 5 then makes `cairn-init` scaffold the classified, generation-aware shape.
 
 S08 Part 2 also remains: an adversarial fixture for every blocking rule, one gate
 run in both invocation contexts asserting one verdict, and a generated
@@ -170,6 +168,10 @@ that ADDS a record.
 - **Reading a gate verdict through a pipe** (S08m). `npm run cairn-check 2>&1 |
   tail -2` gives the shell `tail`'s exit code, so an `&&` chain runs on after a
   `FAILED`. `AGENTS.md` already forbids it; this is the session that shows why.
+- **The S08m freeze-or-trunk dilemma** (S08n). The measured change was neither a
+  pre-trunk rewrite nor a post-push mutation: it was a conforming suffix append.
+  Choosing either proposed baseline would preserve the proxy predicate. The
+  adding blob belongs to the record and is the baseline both contexts can read.
 - **Retiring `ledger-size` with the folder migration** (S08l). ADR-020 stage 3
   schedules it, and three flat records remain; it is the only signal an unsliced
   record gets, so it now applies to flat records only and goes when they do.
@@ -213,6 +215,6 @@ newest unit's retention ref, written after the commit that declares it. A run
 reporting `base-parity` is NARROWED, and one reporting an inconclusive
 `checkpoint-retention` has not fetched `refs/cairn/*`: neither is recordable.
 
-`npm run cairn-check:test` passes 214 subtests. `npm run cairn-spec:build`
+`npm run cairn-check:test` passes 228 subtests. `npm run cairn-spec:build`
 reproduces the checked-in HTML byte-for-byte. `npm run typecheck`, `npm test`
-(1109 passing) and `npm run build` all pass.
+(1,109 passing, 1 skipped) and `npm run build` all pass.

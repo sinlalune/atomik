@@ -37,8 +37,10 @@ a link.
 ## It does not prove
 
 The reference checker prevents an existing rolled-history file from being
-rewritten, but it does not yet prove that live ledger content was preserved as a
-prefix or rolled verbatim. That remains a visible conformance gap.
+rewritten and proves the prefix of a born-sliced step record by following it to
+the blob that added it. It does not yet prove the prefix of a flat live ledger
+or that a roll was byte-for-byte verbatim. Those remain visible conformance
+gaps.
 
 Related: [work unit](./work-unit.md), [handoff brief](./handoff.md),
 [checkpoint retention](./checkpoint-retention.md),

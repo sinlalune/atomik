@@ -22,6 +22,10 @@ per entry in a `log/` subfolder — which was a concurrency fix, never a size on
 
 ## 2026-09-01
 
+- `CP-OPS-002 S08n` replaces file-status proxying with an adding-blob prefix
+  proof for born-sliced step records. The late S08m append is conforming; a
+  changed earlier byte blocks, and immutable session/audit/journal identities
+  cannot use the step-relocation exemption.
 - `CP-OPS-002 S08l` made `CP-OPS-002` a folder — [ADR-020](../../docs/adr/ADR-020-protocol-context-weight.md)
   migration stage 2, and the worked example it asked for. `CP-OPS-002.md` became
   `CP-OPS-002/index.md`, thirty-nine steps became one file each under `steps/`,

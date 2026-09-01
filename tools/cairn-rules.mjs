@@ -163,8 +163,8 @@ export const RULE_METADATA = {
     enforcing: 'closingAcceptanceErrors(record, pathId) + pathClosureState(path, record)'
   },
   'record-integrity': {
-    condition: 'Existing session, audit, journal, or rolled-history record was modified, renamed, or deleted',
-    enforcing: 'immutableRecordMutations(previousRef) + isImmutableRecord(file)'
+    condition: 'An immutable event/history record changed, or a born-sliced step no longer preserves its adding blob as a prefix',
+    enforcing: 'immutableRecordMutations(previousRef) + appendOnlyStepRecordMutations(changed) + preservesAppendOnlyRecord(before, after)'
   },
   'single-truth': {
     condition: 'Manual edits to shared/derived statements of record',

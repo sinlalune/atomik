@@ -881,9 +881,11 @@ The work ledger is append-only in protocol semantics. Completed ledger sections
 MAY move byte-for-byte into uniquely named files under
 `project/coding-paths/history/` when the live record becomes too large.
 Summarising a rolled entry is not equivalent to retaining it. The reference
-checker protects existing history records from rewrite, but does not yet prove
-that live ledger text remains a byte prefix or was rolled verbatim; the
-[conformance matrix](#current-conformance) states this limit explicitly.
+checker protects existing history records from rewrite and proves the prefix of
+a born-sliced step record by following it to the blob that added it. It does not
+yet prove that a flat live ledger remains a byte prefix or that a roll was
+verbatim; the [conformance matrix](#current-conformance) states this limit
+explicitly.
 ## Let paths work beside one another
 
 A [working tree](./concepts/worktree.md) is the checked-out files a process
@@ -1513,7 +1515,7 @@ expect Cairn to do, and each is refused for a stated reason.
 | **Cross-repository paths** | A path is bounded by one repository's trunk, refs, and records. Coordinating one outcome across several repositories needs a shared identity and transport that Cairn does not define. |
 | **Enforcing route selection** | `route:` is declared by the initiator. The full-route triggers are structural proxies, and a single-file change to one area can still be the most dangerous change of the quarter. Escalation is required and one-way; correct initial selection is not mechanically established. |
 | **Specifying the emergency route** | Naming it without specifying it is deliberate. A half-defined exception is worse than none, because it becomes the route anything urgent claims. |
-| **Byte-level proof that a ledger was rolled verbatim** | Stated as a requirement, unimplemented in the reference tools, and listed as such in the matrix below rather than quietly dropped. |
+| **Byte-level proof that a ledger was rolled verbatim** | Stated as a requirement, unimplemented for flat-ledger rolls in the reference tools, and listed as such in the matrix below rather than quietly dropped. Born-sliced step records have a direct adding-blob prefix proof and do not roll. |
 
 ## Current conformance
 
@@ -1553,7 +1555,7 @@ not in a separate document a reader may never open.
 | `foundation` and adoption routes | required | **partially implemented**; the route is declarable and its write surface is confined to documents and the path records it produces | the adoption variant is a use of the same route, not a separate predicate |
 | Repair procedures for protocol violations | required | **not implemented**; procedural, with no predicate proposed | none — repair is recorded, not gated |
 | Redaction ceremony | required | **partially implemented**; every `[redacted: …]` marker must name a redaction record that exists | rotation-first ordering is a procedure, not a predicate |
-| Live-ledger prefix and verbatim-roll proof | required | **not implemented** | explicit ledger markers/schema |
+| Live-ledger prefix and verbatim-roll proof | required | **partially implemented**; a born-sliced step record is followed through renames to its adding blob, which must remain a prefix of the current file. Flat live-ledger prefix and verbatim-roll proof remain open | explicit markers/schema for flat ledgers and rolls |
 | Versioned portable configuration and schema migration | required for portable profile | **not implemented** | configuration loader and migrations |
 | Exact protected integration transport | required for protected profile | **not installed or tested** | repository-host adapter |
 | Independently protected control plane | required for protected profile | **not installed or tested** | host ownership/approval policy |
@@ -1569,13 +1571,13 @@ The current supported claim is therefore:
 > the protocol. It is not yet a general-purpose merge, governance, or security
 > system.
 
-Three rows remain `not implemented` among the requirements v0.2 added, and they
-are the honest residue rather than a backlog:
-**repair procedures** have no predicate to propose, the **answerable-alone
-contract** is a judgement measured by cold resume, the **temporal half of
-checkpoint retention** is unobservable to a validator that sees one commit, and
-**live-ledger prefix proof** awaits explicit ledger markers. Naming what cannot
-be checked is part of the claim.
+The honest residue is named rather than hidden: **repair procedures** have no
+predicate to propose, the **answerable-alone contract** is a judgement measured
+by cold resume, the **temporal half of checkpoint retention** is unobservable to
+a validator that sees one commit, and flat-ledger prefix plus verbatim-roll
+proof still await explicit markers. Born-sliced step records now have those
+markers and an adding-blob prefix proof; that closes one shape, not the whole
+row. Naming what cannot be checked is part of the claim.
 
 ### Open finding: this revision grew its own surface
 
@@ -1726,7 +1728,7 @@ honest state of the work.
 | **Blocking** | `provisional` | diff | A proposed candidate still contains commits marked Cairn-Provisional, or HEAD is itself provisional | `git log --grep=^Cairn-Provisional: base..subject_commit (blocking on a ready path, advisory at HEAD)` |
 | **Blocking** | `rebase` | diff | Path branch does not contain latest trunk tip (stale branch) | `trunkContained(trunkRef) === false` |
 | **Blocking** | `record-date` | diff | A record this change adds carries two dates that disagree (blocking), or a date more than a day from the commit that wrote it (advisory) | `recordDateFindings(addedRecords) — filename date vs timestamp: vs the adding commit author date` |
-| **Blocking** | `record-integrity` | diff | Existing session, audit, journal, or rolled-history record was modified, renamed, or deleted | `immutableRecordMutations(previousRef) + isImmutableRecord(file)` |
+| **Blocking** | `record-integrity` | diff | An immutable event/history record changed, or a born-sliced step no longer preserves its adding blob as a prefix | `immutableRecordMutations(previousRef) + appendOnlyStepRecordMutations(changed) + preservesAppendOnlyRecord(before, after)` |
 | **Blocking** | `redaction` | diff | A `[redacted: …]` marker names no redaction record (code spans and fences stripped first) | `redactionMarkers(stripCode(text)) => redaction record exists` |
 | **Blocking** | `registration` | diff | Path declaration tuple (id, running, branch, base) missing from trunk | `pathRegistrationState() === 'missing' (blocking) or declared migration exception (advisory)` |
 | **Blocking** | `registration-base` | diff | Path base_commit cannot be proved to equal the registration commit parent | `pathRegistrationBaseState() === 'mismatch' \| null` |
@@ -1751,7 +1753,7 @@ honest state of the work.
 | *Advisory* | `path-staleness` | corpus | A path declaring running whose branch has had no commit for longer than the declared window | `staleRunningPaths(corpus, branchAges(corpus)) — advisory always; an unresolvable branch reports nothing` |
 | *Advisory* | `provisional` | diff | A proposed candidate still contains commits marked Cairn-Provisional, or HEAD is itself provisional | `git log --grep=^Cairn-Provisional: base..subject_commit (blocking on a ready path, advisory at HEAD)` |
 | *Advisory* | `record-date` | diff | A record this change adds carries two dates that disagree (blocking), or a date more than a day from the commit that wrote it (advisory) | `recordDateFindings(addedRecords) — filename date vs timestamp: vs the adding commit author date` |
-| *Advisory* | `record-integrity` | diff | Existing session, audit, journal, or rolled-history record was modified, renamed, or deleted | `immutableRecordMutations(previousRef) + isImmutableRecord(file)` |
+| *Advisory* | `record-integrity` | diff | An immutable event/history record changed, or a born-sliced step no longer preserves its adding blob as a prefix | `immutableRecordMutations(previousRef) + appendOnlyStepRecordMutations(changed) + preservesAppendOnlyRecord(before, after)` |
 | *Advisory* | `registration` | diff | Path declaration tuple (id, running, branch, base) missing from trunk | `pathRegistrationState() === 'missing' (blocking) or declared migration exception (advisory)` |
 | *Advisory* | `remote-checkpoint` | diff | Local path HEAD not present on upstream tracking branch | `pathRemoteCheckpoint(branch).state === 'missing' \| 'unpushed'` |
 | *Advisory* | `role-collapse` | diff | One actor recorded both the opening and the closing acceptance for a path | `opening.accepted_by === closing.accepted_by (advisory: visible, never forbidden)` |

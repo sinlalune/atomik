@@ -18,6 +18,9 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-01
 
+- `S08n` resolves the `record-integrity` parity finding with the record's own
+  adding blob as its baseline. A step may append and may not rewrite; the
+  remaining flat-ledger and verbatim-roll proof stays explicitly partial.
 - `S08l` created this folder. `CP-OPS-002.md` became `CP-OPS-002/index.md`, its
   thirty-nine steps became one file each under `steps/`, its forward plan became
   `plan.md`, and its seventy-four-row Work Ledger dissolved: ten live rows stayed

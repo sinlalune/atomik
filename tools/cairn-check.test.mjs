@@ -28,6 +28,8 @@ import {
   evaluate,
   globToRegExp,
   isCommitPin,
+  isAppendOnlyStepRecord,
+  isStepRecordRelocation,
   isImmutableRecord,
   isPathBranch,
   LEDGER_TOKEN_BUDGET,
@@ -55,6 +57,8 @@ import {
   retentionGenerations,
   currentGeneration,
   isVerbatimRelocation,
+  preservesAppendOnlyRecord,
+  recordOriginFromFollowLog,
   workUnitErrors,
   resolveScopeSection,
   scopeDigest,
@@ -2399,12 +2403,45 @@ test('a record identifies itself by its id in either shape, never by index.md', 
 test('a step record inside a path folder is append-only, like the ones it replaced', () => {
   // These were immutable in history/. A record does not stop being append-only
   // by moving house, and forgetting that turns a migration into a hole.
+  assert.ok(isAppendOnlyStepRecord(`${PATHS_ROOT}/CP-OPS-002/steps/S07q.md`))
   assert.ok(isImmutableRecord(`${PATHS_ROOT}/CP-OPS-002/steps/S07q.md`))
   assert.ok(isImmutableRecord(`${PATHS_ROOT}/history/CP-OPS-002-S07q.md`))
   // The folder's own index and log are maintained, not appended-to-once.
+  assert.ok(!isAppendOnlyStepRecord(`${PATHS_ROOT}/CP-OPS-002/steps/index.md`))
   assert.ok(!isImmutableRecord(`${PATHS_ROOT}/CP-OPS-002/steps/index.md`))
   assert.ok(!isImmutableRecord(`${PATHS_ROOT}/CP-OPS-002/steps/log.md`))
   assert.ok(!isImmutableRecord(`${PATHS_ROOT}/CP-OPS-002/index.md`))
+})
+
+test('an in-place step record may append a suffix and may change no earlier byte', () => {
+  const before = '---\ntitle: S08m\n---\n\n## Ledger rows\n\n| a | b |\n'
+  assert.ok(preservesAppendOnlyRecord(before, `${before}| c | d |\n`),
+    'append-only means an exact suffix append is conforming')
+  assert.ok(!preservesAppendOnlyRecord(before, before.replace('S08m', 'S08n')),
+    'changing frontmatter rewrites the identity')
+  assert.ok(!preservesAppendOnlyRecord(before, before.replace('| a |', '| x |')),
+    'changing an earlier ledger row is not an append')
+  assert.ok(!preservesAppendOnlyRecord(before, before.slice(0, -1)),
+    'truncation is not an append')
+})
+
+test('the adding-blob parser follows the oldest identity, not the latest path', () => {
+  const old = 'a'.repeat(40)
+  const readded = 'b'.repeat(40)
+  const raw = [
+    readded,
+    '',
+    `${PATHS_ROOT}/CP-OPS-002/steps/S08m.md`,
+    old,
+    '',
+    `${PATHS_ROOT}/history/CP-OPS-002-S08m.md`,
+    ''
+  ].join('\n')
+  assert.deepEqual(recordOriginFromFollowLog(raw), {
+    commit: old,
+    file: `${PATHS_ROOT}/history/CP-OPS-002-S08m.md`
+  })
+  assert.equal(recordOriginFromFollowLog(''), null)
 })
 
 test('a relocation may repoint links and append, and may do nothing else', () => {
@@ -2413,6 +2450,8 @@ test('a relocation may repoint links and append, and may do nothing else', () =>
   assert.ok(isVerbatimRelocation(before, repointed), 'a link is an address, not content')
   assert.ok(isVerbatimRelocation(before, repointed + '\n## Ledger rows\n\n| a | b |\n'),
     'appending is how a record grows without an earlier sentence changing')
+  assert.ok(preservesAppendOnlyRecord(before, repointed, true),
+    'the same prefix rule permits link-address changes only while relocating')
 
   // A rewrite wearing a rename.
   assert.ok(!isVerbatimRelocation(before, repointed.replace('See', 'Do not see')))
@@ -2427,6 +2466,7 @@ test('a relocation may repoint links and append, and may do nothing else', () =>
 
 test('a relocated record is not a mutation, and the exemption is stated out loud', () => {
   const moved = [[`${PATHS_ROOT}/history/CP-OPS-002-S00.md`, `${PATHS_ROOT}/CP-OPS-002/steps/S00.md`]]
+  assert.ok(isStepRecordRelocation(...moved[0]))
   const found = run([A_PATH.file], 'path/cp-mvp-010', [A_PATH], {
     immutableMutations: moved.flat(),
     relocations: moved
@@ -2443,6 +2483,19 @@ test('a relocated record is not a mutation, and the exemption is stated out loud
     relocations: []
   })
   assert.equal(unpaired.filter((f) => f.rule === 'record-integrity' && f.level === 'blocking').length, 2)
+
+  // An immutable event record keeps its original identity as well as its
+  // content. A byte-identical session rename is not a ledger-step relocation.
+  const sessionMove = [[
+    'atomik-project/sessions/2026-08-25-old.md',
+    'atomik-project/sessions/2026-08-25-new.md'
+  ]]
+  assert.ok(!isStepRecordRelocation(...sessionMove[0]))
+  const forbidden = run([A_PATH.file], 'path/cp-mvp-010', [A_PATH], {
+    immutableMutations: sessionMove.flat(),
+    relocations: sessionMove
+  })
+  assert.equal(forbidden.filter((f) => f.rule === 'record-integrity' && f.level === 'blocking').length, 2)
 })
 
 test('a declaration that moved between shapes has not been deleted', () => {

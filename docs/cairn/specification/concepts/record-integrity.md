@@ -18,7 +18,18 @@ creation: later work cannot modify, rename, or delete them. A correction adds a
 superseding file. Mutable `index.md` and `log.md` navigation views are excluded.
 
 The protocol also requires the live ledger to be append-only or rolled verbatim.
-That predicate awaits explicit ledger markers in the reference tools.
+Born-sliced step files carry explicit `cairn-unit` markers, so the reference
+checker now proves their prefix: it follows each file through renames to the
+blob that added the record and requires that blob to remain an exact prefix of
+the current text. A suffix append is growth; changing an earlier byte is a
+rewrite. Flat live ledgers and the byte-level proof of a roll remain explicit
+conformance gaps.
+
+The adding blob is the baseline because it belongs to the RECORD rather than to
+the environment running the check. Comparing with `HEAD` locally and the prior
+pushed commit in CI made a valid suffix append fail in one place and disappear
+in the other. Following the record to its origin makes both contexts ask the
+same question and keeps a rewrite visible for the life of the branch diff.
 
 ### Integrity is not accuracy
 
@@ -63,16 +74,19 @@ ceremony rather than an edit.
 
 ## Relocation is not mutation
 
-A record may MOVE. The steps of a path record moved out of a shared rollup
-directory and into the path's own folder when path records became folders, and
-nothing about any of those records changed.
+An append-only step record may MOVE. The steps of a path record moved out of a
+shared rollup directory and into the path's own folder when path records became
+folders, and nothing about any of those records changed. Immutable event
+records—sessions, audits and journal entries—still use a superseding record
+rather than a rename.
 
 A checker that keys on the file path reads a move as a deletion *and* an
 addition, so it reports every relocated record as destroyed and every arrival as
 unaccounted for. That is a [proxy predicate](./proxy-predicate.md): the path is
 where a record sits, and immutability is about what the record says.
 
-Two operations are sanctioned on a record that moves, and no others:
+Two operations are sanctioned on an append-only step record that moves, and no
+others:
 
 - **Repointing a link**, because a link is an address rather than content and the
   same target must keep resolving from the new location.

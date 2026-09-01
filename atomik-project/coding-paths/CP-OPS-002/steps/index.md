@@ -18,7 +18,8 @@ was ever moved out of a growing file after the fact.
 S00–S07p came from `coding-paths/history/`, where they had been rolled under the
 older convention; S07q–S08k came out of the live record at S08l. Both moves were
 verbatim, and in both only relative links were repointed — a link is an address
-rather than content, and the same target must keep resolving.
+rather than content, and the same target must keep resolving. S08l onward were
+born here, one complete record per step.
 
 ## Records
 
@@ -61,6 +62,9 @@ rather than content, and the same target must keep resolving.
 - **[S08i](./S08i.md)** — Two rules that read a name instead of a fact — COMPLETE
 - **[S08j](./S08j.md)** — A rebase gives one unit two ids, and the namespace has one slot — COMPLETE
 - **[S08k](./S08k.md)** — Accepted, implemented, and the branch given a generation — COMPLETE
+- **[S08l](./S08l.md)** — The record moves, and three rules that knew it by its address — COMPLETE
+- **[S08m](./S08m.md)** — A fifth rule dated a record by the commit that moved it — COMPLETE
+- **[S08n](./S08n.md)** — An append is not a rewrite, and the baseline belongs to the record — COMPLETE
 
 ## Which commit landed which step
 
