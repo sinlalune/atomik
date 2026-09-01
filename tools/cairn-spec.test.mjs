@@ -727,7 +727,8 @@ test('cairn-spec: every new requirement carries its own conformance row', () => 
     'No predicate branches on a value that varies by execution context',
     'Local and CI invocations of one gate reach the same verdict',
     'Every stated requirement is enforced or listed as unenforced',
-    'Merge-time journal entry, one file per integrated outcome'
+    'Merge-time journal entry, one file per integrated outcome',
+    'A dated record carries the date of its event'
   ]) {
     const escaped = capability.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     assert.match(matrix, new RegExp(`\\| ${escaped} \\| required \\| ${STATUS}`), capability)

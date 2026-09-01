@@ -416,13 +416,16 @@ BLOCKING   branch → path (a path/* branch is declared by a running path
            path AND ADR frontmatter parse, statuses in vocabulary,
                           an ADR id matching its file and its two halves agreeing
            relative links in docs/ and atomik-project/ resolve
-           derived views current (trunk only)
+           derived views current — in EVERY checkout, not only the trunk
+           a path reaching done is declared by a journal entry
+           a record this change adds carries one date, not two that disagree
 
 ADVISORY   base parity — a path-branch run compared the working tree with
                           HEAD instead of the branch with the trunk
            coherence audit missing for this head
            remote checkpoint — path HEAD is not yet on its upstream branch
            scope drift vs declared writes:
+           record date — a record's date is far from the commit that wrote it
            ledger size — a path file in the diff is over its token budget
            path staleness — a running path's branch has gone quiet past the
                           declared window; push the work, or archive the path

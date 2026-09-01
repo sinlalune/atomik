@@ -2224,6 +2224,22 @@ superseding record that points to the earlier one.</p>
 <code>project/log/</code>. A shared append-only <code>log.md</code> is not the journal; folder
 <code>index.md</code> and <code>log.md</code> files may remain mutable navigation views where the
 repository uses them.</p>
+<p>A dated record SHOULD carry the date of the event it records, and every date it
+carries MUST agree. Where the filename encodes a date and the frontmatter
+declares a <code>timestamp:</code>, the two are written by the same author about the same
+event: a disagreement between them means one of them is false, and it is
+blocking. Immutability protects a record from being changed afterwards; it says
+nothing about a record that was wrong when it was written, so the check binds
+the change that ADDS a record and never sweeps existing ones — there, the repair
+would itself be the violation.</p>
+<p>Agreement is not accuracy, and the reference implementation is explicit about
+the gap. A record whose author wrote the same wrong date in both places passes
+the blocking half. The only evidence the author did not supply is the commit
+that introduced the file, whose author date survives a rebase; where that date
+and the record’s differ by more than a day, the checker reports it and does not
+block, because a note written on one day and committed two days later is dated
+correctly. See <a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy predicate</a>: the blocking
+half is a proxy, kept because it is sound, and named as one.</p>
 <p>Git provides <a href="#article-concept-tamper-evidence" data-article="concept-tamper-evidence" data-anchor="" class="wiki-link">tamper evidence</a> relative to a
 previously known object id: rewriting an ancestor changes descendant ids. Git
 alone is not an immutable audit log. Protected refs, signatures, or an external
@@ -2535,8 +2551,14 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">No predicate branches on a value that varies by execution context</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented, and violated</strong>; the derived-view check skips itself when the branch matches <code>path/*</code>, so a local run and a CI run on a detached ref reach different verdicts on one tree</td>
-<td style="text-align:left">trunk-context resolution that reads the tree, not the branch name</td>
+<td style="text-align:left"><strong>implemented</strong>; the derived-view exemption for <code>path/*</code> branches is removed rather than replaced. The view is already a pure projection of the statuses declared in the tree, so a checkout disagrees with it only when something there moved a status without regenerating, and no rule now reads the branch name to decide whether to run</td>
+<td style="text-align:left">the branch name still selects which path-scoped rules APPLY, which is a different question from whether a rule runs at all</td>
+</tr>
+<tr>
+<td style="text-align:left">A dated record carries the date of its event</td>
+<td style="text-align:left">required</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the two dates an author writes — the filename date and <code>timestamp:</code> — must agree, blocking, on records the change adds. Drift between the record’s date and the author date of the commit that added it is reported and never blocks</td>
+<td style="text-align:left">agreement is not accuracy: a record with the same wrong date in both places passes the blocking half, which is why the drift half exists</td>
 </tr>
 <tr>
 <td style="text-align:left">Local and CI invocations of one gate reach the same verdict</td>
@@ -2920,6 +2942,12 @@ honest state of the work.</p>
 <td style="text-align:left">Path branch does not contain latest trunk tip (stale branch)</td>
 <td style="text-align:left"><code>trunkContained(trunkRef) === false</code></td>
 </tr>
+<tr data-rule="record-date" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>record-date</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A record this change adds carries two dates that disagree (blocking), or a date more than a day from the commit that wrote it (advisory)</td>
+<td style="text-align:left"><code>recordDateFindings(addedRecords) — filename date vs timestamp: vs the adding commit author date</code></td>
+</tr>
 <tr data-rule="record-integrity" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>record-integrity</code></td>
 <td style="text-align:left">diff</td>
@@ -3063,6 +3091,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">A proposed candidate still contains commits marked Cairn-Provisional, or HEAD is itself provisional</td>
 <td style="text-align:left"><code>git log --grep=^Cairn-Provisional: base..subject_commit (blocking on a ready path, advisory at HEAD)</code></td>
+</tr>
+<tr data-rule="record-date" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>record-date</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A record this change adds carries two dates that disagree (blocking), or a date more than a day from the commit that wrote it (advisory)</td>
+<td style="text-align:left"><code>recordDateFindings(addedRecords) — filename date vs timestamp: vs the adding commit author date</code></td>
 </tr>
 <tr data-rule="registration" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>registration</code></td>
@@ -4589,6 +4623,22 @@ superseding record that points to the earlier one.</p>
 <code>project/log/</code>. A shared append-only <code>log.md</code> is not the journal; folder
 <code>index.md</code> and <code>log.md</code> files may remain mutable navigation views where the
 repository uses them.</p>
+<p>A dated record SHOULD carry the date of the event it records, and every date it
+carries MUST agree. Where the filename encodes a date and the frontmatter
+declares a <code>timestamp:</code>, the two are written by the same author about the same
+event: a disagreement between them means one of them is false, and it is
+blocking. Immutability protects a record from being changed afterwards; it says
+nothing about a record that was wrong when it was written, so the check binds
+the change that ADDS a record and never sweeps existing ones — there, the repair
+would itself be the violation.</p>
+<p>Agreement is not accuracy, and the reference implementation is explicit about
+the gap. A record whose author wrote the same wrong date in both places passes
+the blocking half. The only evidence the author did not supply is the commit
+that introduced the file, whose author date survives a rebase; where that date
+and the record’s differ by more than a day, the checker reports it and does not
+block, because a note written on one day and committed two days later is dated
+correctly. See <a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy predicate</a>: the blocking
+half is a proxy, kept because it is sound, and named as one.</p>
 <p>Git provides <a href="#article-concept-tamper-evidence" data-article="concept-tamper-evidence" data-anchor="" class="wiki-link">tamper evidence</a> relative to a
 previously known object id: rewriting an ancestor changes descendant ids. Git
 alone is not an immutable audit log. Protected refs, signatures, or an external
@@ -4900,8 +4950,14 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">No predicate branches on a value that varies by execution context</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented, and violated</strong>; the derived-view check skips itself when the branch matches <code>path/*</code>, so a local run and a CI run on a detached ref reach different verdicts on one tree</td>
-<td style="text-align:left">trunk-context resolution that reads the tree, not the branch name</td>
+<td style="text-align:left"><strong>implemented</strong>; the derived-view exemption for <code>path/*</code> branches is removed rather than replaced. The view is already a pure projection of the statuses declared in the tree, so a checkout disagrees with it only when something there moved a status without regenerating, and no rule now reads the branch name to decide whether to run</td>
+<td style="text-align:left">the branch name still selects which path-scoped rules APPLY, which is a different question from whether a rule runs at all</td>
+</tr>
+<tr>
+<td style="text-align:left">A dated record carries the date of its event</td>
+<td style="text-align:left">required</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the two dates an author writes — the filename date and <code>timestamp:</code> — must agree, blocking, on records the change adds. Drift between the record’s date and the author date of the commit that added it is reported and never blocks</td>
+<td style="text-align:left">agreement is not accuracy: a record with the same wrong date in both places passes the blocking half, which is why the drift half exists</td>
 </tr>
 <tr>
 <td style="text-align:left">Local and CI invocations of one gate reach the same verdict</td>
@@ -5285,6 +5341,12 @@ honest state of the work.</p>
 <td style="text-align:left">Path branch does not contain latest trunk tip (stale branch)</td>
 <td style="text-align:left"><code>trunkContained(trunkRef) === false</code></td>
 </tr>
+<tr data-rule="record-date" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>record-date</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A record this change adds carries two dates that disagree (blocking), or a date more than a day from the commit that wrote it (advisory)</td>
+<td style="text-align:left"><code>recordDateFindings(addedRecords) — filename date vs timestamp: vs the adding commit author date</code></td>
+</tr>
 <tr data-rule="record-integrity" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>record-integrity</code></td>
 <td style="text-align:left">diff</td>
@@ -5428,6 +5490,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">A proposed candidate still contains commits marked Cairn-Provisional, or HEAD is itself provisional</td>
 <td style="text-align:left"><code>git log --grep=^Cairn-Provisional: base..subject_commit (blocking on a ready path, advisory at HEAD)</code></td>
+</tr>
+<tr data-rule="record-date" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>record-date</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A record this change adds carries two dates that disagree (blocking), or a date more than a day from the commit that wrote it (advisory)</td>
+<td style="text-align:left"><code>recordDateFindings(addedRecords) — filename date vs timestamp: vs the adding commit author date</code></td>
 </tr>
 <tr data-rule="registration" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>registration</code></td>
@@ -6920,6 +6988,14 @@ CI,    on HEAD (detached)         FAILED — the derived running-paths view is s
 </code></pre>
 <p>Both runs were correct about the question they asked. Only one of them asked the
 right one.</p>
+<p>The repair is worth as much as the defect, because the obvious fix was the wrong
+one. Keying the exemption on the path’s declared <code>status</code> instead of the branch
+name would have satisfied the rule above — the status is in the tree — and it
+was the recorded plan for months. It was still unnecessary: the generated view
+is <em>already</em> a projection of those statuses, so a checkout can disagree with it
+only when something there moved a status without regenerating. The exemption was
+deleted rather than rewritten. When a predicate branches on where it runs, look
+first for the branch that does not need to exist.</p>
 <p>The second break is plainer, and therefore the more useful example: not a rule
 skipping itself, but the two invocations handing every rule a different <strong>input</strong>.</p>
 <pre><code class="language-text">npm run cairn-check                            working tree vs HEAD    0 files    OK
@@ -7896,6 +7972,20 @@ creation: later work cannot modify, rename, or delete them. A correction adds a
 superseding file. Mutable <code>index.md</code> and <code>log.md</code> navigation views are excluded.</p>
 <p>The protocol also requires the live ledger to be append-only or rolled verbatim.
 That predicate awaits explicit ledger markers in the reference tools.</p>
+<h3 id="concept-record-integrity--integrity-is-not-accuracy" data-heading="integrity-is-not-accuracy">Integrity is not accuracy</h3>
+<p>Immutability protects a record from being changed after the fact. It does
+nothing about a record that was already wrong when it was written, and the two
+are easy to confuse because both are about trusting what a file says. Every
+CP-UI-TYPOGRAPHY record — opening check, closing ceremony, coherence audit,
+journal entry — is dated four days before the events it describes, and record
+integrity held perfectly throughout: nothing was ever edited.</p>
+<p>So the date a record carries is checked where it is written and nowhere else.
+The two dates the author supplies, in the filename and in <code>timestamp:</code>, must
+agree; a disagreement means one is false, and it blocks. Divergence from the
+author date of the commit that added the file is reported and never blocks,
+because a note taken on one day and committed two days later is dated correctly.
+Existing records are never swept: editing one to satisfy a later rule would
+break the very property this page is about.</p>
 <h3 id="concept-record-integrity--redaction" data-heading="redaction">Redaction</h3>
 <p>Immutability and disclosure eventually collide: a secret, a credential, or
 personal data lands inside a record that may never be edited. Deleting the
@@ -11790,6 +11880,22 @@ superseding record that points to the earlier one.</p>
 <code>project/log/</code>. A shared append-only <code>log.md</code> is not the journal; folder
 <code>index.md</code> and <code>log.md</code> files may remain mutable navigation views where the
 repository uses them.</p>
+<p>A dated record SHOULD carry the date of the event it records, and every date it
+carries MUST agree. Where the filename encodes a date and the frontmatter
+declares a <code>timestamp:</code>, the two are written by the same author about the same
+event: a disagreement between them means one of them is false, and it is
+blocking. Immutability protects a record from being changed afterwards; it says
+nothing about a record that was wrong when it was written, so the check binds
+the change that ADDS a record and never sweeps existing ones — there, the repair
+would itself be the violation.</p>
+<p>Agreement is not accuracy, and the reference implementation is explicit about
+the gap. A record whose author wrote the same wrong date in both places passes
+the blocking half. The only evidence the author did not supply is the commit
+that introduced the file, whose author date survives a rebase; where that date
+and the record’s differ by more than a day, the checker reports it and does not
+block, because a note written on one day and committed two days later is dated
+correctly. See <a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy predicate</a>: the blocking
+half is a proxy, kept because it is sound, and named as one.</p>
 <p>Git provides <a href="#article-concept-tamper-evidence" data-article="concept-tamper-evidence" data-anchor="" class="wiki-link">tamper evidence</a> relative to a
 previously known object id: rewriting an ancestor changes descendant ids. Git
 alone is not an immutable audit log. Protected refs, signatures, or an external
@@ -12101,8 +12207,14 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">No predicate branches on a value that varies by execution context</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented, and violated</strong>; the derived-view check skips itself when the branch matches <code>path/*</code>, so a local run and a CI run on a detached ref reach different verdicts on one tree</td>
-<td style="text-align:left">trunk-context resolution that reads the tree, not the branch name</td>
+<td style="text-align:left"><strong>implemented</strong>; the derived-view exemption for <code>path/*</code> branches is removed rather than replaced. The view is already a pure projection of the statuses declared in the tree, so a checkout disagrees with it only when something there moved a status without regenerating, and no rule now reads the branch name to decide whether to run</td>
+<td style="text-align:left">the branch name still selects which path-scoped rules APPLY, which is a different question from whether a rule runs at all</td>
+</tr>
+<tr>
+<td style="text-align:left">A dated record carries the date of its event</td>
+<td style="text-align:left">required</td>
+<td style="text-align:left"><strong>partially implemented</strong>; the two dates an author writes — the filename date and <code>timestamp:</code> — must agree, blocking, on records the change adds. Drift between the record’s date and the author date of the commit that added it is reported and never blocks</td>
+<td style="text-align:left">agreement is not accuracy: a record with the same wrong date in both places passes the blocking half, which is why the drift half exists</td>
 </tr>
 <tr>
 <td style="text-align:left">Local and CI invocations of one gate reach the same verdict</td>
@@ -12486,6 +12598,12 @@ honest state of the work.</p>
 <td style="text-align:left">Path branch does not contain latest trunk tip (stale branch)</td>
 <td style="text-align:left"><code>trunkContained(trunkRef) === false</code></td>
 </tr>
+<tr data-rule="record-date" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
+<td style="text-align:left"><code>record-date</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A record this change adds carries two dates that disagree (blocking), or a date more than a day from the commit that wrote it (advisory)</td>
+<td style="text-align:left"><code>recordDateFindings(addedRecords) — filename date vs timestamp: vs the adding commit author date</code></td>
+</tr>
 <tr data-rule="record-integrity" data-level="blocking"><td style="text-align:left"><strong>Blocking</strong></td>
 <td style="text-align:left"><code>record-integrity</code></td>
 <td style="text-align:left">diff</td>
@@ -12629,6 +12747,12 @@ honest state of the work.</p>
 <td style="text-align:left">diff</td>
 <td style="text-align:left">A proposed candidate still contains commits marked Cairn-Provisional, or HEAD is itself provisional</td>
 <td style="text-align:left"><code>git log --grep=^Cairn-Provisional: base..subject_commit (blocking on a ready path, advisory at HEAD)</code></td>
+</tr>
+<tr data-rule="record-date" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
+<td style="text-align:left"><code>record-date</code></td>
+<td style="text-align:left">diff</td>
+<td style="text-align:left">A record this change adds carries two dates that disagree (blocking), or a date more than a day from the commit that wrote it (advisory)</td>
+<td style="text-align:left"><code>recordDateFindings(addedRecords) — filename date vs timestamp: vs the adding commit author date</code></td>
 </tr>
 <tr data-rule="registration" data-level="advisory"><td style="text-align:left"><em>Advisory</em></td>
 <td style="text-align:left"><code>registration</code></td>
@@ -13985,6 +14109,14 @@ CI,    on HEAD (detached)         FAILED — the derived running-paths view is s
 </code></pre>
 <p>Both runs were correct about the question they asked. Only one of them asked the
 right one.</p>
+<p>The repair is worth as much as the defect, because the obvious fix was the wrong
+one. Keying the exemption on the path’s declared <code>status</code> instead of the branch
+name would have satisfied the rule above — the status is in the tree — and it
+was the recorded plan for months. It was still unnecessary: the generated view
+is <em>already</em> a projection of those statuses, so a checkout can disagree with it
+only when something there moved a status without regenerating. The exemption was
+deleted rather than rewritten. When a predicate branches on where it runs, look
+first for the branch that does not need to exist.</p>
 <p>The second break is plainer, and therefore the more useful example: not a rule
 skipping itself, but the two invocations handing every rule a different <strong>input</strong>.</p>
 <pre><code class="language-text">npm run cairn-check                            working tree vs HEAD    0 files    OK
@@ -14869,6 +15001,20 @@ creation: later work cannot modify, rename, or delete them. A correction adds a
 superseding file. Mutable <code>index.md</code> and <code>log.md</code> navigation views are excluded.</p>
 <p>The protocol also requires the live ledger to be append-only or rolled verbatim.
 That predicate awaits explicit ledger markers in the reference tools.</p>
+<h3 id="concept-record-integrity--integrity-is-not-accuracy" data-heading="integrity-is-not-accuracy">Integrity is not accuracy</h3>
+<p>Immutability protects a record from being changed after the fact. It does
+nothing about a record that was already wrong when it was written, and the two
+are easy to confuse because both are about trusting what a file says. Every
+CP-UI-TYPOGRAPHY record — opening check, closing ceremony, coherence audit,
+journal entry — is dated four days before the events it describes, and record
+integrity held perfectly throughout: nothing was ever edited.</p>
+<p>So the date a record carries is checked where it is written and nowhere else.
+The two dates the author supplies, in the filename and in <code>timestamp:</code>, must
+agree; a disagreement means one is false, and it blocks. Divergence from the
+author date of the commit that added the file is reported and never blocks,
+because a note taken on one day and committed two days later is dated correctly.
+Existing records are never swept: editing one to satisfy a later rule would
+break the very property this page is about.</p>
 <h3 id="concept-record-integrity--redaction" data-heading="redaction">Redaction</h3>
 <p>Immutability and disclosure eventually collide: a secret, a credential, or
 personal data lands inside a record that may never be edited. Deleting the

@@ -1300,6 +1300,24 @@ The [journal](./concepts/journal.md) uses one file per integrated outcome under
 `index.md` and `log.md` files may remain mutable navigation views where the
 repository uses them.
 
+A dated record SHOULD carry the date of the event it records, and every date it
+carries MUST agree. Where the filename encodes a date and the frontmatter
+declares a `timestamp:`, the two are written by the same author about the same
+event: a disagreement between them means one of them is false, and it is
+blocking. Immutability protects a record from being changed afterwards; it says
+nothing about a record that was wrong when it was written, so the check binds
+the change that ADDS a record and never sweeps existing ones — there, the repair
+would itself be the violation.
+
+Agreement is not accuracy, and the reference implementation is explicit about
+the gap. A record whose author wrote the same wrong date in both places passes
+the blocking half. The only evidence the author did not supply is the commit
+that introduced the file, whose author date survives a rebase; where that date
+and the record's differ by more than a day, the checker reports it and does not
+block, because a note written on one day and committed two days later is dated
+correctly. See [proxy predicate](./concepts/proxy-predicate.md): the blocking
+half is a proxy, kept because it is sound, and named as one.
+
 Git provides [tamper evidence](./concepts/tamper-evidence.md) relative to a
 previously known object id: rewriting an ancestor changes descendant ids. Git
 alone is not an immutable audit log. Protected refs, signatures, or an external
@@ -1460,7 +1478,8 @@ not in a separate document a reader may never open.
 | Handoff-brief field schema and answerable-alone contract | required | **partially implemented**; the nine fields, the seven exact sections and pinned `governs` entries are checked. The token budget is retired (ADR-020 decision 6): what will not fit is linked, not compressed, and that is a judgement rather than a predicate | the answerable-alone contract is a judgement and a cold-resume harness, and is never claimed by a checker |
 | Field-level administrative closure surface | required | implemented; closure may move only `status`, `subject_commit`, `current_step` and `resolution` | ledger append-only proof, which remains a separate open row |
 | An adversarial fixture per blocking rule | required | **not implemented**; the checker suite exercises valid repositories and asserts `OK`, which a rule that never fires also satisfies. No rule is currently required to demonstrate a rejection | a fixture repository per blocking rule |
-| No predicate branches on a value that varies by execution context | required | **not implemented, and violated**; the derived-view check skips itself when the branch matches `path/*`, so a local run and a CI run on a detached ref reach different verdicts on one tree | trunk-context resolution that reads the tree, not the branch name |
+| No predicate branches on a value that varies by execution context | required | **implemented**; the derived-view exemption for `path/*` branches is removed rather than replaced. The view is already a pure projection of the statuses declared in the tree, so a checkout disagrees with it only when something there moved a status without regenerating, and no rule now reads the branch name to decide whether to run | the branch name still selects which path-scoped rules APPLY, which is a different question from whether a rule runs at all |
+| A dated record carries the date of its event | required | **partially implemented**; the two dates an author writes — the filename date and `timestamp:` — must agree, blocking, on records the change adds. Drift between the record's date and the author date of the commit that added it is reported and never blocks | agreement is not accuracy: a record with the same wrong date in both places passes the blocking half, which is why the drift half exists |
 | Local and CI invocations of one gate reach the same verdict | required | **partially implemented**; the default base on a path branch is now the trunk, matching CI, and a narrowed run raises `base-parity` rather than passing quietly. The verdicts are not yet asserted equal by a test | a fixture run in both contexts |
 | Every stated requirement is enforced or listed as unenforced | required | **partially implemented**; this table is the mechanism, and it is maintained by hand. The merge-time journal entry is required by `AGENTS.md` and had no row and no predicate until this revision | generation of the matrix from the checker and the normative text |
 | Merge-time journal entry, one file per integrated outcome | required | **implemented**; a path record reaching `done` in a change must be declared by a journal entry's `path` field, read from the entry rather than from its filename, and an unreadable journal is inconclusive rather than a pass | none — the entry is written in the closing unit, which is the change the rule binds |
@@ -1646,6 +1665,7 @@ honest state of the work.
 | **Blocking** | `opening-ceremony` | diff | Path declared running without an opening-check session note | `!openingFor(pathId) via session frontmatter { path, ceremony: 'opening' }` |
 | **Blocking** | `provisional` | diff | A proposed candidate still contains commits marked Cairn-Provisional, or HEAD is itself provisional | `git log --grep=^Cairn-Provisional: base..subject_commit (blocking on a ready path, advisory at HEAD)` |
 | **Blocking** | `rebase` | diff | Path branch does not contain latest trunk tip (stale branch) | `trunkContained(trunkRef) === false` |
+| **Blocking** | `record-date` | diff | A record this change adds carries two dates that disagree (blocking), or a date more than a day from the commit that wrote it (advisory) | `recordDateFindings(addedRecords) — filename date vs timestamp: vs the adding commit author date` |
 | **Blocking** | `record-integrity` | diff | Existing session, audit, journal, or rolled-history record was modified, renamed, or deleted | `immutableRecordMutations(previousRef) + isImmutableRecord(file)` |
 | **Blocking** | `redaction` | diff | A `[redacted: …]` marker names no redaction record (code spans and fences stripped first) | `redactionMarkers(stripCode(text)) => redaction record exists` |
 | **Blocking** | `registration` | diff | Path declaration tuple (id, running, branch, base) missing from trunk | `pathRegistrationState() === 'missing' (blocking) or declared migration exception (advisory)` |
@@ -1670,6 +1690,7 @@ honest state of the work.
 | *Advisory* | `opening-ceremony` | diff | Path declared running without an opening-check session note | `!openingFor(pathId) via session frontmatter { path, ceremony: 'opening' }` |
 | *Advisory* | `path-staleness` | corpus | A path declaring running whose branch has had no commit for longer than the declared window | `staleRunningPaths(corpus, branchAges(corpus)) — advisory always; an unresolvable branch reports nothing` |
 | *Advisory* | `provisional` | diff | A proposed candidate still contains commits marked Cairn-Provisional, or HEAD is itself provisional | `git log --grep=^Cairn-Provisional: base..subject_commit (blocking on a ready path, advisory at HEAD)` |
+| *Advisory* | `record-date` | diff | A record this change adds carries two dates that disagree (blocking), or a date more than a day from the commit that wrote it (advisory) | `recordDateFindings(addedRecords) — filename date vs timestamp: vs the adding commit author date` |
 | *Advisory* | `registration` | diff | Path declaration tuple (id, running, branch, base) missing from trunk | `pathRegistrationState() === 'missing' (blocking) or declared migration exception (advisory)` |
 | *Advisory* | `remote-checkpoint` | diff | Local path HEAD not present on upstream tracking branch | `pathRemoteCheckpoint(branch).state === 'missing' \| 'unpushed'` |
 | *Advisory* | `role-collapse` | diff | One actor recorded both the opening and the closing acceptance for a path | `opening.accepted_by === closing.accepted_by (advisory: visible, never forbidden)` |

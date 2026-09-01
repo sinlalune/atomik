@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-002
   route: full            # control plane + decision plane; escalation is one-way
   status: running
-  current_step: S08h
+  current_step: S08i
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
   writes:                    # ADVISORY — a signal, never a lock
@@ -26,6 +26,7 @@ atomik:
     - tools/cairn-new.mjs
     - cairn.config.json
     - .github/workflows/cairn.yml
+    - AGENTS.md               # S08i: the mechanical contract names this rule set
     - docs/index.md
     - docs/**/index.md         # S05/S05b backfill the OKF entry points
     - docs/**/log.md           # S05c: the other half of the OKF folder pair
@@ -46,7 +47,7 @@ atomik:
     - atomik-project/audits/index.md
     - atomik-project/log/**
   governs:                   # declared READ surface, pinned at exact blob ids
-    - atomik-project/coding-paths/paths.md@c8776b293f1c49cc7450481ea9de0d3151ecb2f9
+    - atomik-project/coding-paths/paths.md@468a922f03c2e7a8a1c737b8fc909292d6bc8e34
     - docs/bedrock/22_22-agent-handoff.md@c10ed0a11bc501336f449be204b57408f80c196e
     - docs/bedrock/24_24-doc-templates.md@d8d8d00d466fd5e456dece1f5a8284a5c3a8c15a
     - docs/bedrock/26_26-okf-agent-context.md@867ef9c288e036b2b69fef464d0e8f5aef9960d6
@@ -1057,6 +1058,95 @@ reverting cleared it. The conformance row moves to `implemented`, and the status
 vocabulary in the row test gained `**implemented**` — a row reaching the strongest
 status must not fail the test that only asks it to state one.
 
+### S08i — Two rules that read a name instead of a fact — **COMPLETE**
+
+```cairn-unit
+step: S08i
+unit: 27
+type: repair
+verified: cairn-check, cairn-check:test, cairn-spec:build, typecheck, test, build
+```
+
+S08 Part 1 items 3 and 3c. One asks whether a rule may read the name of the
+branch it happens to be sitting on; the other asks whether a record may be
+trusted about its own date. Both were listed as separate items and both turned
+out to be the same substitution this path keeps finding — *a name stood in for a
+fact* — so they land together.
+
+**Item 3 needed a deletion, not a key.** `derived-view` skipped itself when the
+branch matched `path/*`. `actions/checkout` detaches, so CI's branch was `HEAD`
+and the rule ran there: CP-UI-TYPOGRAPHY S04 was green locally and red in CI, one
+tree, one command. The recorded plan — carried in the ledger, the brief and the
+conformance matrix since S07q — was to key the exemption on the path's declared
+`status` instead, which would have satisfied [gate parity](../../docs/cairn/specification/concepts/gate-parity.md)
+because a status lives in the tree.
+
+It was still unnecessary, and that is the finding. The generated view is
+*already* a pure projection of the statuses declared in this checkout, so a tree
+can only disagree with it when something in that tree moved a status without
+regenerating. A path branch that has moved nobody's status is current for free —
+exactly what the exemption was protecting — and a path setting its own
+`status: done` at closure is caught, which is what it was hiding, because under
+self-merge that path is the last writer of the view. **The exemption is deleted,
+and nothing replaces it.** When a predicate branches on where it runs, the first
+thing to look for is the branch that does not need to exist.
+
+**Item 3c is a rule the brief's own candidate could not have caught.** The
+proposal was: a record's filename date MUST equal its frontmatter `timestamp:`
+— *"cheap and sound, it compares two things the author wrote, so the checker
+never needs to know what day it is."* Measured against the defect that motivated
+it, before writing anything:
+
+```text
+sessions/2026-08-27-cp-ui-typography-opening-check.md   filename 08-27  ts 08-27  added 08-27
+sessions/2026-08-27-cp-ui-typography-closing-ceremony.md filename 08-27  ts 08-27  added 08-31
+log/2026-08-27-cp-ui-typography.md                       filename 08-27  ts 08-27  added 08-31
+```
+
+The two author-written dates **agree on every one of them**, including the two
+that are false. A corpus sweep of all 67 dated records found zero disagreements.
+The candidate rule would have shipped, reported OK forever, and closed the
+finding it was written for — a proxy predicate delivered as the repair for proxy
+predicates.
+
+So `record-date` is two halves, kept apart and levelled differently:
+
+- **blocking — the two dates the author wrote must agree.** Sound, clock-free,
+  and worth having: when they differ one of them is false. It is a proxy, it is
+  labelled a proxy in the code and in the specification, and it is not claimed to
+  prove the date.
+- **advisory — the record's date against the AUTHOR date of the commit that
+  added it.** The only evidence the author did not supply, and the only half that
+  separates the three CP-UI-TYPOGRAPHY records above. Author date, never
+  committer date: a rebase rewrites the second and preserves the first, and a
+  rebase before merge is mandatory here.
+
+Advisory is not timidity. A note taken on one day and committed two days later is
+dated *correctly*, so a rule insisting the two agree would block a true record
+and teach the author to write a false date to pass a gate. The evidence is
+objective; the inference from it is a judgement, and a judgement does not fail a
+build. One day of slack absorbs two timezone conventions naming adjacent days for
+one moment.
+
+**Scoped to records the change ADDS.** Never a sweep: an existing record may not
+be edited, so a rule that demanded one be fixed would make the repair the
+violation. Immutability protects a record from being changed later; it says
+nothing about a record that was wrong when it was written, and those two are easy
+to confuse because both are about trusting a file.
+
+**Verified by mutation, all four behaviours, against the real checker on this
+branch:** a stale `ACTIVE.md` block on `path/cp-ops-002` now FAILS on
+`derived-view` where it previously passed; a record whose filename and
+`timestamp:` disagree FAILS; the same record committed with a 12-day gap raises
+the advisory and keeps the run green; an uncommitted record with agreeing dates
+raises nothing, because there is no third date yet and inventing one from the
+clock is what this rule refuses to do.
+
+`AGENTS.md` joined `writes:` for one line: the mechanical contract announced
+*"8 blocking rules, 5 advisory"* while the catalogue holds 29 and 22, and this
+unit made it staler. Replaced with a phrase that cannot drift, which is also what
+[ADR-020](../../docs/adr/ADR-020-protocol-context-weight.md) decided about counts.
+
 ### S09 — Greenfield pilot, coherence audit, closing ceremony, self-merge
 
 Initialize one real ex-nihilo repository from the kit — the research-paper workspace the
@@ -1114,7 +1204,13 @@ brief names — and fix what the pilot finds before merging.
 | Records corrected (S08c) | The S08 opening brief attributed the CI redness to nine `CP-MVP-008` findings that CI never reported — they were a local branch-versus-trunk run's, promoted to a claim about CI. `gate-parity` said *no CI-only condition* while one was running. Both are `docs/` documents, not immutable records, so both are corrected in place with a dated, visible correction; the brief's `governs:` pin is refreshed here and in the handoff brief |
 | Brief budget, third unit running (S08c) | The 1200-token budget blocked the refresh at S08a, S08b and S08c, each time costing real editing. That is the rule working — but three in a row is a signal about the *brief's shape*, not its size: it had become a chronicle appending one paragraph per step. S08c consolidated the three S08 units into one themed block and pruned two spent *Tried and rejected* entries. If a fourth refresh fights the budget, the answer is the ledger boundary below, not a bigger number |
 | Ledger boundary due (S08b) | `ledger-size` fires at ~10.6 k against the 10 k budget, which is the rule working: it speaks to whoever is editing the file. Roll **S07q–S08b** into [`history/`](./history/index.md) verbatim at the next step boundary, leaving one index line each. Advisory and not urgent, so it is recorded rather than folded into a repair unit |
-| Next action | S08 Part 1 items 3, 3c and 4 — the derived-view rule keyed on declared `status` rather than the branch name; a record's filename date equal to its frontmatter `timestamp:`; and the retention-generation question, which is an ADR before it is code. Then ADR-020 stages 2–5, where stage 2 (the folder migration) supersedes the queued ledger roll |
+| Gates at S08i | `npm run cairn-check` OK, 14 advisory (the fourteenth is this unit's own `scope-drift` on `AGENTS.md`, declared in the same change) · `npm run cairn-check:test` PASS, **214** subtests (205 → 214) · `npm run cairn-spec:build` deterministic · `npm run typecheck` PASS · product suite 1,109 passed / 1 skipped · `npm run build` PASS |
+| The planned fix was bigger than the repair (S08i) | Item 3 was recorded in three places — this ledger, the S08 brief and the conformance matrix — as *key the derived-view rule on the declared `status`*. Keying on the status would have been correct and was still unnecessary: the view IS the projection of those statuses, so the exemption had nothing left to protect. The rule now runs in every context and no key replaced it. A plan that survives three documents is not thereby the right plan, and checking before writing is the only thing that finds out |
+| The proposed rule was blind to its own defect (S08i) | The S08 brief's candidate for item 3c — filename date equals frontmatter `timestamp:` — was measured against the CP-UI-TYPOGRAPHY records before implementation. All three misdated records carry the SAME date in both places, and a sweep of 67 dated records found zero disagreements corpus-wide. It would have shipped green and closed the finding without touching it. `record-date` therefore blocks on author agreement and ADVISES on divergence from the adding commit's author date, which is the only half with evidence the author did not write |
+| Widening (S08i) | `writes:` gained `AGENTS.md`. The mechanical contract said *"8 blocking rules, 5 advisory"* against a real catalogue of 29 and 22, and this unit widened the gap. One line, replaced with a phrase that cannot drift — the same conclusion [ADR-020](../../docs/adr/ADR-020-protocol-context-weight.md) reached about counts. `scope-drift` reported it and the declaration moved in the same change, which is the shape `paths.md` asks for |
+| A destructive probe cost the working tree (S08i) | Verifying the advisory half needs a record with a real commit date, so a probe record was committed and then removed with `git reset --hard HEAD~1` — which also discarded every uncommitted edit to `cairn-check.mjs`. Nothing in the branch was lost and the edits were rewritten, but the correct move is `--mixed`, or committing the probe alone on top of staged work. Recorded because the same reflex would eat a whole unit's work in a tree with no other copy |
+| Next action | S08 Part 1 item 4 — the retention-generation question. It is an **ADR before it is code**: a rebase renames every commit, so `refs/cairn/checkpoints/<path-id>/<n>` cannot name the same unit before and after one, and `unretainedCheckpoints` returns "nothing to judge" exactly when the mandatory pre-merge rebase has orphaned everything. Do not repoint any existing ref. Then ADR-020 stages 2–5, where stage 2 (the folder migration) supersedes the queued ledger roll |
+| Superseded next action (S08i, done) | S08 Part 1 items 3, 3c and 4 — the derived-view rule keyed on declared `status` rather than the branch name; a record's filename date equal to its frontmatter `timestamp:`; and the retention-generation question, which is an ADR before it is code. Items 3 and 3c landed here; item 4 stays next, untouched, because design work does not belong in a repair unit |
 | Superseded next action (S08h, done) | S08 Part 1 items 1 and 2, both live on the trunk and neither blocked: `hasCeremony` must read the `ceremony:` frontmatter key instead of matching a filename, with a fixture rejecting a `done` path whose only session note is its opening check; then a predicate for the merge-time journal entry. ADR-020 stages 2–5 (the `CP-OPS-002` folder migration, the checker's shape, the artefact classification, `cairn-init`) follow, and stage 2 supersedes the queued ledger roll |
 | Superseded next action (S08g, ruled) | Owner ruling on ADR-020. If accepted: the `instruction-parity` article plus its concept-cap decision, then the `CP-OPS-002` folder migration as the worked example. Independently of that ruling, the two live trunk defects remain S08 Part 1 items 1 and 2 — `hasCeremony` reading the `ceremony:` key, and a predicate for the merge-time journal entry — and neither depends on the ADR |
 | Superseded next action (S08d, pending ruling) | S08 Part 1 item 1 — `hasCeremony` reads the `ceremony:` frontmatter key instead of matching a filename, with a fixture that rejects a `done` path whose only session note is its opening check. Then item 2 (the journal-entry predicate), item 3 (the derived-view rule keyed on declared `status`), item 3c (filename date equals frontmatter `timestamp:`), and item 4 (the retention-generation ADR, design before code) |

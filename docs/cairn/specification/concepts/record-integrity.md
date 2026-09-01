@@ -20,6 +20,23 @@ superseding file. Mutable `index.md` and `log.md` navigation views are excluded.
 The protocol also requires the live ledger to be append-only or rolled verbatim.
 That predicate awaits explicit ledger markers in the reference tools.
 
+### Integrity is not accuracy
+
+Immutability protects a record from being changed after the fact. It does
+nothing about a record that was already wrong when it was written, and the two
+are easy to confuse because both are about trusting what a file says. Every
+CP-UI-TYPOGRAPHY record — opening check, closing ceremony, coherence audit,
+journal entry — is dated four days before the events it describes, and record
+integrity held perfectly throughout: nothing was ever edited.
+
+So the date a record carries is checked where it is written and nowhere else.
+The two dates the author supplies, in the filename and in `timestamp:`, must
+agree; a disagreement means one is false, and it blocks. Divergence from the
+author date of the commit that added the file is reported and never blocks,
+because a note taken on one day and committed two days later is dated correctly.
+Existing records are never swept: editing one to satisfy a later rule would
+break the very property this page is about.
+
 ### Redaction
 
 Immutability and disclosure eventually collide: a secret, a credential, or

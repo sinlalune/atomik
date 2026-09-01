@@ -611,6 +611,69 @@ export function isImmutableRecord(file) {
   return !['index.md', 'log.md', '.gitkeep'].includes(file.split('/').at(-1))
 }
 
+/** The ISO date at the head of a string, or null. Used on a filename and on a
+ *  frontmatter `timestamp:`, which is why it accepts a trailing remainder. */
+export function dateOf(value) {
+  const match = /^(\d{4}-\d{2}-\d{2})/.exec(String(value ?? ''))
+  return match ? match[1] : null
+}
+
+export function filenameDate(file) {
+  return dateOf(String(file ?? '').split('/').at(-1))
+}
+
+/**
+ * Two ISO dates written under different timezone conventions can name adjacent
+ * calendar days for the same moment. A record written at 23:50 and committed
+ * twenty minutes later is not misdated, and blocking it would make the author
+ * write a date they know is wrong in order to satisfy a gate.
+ */
+export const RECORD_DATE_TOLERANCE_DAYS = 1
+
+function daysApart(a, b) {
+  return Math.abs(Date.parse(`${a}T00:00:00Z`) - Date.parse(`${b}T00:00:00Z`)) / 86_400_000
+}
+
+/**
+ * A DATED RECORD SHOULD CARRY THE DATE OF THE EVENT IT RECORDS, and this
+ * function is two different attempts at that sentence, kept apart on purpose.
+ *
+ * `disagreement` compares the two dates the AUTHOR wrote — the one in the
+ * filename and the one in `timestamp:`. Objective, clock-free, and blocking:
+ * when they differ, one of them is false and the record says so itself.
+ *
+ * `drift` compares the date the record CLAIMS with the date the commit that
+ * introduced it was authored on. It is the only half carrying evidence the
+ * author did not supply, and the only half that can see the defect this rule
+ * was proposed for: every CP-UI-TYPOGRAPHY record was dated `2026-08-27` in
+ * BOTH places while the ceremony, the audit and the journal entry happened on
+ * the 31st. The author-agreement half is blind to that by construction.
+ *
+ * It stays ADVISORY, because a lag is not automatically a lie: a note taken on
+ * one day and committed two days later is dated correctly, and a rule insisting
+ * the two agree would block it. The evidence is real; the inference from it is a
+ * judgement, and this protocol does not let a judgement fail a build.
+ *
+ * Pure: the caller supplies every date, so the checker never needs to know what
+ * day it is.
+ */
+export function recordDateFindings(records) {
+  const out = []
+  for (const { file, named, declared, addedOn } of records) {
+    if (named && declared && named !== declared) {
+      out.push({ file, kind: 'disagreement', named, declared })
+      continue
+    }
+    const carried = declared ?? named
+    if (!carried || !addedOn) continue
+    const drift = daysApart(carried, addedOn)
+    if (Number.isFinite(drift) && drift > RECORD_DATE_TOLERANCE_DAYS) {
+      out.push({ file, kind: 'drift', carried, addedOn, drift })
+    }
+  }
+  return out
+}
+
 /**
  * ADRs are canonical decisions — `decision-drift` points at them, bedrock pages
  * cite them, and until 2026-08-24 not one of the fifteen was machine-readable
@@ -1353,6 +1416,7 @@ export function evaluate({
   branchSource = 'symbolic-ref',
   baseSource = 'flag',
   workUnits = null,
+  addedRecords = [],
   retainedRefs = new Map(),
   provisionalInCandidate = [],
   headProvisional = false,
@@ -1592,6 +1656,22 @@ export function evaluate({
         add('blocking', 'record-integrity',
           `${file} is an existing append-only record and may not be modified, renamed, or deleted; add a superseding record instead`)
       }
+    }
+  }
+
+  // 4c. the dates a record carries --------------------------------
+  // Immutability protects a record from being changed later; it says nothing
+  // about a record that was already wrong when it was written. Scoped to the
+  // records this change ADDS, because an existing one may not be edited to
+  // satisfy a rule that did not exist when it was written — there, the fix
+  // would be the violation.
+  for (const finding of recordDateFindings(addedRecords)) {
+    if (finding.kind === 'disagreement') {
+      add('blocking', 'record-date',
+        `${finding.file}: the filename says ${finding.named} and \`timestamp:\` says ${finding.declared} — one of the two dates this record carries is false`)
+    } else {
+      add('advisory', 'record-date',
+        `${finding.file} is dated ${finding.carried} and was written on ${finding.addedOn}, ${finding.drift} days apart — a dated record states when its event happened, so record why this one carries an earlier date`)
     }
   }
 
@@ -2477,6 +2557,37 @@ function loadJournal() {
   }
 }
 
+/**
+ * The records this change ADDS, with every date each one carries.
+ *
+ * `addedOn` is the AUTHOR date of the commit that introduced the file, never
+ * the committer date: a rebase rewrites the second and preserves the first, and
+ * a rebase before merge is mandatory here — a rule keyed on committer dates
+ * would report every record on every rebased branch as freshly written.
+ *
+ * A record that exists only in the working tree has no such commit yet, so it
+ * carries no third date and only the two the author wrote are compared. That is
+ * a narrower question, not a silent pass: the same record is judged in full by
+ * the branch-versus-trunk run that decides the merge.
+ */
+function addedRecordDates(changed, ref) {
+  return changed
+    .filter(isImmutableRecord)
+    .filter((file) => !ref || gitOrNull(['cat-file', '-e', `${ref}:${file}`]) === null)
+    .map((file) => {
+      const absolute = join(REPO, file)
+      const text = existsSync(absolute) ? readFileSync(absolute, 'utf8') : null
+      return {
+        file,
+        named: filenameDate(file),
+        declared: text ? dateOf(readFrontmatter(text)?.data?.timestamp) : null,
+        addedOn:
+          gitOrNull(['log', '--diff-filter=A', '--format=%ad', '--date=short', '-1', '--', file]) ||
+          null
+      }
+    })
+}
+
 function hasCeremony(pathId) {
   return ceremonyFromSessions(loadSessions(), pathId)
 }
@@ -2609,21 +2720,36 @@ function corpusFindings(branch, trunkRef = 'master', previousRef = null, changed
   }
 
   // The derived running-paths view must match the path files it projects.
-  // Objective, no judgment, one-command fix. Skipped on path branches, which
-  // legitimately carry a stale copy because they never hand-write ACTIVE.md.
-  if (!isPathBranch(branch)) {
-    try {
-      execFileSync('node', [join(REPO, 'tools/cairn-active.mjs'), '--check'], {
-        cwd: REPO,
-        stdio: 'pipe'
-      })
-    } catch {
-      findings.push({
-        level: 'blocking',
-        rule: 'derived-view',
-        message: `${ACTIVE_FILE}: the derived running-paths view is stale — run \`npm run cairn-active\``
-      })
-    }
+  // Objective, no judgment, one-command fix — and now asked in EVERY context,
+  // because removing the exemption IS the repair (S08 part 1, item 3).
+  //
+  // The rule used to skip itself when the branch matched `path/*`, on reasoning
+  // that was sound when it was written: a running path never hand-writes the
+  // generated view. `actions/checkout` detaches, so CI's branch was `HEAD` and
+  // the rule ran there — CP-UI-TYPOGRAPHY S04 was green locally and red in CI,
+  // one tree, one command. A predicate that branches on where it runs cannot be
+  // repaired by making both sides agree about the branch name; the branch name
+  // has to stop being the question.
+  //
+  // The recorded plan was to key on the path's declared `status` instead. It
+  // needs no key at all, and that is the finding: the view is already a pure
+  // projection of the statuses declared IN THIS TREE, so a checkout can only
+  // disagree with it when something here moved a status without regenerating.
+  // A path branch that has moved nobody's status passes for free — which is
+  // what the exemption was protecting — and a path setting its own
+  // `status: done` at closure is caught, which is what it was hiding, because
+  // under self-merge that path IS the last writer of this view.
+  try {
+    execFileSync('node', [join(REPO, 'tools/cairn-active.mjs'), '--check'], {
+      cwd: REPO,
+      stdio: 'pipe'
+    })
+  } catch {
+    findings.push({
+      level: 'blocking',
+      rule: 'derived-view',
+      message: `${ACTIVE_FILE}: the derived running-paths view is stale — run \`npm run cairn-active\``
+    })
   }
 
   // The coherence audit replaces the integrator's eye on architectural drift.
@@ -2771,6 +2897,9 @@ function main() {
       branchSource,
       baseSource,
       workUnits: pathForBranch ? parseWorkUnits(readFileSync(join(REPO, pathForBranch.file), 'utf8')) : null,
+      // Judged against the SAME comparison every other changed-file rule uses,
+      // so the local default and the CI command see one set of added records.
+      addedRecords: addedRecordDates(changed, comparisonRef(base, null)),
       scopeDigestFor: scopeDigestOf,
       openingRecordFor: (id) => openingRecordFromSessions(loadSessions(), id),
       previousFronts: previousFrontStates(paths, previousRef),

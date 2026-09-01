@@ -59,6 +59,15 @@ CI,    on HEAD (detached)         FAILED — the derived running-paths view is s
 Both runs were correct about the question they asked. Only one of them asked the
 right one.
 
+The repair is worth as much as the defect, because the obvious fix was the wrong
+one. Keying the exemption on the path's declared `status` instead of the branch
+name would have satisfied the rule above — the status is in the tree — and it
+was the recorded plan for months. It was still unnecessary: the generated view
+is *already* a projection of those statuses, so a checkout can disagree with it
+only when something there moved a status without regenerating. The exemption was
+deleted rather than rewritten. When a predicate branches on where it runs, look
+first for the branch that does not need to exist.
+
 The second break is plainer, and therefore the more useful example: not a rule
 skipping itself, but the two invocations handing every rule a different **input**.
 

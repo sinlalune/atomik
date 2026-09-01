@@ -190,6 +190,10 @@ export const RULE_METADATA = {
     condition: 'Configured architecture changed without an ADR in the same changeset',
     enforcing: 'touched(architectureRoot) => touched(decisionRoot)'
   },
+  'record-date': {
+    condition: 'A record this change adds carries two dates that disagree (blocking), or a date more than a day from the commit that wrote it (advisory)',
+    enforcing: 'recordDateFindings(addedRecords) — filename date vs timestamp: vs the adding commit author date'
+  },
   'derived-view': {
     condition: 'ACTIVE.md running-paths block does not match trunk path files',
     enforcing: "tools/cairn-active.mjs --check"

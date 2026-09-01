@@ -21,6 +21,8 @@ import {
   areaOf,
   ceremonyFromSessions,
   journalRecords,
+  filenameDate,
+  recordDateFindings,
   duplicatePathIdentityFindings,
   openingFromSessions,
   evaluate,
@@ -1433,6 +1435,103 @@ test('an unreadable journal is inconclusive, not a pass', () => {
   const entry = found.filter((f) => f.rule === 'journal-entry')
   assert.equal(entry.length, 1)
   assert.equal(entry[0].outcome, 'inconclusive')
+})
+
+/* ------------------------------------------------------------------ *
+ * S08 finding 4 — a dated record can carry a date that is not the date
+ *
+ * Every CP-UI-TYPOGRAPHY record — opening check, closing ceremony, coherence
+ * audit, journal entry, and their filenames — is dated 2026-08-27. Only S01
+ * happened that day; the ceremony, the audit and the entry happened on the
+ * 31st, as the commits that added them show.
+ *
+ * The rule the S08 brief proposed for it compares the filename date with the
+ * frontmatter `timestamp:`. These fixtures pin what that catches AND what it
+ * cannot: on the real records the two agree, so the proposed rule is blind to
+ * the defect that motivated it. Only the commit that introduced the file
+ * carries evidence the author did not write.
+ * ------------------------------------------------------------------ */
+
+test('a date is read from the head of a filename, and only from there', () => {
+  assert.equal(filenameDate('atomik-project/log/2026-08-27-cp-ui-typography.md'), '2026-08-27')
+  assert.equal(filenameDate('atomik-project/audits/cp-ui-typography-a380f2a.md'), null)
+  // Not a date that merely appears somewhere in the name.
+  assert.equal(filenameDate('atomik-project/sessions/release-2026-08-27.md'), null)
+  assert.equal(filenameDate(undefined), null)
+})
+
+test('two dates written by the same author must agree', () => {
+  const found = recordDateFindings([
+    { file: 'atomik-project/sessions/2026-08-20-x.md', named: '2026-08-20', declared: '2026-08-31', addedOn: '2026-08-31' }
+  ])
+  assert.equal(found.length, 1)
+  assert.equal(found[0].kind, 'disagreement')
+})
+
+test('agreeing dates do not prove the date, which is the whole finding', () => {
+  // The real CP-UI-TYPOGRAPHY journal entry: filename and frontmatter agree on
+  // 2026-08-27, and the commit that added it was authored on 2026-08-31. The
+  // author-agreement half returns nothing here. The drift half is what sees it.
+  const found = recordDateFindings([
+    { file: 'atomik-project/log/2026-08-27-cp-ui-typography.md', named: '2026-08-27', declared: '2026-08-27', addedOn: '2026-08-31' }
+  ])
+  assert.equal(found.length, 1)
+  assert.equal(found[0].kind, 'drift')
+  assert.equal(found[0].drift, 4)
+})
+
+test('the opening check of that same path is correctly dated and reports nothing', () => {
+  // Written and committed on 2026-08-27. A rule that fired on this one would be
+  // reporting the convention rather than a defect.
+  assert.deepEqual(
+    recordDateFindings([
+      { file: 'atomik-project/sessions/2026-08-27-cp-ui-typography-opening-check.md', named: '2026-08-27', declared: '2026-08-27', addedOn: '2026-08-27' }
+    ]),
+    []
+  )
+})
+
+test('one day of slack, because two timezones can name adjacent days', () => {
+  assert.deepEqual(
+    recordDateFindings([
+      { file: 'atomik-project/sessions/2026-08-27-x.md', named: '2026-08-27', declared: '2026-08-27', addedOn: '2026-08-28' }
+    ]),
+    []
+  )
+})
+
+test('a record with no adding commit yet is judged only on what the author wrote', () => {
+  // Uncommitted: there is no third date to compare, and inventing one from the
+  // clock is exactly what this rule refuses to do.
+  assert.deepEqual(
+    recordDateFindings([
+      { file: 'atomik-project/sessions/2026-08-20-x.md', named: '2026-08-20', declared: '2026-08-20', addedOn: null }
+    ]),
+    []
+  )
+  assert.equal(
+    recordDateFindings([
+      { file: 'atomik-project/sessions/2026-08-20-x.md', named: '2026-08-20', declared: '2026-08-31', addedOn: null }
+    ])[0].kind,
+    'disagreement'
+  )
+})
+
+test('a misdated record blocks on disagreement and only advises on drift', () => {
+  const disagreement = run(['README.md'], 'path/cp-mvp-010', [A_PATH], {
+    addedRecords: [
+      { file: 'atomik-project/sessions/2026-08-20-x.md', named: '2026-08-20', declared: '2026-08-31', addedOn: '2026-08-31' }
+    ]
+  })
+  assert.ok(rules(disagreement, 'blocking').includes('record-date'))
+
+  const drift = run(['README.md'], 'path/cp-mvp-010', [A_PATH], {
+    addedRecords: [
+      { file: 'atomik-project/log/2026-08-27-cp-ui-typography.md', named: '2026-08-27', declared: '2026-08-27', addedOn: '2026-08-31' }
+    ]
+  })
+  assert.ok(!rules(drift, 'blocking').includes('record-date'))
+  assert.ok(rules(drift, 'advisory').includes('record-date'))
 })
 
 /* ------------------------------------------------------------------ *

@@ -26,7 +26,7 @@ These run locally with the same command CI runs. The exit code is the verdict â€
 never pipe gate output through `grep` or `head`.
 
 ```bash
-npm run cairn-check     # protocol: 8 blocking rules, 5 advisory
+npm run cairn-check     # protocol: the blocking and advisory rules, in full
 npm run cairn-active    # regenerate the running-paths view (never edit it)
 npm run cairn-audit     # scaffold the coherence audit before merging
 npm run typecheck && npm test && npm run build
