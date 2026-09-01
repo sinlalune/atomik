@@ -6,8 +6,8 @@ atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: c2d1d05eb6a627b13115274b4b42ea88114091b7
-  checkpoint_unit: 26
+  checkpoint: cec817bd39d9c61052d9e67e9d6e0840b0c397cc
+  checkpoint_unit: 27
   checkpoint_pushed: true
   base_commit: 7aa3b1d
   trunk_seen: dfcd09d
@@ -46,13 +46,13 @@ The specification is v0.2 and its predicates are implemented. The work since is
 about whether the rules are honest, not whether there are enough.
 
 **The finding that organises everything else:** every enforcement defect here is
-a proxy predicate substituted for the sentence the rule states. **Only one is
-still live: `unretainedCheckpoints` (S07r)** reports "nothing orphaned" once the
-retained set stops intersecting the branch, which is what a rebase causes — and
-rebase-before-merge is mandatory. The ref namespace cannot express the fix, so it
-is an ADR first, and it is the next action.
+a proxy predicate substituted for the sentence the rule states. **One is still
+live and now has a design: `unretainedCheckpoints`** reports "nothing orphaned"
+once the retained set stops intersecting the branch, which is what the mandatory
+pre-merge rebase causes. The ref namespace could not express the fix, so it was
+an ADR first; `ADR-021` is written, `proposed`, and the ruling is the next action.
 
-**S08 so far — nine units.** Full records in the path file; what a resuming
+**S08 so far — ten units.** Full records in the path file; what a resuming
 session needs from them:
 
 - The local gate defaults to the **trunk** base on a path branch (S08a).
@@ -71,25 +71,34 @@ session needs from them:
   migration exemption — so this path owes its own entry at closure. `hasCeremony`
   and `derived-view` were repaired on this branch and are broken only on the
   trunk, where merging repairs them.
-- **Two plans did not survive contact, and both records say so** (S08i). Item 3's
-  recorded fix — key `derived-view` on the declared `status` — was correct and
-  unnecessary; the exemption was deleted instead. Item 3c's proposed rule was
-  measured against the records that motivated it and could not see them, so
-  `record-date` blocks on author agreement and **advises** on divergence from the
-  adding commit's author date.
+- **Three plans did not survive contact, and every record says so** (S08i, S08j).
+  Item 3's recorded fix — key `derived-view` on the declared `status` — was
+  correct and unnecessary; the exemption was deleted instead. Item 3c's proposed
+  rule was measured against the records that motivated it and could not see them,
+  so `record-date` blocks on author agreement and **advises** on divergence from
+  the adding commit's author date. Item 4's figure had lost its date in transit
+  and was three weeks out of true; the ADR was written on a fresh measurement.
+- **[`ADR-021`](../../docs/adr/ADR-021-checkpoint-retention-generations.md) is
+  `proposed` and awaits a ruling** (S08j). Retention refs gain a generation
+  (`.../g<NN>/<n>`), the current generation is derived from ancestry rather than
+  stored, an empty current generation becomes blocking instead of an exemption,
+  and the range floor becomes `merge-base(trunk, HEAD)`. **No predicate changed**;
+  read the ADR rather than a summary. Its migration opens `g01` on this branch
+  and **moves no existing ref**.
 
-Refs 01–26 on the remote; 01–13 hold PRE-rebase commits and no ref was moved.
+Refs 01–27 on the remote; 01–13 hold PRE-rebase commits and no ref was moved.
 Checker suite 214, specification suite 33.
 
 ## Next action
 
-S08 Part 1 **item 4** — the retention-generation question, and it is an **ADR
-before it is code**. A rebase renames every commit, so
-`refs/cairn/checkpoints/<path-id>/<n>` cannot name the same unit before and after
-one; `unretainedCheckpoints` then returns "nothing to judge" at exactly the
-moment the mandatory pre-merge rebase has orphaned everything. Measured on this
-branch: 13 refs, 41 commits in range, 0 intersecting, gate `OK`. A generation
-component is a candidate, not a conclusion. **Do not repoint an existing ref.**
+**Owner ruling on ADR-021.** If accepted, one implementing unit lands its six
+decisions together — the `g<NN>` namespace, the derived current generation, the
+three-state verdict that replaces `findIndex → -1`, the merge-base range floor,
+generation-scoped `retentionDue` — amends the `checkpoint-retention` concept
+note, and opens `g01` on this branch by retaining every completed commit from
+`53b11f0` upward: twenty-seven refs, one push, **no deletion and no repointing**.
+Expect the gate to go red between the code and the refs; that is the honest state,
+and it is why the two belong in one unit.
 
 Then ADR-020 stages 2–5: the `CP-OPS-002` folder migration (which supersedes the
 queued ledger roll), the checker's shape, the artefact classification,
@@ -127,13 +136,23 @@ that ADDS a record.
 - **Blocking on divergence from the adding commit's date** (S08i). A note taken
   on one day and committed two days later is dated correctly; blocking it teaches
   the author to write a false date to pass a gate.
+- **Repointing a retention ref to its rebased copy** (S08j). The obvious fix, and
+  the exact violation S07k committed by hand: it orphans the commit the ledger row
+  was verified against while every declared unit still resolves.
+- **Landing ADR-021's range floor without its generations** (S08j). Measured:
+  31 of 45 commits report unretained and no conforming way to retain one exists
+  until generations do. A red gate with no green move is how a gate gets switched
+  off.
 
 ## Reading order
 
 1. `docs/cairn/cairn-s08-opening-brief-2026-08-31.md@7f52feaa` — **first.** The
    five findings that reorder S08, the owner rulings, the teaching axis, and a
    dated correction where it got CI wrong. Its Finding 4 proposes the rule S08i
-   then measured and replaced; read the S08i record beside it.
+   then measured and replaced, and its Finding 3 carries a retention measurement
+   labelled *"immediately after its rebase"* that no longer describes the branch
+   and two namespace candidates `ADR-021` rules out; read the S08i and S08j
+   records beside it.
 2. `atomik-project/coding-paths/paths.md@468a922f` — how paths run.
 3. `docs/bedrock/22_22-agent-handoff.md@c10ed0a1` — the per-step protocol.
 4. `docs/cairn/cairn-audit-2026-08-24.md@319d54d2` — the audit that opened this

@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-002
   route: full            # control plane + decision plane; escalation is one-way
   status: running
-  current_step: S08i
+  current_step: S08j
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
   writes:                    # ADVISORY — a signal, never a lock
@@ -1147,6 +1147,94 @@ clock is what this rule refuses to do.
 unit made it staler. Replaced with a phrase that cannot drift, which is also what
 [ADR-020](../../docs/adr/ADR-020-protocol-context-weight.md) decided about counts.
 
+### S08j — A rebase gives one unit two ids, and the namespace has one slot — **COMPLETE**
+
+```cairn-unit
+step: S08j
+unit: 28
+type: documentation
+verified: cairn-check, cairn-check:test, cairn-spec:build, typecheck, test, build
+```
+
+S08 Part 1 item 4, and the item itself said how to take it: **an ADR before it is
+code**. [`ADR-021`](../../docs/adr/ADR-021-checkpoint-retention-generations.md) is
+that ADR, `proposed`, with no predicate changed.
+
+**The measurement came before the design, and it moved the design twice.** The S08
+plan carried one number from the S08 opening brief — *13 refs, 41 commits in
+range, 0 intersecting, gate `OK`* — and dropped the clause the brief had put
+around it, *"measured on this branch immediately after its rebase"*. Re-running it
+on `cec817b` found the branch had moved on:
+
+```text
+  55  commits in the checker's range (base_commit 7aa3b1d..HEAD)
+  27  retention refs for this path
+  14  refs naming a commit on the branch          (units 14-27)
+  13  refs naming a commit that is NOT            (units 01-13)
+  41  commits below the judged floor - 75% of the range
+   0  orphaned commits reported.  Gate: OK
+```
+
+Fourteen refs now intersect, so `findIndex` succeeds and the total-blindness case
+the brief described is not what this branch is in. It is in the *partial* one,
+which is worse to find and identical to hold: the floor lands at index 41, the
+rule judges the newest fourteen commits, and forty-one commits — including every
+rebased copy of units 01-13 — are judged by nothing. Every one of those thirteen
+copies is on the branch and retained by no ref, matched by subject to the ref
+that was orphaned:
+
+```text
+01  e787174 -> 53b11f0 on branch, retained by no ref
+...
+13  ba04251 -> 6adc217 on branch, retained by no ref
+orphan refs with a live rebased copy: 13; without: 0
+```
+
+The next rewriting push makes thirteen completed checkpoints unreachable, which
+is the one thing retention exists to prevent, and the gate has said `OK` about it
+since 2026-08-31.
+
+**The 41 split three ways, and the split is the design.** Eighteen are steps
+S00-S07e, which predate retention entirely and are correctly below any floor —
+that is the job `findIndex` was doing right. Thirteen are the rebased copies, the
+defect. **Ten are other paths' commits**, six of them CP-UI-TYPOGRAPHY's, retained
+under its own path id and swept into this path's range because the range floor is
+the declared `base_commit`. That is a second substitution found while measuring
+the first: `base_commit` is where the path was *registered*, and after a rebase
+the path's own commits begin at the trunk tip instead. A name standing in for the
+fact it resembles, for the ninth time on this path.
+
+**Git decided the notation, not preference.** A generation segment named with an
+ordinal collides with the flat unit refs already pushed, because a ref cannot be
+both a leaf and a directory:
+
+```text
+$ git update-ref refs/cairn/probe/01     HEAD
+$ git update-ref refs/cairn/probe/01/14  HEAD
+fatal: cannot lock ref 'refs/cairn/probe/01/14':
+       'refs/cairn/probe/01' exists; cannot create 'refs/cairn/probe/01/14'
+```
+
+Hence `g<NN>`. The probe refs were created and deleted inside the measurement and
+no retention ref was read, written, or moved at any point in this unit.
+
+**What the ADR decides**, in one line each: a retention ref names a generation
+(`.../g<NN>/<n>`); the current generation is the highest one all of whose refs are
+ancestors of the tip, *derived* rather than stored; opening a generation is a step
+of the rewrite; an empty current generation beside older ones is blocking and
+definite, distinct from an empty namespace, which stays inconclusive; the range
+floor is `merge-base(trunk, HEAD)`; and a declared unit resolves in the current
+generation, while older ones answer what the ledger row was verified against.
+
+**Nothing was implemented, and the reason is a measurement too.** Decision 5 —
+the range floor — looks independent of generations and was checked for landing
+alone. With the floor at the merge-base, 31 of this path's 45 commits report as
+unretained, all 31 are genuine completed steps with no provisional trailer among
+them, and until generations exist there is no conforming way to retain a single
+one: the flat slot for each is taken by the pre-rebase commit, which may not be
+moved. It would have shipped as a red gate with no green move available, which is
+how a team learns to switch a gate off.
+
 ### S09 — Greenfield pilot, coherence audit, closing ceremony, self-merge
 
 Initialize one real ex-nihilo repository from the kit — the research-paper workspace the
@@ -1209,7 +1297,13 @@ brief names — and fix what the pilot finds before merging.
 | The proposed rule was blind to its own defect (S08i) | The S08 brief's candidate for item 3c — filename date equals frontmatter `timestamp:` — was measured against the CP-UI-TYPOGRAPHY records before implementation. All three misdated records carry the SAME date in both places, and a sweep of 67 dated records found zero disagreements corpus-wide. It would have shipped green and closed the finding without touching it. `record-date` therefore blocks on author agreement and ADVISES on divergence from the adding commit's author date, which is the only half with evidence the author did not write |
 | Widening (S08i) | `writes:` gained `AGENTS.md`. The mechanical contract said *"8 blocking rules, 5 advisory"* against a real catalogue of 29 and 22, and this unit widened the gap. One line, replaced with a phrase that cannot drift — the same conclusion [ADR-020](../../docs/adr/ADR-020-protocol-context-weight.md) reached about counts. `scope-drift` reported it and the declaration moved in the same change, which is the shape `paths.md` asks for |
 | A destructive probe cost the working tree (S08i) | Verifying the advisory half needs a record with a real commit date, so a probe record was committed and then removed with `git reset --hard HEAD~1` — which also discarded every uncommitted edit to `cairn-check.mjs`. Nothing in the branch was lost and the edits were rewritten, but the correct move is `--mixed`, or committing the probe alone on top of staged work. Recorded because the same reflex would eat a whole unit's work in a tree with no other copy |
-| Next action | S08 Part 1 item 4 — the retention-generation question. It is an **ADR before it is code**: a rebase renames every commit, so `refs/cairn/checkpoints/<path-id>/<n>` cannot name the same unit before and after one, and `unretainedCheckpoints` returns "nothing to judge" exactly when the mandatory pre-merge rebase has orphaned everything. Do not repoint any existing ref. Then ADR-020 stages 2–5, where stage 2 (the folder migration) supersedes the queued ledger roll |
+| Gates at S08j | `npm run cairn-check` OK, 14 advisory (unchanged from S08i; no source file changed in this unit) · `npm run cairn-check:test` PASS, 214 subtests · `npm run cairn-spec:build` deterministic · `npm run typecheck` PASS · product suite 1,109 passed / 1 skipped · `npm run build` PASS |
+| A measurement lost its date in transit (S08j) | The S08 opening brief measured *13 refs, 41 commits, 0 intersecting* and labelled it **"immediately after its rebase"** — true of 2026-08-31 and still true of that day. The step plan and the handoff brief copied the figure without the date, so it read as a property of the branch. Re-measured at `cec817b`: 27 refs, 55 commits, **14** intersecting. The branch had moved past the total-blindness case into the partial one, which is the same defect, harder to see, and would have been mis-described in the ADR if the copy had been trusted. **The brief needs no correction** — unlike the CI misattribution S08c repaired in place, it never claimed more than it measured; the copies did, and they are corrected here |
+| A second substitution, found while measuring the first (S08j) | Ten of the 41 unjudged commits belong to other paths, six of them CP-UI-TYPOGRAPHY's, retained under its own path id. They are in range because the retention floor is the declared `base_commit` — where the path was *registered* — while after a rebase the path's own commits begin at the trunk tip. ADR-021 decision 5 moves the floor to `merge-base(trunk, HEAD)`; open hole 1 in `paths.md` is narrowed by it, not closed |
+| Git decided the notation (S08j) | A ref cannot be both a leaf and a directory, so any ordinal generation segment collides with the flat unit refs already pushed. Verified by probe — `refs/cairn/probe/01/14` is refused while `refs/cairn/probe/01` exists — and the probe refs were deleted in the same command. Hence `g<NN>`. **No retention ref was read for content, written, or moved in this unit** |
+| Deliberate non-implementation (S08j) | Decision 5 looks independent of generations and was measured for landing alone: with the floor at the merge-base, 31 of this path's 45 commits report unretained, all 31 are genuine completed steps with no provisional trailer among them, and no conforming way to retain any of them exists until generations do — each flat slot is held by the pre-rebase commit, which may not be moved. A red gate with no green move is how a team learns to switch a gate off |
+| Next action | **Owner ruling on [ADR-021](../../docs/adr/ADR-021-checkpoint-retention-generations.md).** If accepted, the implementing unit lands the six decisions together — the `g<NN>` namespace, the derived current generation, the three-state verdict replacing `findIndex → -1`, the merge-base floor, generation-scoped `retentionDue` — amends the `checkpoint-retention` concept note, and opens `g01` on this branch by retaining every completed commit from `53b11f0` upward: twenty-seven refs, one push, no deletion. Then ADR-020 stages 2–5, where stage 2 (the folder migration) supersedes the queued ledger roll |
+| Superseded next action (S08j, ruled on) | S08 Part 1 item 4 — the retention-generation question, an ADR before it is code. `ADR-021` is `proposed`; the code waits on the ruling, which is the same order S08d/S08g took with ADR-020 |
 | Superseded next action (S08i, done) | S08 Part 1 items 3, 3c and 4 — the derived-view rule keyed on declared `status` rather than the branch name; a record's filename date equal to its frontmatter `timestamp:`; and the retention-generation question, which is an ADR before it is code. Items 3 and 3c landed here; item 4 stays next, untouched, because design work does not belong in a repair unit |
 | Superseded next action (S08h, done) | S08 Part 1 items 1 and 2, both live on the trunk and neither blocked: `hasCeremony` must read the `ceremony:` frontmatter key instead of matching a filename, with a fixture rejecting a `done` path whose only session note is its opening check; then a predicate for the merge-time journal entry. ADR-020 stages 2–5 (the `CP-OPS-002` folder migration, the checker's shape, the artefact classification, `cairn-init`) follow, and stage 2 supersedes the queued ledger roll |
 | Superseded next action (S08g, ruled) | Owner ruling on ADR-020. If accepted: the `instruction-parity` article plus its concept-cap decision, then the `CP-OPS-002` folder migration as the worked example. Independently of that ruling, the two live trunk defects remain S08 Part 1 items 1 and 2 — `hasCeremony` reading the `ceremony:` key, and a predicate for the merge-time journal entry — and neither depends on the ADR |

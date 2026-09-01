@@ -20,6 +20,40 @@ remains the complete record; this is the readable one. If two paths ever start
 colliding on this file, it takes the amendment the journal already took — one file
 per entry in a `log/` subfolder — which was a concurrency fix, never a size one.
 
+## 2026-09-01
+
+- `S08j` proposes `ADR-021`, which gives retention refs a generation. The flat
+  namespace `refs/cairn/checkpoints/<path-id>/<n>` holds one slot per unit, and a
+  rebase gives every unit a second truthful object id — the commit the ledger row
+  was verified against, and the reconstructed copy now on the branch. The ref may
+  not move, because moving it is the violation `unretainedCheckpoints` exists to
+  catch, so the rebased copy is retained by nothing and the namespace has nowhere
+  to put it.
+- Measured on this branch before writing a line of design: 55 commits in the
+  checker's range, 27 refs, 14 naming a commit on the branch and 13 naming one
+  that is not, 41 commits below the judged floor, and **0 orphans reported**.
+  Every one of the 13 has its rebased copy on the branch, held by no ref. The
+  property has been off since the rebase of 2026-08-31 and no run said so.
+- The bug underneath is the shape this path keeps finding. `findIndex` returns
+  `-1` when no retained commit is on the branch, and the function reads that as
+  "nothing to judge" — the heuristic that correctly excludes pre-convention
+  history also excludes total orphaning, and from inside it the two are
+  identical. An empty intersection is not an absence of subject matter; it is
+  the subject matter.
+- Two things decided the notation rather than taste. Git refs are paths, so a ref
+  cannot be both a leaf and a directory — verified here, `refs/cairn/probe/01/14`
+  is refused while `refs/cairn/probe/01` exists — which rules out every ordinal
+  generation segment against the flat refs already pushed, hence `g<NN>`. And the
+  current generation is derived from ancestry (the highest generation all of whose
+  refs are ancestors of the tip) rather than stored, because a stored counter is a
+  claim about a fact already in the repository, which is exactly why `base_commit`
+  accuracy is still an open hole.
+- Proposed, not accepted, and no code lands with it. The range-floor repair was
+  measured for landing alone and rejected on the measurement: with the floor at
+  the merge-base, 31 of this path's 45 commits report unretained and no
+  conforming way to retain them exists until generations do. A red gate with no
+  green move teaches the one lesson a gate must never teach.
+
 ## 2026-08-31
 
 - `S08d` proposes `ADR-020`, which makes protocol context weight a first-order
