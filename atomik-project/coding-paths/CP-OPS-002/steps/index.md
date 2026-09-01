@@ -72,6 +72,7 @@ born here, one complete record per step.
 - **[S08s](./S08s.md)** — Rewriting stops, and the policy becomes a predicate — COMPLETE
 - **[S08t](./S08t.md)** — The required-reading route stops teaching the forbidden operation — COMPLETE
 - **[S08u](./S08u.md)** — cairn-init, and the portability it proved was missing — COMPLETE
+- **[S08v](./S08v.md)** — Adversarial fixtures, and parity asserted on one tree — COMPLETE
 
 ## Which commit landed which step
 

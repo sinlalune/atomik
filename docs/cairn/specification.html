@@ -2660,8 +2660,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">An adversarial fixture per blocking rule</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong>; the checker suite exercises valid repositories and asserts <code>OK</code>, which a rule that never fires also satisfies. No rule is currently required to demonstrate a rejection</td>
-<td style="text-align:left">a fixture repository per blocking rule</td>
+<td style="text-align:left"><strong>partially implemented</strong>; eight of thirty blocking rules now have a fixture that installs a REAL repository with <code>cairn-init</code>, proves it green, introduces exactly one violation, and requires that rule among the blocking findings. The green baseline is half the assertion — a fixture that blocks for an unrelated reason proves nothing about the rule it names. Coverage is DECLARED: every blocking rule is either covered or listed as uncovered, so adding a rule forces the choice</td>
+<td style="text-align:left">twenty-two rules remain uncovered, most needing states the harness cannot yet reach cheaply — a closed candidate with its audit and acceptance, a rewritten published tip, a detached checkout, a trunk that moved inside a declared surface</td>
 </tr>
 <tr>
 <td style="text-align:left">No predicate branches on a value that varies by execution context</td>
@@ -2678,8 +2678,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Local and CI invocations of one gate reach the same verdict</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; the default base on a path branch is now the trunk, matching CI, and a narrowed run raises <code>base-parity</code> rather than passing quietly. The verdicts are not yet asserted equal by a test</td>
-<td style="text-align:left">a fixture run in both contexts</td>
+<td style="text-align:left"><strong>implemented</strong>; the default base on a path branch is the trunk comparison CI runs, and three fixtures now assert it on one real tree: both invocations reach the same verdict on a green repository, both see the same violation on a broken one, and <code>--working-tree</code> raises <code>base-parity</code> so a narrowed run announces itself</td>
+<td style="text-align:left">the assertion covers the reference invocations; a host that wires its CI to a different command is outside what this can observe</td>
 </tr>
 <tr>
 <td style="text-align:left">Every stated requirement is enforced or listed as unenforced</td>
@@ -5181,8 +5181,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">An adversarial fixture per blocking rule</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong>; the checker suite exercises valid repositories and asserts <code>OK</code>, which a rule that never fires also satisfies. No rule is currently required to demonstrate a rejection</td>
-<td style="text-align:left">a fixture repository per blocking rule</td>
+<td style="text-align:left"><strong>partially implemented</strong>; eight of thirty blocking rules now have a fixture that installs a REAL repository with <code>cairn-init</code>, proves it green, introduces exactly one violation, and requires that rule among the blocking findings. The green baseline is half the assertion — a fixture that blocks for an unrelated reason proves nothing about the rule it names. Coverage is DECLARED: every blocking rule is either covered or listed as uncovered, so adding a rule forces the choice</td>
+<td style="text-align:left">twenty-two rules remain uncovered, most needing states the harness cannot yet reach cheaply — a closed candidate with its audit and acceptance, a rewritten published tip, a detached checkout, a trunk that moved inside a declared surface</td>
 </tr>
 <tr>
 <td style="text-align:left">No predicate branches on a value that varies by execution context</td>
@@ -5199,8 +5199,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Local and CI invocations of one gate reach the same verdict</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; the default base on a path branch is now the trunk, matching CI, and a narrowed run raises <code>base-parity</code> rather than passing quietly. The verdicts are not yet asserted equal by a test</td>
-<td style="text-align:left">a fixture run in both contexts</td>
+<td style="text-align:left"><strong>implemented</strong>; the default base on a path branch is the trunk comparison CI runs, and three fixtures now assert it on one real tree: both invocations reach the same verdict on a green repository, both see the same violation on a broken one, and <code>--working-tree</code> raises <code>base-parity</code> so a narrowed run announces itself</td>
+<td style="text-align:left">the assertion covers the reference invocations; a host that wires its CI to a different command is outside what this can observe</td>
 </tr>
 <tr>
 <td style="text-align:left">Every stated requirement is enforced or listed as unenforced</td>
@@ -12962,8 +12962,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">An adversarial fixture per blocking rule</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>not implemented</strong>; the checker suite exercises valid repositories and asserts <code>OK</code>, which a rule that never fires also satisfies. No rule is currently required to demonstrate a rejection</td>
-<td style="text-align:left">a fixture repository per blocking rule</td>
+<td style="text-align:left"><strong>partially implemented</strong>; eight of thirty blocking rules now have a fixture that installs a REAL repository with <code>cairn-init</code>, proves it green, introduces exactly one violation, and requires that rule among the blocking findings. The green baseline is half the assertion — a fixture that blocks for an unrelated reason proves nothing about the rule it names. Coverage is DECLARED: every blocking rule is either covered or listed as uncovered, so adding a rule forces the choice</td>
+<td style="text-align:left">twenty-two rules remain uncovered, most needing states the harness cannot yet reach cheaply — a closed candidate with its audit and acceptance, a rewritten published tip, a detached checkout, a trunk that moved inside a declared surface</td>
 </tr>
 <tr>
 <td style="text-align:left">No predicate branches on a value that varies by execution context</td>
@@ -12980,8 +12980,8 @@ not in a separate document a reader may never open.</p>
 <tr>
 <td style="text-align:left">Local and CI invocations of one gate reach the same verdict</td>
 <td style="text-align:left">required</td>
-<td style="text-align:left"><strong>partially implemented</strong>; the default base on a path branch is now the trunk, matching CI, and a narrowed run raises <code>base-parity</code> rather than passing quietly. The verdicts are not yet asserted equal by a test</td>
-<td style="text-align:left">a fixture run in both contexts</td>
+<td style="text-align:left"><strong>implemented</strong>; the default base on a path branch is the trunk comparison CI runs, and three fixtures now assert it on one real tree: both invocations reach the same verdict on a green repository, both see the same violation on a broken one, and <code>--working-tree</code> raises <code>base-parity</code> so a narrowed run announces itself</td>
+<td style="text-align:left">the assertion covers the reference invocations; a host that wires its CI to a different command is outside what this can observe</td>
 </tr>
 <tr>
 <td style="text-align:left">Every stated requirement is enforced or listed as unenforced</td>

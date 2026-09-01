@@ -18,6 +18,9 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-01
 
+- `S08v` makes rejection demonstrable. Two fixtures failed first and both were
+  facts about the rules: `route` cannot fire on the trunk, and a committed
+  mutation is invisible to a diff-scoped rule.
 - `S08u` lands the initializer. Its value was less the installing than the
   proving: portability claims that held from inside this repository failed the
   moment a repository was created from them.
