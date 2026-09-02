@@ -5,7 +5,6 @@ timestamp: 2026-08-20T00:00:00Z
 tags: [opening-check, renderer, math, mermaid, vega-lite, chat, repair]
 path: CP-RENDER-REPAIRS
 branch: path/cp-render-repairs
-ceremony: opening
 ---
 
 # CP-RENDER-REPAIRS opening check

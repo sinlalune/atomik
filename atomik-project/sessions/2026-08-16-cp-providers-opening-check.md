@@ -2,9 +2,6 @@
 type: Atomik Session Record
 title: CP-PROVIDERS opening check — hybrid provider architecture and full multi-provider settings panel confirmed
 timestamp: 2026-08-16T00:00:00Z
-path: CP-PROVIDERS
-branch: path/cp-providers
-ceremony: opening
 ---
 
 # CP-PROVIDERS opening check (2026-08-16)

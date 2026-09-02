@@ -3,9 +3,8 @@ type: Atomik Session Record
 title: CP-WORKTREE-CLEANUP closing ceremony — retire the checkout, retain the history
 timestamp: 2026-08-24T00:00:00Z
 tags: [closing-ceremony, worktree, cleanup, self-merge, git]
-branch: path/cp-worktree-cleanup
 path: CP-WORKTREE-CLEANUP
-ceremony: closing
+branch: path/cp-worktree-cleanup
 ---
 
 # CP-WORKTREE-CLEANUP closing ceremony

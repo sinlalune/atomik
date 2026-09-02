@@ -3,9 +3,8 @@ type: Atomik Session Record
 title: CP-RENDER-REPAIRS closing ceremony — the blocks now behave like the surface promised
 timestamp: 2026-08-20T00:00:00Z
 tags: [closing-ceremony, renderer, math, mermaid, vega-lite, chat]
-branch: path/cp-render-repairs
 path: CP-RENDER-REPAIRS
-ceremony: closing
+branch: path/cp-render-repairs
 ---
 
 # CP-RENDER-REPAIRS closing ceremony

@@ -2,9 +2,6 @@
 type: Atomik Session Record
 title: CP-MVP-009 opening check — four features confirmed as drafted; index storage decided (JSON sidecar)
 timestamp: 2026-08-04T00:00:00Z
-path: CP-MVP-009
-branch: path/cp-mvp-009
-ceremony: opening
 ---
 
 # CP-MVP-009 opening check (2026-08-04)

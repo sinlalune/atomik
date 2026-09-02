@@ -2,9 +2,6 @@
 type: Atomik Session Record
 title: CP-RICH-MARKDOWN opening check — safe rich renderers and decoration-only code feedback
 timestamp: 2026-08-17T00:00:00Z
-path: CP-RICH-MARKDOWN
-branch: path/cp-rich-markdown
-ceremony: opening
 ---
 
 # CP-RICH-MARKDOWN opening check (2026-08-17)

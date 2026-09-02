@@ -2,9 +2,6 @@
 type: Atomik Session Record
 title: CP-OPS-001 opening check — concurrent execution lanes; eleven owner rulings, step zero authorized
 timestamp: 2026-08-14T00:00:00Z
-path: CP-OPS-001
-branch: path/cp-ops-001
-ceremony: opening
 ---
 
 # CP-OPS-001 opening check (2026-08-14)

@@ -2,8 +2,6 @@
 type: Atomik Session Record
 title: CP-MVP-007 acceptance — S07 owner bench validated; machine sweep of the M1 intents and the four scoping decisions
 timestamp: 2026-07-21T00:00:00Z
-path: CP-MVP-007
-ceremony: closing
 ---
 
 # CP-MVP-007 acceptance (2026-07-21)

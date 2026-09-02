@@ -3,9 +3,8 @@ type: Atomik Session Record
 title: CP-OPS-001 closing ceremony — Cairn carries parallel work without carrying the chat
 timestamp: 2026-08-24T00:00:00Z
 tags: [closing-ceremony, cairn, coding-paths, worktrees, self-merge, continuity]
-branch: path/cp-ops-001
 path: CP-OPS-001
-ceremony: closing
+branch: path/cp-ops-001
 ---
 
 # CP-OPS-001 closing ceremony

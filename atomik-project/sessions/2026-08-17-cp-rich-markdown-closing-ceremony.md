@@ -3,9 +3,8 @@ type: Atomik Session Record
 title: CP-RICH-MARKDOWN closing ceremony — acceptance, hardening ruling, backlog
 timestamp: 2026-08-17T00:00:00Z
 tags: [ceremony, closure, rich-markdown, acceptance, backlog]
-branch: path/cp-rich-markdown
 path: CP-RICH-MARKDOWN
-ceremony: closing
+branch: path/cp-rich-markdown
 ---
 
 # CP-RICH-MARKDOWN closing ceremony

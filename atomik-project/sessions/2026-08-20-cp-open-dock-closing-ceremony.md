@@ -3,9 +3,8 @@ type: Atomik Session Record
 title: CP-OPEN-DOCK closing ceremony — unified open-target interaction and five-zone drag/dock
 timestamp: 2026-08-20T00:00:00Z
 tags: [closing-ceremony, workspace, tabs, panes, drag-and-drop, docking, keyboard]
-branch: path/cp-open-dock
 path: CP-OPEN-DOCK
-ceremony: closing
+branch: path/cp-open-dock
 ---
 
 # CP-OPEN-DOCK closing ceremony

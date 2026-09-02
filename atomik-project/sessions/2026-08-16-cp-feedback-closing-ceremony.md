@@ -2,8 +2,6 @@
 type: Atomik Session Record
 title: CP-FEEDBACK closing ceremony — daily workbench feedback accepted; carried paths ordered
 timestamp: 2026-08-16T00:00:00Z
-path: CP-FEEDBACK
-ceremony: closing
 ---
 
 # CP-FEEDBACK closing ceremony (2026-08-16)
