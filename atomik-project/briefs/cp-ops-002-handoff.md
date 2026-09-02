@@ -59,8 +59,12 @@ now closed.** The last, `unretainedCheckpoints`, reported "nothing orphaned" onc
 the retained set stopped intersecting the branch — which is what the mandatory
 pre-merge rebase causes — and is repaired under `ADR-021`.
 
-**S08 is complete in twenty-three units, S09a has run the pilot, and S09b has
-recorded the manifesto round.** The owner wrote a [manifesto](../../docs/cairn/manifesto.md)
+**S08 is complete in twenty-three units, S09a has run the pilot, S09b has
+recorded the manifesto round, S09c the owner's rulings, and S09d a checker
+repair found by reading CI at closure** — the validator self-test had been red
+in CI since S08u because the checker trusted `GITHUB_REF_NAME` inside fixture
+repositories; the first closure (candidate `e409e85`, commit `e05e2aa`) is void
+and retained, and the closure repeats on the commit landing S09d. The owner wrote a [manifesto](../../docs/cairn/manifesto.md)
 and a [project note](../../docs/cairn/cairn-project-note-2026-09-02.md) as the
 preamble of S09; [`docs/cairn/cairn-manifesto-convergence-2026-09-02.md`](../../docs/cairn/cairn-manifesto-convergence-2026-09-02.md)
 measures the protocol against them and against the current coding workflows,
@@ -270,9 +274,11 @@ the latest step.
 
 ## Next action
 
-**The owner records the closing acceptance of candidate `C`** — the commit
-that landed S09c, named by full object id in the audit already filled in the
-working tree. All twenty-four manifesto decisions are ruled
+**Repeat the closure on the commit that landed S09d**: read its CI run first,
+then audit it, record the closing acceptance under the owner's standing
+instruction of 2026-09-02 (*"can't you all do it yourself ?"*), commit `A`,
+read CI again, check drift, integrate from a temporary trunk worktree, verify
+the remote trunk, fast-forward the owner's checkout, remove this worktree. All twenty-four manifesto decisions are ruled
 ([rulings](../sessions/2026-09-02-cp-ops-002-manifesto-rulings.md));
 nothing else is implemented here. After acceptance: administrative commit `A`,
 drift check, `--no-ff` integration from the owner's trunk checkout, remote
@@ -395,6 +401,10 @@ that ADDS a record.
 ## Verification
 
 `npm run cairn-check` — branch against trunk by default since S08a — reports OK.
+S09d records **14 advisories: the steady 13 plus the grandfathered
+`scope-digest` line the closing record draws**; `cairn-check:test` is 277 of 277
+locally and under CI's own variables — **read CI's verdict before calling any
+unit complete**, because from S08u to S09c seven red runs went unread. Earlier:
 S09c records **13 advisories, and 13 is the steady state**: the twelve S09a
 recorded plus one `scope-drift` line naming the owner's two untracked notes at
 the repository root (their copies under `docs/cairn/` are declared); it goes

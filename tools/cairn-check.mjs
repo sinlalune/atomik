@@ -25,7 +25,7 @@
 
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { CAIRN_CONFIG, REPO, metadataOf, slash } from './cairn-config.mjs'
@@ -854,15 +854,35 @@ export function isPathBranch(branch) {
  * The host knows what the checkout does not, so ask it first. Order is
  * deliberate: an explicit flag beats CI environment, CI beats Git, and Git's
  * detached answer is kept only so the caller can tell that it IS detached.
+ *
+ * ABOUT THE REPOSITORY THE HOST CHECKED OUT, AND NO OTHER (S09d). The host's
+ * variables describe `GITHUB_WORKSPACE`. This checker also runs inside
+ * repositories the fixture suite builds under a temporary directory, and in
+ * CI those runs inherited `GITHUB_REF_NAME=path/cp-ops-002` and were judged as
+ * a branch none of them had: seventeen fixtures red in CI, green on every
+ * laptop, for seven pushes. The environment is a proxy for "which branch is
+ * this tree on", truthful only for the tree it describes — so a host variable
+ * is trusted when the host names no workspace, or names this one.
  */
-export function resolveBranch({ flag, env = {}, symbolicRef, abbrevRef }) {
+export function hostDescribes(env = {}, root = null) {
+  const workspace = env.GITHUB_WORKSPACE
+  if (!workspace || !root) return true
+  const real = (dir) => {
+    try { return realpathSync(dir) } catch { return resolve(dir) }
+  }
+  return real(workspace) === real(root)
+}
+
+export function resolveBranch({ flag, env = {}, symbolicRef, abbrevRef, root = null }) {
   if (flag) return { branch: flag, source: 'flag' }
-  // pull_request: the SOURCE branch of the PR, which is the path branch.
-  if (env.GITHUB_HEAD_REF) return { branch: env.GITHUB_HEAD_REF, source: 'github-head-ref' }
-  // push: the branch pushed to. On a pull_request this is "<n>/merge", which
-  // names the merge preview rather than any branch — never trust it there.
-  if (env.GITHUB_REF_NAME && !/^\d+\/(merge|head)$/.test(env.GITHUB_REF_NAME)) {
-    return { branch: env.GITHUB_REF_NAME, source: 'github-ref-name' }
+  if (hostDescribes(env, root)) {
+    // pull_request: the SOURCE branch of the PR, which is the path branch.
+    if (env.GITHUB_HEAD_REF) return { branch: env.GITHUB_HEAD_REF, source: 'github-head-ref' }
+    // push: the branch pushed to. On a pull_request this is "<n>/merge", which
+    // names the merge preview rather than any branch — never trust it there.
+    if (env.GITHUB_REF_NAME && !/^\d+\/(merge|head)$/.test(env.GITHUB_REF_NAME)) {
+      return { branch: env.GITHUB_REF_NAME, source: 'github-ref-name' }
+    }
   }
   if (symbolicRef) return { branch: symbolicRef, source: 'symbolic-ref' }
   return { branch: abbrevRef ?? 'HEAD', source: 'detached' }
@@ -3461,6 +3481,7 @@ function main() {
   const { branch, source: branchSource } = resolveBranch({
     flag,
     env: process.env,
+    root: REPO,
     symbolicRef: gitOrNull(['symbolic-ref', '--short', 'HEAD']),
     abbrevRef: git(['rev-parse', '--abbrev-ref', 'HEAD'])
   })

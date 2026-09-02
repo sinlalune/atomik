@@ -49,9 +49,16 @@ function repository(options = {}) {
 
 /** Run the real checker and return its structured verdict. */
 function check(dir, ...args) {
+  return checkWithEnv(dir, process.env, ...args)
+}
+
+/** The same, with an explicit environment. The suite's own CI failure (S09d)
+ *  was the checker reading the HOST's branch variables while judging a fixture
+ *  repository, so the environment is now a parameter a test can control. */
+function checkWithEnv(dir, env, ...args) {
   try {
     const out = execFileSync(process.execPath, [CHECK, '--json', ...args], {
-      cwd: dir, encoding: 'utf8', stdio: 'pipe'
+      cwd: dir, encoding: 'utf8', stdio: 'pipe', env
     })
     return JSON.parse(out)
   } catch (error) {
@@ -516,6 +523,34 @@ test('parity: a violation is equally visible to both invocations', () => {
     const ci = check(dir, '--base', 'main')
     assert.ok(blocking(local).includes('work-unit'))
     assert.deepEqual(blocking(local).sort(), blocking(ci).sort())
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('parity: a host describing another repository does not name this one\'s branch', () => {
+  // The suite's own break, reproduced. From S08u to S09c every push ran this
+  // suite in CI with GITHUB_REF_NAME=path/cp-ops-002 in the environment, and
+  // the checker — asked inside a fixture repository that has no such path —
+  // answered `branch-path` for the branch it was told about rather than the
+  // branch the tree was on. Seventeen fixtures failed in CI and none locally,
+  // which is the exact property gate parity forbids.
+  const dir = pathRepository()
+  try {
+    const hosted = {
+      ...process.env,
+      GITHUB_ACTIONS: 'true',
+      GITHUB_REF_NAME: 'path/cp-ops-002',
+      GITHUB_WORKSPACE: '/home/runner/work/atomik/atomik',
+      GITHUB_HEAD_REF: ''
+    }
+    const inCi = checkWithEnv(dir, hosted)
+    const local = check(dir)
+    assert.equal(inCi.status, local.status,
+      'a fixture repository must reach the same verdict whether or not the host describes some other repository')
+    assert.deepEqual(blocking(inCi).sort(), blocking(local).sort())
+    assert.ok(!blocking(inCi).includes('branch-path'),
+      'branch-path fired on a branch the host named, not one the tree has')
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }

@@ -137,6 +137,7 @@ brief names — and fix what the pilot finds before merging.
   measures the protocol against the [manifesto](../../../docs/cairn/manifesto.md)
   and the current coding workflows, and proposes the Cairn 1.0 shape. Its
   checklists are the owner's decisions; none is executed by this path.
+- **S09d — done, and the closure restarts.** Reading CI before integrating found the validator self-test red since S08u: the checker read the host's branch variables inside the fixture repositories. Repaired with its unit tests and a reproducing fixture; the concept page carries the second worked example. Candidate `e409e85` and its closure at `e05e2aa` are void and retained. **Genesis candidate advisory:** `ci-unread` — a pushed unit whose remote run is red or unknown — since nothing predicates that CI is *read*.
 - **S09c — implementation done; ceremony in progress.** The owner ruled on all
   twenty-four decisions ([rulings](../../sessions/2026-09-02-cp-ops-002-manifesto-rulings.md));
   the unit that records them is the branch's last, and its commit is candidate

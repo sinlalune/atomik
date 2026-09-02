@@ -18,6 +18,9 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-02
 
+- `S09d` reads CI before integrating and finds the validator self-test red
+  since S08u: the checker trusted the host's branch variables inside fixture
+  repositories. Repaired, reproduced by a fixture, and the closure restarted.
 - `S09c` records the owner's rulings — all twenty-four accepted — and is the
   branch's last implementation unit; its commit is the candidate the closure
   binds.

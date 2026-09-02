@@ -18,6 +18,8 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-02
 
+- `S09d` voids the first closure: CI had been red for seven pushes and the
+  cause was in the checker. Status back to `running`; a new candidate follows.
 - Closure: candidate `e409e85` audited and accepted; status `ready`, `subject_commit`
   bound. Administrative commit only — no other field moved.
 - `S09c` lands the owner's rulings on the manifesto round, all accepted, and

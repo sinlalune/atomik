@@ -7663,6 +7663,18 @@ CI,    on HEAD (detached)         FAILED — the derived running-paths view is s
 </code></pre>
 <p>Both runs were correct about the question they asked. Only one of them asked the
 right one.</p>
+<p>It broke a second time from the other side, and this one is the sharper lesson.
+The repair for the first break taught the checker to ask the host — GitHub’s
+branch variables — before asking Git, because a detached checkout cannot name
+its branch. That answer is correct for the repository the host checked out and
+wrong for any other. The checker’s own fixture suite builds small repositories
+and runs the real checker inside them; in CI those runs inherited the host’s
+variables and were judged as the branch under test, <code>path/cp-ops-002</code>, which
+none of them had. Every fixture passed on a laptop and seventeen failed in CI
+for seven pushes, unread. The environment is a <a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy</a> for
+“which branch is this tree on”, and it is only a truthful one when the tree is
+the one the environment describes. The checker now trusts a host variable only
+when the host’s workspace is the repository being checked.</p>
 <p>The repair is worth as much as the defect, because the obvious fix was the wrong
 one. Keying the exemption on the path’s declared <code>status</code> instead of the branch
 name would have satisfied the rule above — the status is in the tree — and it
@@ -15553,6 +15565,18 @@ CI,    on HEAD (detached)         FAILED — the derived running-paths view is s
 </code></pre>
 <p>Both runs were correct about the question they asked. Only one of them asked the
 right one.</p>
+<p>It broke a second time from the other side, and this one is the sharper lesson.
+The repair for the first break taught the checker to ask the host — GitHub’s
+branch variables — before asking Git, because a detached checkout cannot name
+its branch. That answer is correct for the repository the host checked out and
+wrong for any other. The checker’s own fixture suite builds small repositories
+and runs the real checker inside them; in CI those runs inherited the host’s
+variables and were judged as the branch under test, <code>path/cp-ops-002</code>, which
+none of them had. Every fixture passed on a laptop and seventeen failed in CI
+for seven pushes, unread. The environment is a <a href="#article-concept-proxy-predicate" data-article="concept-proxy-predicate" data-anchor="" class="wiki-link">proxy</a> for
+“which branch is this tree on”, and it is only a truthful one when the tree is
+the one the environment describes. The checker now trusts a host variable only
+when the host’s workspace is the repository being checked.</p>
 <p>The repair is worth as much as the defect, because the obvious fix was the wrong
 one. Keying the exemption on the path’s declared <code>status</code> instead of the branch
 name would have satisfied the rule above — the status is in the tree — and it

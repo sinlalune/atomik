@@ -3,7 +3,7 @@ type: Cairn Concept
 title: Gate parity
 description: One gate, run in different places on the same tree, must reach the same verdict — and what it means when it does not.
 tags: [cairn, concept, enforcement, checker, continuous-integration]
-timestamp: 2026-08-27T00:00:00Z
+timestamp: 2026-09-02T00:00:00Z
 ---
 
 # Gate parity
@@ -58,6 +58,19 @@ CI,    on HEAD (detached)         FAILED — the derived running-paths view is s
 
 Both runs were correct about the question they asked. Only one of them asked the
 right one.
+
+It broke a second time from the other side, and this one is the sharper lesson.
+The repair for the first break taught the checker to ask the host — GitHub's
+branch variables — before asking Git, because a detached checkout cannot name
+its branch. That answer is correct for the repository the host checked out and
+wrong for any other. The checker's own fixture suite builds small repositories
+and runs the real checker inside them; in CI those runs inherited the host's
+variables and were judged as the branch under test, `path/cp-ops-002`, which
+none of them had. Every fixture passed on a laptop and seventeen failed in CI
+for seven pushes, unread. The environment is a [proxy](./proxy-predicate.md) for
+"which branch is this tree on", and it is only a truthful one when the tree is
+the one the environment describes. The checker now trusts a host variable only
+when the host's workspace is the repository being checked.
 
 The repair is worth as much as the defect, because the obvious fix was the wrong
 one. Keying the exemption on the path's declared `status` instead of the branch

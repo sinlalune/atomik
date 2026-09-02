@@ -689,6 +689,31 @@ test('branch resolution prefers the host over the checkout', () => {
   )
 })
 
+test('branch resolution trusts the host only about the repository the host checked out', () => {
+  // S09d. In CI the fixture suite runs the real checker inside small
+  // repositories it builds under a temporary directory. Those runs inherited
+  // GITHUB_REF_NAME and were judged as `path/cp-ops-002` — a branch none of
+  // them had — so seventeen fixtures failed in CI and passed on every laptop.
+  // The host's variables describe GITHUB_WORKSPACE, and nothing else.
+  const elsewhere = { GITHUB_REF_NAME: 'path/cp-ops-002', GITHUB_WORKSPACE: '/home/runner/work/atomik/atomik' }
+  assert.deepEqual(
+    resolveBranch({ env: elsewhere, symbolicRef: 'main', abbrevRef: 'main', root: '/tmp/cairn-fixture-abc' }),
+    { branch: 'main', source: 'symbolic-ref' }
+  )
+  // The same variables, asked about the workspace itself, still win over Git —
+  // the detached pull_request checkout is the case the first repair was for.
+  assert.deepEqual(
+    resolveBranch({ env: { GITHUB_HEAD_REF: 'path/x', GITHUB_WORKSPACE: '/w' }, symbolicRef: null, abbrevRef: 'HEAD', root: '/w' }),
+    { branch: 'path/x', source: 'github-head-ref' }
+  )
+  // A host that names a branch without naming a workspace is trusted as before:
+  // there is nothing to compare, and a manual export is the caller's intent.
+  assert.equal(
+    resolveBranch({ env: { GITHUB_REF_NAME: 'master' }, symbolicRef: null, abbrevRef: 'HEAD', root: '/anywhere' }).source,
+    'github-ref-name'
+  )
+})
+
 test('a detached checkout changing source is BLOCKED, never silently OK', () => {
   const found = run(['apps/desktop/electron-main/index.ts', 'docs/modules/atomik-desktop-shell.md',
     'atomik-project/coding-paths/CP-MVP-010.md'], 'HEAD', [A_PATH], { branchSource: 'detached' })

@@ -22,6 +22,9 @@ per entry in a `log/` subfolder — which was a concurrency fix, never a size on
 
 ## 2026-09-02
 
+- `CP-OPS-002 S09d` adds the second gate-parity break to the concept page: the
+  checker trusted the host's branch variables inside fixture repositories, so
+  the suite was red in CI and green locally for seven pushes.
 - `CP-OPS-002 S09c` carries the owner's ticks into the convergence record: all
   twenty-four decisions accepted, the path closes, the genesis opens in the
   protocol's own repository.
