@@ -18,6 +18,8 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-02
 
+- Closure: candidate `e409e85` audited and accepted; status `ready`, `subject_commit`
+  bound. Administrative commit only — no other field moved.
 - `S09c` lands the owner's rulings on the manifesto round, all accepted, and
   closes implementation on this branch: the commit is candidate `C`.
 - `S09b` is the manifesto round the owner asked for before the genesis:

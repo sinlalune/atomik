@@ -6,8 +6,8 @@ atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: 9c5fddf4089e77483bc5610cd7ccb1a82716bc37
-  checkpoint_unit: 45
+  checkpoint: e409e85c4e70a09da8b2f7f743aa4cdc2806ae00
+  checkpoint_unit: 46
   checkpoint_pushed: true
   base_commit: 7aa3b1d
   trunk_seen: dfcd09d
