@@ -50,6 +50,12 @@ their opening notes are real but predate the schema and live on their own branch
 which this checkout must not write. Each clears itself by adding two keys to the
 note it already has, and the exception drains when they merge.
 
+The twenty-six ceremony records that predate CP-OPS-002 carry no `path:` or
+`ceremony:` key: S00 added the keys, S09e restored the original blobs because a
+session record is immutable, and the
+[correction record](./2026-09-02-cp-ops-002-record-integrity-correction.md)
+says why that is safe for paths that are done.
+
 A mid-path note that is not a ceremony carries `path:` and deliberately **no**
 `ceremony:` key — for example the
 [S06b rescope ruling](./2026-08-24-cp-ops-002-s06b-rescope.md) or the
@@ -72,7 +78,7 @@ implementation.
 | CP-MVP-010 | [opening](./2026-08-16-cp-mvp-010-opening-check.md) | [closing](./2026-08-17-cp-mvp-010-closing-ceremony.md) |
 | CP-OPEN-DOCK | [opening](./2026-08-20-cp-open-dock-opening-check.md) | [closing](./2026-08-20-cp-open-dock-closing-ceremony.md) |
 | CP-OPS-001 | [opening](./2026-08-14-cp-ops-001-opening-check.md) | [closing](./2026-08-24-cp-ops-001-closing-ceremony.md) |
-| CP-OPS-002 | [opening](./2026-08-24-cp-ops-002-opening-check.md) | — |
+| CP-OPS-002 | [opening](./2026-08-24-cp-ops-002-opening-check.md) | [closing](./2026-09-02-cp-ops-002-closing-2.md); each later `2026-09-02-cp-ops-002-closing-*` record supersedes the one before it |
 | CP-PROVIDERS | [opening](./2026-08-16-cp-providers-opening-check.md) | [closing](./2026-08-16-cp-providers-closing-ceremony.md) |
 | CP-RENDER-REPAIRS | [opening](./2026-08-20-cp-render-repairs-opening-check.md) | [closing](./2026-08-20-cp-render-repairs-closing-ceremony.md) |
 | CP-RICH-MARKDOWN | [opening](./2026-08-17-cp-rich-markdown-opening-check.md) | [closing](./2026-08-17-cp-rich-markdown-closing-ceremony.md) |

@@ -18,7 +18,7 @@ and `cairn-check` fails when the trunk projection is stale. Registration makes
 the inputs globally complete; derivation keeps the output single-sourced.
 
 <!-- cairn:paths:begin -->
-- **CP-OPS-002** — Cairn 2.0 · status `ready` · branch `path/cp-ops-002` · base `7aa3b1d`
+- **CP-OPS-002** — Cairn 2.0 · status `running` · branch `path/cp-ops-002` · base `7aa3b1d`
 <!-- cairn:paths:end -->
 
 ## Grandfathered in flight

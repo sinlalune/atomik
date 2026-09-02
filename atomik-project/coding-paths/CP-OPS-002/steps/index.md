@@ -78,6 +78,7 @@ born here, one complete record per step.
 - **[S09b](./S09b.md)** — The manifesto round: the protocol measured against its own vision — COMPLETE
 - **[S09c](./S09c.md)** — The rulings recorded, and the candidate they make — COMPLETE
 - **[S09d](./S09d.md)** — The suite was red in CI for seven pushes, and the checker was reading the host — COMPLETE
+- **[S09e](./S09e.md)** — The integration compared against the trunk, and found the path's first step — COMPLETE
 
 ## Which commit landed which step
 

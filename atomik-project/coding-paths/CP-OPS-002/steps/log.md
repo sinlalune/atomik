@@ -18,6 +18,8 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-02
 
+- `S09e` restores twenty-six session records edited at S00 and found by the
+  integration pull request; the closure repeats on a third candidate.
 - `S09d` reads CI before integrating and finds the validator self-test red
   since S08u: the checker trusted the host's branch variables inside fixture
   repositories. Repaired, reproduced by a fixture, and the closure restarted.

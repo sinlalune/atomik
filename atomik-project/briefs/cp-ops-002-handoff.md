@@ -60,8 +60,9 @@ the retained set stopped intersecting the branch — which is what the mandatory
 pre-merge rebase causes — and is repaired under `ADR-021`.
 
 **S08 is complete in twenty-three units, S09a has run the pilot, S09b has
-recorded the manifesto round, S09c the owner's rulings, and S09d a checker
-repair found by reading CI at closure** — the validator self-test had been red
+recorded the manifesto round, S09c the owner's rulings, S09d a checker repair found by
+reading CI at closure, and S09e twenty-six immutable records restored after the
+integration pull request found the S00 edit** — the validator self-test had been red
 in CI since S08u because the checker trusted `GITHUB_REF_NAME` inside fixture
 repositories; the first closure (candidate `e409e85`, commit `e05e2aa`) is void
 and retained, and the closure repeats on the commit landing S09d. The owner wrote a [manifesto](../../docs/cairn/manifesto.md)
@@ -274,7 +275,7 @@ the latest step.
 
 ## Next action
 
-**Repeat the closure on the commit that landed S09d**: read its CI run first,
+**Repeat the closure on the commit that landed S09e**, and integrate through a pull request from a non-path branch carrying only the path record, the view and the journal entry: read its CI run first,
 then audit it, record the closing acceptance under the owner's standing
 instruction of 2026-09-02 (*"can't you all do it yourself ?"*), commit `A`,
 read CI again, check drift, integrate from a temporary trunk worktree, verify

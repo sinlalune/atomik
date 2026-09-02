@@ -46,3 +46,5 @@ bedrock-36 icon exception with the condition for revisiting it. **Answer: keep i
 - **[CP-RENDER-REPAIRS @ d44d381](./cp-render-repairs-d44d381.md)** · 2026-08-20 · verdict: drift noted, proceeding
 - **[CP-RICH-MARKDOWN @ 9885ab3](./cp-rich-markdown-9885ab3.md)** · 2026-08-18 · verdict: drift noted, proceeding
 - **[CP-WORKTREE-CLEANUP @ 382ba30](./cp-worktree-cleanup-382ba30.md)** · 2026-08-24 · verdict: clean
+- **[CP-OPS-002 @ e409e85](./cp-ops-002-e409e85c4e70a09da8b2f7f743aa4cdc2806ae00.md)** · 2026-09-02 · verdict: drift noted, proceeding — voided, CI red on the candidate
+- **[CP-OPS-002 @ 041c713](./cp-ops-002-041c713a9328cbe6bc8948e399545057fc7a4d41.md)** · 2026-09-02 · verdict: drift noted, proceeding — voided, immutable records found edited at integration

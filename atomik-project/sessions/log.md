@@ -22,6 +22,8 @@ per entry in a `log/` subfolder — which was a concurrency fix, never a size on
 
 ## 2026-09-02
 
+- `CP-OPS-002 S09e` restores twenty-six ceremony records to their trunk blobs
+  and adds the correction record that explains the S00 edit and its retirement.
 - `CP-OPS-002 S09c` records the owner's twenty-four rulings on the manifesto
   convergence record, all accepted; the two *decide* items are answered in the
   note. The ruling to close the path makes this unit its candidate.
