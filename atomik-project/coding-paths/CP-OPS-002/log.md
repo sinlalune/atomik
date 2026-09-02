@@ -18,6 +18,8 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-02
 
+- Closure, third candidate: `1f4ba09` audited and accepted with CI read green on
+  the branch; status `ready`, `subject_commit` bound. Administrative commit only.
 - `S09e` voids the second closure: the integration pull request found the
   S00 edits to twenty-six immutable records. Restored; status back to `running`.
 - Closure, second candidate: `041c713` audited and accepted with CI read green;
