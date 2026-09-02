@@ -24,7 +24,6 @@ atomik:
   verify:
     - npm run cairn-check
     - npm test
-  budget_tokens: 1200
 ---
 
 # Resume CP-UI-TYPOGRAPHY here

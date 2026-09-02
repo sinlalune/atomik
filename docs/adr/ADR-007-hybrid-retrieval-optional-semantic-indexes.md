@@ -1,3 +1,15 @@
+---
+type: Atomik ADR
+title: 'ADR-007: Hybrid retrieval and optional semantic indexes'
+description: Search, context compilation and generation are separate; retrieval is strategy-pluggable and takes the cheapest sufficient path, with semantic indexes optional rather than assumed.
+tags: [adr, retrieval, hybrid, semantic, index, context, cost]
+timestamp: 2026-06-23T00:00:00Z
+adr:
+  id: ADR-007
+  status: accepted
+  date: 2026-06-23
+---
+
 # ADR-007: Hybrid retrieval and optional semantic indexes
 
 Status: accepted

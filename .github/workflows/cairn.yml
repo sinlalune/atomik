@@ -11,10 +11,29 @@
 # shipped because `typecheck | grep | head` swallowed a failing status).
 name: cairn
 
+# WHEN this runs is half the enforcement. Until 2026-08-24 it ran on `push:
+# master` and `pull_request` only — and every path in this repository has
+# merged with a LOCAL merge commit, never a pull request (`git log --merges`:
+# six "Merge CP-*", zero "Merge pull request"). So `pull_request` never fired,
+# `path/*` pushes fired nothing, and the only run happened on the trunk AFTER
+# the merge had already landed.
+#
+# The consequence: every path-scoped rule — branch→path, trunk registration,
+# the rebase gate, the remote checkpoint, scope drift, the coherence audit —
+# had never once executed in CI. The gate that `paths.md` calls "what makes a
+# gatekeeper unnecessary" could only ever observe a merge, not prevent one
+# (audit 2026-08-24, finding F8).
 on:
   push:
-    branches: [master]
+    branches: [master, 'path/**']
   pull_request:
+
+# Every completed checkpoint is pushed immediately, so a path
+# generates many runs. Supersede rather than queue them: the newest head of a
+# branch is the only one whose verdict matters.
+concurrency:
+  group: cairn-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   gates:
@@ -40,17 +59,59 @@ jobs:
           # cairn-check compares the branch against its merge-base, so it
           # needs history rather than the default shallow clone.
           fetch-depth: 0
+          # On a pull_request, the DEFAULT ref is the merge preview — a merge
+          # of this branch into the base. That commit contains the base tip by
+          # construction, so the rebase gate would pass on every stale branch
+          # without proving anything. Check out the pull request HEAD instead,
+          # so the gate judges the branch that will actually land. Empty on a
+          # push event, where the default ref is already correct.
+          ref: ${{ github.event.pull_request.head.sha }}
+      # THE RETENTION NAMESPACE IS NOT A BRANCH.
+      #
+      # `actions/checkout` fetches `refs/heads/*` and `refs/tags/*`. Checkpoint
+      # retention lives under `refs/cairn/*`, so a default checkout sees ZERO of
+      # it — and `git for-each-ref` over an unfetched namespace exits 0 with no
+      # output, which is indistinguishable from "nothing was ever retained".
+      # Every CI run of every path therefore reported the refs missing while
+      # they sat on the remote (CP-OPS-002 S08b). The checker now refuses to
+      # call that a fact; this is what lets it judge the real one instead.
+      #
+      # `|| true`: a repository that has never written a retention ref has no
+      # such namespace to fetch, and that is not a CI failure. The checker
+      # decides what an empty namespace means — the fetch only makes sure the
+      # question is asked with the evidence available.
+      #
+      # This repository now declares `pathHistoryPolicy: forbidden` (ADR-022), so
+      # it writes no retention refs and the checker does not read them. The step
+      # STAYS: it is harmless when the namespace is empty, it keeps this workflow
+      # correct as the adapter a `retained` host copies, and removing it is how a
+      # host that later switches back gets a green CI run over an unfetched
+      # namespace — the exact S08b failure, reintroduced by a cleanup.
+      - name: fetch the checkpoint retention namespace
+        run: git fetch origin '+refs/cairn/*:refs/cairn/*' || true
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      # No `npm ci` on purpose: the validator is dependency-free, which is
-      # what keeps it runnable in any pipeline and readable by a sceptic.
+      # The validator itself remains dependency-free. Its test job also checks
+      # the generated specification reader, whose renderer is a declared
+      # workspace dependency, so the complete executable contract is installed.
+      - run: npm ci
       - name: validator self-test
         run: npm run cairn-check:test
       - name: protocol check
         # --base doubles as the rebase gate: cairn-check fails a path/* branch
         # that does not already contain this ref's tip. Every path merges
         # itself, so nothing else stops a stale branch landing on a trunk it
-        # never saw. Pair it with the host's "require branches to be up to
-        # date" so the rule holds for merges made from the web UI too.
-        run: node tools/cairn-check.mjs --base "origin/${{ github.base_ref || 'master' }}"
+        # never saw. A protected profile must pair this with its tested
+        # exact-commit transport rather than relying on a generic host switch.
+        # No --previous (CP-OPS-002 S09e). This step used to pass the push
+        # event's `before` sha, so a push run compared each record with the
+        # push before it while the local default compares with the merge-base
+        # of the trunk — the exact parity gap S08a closed for `base`, left
+        # open for `previous`. Twenty-six immutable records edited at S00 were
+        # therefore never judged by any push run and were found only by the
+        # first pull request. Without the flag the checker derives the same
+        # comparison ref here as on a laptop: the merge-base with the trunk.
+        env:
+          CAIRN_BASE_REF: origin/${{ github.base_ref || 'master' }}
+        run: node tools/cairn-check.mjs --base "$CAIRN_BASE_REF"

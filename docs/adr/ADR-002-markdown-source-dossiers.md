@@ -1,3 +1,15 @@
+---
+type: Atomik ADR
+title: 'ADR-002: Markdown source dossiers as canonical source knowledge'
+description: Canonical source knowledge lives in Markdown `source.md` dossiers recording provenance, extraction, anchors and understanding beside the raw asset.
+tags: [adr, sources, dossier, provenance, markdown, anchors]
+timestamp: 2026-06-17T00:00:00Z
+adr:
+  id: ADR-002
+  status: accepted
+  date: 2026-06-17
+---
+
 # ADR-002: Markdown source dossiers as canonical source knowledge
 
 Status: accepted
