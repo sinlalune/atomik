@@ -3,7 +3,7 @@ type: Atomik Folder Log
 title: Log — atomik-project/sessions
 description: Recent meaningful changes to ceremonies, owner rulings and bench passes, per the OKF folder convention.
 tags: [log, okf, sessions]
-timestamp: 2026-08-24T00:00:00Z
+timestamp: 2026-09-02T00:00:00Z
 ---
 
 # Log — `atomik-project/sessions`
@@ -19,6 +19,12 @@ Seeded 2026-08-24 (CP-OPS-002 S05c) from Git history: the 15 most recent of 86 c
 remains the complete record; this is the readable one. If two paths ever start
 colliding on this file, it takes the amendment the journal already took — one file
 per entry in a `log/` subfolder — which was a concurrency fix, never a size one.
+
+## 2026-09-02
+
+- `CP-OPS-002 S09c` records the owner's twenty-four rulings on the manifesto
+  convergence record, all accepted; the two *decide* items are answered in the
+  note. The ruling to close the path makes this unit its candidate.
 
 ## 2026-08-24
 

@@ -6,8 +6,8 @@ atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: 6254339478941016940833d22dfada30673db858
-  checkpoint_unit: 44
+  checkpoint: 9c5fddf4089e77483bc5610cd7ccb1a82716bc37
+  checkpoint_unit: 45
   checkpoint_pushed: true
   base_commit: 7aa3b1d
   trunk_seen: dfcd09d
@@ -270,10 +270,13 @@ the latest step.
 
 ## Next action
 
-**S09c — close this path**, once the owner has read the convergence record and
-ruled on its checklists; a ruling that changes a rule or a page is a unit here
-only if the owner asks for it before closure, otherwise it belongs to the
-genesis. Fetch and merge `master` into `path/cp-ops-002`
+**The owner records the closing acceptance of candidate `C`** — the commit
+that landed S09c, named by full object id in the audit already filled in the
+working tree. All twenty-four manifesto decisions are ruled
+([rulings](../sessions/2026-09-02-cp-ops-002-manifesto-rulings.md));
+nothing else is implemented here. After acceptance: administrative commit `A`,
+drift check, `--no-ff` integration from the owner's trunk checkout, remote
+verification, worktree removal — the operations page, in that order. Fetch and merge `master` into `path/cp-ops-002`
 (never rebase: `pathHistoryPolicy: forbidden`), run every gate on the candidate,
 scaffold the coherence audit with `npm run cairn-audit -- --subject <C> --branch
 path/cp-ops-002` and fill it, then hand the owner the closing acceptance to
@@ -392,7 +395,7 @@ that ADDS a record.
 ## Verification
 
 `npm run cairn-check` — branch against trunk by default since S08a — reports OK.
-S09b records **13 advisories, and 13 is the steady state**: the twelve S09a
+S09c records **13 advisories, and 13 is the steady state**: the twelve S09a
 recorded plus one `scope-drift` line naming the owner's two untracked notes at
 the repository root (their copies under `docs/cairn/` are declared); it goes
 when the owner keeps or removes those notes: concept growth,

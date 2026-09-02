@@ -18,6 +18,9 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-02
 
+- `S09c` records the owner's rulings — all twenty-four accepted — and is the
+  branch's last implementation unit; its commit is the candidate the closure
+  binds.
 - `S09b` applies the owner's manifesto to the protocol as it stands and
   proposes the Cairn 1.0 shape; a measurement and a set of owner decisions, no
   rule or page changed. Closure is renumbered S09c.

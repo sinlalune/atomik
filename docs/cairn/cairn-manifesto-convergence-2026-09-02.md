@@ -68,7 +68,7 @@ ADR-020 already made context weight a constraint. The proposal in section 4 sets
 targets rather than counts, because ADR-020 also found that a cap that has never
 bound is a count, not a constraint.
 
-- [ ] Owner: agree that Cairn 1.0 is cut to a stated weight budget before it is published, rather than published and slimmed later.
+- [x] Owner: agree that Cairn 1.0 is cut to a stated weight budget before it is published, rather than published and slimmed later.
 
 ### The engine — *OKF norms; optimized, distributed, decentralized; the leanest tree; free-standing hierarchy; lightest token footprint through navigation*
 
@@ -97,9 +97,9 @@ The portable corpus is split across two roots: `paths.md` is installed under the
 project root while the specification is installed under the documentation root.
 A free-standing hierarchy would put every portable page in one place.
 
-- [ ] Owner: fold per-path events into the path folder (opening and closing acceptance inline in `index.md`, audit questions answered in the closing record, brief merged into the record's live header) — the lightweight route as v0.2 already specifies it, made the only shape.
-- [ ] Owner: keep `index.md` per folder, retire `log.md` in path folders and the specification, and keep a single journal (`log/`, one file per integrated outcome).
-- [ ] Owner: one portable root in the kit — `paths.md` moves beside the execution protocol.
+- [x] Owner: fold per-path events into the path folder (opening and closing acceptance inline in `index.md`, audit questions answered in the closing record, brief merged into the record's live header) — the lightweight route as v0.2 already specifies it, made the only shape.
+- [x] Owner: keep `index.md` per folder, retire `log.md` in path folders and the specification, and keep a single journal (`log/`, one file per integrated outcome).
+- [x] Owner: one portable root in the kit — `paths.md` moves beside the execution protocol.
 
 ### The brain — *a shared concept knowledge base: protocol, project, or coding abstractions; semantic decomposition is the best way to learn*
 
@@ -123,8 +123,8 @@ What would change: the concept wiki becomes a first-class portable artefact with
 one exporter. The protocol's wiki is the worked example an adopter's repository
 starts from, not the folder it writes into.
 
-- [ ] Owner: confirm the three-scope concept wiki as a Cairn 1.0 deliverable, ahead of any further checker work.
-- [ ] Owner: decide whether learning notes (one build, in order) are a Cairn artefact or an Atomik one. The manifesto's pedagogy section argues for Cairn.
+- [x] Owner: confirm the three-scope concept wiki as a Cairn 1.0 deliverable, ahead of any further checker work.
+- [x] Owner: decide whether learning notes (one build, in order) are a Cairn artefact or an Atomik one. The manifesto's pedagogy section argues for Cairn.
 
 ### The chronology — *idea, then ideation and research, then vision, then specification documents, then a roadmap, then coding cycles that reference those documents, with research loops during the project*
 
@@ -149,8 +149,8 @@ provisional; a promotion is one reviewed unit that adds an architecture page and
 a decision record; a roadmap milestone is a row that either has a path or says
 it does not yet. The register already does this in Atomik.
 
-- [ ] Owner: accept the chronology as the spine of the Cairn 1.0 specification.
-- [ ] Owner: name which upstream shapes are portable from Atomik as they are (brainstorm note, decision record, roadmap register) and which are Atomik-only (bedrock's product pages).
+- [x] Owner: accept the chronology as the spine of the Cairn 1.0 specification.
+- [x] Owner: name which upstream shapes are portable from Atomik as they are (brainstorm note, decision record, roadmap register) and which are Atomik-only (bedrock's product pages).
 
 ### The approach — *symbiosis with modern tools; native over invented; robustness, stability, simplicity in balance*
 
@@ -174,8 +174,8 @@ of the same judgement.
 Registration before branching stays: it is cheap, it is real, and it is what
 makes the live view complete. It has no native equivalent.
 
-- [ ] Owner: make the pull request the default integration transport in Cairn 1.0 (`manual-git` kept as the no-forge fallback), with `cairn-check` as the one required status check.
-- [ ] Owner: let closing acceptance be the review approval plus the journal entry the merge writes, rather than a separate hand-written record.
+- [x] Owner: make the pull request the default integration transport in Cairn 1.0 (`manual-git` kept as the no-forge fallback), with `cairn-check` as the one required status check.
+- [x] Owner: let closing acceptance be the review approval plus the journal entry the merge writes, rather than a separate hand-written record.
 
 ### The code — *isolated steps: planning, coding, reviewing, tests; the simplest and cleanest implementation; absorb ecosystem change*
 
@@ -186,8 +186,8 @@ review step, and no coding stance at all: the protocol governs records, not
 code. The manifesto asks for both, and the state of the art (section 3) has a
 ready shape for each.
 
-- [ ] Owner: add a coding stance to Cairn — the decision ladder in section 3 — as a skill, not as a rule the checker enforces.
-- [ ] Owner: define the work unit as plan → change → self-review → verify, with the plan and review as short sections of the step record rather than new files.
+- [x] Owner: add a coding stance to Cairn — the decision ladder in section 3 — as a skill, not as a rule the checker enforces.
+- [x] Owner: define the work unit as plan → change → self-review → verify, with the plan and review as short sections of the step record rather than new files.
 
 ### The engagement — *production-level workflow, beginner-friendly surface*
 
@@ -197,7 +197,7 @@ before the wiki, and the kit hands all of it to an adopter on day one. The
 project note asks for four documentation layers — manifesto, beginner overview,
 quick starts, exhaustive reference — and only the last exists.
 
-- [ ] Owner: the kit installs the thin surface (bootloader, config, tools, templates, skills) and *links* the specification at the pinned release; it stops copying 86 pages into every repository.
+- [x] Owner: the kit installs the thin surface (bootloader, config, tools, templates, skills) and *links* the specification at the pinned release; it stops copying 86 pages into every repository.
 
 ### The pedagogy — *everything written or generated is effortlessly comprehensible*
 
@@ -208,7 +208,7 @@ investigations. That is knowledge, and it is not effortless. The measurement
 culture — two pilots, twenty cold-resume trials, every claim counted — is rare
 and should be visible in the public documentation as a feature, in plain words.
 
-- [ ] Owner: a writing rule for Cairn 1.0 pages — one idea per page, the plain definition first, examples before rules — applied to the rewrite, not retrofitted onto history.
+- [x] Owner: a writing rule for Cairn 1.0 pages — one idea per page, the plain definition first, examples before rules — applied to the rewrite, not retrofitted onto history.
 
 ### The project — *the lightest but most efficient layer of project context; agnostic from previous or future implementation context*
 
@@ -221,7 +221,7 @@ self-sufficient brief is a second copy of the path record* — is the argument f
 merging it into the record's live header rather than keeping it as a file the
 protocol must remind writers to refresh (pilot finding 7).
 
-- [ ] Owner: one path, one folder — record with inline live header and resume section, optional plan, steps. Nothing else per path except the journal entry at integration.
+- [x] Owner: one path, one folder — record with inline live header and resume section, optional plan, steps. Nothing else per path except the journal entry at integration.
 
 ### Threats and opportunities
 
@@ -254,9 +254,9 @@ Cairn is not out of date in its execution half; it is ahead of the tools on
 durability and closure honesty. It is behind on packaging — skills — and thin on
 the upstream half the tools have made ordinary.
 
-- [ ] Owner: ship Cairn's procedures as Agent Skills in the 1.0 repository.
-- [ ] Owner: add `depends_on:` to the path record and "unblocked" to the live view; no graph database.
-- [ ] Owner: state compatibility with spec-driven toolkits in the overview rather than competing with them.
+- [x] Owner: ship Cairn's procedures as Agent Skills in the 1.0 repository.
+- [x] Owner: add `depends_on:` to the path record and "unblocked" to the live view; no graph database.
+- [x] Owner: state compatibility with spec-driven toolkits in the overview rather than competing with them.
 
 ## 4. The final form — Cairn 1.0
 
@@ -351,9 +351,9 @@ from it, Atomik is an adopter with a lock file, its `docs/cairn/` history stays
 as history, and its `tools/` are installed copies. Nothing portable is edited by
 hand in two places from that commit on.
 
-- [ ] Owner: approve the six-chapter spine, the keep and retire lists, and the weight budget as the opening acceptance of the genesis path — with the right to strike any line.
-- [ ] Owner: choose `npx cairn` as the distribution mechanism.
-- [ ] Owner: name the genesis commit as the authority cutover and Atomik as the first adopter.
+- [x] Owner: approve the six-chapter spine, the keep and retire lists, and the weight budget as the opening acceptance of the genesis path — with the right to strike any line.
+- [x] Owner: choose `npx cairn` as the distribution mechanism.
+- [x] Owner: name the genesis commit as the authority cutover and Atomik as the first adopter.
 
 ## 5. The protocol as a project
 
@@ -393,9 +393,9 @@ The recommended sequence: close this path as it stands (S09c), open the genesis
 as the first path of the new repository under the shape in section 4, cut before
 adding, and let the first queued project be the first adopter.
 
-- [ ] Owner: close CP-OPS-002 without further protocol work in it.
-- [ ] Owner: open the genesis path in the new repository with this page and the manifesto as its opening input.
-- [ ] Owner: pick the first queued project as adopter number one, and let its friction set the 1.1 agenda.
+- [x] Owner: close CP-OPS-002 without further protocol work in it.
+- [x] Owner: open the genesis path in the new repository with this page and the manifesto as its opening input.
+- [x] Owner: pick the first queued project as adopter number one, and let its friction set the 1.1 agenda.
 
 ## 6. What this page does not do
 

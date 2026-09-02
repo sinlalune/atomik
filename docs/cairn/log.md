@@ -22,6 +22,9 @@ per entry in a `log/` subfolder — which was a concurrency fix, never a size on
 
 ## 2026-09-02
 
+- `CP-OPS-002 S09c` carries the owner's ticks into the convergence record: all
+  twenty-four decisions accepted, the path closes, the genesis opens in the
+  protocol's own repository.
 - `CP-OPS-002 S09b` carries the owner's manifesto and project note into this
   folder verbatim and records the manifesto round: the protocol measured
   against its own vision and the current coding workflows, and the Cairn 1.0

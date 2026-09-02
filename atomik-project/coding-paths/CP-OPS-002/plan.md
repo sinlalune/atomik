@@ -137,8 +137,11 @@ brief names — and fix what the pilot finds before merging.
   measures the protocol against the [manifesto](../../../docs/cairn/manifesto.md)
   and the current coding workflows, and proposes the Cairn 1.0 shape. Its
   checklists are the owner's decisions; none is executed by this path.
-- **S09c — this path's own closure.** On a `forbidden` host: fetch and merge
-  `master` into the branch, run every gate on candidate `C`, scaffold and fill
+- **S09c — implementation done; ceremony in progress.** The owner ruled on all
+  twenty-four decisions ([rulings](../../sessions/2026-09-02-cp-ops-002-manifesto-rulings.md));
+  the unit that records them is the branch's last, and its commit is candidate
+  `C`. The trunk tip was already contained, so no merge was needed. What remains
+  is the ceremony, on a `forbidden` host: run every gate on candidate `C`, scaffold and fill
   the coherence audit bound to `C`, obtain the owner's closing acceptance, land
   the administrative commit, check acceptance drift, integrate from the owner's
   trunk checkout with a `--no-ff` merge that records `done`, regenerates the

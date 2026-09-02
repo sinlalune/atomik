@@ -3,7 +3,7 @@ type: Atomik Index
 title: Session records — ceremonies, rulings and bench passes
 description: How to find a session note without reading fifty-three of them: the naming convention, the ceremony declaration a blocking gate reads, and the ceremony table by path.
 tags: [sessions, ceremonies, index, okf, cairn]
-timestamp: 2026-08-24T00:00:00Z
+timestamp: 2026-09-02T00:00:00Z
 ---
 
 # Session records
@@ -52,7 +52,9 @@ note it already has, and the exception drains when they merge.
 
 A mid-path note that is not a ceremony carries `path:` and deliberately **no**
 `ceremony:` key — for example the
-[S06b rescope ruling](./2026-08-24-cp-ops-002-s06b-rescope.md).
+[S06b rescope ruling](./2026-08-24-cp-ops-002-s06b-rescope.md) or the
+[manifesto rulings](./2026-09-02-cp-ops-002-manifesto-rulings.md) that ended CP-OPS-002's
+implementation.
 
 ## Ceremonies by path
 
