@@ -4,6 +4,8 @@ title: CP-MVP-004 acceptance run — local speech runtime
 description: Line-by-line evidence against the definition of done; close awaits the owner.
 tags: [session, acceptance, speech, transcription]
 timestamp: 2026-07-07T00:00:00Z
+path: CP-MVP-004
+ceremony: closing
 ---
 
 # CP-MVP-004 acceptance — 2026-07-07

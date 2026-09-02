@@ -18,7 +18,7 @@ and `cairn-check` fails when the trunk projection is stale. Registration makes
 the inputs globally complete; derivation keeps the output single-sourced.
 
 <!-- cairn:paths:begin -->
-- **CP-OPS-002** — Cairn 2.0 · branch `path/cp-ops-002` · base `7aa3b1d`
+- *(no live path)*
 <!-- cairn:paths:end -->
 
 ## Grandfathered in flight
@@ -34,6 +34,7 @@ merge; no new path may copy the exception.
 
 ## Done
 
+- [CP-OPS-002 — Cairn 2.0: honest predicates, the protocol extracted, the manifesto applied](./CP-OPS-002/index.md) — done 2026-09-02 ([opening check](../sessions/2026-08-24-cp-ops-002-opening-check.md) · [closing](../sessions/2026-09-02-cp-ops-002-closing-2.md) · [audit](../audits/cp-ops-002-041c713a9328cbe6bc8948e399545057fc7a4d41.md))
 - [CP-UI-TYPOGRAPHY — one bundled proportional face, defined once](./CP-UI-TYPOGRAPHY.md) — done 2026-08-27 ([opening check](../sessions/2026-08-27-cp-ui-typography-opening-check.md) · [closing](../sessions/2026-08-27-cp-ui-typography-closing-ceremony.md) · [audit](../audits/cp-ui-typography-a380f2a.md))
 - [CP-WORKTREE-CLEANUP — retire a merged path's clean secondary worktree while retaining its branch](./CP-WORKTREE-CLEANUP.md) — done 2026-08-24 ([opening check](../sessions/2026-08-24-cp-worktree-cleanup-opening-check.md) · [closing](../sessions/2026-08-24-cp-worktree-cleanup-closing-ceremony.md))
 - [CP-RENDER-REPAIRS — math, Vega, chat slug and diagram canvas repairs](./CP-RENDER-REPAIRS.md) — done 2026-08-20 (merge `cc78d2f`)

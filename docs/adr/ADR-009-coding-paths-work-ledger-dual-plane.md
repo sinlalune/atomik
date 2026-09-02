@@ -1,3 +1,15 @@
+---
+type: Atomik ADR
+title: 'ADR-009: Durable coding paths, work ledger, and the dual-plane repository'
+description: Execution state becomes a durable plane beside the knowledge plane: a coding path file per bounded task, a Work Ledger checkpoint inside it, and the compressed brief demoted to a generated view.
+tags: [adr, coding-path, work-ledger, execution-state, agent, handoff]
+timestamp: 2026-07-05T00:00:00Z
+adr:
+  id: ADR-009
+  status: accepted
+  date: 2026-07-05
+---
+
 # ADR-009: Durable coding paths, work ledger, and the dual-plane repository
 
 Status: accepted

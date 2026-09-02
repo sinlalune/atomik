@@ -1,3 +1,15 @@
+---
+type: Atomik ADR
+title: 'ADR-008: Privacy-aware operation traces and explicit execution economics'
+description: Every meaningful AI or retrieval action emits an ActionTrace naming execution location, inputs, budget and cost, so where work ran and what it cost is never invisible.
+tags: [adr, action-trace, privacy, cost, telemetry, execution]
+timestamp: 2026-06-23T00:00:00Z
+adr:
+  id: ADR-008
+  status: accepted
+  date: 2026-06-23
+---
+
 # ADR-008: Privacy-aware operation traces and explicit execution economics
 
 Status: accepted

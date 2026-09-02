@@ -1,3 +1,15 @@
+---
+type: Atomik ADR
+title: 'ADR-013: Lexical retrieval without a database — a pure BM25 core'
+description: The lexical baseline is a dependency-free TypeScript core with the main process owning only I/O; SQLite/FTS5 is deferred until measurement, not preference, asks for it.
+tags: [adr, retrieval, bm25, lexical, performance, dependencies]
+timestamp: 2026-08-16T00:00:00Z
+adr:
+  id: ADR-013
+  status: accepted
+  date: 2026-08-16
+---
+
 # ADR-013: Lexical retrieval without a database — a pure BM25 core
 
 Status: accepted

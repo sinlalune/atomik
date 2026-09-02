@@ -2,6 +2,8 @@
 type: Atomik Session Record
 title: CP-MVP-003 acceptance run — PDF source tab (M4)
 timestamp: 2026-07-13T10:15:00Z
+path: CP-MVP-003
+ceremony: closing
 ---
 
 # CP-MVP-003 acceptance (2026-07-13)

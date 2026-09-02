@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * cairn-active — regenerate the running-paths view in ACTIVE.md.
+ * cairn-active — regenerate the live-paths view in ACTIVE.md.
  *
  * The owner's challenge (2026-08-14): "if an agent is merging it can
  * reconstruct those files on the go". Correct — and reconstructing beats
@@ -23,26 +23,32 @@
  *   node tools/cairn-active.mjs --check   # exit 1 if stale, write nothing
  */
 
-import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ACTIVE_FILE, PATHS_BEGIN, PATHS_END, readFrontmatter } from './cairn-check.mjs'
+import {
+  ACTIVE_FILE,
+  PATH_DIR,
+  PATHS_BEGIN,
+  PATHS_END,
+  readFrontmatter
+} from './cairn-check.mjs'
+import { REPO, metadataOf } from './cairn-config.mjs'
 
-const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const PATH_DIR = 'atomik-project/coding-paths'
+const LIVE_STATUSES = new Set(['running', 'blocked', 'ready'])
 
 /** Deterministic by construction: sorted by id, so two people regenerating
  *  from the same path files produce byte-identical output. */
 export function renderPaths(paths) {
   if (paths.length === 0) {
-    return '- *(no path running)*'
+    return '- *(no live path)*'
   }
   return paths
     .slice()
     .sort((a, b) => a.id.localeCompare(b.id))
     .map(
       (path) =>
-        `- **${path.id}** — ${path.title} · branch \`${path.branch}\` · base \`${path.base}\``
+        `- **${path.id}** — ${path.title} · status \`${path.status}\` · branch \`${path.branch}\` · base \`${path.base}\``
     )
     .join('\n')
 }
@@ -61,26 +67,35 @@ export function spliceBlock(text, body) {
 }
 
 export function collectPaths(files) {
-  const running = []
+  const live = []
   for (const { name, text } of files) {
     const parsed = readFrontmatter(text)
-    const front = parsed?.data?.atomik
-    if (!front || front.status !== 'running' || !front.branch) continue
-    running.push({
-      id: front.id ?? name.replace(/\.md$/, ''),
+    const front = metadataOf(parsed?.data)
+    if (!front || !LIVE_STATUSES.has(front.status) || !front.branch) continue
+    live.push({
+      id: front.id ?? name,
       title: (parsed.data.title ?? '').replace(/^['"]|['"]$/g, '').split(' — ')[0],
+      status: front.status,
       branch: front.branch,
       base: front.base_commit ?? 'unpinned'
     })
   }
-  return running
+  return live
 }
 
 function main() {
   const check = process.argv.includes('--check')
-  const files = readdirSync(join(REPO, PATH_DIR))
-    .filter((file) => file.startsWith('CP-') && file.endsWith('.md'))
-    .map((name) => ({ name, text: readFileSync(join(REPO, PATH_DIR, name), 'utf8') }))
+  // Two record shapes: the flat `CP-<id>.md` every path used, and the folder
+  // `CP-<id>/index.md` a path is born in under ADR-020 decision 4. The view is a
+  // projection of declarations, so it has to see both or it silently omits a
+  // running path — which is the exact failure trunk registration was added for.
+  const files = readdirSync(join(REPO, PATH_DIR), { withFileTypes: true })
+    .filter((entry) => entry.name.startsWith('CP-'))
+    .map((entry) => (entry.isDirectory()
+      ? { name: entry.name, file: join(entry.name, 'index.md') }
+      : { name: entry.name.replace(/\.md$/, ''), file: entry.name }))
+    .filter((entry) => entry.file.endsWith('.md') && existsSync(join(REPO, PATH_DIR, entry.file)))
+    .map(({ name, file }) => ({ name, text: readFileSync(join(REPO, PATH_DIR, file), 'utf8') }))
 
   const active = join(REPO, ACTIVE_FILE)
   const current = readFileSync(active, 'utf8')

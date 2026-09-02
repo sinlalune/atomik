@@ -2,6 +2,9 @@
 type: Atomik Session Record
 title: CP-FEEDBACK opening check — heterogenous workbench feedback contracts and path split confirmed
 timestamp: 2026-08-16T00:00:00Z
+path: CP-FEEDBACK
+branch: path/cp-feedback
+ceremony: opening
 ---
 
 # CP-FEEDBACK opening check (2026-08-16)

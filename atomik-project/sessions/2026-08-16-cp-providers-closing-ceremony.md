@@ -2,6 +2,8 @@
 type: Atomik Session Record
 title: CP-PROVIDERS closing ceremony — multi-provider AI architecture completed; path approved for merge
 timestamp: 2026-08-16T00:00:00Z
+path: CP-PROVIDERS
+ceremony: closing
 ---
 
 # CP-PROVIDERS closing ceremony (2026-08-16)

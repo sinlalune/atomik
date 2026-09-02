@@ -6,7 +6,11 @@ Build the first Atomik Workbench MVP from this bedrock bundle.
 
 Start with Electron + Vite + React + TypeScript. Do not start with the Atomik DSL, canvas, full claim graph, public-knowledge mirror, or autonomous web-research agent. Implement the secure desktop foundation, a Dev Docs tab that renders this documentation, a local Markdown vault, project bundle support, tab/pane workspace, Markdown source dossiers, and a selection-native AI patch flow with a **minimal truth/evidence contract and privacy-aware ActionTrace**.
 
-Before anything else: follow the bootstrap protocol in `22_22-agent-handoff.md`. Open `atomik-project/coding-paths/ACTIVE.md`; the concrete milestone content of this prompt lives in `CP-MVP-001.md`, where its progress is tracked. Do not reconstruct progress from conversation history.
+Before anything else: follow the repository-root `AGENTS.md`, including Cairn's
+portable execution protocol and Atomik binding. Open
+`atomik-project/coding-paths/ACTIVE.md`; the concrete milestone content of this
+prompt lives in `CP-MVP-001.md`, where its progress is tracked. Do not
+reconstruct progress from conversation history.
 
 ## First implementation order
 

@@ -1,3 +1,15 @@
+---
+type: Atomik ADR
+title: 'ADR-014: Rich Markdown is a bounded, lazy projection registry'
+description: Raw Markdown bytes stay canonical and every rich rendering — math, diagrams, charts, highlighting — is a disposable projection that never rewrites the note.
+tags: [adr, markdown, rendering, katex, mermaid, vega, projection]
+timestamp: 2026-08-17T00:00:00Z
+adr:
+  id: ADR-014
+  status: accepted
+  date: 2026-08-17
+---
+
 # ADR-014: Rich Markdown is a bounded, lazy projection registry
 
 Status: accepted
