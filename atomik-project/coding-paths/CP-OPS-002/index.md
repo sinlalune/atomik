@@ -7,10 +7,11 @@ timestamp: 2026-08-24T00:00:00Z
 atomik:
   id: CP-OPS-002
   route: full            # control plane + decision plane; escalation is one-way
-  status: running
+  status: ready
   current_step: S09d
   base_commit: 7aa3b1d
   branch: path/cp-ops-002
+  subject_commit: 041c713a9328cbe6bc8948e399545057fc7a4d41
   writes:                    # ADVISORY — a signal, never a lock
     - tools/cairn-check.mjs
     - tools/cairn-check.test.mjs

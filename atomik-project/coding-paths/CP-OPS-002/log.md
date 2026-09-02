@@ -18,6 +18,8 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-02
 
+- Closure, second candidate: `041c713` audited and accepted with CI read green;
+  status `ready`, `subject_commit` bound. Administrative commit only.
 - `S09d` (cont.) regenerates the view the status change invalidated; `2def1a2`
   was pushed with it stale because a script printed the gate's `FAILED` and
   went on. The regenerating commit is the candidate.
