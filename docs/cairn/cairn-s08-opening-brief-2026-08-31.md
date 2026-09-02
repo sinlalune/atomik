@@ -1,0 +1,447 @@
+---
+type: Cairn Brief
+title: S08 opening brief — what changed under the portability work while it waited
+description: The context S08 needs before it starts: two live enforcement defects on the trunk, a third found during the pre-merge rebase that disables retention exactly when it matters, a records-accuracy defect, and the revised order of work.
+tags: [cairn, s08, portability, enforcement, soundness, brief]
+timestamp: 2026-08-31T00:00:00Z
+---
+
+# S08 opening brief
+
+S08 was planned as portability: `cairn.config.json`, a loader, `cairn-new.mjs`,
+and the `cairn-init` seed kit. That plan was written when the checker's rules
+were believed sound. They are not, and the evidence accumulated while S08 waited.
+
+This brief exists so S08 starts with that context instead of discovering it. It
+changes the **order** of the work, not the goal.
+
+## The one sentence
+
+**Every enforcement defect found in the reference checker is a rule that agreed
+too easily, and one of them switches itself off during the mandatory pre-merge
+rebase.** Making the checker portable before making it sound would ship the
+unsoundness to every repository that adopts Cairn.
+
+## Read these first
+
+Four concept articles were written for this, because the failure has a shape and
+the shape recurs:
+
+- [proxy predicate](./specification/concepts/proxy-predicate.md) — a rule
+  computes something *near* what it means, and the stand-in is nearly always the
+  broader condition;
+- [unsound gate](./specification/concepts/unsound-gate.md) — what that produces:
+  a gate whose passing does not mean what it says, and which is invisible because
+  its output is a green line;
+- [adversarial fixture](./specification/concepts/adversarial-fixture.md) — the
+  only evidence a rule works: a crafted violation it rejects;
+- [gate parity](./specification/concepts/gate-parity.md) — one gate, one tree,
+  the same verdict locally and in CI.
+
+The normative directive is
+[*Prove that the gate can fail*](./specification/index.md#prove-that-the-gate-can-fail).
+Its four requirements are the acceptance criteria for most of S08's first half.
+
+## Finding 1 — the closing-ceremony gate passes from the day a path opens
+
+**Live on the trunk. Blocking severity, zero enforcement.**
+
+```js
+/** A closing ceremony leaves a session note naming the path. */
+function hasCeremony(pathId) {
+  const id = pathId.toLowerCase()
+  return readdirSync(join(REPO, SESSION_DIR)).some(
+    (file) => file.toLowerCase().includes(id) && file.endsWith('.md')
+  )
+}
+```
+
+The comment states the sentence. The code asks a **filename** question. Opening a
+path writes `YYYY-MM-DD-<id>-opening-check.md`, whose filename contains the id —
+so the gate that is supposed to prove a human accepted the finished work is
+satisfied by the note written before any work existed.
+
+`paths.md` calls this rule *"the only human guard left once the integrator is
+gone."* Every path in this repository has passed it since the day it opened.
+
+**Fix:** read the `ceremony:` frontmatter key, not the filename. Bedrock 24
+already specifies `ceremony: opening | closing` as a root-level key and explains
+why the nested form fails. The CP-OPS-002 branch has `ceremonyFromSessions` doing
+this correctly; it has never reached the trunk.
+
+**Fixture it must reject:** a path at `status: done` whose only session note is
+its opening check.
+
+## Finding 2 — the merge-time journal entry has no predicate at all
+
+**Live on the trunk. A stated requirement, enforced nowhere.**
+
+`AGENTS.md` requires one file per entry under the journal root, written at merge
+time. No rule asks for one. `same-work-unit` fires when *source* changes without
+a module note or ledger; a closing unit changes neither, so nothing asks.
+
+Observed, not hypothesised: CP-UI-TYPOGRAPHY was closed, audited, had its status
+set to `done` and was proposed for merge with no journal entry, and every gate
+reported `OK`. A human reviewer caught it.
+
+**This is the case that motivates requirement 4 of the directive.** An unenforced
+requirement and an unsound gate are indistinguishable from inside a green run —
+both produce a passing check over a condition nobody verified. Only the
+conformance matrix can tell a reader which one they are looking at.
+
+**Fix:** a rule that fires when a path record transitions to `done` and no
+journal entry names it. **Fixture:** exactly the state described above.
+
+## Finding 3 — retention switches itself off during the rebase it exists to survive
+
+**Found during CP-OPS-002's own pre-merge rebase, 2026-08-31. The most severe of
+the three, and new.**
+
+[Checkpoint retention](./specification/concepts/checkpoint-retention.md) exists
+so that a rewriting push cannot orphan a checkpoint the ledger names. S07k
+repaired it once: checking that every *declared unit* resolves a ref is not the
+same as checking that every *completed commit* is retained, because a ref moved
+forward leaves every unit resolving. The repair walks the branch:
+
+```js
+export function unretainedCheckpoints(commits, retained, provisional, head) {
+  const retainedSet = new Set(retained)
+  if (retainedSet.size === 0) return []
+  const oldest = commits.findIndex((commit) => retainedSet.has(commit))
+  if (oldest === -1) return []                    // ← here
+  return commits.slice(oldest).filter(/* … */)
+}
+```
+
+The guarded line is deliberate and its reasoning is stated: *"The range starts at
+the oldest retained checkpoint, because commits older than the convention cannot
+be judged by it."* That is correct for a repository adopting retention mid-life.
+
+A **rebase gives every commit on the branch a new object id.** The retained refs
+still point at the pre-rebase commits, which are now off the branch. So the
+retained set and the branch range stop intersecting, `findIndex` returns `-1`,
+and the function concludes *"no commits to judge"* rather than *"every commit is
+unretained."*
+
+Measured on this branch immediately after its rebase:
+
+```text
+retention refs                13
+commits in the branch range   41
+retained oids still in range   0
+findIndex(...)                -1   →  unretainedCheckpoints returns []
+npm run cairn-check           OK — protocol satisfied
+```
+
+Thirty-one rebased commits, none retained, and the rule that exists to say so
+reported OK.
+
+Rebase-before-merge is **mandatory** in this protocol, so this does not fire
+occasionally — it fires on every path, immediately before every merge. The
+guarantee evaporates at exactly the moment it is needed.
+
+### The specification gap underneath it
+
+This is not only an implementation bug. The ref namespace has no room for the
+answer:
+
+```text
+refs/cairn/checkpoints/<path-id>/<n>
+```
+
+`<n>` is the ledger ordinal. After a rebase, unit 07 names a *different commit*
+than it did before, and both commits deserve retention — the old one because
+history must survive the rewrite, the new one because the next rewrite must not
+orphan it. The refs are specified as append-only and never moved, so the existing
+ref cannot be repointed, and the ordinal alone cannot name both.
+
+**S08 must decide the shape before implementing the check**, and the decision is
+ADR-sized. The obvious candidate is a generation component
+(`…/<path-id>/<n>/<generation>` or `…/<path-id>/<rebase-epoch>/<n>`), but that is
+a proposal, not a conclusion. Deliberately not decided here: inventing namespace
+structure outside the specification is what `AGENTS.md` forbids.
+
+### The state this branch is in right now
+
+CP-OPS-002 rebased onto `dfcd09d` on 2026-08-31. Refs `01`–`13` hold the
+**pre-rebase** commits, so nothing is lost and every historical checkpoint is
+still fetchable. The 31 rebased commits are **unretained**, and no ref was moved
+to make it look otherwise. That state is recorded here rather than papered over,
+because papering over it is precisely the S07k violation.
+
+## Finding 5 — the default local command and the CI command use different bases
+
+**Found while verifying Finding 3. The most consequential gate-parity break, and
+it is not an edge case.**
+
+```text
+npm run cairn-check                              → compares the working tree with HEAD
+node tools/cairn-check.mjs --base origin/master  → compares the branch with the trunk
+```
+
+Every rule that evaluates *changed files* therefore sees a different set. On this
+branch the local run sees **0 changed files** and reports `OK`; the CI run sees
+**224** and reports nine blocking findings. Both commands are correct about the
+question they were asked, and only one of them is the question that decides the
+merge.
+
+The consequence is worse than a surprise at merge time. `CP-OPS-002` has been
+**red in CI for many pushes**, and every local gate run — the one a work unit
+records as its verification — said `OK`. Ledger entries in this path claim
+`verified: cairn-check` on that basis. They are not false, but they are weaker
+than they read.
+
+> **Correction, 2026-08-31 (S08b/S08c), from the CI runs themselves.** When this
+> brief was written the runs could not be read from this machine, and the
+> redness was attributed below to the `CP-MVP-008` findings the local
+> branch-versus-trunk run reported. **CI never reported those.** Its command
+> passes `--previous`, which forward-scopes the record rules to the pushed
+> commit, and `CP-MVP-008.md` had not changed — so those rules never evaluated
+> it there.
+>
+> The real cause, on **every** red run, was `checkpoint-retention`:
+> `actions/checkout` does not fetch `refs/cairn/*`, and the rule read that empty
+> namespace as absent refs. Measured: last green `6dd7fb2` (2026-08-26T21:25Z),
+> then ten consecutive failures through `1090ead` (2026-08-31T11:36Z), green
+> again at `3b40648` once S08b landed the fetch and the inconclusive verdict.
+>
+> `6dd7fb2` is the sharpest part. It was green because the path record declared
+> exactly **one** work unit, and the newest unit is exempt — so the rule had
+> nothing to ask. A second unit appeared in the next commit and it went red
+> immediately. **`checkpoint-retention` has never once produced a true verdict in
+> CI**: vacuous while it had no question, wrong from the moment it had one.
+>
+> The lesson is the brief's own: a claim about what a gate reported must come
+> from the gate's output, not from a local run that resembles it.
+
+This is the same [gate parity](./specification/concepts/gate-parity.md) property
+as the derived-view defect, and a better worked example, because nothing exotic
+is involved: it is the documented local command against the documented CI
+command, on an ordinary branch, every single time.
+
+**Fix:** `npm run cairn-check` on a `path/*` branch MUST default its base to the
+trunk, the way CI does. A developer should have to opt *out* of the merge-deciding
+comparison, not opt in to it.
+
+**Fixture:** one branch, both invocations, one verdict asserted.
+
+### What the local default is hiding on this branch
+
+(Corrected heading: these are what the **local** branch-versus-trunk run reports
+and the local default hides. They are not what CI reported — see the correction
+above.)
+
+Eight blocking findings and one inconclusive, all on `CP-MVP-008.md`, all
+pre-existing before S07r: a `done` path whose record predates the v0.2 acceptance
+schema and lacks `resolution`, a full-length `subject_commit`, `accepted_by`,
+`accepted_at`, `decision`, `scope_ref` and `advisory_disposition`.
+
+**Deliberately not repaired.** Supplying those fields means writing who accepted a
+path, when, and against what scope — for a path closed weeks ago by someone else.
+That is fabricating a signature, and it is the one thing the acceptance record
+exists to prevent. The options are an owner ruling, a named migration exception
+of the kind S07i already implements and which reports itself once spent, or a
+deliberate schema carve-out for pre-v0.2 records. All three are decisions; none
+is a repair.
+
+## Finding 4 — dated records can carry a date that is not the date
+
+**Records accuracy. Already merged, and therefore immutable.**
+
+Every CP-UI-TYPOGRAPHY record — the opening check, the closing ceremony, the
+coherence audit, the journal entry, and their filenames — is dated `2026-08-27`.
+Only S01 happened that day. S02 through S05, the ceremony, the audit and the
+journal entry all happened on `2026-08-31`, as the commit dates show.
+
+The journal is the record that says when work was integrated. This one says a
+date it was not.
+
+No rule caught it, and no rule could as written: the checker validates that
+frontmatter keys are *present* and well-formed, never that a `timestamp:` matches
+when the file was written or that a filename's date matches its frontmatter.
+
+**Not corrected here.** The records are merged, and session, audit and journal
+records are immutable once written. Correcting them is an owner decision about
+which is worse — an inaccurate date, or rewriting an event record after
+integration — and the protocol's answer to that question is
+[record integrity](./specification/concepts/record-integrity.md), which S08
+should read before proposing anything.
+
+**Candidate rule, cheap and sound:** a record's filename date MUST equal its
+frontmatter `timestamp:` date. That catches disagreement between two things the
+author wrote, without requiring the checker to know what day it is.
+
+## Owner rulings, 2026-08-31
+
+Two questions were put to the owner and both are settled, with the reasoning
+recorded so the next reader can check it rather than trust it.
+
+### CP-MVP-008 — the named migration exception, not a hand-written signature
+
+**Settled: add it to `V02_MIGRATION_PATHS`. Done in S07s.**
+
+An **acceptance record** is the part of a path record that says a named person,
+at a named time, looked at one exact commit and accepted it. Its fields exist so
+that "done" is a claim somebody made about a specific object, rather than a word
+somebody typed.
+
+CP-MVP-008 fails eight of those checks, and the reason is not carelessness. It
+closed on 2026-08-04, **ran entirely on the trunk**, and predates path branches,
+candidate-bound closure and the v0.2 acceptance schema together. `git log
+--merges` shows no merge commit for it — only linear trunk commits. So there is
+no candidate commit to name, because the protocol it ran under had no such
+object.
+
+Its acceptance is not missing. It is in
+`sessions/2026-08-04-cp-mvp-008-acceptance.md`, with the owner's ruling quoted
+verbatim. What is missing is a *schema that did not exist yet*.
+
+Filling the fields by hand would convert an unstructured record into a structured
+signature by typing. The exception says *this record predates the schema*;
+inventing the fields would say *someone signed a form nobody had written*. Those
+are different claims and only one of them is true.
+
+The mechanism was already built for exactly this — S07i's finite, named,
+**self-deleting** exception set. `migrationDebt` reports any listed path that is
+archived or gone, so the exception is removed by a failing gate rather than by
+someone remembering. The findings stay visible as advisories carrying the reason.
+
+### The wrong dates — they stand, and a new record says so
+
+**Settled by the protocol, not by preference.**
+
+Session, audit and journal records are immutable once written, and
+[redaction](./specification/concepts/record-integrity.md) is the **only**
+sanctioned exception — it exists for removing content that must not persist, not
+for correcting content that is merely wrong. Editing a merged event record to fix
+its date would use the one power the protocol grants for the one purpose it does
+not grant it for.
+
+So the CP-UI-TYPOGRAPHY records keep their `2026-08-27` dates, and the correction
+lives in a **new** record: this brief, the CP-OPS-002 ledger, and that path's
+journal entry when it merges. That is the general shape — *a record is corrected
+by a later record, never by an edit* — and it is why the journal is append-only
+in the first place.
+
+The rule that prevents a recurrence is cheap and sound: **a record's filename
+date MUST equal its frontmatter `timestamp:` date.** It compares two things the
+author wrote, so the checker never needs to know what day it is. In S08 Part 1.
+
+## The teaching axis — a protocol artifact, not a habit
+
+Owner directive, 2026-08-31:
+
+> "it is the only way to truly understand something, by decomposing complex into
+> simpler concept units … creating a shared knowledge base that we can leverage
+> as the project goes on, and even maybe export it to another md base"
+
+This is a **protocol requirement**, not a documentation preference, and S08 owns
+it.
+
+Cairn already has the form and uses it for one thing only: its own vocabulary, in
+`specification/concepts/`. Each page is one idea, in a fixed shape — a plain
+definition, *Build the idea* (why it exists, from first principles), *In Cairn*
+(how the protocol uses it), *It does not prove* (its limits), and *Related* links.
+The specification then **links to those names instead of re-explaining them**,
+which is what lets the normative text stay short without becoming compressed.
+
+The host repository's `docs/learning/` does not work this way. Its notes are
+excellent and they are **walkthroughs**: chronological, scoped to a path's steps
+("everything built in CP-MVP-001 S02–S03"). A walkthrough teaches a build. It
+cannot be linked to from somewhere else, because it is not *about* one idea.
+
+The two forms are complements, and the protocol should name both:
+
+| Form | Organised by | Answers | Reusable from elsewhere |
+| :-- | :-- | :-- | :-- |
+| **Concept note** | one idea | *what is this, why does it exist, what does it not prove* | yes — it is a link target |
+| **Learning note** | one build, in order | *how were these pieces assembled, and why in this order* | no, and it should not be |
+
+S08 work items:
+
+1. **Specify the concept note as an artifact type** — its shape, its frontmatter,
+   and the rule that a concept note is about exactly one idea. The four articles
+   written in S07q are the worked examples.
+2. **Require the link, not the re-explanation.** Where a specialised term has a
+   concept note, normative and learning text SHOULD link it rather than redefine
+   it. Redefinition in two places is the drift the `--note-*` block already warns
+   about, applied to prose.
+3. **Scaffold it in `cairn-init`** — a `concepts/` directory, an index that
+   separates borrowed vocabulary from vocabulary the project defines, and the
+   page template. An adopting repository gets the form on day one.
+4. **Make it exportable.** The concept graph is plain Markdown with relative
+   links, and `cairn-spec-build.mjs` already projects it into one self-contained
+   HTML reader. Generalise that projection so any project's concept wiki renders
+   the same way — that is the "export to another md base" the directive asks for.
+5. **Rebuild `docs/learning/` on it, incrementally.** Not a rewrite: when a
+   learning note explains an idea that deserves a name, extract the idea into a
+   concept note and link to it. The learning note keeps the walkthrough.
+
+The measurement, borrowed from the cold-resume pilot's discipline: a concept note
+works when a reader who has never seen the code can state what the idea is, why
+it exists, and one thing it does not prove. If it cannot do that, it is a
+walkthrough wearing a concept note's frontmatter.
+
+## Revised order for S08
+
+The goal is unchanged: extract Cairn so another repository can adopt it. The
+order changes, because shipping a portable copy of an unsound checker multiplies
+the unsoundness by the number of adopters.
+
+### First — make the existing rules honest
+
+1. Fix `hasCeremony` to read the `ceremony:` key. One function, one fixture.
+2. Add the journal-entry predicate. One rule, one fixture.
+3. Fix the derived-view rule to key on the path's declared `status`, not on the
+   branch name — the [gate parity](./specification/concepts/gate-parity.md)
+   requirement, and a defect already demonstrated once.
+3b. Make `npm run cairn-check` default to the trunk base on a `path/*` branch,
+   so the local verdict is the one that decides the merge (Finding 5). Do this
+   **early**: until it lands, every "gates green" claim in a ledger is weaker
+   than it reads, including the ones this path has already written.
+3c. Rule on `CP-MVP-008.md` before the merge — owner decision, migration
+   exception, or schema carve-out. Not a repair, because the missing fields are
+   a signature.
+4. Decide the retention-generation question, record it as an ADR, then implement
+   the check. This one is design work before code.
+
+### Second — make soundness structural rather than remembered
+
+5. An [adversarial fixture](./specification/concepts/adversarial-fixture.md) for
+   every blocking rule, with the rule's own name asserted in the finding. There
+   are 26. This is the step that converts "we fixed four bugs" into "this class
+   of bug now fails the build".
+6. A test that runs one gate in both invocation contexts — a `path/*` branch and
+   a detached ref — and asserts the same verdict.
+7. Generate the conformance matrix from the checker plus the normative text, so
+   requirement 4 of the directive is mechanical rather than clerical.
+
+### Third — the teaching axis, which the init kit must carry
+
+The concept-note artifact type, the link-don't-redefine rule, and the
+generalised reader. It lands before portability because `cairn-init` scaffolds
+it: a form added after adoption is a migration, and a form added before adoption
+is just the shape of the thing.
+
+### Fourth — the portability work as originally planned
+
+8. `cairn.config.json` and its loader, so `cairn-check.mjs` stops hard-coding the
+   plane roots, the source roots, `AREA_MAP` and the grandfather set.
+9. The folder rename to the portable role name, which the loader makes real
+   rather than documented.
+10. `tools/cairn-new.mjs` — registration, gates and commit in one command. Note
+    that the trunk now requires a pull request, so the tool must open one; the
+    registration performed by hand on 2026-08-31 is the worked example.
+11. `cairn-init` seed template, scaffolding tiers 0 and 1 only.
+
+## What S08 should not do
+
+- **Do not add rules before adding fixtures.** The catalogue went 24 → 40 in four
+  days and produced five unsound rules. The cold-resume pilot's own verdict was
+  *do not change the normative text yet*. Rule count is not the metric; the
+  fraction of blocking rules with a rejecting fixture is.
+- **Do not fix Finding 4 by rewriting merged records** without ruling on record
+  integrity first.
+- **Do not repoint retention refs** to make Finding 3 look resolved. Moving a ref
+  is the S07k violation, and the pre-rebase commits are the only thing currently
+  keeping that history reachable.

@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:cairn:config:v1",
+  "title": "Cairn configuration schema 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "trunk",
+    "remote",
+    "metadataNamespace",
+    "enforcementProfile",
+    "roots",
+    "areas",
+    "sharedFiles",
+    "staleAfterDays",
+    "defaultRoute",
+    "checkpointRetentionRef",
+    "pathHistoryPolicy",
+    "scopeDigestAlgorithm",
+    "transport",
+    "migration"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "const": 1 },
+    "trunk": { "type": "string", "minLength": 1 },
+    "remote": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+    "metadataNamespace": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$" },
+    "enforcementProfile": { "enum": ["local", "ci", "protected"] },
+    "roots": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "documentation", "project", "architecture", "decisions", "modules", "concepts", "source"
+      ],
+      "properties": {
+        "documentation": { "$ref": "#/$defs/path" },
+        "project": { "$ref": "#/$defs/path" },
+        "architecture": { "$ref": "#/$defs/path" },
+        "decisions": { "$ref": "#/$defs/path" },
+        "modules": { "$ref": "#/$defs/path" },
+        "concepts": { "$ref": "#/$defs/path" },
+        "source": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/path" }
+        }
+      }
+    },
+    "areas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "match", "note"],
+        "properties": {
+          "name": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+          "match": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "$ref": "#/$defs/path" }
+          },
+          "note": { "$ref": "#/$defs/path" }
+        }
+      }
+    },
+    "sharedFiles": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/path" }
+    },
+    "staleAfterDays": { "type": "integer", "minimum": 1 },
+    "defaultRoute": { "enum": ["lightweight", "full"] },
+    "checkpointRetentionRef": {
+      "oneOf": [
+        { "type": "string", "pattern": "^refs/[A-Za-z0-9._/-]+$" },
+        { "type": "null" }
+      ]
+    },
+    "pathHistoryPolicy": { "enum": ["retained", "forbidden"] },
+    "scopeDigestAlgorithm": { "const": "sha256" },
+    "transport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["registration", "integration"],
+      "properties": {
+        "registration": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+        "integration": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" }
+      }
+    },
+    "migration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unregisteredPaths", "undeclaredOpenings", "v02Records"],
+      "properties": {
+        "unregisteredPaths": { "$ref": "#/$defs/pathIdArray" },
+        "undeclaredOpenings": { "$ref": "#/$defs/pathIdArray" },
+        "v02Records": { "$ref": "#/$defs/pathIdArray" }
+      }
+    }
+  },
+  "$defs": {
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^\\\\]+$",
+      "not": { "pattern": "(^/|(^|/)\\.\\.?(/|$)|^[A-Za-z]:[\\\\/])" }
+    },
+    "pathIdArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^CP-[A-Z0-9][A-Z0-9-]*$" }
+    }
+  }
+}

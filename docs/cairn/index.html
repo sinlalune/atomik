@@ -332,7 +332,37 @@
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
   }
+  /* Every rendered page states its vintage. This one drifted for ten days
+     teaching a rejected model because nothing on it claimed a date. */
+  .vintage {
+    background: var(--surface-sunk); color: var(--ink-soft);
+    border-bottom: 1px solid var(--rule-strong);
+    padding: .9rem 0; font-size: .88rem; line-height: 1.55;
+  }
+  .vintage p { margin: 0; }
+  .vintage strong { color: var(--ink); }
+  .vintage code {
+    background: var(--surface); color: var(--ink);
+    padding: .08em .35em; border-radius: 3px;
+    border: 1px solid var(--rule);
+  }
+
 </style>
+
+<div class="vintage" role="note" aria-label="Document status">
+  <div class="wrap">
+    <p><strong>Current as of 2026-08-25.</strong> This page renders
+    <code>ADR-012</code> (parallel paths, self-merge), <code>ADR-016</code>
+    (enforcement integrity) and <code>ADR-017</code> (the path lifecycle). The authoritative text is
+    <code>atomik-project/coding-paths/paths.md</code>; where this page and that
+    file disagree, the file wins.
+    <br>Rewritten at CP-OPS-002 S06: until 2026-08-24 it taught the
+    <em>integrator</em> model — an integration parent, delivery lanes, and one
+    gate everything merged through — which the owner rejected on 2026-08-14. It
+    drifted unnoticed for ten days because nothing on it claimed a vintage, which
+    is why this line exists.</p>
+  </div>
+</div>
 
 <header class="mast">
   <div class="wrap">
@@ -377,33 +407,34 @@
     <div class="wrap">
       <div class="col">
         <p class="kicker">Who does what</p>
-        <h2>Three roles, deliberately separated</h2>
-        <p>Most process arguments are really role confusion. Cairn splits the three jobs that get fused in small teams, and the split is the thing that makes it assignable.</p>
+        <h2>Two roles, and the job the third one used to do</h2>
+        <p>An earlier version of this page described three roles, the middle one being an <em>integrator</em> who owned the merge, the journal, and the files that could only have one author. The owner of the project this protocol came from rejected that outright: every workstation should be able to merge. He was right, and for a second reason that only showed up afterwards — the integrator had quietly created two of the four gaps an audit later found. Nothing marked work integrated, and the merge gate left no artifact.</p>
       </div>
       <div class="roles">
         <dl class="role">
           <dt>Decides scope</dt>
           <dd class="who">Product owner</dd>
-          <dd>Opens a path, confirms feature by feature what it will contain before work starts, and accepts it at the end. Owns priority and sequencing.</dd>
+          <dd>Opens a path, confirms feature by feature what it will contain before work starts, and accepts it at the end. Owns priority and sequencing. Both conversations are recorded as files.</dd>
           <dd class="not">Does not decide when code merges.</dd>
         </dl>
         <dl class="role">
-          <dt>Owns coherence</dt>
-          <dd class="who">Integrator</dd>
-          <dd>A rotating role, held for a week or a batch of merges. Owns the merge, the journal entry, and the handful of files that can only have one author. Keeps the trunk green.</dd>
-          <dd class="not">Does not decide what ships, and is not the reviewer.</dd>
+          <dt>Executes and merges</dt>
+          <dd class="who">Path writer</dd>
+          <dd>One person or one agent, one path, one branch, one working copy — advancing a step at a time, updating code, tests, docs and the checkpoint together, and merging its own work once the gates are green.</dd>
+          <dd class="not">Does not wait for anyone to let it land.</dd>
         </dl>
         <dl class="role">
-          <dt>Executes</dt>
-          <dd class="who">Lane worker</dd>
-          <dd>One person or one agent, on one branch, working one path a step at a time — updating code, tests, docs and the checkpoint together.</dd>
-          <dd class="not">Does not write the shared coordination files.</dd>
+          <dt>Owns coherence</dt>
+          <dd class="who">Nobody &mdash; by construction</dd>
+          <dd>The integrator's work was split three ways: shared files are <strong>derived</strong> so they cannot contradict, the mechanical rules are <strong>a script</strong> the pipeline runs, and architectural drift is read by <strong>an agent</strong> whose findings inform and never block.</dd>
+          <dd class="not">Not a rotating duty, not a person to schedule.</dd>
         </dl>
       </div>
       <div class="col">
         <details>
-          <summary>Why the integrator isn't just "whoever merges"</summary>
-          <p>In trunk-based development everyone merges their own work, and that is fine when the only shared artifact is code. It stops working the moment a project keeps durable narrative — a journal, a status pointer, a decision log. Those have no merge semantics, so somebody has to own producing the merged truth. If the role can only be done by one specific person, the protocol has failed: it must be executable from the repository alone, which is exactly what the checkpoints and the gate checklist are for.</p>
+          <summary>Why removing the integrator made the record better, not worse</summary>
+          <p>The role existed because a project keeping durable narrative — a journal, a status pointer, a decision log — has artifacts with no merge semantics, so somebody had to produce the merged truth. But a human owning that is how it goes stale: the status said one thing, the branches said another, and only the human knew which was true.</p>
+          <p>Deriving those files from the plans they describe removes the contradiction rather than assigning it. And a path that merges itself sets its own status to <em>done</em> in the very change that lands it, so status and history cannot disagree — the two gaps the integrator had created close by construction, not by discipline.</p>
         </details>
       </div>
     </div>
@@ -413,13 +444,14 @@
     <div class="wrap">
       <div class="col">
         <p class="kicker">How work moves</p>
-        <h2>One parent, N lanes, one gate</h2>
-        <p>A single <strong>integration parent</strong> holds the current direction. Beneath it, any number of <strong>lanes</strong> run in parallel — one branch and one working copy each. Everything converges through a single gate before it reaches the trunk.</p>
+        <h2>N paths, each merging itself</h2>
+        <p>Any number of <strong>paths</strong> run at the same time — one branch and one working copy each, one writer apiece. There is no parent above them and no queue of people below them. Each one lands its own work when its own gates are green.</p>
+        <p>What makes that safe is a single serialized moment: before merging, a branch must contain the current trunk tip. That serializes the <em>merge</em> — seconds — without serializing the <em>work</em>. Two paths can run for two days in parallel and still land safely, because whoever merges second rebases and re-runs the checks.</p>
       </div>
       <div class="flow">
-        <svg viewBox="0 0 720 300" role="img" aria-labelledby="flowtitle flowdesc">
-          <title id="flowtitle">Lane flow</title>
-          <desc id="flowdesc">One integration parent opens three lanes — delivery, feedback, and new scope — which converge on a single gate, then reach the trunk. Feedback from the trunk returns as a new lane.</desc>
+        <svg viewBox="0 0 720 320" role="img" aria-labelledby="flowtitle flowdesc">
+          <title id="flowtitle">Path flow</title>
+          <desc id="flowdesc">Three paths open from the trunk after a registration commit, run in parallel in their own worktrees, and each passes the same four gates — rebase, checks, closing ceremony, self-merge — back onto the trunk. No integrator sits between them.</desc>
           <defs>
             <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
               <path d="M2 1L8 5L2 9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -430,45 +462,57 @@
             <path d="M360 82 V96 H120 V112" marker-end="url(#ar)"/>
             <path d="M360 82 V112" marker-end="url(#ar)"/>
             <path d="M360 82 V96 H600 V112" marker-end="url(#ar)"/>
-            <path d="M120 186 V206 H360 V220" marker-end="url(#ar)"/>
-            <path d="M360 186 V220" marker-end="url(#ar)"/>
-            <path d="M600 186 V206 H360 V220" marker-end="url(#ar)"/>
-            <line x1="360" y1="258" x2="360" y2="272" marker-end="url(#ar)"/>
+            <line x1="120" y1="186" x2="120" y2="212" marker-end="url(#ar)"/>
+            <line x1="360" y1="186" x2="360" y2="212" marker-end="url(#ar)"/>
+            <line x1="600" y1="186" x2="600" y2="212" marker-end="url(#ar)"/>
+            <path d="M120 250 V266 H360 V292" marker-end="url(#ar)"/>
+            <path d="M360 250 V292" marker-end="url(#ar)"/>
+            <path d="M600 250 V266 H360 V292" marker-end="url(#ar)"/>
           </g>
           <g text-anchor="middle">
-            <rect class="box" x="250" y="14" width="220" height="32"/>
-            <text class="t-ink" x="360" y="34" font-size="13">Integration parent</text>
+            <rect class="box" x="230" y="14" width="260" height="32"/>
+            <text class="t-ink" x="360" y="34" font-size="13">Trunk &mdash; registration commit first</text>
 
             <rect class="lane" x="30" y="112" width="180" height="74"/>
-            <text class="t-ink" x="120" y="136" font-size="13" font-weight="650">Delivery lane</text>
-            <text class="t-soft" x="120" y="156" font-size="11">a slice of the plan</text>
-            <text class="t-faint" x="120" y="173" font-size="11">own branch · own checkpoint</text>
+            <text class="t-ink" x="120" y="136" font-size="13" font-weight="650">Path &mdash; roadmap slice</text>
+            <text class="t-soft" x="120" y="156" font-size="11">own worktree &middot; own branch</text>
+            <text class="t-faint" x="120" y="173" font-size="11">one writer &middot; own checkpoint</text>
 
             <rect class="lane" x="270" y="112" width="180" height="74"/>
-            <text class="t-ink" x="360" y="136" font-size="13" font-weight="650">Feedback lane</text>
-            <text class="t-soft" x="360" y="156" font-size="11">reproduce · test · repair</text>
-            <text class="t-faint" x="360" y="173" font-size="11">the report is the acceptance</text>
+            <text class="t-ink" x="360" y="136" font-size="13" font-weight="650">Path &mdash; owner feedback</text>
+            <text class="t-soft" x="360" y="156" font-size="11">reproduce &middot; test &middot; repair</text>
+            <text class="t-faint" x="360" y="173" font-size="11">preempts the plan</text>
 
             <rect class="lane" x="510" y="112" width="180" height="74"/>
-            <text class="t-ink" x="600" y="136" font-size="13" font-weight="650">New-scope lane</text>
-            <text class="t-soft" x="600" y="156" font-size="11">its own plan, run alongside</text>
-            <text class="t-faint" x="600" y="173" font-size="11">gets its own scope review</text>
+            <text class="t-ink" x="600" y="136" font-size="13" font-weight="650">Path &mdash; new scope</text>
+            <text class="t-soft" x="600" y="156" font-size="11">its own two ceremonies</text>
+            <text class="t-faint" x="600" y="173" font-size="11">runs alongside, not after</text>
 
-            <rect class="gate" x="180" y="220" width="360" height="38"/>
-            <text class="t-ink" x="360" y="243" font-size="13" font-weight="650">The gate — review · CI · the integrator merges</text>
+            <rect class="gate" x="30" y="212" width="180" height="38"/>
+            <text class="t-ink" x="120" y="229" font-size="11" font-weight="650">rebase &middot; checks</text>
+            <text class="t-soft" x="120" y="243" font-size="10">ceremony &middot; merges itself</text>
 
-            <rect class="box" x="250" y="272" width="220" height="26"/>
-            <text class="t-ink" x="360" y="289" font-size="12">Trunk — always shippable</text>
+            <rect class="gate" x="270" y="212" width="180" height="38"/>
+            <text class="t-ink" x="360" y="229" font-size="11" font-weight="650">rebase &middot; checks</text>
+            <text class="t-soft" x="360" y="243" font-size="10">ceremony &middot; merges itself</text>
+
+            <rect class="gate" x="510" y="212" width="180" height="38"/>
+            <text class="t-ink" x="600" y="229" font-size="11" font-weight="650">rebase &middot; checks</text>
+            <text class="t-soft" x="600" y="243" font-size="10">ceremony &middot; merges itself</text>
+
+            <rect class="box" x="230" y="292" width="260" height="26"/>
+            <text class="t-ink" x="360" y="309" font-size="12">Trunk &mdash; always shippable</text>
           </g>
         </svg>
       </div>
       <div class="col">
         <ul class="plain">
-          <li><span class="n">1</span><span><strong>Lanes stay short.</strong> Two days, or it splits. Merge pain is almost entirely a function of branch age — this one rule does more than every other rule here combined.</span></li>
-          <li><span class="n">2</span><span><strong>One writer per working copy, one active writer per branch.</strong> Three workstations are fine; the same branch advanced from two of them is not.</span></li>
-          <li><span class="n">3</span><span><strong>A lane declares what it expects to touch</strong> — as a signal, never a lock. A root cause is discovered, not declared, so the declaration is compared at the gate and reported, not enforced.</span></li>
-          <li><span class="n">4</span><span><strong>Feedback from real use preempts the plan.</strong> A reproduced problem integrates as soon as it is green; longer lanes rebase onto it.</span></li>
-          <li><span class="n">5</span><span><strong>Rollback is reverting the merge.</strong> The lane reopens with its checkpoint intact, and nobody debugs on the trunk.</span></li>
+          <li><span class="n">1</span><span><strong>The path is registered on the trunk before its branch exists.</strong> One tiny metadata-only commit — the plan and the regenerated view of what is running. Skip it and the trunk cannot see the path at all: derived views are only complete if their inputs are global.</span></li>
+          <li><span class="n">2</span><span><strong>One writer per working copy.</strong> Several workstations are fine; the same branch advanced from two of them is not. Every path gets its own worktree, so the owner can keep using the trunk while agents work.</span></li>
+          <li><span class="n">3</span><span><strong>Every commit is pushed immediately.</strong> A step is not complete until it is online, which makes each completed step a safe place to end a session and start a fresh one somewhere else.</span></li>
+          <li><span class="n">4</span><span><strong>A path declares what it expects to touch</strong> — a signal, never a lock. A root cause is discovered, not declared, so the declaration is compared against the diff and reported, not enforced.</span></li>
+          <li><span class="n">5</span><span><strong>Feedback from real use preempts the plan.</strong> A reproduced problem opens a short path and integrates as soon as its checks are green; longer paths rebase onto it at their next step.</span></li>
+          <li><span class="n">6</span><span><strong>The branch outlives the working copy.</strong> After the merge is verified on the remote trunk, the path's checkout is removed &mdash; clean, never forced, never the owner's. The branch stays as history.</span></li>
         </ul>
       </div>
     </div>
@@ -485,23 +529,23 @@
         <table>
           <caption>Four merges, actually run, on the files we were about to lock</caption>
           <thead>
-            <tr><th scope="col">Two lanes both…</th><th scope="col">Git's result</th><th scope="col">Correct?</th></tr>
+            <tr><th scope="col">Two paths both…</th><th scope="col">Git's result</th><th scope="col">Correct?</th></tr>
           </thead>
           <tbody>
             <tr><td>append to the journal</td><td>conflict, visible</td><td>yes — keep both, seconds of work</td></tr>
             <tr><td>edit <strong>adjacent</strong> table rows</td><td>conflict, visible</td><td>yes — trivially resolved</td></tr>
             <tr><td>edit <strong>distant</strong> table rows</td><td>clean merge</td><td><strong>yes</strong> — both edits applied</td></tr>
-            <tr><td>one closes the parent, one adds a lane</td><td>clean merge</td><td><strong>no</strong> — silently contradictory</td></tr>
+            <tr><td>one marks the plan done, one adds a path</td><td>clean merge</td><td><strong>no</strong> — silently contradictory</td></tr>
           </tbody>
         </table>
       </div>
       <div class="col">
-        <p style="margin-top:1.4rem">Three of the four are fine. Git raises a visible conflict, or merges correctly. Only the last fails, and it fails in a specific shape worth naming: a <strong>cross-line contradiction</strong>, where both edits are individually right and jointly incoherent — the parent marked closed while lanes still run beneath it.</p>
+        <p style="margin-top:1.4rem">Three of the four are fine. Git raises a visible conflict, or merges correctly. Only the last fails, and it fails in a specific shape worth naming: a <strong>cross-line contradiction</strong>, where both edits are individually right and jointly incoherent — a summary declaring the work finished while a new path is being added to it.</p>
         <div class="rule-box">
           <p>The reason these files have one author isn't that Git can't merge them. It's that nobody checked the claim.</p>
         </div>
-        <p style="margin-top:1.4rem">Two lanes writing the status register means two people each asserting what the project's state is, neither having seen the other's work. That's a <em>review</em> concern, not a merge concern — so it earns a warning the integrator reads, not a failed build.</p>
-        <p>The journal was briefly an exception, on the argument that a lane writing it records work as integrated before it is. That argument doesn't survive: it's circular — the entry is only "wrong" against our own definition of the file — and no untrue statement ever reaches the trunk, because the entry becomes visible exactly when it merges. It's a warning too.</p>
+        <p style="margin-top:1.4rem">Two paths writing the status register means two writers each asserting what the project's state is, neither having seen the other's work. That's a <em>review</em> concern, not a merge concern — so it earns a warning a human reads, not a failed build.</p>
+        <p>The journal was briefly an exception, on the argument that a path writing it records work as integrated before it is. That argument doesn't survive: it's circular — the entry is only "wrong" against our own definition of the file — and no untrue statement ever reaches the trunk, because the entry becomes visible exactly when it merges. It's a warning too.</p>
         <div class="rule-box">
           <p>A rule may fail a build when it is objectively checkable <em>and</em> breaking it leaves something wrong in the repository — not merely unconventional.</p>
         </div>
@@ -509,7 +553,7 @@
       <div class="split">
         <div class="card unsafe">
           <h3>The instinct: lock it</h3>
-          <p>Declare the file off-limits to everyone but the integrator, and fail the build when a lane touches it.</p>
+          <p>Declare the file off-limits to everyone but one owner, and fail the build when anyone else touches it.</p>
           <ul>
             <li>enforces a rule that testing doesn't support</li>
             <li>blocks work Git would have handled</li>
@@ -518,7 +562,7 @@
         </div>
         <div class="card safe">
           <h3>The better answer: derive it</h3>
-          <p>Generate the section from the files it describes. Each lane's plan already declares its own branch, kind and status — so the list of active lanes is a <strong>projection</strong>, not a source.</p>
+          <p>Generate the section from the files it describes. Each path's plan already declares its own branch and status on the trunk — so the list of running paths is a <strong>projection</strong>, not a source. The journal took the same medicine in a different shape: one file per entry, because two paths writing two files never conflict.</p>
           <ul>
             <li>nothing to merge, so nothing to lock</li>
             <li>the contradiction becomes impossible, not forbidden</li>
@@ -539,18 +583,27 @@
       </div>
       <div class="tablewrap">
         <table>
-          <caption>What the protocol check verifies on each pull request</caption>
+          <caption>The ten blocking and ten advisory rules, as implemented</caption>
           <thead>
             <tr><th scope="col">Level</th><th scope="col">Check</th><th scope="col">Fails when</th></tr>
           </thead>
           <tbody>
-            <tr><td><span class="chip stop">Blocking</span></td><td class="term">Branch has a plan</td><td>a lane branch isn't declared by an open plan carrying its parent, kind and base commit</td></tr>
+            <tr><td><span class="chip stop">Blocking</span></td><td class="term">Branch identity</td><td>the checkout is detached, so the branch cannot be named — every path rule would be skipped in silence while guarded code changed</td></tr>
+            <tr><td><span class="chip stop">Blocking</span></td><td class="term">Branch has a plan</td><td>a path branch isn't declared by a running plan carrying a base commit</td></tr>
+            <tr><td><span class="chip stop">Blocking</span></td><td class="term">Registered on the trunk</td><td>that declaration is not already on the trunk before the branch diverged</td></tr>
+            <tr><td><span class="chip stop">Blocking</span></td><td class="term">Rebase</td><td>the branch does not contain the current trunk tip — the one serialized moment</td></tr>
+            <tr><td><span class="chip stop">Blocking</span></td><td class="term">Opening check on record</td><td>a plan says it is running with no session note declaring the owner accepted it</td></tr>
+            <tr><td><span class="chip stop">Blocking</span></td><td class="term">Closing ceremony on record</td><td>a plan marks itself done with no session note declaring the ceremony happened</td></tr>
             <tr><td><span class="chip stop">Blocking</span></td><td class="term">Same work unit</td><td>source changed but no module note and no checkpoint changed with it</td></tr>
-            <tr><td><span class="chip stop">Blocking</span></td><td class="term">Schema</td><td>a plan's metadata won't parse, or its status is outside the vocabulary</td></tr>
+            <tr><td><span class="chip stop">Blocking</span></td><td class="term">Schema</td><td>a plan's or a decision record's metadata won't parse, a status is outside the vocabulary, or a record's two halves disagree about its own status</td></tr>
             <tr><td><span class="chip stop">Blocking</span></td><td class="term">Links resolve</td><td>a document points at a file that doesn't exist</td></tr>
             <tr><td><span class="chip stop">Blocking</span></td><td class="term">Derived views current</td><td>a generated section no longer matches the files it projects</td></tr>
-            <tr><td><span class="chip note">Advisory</span></td><td class="term">Statement of record</td><td>a lane edits a file the integrator normally writes — Git will merge it; nobody checked the claim</td></tr>
-            <tr><td><span class="chip note">Advisory</span></td><td class="term">Scope drift</td><td>the diff reaches outside what the lane declared — reported, never blocked</td></tr>
+            <tr><td><span class="chip note">Advisory</span></td><td class="term">Remote checkpoint</td><td>the current commit isn't on its remote branch yet</td></tr>
+            <tr><td><span class="chip note">Advisory</span></td><td class="term">Coherence audit</td><td>no filled audit record for the head about to merge</td></tr>
+            <tr><td><span class="chip note">Advisory</span></td><td class="term">Scope drift</td><td>the diff reaches outside what the path declared — reported, never blocked</td></tr>
+            <tr><td><span class="chip note">Advisory</span></td><td class="term">Ledger size</td><td>a plan in the diff costs more to read than the whole entry chain before it</td></tr>
+            <tr><td><span class="chip note">Advisory</span></td><td class="term">Path staleness</td><td>a plan says it is running but its branch has gone quiet past the declared window — push the work, or retire the plan. A parked plan is not a wrong plan, so this can never block</td></tr>
+            <tr><td><span class="chip note">Advisory</span></td><td class="term">Statement of record</td><td>a hand edit to a file that is generated or shared — Git will merge it; nobody checked the claim</td></tr>
             <tr><td><span class="chip note">Advisory</span></td><td class="term">Stale contract</td><td>an area's code changed but its contract note didn't</td></tr>
             <tr><td><span class="chip note">Advisory</span></td><td class="term">Decision drift</td><td>architecture changed with no decision record beside it</td></tr>
           </tbody>
@@ -564,6 +617,7 @@
         <p>Keep the checker dependency-free and free of any AI in the loop. It should run under a bare language runtime in any pipeline, and a sceptical engineer should be able to read the whole thing in one sitting. The command CI runs is the command you run locally.</p>
         <pre><code>npm run cairn-check                  # the working copy
 npm run cairn-check -- --base main   # a branch, as CI sees it</code></pre>
+        <p style="margin-top:1.4rem">Adoption needs only that command. Enforcement comes in three tiers, and <strong>only the first is part of the protocol</strong>: run it locally (no host, no account); add a CI job, where it <em>observes</em> — a local merge still bypasses it; or configure a rule on the trunk, where it <em>prevents</em>. The third is a property of one repository, never a requirement, and a page that claims prevention it hasn't installed is the same defect as a rule that certifies what it never checked.</p>
       </div>
     </div>
   </section>
@@ -584,7 +638,8 @@ npm run cairn-check -- --base main   # a branch, as CI sees it</code></pre>
             <tr><td class="mono">coding path</td><td>epic, or feature</td></tr>
             <tr><td class="mono">step</td><td>task</td></tr>
             <tr><td class="mono">checkpoint</td><td>status — durable, and never stale</td></tr>
-            <tr><td class="mono">lane</td><td>assignment, or branch</td></tr>
+            <tr><td class="mono">worktree</td><td>the working copy a path owns alone</td></tr>
+            <tr><td class="mono">coherence audit</td><td>the architectural read before a merge</td></tr>
             <tr><td class="mono">opening check / closing review</td><td>refinement / review</td></tr>
             <tr><td class="mono">the gate</td><td>definition of done, plus the merge</td></tr>
             <tr><td class="mono">journal</td><td>project log, or changelog</td></tr>
@@ -619,7 +674,7 @@ npm run cairn-check -- --base main   # a branch, as CI sees it</code></pre>
       <li><span class="n">1</span><span>Drop in the bootloader, an architecture page, an empty journal, and one plan template.</span></li>
       <li><span class="n">2</span><span>Find your statements of record — usually three or four. Derive the ones you can generate; give the rest one author and a warning, not a lock.</span></li>
       <li><span class="n">3</span><span>Write the checker for the three rules you'd actually enforce. Add more only when one gets broken.</span></li>
-      <li><span class="n">4</span><span>Run two lanes for one week, then write down what actually hurt — and only then turn it into policy.</span></li>
+      <li><span class="n">4</span><span>Run two paths for one week, then write down what actually hurt — and only then turn it into policy.</span></li>
     </ul>
   </div>
 </footer>

@@ -1,3 +1,15 @@
+---
+type: Atomik ADR
+title: 'ADR-001: File-first, OKF-compatible project bundles'
+description: Project files are the durable source of record: a vault holds project bundles holding source dossiers, notes, trails and context, and a workspace is a view over them.
+tags: [adr, okf, vault, project-bundle, files, workspace]
+timestamp: 2026-06-17T00:00:00Z
+adr:
+  id: ADR-001
+  status: accepted
+  date: 2026-06-17
+---
+
 # ADR-001: File-first, OKF-compatible project bundles
 
 Status: accepted

@@ -1,411 +1,211 @@
 ---
-type: Atomik Path Convention
-title: Parallel coding paths — one path per worktree, every path merges itself
-description: How several devs or agents work at once without a gatekeeper. Accepted paths register on the trunk, run in parallel in isolated worktrees, and merge themselves after their closing ceremonies.
-tags: [paths, concurrency, worktree, self-merge, ci, process]
-timestamp: 2026-08-14T00:00:00Z
+type: Cairn Portable Convention
+title: Parallel coding paths — portable operating convention
+description: The required path lifecycle: register before branching, one writer per worktree, remotely resumable work units, exact-candidate closure, self-integration, and safe cleanup.
+tags: [cairn, portable, paths, concurrency, worktree, self-merge]
+timestamp: 2026-09-01T00:00:00Z
+cairn:
+  classification: portable
 ---
 
 # Parallel coding paths
 
-![The Cairn protocol — full workflow (D14)](../../docs/diagrams/D14_cairn_protocol_workflow.svg)
-
-**Status: ACCEPTED operating detail under ADR-012.** CP-OPS-001 S06 ratified
-the model after its first pilot; S08 amends the opening order after real
-parallel work exposed the checkout-local visibility hole. Work runs on what is
-written here, never on a conversation.
+> **PORTABLE REQUIRED READING.** This page projects the canonical
+> [Cairn specification](../../docs/cairn/specification/index.md) into the order
+> used to operate one path. Repository-specific roots, commands, runtime
+> isolation and examples belong in the adjacent [binding appendix](./binding.md).
+> A host that had a combined operating page before this split keeps it as
+> explanatory history and names it from its binding, not from here: a portable
+> page that links one repository's history is a portable page that only resolves
+> in that repository.
 
 ## The model
 
 ```text
-N coding paths, running at the same time
-one path      = one worktree = one branch = one writer
-every opening = one registration-only trunk commit BEFORE the branch
-every commit  = one immediate remote checkpoint on its owning branch
-every step    = one safe boundary between chat sessions
-each path merges ITSELF into the trunk
-every closure = remote merge verified + clean secondary worktree removed
-no integrator, no parent, no gatekeeper
+many coding paths may run at the same time
+one path = one path record = one branch = one writable worktree = one writer
+opening acceptance and registration happen before implementation branches
+every completed work unit is committed, pushed and retained
+every completed work unit is a safe session boundary
+each path carries its accepted candidate through integration
+the retained branch is durable; the secondary worktree is disposable
 ```
 
-An earlier draft put a single integrator between every lane and the trunk. The
-owner rejected it (2026-08-14): *"for me it not possible to have only one
-integrator, every workstation or dev should be able to merge into master"* —
-and was right for a second reason that only became visible afterwards. The
-integrator created two of the four holes the workflow audit had found: nothing
-marked a lane integrated, and the gate left no artifact. Both vanish when a
-path merges itself, because the path sets its own `status: done` in the very
-pull request that lands it, and that pull request with its CI run IS the
-artifact.
+Registration and integration briefly serialize changes to the shared trunk.
+The implementation work between them remains parallel. There is no standing
+integrator or gatekeeper role.
 
-The lane abstraction is gone with it. Paths were always the unit of bounded
-work; making them the unit of parallelism removes a layer instead of adding one.
+## Name one bounded path
 
-## Naming
+Use a stable `CP-<ID>` identifier and derive the branch mechanically:
 
 ```text
-CP-MVP-010     numbered  — roadmap work, one per milestone slice
-CP-SETTINGS    labelled  — everything else: fine-tuning, repairs,
-CP-PROVIDERS               investigations, spikes
+CP-EXAMPLE-001 -> path/cp-example-001
+CP-SETTINGS    -> path/cp-settings
 ```
 
-Numbered paths come from the roadmap and carry a register row. Labelled paths
-are named for their subject and do not claim a milestone. Both are ordinary
-accepted paths, and both get both ceremonies — the owner's ruling (2026-08-14):
-*"ceremonies are short anyway and the only moment the dev actually work with
-[the owner]... better too much evaluation than not enough."*
-
-Branch names follow the path: `path/cp-mvp-010`, `path/cp-settings`.
-
-## Opening a path
-
-Drafting and executing happen in the SAME session. Nobody drafts a path for
-someone else to pick up later — the owner's observation, and it removes the
-handoff the earlier draft assumed.
-
-1. Run the OPENING CHECK with the owner — feature by feature, recorded in a
-   session note. Activation needs explicit acceptance.
-2. From a clean, current trunk, create the accepted path file from the template
-   in bedrock 24:
-
-```yaml
-atomik:
-  id: CP-MVP-010
-  status: running            # draft | running | done | blocked | archived
-  base_commit: 70f7e27
-  branch: path/cp-mvp-010    # required by `running`; it is what puts the path
-                             # in the generated view and what CI checks against
-  writes:                    # ADVISORY — a signal, never a lock
-    - apps/desktop/electron-main/graph-index.ts
-    - docs/modules/atomik-desktop-graph.md
-```
-
-   `base_commit` is the trunk tip immediately BEFORE this registration. Run
-   `npm run cairn-active` and `npm run cairn-check`, then land ONLY the accepted
-   path declaration and regenerated view on the trunk (directly or through the
-   host's required short PR). No product code enters this commit. This tiny
-   serialized transition is the price of a durable global portfolio: every
-   workstation and CI can now see the path before its branch diverges.
-
-   **Status vocabulary.** `running` means "registered on the trunk, then on its
-   own branch and worktree" and requires `branch` + `base_commit`. That tuple is
-   what the generated view and CI key on. `active` is reserved for the one
-   bootstrap-exception path that began on the trunk before this convention
-   existed (CP-OPS-001); no new path uses it. `done` requires a ceremony session
-   note. `draft`, `blocked` and `archived` carry no branch obligations.
-
-3. Create the worktree FROM THE REGISTRATION COMMIT and its runtime isolation
-   (below). Cairn blocks a new `path/*` branch when its matching `running`
-   declaration is absent from the trunk. CP-OPS-001, CP-MVP-011 and CP-MVP-012
-   are the finite grandfathered set because they were already running when the
-   defect was found; the exemption is named in code and is never copied.
-4. Execute bedrock 22's protocol one step at a time — code, tests, docs, the
-   ledger and the path-specific handoff brief in the same work unit. Run the
-   gates, commit, and push that commit immediately. Only then is the step done.
-
-### Why registration is a commit, not more guidance
-
-`cairn-active` reads files in ONE checkout. Before this rule, a new path file
-was first committed on its own branch. The trunk and every sibling branch were
-therefore unable to see it; on 2026-08-20 the generated trunk view passed its
-freshness check while saying no path was running, although four clean worktrees
-declared `status: running`. The view was internally current and globally false.
-
-No instruction can make one Git tree read files that exist only in unrelated
-trees. Registration changes where the stable identity tuple lives; derivation
-then works as designed. The evolving ledger remains branch-owned.
-
-### `writes:` is advisory
-
-An overlap SIGNAL when the path opens, and a diff-versus-declaration CHECK
-before merge. Never a lock. A root cause is discovered, not declared: S07b was
-reported as "pills show file names" and fixed in `firstHeadingOf`, rewriting
-the strip, the relation sentences and the wikilink candidates in one edit. A
-path that must widen records the widening in its ledger and keeps going.
-
-**Declare documentation surfaces too** — they are the ones that actually collide.
-
-## One writer per working tree
-
-A shared working tree has exactly ONE writer. Others may read, diagnose, review
-and report there, but simultaneous edits in one filesystem are not made safe by
-Markdown.
-
-The owner dogfoods the trunk in the main working tree, so **every code path
-takes its own worktree**:
-
-```bash
-git worktree add ../4tom1k-cp-mvp-010 -b path/cp-mvp-010 master
-cd ../4tom1k-cp-mvp-010
-ln -s ../4tom1k/node_modules node_modules
-ln -s ../4tom1k/apps/desktop/node_modules apps/desktop/node_modules
-```
-
-Branch from local `master`, never `origin/master` when the local branch is
-ahead. Run the app with `ATOMIK_LANE=<slug> ATOMIK_LANE_PORT=<port> npm run dev`
-so two instances never share one Electron profile (`electron-main/lane.ts`).
-
-## Every commit is a remote checkpoint
-
-Owner directive (2026-08-24): *"push after evry commit so we have an online
-log"*. Commit and push are therefore one completion unit:
+Numbered and labelled paths follow the same protocol. A path record is born as
+a folder:
 
 ```text
-change code + tests + docs + ledger + handoff brief
-  -> run the relevant gates bare
-  -> commit the coherent work unit
-  -> push immediately to that commit's owning branch
-  -> only now report the step complete
+CP-EXAMPLE-001/
+  index.md      declaration, step index, live header, next action, blockers
+  plan.md       forward plan, read when planning
+  log.md        folder history
+  steps/S01.md  one self-contained record per executed step
 ```
 
-For implementation work that branch is `origin/path/<id>`. Registration-only
-and final merge commits belong to the trunk and are pushed there immediately.
-If the push fails, the agent reports **implemented locally, not complete**, puts
-the failure in the checkpoint, and does not recommend an ordinary session
-handoff. An emergency handoff remains possible when the owner explicitly
-chooses it.
+The step-index line MUST let a reader decide whether to open that step. A step
+record is append-only from the blob that adds it. There is no later ledger
+rollup operation.
 
-`cairn-check` warns when a path HEAD is absent from its configured upstream. It
-cannot prove historical cadence once several commits are eventually pushed
-together. On GitHub, the repository Activity view records direct pushes and
-force-pushes separately from commit metadata; the commit list still shows the
-commit's own dates, not a replacement "push date". Treat the remote branch as
-the durable checkpoint and Activity as a useful online timeline, not as a
-promised permanent audit archive. That is why remote cadence is an absolute
-operating rule and an advisory check, not a blocking repository-integrity rule.
-See [GitHub's Activity view documentation](https://docs.github.com/en/repositories/viewing-activity-and-data-for-your-repository/using-the-activity-view-to-see-changes-to-a-repository).
+## Open and register before branching
 
-If a closing rebase rewrites already-published path commits, publish the
-rebased head with `git push --force-with-lease`, never blind `--force`, and
-record the pre-rebase and post-rebase heads in the Work Ledger or coherence
-audit. GitHub Activity then shows the force-push event, while the final merged
-history carries the rebased commits.
+1. Obtain and record [opening acceptance](../../docs/cairn/specification/concepts/opening-acceptance.md)
+   for the path's outcome, scope and initial writer.
+2. From a clean, current trunk, create the accepted path record using the
+   [path template](../../docs/cairn/specification/reference/path-template.md).
+   Set `status: running`, the derived path branch, and `base_commit` to the
+   exact trunk tip immediately before registration.
+3. Regenerate the [live view](../../docs/cairn/specification/concepts/live-view.md)
+   and run the protocol gate.
+4. Land and push a metadata-only trunk unit containing the accepted path
+   declaration, regenerated live view and opening record. It contains no
+   implementation.
+5. Create the path branch and its dedicated worktree from that registration
+   commit, then publish the branch.
 
-## Every completed step is a session boundary
+The repository's [binding appendix](./binding.md) supplies the exact trunk,
+remote, paths and commands. The full copy-ready sequence is in
+[Cairn operations](../../docs/cairn/specification/reference/operations.md#register-an-accepted-path).
 
-A coding path may span many sessions; a chat should not have to. After every
-completed-and-pushed step, the agent proactively offers a fresh-session
-boundary. This is a session handoff, **not** a closing ceremony and not a path
-status transition.
+## Give one writable worktree one writer
 
-Before making the offer, the same work unit refreshes
-`atomik-project/briefs/<path-id>-handoff.md` from the path ledger. The completion
-report names the pushed commit, the gate verdict, the next action, and asks
-whether to continue here or start that next action in a fresh session. If the
-owner chooses fresh, the current chat ends. A new session opened in the same
-worktree identifies the path from its branch, reads `AGENTS.md` -> `paths.md`
--> `ACTIVE.md` -> the path ledger -> its handoff brief, verifies reality, and
-continues without asking the owner to reconstruct prior context.
+Only the assigned writer edits a writable worktree. Other participants may
+read, diagnose and review it. If the writer changes, the outgoing writer first
+publishes a recoverable checkpoint and the path record names the handoff.
 
-The path file remains primary. If the generated brief and repository reality
-disagree, the new session reconciles the ledger and regenerates the brief;
-conversation memory never wins.
+Declare expected write surfaces, including documentation. They are overlap
+signals, not locks. When the root cause widens the work, record the widening in
+the current step and continue within the accepted outcome.
 
-## Merging — every path merges itself
+Worktree directory names, shared dependencies, ports, profiles, databases and
+caches are host bindings. Never copy an example from one repository as though it
+were portable protocol.
+
+## Complete one work unit at a time
+
+Follow the portable [execution protocol](../../docs/cairn/specification/reference/execution-protocol.md).
+In one coherent unit:
+
+1. change the implementation or protocol artefact;
+2. change the tests that prove the result;
+3. update affected durable documentation;
+4. append the current step record and refresh the handoff brief;
+5. run every relevant gate bare;
+6. review status and stage explicit paths;
+7. commit and immediately push to the path branch;
+8. on a `retained` host only, publish an append-only retention ref for the unit.
+
+If the push fails, report the unit as implemented locally, not complete.
+Incomplete but valuable work is published as a marked provisional commit; it is
+never a completed checkpoint.
+
+## Keep every completed checkpoint reachable
+
+**Which mechanism applies is declared by the host**, as `pathHistoryPolicy` in
+its configuration. The gate prints it with every ordinary verdict, so a
+participant never has to guess which of the two sequences below is theirs.
+
+### `forbidden` — the default
+
+A published path branch is never rewritten: no rebase, no amend, no
+`reset --soft` fold, no force-push
+(**ADR-022**). Every
+commit keeps the object id it was verified as, so **the branch itself keeps every
+checkpoint the ledger names reachable**, and after a `--no-ff` integration merge
+the trunk keeps them permanently. There is no namespace to write and none to
+fetch. A provisional commit is superseded by the completed unit's commit and
+stays in the history as what it was.
+
+### `retained`
+
+The branch may be rewritten, so every `cairn-unit` ordinal is pinned first, under:
 
 ```text
-1  CLOSING CEREMONY — the owner accepts the work, recorded in a session note
-2  REBASE on the trunk — enforced, not remembered (below)
-3  CI GREEN on the rebased result, never on a stale branch
-4  COHERENCE AUDIT — recorded, advisory (below)
-5  the path sets its own status: done, and merges
-6  the pushed merge is verified on the remote trunk; the exact clean
-   secondary worktree is removed without force, while its branch is retained
+refs/cairn/checkpoints/<lowercase-path-id>/g<NN>/<unit>
 ```
 
-Step 2 is what makes a gatekeeper unnecessary. Requiring the branch to contain
-the trunk tip serializes the MERGE — thirty seconds — without serializing the
-WORK. Two paths run for two days in parallel and still land safely, because
-whoever merges second rebases and re-runs CI. There is no queue of people, only
-a queue of merges.
+The current generation is derived from branch ancestry. A history rewrite
+closes one generation and the first completed post-rewrite unit opens the next.
+Retention refs are append-only: never move or delete an earlier pin to make it
+name a rewritten copy. Fetch the namespace explicitly before judging it; an
+unfetched empty listing is missing evidence, not evidence of absence.
 
-### The rebase gate is automated
+## Treat every pushed unit as a session boundary
 
-Owner directive (2026-08-14): *"the rebase need should be an automated gate"*.
-`cairn-check` fails when a `path/*` branch does not contain the current trunk
-tip. Objective, no judgment, one command to fix — the shape a blocking rule
-should have. Configure the host to require it too (GitHub: "require branches to
-be up to date before merging") so the rule holds even if someone merges from
-the web UI.
+After a unit is pushed, report its remote commit, gate verdict and
+persisted next action. Proactively offer a fresh session. This ends a chat, not
+the still-running path.
 
-### The coherence audit is automated, its verdict is not
+A resuming participant reuses the same worktree, follows the repository
+bootloader to this convention, the live view, its own path index and handoff
+brief, verifies repository reality, and starts the recorded next action without
+requiring a conversation recap.
 
-Owner directive: *"it could be an automated audit from agent after each rebase
-or merge"*. Removing the integrator removes the person who noticed two paths
-drifting apart architecturally, so the noticing is delegated to an agent —
-without letting a non-deterministic judgment block a merge:
+## Close one exact candidate
+
+Closing follows one identity all the way through:
 
 ```text
-the AGENT produces the judgment     — reads the rebased diff against bedrock,
-                                      the ADRs, and the path's declared coverage
-CI checks only that it EXISTS       — a deterministic gate on a
-                                      non-deterministic activity
-its verdict never blocks            — findings are advisory, read by a human
+implementation candidate C
+  -> gates on C
+  -> coherence audit bound to C
+  -> closing acceptance bound to C
+  -> administrative closure only
+  -> acceptance-drift check
+  -> integration of the accepted tree
 ```
 
-`npm run cairn-audit` scaffolds the record; the agent fills it in. One file per
-audit under `atomik-project/audits/`, so two paths auditing at once never
-conflict.
+Before producing `C`, make the branch contain the current trunk tip and rerun
+all gates. On a `forbidden` host that means fetching the trunk and **merging it
+into the branch**; on a `retained` host it means fetching the trunk and retention
+namespace, retaining every completed unit, rebasing onto the trunk and folding
+provisional commits. Either way the branch ends up containing the trunk tip,
+which is the property that serializes the merge without an integrator. If implementation changes after acceptance, produce a new candidate
+and repeat audit and acceptance.
 
-### Cleanup is the final local transition
+The path branch does not claim `done` for itself. The integration unit records
+`done`, regenerates the live view and writes one journal file for the integrated
+outcome. The exact integration commit is tested, pushed and verified on the
+remote trunk.
 
-The branch is durable history; its worktree is a disposable working copy.
-Cleanup happens only after the merge commit has been pushed and verified on
-the remote trunk. From the main/owner worktree or another surviving checkout:
+## Remove only the verified clean secondary worktree
 
-```bash
-git fetch origin master
-git merge-base --is-ancestor <merge-commit> origin/master
-git worktree list --porcelain
-git -C <exact-secondary-worktree> status --porcelain=v1
-git worktree remove <exact-secondary-worktree>
-git worktree list --porcelain
-test ! -e <exact-secondary-worktree>
-```
+After remote integration verification, resolve the exact secondary worktree
+from another checkout. Require its Git status to be empty, remove it without
+force, and verify its registration and directory are gone. Never remove the
+main/owner worktree or a dirty checkout. Worktree removal does not authorize
+deleting the retained path branch.
 
-The status command must print nothing, and the exact target must be a
-secondary checkout registered by `git worktree list` for the path that just
-merged. Run removal from outside that worktree. Never target the main/owner
-worktree, never pass `--force`, and never treat worktree cleanup as permission
-to delete the local or remote path branch. The retained branch preserves the
-online per-step history requested by the owner.
+If remote verification or cleanup cannot be proved, report the outcomes
+separately: integration may be complete while cleanup remains incomplete.
 
-If remote verification, cleanliness, removal, or the final absence check
-fails, report **merge complete; cleanup incomplete** and leave the directory
-intact for inspection. This machine-local transition cannot be honestly
-enforced by repository CI after the checkout disappears, so it is an absolute
-operating rule and a required path-closure report, not a Cairn blocking rule.
+## Keep shared state derived or event-sliced
 
-## Nothing is shared, so nothing needs a gatekeeper
+Parallel work must not depend on several paths appending to one handwritten
+file. Live portfolios are generated from path declarations. Independent audits,
+ceremonies and journal events use one file per event. Mutable indexes and folder
+logs summarize; they are not event records.
 
-The integrator's real job was writing the files everyone touched. With no
-integrator, those files must stop being shared at all — the same move the lane
-list already made, applied everywhere:
+The protocol gate may block only an objectively checkable condition whose
+breach leaves the repository wrong. Judgement and overlap signals remain
+advisory. Local and CI invocations over the same tree must reach the same
+verdict.
 
-```text
-ACTIVE.md              GENERATED from the path files (npm run cairn-active)
-register status        GENERATED from the same source
-root module note       an index over the per-area notes
-the journal            ONE FILE PER ENTRY under atomik-project/log/
-                       — two paths writing two files never conflict
-```
+## Binding boundary
 
-`atomik-project/log.md` is FROZEN as the historical archive (its ~300 entries
-are not migrated; rewriting history to fit a new convention would be worse than
-the convention). New entries land as `log/YYYY-MM-DD-<path-id>.md`.
-
-What remains genuinely hand-written — bedrock pages, ADRs, per-area module
-notes, each path's own file — is per-file by construction, so two paths editing
-different ones never meet.
-
-The stable part of each path file is GLOBAL before work starts: its accepted
-`id` / `status` / `branch` / `base_commit` tuple is registered on the trunk.
-The path branch then owns the evolving checklist and Work Ledger. Without that
-ordering, `ACTIVE.md` is only a projection of whichever branches happen to be
-ancestors of the current checkout — not a portfolio view.
-
-### Hot files that still conflict
-
-`apps/desktop/electron-main/index.ts` (~1900 lines) and
-`shared/ipc-contract.ts` (~870): every path adding an IPC channel touches both.
-Frequent conflicts, MECHANICAL resolution (two paths appending distinct
-channels). Rebase early and often; do not paper over it with bookkeeping.
-
-## Enforcement — `cairn-check`
-
-```bash
-npm run cairn-check                            # the working tree
-npm run cairn-check -- --base origin/master    # a branch, as CI sees it
-npm run cairn-check:test                       # the validator's own tests
-```
-
-```text
-BLOCKING   branch → path (a path/* branch is declared by a running path
-                          carrying a base_commit)
-           trunk registration — that accepted running declaration already
-                          exists on the trunk before implementation starts
-           rebase gate — a path branch contains the trunk tip
-           a path marked done has a closing-ceremony session note
-           source changed ⇒ a module note AND a coding path changed
-           path frontmatter parses, statuses in vocabulary
-           relative links in docs/ and atomik-project/ resolve
-           derived views current (trunk only)
-
-ADVISORY   coherence audit missing for this head
-           remote checkpoint — path HEAD is not yet on its upstream branch
-           scope drift vs declared writes:
-           area note untouched while its source changed
-           bedrock changed with no ADR beside it
-```
-
-**The test a rule must pass to block:**
-
-```text
-objectively checkable   AND   breaking it leaves something WRONG IN THE REPO
-                              — not merely unconventional
-```
-
-Undocumented code is wrong. A journal entry written by the path that did the
-work is unconventional. Only the first fails a build. The journal rule was
-briefly blocking and was retracted when it failed this test.
-
-Advisory findings print and never fail the build. A validator that blocks on
-judgment calls gets switched off within a week — and the first run of this one
-reported 34 broken links that were not broken (bedrock pages illustrating a
-vault layout inside code fences). **A false blocking verdict costs more than a
-missed one.**
-
-CI runs it as a job SEPARATE from the gates, because "does the software work"
-and "was the protocol followed" are two different questions and a team needs to
-see which one failed (`.github/workflows/cairn.yml`).
-
-## Owner feedback preempts
-
-```text
-owner uses the trunk
-  -> reports friction
-  -> pin the exact commit + vault/artifact/configuration
-  -> open a short LABELLED path
-  -> reproduce, add a regression test
-  -> integrate as soon as its gates are green
-  -> longer paths rebase onto it at their next step boundary
-```
-
-This ratifies what the repository already did: S06b, S07b and S07c all preceded
-S08.
-
-## Holes still open
-
-The workflow audit (drawing D14) found four missing guards. Self-merge closed
-two of them by construction. Checkpoint drift was discovered later, so three
-open holes are recorded here:
-
-1. **Abandoned paths have no terminal status.** A path that dies keeps
-   `status: running` and poisons the generated views. Needs an `archived`
-   transition and something that notices staleness.
-2. **`base_commit` accuracy is unchecked** — presence is verified, truth is not.
-   Partly mitigated by the rebase gate, which checks the branch against the
-   trunk directly rather than trusting the recorded base.
-3. **Checkpoint accuracy is unchecked.** The validator verifies that a path file
-   CHANGED when source changed; it cannot tell whether the checkpoint inside it
-   is still true. Found the honest way, on 2026-08-15: CP-OPS-001's own
-   checkpoint still described step zero in lane vocabulary five steps after the
-   lane layer was removed. The rule the protocol most depends on is the one it
-   cannot mechanically defend, because "is this prose still accurate?" is not a
-   checkable question. Candidate mitigation, no more than that: require the
-   checkpoint's `base commit` line to match the branch's actual base.
-
-Closed by CP-OPS-001 S08 (2026-08-20): **running-path visibility**. Deriving
-`ACTIVE.md` from path files did not help when the files existed only on sibling
-branches. The accepted declaration now lands on the trunk before branching,
-and a new blocking rule checks that fact. Guidance alone could not repair a
-missing Git ancestor.
-
-## Questions still open after the pilot
-
-- What is the minimal path status lifecycle beyond `running` / `done`?
-- How precise must a declared write surface be before it stops being useful?
-- Should an investigation path be an accepted path even when its output is
-  intentionally disposable?
-- Does the coherence audit find anything a human would not have? If it does not
-  after the pilot, delete it rather than keep it as decoration.
+This file contains no application names, local directory names, product hot
+files or runtime environment variables. The repository bootloader pairs it with
+exactly one [host binding](./binding.md). If the portable convention and its
+binding disagree, report the defect; do not silently choose one.

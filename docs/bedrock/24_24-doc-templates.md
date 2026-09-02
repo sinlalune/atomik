@@ -559,6 +559,50 @@ blockers    :
 
 The `Current checkpoint` section is the Work Ledger. An optional `CP-XXX.state.json` sidecar may mirror it for tooling under the standard sidecar rule.
 
+## Session note and ceremony template
+
+Both ceremonies — the opening check and the closing ceremony — are recorded as
+session notes under
+`atomik-project/sessions/YYYY-MM-DD-<path-id>-<ceremony>.md`. The ceremony is
+DECLARED in that note's frontmatter, never inferred from its filename:
+
+```md
+---
+type: Atomik Session Record
+title: CP-EXAMPLE-001 closing ceremony
+timestamp: 2026-01-01T00:00:00Z
+tags: [closing-ceremony, cp-example-001]
+path: CP-EXAMPLE-001
+branch: path/cp-example-001
+ceremony: closing
+---
+```
+
+**`path:` and `ceremony:` are ROOT-LEVEL keys**, siblings of `title:`, and
+`ceremony:` is `opening` or `closing`. `path:` carries the exact path id; it is
+matched exactly, so a note about `CP-MVP-0010` never closes `CP-MVP-001`.
+
+The nested form `atomik: { path, ceremony }` does NOT work. The frontmatter
+reader opens a section whenever a key has an empty value, so the nested keys
+land inside `atomik` and the root-level ones stay undefined —
+`ceremonyFromSessions()` in `tools/cairn-check.mjs` returns `false`, and the
+`ceremony` rule is BLOCKING. A note written in the nested form would fail the
+merge of the very path it was recorded to close (audit 2026-08-24, F13;
+[ADR-016](../adr/ADR-016-cairn-enforcement-integrity.md)).
+
+Two further properties of that reader, both load-bearing here:
+
+- **No inline comments on these two keys.** Scalar values are taken verbatim to
+  end of line, so `ceremony: closing   # opening | closing` parses as the value
+  `closing   # opening | closing` and matches nothing. Put explanatory comments
+  on their own line, or in prose.
+- **This is the whole schema.** Everything else in the frontmatter above is
+  ordinary session-note metadata; only `path:` and `ceremony:` are read by the
+  gate.
+
+The schema is pinned here, once. Other documents point at this section rather
+than restating it — F13 was a restatement that drifted.
+
 ## Path handoff brief template
 
 One path owns one rolling generated view at
@@ -606,9 +650,17 @@ current trunk:
 
 1. pin `base_commit` to the current trunk tip;
 2. set `status: running` and the final `branch` name;
-3. land the path file, opening-check session note, and regenerated `ACTIVE.md`
-   as a registration-only trunk commit (no implementation);
+3. land a **metadata-only** registration commit on the trunk: the accepted path
+   declaration, the regenerated `ACTIVE.md`, and the opening-check session note
+   that justifies the activation. No implementation of any kind;
 4. create the worktree/branch from that commit and begin S01.
+
+The invariant is *metadata only*, not a file count. `paths.md` once said the
+commit carries exactly the declaration and the view, while this page named three
+files; the repository's last real registration (`9040417`) followed this page.
+Both now state the same rule, and it is the one that can be broken meaningfully:
+implementation in the registration commit (audit 2026-08-24, F15;
+[ADR-016](../adr/ADR-016-cairn-enforcement-integrity.md)).
 
 This ordering is machine-checked for new `path/*` branches. It is what lets a
 generated trunk view see all parallel paths. CP-OPS-001, CP-MVP-011 and

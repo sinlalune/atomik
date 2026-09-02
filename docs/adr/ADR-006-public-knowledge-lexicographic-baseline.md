@@ -1,3 +1,15 @@
+---
+type: Atomik ADR
+title: 'ADR-006: Versioned public knowledge and lexicographic baseline'
+description: Versioned local knowledge packs are a non-canonical retrieval layer built from attributable source records, starting from a public lexicographic baseline.
+tags: [adr, knowledge-pack, retrieval, dictionary, public-knowledge, versioning]
+timestamp: 2026-06-22T00:00:00Z
+adr:
+  id: ADR-006
+  status: accepted
+  date: 2026-06-22
+---
+
 # ADR-006: Versioned public knowledge and lexicographic baseline
 
 Status: accepted
