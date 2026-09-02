@@ -18,6 +18,9 @@ remains the complete record; this is the readable one.
 
 ## 2026-09-02
 
+- `S09d` (cont.) regenerates the view the status change invalidated; `2def1a2`
+  was pushed with it stale because a script printed the gate's `FAILED` and
+  went on. The regenerating commit is the candidate.
 - `S09d` voids the first closure: CI had been red for seven pushes and the
   cause was in the checker. Status back to `running`; a new candidate follows.
 - Closure: candidate `e409e85` audited and accepted; status `ready`, `subject_commit`
