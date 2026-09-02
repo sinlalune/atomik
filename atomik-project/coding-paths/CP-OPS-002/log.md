@@ -3,7 +3,7 @@ type: Atomik Folder Log
 title: Log — atomik-project/coding-paths/CP-OPS-002
 description: Recent meaningful changes in this scope, per the OKF folder convention.
 tags: [log, okf, cairn, coding-path]
-timestamp: 2026-09-01T00:00:00Z
+timestamp: 2026-09-02T00:00:00Z
 ---
 
 # Log — `atomik-project/coding-paths/CP-OPS-002`
@@ -15,6 +15,14 @@ this log when recency matters or when re-entering after time away
 
 **Append newest-first, at the top, in the same work unit as the change.** Git
 remains the complete record; this is the readable one.
+
+## 2026-09-02
+
+- `S09b` is the manifesto round the owner asked for before the genesis:
+  the protocol measured against its own vision and against the current
+  coding workflows, with the proposed Cairn 1.0 shape and the owner's
+  decisions as checklists (`docs/cairn/cairn-manifesto-convergence-2026-09-02.md`).
+  Closure moves to S09c.
 
 ## 2026-09-01
 

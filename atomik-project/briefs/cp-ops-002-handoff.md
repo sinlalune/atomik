@@ -1,13 +1,13 @@
 ---
 type: Atomik Brief
 title: Handoff — CP-OPS-002
-timestamp: 2026-09-01T00:00:00Z
+timestamp: 2026-09-02T00:00:00Z
 atomik:
   path: CP-OPS-002
   written_by: cp-ops-002-writer
   branch: path/cp-ops-002
-  checkpoint: 4ffdf477c9c8c919f4c1e545a1ebf32828f4a3d5
-  checkpoint_unit: 43
+  checkpoint: 6254339478941016940833d22dfada30673db858
+  checkpoint_unit: 44
   checkpoint_pushed: true
   base_commit: 7aa3b1d
   trunk_seen: dfcd09d
@@ -59,7 +59,14 @@ now closed.** The last, `unretainedCheckpoints`, reported "nothing orphaned" onc
 the retained set stopped intersecting the branch — which is what the mandatory
 pre-merge rebase causes — and is repaired under `ADR-021`.
 
-**S08 is complete in twenty-three units, and S09a has run the pilot.** Full records in the path folder; what a resuming
+**S08 is complete in twenty-three units, S09a has run the pilot, and S09b has
+recorded the manifesto round.** The owner wrote a [manifesto](../../docs/cairn/manifesto.md)
+and a [project note](../../docs/cairn/cairn-project-note-2026-09-02.md) as the
+preamble of S09; [`docs/cairn/cairn-manifesto-convergence-2026-09-02.md`](../../docs/cairn/cairn-manifesto-convergence-2026-09-02.md)
+measures the protocol against them and against the current coding workflows,
+proposes the Cairn 1.0 shape, and ends every section with the owner's decisions
+as a checklist. **Nothing in it is protocol until the owner rules**; the genesis
+of the protocol's own repository is work for that repository, not for this path. Full records in the path folder; what a resuming
 session needs from them:
 
 - The local gate defaults to the **trunk** base on a path branch (S08a).
@@ -263,7 +270,10 @@ the latest step.
 
 ## Next action
 
-**S09b — close this path.** Fetch and merge `master` into `path/cp-ops-002`
+**S09c — close this path**, once the owner has read the convergence record and
+ruled on its checklists; a ruling that changes a rule or a page is a unit here
+only if the owner asks for it before closure, otherwise it belongs to the
+genesis. Fetch and merge `master` into `path/cp-ops-002`
 (never rebase: `pathHistoryPolicy: forbidden`), run every gate on the candidate,
 scaffold the coherence audit with `npm run cairn-audit -- --subject <C> --branch
 path/cp-ops-002` and fill it, then hand the owner the closing acceptance to
@@ -369,6 +379,9 @@ that ADDS a record.
    records beside it.
 5. `docs/cairn/cairn-audit-2026-08-24.md@319d54d2` — the audit that opened this
    path and named its failure mode.
+6. `docs/cairn/cairn-manifesto-convergence-2026-09-02.md` — the manifesto round
+   (S09b): what the protocol weighs, where it drifted from the vision, and the
+   Cairn 1.0 shape awaiting the owner's rulings. Read when planning the genesis.
 
 `proxy-predicate`, `unsound-gate`, `adversarial-fixture`, `gate-parity`,
 `record-integrity` (read its *Relocation is not mutation* section) and
@@ -379,7 +392,10 @@ that ADDS a record.
 ## Verification
 
 `npm run cairn-check` — branch against trunk by default since S08a — reports OK.
-S09a records **12 advisories, and 12 is the steady state**: concept growth,
+S09b records **13 advisories, and 13 is the steady state**: the twelve S09a
+recorded plus one `scope-drift` line naming the owner's two untracked notes at
+the repository root (their copies under `docs/cairn/` are declared); it goes
+when the owner keeps or removes those notes: concept growth,
 nine grandfathered `CP-MVP-008` findings carrying their reason, and two
 accounted-for `single-truth` notes on shared files. The regenerated view no
 longer draws `single-truth` (pilot finding 19), and the three tool files are

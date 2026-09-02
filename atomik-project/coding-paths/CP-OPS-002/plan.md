@@ -3,7 +3,7 @@ type: Atomik Coding Path Plan
 title: 'CP-OPS-002 — the forward plan'
 description: The steps CP-OPS-002 has not executed yet. Explanatory until it is executed, so it is read when planning rather than before every step.
 tags: [cairn, ops, plan, coding-path]
-timestamp: 2026-09-01T00:00:00Z
+timestamp: 2026-09-02T00:00:00Z
 atomik:
   path: CP-OPS-002
 ---
@@ -132,7 +132,12 @@ brief names — and fix what the pilot finds before merging.
   [`docs/cairn/cairn-greenfield-pilot-2026-09-01.md`](../../../docs/cairn/cairn-greenfield-pilot-2026-09-01.md)
   and the step is [`steps/S09a.md`](./steps/S09a.md). Two findings are deferred
   and named there: a `brief-stale` advisory, and the initializer's area note.
-- **S09b — this path's own closure.** On a `forbidden` host: fetch and merge
+- **S09b — done.** The manifesto round the owner asked for before the genesis:
+  [`docs/cairn/cairn-manifesto-convergence-2026-09-02.md`](../../../docs/cairn/cairn-manifesto-convergence-2026-09-02.md)
+  measures the protocol against the [manifesto](../../../docs/cairn/manifesto.md)
+  and the current coding workflows, and proposes the Cairn 1.0 shape. Its
+  checklists are the owner's decisions; none is executed by this path.
+- **S09c — this path's own closure.** On a `forbidden` host: fetch and merge
   `master` into the branch, run every gate on candidate `C`, scaffold and fill
   the coherence audit bound to `C`, obtain the owner's closing acceptance, land
   the administrative commit, check acceptance drift, integrate from the owner's
@@ -140,3 +145,12 @@ brief names — and fix what the pilot finds before merging.
   live view and writes the journal entry, verify the remote trunk, and remove
   the clean secondary worktree from another checkout. The operations page now
   states this sequence as the checker enforces it; follow the page.
+
+### After this path — the genesis, in its own repository
+
+The Cairn 1.0 shape proposed at S09b (six chapters on the chronology, about
+twenty rules, about thirty own concepts, one folder per path, pull-request
+integration, Agent Skills, `npx cairn`) is not a step of CP-OPS-002. It opens as
+the first path of the `cairn` repository, with the convergence record and the
+manifesto as its opening input, and forward-plan item 12 — authority moves
+once, at the genesis commit — as its first rule.

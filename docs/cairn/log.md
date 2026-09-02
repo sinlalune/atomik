@@ -3,7 +3,7 @@ type: Atomik Folder Log
 title: Log — docs/cairn
 description: Recent meaningful changes to the Cairn protocol as explained outside this repository, per the OKF folder convention.
 tags: [log, okf, cairn]
-timestamp: 2026-08-24T00:00:00Z
+timestamp: 2026-09-02T00:00:00Z
 ---
 
 # Log — `docs/cairn`
@@ -19,6 +19,13 @@ Seeded 2026-08-24 (CP-OPS-002 S05c) from Git history: the 9 most recent of 9 com
 remains the complete record; this is the readable one. If two paths ever start
 colliding on this file, it takes the amendment the journal already took — one file
 per entry in a `log/` subfolder — which was a concurrency fix, never a size one.
+
+## 2026-09-02
+
+- `CP-OPS-002 S09b` carries the owner's manifesto and project note into this
+  folder verbatim and records the manifesto round: the protocol measured
+  against its own vision and the current coding workflows, and the Cairn 1.0
+  shape proposed for the genesis. No rule or specification page changed.
 
 ## 2026-09-01
 

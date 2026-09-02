@@ -3,7 +3,7 @@ type: Atomik Index
 title: CP-OPS-002 — step records
 description: One file per step of CP-OPS-002, each written where it lives and complete in itself, with the commit that landed it.
 tags: [cairn, ops, coding-path, steps, index, okf]
-timestamp: 2026-09-01T00:00:00Z
+timestamp: 2026-09-02T00:00:00Z
 ---
 
 # CP-OPS-002 — step records
@@ -75,6 +75,7 @@ born here, one complete record per step.
 - **[S08v](./S08v.md)** — Adversarial fixtures, and parity asserted on one tree — COMPLETE
 - **[S08w](./S08w.md)** — The conformance linkage is generated, and stops reading its own output — COMPLETE
 - **[S09a](./S09a.md)** — The greenfield pilot, and the closure it could not complete — COMPLETE
+- **[S09b](./S09b.md)** — The manifesto round: the protocol measured against its own vision — COMPLETE
 
 ## Which commit landed which step
 

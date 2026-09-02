@@ -3,7 +3,7 @@ type: Atomik Index
 title: Cairn — canonical specification, implementation records, and audits
 description: The entry map for Cairn's canonical team-protocol specification, concept wiki, implementation reference, universal reader, and dated design records.
 tags: [cairn, protocol, specification, index, audit, okf]
-timestamp: 2026-08-26T00:00:00Z
+timestamp: 2026-09-02T00:00:00Z
 ---
 
 # Cairn
@@ -16,6 +16,13 @@ integration transport; there is no standing central integrator.
 
 ## Start here
 
+- [Manifesto](./manifesto.md) — the owner's statement of what the protocol is
+  for, verbatim (2026-09-02); the
+  [project note](./cairn-project-note-2026-09-02.md) beside it says what the
+  protocol must become.
+- [Manifesto convergence](./cairn-manifesto-convergence-2026-09-02.md) — the
+  protocol measured against that vision and against the current coding
+  workflows, with the proposed Cairn 1.0 shape and the owner's decisions.
 - [Canonical specification](./specification/index.md) — the authoritative v0.2
   protocol, taught from simple durable objects through paths, routes, team
   concurrency, exact-candidate closure, lifecycle, repair, governance, and
