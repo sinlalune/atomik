@@ -1,34 +1,30 @@
 #!/usr/bin/env node
 /**
- * cairn-audit — scaffold the coherence audit record for a path.
+ * cairn-audit — scaffold the closing review of one exact candidate.
  *
- * Removing the integrator (owner directive, 2026-08-14) removed the person who
- * noticed two paths drifting apart architecturally. The owner's answer was to
- * delegate the noticing: "it could be an automated audit from agent after each
- * rebase or merge".
+ * Removing the integrator removed the person who noticed two paths drifting
+ * apart architecturally. The owner's answer was to delegate the noticing to
+ * whoever reviews the candidate, with four questions that a deterministic
+ * gate cannot answer and a human or an agent can.
  *
- * The design constraint that follows: an agent's judgment is not deterministic,
- * costs money, and needs credentials CI should not hold — so it must never be
- * the thing that fails a build. The split:
+ * Where the answers are written is the transport's business:
  *
- *   the AGENT produces the judgment    reads the candidate diff against the
- *                                      architecture, the decision records, and
- *                                      the path's declared coverage
- *   CI checks binding + completeness   a deterministic gate on a
- *                                      non-deterministic activity
- *   its verdict is not machine-judged  findings are disposed by the acceptor
+ *   pull-request   the request's description IS the review, and its approval
+ *                  the closing acceptance. This command prints the description
+ *                  to paste, with the candidate, the base and the questions
+ *                  filled in; a forge that carries the kit's request template
+ *                  offers the same shape by itself.
+ *   manual-git     one closing record in the path folder, `closing-<C>.md`,
+ *                  carrying the acceptance fields and the same questions. This
+ *                  command scaffolds it; the checker reads it under `acceptance`.
  *
- * This script writes the empty record, stamped with the exact implementation
- * candidate it reviews, so the check has something objective to look for. A
- * later administrative closure commit may contain the record without changing
- * that subject. Filling it in is the
- * agent's job — an unfilled record is visible as unfilled, which is the point:
- * a missing audit and a lazy audit should not look the same. `fillErrors()` is
- * what makes that true of a HOLLOWED-OUT record too: deleting the placeholder
- * is a deletion, not an audit (F10).
+ * The judgement is never machine-scored. What the checker proves on manual-git
+ * is that the record names exactly C, its fields are present, it names a
+ * verdict from the stated vocabulary and answers at least one of its own
+ * questions — a missing record, an untouched scaffold and a hollowed-out one
+ * must not look the same.
  *
- *   node tools/cairn-audit.mjs                        # scaffold for the current branch
- *   node tools/cairn-audit.mjs --check --subject <sha> [--branch path/<id>]
+ *   node tools/cairn-audit.mjs [--subject <C>] [--branch path/<id>]
  */
 
 import { execFileSync } from 'node:child_process'
@@ -36,225 +32,182 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  AUDIT_DIR,
+  INTEGRATION_TRANSPORT,
   METADATA_NAMESPACE,
   PATH_DIR,
-  SESSION_DIR,
-  readFrontmatter
+  TRUNK_BASE_CANDIDATES,
+  readFrontmatter,
+  resolveScopeSection
 } from './cairn-check.mjs'
 import { REPO, metadataOf } from './cairn-config.mjs'
 
-const PLACEHOLDER = 'TO BE FILLED BY THE AUDITING AGENT'
+export const PLACEHOLDER = 'TO BE FILLED BY THE REVIEWER'
 
-/** An audit belongs to one candidate commit: re-running after another rebase
- *  produces another record rather than overwriting the last one, so the
- *  history of what was checked survives. */
-export function auditName(pathId, subjectCommit) {
-  return `${pathId.toLowerCase()}-${subjectCommit}.md`
+export const QUESTIONS = [
+  'Does the diff contradict an accepted decision?',
+  'Does it duplicate something another running path is building?',
+  'Did it introduce architecture that belongs in a decision record and has none?',
+  'Is anything now documented in two places that will drift apart?'
+]
+
+/** How much of an item leads its line. The record holds the item whole and the
+ *  digest seals it there; a request that reproduced eight paragraphs would bury
+ *  the three plain lines the owner is meant to read first. */
+const LEAD = 110
+
+/**
+ * The items of a record's definition of done, in order, each led by enough of
+ * its own words to be recognised.
+ *
+ * ADR-018 decision 2: the request answers the definition of done ITEM BY ITEM,
+ * and the lines are printed FROM THE RECORD for the writer to fill. Nothing
+ * here ticks a box — the record's checkboxes stay as the digest sealed them,
+ * and what the writer fills is beside them, in the description.
+ *
+ * Pure: the caller supplies the record's text.
+ */
+export function definitionItems(text) {
+  const section = resolveScopeSection(String(text ?? ''), '#definition-of-done')
+  if (!section) return []
+  const items = []
+  for (const line of section.split('\n')) {
+    const opening = /^(\s*)[-*+]\s+\[[ xX]\]\s*(.*)$/.exec(line)
+    // An INDENTED checkbox is a sub-item of the one above it, not a sibling:
+    // the writer who nests a list under an item did not add an item to the
+    // definition of done, and promoting it would renumber every item after it.
+    if (opening && !(opening[1] && items.length)) {
+      items.push(opening[2])
+      continue
+    }
+    if (!line.trim() || line.startsWith('#')) continue
+    if (!items.length) continue
+    // Indented, so it is this item wrapped or nested under it. Prose or a
+    // table at column zero is SKIPPED, not joined and not a stop: markdown's
+    // lazy continuation needs no indent, so a record that wraps without one
+    // would lose every item after the wrap if this ended the list.
+    if (/^\s/.test(line)) items[items.length - 1] += ` ${line.trim()}`
+  }
+  return items.map((item, index) => ({ n: index + 1, lead: leadOf(item) }))
 }
 
-export function auditTemplate({ pathId, branch, subjectCommit, base }) {
+/** The first words of an item, cut so the request stays readable. */
+function leadOf(item) {
+  const whole = item.replace(/\s+/g, ' ').trim()
+  if (whole.length <= LEAD) return whole
+  // Cut on a word where there is one. `lastIndexOf` answers -1 for an item
+  // whose first LEAD characters hold no space — a long backticked path is the
+  // real case — and `slice(0, -1)` would then return the whole item minus its
+  // last character, which is the opposite of a lead.
+  const space = whole.lastIndexOf(' ', LEAD)
+  const body = whole.slice(0, space === -1 ? LEAD : space)
+  // A cut inside a backtick span leaves the span open, and the next backtick
+  // on the rendered line closes it around the writer's own blanks — so the
+  // places they are meant to fill disappear into a code span. The repair goes
+  // BEFORE the ellipsis: inside it, a truncated command would render as a
+  // whole one, which is the lead reading as a thing it is not.
+  return (body.match(/`/g)?.length ?? 0) % 2 ? `${body}\`…` : `${body}…`
+}
+
+/** The closing record on `manual-git`: acceptance fields and the review in
+ *  one file, named after the candidate it binds. */
+export function closingTemplate({ pathId, branch, subjectCommit, base, scopeRef }) {
   return `---
-type: Cairn Coherence Audit
-title: Coherence audit — ${pathId} @ ${subjectCommit.slice(0, 7)}
+type: Cairn Closing Record
+title: ${pathId} — closing of ${subjectCommit.slice(0, 7)}
 timestamp: ${new Date().toISOString()}
 ${METADATA_NAMESPACE}:
   path: ${pathId}
   branch: ${branch}
   subject_commit: ${subjectCommit}
   base: ${base}
+  accepted_by: ${PLACEHOLDER}
+  accepted_roles: [reviewer]
+  accepted_at: ${PLACEHOLDER}
+  decision: accepted
+  scope_ref: ${scopeRef}
+  scope_digest: ${PLACEHOLDER}
+  advisories_at_candidate: []
+  advisory_disposition: []
   verdict: ${PLACEHOLDER}
 ---
 
-# Coherence audit — ${pathId} @ ${subjectCommit.slice(0, 7)}
+# ${pathId} — closing of ${subjectCommit.slice(0, 7)}
 
-Run on the exact candidate, before acceptance. The judgement in this record is not a
-machine verdict; its existence, completeness, and exact candidate binding are
-mechanical closure gates. Its job is to catch what deterministic checks cannot
-— two paths that each pass every rule and still pull the architecture in
-different directions.
-
-## What to read
-
-- the candidate diff for this branch, against the trunk it will land on
-- every architecture page and decision record named in this path's documentation coverage
-- the module area notes the diff touches
-- any OTHER path currently \`running\` that declares an overlapping surface
+The review of exactly \`${subjectCommit}\`, read against the documents pinned in
+\`governs:\` at their pinned ids and against every path running beside it. The
+judgement here is not a machine verdict; that this record names the candidate,
+answers its questions and carries the acceptance is what the checker proves.
 
 ## Findings
 
-### Does the diff contradict an accepted decision?
+${QUESTIONS.map((question) => `### ${question}\n\n${PLACEHOLDER}\n`).join('\n')}
+## Advisories
 
-${PLACEHOLDER}
+Every advisory the checker raised at the candidate is listed in
+\`advisories_at_candidate\`, and \`advisory_disposition\` carries one entry per
+advisory: \`fixed\`, \`accepted\`, or \`deferred\` with an owner and a follow-up.
 
-### Does it duplicate something another running path is building?
+## Decision
 
-${PLACEHOLDER}
+Candidate accepted for administrative closure and exact integration.
 
-### Did it introduce architecture that belongs in an ADR and has none?
-
-${PLACEHOLDER}
-
-### Is anything now documented in two places that will drift apart?
-
-${PLACEHOLDER}
-
-## Verdict
-
-${PLACEHOLDER}
-
-*(clean · drift noted, proceeding · needs a conversation before merge)*
+*(verdict: clean · drift noted, proceeding · needs a conversation before merge)*
 `
 }
 
 /**
- * The verdict vocabulary the template states, as STEMS rather than exact
- * phrases. The three outcomes are `clean`, `drift noted, proceeding` and
- * `needs a conversation before merge`; CP-OPS-001's record says *"drift noted,
- * repaired before merge"*, which names the second outcome and then says what
- * happened to it. Refusing that record would be a false verdict about a real
- * audit, and this repository's own rule is that a false verdict costs more
- * than a missed one. A record must NAME one of the three; it may qualify it.
- */
-export const VERDICT_STEMS = ['clean', 'drift noted', 'needs a conversation']
-
-/** The body of a `## <name>` section, up to the next `##` heading. */
-export function sectionBody(text, name) {
-  const from = text.search(new RegExp(`^## ${name}\\s*$`, 'm'))
-  if (from === -1) return null
-  const after = text.slice(from)
-  const rest = after.slice(after.indexOf('\n') + 1)
-  const to = rest.search(/^## /m)
-  return to === -1 ? rest : rest.slice(0, to)
-}
-
-/** The `###` questions under `## Findings`, each with whatever was written
- *  beneath it. Pure string work, so the rule is testable without a record on
- *  disk. */
-export function findingsSections(text) {
-  const block = sectionBody(text, 'Findings')
-  if (block === null) return []
-  return block
-    .split(/^### +/m)
-    .slice(1)
-    .map((chunk) => {
-      const nl = chunk.indexOf('\n')
-      return {
-        heading: (nl === -1 ? chunk : chunk.slice(0, nl)).trim(),
-        body: (nl === -1 ? '' : chunk.slice(nl + 1)).trim()
-      }
-    })
-}
-
-/**
- * Why this is more than `!text.includes(PLACEHOLDER)` (audit 2026-08-24, F10).
+ * The request's description on `pull-request`: the same review, to paste.
  *
- * The old rule measured a DELETION: remove the placeholder string and an empty
- * file passed. This is the one check whose subject is whether an agent did the
- * thinking, so a missing audit, an untouched scaffold and a hollowed-out record
- * must not all look the same.
+ * The order is the template's, and it is the order the OWNER reads in (ADR-021
+ * decision 2): what the path did, why it is the least, what it does not do,
+ * and the page a newcomer opens for the surface it changed — then the
+ * definition of done item by item (ADR-018 decision 2) — and only then the
+ * ledger the checker's twin reads. On the first adopter a request was read in
+ * twenty seconds and a merge came twenty-nine seconds after the request
+ * opened; what was there to read was a ledger.
  *
- * What it can honestly ask for is that the record NAMES an outcome from the
- * stated vocabulary and ANSWERS at least one of its own questions. It cannot
- * ask whether the answers are any good — that is the judgment the whole rule is
- * built to keep out of a deterministic gate, and it stays advisory precisely
- * because a human reads the findings.
+ * The blanks of the two new sections are THIS REPOSITORY's request template's
+ * markers rather than the reviewer placeholder below, because a line that is
+ * mostly boilerplate is a line nobody reads. They are backticked: a bare
+ * `<unit>` matches an HTML open tag, and the forge's sanitiser strips it from
+ * the rendered description — leaving a blank that reads as an answered one,
+ * which is the failure this section exists to end. The kit's own generated
+ * template is the roadmap's row 4, and does not carry these sections yet.
  */
-export function fillErrors(text) {
-  const errors = []
-  if (text.includes(PLACEHOLDER)) errors.push('still carries the scaffold placeholder')
+export function requestDescription({ pathId, subjectCommit, base, scopeRef, items = [] }) {
+  return `## What this path did
 
-  const verdict = String(metadataOf(readFrontmatter(text)?.data)?.verdict ?? '').trim()
-  if (!verdict) errors.push('no `verdict:` in its frontmatter')
-  else if (!VERDICT_STEMS.some((stem) => verdict.toLowerCase().startsWith(stem)))
-    errors.push(
-      `verdict "${verdict}" names none of: ${VERDICT_STEMS.join(' · ')}`)
+- \`<what the path did>\`
+- \`<why it is the least>\`
+- \`<what it does not do>\`
 
-  const answered = findingsSections(text).filter((s) => s.body !== '')
-  if (answered.length === 0) errors.push('no findings section has been answered')
+Surface: \`<the page a newcomer reads for the surface this path changed, or the README section>\`
 
-  return errors
-}
+## Definition of done, item by item
 
-/** A record counts only when the agent has actually filled it in — a missing
- *  audit, an untouched scaffold and a hollowed-out record must not look the
- *  same. */
-export function isFilled(text) {
-  return fillErrors(text).length === 0
-}
+${items.length === 0
+  ? `*no item was read from the record — check that \`${scopeRef}\` still names a \`## Definition of done\` section*`
+  : items.map(({ n, lead }) => `- item ${n} — ${lead} — advanced by \`<unit>\` — shown by \`<command or page>\``).join('\n')}
 
-function git(args) {
-  return execFileSync('git', args, { cwd: REPO, encoding: 'utf8' }).trim()
-}
+## Candidate
 
-/**
- * A closing audit is valid for exactly one candidate commit. The administrative
- * closure commit may contain this record, but it cannot widen the record's
- * subject to HEAD or to any earlier path commit.
- */
-export function findAudit(files, subjectCommit, pathId) {
-  if (!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i.test(String(subjectCommit))) return undefined
-  const expected = auditName(pathId, subjectCommit)
-  return files.find((file) => file === expected)
-}
+- path: ${pathId}
+- candidate \`C\`: ${subjectCommit}
+- base \`T\`, the trunk tip merged into the candidate: ${base}
+- scope digest at \`C\`: \`node tools/cairn-check.mjs --scope-digest ${scopeRef}\` → ${PLACEHOLDER}; equals the opening acceptance: yes | no
 
-export function auditBindingErrors(
-  text,
-  { pathId, subjectCommit, branch = null, baseCommit = null }
-) {
-  const front = metadataOf(readFrontmatter(text)?.data)
-  const errors = []
-  if (!front) return [`missing ${METADATA_NAMESPACE} audit frontmatter`]
-  if (front.path !== pathId) errors.push(`${METADATA_NAMESPACE}.path must equal ${pathId}`)
-  if (front.subject_commit !== subjectCommit) {
-    errors.push(`${METADATA_NAMESPACE}.subject_commit must equal ${subjectCommit}`)
-  }
-  if (branch && front.branch !== branch) {
-    errors.push(`${METADATA_NAMESPACE}.branch must equal ${branch}`)
-  }
-  if (baseCommit && front.base !== baseCommit) {
-    errors.push(`${METADATA_NAMESPACE}.base must equal ${baseCommit}`)
-  }
-  return errors
-}
+## Coherence
 
-/** Both conforming path-record shapes. Kept pure so the folder-born shape
- * cannot disappear from the audit command without a focused test failing. */
-export function auditPathRecordFiles(entries, exists = () => true) {
-  return entries
-    .filter((entry) => entry.name.startsWith('CP-'))
-    .map((entry) => entry.isDirectory() ? join(entry.name, 'index.md') : entry.name)
-    .filter((file) => file.endsWith('.md') && exists(file))
-}
+${QUESTIONS.map((question) => `- [ ] ${question} ${PLACEHOLDER}`).join('\n')}
 
-function currentPath(branch) {
-  const dir = join(REPO, PATH_DIR)
-  const records = auditPathRecordFiles(
-    readdirSync(dir, { withFileTypes: true }),
-    (file) => existsSync(join(dir, file))
-  )
-  for (const file of records) {
-    const front = metadataOf(readFrontmatter(readFileSync(join(dir, file), 'utf8'))?.data)
-    if (front?.branch === branch) return front
-  }
-  return null
-}
+## Advisories at \`C\`
 
-function closingSubject(pathId) {
-  try {
-    let subject = null
-    for (const name of readdirSync(join(REPO, SESSION_DIR)).filter((f) => f.endsWith('.md')).sort()) {
-      const data = readFrontmatter(readFileSync(join(REPO, SESSION_DIR, name), 'utf8'))?.data
-      if (data?.path !== pathId || String(data?.ceremony).toLowerCase() !== 'closing') continue
-      if (data?.decision !== 'accepted') continue
-      if (/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i.test(String(data?.subject_commit))) {
-        subject = data.subject_commit
-      }
-    }
-    return subject
-  } catch {
-    return null
-  }
+${PLACEHOLDER} — every advisory \`cairn-check\` raised at the candidate, each fixed, accepted, or deferred to a named owner and follow-up; or *none*.
+
+## Roles
+
+- reviewer: ${PLACEHOLDER}, holding the roles ${PLACEHOLDER} on this path
+`
 }
 
 export function resolveAuditBranch(argv, gitBranch) {
@@ -262,79 +215,64 @@ export function resolveAuditBranch(argv, gitBranch) {
   return at === -1 ? gitBranch : argv[at + 1]
 }
 
+function git(args) {
+  return execFileSync('git', args, { cwd: REPO, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim()
+}
+
+function gitOrNull(args) {
+  try { return git(args) } catch { return null }
+}
+
+/** The declaring record for a branch: the folder shape, and the flat one. */
+function currentPath(branch) {
+  const dir = join(REPO, PATH_DIR)
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (!entry.name.startsWith('CP-')) continue
+    const file = entry.isDirectory() ? join(entry.name, 'index.md') : entry.name
+    if (!file.endsWith('.md') || !existsSync(join(dir, file))) continue
+    const text = readFileSync(join(dir, file), 'utf8')
+    const front = metadataOf(readFrontmatter(text)?.data)
+    if (front?.branch === branch) return { front, text, file: `${PATH_DIR}/${file}`, folder: entry.isDirectory() ? `${PATH_DIR}/${entry.name}` : null }
+  }
+  return null
+}
+
 function main() {
-  const branch = resolveAuditBranch(process.argv, git(['rev-parse', '--abbrev-ref', 'HEAD']))
-  const head = git(['rev-parse', 'HEAD'])
-  const dir = join(REPO, AUDIT_DIR)
-  mkdirSync(dir, { recursive: true })
-  const existing = readdirSync(dir).filter((f) => f.endsWith('.md'))
-
-  const front = currentPath(branch)
-
-  if (process.argv.includes('--check')) {
-    if (!front) {
-      console.log(`cairn-audit — nothing to check: "${branch}" is not a path branch`)
-      process.exit(0)
-    }
-    const explicitSubject = process.argv.includes('--subject')
-      ? process.argv[process.argv.indexOf('--subject') + 1]
-      : null
-    const subject = explicitSubject || closingSubject(front.id)
-    if (!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i.test(String(subject))) {
-      console.error(
-        `cairn-audit — no accepted full subject_commit for ${front.id}; ` +
-        'record the exact closing candidate or pass --subject <sha>')
-      process.exit(1)
-    }
-    const found = findAudit(existing, subject, front.id)
-    if (!found) {
-      console.error(
-        `cairn-audit — no coherence audit for ${front.id} naming exact candidate ` +
-        `${subject}. Run the audit again for that candidate`)
-      process.exit(1)
-    }
-    const text = readFileSync(join(dir, found), 'utf8')
-    const invalid = [
-      ...auditBindingErrors(text, {
-        pathId: front.id,
-        subjectCommit: subject,
-        branch,
-        baseCommit: front.base_commit
-      }),
-      ...fillErrors(text)
-    ]
-    if (invalid.length) {
-      console.error(`cairn-audit — ${found} is not a valid completed audit: ${invalid.join('; ')}`)
-      process.exit(1)
-    }
-    console.log(`cairn-audit — ${found} present and filled`)
+  const argv = process.argv
+  const branch = resolveAuditBranch(argv, gitOrNull(['rev-parse', '--abbrev-ref', 'HEAD']) ?? 'HEAD')
+  const path = currentPath(branch)
+  if (!path) {
+    // Not an error: a review only has meaning on a path branch, and the first
+    // thing a newcomer does with a documented command is run it on the trunk.
+    console.log(`cairn-audit — nothing to review: "${branch}" is not a path branch`)
     process.exit(0)
   }
+  const subject = argv.includes('--subject') ? argv[argv.indexOf('--subject') + 1] : git(['rev-parse', 'HEAD'])
+  const trunk = TRUNK_BASE_CANDIDATES.find((ref) => gitOrNull(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]))
+  const base = trunk ? gitOrNull(['merge-base', trunk, subject]) ?? 'unresolved' : 'unresolved'
+  const scopeRef = `${path.file}#definition-of-done`
+  const fields = { pathId: path.front.id, branch, subjectCommit: subject, base, scopeRef }
 
-  if (!front) {
-    // Not an error: an audit only has meaning on a path branch. Failing here
-    // would mean the command documented in AGENTS.md exits non-zero for anyone
-    // who runs it on the trunk to see what it does — the first thing a new
-    // agent in an unfamiliar harness will do.
-    console.log(`cairn-audit — nothing to audit: "${branch}" is not a path branch`)
-    process.exit(0)
+  if (INTEGRATION_TRANSPORT === 'pull-request') {
+    // Only here: the closing record on `manual-git` carries the four questions
+    // and no item-by-item section — ADR-018 decision 2 is about the request's
+    // description, and parsing the record for the other transport would be
+    // work whose output nothing prints.
+    console.log(requestDescription({ ...fields, items: definitionItems(path.text) }))
+    return
   }
-  const file = join(dir, auditName(front.id, head))
-  if (existsSync(file)) {
-    console.log(`cairn-audit — ${auditName(front.id, head)} already exists`)
-    process.exit(0)
+  if (!path.folder) {
+    console.error(`cairn-audit — ${path.file} is a flat record; a closing record needs the one-folder shape`)
+    process.exit(1)
   }
-  writeFileSync(
-    file,
-    auditTemplate({
-      pathId: front.id,
-      branch,
-      subjectCommit: head,
-      base: front.base_commit ?? 'unpinned'
-    }),
-    'utf8'
-  )
-  console.log(`cairn-audit — scaffolded ${AUDIT_DIR}/${auditName(front.id, head)}`)
+  const file = `${path.folder}/closing-${subject}.md`
+  if (existsSync(join(REPO, file))) {
+    console.log(`cairn-audit — ${file} already exists`)
+    return
+  }
+  mkdirSync(join(REPO, path.folder), { recursive: true })
+  writeFileSync(join(REPO, file), closingTemplate(fields), 'utf8')
+  console.log(`cairn-audit — scaffolded ${file}`)
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

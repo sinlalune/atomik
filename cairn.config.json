@@ -1,6 +1,6 @@
 {
   "$schema": "./tools/cairn-config.schema.json",
-  "version": 1,
+  "version": 2,
   "trunk": "master",
   "remote": "origin",
   "metadataNamespace": "atomik",
@@ -12,7 +12,11 @@
     "decisions": "docs/adr",
     "modules": "docs/modules",
     "concepts": "docs/cairn/specification/concepts",
-    "source": ["apps", "packages", "shared"]
+    "source": [
+      "apps",
+      "packages",
+      "shared"
+    ]
   },
   "areas": [
     {
@@ -26,7 +30,9 @@
     },
     {
       "name": "editor",
-      "match": ["apps/desktop/renderer/src/editor/**"],
+      "match": [
+        "apps/desktop/renderer/src/editor/**"
+      ],
       "note": "docs/modules/atomik-desktop-editor.md"
     },
     {
@@ -75,19 +81,12 @@
     },
     {
       "name": "shell",
-      "match": ["apps/desktop/**"],
+      "match": [
+        "apps/desktop/**"
+      ],
       "note": "docs/modules/atomik-desktop-shell.md"
     }
   ],
-  "sharedFiles": [
-    "atomik-project/coding-paths/ACTIVE.md",
-    "atomik-project/coding-paths/index.md",
-    "atomik-project/log.md",
-    "docs/modules/atomik-desktop.md",
-    "docs/learning/index.md",
-    "docs/diagrams/index.md"
-  ],
-  "staleAfterDays": 14,
   "defaultRoute": "lightweight",
   "checkpointRetentionRef": null,
   "pathHistoryPolicy": "forbidden",
@@ -97,8 +96,18 @@
     "integration": "manual-git"
   },
   "migration": {
-    "unregisteredPaths": ["CP-OPS-001", "CP-MVP-011", "CP-MVP-012"],
-    "undeclaredOpenings": ["CP-MVP-011", "CP-MVP-012"],
-    "v02Records": ["CP-OPS-002", "CP-MVP-008"]
+    "unregisteredPaths": [
+      "CP-OPS-001",
+      "CP-MVP-011",
+      "CP-MVP-012"
+    ],
+    "undeclaredOpenings": [
+      "CP-MVP-011",
+      "CP-MVP-012"
+    ],
+    "v02Records": [
+      "CP-OPS-002",
+      "CP-MVP-008"
+    ]
   }
 }

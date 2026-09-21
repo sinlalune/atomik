@@ -12,16 +12,17 @@ import { existsSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-export const SUPPORTED_CONFIG_VERSION = 1
+export const SUPPORTED_CONFIG_VERSION = 2
 export const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 export const CONFIG_PATH = resolve(REPO, 'cairn.config.json')
 
 const DEFAULT_ROUTES = new Set(['lightweight', 'full'])
 const PROFILES = new Set(['local', 'ci', 'protected'])
 const HISTORY_POLICIES = new Set(['retained', 'forbidden'])
+const TRANSPORTS = new Set(['pull-request', 'manual-git'])
 const ROOT_FIELDS = new Set([
   '$schema', 'version', 'trunk', 'remote', 'metadataNamespace',
-  'enforcementProfile', 'roots', 'areas', 'sharedFiles', 'staleAfterDays',
+  'enforcementProfile', 'roots', 'areas',
   'defaultRoute', 'checkpointRetentionRef', 'pathHistoryPolicy',
   'scopeDigestAlgorithm', 'transport', 'migration'
 ])
@@ -82,7 +83,11 @@ export function configErrors(config) {
     add('$schema must be a non-empty string when present')
   }
   if (config.version !== SUPPORTED_CONFIG_VERSION) {
-    add(`version must equal supported schema ${SUPPORTED_CONFIG_VERSION}`)
+    // Schema 1 (Cairn 0.2) carried `sharedFiles` and `staleAfterDays` for two
+    // rules the 1.0 cut retired. A schema-1 file is refused by name rather than
+    // half-read; `npx cairn adopt` is where the migration will be written.
+    add(`version must equal supported schema ${SUPPORTED_CONFIG_VERSION}` +
+      (config.version === 1 ? ' — schema 1 is Cairn 0.2; drop sharedFiles and staleAfterDays and declare version 2' : ''))
   }
   if (!isGitBranch(config.trunk)) {
     add('trunk must be one valid Git branch name')
@@ -142,14 +147,6 @@ export function configErrors(config) {
     if (hasDuplicates(areaNames)) add('areas must not repeat a name')
   }
 
-  if (!arrayOfStrings(config.sharedFiles) || config.sharedFiles.some((file) => !isRelativePath(file))) {
-    add('sharedFiles must be an array of repository-relative paths')
-  } else if (hasDuplicates(config.sharedFiles)) {
-    add('sharedFiles must not repeat a path')
-  }
-  if (!Number.isInteger(config.staleAfterDays) || config.staleAfterDays < 1) {
-    add('staleAfterDays must be a positive integer')
-  }
   if (!DEFAULT_ROUTES.has(config.defaultRoute)) {
     add('defaultRoute must be lightweight or full')
   }
@@ -166,14 +163,12 @@ export function configErrors(config) {
     add('a checkpointRetentionRef requires pathHistoryPolicy: retained')
   }
   if (config.scopeDigestAlgorithm !== 'sha256') {
-    add('scopeDigestAlgorithm must be sha256 in configuration schema 1')
+    add(`scopeDigestAlgorithm must be sha256 in configuration schema ${SUPPORTED_CONFIG_VERSION}`)
   }
   if (!isPlainObject(config.transport) ||
-      typeof config.transport.registration !== 'string' ||
-      !IDENTIFIER.test(config.transport.registration) ||
-      typeof config.transport.integration !== 'string' ||
-      !IDENTIFIER.test(config.transport.integration)) {
-    add('transport must name non-empty registration and integration adapters')
+      !TRANSPORTS.has(config.transport.registration) ||
+      !TRANSPORTS.has(config.transport.integration)) {
+    add('transport.registration and transport.integration must each be pull-request or manual-git')
   } else {
     for (const field of unknownFields(config.transport, TRANSPORT_FIELDS)) {
       add(`transport has unknown field ${field}`)
@@ -211,9 +206,18 @@ export function loadConfig(path = CONFIG_PATH) {
   return parsed
 }
 
-export const CAIRN_CONFIG = loadConfig()
+/** The installed configuration, loaded the first time a tool asks for it.
+ *  Not a module-level constant: the `cairn` command runs from the package,
+ *  which carries no host configuration, and importing this module for its
+ *  pure validators must not require one. The checker, the live view and the
+ *  scaffolder ask at their start, and fail there with the path named. */
+let installed = null
+export function installedConfig(path = CONFIG_PATH) {
+  installed ??= loadConfig(path)
+  return installed
+}
 
-export function metadataOf(data, config = CAIRN_CONFIG) {
+export function metadataOf(data, config = installedConfig()) {
   return data?.[config.metadataNamespace] ?? null
 }
 

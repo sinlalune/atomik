@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:cairn:config:v1",
-  "title": "Cairn configuration schema 1",
+  "$id": "urn:cairn:config:v2",
+  "title": "Cairn configuration schema 2",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -12,8 +12,6 @@
     "enforcementProfile",
     "roots",
     "areas",
-    "sharedFiles",
-    "staleAfterDays",
     "defaultRoute",
     "checkpointRetentionRef",
     "pathHistoryPolicy",
@@ -23,7 +21,7 @@
   ],
   "properties": {
     "$schema": { "type": "string" },
-    "version": { "const": 1 },
+    "version": { "const": 2 },
     "trunk": { "type": "string", "minLength": 1 },
     "remote": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
     "metadataNamespace": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$" },
@@ -67,12 +65,6 @@
         }
       }
     },
-    "sharedFiles": {
-      "type": "array",
-      "uniqueItems": true,
-      "items": { "$ref": "#/$defs/path" }
-    },
-    "staleAfterDays": { "type": "integer", "minimum": 1 },
     "defaultRoute": { "enum": ["lightweight", "full"] },
     "checkpointRetentionRef": {
       "oneOf": [
@@ -87,8 +79,8 @@
       "additionalProperties": false,
       "required": ["registration", "integration"],
       "properties": {
-        "registration": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
-        "integration": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" }
+        "registration": { "enum": ["pull-request", "manual-git"] },
+        "integration": { "enum": ["pull-request", "manual-git"] }
       }
     },
     "migration": {

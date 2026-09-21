@@ -12,11 +12,11 @@
  * idea must be able to read it in one sitting and run it locally with the
  * same command CI runs.
  *
- *   node tools/cairn-check.mjs [--base <ref>] [--previous <ref>]
- *                              [--working-tree] [--branch <name>] [--json]
+ *   node tools/cairn-check.mjs [--base <ref>] [--branch <name>] [--json]
  *
  * On a `path/*` branch the base DEFAULTS to the trunk, because that is the
- * comparison which decides the merge. `--working-tree` opts out of it.
+ * comparison which decides the merge. There is no narrower form: one
+ * invocation, one comparison, one verdict, on a laptop and in CI alike.
  *
  * BLOCKING failures exit 1. ADVISORY findings are printed and never fail:
  * a declared write surface is a signal, not a lock (owner ruling 4), and a
@@ -28,15 +28,20 @@ import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { CAIRN_CONFIG, REPO, metadataOf, slash } from './cairn-config.mjs'
+import { REPO, installedConfig, metadataOf, slash } from './cairn-config.mjs'
+
+const CAIRN_CONFIG = installedConfig()
 
 export const METADATA_NAMESPACE = CAIRN_CONFIG.metadataNamespace
 export const PROJECT_DIR = CAIRN_CONFIG.roots.project
 export const DOCUMENTATION_DIR = CAIRN_CONFIG.roots.documentation
 export const PATH_DIR = `${PROJECT_DIR}/coding-paths`
-export const SESSION_DIR = `${PROJECT_DIR}/sessions`
-export const AUDIT_DIR = `${PROJECT_DIR}/audits`
-export const BRIEF_DIR = `${PROJECT_DIR}/briefs`
+/** How an accepted candidate reaches the trunk, and therefore where closing
+ *  acceptance is recorded. `pull-request` — the default — makes the request's
+ *  description the coherence checklist and its approval the acceptance, and
+ *  the checker proves only what Git holds. `manual-git` writes the same
+ *  checklist and acceptance as one closing record in the path folder. */
+export const INTEGRATION_TRANSPORT = CAIRN_CONFIG.transport.integration
 export const JOURNAL_DIR = `${PROJECT_DIR}/log`
 export const ADR_DIR = CAIRN_CONFIG.roots.decisions
 export const MODULE_DIR = CAIRN_CONFIG.roots.modules
@@ -56,54 +61,20 @@ export function effectiveBinding(config = CAIRN_CONFIG) {
   }
 }
 
-/**
- * SHARED FILES — generated, or otherwise touched by more than one path.
+/* ------------------------------------------------------------------ *
+ * The profile line — ADR-029.
  *
- * The original justification here was wrong and the owner caught it
- * (2026-08-14). It claimed these "merge cleanly into something false". Four
- * real merges were run to check:
- *
- *   two appends to the journal        -> CONFLICT, visible, trivially resolved
- *   two edits to ADJACENT table rows  -> CONFLICT, visible
- *   two edits to DISTANT table rows   -> clean merge, and CORRECT
- *   parent closed + path added        -> clean merge, CONTRADICTORY
- *
- * Only the last fails, as a CROSS-LINE contradiction (both edits individually
- * right, jointly incoherent) that any reader spots. Git handles the rest.
- *
- * The answer was therefore never a lock. It is to stop these files being
- * shared at all: ACTIVE.md is GENERATED (cairn-active), the journal is now one
- * file per entry under the configured project log, and the root module note is an
- * index over per-area notes. What survives here is a warning — edit it by hand
- * and you are hand-writing something that is meant to be regenerated.
- *
- * This became load-bearing when the integrator role was removed: with every
- * path merging itself, deriving is the only thing keeping shared files
- * unshared.
- */
-export const SINGLE_TRUTH = CAIRN_CONFIG.sharedFiles
+ * The checker asks the host nothing. This line names the enforcement profile
+ * the configuration declares and its two transports, and claims nothing about
+ * what the host enforces: a profile is a claim about settings, and the
+ * evidence for it is read on the host's own settings page, not here. The
+ * GitHub reading that stood here is deleted; ADR-029 supersedes the two
+ * decisions that asked for it.
+ * ------------------------------------------------------------------ */
 
-/**
- * The journal records INTEGRATED work only (owner ruling 9) — a practice,
- * enforced only as ADVISORY, via SINGLE_TRUTH above.
- *
- * It was briefly blocking on the argument that a lane writing it records
- * work as integrated before it is. That argument was retracted 2026-08-14
- * under the owner's second challenge, and it deserved to be: it is circular
- * (the entry is "false" only against our own definition of the file), and
- * no untrue statement ever reaches the trunk anyway — a lane's entry becomes
- * visible exactly when it merges, at which point it is accurate. An
- * abandoned lane takes its entry with it.
- *
- * The criterion that survived, and the one to apply to any new rule:
- *
- *   A rule may fail a build when it is objectively checkable AND breaking
- *   it leaves something WRONG IN THE REPOSITORY — not merely unconventional.
- *
- * Undocumented code is wrong. A journal entry authored by the lane that did
- * the work is unconventional. Only the first blocks.
- */
-export const JOURNAL = `${PROJECT_DIR}/log.md`
+export function profileLine({ enforcementProfile, transports }) {
+  return `profile — ${enforcementProfile}; transports registration ${transports.registration}, integration ${transports.integration}`
+}
 
 /** The running-paths view in ACTIVE.md is DERIVED from path declarations
  *  registered on the trunk before implementation branches. Registration makes
@@ -131,35 +102,6 @@ const PATH_RESOLUTIONS = ['completed', 'abandoned', 'superseded']
 /** One file per integrated outcome. `log.md` beside it is the frozen archive. */
 const HISTORY_DIR = `${PATH_DIR}/history`
 const ADR_STATUSES = ['proposed', 'accepted', 'superseded', 'rejected']
-
-/**
- * A path file is MANDATORY reading for whoever resumes that path, and it grows
- * monotonically: every step appends. The entry chain a resuming agent must read
- * before opening any path file at all — AGENTS.md, paths.md, ACTIVE.md, bedrock
- * 22 and 00 — costs about 9.3 k tokens (audit 2026-08-24, F4). A single path
- * file that costs more than the entire entry chain has stopped being a ledger
- * and become an archive, so that is the budget.
- *
- * Advisory, and scoped to the diff. A corpus sweep would report the same four
- * historical files on every run for months, and a check that cries wolf is a
- * check people switch off (`paths.md`). This one speaks to the person already
- * editing the file, who is the only one who can act on it.
- */
-export const LEDGER_TOKEN_BUDGET = 10_000
-
-/**
- * ADR-012's first open hole was two things: an abandoned path had no terminal
- * transition, and nothing noticed it needed one. ADR-017 supplies the
- * transition (`running → archived`, no new vocabulary) and this is the notice.
- *
- * ADVISORY, permanently. A slow path is not a wrong path — one can be parked
- * for a fortnight while its owner ships something else — and a build that
- * failed for it would teach people to lie about status rather than to archive.
- * The window is a declared property of a REPOSITORY, not a truth about
- * software, the same shape enforcement tiers took in ADR-016 §3; it becomes
- * configured by `cairn.config.json`.
- */
-export const PATH_STALE_DAYS = CAIRN_CONFIG.staleAfterDays
 
 /**
  * These paths were already running before trunk registration became a rule.
@@ -208,11 +150,11 @@ export const LEGACY_UNDECLARED_OPENINGS = new Set(CAIRN_CONFIG.migration.undecla
  * The exception says the record predates the schema; inventing the fields would
  * say someone signed a form nobody wrote.
  *
- * The set is finite, named, and cannot outlive the migration: `migrationDebt`
- * below reports a listed path that no longer needs the exception, so the
- * exception is deleted by a failing gate rather than by anyone remembering.
+ * The set is finite and named. Nothing in the reference checker drains it any
+ * more — `migration-debt` was retired with Cairn 1.0 as a host debt — so a
+ * spent entry is deleted by whoever adopts the release, not by a failing gate.
  */
-export const ROUTES = ['lightweight', 'full', 'foundation']
+export const ROUTES = ['lightweight', 'full']
 
 /** The files that evaluate the protocol. A writer who can change all of these
  *  can weaken the mechanism that judges the same change, which is why touching
@@ -229,77 +171,30 @@ export const DECISION_PLANE = [
   slash(CAIRN_CONFIG.roots.decisions)
 ]
 
-/** A foundation path's work units are documents, so its write surface is
- *  documents plus the draft path records it produces — and nothing else. */
-const prefixPattern = (path) => new RegExp(`^${path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:/|$)`)
-export const FOUNDATION_SURFACE = [
-  prefixPattern(DOCUMENTATION_DIR),
-  prefixPattern(`${PROJECT_DIR}/coding-paths`),
-  prefixPattern('project')
-]
-
 export const V02_MIGRATION_PATHS = new Set(CAIRN_CONFIG.migration.v02Records)
-
-/** An exception that has served its purpose is a bypass. A listed path that is
- *  archived, or that now carries what the exception excused, must leave the
- *  set — and the gate says so rather than waiting to be noticed. */
-export function migrationDebt(paths, exempt = V02_MIGRATION_PATHS) {
-  const live = new Map(paths.map((path) => [String(path.front?.id ?? ''), path]))
-  const stale = []
-  for (const id of exempt) {
-    const path = live.get(id)
-    if (!path) {
-      stale.push(`${id} is listed in V02_MIGRATION_PATHS but no longer exists — delete the entry`)
-    } else if (path.front?.status === 'archived') {
-      stale.push(`${id} is archived, so its v0.2 exception is spent — delete the entry`)
-    }
-  }
-  return stale
-}
 
 export const WORK_UNIT_TYPES = [
   'implementation',
   'documentation',
   'decision',
-  'foundation',
   'repair',
   'closure'
 ]
 
-/** The retention ref namespace. `<n>` is the ledger's own ordinal for the
- *  unit, so a ledger entry and its retained ref name the same thing without
- *  the entry having to contain an object id it cannot know until after it is
- *  committed. `g<NN>` is the GENERATION — one linear version of the branch,
- *  opened when the branch is created or rewritten (ADR-021).
- *
- *      refs/cairn/checkpoints/<path-id>/g<NN>/<n>
- *
- *  The `g` prefix is not decoration. A Git ref is a path, so a ref cannot be
- *  both a leaf and a directory: with an ordinal generation segment,
- *  `…/cp-ops-002/01/14` is refused while the flat `…/cp-ops-002/01` exists.
- *  Keeping the generation out of the ordinal alphabet is what lets refs written
- *  before this notation stay exactly where they are. */
-export const CHECKPOINT_REF_PREFIX = CAIRN_CONFIG.checkpointRetentionRef
-export const RETENTION_ENABLED = CHECKPOINT_REF_PREFIX !== null
-
 /** How this host keeps a path's history (ADR-022).
  *
- *  `retained` — path branches may be rewritten, and every ledger-named commit
- *  is pinned in the retention namespace first (ADR-021).
+ *  `forbidden` — the default, and the only policy the reference checker
+ *  enforces: a published path branch is never rewritten, so the branch IS the
+ *  retention, and `path-history` below reports a rewritten published commit.
  *
- *  `forbidden` — a published path branch is never rewritten, so the branch IS
- *  the retention and the namespace is unnecessary. Retention is then disabled
- *  rather than deleted: it stays the correct design for a rewriting host.
- *
- *  A policy that lives only in configuration is a claim, and unchecked claims
- *  are what this path was opened to find. `forbidden` is enforced by
- *  `path-history` below. */
+ *  `retained` — path branches may be rewritten, and the host pins every
+ *  ledger-named commit in a retention namespace first. Cairn 1.0 keeps that
+ *  as a plugin for the host that needs it: the configuration still declares
+ *  the namespace, the concept page still describes it, and the reference
+ *  checker no longer reads it. A `retained` host runs its own retention check
+ *  or runs none, and the conformance page says so. */
 export const PATH_HISTORY_POLICY = CAIRN_CONFIG.pathHistoryPolicy
 export const REWRITING_FORBIDDEN = PATH_HISTORY_POLICY === 'forbidden'
-
-/** A generation segment. Two digits is the notation; more are accepted rather
- *  than silently reclassified as pre-notation. */
-export const GENERATION_SEGMENT = /^g(\d{2,4})$/
 
 /** The trailer that marks a pushed commit as deliberately incomplete. */
 export const PROVISIONAL_TRAILER = 'Cairn-Provisional'
@@ -469,8 +364,8 @@ export function parseWrites(text) {
     // A trailing comment on an ITEM is the same trap F9 fixed on the `writes:`
     // line itself, one line lower: `- docs/adr/**   # every ADR` declared the
     // surface `docs/adr/**   # every ADR`, which matches nothing, so the path
-    // silently declared less than it said. Found live on 2026-08-24 (CP-OPS-002
-    // S05) when a widened declaration kept reporting drift.
+    // silently declared less than it said — found live in the repository this
+    // checker was cut from, where a widened declaration kept reporting drift.
     if (item) out.push(item[1].replace(/\s+#.*$/, '').trim())
   }
   return out.filter(Boolean)
@@ -509,10 +404,10 @@ export function registrationMatches(text, id, branch, baseCommit) {
 export function pathFrontmatterErrors(front, file = null) {
   if (!front) return [`missing ${METADATA_NAMESPACE}: frontmatter block`]
   const errors = []
-  if (!front.id) errors.push(`missing ${METADATA_NAMESPACE}.id`)
+  if (!front.id) errors.push(`missing ${METADATA_NAMESPACE}.id — a record names the path it declares, in the canonical CP-<UPPERCASE-ID> form its file is named after`)
   else {
     if (!/^CP-[A-Z0-9][A-Z0-9-]*$/.test(front.id)) {
-      errors.push(`${METADATA_NAMESPACE}.id must use canonical CP-<UPPERCASE-ID> form`)
+      errors.push(`${METADATA_NAMESPACE}.id must use canonical CP-<UPPERCASE-ID> form — uppercase it, and rename the record and the branch to match, before the path is registered`)
     }
     // Two shapes carry a path record, and the identity lives in a different
     // segment of each: `CP-<id>.md` names it in the file, `CP-<id>/index.md`
@@ -523,14 +418,14 @@ export function pathFrontmatterErrors(front, file = null) {
     const named = last === 'index.md' ? parts.at(-2) : last?.replace(/\.md$/, '')
     const shape = last === 'index.md' ? `${front.id}/index.md` : `${front.id}.md`
     if (last && named !== front.id) {
-      errors.push(`${METADATA_NAMESPACE}.id "${front.id}" does not match the record's own name (expected ${shape}, got ${parts.slice(-2).join('/')})`)
+      errors.push(`${METADATA_NAMESPACE}.id "${front.id}" does not match the record's own name (expected ${shape}, got ${parts.slice(-2).join('/')}) — rename the record to the id it declares, or declare the id it is named after`)
     }
   }
   if (!PATH_STATUSES.includes(front.status)) {
-    errors.push(`status "${front.status}" is outside the vocabulary (${PATH_STATUSES.join(' | ')})`)
+    errors.push(`status "${front.status}" is outside the vocabulary — declare one of ${PATH_STATUSES.join(' | ')}`)
   }
   if (['running', 'blocked', 'ready'].includes(front.status) && !front.branch) {
-    errors.push(`status "${front.status}" requires ${METADATA_NAMESPACE}.branch`)
+    errors.push(`status "${front.status}" requires ${METADATA_NAMESPACE}.branch — declare path/${String(front.id ?? '<id>').toLowerCase()}, the branch this path's one writer works in`)
   }
   if (
     ['running', 'blocked', 'ready'].includes(front.status) &&
@@ -538,17 +433,30 @@ export function pathFrontmatterErrors(front, file = null) {
     front.branch &&
     front.branch !== `path/${front.id.toLowerCase()}`
   ) {
-    errors.push(`${METADATA_NAMESPACE}.branch must equal path/${front.id.toLowerCase()}`)
+    errors.push(`${METADATA_NAMESPACE}.branch must equal path/${front.id.toLowerCase()} — rename the branch, or declare the id the branch is named after; one path is one branch`)
   }
   if (['running', 'blocked', 'ready'].includes(front.status) && !isCommitPin(front.base_commit)) {
-    errors.push(`status "${front.status}" requires ${METADATA_NAMESPACE}.base_commit as a 7–64 digit Git hash`)
+    errors.push(`status "${front.status}" requires ${METADATA_NAMESPACE}.base_commit as a 7–64 digit Git hash — it is the parent of the commit that registered this path, read with \`git rev-parse <registration>^\``)
   }
   if (front.status === 'ready' && !isObjectId(front.subject_commit)) {
-    errors.push(`status "ready" requires ${METADATA_NAMESPACE}.subject_commit as a full object id — ${OBJECT_ID_FORMATS}`)
+    errors.push(`status "ready" requires ${METADATA_NAMESPACE}.subject_commit as a full object id (${OBJECT_ID_FORMATS}) — it is the candidate the gates were run on, read with \`git rev-parse HEAD\` at that commit`)
+  }
+  if (front.depends_on !== undefined) {
+    if (!Array.isArray(front.depends_on)) {
+      errors.push(`${METADATA_NAMESPACE}.depends_on must be a list of path ids — write it as a YAML list, empty where this path waits on nothing`)
+    } else {
+      for (const id of front.depends_on) {
+        if (!/^CP-[A-Z0-9][A-Z0-9-]*$/.test(String(id))) {
+          errors.push(`${METADATA_NAMESPACE}.depends_on names "${id}", which is not a canonical CP-<UPPERCASE-ID> — name the path by the id its own record declares, or drop the entry`)
+        } else if (id === front.id) {
+          errors.push(`${METADATA_NAMESPACE}.depends_on names the path itself — remove it; a path that waits on itself is never unblocked in the live view`)
+        }
+      }
+    }
   }
   if (front.status === 'archived' && front.resolution && !PATH_RESOLUTIONS.includes(front.resolution)) {
     errors.push(
-      `${METADATA_NAMESPACE}.resolution "${front.resolution}" is outside the vocabulary (${PATH_RESOLUTIONS.join(' | ')})`
+      `${METADATA_NAMESPACE}.resolution "${front.resolution}" is outside the vocabulary — declare one of ${PATH_RESOLUTIONS.join(' | ')}`
     )
   }
   return errors
@@ -556,10 +464,18 @@ export function pathFrontmatterErrors(front, file = null) {
 
 /** A transition is checked whenever the previous path state is available.
  * `null` means this is a newly created path declaration. */
-export function transitionErrors(previous, current, onPathBranch = false) {
+export function transitionErrors(previous, current, onPathBranch = false, readyBehind = false) {
   const errors = []
-  const from = previous?.status ?? null
   const to = current?.status
+  // A comparison sees two ENDPOINTS. An integrating request's range holds the
+  // merge as well as the integrating commit, so it finds `running` at the base
+  // and `done` at the head while the `ready` the branch declared sits inside
+  // the range, in a commit the merge brought in. ADR-001 decision 7 refuses a
+  // trunk commit that takes a path to `done` WITH NO READY COMMIT BEHIND IT —
+  // a question about the history, which the endpoints cannot answer and
+  // `readyBehind` does (ADR-008 decision 2).
+  const declared = previous?.status ?? null
+  const from = readyBehind && declared === 'running' && to === 'done' ? 'ready' : declared
   const allowed = {
     null: ['draft', 'running'],
     draft: ['draft', 'running', 'archived'],
@@ -580,22 +496,31 @@ export function transitionErrors(previous, current, onPathBranch = false) {
     archived: ['archived']
   }
 
-  const trunkIntegration = !onPathBranch && from === 'running' && to === 'done'
-  if (!(allowed[String(from)] ?? []).includes(to) && !trunkIntegration) {
-    errors.push(`transition ${from ?? 'new'} → ${to ?? 'missing'} is not allowed`)
+  // ADR-001 decision 7 removed the edge that let a trunk commit take a path
+  // from `running` straight to `done`. It existed for the `manual-git` merge
+  // unit, but on BOTH transports the administrative commit has already put the
+  // path at `ready` on its branch, so the integrating unit records ready → done
+  // and never needs the shortcut. What the shortcut hid is a closure that never
+  // bound `subject_commit` to the record before the merge.
+  if (!(allowed[String(from)] ?? []).includes(to)) {
+    errors.push(
+      !onPathBranch && from === 'running' && to === 'done'
+        ? 'transition running → done is not allowed: the trunk records ready → done — declare `ready` on the branch, in the administrative commit that carries subject_commit, and record `done` on the trunk in a commit of its own after the merge'
+        : `transition ${from ?? 'new'} → ${to ?? 'missing'} is not allowed — declare the state the work has actually reached${allowed[String(from)] ? `, one of ${allowed[String(from)].join(' | ')}` : ''}`
+    )
   }
   if (onPathBranch && to === 'done') {
-    errors.push('a path branch cannot claim `done`; it declares `ready` and integration records `done` on the trunk')
+    errors.push('a path branch cannot claim `done` — declare `ready` here, and let the commit that integrates the candidate on the trunk record `done`')
   }
   if (to === 'archived' && !PATH_RESOLUTIONS.includes(current?.resolution)) {
-    errors.push('status `archived` requires resolution: completed | abandoned | superseded')
+    errors.push('status `archived` requires a resolution — declare completed, abandoned or superseded, so the record says what became of the work rather than only that it stopped')
   }
   if (to === 'archived' && from === 'done' && current?.resolution !== 'completed') {
-    errors.push('done → archived requires resolution: completed')
+    errors.push('done → archived requires resolution: completed — work that integrated is completed; declare it, or leave the path at done')
   }
   if (from === 'archived' && to === 'archived' && previous?.resolution !== current?.resolution) {
     errors.push(
-      `an archived path's resolution is terminal: ${previous?.resolution ?? 'none'} cannot become ${current?.resolution ?? 'none'}`
+      `an archived path's resolution is terminal: ${previous?.resolution ?? 'none'} cannot become ${current?.resolution ?? 'none'} — restore the resolution this record was archived with, and record the new judgement in a superseding record`
     )
   }
   if (
@@ -608,15 +533,128 @@ export function transitionErrors(previous, current, onPathBranch = false) {
     from !== 'archived' &&
     !['abandoned', 'superseded'].includes(current?.resolution)
   ) {
-    errors.push('an unintegrated path archives as abandoned or superseded, never completed')
+    errors.push('an unintegrated path archives as abandoned or superseded, never completed — declare which it was, or integrate the work and reach archived through done')
   }
   if (to === 'done' && current?.resolution !== 'completed') {
-    errors.push('status `done` requires resolution: completed')
+    errors.push('status `done` requires resolution: completed — declare it in the same commit that records done, or the integration says nothing about what landed')
   }
   if (to === 'done' && !isObjectId(current?.subject_commit)) {
-    errors.push(`status \`done\` requires subject_commit as a full object id — ${OBJECT_ID_FORMATS}`)
+    errors.push(`status \`done\` requires subject_commit as a full object id (${OBJECT_ID_FORMATS}) — it is the candidate that was accepted, already named by the record at \`ready\`; carry that value forward rather than typing a new one`)
   }
   return errors
+}
+
+/** `depends_on:` as a list, whatever the record carries. */
+function dependsOn(front) {
+  return Array.isArray(front?.depends_on) ? front.depends_on : []
+}
+
+/** The commit in which a record first declared a status — where a lifecycle
+ *  event HAPPENED, as against where the file was touched.
+ *
+ *  ADR-004 decision 1 is the registration: the trunk commit in which the
+ *  status became `running`, not the one that first added the file. A record
+ *  may land as a `draft` and be activated later, and judging the draft's
+ *  parent demanded a `base_commit` the work never forked from; the adopter
+ *  answered that demand by rewriting the field, which is how the trunk came to
+ *  carry a value the specification's own definition calls false. ADR-008
+ *  decision 2 is the integration, and asks the same question of `done`.
+ *
+ *  `commits` is the record's history in the range, oldest first; `statusAt`
+ *  reads the status the record declared in one of them, and each read is a
+ *  `git show`, so the search stops at the first match. */
+export function statusCommit(commits, statusAt, status = 'running') {
+  return commits.find((commit) => statusAt(commit) === status) ?? null
+}
+
+/**
+ * ADR-017 decision 2. The unit's fourth movement leaves a record: `#### Review`
+ * in the step's own file, one line per finding the fresh context returned with
+ * its disposition, or the sentence saying it found nothing.
+ *
+ * Returns the section's body, `''` where the heading stands with nothing under
+ * it — the shape a writer leaves when the movement was skipped and the heading
+ * copied from the template — and `null` where there is no section at all.
+ *
+ * The content is not read beyond that. Whether the reader was fresh, and
+ * whether the dispositions are honest, is what the owner reads at the
+ * candidate; a checker that scored them would be inventing a judgement.
+ */
+export function reviewSection(text) {
+  const section = resolveScopeSection(String(text ?? ''), '#review')
+  if (section == null) return null
+  const nl = section.indexOf('\n')
+  return nl === -1 ? '' : section.slice(nl + 1).trim()
+}
+
+/**
+ * Is this the file a unit's ledger is kept in?
+ *
+ * A step record always. The FLAT record shape is its own ledger, so it counts
+ * too — but the `index.md` of a FOLDER record never does: it may be edited
+ * freely, and a `cairn-unit` block put there could publish a unit, or answer
+ * for a unit's review, in a file that can be rewritten the next minute.
+ */
+export function isUnitLedger(file, recordFile) {
+  const dir = String(recordFile ?? '').endsWith('/index.md')
+  return isAppendOnlyStepRecord(file) || (!dir && file === recordFile)
+}
+
+/** The commit a record's resume section names as its checkpoint, or `null`
+ *  when it names none — `unpinned`, empty, or anything that is not an object
+ *  id. Fifteen adopter units left it `unpinned`, so neither path could be
+ *  resumed cold from its own record, which is the one thing the section is
+ *  for (ADR-004 decision 2). */
+export function checkpointCommit(text) {
+  const section = resolveScopeSection(String(text ?? ''), '#checkpoint')
+  const commit = /^\s*commit\s*:\s*(\S+)/m.exec(section ?? '')?.[1]
+  return commit && isObjectId(commit) ? commit : null
+}
+
+/** ADR-004 decision 5: which ref carries this branch's history, from where the
+ *  checker stands. A `pull_request` run of the installed workflow is a
+ *  detached checkout of the request head, on purpose — so there is no local
+ *  ref and no upstream, and a rule that reads either found nothing on the one
+ *  run that is the merge gate. */
+export function resolveBranchRef({ branch, remote = REMOTE, detached = false, refExists = () => false }) {
+  if (refExists(branch)) return { ref: branch, source: 'local' }
+  // HEAD second, and only when the checkout is detached: that is the request
+  // head, and it is the commit the gate must judge. Preferring the
+  // remote-tracking ref here compares it with itself, so a rewritten published
+  // commit passed the one run that is the merge gate.
+  if (detached) return { ref: 'HEAD', source: 'head' }
+  const tracking = `${remote}/${branch}`
+  if (refExists(tracking)) return { ref: tracking, source: 'remote-tracking' }
+  return { ref: 'HEAD', source: 'head' }
+}
+
+/** A dependency names a path this repository knows. `depends_on:` is the one
+ *  edge Cairn keeps between paths, and an edge to nothing is a claim the live
+ *  view cannot project: the path would wait forever on a name. */
+export function dependencyFindings(paths) {
+  const known = new Set(paths.map((path) => String(path.front?.id ?? '')).filter(Boolean))
+  const findings = []
+  for (const path of paths) {
+    for (const id of dependsOn(path.front)) {
+      if (!known.has(String(id))) {
+        findings.push(`${path.file}: depends_on names ${id}, which no path record declares`)
+      }
+    }
+  }
+  return findings
+}
+
+/** Whether every path a record depends on has reached the trunk: `done`, or
+ *  archived as completed. A dependency in any other state — or one the corpus
+ *  does not know — is still waited on. Pure, shared with the live view. */
+export function unmetDependencies(front, statuses) {
+  const deps = dependsOn(front)
+  return deps.filter((id) => {
+    const dep = statuses.get(String(id))
+    if (!dep) return true
+    if (dep.status === 'done') return false
+    return !(dep.status === 'archived' && dep.resolution === 'completed')
+  })
 }
 
 export function duplicatePathIdentityFindings(paths) {
@@ -636,36 +674,91 @@ export function duplicatePathIdentityFindings(paths) {
   return findings
 }
 
+/** A closing record's name carries the candidate it binds. */
+export const CLOSING_RECORD = /^closing-([0-9a-f]{40}|[0-9a-f]{64})\.md$/
+
+/** The verdict vocabulary a closing record must name, as STEMS: a record may
+ *  qualify one — *drift noted, repaired before merge* — and refusing that
+ *  would be a false verdict about a real review. */
+export const VERDICT_STEMS = ['clean', 'drift noted', 'needs a conversation']
+
+/** The body of a `## <name>` section, up to the next `##` heading. */
+export function sectionBody(text, name) {
+  const from = text.search(new RegExp(`^## ${name}\\s*$`, 'm'))
+  if (from === -1) return null
+  const after = text.slice(from)
+  const rest = after.slice(after.indexOf('\n') + 1)
+  const to = rest.search(/^## /m)
+  return to === -1 ? rest : rest.slice(0, to)
+}
+
+/** The `###` questions under `## Findings`, each with whatever was written
+ *  beneath it. Pure string work, so the rule is testable without a record. */
+export function findingsSections(text) {
+  const block = sectionBody(text, 'Findings')
+  if (block === null) return []
+  return block
+    .split(/^### +/m)
+    .slice(1)
+    .map((chunk) => {
+      const nl = chunk.indexOf('\n')
+      return {
+        heading: (nl === -1 ? chunk : chunk.slice(0, nl)).trim(),
+        body: (nl === -1 ? '' : chunk.slice(nl + 1)).trim()
+      }
+    })
+}
+
+/** Is this closing record a completed review, or a scaffold wearing one?
+ *  "Filled" once meant "the placeholder string is absent", which measured a
+ *  DELETION rather than a review: a missing record, an untouched scaffold and
+ *  a hollowed-out one must not look the same. What can honestly be asked is
+ *  that the record NAMES a verdict from the stated vocabulary and ANSWERS at
+ *  least one of its own questions — never whether the answers are any good. */
+export function fillErrors(text, placeholder = 'TO BE FILLED') {
+  const errors = []
+  if (String(text).includes(placeholder)) errors.push(`still carries the scaffold placeholder — answer the questions ${placeholder} stands in for, or say in the record why one does not apply`)
+  const verdict = String(metadataOf(readFrontmatter(String(text))?.data)?.verdict ?? '').trim()
+  if (!verdict) errors.push('no `verdict:` in its frontmatter — state the review\'s outcome in one of the stated stems, so a reader need not infer it from the prose')
+  else if (!VERDICT_STEMS.some((stem) => verdict.toLowerCase().startsWith(stem))) {
+    errors.push(`verdict "${verdict}" names none of ${VERDICT_STEMS.join(' · ')} — begin it with one of those, and keep whatever else you want to say after it`)
+  }
+  if (findingsSections(String(text)).filter((s) => s.body !== '').length === 0) {
+    errors.push('no findings section has been answered — answer at least one of the coherence questions under `## Findings`')
+  }
+  return errors
+}
+
 export function closingAcceptanceErrors(record, pathId) {
   const errors = []
-  if (!record) return ['missing closing acceptance record']
-  if (record.path !== pathId) errors.push(`path must equal ${pathId}`)
-  if (String(record.ceremony).toLowerCase() !== 'closing') errors.push('ceremony must equal closing')
+  if (!record) return ['missing closing record — scaffold it with `cairn-audit --subject <candidate>` and answer its questions before declaring the path ready']
+  if (record.path !== pathId) errors.push(`path must equal ${pathId} — this record sits in that path's folder, so name the path it closes`)
   if (!isObjectId(record.subject_commit)) {
-    errors.push(`subject_commit must be a full object id — ${OBJECT_ID_FORMATS}`)
+    errors.push(`subject_commit must be a full object id (${OBJECT_ID_FORMATS}) — the candidate the gates were run on, read with \`git rev-parse HEAD\` at that commit`)
   }
-  if (!String(record.accepted_by ?? '').trim()) errors.push('accepted_by is required')
+  if (!String(record.accepted_by ?? '').trim()) errors.push('accepted_by is required — name whoever accepted this candidate, so the record says who is answerable for it')
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(String(record.accepted_at))) {
-    errors.push('accepted_at must be an ISO UTC timestamp')
+    errors.push('accepted_at must be an ISO UTC timestamp — write the moment the acceptance happened, as YYYY-MM-DDTHH:MM:SSZ')
   }
-  if (record.decision !== 'accepted') errors.push('decision must equal accepted')
-  if (!String(record.scope_ref ?? '').trim()) errors.push('scope_ref is required')
+  if (record.decision !== 'accepted') errors.push('decision must equal accepted — a candidate integrates on an acceptance; where it was refused, return the record to `running` and produce another')
+  if (!String(record.scope_ref ?? '').trim()) errors.push('scope_ref is required — name the same section the opening acceptance bound, so the two digests are comparable')
   // An empty list is the honest disposition of a candidate that raised no
   // advisory; `String([])` is '', and reading it as absent forced a reviewer
   // to invent an entry (greenfield pilot, 2026-09-01).
   if (!Array.isArray(record.advisory_disposition) &&
       !String(record.advisory_disposition ?? '').trim()) {
-    errors.push('advisory_disposition is required — a structured list, empty when the candidate raised none')
+    errors.push('advisory_disposition is required — record it, empty where the candidate raised no advisory')
   }
   return errors
 }
 
 const IMMUTABLE_RECORD_PREFIXES = [
-  slash(SESSION_DIR),
-  slash(AUDIT_DIR),
   `${HISTORY_DIR}/`,
   slash(JOURNAL_DIR)
 ]
+
+/** A closing record inside a path folder: one per candidate, immutable. */
+const PATH_CLOSING_RECORD = new RegExp(`^${PATH_DIR}/CP-[^/]+/closing-(?:[0-9a-f]{40}|[0-9a-f]{64})\\.md$`)
 
 /** A step record inside a born-sliced path folder (ADR-020 decision 4). These
  *  were protected while they lived in `history/`, and a record does not stop
@@ -687,8 +780,8 @@ export function isStepRecordRelocation(from, to) {
 }
 
 export function isImmutableRecord(file) {
-  if (file === JOURNAL) return true
   const known = IMMUTABLE_RECORD_PREFIXES.some((prefix) => file.startsWith(prefix)) ||
+    PATH_CLOSING_RECORD.test(String(file ?? '')) ||
     isAppendOnlyStepRecord(file)
   if (!known) return false
   return !['index.md', 'log.md', '.gitkeep'].includes(file.split('/').at(-1))
@@ -715,8 +808,8 @@ export function preservesAppendOnlyRecord(before, after, relocated = false) {
  * `record-integrity` protects a record from being rewritten or from ceasing to
  * exist. It used to key on the file path, so it read a move as both — which is
  * how a migration that changed nothing about twenty-three records reported
- * twenty-three violations (CP-OPS-002 S08l). A path is where a record sits; it
- * is not what the record is.
+ * twenty-three violations. A path is where a record sits; it is not what the
+ * record is.
  *
  * Two operations are sanctioned on a record that moves, and no others.
  * REPOINTING a link, because a link is an address rather than content and the
@@ -731,6 +824,93 @@ export function isVerbatimRelocation(before, after) {
   const strip = (text) => String(text ?? '').replace(/\]\([^)]*\)/g, '](-)')
   const from = strip(before)
   return from.length > 0 && strip(after).startsWith(from)
+}
+
+/**
+ * REPAIR 005 of ADR-004 decision 6. Where history is never rewritten, a pushed
+ * step record that was edited cannot be un-edited, and the remedy chapter 5
+ * names — *add a superseding record naming both ids* — had no predicate: the
+ * repair was recorded and not gated, which is how one wrong unit type on the
+ * adopter became four faults nothing could clear.
+ *
+ * A later step of the same path binds the mutation by naming the blob the
+ * record was added with and the blob it carries now. The shape is this
+ * repository's own — `<file>@<blob>`, as `governs:` pins a document — with
+ * Git's range punctuation between the two ids, in the repair step's own block:
+ *
+ *     supersedes: project/coding-paths/CP-X/steps/S15.md@64f13aa..35e6d65
+ *
+ * Both ids or none: a claim naming one blob says which text is gone without
+ * saying what replaced it, which is the half that makes the record readable.
+ */
+export function parseSupersession(value) {
+  const match = /^(\S+\.md)@([0-9a-f]{7,64})\.\.([0-9a-f]{7,64})$/.exec(String(value ?? ''))
+  return match ? { file: match[1], before: match[2], after: match[3] } : null
+}
+
+/**
+ * Is this unit's claim readable at all? Three conditions, and the exemption is
+ * worth nothing without any one of them:
+ *
+ * - it is declared in an APPEND-ONLY STEP RECORD, never in the mutable
+ *   `index.md` beside it — a sentence that can be added to clear a gate and
+ *   deleted afterwards leaves the edit exempted and no record of the
+ *   exemption, which is the opposite of what a superseding record is for;
+ * - it is a COMPLETED UNIT, by the same reading `work-unit` uses, so half a
+ *   block grants nothing;
+ * - and it names another STEP RECORD in its own path's steps folder: ADR-004
+ *   decision 3 applied to the rule standing beside it, so no path clears
+ *   another path's edit and no record clears its own.
+ *
+ * There is deliberately no fourth condition for *later*. Not because a claim
+ * could not be written first — a writer can hash the replacement text before
+ * committing it — but because the claim has to name the blob the record
+ * carries NOW, so whichever order the two commits land in, both texts are
+ * named and both stay reachable, which is the whole of what a superseding
+ * record is for. An ordinal comparison would add a predicate that refuses
+ * nothing the binding does not already bind.
+ *
+ * Pure: everything here is read from the unit and its own file name.
+ */
+export function supersessionClaim(unit) {
+  const declared = parseSupersession(unit?.supersedes)
+  const file = String(unit?.__file ?? '')
+  if (!declared || !isAppendOnlyStepRecord(file) || workUnitErrors(unit).length > 0) return null
+  if (!isAppendOnlyStepRecord(declared.file) || declared.file === file) return null
+  return dirname(declared.file) === dirname(file) ? declared : null
+}
+
+/** Does the claim describe THIS record? A writer copies abbreviated ids out of
+ *  `git log`, so a declared id is a prefix of the real one — and a claim about
+ *  a text the record does not carry binds nothing, which is the whole reason
+ *  the ids are in the declaration rather than a sentence saying "superseded". */
+export function supersessionBinds(declaration, { before, after } = {}) {
+  const names = (id, declared) => Boolean(id) && String(id).startsWith(declared)
+  return Boolean(declaration && names(before, declaration.before) && names(after, declaration.after))
+}
+
+/**
+ * REPAIR 006 of ADR-004 decision 6. A provisional commit is resolved by a LATER
+ * commit of the same path that publishes a completed unit, and by nothing else.
+ *
+ * The 1.0 rule matched the trailer anywhere in the range with no notion of
+ * after, while the unit reference it implements is chronological: *the
+ * completed unit's own commit supersedes it*. A timeless grep for a
+ * chronological sentence refused a candidate whose draft had been finished
+ * three commits earlier, and named the one remedy — fold it — that this host
+ * forbids.
+ *
+ * Order is ancestry rather than the clock: on one branch the two agree, and
+ * where they disagree an author date is a claim while reachability is a fact.
+ *
+ * Pure: the caller supplies the ordering.
+ */
+export function unresolvedProvisional(provisional, completions, isAncestor) {
+  // A commit is its own ancestor, and a draft that also publishes a completed
+  // step would otherwise clear itself — the one commit that says out loud it
+  // is not finished, resolving the mark it carries.
+  return provisional.filter((commit) =>
+    !completions.some((unit) => unit !== commit && isAncestor(commit, unit)))
 }
 
 /** The ISO date at the head of a string, or null. Used on a filename and on a
@@ -767,9 +947,9 @@ function daysApart(a, b) {
  * `drift` compares the date the record CLAIMS with the date the commit that
  * introduced it was authored on. It is the only half carrying evidence the
  * author did not supply, and the only half that can see the defect this rule
- * was proposed for: every CP-UI-TYPOGRAPHY record was dated `2026-08-27` in
- * BOTH places while the ceremony, the audit and the journal entry happened on
- * the 31st. The author-agreement half is blind to that by construction.
+ * was proposed for: one path's four records — opening check, closing ceremony,
+ * audit and journal entry — each carried the same date in BOTH places, four
+ * days before the events they describe. The author-agreement half is blind to that by construction.
  *
  * It stays ADVISORY, because a lag is not automatically a lie: a note taken on
  * one day and committed two days later is dated correctly, and a rule insisting
@@ -815,17 +995,17 @@ export function adrFrontmatterErrors(front, file, bodyStatus = null) {
   const errors = []
   const expected = /^docs\/adr\/(ADR-\d{3})-/.exec(file)?.[1]
 
-  if (!front.id) errors.push('missing adr.id')
+  if (!front.id) errors.push('missing adr.id — declare the record\'s own number, the one its filename carries')
   else if (expected && front.id !== expected) {
-    errors.push(`adr.id "${front.id}" does not match the file name (${expected})`)
+    errors.push(`adr.id "${front.id}" does not match the file name (${expected}) — rename the file to the id it declares, or declare the id it is named after; a record is cited by both`)
   }
   if (!ADR_STATUSES.includes(front.status)) {
-    errors.push(`status "${front.status}" is outside the vocabulary (${ADR_STATUSES.join(' | ')})`)
+    errors.push(`status "${front.status}" is outside the vocabulary — declare one of ${ADR_STATUSES.join(' | ')}; a decision is proposed, accepted, superseded or rejected, and nothing else`)
   } else if (bodyStatus && bodyStatus !== front.status) {
-    errors.push(`adr.status "${front.status}" contradicts the document's own "Status: ${bodyStatus}"`)
+    errors.push(`adr.status "${front.status}" contradicts the document's own "Status: ${bodyStatus}" — make the two agree; the frontmatter is what every index reads and the line is what a person reads`)
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(front.date))) {
-    errors.push('adr.date must be an ISO date (YYYY-MM-DD)')
+    errors.push('adr.date must be an ISO date (YYYY-MM-DD) — write the day the decision was made, not the day the file was touched')
   }
   return errors
 }
@@ -917,9 +1097,33 @@ export function namesForReading(names, limit = 5) {
     : `${names.slice(0, limit).join(', ')}, and ${names.length - limit} more`
 }
 
+/** A concept is named by its path under the root, so every folder's index is
+ *  an index, not a note. */
+const isConceptIndex = (file) => file.split('/').at(-1) === 'index.md'
+
+/** Every concept note one document's text sends a reader to, each as a path
+ *  under the concept root. The capture admits folders, so `../concepts/x.md`
+ *  — which holds `./` at offset one — matches there first and takes
+ *  `concepts/` with it; the note is whatever follows the LAST `concepts/`.
+ *  Pure, because the whole of `concept-orphan` turns on this resolution. */
+export function conceptLinkTargets(text) {
+  const targets = new Set()
+  // Which alternative matched decides what the captured folders mean, so the
+  // prefix is captured too. Through `concepts/` — by either route — the
+  // folders are the note's own. Reached by a bare `./` they are some other
+  // document's: `./modules/application.md` is not a concept, and admitting it
+  // would clear an orphan of that name.
+  for (const [, prefix, path] of text.matchAll(/(concepts\/|\.\/)((?:[a-z0-9-]+\/)*[a-z0-9-]+\.md)/g)) {
+    const cut = path.lastIndexOf('concepts/')
+    if (cut !== -1) targets.add(path.slice(cut + 'concepts/'.length))
+    else if (prefix === 'concepts/' || !path.includes('/')) targets.add(path)
+  }
+  return targets
+}
+
 export function orphanConcepts(conceptFiles, linkedTargets) {
   const linked = linkedTargets instanceof Set ? linkedTargets : new Set(linkedTargets)
-  return conceptFiles.filter((file) => file !== 'index.md' && !linked.has(file))
+  return conceptFiles.filter((file) => !isConceptIndex(file) && !linked.has(file))
 }
 
 /** Concept notes present now and absent at the comparison ref. `null` previous
@@ -928,7 +1132,7 @@ export function orphanConcepts(conceptFiles, linkedTargets) {
 export function addedConcepts(previous, current) {
   if (previous == null) return null
   const before = new Set(previous)
-  return current.filter((file) => file !== 'index.md' && !before.has(file))
+  return current.filter((file) => !isConceptIndex(file) && !before.has(file))
 }
 
 /** The trunk this repository integrates into, supplied by the host binding so
@@ -952,26 +1156,32 @@ export const TRUNK_BASE_CANDIDATES = [`${REMOTE}/${TRUNK_BRANCH}`, TRUNK_BRANCH]
  * `path/cp-ops-002` the local run saw 0 changed files and printed OK for many
  * pushes while CI saw 224 and reported nine blocking findings (S08 finding 5).
  *
- * The verdict a developer runs must therefore be the merge-deciding one by
- * DEFAULT, on the branch where a merge is pending. Narrowing it stays
- * available — `--working-tree` — because an uncommitted-only run is genuinely
- * useful mid-edit; it is now an opt-out, and it announces itself through
- * `base-parity` so a ledger cannot record a narrow verdict as a full one.
+ * The verdict a developer runs is therefore the merge-deciding one, on the
+ * branch where a merge is pending, and there is no narrower form. The 0.2
+ * checker kept a `--working-tree` opt-out and announced it through a
+ * `base-parity` advisory; Cairn 1.0 retired both, because a comparison nobody
+ * should record is a comparison nobody should be offered. An explicit `--base`
+ * remains for CI and for the tests, and the header names it.
  *
  * Pure: the caller supplies ref resolution, so the decision is testable
  * without a repository.
  */
-export function resolveBase({ flag = null, workingTree = false, branch, refExists = () => false }) {
+export function resolveBase({ flag = null, branch, refExists = () => false }) {
+  // A flag is taken as ASKED FOR, not as usable. Whether it can be compared
+  // with THIS commit is one question with one answer, and `main` asks it, once,
+  // with `merge-base`: a ref that does not resolve and a ref on an unrelated
+  // history both fail it. Checking resolvability here as well would be a second
+  // implementation of the same decision, and the weaker one.
   if (flag) return { base: flag, source: 'flag' }
-  if (workingTree) return { base: null, source: 'opt-out' }
   // Off a path branch there is no pending merge to decide, so the working
   // tree is the right question and no parity claim is being made.
   if (!isPathBranch(branch)) return { base: null, source: 'trunk-work' }
   const resolved = TRUNK_BASE_CANDIDATES.find((ref) => refExists(ref))
   if (resolved) return { base: resolved, source: 'default-trunk' }
   // An unfetched or remote-less checkout cannot be given the merge-deciding
-  // comparison. Fall back rather than refuse — and SAY SO, because a silent
-  // fallback is the exact defect this function exists to remove.
+  // comparison. Fall back rather than refuse — the header names the source,
+  // and the trunk-containment rule reports the missing trunk as inconclusive,
+  // so a narrowed run cannot read as the full one.
   return { base: null, source: 'unresolvable' }
 }
 
@@ -986,10 +1196,21 @@ export function globToRegExp(pattern) {
   for (let i = 0; i < pattern.length; i += 1) {
     const char = pattern[i]
     if (char === '*') {
-      if (pattern[i + 1] === '*') {
+      // `**` is a globstar only when it is a WHOLE SEGMENT, which is what every
+      // glob means by it and what `patternsMeet` reads. Glued to anything else
+      // it is an ordinary `*`: compiled as `.*` it spanned separators, so
+      // `docs/**.md` took in `docs/a/b.md` where the meet reader said it could
+      // not, and two live paths could share a file with no overlap reported.
+      const wholeSegment = pattern[i + 1] === '*' && (i === 0 || pattern[i - 1] === '/')
+      const trailing = i + 2 === pattern.length
+      if (wholeSegment && trailing) {
         out += '.*'
         i += 1
-        if (pattern[i + 1] === '/') i += 1
+      } else if (wholeSegment && pattern[i + 2] === '/') {
+        // Zero or more COMPLETE segments: `a/**/x.md` is `a/x.md` and
+        // `a/b/x.md`, and never `a/zzzx.md`.
+        out += '(?:[^/]+/)*'
+        i += 2
       } else {
         out += '[^/]*'
       }
@@ -1004,6 +1225,85 @@ export function globToRegExp(pattern) {
 
 export function matchesAny(file, patterns) {
   return patterns.some((pattern) => globToRegExp(pattern).test(file))
+}
+
+/** Two declared surfaces MEET when some file matches both patterns.
+ *
+ *  Filling each pattern's wildcards to make one concrete file and offering it
+ *  to the other is the obvious shortcut and it is wrong in both directions:
+ *  `spec/**\/*.md` and `spec/reference/**` both name
+ *  `spec/reference/conformance.md`, and `docs/*.md` and `docs/adr-*` both name
+ *  `docs/adr-1.md`, yet no single filling of either satisfies the other. One
+ *  filling can only line up a prefix with a prefix.
+ *
+ *  It is the same problem at two scales — `**` over segments, `*` over
+ *  characters — so it is one function: walk both sides together, and where a
+ *  wildcard stands, try consuming nothing and try consuming one token.
+ *
+ *  `**` is read here as zero or more whole SEGMENTS, which is what a `writes:`
+ *  means by it and what `globToRegExp` — the matcher deciding whether a FILE is
+ *  in a surface — compiles it to. The two agreed on everything else and parted
+ *  on `**` until the closing request of CP-CAIRN-006: compiled as `.*` it took
+ *  in `a/a/ax.md` for `a/**\/x.md`, which this reader has never done, so two
+ *  live paths could share a file with no overlap reported. The suite sweeps
+ *  both readings over an alphabet that now contains `**`.
+ *
+ *  One edge remains, and it is this reader that is broader: `a/**` meets `a`
+ *  here, where no FILE named `a` is inside that surface. A surface is a set of
+ *  files; whether two declarations can collide is a question about the
+ *  declarations, and answering it generously is what an advisory is for.
+ */
+export function patternsMeet(a, b) {
+  return tokensMeet(String(a).split('/'), String(b).split('/'), '**', segmentsMeet)
+}
+
+const segmentsMeet = (a, b) => tokensMeet([...a], [...b], '*', (x, y) => x === y)
+
+/** Memoised on the pair of positions: a wildcard branches two ways at every
+ *  one of them, and without this a pattern of a dozen `**` takes seconds. */
+function tokensMeet(a, b, wild, leafMeets) {
+  const seen = new Map()
+  const meet = (i, j) => {
+    const key = i * (b.length + 1) + j
+    if (seen.has(key)) return seen.get(key)
+    let answer
+    if (i === a.length) answer = b.slice(j).every((token) => token === wild)
+    else if (j === b.length) answer = a.slice(i).every((token) => token === wild)
+    else if (a[i] === wild) answer = meet(i + 1, j) || meet(i, j + 1)
+    else if (b[j] === wild) answer = meet(i, j + 1) || meet(i + 1, j)
+    else answer = leafMeets(a[i], b[j]) && meet(i + 1, j + 1)
+    seen.set(key, answer)
+    return answer
+  }
+  return meet(0, 0)
+}
+
+/** ADR-003: pairs of live paths whose declared surfaces meet, each with the
+ *  patterns that meet — silent when either declares `depends_on` the other,
+ *  because the live view then shows one waiting on the other rather than
+ *  racing it. On the adopter this was declared in prose under a coherence
+ *  question, where no rule reads. */
+export function writesOverlaps(paths) {
+  // The statuses that may own a path branch ARE the live ones: `draft` has not
+  // started and `done`/`archived` have finished, so neither holds a surface.
+  const liveOnes = paths.filter((path) => PATH_BRANCH_STATUSES.includes(path.front?.status))
+  const declares = (path, id) => dependsOn(path.front).map(String).includes(id)
+  const found = []
+  for (let i = 0; i < liveOnes.length; i += 1) {
+    for (let j = i + 1; j < liveOnes.length; j += 1) {
+      const [a, b] = [liveOnes[i], liveOnes[j]]
+      const [idA, idB] = [String(a.front?.id ?? ''), String(b.front?.id ?? '')]
+      if (declares(a, idB) || declares(b, idA)) continue
+      const patterns = new Set()
+      for (const one of a.writes ?? []) {
+        for (const other of b.writes ?? []) {
+          if (patternsMeet(one, other)) patterns.add(one === other ? one : `${one} ∩ ${other}`)
+        }
+      }
+      if (patterns.size) found.push({ paths: [idA, idB], patterns: [...patterns] })
+    }
+  }
+  return found
 }
 
 /** The paths in `git status --porcelain -z` output.
@@ -1022,9 +1322,9 @@ export function matchesAny(file, patterns) {
  *  quotes included. That string starts with `"`, so it matches no `writes:`
  *  glob, no `startsWith('apps/')` guarded root and no area pattern — a source
  *  file whose name contains a space was INVISIBLE to `same-work-unit` and
- *  `branch-identity` while still being counted as changed. Found on CP-OPS-002
- *  S06d, by the one file in this repository that has such a name, which had
- *  already broken a `find` loop in the audit that named it.
+ *  `branch-identity` while still being counted as changed. Found by the one
+ *  file that had such a name, which had already broken a `find` loop in the
+ *  audit that named it.
  *
  *  Unquoting is the wrong fix: `\303\251` for `é` means reassembling UTF-8
  *  from octal escapes, which is a decoder to get wrong. `-z` asks Git not to
@@ -1136,9 +1436,8 @@ export function stripCode(text) {
  * `unit` is an ordinal, not an object id, and that is the whole trick. The
  * commit a unit produces does not exist while the unit is being written, so a
  * block naming its own hash could never be written truthfully. The ordinal is
- * knowable in advance; `refs/cairn/checkpoints/<path-id>/<unit>` supplies the
- * hash afterwards. The ledger says which unit, the ref says which commit, and
- * neither has to lie about the other.
+ * knowable in advance; the commit that carries the step is the checkpoint, and
+ * on a no-rewrite host it keeps the id it was verified as.
  */
 export function parseWorkUnits(text) {
   const units = []
@@ -1156,124 +1455,17 @@ export function parseWorkUnits(text) {
 
 export function workUnitErrors(unit) {
   const errors = []
-  if (!unit.step) errors.push('a cairn-unit block needs step')
+  if (!unit.step) errors.push('a cairn-unit block needs step — name the step this unit completed, as its own record does')
   if (!/^\d{1,4}$/.test(unit.unit ?? '')) {
-    errors.push(`a cairn-unit block needs unit as a ledger ordinal, got "${unit.unit ?? ''}"`)
+    errors.push(`a cairn-unit block needs unit as a ledger ordinal, got "${unit.unit ?? ''}" — number it after the last completed unit of this path`)
   }
   if (!WORK_UNIT_TYPES.includes(unit.type)) {
     errors.push(
-      `work-unit type "${unit.type ?? ''}" is outside ${WORK_UNIT_TYPES.join(' | ')}`
+      `work-unit type "${unit.type ?? ''}" is outside ${WORK_UNIT_TYPES.join(' | ')} — declare the one whose surfaces this unit moved; and if the record is already pushed, correct it with a superseding step that binds both blobs, never by editing it`
     )
   }
-  if (!unit.verified) errors.push('a cairn-unit block needs verified')
+  if (!unit.verified) errors.push('a cairn-unit block needs verified — name the gates you ran bare on this unit, so a reader knows what the claim rests on')
   return errors
-}
-
-/**
- * Split a path's retention refs into generations.
- *
- * A ref written before ADR-021 has no generation segment. It is NOT reclassified
- * and NOT moved — moving a retention ref is the violation the whole rule exists
- * to catch — so it is reported separately, under `preNotation`, and judged for
- * reachability only. The flat namespace mixes two generations by construction
- * and cannot be made internally consistent without moving something.
- */
-export function retentionGenerations(refs, pathId, refPrefix = CHECKPOINT_REF_PREFIX) {
-  if (refPrefix == null) return { generations: new Map(), preNotation: new Map() }
-  const prefix = `${refPrefix}/${String(pathId ?? '').toLowerCase()}/`
-  const generations = new Map()
-  const preNotation = new Map()
-  for (const [ref, oid] of refs ?? []) {
-    if (!ref.startsWith(prefix)) continue
-    const rest = ref.slice(prefix.length).split('/')
-    if (rest.length === 1) {
-      preNotation.set(rest[0], oid)
-      continue
-    }
-    if (rest.length !== 2 || !GENERATION_SEGMENT.test(rest[0])) continue
-    if (!generations.has(rest[0])) generations.set(rest[0], new Map())
-    generations.get(rest[0]).set(rest[1], oid)
-  }
-  return { generations, preNotation }
-}
-
-/**
- * Which generation retention continues in, derived from ancestry rather than
- * stored (ADR-021 decision 2).
- *
- * A generation is one linear version of the branch. It closes at the next
- * rewriting push, and a rewrite is visible without being recorded: the refs it
- * wrote stop being ancestors of the tip. So the highest generation present is
- * the current one while all of its refs are still on the branch; when one is
- * not, that generation is closed and retention continues at the next number,
- * which is empty until someone opens it.
- *
- * A stored counter would be a claim, a claim needs a rule to check it, and the
- * rule would have nothing to check it against but these same refs. That is why
- * `base_commit` accuracy is still an open hole, and why this number is not
- * written down anywhere.
- */
-export function currentGeneration(generations, onBranch) {
-  const numbered = [...(generations ?? new Map()).keys()]
-    .map((name) => ({ name, n: Number.parseInt(GENERATION_SEGMENT.exec(name)?.[1] ?? '', 10) }))
-    .filter((entry) => Number.isInteger(entry.n))
-    .sort((a, b) => b.n - a.n)
-  const label = (n) => `g${String(n).padStart(2, '0')}`
-  if (numbered.length === 0) return { name: label(1), units: new Map(), state: 'unopened' }
-  const highest = numbered[0]
-  const units = generations.get(highest.name)
-  const open = [...units.values()].every((oid) => onBranch(oid))
-  if (open) return { name: highest.name, units, state: 'open' }
-  return { name: label(highest.n + 1), units: new Map(), state: 'rewritten', closed: highest.name }
-}
-
-/**
- * Commits on the path branch that were completed work and were never retained.
- *
- * `retentionDue` asks whether each DECLARED unit has a ref. That is not the same
- * question as whether every completed commit is retained, and the difference is
- * where a real violation hid: a ref can be moved to a newer commit, leaving the
- * commit it used to name unretained while every declared unit still resolves.
- * Found the hard way, by doing exactly that in this repository.
- *
- * The range starts at the oldest retained checkpoint, because commits older than
- * the convention cannot be judged by it. HEAD is exempt for the same reason the
- * newest unit is: its ref is written after the commit that declares it.
- *
- * WHAT `-1` MEANS. This used to return `[]` when no retained commit was on the
- * branch — "no commits to judge". That is the reading a rebase produces, and a
- * rebase is mandatory before every merge, so the rule switched itself off at the
- * one moment it was written for: 41 of 55 commits below the floor, 13 refs
- * naming commits that had left the branch, gate `OK` (CP-OPS-002 S08j).
- *
- * A retained set that does not touch the branch is not an absent subject. It is
- * a branch on which nothing is retained, which is the finding. The floor exists
- * to spare history older than the convention, and under ADR-021 that history is
- * already outside the range — the range now starts at the path's own first
- * commit, not at its registration base.
- */
-export function unretainedCheckpoints(commits, retained, provisional = new Set(), head = null) {
-  const retainedSet = new Set(retained)
-  if (retainedSet.size === 0) return []
-  const oldest = commits.findIndex((commit) => retainedSet.has(commit))
-  return commits
-    .slice(oldest === -1 ? 0 : oldest)
-    .filter((commit) =>
-      commit !== head && !retainedSet.has(commit) && !provisional.has(commit))
-}
-
-/** Which declared units must already be retained. The newest unit is exempt
- *  because its ref is written immediately AFTER the commit that declares it —
- *  checking it here would fail every gate run that precedes its own push. The
- *  guarantee that matters is unaffected: retention must exist before the NEXT
- *  rewriting push, and by then the unit is no longer the newest. */
-export function retentionDue(units) {
-  const ordinals = units
-    .map((unit) => Number.parseInt(unit.unit, 10))
-    .filter((value) => Number.isInteger(value))
-  if (ordinals.length === 0) return []
-  const newest = Math.max(...ordinals)
-  return units.filter((unit) => Number.parseInt(unit.unit, 10) < newest)
 }
 
 /**
@@ -1313,6 +1505,40 @@ export function resolveScopeSection(text, anchor) {
   return lines.slice(start, end).map((line) => line.replace(/[ \t]+$/, '')).join('\n').trim()
 }
 
+/** The opening acceptance a path record carries inline: the last fenced YAML
+ *  block under its `## Opening acceptance` heading. A later block is a scope
+ *  amendment — a new acceptance naming the one it supersedes — so the last one
+ *  is the acceptance in force. `null` when the record carries none.
+ *
+ *  Cairn 0.2 read this from a session record; 1.0 keeps it in the record it
+ *  accepts, because a decision about a text belongs beside the text, and a
+ *  path is one folder. Pure: the caller supplies the record's text. */
+export function openingFromRecord(text) {
+  const section = resolveScopeSection(String(text ?? ''), '#opening-acceptance')
+  if (!section) return null
+  const blocks = [...section.matchAll(/^```ya?ml[ \t]*\n([\s\S]*?)^```[ \t]*$/gm)]
+  if (blocks.length === 0) return null
+  const parsed = readFrontmatter(`---\n${blocks.at(-1)[1]}\n---\n`)
+  return parsed?.data && Object.keys(parsed.data).length > 0 ? parsed.data : null
+}
+
+/** What an opening acceptance must say to accept anything: a decision, an
+ *  actor, a UTC time, the scope it accepted and the digest that binds it. */
+export function openingAcceptanceErrors(opening) {
+  if (!opening) return ['no opening acceptance']
+  const errors = []
+  if (opening.decision !== 'accepted') errors.push('decision must equal accepted — a path opens on an acceptance, so record the owner\'s answer rather than the question')
+  if (!String(opening.accepted_by ?? '').trim()) errors.push('accepted_by is required — name whoever accepted this scope, so the record says who is answerable for it')
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(String(opening.accepted_at))) {
+    errors.push('accepted_at must be an ISO UTC timestamp — write the moment the acceptance happened, as YYYY-MM-DDTHH:MM:SSZ')
+  }
+  if (!String(opening.scope_ref ?? '').includes('#')) errors.push('scope_ref must name a file and a heading anchor — point it at this record\'s own `#definition-of-done`, so the digest below has text to bind')
+  if (!/^[a-z0-9]+:[0-9a-f]+$/.test(String(opening.scope_digest ?? ''))) {
+    errors.push('scope_digest is required — a scope accepted without a digest is bound to nothing; compute it with `cairn-check --scope-digest <record>#definition-of-done`')
+  }
+  return errors
+}
+
 export function scopeDigest(section, algorithm = CAIRN_CONFIG.scopeDigestAlgorithm) {
   if (section == null) return null
   return `${algorithm}:${createHash(algorithm).update(section, 'utf8').digest('hex')}`
@@ -1349,7 +1575,7 @@ export function closureFieldErrors(previous, current) {
     const before = JSON.stringify(previous[key] ?? null)
     const after = JSON.stringify(current[key] ?? null)
     if (before !== after) {
-      errors.push(`closure changed \`${key}\`, which acceptance was measured against — only ${mutable.join(', ')} may move when a path declares ${current.status}`)
+      errors.push(`closure changed \`${key}\`, which acceptance was measured against — restore it to the value the candidate was accepted with; only ${mutable.join(', ')} may move when a path declares ${current.status}`)
     }
   }
   return errors
@@ -1399,50 +1625,45 @@ export const DISPOSITIONS = ['fixed', 'accepted', 'deferred']
 export function dispositionErrors(disposition, attested, raisedHere = []) {
   const errors = []
   if (!Array.isArray(disposition)) {
-    return ['advisory_disposition must be a list of { rule, disposition, reason } entries']
+    return ['advisory_disposition must be a list of { rule, disposition, reason } entries — write one entry per advisory the candidate raised']
   }
   if (!Array.isArray(attested)) {
-    errors.push('advisories_at_candidate must list the advisory rules raised at the candidate — without it, dispositions can only be compared against the closure commit, whose advisory set is a strict subset')
+    errors.push('advisories_at_candidate must list the advisory rules raised at the candidate — run the gate on the candidate and record the advisory rule names it reported')
     attested = []
   }
   const attestedSet = new Set(attested)
   for (const rule of raisedHere) {
     if (!attestedSet.has(rule)) {
-      errors.push(`advisory "${rule}" is raised at the closure commit but is absent from advisories_at_candidate — the closure commit's findings are a subset of the candidate's, so this proves the attested set incomplete`)
+      errors.push(`advisory "${rule}" is raised at the closure commit but is absent from advisories_at_candidate — add it to the attested set and dispose of it; the closure commit's findings are a subset of the candidate's, so its absence proves the set incomplete`)
     }
   }
   const named = new Set()
   for (const entry of disposition) {
     if (typeof entry !== 'object' || entry == null) {
-      errors.push('every advisory_disposition entry must name a rule, a disposition and a reason')
+      errors.push('every advisory_disposition entry must name a rule, a disposition and a reason — write each as a mapping with those three keys')
       continue
     }
-    if (!entry.rule) errors.push('an advisory_disposition entry has no rule')
+    if (!entry.rule) errors.push('an advisory_disposition entry has no rule — name the advisory rule it disposes of, as the gate reported it')
     else named.add(entry.rule)
     if (!DISPOSITIONS.includes(entry.disposition)) {
-      errors.push(`disposition "${entry.disposition ?? ''}" for ${entry.rule ?? 'an entry'} is outside ${DISPOSITIONS.join(' | ')}`)
+      errors.push(`disposition "${entry.disposition ?? ''}" for ${entry.rule ?? 'an entry'} is outside ${DISPOSITIONS.join(' | ')} — declare which of those this advisory received`)
     }
     if (!String(entry.reason ?? '').trim()) {
-      errors.push(`${entry.rule ?? 'an entry'} has no reason`)
+      errors.push(`${entry.rule ?? 'an entry'} has no reason — state in one sentence why the advisory was disposed of that way`)
     }
     if (entry.disposition === 'deferred' && !(entry.owner && entry.follow_up)) {
-      errors.push(`${entry.rule ?? 'an entry'} is deferred without an owner and a follow_up`)
+      errors.push(`${entry.rule ?? 'an entry'} is deferred without an owner and a follow_up — name who carries it and where it is tracked, or dispose of it here`)
     }
   }
   for (const rule of attestedSet) {
-    if (!named.has(rule)) errors.push(`advisory "${rule}" was raised at the candidate and has no disposition`)
+    if (!named.has(rule)) errors.push(`advisory "${rule}" was raised at the candidate and has no disposition — add an entry saying whether it was fixed, accepted or deferred, and why`)
   }
   for (const rule of named) {
     if (!attestedSet.has(rule)) {
-      errors.push(`advisory_disposition names "${rule}", which advisories_at_candidate does not list as raised`)
+      errors.push(`advisory_disposition names "${rule}", which advisories_at_candidate does not list as raised — add it to the attested set if the candidate raised it, or remove the entry`)
     }
   }
   return errors
-}
-
-export function approxTokens(text) {
-  const words = text.split(/\s+/).filter(Boolean).length
-  return Math.round((words * 4) / 3)
 }
 
 /**
@@ -1476,89 +1697,14 @@ export function fullRouteTriggers(writes = [], areaOfFile = areaOf, unitCount = 
   return triggers
 }
 
-export function foundationSurfaceViolations(writes = []) {
-  return writes.filter((pattern) => !FOUNDATION_SURFACE.some((allowed) => allowed.test(pattern)))
-}
-
 /** Escalation is one-way. A change does not become small by being called small,
  *  so the only direction a route may move is toward more ceremony. */
 export function routeDescent(previous, current) {
   if (!previous || !current || previous === current) return null
   if (previous === 'full' && current !== 'full') {
-    return `route moved from full to ${current} — escalation is one-way; a change does not become small by being called small`
+    return `route moved from full to ${current} — restore \`full\`; escalation is one-way, and a change does not become small by being called small`
   }
   return null
-}
-
-export const BRIEF_FIELDS = [
-  'written_by',
-  'checkpoint',
-  'checkpoint_unit',
-  'checkpoint_pushed',
-  'base_commit',
-  'trunk_seen',
-  'writes',
-  'governs',
-  'verify'
-]
-
-export const BRIEF_SECTIONS = [
-  'Outcome',
-  'State',
-  'Next action',
-  'Blockers',
-  'Tried and rejected',
-  'Reading order',
-  'Verification'
-]
-
-/** The brief is the bootstrap contract, and a contract with no fields is not a
- *  contract. The SHAPE is checkable here; whether the brief can actually be
- *  resumed cold is a judgement and a benchmark, and is never claimed. */
-export function briefErrors(front, body) {
-  const errors = []
-  if (!front) return ['the handoff brief has no readable frontmatter']
-  for (const field of BRIEF_FIELDS) {
-    if (front[field] === undefined || front[field] === '') {
-      errors.push(`the handoff brief needs \`${field}\``)
-    }
-  }
-  if (front.checkpoint && !/^[0-9a-f]{7,64}$/i.test(String(front.checkpoint))) {
-    errors.push('`checkpoint` must be an object id — it names the last RETAINED checkpoint, never the commit containing this brief, which does not exist while the brief is being written')
-  }
-  if (front.checkpoint_unit && !/^\d{1,4}$/.test(String(front.checkpoint_unit))) {
-    errors.push('`checkpoint_unit` must be the ledger ordinal of the retained checkpoint')
-  }
-  if (front.checkpoint_pushed !== undefined && String(front.checkpoint_pushed) !== 'true') {
-    errors.push('`checkpoint_pushed` is false — a checkpoint that is not on the remote is not a handoff, it is a defect to repair')
-  }
-  for (const entry of Array.isArray(front.governs) ? front.governs : []) {
-    if (!String(entry).includes('@')) {
-      errors.push(`\`governs\` entry "${entry}" is not pinned — an unpinned document means "whatever this says now", which is the ambiguity the field removes`)
-    }
-  }
-  const headings = [...String(body).matchAll(/^##\s+(.+?)\s*$/gm)].map((match) => match[1])
-  const missing = BRIEF_SECTIONS.filter((section) => !headings.includes(section))
-  if (missing.length > 0) errors.push(`the handoff brief is missing: ${missing.join(', ')}`)
-  const extra = headings.filter((heading) => !BRIEF_SECTIONS.includes(heading))
-  if (extra.length > 0) errors.push(`the handoff brief carries sections outside the seven: ${extra.join(', ')}`)
-  // NO TOKEN BUDGET. Retired by owner ruling, 2026-08-31, under ADR-020.
-  //
-  // The brief carried `budget_tokens: 1200`, blocking. It fired five times in one
-  // day and four of those were answered by rewriting sentences shorter — which is
-  // what a budget teaches, because a budget is satisfiable by compression and
-  // compressing an explanation is how a record starts saying something slightly
-  // untrue. That is the failure this path spent nine units correcting.
-  //
-  // What replaces it is not nothing. ADR-020 requires the brief, like every
-  // protocol artefact, to separate its normative content from its explanatory
-  // content and keep only the first as required reading. A brief that has become
-  // a chronicle fails that test — and it fails it for the right reason, by naming
-  // what a cold reader could not answer, rather than by a number.
-  //
-  // That test is a judgement measured by cold resume, so it is not a predicate
-  // here and is not claimed to be one. The conformance matrix says so.
-  return errors
 }
 
 /** Redaction is the one sanctioned exception to record immutability, so every
@@ -1585,29 +1731,6 @@ export function areaNote(areaName) {
 }
 
 /**
- * Which `running` paths have gone quiet (ADR-017 decision 5).
- *
- * Pure: it takes the ages rather than running Git, so the rule is testable and
- * the one judgment it makes — how long is too long — stays a single number.
- *
- * `ages` maps a branch to days since its last commit. A branch that is ABSENT,
- * `null` or `undefined` reports NOTHING: a shallow CI clone and a path whose
- * branch lives on another machine both look like that, and unknown must never
- * read as stale for exactly the reason it must never read as fresh.
- */
-export function staleRunningPaths(paths, ages, budgetDays = PATH_STALE_DAYS) {
-  const out = []
-  for (const path of paths) {
-    const front = path.front
-    if (front?.status !== 'running' || !front.branch) continue
-    const days = ages?.[front.branch]
-    if (typeof days !== 'number' || !Number.isFinite(days)) continue
-    if (days > budgetDays) out.push({ id: front.id, branch: front.branch, days })
-  }
-  return out.sort((a, b) => b.days - a.days)
-}
-
-/**
  * The rules, as data. `changed` is the list of repo-relative paths in the
  * diff; `paths` is the parsed coding-path corpus; `branch` is the current
  * branch name.
@@ -1622,20 +1745,22 @@ export function evaluate({
   registrationState,
   registrationBaseState = 'match',
   remoteCheckpoint,
+  checkpointFor,
   closureFor,
   closureStateFor,
-  openingFor,
   previousPaths = new Map(),
   immutableMutations = [],
   relocations = [],
+  supersessions = [],
+  integrationStateFor = null,
   branchSource = 'symbolic-ref',
-  baseSource = 'flag',
+  baseSource = 'unresolvable',
+  baseRequested = null,
+  baseIsHead = false,
   workUnits = null,
-  retentionEnabled = RETENTION_ENABLED,
-  retentionPrefix = CHECKPOINT_REF_PREFIX,
+  reviewFor = null,
   rewritingForbidden = REWRITING_FORBIDDEN,
   addedRecords = [],
-  retainedRefs = new Map(),
   provisionalInCandidate = [],
   headProvisional = false,
   scopeDigestFor = null,
@@ -1646,13 +1771,10 @@ export function evaluate({
   trunkDelta = null,
   openingRecordFor = null,
   migrationExempt = V02_MIGRATION_PATHS,
-  migrationStale = [],
-  briefFor = null,
-  redactionRecordExists = null,
-  pathCommits = null,
-  provisionalCommitOids = new Set(),
-  head = null
+  transport = INTEGRATION_TRANSPORT,
+  redactionRecordExists = null
 }) {
+  const pullRequest = transport === 'pull-request'
   const findings = []
   const add = (level, rule, message, outcome = level === 'advisory' ? 'advisory' : 'fail') =>
     findings.push({ level, rule, outcome, message })
@@ -1660,61 +1782,81 @@ export function evaluate({
   const onPath = isPathBranch(branch)
   const match = paths.find((p) => p.front?.branch === branch)
 
-  // 0. branch identity — FAIL CLOSED ---------------------------------
-  // A check that cannot name the branch cannot run the rules that protect
-  // the trunk, and silence is indistinguishable from a pass. Reporting "OK"
-  // there is worse than reporting nothing: it certifies a claim nobody
-  // checked. Blocking only where an unenforced protocol leaves the repository
-  // WRONG — source landing without a registered, rebased path — and advisory
-  // elsewhere, so a detached docs-only or tag build is not punished for the
-  // way it was checked out.
+  // 0. the COMPARISON itself. Every changed-file rule inherits it, so a base
+  //    that does not resolve is not a smaller run — it is no run at all, and
+  //    the old behaviour was to die inside `git merge-base` with a Node stack
+  //    trace: a red gate carrying no finding. CI supplies this from the forge's
+  //    own event, whose value on a branch's first push is forty zeros, so the
+  //    first adopter to install the workflow meets it. Reported, never guessed
+  //    at (ADR-026 decision 1's principle, one rule over).
+  // A base that RESOLVES can still be no comparison: if it is this very
+  // commit, `merge-base` is HEAD and the diff is empty. That is not a clean
+  // tree — it is a question asked of itself, and it is how every integrating
+  // unit this repository landed reached zero changed files under a green run.
+  // Only on the TRUNK. On a path branch a base equal to HEAD means the branch
+  // carries no commit yet, which is benign and which both invocations see
+  // alike — the parity fixtures for this very requirement caught the first
+  // draft of this rule reporting it on one invocation and not the other. On
+  // the trunk it is never benign: HEAD is an arrival or trunk work, and a base
+  // equal to it is a push compared with itself.
+  if (baseIsHead && !onPath) {
+    add('blocking', 'comparison',
+      'the base given already contains this commit, so the comparison is empty and every changed-file rule was narrowed to the working tree — provide a base that predates what you are judging: the target branch for a request, and for a push to the trunk the commit it replaced',
+      'inconclusive')
+  }
+  // Only where a base was ASKED for. `unresolvable` is also the answer for a
+  // checkout with no trunk ref and no flag, which `resolveBase` falls back on
+  // deliberately and `trunk-containment` reports; refusing there would refuse a
+  // clone for not having fetched yet.
+  if (baseSource === 'unresolvable' && baseRequested) {
+    // The forge's sentinel for "nothing precedes this": a branch's first push.
+    // That is a fact about the history, not a broken input, and failing a
+    // repository's first push to its trunk would be the gate refusing a state
+    // the writer cannot avoid.
+    if (/^0{40,}$/.test(baseRequested)) {
+      add('advisory', 'comparison',
+        'no commit precedes this push — the forge names none, so this run judged the working tree alone; the next push to this ref compares against this commit')
+    } else {
+      add('blocking', 'comparison',
+        `the base this run was asked to compare against cannot be compared with this commit (${baseRequested}), so every changed-file rule was narrowed to the working tree — fetch the ref first; where no ref reaches it, as after a force-push that rewound what the forge named, provide a --base that is still reachable`,
+        'inconclusive')
+    }
+  }
+
+  // 1. branch → path — and FAIL CLOSED when the branch has no name -------
+  // Every path-scoped rule is guarded by the branch name. A check that cannot
+  // name the branch cannot run the rules that protect the trunk, and silence is
+  // indistinguishable from a pass: reporting "OK" there certifies a claim
+  // nobody checked. So a detached checkout is the degenerate case of "no path
+  // declares this branch" — inconclusive where an unenforced protocol leaves
+  // the repository WRONG (source landing without a registered, current path),
+  // advisory elsewhere, so a detached docs-only or tag build is not punished
+  // for the way it was checked out. This was `branch-identity` in 0.2.
   if (branchSource === 'detached') {
     const guarded = changed.filter((file) => GUARDED_ROOTS.some((root) => file.startsWith(root)))
     const how =
       'resolve it from GITHUB_HEAD_REF, `git symbolic-ref --short HEAD`, or pass --branch <name>; ' +
       'in GitHub Actions also check out the pull request HEAD sha, because the default merge ref ' +
-      'contains the base by construction and makes the rebase gate pass without proving anything'
+      'contains the base by construction and makes the trunk-containment gate pass without proving anything'
     if (guarded.length > 0) {
-      add('blocking', 'branch-identity',
+      add('blocking', 'branch-path',
         `detached checkout: the branch cannot be identified, so every path rule was SKIPPED while ${guarded.length} guarded file(s) changed — ${how}`,
         'inconclusive')
     } else {
-      add('advisory', 'branch-identity',
+      add('advisory', 'branch-path',
         `detached checkout: path rules were skipped because the branch could not be identified — ${how}`)
     }
   }
-
-  // 0b. base parity — is this the verdict that decides the merge? -----
-  // The sibling of branch identity. There, a rule could not name the branch;
-  // here, it names the branch but judges a smaller set of files than the run
-  // that will actually gate the merge. Both produce a green line over a
-  // question nobody asked, and only one of them used to be visible.
-  //
-  // Advisory, never blocking: a developer with no fetched trunk must still be
-  // able to run the checker, and a narrower run is not a protocol violation.
-  // What it must not be is INVISIBLE, because "cairn-check OK" is copied into
-  // ledgers as evidence.
-  if (onPath && baseSource !== 'flag' && baseSource !== 'default-trunk') {
-    const why =
-      baseSource === 'opt-out'
-        ? '--working-tree was requested'
-        : `neither ${TRUNK_BASE_CANDIDATES.join(' nor ')} resolves in this checkout — fetch the trunk`
-    add('advisory', 'base-parity',
-      `this run compared the working tree with HEAD, not the branch with the trunk (${why}). ` +
-      'Every changed-file rule therefore saw a smaller set than the run that decides the merge; ' +
-      'record this verdict as the narrow one, or re-run without --working-tree')
-  }
-
-  // 1. branch → path -------------------------------------------------
   if (onPath) {
     if (!match) {
       add('blocking', 'branch-path',
-        `branch "${branch}" has no coding path declaring it (expected a file in ${PATH_DIR}/ with ${METADATA_NAMESPACE}.branch: ${branch})`)
+        `branch "${branch}" has no coding path declaring it — register the path first, landing a record in ${PATH_DIR}/ that declares ${METADATA_NAMESPACE}.branch: ${branch} on the trunk, or check out the branch the record you are working on names`)
     } else if (!PATH_BRANCH_STATUSES.includes(match.front.status)) {
       add('blocking', 'branch-path',
-        `${match.file} declares this branch but its status is "${match.front.status}" — a path branch must be running, blocked, or ready; done is recorded by integration on the trunk`)
+        `${match.file} declares this branch but its status is "${match.front.status}" — check out the branch whose record is live, or open a path for the work you meant to do here; a path branch is running, blocked or ready, and done is recorded by integration on the trunk`)
     } else if (!isCommitPin(match.front.base_commit)) {
-      add('blocking', 'branch-path', `${match.file} needs ${METADATA_NAMESPACE}.base_commit as a 7–64 digit Git hash`)
+      add('blocking', 'branch-path',
+        `${match.file} needs ${METADATA_NAMESPACE}.base_commit as a 7–64 digit Git hash — the parent of the commit that registered this path, read with \`git rev-parse <registration>^\``)
     }
   }
 
@@ -1735,9 +1877,10 @@ export function evaluate({
       add('advisory', 'registration',
         `${match.front.id} predates trunk registration and is explicitly grandfathered — do not copy this exception to a new path`)
     }
-    if (registrationState !== 'grandfathered' && registrationBaseState === 'mismatch') {
+    const baseMismatch = registrationBaseState?.state === 'mismatch' ? registrationBaseState : null
+    if (registrationState !== 'grandfathered' && baseMismatch) {
       add('blocking', 'registration-base',
-        `${match.file} base_commit is not the parent of its trunk registration commit`)
+        `${match.file} base_commit is not the parent of its trunk registration commit ${baseMismatch.registration}, whose parent is ${baseMismatch.parent} — read \`git merge-base ${TRUNK_BRANCH} ${branch}\`: where it prints that parent, the field was read from the wrong commit and states the branch point once corrected; where it prints something earlier, the branch was created before registration, and \`spec/reference/repair.md\` names the repair — register retroactively in a \`repair\` unit, with the field at the real branch point`)
     } else if (registrationState !== 'grandfathered' && registrationBaseState == null) {
       add('blocking', 'registration-base',
         `cannot prove the registration parent for ${match.front.id} — fetch the complete trunk history and rerun the gate`,
@@ -1749,12 +1892,18 @@ export function evaluate({
   // online recovery point and a host-visible push event. This is
   // ADVISORY: a final ref can reveal that HEAD is unpublished now, but cannot
   // prove whether older commits were pushed one-by-one or later as a batch.
+  // Each of these names the ref it read: "no upstream" and "read from the
+  // remote-tracking ref" are the two answers a detached request-head checkout
+  // can give, and they mean opposite things (ADR-004 decision 5).
+  const readFrom = remoteCheckpoint?.branchRef
+    ? ` (read from ${remoteCheckpoint.branchRef.ref}, the ${remoteCheckpoint.branchRef.source} ref)`
+    : ''
   if (onPath && remoteCheckpoint?.state === 'missing') {
     add('advisory', 'remote-checkpoint',
-      `branch "${branch}" has no upstream — push every commit and set ${REMOTE}/${branch} as upstream before reporting the step complete`)
+      `branch "${branch}" has no upstream and ${REMOTE}/${branch} does not exist${readFrom} — push every commit and set ${REMOTE}/${branch} as upstream before reporting the step complete`)
   } else if (onPath && remoteCheckpoint?.state === 'unpushed') {
     add('advisory', 'remote-checkpoint',
-      `HEAD is not contained in ${remoteCheckpoint.upstream} — push this commit before reporting the step complete or offering an ordinary fresh-session handoff`)
+      `the branch tip is not contained in ${remoteCheckpoint.upstream}${readFrom} — push this commit before reporting the step complete or offering an ordinary fresh-session handoff`)
   }
 
   // 2b. a published path branch is not rewritten (ADR-022) ------------------
@@ -1770,7 +1919,7 @@ export function evaluate({
   // ref is present to compare against.
   if (rewritingForbidden && onPath && remoteCheckpoint?.diverged) {
     add('blocking', 'path-history',
-      `${remoteCheckpoint.upstream} is not an ancestor of HEAD, so a published commit was rewritten — this host declares pathHistoryPolicy: forbidden, under which a path branch is never rebased, amended, soft-reset or force-pushed once published. ` +
+      `${remoteCheckpoint.upstream} is not an ancestor of ${remoteCheckpoint.branchRef?.ref ?? 'the branch tip'}, so a published commit was rewritten — this host declares pathHistoryPolicy: forbidden, under which a path branch is never rebased, amended, soft-reset or force-pushed once published. ` +
       'Recover the published tip and merge the trunk in rather than rebasing onto it; if the divergence is a concurrent push, this branch has more than one writer, which the path convention forbids')
   }
 
@@ -1811,18 +1960,74 @@ export function evaluate({
     }
   }
 
+  // ADR-008 decision 2. The integrating unit is ONE COMMIT FOR ONE PATH: one
+  // commit from a clean trunk checkout carrying `done`, the resolution, the
+  // live view and the journal entry. The arrivals are counted once here,
+  // because "how many paths does this change integrate" is a question about
+  // the change and not about any one record.
+  const previousOf = (file) => (previousPaths instanceof Map
+    ? previousPaths.get(file)
+    : previousPaths?.[file])
+  const arrivingDone = paths.filter((path) =>
+    path.front?.status === 'done' &&
+    stateChanged.includes(path.file) &&
+    previousOf(path.file) !== undefined &&
+    previousOf(path.file)?.status !== 'done')
+  // One read per record reaching `done`, for the two rules that ask about it.
+  // Only an arrival is read: a record that was already `done` integrated in
+  // some earlier change, and this one has no integrating commit of its own.
+  const integrationOf = new Map(arrivingDone
+    .map((path) => [path.file, integrationStateFor?.(path.file, path.front?.id) ?? null]))
+  // One commit for one path is the reading that binds (ADR-026 decision 3,
+  // superseding ADR-008 decision 2's *never two paths in one request*). Two
+  // arrivals in one COMMIT is the refusal; two in one comparison is an ordinary
+  // request spanning two honest integrations, and refusing it would tell the
+  // author to do what they already did. An arrival with no commit yet is the
+  // one being prepared in the working tree, and there is one of those.
+  const perCommit = new Map()
+  for (const path of arrivingDone) {
+    const key = integrationOf.get(path.file)?.commit ?? null
+    if (!perCommit.has(key)) perCommit.set(key, [])
+    perCommit.get(key).push(path.front.id)
+  }
+  for (const [commit, ids] of perCommit) {
+    if (ids.length > 1) {
+      add('blocking', 'acceptance',
+        `${ids.join(', ')} reach done in ${commit ?? 'the commit being prepared'} — integrate one path per commit, from a clean trunk checkout, so that each integration can be read, reverted and journalled on its own`)
+    }
+  }
+  // ADR-026 decision 4. On `pull-request` the candidate lands with the merge and
+  // `done` follows in a commit of its own, so a merge object carrying the edit
+  // is the shape ADR-008 decision 2 refuses. On `manual-git` that merge IS the
+  // integrating unit — `cairn-close` step 5 and chapter 5 both prescribe it —
+  // and this refusal does not reach there. It is not the only one that did —
+  // see `tools/soundness.md` on the `transition` reading, which ADR-026 does
+  // not decide and which WOULD refuse that closing. Until 2026-09-14 it did
+  // not refuse anything: no run compared the trunk across an integrating
+  // commit, so neither rule was reached on either transport. Item 13 of this
+  // path gave them the comparison, and `comparison` reports when there is
+  // none.
+  if (pullRequest) {
+    for (const path of arrivingDone) {
+      const integration = integrationOf.get(path.file)
+      if (integration?.merge) {
+        add('blocking', 'acceptance',
+          `${path.file} reaches done in ${integration.commit}, which is a merge object carrying the edit — land the candidate with the merge, then record done in one commit of its own on the trunk`)
+      }
+    }
+  }
+
   for (const path of paths) {
     if (stateChanged.includes(path.file)) {
-      const previous = previousPaths instanceof Map
-        ? previousPaths.get(path.file)
-        : previousPaths?.[path.file]
+      const previous = previousOf(path.file)
       if (previous === undefined) {
         add('blocking', 'transition',
           `${path.file}: previous path state is unavailable — provide a complete comparison ref`,
           'inconclusive')
       } else {
         const legacy = migrationExempt.has(String(path.front?.id ?? ''))
-        for (const error of transitionErrors(previous, path.front, onPath && path === match)) {
+        for (const error of transitionErrors(previous, path.front, onPath && path === match,
+          integrationOf.get(path.file)?.readyBehind ?? false)) {
           add(legacy ? 'advisory' : 'blocking', 'transition',
             `${path.file}: ${error}${legacy ? ' (grandfathered: this record predates the v0.2 schema)' : ''}`)
         }
@@ -1835,14 +2040,11 @@ export function evaluate({
     // the convention existed are not in any diff, and draining them is a
     // migration rather than a repair.
     if (path.front?.status === 'done' && stateChanged.includes(path.file)) {
-      const previous = previousPaths instanceof Map
-        ? previousPaths.get(path.file)
-        : previousPaths?.[path.file]
-      const arriving = previous !== undefined && previous?.status !== 'done'
+      const arriving = arrivingDone.includes(path)
       const id = String(path.front?.id ?? '')
       if (arriving && journalEntries == null) {
         add('blocking', 'journal-entry',
-          `${path.file} reaches done, and the journal could not be read to check for its entry — missing evidence is not a pass`,
+          `${path.file} reaches done, and the journal could not be read to check for its entry — provide ${JOURNAL_DIR}/ and rerun the gate; missing evidence is not a pass`,
           'inconclusive')
       } else if (arriving && !journalRecords(journalEntries, id)) {
         // NO MIGRATION EXEMPTION HERE, deliberately. The v0.2 exception excuses
@@ -1853,7 +2055,7 @@ export function evaluate({
         // Exempting them would grandfather a requirement they can satisfy today,
         // which is a bypass rather than a migration.
         add('blocking', 'journal-entry',
-          `${path.file} reaches done with no journal entry declaring \`path: ${id}\` — write one file under ${JOURNAL_DIR}/ in this same change`)
+          `${path.file} reaches done with no journal entry declaring \`${METADATA_NAMESPACE}.path: ${id}\` — write one file under ${JOURNAL_DIR}/ in this same change, with the id under the metadata block and nowhere else`)
       }
     }
 
@@ -1865,31 +2067,52 @@ export function evaluate({
     // stays visible as an advisory so the debt is not forgotten.
     const legacyRecord = migrationExempt.has(String(path.front?.id ?? ''))
     const record = closureFor?.(path.front.id, path.front.subject_commit) ?? null
-    for (const error of closingAcceptanceErrors(record, path.front.id)) {
-      add(legacyRecord ? 'advisory' : 'blocking', 'acceptance',
-        `${path.file}: ${error}${legacyRecord ? ' (grandfathered: closed before candidate-bound closure existed)' : ''}`)
-    }
-    if (record?.subject_commit && path.front.subject_commit !== record.subject_commit) {
-      add('blocking', 'acceptance',
-        `${path.file}: ${METADATA_NAMESPACE}.subject_commit must equal the closing record subject_commit`)
+    // On `manual-git` the closing record in the path folder IS the acceptance
+    // and the coherence checklist, one file naming exactly `C`: its fields, its
+    // verdict and its answered questions are read here. On `pull-request` the
+    // request's description and approval are that record, kept by the forge;
+    // the checker reads nothing about them and says so on the conformance
+    // page, because a review is native to the forge and re-checking it here
+    // would be the invented solution the manifesto warns about.
+    if (!pullRequest) {
+      for (const error of closingAcceptanceErrors(record, path.front.id)) {
+        add(legacyRecord ? 'advisory' : 'blocking', 'acceptance',
+          `${path.file}: ${error}${legacyRecord ? ' (grandfathered: closed before candidate-bound closure existed)' : ''}`)
+      }
+      if (record?.subject_commit && path.front.subject_commit !== record.subject_commit) {
+        add('blocking', 'acceptance',
+          `${path.file}: ${METADATA_NAMESPACE}.subject_commit must equal the closing record subject_commit — one closure binds one candidate, so write the closing record for the candidate this record names, or declare the candidate that record reviewed`)
+      }
+      for (const error of record?.__fill ?? []) {
+        add('blocking', 'acceptance',
+          `${record.__file} is not a completed review: ${error} — answer the coherence questions on this candidate before declaring the path ready`)
+      }
     }
     const state = closureStateFor?.(path, record)
     if (state == null) {
       add(legacyRecord ? 'advisory' : 'blocking', 'acceptance',
-        `${path.file}: cannot inspect the accepted candidate and administrative closure commit${legacyRecord ? ' (grandfathered: it ran on the trunk, so no candidate commit exists to inspect)' : ''}`,
+        `${path.file}: cannot inspect the accepted candidate and administrative closure commit${legacyRecord ? ' (grandfathered: it ran on the trunk, so no candidate commit exists to inspect)' : ' — fetch the branch this record names and rerun the gate, so the closure is judged rather than assumed'}`,
         legacyRecord ? undefined : 'inconclusive')
     } else {
       if (!state.subjectIsAncestor) {
-        add('blocking', 'acceptance', `${path.file}: accepted subject_commit is not an ancestor of HEAD`)
-      }
-      const expectedAdministrativeCommits = path.front.status === 'ready' ? 1 : 2
-      if (state.commitsAfterSubject !== expectedAdministrativeCommits) {
         add('blocking', 'acceptance',
-          `${path.file}: ${path.front.status} requires exactly ${expectedAdministrativeCommits} metadata commit(s) after subject_commit; found ${state.commitsAfterSubject}`)
+          `${path.file}: accepted subject_commit is not an ancestor of HEAD — check out the branch that holds the candidate, or produce a new candidate and re-accept it; a closure judges the commit it names`)
       }
-      if (state.forbiddenFiles?.length) {
-        add('blocking', 'acceptance',
-          `${path.file}: implementation changed after acceptance: ${state.forbiddenFiles.join(', ')}`)
+      // At `ready` the branch holds C and exactly one administrative commit,
+      // whose files are judged. At `done` the candidate has been integrated by
+      // the transport: the merge landed C and A, other paths may have landed
+      // beside them, and what this checkout can prove is that C is reachable —
+      // the closure surface was proved at `ready`, on the exact commit that
+      // landed, and `journal-entry` and `transition` prove the rest.
+      if (path.front.status === 'ready') {
+        if (state.commitsAfterSubject !== 1) {
+          add('blocking', 'acceptance',
+            `${path.file}: ready requires exactly one administrative commit after subject_commit; found ${state.commitsAfterSubject} — declare ready in one commit that changes only the closure surface; work that belongs to the path needs a new candidate that contains it`)
+        }
+        if (state.forbiddenFiles?.length) {
+          add('blocking', 'acceptance',
+            `${path.file}: implementation changed after acceptance: ${state.forbiddenFiles.join(', ')} — the candidate is void; return the record to \`running\`, produce a new candidate and repeat review and acceptance on it`)
+        }
       }
     }
   }
@@ -1908,15 +2131,27 @@ export function evaluate({
       add('advisory', 'record-integrity',
         `${validRelocations.length} append-only record(s) were relocated verbatim: ${validRelocations.slice(0, 3).map(([from, to]) => `${from.split('/').at(-1)} → ${to}`).join(', ')}${validRelocations.length > 3 ? ', …' : ''}. Links were repointed and nothing earlier was rewritten — stated rather than exempted in silence`)
     }
+    // REPAIR 005. A mutation that a later step of this path has bound — the
+    // blob it replaces, the blob it adds — is the remedy chapter 5 names, not
+    // a second violation: both texts stay reachable and the correction is a
+    // new step. The claim is checked against the blobs the record really
+    // carries, because a supersession nobody verifies is a sentence that
+    // clears any edit.
+    const claims = new Map(supersessions.map((claim) => [claim.file, claim]))
     for (const file of immutableMutations) {
-      if (isImmutableRecord(file) && !relocated.has(file)) {
-        if (isAppendOnlyStepRecord(file)) {
-          add('blocking', 'record-integrity',
-            `${file} no longer preserves its adding blob as a prefix — append a suffix, or add a superseding record instead of changing earlier text`)
-        } else {
-          add('blocking', 'record-integrity',
-            `${file} is an existing immutable record and may not be modified, renamed, or deleted; add a superseding record instead`)
-        }
+      if (!isImmutableRecord(file) || relocated.has(file)) continue
+      const claim = claims.get(file)
+      if (!isAppendOnlyStepRecord(file)) {
+        add('blocking', 'record-integrity',
+          `${file} is an existing immutable record and may not be modified, renamed, or deleted; add a superseding record instead`)
+      } else if (supersessionBinds(claim?.declared, claim?.actual)) {
+        add('advisory', 'record-integrity',
+          `${file} is superseded on this branch by ${claim.declaredIn}, which binds ${claim.declared.before} to ${claim.declared.after} — the earlier text stays reachable and the correction is a new step, stated rather than exempted in silence`)
+      } else {
+        add('blocking', 'record-integrity',
+          claim
+            ? `${file} no longer preserves its adding blob as a prefix, and the supersession in ${claim.declaredIn} binds ${claim.declared.before} to ${claim.declared.after}, which this record does not carry — it was added as ${claim.actual.before ?? 'a blob this checkout cannot read'} and carries ${claim.actual.after ?? 'no text'}`
+            : `${file} no longer preserves its adding blob as a prefix — append a suffix, or supersede it from a later step of this path binding the blob it replaces to the blob it adds`)
       }
     }
   }
@@ -1926,10 +2161,13 @@ export function evaluate({
   // about a record that was already wrong when it was written. Scoped to the
   // records this change ADDS, because an existing one may not be edited to
   // satisfy a rule that did not exist when it was written — there, the fix
-  // would be the violation.
+  // would be the violation. ADVISORY on both halves since Cairn 1.0: a
+  // record's dates are evidence a reviewer weighs, and the manifesto's test
+  // for blocking — the repository is WRONG, not merely questionable — is not
+  // met by a date that a human wrote twice.
   for (const finding of recordDateFindings(addedRecords)) {
     if (finding.kind === 'disagreement') {
-      add('blocking', 'record-date',
+      add('advisory', 'record-date',
         `${finding.file}: the filename says ${finding.named} and \`timestamp:\` says ${finding.declared} — one of the two dates this record carries is false`)
     } else {
       add('advisory', 'record-date',
@@ -1937,52 +2175,41 @@ export function evaluate({
     }
   }
 
-  // 4b. the OPENING check — the other half of the same guard.
+  // 4d. a running path records its opening acceptance ---------------------
   //
-  //     `paths.md` requires the owner's explicit acceptance before a path
-  //     activates, recorded in a session note. Until now nothing checked it: F2
-  //     repaired the closing gate and left its twin a convention, so a path
-  //     could be registered, branched and worked with no recorded acceptance.
-  //     Owner directive 2026-08-24: "ceremony opening, backfilling why not but
-  //     maybe add a blocking gate."
+  //     A path becomes shared work through opening acceptance and THEN
+  //     registration, so a record declaring `running` with no acceptance
+  //     behind it fails the record's own schema: the declaration claims a
+  //     state it has not earned. This was `opening-ceremony` in 0.2, a rule of
+  //     its own that read a session note; Cairn 1.0 folds it into `schema`
+  //     because the acceptance is part of the record, inline under its own
+  //     heading in `index.md`.
   //
-  //     Scoped to a path file IN THE DIFF declaring `running`, so the eight
-  //     paths that closed before session notes existed are never examined.
-  if (openingFor) {
+  //     Scoped to a path file IN THE DIFF declaring `running`, so a path that
+  //     closed before the requirement existed is never examined.
+  if (openingRecordFor) {
     for (const path of paths) {
       if (path.front?.status !== 'running' || !stateChanged.includes(path.file)) continue
       const id = path.front.id
-      if (openingFor(id)) continue
+      const opening = openingRecordFor(id)
+      const errors = openingAcceptanceErrors(opening)
+      if (errors.length === 0) continue
       if (LEGACY_UNDECLARED_OPENINGS.has(id)) {
-        add('advisory', 'opening-ceremony',
-          `${path.file} predates the declared ceremony schema — add \`path: ${id}\` and \`ceremony: opening\` to its existing opening-check note to clear this, and do not copy the exception`)
+        add('advisory', 'schema',
+          `${path.file} predates the inline opening acceptance — write its \`## Opening acceptance\` section from the record it has, and do not copy the exception`)
         continue
       }
-      add('blocking', 'opening-ceremony',
-        `${path.file} is running with no session note declaring \`path: ${id}\` and \`ceremony: opening\` — a path activates on recorded team acceptance, never on a conversation`)
+      add('blocking', 'schema',
+        `${path.file} is running with no valid opening acceptance under \`## Opening acceptance\` (${errors.join('; ')}) — write that block into the record before the path runs; a path activates on recorded acceptance, never on a conversation`)
     }
   }
 
-  // 4. statements of record — nearly all of these are GENERATED now, so this
-  //    only fires on the few that are still hand-written.
-  if (onPath) {
-    for (const file of changed) {
-      // A generated view that equals its generator's output was regenerated,
-      // not edited — and closure MUST regenerate it, because the view projects
-      // the status closure moves. Advising "regenerate rather than edit" over
-      // a regeneration made every honest closure carry an advisory it could
-      // only dispose by attesting it at a candidate where it never fired
-      // (greenfield pilot, 2026-09-01). `derived-view` still blocks the
-      // hand-edited case, and this advisory still names it.
-      if (file === ACTIVE_FILE && derivedViewCurrent === true) continue
-      if (SINGLE_TRUTH.includes(file)) {
-        add('advisory', 'single-truth',
-          `${file} is generated or shared — regenerate it (npm run cairn-active) rather than editing it by hand, or say in the ledger why this edit is deliberate.`)
-      }
-    }
-  }
-
-  // 3. same work unit -------------------------------------------------
+  // 3. a completed unit moves its source, its module note and its step together
+  //    Not path-gated: source landing on the trunk without its note is exactly
+  //    as undocumented. This half was `same-work-unit` in 0.2, with the area
+  //    precision as `area-note`; both are the coherence half of `work-unit`
+  //    now, because "source changed without its documents and its step is not
+  //    a completed unit" is one sentence, not three rules.
   const sourceChanged = changed.filter(
     (file) =>
       GUARDED_ROOTS.some((root) => file.startsWith(root)) &&
@@ -1990,19 +2217,19 @@ export function evaluate({
   )
   if (sourceChanged.length > 0) {
     if (touched(slash(MODULE_DIR)).length === 0) {
-      add('blocking', 'same-work-unit',
-        'source changed but no module note did — code, tests, docs and the ledger land in ONE work unit')
+      add('blocking', 'work-unit',
+        `source changed but no module note did — refresh the note for the area you changed, under ${slash(MODULE_DIR)}, in this same commit; code, tests, docs and the step land in ONE work unit`)
     }
     if (touched(`${PATH_DIR}/`).length === 0) {
-      add('blocking', 'same-work-unit',
-        'source changed but no coding path did — every executed step updates its Work Ledger in the same unit')
+      add('blocking', 'work-unit',
+        'source changed but no coding path did — write this unit\'s step record and refresh the record\'s resume section in this same commit; every executed step updates its own record in the same unit')
     }
     // area precision is advisory: the map is a judgment call
     const areas = new Set(sourceChanged.map(areaOf).filter(Boolean))
     for (const area of areas) {
       const note = areaNote(area)
       if (resolveFile(note) && !changed.includes(note)) {
-        add('advisory', 'area-note',
+        add('advisory', 'work-unit',
           `${area} source changed but ${note} did not — is the contract still accurate?`)
       }
     }
@@ -2037,19 +2264,6 @@ export function evaluate({
     }
   }
 
-  // 5b. ledger size (advisory) ----------------------------------------
-  // Completed steps roll into the configured coding-path history directory,
-  // linked rather than inlined, leaving the path file holding its declaration,
-  // its index over those records, its ledger and its next action. Nothing is
-  // summarized in that move; it is a move.
-  for (const path of paths) {
-    if (!changed.includes(path.file) || !path.tokens) continue
-    if (path.tokens > LEDGER_TOKEN_BUDGET) {
-      add('advisory', 'ledger-size',
-        `${path.file} is ~${path.tokens} tokens, over the ${LEDGER_TOKEN_BUDGET} budget — roll its completed steps into ${HISTORY_DIR}/<id>-S0N.md, verbatim and linked, leaving the declaration, the index, the ledger and the next action`)
-    }
-  }
-
   // 7. typed work units ----------------------------------------------
   // "Code, tests and documents move together" is the right instinct and the
   // wrong rule: applied to every unit it demands a module note from a typo
@@ -2065,8 +2279,8 @@ export function evaluate({
       if (!forStep) {
         add('blocking', 'work-unit',
           step
-            ? `${match.file} changed while declaring current_step ${step}, with no \`cairn-unit\` block for that step — every completed work unit declares its step, ledger ordinal, type (${WORK_UNIT_TYPES.join(' | ')}) and verification`
-            : `${match.file} changed with no \`cairn-unit\` block — every completed work unit declares its step, ledger ordinal, type (${WORK_UNIT_TYPES.join(' | ')}) and verification`)
+            ? `${match.file} changed while declaring current_step ${step}, with no \`cairn-unit\` block for that step — add one to that step's record, declaring its ledger ordinal, its type (${WORK_UNIT_TYPES.join(' | ')}) and what verified it`
+            : `${match.file} changed with no \`cairn-unit\` block — add one to this unit's step record, declaring its ledger ordinal, its type (${WORK_UNIT_TYPES.join(' | ')}) and what verified it`)
       }
     }
     for (const unit of workUnits) {
@@ -2074,110 +2288,53 @@ export function evaluate({
         add('blocking', 'work-unit', `${match.file}: ${error}`)
       }
     }
-  }
 
-  // 8. checkpoint retention — FAIL CLOSED ------------------------------
-  // The ledger names its checkpoints and promises another participant can
-  // fetch one and resume. A rebase changes every object id and the force-push
-  // that follows leaves those promises resolving to nothing — which is not a
-  // corner case, it is the central claim failing at the moment the ledger is
-  // most complete. The newest unit is exempt because its ref is written
-  // immediately after the commit declaring it; every older one must already
-  // be reachable.
-  if (retentionEnabled && onPath && match && workUnits != null) {
-    const id = String(match.front.id ?? '').toLowerCase()
-    const due = retentionDue(workUnits)
-    // Which generation retention continues in is an ANCESTRY question, so a
-    // checkout that cannot resolve this branch's own commit range cannot answer
-    // it. That is missing evidence, and it gets the same treatment as an
-    // unfetched namespace rather than a confident verdict about a range nobody
-    // could read.
-    const branchOids = pathCommits == null ? null : new Set(pathCommits)
-    const split = retentionGenerations(retainedRefs ?? new Map(), id, retentionPrefix)
-    const generation = branchOids == null
-      ? null
-      : currentGeneration(split.generations, (oid) => branchOids.has(oid))
-    // AN EMPTY NAMESPACE IS NOT AN ANSWER.
+    // ADR-017 decision 2. A unit has five movements, and the fourth leaves a
+    // record: the fresh context's findings with their dispositions, in the
+    // step's own file. The checker reads the section's PRESENCE, never its
+    // content — whether the reader was fresh and whether the dispositions are
+    // honest is what the owner reads at the candidate, and a rule that scored
+    // them would be inventing a judgement.
     //
-    // `git for-each-ref refs/cairn/...` over a namespace that was never fetched
-    // exits 0 and prints nothing — the same result as a namespace that is
-    // present and empty. The guard below already carried the right sentence for
-    // the second case, and it was UNREACHABLE, because the only thing that made
-    // `retainedRefs` null was the command failing, and the command never fails.
+    // Only the CURRENT unit's step, so a step written before this rule existed
+    // is not refused when a later unit is judged. `closure` carries no step
+    // file, so it carries no review.
     //
-    // So the rule stated, with confidence, that eighteen refs did not exist
-    // while all eighteen sat on the remote — and told the reader to create them,
-    // which in that checkout would have accomplished nothing. `actions/checkout`
-    // fetches `refs/heads/*` and `refs/tags/*` only, so this fired on every CI
-    // run of every path (CP-OPS-002 S08b).
+    // The current unit is the newest one kept in a LEDGER, which `pathWorkUnits`
+    // has already sorted last. `current_step` used to select it over that same
+    // sorted list, so a field left behind could only ever point at an OLDER
+    // unit, never a newer one; it stays in the schema, where `work-unit` reads
+    // it, and selects nothing here (ADR-026 decision 2).
     //
-    // The verdict does not soften: it stays blocking, and the run still exits
-    // non-zero. What changes is the CLAIM and the instruction. A checkout that
-    // cannot see the namespace has missing evidence, not evidence of absence.
-    const invisible = retainedRefs != null && retainedRefs.size === 0 && due.length > 0
-    if (retainedRefs == null || invisible) {
-      const units = due.map((unit) => `${unit.unit} (${unit.step})`).join(', ')
-      add('blocking', 'checkpoint-retention',
-        `${retentionPrefix}/${id}/* is empty in this checkout while ${match.file} declares ${due.length} unit(s) due retention — ${units}. ` +
-        `Either the namespace was never fetched (\`git fetch ${REMOTE} '+${retentionPrefix}/*:${retentionPrefix}/*'\`, which \`actions/checkout\` does NOT do) ` +
-        'or the refs were never written. This checkout cannot tell which, and missing evidence is not a pass',
-        'inconclusive')
-    } else if (generation == null && due.length > 0) {
-      add('blocking', 'checkpoint-retention',
-        `cannot resolve this branch's own commit range against the trunk, so the current retention generation for ${id} is unknown while ${match.file} declares ${due.length} unit(s) due retention — fetch the trunk and the complete path history, then rerun the gate`,
-        'inconclusive')
-    } else if (generation != null && generation.state !== 'open' && due.length > 0) {
-      // AN EMPTY CURRENT GENERATION IS THE FINDING, NOT THE ABSENCE OF ONE.
-      //
-      // Distinct from the inconclusive case above, and the distinction is the
-      // whole of ADR-021 decision 4. There, the namespace could not be seen. Here
-      // it is seen, older generations are in it, and the current one is empty —
-      // which is exactly what a rewriting push leaves behind. The instruction is
-      // specific because a finding nobody can act on is one people learn to
-      // scroll past.
-      const why = generation.state === 'rewritten'
-        ? `${generation.closed} stopped being an ancestor of this branch, so it was closed by a rewrite`
-        : `no generation has been opened for this path, and ${split.preNotation.size} ref(s) predate the notation`
-      add('blocking', 'checkpoint-retention',
-        `${retentionPrefix}/${id}/${generation.name}/ is empty while ${match.file} declares ${due.length} unit(s) due retention — ${why}. ` +
-        `Open ${generation.name} by retaining every completed commit of this branch at ${retentionPrefix}/${id}/${generation.name}/<unit>, and move no existing ref`)
-    } else {
-      for (const unit of due) {
-        const ref = `${retentionPrefix}/${id}/${generation?.name}/${unit.unit}`
-        if (!retainedRefs.has(ref)) {
-          add('blocking', 'checkpoint-retention',
-            `${match.file} declares unit ${unit.unit} (${unit.step}) with no retention ref at ${ref} — create it before any rewriting push, or the next rebase orphans that checkpoint`)
+    // Read in the unit's own ledger — its step record, or the flat record that
+    // is one. Never in the `index.md` of a folder record: a block put there
+    // would be answered by a section in a file that may be rewritten the next
+    // minute, which is the opposite of what the record is for. On the flat
+    // shape one section answers for every unit, which the conformance page
+    // states as the gap it is.
+    if (changed.includes(match.file) && reviewFor && workUnits.length > 0) {
+      // Filtered, not just `at(-1)`: a block in the `index.md` of a folder
+      // record answers for no unit, and taking the newest unconditionally let
+      // such a block stand in front of the step record and skip the rule.
+      const current = workUnits.filter((unit) => isUnitLedger(unit.__file, match.file)).at(-1)
+      if (current && current.type !== 'closure') {
+        const review = reviewFor(current.__file)
+        if (!review) {
+          add('blocking', 'review',
+            `${current.__file} carries no ${review === null ? '`#### Review` section' : 'finding under its `#### Review` section'} — hand this unit's diff to a fresh context, then write it into that step between the self-review and the verification: one line per finding with its disposition, or one sentence saying the reader found nothing`)
         }
       }
     }
-    // Suppressed when the namespace is invisible: "the newest ref is not
-    // written yet" is the same unfounded claim as the blocking one, in a
-    // quieter voice, and the inconclusive finding above already says what is
-    // actually known.
-    const newest = workUnits.at(-1)
-    const newestRef = newest && generation
-      ? `${retentionPrefix}/${id}/${generation.name}/${newest.unit}`
-      : null
-    if (newestRef && retainedRefs != null && !invisible && generation.state === 'open' &&
-        !retainedRefs.has(newestRef)) {
-      add('advisory', 'checkpoint-retention',
-        `unit ${newest.unit} has no retention ref yet — write ${newestRef} once this commit exists, before the next rebase`)
-    }
 
-    // Every declared unit resolving a ref is NOT the same as every completed
-    // commit being retained: a ref moved forward leaves the commit it used to
-    // name unretained while every unit still checks out.
-    // Judged against the CURRENT generation only. Earlier generations answer the
-    // other question — what a ledger row was verified against — and their refs
-    // are deliberately off this branch.
-    if (pathCommits != null && retainedRefs != null && generation?.state === 'open') {
-      const orphaned = unretainedCheckpoints(
-        pathCommits, generation.units.values(), provisionalCommitOids, head
-      )
-      if (orphaned.length > 0) {
-        add('blocking', 'checkpoint-retention',
-          `${orphaned.length} completed commit(s) on this branch are retained by no ref (${orphaned.slice(0, 3).map((oid) => oid.slice(0, 7)).join(', ')}) — a retention ref that moved leaves the commit it used to name orphaned, which is what retention exists to prevent`)
-      }
+    // ADR-004 decision 2. The checkpoint is a claim of the unit, so it is
+    // judged where the unit's other claims are. A record that declares
+    // `running` and has completed a unit but names no commit cannot be
+    // resumed cold from itself, which is the one thing the section is for —
+    // fifteen adopter units left it `unpinned` and nobody found out until a
+    // path had to be picked up in a new session.
+    if (match.front?.status === 'running' && workUnits.length > 0 && checkpointFor && !checkpointFor(match.file)) {
+      add('blocking', 'work-unit',
+        `${match.file} declares running with ${workUnits.length} completed unit(s) and names no checkpoint — write the last commit the remote holds into the resume section's \`commit :\`, as a full object id`)
     }
   }
 
@@ -2189,16 +2346,20 @@ export function evaluate({
   if (onPath && match && match.front.status === 'ready') {
     if (provisionalInCandidate == null) {
       add('blocking', 'provisional',
-        `cannot read the commit range for ${match.front.id} — fetch the complete path history and rerun the gate`,
+        `cannot read the commit range for ${match.front.id} against the trunk — fetch the trunk and the complete path history, and rerun the gate`,
         'inconclusive')
     } else if (provisionalInCandidate.length > 0) {
       add('blocking', 'provisional',
-        `${provisionalInCandidate.length} commit(s) between the base and the candidate still carry ${PROVISIONAL_TRAILER}: — fold each into the work unit it was drafting before proposing a candidate (${provisionalInCandidate.slice(0, 3).join(', ')})`)
+        `${provisionalInCandidate.length} commit(s) of this path between the base and the candidate still carry ${PROVISIONAL_TRAILER}: and nothing later finished them (${provisionalInCandidate.slice(0, 3).join(', ')}) — ${rewritingForbidden
+          ? 'complete the work each was drafting in a unit of its own, whose commit publishes a step record; nothing is rewritten here, so a draft is superseded by the unit that finishes it and stays in the history as what it was'
+          : 'fold each into the work unit it was drafting, retaining its checkpoint first, before proposing a candidate'}`)
     }
   }
   if (onPath && headProvisional) {
     add('advisory', 'provisional',
-      `HEAD carries ${PROVISIONAL_TRAILER}: — this commit is durable but is not a checkpoint, must not be named as a resume point, and must be folded before a candidate`)
+      `HEAD carries ${PROVISIONAL_TRAILER}: — this commit is durable but is not a checkpoint and must not be named as a resume point; ${rewritingForbidden
+        ? 'finish the work it drafts in a unit of its own before proposing a candidate, and it is superseded where it stands'
+        : 'fold it into that unit before proposing a candidate'}`)
   }
 
   // 9. scope is bound by digest, not by a pointer -----------------------
@@ -2206,36 +2367,70 @@ export function evaluate({
   // something else. `scope_ref` is a file path and a heading, so the sentence
   // it resolves to can be rewritten after acceptance and every record still
   // reads as valid. The digest gives scope the identity the code already had.
-  if (onPath && match && CLOSED_STATUSES.includes(match.front.status)) {
-    const id = String(match.front.id ?? '')
-    const record = closureFor?.(id)
+  // The acceptance in force is the opening block, and what it accepted is the
+  // text its `scope_ref` resolves to NOW: if the two digests differ, the
+  // definition of done moved after it was accepted, on either transport. On
+  // `manual-git` the closing record re-states the digest it re-computed at C,
+  // and must agree with the opening.
+  //
+  // ADR-002 decision 1 widened the guard. It used to read a CLOSED status on
+  // the path's OWN branch, so a tick inside an integrating commit on the trunk
+  // was never judged — which is how two Crumbz paths reached `done` ticked,
+  // under green runs — and a tick between two units survived until closure.
+  // The seal is now judged wherever the record changes, whatever its status,
+  // and still at closure on the branch as before.
+  const sealed = paths.filter((path) =>
+    stateChanged.includes(path.file) ||
+    (onPath && path === match && CLOSED_STATUSES.includes(path.front?.status)))
+  for (const path of sealed) {
+    const closing = onPath && path === match && CLOSED_STATUSES.includes(path.front?.status)
+    const id = String(path.front?.id ?? '')
+    const record = closing && !pullRequest ? closureFor?.(id) : null
     const exempt = migrationExempt.has(id)
     const opening = openingRecordFor?.(id)
-    const expected = scopeDigestFor?.(record?.scope_ref)
+    const expected = scopeDigestFor?.(opening?.scope_ref)
 
-    if (expected === undefined) {
+    if (!opening?.scope_digest) {
+      // A record carrying no acceptance yet — a draft, or a registration
+      // landing in this same change — is bound to nothing YET. That is only a
+      // fault once the path is closing, which is where the rule always asked.
+      if (closing) {
+        add(exempt ? 'advisory' : 'blocking', 'scope-digest',
+          `the opening acceptance for ${id} carries no scope_digest${exempt ? ' (grandfathered: this path predates the rule)' : ' — a scope accepted without a digest is bound to nothing; compute it with \`cairn-check --scope-digest <record>#definition-of-done\` and record it in a fresh acceptance naming the one it supersedes'}`)
+      }
+    } else if (expected === undefined) {
       add('blocking', 'scope-digest',
-        `cannot resolve ${record?.scope_ref ?? 'the scope_ref'} for ${id} — a scope that cannot be read cannot be shown unchanged`,
+        `cannot resolve ${opening.scope_ref ?? 'the scope_ref this acceptance names'} for ${id} — provide the record it points at and rerun the gate; a scope that cannot be read cannot be shown unchanged`,
         'inconclusive')
     } else if (expected === null) {
       add('blocking', 'scope-digest',
-        `${record?.scope_ref ?? 'scope_ref'} names no section in ${match.file} — acceptance must point at text that exists`)
-    } else {
-      if (!record?.scope_digest) {
-        add(exempt ? 'advisory' : 'blocking', 'scope-digest',
-          `the closing record for ${id} carries no scope_digest — record ${expected} so closure can prove the definition of done did not move${exempt ? ' (grandfathered: this path predates the rule)' : ''}`)
-      } else if (record.scope_digest !== expected) {
-        add('blocking', 'scope-digest',
-          `the definition of done moved after acceptance: the closing record says ${record.scope_digest}, ${match.file} now digests to ${expected} — restore the accepted text or record a scope amendment`)
-      }
-      if (opening && !opening.scope_digest) {
-        add(exempt ? 'advisory' : 'blocking', 'scope-digest',
-          `the opening acceptance for ${id} carries no scope_digest${exempt ? ' and is an immutable record that predates the rule' : ' — a scope accepted without a digest is bound to nothing'}`)
-      }
+        `${opening.scope_ref} names no section for ${id} — point scope_ref at a heading this record has, or restore the section it names; acceptance binds text that exists`)
+    } else if (opening.scope_digest !== expected) {
+      add('blocking', 'scope-digest',
+        `the definition of done moved after acceptance: the opening acceptance says ${opening.scope_digest}, ${path.file} now digests to ${expected} — restore the accepted text or record a scope amendment`)
+    } else if (record && record.scope_digest !== opening.scope_digest) {
+      add(exempt ? 'advisory' : 'blocking', 'scope-digest',
+        `the closing record for ${id} says ${record.scope_digest ?? 'nothing'} where the opening acceptance says ${opening.scope_digest} — restore the accepted text and re-compute the digest at the candidate, or record a scope amendment naming the acceptance it supersedes${exempt ? ' (grandfathered: this path predates the rule)' : ''}`)
     }
   }
 
-  // 9b. closure moves fields, not files ----------------------------------
+  // 9a. two live paths on the same files --------------------------------
+  // Advisory, because whether two paths may race on a file is the owner's
+  // call and the record is where the call is written. Reported for the pairs
+  // THIS run belongs to — the registration of the later path, and every unit
+  // of either — rather than for every pair in the corpus on every run.
+  const currentId = match?.front?.id == null ? null : String(match.front.id)
+  const involved = (id) => id === currentId ||
+    paths.some((path) => String(path.front?.id ?? '') === id && stateChanged.includes(path.file))
+  for (const overlap of writesOverlaps(paths)) {
+    if (!overlap.paths.some(involved)) continue
+    add('advisory', 'writes-overlap',
+      `${overlap.paths.join(' and ')} are both live and declare surfaces that meet: ${overlap.patterns.join(', ')} — declare depends_on from the path that should wait, and this goes quiet; or accept the race in one sentence of that path's opening acceptance, and dispose of this advisory in the closing review, because nothing reads that sentence and it stays visible until one of the two closes`)
+  }
+
+  // 9b. closure moves fields, not files (`closure-surface` in 0.2) --------
+  // An administrative closure that changes anything acceptance was measured
+  // against is not an acceptance of that candidate, so this is `acceptance`.
   if (onPath && match && CLOSED_STATUSES.includes(match.front.status)) {
     // Against the record AT THE CANDIDATE, not the trunk's copy. Acceptance
     // was measured against C; the trunk holds the record as it was registered,
@@ -2244,7 +2439,7 @@ export function evaluate({
     // pilot, 2026-09-01). Without a readable candidate copy, fall back.
     const previous = subjectFrontFor?.(match) ?? previousFronts.get(match.file)
     for (const error of closureFieldErrors(previous, match.front)) {
-      add('blocking', 'closure-surface', `${match.file}: ${error}`)
+      add('blocking', 'acceptance', `${match.file}: ${error}`)
     }
   }
 
@@ -2252,25 +2447,32 @@ export function evaluate({
   // NOT `trunk === base`. That rule is the obvious one and it livelocks: every
   // landing invalidates every other open acceptance, so where audit plus
   // acceptance outlast the trunk's landing interval nothing ever closes.
+  //
+  // `T` — the trunk tip the candidate was read against — is DERIVED: the
+  // branch merged the trunk in before C, so T is the merge-base of the branch
+  // and the trunk, and the delta is what the trunk did since. No record has to
+  // name it, on either transport.
   if (onPath && match && match.front.status === 'ready') {
-    const record = closureFor?.(String(match.front.id ?? ''))
-    if (record?.base) {
-      if (trunkDelta == null) {
+    if (trunkDelta == null) {
+      add('blocking', 'acceptance-drift',
+        'cannot read the trunk delta since the base the candidate was read against — fetch the complete trunk and rerun the gate',
+        'inconclusive')
+    } else {
+      const drifted = acceptanceDrift(trunkDelta, match.writes ?? [], match.governs ?? [])
+      if (drifted.length > 0) {
         add('blocking', 'acceptance-drift',
-          `cannot read the trunk delta since ${record.base} — fetch the complete trunk and rerun the gate`,
-          'inconclusive')
-      } else {
-        const drifted = acceptanceDrift(trunkDelta, match.writes ?? [], match.governs ?? [])
-        if (drifted.length > 0) {
-          add('blocking', 'acceptance-drift',
-            `the trunk moved inside this path's declared surfaces since the accepted base ${record.base} (${drifted.slice(0, 3).join(', ')}) — return to running, rebase, and repeat audit and acceptance`)
-        }
+          `the trunk moved inside this path's declared surfaces since the base the candidate was read against (${drifted.slice(0, 3).join(', ')}) — return to running, merge the trunk in, and repeat review and acceptance`)
       }
     }
   }
 
-  // 11. every advisory gets a disposition ---------------------------------
-  if (onPath && match && CLOSED_STATUSES.includes(match.front.status)) {
+  // 11. every advisory gets a disposition (`advisory-disposition` in 0.2) ---
+  // The dispositions are part of the acceptance record — the pull request's
+  // checklist, or the closing record on a manual-git host — so an acceptance
+  // whose dispositions do not match the candidate's advisories is incomplete.
+  // On `pull-request` the dispositions are the request's checklist, reviewed
+  // by the approver; the checker has nothing to compare them with.
+  if (!pullRequest && onPath && match && CLOSED_STATUSES.includes(match.front.status)) {
     const id = String(match.front.id ?? '')
     const record = closureFor?.(id)
     // `A ⊂ C` holds for advisories about the WORK. It does not hold for an
@@ -2285,32 +2487,29 @@ export function evaluate({
       for (const error of dispositionErrors(
         record.advisory_disposition, record.advisories_at_candidate, raised
       )) {
-        add('blocking', 'advisory-disposition', `${id}: ${error}`)
+        add('blocking', 'acceptance', `${id}: ${error}`)
       }
     } else if (record && typeof record.advisory_disposition === 'string') {
-      add('advisory', 'advisory-disposition',
+      add('advisory', 'acceptance',
         `${id} records advisory_disposition as prose, which nothing can check — the structured list is required for paths opened after this rule`)
     }
   }
 
-  // 12. collapsed roles are recorded, not forbidden ------------------------
-  // A solo developer with agents holds all five positions, which makes closing
+  // 12. collapsed roles are recorded, not forbidden (`role-collapse` in 0.2)
+  // A solo developer with agents holds every role, which makes closing
   // acceptance a signature the signer issued to themselves. Forbidding that
   // would exclude the setup most likely to adopt Cairn first. The requirement
-  // is that the weakness is legible instead of invisible.
-  if (onPath && match && CLOSED_STATUSES.includes(match.front.status)) {
+  // is that the weakness is legible instead of invisible — an advisory about
+  // the acceptance, raised under its name. On `pull-request` the forge shows
+  // who approved; a self-approval is its rule to allow or refuse.
+  if (!pullRequest && onPath && match && CLOSED_STATUSES.includes(match.front.status)) {
     const id = String(match.front.id ?? '')
     const opening = openingRecordFor?.(id)
     const closing = closureFor?.(id)
     if (opening?.accepted_by && closing?.accepted_by && opening.accepted_by === closing.accepted_by) {
-      add('advisory', 'role-collapse',
+      add('advisory', 'acceptance',
         `${opening.accepted_by} recorded both the opening and the closing acceptance for ${id} — a self-issued signature is permitted and must stay visible; this repository cannot claim an enforcement profile above local on its strength`)
     }
-  }
-
-  // 13. a spent migration exception is a bypass ---------------------------
-  for (const stale of migrationStale) {
-    add('blocking', 'migration-debt', stale)
   }
 
   // 14. the route a change earns ------------------------------------------
@@ -2327,50 +2526,30 @@ export function evaluate({
       add(exempt ? 'advisory' : 'blocking', 'route',
         `${match.file} declares no route: — add ${ROUTES.join(' | ')} explicitly; this host's configured default for newly generated paths is ${DEFAULT_ROUTE}${exempt ? ' (grandfathered: this path predates the rule)' : ''}`)
     } else if (!ROUTES.includes(route)) {
-      add('blocking', 'route', `${match.file} declares route "${route}", outside ${ROUTES.join(' | ')}`)
+      add('blocking', 'route',
+        `${match.file} declares route "${route}", outside ${ROUTES.join(' | ')} — declare \`full\` where the work touches the control plane, the decision plane or two implemented areas, and \`lightweight\` otherwise`)
     } else {
       const triggers = fullRouteTriggers(match.writes ?? [], areaOf, (workUnits ?? []).length)
       if (route === 'lightweight' && triggers.length > 0) {
         add('blocking', 'route',
           `${match.file} declares route: lightweight while ${triggers.join('; ')} — escalate to full before the next checkpoint and record the trigger in the ledger`)
       }
-      if (route === 'foundation') {
-        const outside = foundationSurfaceViolations(match.writes ?? [])
-        if (outside.length > 0) {
-          add('blocking', 'route',
-            `a foundation path's work units are documents, but ${match.file} declares ${outside.slice(0, 4).join(', ')} outside docs/ and the path records it produces`)
-        }
-      }
       const descent = routeDescent(previousFronts.get(match.file)?.route, route)
       if (descent) add('blocking', 'route', `${match.file}: ${descent}`)
     }
   }
 
-  // 15. the handoff brief is a contract -----------------------------------
-  // It is the first document a resuming participant reads and, for several
-  // minutes, the only one. The SHAPE is checkable; whether it can actually be
-  // resumed cold is a judgement and a benchmark, and is not claimed here.
-  if (onPath && match && briefFor) {
-    const id = String(match.front.id ?? '')
-    const brief = briefFor(id)
-    const exempt = migrationExempt.has(id)
-    if (brief === null) {
-      add(exempt ? 'advisory' : 'blocking', 'brief-schema',
-        `${id} has no handoff brief — the bootstrap contract is not optional${exempt ? ' (grandfathered)' : ''}`)
-    } else if (brief) {
-      for (const error of briefErrors(brief.front, brief.body)) {
-        add('blocking', 'brief-schema', `${brief.file}: ${error}`)
-      }
-    }
-  }
-
   // 16. redaction names the record that authorised it ----------------------
+  // Advisory since Cairn 1.0: a marker naming no record is a defect a reviewer
+  // must see, and the ceremony it points at is a procedure the checker cannot
+  // verify happened — rotation first, quoting nothing — so it reports rather
+  // than blocks.
   if (redactionRecordExists) {
     for (const file of changed) {
       const markers = redactionRecordExists.markersIn?.(file) ?? []
       for (const marker of markers) {
         if (!redactionRecordExists.has(marker)) {
-          add('blocking', 'redaction',
+          add('advisory', 'redaction',
             `${file} carries [redacted: ${marker}] with no redaction record of that id — redaction is a ceremony that names its authority, not an edit wearing one's clothes`)
         }
       }
@@ -2398,7 +2577,7 @@ function git(args) {
 /** Raw stdout — for output whose LEADING whitespace is data, not padding. */
 /** Same, but a failure is an ANSWER (`null`), not an exception: a detached
  *  HEAD has no symbolic ref, and that fact is what the caller needs. */
-function gitOrNull(args) {
+export function gitOrNull(args) {
   try {
     // stderr is PIPED, not inherited: "ref HEAD is not a symbolic ref" is the
     // expected answer in a detached checkout, and printing it as an error
@@ -2416,6 +2595,10 @@ function gitOrNull(args) {
 function gitRaw(args) {
   return execFileSync('git', args, { cwd: REPO, encoding: 'utf8' })
 }
+
+/** Does this name resolve to a commit? Four readings spelled the same
+ *  expression — two here, `resolveBase`'s trunk guard, and the post-mortem. */
+export const refExists = (ref) => gitOrNull(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]) != null
 
 function changedFiles(base) {
   // --untracked-files=all, because without it Git lists a NEW DIRECTORY as one
@@ -2438,13 +2621,11 @@ function changedFiles(base) {
   return working
 }
 
-/** The state against which this proposed work is judged. A local working-tree
- * run compares with HEAD; a branch run compares with its trunk merge-base;
- * callers may provide the exact previous CI commit explicitly. */
-function comparisonRef(base, explicitPrevious) {
-  if (explicitPrevious) {
-    return gitOrNull(['rev-parse', '--verify', explicitPrevious])
-  }
+/** The state against which this proposed work is judged. A trunk run compares
+ * with HEAD; a branch run compares with its trunk merge-base. There is no
+ * third form: `--previous` let CI compare each push with the one before it,
+ * which is how twenty-six edited records went unjudged. */
+function comparisonRef(base) {
   if (base) return gitOrNull(['merge-base', base, 'HEAD'])
   return gitOrNull(['rev-parse', 'HEAD'])
 }
@@ -2466,19 +2647,6 @@ function previousPathStates(paths, ref) {
   return states
 }
 
-/** `base_commit` is not merely any ancestor. It names the trunk state just
- * before registration, so it must resolve to the first parent of the commit
- * that introduced this path declaration on the trunk. */
-/** Where this record's declaration lives on the trunk, in either shape, or null.
- *  Looked up by the declared id for the same reason `pathRegistrationState` is:
- *  a record's history is not erased by moving the file that carries it. */
-function declarationOnTrunk(trunkRef, id) {
-  for (const candidate of [`${PATH_DIR}/${id}.md`, `${PATH_DIR}/${id}/index.md`]) {
-    if (gitOrNull(['log', '-1', '--format=%H', trunkRef, '--', candidate])) return candidate
-  }
-  return null
-}
-
 function pathRegistrationBaseState(trunkRef, branch, paths) {
   if (!isPathBranch(branch)) return null
   const match = paths.find((path) => path.front?.branch === branch)
@@ -2487,30 +2655,42 @@ function pathRegistrationBaseState(trunkRef, branch, paths) {
   if (LEGACY_UNREGISTERED_PATHS.has(id)) return 'grandfathered'
   if (!gitOrNull(['rev-parse', '--verify', trunkRef])) return null
 
-  const onTrunk = declarationOnTrunk(trunkRef, id)
-  if (!onTrunk) return null
-  const additions = gitOrNull([
-    'log', '--diff-filter=A', '--format=%H', '--reverse', trunkRef, '--', onTrunk
-  ])
-  const registration = additions?.split('\n').filter(Boolean)[0]
+  // `base_commit` is not merely any ancestor: it names the trunk state just
+  // before registration, so it must resolve to the parent of the commit that
+  // declared this path `running`. Both record shapes are read, by the declared
+  // id, for the same reason `pathRegistrationState` reads both — a record's
+  // history is not erased by moving the file that carries it.
+  // Not only the commit that ADDED the record: it may land as a draft and be
+  // activated later (ADR-004 decision 1). And NOT `--first-parent`. On a `pull-request` registration transport the
+  // activation reaches the trunk as a merge, and that merge's first parent is
+  // the trunk AT THE MERGE — a commit the registrant could not have pinned,
+  // because the trunk may move between authoring the record and merging it.
+  // The commit that declared `running` is the one whose parent is the base the
+  // work forks from, which is what `base_commit` names.
+  const { commits, statusAt } = recordHistory(trunkRef, recordShapes(id, match.file))
+  const registration = statusCommit(commits, statusAt)
   if (!registration) return null
   const parent = gitOrNull(['rev-parse', `${registration}^`])
   const declared = gitOrNull(['rev-parse', match.front.base_commit])
   if (!parent || !declared) return null
-  return parent === declared ? 'match' : 'mismatch'
+  return parent === declared ? 'match' : { state: 'mismatch', registration, parent }
 }
 
 /** Advisories the closure itself raises, which therefore cannot have been
- *  raised at the candidate and are not part of the attested set:
- *  `role-collapse` needs the closing record to exist, and `remote-checkpoint`
- *  at A is about the closure commit's own push state — the documented order
- *  commits A, runs the gate, then pushes, so it fires at every honest closure
- *  (greenfield pilot, 2026-09-01). Both stay visible; neither is disposed. */
-export const CLOSURE_RAISED_ADVISORIES = new Set(['role-collapse', 'remote-checkpoint'])
+ *  raised at the candidate and are not part of the attested set: an
+ *  `acceptance` advisory (a collapsed reviewer, a prose disposition) needs the
+ *  closing record to exist, and `remote-checkpoint` at A is about the closure
+ *  commit's own push state — the documented order commits A, runs the gate,
+ *  then pushes, so it fires at every honest closure (greenfield pilot,
+ *  2026-09-01). `writes-overlap` is here for a third reason: its value turns
+ *  on OTHER path records' current status, so it can appear between the
+ *  candidate and the closure without one line of this path's tree changing,
+ *  and the subset check would then report an attestation as incomplete when
+ *  nothing about the work moved. All three stay visible; none is disposed. */
+export const CLOSURE_RAISED_ADVISORIES = new Set(['acceptance', 'remote-checkpoint', 'writes-overlap'])
 
-/** The records the lifecycle itself requires a path to write — its opening
- *  and closing acceptance, its coherence audit, its journal entry and its
- *  handoff brief. They are outputs of the protocol, not of the work, so a
+/** The records the lifecycle itself requires a path to write outside its
+ *  folder — its journal entry. They are outputs of the protocol, not of the work, so a
  *  `writes:` declaration that omits them is not stale. Before this, every
  *  closure raised `scope-drift` on its own audit and closing record, and the
  *  attestation rule then demanded that advisory be attested as raised at the
@@ -2518,32 +2698,19 @@ export const CLOSURE_RAISED_ADVISORIES = new Set(['role-collapse', 'remote-check
 export function isLifecycleRecord(file, pathId) {
   const id = String(pathId ?? '').toLowerCase()
   if (!id || !file) return false
-  if (file === `${BRIEF_DIR}/${id}-handoff.md`) return true
   const name = String(file).split('/').at(-1)
-  return [SESSION_DIR, AUDIT_DIR, JOURNAL_DIR].some((dir) => file.startsWith(`${dir}/`)) &&
-    name.includes(id)
+  return file.startsWith(`${JOURNAL_DIR}/`) && name.includes(id)
 }
 
 function closureAllowedFiles(path, record) {
   const id = String(path.front?.id ?? '').toLowerCase()
-  const subject = String(record?.subject_commit ?? '')
-  const exact = new Set([
-    path.file,
-    `${BRIEF_DIR}/${id}-handoff.md`,
-    `${AUDIT_DIR}/${id}-${subject}.md`,
-    record?.__file
-  ].filter(Boolean))
+  const exact = new Set([path.file, record?.__file].filter(Boolean))
   // The live view is DERIVED from the record's status, so a closure that
   // moves the status must regenerate it — `derived-view` blocks otherwise.
   // Admitting it only at `done` made `ready` unreachable: the view was stale
   // and regenerating it was "implementation after acceptance" (greenfield
   // pilot, 2026-09-01). A generated projection is never implementation.
   exact.add(ACTIVE_FILE)
-  // A born-sliced record's folder log is the readable history of the record
-  // itself, appended in the same unit as every change to it; closure is one.
-  if (path.file.endsWith('/index.md')) {
-    exact.add(`${path.file.slice(0, -'/index.md'.length)}/log.md`)
-  }
   const journal = new RegExp(
     `^${JOURNAL_DIR.replace(/[.*+?^\${}()|[\]\\]/g, '\\$&')}/\\d{4}-\\d{2}-\\d{2}-${id.replace(/[.*+?^\${}()|[\]\\]/g, '\\$&')}\\.md$`
   )
@@ -2556,7 +2723,10 @@ function closureAllowedFiles(path, record) {
  * allows one administrative closure commit. `done` additionally allows the
  * integrating trunk commit. In both cases the tree diff must be metadata-only. */
 function pathClosureState(path, record) {
-  const subject = record?.subject_commit
+  // The candidate is the one the path declares. On manual-git the closing
+  // record must name the same id, and `acceptance` says so separately; on
+  // pull-request there is no record, and the declaration is all Git holds.
+  const subject = path?.front?.subject_commit ?? record?.subject_commit
   if (!isObjectId(subject)) return null
   if (!gitOrNull(['rev-parse', '--verify', subject])) return null
 
@@ -2593,6 +2763,129 @@ function pathClosureState(path, record) {
     subjectIsAncestor: true,
     commitsAfterSubject: count,
     forbiddenFiles: files.filter((file) => !allowed(file))
+  }
+}
+
+/** Where a record's history can be found: the two shapes a declaration takes,
+ *  and — because no rule requires a record's filename to equal the id it
+ *  declares — the file it is actually at. A record landed flat and sliced into
+ *  a folder has its earlier states under one name and its later ones under the
+ *  other, and a checker that reads one of them reads half a history. */
+export function recordShapes(id, file = null) {
+  return [...new Set([`${PATH_DIR}/${id}.md`, `${PATH_DIR}/${id}/index.md`, ...(file ? [file] : [])])]
+}
+
+/**
+ * A record's history in a range, oldest first, with a reader for the status it
+ * declared at any commit.
+ *
+ * The caller supplies the names to walk — `recordShapes` gives both of the two
+ * a record may sit under, because a record's history is not erased by moving
+ * the file that carries it.
+ *
+ * `--topo-order` because the question is always about ancestry, and `--reverse`
+ * alone orders by commit date, which a rebase or a skewed clock can invert.
+ */
+export function recordHistory(range, shapes, firstParent = false) {
+  const raw = gitOrNull([
+    'log', '--format=%H', '--topo-order', '--reverse',
+    ...(firstParent ? ['--first-parent'] : []), range, '--', ...shapes
+  ])
+  return {
+    commits: raw?.split('\n').filter(Boolean) ?? [],
+    statusAt: (commit) => recordFrontAt(commit, shapes)?.status
+  }
+}
+
+/** A record's own metadata block as of one commit, read from the first of the
+ *  shapes that exists there. `null` where the record was not under any of them
+ *  yet, which is a fact about that commit and not a failure to read.
+ *
+ *  Memoised for the life of the process, on the name the caller gave rather
+ *  than a resolved id: a range is walked as `c` and `c^`, which are two names
+ *  for one commit, and callers pass `HEAD` and `<sha>^` unresolved. Git objects
+ *  do not change under a run, so the only cost of the weaker key is a miss. */
+const FRONT_AT = new Map()
+export function recordFrontAt(commit, shapes) {
+  if (!commit) return null
+  const key = `${commit}\u0000${shapes.join('\u0000')}`
+  if (FRONT_AT.has(key)) return FRONT_AT.get(key)
+  let front = null
+  for (const shape of shapes) {
+    const text = gitOrNull(['show', `${commit}:${shape}`])
+    if (text != null) {
+      front = metadataOf(readFrontmatter(text)?.data)
+      break
+    }
+  }
+  FRONT_AT.set(key, front)
+  return front
+}
+
+/**
+ * ADR-008 decision 2. What this comparison holds about a record's integration:
+ * the commit in which the TRUNK came to say `done`, whether that commit is a
+ * merge object, and what the record said in any commit immediately behind it —
+ * ANY PARENT since ADR-027, not the first, because on `manual-git` the
+ * integrating unit IS the merge and the branch's `ready` sits on its second.
+ *
+ * `--first-parent`, which is the opposite of what `pathRegistrationBaseState`
+ * needs and for the opposite reason. There the question is which commit the
+ * registrant's `base_commit` should name, so a merge's first parent — the trunk
+ * as it stood at the merge — is exactly the wrong answer. Here the question is
+ * what the TRUNK said over time, and a walk that follows the branch side
+ * answers it about a branch: without the flag, a merge bringing in a branch
+ * that had already declared `done` is TREESAME to that branch and never
+ * appears, so the arrival looks like an ordinary commit and the merge object
+ * carrying it goes unread.
+ *
+ * That walk and `readyBehind` answer different questions and take different
+ * views on purpose: WHICH commit the trunk came to say `done` in is a fact
+ * about the trunk's own line, so the walk follows first parents; what the
+ * record said behind that commit is a fact about the commits it was made from,
+ * so the reading looks at all of them (ADR-027).
+ *
+ * `commit` is null when the arrival is not committed yet — the writer
+ * preparing the integrating commit in the working tree has no commit to judge,
+ * and the shape is read by the run that does see it: the integrating request's,
+ * which compares the trunk with the commit that would land.
+ */
+function integrationState(file, ref, id) {
+  if (!ref) return null
+  const { commits, statusAt } = recordHistory(`${ref}..HEAD`, recordShapes(id, file), true)
+  const commit = statusCommit(commits, statusAt, 'done')
+  const parents = commit
+    ? gitOrNull(['log', '--format=%P', '-1', commit])?.split(/\s+/).filter(Boolean) ?? []
+    : []
+  return {
+    commit,
+    merge: parents.length > 1,
+    // What the record said in a commit IMMEDIATELY BEHIND this one — not "a
+    // `ready` somewhere in the range", which would reopen the edge ADR-001
+    // decision 7 closes.
+    //
+    // ANY parent, and that is a WIDENING with a cost, not a free one: a merge
+    // parent can carry an arbitrarily stale record, so a `ready` that the trunk
+    // later withdrew (`ready` → `running` is legal) is resurrected by merging a
+    // branch still sitting at it, and the arrival goes green. ADR-027 accepts
+    // that, names it in its consequences, and `tools/cairn-fixture.test.mjs`
+    // pins it as NOT refused so it cannot be mistaken for coverage. Closing it
+    // means dating each parent's last state change; the trust boundary
+    // (chapter 5) puts a writer doing two deliberate things in sequence outside
+    // what these checks are for.
+    //
+    // Any, not the first (ADR-027). `commit^` was the shorthand for "the commit
+    // before", written when every arrival in view was a plain one. On
+    // `manual-git` the `--no-ff` merge IS the integrating unit: its first parent
+    // is the trunk, where the record still read `running`, and the `ready` the
+    // branch declared sits on its SECOND — so the first-parent reading refused
+    // every honest closing on that transport, which is what ADR-001 decision
+    // 7's own reasoning says cannot happen ("on both transports the
+    // administrative commit has already put the path at `ready` on its
+    // branch"). An octopus merge has more than two, and any of them may carry
+    // it. Where nothing is committed yet, the trunk's current state is that
+    // commit's parent-to-be.
+    readyBehind: (commit ? parents : ['HEAD']).some((parent) => statusAt(parent) === 'ready')
   }
 }
 
@@ -2662,11 +2955,23 @@ export function recordOriginFromFollowLog(raw) {
   return entries.at(-1) ?? null
 }
 
-function stepRecordOrigin(file) {
-  const raw = gitOrNull([
-    'log', '--follow', '--diff-filter=A', '--format=%H', '--name-only', '--', file
-  ])
-  return raw == null ? null : recordOriginFromFollowLog(raw)
+export function stepRecordOrigin(file) {
+  const addedAt = (...flags) => {
+    const raw = gitOrNull(['log', ...flags, '--diff-filter=A', '--format=%H', '--name-only', '--', file])
+    return raw == null ? null : recordOriginFromFollowLog(raw)
+  }
+  const followed = addedAt('--follow')
+  // `--follow` re-runs rename detection to carry a record across a move, and
+  // two step records of the same path are similar enough to be paired by it:
+  // one written from the template beside another is reported as that other's
+  // rename, and its adding blob is then the SIBLING's, which no valid record
+  // can have as a prefix. A relocation removes its source; a file still sitting
+  // there was never moved. So where the followed source still exists, the
+  // question is the narrower one, and the record is read as what it is — added.
+  if (followed && followed.file !== file && existsSync(join(REPO, followed.file))) {
+    return addedAt()
+  }
+  return followed
 }
 
 /**
@@ -2729,8 +3034,19 @@ function walk(dir, out = []) {
   return out
 }
 
+/** Where the procedures live, as Agent Skills: one folder per skill at the
+ *  repository root, installed by the kit beside the tools. A fixed name, like
+ *  the specification's, because it is the standard's shape rather than a role
+ *  a host binds. */
+export const SKILLS_DIR = 'skills'
+
 function markdownCorpus() {
-  const roots = [...new Set([DOCUMENTATION_DIR, PROJECT_DIR])]
+  // The specification lives beside its concept wiki — `spec/` at the root of
+  // the protocol's own repository, wherever an adopter binds it — so the wiki's
+  // parent joins the two planes, and the skills join them where they exist:
+  // a procedure that links a page that moved is as broken as any other link.
+  // Files reached twice dedupe by path.
+  const roots = [...new Set([DOCUMENTATION_DIR, PROJECT_DIR, dirname(CONCEPTS_DIR), SKILLS_DIR])]
   return [...new Set(roots.flatMap((root) =>
     existsSync(join(REPO, root)) ? walk(root, []).filter((file) => file.endsWith('.md')) : []
   ))]
@@ -2772,8 +3088,8 @@ function pathRegistrationState(trunkRef, branch, paths) {
   // The declaration is looked up on the trunk by the ID it declares, in either
   // shape. Keying on this checkout's file path made a record's registration
   // depend on where the record sits TODAY, so migrating `CP-<id>.md` to
-  // `CP-<id>/index.md` reported a path that has been registered since August as
-  // never registered at all (CP-OPS-002 S08l).
+  // `CP-<id>/index.md` reported a path registered weeks earlier as never
+  // registered at all.
   for (const candidate of [`${PATH_DIR}/${id}.md`, `${PATH_DIR}/${id}/index.md`]) {
     try {
       // stderr piped: the first shape tried is usually absent, and Git's
@@ -2848,36 +3164,25 @@ function previousFrontStates(paths, ref) {
   return states
 }
 
-/** Files the trunk changed since the base an acceptance was recorded against. */
-function trunkDeltaSince(base, trunkRef) {
-  if (!isCommitPin(base)) return []
-  if (!gitOrNull(['rev-parse', '--verify', base])) return null
+/** Files the trunk changed since the base the candidate was read against —
+ *  the merge-base of this branch and the trunk, because the branch merged the
+ *  trunk in before the candidate was produced. `null` when the trunk cannot
+ *  be resolved, which is missing evidence rather than no drift. */
+function trunkDeltaSinceBase(trunkRef) {
+  const base = gitOrNull(['merge-base', trunkRef, 'HEAD'])
+  if (!isCommitPin(base)) return null
   const raw = gitOrNull(['diff', '--name-only', '-z', base, trunkRef])
   if (raw == null) return null
   return raw.split('\0').filter(Boolean)
 }
 
-/** The handoff brief for a path: `null` when there is none, an object when
- *  there is. The distinction matters — a missing brief and an unreadable one
- *  are different findings. */
-function briefRecord(pathId) {
-  const rel = `${BRIEF_DIR}/${String(pathId).toLowerCase()}-handoff.md`
-  if (!existsSync(join(REPO, rel))) return null
-  const text = readFileSync(join(REPO, rel), 'utf8')
-  const parsed = readFrontmatter(text)
-  const front = metadataOf(parsed?.data) ?? parsed?.data ?? null
-  const body = text.startsWith('---\n')
-    ? text.slice(text.indexOf('\n---', 4) + 4)
-    : text
-  return { file: rel, front, body }
-}
-
 /** Redaction records and the markers that must point at one. */
 function redactionIndex() {
   const ids = new Set()
-  if (existsSync(join(REPO, SESSION_DIR))) {
-    for (const file of readdirSync(join(REPO, SESSION_DIR))) {
-      if (file.includes('redaction')) ids.add(file.replace(/\.md$/, ''))
+  if (existsSync(join(REPO, PROJECT_DIR))) {
+    for (const file of walk(PROJECT_DIR, [])) {
+      const name = file.split('/').at(-1)
+      if (name.includes('redaction') && name.endsWith('.md')) ids.add(name.replace(/\.md$/, ''))
     }
   }
   return {
@@ -2890,62 +3195,126 @@ function redactionIndex() {
   }
 }
 
-function retainedCheckpointRefs(pathId) {
-  if (!RETENTION_ENABLED || !pathId) return new Map()
-  const prefix = `${CHECKPOINT_REF_PREFIX}/${String(pathId).toLowerCase()}`
-  const raw = gitOrNull(['for-each-ref', '--format=%(refname) %(objectname)', prefix])
-  if (raw == null) return null
-  const refs = new Map()
-  for (const line of raw.split('\n')) {
-    const [ref, oid] = line.trim().split(/\s+/)
-    if (ref && oid) refs.set(ref, oid)
+/** Is one commit reachable from the other? */
+function commitIsAncestor(a, b) {
+  try {
+    execFileSync('git', ['merge-base', '--is-ancestor', a, b], { cwd: REPO, stdio: 'ignore' })
+    return true
+  } catch {
+    return false
   }
-  return refs
 }
 
-/** Commits between the recorded base and the proposed candidate that still
- *  announce themselves as incomplete. */
-function provisionalCommits(from, to) {
-  if (!isCommitPin(from) || !isCommitPin(to)) return []
-  const raw = gitOrNull([
-    'log', '--format=%h', `--grep=^${PROVISIONAL_TRAILER}:`, `${from}..${to}`
-  ])
-  if (raw == null) return null
-  return raw.split('\n').map((line) => line.trim()).filter(Boolean)
-}
-
-/** Path-branch commits, oldest first, from the registered base to HEAD. */
 /**
- * The path's OWN commits, oldest first.
+ * ADR-004 decision 3. `base_commit..subject_commit` is a PINNED range, and on a
+ * host that forbids rewriting the only way to a current base is to merge the
+ * trunk in — so every trunk commit merged since registration is inside it,
+ * carrying other paths' completed units and other paths' drafts. The
+ * merge-base comparison every changed-file rule uses corrects itself as the
+ * branch merges; a pinned range cannot, so it is scoped here: `--not <trunk>`
+ * leaves this branch's own commits, which on one-writer-per-branch are this
+ * path's.
  *
- * The floor is `merge-base(<trunk>, HEAD)`, not the declared `base_commit`
- * (ADR-021 decision 5). `base_commit` is where the path was REGISTERED; after a
- * rebase the path's commits begin at the trunk tip the branch was rebased onto,
- * and everything between the two belongs to whoever landed it. Measured on
- * `path/cp-ops-002`: ten commits in the old range were other paths', six of them
- * CP-UI-TYPOGRAPHY's, retained under its own path id. Judging them here would
- * mean either ten false findings or an exemption for the state that caused them.
- *
- * A trunk that cannot be resolved — a shallow clone, a checkout with no trunk —
- * makes the range unknown, and unknown returns null so the caller reports
- * inconclusive rather than a pass.
+ * What remains is then read chronologically, as repair 006 asks: a draft the
+ * path itself finished later is resolved, and is not a reason to refuse a
+ * candidate.
  */
-function branchCommits(trunkRef) {
-  const floor = gitOrNull(['merge-base', trunkRef, 'HEAD'])
-  if (!isCommitPin(floor)) return null
-  const raw = gitOrNull(['log', '--format=%H', '--reverse', `${floor}..HEAD`])
+function unresolvedProvisionalCommits(path, trunkRef) {
+  const from = path?.front?.base_commit
+  const to = path?.front?.subject_commit
+  if (!isCommitPin(from) || !isCommitPin(to)) return []
+  // No trunk, no scoping — and an unscoped range is the reading this rule
+  // exists to stop, so the run says it could not decide rather than deciding
+  // on the broader question.
+  if (!trunkRef || !refExists(trunkRef)) return null
+  const range = [`${from}..${to}`, '--not', trunkRef]
+  const raw = gitOrNull(['log', '--format=%H', `--grep=^${PROVISIONAL_TRAILER}:`, ...range])
   if (raw == null) return null
-  return raw.split('\n').map((line) => line.trim()).filter(Boolean)
+  const provisional = raw.split('\n').map((line) => line.trim()).filter(Boolean)
+  if (provisional.length === 0) return []
+  const completions = unitCompletionCommits(range, path)
+  if (completions == null) return null
+  return unresolvedProvisional(provisional, completions, commitIsAncestor)
 }
 
-/** Commits that announced themselves incomplete, and so are not checkpoints. */
-function provisionalOids(base) {
-  if (!isCommitPin(base)) return new Set()
-  const raw = gitOrNull([
-    'log', '--format=%H', `--grep=^${PROVISIONAL_TRAILER}:`, `${base}..HEAD`
-  ])
-  if (raw == null) return new Set()
-  return new Set(raw.split('\n').map((line) => line.trim()).filter(Boolean))
+/**
+ * The commits in this range that publish a completed unit of THIS path: a
+ * `cairn-unit` block, valid by the same reading the `work-unit` rule uses, for
+ * a step the record did not carry at that commit's parent.
+ *
+ * Scoped to this path's own record — its folder, or the flat file that is its
+ * own ledger. The adopter's first repair counted a step record under any
+ * `CP-*` folder, so another path's units, merged in from the trunk, cleared
+ * this path's draft; the reviewer who found it named two such records by id.
+ *
+ * A merge commit lists no files here, which is the right answer twice over:
+ * merging the trunk in finishes nothing of this path's own.
+ */
+function unitCompletionCommits(range, path) {
+  const dir = path.file.endsWith('/index.md') ? path.file.slice(0, -'/index.md'.length) : null
+  const raw = gitOrNull(['log', '--format=%H', '--name-only', ...range, '--', dir ?? path.file])
+  // Unreadable is not "nothing finished it": that answer refuses the
+  // candidate, which is a verdict this rule has no evidence for.
+  if (raw == null) return null
+  // A unit is published by a step record, or by the FLAT record that is its own
+  // ledger — never by the plan, and never by the `index.md` of a folder
+  // record, which may be edited freely and would let a block added there and
+  // deleted afterwards resolve a draft. Same argument as `supersessionClaim`.
+  const ledger = (file) => isUnitLedger(file, path.file)
+  return commitsWithFiles(raw)
+    .filter(({ commit, files }) => files.some((file) => ledger(file) && publishesAUnit(commit, file)))
+    .map(({ commit }) => commit)
+}
+
+/** `--format=%H --name-only` emits a hash, a blank line, then that commit's
+ *  files. Kept pure so the plumbing format has a test rather than being
+ *  trusted by inspection, as `recordOriginFromFollowLog` is for its own. */
+export function commitsWithFiles(raw) {
+  const out = []
+  for (const line of String(raw ?? '').split('\n').map((text) => text.trim())) {
+    if (isObjectId(line)) out.push({ commit: line, files: [] })
+    else if (line && out.length > 0) out.at(-1).files.push(line)
+  }
+  return out
+}
+
+/** The steps a record declares as completed units, at one ref. */
+function completedStepsAt(ref, file) {
+  const text = gitOrNull(['show', `${ref}:${file}`])
+  if (text == null) return []
+  return parseWorkUnits(text)
+    .filter((unit) => workUnitErrors(unit).length === 0)
+    .map((unit) => unit.step)
+}
+
+/** Did this commit publish a step the record did not carry before it? */
+function publishesAUnit(commit, file) {
+  const before = completedStepsAt(`${commit}^`, file)
+  return completedStepsAt(commit, file).some((step) => !before.includes(step))
+}
+
+/** REPAIR 005. The supersessions this path's own records declare, each carried
+ *  with the blobs the record it names actually has: the blob that added it,
+ *  followed through relocations, and the blob it carries now. Whether the claim
+ *  binds is decided in `evaluate`, where it can be tested without a
+ *  repository. */
+function declaredSupersessions(workUnits) {
+  const out = []
+  for (const unit of workUnits ?? []) {
+    const declared = supersessionClaim(unit)
+    if (!declared) continue
+    const origin = stepRecordOrigin(declared.file)
+    out.push({
+      file: declared.file,
+      declaredIn: unit.__file,
+      declared,
+      actual: {
+        before: origin ? gitOrNull(['rev-parse', `${origin.commit}:${origin.file}`]) : null,
+        after: existsSync(join(REPO, declared.file)) ? gitOrNull(['hash-object', '--', declared.file]) : null
+      }
+    })
+  }
+  return out
 }
 
 function headCarriesProvisionalTrailer() {
@@ -2956,21 +3325,27 @@ function headCarriesProvisionalTrailer() {
 function pathRemoteCheckpoint(branch) {
   if (!isPathBranch(branch)) return null
 
-  let upstream
-  try {
-    upstream = git(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'])
-  } catch {
-    return { state: 'missing', upstream: null }
-  }
-
-  const ancestor = (a, b) => {
-    try {
-      execFileSync('git', ['merge-base', '--is-ancestor', a, b], { cwd: REPO, stdio: 'ignore' })
-      return true
-    } catch {
-      return false
-    }
-  }
+  // ADR-004 decision 5. `@{upstream}` is HEAD's upstream, and a detached
+  // request-head checkout — which is what the installed workflow produces on
+  // every `pull_request` event, on purpose — has none. Reading it alone
+  // reported "no upstream" on the one run that is the merge gate. Resolve the
+  // branch's own ref instead: the local one, else the remote-tracking one,
+  // else HEAD.
+  const resolved = resolveBranchRef({
+    branch,
+    detached: gitOrNull(['symbolic-ref', '--short', '-q', 'HEAD']) == null,
+    refExists
+  })
+  // THE BRANCH'S upstream, not HEAD's. `@{upstream}` alone is HEAD's, so
+  // standing on the trunk while naming a path branch compared that branch's
+  // tip with `origin/<trunk>` — which reported a published commit as rewritten
+  // on a repository where nothing was. A detached checkout has no configured
+  // upstream at all, and there the remote-tracking ref answers the same
+  // question.
+  const tracking = `${REMOTE}/${branch}`
+  const upstream = gitOrNull(['rev-parse', '--abbrev-ref', '--symbolic-full-name', `${branch}@{upstream}`]) ??
+    (refExists(tracking) ? tracking : null)
+  if (!upstream) return { state: 'missing', upstream: null, branchRef: resolved }
 
   // Three shapes, and only the third is a rewrite.
   //
@@ -2982,43 +3357,9 @@ function pathRemoteCheckpoint(branch) {
   // longer in this branch's history: a rebase, an amend, a soft-reset fold, or
   // a force-push. That is exactly what ADR-022 forbids, and unlike the policy
   // field itself it is a fact a local checkout can read.
-  if (ancestor('HEAD', upstream)) return { state: 'published', upstream, diverged: false }
-  return { state: 'unpushed', upstream, diverged: !ancestor(upstream, 'HEAD') }
-}
-
-/**
- * Does a ceremony of this KIND exist for this path?
- *
- * Both halves are declared the same way, in root-level frontmatter, and matched
- * on the exact path id (bedrock 24 § Session note and ceremony template).
- */
-export function ceremonyOfKind(sessions, pathId, kind) {
-  return sessions.some(
-    (note) => note?.path === pathId && String(note?.ceremony).toLowerCase() === kind
-  )
-}
-
-/**
- * Does a CLOSING ceremony exist for this path?
- *
- * This used to substring-match session FILENAMES. `paths.md` requires an
- * opening check, recorded in a session note, before a path may branch — so a
- * matching filename exists from the path's first hour, and the rule could not
- * return a finding for any path that followed the protocol. It verified that
- * the path was OPENED and reported that as proof it was CLOSED (audit
- * 2026-08-24, finding F2). With the integrator gone this is the only human
- * guard left on a merge, and it was a tautology.
- *
- * A ceremony is now DECLARED, in frontmatter, by the note that is one:
- *
- *     path: CP-MVP-010
- *     ceremony: closing
- *
- * Filename substrings are not a schema. `path` must match exactly so that
- * CP-MVP-001 is never satisfied by a note about CP-MVP-0010.
- */
-export function ceremonyFromSessions(sessions, pathId) {
-  return ceremonyOfKind(sessions, pathId, 'closing')
+  const head = resolved.ref
+  if (commitIsAncestor(head, upstream)) return { state: 'published', upstream, diverged: false, branchRef: resolved }
+  return { state: 'unpushed', upstream, diverged: !commitIsAncestor(upstream, head), branchRef: resolved }
 }
 
 /**
@@ -3027,9 +3368,9 @@ export function ceremonyFromSessions(sessions, pathId) {
  * `AGENTS.md` requires one journal file per entry, written at merge time. Until
  * now NO RULE ASKED. `same-work-unit` fires when *source* changes without a
  * module note or ledger, and a closing unit changes neither — so nothing asked.
- * Observed rather than hypothesised: CP-UI-TYPOGRAPHY was closed, audited, set
- * to `done` and proposed for merge with no entry, and every gate reported `OK`.
- * A human reviewer caught it (S08 brief, finding 2).
+ * Observed rather than hypothesised: a path was closed, audited, set to `done`
+ * and proposed for merge with no entry, and every gate reported `OK`. A human
+ * reviewer caught it.
  *
  * It reads the configured metadata block's `path`, NOT the filename. The convention does encode the id in
  * the filename, and matching that would have been easier and wrong for the same
@@ -3042,56 +3383,6 @@ export function ceremonyFromSessions(sessions, pathId) {
  */
 export function journalRecords(entries, pathId) {
   return entries.some((entry) => entry?.path === pathId)
-}
-
-export function closingRecordFromSessions(sessions, pathId, subjectCommit = null) {
-  const matches = sessions.filter(
-    (note) =>
-      note?.path === pathId &&
-      String(note?.ceremony).toLowerCase() === 'closing' &&
-      (!subjectCommit || note?.subject_commit === subjectCommit)
-  )
-  return matches.at(-1) ?? null
-}
-
-/**
- * Does an OPENING check exist for this path?
- *
- * `paths.md`: activation needs the owner's explicit acceptance, recorded in a
- * session note. That was the one ceremony nothing checked — the closing gate was
- * repaired at F2 while its twin stayed a convention, so a path could be
- * registered, branched and worked with no recorded acceptance at all.
- *
- * Scoped like the closing gate: it fires only on a path file IN THE DIFF that
- * declares `running`. The eight paths that predate session notes are never
- * examined, because a change that does not touch them cannot make them wrong.
- */
-export function openingFromSessions(sessions, pathId) {
-  return ceremonyOfKind(sessions, pathId, 'opening')
-}
-
-/** The opening record itself, not merely the fact that one exists. Closure
- *  needs its `accepted_by` to see a collapsed reviewer, and its `scope_digest`
- *  to prove the definition of done did not move after it was accepted. */
-export function openingRecordFromSessions(sessions, pathId) {
-  const matches = sessions.filter(
-    (note) => note?.path === pathId && String(note?.ceremony).toLowerCase() === 'opening'
-  )
-  return matches.at(-1) ?? null
-}
-
-function loadSessions() {
-  try {
-    return readdirSync(join(REPO, SESSION_DIR))
-      .filter((file) => file.endsWith('.md'))
-      .sort()
-      .map((file) => ({
-        ...(readFrontmatter(readFileSync(join(REPO, SESSION_DIR, file), 'utf8'))?.data ?? {}),
-        __file: `${SESSION_DIR}/${file}`
-      }))
-  } catch {
-    return []
-  }
 }
 
 function loadJournal() {
@@ -3135,7 +3426,7 @@ function addedRecordDates(changed, ref) {
         // without it the answer is when its current path first appeared. A
         // record that moved would report the migration's date and be accused of
         // carrying an earlier one — the same substitution `record-integrity`
-        // made about the same move, in a quieter voice (CP-OPS-002 S08l).
+        // made about the same move, in a quieter voice.
         addedOn:
           gitOrNull([
             'log', '--follow', '--diff-filter=A', '--format=%ad', '--date=short', '-1', '--', file
@@ -3144,16 +3435,27 @@ function addedRecordDates(changed, ref) {
     })
 }
 
-function hasCeremony(pathId) {
-  return ceremonyFromSessions(loadSessions(), pathId)
+/** The closing record for a path — `closing-<C>.md` in its folder — with its
+ *  metadata, its file, and whether it is a completed review. The one naming
+ *  the current candidate when a subject is given, else the latest by name.
+ *  `null` when the path has none, or is not a folder record. */
+export function closingRecordIn(files, pathDir, subjectCommit = null) {
+  const names = files.filter((name) => CLOSING_RECORD.test(name)).sort()
+  const chosen = subjectCommit
+    ? names.find((name) => CLOSING_RECORD.exec(name)[1] === subjectCommit)
+    : names.at(-1)
+  return chosen ? `${pathDir}/${chosen}` : null
 }
 
-function closingRecord(pathId, subjectCommit = null) {
-  return closingRecordFromSessions(loadSessions(), pathId, subjectCommit)
-}
-
-function hasOpening(pathId) {
-  return openingFromSessions(loadSessions(), pathId)
+function closingRecord(pathId, subjectCommit = null, paths = loadPaths()) {
+  const path = paths.find((entry) => entry.front?.id === pathId)
+  if (!path?.file.endsWith('/index.md')) return null
+  const dir = path.file.slice(0, -'/index.md'.length)
+  if (!existsSync(join(REPO, dir))) return null
+  const file = closingRecordIn(readdirSync(join(REPO, dir)), dir, subjectCommit)
+  if (!file) return null
+  const text = readFileSync(join(REPO, file), 'utf8')
+  return { ...(metadataOf(readFrontmatter(text)?.data) ?? {}), __file: file, __fill: fillErrors(text) }
 }
 
 function loadAdrs() {
@@ -3200,11 +3502,10 @@ function pathRecordFiles() {
  * A flat record holds them all in one file. A born-sliced record holds them in
  * `steps/`, one per file, and `index.md` holds none — so reading the declaration
  * file alone reports a path that has completed twenty-nine units as having
- * completed zero, which silently disarms `work-unit` AND `checkpoint-retention`
- * at once. The record is the FOLDER; the ledger is every step file in it.
+ * completed zero, which silently disarms `work-unit`. The record is the FOLDER;
+ * the ledger is every step file in it.
  *
- * Sorted by ordinal, because "the newest unit" is what the retention exemption
- * turns on and directory order is not chronology.
+ * Sorted by ordinal, because directory order is not chronology.
  */
 function pathWorkUnits(file) {
   const dir = file.endsWith('/index.md') ? file.slice(0, -'/index.md'.length) : null
@@ -3216,7 +3517,8 @@ function pathWorkUnits(file) {
       }
     }
   }
-  const units = files.flatMap((rel) => parseWorkUnits(readFileSync(join(REPO, rel), 'utf8')))
+  const units = files.flatMap((rel) =>
+    parseWorkUnits(readFileSync(join(REPO, rel), 'utf8')).map((unit) => ({ ...unit, __file: rel })))
   return units.sort((a, b) =>
     (Number.parseInt(a.unit, 10) || 0) - (Number.parseInt(b.unit, 10) || 0))
 }
@@ -3233,34 +3535,16 @@ function loadPaths() {
         front,
         writes: parseWrites(text),
         governs: Array.isArray(front?.governs) ? front.governs : [],
-        tokens: approxTokens(text),
         parseError: parsed?.error ?? null
       }
     })
 }
 
-/** Days since the last commit on each declared path branch, for
- *  `staleRunningPaths`. A branch this checkout cannot resolve is simply
- *  ABSENT from the result rather than being given a number — the caller
- *  treats missing as "no opinion", never as stale. */
-function branchAges(paths) {
-  const ages = {}
-  const now = Date.now()
-  for (const path of paths) {
-    const branch = path.front?.branch
-    if (!branch || branch in ages) continue
-    try {
-      const at = execFileSync('git', ['log', '-1', '--format=%ct', branch], {
-        cwd: REPO,
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'ignore']
-      }).trim()
-      if (at) ages[branch] = Math.floor((now - Number(at) * 1000) / 86_400_000)
-    } catch {
-      // unresolvable branch: no entry, no opinion
-    }
-  }
-  return ages
+/** The opening acceptance a path carries in its own record, by id. */
+function openingRecord(pathId, paths) {
+  const path = paths.find((entry) => entry.front?.id === pathId)
+  if (!path) return null
+  return openingFromRecord(readFileSync(join(REPO, path.file), 'utf8'))
 }
 
 /** Schema + link integrity over the whole corpus, not just the diff: these
@@ -3278,14 +3562,19 @@ function activeViewCurrent() {
   }
 }
 
-function corpusFindings(branch, trunkRef = TRUNK_BRANCH, previousRef = null, changed = [], viewCurrent = null) {
+function corpusFindings(previousRef = null, changed = [], viewCurrent = null) {
   const findings = []
   const corpus = loadPaths()
 
   // Concept wiki: an orphan blocks, growth is only reported. See orphanConcepts.
   const conceptDir = join(REPO, CONCEPTS_DIR)
   if (existsSync(conceptDir)) {
-    const conceptFiles = readdirSync(conceptDir).filter((f) => f.endsWith('.md'))
+    // Read RECURSIVELY: an adopter's root is three folders (ADR-011 d2), and
+    // `readdirSync` returns the folder rather than the note inside it, so a
+    // flat read polices a wiki nobody keeps at the root any more.
+    const conceptFiles = walk(CONCEPTS_DIR)
+      .filter((f) => f.endsWith('.md'))
+      .map((f) => f.slice(CONCEPTS_DIR.length + 1))
     // A note counts as reached only from OUTSIDE the wiki. Two reasons, and the
     // second is why this is not merely strict:
     //   - the wiki index lists everything by construction, so counting it would
@@ -3300,9 +3589,7 @@ function corpusFindings(branch, trunkRef = TRUNK_BRANCH, previousRef = null, cha
     for (const doc of corpusDocs) {
       if (doc.startsWith(`${CONCEPTS_DIR}/`)) continue
       const text = stripCode(readFileSync(join(REPO, doc), 'utf8'))
-      for (const match of text.matchAll(/(?:concepts\/|\.\/)([a-z0-9-]+\.md)/g)) {
-        linked.add(match[1])
-      }
+      for (const target of conceptLinkTargets(text)) linked.add(target)
     }
     for (const orphan of orphanConcepts(conceptFiles, linked)) {
       findings.push({
@@ -3317,8 +3604,8 @@ function corpusFindings(branch, trunkRef = TRUNK_BRANCH, previousRef = null, cha
     // that cries wolf is one people switch off.
     if (changed.some((file) => file.startsWith(`${CONCEPTS_DIR}/`))) {
       const previous = previousRef
-        ? (gitOrNull(['ls-tree', '--name-only', previousRef, `${CONCEPTS_DIR}/`]) ?? '')
-            .split('\n').filter(Boolean).map((f) => f.split('/').at(-1))
+        ? (gitOrNull(['ls-tree', '-r', '--name-only', previousRef, `${CONCEPTS_DIR}/`]) ?? '')
+            .split('\n').filter(Boolean).map((f) => f.slice(CONCEPTS_DIR.length + 1))
         : null
       const added = addedConcepts(previous, conceptFiles)
       if (added && added.length > 0) {
@@ -3338,8 +3625,8 @@ function corpusFindings(branch, trunkRef = TRUNK_BRANCH, previousRef = null, cha
   // The rule used to skip itself when the branch matched `path/*`, on reasoning
   // that was sound when it was written: a running path never hand-writes the
   // generated view. `actions/checkout` detaches, so CI's branch was `HEAD` and
-  // the rule ran there — CP-UI-TYPOGRAPHY S04 was green locally and red in CI,
-  // one tree, one command. A predicate that branches on where it runs cannot be
+  // the rule ran there — one path's unit was green locally and red in CI, on
+  // one tree, under one command. A predicate that branches on where it runs cannot be
   // repaired by making both sides agree about the branch name; the branch name
   // has to stop being the question.
   //
@@ -3359,44 +3646,6 @@ function corpusFindings(branch, trunkRef = TRUNK_BRANCH, previousRef = null, cha
     })
   }
 
-  // The coherence audit replaces the integrator's eye on architectural drift.
-  // Its architectural JUDGMENT is never machine-scored. Its existence,
-  // completeness and exact candidate binding are objective closure facts.
-  if (isPathBranch(branch)) {
-    const path = corpus.find((entry) => entry.front?.branch === branch)
-    if (path?.front?.status === 'ready') {
-      try {
-        execFileSync('node', [
-          join(REPO, 'tools/cairn-audit.mjs'),
-          '--check',
-          '--subject',
-          path.front.subject_commit,
-          '--branch',
-          branch
-        ], {
-          cwd: REPO,
-          stdio: 'pipe'
-        })
-      } catch {
-        findings.push({
-          level: 'blocking',
-          rule: 'coherence-audit',
-          message: `no filled coherence audit bound to ${path.front.subject_commit} — audit that exact candidate before declaring ready`
-        })
-      }
-    }
-  }
-
-  // A `running` path that has gone quiet needs a push or an archive (ADR-017).
-  // Advisory forever: see PATH_STALE_DAYS.
-  for (const stale of staleRunningPaths(corpus, branchAges(corpus))) {
-    findings.push({
-      level: 'advisory',
-      rule: 'path-staleness',
-      message: `${stale.id} declares running but ${stale.branch} has had no commit for ${stale.days} days (> ${PATH_STALE_DAYS}) — push the work, or move it to archived`
-    })
-  }
-
   for (const path of corpus) {
     if (path.parseError) {
       findings.push({ level: 'blocking', rule: 'schema', message: `${path.file}: ${path.parseError}` })
@@ -3411,7 +3660,7 @@ function corpusFindings(branch, trunkRef = TRUNK_BRANCH, previousRef = null, cha
     }
   }
 
-  for (const error of duplicatePathIdentityFindings(corpus)) {
+  for (const error of [...duplicatePathIdentityFindings(corpus), ...dependencyFindings(corpus)]) {
     findings.push({ level: 'blocking', rule: 'schema', message: error })
   }
 
@@ -3425,16 +3674,18 @@ function corpusFindings(branch, trunkRef = TRUNK_BRANCH, previousRef = null, cha
     }
   }
 
-  // Two documented exemptions, each for a reason that would otherwise make
-  // the check wrong rather than strict:
-  //   docs/fixtures/  — sample documents PORTRAYING another vault; their
-  //                     links point into that imaginary vault by design
-  //   log.md          — an append-only historical narrative; its links
-  //                     describe past states and must never be rewritten
+  // Two exemptions, each for a reason that would otherwise make this check
+  // wrong rather than strict. Restored here after Cairn 1.1 lost them in
+  // e18bbe4 (CP-CAIRN-006 S02), where the journal became a folder and took the
+  // expression that named both with it:
+  //   docs/fixtures/  — sample documents PORTRAYING another vault; their links
+  //                     point into that imaginary vault by design
+  //   log.md          — the frozen 0.2 journal; it says "stays exactly as
+  //                     written" in its own header, and a gate must not demand
+  //                     an edit to history
   const linkExempt = (file) =>
-    file.startsWith(`${DOCUMENTATION_DIR}/fixtures/`) || file === JOURNAL
-  const docs = markdownCorpus().filter((file) => !linkExempt(file))
-  for (const doc of docs) {
+    file.startsWith(`${DOCUMENTATION_DIR}/fixtures/`) || file === `${PROJECT_DIR}/log.md`
+  for (const doc of markdownCorpus().filter((file) => !linkExempt(file))) {
     const text = stripCode(readFileSync(join(REPO, doc), 'utf8'))
     for (const match of text.matchAll(/\[[^\]]*\]\((\.[^)#\s]+)(?:#[^)\s]*)?\)/g)) {
       const target = resolve(REPO, dirname(doc), match[1].replace(/\\/g, ''))
@@ -3450,7 +3701,7 @@ function corpusFindings(branch, trunkRef = TRUNK_BRANCH, previousRef = null, cha
   return findings
 }
 
-function main() {
+async function main() {
   const argv = process.argv.slice(2)
   if (argv.includes('--scope-digest')) {
     // The digest a record carries is verified by `scopeDigestOf`, so it is
@@ -3472,9 +3723,6 @@ function main() {
     process.exit(0)
   }
   const baseFlag = argv.includes('--base') ? argv[argv.indexOf('--base') + 1] : null
-  const explicitPrevious = argv.includes('--previous')
-    ? argv[argv.indexOf('--previous') + 1]
-    : null
   const asJson = argv.includes('--json')
   const flag = argv.includes('--branch') ? argv[argv.indexOf('--branch') + 1] : null
 
@@ -3485,28 +3733,46 @@ function main() {
     symbolicRef: gitOrNull(['symbolic-ref', '--short', 'HEAD']),
     abbrevRef: git(['rev-parse', '--abbrev-ref', 'HEAD'])
   })
-  const { base, source: baseSource } = resolveBase({
+  let { base, source: baseSource } = resolveBase({
     flag: baseFlag,
-    workingTree: argv.includes('--working-tree'),
     branch,
-    refExists: (ref) => gitOrNull(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]) != null
+    refExists
   })
+  // What the run was ASKED for, so an unusable base can name itself.
+  const baseRequested = baseFlag ?? null
+  // A base can RESOLVE and still not be comparable: two histories with no
+  // common ancestor make `git merge-base` exit non-zero, and `changedFiles`
+  // calls the throwing form. `refExists` answers "is this a commit", never
+  // "can it be compared with mine". This runs BEFORE `changedFiles`, because
+  // the whole point is that nothing downstream may throw on it.
+  if (base && gitOrNull(['merge-base', base, 'HEAD']) === null) {
+    base = null
+    baseSource = 'unresolvable'
+  }
   const changed = changedFiles(base)
+  // Resolved, and already containing this commit: the comparison is empty.
+  // IDENTITY is not the test — a base that is a DESCENDANT of HEAD gives the
+  // same empty diff, and a force-push that rewinds the trunk sends exactly
+  // that as the commit it replaced. The test is whether the merge-base is HEAD.
+  const baseIsHead = Boolean(base) &&
+    gitOrNull(['merge-base', base, 'HEAD']) === gitOrNull(['rev-parse', 'HEAD^{commit}'])
   const viewCurrent = activeViewCurrent()
   const paths = loadPaths()
   const pathForBranch = paths.find((path) => path.front?.branch === branch) ?? null
+  const workUnits = pathForBranch ? pathWorkUnits(pathForBranch.file) : null
   const trunkRef = base ?? TRUNK_BRANCH
-  const previousRef = comparisonRef(base, explicitPrevious)
+  const previousRef = comparisonRef(base)
   const stateChanged = previousRef ? changedFiles(previousRef) : changed
-  // Record immutability is forward-scoped per proposed change. CI passes the
-  // previous pushed SHA; an ordinary local run compares the working tree with
-  // HEAD. The broader trunk merge-base can predate the rule and would punish
-  // historical migrations that were valid under their then-current schema.
-  // Born-sliced step records do NOT inherit this environmental baseline: their
-  // adding blob is stable and appendOnlyStepRecordMutations follows it directly.
-  const recordRef = explicitPrevious ? previousRef : comparisonRef(null, null)
+  // Record immutability is judged against the SAME comparison every other
+  // changed-file rule uses: the merge-base with the trunk on a path branch,
+  // HEAD on the trunk. The 0.2 checker compared event records with HEAD only,
+  // so a committed edit to an immutable record was invisible to every push
+  // run and surfaced only when a pull request compared the branch with the
+  // trunk. Born-sliced step records do not depend on this
+  // ref at all: their adding blob is stable and appendOnlyStepRecordMutations
+  // follows it directly.
   const findings = [
-    ...corpusFindings(branch, trunkRef, previousRef, changed, viewCurrent),
+    ...corpusFindings(previousRef, changed, viewCurrent),
     ...evaluate({
       changed,
       stateChanged,
@@ -3517,36 +3783,33 @@ function main() {
       registrationState: pathRegistrationState(trunkRef, branch, paths),
       registrationBaseState: pathRegistrationBaseState(trunkRef, branch, paths),
       remoteCheckpoint: pathRemoteCheckpoint(branch),
-      closureFor: closingRecord,
+      checkpointFor: (file) => checkpointCommit(readFileSync(join(REPO, file), 'utf8')),
+      closureFor: (id, subject) => closingRecord(id, subject, paths),
       closureStateFor: pathClosureState,
-      openingFor: hasOpening,
       previousPaths: previousPathStates(paths, previousRef),
-      immutableMutations: immutableRecordMutations(recordRef, changed),
-      relocations: verbatimRelocations(recordRef),
+      immutableMutations: immutableRecordMutations(previousRef, changed),
+      relocations: verbatimRelocations(previousRef),
+      supersessions: declaredSupersessions(workUnits),
+      integrationStateFor: (file, id) => integrationState(file, previousRef, id),
       branchSource,
       baseSource,
-      workUnits: pathForBranch ? pathWorkUnits(pathForBranch.file) : null,
+      baseRequested,
+      baseIsHead,
+      workUnits,
+      reviewFor: (file) => reviewSection(readFileSync(join(REPO, file), 'utf8')),
       // Judged against the SAME comparison every other changed-file rule uses,
       // so the local default and the CI command see one set of added records.
-      addedRecords: addedRecordDates(changed, comparisonRef(base, null)),
+      addedRecords: addedRecordDates(changed, previousRef),
       scopeDigestFor: scopeDigestOf,
       subjectFrontFor: subjectFrontOf,
       derivedViewCurrent: viewCurrent,
-      openingRecordFor: (id) => openingRecordFromSessions(loadSessions(), id),
+      openingRecordFor: (id) => openingRecord(id, paths),
       previousFronts: previousFrontStates(paths, previousRef),
       journalEntries: loadJournal(),
-      trunkDelta: pathForBranch?.front?.status === 'ready'
-        ? trunkDeltaSince(closingRecord(pathForBranch.front.id)?.base, trunkRef)
-        : [],
-      migrationStale: migrationDebt(paths),
-      briefFor: briefRecord,
+      trunkDelta: pathForBranch?.front?.status === 'ready' ? trunkDeltaSinceBase(trunkRef) : [],
       redactionRecordExists: redactionIndex(),
-      retainedRefs: retainedCheckpointRefs(pathForBranch?.front?.id),
-      pathCommits: pathForBranch ? branchCommits(trunkRef) : null,
-      provisionalCommitOids: provisionalOids(pathForBranch?.front?.base_commit),
-      head: gitOrNull(['rev-parse', 'HEAD']),
       provisionalInCandidate: pathForBranch
-        ? provisionalCommits(pathForBranch.front?.base_commit, pathForBranch.front?.subject_commit)
+        ? unresolvedProvisionalCommits(pathForBranch, trunkRef)
         : [],
       headProvisional: headCarriesProvisionalTrailer()
     })
@@ -3562,9 +3825,10 @@ function main() {
   // the line people paste into ledgers.
   const baseLabel = base ? `${base} (${baseSource})` : `working tree vs HEAD (${baseSource})`
   const binding = effectiveBinding()
+  const profile = { enforcementProfile: ENFORCEMENT_PROFILE, transports: { ...CAIRN_CONFIG.transport } }
   if (asJson) {
     console.log(JSON.stringify(
-      { binding, branch, base, baseSource, changed: changed.length, findings }, null, 2))
+      { binding, profile, branch, base, baseSource, changed: changed.length, findings }, null, 2))
   } else {
     console.log(
       `cairn-check — profile ${ENFORCEMENT_PROFILE}, branch ${branch}, base ${baseLabel}, ${changed.length} changed file(s)`
@@ -3573,8 +3837,9 @@ function main() {
       `binding — schema ${binding.version}; trunk ${binding.trunk} via ${binding.remote}; ` +
       `metadata ${binding.metadataNamespace}; new-path route ${binding.defaultRoute}; docs ${binding.documentationRoot}; ` +
       `project ${binding.projectRoot}; source ${binding.sourceRoots.join(', ')}; ` +
-      `path history ${PATH_HISTORY_POLICY}${REWRITING_FORBIDDEN ? ' (no rewriting; retention off)' : ` at ${CHECKPOINT_REF_PREFIX}`}`
+      `path history ${PATH_HISTORY_POLICY}${REWRITING_FORBIDDEN ? ' (no rewriting)' : ' (rewriting allowed; retention is the host\'s to check, not this checker\'s)'}`
     )
+    console.log(profileLine(profile))
     for (const group of [
       ['FAIL', failed],
       ['INCONCLUSIVE', inconclusive],
@@ -3595,5 +3860,10 @@ function main() {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  main()
+  // A rejection here would exit 0 with no verdict printed, which is the one
+  // failure mode a gate must not have.
+  main().catch((error) => {
+    console.error(`cairn-check: ${error?.stack ?? error}`)
+    process.exit(1)
+  })
 }
