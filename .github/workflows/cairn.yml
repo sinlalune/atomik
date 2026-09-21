@@ -92,12 +92,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      # The validator itself remains dependency-free. Its test job also checks
-      # the generated specification reader, whose renderer is a declared
-      # workspace dependency, so the complete executable contract is installed.
-      - run: npm ci
-      - name: validator self-test
-        run: npm run cairn-check:test
+      # No install step and no test step: this host owns neither the tools
+      # this job runs nor a suite for them.
       - name: protocol check
         # --base doubles as the rebase gate: cairn-check fails a path/* branch
         # that does not already contain this ref's tip. Every path merges

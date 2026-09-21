@@ -144,32 +144,51 @@ root, and S04 wires `cairn-postmortem` rather than deleting it.
 
 Forward steps live in [`plan.md`](./plan.md) until they are executed.
 
-- **S01** — the gate: the stale tool tests, the script and the workflow step
+- **[S01](./steps/S01.md)** — the gate: the eight 0.2 tool tests, the script and the workflow step that called them — COMPLETE
+- **S01b** — the transport declaration, which S01's own registration proved false
 
 ## Resume
 
 ### Checkpoint
 
 ```text
-commit : the registration commit on master — its parent is base_commit
-unit   : 0
+commit : b238a665bb086081d883cb6cbf1f0d9184c5cecc
+unit   : 0 — the registration commit, on the remote as the head of
+         origin/path/cp-ops-003 and not yet on the trunk
 base   : 37f56a56689388b4fb770e3b9238ab033d0cfb2e
 trunk  : 37f56a56689388b4fb770e3b9238ab033d0cfb2e (local; origin/master is at 46bdd11, one commit behind)
 ```
 
 ### Next action
 
-Publish the registration commit to `origin/master`, then create the worktree
-and branch and start S01.
+Get the registration commit onto `origin/master`. It is one decision, not a
+command: this repository's ruleset has no bypass actor, so the route is to add
+one — as `sinlalune/cairn` has, which is the only reason the protocol's own
+registrations work — or to wait on the rule change proposed in cairn PR #25.
 
 ### Blockers
 
-The registration commit is on local `master` and not yet on the remote, so the
-path is not registered and its branch must not be created. Publishing it also
-publishes the owner's adoption commit `37f56a5`, which is the owner's to
-release. Four untracked files (`index.md`, `log.md`, `cairn-manifesto`,
-`cairn-project`) are the owner's and were deliberately left alone; the
-registration commit was staged by explicit path instead of from a clean tree.
+**The path cannot be registered, and both locks are external.**
+
+`git push origin HEAD:master` is refused: the `master — cairn gates` ruleset
+requires a pull request and carries `bypass_actors: []`, so no one can push the
+trunk directly. And a pull request carrying the registration is refused by the
+gate in turn — `registration` resolves the declaration on the trunk ref, never
+in the change under review, so the request that would land it fails for not
+having landed. Reported as cairn PR #25, observations 6 and 7.
+
+A third lock sits behind those two: until this unit merges, the required check
+`cairn-check (protocol)` runs `npm run cairn-check:test`, which this unit
+deletes. A metadata-only registration request would not touch it and would fail
+on it.
+
+What clears it: a bypass actor on the ruleset for the trunk, which restores the
+sequence `cairn-open` ships and matches the protocol's own repository; or the
+`registration` rule learning the registration commit under review. Four
+untracked files in the owner's main worktree (`index.md`, `log.md`,
+`cairn-manifesto`, `cairn-project`) are the owner's and were deliberately left
+alone; the registration commit was staged by explicit path instead of from a
+clean tree.
 
 ### Tried and rejected
 
@@ -179,6 +198,14 @@ registration commit was staged by explicit path instead of from a clean tree.
 - Repairing `docs/architecture/` against `roots.architecture` here — rejected:
   the kit ignores three declared roots, which is cairn PR #23's second
   observation, and a host-side patch would be overwritten by the fix.
+- Registering by direct push, the sequence `cairn-open` ships — rejected by the
+  forge: a pull request is required and the ruleset has no bypass actor.
+- Registering through a pull request carrying the metadata-only commit —
+  rejected by the gate: `registration` reads the trunk, not the request.
+- Fixing the red gate outside a path so a registration request could merge —
+  refused: *no implementation work outside an accepted coding path* is the rule
+  bedrock 35 exists to hold, and breaking it to satisfy a different rule is the
+  choice this protocol exists to keep a writer out of.
 
 ### Reading order
 

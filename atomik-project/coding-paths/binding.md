@@ -62,7 +62,6 @@ through `grep`, `head`, `tail`, or another command.
 npm run cairn-check
 npm run cairn-active
 npm run cairn-audit
-npm run cairn-check:test
 npm run cairn-spec:build
 npm run typecheck
 npm test

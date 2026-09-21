@@ -27,6 +27,31 @@ release's own workflow runs.
 
 Advances: outcomes 1 and 2.
 
+## S01b — the transport declaration tells the truth
+
+`cairn.config.json` declares `transport: { registration: manual-git,
+integration: manual-git }` and `enforcementProfile: ci`, which `binding.md`
+glosses as *host protection is not claimed*. It is claimed and enforced:
+`sinlalune/atomik` requires a pull request on `master` plus two strict checks,
+and its ruleset carries no bypass actor, so nobody can push the trunk directly.
+S01's own registration was rejected by it.
+
+Correcting `registration` is not a one-line edit, which is why this is a unit
+and not a line of S01. Cairn ships no pull-request registration sequence —
+`configuration.md` calls `manual-git` *the one registration sequence the open
+skill ships* — so the true value has no procedure behind it, and that is
+[cairn PR #25](https://github.com/sinlalune/cairn/pull/25), observations 6 and
+7. Correcting `integration` is not free either: on `pull-request` transport the
+`acceptance` rule refuses an arrival carried by a merge object rather than by a
+commit of its own, and every one of this repository's six historical
+integrations is a local merge commit. The unit establishes what the checker
+does with those six before it moves the field.
+
+Until this unit lands, the declared transport is a false statement about this
+host, and the next path to open will hit exactly what CP-OPS-003 hit.
+
+Advances: outcome 8, and the precondition for every path after this one.
+
 ## S02 — one specification
 
 Delete `docs/cairn/specification/`. Move the 76 concept pages to `docs/concepts/`
