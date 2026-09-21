@@ -10,9 +10,9 @@ Durable knowledge lives in `docs/`; durable execution state lives in `atomik-pro
    cleanup.
 2. `atomik-project/coding-paths/binding.md` — Atomik's **binding**: exact roots,
    commands, worktree layout, runtime isolation, hot files and product rules.
-3. `docs/cairn/specification/reference/execution-protocol.md` — the portable
-   per-session protocol: reconcile reality, read the path's selected documents,
-   execute one unit, persist it, push it and hand it off.
+3. `cairn/README.md` — the installed release: which version this repository
+   carries, the six skills that drive a path, and the specification linked
+   chapter by chapter at the commit it was cut from.
 4. `atomik-project/coding-paths/ACTIVE.md` — which paths are running now, and
    where each stands. The running list is generated; do not hand-edit it.
 

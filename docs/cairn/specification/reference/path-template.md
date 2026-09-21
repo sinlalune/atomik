@@ -66,7 +66,7 @@ State the observable result, not the activity.
 ## Definition of done
 
 This section is what `scope_ref` resolves to, and its
-[scope digest](../concepts/scope-digest.md) is recorded at opening acceptance
+[scope digest](../../../concepts/scope-digest.md) is recorded at opening acceptance
 and re-verified at closing. Editing it after acceptance invalidates that
 acceptance until a scope amendment is recorded.
 
@@ -216,7 +216,7 @@ integration stalls; it returns only to `running`.
 
 Set `status: running` when execution resumes, when a ready candidate becomes
 invalid by a finding, or when
-[acceptance drift](../concepts/acceptance-drift.md) invalidates it because the
+[acceptance drift](../../../concepts/acceptance-drift.md) invalidates it because the
 trunk moved inside `writes:` or `governs:`. Record why the transition occurred.
 
 ### Producing a candidate
@@ -267,4 +267,4 @@ Set `status: archived` and exactly one resolution:
 Keep the path record.
 
 Return to [the path model](../index.md#put-one-bounded-change-on-a-coding-path)
-or [lifecycle](../concepts/lifecycle.md).
+or [lifecycle](../../../concepts/lifecycle.md).

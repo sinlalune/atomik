@@ -16,7 +16,7 @@ Bedrock is never invented in passing — a page changes with a decision beside i
 ## Start here
 
 - **[00 — orientation](./00_00-orientation.md)** if this is your first session: the thesis everything else serves.
-- **[Cairn execution protocol](../cairn/specification/reference/execution-protocol.md)**
+- **[the installed Cairn release](../../cairn/README.md)**
   to execute: the portable per-session order, checkpoint and handoff discipline.
 - **[22 — agent handoff](./22_22-agent-handoff.md)** for the Atomik pointer to
   that protocol and the separate host binding.

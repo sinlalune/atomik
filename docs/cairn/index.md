@@ -23,23 +23,26 @@ integration transport; there is no standing central integrator.
 - [Manifesto convergence](./cairn-manifesto-convergence-2026-09-02.md) — the
   protocol measured against that vision and against the current coding
   workflows, with the proposed Cairn 1.0 shape and the owner's decisions.
-- [Canonical specification](./specification/index.md) — the authoritative v0.2
-  protocol, taught from simple durable objects through paths, routes, team
+- [Canonical specification](./specification/index.md) — RETIRED. The v0.2
+  protocol as it stood, taught from simple durable objects through paths, routes, team
   concurrency, exact-candidate closure, lifecycle, repair, governance, and
   conformance.
-- [Concept wiki](./specification/concepts/index.md) — one article per
+- [Concept wiki](../concepts/index.md) — one article per
   specialised idea, with the twenty-one borrowed Git and general-practice terms
   kept separate from the fifty concepts Cairn defines.
-- [Implementation reference](./specification/reference/index.md) — exact layout,
+- [Implementation reference](./specification/reference/index.md) — RETIRED with it: exact layout,
   templates, record schemas, commands, configuration status, and conformance
   checklist.
 - [Portable execution protocol](./specification/reference/execution-protocol.md)
-  — the required session route, separated from every host binding.
-- [Universal HTML edition](./specification.html) — the same article graph in one
+  — RETIRED. The session route as v0.2 required it, separated from every host
+  binding. What this repository requires now is the release linked from
+  [`cairn/README.md`](../../cairn/README.md).
+- [Universal HTML edition](./specification.html) — FROZEN at the 0.2 cut; its
+  builder was deleted at CP-OPS-003 S02 and it cannot be regenerated. The same article graph in one
   self-contained reader: an article tree, the full specification fixed in the
   left pane, and every link or tree entry opening its object in the right.
 
-`docs/cairn/specification/` is an Atomik-ready documentation project:
+`docs/cairn/specification/` is the RETIRED 0.2 specification, kept only so that append-only records linking six of its pages still resolve (CP-OPS-003 S02). It was an Atomik-ready documentation project:
 `index.md` is the main learning route, `concepts/` is the linked object wiki,
 and `reference/` carries operational forms. Ordinary Markdown links provide the
 same navigation as the standalone HTML reader.
@@ -52,7 +55,7 @@ same navigation as the standalone HTML reader.
   scaffolding and binding checks.
 - [`tools/cairn-active.mjs`](../../tools/cairn-active.mjs) — generated live-path
   view.
-- [`tools/cairn-rules.mjs`](../../tools/cairn-rules.mjs) — generated rule
+- `tools/cairn-rules.mjs` (deleted at CP-OPS-003 S02) — generated rule
   catalogue.
 - [ADR-018](../adr/ADR-018-cairn-candidate-bound-closure.md) — proposed
   candidate-bound closure and team enforcement boundary.

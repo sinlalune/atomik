@@ -6,7 +6,8 @@ Progressive-disclosure map of the docs plane. The constitution lives in `bedrock
 - `adr/` — accepted decision records, indexed at [adr/index.md](adr/index.md); numbers are stable and may be reserved by parallel paths
 - `modules/` — module notes (contracts) per area, indexed at [modules/index.md](modules/index.md), populated during implementation
 - `research/` — dated external evidence and investigation records; volatile facts carry a checked-at date and recheck triggers
-- `cairn/` — the canonical Cairn specification project and its universal three-pane HTML edition; start at [cairn/specification/index.md](cairn/specification/index.md)
+- `concepts/` — the concept wiki: one page per specialised idea, read by `cairn-check` as `roots.concepts`
+- `cairn/` — this repository's working history with the protocol, and the RETIRED 0.2 specification under `cairn/specification/`. The protocol this repository runs is the release linked from [`cairn/README.md`](../cairn/README.md); its concept wiki is [`concepts/`](concepts/index.md)
 - `learning/` — beginner-first layer: technologies, concepts, and methodology taught from zero so the owner can take over any brick
 - `agents/` — agent documentation contract; first prompt for chat-based sessions
 - `contracts/` — machine-readable contract mirrors (JSON)

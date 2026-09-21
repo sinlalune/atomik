@@ -107,7 +107,7 @@ account for it, and each is one of the facts above:
    statement of the sequence, so every reader reconstructs it, and reconstruction
    varies.
 
-[Gate parity](../cairn/specification/concepts/gate-parity.md) already names the
+[Gate parity](../concepts/gate-parity.md) already names the
 machine-side version of this: one gate, one tree, the same verdict wherever it
 runs. The reader-side twin has no name, and the protocol needs one, because it is
 the property that makes a protocol executable by more than one implementation.
@@ -216,7 +216,7 @@ And it now measures the wrong quantity. The cap counts the **corpus**; the maxim
 in decision 1 measures what a **reader must consume**. A well-indexed wiki of a
 hundred articles where a reader opens four is cheaper than seventy-one where they
 open twenty. Under the maxim, article count is a
-[proxy predicate](../cairn/specification/concepts/proxy-predicate.md) for *can a
+[proxy predicate](../concepts/proxy-predicate.md) for *can a
 reader hold this protocol in mind*, and it is the broader condition — the usual
 direction of that error. Slicing and indexing produce more files deliberately, so
 a rule that counts files fights the maxim.
@@ -424,7 +424,7 @@ reverting the checker with it.
 - [`paths.md`](../../atomik-project/coding-paths/paths.md) — the convention this
   reshapes
 - [Cairn specification](../cairn/specification/index.md) — the normative target
-- [gate parity](../cairn/specification/concepts/gate-parity.md) — the machine-side
+- [gate parity](../concepts/gate-parity.md) — the machine-side
   twin of instruction parity
 - [OKF agent context](../bedrock/26_26-okf-agent-context.md) — index, log and
   scoped retrieval rather than flat chunk stuffing

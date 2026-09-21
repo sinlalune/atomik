@@ -13,7 +13,7 @@ cairn:
 This is the required execution route projected from the
 [canonical specification](../index.md). It adds no requirements: exact command
 forms live in [operations](./operations.md), schemas live in the other reference
-pages, and explanatory terms live in the [concept wiki](../concepts/index.md).
+pages, and explanatory terms live in the [concept wiki](../../../concepts/index.md).
 
 The page is **PORTABLE**. It uses protocol role names and contains no application
 name, host path, product command, runtime variable or product-specific security
@@ -23,7 +23,7 @@ rule. A repository's root bootloader pairs it with one named host binding.
 
 1. Read the repository bootloader, then the portable path convention and host
    binding it names.
-2. Open the generated [live view](../concepts/live-view.md) and follow it to the
+2. Open the generated [live view](../../../concepts/live-view.md) and follow it to the
    path assigned to this writable worktree. Several paths may be running; write
    exactly one.
 3. Verify repository reality against durable state: branch, upstream, working
@@ -63,7 +63,7 @@ ref to write. A unit whose push, or whose required retention, fails is
 implemented locally, not complete.
 
 When incomplete work is valuable enough to preserve, publish a marked
-[provisional commit](../concepts/provisional-commit.md). Do not call it a
+[provisional commit](../../../concepts/provisional-commit.md). Do not call it a
 checkpoint or hand it off as the next completed unit. No provisional marker
 survives into the accepted candidate: under `pathHistoryPolicy: retained` each
 one is folded into the unit it was drafting before acceptance, and under
@@ -95,7 +95,7 @@ artifact, version and configuration before comparing the repository against it.
 ## Complete the session boundary
 
 Every completed and pushed work unit is a safe chat boundary. Refresh
-the [handoff brief](../concepts/handoff.md) in that same unit, then report:
+the [handoff brief](../../../concepts/handoff.md) in that same unit, then report:
 
 - the outcome rather than an activity list;
 - the exact remote commit, and its retention ref where the host retains;
@@ -110,21 +110,21 @@ participant to reconstruct the previous conversation.
 ## Open and close around implementation
 
 Implementation starts only after recorded
-[opening acceptance](../concepts/opening-acceptance.md) and
-[trunk registration](../concepts/trunk-registration.md). The accepted path
+[opening acceptance](../../../concepts/opening-acceptance.md) and
+[trunk registration](../../../concepts/trunk-registration.md). The accepted path
 declaration and live view reach the trunk before the implementation branch
 diverges. The registration unit contains no implementation.
 
-Closure binds one exact [implementation candidate](../concepts/implementation-candidate.md):
+Closure binds one exact [implementation candidate](../../../concepts/implementation-candidate.md):
 
 1. make the branch contain the current trunk tip — **merge the trunk in** on a
    `forbidden` host; on a `retained` host fetch the retention namespace, retain
    every completed checkpoint, then rebase and fold provisional work;
 2. run the complete gates on candidate `C`;
-3. record the [coherence audit](../concepts/coherence-audit.md) for `C`;
-4. obtain [closing acceptance](../concepts/closing-acceptance.md) for `C`;
-5. add only [administrative closure](../concepts/administrative-closure.md);
-6. check [acceptance drift](../concepts/acceptance-drift.md);
+3. record the [coherence audit](../../../concepts/coherence-audit.md) for `C`;
+4. obtain [closing acceptance](../../../concepts/closing-acceptance.md) for `C`;
+5. add only [administrative closure](../../../concepts/administrative-closure.md);
+6. check [acceptance drift](../../../concepts/acceptance-drift.md);
 7. integrate the accepted tree and verify the exact remote trunk commit;
 8. from another checkout, remove only the exact clean secondary worktree,
    without force, while retaining the path branch.

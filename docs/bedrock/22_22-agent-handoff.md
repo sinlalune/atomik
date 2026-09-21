@@ -29,7 +29,7 @@ This page no longer carries a second copy of the coding-session procedure.
 [ADR-020](../adr/ADR-020-protocol-context-weight.md) classifies that procedure as
 **PORTABLE** and moves it into the Cairn specification:
 
-- [portable coding-session execution protocol](../cairn/specification/reference/execution-protocol.md)
+- [the installed Cairn release](../../cairn/README.md), which links the portable protocol at the commit it was cut from
 - [portable parallel-path convention](../../atomik-project/coding-paths/paths.md)
 - [Atomik binding appendix](../../atomik-project/coding-paths/binding.md)
 

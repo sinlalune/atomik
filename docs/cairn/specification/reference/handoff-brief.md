@@ -8,7 +8,7 @@ timestamp: 2026-08-26T00:00:00Z
 
 # The handoff-brief contract
 
-The [handoff brief](../concepts/handoff.md) is the protocol's bootstrap
+The [handoff brief](../../../concepts/handoff.md) is the protocol's bootstrap
 document: the last stop on the entry route from `AGENTS.md`, and the first
 document a new participant acts from. This page gives it exact fields, because a
 bootstrap contract described only in prose is not a contract.
@@ -20,8 +20,8 @@ project/briefs/<lowercase-path-id>-handoff.md
 ```
 
 One brief per path. It is **mutable** and rewritten at every completed
-[work unit](../concepts/work-unit.md). The
-[work ledger](../concepts/work-ledger.md) is the append-only history; the brief
+[work unit](../../../concepts/work-unit.md). The
+[work ledger](../../../concepts/work-ledger.md) is the append-only history; the brief
 says which part of that history is still the situation.
 
 It can fail in either direction. Too thin, and the reader must go decide for
@@ -203,4 +203,4 @@ What `npm run cairn-check` and `npm test` should print at this checkpoint.
 ````
 
 Return to [make progress resumable](../index.md#make-progress-resumable) or the
-[handoff-brief concept](../concepts/handoff.md).
+[handoff-brief concept](../../../concepts/handoff.md).

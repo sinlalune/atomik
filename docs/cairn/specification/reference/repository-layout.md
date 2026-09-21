@@ -10,7 +10,7 @@ timestamp: 2026-08-26T00:00:00Z
 
 The [specification](../index.md#the-repository-around-the-path) defines roles
 before paths: application source, the Cairn
-[control plane](../concepts/control-plane.md), durable project knowledge, and
+[control plane](../../../concepts/control-plane.md), durable project knowledge, and
 durable execution state. A portable implementation may bind those roles to
 folders it already has.
 
@@ -144,7 +144,7 @@ repository/
 
 `.git/refs/` is shown because two of Cairn's durable objects are refs rather
 than files and are therefore invisible to every directory listing: the path
-branches, and the [checkpoint retention](../concepts/checkpoint-retention.md)
+branches, and the [checkpoint retention](../../../concepts/checkpoint-retention.md)
 namespace described [below](#the-cairn-ref-namespace). A reader who searches the
 working tree for them finds nothing and reasonably concludes they do not exist.
 
@@ -223,7 +223,7 @@ part of the tree is simply absent.
 
 Each ref pins one ledger-named checkpoint so that a rewriting push cannot orphan
 it. `<n>` is the ledger's own ordinal for that checkpoint. `g<NN>` is the
-[generation](../concepts/checkpoint-retention.md) — one linear version of the
+[generation](../../../concepts/checkpoint-retention.md) — one linear version of the
 branch, opened when a rewrite closes the previous one. The refs are append-only
 for the life of the path record, and they are not released by integration.
 
@@ -253,7 +253,7 @@ operation — a rewriting push — that rewrites files.
 
 A repository that clones with a restricted refspec, or a mirror that copies only
 `refs/heads/*`, will silently lose this namespace. Fetch configuration is part of
-conforming to [checkpoint retention](../concepts/checkpoint-retention.md), not an
+conforming to [checkpoint retention](../../../concepts/checkpoint-retention.md), not an
 optional convenience.
 
 ## Host binding appendix
@@ -347,4 +347,4 @@ An arrow means “generated or projected from,” not “maintained as another
 independent truth.”
 
 Return to [one bounded path](../index.md#put-one-bounded-change-on-a-coding-path)
-or open the [repository concept](../concepts/repository.md).
+or open the [repository concept](../../../concepts/repository.md).

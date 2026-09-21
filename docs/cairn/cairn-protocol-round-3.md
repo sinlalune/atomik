@@ -314,7 +314,7 @@ honour.
 
 ### 2.3 Live Rule Catalog (Generated from `tools/cairn-check.mjs`)
 
-The following table is generated directly from the live validation engine via [`tools/cairn-rules.mjs`](../../tools/cairn-rules.mjs):
+The following table is generated directly from the validation engine via `tools/cairn-rules.mjs`, deleted at CP-OPS-003 S02:
 
 | Level | Rule Name | Scope | Trigger Condition | Enforcing Logic |
 | :--- | :--- | :--- | :--- | :--- |

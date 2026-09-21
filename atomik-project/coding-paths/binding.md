@@ -12,7 +12,8 @@ cairn:
 
 > **BINDING REQUIRED READING.** The portable rules live in
 > [`paths.md`](./paths.md) and the
-> [Cairn execution protocol](../../docs/cairn/specification/reference/execution-protocol.md).
+> [installed release](../../cairn/README.md), which links the specification
+> chapter by chapter at the commit it was cut from.
 > This page supplies only the Atomik names and examples those pages deliberately
 > omit. The product constitution is host documentation selected by a path's
 > coverage; it is not part of the protocol entry chain.
@@ -27,7 +28,7 @@ cairn:
 | accepted architecture | `docs/bedrock/` |
 | decisions | `docs/adr/` |
 | implemented-area notes | `docs/modules/` |
-| concept wiki | `docs/cairn/specification/concepts/` |
+| concept wiki | `docs/concepts/` |
 | source roots | `apps/`, `packages/`, `shared/` |
 | trunk | `master` |
 | checkpoint remote | `origin` |
@@ -62,7 +63,6 @@ through `grep`, `head`, `tail`, or another command.
 npm run cairn-check
 npm run cairn-active
 npm run cairn-audit
-npm run cairn-spec:build
 npm run typecheck
 npm test
 npm run build

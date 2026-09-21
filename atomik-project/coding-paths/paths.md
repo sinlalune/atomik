@@ -11,7 +11,10 @@ cairn:
 # Parallel coding paths
 
 > **PORTABLE REQUIRED READING.** This page projects the canonical
-> [Cairn specification](../../docs/cairn/specification/index.md) into the order
+> [Cairn specification](../../docs/cairn/specification/index.md) — **retired at
+> CP-OPS-003 S02; the release this repository runs is linked from
+> [`cairn/README.md`](../../cairn/README.md), and this page's own retirement is
+> S03's** — into the order
 > used to operate one path. Repository-specific roots, commands, runtime
 > isolation and examples belong in the adjacent [binding appendix](./binding.md).
 > A host that had a combined operating page before this split keeps it as
@@ -61,13 +64,13 @@ rollup operation.
 
 ## Open and register before branching
 
-1. Obtain and record [opening acceptance](../../docs/cairn/specification/concepts/opening-acceptance.md)
+1. Obtain and record [opening acceptance](../../docs/concepts/opening-acceptance.md)
    for the path's outcome, scope and initial writer.
 2. From a clean, current trunk, create the accepted path record using the
    [path template](../../docs/cairn/specification/reference/path-template.md).
    Set `status: running`, the derived path branch, and `base_commit` to the
    exact trunk tip immediately before registration.
-3. Regenerate the [live view](../../docs/cairn/specification/concepts/live-view.md)
+3. Regenerate the [live view](../../docs/concepts/live-view.md)
    and run the protocol gate.
 4. Land and push a metadata-only trunk unit containing the accepted path
    declaration, regenerated live view and opening record. It contains no

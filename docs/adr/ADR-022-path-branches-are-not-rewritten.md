@@ -195,5 +195,5 @@ contains commits that were never a completed unit.
 - [ADR-021](./ADR-021-checkpoint-retention-generations.md) — the design this
   supersedes as a default and preserves as an option.
 - [ADR-019](./ADR-019-cairn-v0-2-revision.md) — decision 1, amended here.
-- [checkpoint retention](../cairn/specification/concepts/checkpoint-retention.md)
+- [checkpoint retention](../concepts/checkpoint-retention.md)
   — already names the no-rewriting policy as the one other conforming option.
