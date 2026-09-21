@@ -10,10 +10,9 @@ timestamp: 2026-08-24T00:00:00Z
 
 Two documents, both about how a coding agent behaves here. The **executable**
 version of this contract is elsewhere and takes precedence: `AGENTS.md` at the
-repository root points at the portable
-[`paths.md`](../../atomik-project/coding-paths/paths.md), Atomik's
-[`binding.md`](../../atomik-project/coding-paths/binding.md), and
-[the installed Cairn release](../../cairn/README.md);
+repository root points at [the installed Cairn release](../../cairn/README.md),
+the [six skills](../../skills) that carry the movements of a path, and Atomik's
+[`binding.md`](../../atomik-project/coding-paths/binding.md);
 `npm run cairn-check` enforces the mechanical half.
 
 - [agent_documentation_contract.md](./agent_documentation_contract.md) — what

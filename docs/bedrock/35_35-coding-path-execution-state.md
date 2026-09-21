@@ -37,7 +37,7 @@
       "work ledger checkpoint",
       "documentation coverage record",
       "session resume point",
-      "generated brief"
+      "refreshed resume section"
     ],
     "invariants": [
       "Bedrock states what the architecture should be; code and tests state what currently is; a coding path states what this task will change, in what order, and where it stands.",
@@ -46,7 +46,7 @@
       "Progress persists in files, never only in a conversation thread.",
       "An accepted running path is registered on the trunk before its implementation branch diverges, so portfolio views are globally complete rather than checkout-local.",
       "A context window is an execution buffer, not durable memory.",
-      "A brief is a generated, disposable view of path state, never the primary memory.",
+      "The resume section of the path record is the handoff; a path holds no separate brief.",
       "Every completed step has a remote commit and is therefore a safe boundary between chat sessions.",
       "The agent offers that boundary proactively; a new session resumes the next action without requiring the owner to restate context.",
       "Interactive path artifacts are projections; updating them patches the path file.",
@@ -87,10 +87,10 @@ Bedrock       constitution and architectural map
 AGENTS.md     small bootloader: where to start reading
 Coding Path   the selected implementation route for one bounded task
 Work Ledger   the persistent execution checkpoint inside the path
-Brief         generated, human-readable snapshot for handoff only
+Resume        the handoff section of the path record, rewritten each unit
 ```
 
-The compressed brief is demoted, not deleted. It is a portable *view* generated from path state when work moves between sessions, agents, or people. It is never the primary memory.
+The compressed brief was demoted at 0.2 and retired at CP-OPS-003 S03. What carries work between sessions, agents or people is the **resume section of the path record**, rewritten inside every completed unit. It is part of the record, not a view generated beside it.
 
 ## What a context window guarantees
 
@@ -113,7 +113,7 @@ every completed work unit can be recovered from its pushed branch
 
 The practical unit is deliberately smaller than a path. A path may span many
 steps and sessions, but each completed step refreshes its checkpoint and
-path-specific handoff brief, commits them with the work, and pushes immediately.
+resume section of the path record, commits them with the work, and pushes immediately.
 The agent then offers to execute the next step in a fresh session. Context-window
 pressure becomes a cheap scheduling choice instead of a reason to compress or
 re-explain the project.
@@ -206,12 +206,12 @@ larger work
 
 every new session
   resolves its path from the current worktree branch
-  resumes from the persisted checkpoint + path-specific handoff brief
+  resumes from the persisted checkpoint + the record's resume section
   never reconstructs progress from conversation history
   never asks the owner for a recap unless durable repository state conflicts
 
 every completed step
-  code + tests + docs + ledger + handoff brief form one work unit
+  code + tests + docs + ledger + resume section form one work unit
   relevant gates run bare
   commit is pushed immediately to the path branch
   agent proactively offers: continue here OR next step in a fresh session
@@ -244,7 +244,7 @@ is running — are GENERATED from the trunk-registered declarations; the journal
 is one file per entry. Registration makes the input complete; derivation keeps
 the output single-sourced.
 
-The operating detail is `atomik-project/coding-paths/paths.md`, which is
+The operating detail is the installed release and its six skills, which are
 execution-plane and may change without amending this page. `ADR-012` records the
 decision and evidence. The 2026-08-16 pilot proved parallel execution and
 self-merge; the 2026-08-20 amendment added trunk registration after the pilot
@@ -296,7 +296,7 @@ atomik/
     index.md
     log.md
     brainstorm/             # explicitly provisional thinking
-    briefs/                 # generated handoff snapshots
+    briefs/                 # RETIRED at CP-OPS-003 S03; the resume section replaced it
     coding-paths/
       ACTIVE.md
       CP-MVP-001.md

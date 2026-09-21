@@ -10,13 +10,17 @@ cairn:
 
 # Atomik binding appendix for Cairn execution
 
-> **BINDING REQUIRED READING.** The portable rules live in
-> [`paths.md`](./paths.md) and the
+> **BINDING REQUIRED READING.** The portable rules live in the
 > [installed release](../../cairn/README.md), which links the specification
-> chapter by chapter at the commit it was cut from.
-> This page supplies only the Atomik names and examples those pages deliberately
-> omit. The product constitution is host documentation selected by a path's
-> coverage; it is not part of the protocol entry chain.
+> chapter by chapter at the commit it was cut from, and are operated through
+> the six skills in [`skills/`](../../skills). This page supplies only the
+> Atomik names and examples those pages deliberately omit.
+> [`paths.md`](./paths.md) was this repository's projection of the 0.2
+> specification into an operating order; it was retired at CP-OPS-003 S03 and
+> is explanatory history.
+>
+> The product constitution is host documentation selected by a path's coverage;
+> it is not part of the protocol entry chain.
 
 ## Role bindings
 
@@ -33,12 +37,13 @@ cairn:
 | trunk | `master` |
 | checkpoint remote | `origin` |
 | metadata namespace | `atomik` |
-| enforcement profile | `ci` — remote checks report; host protection is not claimed |
+| enforcement profile | `ci` — remote checks report; the trunk is protected, admin-bypassable |
+| transport | registration `manual-git`; integration `pull-request` |
 | generated new-path default | `lightweight` (the path record writes it explicitly) |
 | path-history policy | **forbidden** — a published path branch is never rewritten ([ADR-022](../../docs/adr/ADR-022-path-branches-are-not-rewritten.md)); a current base is reached by merging `master` in, and `checkpointRetentionRef` is `null` |
 | path branch | `path/<lowercase-path-id>` |
 
-The machine-readable authority is repository-root `cairn.config.json`, schema 1,
+The machine-readable authority is repository-root `cairn.config.json`, schema 2,
 validated by `tools/cairn-config.mjs` before the checker, active view or audit
 scaffold reads repository state. This page remains the human adapter for
 commands, worktree/runtime details and host-only examples that do not belong in

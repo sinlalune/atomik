@@ -30,7 +30,7 @@ This page no longer carries a second copy of the coding-session procedure.
 **PORTABLE** and moves it into the Cairn specification:
 
 - [the installed Cairn release](../../cairn/README.md), which links the portable protocol at the commit it was cut from
-- [portable parallel-path convention](../../atomik-project/coding-paths/paths.md)
+- the [six skills](../../skills) that carry the movements of a path
 - [Atomik binding appendix](../../atomik-project/coding-paths/binding.md)
 
 The repository-root [`AGENTS.md`](../../AGENTS.md) orders those documents and

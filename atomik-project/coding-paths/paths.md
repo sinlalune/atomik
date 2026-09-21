@@ -10,17 +10,17 @@ cairn:
 
 # Parallel coding paths
 
-> **PORTABLE REQUIRED READING.** This page projects the canonical
-> [Cairn specification](../../docs/cairn/specification/index.md) — **retired at
-> CP-OPS-003 S02; the release this repository runs is linked from
-> [`cairn/README.md`](../../cairn/README.md), and this page's own retirement is
-> S03's** — into the order
-> used to operate one path. Repository-specific roots, commands, runtime
-> isolation and examples belong in the adjacent [binding appendix](./binding.md).
-> A host that had a combined operating page before this split keeps it as
-> explanatory history and names it from its binding, not from here: a portable
-> page that links one repository's history is a portable page that only resolves
-> in that repository.
+> **RETIRED AT CP-OPS-003 S03 — EXPLANATORY HISTORY, NOT THE OPERATING ROUTE.**
+> This page projected the 0.2 specification into the order used to operate one
+> path. Both are superseded: the protocol this repository runs is the release
+> linked from [`cairn/README.md`](../../cairn/README.md), and the order is
+> carried by the six skills in [`skills/`](../../skills) —
+> `cairn-open`, `cairn-unit`, `cairn-close`, `cairn-learn`, `cairn-brainstorm`
+> and `cairn-code`. Atomik's own names, commands and worktree layout are in the
+> [binding appendix](./binding.md), which is current.
+>
+> This page is kept, not deleted, because path records under this folder link
+> it and they are history. Read it for how the convention stood at 0.2.
 
 ## The model
 

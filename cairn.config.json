@@ -93,7 +93,7 @@
   "scopeDigestAlgorithm": "sha256",
   "transport": {
     "registration": "manual-git",
-    "integration": "manual-git"
+    "integration": "pull-request"
   },
   "migration": {
     "unregisteredPaths": [

@@ -24,7 +24,7 @@ Bedrock is never invented in passing — a page changes with a decision beside i
 - **[35 — coding paths and the execution-state plane](./35_35-coding-path-execution-state.md)** for how execution state lives in files.
 
 Operating detail for parallel work is NOT here: the portable convention is
-[`paths.md`](../../atomik-project/coding-paths/paths.md), paired with Atomik's
+the installed release and its [six skills](../../skills), paired with Atomik's
 [`binding.md`](../../atomik-project/coding-paths/binding.md). Product doctrine
 is selected through a path's documentation coverage. Where portable protocol,
 binding and bedrock disagree, that is a defect to report (`AGENTS.md`).

@@ -115,7 +115,7 @@ index.md
 log.md
 atomik-project/**                 # knowledge/execution plane (ADR-009)
 atomik-project/coding-paths/*.md
-# atomik-project/briefs/ may be committed or ignored; briefs are regenerable
+# atomik-project/briefs/ is retired history (CP-OPS-003 S03); it is committed as such
 ```
 
 ## Ignore by default

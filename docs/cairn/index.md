@@ -62,9 +62,10 @@ same navigation as the standalone HTML reader.
 - [ADR-019](../adr/ADR-019-cairn-v0-2-revision.md) — proposed v0.2 revision:
   retention, provisional commits, the brief contract, scope digests, the drift
   predicate, and the lightweight default.
-- [Portable path convention](../../atomik-project/coding-paths/paths.md) and
-  [Atomik binding](../../atomik-project/coding-paths/binding.md) — the split
-  operating route installed in this repository.
+- [Portable path convention](../../atomik-project/coding-paths/paths.md) — RETIRED
+  at CP-OPS-003 S03 — and [Atomik binding](../../atomik-project/coding-paths/binding.md),
+  which is current. The operating route installed in this repository is the
+  release and its six skills.
 
 ## Other views and retained design records
 
