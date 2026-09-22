@@ -75,13 +75,18 @@ Advances: outcomes 4 and 7.
 
 ## S04 — the dead ends
 
-Delete `tools/cairn-{init,rules,spec-build}.mjs` and their `package.json`
-scripts. Add the `cairn-postmortem` script and the release's
-postmortem-on-failure step to the workflow — the owner ruled it wired rather
-than deleted, since the repository already carries the 428 lines and the
-failure case is the one S01 just closed. Delete
-`docs/modules/application.md`, whose area is already covered by the six
-`atomik-desktop-*` notes the configuration binds.
+Add the `cairn-postmortem` script and the release's postmortem-on-failure step
+to the workflow — the owner ruled it wired rather than deleted, since the
+repository already carries the 428 lines and the failure case is the one S01
+just closed. Exercise the tool before calling it wired.
+
+Two amendments from execution. `tools/cairn-{init,rules,spec-build}.mjs` and
+their scripts went in **S02**, where the concept-root move broke
+`cairn-spec:build` and repairing a tool this unit would delete was work with no
+reader. And `docs/modules/application.md` is **rerouted, not deleted**: it is a
+kit-owned host file and was pristine, so a deletion returns on the next
+`update`, while an edited host file is never rewritten. It is now three lines
+pointing at the folder index.
 
 Advances: outcome 5, part of outcome 8.
 

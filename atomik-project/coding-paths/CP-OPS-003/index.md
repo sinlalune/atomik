@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-003
   route: full            # control plane + decision plane; six units; escalation is one-way
   status: running
-  current_step: S03
+  current_step: S04
   base_commit: 37f56a56689388b4fb770e3b9238ab033d0cfb2e
   branch: path/cp-ops-003
   assigned_writer: jubette
@@ -185,14 +185,16 @@ Forward steps live in [`plan.md`](./plan.md) until they are executed.
 - **[S01](./steps/S01.md)** — the gate: the eight 0.2 tool tests, the script and the workflow step that called them — COMPLETE
 - **[S02](./steps/S02.md)** — one specification: the concept wiki moved to `docs/concepts/`, the 0.2 copy retired behind a banner, the 0.2 tools deleted with it — COMPLETE
 - **[S03](./steps/S03.md)** — the entry chain: the bootloader and binding at release 1.1, `paths.md` retired, the integration transport moved on a measurement — COMPLETE
+- **[S04](./steps/S04.md)** — the dead ends: the duplicate module note rerouted, `cairn-postmortem` given a caller and exercised — COMPLETE
 
 ## Resume
 
 ### Checkpoint
 
 ```text
-commit : 708b0387e163e7d548ed696e720b3ab2eaa5d052
-unit   : 02 — S02, one specification; on origin/path/cp-ops-003
+commit : 5b9b68c4c32b9f26cc42b926a52802b6d66c5652
+unit   : 03 — S03, the entry chain. This is the last commit origin holds; the
+         unit being written here is S04, whose own commit cannot name itself
 base   : 37f56a56689388b4fb770e3b9238ab033d0cfb2e
 trunk  : b238a665bb086081d883cb6cbf1f0d9184c5cecc — the registration commit,
          published to origin/master after the owner added a bypass actor to
@@ -201,10 +203,10 @@ trunk  : b238a665bb086081d883cb6cbf1f0d9184c5cecc — the registration commit,
 
 ### Next action
 
-S04: delete what is left of the 0.2 dead ends — `docs/modules/application.md`,
-whose area the six `atomik-desktop-*` notes already cover — and wire
-`cairn-postmortem`, which the kit installed with no caller: a `package.json`
-script and the postmortem-on-failure step the release's own workflow carries.
+S05: write ADR-023 — `tools/cairn-check.mjs` is held one patch ahead of release
+1.1, restoring the link exemption for `docs/fixtures/` and
+`atomik-project/log.md` that e18bbe4 dropped; name cairn PR #23 and the
+condition under which `update --take` retires the fork.
 
 ### Blockers
 
