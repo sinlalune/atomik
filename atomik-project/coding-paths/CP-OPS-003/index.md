@@ -7,13 +7,13 @@ timestamp: 2026-09-21T00:00:00Z
 atomik:
   id: CP-OPS-003
   route: full            # control plane + decision plane; six units; escalation is one-way
-  status: running
+  status: ready
   current_step: S07
   base_commit: 37f56a56689388b4fb770e3b9238ab033d0cfb2e
   branch: path/cp-ops-003
   assigned_writer: jubette
   depends_on: []
-  subject_commit: null
+  subject_commit: 8010b1cd96afababf4b7fc248e2d7d039210e301
   resolution: null
   writes:                    # ADVISORY — a signal, never a lock
     - tools/cairn-check.mjs      # S05: the held patch, declared by ADR-023
@@ -196,9 +196,9 @@ Forward steps live in [`plan.md`](./plan.md) until they are executed.
 ### Checkpoint
 
 ```text
-commit : 0c24d5cfd3028808b3b75b2744acc1cbfae93cd9
-unit   : 06 — S06, the residue. This is the last commit origin holds; the
-         unit being written here is S07, whose own commit cannot name itself
+commit : 8010b1cd96afababf4b7fc248e2d7d039210e301
+unit   : 07 — S07, the post-mortem's own run. This is candidate C, accepted
+         and integrated by request #5
 base   : 37f56a56689388b4fb770e3b9238ab033d0cfb2e
 trunk  : b238a665bb086081d883cb6cbf1f0d9184c5cecc — the registration commit,
          published to origin/master after the owner added a bypass actor to
@@ -207,10 +207,9 @@ trunk  : b238a665bb086081d883cb6cbf1f0d9184c5cecc — the registration commit,
 
 ### Next action
 
-Closure, on a new candidate. The one proposed on request #5,
-`0c24d5cfd3028808b3b75b2744acc1cbfae93cd9`, is void: S07 changed a file inside
-it. Re-check, update the request's description with the new `C` and its digest,
-and obtain the closing acceptance.
+Record done: the integrating commit setting `status: done` and
+`resolution: completed`, the journal entry under `atomik-project/log/`, and the
+removal of the clean secondary worktree.
 
 ### Blockers
 
