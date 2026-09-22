@@ -81,7 +81,7 @@ CP-OPS-003 closed on an outcome nobody had observed.
 
 ## Steps
 
-- **S01** — the base a trunk push is compared against
+- **[S01](./steps/S01.md)** — the base a trunk push is compared against — COMPLETE
 
 ## Resume
 
@@ -97,7 +97,8 @@ trunk  : 3ab967061124249cebe74c920cc9380d61d39952
 
 ### Next action
 
-Create the worktree and branch from the registration commit, then S01.
+Close: open the request, obtain acceptance, integrate — and read the trunk run
+the integration triggers before any outcome is called met.
 
 ### Blockers
 
