@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-005
   route: full            # control plane: the kit's own files and the lock
   status: running
-  current_step: S01
+  current_step: S02
   base_commit: 331a37a225564ff1d35ea0a03d1137a03b660d21
   branch: path/cp-ops-005
   assigned_writer: jubette
@@ -119,15 +119,16 @@ these defects being reported now.
 ## Steps
 
 - **[S01](./steps/S01.md)** — the update, and what it wrote — COMPLETE
+- **[S02](./steps/S02.md)** — repair: a shell substitution wrote command output into S01 — COMPLETE
 
 ## Resume
 
 ### Checkpoint
 
 ```text
-commit : 2adedae2470e3395fac9660e8aadde3a7a81ae2b — the registration commit, the last
-         this branch has on origin
-unit   : 0 — S01's own commit cannot name itself
+commit : a5fa051d3d8ef980e4a6d21040656bc4099385fd
+unit   : 01 — S01, the update. The last commit origin holds; S02's own commit
+         cannot name itself
 base   : 331a37a225564ff1d35ea0a03d1137a03b660d21
 trunk  : 331a37a225564ff1d35ea0a03d1137a03b660d21
 ```
