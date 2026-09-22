@@ -3,7 +3,7 @@ type: Cairn Folder Index
 title: Knowledge from outside
 description: Anything that is nobody's domain — a language, a protocol, a piece of hardware, a model. Written when a session explains an abstraction the reader needed. A learning note lives here too: it is a concept note with an order, its body a sequence the reader follows, written by `cairn-learn` for what someone set out to learn.
 tags: [index, cairn, concepts, learning]
-timestamp: 2026-09-21T00:00:00Z
+timestamp: 2026-09-22T00:00:00Z
 ---
 
 # Knowledge from outside

@@ -3,7 +3,7 @@ type: Cairn Folder Index
 title: This product's own words
 description: The vocabulary this product's architecture uses — the domain ideas its own code and pages name. Written when a path or a session names a domain idea that carries complexity.
 tags: [index, cairn, concepts, product]
-timestamp: 2026-09-21T00:00:00Z
+timestamp: 2026-09-22T00:00:00Z
 ---
 
 # This product's own words

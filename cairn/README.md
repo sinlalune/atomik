@@ -3,7 +3,7 @@ type: Cairn Pointer
 title: Cairn here
 description: Release 1.1.0 of the Cairn protocol, installed in this repository: what to read, and what the kit owns.
 tags: [cairn, pointer, generated]
-timestamp: 2026-09-21T00:00:00Z
+timestamp: 2026-09-22T00:00:00Z
 ---
 
 # Cairn here
@@ -47,6 +47,7 @@ and never rewrites one you have edited. `npx cairn-protocol status` says
 which is which, and `update --take <path>` takes the release's version of one
 you name.
 
+- `.github/pull_request_template.md`
 - `.github/workflows/cairn.yml`
 - `AGENTS.md`
 - `atomik-project/coding-paths/ACTIVE.md`
@@ -57,9 +58,9 @@ you name.
 - `cairn.lock.json`
 - `cairn/README.md`
 - `docs/architecture/index.md`
-- `docs/cairn/specification/concepts/cairn/index.md`
-- `docs/cairn/specification/concepts/learning/index.md`
-- `docs/cairn/specification/concepts/product/index.md`
+- `docs/concepts/cairn/index.md`
+- `docs/concepts/learning/index.md`
+- `docs/concepts/product/index.md`
 - `docs/index.md`
 - `docs/inputs/index.md`
 - `docs/modules/application.md`
@@ -87,4 +88,14 @@ Files you edited whose template this release changed. `update` left them
 alone and printed the difference; this list stands until an update finds it
 empty.
 
-Nothing. The last update rewrote every file it owns.
+- `.github/workflows/cairn.yml`
+- `AGENTS.md`
+- `atomik-project/coding-paths/ACTIVE.md`
+- `atomik-project/coding-paths/binding.md`
+- `atomik-project/coding-paths/index.md`
+- `atomik-project/index.md`
+- `docs/index.md`
+- `docs/modules/application.md`
+- `docs/modules/index.md`
+- `package.json`
+- `tools/cairn-check.mjs`
