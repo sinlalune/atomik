@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-003
   route: full            # control plane + decision plane; six units; escalation is one-way
   status: running
-  current_step: S05
+  current_step: S06
   base_commit: 37f56a56689388b4fb770e3b9238ab033d0cfb2e
   branch: path/cp-ops-003
   assigned_writer: jubette
@@ -188,15 +188,17 @@ Forward steps live in [`plan.md`](./plan.md) until they are executed.
 - **[S03](./steps/S03.md)** — the entry chain: the bootloader and binding at release 1.1, `paths.md` retired, the integration transport moved on a measurement — COMPLETE
 - **[S04](./steps/S04.md)** — the dead ends: the duplicate module note rerouted, `cairn-postmortem` given a caller and exercised — COMPLETE
 - **[S05](./steps/S05.md)** — the fork on the record: ADR-023, and the engine comment's wrong attribution corrected — COMPLETE
+- **[S06](./steps/S06.md)** — the residue: sessions and audits retired, the 0.2 spec's generated reader deleted, staleShapes down to 23 and every line accounted for — COMPLETE
 
 ## Resume
 
 ### Checkpoint
 
 ```text
-commit : 856e660225835cf16dff695fa83bcb537c89929e
-unit   : 04 — S04, the dead ends. This is the last commit origin holds; the
-         unit being written here is S05, whose own commit cannot name itself
+commit : 731fe4c1eafb855acc548726ed4e73fbbe714db0
+unit   : 05 — S05, the fork on the record. This is the last commit origin
+         holds; the unit being written here is S06, whose own commit cannot
+         name itself
 base   : 37f56a56689388b4fb770e3b9238ab033d0cfb2e
 trunk  : b238a665bb086081d883cb6cbf1f0d9184c5cecc — the registration commit,
          published to origin/master after the owner added a bypass actor to
@@ -205,10 +207,11 @@ trunk  : b238a665bb086081d883cb6cbf1f0d9184c5cecc — the registration commit,
 
 ### Next action
 
-S06: the residue — retire `atomik-project/{sessions,audits,briefs}` as history,
-shrink the retired 0.2 tree to the six files frozen records need (the nine S02
-deferred, with `specification.html`), and run `staleShapes()` once more so
-every line it still prints is either gone or named as deliberately kept.
+Closure. Every unit of the plan is executed: merge the trunk in, produce the
+candidate, run the gates on it, write the review as the pull request's
+description with the staleShapes accounting and the outcome-6 citation in it,
+obtain the owner's closing acceptance, make the one administrative commit, and
+integrate through the forge.
 
 ### Blockers
 

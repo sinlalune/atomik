@@ -1,7 +1,7 @@
 ---
 type: Atomik Index
 title: Cairn — canonical specification, implementation records, and audits
-description: The entry map for Cairn's canonical team-protocol specification, concept wiki, implementation reference, universal reader, and dated design records.
+description: The entry map for this repository's working history with Cairn: the retired 0.2 specification and its implementation reference, and the dated design records. The protocol in force is the installed release.
 tags: [cairn, protocol, specification, index, audit, okf]
 timestamp: 2026-09-02T00:00:00Z
 ---
@@ -37,15 +37,11 @@ integration transport; there is no standing central integrator.
   — RETIRED. The session route as v0.2 required it, separated from every host
   binding. What this repository requires now is the release linked from
   [`cairn/README.md`](../../cairn/README.md).
-- [Universal HTML edition](./specification.html) — FROZEN at the 0.2 cut; its
-  builder was deleted at CP-OPS-003 S02 and it cannot be regenerated. The same article graph in one
-  self-contained reader: an article tree, the full specification fixed in the
-  left pane, and every link or tree entry opening its object in the right.
 
 `docs/cairn/specification/` is the RETIRED 0.2 specification, kept only so that append-only records linking six of its pages still resolve (CP-OPS-003 S02). It was an Atomik-ready documentation project:
 `index.md` is the main learning route, `concepts/` is the linked object wiki,
 and `reference/` carries operational forms. Ordinary Markdown links provide the
-same navigation as the standalone HTML reader.
+same navigation.
 
 ## Executable implementation
 
@@ -82,5 +78,7 @@ same navigation as the standalone HTML reader.
 - [Round-three brief](./cairn-round-3-brief.md)
 - [Round-four brief](./cairn-round-4-brief.md)
 
-The dated records explain design history. They are not operator instructions and
-do not override the canonical specification.
+The dated records explain design history. They are not operator instructions,
+and neither is anything else on this page: the specification it maps was retired
+at CP-OPS-003 S02. What this repository runs is the release linked from
+[`cairn/README.md`](../../cairn/README.md).

@@ -221,10 +221,12 @@ every completed step
 Paths are the unit of parallelism, not a layer beneath one. Numbered paths
 (`CP-MVP-010`) come from a roadmap milestone and hold a register row; labelled
 paths (`CP-SETTINGS`) are named for their subject and hold none. Both are
-ordinary accepted paths and both are bracketed by the two ceremonies.
+ordinary accepted paths. Both were bracketed by the two ceremonies until Cairn
+1.1; the opening acceptance is now a block inside the path record and the
+closing is the request or a closing record.
 
-A path merges itself when its closing ceremony is recorded, its branch contains
-the trunk tip, and the gates are green on the *rebased* result. Requiring the
+A path merges itself when its closing acceptance is recorded, its branch
+contains the trunk tip, and the gates are green on the *merged* result. Requiring the
 trunk tip serializes the merge without serializing the work, which is what makes
 a gatekeeper unnecessary.
 
@@ -300,7 +302,7 @@ atomik/
     coding-paths/
       ACTIVE.md
       CP-MVP-001.md
-    sessions/               # optional session notes
+    sessions/               # RETIRED at CP-OPS-003 S06; history
     sources/                # optional imported specs/references
 
   .atomik/                  # rebuildable only

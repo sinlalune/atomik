@@ -20,7 +20,7 @@ Bedrock is never invented in passing — a page changes with a decision beside i
   to execute: the portable per-session order, checkpoint and handoff discipline.
 - **[22 — agent handoff](./22_22-agent-handoff.md)** for the Atomik pointer to
   that protocol and the separate host binding.
-- **[24 — doc templates](./24_24-doc-templates.md)** to write anything durable: path, ADR, module note, session note, brief.
+- **[24 — doc templates](./24_24-doc-templates.md)** to write anything durable: path record, ADR, module note. Its session-note and handoff-brief templates are retired and marked so.
 - **[35 — coding paths and the execution-state plane](./35_35-coding-path-execution-state.md)** for how execution state lives in files.
 
 Operating detail for parallel work is NOT here: the portable convention is

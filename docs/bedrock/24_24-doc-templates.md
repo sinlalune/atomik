@@ -561,7 +561,14 @@ The `Current checkpoint` section is the Work Ledger. An optional `CP-XXX.state.j
 
 ## Session note and ceremony template
 
-Both ceremonies — the opening check and the closing ceremony — are recorded as
+> **RETIRED AT CP-OPS-003 S06.** At Cairn 1.1 an opening acceptance is a YAML
+> block inside the path record and a closing is the pull request's description
+> or a closing record in the path folder; a path is one folder and writes no
+> session file. `atomik-project/sessions/` holds the ceremonies of paths that
+> ran before the release. The template below is how they were written, and the
+> `ceremony` rule it names no longer exists in `tools/cairn-check.mjs`.
+
+Both ceremonies — the opening check and the closing ceremony — were recorded as
 session notes under
 `atomik-project/sessions/YYYY-MM-DD-<path-id>-<ceremony>.md`. The ceremony is
 DECLARED in that note's frontmatter, never inferred from its filename:
@@ -628,8 +635,9 @@ current trunk:
 1. pin `base_commit` to the current trunk tip;
 2. set `status: running` and the final `branch` name;
 3. land a **metadata-only** registration commit on the trunk: the accepted path
-   declaration, the regenerated `ACTIVE.md`, and the opening-check session note
-   that justifies the activation. No implementation of any kind;
+   declaration — whose `## Opening acceptance` block carries the acceptance
+   that justifies the activation — and the regenerated `ACTIVE.md`. No
+   implementation of any kind;
 4. create the worktree/branch from that commit and begin S01.
 
 The invariant is *metadata only*, not a file count. `paths.md` once said the
