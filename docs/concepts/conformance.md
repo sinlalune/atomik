@@ -18,7 +18,7 @@ predicates, host-dependent protection, and unimplemented capability. It names
 the enforcement profile and versioned configuration it actually uses.
 
 Every normative requirement in this specification appears as one row of the
-[conformance matrix](../index.md#current-conformance) with an honest
+[conformance matrix of the retired 0.2 specification](../cairn/specification/index.md#current-conformance) with an honest
 reference-tools column. A requirement may be canonical before any tool checks
 it — that is how a protocol grows — but the row must say so, in the same table,
 where a reader comparing claims to mechanisms will see both at once.

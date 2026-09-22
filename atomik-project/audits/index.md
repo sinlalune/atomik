@@ -8,6 +8,12 @@ timestamp: 2026-08-24T00:00:00Z
 
 # Coherence audits
 
+> **RETIRED AT CP-OPS-003 S06.** At Cairn 1.1 the coherence review is the pull
+> request's description, or part of the closing record in the path folder on
+> `manual-git` transport; `npm run cairn-audit` prints that shape filled in.
+> The records here belong to paths that merged before the release and are kept
+> as history. Nothing new is written here.
+
 Removing the integrator removed the person who noticed two paths drifting apart
 architecturally, so the noticing is delegated to an agent — without letting a
 non-deterministic judgment block a merge:
@@ -20,12 +26,14 @@ CI checks only that it EXISTS     a deterministic gate on a
 its verdict never blocks          findings are advisory, read by a human
 ```
 
-`npm run cairn-audit` scaffolds a record; the agent fills it in. **One file per
-audit**, named `<path-id>-<head>.md`, so two paths auditing at once never collide.
-The advisory `coherence-audit` rule reports a missing or unfilled record for the
-current head. **Unfilled** means what an agent can be held to deterministically: the
-record must name an outcome from the vocabulary below and answer at least one of its own
-findings questions. It is never a judgment about the answers — that is the human's read,
+Until Cairn 1.1 `npm run cairn-audit` scaffolded a record here, one file per
+audit named `<path-id>-<head>.md`, and an advisory `coherence-audit` rule
+reported a missing or unfilled one for the current head. Neither exists now: the
+command prints the request's description on this repository's transport and
+writes no file, and no such rule is in the engine. **Unfilled** meant what an
+agent could be held to deterministically: the record had to name an outcome
+from the vocabulary below and answer at least one of its own findings
+questions. It is never a judgment about the answers — that is the human's read,
 and the reason the verdict does not block. Convention:
 [paths.md](../coding-paths/paths.md#the-coherence-audit-is-automated-its-verdict-is-not).
 

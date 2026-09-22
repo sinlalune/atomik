@@ -1,7 +1,7 @@
 ---
 type: Atomik Index
 title: Cairn — canonical specification, implementation records, and audits
-description: The entry map for Cairn's canonical team-protocol specification, concept wiki, implementation reference, universal reader, and dated design records.
+description: The entry map for this repository's working history with Cairn: the retired 0.2 specification and its implementation reference, and the dated design records. The protocol in force is the installed release.
 tags: [cairn, protocol, specification, index, audit, okf]
 timestamp: 2026-09-02T00:00:00Z
 ---
@@ -23,26 +23,25 @@ integration transport; there is no standing central integrator.
 - [Manifesto convergence](./cairn-manifesto-convergence-2026-09-02.md) — the
   protocol measured against that vision and against the current coding
   workflows, with the proposed Cairn 1.0 shape and the owner's decisions.
-- [Canonical specification](./specification/index.md) — the authoritative v0.2
-  protocol, taught from simple durable objects through paths, routes, team
+- [Canonical specification](./specification/index.md) — RETIRED. The v0.2
+  protocol as it stood, taught from simple durable objects through paths, routes, team
   concurrency, exact-candidate closure, lifecycle, repair, governance, and
   conformance.
-- [Concept wiki](./specification/concepts/index.md) — one article per
+- [Concept wiki](../concepts/index.md) — one article per
   specialised idea, with the twenty-one borrowed Git and general-practice terms
   kept separate from the fifty concepts Cairn defines.
-- [Implementation reference](./specification/reference/index.md) — exact layout,
+- [Implementation reference](./specification/reference/index.md) — RETIRED with it: exact layout,
   templates, record schemas, commands, configuration status, and conformance
   checklist.
 - [Portable execution protocol](./specification/reference/execution-protocol.md)
-  — the required session route, separated from every host binding.
-- [Universal HTML edition](./specification.html) — the same article graph in one
-  self-contained reader: an article tree, the full specification fixed in the
-  left pane, and every link or tree entry opening its object in the right.
+  — RETIRED. The session route as v0.2 required it, separated from every host
+  binding. What this repository requires now is the release linked from
+  [`cairn/README.md`](../../cairn/README.md).
 
-`docs/cairn/specification/` is an Atomik-ready documentation project:
+`docs/cairn/specification/` is the RETIRED 0.2 specification, kept only so that append-only records linking six of its pages still resolve (CP-OPS-003 S02). It was an Atomik-ready documentation project:
 `index.md` is the main learning route, `concepts/` is the linked object wiki,
 and `reference/` carries operational forms. Ordinary Markdown links provide the
-same navigation as the standalone HTML reader.
+same navigation.
 
 ## Executable implementation
 
@@ -52,16 +51,17 @@ same navigation as the standalone HTML reader.
   scaffolding and binding checks.
 - [`tools/cairn-active.mjs`](../../tools/cairn-active.mjs) — generated live-path
   view.
-- [`tools/cairn-rules.mjs`](../../tools/cairn-rules.mjs) — generated rule
+- `tools/cairn-rules.mjs` (deleted at CP-OPS-003 S02) — generated rule
   catalogue.
 - [ADR-018](../adr/ADR-018-cairn-candidate-bound-closure.md) — proposed
   candidate-bound closure and team enforcement boundary.
 - [ADR-019](../adr/ADR-019-cairn-v0-2-revision.md) — proposed v0.2 revision:
   retention, provisional commits, the brief contract, scope digests, the drift
   predicate, and the lightweight default.
-- [Portable path convention](../../atomik-project/coding-paths/paths.md) and
-  [Atomik binding](../../atomik-project/coding-paths/binding.md) — the split
-  operating route installed in this repository.
+- [Portable path convention](../../atomik-project/coding-paths/paths.md) — RETIRED
+  at CP-OPS-003 S03 — and [Atomik binding](../../atomik-project/coding-paths/binding.md),
+  which is current. The operating route installed in this repository is the
+  release and its six skills.
 
 ## Other views and retained design records
 
@@ -78,5 +78,7 @@ same navigation as the standalone HTML reader.
 - [Round-three brief](./cairn-round-3-brief.md)
 - [Round-four brief](./cairn-round-4-brief.md)
 
-The dated records explain design history. They are not operator instructions and
-do not override the canonical specification.
+The dated records explain design history. They are not operator instructions,
+and neither is anything else on this page: the specification it maps was retired
+at CP-OPS-003 S02. What this repository runs is the release linked from
+[`cairn/README.md`](../../cairn/README.md).

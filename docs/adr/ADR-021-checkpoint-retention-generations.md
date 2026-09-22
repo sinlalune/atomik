@@ -24,7 +24,7 @@ Extends: ADR-012 (parallel paths, self-merge — the rebase gate), ADR-016 (enfo
 [ADR-019](./ADR-019-cairn-v0-2-revision.md) decision 1 requires every
 ledger-named commit to be reachable from `refs/cairn/checkpoints/<path-id>/<n>`
 before any rewriting push, and the
-[concept note](../cairn/specification/concepts/checkpoint-retention.md) adds that
+[concept note](../concepts/checkpoint-retention.md) adds that
 those refs are append-only: once pushed, a ref is never moved or deleted.
 
 Both sentences are right, and together they describe a namespace that cannot
@@ -189,7 +189,7 @@ false findings or require an exemption for the state that caused them.
 
 Where the trunk ref cannot be resolved — a shallow checkout, a clone with no
 trunk — the range is unknown and the finding is
-[inconclusive](../cairn/specification/concepts/inconclusive-finding.md), never a
+[inconclusive](../concepts/inconclusive-finding.md), never a
 pass. This is the same fail-closed rule ADR-016 applied to every predicate that
 cannot name its subject.
 
@@ -286,9 +286,9 @@ for exactly that.
   predicate cannot name its subject
 - [ADR-012](./ADR-012-parallel-paths-self-merge.md) — the rebase gate this
   decision exists to survive
-- [Checkpoint retention](../cairn/specification/concepts/checkpoint-retention.md)
+- [Checkpoint retention](../concepts/checkpoint-retention.md)
   — the concept note, amended on acceptance
-- [Rebase](../cairn/specification/concepts/rebase.md) ·
-  [Inconclusive finding](../cairn/specification/concepts/inconclusive-finding.md)
+- [Rebase](../concepts/rebase.md) ·
+  [Inconclusive finding](../concepts/inconclusive-finding.md)
 - [`paths.md`](../../atomik-project/coding-paths/paths.md) — open hole 1,
   narrowed by decision 2

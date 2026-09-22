@@ -15,7 +15,8 @@ bound — introduced by CP-OPS-002 S04 against audit finding F4.
 The move is **verbatim**. A rolled step is cut from the path file and pasted here
 unchanged; nothing is summarized, condensed or dropped. What stays behind is one
 index line per step, linking to its record. The convention, and when to roll, are
-in [paths.md](../paths.md#the-path-record-is-a-folder-born-sliced).
+in [paths.md](../paths.md#the-path-record-is-a-folder-born-sliced), retired at
+CP-OPS-003 S03 and kept as history.
 
 ```text
 atomik-project/coding-paths/CP-MVP-008.md            declaration · index · ledger · next action

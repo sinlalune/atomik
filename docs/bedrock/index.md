@@ -16,15 +16,15 @@ Bedrock is never invented in passing — a page changes with a decision beside i
 ## Start here
 
 - **[00 — orientation](./00_00-orientation.md)** if this is your first session: the thesis everything else serves.
-- **[Cairn execution protocol](../cairn/specification/reference/execution-protocol.md)**
+- **[the installed Cairn release](../../cairn/README.md)**
   to execute: the portable per-session order, checkpoint and handoff discipline.
 - **[22 — agent handoff](./22_22-agent-handoff.md)** for the Atomik pointer to
   that protocol and the separate host binding.
-- **[24 — doc templates](./24_24-doc-templates.md)** to write anything durable: path, ADR, module note, session note, brief.
+- **[24 — doc templates](./24_24-doc-templates.md)** to write anything durable: path record, ADR, module note. Its session-note and handoff-brief templates are retired and marked so.
 - **[35 — coding paths and the execution-state plane](./35_35-coding-path-execution-state.md)** for how execution state lives in files.
 
 Operating detail for parallel work is NOT here: the portable convention is
-[`paths.md`](../../atomik-project/coding-paths/paths.md), paired with Atomik's
+the installed release and its [six skills](../../skills), paired with Atomik's
 [`binding.md`](../../atomik-project/coding-paths/binding.md). Product doctrine
 is selected through a path's documentation coverage. Where portable protocol,
 binding and bedrock disagree, that is a defect to report (`AGENTS.md`).

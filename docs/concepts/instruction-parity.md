@@ -40,7 +40,7 @@ environment:
 ## In Cairn
 
 The protocol MUST be executable from its
-[normative content](../index.md#1-protocol-context-weight-is-a-stated-maxim-with-an-operational-test)
+[normative content, as the retired 0.2 specification stated it](../cairn/specification/index.md)
 alone. Every artefact separates what a reader must do from why it is so; only the
 first is required reading, and the second sits one link away, unabridged.
 

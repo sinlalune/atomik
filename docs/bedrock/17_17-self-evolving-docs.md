@@ -79,7 +79,7 @@
       "Every changed contract updates docs in the same PR.",
       "Documentation must be readable by humans and digestible by agents.",
       "Important chat decisions should be promoted into files.",
-      "Every completed coding-path step refreshes its path-specific handoff brief from the Work Ledger before commit and push.",
+      "Every completed coding-path step refreshes the resume section of its path record before commit and push.",
       "Volatile external claims carry official sources, checked_at dates, and recheck triggers.",
       "Local model and hardware claims remain dated capability evidence, not foundational guarantees."
     ]
@@ -187,7 +187,7 @@ A chat transcript is not the project memory. Durable files are. External factual
 
 Every completed coding-path step is prepared to survive an immediate chat
 boundary. In the same work unit as the code, tests, documentation and Work
-Ledger, refresh `atomik-project/briefs/<path-id>-handoff.md` as a disposable
+Ledger, refresh the resume section of the path record as the
 projection of the checkpoint. Commit and push the unit before calling the step
 complete. The agent then offers a fresh session for the recorded next action;
 the next session reads the repository and does not ask the owner to recreate

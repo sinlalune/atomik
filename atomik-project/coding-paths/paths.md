@@ -10,14 +10,17 @@ cairn:
 
 # Parallel coding paths
 
-> **PORTABLE REQUIRED READING.** This page projects the canonical
-> [Cairn specification](../../docs/cairn/specification/index.md) into the order
-> used to operate one path. Repository-specific roots, commands, runtime
-> isolation and examples belong in the adjacent [binding appendix](./binding.md).
-> A host that had a combined operating page before this split keeps it as
-> explanatory history and names it from its binding, not from here: a portable
-> page that links one repository's history is a portable page that only resolves
-> in that repository.
+> **RETIRED AT CP-OPS-003 S03 — EXPLANATORY HISTORY, NOT THE OPERATING ROUTE.**
+> This page projected the 0.2 specification into the order used to operate one
+> path. Both are superseded: the protocol this repository runs is the release
+> linked from [`cairn/README.md`](../../cairn/README.md), and the order is
+> carried by the six skills in [`skills/`](../../skills) —
+> `cairn-open`, `cairn-unit`, `cairn-close`, `cairn-learn`, `cairn-brainstorm`
+> and `cairn-code`. Atomik's own names, commands and worktree layout are in the
+> [binding appendix](./binding.md), which is current.
+>
+> This page is kept, not deleted, because path records under this folder link
+> it and they are history. Read it for how the convention stood at 0.2.
 
 ## The model
 
@@ -61,13 +64,13 @@ rollup operation.
 
 ## Open and register before branching
 
-1. Obtain and record [opening acceptance](../../docs/cairn/specification/concepts/opening-acceptance.md)
+1. Obtain and record [opening acceptance](../../docs/concepts/opening-acceptance.md)
    for the path's outcome, scope and initial writer.
 2. From a clean, current trunk, create the accepted path record using the
    [path template](../../docs/cairn/specification/reference/path-template.md).
    Set `status: running`, the derived path branch, and `base_commit` to the
    exact trunk tip immediately before registration.
-3. Regenerate the [live view](../../docs/cairn/specification/concepts/live-view.md)
+3. Regenerate the [live view](../../docs/concepts/live-view.md)
    and run the protocol gate.
 4. Land and push a metadata-only trunk unit containing the accepted path
    declaration, regenerated live view and opening record. It contains no

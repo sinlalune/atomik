@@ -1,15 +1,21 @@
 ---
 type: Atomik Index
 title: Session records — ceremonies, rulings and bench passes
-description: How to find a session note without reading fifty-three of them: the naming convention, the ceremony declaration a blocking gate reads, and the ceremony table by path.
+description: How to find a session note without reading fifty-three of them: the naming convention, the ceremony declaration a blocking gate once read, and the ceremony table by path. Retired at CP-OPS-003 S06.
 tags: [sessions, ceremonies, index, okf, cairn]
 timestamp: 2026-09-02T00:00:00Z
 ---
 
 # Session records
 
+> **RETIRED AT CP-OPS-003 S06.** At Cairn 1.1 an opening acceptance lives in the
+> path record itself and a closing is the pull request or a closing record in
+> the path folder — a path is one folder and holds no session file. The notes
+> here are the ceremonies and rulings of paths that ran before the release, kept
+> verbatim as history. Nothing new is written here.
+
 Everything the owner and an agent decided together, persisted verbatim rather than
-left in a chat. Fifty-three files and growing: **the naming convention is the
+left in a chat. Fifty-three files, closed: **the naming convention is the
 catalogue**, not a list here.
 
 ```text
@@ -30,17 +36,18 @@ ceremony: closing
 
 The schema is pinned in
 [bedrock 24](../../docs/bedrock/24_24-doc-templates.md#session-note-and-ceremony-template).
-`cairn-check`'s **blocking** `ceremony` rule refuses a path marked `done` with no
-note declaring `ceremony: closing` for its exact id — with no integrator, this is
-the last human guard before a merge. It used to substring-match filenames, which
+Until Cairn 1.1, `cairn-check` carried a **blocking** `ceremony` rule that
+refused a path marked `done` with no note declaring `ceremony: closing` for its
+exact id — with no integrator, it was the last human guard before a merge. It used to substring-match filenames, which
 made it a tautology: an opening-check note exists from a path's first hour, so the
 rule verified that a path had been OPENED and reported that as proof it was CLOSED
 (audit 2026-08-24, F2 · [ADR-016](../../docs/adr/ADR-016-cairn-enforcement-integrity.md)).
 
-**Both halves are gated.** The closing ceremony guards the merge; the opening check
-guards the activation. `cairn-check` blocks a path file in a change that declares
-`status: running` with no note declaring `ceremony: opening` for its id — until
-2026-08-24 that half was a convention only, so a path could be registered, branched
+**Both halves were gated**, and neither is now: no `ceremony` rule exists in
+the engine at 1.1. The closing ceremony guarded the merge and the opening check
+guarded the activation; `cairn-check` blocked a path file in a change that
+declared `status: running` with no note declaring `ceremony: opening` for its
+id — until 2026-08-24 that half was a convention only, so a path could be registered, branched
 and worked with no recorded acceptance at all (owner directive; CP-OPS-002 S05b).
 Eleven opening checks were backfilled with the declaration in that step, alongside
 the sixteen closure notes backfilled at F2.

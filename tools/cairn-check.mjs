@@ -3675,9 +3675,11 @@ function corpusFindings(previousRef = null, changed = [], viewCurrent = null) {
   }
 
   // Two exemptions, each for a reason that would otherwise make this check
-  // wrong rather than strict. Restored here after Cairn 1.1 lost them in
-  // e18bbe4 (CP-CAIRN-006 S02), where the journal became a folder and took the
-  // expression that named both with it:
+  // wrong rather than strict. THIS REPOSITORY HOLDS THIS FILE ONE PATCH AHEAD
+  // OF RELEASE 1.1 to carry them; the fork, its cost and the condition that
+  // retires it are ADR-023. Cairn lost them in e18bbe4, Cairn's CP-CAIRN-001
+  // S02, where the journal became a folder and took the expression that named
+  // both with it.
   //   docs/fixtures/  — sample documents PORTRAYING another vault; their links
   //                     point into that imaginary vault by design
   //   log.md          — the frozen 0.2 journal; it says "stays exactly as

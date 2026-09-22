@@ -35,7 +35,7 @@ integrated outcomes.
 `project/` is a protocol **role name**, not a required folder name. Which folder
 a given repository installs it in is recorded once, in its
 `project/coding-paths/binding.md`, under the
-[host-binding boundary](../reference/repository-layout.md#host-binding-appendix),
+[host-binding boundary of the retired 0.2 specification](../cairn/specification/reference/repository-layout.md#host-binding-appendix),
 and nowhere in the portable articles.
 
 The path ledger connects them by recording which knowledge governed a concrete

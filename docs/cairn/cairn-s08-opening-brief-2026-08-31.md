@@ -27,15 +27,15 @@ unsoundness to every repository that adopts Cairn.
 Four concept articles were written for this, because the failure has a shape and
 the shape recurs:
 
-- [proxy predicate](./specification/concepts/proxy-predicate.md) — a rule
+- [proxy predicate](../concepts/proxy-predicate.md) — a rule
   computes something *near* what it means, and the stand-in is nearly always the
   broader condition;
-- [unsound gate](./specification/concepts/unsound-gate.md) — what that produces:
+- [unsound gate](../concepts/unsound-gate.md) — what that produces:
   a gate whose passing does not mean what it says, and which is invisible because
   its output is a green line;
-- [adversarial fixture](./specification/concepts/adversarial-fixture.md) — the
+- [adversarial fixture](../concepts/adversarial-fixture.md) — the
   only evidence a rule works: a crafted violation it rejects;
-- [gate parity](./specification/concepts/gate-parity.md) — one gate, one tree,
+- [gate parity](../concepts/gate-parity.md) — one gate, one tree,
   the same verdict locally and in CI.
 
 The normative directive is
@@ -97,7 +97,7 @@ journal entry names it. **Fixture:** exactly the state described above.
 **Found during CP-OPS-002's own pre-merge rebase, 2026-08-31. The most severe of
 the three, and new.**
 
-[Checkpoint retention](./specification/concepts/checkpoint-retention.md) exists
+[Checkpoint retention](../concepts/checkpoint-retention.md) exists
 so that a rewriting push cannot orphan a checkpoint the ledger names. S07k
 repaired it once: checking that every *declared unit* resolves a ref is not the
 same as checking that every *completed commit* is retained, because a ref moved
@@ -214,7 +214,7 @@ than they read.
 > The lesson is the brief's own: a claim about what a gate reported must come
 > from the gate's output, not from a local run that resembles it.
 
-This is the same [gate parity](./specification/concepts/gate-parity.md) property
+This is the same [gate parity](../concepts/gate-parity.md) property
 as the derived-view defect, and a better worked example, because nothing exotic
 is involved: it is the documented local command against the documented CI
 command, on an ordinary branch, every single time.
@@ -264,7 +264,7 @@ when the file was written or that a filename's date matches its frontmatter.
 records are immutable once written. Correcting them is an owner decision about
 which is worse — an inaccurate date, or rewriting an event record after
 integration — and the protocol's answer to that question is
-[record integrity](./specification/concepts/record-integrity.md), which S08
+[record integrity](../concepts/record-integrity.md), which S08
 should read before proposing anything.
 
 **Candidate rule, cheap and sound:** a record's filename date MUST equal its
@@ -311,7 +311,7 @@ someone remembering. The findings stay visible as advisories carrying the reason
 **Settled by the protocol, not by preference.**
 
 Session, audit and journal records are immutable once written, and
-[redaction](./specification/concepts/record-integrity.md) is the **only**
+[redaction](../concepts/record-integrity.md) is the **only**
 sanctioned exception — it exists for removing content that must not persist, not
 for correcting content that is merely wrong. Editing a merged event record to fix
 its date would use the one power the protocol grants for the one purpose it does
@@ -393,7 +393,7 @@ the unsoundness by the number of adopters.
 1. Fix `hasCeremony` to read the `ceremony:` key. One function, one fixture.
 2. Add the journal-entry predicate. One rule, one fixture.
 3. Fix the derived-view rule to key on the path's declared `status`, not on the
-   branch name — the [gate parity](./specification/concepts/gate-parity.md)
+   branch name — the [gate parity](../concepts/gate-parity.md)
    requirement, and a defect already demonstrated once.
 3b. Make `npm run cairn-check` default to the trunk base on a `path/*` branch,
    so the local verdict is the one that decides the merge (Finding 5). Do this
@@ -407,7 +407,7 @@ the unsoundness by the number of adopters.
 
 ### Second — make soundness structural rather than remembered
 
-5. An [adversarial fixture](./specification/concepts/adversarial-fixture.md) for
+5. An [adversarial fixture](../concepts/adversarial-fixture.md) for
    every blocking rule, with the rule's own name asserted in the finding. There
    are 26. This is the step that converts "we fixed four bugs" into "this class
    of bug now fails the build".

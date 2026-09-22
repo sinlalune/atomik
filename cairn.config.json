@@ -11,7 +11,7 @@
     "architecture": "docs/bedrock",
     "decisions": "docs/adr",
     "modules": "docs/modules",
-    "concepts": "docs/cairn/specification/concepts",
+    "concepts": "docs/concepts",
     "source": [
       "apps",
       "packages",
@@ -93,7 +93,7 @@
   "scopeDigestAlgorithm": "sha256",
   "transport": {
     "registration": "manual-git",
-    "integration": "manual-git"
+    "integration": "pull-request"
   },
   "migration": {
     "unregisteredPaths": [

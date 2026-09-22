@@ -520,7 +520,7 @@ atomik:
 # Definition of done
 
 - Module notes, learning notes (first-use rule, 17), and this ledger updated at
-  every step; the path-specific handoff brief is refreshed, and the completed
+  every step; the record's resume section is refreshed, and the completed
   work-unit commit is pushed immediately. One journal file is written under
   `atomik-project/log/` at merge. After the pushed merge is verified on the
   remote trunk, the exact clean secondary worktree is removed without force;
@@ -561,7 +561,14 @@ The `Current checkpoint` section is the Work Ledger. An optional `CP-XXX.state.j
 
 ## Session note and ceremony template
 
-Both ceremonies — the opening check and the closing ceremony — are recorded as
+> **RETIRED AT CP-OPS-003 S06.** At Cairn 1.1 an opening acceptance is a YAML
+> block inside the path record and a closing is the pull request's description
+> or a closing record in the path folder; a path is one folder and writes no
+> session file. `atomik-project/sessions/` holds the ceremonies of paths that
+> ran before the release. The template below is how they were written, and the
+> `ceremony` rule it names no longer exists in `tools/cairn-check.mjs`.
+
+Both ceremonies — the opening check and the closing ceremony — were recorded as
 session notes under
 `atomik-project/sessions/YYYY-MM-DD-<path-id>-<ceremony>.md`. The ceremony is
 DECLARED in that note's frontmatter, never inferred from its filename:
@@ -603,45 +610,22 @@ Two further properties of that reader, both load-bearing here:
 The schema is pinned here, once. Other documents point at this section rather
 than restating it — F13 was a restatement that drifted.
 
-## Path handoff brief template
+## Path handoff — the record's resume section
 
-One path owns one rolling generated view at
-`atomik-project/briefs/<path-id>-handoff.md`. Refresh it from the Work Ledger in
-every completed step's work unit; Git history retains the earlier projections.
+RETIRED at CP-OPS-003 S03: a path owns no separate brief. A path is one folder,
+and the handoff is the **resume section of its own `index.md`**, rewritten
+inside every completed work unit. Its contract is the release's, not this
+page's — see the path template the installed release links from
+[`cairn/README.md`](../../cairn/README.md).
 
-```md
----
-type: Atomik Brief
-title: Handoff — CP-EXAMPLE-001 S03 complete, ready for S04
-timestamp: YYYY-MM-DDT00:00:00Z
-atomik:
-  path: CP-EXAMPLE-001
-  branch: path/cp-example-001
-  completed_step: S03
----
+A reader holding the bootloader, the path record and the repository at the
+named checkpoint must be able to state, from that section alone: the outcome,
+the exact commit to resume from, the single next action, what the path may
+write, what it must read and at which object id, what is blocking, what has
+been tried and rejected, and the commands that verify the checkpoint.
 
-# Resume CP-EXAMPLE-001 here
-
-## Repository state
-
-- Worktree and branch
-- Completed-step commit and remote branch
-- Gate verdicts
-
-## What the completed step changed
-
-## Next action
-
-## Blockers and decisions still open
-
-## Resume instruction for the agent
-
-Resolve the path from this worktree's branch, verify the ledger against Git,
-then execute `next action`. Do not ask the owner to restate the prior session.
-```
-
-The brief never replaces the path file. If either differs from Git reality, the
-new session reconciles the Work Ledger first and regenerates this view.
+`atomik-project/briefs/` holds the briefs of paths that ran before the release
+and is history.
 
 ### Registration before implementation
 
@@ -651,8 +635,9 @@ current trunk:
 1. pin `base_commit` to the current trunk tip;
 2. set `status: running` and the final `branch` name;
 3. land a **metadata-only** registration commit on the trunk: the accepted path
-   declaration, the regenerated `ACTIVE.md`, and the opening-check session note
-   that justifies the activation. No implementation of any kind;
+   declaration — whose `## Opening acceptance` block carries the acceptance
+   that justifies the activation — and the regenerated `ACTIVE.md`. No
+   implementation of any kind;
 4. create the worktree/branch from that commit and begin S01.
 
 The invariant is *metadata only*, not a file count. `paths.md` once said the
@@ -668,7 +653,7 @@ CP-MVP-012 are the finite grandfathered paths that predate the rule.
 
 ### Step completion and session boundary
 
-After every step: run gates bare, commit the code/tests/docs/ledger/brief work
+After every step: run gates bare, commit the code/tests/docs/ledger/resume work
 unit, and immediately push it to `origin/path/<id>`. A push failure leaves the
 step locally implemented but incomplete. Once the upstream contains HEAD, the
 agent reports the remote commit and proactively offers to execute `next action`
@@ -676,7 +661,7 @@ in a fresh session. The path remains `running`; no ceremony or status change is
 implied.
 
 On acceptance, the chat ends. A new session in the same worktree follows the
-normal bootstrap, reads the path-specific handoff brief, and proceeds without
+normal bootstrap, reads the record's resume section, and proceeds without
 an owner recap. If the owner continues in the current session, the same durable
 boundary remains available later.
 

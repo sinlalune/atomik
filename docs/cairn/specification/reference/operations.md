@@ -112,7 +112,7 @@ git for-each-ref refs/cairn/checkpoints/cp-example-001
 ```
 
 The ordinal is the `unit:` value in that entry's `cairn-unit` block. `g01` is the
-first [generation](../concepts/checkpoint-retention.md), opened with the branch
+first [generation](../../../concepts/checkpoint-retention.md), opened with the branch
 itself. Do not record the generation anywhere: it is derived by asking which
 numbered generation is highest while all of its refs remain ancestors of the
 branch tip, and a written-down copy is a claim ancestry already answers.
@@ -424,4 +424,4 @@ When a rule has already been broken, do not tidy the history until it looks
 satisfied. The [repair procedures](./repair.md) give the sequence for each case.
 
 Return to [the full protocol](../index.md) or the
-[integration-transport concept](../concepts/integration-transport.md).
+[integration-transport concept](../../../concepts/integration-transport.md).

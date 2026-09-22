@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-003
   route: full            # control plane + decision plane; six units; escalation is one-way
   status: running
-  current_step: S01
+  current_step: S07
   base_commit: 37f56a56689388b4fb770e3b9238ab033d0cfb2e
   branch: path/cp-ops-003
   assigned_writer: jubette
@@ -16,6 +16,7 @@ atomik:
   subject_commit: null
   resolution: null
   writes:                    # ADVISORY — a signal, never a lock
+    - tools/cairn-check.mjs      # S05: the held patch, declared by ADR-023
     - tools/cairn-*.test.mjs
     - tools/cairn-init.mjs
     - tools/cairn-rules.mjs
@@ -23,17 +24,29 @@ atomik:
     - package.json
     - .github/workflows/cairn.yml
     - cairn.config.json
+    - cairn.lock.json             # S02: the kit's own files followed the wiki
     - AGENTS.md
     - atomik-project/coding-paths/binding.md
     - atomik-project/coding-paths/paths.md
     - atomik-project/coding-paths/CP-OPS-003/**
     - atomik-project/coding-paths/ACTIVE.md
     - atomik-project/coding-paths/index.md
-    - atomik-project/{sessions,audits,briefs}/**
+    - atomik-project/sessions/**
+    - atomik-project/audits/**
+    - atomik-project/briefs/**
+    - atomik-project/index.md
+    - docs/bedrock/index.md       # S03: the brief and paths.md were host
+    - docs/bedrock/17_17-self-evolving-docs.md   # constitution in five places,
+    - docs/bedrock/24_24-doc-templates.md        # not two
+    - docs/bedrock/27_27-git-compatibility.md
+    - docs/bedrock/35_35-coding-path-execution-state.md
     - atomik-project/log/**
     - docs/cairn/**
-    - docs/adr/ADR-023-*.md
-    - docs/adr/index.md
+    - docs/concepts/**            # S02: the concept wiki's new root
+    - docs/adr/**                 # S02: three ADRs link the wiki and follow it
+    - docs/bedrock/index.md       # S02: entry pointers left the retired tree
+    - docs/bedrock/22_22-agent-handoff.md
+    - docs/agents/*.md
     - docs/modules/**
     - docs/architecture/**
     - docs/index.md
@@ -78,9 +91,11 @@ second one left in this tree and waits.
       and a push to `master` and to a `path/**` branch both go green.
 - [ ] No `tools/*.test.mjs` remains: this repository does not own the tools
       they test, and the release's own suite is not adopted in their place.
-- [ ] `docs/cairn/specification/` is gone; the concept wiki lives at a root
-      this repository owns, `roots.concepts` names it, `cairn-check` still
-      reads all 76 concepts, and no page routes a reader to the 0.2 copy.
+- [ ] `docs/cairn/specification/` is **retired, not deleted**: the concept wiki
+      lives at a root this repository owns, `roots.concepts` names it,
+      `cairn-check` reads all 76 concepts there, and no page routes a reader to
+      the 0.2 copy. What remains of the copy carries a superseded banner and
+      exists only so that the append-only records linking it still resolve.
 - [ ] `AGENTS.md` and `binding.md` describe release 1.1: the six skills, the
       specification at its release link, and a mechanical contract in which
       every named command exists.
@@ -116,6 +131,30 @@ the go-ahead and are written into [`plan.md`](./plan.md): S02 moves the concept
 wiki to flat `docs/concepts/` rather than sorting it into 1.1's three-folder
 root, and S04 wires `cairn-postmortem` rather than deleting it.
 
+```yaml
+decision: accepted
+accepted_by: jubette
+accepted_roles: [initiator, reviewer]
+accepted_at: 2026-09-21T13:58:00Z
+supersedes: the acceptance of 2026-09-21T10:12:00Z above
+scope_ref: atomik-project/coding-paths/CP-OPS-003/index.md#definition-of-done
+scope_digest: sha256:fce14b6e263dca0c266a36f37f87957f31045daa5253ffaad3fa2894aa495aaa
+```
+
+**Scope amendment, outcome 3 only: *gone* becomes *retired*.** Deleting
+`docs/cairn/specification/` breaks eight relative links inside append-only
+records — six distinct targets across `CP-OPS-002/steps/`, `audits/` and
+`briefs/` — and `links` is corpus-wide and blocking. The outcome as accepted
+could be met only by editing records this protocol forbids editing, or by
+widening the checker fork this path exists to retire. It is the third instance
+today of the class filed as cairn observation 1, a rule demanding an edit to
+frozen history.
+
+What the outcome names is unchanged and still met: one live concept wiki at a
+root this repository owns, and no live page presenting the 0.2 copy as current.
+What is given up is the deletion itself — six pages stay reachable behind a
+retired banner so that frozen records resolve.
+
 ## Documentation coverage
 
 ### Required
@@ -144,32 +183,50 @@ root, and S04 wires `cairn-postmortem` rather than deleting it.
 
 Forward steps live in [`plan.md`](./plan.md) until they are executed.
 
-- **S01** — the gate: the stale tool tests, the script and the workflow step
+- **[S01](./steps/S01.md)** — the gate: the eight 0.2 tool tests, the script and the workflow step that called them — COMPLETE
+- **[S02](./steps/S02.md)** — one specification: the concept wiki moved to `docs/concepts/`, the 0.2 copy retired behind a banner, the 0.2 tools deleted with it — COMPLETE
+- **[S03](./steps/S03.md)** — the entry chain: the bootloader and binding at release 1.1, `paths.md` retired, the integration transport moved on a measurement — COMPLETE
+- **[S04](./steps/S04.md)** — the dead ends: the duplicate module note rerouted, `cairn-postmortem` given a caller and exercised — COMPLETE
+- **[S05](./steps/S05.md)** — the fork on the record: ADR-023, and the engine comment's wrong attribution corrected — COMPLETE
+- **[S06](./steps/S06.md)** — the residue: sessions and audits retired, the 0.2 spec's generated reader deleted, staleShapes down to 23 and every line accounted for — COMPLETE
+- **[S07](./steps/S07.md)** — the post-mortem's own run: the step named the incident it could not count — COMPLETE
 
 ## Resume
 
 ### Checkpoint
 
 ```text
-commit : the registration commit on master — its parent is base_commit
-unit   : 0
+commit : 0c24d5cfd3028808b3b75b2744acc1cbfae93cd9
+unit   : 06 — S06, the residue. This is the last commit origin holds; the
+         unit being written here is S07, whose own commit cannot name itself
 base   : 37f56a56689388b4fb770e3b9238ab033d0cfb2e
-trunk  : 37f56a56689388b4fb770e3b9238ab033d0cfb2e (local; origin/master is at 46bdd11, one commit behind)
+trunk  : b238a665bb086081d883cb6cbf1f0d9184c5cecc — the registration commit,
+         published to origin/master after the owner added a bypass actor to
+         the ruleset on 2026-09-21
 ```
 
 ### Next action
 
-Publish the registration commit to `origin/master`, then create the worktree
-and branch and start S01.
+Closure, on a new candidate. The one proposed on request #5,
+`0c24d5cfd3028808b3b75b2744acc1cbfae93cd9`, is void: S07 changed a file inside
+it. Re-check, update the request's description with the new `C` and its digest,
+and obtain the closing acceptance.
 
 ### Blockers
 
-The registration commit is on local `master` and not yet on the remote, so the
-path is not registered and its branch must not be created. Publishing it also
-publishes the owner's adoption commit `37f56a5`, which is the owner's to
-release. Four untracked files (`index.md`, `log.md`, `cairn-manifesto`,
-`cairn-project`) are the owner's and were deliberately left alone; the
-registration commit was staged by explicit path instead of from a clean tree.
+None. The registration blocker cleared on 2026-09-21: the owner added an admin
+bypass actor to the `master — cairn gates` ruleset, matching `sinlalune/cairn`,
+and the registration commit published. `cairn-check` is green on the branch.
+
+The trunk's own CI stays red on `validator self-test` until this path
+integrates, because the trunk still carries the workflow S01 repaired. Nothing
+is blocked by it: no other path is running, and a request from a branch
+carrying S01 is judged by the workflow that branch carries.
+
+One thing is knowingly left inconsistent for the kit to reconcile:
+`cairn/README.md` lists the concept indexes at their pre-S02 paths while
+`cairn.lock.json` lists them at their new ones. That page is generated by
+`npx cairn-protocol update`, which no unit of this path runs.
 
 ### Tried and rejected
 
@@ -179,6 +236,14 @@ registration commit was staged by explicit path instead of from a clean tree.
 - Repairing `docs/architecture/` against `roots.architecture` here — rejected:
   the kit ignores three declared roots, which is cairn PR #23's second
   observation, and a host-side patch would be overwritten by the fix.
+- Registering by direct push, the sequence `cairn-open` ships — rejected by the
+  forge: a pull request is required and the ruleset has no bypass actor.
+- Registering through a pull request carrying the metadata-only commit —
+  rejected by the gate: `registration` reads the trunk, not the request.
+- Fixing the red gate outside a path so a registration request could merge —
+  refused: *no implementation work outside an accepted coding path* is the rule
+  bedrock 35 exists to hold, and breaking it to satisfy a different rule is the
+  choice this protocol exists to keep a writer out of.
 
 ### Reading order
 

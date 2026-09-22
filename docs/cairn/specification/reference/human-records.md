@@ -12,7 +12,7 @@ These records turn an authorised judgement into an inspectable repository
 object. Their shape and their binding — to a candidate, to a scope digest, to a
 base — are mechanical; their reasoning is not.
 
-On the [`full` route](../concepts/lightweight-path.md) each record below is its
+On the [`full` route](../../../concepts/lightweight-path.md) each record below is its
 own file. On the default `lightweight` route the specification lets the opening
 block live in the path record and the audit questions be answered inside the
 closing record — **but the v0.2 reference checker does not accept either form
@@ -177,7 +177,7 @@ The audit's `base` is the path's registration `base_commit`: the scaffolder
 writes it and `cairn-audit --check` requires it, so the audit is bound to the
 same base the path record declares. The closing record's `base` is `T`, the
 trunk tip the candidate was read against, because that is what the
-[acceptance-drift](../concepts/acceptance-drift.md) predicate diffs from. On a
+[acceptance-drift](../../../concepts/acceptance-drift.md) predicate diffs from. On a
 path that merged the trunk in before closing, `T` is the trunk tip at that
 merge; it equals `base_commit` only when the trunk did not move while the path
 ran.
@@ -250,7 +250,7 @@ Candidate accepted for administrative closure and exact integration.
 | :-- | :-- |
 | `subject_commit` | the exact result. MUST equal the audit's subject |
 | `scope_digest` | the accepted definition of done. MUST equal the opening digest |
-| `base` | the trunk tip the candidate was read against. Input to the [drift predicate](../concepts/acceptance-drift.md) |
+| `base` | the trunk tip the candidate was read against. Input to the [drift predicate](../../../concepts/acceptance-drift.md) |
 | `accepted_roles` | which of the five roles this actor held, so a collapse is visible |
 | `advisories_at_candidate` | the advisory rules raised at `C`, attested by the reviewer |
 | `advisory_disposition` | a structured entry per advisory in that attested set |
@@ -275,4 +275,4 @@ creates a new uniquely named record that identifies and supersedes the earlier
 record. It never edits history into a more convenient shape.
 
 Return to [exact-candidate closure](../index.md#close-one-exact-implementation-candidate)
-or open [closing acceptance](../concepts/closing-acceptance.md).
+or open [closing acceptance](../../../concepts/closing-acceptance.md).

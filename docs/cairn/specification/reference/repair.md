@@ -106,7 +106,7 @@ two facts to repair rather than one.
 `done` is a claim about the trunk, and a branch cannot make it.
 
 Return the declaration to `ready` in a `repair` unit, then re-run integration
-through the declared [transport](../concepts/integration-transport.md). If the
+through the declared [transport](../../../concepts/integration-transport.md). If the
 candidate did in fact land, the trunk integration unit records `done`; the
 branch still does not.
 

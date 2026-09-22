@@ -99,9 +99,9 @@ parent-traversing, dot-segment, empty-segment, and backslash forms are rejected.
 | `sharedFiles` | generated or shared statements of record | repository-relative file array |
 | `staleAfterDays` | quiet-path advisory window | positive integer, advisory only |
 | `defaultRoute` | route a new-path generator writes and a missing-field diagnostic recommends | `lightweight \| full`; the resulting path record still declares it explicitly |
-| `checkpointRetentionRef` | ref prefix for [checkpoint retention](../concepts/checkpoint-retention.md) | a ref prefix the remote accepts, or `null` where the repository forbids rewriting pushes instead |
+| `checkpointRetentionRef` | ref prefix for [checkpoint retention](../../../concepts/checkpoint-retention.md) | a ref prefix the remote accepts, or `null` where the repository forbids rewriting pushes instead |
 | `pathHistoryPolicy` | which conforming rewrite policy the host chose | `retained` with a ref prefix, or `forbidden` with a null prefix |
-| `scopeDigestAlgorithm` | digest used for [scope digests](../concepts/scope-digest.md) | a named algorithm; the digest is never abbreviated |
+| `scopeDigestAlgorithm` | digest used for [scope digests](../../../concepts/scope-digest.md) | a named algorithm; the digest is never abbreviated |
 | `transport` | registration and integration adapters | installed and tested adapter identifiers |
 | `migration` | finite exceptions for records predating installed predicates | three explicit path-id arrays; not a schema-version migration mechanism |
 

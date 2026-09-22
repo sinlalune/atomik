@@ -8,10 +8,12 @@ timestamp: 2026-08-26T00:00:00Z
 
 # Concepts
 
-This wiki defines the specialised ideas used by the
-[Cairn specification](../index.md). Each page is about one object or rule. It
-starts with a plain definition, connects the idea to Cairn, and states its
-limit. The specification remains normative.
+This wiki defines the specialised ideas used by Cairn, the protocol this
+repository runs — the release linked chapter by chapter from
+[`cairn/README.md`](../../cairn/README.md). Each page is about one object or
+rule. It starts with a plain definition, connects the idea to Cairn, and states
+its limit. The release's own specification remains normative; these pages never
+override it.
 
 The articles fall into two kinds, and keeping them apart matters more than it
 looks. **Borrowed vocabulary** is what Cairn inherits from Git and from ordinary

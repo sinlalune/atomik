@@ -37,7 +37,7 @@ carries the machine-checkable state — `checkpoint`, `checkpoint_pushed`,
 `verify` as exact runnable commands. Its body holds seven capped
 sections: outcome, state, next action, blockers, tried and rejected, reading
 order, and verification. The complete field list, caps, and template are in the
-[handoff-brief reference](../reference/handoff-brief.md).
+[handoff-brief reference of the retired 0.2 specification](../cairn/specification/reference/handoff-brief.md).
 
 ### The answerable-alone contract
 

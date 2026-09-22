@@ -53,6 +53,13 @@ jobs:
   cairn:
     name: cairn-check (protocol)
     runs-on: ubuntu-latest
+    # The post-mortem reads this run and, on a request, comments once. It
+    # writes nothing to the repository: a branch has one writer and it is the
+    # writer of the path, never this job.
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -92,13 +99,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      # The validator itself remains dependency-free. Its test job also checks
-      # the generated specification reader, whose renderer is a declared
-      # workspace dependency, so the complete executable contract is installed.
-      - run: npm ci
-      - name: validator self-test
-        run: npm run cairn-check:test
+      # No install step and no test step: this host owns neither the tools
+      # this job runs nor a suite for them.
       - name: protocol check
+        id: cairn-check
         # --base doubles as the rebase gate: cairn-check fails a path/* branch
         # that does not already contain this ref's tip. Every path merges
         # itself, so nothing else stops a stale branch landing on a trunk it
@@ -115,3 +119,27 @@ jobs:
         env:
           CAIRN_BASE_REF: origin/${{ github.base_ref || 'master' }}
         run: node tools/cairn-check.mjs --base "$CAIRN_BASE_REF"
+      # Only on the checker's failure, so the incident is written while it
+      # happens. It prints, and commits nothing.
+      - name: cairn-postmortem
+        if: failure() && steps.cairn-check.conclusion == 'failure'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CAIRN_BRANCH: ${{ github.head_ref || github.ref_name }}
+          CAIRN_REQUEST: ${{ github.event.pull_request.number }}
+          CAIRN_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # bash -e would abort the step before the reading is printed, losing
+          # it on the one run it was written for. stderr is captured with it,
+          # so a crash in the tool is posted as the reading — on a run that is
+          # already red, a stack trace in the thread beats silence.
+          node tools/cairn-postmortem.mjs --branch "$CAIRN_BRANCH" > postmortem.txt 2>&1 || true
+          # The tool counts red runs by asking the forge for CONCLUDED failures,
+          # so it can never count the run it is printing from: a branch's first
+          # failure reads as none. Cairn's defect, filed upstream and open;
+          # named here rather than forked, for the reason in ADR-023.
+          echo "  this run: $CAIRN_RUN_URL — a red run on this branch, still in progress. The forge lists runs by concluded failure, so nothing above counts it." >> postmortem.txt
+          cat postmortem.txt
+          if [ -n "$CAIRN_REQUEST" ]; then
+            gh pr comment "$CAIRN_REQUEST" --body-file postmortem.txt
+          fi

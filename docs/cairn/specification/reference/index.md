@@ -9,7 +9,7 @@ timestamp: 2026-08-26T00:00:00Z
 # Implementation reference
 
 The [canonical specification](../index.md) teaches and defines the protocol.
-The [concept wiki](../concepts/index.md) explains one object per article. This
+The [concept wiki](../../../concepts/index.md) explains one object per article. This
 reference supplies exact forms:
 
 - [Repository layout](./repository-layout.md) — directories, file roles, and
