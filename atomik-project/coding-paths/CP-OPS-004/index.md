@@ -7,14 +7,14 @@ timestamp: 2026-09-22T00:00:00Z
 atomik:
   id: CP-OPS-004
   route: full            # control plane; escalation is one-way
-  status: ready
+  status: done
   current_step: S01
   base_commit: 3ab967061124249cebe74c920cc9380d61d39952
   branch: path/cp-ops-004
   assigned_writer: jubette
   depends_on: []
   subject_commit: 98ba9bbe692724e9a2ccb3ca4e68ecbb81a1b267
-  resolution: null
+  resolution: completed
   writes:
     - .github/workflows/cairn.yml
     - atomik-project/coding-paths/CP-OPS-004/**
