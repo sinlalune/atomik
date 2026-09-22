@@ -7,14 +7,14 @@ timestamp: 2026-09-21T00:00:00Z
 atomik:
   id: CP-OPS-003
   route: full            # control plane + decision plane; six units; escalation is one-way
-  status: ready
+  status: done
   current_step: S07
   base_commit: 37f56a56689388b4fb770e3b9238ab033d0cfb2e
   branch: path/cp-ops-003
   assigned_writer: jubette
   depends_on: []
   subject_commit: 8010b1cd96afababf4b7fc248e2d7d039210e301
-  resolution: null
+  resolution: completed
   writes:                    # ADVISORY — a signal, never a lock
     - tools/cairn-check.mjs      # S05: the held patch, declared by ADR-023
     - tools/cairn-*.test.mjs
