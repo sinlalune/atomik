@@ -117,7 +117,14 @@ jobs:
         # first pull request. Without the flag the checker derives the same
         # comparison ref here as on a laptop: the merge-base with the trunk.
         env:
-          CAIRN_BASE_REF: origin/${{ github.base_ref || 'master' }}
+          # Three events, three bases. On a REQUEST the base is the target
+          # branch. On a push to a PATH branch it is the trunk, so each unit is
+          # judged against what it will merge into rather than against the push
+          # before it. On a push to the TRUNK it is the commit the push
+          # REPLACED: `origin/master` after that push already names the pushed
+          # commit, and comparing it with itself empties the comparison and
+          # narrows every changed-file rule to nothing.
+          CAIRN_BASE_REF: ${{ github.base_ref && format('origin/{0}', github.base_ref) || (github.ref_name == 'master' && github.event.before || 'origin/master') }}
         run: node tools/cairn-check.mjs --base "$CAIRN_BASE_REF"
       # Only on the checker's failure, so the incident is written while it
       # happens. It prints, and commits nothing.

@@ -7,13 +7,13 @@ timestamp: 2026-09-22T00:00:00Z
 atomik:
   id: CP-OPS-004
   route: full            # control plane; escalation is one-way
-  status: running
+  status: ready
   current_step: S01
   base_commit: 3ab967061124249cebe74c920cc9380d61d39952
   branch: path/cp-ops-004
   assigned_writer: jubette
   depends_on: []
-  subject_commit: null
+  subject_commit: 98ba9bbe692724e9a2ccb3ca4e68ecbb81a1b267
   resolution: null
   writes:
     - .github/workflows/cairn.yml
@@ -81,23 +81,24 @@ CP-OPS-003 closed on an outcome nobody had observed.
 
 ## Steps
 
-- **S01** — the base a trunk push is compared against
+- **[S01](./steps/S01.md)** — the base a trunk push is compared against — COMPLETE
 
 ## Resume
 
 ### Checkpoint
 
 ```text
-commit : 3ab967061124249cebe74c920cc9380d61d39952
-unit   : 0 — the registration commit's parent; the registration commit is this
-         change
+commit : 98ba9bbe692724e9a2ccb3ca4e68ecbb81a1b267
+unit   : 01 — S01, and candidate C, accepted by the owner on request #6
 base   : 3ab967061124249cebe74c920cc9380d61d39952
 trunk  : 3ab967061124249cebe74c920cc9380d61d39952
 ```
 
 ### Next action
 
-Create the worktree and branch from the registration commit, then S01.
+Integrate: merge request #6, then the integrating commit recording done, the
+journal entry, and the amendment to CP-OPS-003's entry. Read the trunk run the
+merge triggers before ticking outcome 1.
 
 ### Blockers
 
