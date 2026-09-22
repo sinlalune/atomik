@@ -94,7 +94,8 @@ Advances: outcome 5, part of outcome 8.
 
 Write `ADR-023`: `tools/cairn-check.mjs` is held one patch ahead of release
 1.1, restoring the link exemption for `docs/fixtures/` and
-`atomik-project/log.md` that e18bbe4 (CP-CAIRN-006 S02) dropped. Name cairn PR
+`atomik-project/log.md` that e18bbe4 — Cairn's CP-CAIRN-001 S02 — dropped.
+Name cairn PR
 #23, and state the retirement condition — when the fix is released, `update
 --take tools/cairn-check.mjs` and the ADR is superseded.
 

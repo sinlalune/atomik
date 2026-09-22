@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-003
   route: full            # control plane + decision plane; six units; escalation is one-way
   status: running
-  current_step: S04
+  current_step: S05
   base_commit: 37f56a56689388b4fb770e3b9238ab033d0cfb2e
   branch: path/cp-ops-003
   assigned_writer: jubette
@@ -16,6 +16,7 @@ atomik:
   subject_commit: null
   resolution: null
   writes:                    # ADVISORY — a signal, never a lock
+    - tools/cairn-check.mjs      # S05: the held patch, declared by ADR-023
     - tools/cairn-*.test.mjs
     - tools/cairn-init.mjs
     - tools/cairn-rules.mjs
@@ -186,15 +187,16 @@ Forward steps live in [`plan.md`](./plan.md) until they are executed.
 - **[S02](./steps/S02.md)** — one specification: the concept wiki moved to `docs/concepts/`, the 0.2 copy retired behind a banner, the 0.2 tools deleted with it — COMPLETE
 - **[S03](./steps/S03.md)** — the entry chain: the bootloader and binding at release 1.1, `paths.md` retired, the integration transport moved on a measurement — COMPLETE
 - **[S04](./steps/S04.md)** — the dead ends: the duplicate module note rerouted, `cairn-postmortem` given a caller and exercised — COMPLETE
+- **[S05](./steps/S05.md)** — the fork on the record: ADR-023, and the engine comment's wrong attribution corrected — COMPLETE
 
 ## Resume
 
 ### Checkpoint
 
 ```text
-commit : 5b9b68c4c32b9f26cc42b926a52802b6d66c5652
-unit   : 03 — S03, the entry chain. This is the last commit origin holds; the
-         unit being written here is S04, whose own commit cannot name itself
+commit : 856e660225835cf16dff695fa83bcb537c89929e
+unit   : 04 — S04, the dead ends. This is the last commit origin holds; the
+         unit being written here is S05, whose own commit cannot name itself
 base   : 37f56a56689388b4fb770e3b9238ab033d0cfb2e
 trunk  : b238a665bb086081d883cb6cbf1f0d9184c5cecc — the registration commit,
          published to origin/master after the owner added a bypass actor to
@@ -203,10 +205,10 @@ trunk  : b238a665bb086081d883cb6cbf1f0d9184c5cecc — the registration commit,
 
 ### Next action
 
-S05: write ADR-023 — `tools/cairn-check.mjs` is held one patch ahead of release
-1.1, restoring the link exemption for `docs/fixtures/` and
-`atomik-project/log.md` that e18bbe4 dropped; name cairn PR #23 and the
-condition under which `update --take` retires the fork.
+S06: the residue — retire `atomik-project/{sessions,audits,briefs}` as history,
+shrink the retired 0.2 tree to the six files frozen records need (the nine S02
+deferred, with `specification.html`), and run `staleShapes()` once more so
+every line it still prints is either gone or named as deliberately kept.
 
 ### Blockers
 
