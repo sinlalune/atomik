@@ -127,12 +127,18 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CAIRN_BRANCH: ${{ github.head_ref || github.ref_name }}
           CAIRN_REQUEST: ${{ github.event.pull_request.number }}
+          CAIRN_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           # bash -e would abort the step before the reading is printed, losing
           # it on the one run it was written for. stderr is captured with it,
           # so a crash in the tool is posted as the reading — on a run that is
           # already red, a stack trace in the thread beats silence.
           node tools/cairn-postmortem.mjs --branch "$CAIRN_BRANCH" > postmortem.txt 2>&1 || true
+          # The tool counts red runs by asking the forge for CONCLUDED failures,
+          # so it can never count the run it is printing from: a branch's first
+          # failure reads as none. Cairn's defect, filed upstream and open;
+          # named here rather than forked, for the reason in ADR-023.
+          echo "  this run: $CAIRN_RUN_URL — a red run on this branch, still in progress. The forge lists runs by concluded failure, so nothing above counts it." >> postmortem.txt
           cat postmortem.txt
           if [ -n "$CAIRN_REQUEST" ]; then
             gh pr comment "$CAIRN_REQUEST" --body-file postmortem.txt
