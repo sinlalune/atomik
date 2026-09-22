@@ -126,9 +126,9 @@ these defects being reported now.
 ### Checkpoint
 
 ```text
-commit : a5fa051d3d8ef980e4a6d21040656bc4099385fd
-unit   : 01 — S01, the update. The last commit origin holds; S02's own commit
-         cannot name itself
+commit : a5fa051d3d8ef980e4a6d21040656bc4099385fd — the last commit origin
+         holds; S02's own commit cannot name itself
+unit   : 01 — S01, the update
 base   : 331a37a225564ff1d35ea0a03d1137a03b660d21
 trunk  : 331a37a225564ff1d35ea0a03d1137a03b660d21
 ```
