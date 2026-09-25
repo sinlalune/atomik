@@ -7,14 +7,14 @@ timestamp: 2026-09-22T00:00:00Z
 atomik:
   id: CP-OPS-005
   route: full            # control plane: the kit's own files and the lock
-  status: ready
+  status: done
   current_step: S02
   base_commit: 331a37a225564ff1d35ea0a03d1137a03b660d21
   branch: path/cp-ops-005
   assigned_writer: jubette
   depends_on: []
   subject_commit: 3be8c125ac1ffc015811adce76f9390787112a7d
-  resolution: null
+  resolution: completed
   writes:
     - cairn/README.md
     - cairn.lock.json
