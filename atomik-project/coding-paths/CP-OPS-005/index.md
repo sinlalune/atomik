@@ -7,13 +7,13 @@ timestamp: 2026-09-22T00:00:00Z
 atomik:
   id: CP-OPS-005
   route: full            # control plane: the kit's own files and the lock
-  status: running
+  status: ready
   current_step: S02
   base_commit: 331a37a225564ff1d35ea0a03d1137a03b660d21
   branch: path/cp-ops-005
   assigned_writer: jubette
   depends_on: []
-  subject_commit: null
+  subject_commit: 3be8c125ac1ffc015811adce76f9390787112a7d
   resolution: null
   writes:
     - cairn/README.md
@@ -126,17 +126,17 @@ these defects being reported now.
 ### Checkpoint
 
 ```text
-commit : a5fa051d3d8ef980e4a6d21040656bc4099385fd — the last commit origin
-         holds; S02's own commit cannot name itself
-unit   : 01 — S01, the update
+commit : 3be8c125ac1ffc015811adce76f9390787112a7d
+unit   : 02 — S02, the repair; this is candidate C, merged by request #7
 base   : 331a37a225564ff1d35ea0a03d1137a03b660d21
 trunk  : 331a37a225564ff1d35ea0a03d1137a03b660d21
 ```
 
 ### Next action
 
-Close on this unit's commit: open the request into the template this path
-installed, obtain acceptance, record `ready` at `C`, then integrate.
+Record done: the integrating commit setting `status: done` and
+`resolution: completed`, the journal entry, and the removal of the clean
+worktree.
 
 ### Blockers
 
