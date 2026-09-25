@@ -3,7 +3,7 @@ type: Cairn Folder Index
 title: Architecture
 description: Accepted architecture: one page per feature, interface, contract or flow, each with its dependency sentence and its diagram.
 tags: [index, cairn, architecture]
-timestamp: 2026-09-21T00:00:00Z
+timestamp: 2026-09-22T00:00:00Z
 ---
 
 # Architecture

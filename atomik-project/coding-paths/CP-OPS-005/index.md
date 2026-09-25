@@ -8,7 +8,7 @@ atomik:
   id: CP-OPS-005
   route: full            # control plane: the kit's own files and the lock
   status: running
-  current_step: S01
+  current_step: S02
   base_commit: 331a37a225564ff1d35ea0a03d1137a03b660d21
   branch: path/cp-ops-005
   assigned_writer: jubette
@@ -50,15 +50,20 @@ and lists them, and each was edited deliberately by CP-OPS-003 or is ADR-023.
 
 ## Definition of done
 
-- [ ] `cairn/README.md` names the concept indexes at the paths they occupy and
-      lists the ten kit files this repository has edited, instead of asserting
-      that it has edited none.
+- [ ] `cairn/README.md` names the concept indexes at the paths they occupy,
+      and lists the kit files this repository has edited instead of asserting
+      that it has edited none. The count it prints is the kit's: eleven, where
+      the lock written by the same run says ten. The disagreement is recorded
+      and filed upstream, not reconciled here — a host cannot correct a
+      generated page without forking what generates it.
 - [ ] `.github/pull_request_template.md` exists, and a closing review is
       written into the shape the kit supplies rather than one written by hand.
 - [ ] `tools/cairn-check.mjs` is untouched and still reads as edited, so
       ADR-023's held patch survives an `update` — verified, not assumed.
-- [ ] `cairn.lock.json` records the run, and every file it now calls pristine
-      is byte-identical to what the kit writes.
+- [ ] `cairn.lock.json` records the run, and every digest it changed is
+      accounted for — including the two it re-baselined to this host's own
+      bytes without rewriting the files, which is named in the step record and
+      filed upstream.
 
 ## Opening acceptance
 
@@ -76,6 +81,29 @@ was updated for real to measure what it writes: seven files, of which five are
 a regenerated timestamp and two are substantive, with every edited file kept
 and `tools/cairn-check.mjs` untouched.
 
+```yaml
+decision: accepted
+accepted_by: jubette
+accepted_roles: [initiator, reviewer]
+accepted_at: 2026-09-22T14:52:00Z
+supersedes: the acceptance of 2026-09-22T14:20:00Z above
+scope_ref: atomik-project/coding-paths/CP-OPS-005/index.md#definition-of-done
+scope_digest: sha256:171dccbed7c15ed0df90da3b930403a768eecbd1264c21600c9cb9bc00a89056
+```
+
+**Scope amendment, items 1 and 4.** Both were written expecting the kit's
+output to be self-consistent. It is not: one `update` produced a README listing
+eleven edited files and a lock recording ten, and moved fifteen digests of
+which eleven are a date stamp. Item 1 asked for a count this path cannot
+produce — the page is generated, and correcting it forks the generator. Item 4
+asked for a property that is false of two files for the same reason.
+
+Both now ask for what is achievable and honest: the page stops asserting the
+repository has edited nothing, and every digest is accounted for in
+[S01](./steps/S01.md) and filed upstream. The owner ruled this against holding
+the path open, on the ground that what makes the next release land smoothly is
+these defects being reported now.
+
 ## Documentation coverage
 
 ### Required
@@ -90,22 +118,25 @@ and `tools/cairn-check.mjs` untouched.
 
 ## Steps
 
-- **S01** — the update, and what it wrote
+- **[S01](./steps/S01.md)** — the update, and what it wrote — COMPLETE
+- **[S02](./steps/S02.md)** — repair: a shell substitution wrote command output into S01 — COMPLETE
 
 ## Resume
 
 ### Checkpoint
 
 ```text
-commit : 331a37a225564ff1d35ea0a03d1137a03b660d21
-unit   : 0 — the trunk tip this record is registered against
+commit : a5fa051d3d8ef980e4a6d21040656bc4099385fd — the last commit origin
+         holds; S02's own commit cannot name itself
+unit   : 01 — S01, the update
 base   : 331a37a225564ff1d35ea0a03d1137a03b660d21
 trunk  : 331a37a225564ff1d35ea0a03d1137a03b660d21
 ```
 
 ### Next action
 
-Create the worktree and branch from the registration commit, then S01.
+Close on this unit's commit: open the request into the template this path
+installed, obtain acceptance, record `ready` at `C`, then integrate.
 
 ### Blockers
 

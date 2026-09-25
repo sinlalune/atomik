@@ -3,7 +3,7 @@ type: Cairn Folder Index
 title: Cairn terms, for this project's reader
 description: What a word of the protocol means here: the plain meaning first, then what this repository actually does with it. Link the protocol's own article for the full definition rather than restating it. Written when someone asks what a Cairn term means.
 tags: [index, cairn, concepts, cairn]
-timestamp: 2026-09-21T00:00:00Z
+timestamp: 2026-09-22T00:00:00Z
 ---
 
 # Cairn terms, for this project's reader
